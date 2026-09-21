@@ -29,7 +29,7 @@ STUCK_MIN_PROGRESS = 0.3  # m
 
 
 def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float], tolerance: float = 1.5,
-         timeout: float = 60.0, on_tick=None, log=print) -> str:
+         timeout: float = 60.0, on_tick=None, log=print, sprint_always: bool = False) -> str:
     """반환: 'arrived' | 'timeout' | 'dead' | 'lost'"""
     tx, tz = target
     t_start = time.time()
@@ -79,7 +79,7 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
 
             sx, sy = control.world_to_stick(dx, dz, s.cam_yaw, YAW_OFFSET, FLIP_X)
             pad.move(sx, sy)
-            pad.sprint(dist > SPRINT_BEYOND)
+            pad.sprint(sprint_always or dist > SPRINT_BEYOND)
             time.sleep(0.05)
     finally:
         pad.neutral()

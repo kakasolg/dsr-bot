@@ -55,15 +55,21 @@ def record_route(name: str, spacing: float = 4.0) -> None:
 
 
 class Guard:
-    """결정론적 안전 규칙. 순찰 루프의 매 틱에서 불린다. 이동 조향은 nav 가 하고, 여기선 끼어들기만."""
+    """결정론적 안전 규칙. 플레이북 파라미터를 읽고 순찰 루프의 매 틱에서 불린다.
+    조향은 nav 가 하고 여기선 끼어들기(구르기·성배병)와 상태 플래그(후퇴·도망·스프린트)만 결정한다."""
 
-    def __init__(self, pad: control.Pad, log=print):
+    def __init__(self, pad: control.Pad, pb, log=print):
         self.pad = pad
+        self.pb = pb
         self.log = log
         self.last_hp: int | None = None
         self.last_flask = 0.0
         self.last_dodge = 0.0
-        self.retreat = False
+        self.retreat = False   # HP 낮음 → 직전 웨이포인트로
+        self.flee = None       # avoid 타입이 가까움 → 그 적 (Chr)
+        self.crowded = False   # 적 다수 → 스프린트
+        self.flask_empty = False
+        self.hp_at_flask: int | None = None
 
     def tick(self, s: telemetry.Snapshot) -> str | None:
         p = s.player
@@ -75,83 +81,194 @@ class Guard:
             self.last_dodge = now
             action = "dodge"
         hp_pct = p.hp / max(1, p.max_hp)
-        if hp_pct < 0.5 and not any(c.dist < 8 for c in hostile) and now - self.last_flask > 4.0:
+        # 성배병을 마셨는데 3초 뒤에도 HP 가 안 올랐으면 빈 병 → 이번 에피소드엔 더 안 마심
+        if self.hp_at_flask is not None and now - self.last_flask > 3.0:
+            if p.hp <= self.hp_at_flask:
+                self.flask_empty = True
+                self.log("  guard: 성배병 효과 없음 — 빈 병으로 간주")
+            self.hp_at_flask = None
+        if (hp_pct < self.pb.flask_hp_pct and not self.flask_empty and not any(c.dist < 8 for c in hostile)
+                and now - self.last_flask > 4.0):
             self.pad.use_item()
             self.last_flask = now
+            self.hp_at_flask = p.hp
             action = "flask"
-        self.retreat = hp_pct < 0.35 and bool(hostile)
-        self.crowded = len(hostile) >= 3
+        self.retreat = hp_pct < self.pb.retreat_hp_pct and bool(hostile)
+        self.flee = next((c for c in hostile if c.npc_param in self.pb.avoid_types and c.dist <= self.pb.flee_distance), None)
+        self.crowded = len(hostile) >= self.pb.crowd_threshold
         self.last_hp = p.hp
         if action:
             self.log(f"  guard: {action} (hp {p.hp}/{p.max_hp}, hostile {len(hostile)})")
         return action
 
 
-def run_route(name: str, laps: int) -> None:
-    pts = json.loads((ROUTES / f"{name}.json").read_text())["points"]
-    if len(pts) < 2:
-        raise SystemExit("웨이포인트가 2개 이상 필요합니다")
+def run_episode(route: str, pb, harasser=None, max_seconds: float = 240.0, laps: int = 99, log=print) -> dict:
+    """한 에피소드: 순찰하다 죽거나(사망) 시간이 다 되면 끝. 결과 dict 를 돌려준다."""
+    pts = json.loads((ROUTES / f"{route}.json").read_text())["points"]
     tm = telemetry.Telemetry(telemetry.load_names())
     pad = control.Pad()
-    guard = Guard(pad)
-    if not control.focus_game():
-        print("경고: 게임 창을 앞으로 가져오지 못함 — 패드 입력이 안 먹을 수 있음", flush=True)
+    guard = Guard(pad, pb, log)
+    control.focus_game()
     time.sleep(0.5)
-    order = list(range(len(pts))) + list(range(len(pts) - 2, 0, -1))  # A→B→A (끝점 중복 없이)
-    # 지금 서 있는 곳에서 가장 가까운 지점부터 시작 (경로 끝에 서 있으면 거꾸로 출발)
+    order = list(range(len(pts))) + list(range(len(pts) - 2, 0, -1))
     s0 = tm.snapshot()
     if s0 and s0.player.gx is not None:
         nearest = min(range(len(pts)), key=lambda i: math.hypot(pts[i][0] - s0.player.gx, pts[i][2] - s0.player.gz))
         k0 = order.index(nearest)
         order = order[k0:] + order[:k0]
-        print(f"가장 가까운 지점 wp {nearest} ({math.hypot(pts[nearest][0]-s0.player.gx, pts[nearest][2]-s0.player.gz):.1f} m) 부터 시작", flush=True)
     ep = Episode()
-    lap = 0
-    completed = 0
-    print(f"순찰 시작: {name} ({len(pts)} points), {laps} laps", flush=True)
+    ep.write({"t": round(time.time(), 3), "event": "playbook", "version": pb.version})
+    t0 = time.time()
+    result = {"reason": "time", "laps": 0, "seconds": 0.0, "episode": ep.name, "death_file": None}
+    stop = False
 
     def on_tick(s, dist):
-        guard.tick(s)
+        nonlocal stop
+        prev_hp = guard.last_hp
+        a = guard.tick(s)
+        if harasser:
+            ev = harasser.tick()
+            if ev:
+                ep.write(ev)
         row = compact(s, 40.0)
         row["nav_dist"] = round(dist, 1)
+        row["wpos"] = [round(s.player.gx, 1), round(s.player.gz, 1)] if s.player.gx is not None else None
+        if a:
+            row["guard"] = a
+        if prev_hp is not None and s.player.hp < prev_hp:
+            row["event"] = "damage"
+            row["dmg"] = prev_hp - s.player.hp
+            row["by"] = [[c.npc_param, round(c.dist, 1), c.anim] for c in s.hostile(20.0)[:3]]
         ep.tick(row)
+        if time.time() - t0 > max_seconds:
+            stop = True
+            raise _Stop()
 
     try:
-        while lap < laps:
+        lap = 0
+        while lap < laps and not stop:
             for k, idx in enumerate(order):
                 target = (pts[idx][0], pts[idx][2])
-                if guard.retreat and k > 0:
+                if (guard.retreat or guard.flee) and k > 0:
                     prev = pts[order[k - 1]]
-                    print(f"  retreat → wp {order[k-1]}", flush=True)
-                    nav.goto(tm, pad, (prev[0], prev[2]), tolerance=2.0, timeout=20, on_tick=on_tick)
+                    why = "flee " + (guard.flee.name or str(guard.flee.npc_param)) if guard.flee else "retreat"
+                    log(f"  {why} → wp {order[k-1]}")
+                    ep.write({"t": round(time.time(), 3), "guard": "retreat", "why": why})
+                    nav.goto(tm, pad, (prev[0], prev[2]), tolerance=2.0, timeout=20, on_tick=on_tick, log=log)
                     time.sleep(2.0)
-                r = nav.goto(tm, pad, target, tolerance=2.0, timeout=90, on_tick=on_tick)
-                print(f"  wp {idx}: {r}", flush=True)
+                sprint_seg = idx in pb.sprint_segments
+                r = nav.goto(tm, pad, target, tolerance=2.0, timeout=90, on_tick=on_tick, log=log,
+                             sprint_always=sprint_seg or guard.crowded)
                 if r == "dead":
-                    ep.close("death", {"lap": lap, "wp": idx})
-                    print(f"☠ 사망 (lap {lap}, wp {idx}) — 리스폰 대기", flush=True)
-                    while True:
-                        s = tm.snapshot(within=1.0)
-                        if s and s.player.hp > 0:
-                            break
-                        time.sleep(1.0)
-                    time.sleep(3.0)
-                    ep = Episode()
-                    guard = Guard(pad)
+                    result["reason"] = "death"
                     break
                 if r in ("timeout", "lost"):
-                    print(f"  wp {idx} 실패({r}) — 다음으로", flush=True)
+                    log(f"  wp {idx} 실패({r}) — 다음으로")
             else:
                 lap += 1
-                completed += 1
                 ep.write({"t": round(time.time(), 3), "event": "lap", "lap": lap})
-                print(f"✔ lap {lap} 완료", flush=True)
-    except KeyboardInterrupt:
+                log(f"  ✔ lap {lap}")
+                continue
+            break
+    except _Stop:
         pass
     finally:
         pad.neutral()
-        ep.close("stopped", {"laps": completed})
-        print(f"종료: laps={completed}")
+    result["laps"] = lap
+    result["seconds"] = round(time.time() - t0, 1)
+    if result["reason"] == "death":
+        path = ep.close("death", {"lap": lap})
+        result["death_file"] = str(path.with_suffix("")) + ".death.json"
+        log(f"☠ 사망 — {result['seconds']} s, {lap} laps")
+        wait_respawn(tm, pad, log)
+    else:
+        ep.close("time", {"laps": lap})
+        log(f"⏱ 시간 종료 — {result['seconds']} s, {lap} laps")
+    return result
+
+
+class _Stop(Exception):
+    pass
+
+
+def wait_respawn(tm, pad, log=print, timeout: float = 120.0) -> bool:
+    """사망 후 리스폰까지. 게임이 "부활할 곳" 선택창을 띄우면 A 로 첫 번째(마리카의 쐐기/축복)를 고른다."""
+    t0 = time.time()
+    pressed = 0
+    while time.time() - t0 < timeout:
+        s = tm.snapshot(within=1.0)
+        if s and s.player.hp > 0:
+            time.sleep(3.0)
+            return True
+        if time.time() - t0 > 6 and pressed < 20:  # 사망 연출이 끝난 뒤부터 2초마다: 오른쪽(마지막 축복) → A
+            control.focus_game()
+            pad.tap(control.B.XUSB_GAMEPAD_DPAD_RIGHT, 0.1)
+            time.sleep(0.3)
+            pad.tap(control.B.XUSB_GAMEPAD_A, 0.1)
+            pressed += 1
+        time.sleep(2.0)
+    log("  리스폰 대기 시간 초과")
+    return False
+
+
+def reset_to_grace(tm, grace_id: int, expect: tuple[float, float] | None = None, log=print, timeout: float = 60.0) -> bool:
+    """축복으로 워프 → 잔존 몹 정리 + HP/성배 회복.
+    로딩 중엔 플레이어를 못 읽는 게 보통이지만 짧으면 놓치므로, 기대 좌표(expect)에 도착했는지로 판정한다."""
+    import harass
+    harass.send(f"warp {grace_id}")
+    t0 = time.time()
+    saw_load = False
+    while time.time() - t0 < timeout:
+        s = tm.snapshot(within=1.0)
+        if s is None or s.player.gx is None:
+            saw_load = True
+        elif s.player.hp > 0:
+            if expect is not None:
+                if math.hypot(s.player.gx - expect[0], s.player.gz - expect[1]) < 10.0 and time.time() - t0 > 3.0:
+                    time.sleep(2.0)
+                    return True
+            elif saw_load:
+                time.sleep(2.0)
+                return True
+        time.sleep(0.5)
+    log("  워프 대기 시간 초과")
+    return False
+
+
+def reset_episode(tm, pad, grace_id: int | None, expect: tuple[float, float] | None, log=print) -> bool:
+    """에피소드 리셋 = 랜덤런의 새 캐릭터: 살아 있으면 즉사시켜 축복에서 리스폰(잔존 몹 정리, HP/성배 회복),
+    그 다음 시작 축복으로 워프. 적이 근처에 있으면 워프가 막히므로 반드시 리스폰 뒤에 워프한다."""
+    import harass
+    s = tm.snapshot(within=1.0)
+    if s and s.player.hp > 0:
+        log("  리셋: 즉사 → 리스폰")
+        harass.send("activate 1337304928")
+        for _ in range(20):
+            time.sleep(0.5)
+            s = tm.snapshot(within=1.0)
+            if s and s.player.hp <= 0:
+                break
+    if not wait_respawn(tm, pad, log):
+        return False
+    if grace_id:
+        log("  리셋: 시작 축복으로 워프")
+        return reset_to_grace(tm, grace_id, expect, log)
+    return True
+
+
+def last_grace(tm) -> int | None:
+    """GameMan+0xB30 = 마지막으로 방문한 축복 ID (Hexinton LastGrace)."""
+    gm = tm.symbols.get("GameMan")
+    if not gm:
+        return None
+    p = tm.q(int(gm, 16))
+    return tm.i32(p + 0xB30) if p else None
+
+
+def run_route(name: str, laps: int) -> None:
+    import playbook
+    r = run_episode(name, playbook.load_current(), None, max_seconds=3600, laps=laps)
+    print(r)
 
 
 if __name__ == "__main__":
