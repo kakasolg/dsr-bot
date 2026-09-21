@@ -23,6 +23,10 @@ BOUNDS = {
     "flee_distance": (6.0, 20.0),
     "avoid_types_max": (0, 8),
     "stamina_walk_pct": (0.10, 0.50),
+    "attack_range": (1.2, 3.0),
+    "attack_cooldown": (0.8, 4.0),
+    "hold_range": (1.5, 5.0),
+    "lock_range": (3.0, 12.0),
 }
 MODES = ("walk", "sprint", "guardjump")
 
@@ -37,6 +41,11 @@ class Playbook:
     mode_open: str = "sprint"          # 적 없을 때 이동 모드
     mode_near_enemy: str = "guardjump" # 적 20 m 안일 때 이동 모드 (가드+점프 전진: 빠르고 점프 무적+가드 보호)
     stamina_walk_pct: float = 0.25     # 스태미나가 이 아래면 걷기로 회복
+    # ── DSR 전투 (사용자 원칙: 막고 → 한 대) ──
+    attack_range: float = 1.8          # 적이 이 안이면 RB 한 대
+    attack_cooldown: float = 2.0       # 한 대 치고 이만큼은 가드
+    hold_range: float = 2.5            # 적이 이 안이면 전진을 멈추고 가드한 채 싸운다
+    lock_range: float = 6.0            # 적이 이 안에 오면 락온(R3), 두 배 밖으로 나가면 해제
     avoid_types: list[int] = field(default_factory=list)   # 보이면 피하는 NpcParamId
     sprint_segments: list[int] = field(default_factory=list)  # 항상 달려서 지나가는 웨이포인트 구간
     rejected: list[str] = field(default_factory=list)  # 롤백된 제안의 change_id (다시 제안하지 않음)
@@ -98,12 +107,12 @@ def apply(pb: Playbook, change: dict) -> Playbook | None:
         if v not in MODES or getattr(pb, k) == v:
             return None
         setattr(new, k, v)
-    elif k == "stamina_walk_pct":
-        val = float(v) if op == "set" else pb.stamina_walk_pct + float(v)
+    elif k in ("stamina_walk_pct", "attack_range", "attack_cooldown", "hold_range", "lock_range"):
+        val = float(v) if op == "set" else getattr(pb, k) + float(v)
         lo, hi = BOUNDS[k]
         if not (lo <= val <= hi):
             return None
-        new.stamina_walk_pct = round(val, 3)
+        setattr(new, k, round(val, 3))
     elif k == "crowd_threshold":
         val = int(v) if op == "set" else pb.crowd_threshold + int(v)
         lo, hi = BOUNDS[k]

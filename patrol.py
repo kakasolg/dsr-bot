@@ -116,6 +116,67 @@ class Guard:
         self.last_rehand = 0.0
         self.need_rest = False # 성배병이 REST_FLASKS_LEFT 이하 → 축복으로
         self.flasks: int | None = None
+        # DSR 전투 상태
+        self.locked = False
+        self.lock_ptr = None
+        self.last_attack = 0.0
+        self.last_lock = 0.0
+        self.engage = None          # 교전 중인 적 (Chr)
+        self.engage_since = 0.0
+        self.engage_hp0 = None      # 교전 시작 때 적 HP / 내 HP — 8 s 동안 둘 다 안 변하면 닿지 않는 적(창살 너머)으로 보고 포기
+        self.my_hp0 = None
+        self.ignore: dict[int, float] = {}   # ptr → 무시 만료 시각
+
+    def engage_pos(self):
+        return (self.engage.x, self.engage.z) if self.engage is not None else None
+
+    def _dsr_combat(self, s, hostile, now) -> str | None:
+        """사용자 원칙 1: **막고 → 한 대**.
+        lock_range 안에 (같은 층의) 적이 오면 락온하고 그 적에게 가드 올린 채 다가간다(engage) → attack_range 안이면 멈춰서(hold)
+        attack_cooldown 마다 RB 한 대. 8 s 동안 적 HP 도 내 HP 도 안 변하면 닿지 않는 적(창살 너머·다른 층)으로 보고 60 s 무시.
+        (다수 대응·투척 유인·측면 돌기는 다음 단계)"""
+        p = s.player
+        act = None
+        cands = [c for c in hostile if abs(c.y - p.y) < 2.0 and self.ignore.get(c.ptr, 0) < now]
+        near = cands[0] if cands else None
+        # 교전 대상 갱신 (죽었거나 멀어지면 해제)
+        if self.engage is not None:
+            cur = next((c for c in hostile if c.ptr == self.engage.ptr), None)
+            if cur is None or cur.hp <= 0 or cur.dist > self.pb.lock_range * 2 or self.ignore.get(cur.ptr, 0) > now:
+                self.engage = None
+            else:
+                self.engage = cur
+                if now - self.engage_since > 8.0 and cur.hp == self.engage_hp0 and p.hp == self.my_hp0:
+                    self.ignore[cur.ptr] = now + 60.0
+                    self.log(f"  guard: 8 s 동안 서로 안 맞음 — 닿지 않는 적, 60 s 무시 (npc {cur.npc_param}, {cur.dist:.1f} m)")
+                    self.engage = None
+        if self.engage is None and near is not None and near.dist <= self.pb.lock_range and not self.retreat and not self.flee:
+            self.engage, self.engage_since, self.engage_hp0, self.my_hp0 = near, now, near.hp, p.hp
+            act = "engage"
+        # 락온은 교전 대상과 같이 간다
+        want_lock = self.engage is not None
+        if self.locked and not want_lock:
+            self.pad.lock_on()
+            self.locked, self.lock_ptr = False, None
+            act = act or "unlock"
+        elif want_lock and (not self.locked or self.lock_ptr != self.engage.ptr) and now - self.last_lock > 1.0:
+            if self.locked:
+                self.pad.lock_on()        # 다른 대상이면 풀고 다시
+                time.sleep(0.1)
+            self.pad.lock_on()
+            self.locked, self.lock_ptr, self.last_lock = True, self.engage.ptr, now
+            act = act or "lock"
+        if self.engage is not None:
+            sp_pct = p.sp / max(1, p.max_sp) if p.max_sp else 1.0
+            if self.engage.dist <= self.pb.attack_range:
+                self.mode = "hold"
+                if now - self.last_attack > self.pb.attack_cooldown and sp_pct > 0.25:
+                    self.pad.attack()
+                    self.last_attack = now
+                    act = "attack"
+            else:
+                self.mode = "engage"
+        return act
 
     def tick(self, s: telemetry.Snapshot) -> str | None:
         p = s.player
@@ -161,6 +222,8 @@ class Guard:
             self.mode = self.pb.mode_open
         if env.GAME == "dsr" and self.mode == "guardjump":
             self.mode = "guard"   # DS1 은 점프 없음
+        if env.GAME == "dsr":
+            action = self._dsr_combat(s, hostile, now) or action
         if self.jev:
             # 규칙이 먼저 정하고, Jev 는 그림자(기록)거나 live 일 때만 confident 응답으로 덮어쓴다.
             # 스태미나 바닥 걷기·구르기·성배병은 항상 규칙 — Jev 는 이동 모드와 후퇴만 건드린다.
@@ -239,7 +302,9 @@ def run_episode(route: str, pb, harasser=None, max_seconds: float = 240.0, laps:
         a = guard.tick(s)
         # ── 멈춤 감시: 살아 있는데 안 움직이면 입력이 안 먹는 것 — 포커스 다시 잡고 B(팝업이면 닫기, 게임이면 구르기) ──
         now = time.time()
-        if s.player.gx is not None:
+        if guard.mode in ("hold", "engage"):
+            still["pos"], still["since"], still["n"] = (s.player.gx, s.player.gz), now, 0   # 싸우는 중엔 멈춤이 아니다
+        elif s.player.gx is not None:
             if still["pos"] is None or math.hypot(s.player.gx - still["pos"][0], s.player.gz - still["pos"][1]) >= STALL_MOVE:
                 still["pos"], still["since"], still["n"] = (s.player.gx, s.player.gz), now, 0
             elif now - still["since"] > STALL_WINDOW and now - still["kick"] > STALL_WINDOW:
@@ -322,10 +387,18 @@ def run_episode(route: str, pb, harasser=None, max_seconds: float = 240.0, laps:
                         break
                     back -= 1
                 r = nav.goto(tm, pad, target, tolerance=2.0, timeout=90, on_tick=on_tick, log=log,
-                             mode_fn=lambda s: guard.mode)
+                             mode_fn=lambda s: guard.mode, engage_fn=lambda s: guard.engage_pos())
                 if r == "dead":
                     result["reason"] = "death"
                     break
+                if r == "timeout" and rt.get("interacts"):
+                    s_now = tm.snapshot()
+                    if s_now and any(math.hypot(it["pos"][0] - s_now.player.gx, it["pos"][2] - s_now.player.gz) < 2.5 for it in rt["interacts"]):
+                        log("  녹화된 상호작용 지점 옆에서 막힘 — 문? A")
+                        control.focus_game()
+                        pad.tap(control.B.XUSB_GAMEPAD_A, 0.12)
+                        time.sleep(2.0)
+                        r = nav.goto(tm, pad, target, tolerance=2.0, timeout=30, on_tick=on_tick, log=log, mode_fn=lambda s: guard.mode)
                 if r in ("timeout", "lost", "unreachable"):
                     fails += 1
                     log(f"  wp {idx} 실패({r}) — 다음으로 ({fails} 연속)")
@@ -511,7 +584,7 @@ def reset_to_grace(tm, grace_id: int, expect: tuple[float, float] | None = None,
     return False
 
 
-def reset_episode(tm, pad, grace_id: int | None, expect: tuple[float, float] | None, log=print) -> bool:
+def reset_episode(tm, pad, grace_id: int | None, expect: tuple[float, float] | None, log=print, start=None) -> bool:
     """에피소드 리셋 = 랜덤런의 새 캐릭터: 살아 있으면 즉사시켜 축복에서 리스폰(잔존 몹 정리, HP/성배 회복),
     그 다음 시작 축복으로 워프. 적이 근처에 있으면 워프가 막히므로 반드시 리스폰 뒤에 워프한다."""
     s = tm.snapshot(within=1.0)
@@ -529,6 +602,10 @@ def reset_episode(tm, pad, grace_id: int | None, expect: tuple[float, float] | N
             heading = expect[3] if len(expect) > 3 else None
             if not rest_at_bonfire(tm, pad, (expect[0], expect[1], expect[2]), log, lambda s, d: None, _EP(), heading=heading):
                 log("  앉기 실패 — HP/에스트 충전 없이 시작")
+        if start is not None:          # 편도 코스: 출발점이 화톳불이 아니면 거기로
+            log(f"  리셋: 출발점으로 워프 {tuple(round(v, 1) for v in start[:3])}")
+            tm.pos_warp(start[0], start[1], start[2], start[3] if len(start) > 3 else 0.0)
+            time.sleep(1.0)
         return True
     if s and s.player.hp > 0:
         log("  리셋: 즉사 → 리스폰")

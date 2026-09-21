@@ -16,6 +16,7 @@
                           +0x48 → +0x80 현재 애니메이션 ID
                           +0x108 Warp(byte) +0x110/114/118 WarpXYZ +0x124 WarpAngle  (좌표 순간이동)
     +0x3E8 HP  +0x3EC MaxHP  +0x3F8 스태미나  +0x3FC 최대 스태미나   (DSR-Gadget 0x3D8/0x3DC/0x3E8/0x3EC + 보정 0x10)
+    +0x2A4  ChrFlags1 — 0x8000 이 켜진 것만 실제로 스폰된 캐릭터 (꺼진 건 목록엔 있지만 안 보이고 안 움직임)
     +0xA44  특수 동작 애니 ID (int32, 없으면 -1) — 화톳불에 앉아 있는 동안 77xx (위 화톳불 7711, 아래 7721). +0xA48 = 1 이면 그 동작 중.
             mapd 쪽 "현재 애니"(+0x48→+0x80) 는 공격 304000/에스트 7585/백스텝 690 은 보이지만 앉기는 안 보인다.
   ChrClassWarp = [static]: +0xB34 마지막 화톳불 ID (예: 1812960 = 불의 제전)
@@ -59,6 +60,8 @@ OFF_HP, OFF_MAXHP, OFF_SP, OFF_MAXSP = 0x3E8, 0x3EC, 0x3F8, 0x3FC
 OFF_MAPDATA, OFF_MODEL, OFF_NPC = 0x68, 0x88, 0xC8
 OFF_LASTBONFIRE = 0xB34
 OFF_ANIM2 = 0xA44
+OFF_FLAGS1 = 0x2A4      # DSR-Gadget ChrFlags1(0x284) + 보정 0x20
+FLAG_ACTIVE = 0x8000    # 실측: 월드에 실제로 있는(애니가 도는) 캐릭터만 켜짐
 FRIENDLY = {279070, 100000}   # 낙담한 전사, 사람 NPC(c1000) — 필요하면 data/dsr_friendly.json 으로
 
 
@@ -125,10 +128,13 @@ class DSRTelemetry:
         anim = self.i32(animst + 0x80) if animst else None
         npc = self.i32(p + OFF_NPC) or 0
         vt = self.q(p)
+        flags1 = (self.i32(p + OFF_FLAGS1) or 0) & 0xFFFFFFFF
         if vt == self.vt_player:
             team = 1
         elif npc in FRIENDLY:
             team = 26   # FriendlyNPC (엘든링 팀 번호를 흉내 — Snapshot.hostile() 이 6/7/24/25/27/33 만 적으로 본다)
+        elif not (flags1 & FLAG_ACTIVE):
+            team = 0    # 비활성(스폰 안 됨/이벤트로 꺼짐) — 목록엔 있지만 월드에 없다. 실측: 안 보이는 할로우가 0x800400, 움직이는 놈은 0x808400
         else:
             team = 6
         return Chr(ptr=p, npc_param=npc, team=team, hp=hp, max_hp=mhp, sp=self.i32(p + OFF_SP) or 0, max_sp=self.i32(p + OFF_MAXSP) or 0,

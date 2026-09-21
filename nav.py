@@ -87,7 +87,7 @@ class Mover:
 
 def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float], tolerance: float = 1.5,
          timeout: float = 60.0, on_tick=None, log=print, sprint_always: bool = False, mode_fn=None,
-         mover: "Mover | None" = None) -> str:
+         mover: "Mover | None" = None, engage_fn=None) -> str:
     """반환: 'arrived' | 'timeout' | 'dead' | 'lost' | 'unreachable'.
     target 은 (x, z) 또는 (x, y, z). y 를 주면 2D 로 가까운데 높이 차가 UNREACHABLE_DY 를 넘을 때 'unreachable' — 절벽 아래에서 위 점을
     밀고 있는 상황 (실내 경로의 낙하 구간을 거꾸로 갈 때). mode_fn(snapshot) -> 'walk'|'sprint'|'guardjump'|'guard' 가 매 틱 이동 모드."""
@@ -156,12 +156,21 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
                     return "timeout"
                 continue
 
-            sx, sy = control.world_to_stick(dx, dz, s.cam_yaw, YAW_OFFSET, FLIP_X)
-            pad.move(sx, sy)
-            if mode_fn:
-                mover.set(mode_fn(s))
+            mode = mode_fn(s) if mode_fn else ("sprint" if (sprint_always or dist > SPRINT_BEYOND) else "walk")
+            if mode == "hold":
+                pad.move(0.0, 0.0)          # 적이 붙었다 — 전진 대신 제자리 가드 (막힘 감지도 리셋)
+                mover.set("guard")
+                last_progress_d, last_progress_t = dist, now
+            elif mode == "engage" and engage_fn and engage_fn(s):
+                ex, ez = engage_fn(s)       # 적에게 다가간다 (가드 올린 채)
+                sx, sy = control.world_to_stick(ex - p.gx, ez - p.gz, s.cam_yaw, YAW_OFFSET, FLIP_X)
+                pad.move(sx, sy)
+                mover.set("guard")
+                last_progress_d, last_progress_t = dist, now
             else:
-                mover.set("sprint" if (sprint_always or dist > SPRINT_BEYOND) else "walk")
+                sx, sy = control.world_to_stick(dx, dz, s.cam_yaw, YAW_OFFSET, FLIP_X)
+                pad.move(sx, sy)
+                mover.set(mode)
             time.sleep(0.05)
     finally:
         mover.stop()

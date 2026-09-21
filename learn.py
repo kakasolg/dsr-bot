@@ -117,7 +117,7 @@ def main() -> None:
     for i in range(args.episodes):
         # 리스폰 축복 근처에 잔존 몹이 있으면 워프가 막혀 죽은 채로 에피소드가 시작될 수 있다 → 성공할 때까지 최대 3회
         for attempt in range(3):
-            if patrol.reset_episode(tm0, pad0, grace, reset_expect, log):
+            if patrol.reset_episode(tm0, pad0, grace, reset_expect, log, start=route.get("start")):
                 break
             log(f"  리셋 실패 — 재시도 {attempt + 1}/2")
         else:
