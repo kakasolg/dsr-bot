@@ -52,7 +52,11 @@ def main() -> None:
     ap.add_argument("--seed-base", type=int, default=1000)
     ap.add_argument("--no-learn", action="store_true", help="복기·수정 없이 기록만")
     ap.add_argument("--grace", type=int, default=None, help="에피소드 시작 축복 ID (기본: 경로 파일의 grace, 없으면 워프 안 함)")
+    ap.add_argument("--jev", choices=["off", "shadow", "live"], default="off",
+                    help="shadow: Jev 판단을 기록만 / live: confident 한 이동모드·후퇴를 따름 (TYPESAFE_API_KEY 필요)")
     args = ap.parse_args()
+    from dotenv import load_dotenv  # type: ignore
+    load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
     route = json.loads((patrol.ROUTES / f"{args.route}.json").read_text())
     route_pts = route["points"]
@@ -62,12 +66,16 @@ def main() -> None:
     proposals: dict[str, dict] = {}
     since_change = 0                     # 현재 버전으로 뛴 에피소드 수
     prev_version_median: float | None = pbm.median_survival(pb.version - 1) if pb.version > 1 else None
-    log(f"학습 시작: route={args.route} playbook v{pb.version} episodes={args.episodes}")
+    log(f"학습 시작: route={args.route} playbook v{pb.version} episodes={args.episodes} jev={args.jev}")
+    import jev as jevm
+    if args.jev != "off" and not jevm.available():
+        log("  TYPESAFE_API_KEY 없음 — jev=off 로 진행")
+        args.jev = "off"
 
     # 매 에피소드 전에 시작 축복으로 워프해 잔존 몹을 정리하고 HP/성배를 채운다 (랜덤런의 "새 캐릭터"에 해당)
     import control
-    tm0 = telemetry.Telemetry()
-    pad0 = control.Pad()
+    tm0 = telemetry.Telemetry(names)
+    pad0 = control.Pad()  # 프로세스에 하나만 (에피소드마다 만들면 입력이 씹힘)
     grace = args.grace or route.get("grace")
     log(f"리셋 축복 ID: {grace}")
 
@@ -76,8 +84,10 @@ def main() -> None:
         seed = args.seed_base + int(time.time()) % 100000 + i
         hz = harass.Harasser(seed, interval_s=args.harass_interval, log=log)
         log(f"── 에피소드 {i+1}/{args.episodes}  v{pb.version} seed={seed}")
-        r = patrol.run_episode(args.route, pb, hz, max_seconds=args.max_seconds, log=log)
-        pbm.record_result(pb.version, seed, r["seconds"], r["laps"], r["reason"], {"episode": r["episode"]})
+        shadow = jevm.Shadow(pb, names, mode=args.jev, log=log) if args.jev != "off" else None
+        r = patrol.run_episode(args.route, pb, hz, max_seconds=args.max_seconds, log=log, pad=pad0, tm=tm0, jev=shadow)
+        pbm.record_result(pb.version, seed, r["seconds"], r["laps"], r["reason"],
+                          {"episode": r["episode"], "jev": args.jev, "jev_calls": shadow.calls if shadow else 0})
         since_change += 1
 
         # ── 복기 ──

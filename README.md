@@ -71,5 +71,43 @@ telemetry (좌표·카메라 yaw) ──▶ nav.goto (조향 루프 20Hz, 막힘
 - **ViGEmBus 드라이버** (`winget install --id ViGEm.ViGEmBus -e`) — 가상 패드
 - 게임 창이 포그라운드여야 패드 입력이 먹음. CE 의 Lua Engine 창이 뜨면 포커스를 뺏으므로 브릿지가 CE 의 `print` 를 파일 로그로 돌려 놓음
 
+## 3단계 (완료): 플레이북 + 복기 + 롤백 (에피소드 학습)
+
+```
+learn.py ─▶ reset_episode(즉사→리스폰→시작 축복 워프) ─▶ run_episode(순찰 + Harasser 방해 소환)
+        ─▶ 사망이면 postmortem.diagnose → propose(R1~R5) ─▶ 같은 제안 2회 누적 시 playbook.apply → v+1
+        ─▶ 새 버전으로 3 에피소드 뛴 뒤 생존 중앙값 < 이전×0.8 이면 롤백 + rejected 기록
+```
+
+- `playbook.py` — 버전 관리되는 파라미터 묶음 (후퇴/성배병 HP%, 군집 임계, 회피 타입, 이동 모드, 스태미나 걷기%). 범위 밖 제안은 `apply` 가 거부
+- `harass.py` — 어댑터의 소환 효과를 "시청자 방해 시뮬레이터"로 주기 소환 (시드 고정, 에피소드마다 다름)
+- `postmortem.py` — 사망 30초 전 기록에서 killers / 첫 피격 HP / 적 수 / 구간 / 성배병·후퇴 여부 → 규칙 R1(회피 타입) → R2(군집↓) → R3(성배병↑) → R4(후퇴↑) → R5(구간 스프린트)
+- 이동 모드: 적 없음 `sprint`, 적 20 m 안 `guardjump`(가드 유지 + 1.2 s 마다 점프 — 빠르고 점프 무적·가드 보호), 스태미나 25% 아래 `walk`
+
+```
+python learn.py limgrave-1 --episodes 10 --max-seconds 150 --harass-interval 15
+```
+실측: 자동 롤백 동작 확인 (v2 "Warhawk 회피" 중앙값 68 s < v1 93 s×0.8 → v3 롤백).
+
+## Jev (TypeSafe AI System One) — 선택, 실험 중
+
+Jev 는 문장을 생성하지 않고 **정해진 선택지(choice)·점수(score)·확률(noul)** 로만 답하는 판단 모델이다 (≈0.1 s, 입력 10억 토큰당 $42).
+텍스트 LLM 을 틱 루프에 넣는 대신, 이벤트가 있을 때만 "지금 이동 모드는? 후퇴해야 하나? 위협 수준은?" 을 묻는다.
+
+| 자리 | 함수 | 트리거 | Jev 가 못 건드리는 것 |
+|---|---|---|---|
+| 구간 정책 | `jev.decide_move` | 적 수 변화 · 피격 · 적 있는 채 3 s | 구르기·성배병·스태미나 걷기 (항상 규칙) |
+| 복기 랭킹 | `jev.rank_proposals` | 사망 복기 | 후보는 규칙 R1~R5 가 만든 것만, 범위는 `playbook.apply` |
+
+규율: `confidence < JEV_MIN_CONF(0.6)` 이면 규칙을 따름 · 실패/타임아웃/일일 상한이면 즉시 규칙 폴백 · 모든 호출은 `data/jev.jsonl` 과 에피소드 행(`"jev"`)에 기록.
+
+```
+python learn.py limgrave-1 --episodes 10 --jev shadow   # 기록만 (규칙이 조작)
+python learn.py limgrave-1 --episodes 10 --jev live     # confident 한 이동모드·후퇴를 따름
+python jev_report.py                                    # off/shadow/live 생존 중앙값, 규칙 일치율, 사망 전 조기경보율
+```
+채택 기준: `live` 의 생존 중앙값이 규칙만일 때보다 높아야 한다. 아니면 끈다. `.env` 에 `TYPESAFE_API_KEY` (console.typesafe.ai) 가 없으면 자동으로 `off`.
+
 ## 다음 단계
-3. 플레이북 + 복기(post-mortem) + 롤백 — "에피소드 1~10 보다 21~30 이 오래 사는가". 적이 없는 경로엔 학습거리가 없으니 어댑터의 소환 효과를 "시청자 방해 시뮬레이터"로 주기적으로 넣는다.
+- Jev 그림자 모드 데이터 수집 → A/B
+- 학습된 적 공격 애니메이션 ID 로 선제 구르기 (지금은 피격 후 구르기)

@@ -58,10 +58,11 @@ class Guard:
     """결정론적 안전 규칙. 플레이북 파라미터를 읽고 순찰 루프의 매 틱에서 불린다.
     조향은 nav 가 하고 여기선 끼어들기(구르기·성배병)와 상태 플래그(후퇴·도망·스프린트)만 결정한다."""
 
-    def __init__(self, pad: control.Pad, pb, log=print):
+    def __init__(self, pad: control.Pad, pb, log=print, jev=None):
         self.pad = pad
         self.pb = pb
         self.log = log
+        self.jev = jev         # jev.Shadow — 없으면 규칙만
         self.last_hp: int | None = None
         self.last_flask = 0.0
         self.last_dodge = 0.0
@@ -110,18 +111,30 @@ class Guard:
             self.mode = self.pb.mode_near_enemy
         else:
             self.mode = self.pb.mode_open
+        if self.jev:
+            # 규칙이 먼저 정하고, Jev 는 그림자(기록)거나 live 일 때만 confident 응답으로 덮어쓴다.
+            # 스태미나 바닥 걷기·구르기·성배병은 항상 규칙 — Jev 는 이동 모드와 후퇴만 건드린다.
+            self.jev.maybe_ask(s, self.mode, damaged=(self.last_hp is not None and p.hp < self.last_hp))
+            jmode, jretreat = self.jev.override()
+            if jmode and not self.stamina_low:
+                self.mode = jmode
+            if jretreat and hostile:
+                self.retreat = True
         self.last_hp = p.hp
         if action:
             self.log(f"  guard: {action} (hp {p.hp}/{p.max_hp}, hostile {len(hostile)})")
         return action
 
 
-def run_episode(route: str, pb, harasser=None, max_seconds: float = 240.0, laps: int = 99, log=print) -> dict:
-    """한 에피소드: 순찰하다 죽거나(사망) 시간이 다 되면 끝. 결과 dict 를 돌려준다."""
+def run_episode(route: str, pb, harasser=None, max_seconds: float = 240.0, laps: int = 99, log=print,
+                pad: control.Pad | None = None, tm: telemetry.Telemetry | None = None, jev=None) -> dict:
+    """한 에피소드: 순찰하다 죽거나(사망) 시간이 다 되면 끝. 결과 dict 를 돌려준다.
+    pad 는 프로세스 전체에서 **하나만** 만들어 넘겨야 한다 — 에피소드마다 새 가상 패드를 만들면 게임/Steam 이
+    새 장치를 다시 잡느라 입력이 씹힌다 (실측: 2번째 에피소드부터 캐릭터가 안 움직임)."""
     pts = json.loads((ROUTES / f"{route}.json").read_text())["points"]
-    tm = telemetry.Telemetry(telemetry.load_names())
-    pad = control.Pad()
-    guard = Guard(pad, pb, log)
+    tm = tm or telemetry.Telemetry(telemetry.load_names())
+    pad = pad or control.Pad()
+    guard = Guard(pad, pb, log, jev=jev)
     control.focus_game()
     time.sleep(0.5)
     order = list(range(len(pts))) + list(range(len(pts) - 2, 0, -1))
@@ -151,6 +164,10 @@ def run_episode(route: str, pb, harasser=None, max_seconds: float = 240.0, laps:
         row["sp"] = s.player.sp
         if a:
             row["guard"] = a
+        if jev:
+            j = jev.take()
+            if j:
+                row["jev"] = {k: j[k] for k in ("mode", "mode_conf", "retreat", "threat", "rule_mode")}
         if prev_hp is not None and s.player.hp < prev_hp:
             row["event"] = "damage"
             row["dmg"] = prev_hp - s.player.hp
