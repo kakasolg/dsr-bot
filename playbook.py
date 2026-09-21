@@ -104,9 +104,14 @@ def apply(pb: Playbook, change: dict) -> Playbook | None:
             return None
         new.crowd_threshold = val
     elif k == "avoid_types":
-        if int(v) in pb.avoid_types or len(pb.avoid_types) >= BOUNDS["avoid_types_max"][1]:
-            return None
-        new.avoid_types = pb.avoid_types + [int(v)]
+        if op == "remove":
+            if int(v) not in pb.avoid_types:
+                return None
+            new.avoid_types = [t for t in pb.avoid_types if t != int(v)]
+        else:
+            if int(v) in pb.avoid_types or len(pb.avoid_types) >= BOUNDS["avoid_types_max"][1]:
+                return None
+            new.avoid_types = pb.avoid_types + [int(v)]
     elif k == "sprint_segments":
         if int(v) in pb.sprint_segments:
             return None

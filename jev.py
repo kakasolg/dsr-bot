@@ -15,14 +15,17 @@ Jev (TypeSafe AI System One) 연동 — 텍스트를 만들지 않고 **타입�
 백엔드 (JEV_BACKEND):
   typesafe  Jev API. .env: TYPESAFE_API_KEY=...  (console.typesafe.ai)
   local     로컬 LLM 의 OpenAI 호환 서버 (LM Studio `lms server start` / Ollama / llama-server) + JSON 스키마 강제 출력.
-            .env: LOCAL_LLM_URL=http://localhost:1234/v1  LOCAL_LLM_MODEL=llama-3.2-3b-instruct
+            .env: LOCAL_LLM_URL=http://127.0.0.1:1234/v1  LOCAL_LLM_MODEL=qwen/qwen3-4b
+            (localhost 라고 쓰지 말 것 — Windows 에서 ::1 먼저 시도하다 실패해 요청마다 2 s 가 붙는다. 실측 2.1 s → 0.1 s)
             같은 질문(choice/score/noul)을 JSON 스키마로 바꿔 묻고 같은 모양의 답을 돌려준다.
-            확률·신뢰도는 모델이 스스로 적는 값이라 Jev 만큼 보정돼 있진 않다 — 게이트는 같은 방식으로 걸고 결과(생존)로 판단.
+            choice 의 확률은 모델이 적는 값이 아니라 **선택 토큰의 logprob** 에서 뽑는다 (LM Studio/llama-server 가 top_logprobs 지원).
+            그래서 Jev 의 probabilities/confidence 와 같은 의미로 게이트를 건다. logprobs 가 없는 서버(Ollama)면 모델이 적은 값으로 폴백.
             temperature 0 이라 같은 상태엔 같은 답 → A/B 재현 가능. 비용 0. 게임과 GPU 를 나눠 쓰므로 프레임 드랍은 실측할 것.
 """
 from __future__ import annotations
 
 import json
+import math
 import os
 import time
 import urllib.request
@@ -32,7 +35,7 @@ from pathlib import Path
 API = "https://api.typesafe.ai/v1/systemone"
 MODEL = os.environ.get("JEV_MODEL", "jev-latest")
 BACKEND = os.environ.get("JEV_BACKEND", "").lower()          # "" → 키 있으면 typesafe, 아니면 local
-LOCAL_URL = os.environ.get("LOCAL_LLM_URL", "http://localhost:1234/v1").rstrip("/")
+LOCAL_URL = os.environ.get("LOCAL_LLM_URL", "http://127.0.0.1:1234/v1").rstrip("/")
 LOCAL_MODEL = os.environ.get("LOCAL_LLM_MODEL", "")
 MIN_CONF = float(os.environ.get("JEV_MIN_CONF", "0.6"))
 DAILY_CAP = int(os.environ.get("JEV_DAILY_CAP", "3000"))
@@ -91,11 +94,13 @@ def ask(state, questions: dict, tag: str = "") -> dict | None:
 def _schema_for(questions: dict) -> tuple[dict, str]:
     """choice/score/noul 질문 묶음 → (JSON 스키마, 질문 설명 텍스트)."""
     props, lines = {}, []
+    for name, q in questions.items():          # choice 가 먼저 오도록 두 번 돈다 (생성 순서 = 프로퍼티 순서)
+        if q["type"] == "choice":
+            props[name] = {"type": "string", "enum": list(q["criteria"].keys())}
     for name, q in questions.items():
         t = q["type"]
         if t == "choice":
             opts = list(q["criteria"].keys())
-            props[name] = {"type": "string", "enum": opts}
             props[f"{name}_confidence"] = {"type": "number", "minimum": 0, "maximum": 1}
             lines.append(f"- {name} (choose one): {q['instructions']}\n" + "\n".join(f"    {k}: {v}" for k, v in q["criteria"].items())
                          + f"\n  {name}_confidence: how sure you are, 0..1")
@@ -131,6 +136,7 @@ def _ask_local(state, questions: dict, tag: str) -> dict | None:
         ],
         "response_format": {"type": "json_schema", "json_schema": {"name": "decision", "strict": True, "schema": schema}},
         "chat_template_kwargs": {"enable_thinking": False},   # Qwen3/Gemma4 류 thinking 모델: 생각 토큰이 예산을 다 먹지 않게
+        "logprobs": True, "top_logprobs": 8,                  # choice 확률 분포용 (미지원 서버는 무시)
     }
     req = urllib.request.Request(f"{LOCAL_URL}/chat/completions", data=json.dumps(body).encode("utf-8"), method="POST",
                                  headers={"Content-Type": "application/json", "Authorization": "Bearer lm-studio"})
@@ -148,13 +154,21 @@ def _ask_local(state, questions: dict, tag: str) -> dict | None:
     except Exception as e:  # URLError/HTTPError/KeyError/JSONDecodeError/timeout
         _log({"t": time.time(), "tag": tag, "backend": "local", "error": str(e)[:200]})
         return None
+    lp = (out["choices"][0].get("logprobs") or {}).get("content") or []
     answers = {}
     for name, q in questions.items():
         if name not in raw:
             continue
         if q["type"] == "choice":
-            conf = float(raw.get(f"{name}_confidence", 0.0))
-            answers[name] = {"choice": raw[name], "confidence": conf, "probabilities": {raw[name]: conf}}
+            probs = _choice_probs(lp, name, list(q["criteria"].keys()))
+            if probs and max(probs.values()) >= 0.999:
+                probs = None   # LM Studio 는 샘플링 뒤 분포(1.0/0.0)를 돌려줘 정보가 없다 → 모델이 적은 값으로
+            if probs:
+                conf = probs[raw[name]] if raw[name] in probs else max(probs.values())
+            else:   # logprobs 없는 서버 → 모델이 적은 값
+                conf = float(raw.get(f"{name}_confidence", 0.0))
+                probs = {raw[name]: conf}
+            answers[name] = {"choice": raw[name], "confidence": round(conf, 3), "probabilities": probs}
         elif q["type"] == "score":
             answers[name] = {"score": int(raw[name]), "confidence": 1.0}
         else:
@@ -166,6 +180,28 @@ def _ask_local(state, questions: dict, tag: str) -> dict | None:
     return answers
 
 
+def _choice_probs(lp: list, name: str, options: list[str]) -> dict | None:
+    """logprobs 토큰열에서 `"name": "` 바로 다음 토큰의 top_logprobs 를 옵션별로 모아 정규화한다.
+    옵션의 첫 토큰이 겹치면(예: guard/guardjump) 접두 일치로 합산 — 우리 옵션들은 첫 글자부터 다르다."""
+    text = ""
+    for i, tok in enumerate(lp):
+        text += tok.get("token", "")
+        stripped = text.rstrip()
+        if stripped.endswith(f'"{name}": "') or stripped.endswith(f'"{name}":"'):
+            if i + 1 >= len(lp):
+                return None
+            mass = {o: 0.0 for o in options}
+            for cand in lp[i + 1].get("top_logprobs") or []:
+                t = cand.get("token", "").strip().strip('"')
+                for o in options:
+                    if t and (o.startswith(t) or t.startswith(o)):
+                        mass[o] += math.exp(cand["logprob"])
+                        break
+            total = sum(mass.values())
+            return {o: round(v / total, 3) for o, v in mass.items()} if total > 0 else None
+    return None
+
+
 def _log(row: dict) -> None:
     LOG.parent.mkdir(parents=True, exist_ok=True)
     with LOG.open("a", encoding="utf-8") as f:
@@ -174,10 +210,14 @@ def _log(row: dict) -> None:
 
 # ── B. 구간 정책 ──
 MOVE_CRITERIA = {
-    "sprint": "Run at full speed with no guard. Fastest, drains stamina, exposed to hits.",
-    "guardjump": "Advance with the shield raised and jump every second. Medium speed, protected by guard and jump invulnerability frames.",
-    "walk": "Walk slowly to recover stamina. Slowest, exposed.",
+    "sprint": "Run at full speed (6 m/s), shield down. Best for covering ground when nothing is close; drains stamina; every hit lands.",
+    "guardjump": "Advance with the shield up and jump every second (4 m/s). Blocks most melee hits and jumps through sweeps; costs stamina on each block.",
+    "walk": "Walk (2.5 m/s) with the shield down. Slowest and unprotected; its only benefit is that stamina regenerates fast. Never a safe option near enemies.",
 }
+CONTEXT = ("Elden Ring. An autonomous character patrols a fixed route in Limgrave. Goal: survive as long as possible while continuing the route. "
+           "It cannot attack. It can: move, hold the shield up, jump, dodge-roll when hit, drink a healing flask (heals ~40%, takes 1.5 s, unsafe with an enemy within 8 m), "
+           "and retreat to the previous waypoint (only useful against enemies that are slower than the character or stop chasing; flying enemies such as bats and hawks are faster and keep biting). "
+           "Being hit at low HP is how it dies; it dies in seconds when surrounded.")
 THREAT_LEVELS = [
     "No danger: no hostile within 20 m",
     "Minor: weak hostiles far away or few",
@@ -191,17 +231,15 @@ def decide_move(snapshot, pb, names: dict | None = None) -> dict | None:
     p = snapshot.player
     hostiles = snapshot.hostile(20.0)
     state = {
-        "context": "Elden Ring. An autonomous character patrols a fixed route in Limgrave. Goal: survive and keep moving. "
-                   "It cannot attack; it can only move, guard (shield), jump, dodge, drink a healing flask, and retreat to the previous waypoint.",
-        "player": {"hp_pct": round(p.hp / max(1, p.max_hp), 2), "stamina_pct": round(p.sp / max(1, p.max_sp), 2) if p.max_sp else None,
-                   "current_move_mode": getattr(pb, "mode_near_enemy", "guardjump")},
+        "context": CONTEXT,
+        "player": {"hp_pct": round(p.hp / max(1, p.max_hp), 2), "stamina_pct": round(p.sp / max(1, p.max_sp), 2) if p.max_sp else None},
         "hostiles": [{"type": (names or {}).get(c.npc_param, "") or str(c.npc_param), "distance_m": round(c.dist, 1),
                       "hp_pct": round(c.hp / max(1, c.max_hp), 2)} for c in hostiles[:6]],
         "playbook": {"retreat_hp_pct": pb.retreat_hp_pct, "avoid_types": [(names or {}).get(t, str(t)) for t in pb.avoid_types]},
     }
     questions = {
         "move_mode": {"type": "choice", "instructions": "Which movement mode should the character use right now?", "criteria": MOVE_CRITERIA},
-        "retreat": {"type": "noul", "instructions": "The character should retreat to the previous waypoint right now instead of advancing."},
+        "retreat": {"type": "noul", "instructions": "The character should turn back to the previous waypoint right now (to break contact and drink the flask) instead of advancing."},
         "threat": {"type": "score", "instructions": "How dangerous is the current situation?", "criteria": THREAT_LEVELS},
     }
     a = ask(state, questions, tag="move")
@@ -223,8 +261,10 @@ def rank_proposals(diag: dict, pb, candidates: list[dict]) -> dict | None:
     후보가 없으면 None. Jev 실패 시 None (호출자가 첫 후보를 쓰면 규칙과 동일)."""
     if not candidates:
         return None
-    crit = {f"c{i}": c["why"] for i, c in enumerate(candidates)}
-    crit["none"] = "None of these changes would have prevented this death; keep the playbook as is."
+    # 라벨은 첫 토큰이 서로 다른 한 글자 (c0/c1… 은 첫 토큰 "c" 가 같아 logprob 분포가 뭉개진다)
+    labels = [chr(ord("A") + i) for i in range(len(candidates))]
+    crit = {lab: c["why"] for lab, c in zip(labels, candidates)}
+    crit["NONE"] = "None of these changes would have prevented this death; keep the playbook as is."
     state = {
         "context": "Post-mortem of an autonomous Elden Ring character that died while patrolling. "
                    "We may change exactly one playbook parameter. Pick the change most likely to prevent this kind of death.",
@@ -240,9 +280,9 @@ def rank_proposals(diag: dict, pb, candidates: list[dict]) -> dict | None:
         return None
     ch = a.get("best_change", {})
     pick = ch.get("choice")
-    if not pick or pick == "none" or ch.get("confidence", 0.0) < MIN_CONF:
-        return {"proposal": None, "confidence": ch.get("confidence"), "avoidable": a.get("avoidable", {}).get("noul")}
-    return {"proposal": candidates[int(pick[1:])], "confidence": ch.get("confidence"), "probs": ch.get("probabilities"),
+    if not pick or pick == "NONE" or ch.get("confidence", 0.0) < MIN_CONF:
+        return {"proposal": None, "confidence": ch.get("confidence"), "probs": ch.get("probabilities"), "avoidable": a.get("avoidable", {}).get("noul")}
+    return {"proposal": candidates[labels.index(pick)], "confidence": ch.get("confidence"), "probs": ch.get("probabilities"),
             "avoidable": a.get("avoidable", {}).get("noul")}
 
 

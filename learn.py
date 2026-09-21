@@ -99,7 +99,17 @@ def main() -> None:
             diag = postmortem.diagnose(Path(r["death_file"]), route_pts, names)
             log(f"  복기: killers={[(k['name'] or k['npc'], k['dmg']) for k in diag['killers']]} first_hit_hp={diag['first_hit_hp']} "
                 f"hostile={diag['hostile_count']} seg={diag['segment']} flask={diag['flask_used']} retreated={diag['retreated']}")
-            prop = postmortem.propose(diag, pb)
+            cands = postmortem.propose_all(diag, pb)
+            prop = cands[0] if cands else None
+            if shadow and cands:
+                # 판단 모델에게 후보 중 고르게 한다. shadow: 기록만, live: 그 선택을 쓴다 (NONE/저신뢰면 규칙대로)
+                rk = jevm.rank_proposals(diag, pb, cands)
+                if rk:
+                    pick = rk["proposal"]
+                    log(f"  jev[{args.jev}] 복기 선택: {pick['why'] if pick else 'NONE'} (conf {rk['confidence']}, avoidable {rk['avoidable']}) "
+                        f"/ 규칙: {prop['why']}")
+                    if args.jev == "live" and pick:
+                        prop = pick
             if prop:
                 cid = pbm.change_id(prop)
                 if cid in pb.rejected:

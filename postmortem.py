@@ -69,23 +69,34 @@ def diagnose(death_json: Path, route_points: list[list[float]], names: dict[int,
     }
 
 
-def propose(diag: dict, pb: Playbook) -> dict | None:
-    """진단 → 플레이북 수정 제안 1개 (우선순위 순). 없으면 None."""
+def propose_all(diag: dict, pb: Playbook) -> list[dict]:
+    """진단 → 적용 가능한 플레이북 수정 후보 전부 (우선순위 순). 규칙만 쓸 땐 첫 번째, 판단 모델이 있으면 이 중에서 고른다."""
+    out = []
     top = diag["killers"][0] if diag["killers"] else None
     if top and top["npc"] not in pb.avoid_types:
-        return {"key": "avoid_types", "op": "append", "value": top["npc"],
-                "why": f"{top['name'] or top['npc']} 에게 죽음 ({top['dmg']} 피해) — 보이면 후퇴"}
+        out.append({"key": "avoid_types", "op": "append", "value": top["npc"],
+                    "why": f"{top['name'] or top['npc']} 에게 죽음 ({top['dmg']} 피해) — 보이면 후퇴"})
+    if top and top["npc"] in pb.avoid_types:
+        # 회피 목록에 있는데도 죽음 = 도망이 안 통하는 적 (날아다니는 것 등) — 회피를 거둔다
+        out.append({"key": "avoid_types", "op": "remove", "value": top["npc"],
+                    "why": f"{top['name'] or top['npc']} 를 피해 도망쳤는데도 죽음 ({top['dmg']} 피해) — 도망 대신 가드 전진"})
     if diag["hostile_count"] >= pb.crowd_threshold and pb.crowd_threshold > 2:
-        return {"key": "crowd_threshold", "op": "add", "value": -1,
-                "why": f"적 {diag['hostile_count']}마리에게 죽음 — 더 일찍 스프린트"}
+        out.append({"key": "crowd_threshold", "op": "add", "value": -1,
+                    "why": f"적 {diag['hostile_count']}마리에게 죽음 — 더 일찍 스프린트"})
     fh = diag["first_hit_hp"]
     if fh is not None and fh < pb.retreat_hp_pct + 0.1 and not diag["flask_used"] and pb.flask_hp_pct < 0.8:
-        return {"key": "flask_hp_pct", "op": "add", "value": 0.1,
-                "why": f"첫 피격 때 이미 HP {fh:.0%} 인데 성배병을 안 마심 — 더 일찍 회복"}
+        out.append({"key": "flask_hp_pct", "op": "add", "value": 0.1,
+                    "why": f"첫 피격 때 이미 HP {fh:.0%} 인데 성배병을 안 마심 — 더 일찍 회복"})
     if not diag["retreated"] and fh is not None and fh < 0.5 and pb.retreat_hp_pct < 0.6:
-        return {"key": "retreat_hp_pct", "op": "add", "value": 0.05,
-                "why": f"후퇴 없이 죽음 (첫 피격 HP {fh:.0%}) — 더 일찍 후퇴"}
+        out.append({"key": "retreat_hp_pct", "op": "add", "value": 0.05,
+                    "why": f"후퇴 없이 죽음 (첫 피격 HP {fh:.0%}) — 더 일찍 후퇴"})
     if diag["segment"] is not None and diag["segment"] not in pb.sprint_segments:
-        return {"key": "sprint_segments", "op": "append", "value": diag["segment"],
-                "why": f"구간 wp{diag['segment']} 에서 죽음 — 그 구간은 달려서 통과"}
-    return None
+        out.append({"key": "sprint_segments", "op": "append", "value": diag["segment"],
+                    "why": f"구간 wp{diag['segment']} 에서 죽음 — 그 구간은 달려서 통과"})
+    return out
+
+
+def propose(diag: dict, pb: Playbook) -> dict | None:
+    """진단 → 플레이북 수정 제안 1개 (우선순위 순). 없으면 None."""
+    cands = propose_all(diag, pb)
+    return cands[0] if cands else None
