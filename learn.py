@@ -65,12 +65,13 @@ def main() -> None:
     pending: Counter = Counter()         # 제안 id → 누적 횟수
     proposals: dict[str, dict] = {}
     since_change = 0                     # 현재 버전으로 뛴 에피소드 수
-    prev_version_median: float | None = pbm.median_survival(pb.version - 1) if pb.version > 1 else None
+    eval_pending = False                 # 이번 프로세스에서 새 변경을 적용했고 아직 평가(EVAL_EPISODES)를 안 끝냈는가
+    prev_version_median: float | None = None
     log(f"학습 시작: route={args.route} playbook v{pb.version} episodes={args.episodes} jev={args.jev}")
     import jev as jevm
     if args.jev != "off":
         if jevm.available():
-            log(f"  jev 백엔드: {jevm.backend()} {jevm.LOCAL_URL + ' ' + jevm.LOCAL_MODEL if jevm.backend() == 'local' else ''}")
+            log(f"  jev 백엔드: {jevm.describe()}")
         else:
             log("  jev 사용 불가 (TYPESAFE_API_KEY 없음 / 로컬 LLM 서버 응답 없음) — jev=off 로 진행")
             args.jev = "off"
@@ -83,7 +84,14 @@ def main() -> None:
     log(f"리셋 축복 ID: {grace}")
 
     for i in range(args.episodes):
-        patrol.reset_episode(tm0, pad0, grace, (route_pts[0][0], route_pts[0][2]), log)
+        # 리스폰 축복 근처에 잔존 몹이 있으면 워프가 막혀 죽은 채로 에피소드가 시작될 수 있다 → 성공할 때까지 최대 3회
+        for attempt in range(3):
+            if patrol.reset_episode(tm0, pad0, grace, (route_pts[0][0], route_pts[0][2]), log):
+                break
+            log(f"  리셋 실패 — 재시도 {attempt + 1}/2")
+        else:
+            log("  리셋 3회 실패 — 학습 중단")
+            break
         seed = args.seed_base + int(time.time()) % 100000 + i
         hz = harass.Harasser(seed, interval_s=args.harass_interval, log=log)
         log(f"── 에피소드 {i+1}/{args.episodes}  v{pb.version} seed={seed}")
@@ -119,8 +127,9 @@ def main() -> None:
                     proposals[cid] = prop
                     log(f"  제안 {pending[cid]}/{EVIDENCE}: {prop['why']}")
 
-        # ── 평가/롤백 (새 버전으로 EVAL_EPISODES 개 뛰었을 때) ──
-        if pb.version > 1 and since_change == EVAL_EPISODES and prev_version_median:
+        # ── 평가/롤백 (이번에 적용한 새 버전으로 EVAL_EPISODES 개 뛰었을 때만 — 롤백된 버전을 다시 평가하지 않는다) ──
+        if eval_pending and since_change == EVAL_EPISODES and prev_version_median:
+            eval_pending = False
             cur = pbm.median_survival(pb.version)
             if cur is not None and cur < prev_version_median * ROLLBACK_RATIO:
                 bad = pbm.load_version(pb.version)
@@ -130,14 +139,14 @@ def main() -> None:
                 pb.change = ""
                 pb.note = f"rollback of v{bad.version}"
                 pbm.save(pb)
-                log(f"  ✖ 롤백: v{bad.version} 중앙값 {cur:.0f}s < v{bad.version-1} {prev_version_median:.0f}s×{ROLLBACK_RATIO} → v{pb.version}")
+                log(f"  ✖ 롤백: v{bad.version} 중앙값 {cur:.0f}s < 변경 전 {prev_version_median:.0f}s×{ROLLBACK_RATIO} → v{pb.version}")
                 since_change = 0
             else:
                 log(f"  ✔ v{pb.version} 유지 (중앙값 {cur:.0f}s vs 이전 {prev_version_median:.0f}s)")
 
         # ── 적용 (근거 충분 + 현재 버전 평가가 끝났을 때) ──
         ready = [cid for cid, n in pending.items() if n >= EVIDENCE]
-        if ready and (pb.version == 1 or since_change >= EVAL_EPISODES):
+        if ready and not eval_pending:
             cid = ready[0]
             new = pbm.apply(pb, proposals[cid])
             if new is None:
@@ -147,6 +156,7 @@ def main() -> None:
                 pb = new
                 pbm.save(pb)
                 since_change = 0
+                eval_pending = prev_version_median is not None
                 log(f"  ★ 플레이북 v{pb.version}: {pb.note}")
             del pending[cid]
             del proposals[cid]

@@ -27,7 +27,9 @@ def main() -> None:
     if RESULTS.exists():
         for line in RESULTS.read_text(encoding="utf-8").splitlines():
             r = json.loads(line)
-            m = (r.get("extra") or {}).get("jev", "off")
+            m = r.get("jev") or "off"
+            if r.get("jev_backend"):
+                m = f"{m}/{r['jev_backend']}"
             by_mode.setdefault(m, []).append(r["seconds"])
     print("생존시간 (jev 모드별):")
     for m, secs in sorted(by_mode.items()):

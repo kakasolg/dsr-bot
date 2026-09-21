@@ -13,7 +13,10 @@ Jev (TypeSafe AI System One) 연동 — 텍스트를 만들지 않고 **타입�
   · 출력은 우리가 준 선택지 안에서만 나오므로 플레이북 범위를 벗어날 수 없다.
 
 백엔드 (JEV_BACKEND):
-  typesafe  Jev API. .env: TYPESAFE_API_KEY=...  (console.typesafe.ai)
+  typesafe  Jev API. 둘 중 하나:
+              · .env: AI_GATEWAY_API_KEY=...   Vercel AI Gateway 경유 (https://ai-gateway.vercel.sh/typesafe/v1/systemone, model typesafe-ai/jev)
+                — TypeSafe 와 같은 요청/응답 모양, 입력 100만 토큰당 $0.042, 출력 무료. early access 없이 바로 됨.
+              · .env: TYPESAFE_API_KEY=...     TypeSafe 직접 (console.typesafe.ai, early access)
   local     로컬 LLM 의 OpenAI 호환 서버 (LM Studio `lms server start` / Ollama / llama-server) + JSON 스키마 강제 출력.
             .env: LOCAL_LLM_URL=http://127.0.0.1:1234/v1  LOCAL_LLM_MODEL=qwen/qwen3-4b
             (localhost 라고 쓰지 말 것 — Windows 에서 ::1 먼저 시도하다 실패해 요청마다 2 s 가 붙는다. 실측 2.1 s → 0.1 s)
@@ -32,8 +35,17 @@ import urllib.request
 import urllib.error
 from pathlib import Path
 
-API = "https://api.typesafe.ai/v1/systemone"
-MODEL = os.environ.get("JEV_MODEL", "jev-latest")
+TYPESAFE_API = "https://api.typesafe.ai/v1/systemone"
+GATEWAY_API = "https://ai-gateway.vercel.sh/typesafe/v1/systemone"
+
+
+def _typesafe_route() -> tuple[str, str, str] | None:
+    """(URL, 모델, 키) — TYPESAFE_API_KEY 가 있으면 직접, 아니면 AI_GATEWAY_API_KEY 로 Vercel 게이트웨이. 둘 다 없으면 None."""
+    if os.environ.get("TYPESAFE_API_KEY"):
+        return TYPESAFE_API, os.environ.get("JEV_MODEL", "jev-latest"), os.environ["TYPESAFE_API_KEY"]
+    if os.environ.get("AI_GATEWAY_API_KEY"):
+        return GATEWAY_API, os.environ.get("JEV_MODEL", "typesafe-ai/jev"), os.environ["AI_GATEWAY_API_KEY"]
+    return None
 BACKEND = os.environ.get("JEV_BACKEND", "").lower()          # "" → 키 있으면 typesafe, 아니면 local
 LOCAL_URL = os.environ.get("LOCAL_LLM_URL", "http://127.0.0.1:1234/v1").rstrip("/")
 LOCAL_MODEL = os.environ.get("LOCAL_LLM_MODEL", "")
@@ -49,12 +61,19 @@ _day = time.strftime("%Y%m%d")
 def backend() -> str:
     if BACKEND in ("typesafe", "local"):
         return BACKEND
-    return "typesafe" if os.environ.get("TYPESAFE_API_KEY") else "local"
+    return "typesafe" if _typesafe_route() else "local"
+
+
+def describe() -> str:
+    if backend() == "local":
+        return f"local {LOCAL_URL} {LOCAL_MODEL}"
+    r = _typesafe_route()
+    return f"typesafe {r[0]} {r[1]}" if r else "typesafe (키 없음)"
 
 
 def available() -> bool:
     if backend() == "typesafe":
-        return bool(os.environ.get("TYPESAFE_API_KEY"))
+        return _typesafe_route() is not None
     try:
         with urllib.request.urlopen(f"{LOCAL_URL}/models", timeout=2.0) as r:
             return r.status == 200
@@ -67,16 +86,17 @@ def ask(state, questions: dict, tag: str = "") -> dict | None:
     global _calls_today, _day
     if backend() == "local":
         return _ask_local(state, questions, tag)
-    key = os.environ.get("TYPESAFE_API_KEY")
-    if not key:
+    route = _typesafe_route()
+    if not route:
         return None
+    api, model, key = route
     today = time.strftime("%Y%m%d")
     if today != _day:
         _day, _calls_today = today, 0
     if _calls_today >= DAILY_CAP:
         return None
-    body = json.dumps({"state": state, "model": MODEL, "questions": questions}).encode("utf-8")
-    req = urllib.request.Request(API, data=body, method="POST",
+    body = json.dumps({"state": state, "model": model, "questions": questions}).encode("utf-8")
+    req = urllib.request.Request(api, data=body, method="POST",
                                  headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
     t0 = time.time()
     try:
@@ -86,8 +106,9 @@ def ask(state, questions: dict, tag: str = "") -> dict | None:
         _log({"t": time.time(), "tag": tag, "error": str(e)[:200]})
         return None
     _calls_today += 1
-    _log({"t": time.time(), "tag": tag, "ms": round((time.time() - t0) * 1000), "state": state, "questions": questions,
-          "answers": out.get("answers"), "model": out.get("model")})
+    _log({"t": time.time(), "tag": tag, "backend": "typesafe", "ms": round((time.time() - t0) * 1000), "state": state, "questions": questions,
+          "answers": out.get("answers"), "model": out.get("model"), "usage": out.get("usage"),
+          "cost": ((out.get("provider_metadata") or {}).get("gateway") or {}).get("cost")})
     return out.get("answers")
 
 

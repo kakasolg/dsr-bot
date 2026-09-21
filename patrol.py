@@ -137,6 +137,10 @@ def run_episode(route: str, pb, harasser=None, max_seconds: float = 240.0, laps:
     guard = Guard(pad, pb, log, jev=jev)
     control.focus_game()
     time.sleep(0.5)
+    s0 = tm.snapshot()
+    if s0 is None or s0.player.hp <= 0:   # 리셋이 꼬여 죽은 채로 들어오면 0초 사망으로 기록되어 통계를 망친다
+        log("  에피소드 시작 시 사망 상태 — 리스폰 대기")
+        wait_respawn(tm, pad, log)
     order = list(range(len(pts))) + list(range(len(pts) - 2, 0, -1))
     s0 = tm.snapshot()
     if s0 and s0.player.gx is not None:
