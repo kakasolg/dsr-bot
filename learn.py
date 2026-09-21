@@ -3,6 +3,11 @@
 
   python learn.py <route> --episodes 10 [--max-seconds 240] [--harass-interval 20] [--seed-base 1000]
 
+A/B (규칙만 vs 판단 모델이 복기 후보를 고름) — 같은 시작 플레이북, 같은 시드열, 팔마다 별도 디렉터리:
+  python learn.py <route> --episodes 10 --seeds-fixed --arm jev   --jev live
+  python learn.py <route> --episodes 10 --seeds-fixed --arm rules --jev off
+  python ab_report.py jev rules
+
 규칙 (트레이딩의 워크포워드와 같은 규율):
   · 한 번 죽었다고 바꾸지 않는다: 같은 제안이 EVIDENCE 회 이상 누적돼야 적용
   · 새 버전으로 EVAL_EPISODES 개를 뛴 뒤, 생존시간 중앙값이 직전 버전의 ROLLBACK_RATIO 배 미만이면 롤백하고 그 제안은 rejected 에 기록
@@ -53,10 +58,23 @@ def main() -> None:
     ap.add_argument("--no-learn", action="store_true", help="복기·수정 없이 기록만")
     ap.add_argument("--grace", type=int, default=None, help="에피소드 시작 축복 ID (기본: 경로 파일의 grace, 없으면 워프 안 함)")
     ap.add_argument("--jev", choices=["off", "shadow", "live"], default="off",
-                    help="shadow: Jev 판단을 기록만 / live: confident 한 이동모드·후퇴를 따름 (TYPESAFE_API_KEY 필요)")
+                    help="복기 후보 선택에 판단 모델을 씀. shadow: 선택을 기록만 / live: 선택을 적용 (게이트 미달·NONE 이면 규칙). 키는 .env")
+    ap.add_argument("--jev-tick", action="store_true",
+                    help="틱 단위 이동모드·후퇴 질문도 켠다 (--jev shadow 면 기록만, live 면 따름). 실측상 규칙과 다를 게 없어 기본 꺼짐")
+    ap.add_argument("--arm", default=None, help="A/B 팔 이름 — data/playbook/arms/<이름>/ 에 플레이북·성적을 따로 둔다 (첫 실행 때 현재 플레이북을 복사)")
+    ap.add_argument("--seeds-fixed", action="store_true", help="시드 = seed-base + i (시각 무관) — 두 팔에 같은 방해 스케줄")
     args = ap.parse_args()
     from dotenv import load_dotenv  # type: ignore
     load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+
+    global LOG
+    if args.arm:
+        # 두 팔이 같은 v7 에서 갈라져 각자 v8, v9… 를 만들므로 버전/성적/로그를 디렉터리로 분리한다
+        src = pbm.load_current()
+        pbm.set_dir(pbm.DIR / "arms" / args.arm)
+        LOG = pbm.DIR / "learn.log"
+        if not (pbm.DIR / "current.json").exists():
+            pbm.save(src)
 
     route = json.loads((patrol.ROUTES / f"{args.route}.json").read_text())
     route_pts = route["points"]
@@ -67,7 +85,8 @@ def main() -> None:
     since_change = 0                     # 현재 버전으로 뛴 에피소드 수
     eval_pending = False                 # 이번 프로세스에서 새 변경을 적용했고 아직 평가(EVAL_EPISODES)를 안 끝냈는가
     prev_version_median: float | None = None
-    log(f"학습 시작: route={args.route} playbook v{pb.version} episodes={args.episodes} jev={args.jev}")
+    log(f"학습 시작: route={args.route} playbook v{pb.version} episodes={args.episodes} jev={args.jev}"
+        f"{' tick' if args.jev_tick else ''}{' arm=' + args.arm if args.arm else ''}{' seeds-fixed' if args.seeds_fixed else ''}")
     import jev as jevm
     if args.jev != "off":
         if jevm.available():
@@ -92,14 +111,17 @@ def main() -> None:
         else:
             log("  리셋 3회 실패 — 학습 중단")
             break
-        seed = args.seed_base + int(time.time()) % 100000 + i
+        seed = args.seed_base + i if args.seeds_fixed else args.seed_base + int(time.time()) % 100000 + i
         hz = harass.Harasser(seed, interval_s=args.harass_interval, log=log)
         log(f"── 에피소드 {i+1}/{args.episodes}  v{pb.version} seed={seed}")
-        shadow = jevm.Shadow(pb, names, mode=args.jev, log=log) if args.jev != "off" else None
+        shadow = jevm.Shadow(pb, names, mode=args.jev, log=log) if args.jev != "off" and args.jev_tick else None
         r = patrol.run_episode(args.route, pb, hz, max_seconds=args.max_seconds, log=log, pad=pad0, tm=tm0, jev=shadow)
         pbm.record_result(pb.version, seed, r["seconds"], r["laps"], r["reason"],
-                          {"episode": r["episode"], "jev": args.jev, "jev_backend": jevm.backend() if shadow else None,
-                           "jev_calls": shadow.calls if shadow else 0})
+                          {"episode": r["episode"], "jev": args.jev, "jev_backend": jevm.backend() if args.jev != "off" else None,
+                           "jev_tick": bool(shadow), "jev_calls": shadow.calls if shadow else 0, "jev_min_conf": jevm.MIN_CONF if args.jev != "off" else None, "arm": args.arm})
+        if r["reason"] == "stall":   # 입력 불능 — 플레이북 평가에 넣지 않고 다음 에피소드로 (리셋이 축복으로 데려간다)
+            log("  멈춤 에피소드 — 성적·평가에서 제외")
+            continue
         since_change += 1
 
         # ── 복기 ──
@@ -109,7 +131,7 @@ def main() -> None:
                 f"hostile={diag['hostile_count']} seg={diag['segment']} flask={diag['flask_used']} retreated={diag['retreated']}")
             cands = postmortem.propose_all(diag, pb)
             prop = cands[0] if cands else None
-            if shadow and cands:
+            if args.jev != "off" and cands:
                 # 판단 모델에게 후보 중 고르게 한다. shadow: 기록만, live: 그 선택을 쓴다 (NONE/저신뢰면 규칙대로)
                 rk = jevm.rank_proposals(diag, pb, cands)
                 if rk:
@@ -162,11 +184,16 @@ def main() -> None:
             del pending[cid]
             del proposals[cid]
 
+    # 런이 끝나도 캐릭터를 길 위에 세워 두지 않는다 — 축복으로 돌아가 쉰다
+    log("런 종료 — 축복으로 복귀")
+    patrol.reset_episode(tm0, pad0, grace, (route_pts[0][0], route_pts[0][2]), log)
+
     # ── 요약 ──
     rows = pbm.results()
     by_v: dict[int, list[float]] = {}
     for row in rows:
-        by_v.setdefault(row["version"], []).append(row["seconds"])
+        if row.get("reason") != "stall":
+            by_v.setdefault(row["version"], []).append(row["seconds"])
     log("요약 (버전: 에피소드 수, 생존 중앙값):")
     for v, secs in sorted(by_v.items()):
         log(f"  v{v}: n={len(secs)} median={statistics.median(secs):.0f}s max={max(secs):.0f}s")

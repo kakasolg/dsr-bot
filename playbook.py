@@ -52,6 +52,13 @@ class Playbook:
         return Playbook(**{k: v for k, v in d.items() if k in Playbook.__dataclass_fields__})
 
 
+def set_dir(path: Path) -> None:
+    """A/B 실험용 — 플레이북 버전·성적을 별도 디렉터리에 둔다 (learn.py --arm). 두 팔의 v8 이 서로의 중앙값에 섞이지 않게."""
+    global DIR, RESULTS
+    DIR = Path(path)
+    RESULTS = DIR / "results.jsonl"
+
+
 def load_current() -> Playbook:
     DIR.mkdir(parents=True, exist_ok=True)
     cur = DIR / "current.json"
@@ -144,5 +151,5 @@ def results(version: int | None = None) -> list[dict]:
 
 
 def median_survival(version: int) -> float | None:
-    rs = [r["seconds"] for r in results(version)]
+    rs = [r["seconds"] for r in results(version) if r.get("reason") != "stall"]   # 멈춤(입력 불능)은 플레이북 탓이 아니다
     return statistics.median(rs) if rs else None

@@ -36,7 +36,7 @@ def main() -> None:
     groups: dict[str, dict] = {}
     for line in RESULTS.read_text(encoding="utf-8").splitlines():
         r = json.loads(line)
-        if r.get("jev", "off") == "off" or r["seconds"] <= 0:
+        if r.get("jev", "off") == "off" or r["seconds"] <= 0 or r.get("reason") == "stall":
             continue
         key = r.get("jev_backend") or "?"
         g = groups.setdefault(key, {"secs": [], "deaths": 0, "resp": [], "warn_death": 0, "alarms": 0, "alarms_hit": 0})

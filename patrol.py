@@ -4,9 +4,19 @@
   python patrol.py record <이름>      직접(실제 패드로) 걸으면 4 m 마다 웨이포인트를 저장 → data/routes/<이름>.json  (Ctrl+C 로 끝)
   python patrol.py run <이름> [--laps N]   웨이포인트를 A→B→A 로 왕복 순찰. 사망하면 리스폰을 기다렸다가 계속
 
+캐릭터 상태 규칙 (에피소드마다 확인 — 사람이 게임 안에서 바꿀 수 있다):
+  · 왼손이 빈 캐릭터라 **오른손 무기를 양손으로(ArmStyle 3)** 잡고 있을 때만 LB 가 가드다. 한손이면 LB 는 주먹(공격)이라
+    guardjump 가 "가드+점프" 가 아니라 "주먹질+점프" 가 된다 → 시작 때 Y+RB 로 맞추고, 도중에 풀리면 가드 모드를 끈다.
+  · 캐릭터는 길 위에 서 있으면 안 된다 (이 게임은 멈춘 캐릭터를 용납하지 않는다 — 쉬는 건 축복에서). 살아 있는데
+    STALL_WINDOW 초 동안 STALL_MOVE m 도 못 움직이면 입력이 씹힌 것(포커스 상실·팝업·패드 재인식)으로 보고 흔들고,
+    STALL_MAX 번이면 에피소드를 "stall" 로 끝내 축복으로 돌아간다 (성적 집계에서 제외).
+
+  · 성배병(진홍)이 REST_FLASKS_LEFT 병 남으면 **무조건** 가까운 축복으로 가서 쉰다 (HP·성배병 충전) — rest_at_grace.
+    축복 앞에서 Y 로 앉고 회복이 확인되면 B 로 일어난다. Y 가 안 먹으면 브릿지 warp 로 대신.
+
 Guard (매 틱, 결정론):
   · 피격(HP 감소) 직후          → 구르기 (피격 방향 반대 대신, 진행 방향 유지한 채 B 탭)
-  · HP < 50% 이고 8 m 내 적 없음 → 성배병 (X)
+  · HP < flask_hp_pct(50%)      → 성배병 (X). FLASK_SAFE_DIST 안에 적이 있으면 먼저 후퇴해서 거리를 벌린 뒤 마신다
   · HP < 35%                    → 후퇴: 직전 웨이포인트로 돌아감 (적에게서 멀어지는 방향)
   · 20 m 내 적 3마리 이상        → 현재 구간 달리기(스프린트) 로 통과
 
@@ -32,6 +42,11 @@ from record import Episode, compact
 
 ROOT = Path(__file__).resolve().parent
 ROUTES = ROOT / "data" / "routes"
+STALL_WINDOW = 4.0    # 초 — 성배병(1.5 s)·경직/넘어짐(최대 3.5 s 실측)보다 길게
+STALL_MOVE = 0.5      # m
+STALL_MAX = 3         # 이만큼 흔들어도 안 움직이면 에피소드 종료
+FLASK_SAFE_DIST = 4.0  # m — 이 안에 적이 있으면 마시다 맞는다(1.5 s) → 후퇴로 거리부터 벌린다
+REST_FLASKS_LEFT = 1   # 성배병이 이만큼 남으면 무조건 축복에 가서 쉰다 (사용자 규칙 — 학습 대상 아님)
 
 
 def record_route(name: str, spacing: float = 4.0) -> None:
@@ -73,6 +88,10 @@ class Guard:
         self.hp_at_flask: int | None = None
         self.stamina_low = False
         self.mode = "sprint"
+        self.two_hand = True   # ArmStyle 3 — False 면 LB 를 쓰지 않는다 (guardjump → sprint)
+        self.last_rehand = 0.0
+        self.need_rest = False # 성배병이 REST_FLASKS_LEFT 이하 → 축복으로
+        self.flasks: int | None = None
 
     def tick(self, s: telemetry.Snapshot) -> str | None:
         p = s.player
@@ -90,13 +109,18 @@ class Guard:
                 self.flask_empty = True
                 self.log("  guard: 성배병 효과 없음 — 빈 병으로 간주")
             self.hp_at_flask = None
-        if (hp_pct < self.pb.flask_hp_pct and not self.flask_empty and not any(c.dist < 8 for c in hostile)
-                and now - self.last_flask > 4.0):
+        self.flasks = s.flask_hp
+        have_flask = (self.flasks > 0) if self.flasks is not None else (not self.flask_empty)
+        want_flask = hp_pct < self.pb.flask_hp_pct and have_flask
+        enemy_close = any(c.dist < FLASK_SAFE_DIST for c in hostile)
+        if want_flask and not enemy_close and now - self.last_flask > 4.0:
             self.pad.use_item()
             self.last_flask = now
             self.hp_at_flask = p.hp
             action = "flask"
-        self.retreat = hp_pct < self.pb.retreat_hp_pct and bool(hostile)
+        # HP 낮음 → 후퇴. 마셔야 하는데 적이 붙어 있어도 후퇴 (거리를 벌려서 마신다)
+        self.retreat = (hp_pct < self.pb.retreat_hp_pct and bool(hostile)) or (want_flask and enemy_close)
+        self.need_rest = self.flasks is not None and self.flasks <= REST_FLASKS_LEFT
         self.flee = next((c for c in hostile if c.npc_param in self.pb.avoid_types and c.dist <= self.pb.flee_distance), None)
         self.crowded = len(hostile) >= self.pb.crowd_threshold
         # 이동 모드: 스태미나 바닥이면 걷기(회복), 적이 가까우면 가드+점프 전진, 아니면 스프린트
@@ -120,6 +144,17 @@ class Guard:
                 self.mode = jmode
             if jretreat and hostile:
                 self.retreat = True
+        # 양손 상태가 풀리면 LB 는 주먹이 된다 — 가드 모드를 쓰지 않고, 적이 멀 때 다시 양손으로
+        if s.arm_style is not None and (s.arm_style == 3) != self.two_hand:
+            self.two_hand = s.arm_style == 3
+            self.log(f"  guard: ArmStyle {s.arm_style} — {'양손, 가드 가능' if self.two_hand else '한손 → LB 는 주먹, 가드 모드 끔'}")
+        if not self.two_hand:
+            if self.mode == "guardjump":
+                self.mode = "sprint"
+            if not any(c.dist < 10 for c in hostile) and now - self.last_rehand > 5.0:
+                self.pad.two_hand_right()
+                self.last_rehand = now
+                action = "twohand"
         self.last_hp = p.hp
         if action:
             self.log(f"  guard: {action} (hp {p.hp}/{p.max_hp}, hostile {len(hostile)})")
@@ -131,7 +166,11 @@ def run_episode(route: str, pb, harasser=None, max_seconds: float = 240.0, laps:
     """한 에피소드: 순찰하다 죽거나(사망) 시간이 다 되면 끝. 결과 dict 를 돌려준다.
     pad 는 프로세스 전체에서 **하나만** 만들어 넘겨야 한다 — 에피소드마다 새 가상 패드를 만들면 게임/Steam 이
     새 장치를 다시 잡느라 입력이 씹힌다 (실측: 2번째 에피소드부터 캐릭터가 안 움직임)."""
-    pts = json.loads((ROUTES / f"{route}.json").read_text())["points"]
+    rt = json.loads((ROUTES / f"{route}.json").read_text())
+    pts = rt["points"]
+    grace_id = rt.get("grace")
+    gp = rt.get("grace_pos") or pts[0]   # 축복 정확한 위치 (워프 도착점) — 없으면 wp0
+    grace_pos = (gp[0], gp[2])
     tm = tm or telemetry.Telemetry(telemetry.load_names())
     pad = pad or control.Pad()
     guard = Guard(pad, pb, log, jev=jev)
@@ -141,6 +180,7 @@ def run_episode(route: str, pb, harasser=None, max_seconds: float = 240.0, laps:
     if s0 is None or s0.player.hp <= 0:   # 리셋이 꼬여 죽은 채로 들어오면 0초 사망으로 기록되어 통계를 망친다
         log("  에피소드 시작 시 사망 상태 — 리스폰 대기")
         wait_respawn(tm, pad, log)
+    guard.two_hand = ensure_two_hand(tm, pad, log)
     order = list(range(len(pts))) + list(range(len(pts) - 2, 0, -1))
     s0 = tm.snapshot()
     if s0 and s0.player.gx is not None:
@@ -149,14 +189,34 @@ def run_episode(route: str, pb, harasser=None, max_seconds: float = 240.0, laps:
         order = order[k0:] + order[:k0]
     ep = Episode()
     ep.write({"t": round(time.time(), 3), "event": "playbook", "version": pb.version})
+    ep.write({"t": round(time.time(), 3), "event": "armstyle", "arm_style": tm.arm_style(), "two_hand": guard.two_hand,
+              "flasks": tm.flasks()[0], "max_flasks": tm.flasks()[1]})
     t0 = time.time()
     result = {"reason": "time", "laps": 0, "seconds": 0.0, "episode": ep.name, "death_file": None}
     stop = False
+    still = {"pos": None, "since": 0.0, "n": 0, "kick": 0.0}   # 멈춤 감시
 
     def on_tick(s, dist):
         nonlocal stop
         prev_hp = guard.last_hp
         a = guard.tick(s)
+        # ── 멈춤 감시: 살아 있는데 안 움직이면 입력이 안 먹는 것 — 포커스 다시 잡고 B(팝업이면 닫기, 게임이면 구르기) ──
+        now = time.time()
+        if s.player.gx is not None:
+            if still["pos"] is None or math.hypot(s.player.gx - still["pos"][0], s.player.gz - still["pos"][1]) >= STALL_MOVE:
+                still["pos"], still["since"], still["n"] = (s.player.gx, s.player.gz), now, 0
+            elif now - still["since"] > STALL_WINDOW and now - still["kick"] > STALL_WINDOW:
+                still["n"] += 1
+                still["kick"] = now
+                log(f"  ⚠ 멈춤 #{still['n']} ({now - still['since']:.0f} s, anim={s.player.anim}, hostile={len(s.hostile(20.0))}, "
+                    f"cam={'ok' if s.cam_yaw is not None else 'none'}, arm={s.arm_style}) — 포커스·입력 재설정")
+                ep.write({"t": round(now, 3), "event": "stall", "n": still["n"], "anim": s.player.anim, "hostile": len(s.hostile(20.0))})
+                if still["n"] >= STALL_MAX:
+                    result["reason"] = "stall"
+                    stop = True
+                    raise _Stop()
+                control.focus_game()
+                pad.dodge()
         if harasser:
             ev = harasser.tick()
             if ev:
@@ -181,32 +241,60 @@ def run_episode(route: str, pb, harasser=None, max_seconds: float = 240.0, laps:
             stop = True
             raise _Stop()
 
+    def nearest_k():
+        s = tm.snapshot()
+        if not s or s.player.gx is None:
+            return 0
+        return order.index(min(range(len(pts)), key=lambda i: math.hypot(pts[i][0] - s.player.gx, pts[i][2] - s.player.gz)))
+
     try:
         lap = 0
+        fails = 0
+        k = 0
+        last_rest_try = 0.0
         while lap < laps and not stop:
-            for k, idx in enumerate(order):
+            # ── 성배병이 바닥이면 축복으로 가서 쉰다 (실패하면 30 s 뒤 다시) ──
+            if guard.need_rest and time.time() - last_rest_try > 30.0:
+                last_rest_try = time.time()
+                ok = rest_at_grace(tm, pad, guard, grace_pos, grace_id, log, on_tick, ep)
+                still["since"] = time.time()   # 앉아 있던 시간을 멈춤으로 세지 않는다
+                if ok:
+                    k = nearest_k()            # 축복에서 다시 순찰
+                    continue
+            if k >= len(order):
+                lap += 1
+                k = 0
+                ep.write({"t": round(time.time(), 3), "event": "lap", "lap": lap})
+                log(f"  ✔ lap {lap}")
+                continue
+            idx = order[k]
+            if True:
                 target = (pts[idx][0], pts[idx][2])
-                if (guard.retreat or guard.flee) and k > 0:
-                    prev = pts[order[k - 1]]
+                # 후퇴는 서서 기다리는 게 아니라 계속 뒤로 간다 (최대 3 지점) — 성배병은 8 m 안에 적이 없어지는 틱에 규칙이 마신다
+                back = k
+                while (guard.retreat or guard.flee) and back > 0 and k - back < 3:
+                    prev = pts[order[back - 1]]
                     why = "flee " + (guard.flee.name or str(guard.flee.npc_param)) if guard.flee else "retreat"
-                    log(f"  {why} → wp {order[k-1]}")
+                    log(f"  {why} → wp {order[back - 1]}")
                     ep.write({"t": round(time.time(), 3), "guard": "retreat", "why": why})
-                    nav.goto(tm, pad, (prev[0], prev[2]), tolerance=2.0, timeout=20, on_tick=on_tick, log=log,
-                             mode_fn=lambda s: guard.mode)
-                    time.sleep(2.0)
+                    if nav.goto(tm, pad, (prev[0], prev[2]), tolerance=2.0, timeout=20, on_tick=on_tick, log=log,
+                                mode_fn=lambda s: guard.mode) == "dead":
+                        break
+                    back -= 1
                 r = nav.goto(tm, pad, target, tolerance=2.0, timeout=90, on_tick=on_tick, log=log,
                              mode_fn=lambda s: guard.mode)
                 if r == "dead":
                     result["reason"] = "death"
                     break
                 if r in ("timeout", "lost"):
-                    log(f"  wp {idx} 실패({r}) — 다음으로")
-            else:
-                lap += 1
-                ep.write({"t": round(time.time(), 3), "event": "lap", "lap": lap})
-                log(f"  ✔ lap {lap}")
-                continue
-            break
+                    fails += 1
+                    log(f"  wp {idx} 실패({r}) — 다음으로 ({fails} 연속)")
+                    if fails >= 3:   # 연속으로 못 가면 조향/입력이 죽은 것 — 서 있지 말고 끝낸다
+                        result["reason"] = "stall"
+                        break
+                else:
+                    fails = 0
+                k += 1
     except _Stop:
         pass
     finally:
@@ -218,10 +306,65 @@ def run_episode(route: str, pb, harasser=None, max_seconds: float = 240.0, laps:
         result["death_file"] = str(path.with_suffix("")) + ".death.json"
         log(f"☠ 사망 — {result['seconds']} s, {lap} laps")
         wait_respawn(tm, pad, log)
+    elif result["reason"] == "stall":
+        ep.close("stall", {"laps": lap})
+        log(f"⚠ 멈춤으로 종료 — {result['seconds']} s, {lap} laps (성적 제외, 축복으로 복귀)")
     else:
         ep.close("time", {"laps": lap})
         log(f"⏱ 시간 종료 — {result['seconds']} s, {lap} laps")
     return result
+
+
+def rest_at_grace(tm, pad, guard, grace_pos, grace_id, log, on_tick, ep) -> bool:
+    """가까운 축복(지금은 경로 시작 축복)으로 가서 앉는다 → HP·성배병 충전. 가는 길에도 on_tick(Guard·방해)이 돈다.
+    축복 앞에서 Y 로 앉으면 메뉴가 뜨고 그 순간 회복된다 → 회복 확인 후 B 로 닫고 일어난다.
+    Y 가 안 먹으면(범위 밖) 조금 더 다가가 재시도, 그래도 안 되면 브릿지 warp — 적이 붙어 있으면 워프가 막혀 실패(호출자가 30 s 뒤 재시도)."""
+    cur, mx = tm.flasks()
+    log(f"  성배병 {cur}/{mx} — 축복으로 가서 쉼")
+    ep.write({"t": round(time.time(), 3), "event": "rest", "phase": "go", "flasks": cur})
+    if nav.goto(tm, pad, grace_pos, tolerance=2.0, timeout=120, on_tick=on_tick, log=log, mode_fn=lambda s: guard.mode) == "dead":
+        return False
+    # 앉기 판정 반경이 0.7 m 도 안 된다 (실측: 격자 0.7 m 에서 한 점만 성공) → 정확한 지점 + 주변 4점을 0.35 m 오차로 밟으며 Y
+    spots = [grace_pos] + [(grace_pos[0] + dx, grace_pos[1] + dz) for dx, dz in ((0.4, 0), (-0.4, 0), (0, 0.4), (0, -0.4))]
+    for attempt, spot in enumerate(spots):
+        nav.goto(tm, pad, spot, tolerance=0.35, timeout=10, on_tick=on_tick, log=log, mode_fn=lambda s: "walk")
+        pad.neutral()
+        time.sleep(0.3)
+        control.focus_game()
+        pad.interact()               # Y: 축복에 앉기 (메뉴가 뜨고 그 순간 HP·성배병이 찬다)
+        time.sleep(1.5)
+        s = tm.snapshot()
+        cur, mx = tm.flasks()
+        if s and s.player.hp >= s.player.max_hp and (mx is None or cur is None or cur >= mx):
+            time.sleep(0.5)
+            pad.tap(control.B.XUSB_GAMEPAD_B, 0.1)   # 메뉴 닫기 = 일어나기
+            time.sleep(1.0)
+            log(f"  ✔ 휴식 — HP {s.player.hp}/{s.player.max_hp}, 성배병 {cur}/{mx}")
+            ep.write({"t": round(time.time(), 3), "event": "rest", "phase": "done", "flasks": cur, "spot": attempt})
+            return True
+        log(f"  앉기 안 됨 ({attempt + 1}/{len(spots)}, hp {s.player.hp if s else '?'}, 성배병 {cur})")
+    # 브릿지 warp 는 위치만 옮기고 성배병을 채우지 않는다 (실측) — 폴백 없음, 순찰 계속하고 30 s 뒤 다시
+    log("  휴식 실패 — 순찰 계속, 30 s 뒤 재시도")
+    ep.write({"t": round(time.time(), 3), "event": "rest", "phase": "fail"})
+    return False
+
+
+def ensure_two_hand(tm, pad, log=print, tries: int = 3) -> bool:
+    """오른손 무기를 양손으로 (ArmStyle 3). 왼손이 빈 캐릭터는 이 상태에서만 LB 가 가드다 — 한손이면 LB 가 주먹(공격).
+    사람이 게임 안에서 바꿀 수 있으니 에피소드마다 확인한다. 못 맞추면 False → Guard 가 가드 모드를 쓰지 않는다."""
+    for i in range(tries):
+        a = tm.arm_style()
+        if a == 3:
+            return True
+        if a is None:
+            log("  ArmStyle 을 읽을 수 없음 (GameDataMan 없음?) — 양손이라고 가정")
+            return True
+        log(f"  양손 잡기: ArmStyle {a} → Y+RB ({i + 1}/{tries})")
+        control.focus_game()
+        pad.two_hand_right()
+        time.sleep(0.8)
+    log(f"  양손 잡기 실패 (ArmStyle {tm.arm_style()}) — 이번 에피소드는 가드 없이 (guardjump → sprint)")
+    return False
 
 
 class _Stop(Exception):
@@ -261,7 +404,8 @@ def reset_to_grace(tm, grace_id: int, expect: tuple[float, float] | None = None,
             saw_load = True
         elif s.player.hp > 0:
             if expect is not None:
-                if math.hypot(s.player.gx - expect[0], s.player.gz - expect[1]) < 10.0 and time.time() - t0 > 3.0:
+                # 20 m: 축복 옆을 지나는 트롤 마차가 캐릭터를 10 m 넘게 밀어낸 적이 있다 (실측 12.9 m)
+                if math.hypot(s.player.gx - expect[0], s.player.gz - expect[1]) < 20.0 and time.time() - t0 > 3.0:
                     time.sleep(2.0)
                     return True
             elif saw_load:

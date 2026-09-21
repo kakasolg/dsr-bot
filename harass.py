@@ -27,8 +27,15 @@ POOL = [
 
 def send(line: str) -> None:
     CMD.parent.mkdir(parents=True, exist_ok=True)
-    with CMD.open("a", encoding="utf-8") as f:
-        f.write(line + "\n")
+    # CE 쪽이 큐 파일을 읽고 비우는 찰나에 열면 Windows 공유 위반(PermissionError) — 잠깐 물러났다 다시 (한 시간 런 중 한 번꼴)
+    for _ in range(20):
+        try:
+            with CMD.open("a", encoding="utf-8") as f:
+                f.write(line + "\n")
+            return
+        except PermissionError:
+            time.sleep(0.05)
+    print(f"harass: cmd.txt 20회 잠김 — 명령 버림: {line}", flush=True)
 
 
 def spawn_near(chr_id: str, count: int = 1, offset: float = 6.0) -> None:

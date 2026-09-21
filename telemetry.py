@@ -22,6 +22,13 @@ Cheat Engine 브릿지가 내보낸 symbols.json(테이블의 AOB 스캔 결과)
     +0x6CC heading (rad), +0x6D0 MapID = 0xAAXXZZ00 (AA 지역, XX 타일 x, ZZ 타일 z)
     → 연속 월드 좌표 gx = x + XX*256, gz = z + ZZ*256  (타일 경계에서 x 가 124→-128 로 튀는 것으로 확인)
   [camadr](symbol → 포인터): +0xB4 카메라 yaw, +0xB8 pitch  (테이블의 [ Teleport, Coords, NoClip/FreeCam ] 이 켜져야 존재)
+  [[GameDataMan]+8] = PlayerGameData(ChrAsm):
+    +0x324 ArmStyle (byte) 0 EmptyHand · 1 OneHand · 2 LeftBothHand · 3 RightBothHand
+           — 테이블 v8.0.4 는 +0x328 로 적혀 있지만 현재 게임 버전에선 실측 +0x324 (Y+RB 토글로 3↔1 확인)
+    +0x398 왼손1 무기 ID (110000 = 맨손), +0x39C 오른손1 무기 ID
+    +0x101 MaxEstusHP (byte) 성배병(진홍) 최대 수, +0x102 MaxEstusMP
+    +0x418 → 인벤토리 항목 배열: 4 바이트 정렬로 {item_id(상위 4비트 = 종류, 4 = goods), 수량} 이 이어진다.
+           성배병(진홍) = goods 1000~1012 (강화 단계별 ID). 실측 배열+0x150 에 goods 1001 qty 3. 위치는 바뀔 수 있어 스캔.
 
 ── 알려진 한계 ──────────────────────────────
  · 로딩 중에는 포인터가 잠깐 무효라 읽기가 실패한다 → snapshot() 이 None 을 돌려준다.
@@ -91,6 +98,9 @@ class Snapshot:
     chars: list[Chr] = field(default_factory=list)  # 플레이어 제외, 거리순
     cam_yaw: Optional[float] = None
     cam_pitch: Optional[float] = None
+    arm_style: Optional[int] = None   # 3 = 오른손 무기 양손 — 왼손이 빈 캐릭터는 이때만 LB 가 가드 (한손이면 LB = 주먹)
+    flask_hp: Optional[int] = None    # 남은 성배병(진홍) 수. 못 읽으면 None
+    max_flask_hp: Optional[int] = None
 
     def hostile(self, within: float = 30.0) -> list[Chr]:
         return [c for c in self.chars if c.team in (6, 7, 24, 25, 27, 33) and c.hp > 0 and c.dist <= within]
@@ -106,6 +116,9 @@ class Telemetry:
         self.symbols = self._load_symbols()
         self.world_chr_man = int(self.symbols["WorldChrMan"], 16)
         self.camadr = int(self.symbols["camadr"], 16) if self.symbols.get("camadr") else None
+        self.game_data_man = int(self.symbols["GameDataMan"], 16) if self.symbols.get("GameDataMan") else None
+        self._flask_off: Optional[int] = None   # 인벤토리 배열 안에서 성배병 항목을 찾은 위치 (캐시)
+        self._flask_cache: tuple[float, Optional[int], Optional[int]] = (0.0, None, None)
 
     @staticmethod
     def _load_symbols() -> dict:
@@ -165,6 +178,52 @@ class Telemetry:
         return Chr(ptr=p, npc_param=npc, team=team, hp=hp, max_hp=max_hp, sp=sp or 0, max_sp=max_sp or 0,
                    x=x, y=y, z=z, anim=anim, name=self.names.get(npc, ""))
 
+    def arm_style(self) -> Optional[int]:
+        """0 EmptyHand · 1 OneHand · 2 LeftBothHand · 3 RightBothHand. 사람이 게임 안에서 바꿀 수 있으니 매번 읽는다."""
+        if not self.game_data_man:
+            return None
+        gdm = self.q(self.game_data_man)
+        pgd = self.q(gdm + 8) if gdm else None
+        return self.u8(pgd + 0x324) if pgd else None
+
+    def _player_game_data(self) -> Optional[int]:
+        if not self.game_data_man:
+            return None
+        gdm = self.q(self.game_data_man)
+        return self.q(gdm + 8) if gdm else None
+
+    def flasks(self) -> tuple[Optional[int], Optional[int]]:
+        """(남은 성배병 수, 최대 수). 0.5 s 캐시 — 인벤토리 배열 스캔이라 틱마다 읽지 않는다."""
+        now = time.time()
+        if now - self._flask_cache[0] < 0.5:
+            return self._flask_cache[1], self._flask_cache[2]
+        cur, mx = None, None
+        pgd = self._player_game_data()
+        arr = self.q(pgd + 0x418) if pgd else None
+        if pgd:
+            mx = self.u8(pgd + 0x101)
+        if arr:
+            try:
+                if self._flask_off is not None:   # 캐시된 위치가 여전히 성배병이면 바로
+                    iid, qty = struct.unpack("<II", self.pm.read_bytes(arr + self._flask_off, 8))
+                    if (iid >> 28) == 4 and 1000 <= (iid & 0x0FFFFFFF) <= 1012:
+                        cur = qty
+                if cur is None:
+                    self._flask_off = None
+                    for size in (0x1000, 0x8000):
+                        raw = self.pm.read_bytes(arr, size)
+                        for off in range(0, size - 8, 4):
+                            iid, qty = struct.unpack_from("<II", raw, off)
+                            if (iid >> 28) == 4 and 1000 <= (iid & 0x0FFFFFFF) <= 1012 and qty <= 20:
+                                self._flask_off, cur = off, qty
+                                break
+                        if cur is not None:
+                            break
+            except pymem.exception.PymemError:
+                cur = None
+        self._flask_cache = (now, cur, mx)
+        return cur, mx
+
     def player_ptr(self) -> Optional[int]:
         wcm = self.q(self.world_chr_man)
         slot = self.q(wcm + OFF_LOCAL_PLAYER) if wcm else None
@@ -209,7 +268,9 @@ class Telemetry:
             if c.dist <= within:
                 chars.append(c)
         chars.sort(key=lambda c: c.dist)
-        return Snapshot(t=time.time(), player=player, chars=chars, cam_yaw=cam_yaw, cam_pitch=cam_pitch)
+        fl, mfl = self.flasks()
+        return Snapshot(t=time.time(), player=player, chars=chars, cam_yaw=cam_yaw, cam_pitch=cam_pitch,
+                        arm_style=self.arm_style(), flask_hp=fl, max_flask_hp=mfl)
 
 
 TILE = 256.0
@@ -259,7 +320,8 @@ if __name__ == "__main__":
         else:
             p = s.player
             line = (f"P hp={p.hp}/{p.max_hp} local=({p.x:.1f},{p.y:.1f},{p.z:.1f}) global=({p.gx},{p.gy},{p.gz}) "
-                    f"heading={p.heading} map={p.map_id} cam_yaw={s.cam_yaw} anim={p.anim} | near={len(s.chars)}")
+                    f"heading={p.heading} map={p.map_id} cam_yaw={s.cam_yaw} anim={p.anim} arm={s.arm_style} "
+                    f"flask={s.flask_hp}/{s.max_flask_hp} | near={len(s.chars)}")
             for c in s.chars[:4]:
                 line += f"\n   {c.dist:5.1f}m {c.team_name:12} {c.npc_param} {c.name[:20]:20} hp={c.hp}/{c.max_hp} anim={c.anim}"
             print(line)

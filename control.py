@@ -2,7 +2,7 @@
 입력 계층 — ViGEmBus 가상 Xbox 360 패드(vgamepad)로 엘든링을 조작한다.
 
 엘든링 Xbox 배치: 왼스틱 이동(카메라 기준), 오른스틱 카메라, B 구르기/달리기(홀드), A 점프,
-X 아이템 사용(성배병), Y 상호작용/양손, RB 약공격, LB 가드, R3 락온.
+X 아이템 사용(성배병), Y 상호작용 / Y홀드+RB 오른손 무기 양손, RB 약공격, LB 가드(양손일 때만 — 왼손이 비면 한손 상태의 LB 는 주먹), R3 락온.
 
 이동 방향은 **카메라 yaw 기준**이라, 월드 방향 → 스틱 벡터 변환에 telemetry 의 cam_yaw 를 쓴다.
 축 부호·오프셋은 calibrate() 로 실측해서 결정한다 (게임마다 다르고 문서로 알 수 없음).
@@ -83,6 +83,14 @@ class Pad:
     def lock_on(self) -> None: self.tap(B.XUSB_GAMEPAD_RIGHT_THUMB, 0.06)
     def sprint(self, on: bool) -> None: self.hold(B.XUSB_GAMEPAD_B, on)
     def guard(self, on: bool) -> None: self.hold(B.XUSB_GAMEPAD_LEFT_SHOULDER, on)
+
+    def two_hand_right(self) -> None:
+        """Y 홀드 + RB = 오른손 무기 양손 잡기 토글 (ArmStyle 3 ↔ 1). 실측 0.4 s 뒤 상태가 바뀐다."""
+        self.hold(B.XUSB_GAMEPAD_Y, True)
+        time.sleep(0.15)
+        self.tap(B.XUSB_GAMEPAD_RIGHT_SHOULDER, 0.08)
+        time.sleep(0.15)
+        self.hold(B.XUSB_GAMEPAD_Y, False)
 
 
 def world_to_stick(dx: float, dz: float, cam_yaw: float, yaw_offset: float, flip_x: bool) -> tuple[float, float]:

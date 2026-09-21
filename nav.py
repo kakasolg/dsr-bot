@@ -87,6 +87,7 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
     t_start = time.time()
     last_progress_t, last_progress_d = t_start, None
     escapes = 0
+    no_cam_since = None
     mover = mover or Mover(pad)
     try:
         while True:
@@ -99,7 +100,13 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
                 time.sleep(0.1)
                 if now - t_start > 15 and s is None:
                     return "lost"
+                if s is not None and s.cam_yaw is None:   # camadr 가 죽으면 조향 불가 — 서서 timeout 을 기다리지 않는다
+                    no_cam_since = no_cam_since or now
+                    if now - no_cam_since > 5:
+                        log("  카메라 yaw 없음 5 s — lost")
+                        return "lost"
                 continue
+            no_cam_since = None
             p = s.player
             if p.hp <= 0:
                 pad.neutral()
