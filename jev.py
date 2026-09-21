@@ -125,7 +125,8 @@ def _ask_local(state, questions: dict, tag: str) -> dict | None:
         "temperature": 0,
         "max_tokens": 200,
         "messages": [
-            {"role": "system", "content": "You are a decision module for a game bot. Answer ONLY with the JSON object requested. Be decisive; keep 'reason' under 20 words."},
+            {"role": "system", "content": "You are a decision module for a game bot. Answer ONLY with the JSON object requested. Be decisive; keep 'reason' under 20 words."
+                                          + (" /no_think" if "qwen3" in LOCAL_MODEL.lower() else "")},   # Qwen3 소프트 스위치 (Ollama 는 chat_template_kwargs 를 무시)
             {"role": "user", "content": f"STATE:\n{json.dumps(state, ensure_ascii=False)}\n\nQUESTIONS:\n{qtext}"},
         ],
         "response_format": {"type": "json_schema", "json_schema": {"name": "decision", "strict": True, "schema": schema}},
