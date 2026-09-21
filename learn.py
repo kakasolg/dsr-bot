@@ -68,9 +68,12 @@ def main() -> None:
     prev_version_median: float | None = pbm.median_survival(pb.version - 1) if pb.version > 1 else None
     log(f"학습 시작: route={args.route} playbook v{pb.version} episodes={args.episodes} jev={args.jev}")
     import jev as jevm
-    if args.jev != "off" and not jevm.available():
-        log("  TYPESAFE_API_KEY 없음 — jev=off 로 진행")
-        args.jev = "off"
+    if args.jev != "off":
+        if jevm.available():
+            log(f"  jev 백엔드: {jevm.backend()} {jevm.LOCAL_URL + ' ' + jevm.LOCAL_MODEL if jevm.backend() == 'local' else ''}")
+        else:
+            log("  jev 사용 불가 (TYPESAFE_API_KEY 없음 / 로컬 LLM 서버 응답 없음) — jev=off 로 진행")
+            args.jev = "off"
 
     # 매 에피소드 전에 시작 축복으로 워프해 잔존 몹을 정리하고 HP/성배를 채운다 (랜덤런의 "새 캐릭터"에 해당)
     import control
@@ -87,7 +90,8 @@ def main() -> None:
         shadow = jevm.Shadow(pb, names, mode=args.jev, log=log) if args.jev != "off" else None
         r = patrol.run_episode(args.route, pb, hz, max_seconds=args.max_seconds, log=log, pad=pad0, tm=tm0, jev=shadow)
         pbm.record_result(pb.version, seed, r["seconds"], r["laps"], r["reason"],
-                          {"episode": r["episode"], "jev": args.jev, "jev_calls": shadow.calls if shadow else 0})
+                          {"episode": r["episode"], "jev": args.jev, "jev_backend": jevm.backend() if shadow else None,
+                           "jev_calls": shadow.calls if shadow else 0})
         since_change += 1
 
         # ── 복기 ──

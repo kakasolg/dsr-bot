@@ -12,7 +12,13 @@ Jev (TypeSafe AI System One) 연동 — 텍스트를 만들지 않고 **타입�
   · 실패·타임아웃·상한 초과 → 즉시 규칙 폴백. 호출 입력/출력은 에피소드 로그에 남긴다.
   · 출력은 우리가 준 선택지 안에서만 나오므로 플레이북 범위를 벗어날 수 없다.
 
-.env: TYPESAFE_API_KEY=...   (console.typesafe.ai 에서 발급)
+백엔드 (JEV_BACKEND):
+  typesafe  Jev API. .env: TYPESAFE_API_KEY=...  (console.typesafe.ai)
+  local     로컬 LLM 의 OpenAI 호환 서버 (LM Studio `lms server start` / Ollama / llama-server) + JSON 스키마 강제 출력.
+            .env: LOCAL_LLM_URL=http://localhost:1234/v1  LOCAL_LLM_MODEL=llama-3.2-3b-instruct
+            같은 질문(choice/score/noul)을 JSON 스키마로 바꿔 묻고 같은 모양의 답을 돌려준다.
+            확률·신뢰도는 모델이 스스로 적는 값이라 Jev 만큼 보정돼 있진 않다 — 게이트는 같은 방식으로 걸고 결과(생존)로 판단.
+            temperature 0 이라 같은 상태엔 같은 답 → A/B 재현 가능. 비용 0. 게임과 GPU 를 나눠 쓰므로 프레임 드랍은 실측할 것.
 """
 from __future__ import annotations
 
@@ -25,6 +31,9 @@ from pathlib import Path
 
 API = "https://api.typesafe.ai/v1/systemone"
 MODEL = os.environ.get("JEV_MODEL", "jev-latest")
+BACKEND = os.environ.get("JEV_BACKEND", "").lower()          # "" → 키 있으면 typesafe, 아니면 local
+LOCAL_URL = os.environ.get("LOCAL_LLM_URL", "http://localhost:1234/v1").rstrip("/")
+LOCAL_MODEL = os.environ.get("LOCAL_LLM_MODEL", "")
 MIN_CONF = float(os.environ.get("JEV_MIN_CONF", "0.6"))
 DAILY_CAP = int(os.environ.get("JEV_DAILY_CAP", "3000"))
 TIMEOUT = float(os.environ.get("JEV_TIMEOUT", "2.0"))
@@ -34,13 +43,27 @@ _calls_today = 0
 _day = time.strftime("%Y%m%d")
 
 
+def backend() -> str:
+    if BACKEND in ("typesafe", "local"):
+        return BACKEND
+    return "typesafe" if os.environ.get("TYPESAFE_API_KEY") else "local"
+
+
 def available() -> bool:
-    return bool(os.environ.get("TYPESAFE_API_KEY"))
+    if backend() == "typesafe":
+        return bool(os.environ.get("TYPESAFE_API_KEY"))
+    try:
+        with urllib.request.urlopen(f"{LOCAL_URL}/models", timeout=2.0) as r:
+            return r.status == 200
+    except Exception:
+        return False
 
 
 def ask(state, questions: dict, tag: str = "") -> dict | None:
-    """POST /v1/systemone. 실패·상한·키 없음 → None (호출자는 규칙으로 폴백)."""
+    """질문 → 답. 실패·상한·키 없음 → None (호출자는 규칙으로 폴백)."""
     global _calls_today, _day
+    if backend() == "local":
+        return _ask_local(state, questions, tag)
     key = os.environ.get("TYPESAFE_API_KEY")
     if not key:
         return None
@@ -63,6 +86,83 @@ def ask(state, questions: dict, tag: str = "") -> dict | None:
     _log({"t": time.time(), "tag": tag, "ms": round((time.time() - t0) * 1000), "state": state, "questions": questions,
           "answers": out.get("answers"), "model": out.get("model")})
     return out.get("answers")
+
+
+def _schema_for(questions: dict) -> tuple[dict, str]:
+    """choice/score/noul 질문 묶음 → (JSON 스키마, 질문 설명 텍스트)."""
+    props, lines = {}, []
+    for name, q in questions.items():
+        t = q["type"]
+        if t == "choice":
+            opts = list(q["criteria"].keys())
+            props[name] = {"type": "string", "enum": opts}
+            props[f"{name}_confidence"] = {"type": "number", "minimum": 0, "maximum": 1}
+            lines.append(f"- {name} (choose one): {q['instructions']}\n" + "\n".join(f"    {k}: {v}" for k, v in q["criteria"].items())
+                         + f"\n  {name}_confidence: how sure you are, 0..1")
+        elif t == "score":
+            levels = q["criteria"]
+            props[name] = {"type": "integer", "minimum": 0, "maximum": len(levels) - 1}
+            lines.append(f"- {name} (integer 0..{len(levels)-1}): {q['instructions']}\n" + "\n".join(f"    {i}: {v}" for i, v in enumerate(levels)))
+        elif t == "noul":
+            props[name] = {"type": "number", "minimum": 0, "maximum": 1}
+            lines.append(f"- {name} (probability 0..1 that this is true): {q['instructions']}")
+    props["reason"] = {"type": "string", "maxLength": 120}
+    schema = {"type": "object", "properties": props, "required": list(props.keys()), "additionalProperties": False}
+    return schema, "\n".join(lines)
+
+
+def _ask_local(state, questions: dict, tag: str) -> dict | None:
+    """OpenAI 호환 /chat/completions + response_format json_schema. 답을 Jev 와 같은 모양으로 맞춘다."""
+    global _calls_today, _day
+    today = time.strftime("%Y%m%d")
+    if today != _day:
+        _day, _calls_today = today, 0
+    if _calls_today >= DAILY_CAP:
+        return None
+    schema, qtext = _schema_for(questions)
+    body = {
+        "model": LOCAL_MODEL or "default",
+        "temperature": 0,
+        "max_tokens": 200,
+        "messages": [
+            {"role": "system", "content": "You are a decision module for a game bot. Answer ONLY with the JSON object requested. Be decisive; keep 'reason' under 20 words."},
+            {"role": "user", "content": f"STATE:\n{json.dumps(state, ensure_ascii=False)}\n\nQUESTIONS:\n{qtext}"},
+        ],
+        "response_format": {"type": "json_schema", "json_schema": {"name": "decision", "strict": True, "schema": schema}},
+        "chat_template_kwargs": {"enable_thinking": False},   # Qwen3/Gemma4 류 thinking 모델: 생각 토큰이 예산을 다 먹지 않게
+    }
+    req = urllib.request.Request(f"{LOCAL_URL}/chat/completions", data=json.dumps(body).encode("utf-8"), method="POST",
+                                 headers={"Content-Type": "application/json", "Authorization": "Bearer lm-studio"})
+    t0 = time.time()
+    try:
+        with urllib.request.urlopen(req, timeout=max(TIMEOUT, 8.0)) as r:
+            out = json.loads(r.read().decode("utf-8"))
+        msg = out["choices"][0]["message"]
+        content = msg.get("content") or ""
+        if "{" not in content:
+            raise ValueError("empty content" + (" (thinking model — reasoning ate the token budget; use a non-thinking model)"
+                                                if msg.get("reasoning_content") else ""))
+        content = content[content.find("{"): content.rfind("}") + 1]   # 일부 모델이 앞뒤에 텍스트를 붙임
+        raw = json.loads(content)
+    except Exception as e:  # URLError/HTTPError/KeyError/JSONDecodeError/timeout
+        _log({"t": time.time(), "tag": tag, "backend": "local", "error": str(e)[:200]})
+        return None
+    answers = {}
+    for name, q in questions.items():
+        if name not in raw:
+            continue
+        if q["type"] == "choice":
+            conf = float(raw.get(f"{name}_confidence", 0.0))
+            answers[name] = {"choice": raw[name], "confidence": conf, "probabilities": {raw[name]: conf}}
+        elif q["type"] == "score":
+            answers[name] = {"score": int(raw[name]), "confidence": 1.0}
+        else:
+            answers[name] = {"noul": float(raw[name])}
+    answers["_reason"] = raw.get("reason", "")
+    _calls_today += 1
+    _log({"t": time.time(), "tag": tag, "backend": "local", "model": out.get("model"), "ms": round((time.time() - t0) * 1000),
+          "state": state, "answers": answers})
+    return answers
 
 
 def _log(row: dict) -> None:
@@ -112,6 +212,7 @@ def decide_move(snapshot, pb, names: dict | None = None) -> dict | None:
         "retreat": rt.get("noul", 0.0),
         "threat": th.get("score"), "threat_conf": th.get("confidence", 0.0),
         "confident": (mv.get("confidence", 0.0) >= MIN_CONF),
+        "reason": a.get("_reason", ""),
     }
 
 
@@ -183,7 +284,7 @@ class Shadow:
                 self.calls += 1
                 if d["mode"] != rule_mode or d["retreat"] >= 0.5:
                     self.log(f"  jev[{self.mode}]: mode={d['mode']}({d['mode_conf']:.2f}) rule={rule_mode} "
-                             f"retreat={d['retreat']:.2f} threat={d['threat']}")
+                             f"retreat={d['retreat']:.2f} threat={d['threat']} {d.get('reason', '')}")
         finally:
             self.busy = False
 
