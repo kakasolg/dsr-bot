@@ -34,6 +34,10 @@ venv 만들기 (처음 한 번): `uv venv .venv --python 3.12 && uv pip install 
 | 팀 | `ChrIns+0x6C` | 1 플레이어, 6 적, 47 영체, 48 (미확인) |
 | NpcParamId | `ChrIns+0x60` | 테이블 CharNames 로 이름 변환 |
 | 애니메이션 | `[[ChrIns+0x190]+0x80]+0x90` | 12000000 대기, 17002/18002 사망, 쥐 20 = 엎드림 |
+| 글로벌 좌표 | `ChrIns+0x6C0/0x6C4/0x6C8` (x, 높이, z) | 청크를 넘어도 연속. 테이블 표기(6B0)와 달리 실측 6C0 |
+| 방향 | `ChrIns+0x6CC` (rad) | |
+| MapID | `ChrIns+0x6D0` | FieldArea.MapID 와 동일 (예: 0x3C2A2500 = 림그레이브 시작 청크) |
+| 카메라 yaw/pitch | `[camadr]+0xB4 / +0xB8` | 브릿지 `symbols` 가 테이블의 카메라 섹션을 켜고 심볼을 내보냄 |
 
 ### 기록 형식
 

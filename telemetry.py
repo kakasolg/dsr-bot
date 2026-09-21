@@ -18,6 +18,9 @@ Cheat Engine 브릿지가 내보낸 symbols.json(테이블의 AOB 스캔 결과)
         [modules+0x18] → +0x40  (int32, 애니메이션 관련 추정 — 검증 중)
         [modules+0x68] → +0x70 x, +0x74 y, +0x78 z (float)
         [modules+0x80] → +0x90 현재 애니메이션 ID (플레이어 Character Data 기준)
+    +0x6C0 global x, +0x6C4 y(높이), +0x6C8 z (float)  — 청크 경계를 넘어도 연속인 월드 좌표 (실측: 테이블 표기 6B0 과 달리 6C0)
+    +0x6CC heading (rad), +0x6D0 MapID (FieldArea.MapID 와 동일)
+  [camadr](symbol → 포인터): +0xB4 카메라 yaw, +0xB8 pitch  (테이블의 [ Teleport, Coords, NoClip/FreeCam ] 이 켜져야 존재)
 
 ── 알려진 한계 ──────────────────────────────
  · 로딩 중에는 포인터가 잠깐 무효라 읽기가 실패한다 → snapshot() 이 None 을 돌려준다.
@@ -67,6 +70,11 @@ class Chr:
     anim: Optional[int] = None
     dist: float = 0.0
     name: str = ""
+    gx: Optional[float] = None  # global coords (플레이어만 채움)
+    gy: Optional[float] = None
+    gz: Optional[float] = None
+    heading: Optional[float] = None
+    map_id: Optional[int] = None
 
     @property
     def team_name(self) -> str:
@@ -78,6 +86,8 @@ class Snapshot:
     t: float
     player: Chr
     chars: list[Chr] = field(default_factory=list)  # 플레이어 제외, 거리순
+    cam_yaw: Optional[float] = None
+    cam_pitch: Optional[float] = None
 
     def hostile(self, within: float = 30.0) -> list[Chr]:
         return [c for c in self.chars if c.team in (6, 7, 24, 25, 27, 33) and c.hp > 0 and c.dist <= within]
@@ -92,6 +102,7 @@ class Telemetry:
         self.names = names or {}
         self.symbols = self._load_symbols()
         self.world_chr_man = int(self.symbols["WorldChrMan"], 16)
+        self.camadr = int(self.symbols["camadr"], 16) if self.symbols.get("camadr") else None
 
     @staticmethod
     def _load_symbols() -> dict:
@@ -176,6 +187,11 @@ class Telemetry:
         player = self.read_chr(pp)
         if not player:
             return None
+        player.gx, player.gy, player.gz = self.f32(pp + 0x6C0), self.f32(pp + 0x6C4), self.f32(pp + 0x6C8)
+        player.heading, player.map_id = self.f32(pp + 0x6CC), self.i32(pp + 0x6D0)
+        cam = self.q(self.camadr) if self.camadr else None
+        cam_yaw = self.f32(cam + 0xB4) if cam else None
+        cam_pitch = self.f32(cam + 0xB8) if cam else None
         chars = []
         for p in self.chr_ptrs():
             if p == pp:
@@ -187,7 +203,7 @@ class Telemetry:
             if c.dist <= within:
                 chars.append(c)
         chars.sort(key=lambda c: c.dist)
-        return Snapshot(t=time.time(), player=player, chars=chars)
+        return Snapshot(t=time.time(), player=player, chars=chars, cam_yaw=cam_yaw, cam_pitch=cam_pitch)
 
 
 def load_names(ct_path: Optional[str] = None) -> dict[int, str]:
@@ -227,7 +243,8 @@ if __name__ == "__main__":
             print("(loading / no player)")
         else:
             p = s.player
-            line = f"P hp={p.hp}/{p.max_hp} pos=({p.x:.1f},{p.y:.1f},{p.z:.1f}) anim={p.anim} | near={len(s.chars)}"
+            line = (f"P hp={p.hp}/{p.max_hp} local=({p.x:.1f},{p.y:.1f},{p.z:.1f}) global=({p.gx},{p.gy},{p.gz}) "
+                    f"heading={p.heading} map={p.map_id} cam_yaw={s.cam_yaw} anim={p.anim} | near={len(s.chars)}")
             for c in s.chars[:4]:
                 line += f"\n   {c.dist:5.1f}m {c.team_name:12} {c.npc_param} {c.name[:20]:20} hp={c.hp}/{c.max_hp} anim={c.anim}"
             print(line)
