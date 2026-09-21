@@ -18,8 +18,9 @@ Cheat Engine 브릿지가 내보낸 symbols.json(테이블의 AOB 스캔 결과)
         [modules+0x18] → +0x40  (int32, 애니메이션 관련 추정 — 검증 중)
         [modules+0x68] → +0x70 x, +0x74 y, +0x78 z (float)
         [modules+0x80] → +0x90 현재 애니메이션 ID (플레이어 Character Data 기준)
-    +0x6C0 global x, +0x6C4 y(높이), +0x6C8 z (float)  — 청크 경계를 넘어도 연속인 월드 좌표 (실측: 테이블 표기 6B0 과 달리 6C0)
-    +0x6CC heading (rad), +0x6D0 MapID (FieldArea.MapID 와 동일)
+    +0x6C0 x, +0x6C4 y(높이), +0x6C8 z (float)  — **256 m 타일 기준 상대 좌표** (실측: 테이블 표기 6B0 과 달리 6C0)
+    +0x6CC heading (rad), +0x6D0 MapID = 0xAAXXZZ00 (AA 지역, XX 타일 x, ZZ 타일 z)
+    → 연속 월드 좌표 gx = x + XX*256, gz = z + ZZ*256  (타일 경계에서 x 가 124→-128 로 튀는 것으로 확인)
   [camadr](symbol → 포인터): +0xB4 카메라 yaw, +0xB8 pitch  (테이블의 [ Teleport, Coords, NoClip/FreeCam ] 이 켜져야 존재)
 
 ── 알려진 한계 ──────────────────────────────
@@ -187,8 +188,10 @@ class Telemetry:
         player = self.read_chr(pp)
         if not player:
             return None
-        player.gx, player.gy, player.gz = self.f32(pp + 0x6C0), self.f32(pp + 0x6C4), self.f32(pp + 0x6C8)
+        rx, ry, rz = self.f32(pp + 0x6C0), self.f32(pp + 0x6C4), self.f32(pp + 0x6C8)
         player.heading, player.map_id = self.f32(pp + 0x6CC), self.i32(pp + 0x6D0)
+        if None not in (rx, ry, rz) and player.map_id is not None:
+            player.gx, player.gy, player.gz = tile_to_world(rx, ry, rz, player.map_id)
         cam = self.q(self.camadr) if self.camadr else None
         cam_yaw = self.f32(cam + 0xB4) if cam else None
         cam_pitch = self.f32(cam + 0xB8) if cam else None
@@ -204,6 +207,15 @@ class Telemetry:
                 chars.append(c)
         chars.sort(key=lambda c: c.dist)
         return Snapshot(t=time.time(), player=player, chars=chars, cam_yaw=cam_yaw, cam_pitch=cam_pitch)
+
+
+TILE = 256.0
+
+
+def tile_to_world(x: float, y: float, z: float, map_id: int) -> tuple[float, float, float]:
+    """타일 상대 좌표 + MapID(0xAAXXZZ00) → 연속 월드 좌표."""
+    tx, tz = (map_id >> 16) & 0xFF, (map_id >> 8) & 0xFF
+    return x + tx * TILE, y, z + tz * TILE
 
 
 def load_names(ct_path: Optional[str] = None) -> dict[int, str]:
