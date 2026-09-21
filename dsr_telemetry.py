@@ -16,6 +16,8 @@
                           +0x48 → +0x80 현재 애니메이션 ID
                           +0x108 Warp(byte) +0x110/114/118 WarpXYZ +0x124 WarpAngle  (좌표 순간이동)
     +0x3E8 HP  +0x3EC MaxHP  +0x3F8 스태미나  +0x3FC 최대 스태미나   (DSR-Gadget 0x3D8/0x3DC/0x3E8/0x3EC + 보정 0x10)
+    +0xA44  특수 동작 애니 ID (int32, 없으면 -1) — 화톳불에 앉아 있는 동안 77xx (위 화톳불 7711, 아래 7721). +0xA48 = 1 이면 그 동작 중.
+            mapd 쪽 "현재 애니"(+0x48→+0x80) 는 공격 304000/에스트 7585/백스텝 690 은 보이지만 앉기는 안 보인다.
   ChrClassWarp = [static]: +0xB34 마지막 화톳불 ID (예: 1812960 = 불의 제전)
   ChrDbg (static 바이트 배열): +0x1 PlayerExterminate = 1 이면 즉사
   ChrFollowCam = [[[static]+0x60]+0x60]: +0x10 부터 4x4 행렬(float) — 3행 = 카메라 forward, 4행 = 위치. yaw = atan2(fwd.x, fwd.z)
@@ -56,6 +58,7 @@ AOBS = {
 OFF_HP, OFF_MAXHP, OFF_SP, OFF_MAXSP = 0x3E8, 0x3EC, 0x3F8, 0x3FC
 OFF_MAPDATA, OFF_MODEL, OFF_NPC = 0x68, 0x88, 0xC8
 OFF_LASTBONFIRE = 0xB34
+OFF_ANIM2 = 0xA44
 FRIENDLY = {279070, 100000}   # 낙담한 전사, 사람 NPC(c1000) — 필요하면 data/dsr_friendly.json 으로
 
 
@@ -187,6 +190,44 @@ class DSRTelemetry:
                 chars.append(c)
         chars.sort(key=lambda c: c.dist)
         return Snapshot(t=time.time(), player=player, chars=chars, cam_yaw=self.cam_yaw(), cam_pitch=None)
+
+    # ── 엘든링 텔레메트리와 인터페이스 맞추기 (patrol/learn 이 게임을 모르게) ──
+    def arm_style(self) -> Optional[int]:
+        return None   # DS1 은 왼손이 비어도 LB 가 가드(맨손 가드) — 양손 검사 불필요
+
+    def flasks(self) -> tuple[Optional[int], Optional[int]]:
+        return None, None   # TODO 에스트 수 (인벤토리 오프셋 미확인) — Guard 는 "효과 없음 → 빈 병" 휴리스틱으로 폴백
+
+    def last_grace(self) -> Optional[int]:
+        return self.last_bonfire()
+
+    def sitting(self) -> bool:
+        """화톳불에 앉아 있는가 — ChrIns+0xA48 == 1 이고 +0xA44 가 77xx (실측: 위 화톳불 7711, 아래 화톳불 7721)."""
+        pp = self.player_ptr()
+        if not pp:
+            return False
+        a = self.i32(pp + OFF_ANIM2)
+        return self.i32(pp + OFF_ANIM2 + 4) == 1 and a is not None and 7700 <= a < 7800 and a % 10 == 1   # 7720 = 앉는 중(플래그 0), 77x1 = 앉음
+
+    def face(self, pad, heading: float, tries: int = 5, tol: float = 0.25) -> bool:
+        """캐릭터를 heading(+0x4 각도, 실측 월드 yaw = heading + π) 방향으로 돌린다 — 스틱을 짧게 쳐서 제자리 회전.
+        DS1 은 화톳불·문 상호작용 프롬프트가 정면 정렬을 요구한다 (사용자 실측)."""
+        import control, nav
+        for _ in range(tries):
+            s = self.snapshot(within=1.0)
+            if not s or s.cam_yaw is None or s.player.heading is None:
+                return False
+            d = (heading - s.player.heading + math.pi) % (2 * math.pi) - math.pi
+            if abs(d) < tol:
+                return True
+            yaw = heading + math.pi
+            sx, sy = control.world_to_stick(math.sin(yaw), math.cos(yaw), s.cam_yaw, nav.YAW_OFFSET, nav.FLIP_X)
+            pad.move(sx, sy)
+            time.sleep(0.10)
+            pad.neutral()
+            time.sleep(0.45)
+        s = self.snapshot(within=1.0)
+        return bool(s) and abs((heading - s.player.heading + math.pi) % (2 * math.pi) - math.pi) < tol
 
     # ── 진행 상태 ──
     def last_bonfire(self) -> Optional[int]:

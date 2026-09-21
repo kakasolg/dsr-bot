@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import statistics
 import sys
 import time
@@ -28,11 +29,11 @@ from pathlib import Path
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
+import env
 import harass
 import patrol
 import playbook as pbm
 import postmortem
-import telemetry
 
 EVIDENCE = 2
 EVAL_EPISODES = 3
@@ -78,14 +79,20 @@ def main() -> None:
 
     route = json.loads((patrol.ROUTES / f"{args.route}.json").read_text())
     route_pts = route["points"]
-    names = telemetry.load_names()
+    names = env.load_names()
+    if env.GAME == "dsr" and not args.arm:
+        pbm.set_dir(pbm.DIR.parent / "playbook-dsr")   # 게임별 플레이북 (DSR 은 점프 없음 → 기본 모드 guard)
+        LOG = pbm.DIR / "learn.log"
     pb = pbm.load_current()
+    if env.GAME == "dsr" and pb.mode_near_enemy == "guardjump":
+        pb.mode_near_enemy = "guard"
+        pbm.save(pb)
     pending: Counter = Counter()         # 제안 id → 누적 횟수
     proposals: dict[str, dict] = {}
     since_change = 0                     # 현재 버전으로 뛴 에피소드 수
     eval_pending = False                 # 이번 프로세스에서 새 변경을 적용했고 아직 평가(EVAL_EPISODES)를 안 끝냈는가
     prev_version_median: float | None = None
-    log(f"학습 시작: route={args.route} playbook v{pb.version} episodes={args.episodes} jev={args.jev}"
+    log(f"학습 시작[{env.GAME}]: route={args.route} playbook v{pb.version} episodes={args.episodes} jev={args.jev}"
         f"{' tick' if args.jev_tick else ''}{' arm=' + args.arm if args.arm else ''}{' seeds-fixed' if args.seeds_fixed else ''}")
     import jev as jevm
     if args.jev != "off":
@@ -97,22 +104,27 @@ def main() -> None:
 
     # 매 에피소드 전에 시작 축복으로 워프해 잔존 몹을 정리하고 HP/성배를 채운다 (랜덤런의 "새 캐릭터"에 해당)
     import control
-    tm0 = telemetry.Telemetry(names)
+    tm0 = env.make_telemetry(names)
     pad0 = control.Pad()  # 프로세스에 하나만 (에피소드마다 만들면 입력이 씹힘)
-    grace = args.grace or route.get("grace")
-    log(f"리셋 축복 ID: {grace}")
+    grace = args.grace or route.get("grace") or (route.get("bonfires") or [{}])[0].get("id")
+    reset_expect = (route_pts[0][0], route_pts[0][2])
+    if env.GAME == "dsr" and route.get("bonfires"):
+        # 시작점(경로 첫 점)에 가장 가까운 화톳불 = 에피소드 시작 화톳불 (편도 경로면 위쪽 끝)
+        bf = min(route["bonfires"], key=lambda b: math.hypot(b["pos"][0] - route_pts[0][0], b["pos"][2] - route_pts[0][2]))
+        grace, reset_expect = bf["id"], tuple(bf["pos"]) + ((bf["heading"],) if bf.get("heading") is not None else ())
+    log(f"리셋 축복 ID: {grace} 위치 {reset_expect}")
 
     for i in range(args.episodes):
         # 리스폰 축복 근처에 잔존 몹이 있으면 워프가 막혀 죽은 채로 에피소드가 시작될 수 있다 → 성공할 때까지 최대 3회
         for attempt in range(3):
-            if patrol.reset_episode(tm0, pad0, grace, (route_pts[0][0], route_pts[0][2]), log):
+            if patrol.reset_episode(tm0, pad0, grace, reset_expect, log):
                 break
             log(f"  리셋 실패 — 재시도 {attempt + 1}/2")
         else:
             log("  리셋 3회 실패 — 학습 중단")
             break
         seed = args.seed_base + i if args.seeds_fixed else args.seed_base + int(time.time()) % 100000 + i
-        hz = harass.Harasser(seed, interval_s=args.harass_interval, log=log)
+        hz = harass.Harasser(seed, interval_s=args.harass_interval, log=log) if env.GAME != "dsr" else None   # DSR: 소환 없음, 자연 적
         log(f"── 에피소드 {i+1}/{args.episodes}  v{pb.version} seed={seed}")
         shadow = jevm.Shadow(pb, names, mode=args.jev, log=log) if args.jev != "off" and args.jev_tick else None
         r = patrol.run_episode(args.route, pb, hz, max_seconds=args.max_seconds, log=log, pad=pad0, tm=tm0, jev=shadow)
@@ -186,7 +198,7 @@ def main() -> None:
 
     # 런이 끝나도 캐릭터를 길 위에 세워 두지 않는다 — 축복으로 돌아가 쉰다
     log("런 종료 — 축복으로 복귀")
-    patrol.reset_episode(tm0, pad0, grace, (route_pts[0][0], route_pts[0][2]), log)
+    patrol.reset_episode(tm0, pad0, grace, reset_expect, log)
 
     # ── 요약 ──
     rows = pbm.results()

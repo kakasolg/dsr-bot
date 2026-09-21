@@ -19,6 +19,7 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
 import control
+import env
 import telemetry
 
 YAW_OFFSET = 0.0
@@ -26,6 +27,7 @@ FLIP_X = False
 SPRINT_BEYOND = 8.0     # 이보다 멀면 달리기
 STUCK_WINDOW = 2.0      # 초
 STUCK_MIN_PROGRESS = 0.3  # m
+UNREACHABLE_DY = 2.5      # m — 2D 로 5 m 안인데 높이 차가 이보다 크면 절벽/층 차이
 
 
 JUMP_PERIOD = 1.2       # guardjump 모드: 이 주기로 점프
@@ -36,7 +38,8 @@ class Mover:
     """이동 모드 상태기. 매 틱 set(mode) 로 원하는 모드를 주면 필요한 버튼 상태를 유지한다.
       walk       아무 것도 안 누름 (스태미나 회복)
       sprint     B 홀드
-      guardjump  LB 홀드 + JUMP_PERIOD 마다 (LB 해제 → A 점프 → LB) — 빠르고, 점프 무적 + 가드로 보호
+      guardjump  LB 홀드 + JUMP_PERIOD 마다 (LB 해제 → A 점프 → LB) — 빠르고, 점프 무적 + 가드로 보호 (엘든링)
+      guard      LB 홀드만 (DSR — 점프 없음. DS1 점프는 달리기+B 라 사고만 남)
     """
 
     def __init__(self, pad: control.Pad):
@@ -50,13 +53,17 @@ class Mover:
         now = time.time()
         if mode != self.mode:
             self.pad.sprint(mode == "sprint")
-            if mode != "guardjump" and self.guard_on:
+            if mode not in ("guardjump", "guard") and self.guard_on:
                 self.pad.guard(False)
                 self.guard_on = False
             if mode == "guardjump":
                 self.next_jump = now + JUMP_PERIOD * 0.5
             self.mode = mode
-        if mode == "guardjump":
+        if mode == "guard":
+            if not self.guard_on:
+                self.pad.guard(True)
+                self.guard_on = True
+        elif mode == "guardjump":
             if self.jump_at is not None:
                 if now - self.jump_at > JUMP_GUARD_OFF and not self.guard_on:
                     self.pad.guard(True)
@@ -81,9 +88,13 @@ class Mover:
 def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float], tolerance: float = 1.5,
          timeout: float = 60.0, on_tick=None, log=print, sprint_always: bool = False, mode_fn=None,
          mover: "Mover | None" = None) -> str:
-    """반환: 'arrived' | 'timeout' | 'dead' | 'lost'.
-    mode_fn(snapshot) -> 'walk'|'sprint'|'guardjump' 를 주면 매 틱 이동 모드를 정한다 (없으면 거리 기반 sprint)."""
-    tx, tz = target
+    """반환: 'arrived' | 'timeout' | 'dead' | 'lost' | 'unreachable'.
+    target 은 (x, z) 또는 (x, y, z). y 를 주면 2D 로 가까운데 높이 차가 UNREACHABLE_DY 를 넘을 때 'unreachable' — 절벽 아래에서 위 점을
+    밀고 있는 상황 (실내 경로의 낙하 구간을 거꾸로 갈 때). mode_fn(snapshot) -> 'walk'|'sprint'|'guardjump'|'guard' 가 매 틱 이동 모드."""
+    if len(target) == 3:
+        tx, ty, tz = target
+    else:
+        (tx, tz), ty = target, None
     t_start = time.time()
     last_progress_t, last_progress_d = t_start, None
     escapes = 0
@@ -124,12 +135,20 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
                 last_progress_d, last_progress_t = dist, now
             elif now - last_progress_t > STUCK_WINDOW:
                 escapes += 1
+                # 막혔는데 목표가 위/아래로 멀면 계단이 아니라 절벽·층 차이 — 계단은 막히지 않고 오르므로 막힘 뒤에만 판단
+                if escapes >= 2 and ty is not None and p.gy is not None and abs(ty - p.gy) > UNREACHABLE_DY:
+                    pad.neutral()
+                    log(f"  막힘 + 높이 차 {ty - p.gy:+.1f} m — 못 가는 점")
+                    return "unreachable"
                 log(f"  stuck at {dist:.1f} m — escape #{escapes}")
                 mover.set("walk")
-                pad.jump()
+                if env.GAME != "dsr":   # DS1 의 A 는 점프가 아니라 상호작용 (NPC 대화창이 뜨면 멈춤)
+                    pad.jump()
                 side = 1.0 if escapes % 2 else -1.0
                 sx, sy = control.world_to_stick(dx, dz, s.cam_yaw, YAW_OFFSET, FLIP_X)
-                pad.move(sx + side * 0.8, sy * 0.3)
+                pad.move(-sx * 0.8, -sy * 0.8)        # 벽에 박힌 채 밀지 말고 먼저 뒤로 물러난다
+                time.sleep(0.5)
+                pad.move(sx * 0.4 + side * 0.9, sy * 0.4)   # 옆으로 틀어 재접근
                 time.sleep(0.7)
                 last_progress_d, last_progress_t = dist, time.time()
                 if escapes >= 6:

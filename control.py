@@ -29,7 +29,8 @@ def focus_game() -> bool:
     lua = u.FindWindowW(None, "Lua Engine")   # 테이블 스크립트 에러가 띄우는 CE 창 — 포커스를 뺏으므로 숨김
     if lua:
         u.ShowWindow(lua, 0)
-    h = u.FindWindowW(None, "ELDEN RING™")
+    import env
+    h = u.FindWindowW(None, "DARK SOULS™: REMASTERED" if env.GAME == "dsr" else "ELDEN RING™")
     if not h:
         return False
     u.keybd_event(0x12, 0, 0, 0)   # ALT down/up: 다른 프로세스가 앞에 있을 때 SetForegroundWindow 거부를 푸는 고전 트릭

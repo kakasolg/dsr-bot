@@ -36,6 +36,7 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
 import control
+import env
 import nav
 import telemetry
 from record import Episode, compact
@@ -50,10 +51,22 @@ REST_FLASKS_LEFT = 1   # 성배병이 이만큼 남으면 무조건 축복에 �
 
 
 def record_route(name: str, spacing: float = 4.0) -> None:
+    """사람이 걷는 동안 spacing m 마다 좌표를 저장한다. 점이 생길 때마다 파일을 쓰므로 프로세스를 죽여도 잃지 않는다.
+    DSR: 마지막 화톳불 ID 가 바뀌면(= 새 화톳불에서 쉼) 그 자리를 bonfires 에 기록하고, 애니메이션 변화도 찍는다 (앉기 애니 ID 확인용)."""
+    import env
     ROUTES.mkdir(parents=True, exist_ok=True)
-    tm = telemetry.Telemetry()
+    tm = env.make_telemetry({})
     pts: list[list[float]] = []
-    print(f"경로 녹화 시작: {name} — 실제 패드로 걸으세요. {spacing} m 마다 저장. Ctrl+C 로 종료", flush=True)
+    bonfires: list[dict] = []
+    last_bf = tm.last_bonfire() if hasattr(tm, "last_bonfire") else None
+    last_anim = None
+    out = ROUTES / f"{name}.json"
+    def save():
+        doc = {"name": name, "game": env.GAME, "points": pts}
+        if bonfires or last_bf:
+            doc["bonfires"] = bonfires or [{"id": last_bf, "pos": pts[0] if pts else None}]
+        out.write_text(json.dumps(doc, ensure_ascii=False, indent=1))
+    print(f"경로 녹화 시작: {name} ({env.GAME}) — 걸으세요. {spacing} m 마다 저장. Ctrl+C 로 종료. 시작 화톳불={last_bf}", flush=True)
     try:
         while True:
             s = tm.snapshot(within=1.0)
@@ -61,12 +74,23 @@ def record_route(name: str, spacing: float = 4.0) -> None:
                 x, y, z = s.player.gx, s.player.gy, s.player.gz
                 if not pts or math.hypot(x - pts[-1][0], z - pts[-1][2]) >= spacing:
                     pts.append([round(x, 2), round(y, 2), round(z, 2)])
-                    print(f"  #{len(pts)} ({x:.1f}, {y:.1f}, {z:.1f}) map={s.player.map_id:#x}", flush=True)
+                    print(f"  #{len(pts)} ({x:.1f}, {y:.1f}, {z:.1f}) hp={s.player.hp} hostile20={len(s.hostile(20))}", flush=True)
+                    save()
+                if s.player.anim != last_anim:
+                    print(f"    anim {last_anim} → {s.player.anim} at ({x:.1f}, {y:.1f}, {z:.1f})", flush=True)
+                    last_anim = s.player.anim
+                if hasattr(tm, "last_bonfire"):
+                    bf = tm.last_bonfire()
+                    if bf and bf != last_bf:
+                        bonfires.append({"id": bf, "pos": [round(x, 2), round(y, 2), round(z, 2)]})
+                        print(f"  ★ 화톳불 {bf} 에서 쉼 — 위치 ({x:.1f}, {y:.1f}, {z:.1f})", flush=True)
+                        last_bf = bf
+                        save()
             time.sleep(0.2)
     except KeyboardInterrupt:
         pass
-    (ROUTES / f"{name}.json").write_text(json.dumps({"name": name, "points": pts}, ensure_ascii=False, indent=1))
-    print(f"저장: {ROUTES / (name + '.json')} ({len(pts)} points)")
+    save()
+    print(f"저장: {out} ({len(pts)} points, bonfires {bonfires})")
 
 
 class Guard:
@@ -135,6 +159,8 @@ class Guard:
             self.mode = self.pb.mode_near_enemy
         else:
             self.mode = self.pb.mode_open
+        if env.GAME == "dsr" and self.mode == "guardjump":
+            self.mode = "guard"   # DS1 은 점프 없음
         if self.jev:
             # 규칙이 먼저 정하고, Jev 는 그림자(기록)거나 live 일 때만 confident 응답으로 덮어쓴다.
             # 스태미나 바닥 걷기·구르기·성배병은 항상 규칙 — Jev 는 이동 모드와 후퇴만 건드린다.
@@ -170,8 +196,13 @@ def run_episode(route: str, pb, harasser=None, max_seconds: float = 240.0, laps:
     pts = rt["points"]
     grace_id = rt.get("grace")
     gp = rt.get("grace_pos") or pts[0]   # 축복 정확한 위치 (워프 도착점) — 없으면 wp0
+    grace_heading = None
+    if rt.get("bonfires"):               # DSR: 화톳불 여러 개 — 쉴 땐 가장 가까운 것 (TODO: 지금은 첫 번째)
+        grace_id = rt["bonfires"][0]["id"]
+        gp = rt["bonfires"][0]["pos"]
+        grace_heading = rt["bonfires"][0].get("heading")
     grace_pos = (gp[0], gp[2])
-    tm = tm or telemetry.Telemetry(telemetry.load_names())
+    tm = tm or env.make_telemetry(env.load_names())
     pad = pad or control.Pad()
     guard = Guard(pad, pb, log, jev=jev)
     control.focus_game()
@@ -180,13 +211,19 @@ def run_episode(route: str, pb, harasser=None, max_seconds: float = 240.0, laps:
     if s0 is None or s0.player.hp <= 0:   # 리셋이 꼬여 죽은 채로 들어오면 0초 사망으로 기록되어 통계를 망친다
         log("  에피소드 시작 시 사망 상태 — 리스폰 대기")
         wait_respawn(tm, pad, log)
-    guard.two_hand = ensure_two_hand(tm, pad, log)
-    order = list(range(len(pts))) + list(range(len(pts) - 2, 0, -1))
+    guard.two_hand = ensure_two_hand(tm, pad, log) if env.GAME != "dsr" else True
+    # 녹화에 낙하(2D 6 m 안에서 2 m 넘게 내려감)가 있으면 그 경로는 편도 — 거꾸로는 못 올라간다
+    drops = [i for i in range(1, len(pts)) if pts[i][1] - pts[i - 1][1] < -2.0 and math.hypot(pts[i][0] - pts[i - 1][0], pts[i][2] - pts[i - 1][2]) < 6.0]
+    one_way = bool(drops) or bool(rt.get("one_way"))
+    if drops:
+        log(f"  경로에 낙하 구간 {drops} — 편도로 순찰 (끝에 닿으면 에피소드 종료)")
+    order = list(range(len(pts))) if one_way else list(range(len(pts))) + list(range(len(pts) - 2, 0, -1))
     s0 = tm.snapshot()
     if s0 and s0.player.gx is not None:
-        nearest = min(range(len(pts)), key=lambda i: math.hypot(pts[i][0] - s0.player.gx, pts[i][2] - s0.player.gz))
+        gy = s0.player.gy if s0.player.gy is not None else 0.0
+        nearest = min(range(len(pts)), key=lambda i: math.hypot(pts[i][0] - s0.player.gx, pts[i][2] - s0.player.gz) + 2.0 * abs(pts[i][1] - gy))
         k0 = order.index(nearest)
-        order = order[k0:] + order[:k0]
+        order = order[k0:] + order[:k0] if not one_way else order[k0:]
     ep = Episode()
     ep.write({"t": round(time.time(), 3), "event": "playbook", "version": pb.version})
     ep.write({"t": round(time.time(), 3), "event": "armstyle", "arm_style": tm.arm_style(), "two_hand": guard.two_hand,
@@ -266,10 +303,13 @@ def run_episode(route: str, pb, harasser=None, max_seconds: float = 240.0, laps:
                 k = 0
                 ep.write({"t": round(time.time(), 3), "event": "lap", "lap": lap})
                 log(f"  ✔ lap {lap}")
+                if one_way:
+                    result["reason"] = "end"   # 편도 완주 = 생존 성공
+                    break
                 continue
             idx = order[k]
             if True:
-                target = (pts[idx][0], pts[idx][2])
+                target = (pts[idx][0], pts[idx][1], pts[idx][2])
                 # 후퇴는 서서 기다리는 게 아니라 계속 뒤로 간다 (최대 3 지점) — 성배병은 8 m 안에 적이 없어지는 틱에 규칙이 마신다
                 back = k
                 while (guard.retreat or guard.flee) and back > 0 and k - back < 3:
@@ -286,7 +326,7 @@ def run_episode(route: str, pb, harasser=None, max_seconds: float = 240.0, laps:
                 if r == "dead":
                     result["reason"] = "death"
                     break
-                if r in ("timeout", "lost"):
+                if r in ("timeout", "lost", "unreachable"):
                     fails += 1
                     log(f"  wp {idx} 실패({r}) — 다음으로 ({fails} 연속)")
                     if fails >= 3:   # 연속으로 못 가면 조향/입력이 죽은 것 — 서 있지 말고 끝낸다
@@ -309,6 +349,9 @@ def run_episode(route: str, pb, harasser=None, max_seconds: float = 240.0, laps:
     elif result["reason"] == "stall":
         ep.close("stall", {"laps": lap})
         log(f"⚠ 멈춤으로 종료 — {result['seconds']} s, {lap} laps (성적 제외, 축복으로 복귀)")
+    elif result["reason"] == "end":
+        ep.close("end", {"laps": lap})
+        log(f"🏁 편도 완주 — {result['seconds']} s")
     else:
         ep.close("time", {"laps": lap})
         log(f"⏱ 시간 종료 — {result['seconds']} s, {lap} laps")
@@ -324,6 +367,13 @@ def rest_at_grace(tm, pad, guard, grace_pos, grace_id, log, on_tick, ep) -> bool
     ep.write({"t": round(time.time(), 3), "event": "rest", "phase": "go", "flasks": cur})
     if nav.goto(tm, pad, grace_pos, tolerance=2.0, timeout=120, on_tick=on_tick, log=log, mode_fn=lambda s: guard.mode) == "dead":
         return False
+    if env.GAME == "dsr":
+        ok = rest_at_bonfire(tm, pad, (gp[0], gp[1], gp[2]), log, on_tick, ep, heading=grace_heading)
+        if ok and grace_heading is None and getattr(tm, "last_rest_heading", None) is not None:
+            rt["bonfires"][0]["heading"] = round(tm.last_rest_heading, 3)   # 배운 각도를 기억
+            (ROUTES / f"{route}.json").write_text(json.dumps(rt, ensure_ascii=False, indent=1))
+            log(f"  화톳불 각도 학습 → 경로 파일에 저장 ({tm.last_rest_heading:.2f})")
+        return ok
     # 앉기 판정 반경이 0.7 m 도 안 된다 (실측: 격자 0.7 m 에서 한 점만 성공) → 정확한 지점 + 주변 4점을 0.35 m 오차로 밟으며 Y
     spots = [grace_pos] + [(grace_pos[0] + dx, grace_pos[1] + dz) for dx, dz in ((0.4, 0), (-0.4, 0), (0, 0.4), (0, -0.4))]
     for attempt, spot in enumerate(spots):
@@ -345,6 +395,51 @@ def rest_at_grace(tm, pad, guard, grace_pos, grace_id, log, on_tick, ep) -> bool
         log(f"  앉기 안 됨 ({attempt + 1}/{len(spots)}, hp {s.player.hp if s else '?'}, 성배병 {cur})")
     # 브릿지 warp 는 위치만 옮기고 성배병을 채우지 않는다 (실측) — 폴백 없음, 순찰 계속하고 30 s 뒤 다시
     log("  휴식 실패 — 순찰 계속, 30 s 뒤 재시도")
+    ep.write({"t": round(time.time(), 3), "event": "rest", "phase": "fail"})
+    return False
+
+
+SIT_ANIMS_DSR = {303000, 303040, 303300}   # DS1 화톳불 앉기/일어나기 계열 (녹화 실측: 303000→303040, 140→303300)
+
+
+def rest_at_bonfire(tm, pad, spot, log, on_tick, ep, heading: float | None = None) -> bool:
+    """DSR: 화톳불에서 쉰다. spot = (x, y, z) 프롬프트가 뜨는 자리, heading = 그때 캐릭터 각도 (녹화/사람 실측).
+    DS1 은 프롬프트에 정면 정렬이 필요하고 제자리 회전이 안 되므로(스틱을 치면 걷는다), 걸어서 2 m 안까지 온 뒤
+    **좌표 워프로 자리·각도를 스냅**하고 A → 앉음(ChrIns+0xA48 == 1, +0xA44 == 77x1) → B 로 메뉴 닫기 → 일어남 확인.
+    각도를 모르면 45° 씩 8 방향을 워프로 돌려 가며 시도하고 되는 각도를 tm.last_rest_heading 에 남긴다."""
+    x, y, z = spot
+    if nav.goto(tm, pad, (x, z), tolerance=2.0, timeout=120, on_tick=on_tick, log=log, mode_fn=lambda s: "walk") == "dead":
+        return False
+    pad.neutral()
+    time.sleep(0.3)
+    control.focus_game()
+    headings = [heading, heading] if heading is not None else [k * math.pi / 4 - math.pi for k in range(8)]   # 아는 각도는 2회 시도
+    tm.last_rest_heading = None
+    for h in headings:
+        tm.pos_warp(x, y, z, h)
+        time.sleep(0.8)
+        pad.tap(control.B.XUSB_GAMEPAD_A, 0.12)
+        for _ in range(14):          # 앉는 데 ~2.4 s (7720 → 7721)
+            time.sleep(0.25)
+            if tm.sitting():
+                break
+        if not tm.sitting():
+            continue
+        tm.last_rest_heading = h
+        time.sleep(1.0)
+        for _ in range(3):           # 메뉴 닫기 = 일어나기
+            pad.tap(control.B.XUSB_GAMEPAD_B, 0.1)
+            for _ in range(8):
+                time.sleep(0.25)
+                if not tm.sitting():
+                    break
+            if not tm.sitting():
+                break
+        s2 = tm.snapshot()
+        log(f"  ✔ 휴식 — HP {s2.player.hp if s2 else '?'} (각도 {h:.2f})")
+        ep.write({"t": round(time.time(), 3), "event": "rest", "phase": "done", "heading": round(h, 3)})
+        return True
+    log("  휴식 실패 (앉기 안 됨) — 순찰 계속, 30 s 뒤 재시도")
     ep.write({"t": round(time.time(), 3), "event": "rest", "phase": "fail"})
     return False
 
@@ -380,7 +475,7 @@ def wait_respawn(tm, pad, log=print, timeout: float = 120.0) -> bool:
         if s and s.player.hp > 0:
             time.sleep(3.0)
             return True
-        if time.time() - t0 > 6 and pressed < 20:  # 사망 연출이 끝난 뒤부터 2초마다: 오른쪽(마지막 축복) → A
+        if env.GAME != "dsr" and time.time() - t0 > 6 and pressed < 20:  # 엘든링: 사망 연출 뒤 "부활할 곳" 선택 — 오른쪽(마지막 축복) → A. DS1 은 자동
             control.focus_game()
             pad.tap(control.B.XUSB_GAMEPAD_DPAD_RIGHT, 0.1)
             time.sleep(0.3)
@@ -419,11 +514,29 @@ def reset_to_grace(tm, grace_id: int, expect: tuple[float, float] | None = None,
 def reset_episode(tm, pad, grace_id: int | None, expect: tuple[float, float] | None, log=print) -> bool:
     """에피소드 리셋 = 랜덤런의 새 캐릭터: 살아 있으면 즉사시켜 축복에서 리스폰(잔존 몹 정리, HP/성배 회복),
     그 다음 시작 축복으로 워프. 적이 근처에 있으면 워프가 막히므로 반드시 리스폰 뒤에 워프한다."""
-    import harass
     s = tm.snapshot(within=1.0)
+    if env.GAME == "dsr":
+        # DSR 리셋 = 시작 화톳불로 좌표 워프 → 앉기 (HP·에스트 충전, 적 리스폰). 죽어 있으면 자동 리스폰을 기다린다.
+        if not (s and s.player.hp > 0):
+            if not wait_respawn(tm, pad, log):
+                return False
+        if expect is not None and len(expect) >= 3:
+            log("  리셋: 시작 화톳불로 워프 → 앉기")
+            tm.pos_warp(expect[0], expect[1], expect[2])
+            time.sleep(1.0)
+            class _EP:
+                def write(self, o): pass
+            heading = expect[3] if len(expect) > 3 else None
+            if not rest_at_bonfire(tm, pad, (expect[0], expect[1], expect[2]), log, lambda s, d: None, _EP(), heading=heading):
+                log("  앉기 실패 — HP/에스트 충전 없이 시작")
+        return True
     if s and s.player.hp > 0:
         log("  리셋: 즉사 → 리스폰")
-        harass.send("activate 1337304928")
+        if env.GAME == "dsr":
+            tm.kill_player()          # DS1: 마지막으로 쉰 화톳불에서 자동 리스폰 (에스트 충전, 적 리스폰)
+        else:
+            import harass
+            harass.send("activate 1337304928")
         for _ in range(20):
             time.sleep(0.5)
             s = tm.snapshot(within=1.0)
@@ -431,6 +544,8 @@ def reset_episode(tm, pad, grace_id: int | None, expect: tuple[float, float] | N
                 break
     if not wait_respawn(tm, pad, log):
         return False
+    if env.GAME == "dsr":
+        return True
     if grace_id:
         log("  리셋: 시작 축복으로 워프")
         return reset_to_grace(tm, grace_id, expect, log)
