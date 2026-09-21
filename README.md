@@ -106,7 +106,23 @@ python learn.py limgrave-1 --episodes 10 --jev shadow   # 기록만 (규칙이 �
 python learn.py limgrave-1 --episodes 10 --jev live     # confident 한 이동모드·후퇴를 따름
 python jev_report.py                                    # off/shadow/live 생존 중앙값, 규칙 일치율, 사망 전 조기경보율
 ```
-채택 기준: `live` 의 생존 중앙값이 규칙만일 때보다 높아야 한다. 아니면 끈다. `.env` 에 `TYPESAFE_API_KEY` (console.typesafe.ai) 가 없으면 자동으로 `off`.
+채택 기준: `live` 의 생존 중앙값이 규칙만일 때보다 높아야 한다. 아니면 끈다.
+
+백엔드 (`.env`): `AI_GATEWAY_API_KEY` (Vercel AI Gateway 경유 Jev, 무료 크레딧 월 $5, 카드 등록만 필요·충전 금지) 또는 `TYPESAFE_API_KEY`(직접) → `typesafe`;
+둘 다 없으면 `JEV_BACKEND=local` 로 LM Studio/Ollama 의 OpenAI 호환 서버(`LOCAL_LLM_URL`, `LOCAL_LLM_MODEL`) — 같은 질문을 JSON 스키마로 강제.
+
+실측 (2026-09-21, 같은 조건 그림자 런 — `python jev_compare.py`):
+
+| | 로컬 Qwen3-4B (LM Studio, RTX 5080) | Jev (Vercel 게이트웨이) |
+|---|---|---|
+| 지연 | 중앙값 1.0 s (localhost→127.0.0.1 로 2 s 절감 후) | **0.34 s**, 최대 0.9 s |
+| 확률·신뢰도 | 항상 0.95 / logprob 는 1.0·0.0 (정보 없음) | 진짜 분포. 22% 는 스스로 "확신 없음" → 규칙에 양보 |
+| 이동 모드 | 100% guardjump | 97% guardjump — **둘 다 틱 단위 판단으론 가치 없음** |
+| 5 s 안 피격 여부 구분 (threat) | 2.08 vs 1.98 | 2.52 vs 2.21 — 둘 다 약함, 오경보 70~80% |
+| 복기 후보 선택 | 과신 (conf 0.8~1.0), 규칙보다 나쁜 선택 1/3 | 규칙과 다른 선택 2/5 ("첫 피격 때 이미 HP 낮음 → 더 일찍 후퇴"), 게이트 미달 2/5 |
+| 비용 | GPU 2.3 GB | 159회 124k 토큰 = $0.005 (무료 크레딧) |
+
+결론: 판단 모델은 **복기(A)** 에만 쓴다. 틱 단위 이동 모드(B)는 둘 다 규칙과 다를 바 없어 끈다. 그림자 런의 생존 차이는 판단 모델이 아니라 플레이북 버전·시드 차이다 — 판단 모델의 가치는 `--jev live` 로 10 에피소드 이상 돌려 규칙만일 때와 생존 추세를 비교해야 나온다.
 
 ## 다음 단계
 - Jev 그림자 모드 데이터 수집 → A/B

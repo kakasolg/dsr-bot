@@ -114,7 +114,8 @@ def main() -> None:
                 rk = jevm.rank_proposals(diag, pb, cands)
                 if rk:
                     pick = rk["proposal"]
-                    log(f"  jev[{args.jev}] 복기 선택: {pick['why'] if pick else 'NONE'} (conf {rk['confidence']}, avoidable {rk['avoidable']}) "
+                    shown = pick['why'] if pick else (f"(게이트 미달) {rk['would_pick']['why']}" if rk.get('would_pick') else 'NONE')
+                    log(f"  jev[{args.jev}] 복기 선택: {shown} (conf {rk['confidence']}, probs {rk.get('probs')}, avoidable {rk['avoidable']}) "
                         f"/ 규칙: {prop['why']}")
                     if args.jev == "live" and pick:
                         prop = pick

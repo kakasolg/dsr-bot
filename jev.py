@@ -302,7 +302,10 @@ def rank_proposals(diag: dict, pb, candidates: list[dict]) -> dict | None:
     ch = a.get("best_change", {})
     pick = ch.get("choice")
     if not pick or pick == "NONE" or ch.get("confidence", 0.0) < MIN_CONF:
-        return {"proposal": None, "confidence": ch.get("confidence"), "probs": ch.get("probabilities"), "avoidable": a.get("avoidable", {}).get("noul")}
+        # 게이트 미달 — 채택은 안 하지만 뭘 골랐을지는 남긴다 (그림자 비교용)
+        would = candidates[labels.index(pick)] if pick and pick != "NONE" else None
+        return {"proposal": None, "would_pick": would, "confidence": ch.get("confidence"), "probs": ch.get("probabilities"),
+                "avoidable": a.get("avoidable", {}).get("noul")}
     return {"proposal": candidates[labels.index(pick)], "confidence": ch.get("confidence"), "probs": ch.get("probabilities"),
             "avoidable": a.get("avoidable", {}).get("noul")}
 
