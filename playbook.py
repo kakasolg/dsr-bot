@@ -22,7 +22,9 @@ BOUNDS = {
     "crowd_threshold": (2, 5),
     "flee_distance": (6.0, 20.0),
     "avoid_types_max": (0, 8),
+    "stamina_walk_pct": (0.10, 0.50),
 }
+MODES = ("walk", "sprint", "guardjump")
 
 
 @dataclass
@@ -32,6 +34,9 @@ class Playbook:
     flask_hp_pct: float = 0.50        # 이 아래고 근처에 적 없으면 성배병
     crowd_threshold: int = 3          # 20 m 내 적이 이만큼이면 스프린트
     flee_distance: float = 12.0       # avoid 타입이 이 거리 안에 오면 후퇴
+    mode_open: str = "sprint"          # 적 없을 때 이동 모드
+    mode_near_enemy: str = "guardjump" # 적 20 m 안일 때 이동 모드 (가드+점프 전진: 빠르고 점프 무적+가드 보호)
+    stamina_walk_pct: float = 0.25     # 스태미나가 이 아래면 걷기로 회복
     avoid_types: list[int] = field(default_factory=list)   # 보이면 피하는 NpcParamId
     sprint_segments: list[int] = field(default_factory=list)  # 항상 달려서 지나가는 웨이포인트 구간
     rejected: list[str] = field(default_factory=list)  # 롤백된 제안의 change_id (다시 제안하지 않음)
@@ -82,6 +87,16 @@ def apply(pb: Playbook, change: dict) -> Playbook | None:
         if not (lo <= val <= hi):
             return None
         setattr(new, k, round(val, 3))
+    elif k in ("mode_open", "mode_near_enemy"):
+        if v not in MODES or getattr(pb, k) == v:
+            return None
+        setattr(new, k, v)
+    elif k == "stamina_walk_pct":
+        val = float(v) if op == "set" else pb.stamina_walk_pct + float(v)
+        lo, hi = BOUNDS[k]
+        if not (lo <= val <= hi):
+            return None
+        new.stamina_walk_pct = round(val, 3)
     elif k == "crowd_threshold":
         val = int(v) if op == "set" else pb.crowd_threshold + int(v)
         lo, hi = BOUNDS[k]

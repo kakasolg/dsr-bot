@@ -28,13 +28,66 @@ STUCK_WINDOW = 2.0      # 초
 STUCK_MIN_PROGRESS = 0.3  # m
 
 
+JUMP_PERIOD = 1.2       # guardjump 모드: 이 주기로 점프
+JUMP_GUARD_OFF = 0.35   # 점프 직전·직후 LB 를 놓는 시간
+
+
+class Mover:
+    """이동 모드 상태기. 매 틱 set(mode) 로 원하는 모드를 주면 필요한 버튼 상태를 유지한다.
+      walk       아무 것도 안 누름 (스태미나 회복)
+      sprint     B 홀드
+      guardjump  LB 홀드 + JUMP_PERIOD 마다 (LB 해제 → A 점프 → LB) — 빠르고, 점프 무적 + 가드로 보호
+    """
+
+    def __init__(self, pad: control.Pad):
+        self.pad = pad
+        self.mode = "walk"
+        self.next_jump = 0.0
+        self.guard_on = False
+        self.jump_at = None
+
+    def set(self, mode: str) -> None:
+        now = time.time()
+        if mode != self.mode:
+            self.pad.sprint(mode == "sprint")
+            if mode != "guardjump" and self.guard_on:
+                self.pad.guard(False)
+                self.guard_on = False
+            if mode == "guardjump":
+                self.next_jump = now + JUMP_PERIOD * 0.5
+            self.mode = mode
+        if mode == "guardjump":
+            if self.jump_at is not None:
+                if now - self.jump_at > JUMP_GUARD_OFF and not self.guard_on:
+                    self.pad.guard(True)
+                    self.guard_on = True
+                    self.jump_at = None
+            elif now >= self.next_jump:
+                if self.guard_on:
+                    self.pad.guard(False)
+                    self.guard_on = False
+                self.pad.jump()
+                self.jump_at = now
+                self.next_jump = now + JUMP_PERIOD
+            elif not self.guard_on:
+                self.pad.guard(True)
+                self.guard_on = True
+
+    def stop(self) -> None:
+        self.pad.neutral()
+        self.mode, self.guard_on, self.jump_at = "walk", False, None
+
+
 def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float], tolerance: float = 1.5,
-         timeout: float = 60.0, on_tick=None, log=print, sprint_always: bool = False) -> str:
-    """반환: 'arrived' | 'timeout' | 'dead' | 'lost'"""
+         timeout: float = 60.0, on_tick=None, log=print, sprint_always: bool = False, mode_fn=None,
+         mover: "Mover | None" = None) -> str:
+    """반환: 'arrived' | 'timeout' | 'dead' | 'lost'.
+    mode_fn(snapshot) -> 'walk'|'sprint'|'guardjump' 를 주면 매 틱 이동 모드를 정한다 (없으면 거리 기반 sprint)."""
     tx, tz = target
     t_start = time.time()
     last_progress_t, last_progress_d = t_start, None
     escapes = 0
+    mover = mover or Mover(pad)
     try:
         while True:
             now = time.time()
@@ -65,7 +118,7 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
             elif now - last_progress_t > STUCK_WINDOW:
                 escapes += 1
                 log(f"  stuck at {dist:.1f} m — escape #{escapes}")
-                pad.sprint(False)
+                mover.set("walk")
                 pad.jump()
                 side = 1.0 if escapes % 2 else -1.0
                 sx, sy = control.world_to_stick(dx, dz, s.cam_yaw, YAW_OFFSET, FLIP_X)
@@ -79,10 +132,13 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
 
             sx, sy = control.world_to_stick(dx, dz, s.cam_yaw, YAW_OFFSET, FLIP_X)
             pad.move(sx, sy)
-            pad.sprint(sprint_always or dist > SPRINT_BEYOND)
+            if mode_fn:
+                mover.set(mode_fn(s))
+            else:
+                mover.set("sprint" if (sprint_always or dist > SPRINT_BEYOND) else "walk")
             time.sleep(0.05)
     finally:
-        pad.neutral()
+        mover.stop()
 
 
 if __name__ == "__main__":

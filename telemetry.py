@@ -14,7 +14,7 @@ Cheat Engine 브릿지가 내보낸 symbols.json(테이블의 AOB 스캔 결과)
     +0x6C  team (byte)         6=Enemy, 47=Spirit Summon, 1=Live(플레이어) …
     +0x74  chrType? (int16)
     +0x190 → modules
-        [modules+0x00] → +0x138 HP (int32), +0x13C MaxHP (int32)
+        [modules+0x00] → +0x138 HP, +0x13C MaxHP, +0x148 FP, +0x154 SP(스태미나), +0x158 MaxSP (int32)
         [modules+0x18] → +0x40  (int32, 애니메이션 관련 추정 — 검증 중)
         [modules+0x68] → +0x70 x, +0x74 y, +0x78 z (float)
         [modules+0x80] → +0x90 현재 애니메이션 ID (플레이어 Character Data 기준)
@@ -68,6 +68,8 @@ class Chr:
     x: float
     y: float
     z: float
+    sp: int = 0
+    max_sp: int = 0
     anim: Optional[int] = None
     dist: float = 0.0
     name: str = ""
@@ -150,6 +152,7 @@ class Telemetry:
         if not stats or not phys:
             return None
         hp, max_hp = self.i32(stats + 0x138), self.i32(stats + 0x13C)
+        sp, max_sp = self.i32(stats + 0x154), self.i32(stats + 0x158)
         x, y, z = self.f32(phys + 0x70), self.f32(phys + 0x74), self.f32(phys + 0x78)
         if None in (hp, max_hp, x, y, z):
             return None
@@ -159,8 +162,8 @@ class Telemetry:
         m80 = self.q(modules + 0x80)
         if m80:
             anim = self.i32(m80 + 0x90)
-        return Chr(ptr=p, npc_param=npc, team=team, hp=hp, max_hp=max_hp, x=x, y=y, z=z, anim=anim,
-                   name=self.names.get(npc, ""))
+        return Chr(ptr=p, npc_param=npc, team=team, hp=hp, max_hp=max_hp, sp=sp or 0, max_sp=max_sp or 0,
+                   x=x, y=y, z=z, anim=anim, name=self.names.get(npc, ""))
 
     def player_ptr(self) -> Optional[int]:
         wcm = self.q(self.world_chr_man)

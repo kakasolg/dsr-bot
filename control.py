@@ -26,12 +26,17 @@ B = vg.XUSB_BUTTON
 def focus_game() -> bool:
     """엘든링 창을 포그라운드로. 가상 패드 입력은 게임이 앞에 있을 때만 먹는다."""
     u = ctypes.windll.user32
+    lua = u.FindWindowW(None, "Lua Engine")   # 테이블 스크립트 에러가 띄우는 CE 창 — 포커스를 뺏으므로 숨김
+    if lua:
+        u.ShowWindow(lua, 0)
     h = u.FindWindowW(None, "ELDEN RING™")
     if not h:
         return False
+    u.keybd_event(0x12, 0, 0, 0)   # ALT down/up: 다른 프로세스가 앞에 있을 때 SetForegroundWindow 거부를 푸는 고전 트릭
+    u.keybd_event(0x12, 0, 2, 0)
     u.ShowWindow(h, 9)
     u.SetForegroundWindow(h)
-    time.sleep(0.3)  # 전환은 비동기 — 바로 확인하면 거짓 경고
+    time.sleep(0.3)
     return u.GetForegroundWindow() == h
 
 
@@ -39,6 +44,7 @@ class Pad:
     def __init__(self):
         self.pad = vg.VX360Gamepad()
         self.neutral()
+        time.sleep(2.0)  # 게임이 새 XInput 장치를 인식할 시간 (바로 누르면 첫 입력이 씹힘)
 
     def neutral(self) -> None:
         self.pad.reset()
@@ -76,6 +82,7 @@ class Pad:
     def attack(self) -> None: self.tap(B.XUSB_GAMEPAD_RIGHT_SHOULDER, 0.06)
     def lock_on(self) -> None: self.tap(B.XUSB_GAMEPAD_RIGHT_THUMB, 0.06)
     def sprint(self, on: bool) -> None: self.hold(B.XUSB_GAMEPAD_B, on)
+    def guard(self, on: bool) -> None: self.hold(B.XUSB_GAMEPAD_LEFT_SHOULDER, on)
 
 
 def world_to_stick(dx: float, dz: float, cam_yaw: float, yaw_offset: float, flip_x: bool) -> tuple[float, float]:

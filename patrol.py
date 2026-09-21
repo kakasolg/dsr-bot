@@ -70,6 +70,8 @@ class Guard:
         self.crowded = False   # 적 다수 → 스프린트
         self.flask_empty = False
         self.hp_at_flask: int | None = None
+        self.stamina_low = False
+        self.mode = "sprint"
 
     def tick(self, s: telemetry.Snapshot) -> str | None:
         p = s.player
@@ -96,6 +98,18 @@ class Guard:
         self.retreat = hp_pct < self.pb.retreat_hp_pct and bool(hostile)
         self.flee = next((c for c in hostile if c.npc_param in self.pb.avoid_types and c.dist <= self.pb.flee_distance), None)
         self.crowded = len(hostile) >= self.pb.crowd_threshold
+        # 이동 모드: 스태미나 바닥이면 걷기(회복), 적이 가까우면 가드+점프 전진, 아니면 스프린트
+        sp_pct = p.sp / max(1, p.max_sp) if p.max_sp else 1.0
+        if sp_pct < self.pb.stamina_walk_pct:
+            self.stamina_low = True
+        elif sp_pct > 0.6:
+            self.stamina_low = False
+        if self.stamina_low:
+            self.mode = "walk"
+        elif hostile or self.crowded:
+            self.mode = self.pb.mode_near_enemy
+        else:
+            self.mode = self.pb.mode_open
         self.last_hp = p.hp
         if action:
             self.log(f"  guard: {action} (hp {p.hp}/{p.max_hp}, hostile {len(hostile)})")
@@ -133,6 +147,8 @@ def run_episode(route: str, pb, harasser=None, max_seconds: float = 240.0, laps:
         row = compact(s, 40.0)
         row["nav_dist"] = round(dist, 1)
         row["wpos"] = [round(s.player.gx, 1), round(s.player.gz, 1)] if s.player.gx is not None else None
+        row["mode"] = guard.mode
+        row["sp"] = s.player.sp
         if a:
             row["guard"] = a
         if prev_hp is not None and s.player.hp < prev_hp:
@@ -154,11 +170,11 @@ def run_episode(route: str, pb, harasser=None, max_seconds: float = 240.0, laps:
                     why = "flee " + (guard.flee.name or str(guard.flee.npc_param)) if guard.flee else "retreat"
                     log(f"  {why} → wp {order[k-1]}")
                     ep.write({"t": round(time.time(), 3), "guard": "retreat", "why": why})
-                    nav.goto(tm, pad, (prev[0], prev[2]), tolerance=2.0, timeout=20, on_tick=on_tick, log=log)
+                    nav.goto(tm, pad, (prev[0], prev[2]), tolerance=2.0, timeout=20, on_tick=on_tick, log=log,
+                             mode_fn=lambda s: guard.mode)
                     time.sleep(2.0)
-                sprint_seg = idx in pb.sprint_segments
                 r = nav.goto(tm, pad, target, tolerance=2.0, timeout=90, on_tick=on_tick, log=log,
-                             sprint_always=sprint_seg or guard.crowded)
+                             mode_fn=lambda s: guard.mode)
                 if r == "dead":
                     result["reason"] = "death"
                     break
