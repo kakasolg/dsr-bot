@@ -56,7 +56,8 @@ def player_locked(anim) -> bool:
     7585~7587 에스트. 가드 피격(710~712)과 내 공격(303xxx)은 제외 — 막고→한 대 / 콤보가 입력 버퍼에 기대고 있다."""
     a = anim or 0
     return 2000 <= a < 2100 or a == 160 or 7585 <= a <= 7587
-FLASK_SAFE_DIST = 4.0  # m — 이 안에 적이 있으면 마시다 맞는다(1.5 s) → 후퇴로 거리부터 벌린다
+FLASK_SAFE_DIST = 4.0  # m
+STAM_BACKOFF, STAM_RESUME = 0.30, 0.70   # 스태미나가 30 % 아래면 물러나고, 70 % 넘으면 다시 붙는다 — 이 안에 적이 있으면 마시다 맞는다(1.5 s) → 후퇴로 거리부터 벌린다
 REST_FLASKS_LEFT = 1   # 성배병이 이만큼 남으면 무조건 축복에 가서 쉰다 (사용자 규칙 — 학습 대상 아님)
 
 
@@ -149,6 +150,7 @@ class Guard:
         self.engage_pos0 = None  # 교전 중 우리 위치 (못 다가가는 적 판정)
         self.lured: set = set()  # 벽 치기 유인을 시도한 적
         self.ranged_since = 0.0  # 때릴 적은 없는데 맞고 있는 시각 (위층 투척병 등)
+        self.recovering = False  # 스태미나 회복 중 — 물러나 있는다
         self.circled: set = set()
         self.circle_until = 0.0
         self.retreat_block_until = 0.0
@@ -307,6 +309,17 @@ class Guard:
             return act
         if self.engage is not None:
             sp_pct = p.sp / max(1, p.max_sp) if p.max_sp else 1.0
+            # 스태미나 관리는 이 게임 전투의 핵심 (사용자). 막을 때마다 30씩 빠지고(실측: sp 132→102),
+            # 바닥나면 가드가 깨져 그대로 맞는다. 낮으면 교전을 멈추고 물러나 회복한 뒤 다시 붙는다.
+            if not self.recovering and sp_pct < STAM_BACKOFF:
+                self.recovering = True
+                self.log(f"  guard: 스태미나 {p.sp}/{p.max_sp} — 물러나 회복")
+            elif self.recovering and sp_pct > STAM_RESUME:
+                self.recovering = False
+                self.log(f"  guard: 스태미나 회복 {p.sp}/{p.max_sp} — 재교전")
+            if self.recovering:
+                self.mode = "backoff"
+                return act
             attacking = (self.engage.anim or 0) in ENEMY_ATTACK_ANIMS
             recovering = self.engage_prev_attacking and not attacking   # 공격 애니가 방금 끝남 = 빈틈
             self.engage_prev_attacking = attacking

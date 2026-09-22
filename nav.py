@@ -176,6 +176,16 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
                 pad.move(math.sin(a) * 0.6, math.cos(a) * 0.6)
                 mover.set("guard")
                 last_progress_d, last_progress_t = dist, now
+            elif mode == "backoff" and engage_fn and engage_fn(s):
+                # 스태미나가 바닥나면 가드가 깨진다 — 적에게서 물러나 회복한다.
+                # DS1 은 방패를 든 채로는 스태미나 회복이 거의 안 되므로, 충분히 떨어지면 가드를 내린다.
+                ex, ez = engage_fn(s)
+                dx2, dz2 = p.gx - ex, p.gz - ez
+                far = math.hypot(dx2, dz2)
+                sx, sy = control.world_to_stick(dx2, dz2, s.cam_yaw, YAW_OFFSET, FLIP_X)
+                pad.move(sx * CREEP_STICK, sy * CREEP_STICK)
+                mover.set("guard" if far < 4.0 else "walk")
+                last_progress_d, last_progress_t = dist, now
             elif mode == "probe":
                 # 사용자 원칙: 위험한 자리 근처에서는 앞으로 갔다 뒤로 갔다 하며 순증 1 m 정도로만 전진한다.
                 # 곧장 걸어 들어가면 잠든 적을 한꺼번에 깨우고 도망칠 거리도 안 남는다. 가드는 내내 든 채.

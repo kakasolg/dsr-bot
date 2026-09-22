@@ -25,6 +25,8 @@ import env
 import nav
 import navmesh
 
+RETREAT_M = 18.0    # 후퇴 거리 — 지나온 경로를 따라 이만큼 뒤로 (사용자 원칙: 맞으면 충분히 후퇴)
+
 AREAS = ["m10_02_00_00", "m10_01_00_00", "m10_00_00_00", "m11_00_00_00", "m12_00_00_00", "m12_01_00_00",
          "m13_00_00_00", "m13_01_00_00", "m13_02_00_00", "m14_00_00_00", "m14_01_00_00", "m15_00_00_00",
          "m15_01_00_00", "m16_00_00_00", "m17_00_00_00", "m18_00_00_00", "m18_01_00_00"]
@@ -109,10 +111,52 @@ def walk(path, tm, pad, tolerance: float = 1.5, timeout: float = 45.0, log=print
             state["swing_at"], state["swing_d"] = time.time(), guard.engage.dist
             res["swing"].append(round(guard.engage.dist, 2))
 
+    def pull_back(i, log=log) -> bool:
+        """HP 가 낮아 Guard 가 후퇴를 원한다 — 지나온 길을 따라 RETREAT_M 뒤까지 달려가 숨을 돌린다.
+
+        이게 없으면 Guard 가 retreat 를 걸어도 nav.goto 가 "retreat" 를 돌려줄 뿐이고, 여기서 그걸
+        실패로 적고 **다음 경로점으로 전진해 버린다** — HP 가 줄어도 계속 앞으로 가다 죽는다 (사용자 지적).
+        """
+        cur = tm.snapshot(within=1.0)
+        if not cur or cur.player.hp <= 0:
+            return False
+        back = None
+        for k in range(i - 1, -1, -1):
+            if math.dist((path[k][0], path[k][1], path[k][2]),
+                         (cur.player.x, cur.player.y, cur.player.z)) >= RETREAT_M:
+                back = path[k]
+                break
+        if back is None:
+            back = path[0]
+        log(f"    ← 후퇴 (hp {cur.player.hp}) → ({back[0]:.1f},{back[2]:.1f})")
+        if guard is not None:
+            guard.engage, guard.locked = None, False
+        pad.guard(False)
+        nav.goto(tm, pad, back, tolerance=2.5, timeout=40, log=lambda *a: None,
+                 mode_fn=lambda _s: "sprint")
+        pad.neutral()
+        # 숨 돌리기: 적이 8 m 밖이고 HP 가 회복될 때까지 (성배병은 Guard 가 마신다)
+        t_wait = time.time()
+        while time.time() - t_wait < 20:
+            sn = tm.snapshot(within=20.0)
+            if not sn or sn.player.hp <= 0:
+                return False
+            if guard is not None:
+                guard.tick(sn)
+            near = [c for c in sn.hostile(20.0) if c.hp > 0 and abs(c.y - sn.player.y) < 3.0 and c.dist < 8.0]
+            if not near and sn.player.hp > sn.player.max_hp * 0.6:
+                break
+            time.sleep(0.2)
+        pad.neutral()
+        sn = tm.snapshot(within=1.0)
+        log(f"    → 재개 (hp {sn.player.hp if sn else '?'})")
+        return bool(sn) and sn.player.hp > 0
+
     for i, q in enumerate(path[1:], 1):
         s = tm.snapshot(within=1.0)
         if not s or s.player.hp <= 0:
             res["fails"].append((i, "dead")); break
+        tries = 0
         d = math.hypot(q[0] - s.player.x, q[2] - s.player.z)
         if guard is not None or dng is not None:
             r = nav.goto(tm, pad, (q[0], q[1], q[2]), tolerance=tolerance, timeout=timeout, log=log,
@@ -121,6 +165,15 @@ def walk(path, tm, pad, tolerance: float = 1.5, timeout: float = 45.0, log=print
         else:
             r = nav.goto(tm, pad, (q[0], q[1], q[2]), tolerance=tolerance, timeout=timeout, log=log,
                          mode_fn=lambda _s: "sprint" if d > nav.SPRINT_BEYOND else "walk")
+        while r == "retreat" and tries < 3:
+            tries += 1
+            res["retreats"] = res.get("retreats", 0) + 1
+            if not pull_back(i):
+                r = "dead"
+                break
+            r = nav.goto(tm, pad, (q[0], q[1], q[2]), tolerance=tolerance, timeout=timeout, log=log,
+                         on_tick=on_tick, mode_fn=mode_for,
+                         engage_fn=(lambda _s: guard.engage_pos()) if guard else None)
         s2 = tm.snapshot(within=1.0)
         if s2 and s2.player.gx is not None:
             res["dy"].append(round(s2.player.y - q[1], 2))
@@ -194,7 +247,7 @@ def main():
         res = walk(path, tm, pad, guard=guard, dng=dng)
     finally:
         pad.neutral()
-    print(f"\n결과: 경로점 {res['points']-1}개 중 도착 {res['arrived']}, 실패 {len(res['fails'])} {res['fails']}  피격 {res['hits']} 감속 {res['slow']}  "
+    print(f"\n결과: 경로점 {res['points']-1}개 중 도착 {res['arrived']}, 실패 {len(res['fails'])} {res['fails']}  피격 {res['hits']} 감속 {res['slow']} 후퇴 {res.get('retreats', 0)}  "
           f"({time.time()-t0:.0f}s)")
     if res["swing"]:
         sw, la = sorted(res["swing"]), sorted(res["land"])
