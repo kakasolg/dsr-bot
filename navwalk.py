@@ -59,7 +59,7 @@ def locate(tm, p) -> tuple[str, "navmesh.Navmesh", float] | None:
 
 
 def walk(path, tm, pad, tolerance: float = 1.5, timeout: float = 45.0, log=print, guard=None,
-         dng=None) -> dict:
+         dng=None, extra_tick=None) -> dict:
     """경로점을 차례로 간다.
 
     guard 를 주면 전투(막고→한 대)를 같이 돌린다. dng(위험 지점 기억)를 주면 사용자 원칙 두 개를 지킨다:
@@ -76,7 +76,8 @@ def walk(path, tm, pad, tolerance: float = 1.5, timeout: float = 45.0, log=print
         # 이게 전투를 덮으면 봇이 적에게 다가가질 못한다 — 실측: 4.3 m 앞 적을 못 잡고 "닿지 않는 적"으로 포기했다.
         if guard is not None and guard.engage is not None:
             return guard.mode
-        spot = dng.near(p.x, p.y, p.z) if dng else None
+        radius = getattr(guard.pb, "slow_radius", danger.SLOW_RADIUS) if guard is not None else danger.SLOW_RADIUS
+        spot = dng.near(p.x, p.y, p.z, radius) if (dng and radius > 0) else None
         if spot is not None:
             if not state["slow"]:
                 state["slow"] = True
@@ -94,6 +95,8 @@ def walk(path, tm, pad, tolerance: float = 1.5, timeout: float = 45.0, log=print
             res["hits"] += 1
             log(f"    피격 {dmg} (hp {p.hp}) - 위험 지점 {'기록' if new else '갱신'}")
         state["hp"] = p.hp
+        if extra_tick is not None:
+            extra_tick(s)      # 호출자가 지표를 모을 수 있게 (이동 중 전투도 집계된다)
         if guard is None:
             return
         # 유효 사거리 실측: 휘두른 순간의 거리를 적어 두고, 0.8 s 안에 그 적 HP 가 줄면 "닿은 거리"로 센다.
@@ -121,9 +124,10 @@ def walk(path, tm, pad, tolerance: float = 1.5, timeout: float = 45.0, log=print
         if not cur or cur.player.hp <= 0:
             return False
         back = None
+        far = getattr(guard.pb, "retreat_dist", RETREAT_M) if guard is not None else RETREAT_M
         for k in range(i - 1, -1, -1):
             if math.dist((path[k][0], path[k][1], path[k][2]),
-                         (cur.player.x, cur.player.y, cur.player.z)) >= RETREAT_M:
+                         (cur.player.x, cur.player.y, cur.player.z)) >= far:
                 back = path[k]
                 break
         if back is None:

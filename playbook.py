@@ -27,6 +27,10 @@ BOUNDS = {
     "attack_cooldown": (0.8, 4.0),
     "hold_range": (1.5, 5.0),
     "lock_range": (3.0, 12.0),
+    "stam_backoff": (0.10, 0.50),
+    "stam_resume": (0.45, 0.95),
+    "retreat_dist": (6.0, 30.0),
+    "slow_radius": (0.0, 30.0),
 }
 MODES = ("walk", "sprint", "guardjump")
 
@@ -46,6 +50,11 @@ class Playbook:
     attack_cooldown: float = 2.0       # 한 대 치고 이만큼은 가드
     hold_range: float = 2.5            # 적이 이 안이면 전진을 멈추고 가드한 채 싸운다
     lock_range: float = 6.0            # 적이 이 안에 오면 락온(R3), 두 배 밖으로 나가면 해제
+    # 스태미나·후퇴 (사용자: "HP·스태미나 관리가 이 게임 전투의 핵심")
+    stam_backoff: float = 0.30         # 스태미나가 이 아래면 교전을 멈추고 물러나 회복
+    stam_resume: float = 0.70          # 이만큼 차면 다시 붙는다
+    retreat_dist: float = 18.0         # HP 가 낮아 후퇴할 때 지나온 길을 따라 물러나는 거리 (m)
+    slow_radius: float = 20.0          # 전에 맞은 자리 이 반경 안에서는 아주 천천히 (0 이면 끔)
     pull_one: bool = False             # 다수면 하나만 끌어내기(뒤로 빠지기) — 실측상 모퉁이에서 후퇴가 막혀 죽음. 기본 꺼짐
     flee_on_second: bool = False       # 교전 중 둘째가 3 m 붙으면 도망 — 같은 이유로 기본 꺼짐
     avoid_types: list[int] = field(default_factory=list)   # 보이면 피하는 NpcParamId
@@ -113,7 +122,8 @@ def apply(pb: Playbook, change: dict) -> Playbook | None:
         if v not in MODES or getattr(pb, k) == v:
             return None
         setattr(new, k, v)
-    elif k in ("stamina_walk_pct", "attack_range", "attack_cooldown", "hold_range", "lock_range"):
+    elif k in ("stamina_walk_pct", "attack_range", "attack_cooldown", "hold_range", "lock_range",
+               "stam_backoff", "stam_resume", "retreat_dist", "slow_radius"):
         val = float(v) if op == "set" else getattr(pb, k) + float(v)
         lo, hi = BOUNDS[k]
         if not (lo <= val <= hi):

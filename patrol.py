@@ -57,7 +57,7 @@ def player_locked(anim) -> bool:
     a = anim or 0
     return 2000 <= a < 2100 or a == 160 or 7585 <= a <= 7587
 FLASK_SAFE_DIST = 4.0  # m
-STAM_BACKOFF, STAM_RESUME = 0.30, 0.70   # 스태미나가 30 % 아래면 물러나고, 70 % 넘으면 다시 붙는다 — 이 안에 적이 있으면 마시다 맞는다(1.5 s) → 후퇴로 거리부터 벌린다
+STAM_BACKOFF, STAM_RESUME = 0.30, 0.70   # 플레이북에 값이 없을 때의 기본값 (학습이 조정하는 값은 Playbook 쪽)   # 스태미나가 30 % 아래면 물러나고, 70 % 넘으면 다시 붙는다 — 이 안에 적이 있으면 마시다 맞는다(1.5 s) → 후퇴로 거리부터 벌린다
 REST_FLASKS_LEFT = 1   # 성배병이 이만큼 남으면 무조건 축복에 가서 쉰다 (사용자 규칙 — 학습 대상 아님)
 
 
@@ -311,10 +311,12 @@ class Guard:
             sp_pct = p.sp / max(1, p.max_sp) if p.max_sp else 1.0
             # 스태미나 관리는 이 게임 전투의 핵심 (사용자). 막을 때마다 30씩 빠지고(실측: sp 132→102),
             # 바닥나면 가드가 깨져 그대로 맞는다. 낮으면 교전을 멈추고 물러나 회복한 뒤 다시 붙는다.
-            if not self.recovering and sp_pct < STAM_BACKOFF:
+            back_at = getattr(self.pb, "stam_backoff", STAM_BACKOFF)
+            resume_at = getattr(self.pb, "stam_resume", STAM_RESUME)
+            if not self.recovering and sp_pct < back_at:
                 self.recovering = True
                 self.log(f"  guard: 스태미나 {p.sp}/{p.max_sp} — 물러나 회복")
-            elif self.recovering and sp_pct > STAM_RESUME:
+            elif self.recovering and sp_pct > resume_at:
                 self.recovering = False
                 self.log(f"  guard: 스태미나 회복 {p.sp}/{p.max_sp} — 재교전")
             if self.recovering:
