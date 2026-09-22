@@ -59,13 +59,14 @@ def locate(tm, p) -> tuple[str, "navmesh.Navmesh", float] | None:
 
 
 def walk(path, tm, pad, tolerance: float = 1.5, timeout: float = 45.0, log=print, guard=None,
-         dng=None, extra_tick=None) -> dict:
+         dng=None, extra_tick=None, terrain=None) -> dict:
     """경로점을 차례로 간다.
 
     guard 를 주면 전투(막고→한 대)를 같이 돌린다. dng(위험 지점 기억)를 주면 사용자 원칙 두 개를 지킨다:
       · 전에 맞은 자리 20 m 안에 들어오면 **아주 천천히**(creep = 반속 + 가드)
       · 맞은 자리는 그때그때 위험 지점으로 기록한다 (다음 판부터 저절로 느려진다)
     """
+    nav_terrain = [terrain]
     res = {"points": len(path), "arrived": 0, "fails": [], "dy": [], "hits": 0, "slow": 0,
            "swing": [], "land": []}
     state = {"hp": None, "slow": False, "swing_at": 0.0, "swing_d": None, "tgt_hp": None, "tgt_ptr": None}
@@ -164,7 +165,7 @@ def walk(path, tm, pad, tolerance: float = 1.5, timeout: float = 45.0, log=print
         d = math.hypot(q[0] - s.player.x, q[2] - s.player.z)
         if guard is not None or dng is not None:
             r = nav.goto(tm, pad, (q[0], q[1], q[2]), tolerance=tolerance, timeout=timeout, log=log,
-                         on_tick=on_tick, mode_fn=mode_for,
+                         on_tick=on_tick, mode_fn=mode_for, terrain=nav_terrain[0],
                          engage_fn=(lambda _s: guard.engage_pos()) if guard else None)
         else:
             r = nav.goto(tm, pad, (q[0], q[1], q[2]), tolerance=tolerance, timeout=timeout, log=log,
@@ -176,7 +177,7 @@ def walk(path, tm, pad, tolerance: float = 1.5, timeout: float = 45.0, log=print
                 r = "dead"
                 break
             r = nav.goto(tm, pad, (q[0], q[1], q[2]), tolerance=tolerance, timeout=timeout, log=log,
-                         on_tick=on_tick, mode_fn=mode_for,
+                         on_tick=on_tick, mode_fn=mode_for, terrain=nav_terrain[0],
                          engage_fn=(lambda _s: guard.engage_pos()) if guard else None)
         s2 = tm.snapshot(within=1.0)
         if s2 and s2.player.gx is not None:
@@ -248,7 +249,7 @@ def main():
         print(f"전투 켬 — 사거리 {pb.attack_range} 쿨 {pb.attack_cooldown} 락온 {pb.lock_range} 다수기준 {pb.crowd_threshold}")
     t0 = time.time()
     try:
-        res = walk(path, tm, pad, guard=guard, dng=dng)
+        res = walk(path, tm, pad, guard=guard, dng=dng, terrain=nm)
     finally:
         pad.neutral()
     print(f"\n결과: 경로점 {res['points']-1}개 중 도착 {res['arrived']}, 실패 {len(res['fails'])} {res['fails']}  피격 {res['hits']} 감속 {res['slow']} 후퇴 {res.get('retreats', 0)}  "

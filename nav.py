@@ -90,9 +90,61 @@ class Mover:
         self.mode, self.guard_on, self.jump_at = "walk", False, None
 
 
+BACK_PROBE = 1.4          # 뒤로 갈 때 이만큼 앞을 미리 본다 (m)
+BACK_MAX_DROP = 1.2       # 그 자리 바닥이 지금보다 이만큼 넘게 낮으면 안 간다
+
+
+FOOTING_R = 1.6           # 발밑 안전도를 재는 반경 (m)
+FOOTING_MIN = 0.6         # 이보다 나쁘면 그 자리에서 싸우지 않는다
+
+
+def footing(terrain, p, r: float = FOOTING_R):
+    """지금 자리의 **발밑 안전도** — 주위 12방향 중 바닥이 있는 비율, 그리고 가장 안전한 방향.
+
+    사용자 원칙: "애초에 위험한 위치에 있으면 안 되는 게 먼저다." 뒷걸음질하다 떨어진 뒤에 감지하는 것보다,
+    낭떠러지 옆에서 싸움을 시작하지 않는 쪽이 낫다. 싸움은 몇 초씩 이어지고 그 동안 밀리고 돌게 된다."""
+    if terrain is None:
+        return 1.0, None
+    ok, best, best_n = 0, None, -1
+    for k in range(12):
+        a = k * math.pi / 6
+        qx, qz = p.gx + math.sin(a) * r, p.gz + math.cos(a) * r
+        hit = terrain.floor_at(qx, qz, p.gy)
+        good = hit is not None and hit[0] > p.gy - BACK_MAX_DROP
+        if good:
+            ok += 1
+            # 그 방향으로 한 칸 더 갔을 때도 바닥이 있으면 더 좋은 방향
+            q2 = terrain.floor_at(p.gx + math.sin(a) * r * 2, p.gz + math.cos(a) * r * 2, p.gy)
+            n = 2 if (q2 is not None and q2[0] > p.gy - BACK_MAX_DROP) else 1
+            if n > best_n:
+                best_n, best = n, (math.sin(a), math.cos(a))
+    return ok / 12.0, best
+
+
+def safe_back(terrain, p, dx: float, dz: float):
+    """뒤로 물러날 방향을 지형에 맞춰 고른다 — 없으면 None(제자리).
+
+    backoff·probe 의 후퇴는 적 반대쪽으로 그냥 밀 뿐이라 뒤가 낭떠러지여도 간다 (사용자: 뒷걸음질하다 낙사).
+    내비메시로 BACK_PROBE 앞의 바닥을 확인하고, 막혔으면 방향을 30°씩 돌려 갈 수 있는 쪽을 찾는다."""
+    if terrain is None:
+        return dx, dz
+    n = math.hypot(dx, dz)
+    if n < 1e-6:
+        return None
+    base = math.atan2(dx, dz)
+    for deg in (0, 30, -30, 60, -60, 90, -90, 120, -120):
+        a = base + math.radians(deg)
+        qx, qz = p.gx + math.sin(a) * BACK_PROBE, p.gz + math.cos(a) * BACK_PROBE
+        hit = terrain.floor_at(qx, qz, p.gy)
+        if hit is not None and hit[0] > p.gy - BACK_MAX_DROP:
+            return math.sin(a), math.cos(a)
+    return None
+
+
 def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float], tolerance: float = 1.5,
          timeout: float = 60.0, on_tick=None, log=print, sprint_always: bool = False, mode_fn=None,
-         mover: "Mover | None" = None, engage_fn=None, abort_on_stuck: bool = False) -> str:
+         mover: "Mover | None" = None, engage_fn=None, abort_on_stuck: bool = False,
+         terrain=None) -> str:
     """반환: 'arrived' | 'timeout' | 'dead' | 'lost' | 'unreachable'.
     target 은 (x, z) 또는 (x, y, z). y 를 주면 2D 로 가까운데 높이 차가 UNREACHABLE_DY 를 넘을 때 'unreachable' — 절벽 아래에서 위 점을
     밀고 있는 상황 (실내 경로의 낙하 구간을 거꾸로 갈 때). mode_fn(snapshot) -> 'walk'|'sprint'|'guardjump'|'guard' 가 매 틱 이동 모드."""
@@ -171,7 +223,13 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
                 pad.neutral()               # Guard 가 후퇴/도망을 원한다 — 경로 루프가 뒤로 간다
                 return "retreat"
             if mode == "hold":
-                pad.move(0.0, 0.0)          # 적이 붙었다 — 전진 대신 제자리 가드 (막힘 감지도 리셋)
+                # 서서 싸우기 전에 발밑부터 본다 — 낭떠러지 옆이면 자리를 옮기고 나서 싸운다 (사용자 원칙)
+                fs, safe_dir = footing(terrain, p)
+                if fs < FOOTING_MIN and safe_dir is not None:
+                    sx, sy = control.world_to_stick(safe_dir[0], safe_dir[1], s.cam_yaw, YAW_OFFSET, FLIP_X)
+                    pad.move(sx * CREEP_STICK, sy * CREEP_STICK)
+                else:
+                    pad.move(0.0, 0.0)      # 적이 붙었다 — 전진 대신 제자리 가드 (막힘 감지도 리셋)
                 mover.set("guard")
                 last_progress_d, last_progress_t = dist, now
             elif mode == "circle":
@@ -185,8 +243,12 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
                 ex, ez = engage_fn(s)
                 dx2, dz2 = p.gx - ex, p.gz - ez
                 far = math.hypot(dx2, dz2)
-                sx, sy = control.world_to_stick(dx2, dz2, s.cam_yaw, YAW_OFFSET, FLIP_X)
-                pad.move(sx * CREEP_STICK, sy * CREEP_STICK)
+                safe = safe_back(terrain, p, dx2, dz2)
+                if safe is None:
+                    pad.move(0.0, 0.0)          # 뒤가 낭떠러지 — 물러나지 말고 버틴다
+                else:
+                    sx, sy = control.world_to_stick(safe[0], safe[1], s.cam_yaw, YAW_OFFSET, FLIP_X)
+                    pad.move(sx * CREEP_STICK, sy * CREEP_STICK)
                 mover.set("guard" if far < 4.0 else "walk")
                 last_progress_d, last_progress_t = dist, now
             elif mode == "probe" and not probe_off[0]:
@@ -197,7 +259,12 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
                 if ph < PROBE_FWD:
                     pad.move(sx * CREEP_STICK, sy * CREEP_STICK)
                 elif ph < PROBE_FWD + PROBE_BACK:
-                    pad.move(-sx * CREEP_STICK, -sy * CREEP_STICK)
+                    back = safe_back(terrain, p, -dx, -dz)
+                    if back is None:
+                        pad.move(0.0, 0.0)      # 뒤가 낭떠러지 — 물러나는 대신 멈춘다
+                    else:
+                        bx, by = control.world_to_stick(back[0], back[1], s.cam_yaw, YAW_OFFSET, FLIP_X)
+                        pad.move(bx * CREEP_STICK, by * CREEP_STICK)
                 else:
                     pad.move(0.0, 0.0)
                 mover.set("guard")
@@ -223,7 +290,8 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
                 sx, sy = control.world_to_stick(dx, dz, s.cam_yaw, YAW_OFFSET, FLIP_X)
                 pad.move(sx, sy)
                 mover.set(mode)
-            time.sleep(0.05)
+            pad.release_due()        # 예약된 버튼 떼기 (tap 이 자지 않으므로 여기서 처리)
+            time.sleep(0.02)         # snapshot 이 4 ms 로 줄어 틱을 더 촘촘히 돌 수 있다
     finally:
         mover.stop()
 

@@ -88,6 +88,7 @@ def focus_game() -> bool:
 
 class Pad:
     def __init__(self):
+        self._due: dict = {}      # 버튼 → 뗄 시각 (tap 이 자지 않도록)
         self.pad = vg.VX360Gamepad()
         self.neutral()
         time.sleep(2.0)  # 게임이 새 XInput 장치를 인식할 시간 (바로 누르면 첫 입력이 씹힘)
@@ -110,11 +111,26 @@ class Pad:
         self.pad.update()
 
     def tap(self, button, hold: float = 0.08) -> None:
+        """버튼을 누르고 **뗄 시각만 예약**한다 — 자지 않는다.
+
+        예전엔 누른 뒤 time.sleep(hold) 했다. 그 동안 감지 루프가 통째로 멈춰서, 공격 한 번에 한 틱을
+        버렸다 (틱 65 ms, 공격 hold 60 ms — 사용자 지적: "순차적으로 하는 것 같다"). 뗄 시각은
+        release_due() 가 매 틱 처리한다."""
         self.pad.press_button(button)
         self.pad.update()
-        time.sleep(hold)
-        self.pad.release_button(button)
-        self.pad.update()
+        self._due[button] = time.time() + hold
+
+    def release_due(self) -> None:
+        """예약된 버튼 떼기 — 감지 루프가 매 틱 부른다."""
+        if not self._due:
+            return
+        now = time.time()
+        done = [b for b, t in self._due.items() if now >= t]
+        for b in done:
+            self.pad.release_button(b)
+            del self._due[b]
+        if done:
+            self.pad.update()
 
     def hold(self, button, on: bool) -> None:
         (self.pad.press_button if on else self.pad.release_button)(button)

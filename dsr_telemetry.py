@@ -200,14 +200,27 @@ class DSRTelemetry:
         player = self.read_chr(pp)
         if not player:
             return None
+        # 좌표만 먼저 싸게 읽고 가까운 것만 전체를 읽는다. 구역별 목록을 다 읽게 고친 뒤 목록이 391명까지
+        # 늘어서, 전부 read_chr 하면 snapshot 하나에 14 ms 가 걸렸다 (틱이 65 ms 로 떨어짐, 초당 15회).
         chars = []
+        px, py, pz = player.x, player.y, player.z
         for p in self.chr_ptrs():
             if p == pp:
+                continue
+            mapd = self.q(p + OFF_MAPDATA)
+            posd = self.q(mapd + 0x28) if mapd else None
+            if not posd:
+                continue
+            x = self.f32(posd + 0x10)
+            z = self.f32(posd + 0x18)
+            if x is None or z is None or not (math.isfinite(x) and math.isfinite(z)):
+                continue
+            if math.hypot(x - px, z - pz) > within + 2.0:   # 높이 차는 뒤에서 정확히 본다
                 continue
             c = self.read_chr(p)
             if not c:
                 continue
-            c.dist = math.dist((player.x, player.y, player.z), (c.x, c.y, c.z))
+            c.dist = math.dist((px, py, pz), (c.x, c.y, c.z))
             if c.dist <= within:
                 chars.append(c)
         chars.sort(key=lambda c: c.dist)
