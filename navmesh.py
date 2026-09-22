@@ -40,6 +40,11 @@ FLAGS = {1: "Disable", 2: "Exit", 4: "Obstacle", 8: "Wall", 16: "Degenerate", 32
          64: "LandingPoint", 128: "Event", 256: "Edge", 512: "LargeSpace", 1024: "Ladder", 2048: "Hole",
          4096: "Door", 8192: "ClosedDoor", 16384: "BlockExit", 32768: "InsideWall"}
 BLOCKED = 1 | 16          # Disable, Degenerate — 길찾기에서 제외
+# 낙사 회피용 가장자리 비용 — **지금은 꺼 둔다(1.0)**.
+# 내비메시만으로는 낭떠러지와 벽을 구분할 수 없다: 둘 다 그냥 "면이 없음"으로 보인다.
+# 실측(불의 제전): 걸을 수 있는 면 2111 중 1629 가 경계, 그중 1365 가 "낭떠러지"로 판정됐다 — 대부분은 벽이다.
+# 제대로 하려면 실제 충돌 데이터(map/*.hkxbhd 의 Havok 메시)나, 그 구간만 워프 스캔(고체/허공은 충돌 기반이라 정확)이 필요하다.
+EDGE_PENALTY = 1.0
 CELL = 0.5
 
 
@@ -141,9 +146,50 @@ class Navmesh:
         self._gates = [sorted(v) for v in node_tris.values() if len(v) > 1]
         return self._gates
 
-    def graph(self) -> dict[int, list[tuple[int, float]]]:
-        """삼각형 단위 길찾기 그래프 — 조각 안은 NVM 인접, 조각 사이는 MCG 게이트."""
+    def border(self) -> np.ndarray:
+        """이웃이 없는 면 = 내비메시의 끝 = 낭떠러지 아니면 벽. 길찾기는 여기를 비싸게 쳐서 통로 가운데로 간다."""
+        return (self.adj < 0).any(axis=1) | ((self.flags & 256) != 0)   # 256 = Edge
+
+    def cliffs(self, drop: float = 3.0, out: float = 0.8) -> np.ndarray:
+        """**낭떠러지에 닿은 면**. 이웃 없는 변 바깥으로 out m 나가 봐서, 거기 바닥이 drop m 넘게 아래거나
+        아예 없으면 낭떠러지로 본다. 벽 경계와 구분하려는 것 — 내비메시 면의 77 %가 어떤 식으로든 경계라
+        경계 전체를 피하면 길이 없어진다. 결과는 파일에 캐시한다 (한 맵 한 번만 계산)."""
+        import json
+        cache = Path(__file__).parent / "data" / "maps" / f"{self.map_id}-cliffs.json"
+        if cache.exists():
+            idx = json.loads(cache.read_text(encoding="utf-8"))
+            m = np.zeros(len(self.t), dtype=bool)
+            m[idx] = True
+            return m
+        mask = np.zeros(len(self.t), dtype=bool)
+        for i in range(len(self.t)):
+            vi = self.t[i]
+            c = self.centroid[i]
+            for e, (a, b) in enumerate(((0, 1), (1, 2), (0, 2))):
+                if self.adj[i][e] >= 0:
+                    continue
+                mid = (self.v[vi[a]] + self.v[vi[b]]) / 2.0
+                d = mid - c
+                n = float(np.hypot(d[0], d[2]))
+                if n < 1e-6:
+                    continue
+                q = mid + np.array([d[0] / n * out, 0.0, d[2] / n * out])
+                below = [y for y, f, _ in self.tris_at(float(q[0]), float(q[2])) if y < mid[1] + 0.5]
+                if not below or (mid[1] - max(below)) > drop:
+                    mask[i] = True
+                    break
+        cache.parent.mkdir(parents=True, exist_ok=True)
+        cache.write_text(json.dumps([int(i) for i in np.where(mask)[0]]), encoding="utf-8")
+        return mask
+
+    def graph(self, edge_penalty: float = EDGE_PENALTY) -> dict[int, list[tuple[int, float]]]:
+        """삼각형 단위 길찾기 그래프 — 조각 안은 NVM 인접, 조각 사이는 MCG 게이트.
+
+        **낭떠러지에 닿은 면**으로 들어가는 비용에 edge_penalty 를 곱한다. 벼랑길에서 굳이 바깥쪽으로
+        붙지 않게 — DS1 은 좁은 길이 많아 낙사가 흔하고, 봇은 점프로 복구할 수단이 없다 (사용자 경고).
+        벽 경계까지 피하면 길이 없어지므로 cliffs() 로 진짜 낭떠러지만 고른다."""
         ok = (self.flags & (BLOCKED | 8 | 2048)) == 0             # Disable/Degenerate/Wall/Hole 제외
+        edge = self.cliffs()
         g: dict[int, list[tuple[int, float]]] = {}
         for i in range(len(self.t)):
             if not ok[i]:
@@ -151,7 +197,8 @@ class Navmesh:
             out = []
             for j in self.adj[i]:
                 if j >= 0 and ok[j]:
-                    out.append((int(j), float(np.linalg.norm(self.centroid[i] - self.centroid[j]))))
+                    w = float(np.linalg.norm(self.centroid[i] - self.centroid[j]))
+                    out.append((int(j), w * (edge_penalty if edge[j] else 1.0)))
             g[i] = out
         for grp in self.gates():
             members = [i for i in grp if i in g]
