@@ -31,7 +31,12 @@ AREAS = ["m10_02_00_00", "m10_01_00_00", "m10_00_00_00", "m11_00_00_00", "m12_00
 
 
 def locate(tm, p) -> tuple[str, "navmesh.Navmesh", float] | None:
-    """캐릭터가 선 자리를 덮는 내비메시 구역을 찾는다 (구역마다 좌표계가 따로라 이렇게 알아낸다)."""
+    """캐릭터가 선 자리를 덮는 내비메시 구역을 찾는다 (구역마다 좌표계가 따로라 이렇게 알아낸다).
+
+    바로 위/아래에 면이 없는 자리도 있다 — 내비메시는 적 AI 기준이라 빈 곳이 생긴다. 그럴 땐 가까운
+    면(6 m 안)으로 구역을 판정한다. 실측: 묘지에서 퇴화 삼각형만 3 m 위에 있는 자리에 서서 길찾기가 막혔다."""
+    import numpy as np
+    best = None
     for mid in AREAS:
         try:
             nm = navmesh.Navmesh(mid)
@@ -40,6 +45,14 @@ def locate(tm, p) -> tuple[str, "navmesh.Navmesh", float] | None:
         hit = nm.floor_at(p.x, p.z, p.y)
         if hit is not None and abs(hit[0] - p.y) < 2.0:
             return mid, nm, hit[0]
+        ok = nm.walkable()
+        d = np.linalg.norm(nm.centroid - np.array([p.x, p.y, p.z]), axis=1)
+        d = np.where(ok, d, np.inf)
+        i = int(d.argmin())
+        if np.isfinite(d[i]) and d[i] < 6.0 and (best is None or d[i] < best[0]):
+            best = (float(d[i]), mid, nm, float(nm.centroid[i][1]))
+    if best:
+        return best[1], best[2], best[3]
     return None
 
 
@@ -51,11 +64,16 @@ def walk(path, tm, pad, tolerance: float = 1.5, timeout: float = 45.0, log=print
       · 전에 맞은 자리 20 m 안에 들어오면 **아주 천천히**(creep = 반속 + 가드)
       · 맞은 자리는 그때그때 위험 지점으로 기록한다 (다음 판부터 저절로 느려진다)
     """
-    res = {"points": len(path), "arrived": 0, "fails": [], "dy": [], "hits": 0, "slow": 0}
-    state = {"hp": None, "slow": False}
+    res = {"points": len(path), "arrived": 0, "fails": [], "dy": [], "hits": 0, "slow": 0,
+           "swing": [], "land": []}
+    state = {"hp": None, "slow": False, "swing_at": 0.0, "swing_d": None, "tgt_hp": None, "tgt_ptr": None}
 
     def mode_for(s):
         p = s.player
+        # 교전 중이면 전투 이동이 우선이다. 위험 지점 감속(probe)은 경로점을 향해 앞뒤로 움직이는 것이라,
+        # 이게 전투를 덮으면 봇이 적에게 다가가질 못한다 — 실측: 4.3 m 앞 적을 못 잡고 "닿지 않는 적"으로 포기했다.
+        if guard is not None and guard.engage is not None:
+            return guard.mode
         spot = dng.near(p.x, p.y, p.z) if dng else None
         if spot is not None:
             if not state["slow"]:
@@ -76,9 +94,20 @@ def walk(path, tm, pad, tolerance: float = 1.5, timeout: float = 45.0, log=print
         state["hp"] = p.hp
         if guard is None:
             return
+        # 유효 사거리 실측: 휘두른 순간의 거리를 적어 두고, 0.8 s 안에 그 적 HP 가 줄면 "닿은 거리"로 센다.
+        # (무기를 바꾸면 사거리가 달라지니 추측 대신 잰다 — 할버드는 도끼보다 훨씬 길다)
+        cur = guard.engage
+        if cur is not None and state["tgt_ptr"] == cur.ptr and state["tgt_hp"] is not None                 and cur.hp < state["tgt_hp"] and state["swing_d"] is not None                 and time.time() - state["swing_at"] < 0.8:
+            res["land"].append(round(state["swing_d"], 2))
+            state["swing_d"] = None
+        if cur is not None:
+            state["tgt_ptr"], state["tgt_hp"] = cur.ptr, cur.hp
         a = guard.tick(s)
         if a:
             log(f"    guard: {a}  hp {p.hp} 적 {len(s.hostile(20.0))}")
+        if a in ("attack", "counter", "combo") and guard.engage is not None:
+            state["swing_at"], state["swing_d"] = time.time(), guard.engage.dist
+            res["swing"].append(round(guard.engage.dist, 2))
 
     for i, q in enumerate(path[1:], 1):
         s = tm.snapshot(within=1.0)
@@ -167,6 +196,14 @@ def main():
         pad.neutral()
     print(f"\n결과: 경로점 {res['points']-1}개 중 도착 {res['arrived']}, 실패 {len(res['fails'])} {res['fails']}  피격 {res['hits']} 감속 {res['slow']}  "
           f"({time.time()-t0:.0f}s)")
+    if res["swing"]:
+        sw, la = sorted(res["swing"]), sorted(res["land"])
+        print(f"휘두른 거리 {len(sw)}회: {sw[0]:.2f}~{sw[-1]:.2f} m (중앙 {sw[len(sw)//2]:.2f})")
+        if la:
+            print(f"  → 피해가 들어간 거리 {len(la)}회: {la[0]:.2f}~{la[-1]:.2f} m (중앙 {la[len(la)//2]:.2f})  "
+                  f"**유효 사거리 ≈ {la[-1]:.2f} m**")
+        else:
+            print("  → 피해가 들어간 기록 없음")
     if res["dy"]:
         print(f"내비메시 높이와 실제 높이 차: {res['dy']}")
 
