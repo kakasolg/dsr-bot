@@ -26,9 +26,15 @@ def main():
                 if prev is not None and 0 < prev - c.hp < prev:
                     d = prev - c.hp
                     model = tm.model(c.ptr) if hasattr(tm, "model") else "?"
-                    rows.append({"t": round(time.time()-t0,1), "dmg": d, "dist": round(c.dist,2),
-                                 "npc": c.npc_param, "model": model, "hp": f"{c.hp}/{c.max_hp}"})
-                    print(f"  {d:4} 피해  {c.dist:4.2f}m  {model} npc{c.npc_param}  남은 {c.hp}/{c.max_hp}", flush=True)
+                    q = s.player
+                    rows.append({"t": round(time.time()-t0,1), "wall": time.strftime("%H:%M:%S"),
+                                 "dmg": d, "dist": round(c.dist,2), "npc": c.npc_param, "model": model,
+                                 "hp": f"{c.hp}/{c.max_hp}",
+                                 "pos": [round(q.x,1), round(q.y,1), round(q.z,1)]})   # 어디서 싸웠는지가 나중에 쓰인다
+                    Path("data").mkdir(exist_ok=True)
+                    Path("data/dmglog.json").write_text(json.dumps(rows, ensure_ascii=False, indent=1), encoding="utf-8")
+                    print(f"  {d:4} 피해  {c.dist:4.2f}m  {model} npc{c.npc_param}  남은 {c.hp}/{c.max_hp}"
+                          f"  @({q.x:.0f},{q.y:.0f},{q.z:.0f})", flush=True)
                 hp[c.ptr] = c.hp
         time.sleep(0.05)
     if rows:

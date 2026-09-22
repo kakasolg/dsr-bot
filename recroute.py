@@ -63,6 +63,7 @@ def main() -> None:
                 segs.append({"map": mid, "points": []})
                 print(f"  ── 구역 {mid} 진입  ({here[0]:.1f},{here[1]:.1f},{here[2]:.1f})", flush=True)
             segs[-1]["points"].append(list(here))
+            segs[-1].setdefault("times", []).append(round(time.time(), 1))   # 다른 기록과 맞춰 보려면 시각이 필요하다
             last = here
             n = sum(len(sg["points"]) for sg in segs)
             if n % SAVE_EVERY == 0:
