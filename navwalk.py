@@ -20,6 +20,7 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
 import control
+import danger
 import env
 import nav
 import navmesh
@@ -42,16 +43,55 @@ def locate(tm, p) -> tuple[str, "navmesh.Navmesh", float] | None:
     return None
 
 
-def walk(path, tm, pad, tolerance: float = 1.5, timeout: float = 45.0, log=print) -> dict:
-    """경로점을 차례로 간다. 결과 요약을 돌려준다."""
-    res = {"points": len(path), "arrived": 0, "fails": [], "dy": []}
+def walk(path, tm, pad, tolerance: float = 1.5, timeout: float = 45.0, log=print, guard=None,
+         dng=None) -> dict:
+    """경로점을 차례로 간다.
+
+    guard 를 주면 전투(막고→한 대)를 같이 돌린다. dng(위험 지점 기억)를 주면 사용자 원칙 두 개를 지킨다:
+      · 전에 맞은 자리 20 m 안에 들어오면 **아주 천천히**(creep = 반속 + 가드)
+      · 맞은 자리는 그때그때 위험 지점으로 기록한다 (다음 판부터 저절로 느려진다)
+    """
+    res = {"points": len(path), "arrived": 0, "fails": [], "dy": [], "hits": 0, "slow": 0}
+    state = {"hp": None, "slow": False}
+
+    def mode_for(s):
+        p = s.player
+        spot = dng.near(p.x, p.y, p.z) if dng else None
+        if spot is not None:
+            if not state["slow"]:
+                state["slow"] = True
+                res["slow"] += 1
+                log(f"    ! 전에 맞은 자리 근처 ({spot['hits']}회) - 아주 천천히")
+            return "probe"   # 앞으로/뒤로 반복하며 조금씩만 전진 (사용자 원칙)
+        state["slow"] = False
+        return guard.mode if guard is not None else "walk"
+
+    def on_tick(s, dist):
+        p = s.player
+        if state["hp"] is not None and p.hp < state["hp"] and dng is not None:
+            dmg = state["hp"] - p.hp
+            new = dng.add(p.x, p.y, p.z, dmg)
+            res["hits"] += 1
+            log(f"    피격 {dmg} (hp {p.hp}) - 위험 지점 {'기록' if new else '갱신'}")
+        state["hp"] = p.hp
+        if guard is None:
+            return
+        a = guard.tick(s)
+        if a:
+            log(f"    guard: {a}  hp {p.hp} 적 {len(s.hostile(20.0))}")
+
     for i, q in enumerate(path[1:], 1):
         s = tm.snapshot(within=1.0)
         if not s or s.player.hp <= 0:
             res["fails"].append((i, "dead")); break
         d = math.hypot(q[0] - s.player.x, q[2] - s.player.z)
-        r = nav.goto(tm, pad, (q[0], q[1], q[2]), tolerance=tolerance, timeout=timeout, log=log,
-                     mode_fn=lambda _s: "sprint" if d > nav.SPRINT_BEYOND else "walk")
+        if guard is not None or dng is not None:
+            r = nav.goto(tm, pad, (q[0], q[1], q[2]), tolerance=tolerance, timeout=timeout, log=log,
+                         on_tick=on_tick, mode_fn=mode_for,
+                         engage_fn=(lambda _s: guard.engage_pos()) if guard else None)
+        else:
+            r = nav.goto(tm, pad, (q[0], q[1], q[2]), tolerance=tolerance, timeout=timeout, log=log,
+                         mode_fn=lambda _s: "sprint" if d > nav.SPRINT_BEYOND else "walk")
         s2 = tm.snapshot(within=1.0)
         if s2 and s2.player.gx is not None:
             res["dy"].append(round(s2.player.y - q[1], 2))
@@ -111,12 +151,21 @@ def main():
 
     control.focus_game()
     pad = control.Pad()
+    dng = danger.Danger(mid)
+    print(f"위험 지점 {len(dng.points)}개 기억 중 - 반경 {danger.SLOW_RADIUS} m 안에서는 아주 천천히")
+    guard = None
+    if "--fight" in sys.argv:
+        import json, patrol, playbook
+        pbf = playbook.ROOT / "data" / "playbook-dsr" / "current.json"   # DSR 은 별도 플레이북 (learn.py 와 같은 경로)
+        pb = playbook.Playbook.from_json(pbf.read_text(encoding="utf-8")) if pbf.exists() else playbook.Playbook()
+        guard = patrol.Guard(pad, pb, log=print)
+        print(f"전투 켬 — 사거리 {pb.attack_range} 쿨 {pb.attack_cooldown} 락온 {pb.lock_range} 다수기준 {pb.crowd_threshold}")
     t0 = time.time()
     try:
-        res = walk(path, tm, pad)
+        res = walk(path, tm, pad, guard=guard, dng=dng)
     finally:
         pad.neutral()
-    print(f"\n결과: 경로점 {res['points']-1}개 중 도착 {res['arrived']}, 실패 {len(res['fails'])} {res['fails']}  "
+    print(f"\n결과: 경로점 {res['points']-1}개 중 도착 {res['arrived']}, 실패 {len(res['fails'])} {res['fails']}  피격 {res['hits']} 감속 {res['slow']}  "
           f"({time.time()-t0:.0f}s)")
     if res["dy"]:
         print(f"내비메시 높이와 실제 높이 차: {res['dy']}")

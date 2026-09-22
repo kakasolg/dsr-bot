@@ -59,6 +59,7 @@ AOBS = {
 OFF_HP, OFF_MAXHP, OFF_SP, OFF_MAXSP = 0x3E8, 0x3EC, 0x3F8, 0x3FC
 OFF_MAPDATA, OFF_MODEL, OFF_NPC = 0x68, 0x88, 0xC8
 OFF_LASTBONFIRE = 0xB34
+CHR_LIST_OFFSETS = (0xA8, 0xB0, 0xB8, 0xC0, 0xC8)   # WorldChrMan 안의 구역별 캐릭터 목록 (실측: 불의 제전은 0xB0)
 OFF_ANIM2 = 0xA44
 OFF_FLAGS1 = 0x2A4      # DSR-Gadget ChrFlags1(0x284) + 보정 0x20
 FLAG_ACTIVE = 0x8000    # 실측: 월드에 실제로 있는(애니가 도는) 캐릭터만 켜짐
@@ -141,21 +142,33 @@ class DSRTelemetry:
                    x=x, y=y, z=z, anim=anim, name=self.names.get(npc, ""), gx=x, gy=y, gz=z, heading=ang, map_id=0)
 
     def chr_ptrs(self) -> list[int]:
+        """로드된 **모든** 구역의 캐릭터. DS1 은 인접 구역을 같이 올려 두고 목록도 구역마다 따로 둔다.
+
+        실측(불의 제전): +0xA8 은 174명이지만 전부 64 m 밖이고, 지금 서 있는 구역은 +0xB0 의 41명이었다
+        (가장 가까운 NPC 5.1 m). 아스라이에선 마침 +0xA8 이 그 구역이라 하나만 읽어도 됐던 것 —
+        그래서 불의 제전·묘지에서 적이 하나도 안 잡혔고, 봇이 해골에게 맞으면서도 "적 없음"으로 판단했다."""
         w = self.world_chr_man()
-        holder = self.q(w + 0xA8) if w else None
-        arr = self.q(holder + 0x50) if holder else None
-        n = self.i32(holder + 0x48) if holder else None
-        if not arr or not n or n <= 0 or n > 2000:
+        if not w:
             return []
-        try:
-            raw = self.pm.read_bytes(arr, n * 0x38)
-        except pymem.exception.PymemError:
-            return []
-        out = []
-        for i in range(n):
-            v = struct.unpack_from("<Q", raw, i * 0x38)[0]
-            if 0x10000 < v < 0x7FFFFFFFFFFF:
-                out.append(v)
+        out, seen_holder, seen = [], set(), set()
+        for off in CHR_LIST_OFFSETS:
+            holder = self.q(w + off)
+            if not holder or holder in seen_holder:
+                continue
+            seen_holder.add(holder)
+            arr = self.q(holder + 0x50)
+            n = self.i32(holder + 0x48)
+            if not arr or not n or n <= 0 or n > 2000:
+                continue
+            try:
+                raw = self.pm.read_bytes(arr, n * 0x38)
+            except pymem.exception.PymemError:
+                continue
+            for i in range(n):
+                v = struct.unpack_from("<Q", raw, i * 0x38)[0]
+                if 0x10000 < v < 0x7FFFFFFFFFFF and v not in seen:
+                    seen.add(v)
+                    out.append(v)
         return out
 
     def model(self, p: int) -> str:

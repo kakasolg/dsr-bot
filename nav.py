@@ -27,6 +27,7 @@ FLIP_X = False
 SPRINT_BEYOND = 8.0     # 이보다 멀면 달리기
 STUCK_WINDOW = 2.0      # 초
 STUCK_MIN_PROGRESS = 0.3  # m
+PROBE_FWD, PROBE_BACK, PROBE_HOLD = 0.8, 0.35, 0.45   # probe 한 주기: 전진/후퇴/정지 (초). 순증 약 0.7 m
 CREEP_STICK = 0.45        # 실측(가드 든 채): 스틱 <0.4 = 정지, 0.4~0.7 = 걷기 1.64 m/s, 1.0 = 조깅 3.24 m/s. 걷기가 최저 속도
 ENGAGE_STICK = 0.5        # 교전 접근도 걷기
 UNREACHABLE_DY = 2.5      # m — 2D 로 5 m 안인데 높이 차가 이보다 크면 절벽/층 차이
@@ -102,6 +103,7 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
     escapes = 0
     no_cam_since = None
     mover = mover or Mover(pad)
+    probe_t0 = time.time()
     try:
         while True:
             now = time.time()
@@ -174,6 +176,19 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
                 pad.move(math.sin(a) * 0.6, math.cos(a) * 0.6)
                 mover.set("guard")
                 last_progress_d, last_progress_t = dist, now
+            elif mode == "probe":
+                # 사용자 원칙: 위험한 자리 근처에서는 앞으로 갔다 뒤로 갔다 하며 순증 1 m 정도로만 전진한다.
+                # 곧장 걸어 들어가면 잠든 적을 한꺼번에 깨우고 도망칠 거리도 안 남는다. 가드는 내내 든 채.
+                ph = (now - probe_t0) % (PROBE_FWD + PROBE_BACK + PROBE_HOLD)
+                sx, sy = control.world_to_stick(dx, dz, s.cam_yaw, YAW_OFFSET, FLIP_X)
+                if ph < PROBE_FWD:
+                    pad.move(sx * CREEP_STICK, sy * CREEP_STICK)
+                elif ph < PROBE_FWD + PROBE_BACK:
+                    pad.move(-sx * CREEP_STICK, -sy * CREEP_STICK)
+                else:
+                    pad.move(0.0, 0.0)
+                mover.set("guard")
+                last_progress_d, last_progress_t = dist, now   # 일부러 느리게 가는 것이니 막힘으로 보지 않는다
             elif mode == "creep":
                 sx, sy = control.world_to_stick(dx, dz, s.cam_yaw, YAW_OFFSET, FLIP_X)
                 pad.move(sx * CREEP_STICK, sy * CREEP_STICK)   # 적이 여럿 보이면 천천히 — 한꺼번에 어그로를 안 끌도록 (사용자 원칙)

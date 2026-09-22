@@ -124,7 +124,13 @@ class Pad:
     def dodge(self) -> None: self.tap(B.XUSB_GAMEPAD_B, 0.06)
     def jump(self) -> None: self.tap(B.XUSB_GAMEPAD_A, 0.06)
     def use_item(self) -> None: self.tap(B.XUSB_GAMEPAD_X, 0.1)
-    def interact(self) -> None: self.tap(B.XUSB_GAMEPAD_Y, 0.1)
+    def interact(self) -> None:
+        # DSR 에서 Y 는 상호작용이 아니라 **양손 파지 토글**이다. 이걸 눌렀더니 오른손 무기를 양손으로 잡아
+        # 왼손 방패가 빠졌고, 봇이 가드를 못 한 채 해골에게 맞아 죽었다 (실측). DS1 의 상호작용은 A.
+        import env
+        self.tap(B.XUSB_GAMEPAD_A if env.GAME == "dsr" else B.XUSB_GAMEPAD_Y, 0.1)
+
+    def two_hand_toggle(self) -> None: self.tap(B.XUSB_GAMEPAD_Y, 0.1)
     def attack(self) -> None: self.tap(B.XUSB_GAMEPAD_RIGHT_SHOULDER, 0.06)
     def lock_on(self) -> None: self.tap(B.XUSB_GAMEPAD_RIGHT_THUMB, 0.06)
     def sprint(self, on: bool) -> None: self.hold(B.XUSB_GAMEPAD_B, on)
