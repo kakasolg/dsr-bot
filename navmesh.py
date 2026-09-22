@@ -20,6 +20,7 @@
 """
 from __future__ import annotations
 
+import math
 import sys
 import types
 from pathlib import Path
@@ -45,6 +46,8 @@ BLOCKED = 1 | 16          # Disable, Degenerate — 길찾기에서 제외
 # 실측(불의 제전): 걸을 수 있는 면 2111 중 1629 가 경계, 그중 1365 가 "낭떠러지"로 판정됐다 — 대부분은 벽이다.
 # 제대로 하려면 실제 충돌 데이터(map/*.hkxbhd 의 Havok 메시)나, 그 구간만 워프 스캔(고체/허공은 충돌 기반이라 정확)이 필요하다.
 EDGE_PENALTY = 1.0
+MAX_SIMPLIFY_SLOPE = 0.25
+CLIFF_MARGIN = 2.2          # 실측된 낭떠러지 점에서 경로를 이만큼 떼어 놓는다 (cliffscan.py)   # 이보다 가파른 구간은 단순화하지 않고 원래 점을 남긴다 (계단·경사를 따라가야 한다)
 CELL = 0.5
 
 
@@ -248,7 +251,7 @@ class Navmesh:
             seq.append(prev[seq[-1]])
         seq.reverse()
         pts = [tuple(float(c) for c in self.centroid[i]) for i in seq]
-        return self.simplify([start] + pts + [goal])
+        return self.simplify(self.keep_inside([start] + pts + [goal]))
 
     def clear_line(self, p0, p1, step: float = 0.5, max_dy: float = 0.8, max_step: float = 0.5) -> bool:
         """두 점을 잇는 직선 위를 걸어도 되는가.
@@ -276,15 +279,73 @@ class Navmesh:
             prev_y, prev_tri = hit[0], hit[2]
         return True
 
-    def simplify(self, path: list, step: float = 0.5, max_dy: float = 0.8) -> list:
-        """삼각형 무게중심을 이은 지그재그를 곧게 편다 (string pulling) — 직선으로 갈 수 있으면 중간 점을 버린다."""
+    def keep_inside(self, path: list, margin: float = 1.2) -> list:
+        """경로점을 내비메시 **경계에서 떼어 놓는다** — 통로 한가운데로 걷게 한다.
+
+        경계가 벽인지 낭떠러지인지는 내비메시만으로 구분할 수 없지만(둘 다 "면이 없음"), 구분할 필요가 없다.
+        벽이면 끼임이 줄고 낭떠러지면 낙사가 준다. 삼각형 무게중심을 잇는 경로는 경계에 바짝 붙기 쉬운데,
+        DS1 은 좁은 길이 많고 봇은 점프로 복구할 수단이 없다 (사용자: 낙사 반복).
+
+        각 점에서 경계 변이 margin 안에 있으면 그 변의 반대쪽으로 민다. 삼각형 밖으로 나가지 않게 절반만."""
+        try:
+            import cliffscan
+            known = cliffscan.load(self.map_id)
+        except Exception:
+            known = []
+        out = []
+        for q in path:
+            # 실측으로 확인된 낭떠러지 점에서 먼저 밀어낸다 (내비메시 경계만으로는 벽과 구분이 안 된다)
+            for cx, _cy, cz in known:
+                d = math.hypot(q[0] - cx, q[2] - cz)
+                if d < CLIFF_MARGIN and d > 1e-6:
+                    q = (q[0] + (q[0] - cx) / d * (CLIFF_MARGIN - d) * 0.8, q[1],
+                         q[2] + (q[2] - cz) / d * (CLIFF_MARGIN - d) * 0.8)
+            hit = self.floor_tri_at(q[0], q[2], q[1])
+            if hit is None:
+                out.append(q)
+                continue
+            ti = hit[2]
+            vi = self.t[ti]
+            push = np.zeros(3)
+            for e, (a, b) in enumerate(((0, 1), (1, 2), (0, 2))):
+                if self.adj[ti][e] >= 0:
+                    continue                      # 이웃이 있는 변 = 안쪽
+                p0, p1 = self.v[vi[a]], self.v[vi[b]]
+                seg = p1 - p0
+                L2 = float(seg[0] ** 2 + seg[2] ** 2)
+                t = 0.0 if L2 < 1e-9 else max(0.0, min(1.0, ((q[0] - p0[0]) * seg[0] + (q[2] - p0[2]) * seg[2]) / L2))
+                near = p0 + seg * t
+                d = math.hypot(q[0] - near[0], q[2] - near[2])
+                if d < margin:
+                    away = np.array([q[0] - near[0], 0.0, q[2] - near[2]])
+                    n = math.hypot(away[0], away[2])
+                    if n > 1e-6:
+                        push += away / n * (margin - d) * 0.5
+            nq = (q[0] + float(push[0]), q[1], q[2] + float(push[2]))
+            inside = self.floor_tri_at(nq[0], nq[2], q[1])
+            out.append((nq[0], inside[0] if inside else q[1], nq[2]) if inside else q)
+        return out
+
+    def simplify(self, path: list, step: float = 0.5, max_dy: float = 0.8,
+                 max_slope: float = MAX_SIMPLIFY_SLOPE) -> list:
+        """삼각형 무게중심을 이은 지그재그를 곧게 편다 (string pulling).
+
+        **오르내리는 구간은 펴지 않는다.** 계단·경사를 긴 대각선 하나로 뭉치면 봇이 계단을 따라가는 대신
+        비스듬히 벽으로 밀게 된다 — 실측: 수평 11.8 m 를 가며 4.6 m 오르는 구간이 한 점으로 합쳐져
+        봇이 그 앞(y≈−48)에서 더 못 올라갔다 (사용자 지적: "어디서 올라가고 내려가는지 인식이 없다")."""
         if len(path) <= 2:
             return list(path)
+
+        def slope(a, b):
+            h = math.hypot(b[0] - a[0], b[2] - a[2])
+            return abs(b[1] - a[1]) / max(h, 1e-6)
+
         out = [path[0]]
         i = 0
         while i < len(path) - 1:
             j = len(path) - 1
-            while j > i + 1 and not self.clear_line(path[i], path[j], step, max_dy):
+            while j > i + 1 and (slope(path[i], path[j]) > max_slope
+                                 or not self.clear_line(path[i], path[j], step, max_dy)):
                 j -= 1
             out.append(path[j])
             i = j

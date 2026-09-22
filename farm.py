@@ -88,11 +88,27 @@ def rest(tm, pad, nm, bonfire) -> bool:
     return True
 
 
+def goal_xyz(nm, spot) -> tuple:
+    """목표를 반드시 보행면 위로 — 손으로 적은 좌표나 MSB 평균은 면 밖일 수 있고, 그러면 경로가 0 점이 된다."""
+    import numpy as np
+    t = tuple(spot["pos"])
+    if nm.floor_at(t[0], t[2], t[1]) is not None and nm.find_path(t, t) is not None:
+        ok = nm.walkable()
+        d = np.linalg.norm(nm.centroid - np.array(t), axis=1)
+        d = np.where(ok, d, np.inf)
+        i = int(d.argmin())
+        if d[i] < 3.0:
+            return tuple(float(v) for v in nm.centroid[i])
+    return t
+
+
 def episode(tm, pad, nm, guard, dng, spot, max_seconds: float) -> dict:
     """사냥터로 가서 적을 정리하고 돌아온다. 등급 지표를 돌려준다."""
+    spot_xyz = tuple(spot["pos"])
+    spot_y = (spot_xyz[1],)
     st = {"hp0": None, "hp_lost": 0, "kills": 0, "swings": 0, "hits": 0,
           "stam_out": 0, "blocks": 0, "death": False, "pend": None,
-          "last_y": None, "fell": False, "fall_at": None}
+          "last_y": None, "fell": False, "fall_at": None, "y_max": -9999.0, "reached": False}
     seen_hp: dict[int, int] = {}
 
     def on_tick(s, _dist=None):
@@ -118,6 +134,9 @@ def episode(tm, pad, nm, guard, dng, spot, max_seconds: float) -> dict:
             st["fell"] = True
             st["fall_at"] = (round(p.x, 1), round(st["last_y"], 1), round(p.z, 1))
         st["last_y"] = p.y
+        st["y_max"] = max(st["y_max"], p.y)          # 얼마나 올라갔나 — 목표가 위층이면 도달 여부 확인용
+        if abs(p.y - spot_y[0]) < 2.5 and math.dist((p.x, p.y, p.z), spot_xyz) < 6.0:
+            st["reached"] = True
         was = guard.recovering
         a = guard.tick(s)
         if guard.recovering and not was:
@@ -132,7 +151,7 @@ def episode(tm, pad, nm, guard, dng, spot, max_seconds: float) -> dict:
     t0 = time.time()
     s = tm.snapshot(within=1.0)
     st["hp0"] = s.player.hp if s else None
-    path = nm.find_path((s.player.x, s.player.y, s.player.z), tuple(spot["pos"]))
+    path = nm.find_path((s.player.x, s.player.y, s.player.z), goal_xyz(nm, spot))
     res = navwalk.walk(path, tm, pad, log=lambda *a: None, guard=guard, dng=dng, extra_tick=on_tick)
     # 남은 적 정리 (경로 끝에서 주변 적이 없어질 때까지)
     while time.time() - t0 < max_seconds:
@@ -161,6 +180,7 @@ def episode(tm, pad, nm, guard, dng, spot, max_seconds: float) -> dict:
     st["hit_rate"] = round(st["hits"] / st["swings"], 2) if st["swings"] else None
     st.pop("pend", None)
     st.pop("last_y", None)
+    st["y_max"] = round(st["y_max"], 1)
     return st
 
 
@@ -260,7 +280,7 @@ def main() -> None:
             dng.add(*r["fall_at"], 999)          # 낙하 지점을 위험 지점으로 (다음 판부터 그 근처는 아주 천천히)
             log(f"  ⚠ 낙하 감지 {r['fall_at']} — 위험 지점 기록")
         log(f"── {i+1}/{args.episodes} v{pb.version}: 처치 {r['kills']}  잃은HP {r['hp_lost']}  "
-            f"점수 {r['score']}  명중률 {r['hit_rate']}  스태고갈 {r['stam_out']}  후퇴 {r['retreats']}  "
+            f"점수 {r['score']}  명중률 {r['hit_rate']}  스태고갈 {r['stam_out']}  후퇴 {r['retreats']}  {'목표도달' if r['reached'] else f"미도달(최고 y {r['y_max']})"}  "
             f"{'사망' if r['death'] else '생존'}  {r['seconds']}s")
         if r["kills"] == 0:
             log("  처치 0 — 집계 제외"); continue

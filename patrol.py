@@ -182,11 +182,13 @@ class Guard:
         # 위층에서 던지는 적(화염병 등)은 같은 층 판정에 안 걸려 "적 없음"이 된다 → 봇이 가만히 서서 맞는다.
         # 맞고 있는데 근처에 때릴 적이 없으면 **그 자리를 뜬다** (사용자 보고: 위에서 폭탄 맞다가 사망).
         if self.last_hp is not None and p.hp < self.last_hp:
-            if not any(abs(c.y - p.y) < 2.0 and c.dist <= self.pb.hold_range * 1.5 for c in hostile):
+            if not any(abs(c.y - p.y) < 3.5 and c.dist <= self.pb.hold_range * 1.5 for c in hostile):
                 if now - self.ranged_since > 3.0:
                     self.log(f"  guard: 때릴 적이 없는데 맞고 있다 (hp {p.hp}) — 멈추지 말 것")
                 self.ranged_since = now
-        floor = [c for c in hostile if abs(c.y - p.y) < 2.0]
+        # 경사에서는 붙어 있는 적도 높이가 2 m 넘게 차이 난다. 그걸 "다른 층"으로 보면 교전도 도망도 안 한다
+        # (사용자: "4명한테 둘러싸였는데 도망도 안 치고 공격도 안 함"). 가까울수록 높이 기준을 넉넉히 본다.
+        floor = [c for c in hostile if abs(c.y - p.y) < (3.5 if c.dist < 6.0 else 2.0)]
         cands = [c for c in floor if self.ignore.get(c.ptr, 0) < now or c.dist <= 3.0]
         for c in floor:
             h = self.dist_hist.setdefault(c.ptr, [])
