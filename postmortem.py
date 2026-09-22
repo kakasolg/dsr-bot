@@ -90,6 +90,15 @@ def propose_all(diag: dict, pb: Playbook) -> list[dict]:
     if not diag["retreated"] and fh is not None and fh < 0.5 and pb.retreat_hp_pct < 0.6:
         out.append({"key": "retreat_hp_pct", "op": "add", "value": 0.05,
                     "why": f"후퇴 없이 죽음 (첫 피격 HP {fh:.0%}) — 더 일찍 후퇴"})
+    # ── DSR 전투 파라미터 (사용자 원칙: 막고 한 대 / 다수면 유인 / 몰려오면 도망) ──
+    import env
+    if env.GAME == "dsr":
+        if diag["hostile_count"] >= 2 and hasattr(pb, "lock_range") and pb.lock_range > 3.0:
+            out.append({"key": "lock_range", "op": "add", "value": -1.0,
+                        "why": f"적 {diag['hostile_count']}마리 앞에서 죽음 — 더 가까이 올 때까지 교전 안 함 (lock_range −1)"})
+        if diag["hostile_count"] <= 1 and hasattr(pb, "attack_cooldown") and pb.attack_cooldown < 4.0:
+            out.append({"key": "attack_cooldown", "op": "add", "value": 0.5,
+                        "why": f"1:1 에서 죽음 — 선공을 줄이고 막기 위주로 (attack_cooldown +0.5)"})
     if diag["segment"] is not None and diag["segment"] not in pb.sprint_segments:
         out.append({"key": "sprint_segments", "op": "append", "value": diag["segment"],
                     "why": f"구간 wp{diag['segment']} 에서 죽음 — 그 구간은 달려서 통과"})

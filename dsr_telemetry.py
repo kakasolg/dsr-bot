@@ -213,7 +213,11 @@ class DSRTelemetry:
         if not pp:
             return False
         a = self.i32(pp + OFF_ANIM2)
-        return self.i32(pp + OFF_ANIM2 + 4) == 1 and a is not None and 7700 <= a < 7800 and a % 10 == 1   # 7720 = 앉는 중(플래그 0), 77x1 = 앉음
+        try:
+            flag = self.pm.read_uchar(pp + OFF_ANIM2 + 4)   # 1바이트 — 상위 바이트엔 다른 값이 섞인다 (사망 뒤 0x1C260001 실측)
+        except pymem.exception.PymemError:
+            return False
+        return flag == 1 and a is not None and 7700 <= a < 7800 and a % 10 == 1   # 7720 = 앉는 중(플래그 0), 77x1 = 앉음 (7701/7711/7721)
 
     def face(self, pad, heading: float, tries: int = 5, tol: float = 0.25) -> bool:
         """캐릭터를 heading(+0x4 각도, 실측 월드 yaw = heading + π) 방향으로 돌린다 — 스틱을 짧게 쳐서 제자리 회전.

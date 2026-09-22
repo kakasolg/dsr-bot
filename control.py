@@ -17,10 +17,24 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
 import ctypes
+import ctypes.wintypes
 
 import vgamepad as vg
 
 B = vg.XUSB_BUTTON
+
+
+_game_hwnd = None
+
+
+def game_in_front() -> bool:
+    """게임 창이 포그라운드인가 (틱마다 불러도 싸다)."""
+    u = ctypes.windll.user32
+    import env
+    global _game_hwnd
+    if not _game_hwnd:
+        _game_hwnd = u.FindWindowW(None, "DARK SOULS™: REMASTERED" if env.GAME == "dsr" else "ELDEN RING™")
+    return bool(_game_hwnd) and u.GetForegroundWindow() == _game_hwnd
 
 
 def focus_game() -> bool:
@@ -29,6 +43,13 @@ def focus_game() -> bool:
     lua = u.FindWindowW(None, "Lua Engine")   # 테이블 스크립트 에러가 띄우는 CE 창 — 포커스를 뺏으므로 숨김
     if lua:
         u.ShowWindow(lua, 0)
+    # Windows IME/이모지 패널(TextInputHost, "Windows Input Experience")이 앞에 붙으면 게임이 포그라운드를 못 받는다 — 숨긴다
+    ime = u.FindWindowW(None, "Windows Input Experience")
+    if ime and u.GetForegroundWindow() == ime:
+        u.ShowWindow(ime, 0)
+        u.keybd_event(0x1B, 0, 0, 0)
+        u.keybd_event(0x1B, 0, 2, 0)
+        time.sleep(0.2)
     import env
     h = u.FindWindowW(None, "DARK SOULS™: REMASTERED" if env.GAME == "dsr" else "ELDEN RING™")
     if not h:
@@ -37,7 +58,31 @@ def focus_game() -> bool:
     u.keybd_event(0x12, 0, 2, 0)
     u.ShowWindow(h, 9)
     u.SetForegroundWindow(h)
-    time.sleep(0.3)
+    time.sleep(0.2)
+    if u.GetForegroundWindow() != h:
+        # 그래도 안 되면(숨은 IME 창이 포그라운드를 쥔 채 안 놓을 때) 포그라운드 스레드에 입력을 붙여서 넘긴다
+        k = ctypes.windll.kernel32
+        fg = u.GetForegroundWindow()
+        fg_tid = u.GetWindowThreadProcessId(fg, None) if fg else 0
+        my_tid = k.GetCurrentThreadId()
+        if fg_tid and fg_tid != my_tid:
+            u.AttachThreadInput(my_tid, fg_tid, True)
+            u.BringWindowToTop(h)
+            u.SetForegroundWindow(h)
+            u.AttachThreadInput(my_tid, fg_tid, False)
+        time.sleep(0.2)
+    if u.GetForegroundWindow() != h:
+        # 최후: 게임 창 제목줄을 실제로 클릭한다 (게임 입력엔 영향 없음)
+        r = ctypes.wintypes.RECT()
+        u.GetWindowRect(h, ctypes.byref(r))
+        x, y = (r.left + r.right) // 2, r.top + 12
+        old = ctypes.wintypes.POINT()
+        u.GetCursorPos(ctypes.byref(old))
+        u.SetCursorPos(x, y)
+        u.mouse_event(2, 0, 0, 0, 0)
+        u.mouse_event(4, 0, 0, 0, 0)
+        u.SetCursorPos(old.x, old.y)
+        time.sleep(0.2)
     return u.GetForegroundWindow() == h
 
 

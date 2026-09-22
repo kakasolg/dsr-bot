@@ -27,6 +27,8 @@ FLIP_X = False
 SPRINT_BEYOND = 8.0     # 이보다 멀면 달리기
 STUCK_WINDOW = 2.0      # 초
 STUCK_MIN_PROGRESS = 0.3  # m
+CREEP_STICK = 0.45        # 실측(가드 든 채): 스틱 <0.4 = 정지, 0.4~0.7 = 걷기 1.64 m/s, 1.0 = 조깅 3.24 m/s. 걷기가 최저 속도
+ENGAGE_STICK = 0.5        # 교전 접근도 걷기
 UNREACHABLE_DY = 2.5      # m — 2D 로 5 m 안인데 높이 차가 이보다 크면 절벽/층 차이
 
 
@@ -157,14 +159,21 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
                 continue
 
             mode = mode_fn(s) if mode_fn else ("sprint" if (sprint_always or dist > SPRINT_BEYOND) else "walk")
+            if mode == "retreat":
+                pad.neutral()               # Guard 가 후퇴/도망을 원한다 — 경로 루프가 뒤로 간다
+                return "retreat"
             if mode == "hold":
                 pad.move(0.0, 0.0)          # 적이 붙었다 — 전진 대신 제자리 가드 (막힘 감지도 리셋)
                 mover.set("guard")
                 last_progress_d, last_progress_t = dist, now
+            elif mode == "creep":
+                sx, sy = control.world_to_stick(dx, dz, s.cam_yaw, YAW_OFFSET, FLIP_X)
+                pad.move(sx * CREEP_STICK, sy * CREEP_STICK)   # 적이 여럿 보이면 천천히 — 한꺼번에 어그로를 안 끌도록 (사용자 원칙)
+                mover.set("guard")
             elif mode == "engage" and engage_fn and engage_fn(s):
-                ex, ez = engage_fn(s)       # 적에게 다가간다 (가드 올린 채)
+                ex, ez = engage_fn(s)       # 적에게 다가간다 (가드 올린 채, 걷기 — 뛰어들지 않고 오게 만든다)
                 sx, sy = control.world_to_stick(ex - p.gx, ez - p.gz, s.cam_yaw, YAW_OFFSET, FLIP_X)
-                pad.move(sx, sy)
+                pad.move(sx * ENGAGE_STICK, sy * ENGAGE_STICK)
                 mover.set("guard")
                 last_progress_d, last_progress_t = dist, now
             else:

@@ -46,6 +46,8 @@ ROUTES = ROOT / "data" / "routes"
 STALL_WINDOW = 4.0    # 초 — 성배병(1.5 s)·경직/넘어짐(최대 3.5 s 실측)보다 길게
 STALL_MOVE = 0.5      # m
 STALL_MAX = 3         # 이만큼 흔들어도 안 움직이면 에피소드 종료
+RETREAT_DIST = 8.0     # 후퇴/도망 때 뒤로 달리는 거리 (m) — 경로를 따라 이만큼 떨어진 점까지 한 번에
+ENEMY_ATTACK_ANIMS = range(3000, 3500)   # DS1 적 공격 애니 (실측: 3000/3001/3005/3007/3008 직후 피격)
 FLASK_SAFE_DIST = 4.0  # m — 이 안에 적이 있으면 마시다 맞는다(1.5 s) → 후퇴로 거리부터 벌린다
 REST_FLASKS_LEFT = 1   # 성배병이 이만큼 남으면 무조건 축복에 가서 쉰다 (사용자 규칙 — 학습 대상 아님)
 
@@ -126,6 +128,16 @@ class Guard:
         self.engage_hp0 = None      # 교전 시작 때 적 HP / 내 HP — 8 s 동안 둘 다 안 변하면 닿지 않는 적(창살 너머)으로 보고 포기
         self.my_hp0 = None
         self.ignore: dict[int, float] = {}   # ptr → 무시 만료 시각
+        self.last_sp: int | None = None
+        self.last_block = 0.0
+        self.blocks = 0
+        self.engage_prev_attacking = False
+        self.dist_hist: dict[int, list] = {}   # ptr → [(t, dist)] 최근 1.5 s — "다가오는 중" 판정
+        self.flee_until = 0.0    # 도망 결정의 히스테리시스 (틱마다 뒤집히지 않게)
+        self.fleeing = False
+        self.creep = False
+        self.wait_until = 0.0    # 도망 뒤 제자리에서 기다리는 시간
+        self.combo_at = 0.0      # 막고 반격한 뒤 2타를 넣을 시각
 
     def engage_pos(self):
         return (self.engage.x, self.engage.z) if self.engage is not None else None
@@ -137,7 +149,68 @@ class Guard:
         (다수 대응·투척 유인·측면 돌기는 다음 단계)"""
         p = s.player
         act = None
-        cands = [c for c in hostile if abs(c.y - p.y) < 2.0 and self.ignore.get(c.ptr, 0) < now]
+        # 막기 감지: 가드 든 상태에서 HP 는 그대로인데 스태미나가 한 틱에 8 넘게 빠지면 막은 것 (화살 포함).
+        # 우리 공격/구르기 직후 0.6 s 는 제외 (그것도 스태미나를 쓴다). 막았으면 "막고 → 한 대": 쿨다운 무시하고 바로 친다.
+        blocked = False
+        if (self.last_sp is not None and self.mode in ("guard", "hold", "engage") and p.sp < self.last_sp - 8
+                and self.last_hp is not None and p.hp >= self.last_hp and now - self.last_attack > 0.6 and now - self.last_dodge > 0.6):
+            blocked = True
+            self.blocks += 1
+            self.last_block = now
+            self.log(f"  guard: blocked (sp {self.last_sp}→{p.sp}, hostile {len(hostile)})")
+        self.last_sp = p.sp
+        # 같은 층의 적 전부(무시 목록도 3 m 안이면 포함 — 창살 너머라 믿었던 놈이 붙어서 때리는 일이 있었다)
+        floor = [c for c in hostile if abs(c.y - p.y) < 2.0]
+        cands = [c for c in floor if self.ignore.get(c.ptr, 0) < now or c.dist <= 3.0]
+        for c in floor:
+            h = self.dist_hist.setdefault(c.ptr, [])
+            h.append((now, c.dist))
+            del h[:-30]
+        def approaching(c):
+            h = [d for t, d in self.dist_hist.get(c.ptr, []) if now - t <= 1.0]
+            return len(h) >= 5 and h[0] - h[-1] > 0.8
+        # 사용자 원칙 3: 몰려오면 도망 — 같은 층 6 m 안에 crowd_threshold 마리 이상이면(또는 교전 중인데 다른 놈이 8 m 안으로
+        # 다가오면) 교전 풀고 경로 뒤로 달린다. 쫓아오는 속도가 달라 먼저 온 놈과 1:1 이 된다. 후퇴/도망 중엔 가드 대신 달리기.
+        crowd = [c for c in cands if c.dist <= 6.0]
+        # 교전 중 두 번째 놈이 3 m 안까지 붙으면 도망 (8 m 는 너무 예민해서 둘이 같이 오는 한 영원히 도망만 했다)
+        second = [c for c in cands if self.engage is not None and c.ptr != self.engage.ptr and c.dist <= 3.0]
+        if len(crowd) >= self.pb.crowd_threshold or second:
+            if not self.fleeing:
+                self.log(f"  guard: {len(crowd)}마리 몰려옴{' (교전 중 추가 접근)' if second else ''} — 도망")
+                self.fleeing = True
+            self.flee_until = now + 1.5
+            self.engage = None
+        if self.flee_until > now:
+            self.retreat = True
+        elif self.fleeing:
+            self.fleeing = False
+            self.wait_until = now + 5.0   # 돌아서서 제자리 가드 — 먼저 오는 놈을 맞는다 (앞으로 걸어가 둘을 다시 만나지 않게)
+            self.log("  guard: 떼어 놓음 — 돌아서서 기다린다")
+        # 사용자 원칙: 여럿이 보이면 천천히 — 같은 층 15 m 안에 2마리 이상이면 반속(creep)으로 접근
+        # 살금살금: 둘 이상이 25 m 안에 보이거나, 하나라도 12 m 안이면 (사용자: "적 근처에선 전진 스틱을 조금만")
+        self.creep = self.engage is None and (len([c for c in cands if c.dist <= 25.0]) >= 2 or any(c.dist <= 12.0 for c in cands))
+        # 사용자 원칙 2: 다수면 하나만 끌어낸다 — 교전 전, 12 m 안에 2마리 이상인데 그중 하나가 다가오기 시작하면
+        # (1 s 에 0.8 m 이상 접근) 뒤로 빠져 나머지와 떼어 놓는다. 먼저 온 놈과 1:1.
+        group = [c for c in cands if c.dist <= 12.0]
+        if self.engage is None and len(group) >= 2 and not self.retreat:
+            comers = [c for c in group if approaching(c)]
+            others = [c for c in group if not approaching(c)]
+            if comers and others and min(c.dist for c in others) < 10.0:
+                if not self.fleeing:
+                    self.log(f"  guard: {len(group)}마리 중 1마리 다가옴 — 뒤로 빠져 유인")
+                    self.fleeing = True
+                self.flee_until = now + 1.5
+                self.retreat = True
+        if self.retreat or self.flee:
+            self.mode = "retreat"
+            if self.locked:
+                self.pad.lock_on()
+                self.locked, self.lock_ptr = False, None
+            return act
+        if self.creep and self.mode in ("guard", "sprint", "walk"):
+            self.mode = "creep"
+        if self.wait_until > now and self.engage is None and any(c.dist <= 12.0 for c in cands):
+            self.mode = "hold"   # 기다리기: 가드 올린 채 제자리
         near = cands[0] if cands else None
         # 교전 대상 갱신 (죽었거나 멀어지면 해제)
         if self.engage is not None:
@@ -146,11 +219,12 @@ class Guard:
                 self.engage = None
             else:
                 self.engage = cur
-                if now - self.engage_since > 8.0 and cur.hp == self.engage_hp0 and p.hp == self.my_hp0:
+                if now - self.engage_since > 8.0 and cur.hp == self.engage_hp0 and p.hp == self.my_hp0 and not approaching(cur):
                     self.ignore[cur.ptr] = now + 60.0
                     self.log(f"  guard: 8 s 동안 서로 안 맞음 — 닿지 않는 적, 60 s 무시 (npc {cur.npc_param}, {cur.dist:.1f} m)")
                     self.engage = None
-        if self.engage is None and near is not None and near.dist <= self.pb.lock_range and not self.retreat and not self.flee:
+        engage_at = (self.pb.attack_range + 0.7) if self.wait_until > now else self.pb.lock_range
+        if self.engage is None and near is not None and near.dist <= engage_at and not self.retreat and not self.flee:
             self.engage, self.engage_since, self.engage_hp0, self.my_hp0 = near, now, near.hp, p.hp
             act = "engage"
         # 락온은 교전 대상과 같이 간다
@@ -168,12 +242,23 @@ class Guard:
             act = act or "lock"
         if self.engage is not None:
             sp_pct = p.sp / max(1, p.max_sp) if p.max_sp else 1.0
+            attacking = (self.engage.anim or 0) in ENEMY_ATTACK_ANIMS
+            recovering = self.engage_prev_attacking and not attacking   # 공격 애니가 방금 끝남 = 빈틈
+            self.engage_prev_attacking = attacking
             if self.engage.dist <= self.pb.attack_range:
                 self.mode = "hold"
-                if now - self.last_attack > self.pb.attack_cooldown and sp_pct > 0.25:
+                # 막고 → 한 대: 적이 휘두르는 중엔 절대 안 치고 가드. 막았거나(스태미나) 적 공격이 끝난 직후에 친다.
+                # 적이 가만히 있으면 attack_cooldown 마다 한 대 (할로우는 느려서 선공도 통한다)
+                if sp_pct > 0.25 and not attacking and (blocked or recovering or now - self.last_attack > self.pb.attack_cooldown):
                     self.pad.attack()
                     self.last_attack = now
-                    act = "attack"
+                    self.combo_at = now + 0.55 if blocked else 0.0   # 방패에 튕기면 자세가 무너진다 (사용자) → 한 대 더
+                    act = "counter" if (blocked or recovering) else "attack"
+                elif self.combo_at and now >= self.combo_at and not attacking and sp_pct > 0.2:
+                    self.pad.attack()
+                    self.last_attack = now
+                    self.combo_at = 0.0
+                    act = "combo"
             else:
                 self.mode = "engage"
         return act
@@ -296,8 +381,15 @@ def run_episode(route: str, pb, harasser=None, max_seconds: float = 240.0, laps:
     stop = False
     still = {"pos": None, "since": 0.0, "n": 0, "kick": 0.0}   # 멈춤 감시
 
+    focus_check = {"t": 0.0}
+
     def on_tick(s, dist):
         nonlocal stop
+        # 사람이 다른 창에 타이핑하면(IME 패널 등) 게임이 포그라운드를 잃고 패드 입력이 전부 죽는다 — 0.5 s 마다 확인해 되찾는다
+        if time.time() - focus_check["t"] > 0.5:
+            focus_check["t"] = time.time()
+            if not control.game_in_front():
+                control.focus_game()
         prev_hp = guard.last_hp
         a = guard.tick(s)
         # ── 멈춤 감시: 살아 있는데 안 움직이면 입력이 안 먹는 것 — 포커스 다시 잡고 B(팝업이면 닫기, 게임이면 구르기) ──
@@ -330,6 +422,8 @@ def run_episode(route: str, pb, harasser=None, max_seconds: float = 240.0, laps:
         row["sp"] = s.player.sp
         if a:
             row["guard"] = a
+        if guard.last_block and time.time() - guard.last_block < 0.06:
+            row["blocked"] = True
         if jev:
             j = jev.take()
             if j:
@@ -375,22 +469,34 @@ def run_episode(route: str, pb, harasser=None, max_seconds: float = 240.0, laps:
             idx = order[k]
             if True:
                 target = (pts[idx][0], pts[idx][1], pts[idx][2])
-                # 후퇴는 서서 기다리는 게 아니라 계속 뒤로 간다 (최대 3 지점) — 성배병은 8 m 안에 적이 없어지는 틱에 규칙이 마신다
-                back = k
-                while (guard.retreat or guard.flee) and back > 0 and k - back < 3:
-                    prev = pts[order[back - 1]]
+                # 후퇴/도망: 서서 기다리지 않고 경로를 따라 RETREAT_DIST m 뒤 점까지 **한 번에** 달린다 (도중에 마음 안 바꿈).
+                # 도착하면 루프 머리로 — 아직 몰려 있으면 또 뒤로, 떼어 놓였으면 먼저 온 놈과 1:1
+                if (guard.retreat or guard.flee) and k > 0:
+                    s_now = tm.snapshot()
+                    tk = 0
+                    if s_now and s_now.player.gx is not None:
+                        for j in range(k - 1, -1, -1):
+                            if math.hypot(pts[order[j]][0] - s_now.player.gx, pts[order[j]][2] - s_now.player.gz) >= RETREAT_DIST:
+                                tk = j
+                                break
                     why = "flee " + (guard.flee.name or str(guard.flee.npc_param)) if guard.flee else "retreat"
-                    log(f"  {why} → wp {order[back - 1]}")
+                    log(f"  {why} → wp {order[tk]} ({k - tk} 점 뒤)")
                     ep.write({"t": round(time.time(), 3), "guard": "retreat", "why": why})
-                    if nav.goto(tm, pad, (prev[0], prev[2]), tolerance=2.0, timeout=20, on_tick=on_tick, log=log,
-                                mode_fn=lambda s: guard.mode) == "dead":
+                    p3 = pts[order[tk]]
+                    rr = nav.goto(tm, pad, (p3[0], p3[1], p3[2]), tolerance=1.5, timeout=20, on_tick=on_tick, log=log,
+                                  mode_fn=lambda s: "sprint")
+                    if rr == "dead":
+                        result["reason"] = "death"
                         break
-                    back -= 1
+                    k = tk
+                    continue
                 r = nav.goto(tm, pad, target, tolerance=2.0, timeout=90, on_tick=on_tick, log=log,
                              mode_fn=lambda s: guard.mode, engage_fn=lambda s: guard.engage_pos())
                 if r == "dead":
                     result["reason"] = "death"
                     break
+                if r == "retreat":
+                    continue      # 같은 목표를 다시 — 루프 머리의 후퇴 처리가 뒤로 데려간다
                 if r == "timeout" and rt.get("interacts"):
                     s_now = tm.snapshot()
                     if s_now and any(math.hypot(it["pos"][0] - s_now.player.gx, it["pos"][2] - s_now.player.gz) < 2.5 for it in rt["interacts"]):
@@ -593,6 +699,7 @@ def reset_episode(tm, pad, grace_id: int | None, expect: tuple[float, float] | N
         if not (s and s.player.hp > 0):
             if not wait_respawn(tm, pad, log):
                 return False
+            time.sleep(4.0)   # 리스폰 직후 페이드/일어나기 동안은 상호작용이 안 먹는다
         if expect is not None and len(expect) >= 3:
             log("  리셋: 시작 화톳불로 워프 → 앉기")
             tm.pos_warp(expect[0], expect[1], expect[2])
