@@ -104,6 +104,7 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
     no_cam_since = None
     mover = mover or Mover(pad)
     probe_t0 = time.time()
+    probe_off = [False]      # probe 로 전진이 안 되면 이 goto 동안은 보통 걷기로
     try:
         while True:
             now = time.time()
@@ -186,7 +187,7 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
                 pad.move(sx * CREEP_STICK, sy * CREEP_STICK)
                 mover.set("guard" if far < 4.0 else "walk")
                 last_progress_d, last_progress_t = dist, now
-            elif mode == "probe":
+            elif mode == "probe" and not probe_off[0]:
                 # 사용자 원칙: 위험한 자리 근처에서는 앞으로 갔다 뒤로 갔다 하며 순증 1 m 정도로만 전진한다.
                 # 곧장 걸어 들어가면 잠든 적을 한꺼번에 깨우고 도망칠 거리도 안 남는다. 가드는 내내 든 채.
                 ph = (now - probe_t0) % (PROBE_FWD + PROBE_BACK + PROBE_HOLD)
@@ -198,7 +199,14 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
                 else:
                     pad.move(0.0, 0.0)
                 mover.set("guard")
-                last_progress_d, last_progress_t = dist, now   # 일부러 느리게 가는 것이니 막힘으로 보지 않는다
+                # 일부러 느리게 가는 것이라 막힘 판정을 **완화**하되 끄지는 않는다.
+                # 껐더니 못 올라가는 턱 앞에서 0.4 m 를 영원히 왕복했다 (사용자: "같은 곳에서 빙글빙글").
+                if dist < last_progress_d - 0.3:
+                    last_progress_d, last_progress_t = dist, now
+                elif now - last_progress_t > STUCK_WINDOW * 3:
+                    log(f"  probe 로 전진 못 함 ({dist:.1f} m) — 보통 걷기로 전환")
+                    probe_off[0] = True
+                    last_progress_d, last_progress_t = dist, now
             elif mode == "creep":
                 sx, sy = control.world_to_stick(dx, dz, s.cam_yaw, YAW_OFFSET, FLIP_X)
                 pad.move(sx * CREEP_STICK, sy * CREEP_STICK)   # 적이 여럿 보이면 천천히 — 한꺼번에 어그로를 안 끌도록 (사용자 원칙)
