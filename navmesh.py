@@ -185,6 +185,40 @@ class Navmesh:
         cache.write_text(json.dumps([int(i) for i in np.where(mask)[0]]), encoding="utf-8")
         return mask
 
+    def seams(self, tol: float = 0.6) -> list[tuple[int, int]]:
+        """**맞닿은 조각을 잇는다** — 서로 다른 NVM 조각의 열린 변이 거의 같은 자리에 있으면 통한다고 본다.
+
+        MCG 게이트만으로는 부족하다. 게이트는 적 AI 가 실제로 다니는 길만 잇기 때문에, 조각이 물리적으로
+        맞닿아 있어도 그래프가 끊긴다 — 실측: 성벽 교회는 연결 성분 58개, 어둠숲은 20개로 쪼개져
+        캐릭터가 선 조각(183개)에서 어디로도 길을 못 뽑았다. 불의 제전은 우연히 MCG 만으로 이어졌을 뿐."""
+        if getattr(self, "_seams", None) is not None:
+            return self._seams
+        buckets: dict = {}
+        for i in range(len(self.t)):
+            vi = self.t[i]
+            for e, (a, b) in enumerate(((0, 1), (1, 2), (0, 2))):
+                if self.adj[i][e] >= 0:
+                    continue                                  # 조각 안에서 이미 이어진 변
+                mid = (self.v[vi[a]] + self.v[vi[b]]) / 2.0
+                key = (round(float(mid[0]) / tol), round(float(mid[1]) / tol), round(float(mid[2]) / tol))
+                for dx in (-1, 0, 1):
+                    for dy in (-1, 0, 1):
+                        for dz in (-1, 0, 1):
+                            buckets.setdefault((key[0]+dx, key[1]+dy, key[2]+dz), []).append((i, mid))
+        out, seen = [], set()
+        for grp in buckets.values():
+            for a in range(len(grp)):
+                for b in range(a + 1, len(grp)):
+                    i, mi = grp[a]
+                    j, mj = grp[b]
+                    if self.piece[i] == self.piece[j] or (i, j) in seen or (j, i) in seen:
+                        continue
+                    if float(np.linalg.norm(mi - mj)) < tol:
+                        seen.add((i, j))
+                        out.append((i, j))
+        self._seams = out
+        return out
+
     def graph(self, edge_penalty: float = EDGE_PENALTY) -> dict[int, list[tuple[int, float]]]:
         """삼각형 단위 길찾기 그래프 — 조각 안은 NVM 인접, 조각 사이는 MCG 게이트.
 
@@ -203,6 +237,11 @@ class Navmesh:
                     w = float(np.linalg.norm(self.centroid[i] - self.centroid[j]))
                     out.append((int(j), w * (edge_penalty if edge[j] else 1.0)))
             g[i] = out
+        for i, j in self.seams():                              # 맞닿은 조각 잇기
+            if i in g and j in g:
+                w = float(np.linalg.norm(self.centroid[i] - self.centroid[j]))
+                g[i].append((j, w))
+                g[j].append((i, w))
         for grp in self.gates():
             members = [i for i in grp if i in g]
             for i in members:
