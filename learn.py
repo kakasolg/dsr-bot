@@ -92,7 +92,7 @@ def main() -> None:
     since_change = 0                     # 현재 버전으로 뛴 에피소드 수
     eval_pending = False                 # 이번 프로세스에서 새 변경을 적용했고 아직 평가(EVAL_EPISODES)를 안 끝냈는가
     prev_version_median: float | None = None
-    log(f"학습 시작[{env.GAME}]: route={args.route} playbook v{pb.version} episodes={args.episodes} jev={args.jev}"
+    log(f"학습 시작[{env.GAME}]: route={args.route} playbook v{pb.version} (crowd {pb.crowd_threshold}, atk {pb.attack_range}/{pb.attack_cooldown}, lock {pb.lock_range}) episodes={args.episodes} jev={args.jev}"
         f"{' tick' if args.jev_tick else ''}{' arm=' + args.arm if args.arm else ''}{' seeds-fixed' if args.seeds_fixed else ''}")
     import jev as jevm
     if args.jev != "off":

@@ -138,6 +138,14 @@ class Guard:
         self.creep = False
         self.wait_until = 0.0    # 도망 뒤 제자리에서 기다리는 시간
         self.combo_at = 0.0      # 막고 반격한 뒤 2타를 넣을 시각
+        self.engage_pos0 = None  # 교전 중 우리 위치 (못 다가가는 적 판정)
+        self.lured: set = set()  # 벽 치기 유인을 시도한 적
+        self.circled: set = set()
+        self.circle_until = 0.0
+        self.retreat_block_until = 0.0
+        self.pull_count = 0
+        self.pull_pause = 0.0
+        self.engage_move_t = 0.0
 
     def engage_pos(self):
         return (self.engage.x, self.engage.z) if self.engage is not None else None
@@ -174,12 +182,19 @@ class Guard:
         crowd = [c for c in cands if c.dist <= 6.0]
         # 교전 중 두 번째 놈이 3 m 안까지 붙으면 도망 (8 m 는 너무 예민해서 둘이 같이 오는 한 영원히 도망만 했다)
         second = [c for c in cands if self.engage is not None and c.ptr != self.engage.ptr and c.dist <= 3.0]
-        if len(crowd) >= self.pb.crowd_threshold or second:
+        hp_pct_now = p.hp / max(1, p.max_hp)
+        # 둘이 같이 오는 건 방패로 감당된다(실측: 0 피해로 셋 처치). 기본은 crowd_threshold 이상일 때만 도망.
+        # "둘째가 붙으면 도망"은 플레이북 스위치(flee_on_second) — 덧대니 같은 모퉁이에서 세 번 죽어서 기본 꺼짐
+        if len(crowd) >= self.pb.crowd_threshold or (getattr(self.pb, "flee_on_second", False) and second and hp_pct_now < 0.6):
             if not self.fleeing:
                 self.log(f"  guard: {len(crowd)}마리 몰려옴{' (교전 중 추가 접근)' if second else ''} — 도망")
                 self.fleeing = True
             self.flee_until = now + 1.5
             self.engage = None
+        if self.retreat_block_until > now:
+            self.flee_until = 0.0        # 막힌 후퇴를 반복하지 않는다 — 4 s 는 서서 막는다 (HP 기준 후퇴·성배병 후퇴도 포함)
+            self.fleeing = False
+            self.retreat = False
         if self.flee_until > now:
             self.retreat = True
         elif self.fleeing:
@@ -192,15 +207,19 @@ class Guard:
         # 사용자 원칙 2: 다수면 하나만 끌어낸다 — 교전 전, 12 m 안에 2마리 이상인데 그중 하나가 다가오기 시작하면
         # (1 s 에 0.8 m 이상 접근) 뒤로 빠져 나머지와 떼어 놓는다. 먼저 온 놈과 1:1.
         group = [c for c in cands if c.dist <= 12.0]
-        if self.engage is None and len(group) >= 2 and not self.retreat:
+        if getattr(self.pb, "pull_one", False) and self.engage is None and len(group) >= 2 and not self.retreat and self.retreat_block_until <= now and self.wait_until <= now:
             comers = [c for c in group if approaching(c)]
             others = [c for c in group if not approaching(c)]
-            if comers and others and min(c.dist for c in others) < 10.0:
+            if comers and others and min(c.dist for c in others) < 10.0 and self.pull_pause <= now:
                 if not self.fleeing:
-                    self.log(f"  guard: {len(group)}마리 중 1마리 다가옴 — 뒤로 빠져 유인")
+                    self.pull_count += 1
+                    self.log(f"  guard: {len(group)}마리 중 1마리 다가옴 — 뒤로 빠져 유인 ({self.pull_count}회)")
                     self.fleeing = True
-                self.flee_until = now + 1.5
-                self.retreat = True
+                    if self.pull_count >= 3:     # 세 번 빠져도 안 떨어지는 짝이면 그냥 둘을 상대한다 (방패로 감당됨). 20 s 뒤 다시 시도
+                        self.pull_pause = now + 20.0
+                        self.pull_count = 0
+                        self.log("  guard: 유인 3회 실패 — 20 s 동안 유인 없이 싸운다")
+                self.flee_until = now + 1.5      # retreat 는 아래 flee_until 로만 켠다 (막힌 후퇴 차단이 먹도록)
         if self.retreat or self.flee:
             self.mode = "retreat"
             if self.locked:
@@ -211,21 +230,48 @@ class Guard:
             self.mode = "creep"
         if self.wait_until > now and self.engage is None and any(c.dist <= 12.0 for c in cands):
             self.mode = "hold"   # 기다리기: 가드 올린 채 제자리
-        near = cands[0] if cands else None
+        near = next((c for c in cands if self.ignore.get(c.ptr, 0) < now), None)   # 무시 중인 놈은 교전 대상이 아니다 (3 m 안이라 cands 엔 있어도)
         # 교전 대상 갱신 (죽었거나 멀어지면 해제)
         if self.engage is not None:
             cur = next((c for c in hostile if c.ptr == self.engage.ptr), None)
             if cur is None or cur.hp <= 0 or cur.dist > self.pb.lock_range * 2 or self.ignore.get(cur.ptr, 0) > now:
+                if cur is not None and cur.hp <= 0:
+                    self.pull_count = 0
                 self.engage = None
             else:
                 self.engage = cur
-                if now - self.engage_since > 8.0 and cur.hp == self.engage_hp0 and p.hp == self.my_hp0 and not approaching(cur):
+                if cur.hp != self.engage_hp0 or p.hp != self.my_hp0:   # 서로 HP 가 변했으면 "교착" 타이머 리셋
+                    self.engage_since, self.engage_hp0, self.my_hp0 = now, cur.hp, p.hp
+                if self.engage_pos0 is None or math.hypot(p.x - self.engage_pos0[0], p.z - self.engage_pos0[1]) > 0.5:
+                    self.engage_pos0, self.engage_move_t = (p.x, p.z), now   # 우리가 움직이면 교착 타이머 리셋
+                stuck_engage = now - self.engage_move_t > 6.0 and cur.dist > self.pb.attack_range
+                if stuck_engage and cur.ptr not in self.lured:
+                    # 사용자 제안 1: 홈에 낀/안 오는 적은 벽을 쳐서 소리로 끌어내 본다 — 한 번만, 4 s 기다려 본다
+                    self.lured.add(cur.ptr)
+                    self.pad.attack()
+                    self.last_attack = now
+                    self.engage_move_t = now - 2.0
+                    self.log(f"  guard: 안 오는 적 — 벽 치기로 소리 유인 (npc {cur.npc_param}, {cur.dist:.1f} m)")
+                    stuck_engage = False
+                elif stuck_engage and cur.ptr not in self.circled:
+                    # 사용자 제안 2: 그래도 안 오면 주변을 빙글빙글 돌아 움직임을 보여 준다 (3 s)
+                    self.circled.add(cur.ptr)
+                    self.circle_until = now + 3.0
+                    self.engage_move_t = now + 1.0
+                    self.log(f"  guard: 안 오는 적 — 빙글빙글 돌아 유인 (npc {cur.npc_param}, {cur.dist:.1f} m)")
+                    stuck_engage = False
+                lured_now = self.engage_move_t > now - 2.5 and cur.ptr in (self.lured | self.circled)   # 유인 직후엔 포기 판정 보류
+                # 이미 사거리 안(붙어서 막는 중)이면 "교착"으로 포기하지 않는다 — 계속 막기만 하고 못 때려도 그건 싸움이지 닿지 않는 게 아니다.
+                # 실측: 붙은 채 8 s 순수 방어(HP·적 HP 둘 다 그대로)만 하다가 이 규칙이 포기시키고, 그 직후 무방비 후퇴로 이어져 사망.
+                stalemate = now - self.engage_since > 8.0 and not approaching(cur) and cur.dist > self.pb.attack_range
+                if (stalemate or stuck_engage) and not lured_now:
                     self.ignore[cur.ptr] = now + 60.0
-                    self.log(f"  guard: 8 s 동안 서로 안 맞음 — 닿지 않는 적, 60 s 무시 (npc {cur.npc_param}, {cur.dist:.1f} m)")
+                    self.log(f"  guard: {'6 s 동안 못 다가감' if stuck_engage else '8 s 동안 서로 안 맞음'} — 닿지 않는 적, 60 s 무시 (npc {cur.npc_param}, {cur.dist:.1f} m, hp {cur.hp})")
                     self.engage = None
         engage_at = (self.pb.attack_range + 0.7) if self.wait_until > now else self.pb.lock_range
         if self.engage is None and near is not None and near.dist <= engage_at and not self.retreat and not self.flee:
             self.engage, self.engage_since, self.engage_hp0, self.my_hp0 = near, now, near.hp, p.hp
+            self.engage_pos0, self.engage_move_t = (p.x, p.z), now
             act = "engage"
         # 락온은 교전 대상과 같이 간다
         want_lock = self.engage is not None
@@ -261,6 +307,8 @@ class Guard:
                     act = "combo"
             else:
                 self.mode = "engage"
+            if self.circle_until > now:
+                self.mode = "circle"
         return act
 
     def tick(self, s: telemetry.Snapshot) -> str | None:
@@ -268,7 +316,8 @@ class Guard:
         now = time.time()
         hostile = s.hostile(20.0)
         action = None
-        if self.last_hp is not None and p.hp < self.last_hp and now - self.last_dodge > 0.8:
+        if self.last_hp is not None and p.hp < self.last_hp and now - self.last_dodge > 0.8 and env.GAME != "dsr":
+            # DSR 에선 피격 구르기를 안 쓴다 — 통로 가장자리에서 굴러 12 m 아래로 떨어진 적이 있다. 방패로 막는 게 기본 (사용자 원칙)
             self.pad.dodge()
             self.last_dodge = now
             action = "dodge"
@@ -483,11 +532,18 @@ def run_episode(route: str, pb, harasser=None, max_seconds: float = 240.0, laps:
                     log(f"  {why} → wp {order[tk]} ({k - tk} 점 뒤)")
                     ep.write({"t": round(time.time(), 3), "guard": "retreat", "why": why})
                     p3 = pts[order[tk]]
-                    rr = nav.goto(tm, pad, (p3[0], p3[1], p3[2]), tolerance=1.5, timeout=20, on_tick=on_tick, log=log,
-                                  mode_fn=lambda s: "sprint")
+                    rr = nav.goto(tm, pad, (p3[0], p3[1], p3[2]), tolerance=1.5, timeout=12, on_tick=on_tick, log=log,
+                                  mode_fn=lambda s: "sprint", abort_on_stuck=True)
                     if rr == "dead":
                         result["reason"] = "death"
                         break
+                    if rr == "stuck":
+                        # 도망길이 막혔다 — 가드 내리고 옆걸음하다 맞는 게 사망 원인이었다. 돌아서서 막고 싸운다
+                        log("  후퇴로 막힘 — 돌아서서 막는다")
+                        guard.flee_until, guard.fleeing = 0.0, False
+                        guard.retreat_block_until = time.time() + 4.0
+                        guard.wait_until = time.time() + 4.0
+                        continue
                     k = tk
                     continue
                 r = nav.goto(tm, pad, target, tolerance=2.0, timeout=90, on_tick=on_tick, log=log,
@@ -505,6 +561,17 @@ def run_episode(route: str, pb, harasser=None, max_seconds: float = 240.0, laps:
                         pad.tap(control.B.XUSB_GAMEPAD_A, 0.12)
                         time.sleep(2.0)
                         r = nav.goto(tm, pad, target, tolerance=2.0, timeout=30, on_tick=on_tick, log=log, mode_fn=lambda s: guard.mode)
+                if r == "unreachable":
+                    # 높이 차로 못 가는 점 = 십중팔구 떨어졌다 (전투 중 넉백 등). 다음 순서 점이 아니라
+                    # 지금 있는 높이에서 가장 가까운 점으로 다시 잡는다 — 안 그러면 계단으로 돌아가지 못하고 영원히 "위" 점만 본다.
+                    s_now = tm.snapshot()
+                    if s_now and s_now.player.gx is not None:
+                        gy = s_now.player.gy if s_now.player.gy is not None else 0.0
+                        renear = min(range(len(order)), key=lambda j: math.hypot(pts[order[j]][0] - s_now.player.gx, pts[order[j]][2] - s_now.player.gz) + 2.0 * abs(pts[order[j]][1] - gy))
+                        if renear != k:
+                            log(f"  높이 차로 못 감 — 지금 높이에 맞는 점으로 재조준 (wp{order[k]} → wp{order[renear]})")
+                            k = renear
+                            continue
                 if r in ("timeout", "lost", "unreachable"):
                     fails += 1
                     log(f"  wp {idx} 실패({r}) — 다음으로 ({fails} 연속)")

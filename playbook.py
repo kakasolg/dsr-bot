@@ -46,6 +46,8 @@ class Playbook:
     attack_cooldown: float = 2.0       # 한 대 치고 이만큼은 가드
     hold_range: float = 2.5            # 적이 이 안이면 전진을 멈추고 가드한 채 싸운다
     lock_range: float = 6.0            # 적이 이 안에 오면 락온(R3), 두 배 밖으로 나가면 해제
+    pull_one: bool = False             # 다수면 하나만 끌어내기(뒤로 빠지기) — 실측상 모퉁이에서 후퇴가 막혀 죽음. 기본 꺼짐
+    flee_on_second: bool = False       # 교전 중 둘째가 3 m 붙으면 도망 — 같은 이유로 기본 꺼짐
     avoid_types: list[int] = field(default_factory=list)   # 보이면 피하는 NpcParamId
     sprint_segments: list[int] = field(default_factory=list)  # 항상 달려서 지나가는 웨이포인트 구간
     rejected: list[str] = field(default_factory=list)  # 롤백된 제안의 change_id (다시 제안하지 않음)
@@ -103,6 +105,10 @@ def apply(pb: Playbook, change: dict) -> Playbook | None:
         if not (lo <= val <= hi):
             return None
         setattr(new, k, round(val, 3))
+    elif k in ("pull_one", "flee_on_second"):
+        if getattr(pb, k) == bool(v):
+            return None
+        setattr(new, k, bool(v))
     elif k in ("mode_open", "mode_near_enemy"):
         if v not in MODES or getattr(pb, k) == v:
             return None

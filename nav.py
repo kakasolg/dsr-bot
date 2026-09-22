@@ -89,7 +89,7 @@ class Mover:
 
 def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float], tolerance: float = 1.5,
          timeout: float = 60.0, on_tick=None, log=print, sprint_always: bool = False, mode_fn=None,
-         mover: "Mover | None" = None, engage_fn=None) -> str:
+         mover: "Mover | None" = None, engage_fn=None, abort_on_stuck: bool = False) -> str:
     """반환: 'arrived' | 'timeout' | 'dead' | 'lost' | 'unreachable'.
     target 은 (x, z) 또는 (x, y, z). y 를 주면 2D 로 가까운데 높이 차가 UNREACHABLE_DY 를 넘을 때 'unreachable' — 절벽 아래에서 위 점을
     밀고 있는 상황 (실내 경로의 낙하 구간을 거꾸로 갈 때). mode_fn(snapshot) -> 'walk'|'sprint'|'guardjump'|'guard' 가 매 틱 이동 모드."""
@@ -136,6 +136,9 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
             if last_progress_d is None or last_progress_d - dist >= STUCK_MIN_PROGRESS:
                 last_progress_d, last_progress_t = dist, now
             elif now - last_progress_t > STUCK_WINDOW:
+                if abort_on_stuck:          # 후퇴 중 막히면 옆걸음(가드 내림)으로 맞지 말고 즉시 돌아서서 막는다
+                    pad.neutral()
+                    return "stuck"
                 escapes += 1
                 # 막혔는데 목표가 위/아래로 멀면 계단이 아니라 절벽·층 차이 — 계단은 막히지 않고 오르므로 막힘 뒤에만 판단
                 if escapes >= 2 and ty is not None and p.gy is not None and abs(ty - p.gy) > UNREACHABLE_DY:
@@ -164,6 +167,11 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
                 return "retreat"
             if mode == "hold":
                 pad.move(0.0, 0.0)          # 적이 붙었다 — 전진 대신 제자리 가드 (막힘 감지도 리셋)
+                mover.set("guard")
+                last_progress_d, last_progress_t = dist, now
+            elif mode == "circle":
+                a = now * 2.5             # 제자리 근처를 빙글빙글 (유인) — 스틱 방향을 돌린다
+                pad.move(math.sin(a) * 0.6, math.cos(a) * 0.6)
                 mover.set("guard")
                 last_progress_d, last_progress_t = dist, now
             elif mode == "creep":
