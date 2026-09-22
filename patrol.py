@@ -151,12 +151,49 @@ class Guard:
         self.lured: set = set()  # 벽 치기 유인을 시도한 적
         self.ranged_since = 0.0  # 때릴 적은 없는데 맞고 있는 시각 (위층 투척병 등)
         self.recovering = False  # 스태미나 회복 중 — 물러나 있는다
+        self.bomb_step = 0       # 파이어밤 던지기 단계 (0=안 함)
+        self.bomb_at = 0.0       # 다음 단계 시각
+        self.bombs_thrown = 0
+        self.last_bomb = 0.0
+        self.bomb_slot = 1       # 1=파이어밤, 2=투척 나이프 (실측 슬롯 순서)
         self.circled: set = set()
         self.circle_until = 0.0
         self.retreat_block_until = 0.0
         self.pull_count = 0
         self.pull_pause = 0.0
         self.engage_move_t = 0.0
+
+    def _bomb_tick(self, s, hostile, now) -> str | None:
+        """파이어밤 던지기 — **블로킹하지 않는 상태 기계**.
+
+        사용자 교리: 적이 보이면 안전한 곳으로 물러나고, 멀리 있을 때 던져서 HP 를 깎는다.
+        슬롯 조작은 "길게 눌러 1번(에스트)으로 초기화 → 한 칸 내려 파이어밤 → 사용 → 다시 초기화" 다.
+        길게 누르기가 있어 **지금 몇 번 칸인지 추적할 필요가 없다** (사용자가 알려준 편의 기능).
+        마지막에 반드시 에스트로 되돌린다 — 안 그러면 HP 위험할 때 폭탄을 마신다.
+
+        전체 2 s 쯤 걸리므로 **적이 멀 때만** 시작한다. 시작한 뒤 적이 붙으면 즉시 중단하고 에스트로 복귀."""
+        if now < self.bomb_at:
+            return None
+        near = min((c.dist for c in hostile), default=999)
+        if self.bomb_step and near < 4.0:            # 붙었다 — 중단하고 에스트로
+            self.pad.item_reset()
+            self.bomb_step, self.bomb_at = 0, now + 1.0
+            self.log("  guard: 적이 붙어 폭탄 중단 — 에스트로 복귀")
+            return "bomb_abort"
+        if self.bomb_step == 1:
+            for _ in range(self.bomb_slot):           # 에스트에서 원하는 칸까지 (폭탄 1칸, 나이프 2칸)
+                self.pad.item_next()
+                time.sleep(0.25)
+            self.bomb_step, self.bomb_at = 2, now + 0.9
+        elif self.bomb_step == 2:
+            self.pad.use_item()                       # 던진다
+            self.bomb_step, self.bomb_at = 3, now + 1.4
+            self.bombs_thrown += 1
+            return "bomb"
+        elif self.bomb_step == 3:
+            self.pad.item_reset()                     # 반드시 에스트로 복귀
+            self.bomb_step, self.bomb_at = 0, now + 1.0
+        return None
 
     def engage_pos(self):
         return (self.engage.x, self.engage.z) if self.engage is not None else None
@@ -306,6 +343,27 @@ class Guard:
             self.pad.lock_on()
             self.locked, self.lock_ptr, self.last_lock = True, self.engage.ptr, now
             act = act or "lock"
+        # 파이어밤: 적이 멀리 있을 때만 (던지는 동안 2 s 무방비)
+        if self.bomb_step:
+            a2 = self._bomb_tick(s, hostile, now)
+            self.mode = "hold"
+            return a2 or act
+        # 폭탄은 아껴 쓴다: 보급이 50 소울에 성벽 마을 상인까지 가야 하고, 봇은 혼자 못 간다 (사용자 지적).
+        # 혼자 오는 적 하나는 근접으로 충분하다 — **여럿일 때만**, 그리고 한 판에 정해진 개수만.
+        group = [c for c in hostile if c.dist <= 15.0]
+        if (getattr(self.pb, "use_bombs", False) and self.engage is None and not self.retreat
+                and hostile and now - self.last_bomb > 6.0
+                and self.bombs_thrown < getattr(self.pb, "bombs_per_episode", 2)
+                and len(group) >= getattr(self.pb, "bomb_min_enemies", 2)
+                and min(c.dist for c in hostile) > getattr(self.pb, "bomb_min_dist", 7.0)):
+            # 여럿이면 범위 피해인 폭탄, 하나만 끌어낼 땐 값싼 나이프 (사용자 원칙)
+            self.bomb_slot = 1 if len(group) >= 2 else 2
+            self.bomb_step, self.bomb_at, self.last_bomb = 1, now + 1.0, now
+            self.pad.item_reset()                     # 1번 칸(에스트)으로 초기화부터
+            self.log(f"  guard: 파이어밤 {self.bombs_thrown+1}/{getattr(self.pb,'bombs_per_episode',2)} "
+                     f"(적 {len(group)}마리, 가장 가까운 {min(c.dist for c in hostile):.1f} m)")
+            self.mode = "hold"
+            return "bomb_start"
         if self.engage is None and now - self.ranged_since < 3.0:
             self.mode = "sprint"      # 원거리 피격 중 — 서 있으면 계속 맞는다
             return act

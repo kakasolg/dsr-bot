@@ -147,6 +147,15 @@ class Pad:
         self.tap(B.XUSB_GAMEPAD_A if env.GAME == "dsr" else B.XUSB_GAMEPAD_Y, 0.1)
 
     def two_hand_toggle(self) -> None: self.tap(B.XUSB_GAMEPAD_Y, 0.1)
+
+    # ── 퀵슬롯 (실측) ───────────────────────────────
+    # 길게 누르면 **무조건 1번 칸(에스트병)으로 돌아간다** — 사용자가 알려준 게임의 편의 기능.
+    # 덕분에 "지금 몇 번 칸인지" 를 추적할 필요가 없다. 매번 초기화하고 필요한 만큼만 내린다.
+    def item_reset(self) -> None: self.tap(B.XUSB_GAMEPAD_DPAD_DOWN, 0.9)
+    def item_next(self) -> None: self.tap(B.XUSB_GAMEPAD_DPAD_DOWN, 0.08)
+
+    # 실측된 슬롯 순서 (화면 확인, 2026-09-22): 초기화=에스트병+2, 1칸=파이어밤, 2칸=투척 나이프, 3칸=한 바퀴
+    SLOT_ESTUS, SLOT_BOMB, SLOT_KNIFE = 0, 1, 2
     def attack(self) -> None: self.tap(B.XUSB_GAMEPAD_RIGHT_SHOULDER, 0.06)
     def lock_on(self) -> None: self.tap(B.XUSB_GAMEPAD_RIGHT_THUMB, 0.06)
     def sprint(self, on: bool) -> None: self.hold(B.XUSB_GAMEPAD_B, on)

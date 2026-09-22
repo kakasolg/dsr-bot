@@ -31,6 +31,9 @@ BOUNDS = {
     "stam_resume": (0.45, 0.95),
     "retreat_dist": (6.0, 30.0),
     "slow_radius": (0.0, 30.0),
+    "bomb_min_dist": (4.0, 15.0),
+    "bombs_per_episode": (0, 6),
+    "bomb_min_enemies": (1, 4),
 }
 MODES = ("walk", "sprint", "guardjump")
 
@@ -55,6 +58,11 @@ class Playbook:
     stam_resume: float = 0.70          # 이만큼 차면 다시 붙는다
     retreat_dist: float = 18.0         # HP 가 낮아 후퇴할 때 지나온 길을 따라 물러나는 거리 (m)
     slow_radius: float = 20.0          # 전에 맞은 자리 이 반경 안에서는 아주 천천히 (0 이면 끔)
+    # 파이어밤 — 사용자 교리: 적이 보이면 안전한 곳으로 물러나 멀리서 깎는다
+    use_bombs: bool = False            # 기본 꺼짐. 켜고 끈 판을 비교해서 실제로 도움이 되는지 본다
+    bomb_min_dist: float = 7.0         # 가장 가까운 적이 이보다 멀 때만 던진다 (던지는 데 2 s 걸린다)
+    bombs_per_episode: int = 2         # 한 판에 이만큼만. 보급이 어렵다 (50 소울, 성벽 마을 상인까지 가야 함)
+    bomb_min_enemies: int = 2          # 15 m 안에 적이 이만큼일 때만 — 하나는 근접으로 충분하다          # 전에 맞은 자리 이 반경 안에서는 아주 천천히 (0 이면 끔)
     pull_one: bool = False             # 다수면 하나만 끌어내기(뒤로 빠지기) — 실측상 모퉁이에서 후퇴가 막혀 죽음. 기본 꺼짐
     flee_on_second: bool = False       # 교전 중 둘째가 3 m 붙으면 도망 — 같은 이유로 기본 꺼짐
     avoid_types: list[int] = field(default_factory=list)   # 보이면 피하는 NpcParamId
@@ -114,7 +122,7 @@ def apply(pb: Playbook, change: dict) -> Playbook | None:
         if not (lo <= val <= hi):
             return None
         setattr(new, k, round(val, 3))
-    elif k in ("pull_one", "flee_on_second"):
+    elif k in ("pull_one", "flee_on_second", "use_bombs"):
         if getattr(pb, k) == bool(v):
             return None
         setattr(new, k, bool(v))
@@ -123,12 +131,18 @@ def apply(pb: Playbook, change: dict) -> Playbook | None:
             return None
         setattr(new, k, v)
     elif k in ("stamina_walk_pct", "attack_range", "attack_cooldown", "hold_range", "lock_range",
-               "stam_backoff", "stam_resume", "retreat_dist", "slow_radius"):
+               "stam_backoff", "stam_resume", "retreat_dist", "slow_radius", "bomb_min_dist"):
         val = float(v) if op == "set" else getattr(pb, k) + float(v)
         lo, hi = BOUNDS[k]
         if not (lo <= val <= hi):
             return None
         setattr(new, k, round(val, 3))
+    elif k in ("bombs_per_episode", "bomb_min_enemies"):
+        val = int(v) if op == "set" else getattr(pb, k) + int(v)
+        lo, hi = BOUNDS[k]
+        if not (lo <= val <= hi) or val == getattr(pb, k):
+            return None
+        setattr(new, k, val)
     elif k == "crowd_threshold":
         val = int(v) if op == "set" else pb.crowd_threshold + int(v)
         lo, hi = BOUNDS[k]
