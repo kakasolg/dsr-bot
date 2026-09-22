@@ -148,6 +148,7 @@ class Guard:
         self.combo_at = 0.0      # 막고 반격한 뒤 2타를 넣을 시각
         self.engage_pos0 = None  # 교전 중 우리 위치 (못 다가가는 적 판정)
         self.lured: set = set()  # 벽 치기 유인을 시도한 적
+        self.ranged_since = 0.0  # 때릴 적은 없는데 맞고 있는 시각 (위층 투척병 등)
         self.circled: set = set()
         self.circle_until = 0.0
         self.retreat_block_until = 0.0
@@ -176,6 +177,13 @@ class Guard:
             self.log(f"  guard: blocked (sp {self.last_sp}→{p.sp}, hostile {len(hostile)})")
         self.last_sp = p.sp
         # 같은 층의 적 전부(무시 목록도 3 m 안이면 포함 — 창살 너머라 믿었던 놈이 붙어서 때리는 일이 있었다)
+        # 위층에서 던지는 적(화염병 등)은 같은 층 판정에 안 걸려 "적 없음"이 된다 → 봇이 가만히 서서 맞는다.
+        # 맞고 있는데 근처에 때릴 적이 없으면 **그 자리를 뜬다** (사용자 보고: 위에서 폭탄 맞다가 사망).
+        if self.last_hp is not None and p.hp < self.last_hp:
+            if not any(abs(c.y - p.y) < 2.0 and c.dist <= self.pb.hold_range * 1.5 for c in hostile):
+                if now - self.ranged_since > 3.0:
+                    self.log(f"  guard: 때릴 적이 없는데 맞고 있다 (hp {p.hp}) — 멈추지 말 것")
+                self.ranged_since = now
         floor = [c for c in hostile if abs(c.y - p.y) < 2.0]
         cands = [c for c in floor if self.ignore.get(c.ptr, 0) < now or c.dist <= 3.0]
         for c in floor:
@@ -294,6 +302,9 @@ class Guard:
             self.pad.lock_on()
             self.locked, self.lock_ptr, self.last_lock = True, self.engage.ptr, now
             act = act or "lock"
+        if self.engage is None and now - self.ranged_since < 3.0:
+            self.mode = "sprint"      # 원거리 피격 중 — 서 있으면 계속 맞는다
+            return act
         if self.engage is not None:
             sp_pct = p.sp / max(1, p.max_sp) if p.max_sp else 1.0
             attacking = (self.engage.anim or 0) in ENEMY_ATTACK_ANIMS
