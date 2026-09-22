@@ -268,6 +268,17 @@ class DSRTelemetry:
         self.pm.write_uchar(mapd + 0x108, 1)
         return True
 
+    def set_hp(self, hp: int) -> bool:
+        """지형 스캔용 무적 — 매 프레임 호출해서 HP 를 고정한다 (스캔 중 추락사/즉사 함정 방지)."""
+        pp = self.player_ptr()
+        if not pp:
+            return False
+        try:
+            self.pm.write_int(pp + OFF_HP, hp)
+            return True
+        except pymem.exception.PymemError:
+            return False
+
 
 if __name__ == "__main__":
     tm = DSRTelemetry()

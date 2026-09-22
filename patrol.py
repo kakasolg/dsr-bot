@@ -48,6 +48,14 @@ STALL_MOVE = 0.5      # m
 STALL_MAX = 3         # 이만큼 흔들어도 안 움직이면 에피소드 종료
 RETREAT_DIST = 8.0     # 후퇴/도망 때 뒤로 달리는 거리 (m) — 경로를 따라 이만큼 떨어진 점까지 한 번에
 ENEMY_ATTACK_ANIMS = range(3000, 3500)   # DS1 적 공격 애니 (실측: 3000/3001/3005/3007/3008 직후 피격)
+
+
+def player_locked(anim) -> bool:
+    """내가 행동 불능인 애니 — 이때 넣는 공격 입력은 버려지거나 버퍼돼서 경직 풀리자마자 멋대로 나간다 (2연타 적에게 그대로 맞음).
+    실측(16 에피소드, 피격 이벤트와 대조): 2000~2052 피격 경직(0.4~0.9 s), 160 hold 중 1.5 s 경직(가드 브레이크로 추정),
+    7585~7587 에스트. 가드 피격(710~712)과 내 공격(303xxx)은 제외 — 막고→한 대 / 콤보가 입력 버퍼에 기대고 있다."""
+    a = anim or 0
+    return 2000 <= a < 2100 or a == 160 or 7585 <= a <= 7587
 FLASK_SAFE_DIST = 4.0  # m — 이 안에 적이 있으면 마시다 맞는다(1.5 s) → 후퇴로 거리부터 벌린다
 REST_FLASKS_LEFT = 1   # 성배병이 이만큼 남으면 무조건 축복에 가서 쉰다 (사용자 규칙 — 학습 대상 아님)
 
@@ -295,7 +303,7 @@ class Guard:
                 self.mode = "hold"
                 # 막고 → 한 대: 적이 휘두르는 중엔 절대 안 치고 가드. 막았거나(스태미나) 적 공격이 끝난 직후에 친다.
                 # 적이 가만히 있으면 attack_cooldown 마다 한 대 (할로우는 느려서 선공도 통한다)
-                if sp_pct > 0.25 and not attacking and (blocked or recovering or now - self.last_attack > self.pb.attack_cooldown):
+                if sp_pct > 0.25 and not attacking and not player_locked(p.anim) and (blocked or recovering or now - self.last_attack > self.pb.attack_cooldown):
                     self.pad.attack()
                     self.last_attack = now
                     self.combo_at = now + 0.55 if blocked else 0.0   # 방패에 튕기면 자세가 무너진다 (사용자) → 한 대 더
