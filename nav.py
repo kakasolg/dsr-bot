@@ -30,6 +30,8 @@ STUCK_MIN_PROGRESS = 0.3  # m
 PROBE_FWD, PROBE_BACK, PROBE_HOLD = 0.8, 0.35, 0.45   # probe 한 주기: 전진/후퇴/정지 (초). 순증 약 0.7 m
 CREEP_STICK = 0.45        # 실측(가드 든 채): 스틱 <0.4 = 정지, 0.4~0.7 = 걷기 1.64 m/s, 1.0 = 조깅 3.24 m/s. 걷기가 최저 속도
 ENGAGE_STICK = 0.5        # 교전 접근도 걷기
+ARRIVE_DY = 2.0         # 도착 판정에 높이도 본다 — 수평 거리만 보면 10 m 위의 경로점도 "도착"이 되어
+                        # 나선형 경사에서 길을 통째로 건너뛰고 목표 아래에 서서 맞는다 (실측)
 UNREACHABLE_DY = 2.5      # m — 2D 로 5 m 안인데 높이 차가 이보다 크면 절벽/층 차이
 
 
@@ -131,7 +133,7 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
             dist = math.hypot(dx, dz)
             if on_tick:
                 on_tick(s, dist)
-            if dist <= tolerance:
+            if dist <= tolerance and (ty is None or abs(p.gy - ty) <= ARRIVE_DY):
                 pad.neutral()
                 return "arrived"
 
