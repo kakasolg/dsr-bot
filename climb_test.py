@@ -29,7 +29,7 @@ ROOT = Path(__file__).resolve().parent
 OUT = ROOT / "data" / "climb.jsonl"
 
 
-def walk(tm, pad, pts, nm, mode: str, tag: str) -> bool:
+def walk(tm, pad, pts, nm, mode: str, tag: str, fine_near=None) -> bool:
     t0 = time.time()
     fails = 0
     for i, q in enumerate(pts):
@@ -40,7 +40,9 @@ def walk(tm, pad, pts, nm, mode: str, tag: str) -> bool:
             continue
         p0 = (s.player.x, s.player.y, s.player.z)
         t1 = time.time()
-        r = nav.goto(tm, pad, tuple(q), tolerance=1.0, timeout=12, log=lambda *a: None, terrain=nm,
+        # 계단 입구는 정확히 밟아야 한다 — 1 m 에서 '도착' 치고 대각선으로 꺾었더니 계단 옆 아래층으로 가 옆면에 막혔다
+        tol = 0.4 if (fine_near is not None and math.dist(q, fine_near) < 6.0) else 1.0
+        r = nav.goto(tm, pad, tuple(q), tolerance=tol, timeout=12, log=lambda *a: None, terrain=nm,
                      mode_fn=lambda _s: mode)
         s2 = tm.snapshot(within=5.0)
         p1 = (s2.player.x, s2.player.y, s2.player.z) if s2 else None
@@ -91,8 +93,17 @@ def main() -> None:
         pts = (na.find_path(here, up[0]) or [up[0]])[1:] + up[1:]
     else:
         pts = (na.find_path(here, goal) or [goal])[1:]
+        # 끝 4 m 안에서 목표를 지나쳤다 돌아오는 점은 뺀다 — 계단 꼭대기 너머 (-20.86,-35.56,10.85) 로 가다 계단(폭이 축 하나)
+        # 옆에 걸려 떨어졌다. 목표에 가까워지는 점만 남기고 목표로 끝낸다
+        # (3D 로는 더 가까워도 계단 축에서 16° 비껴 있었다) → 목표 2.5 m 안에 든 첫 점에서 자르고 곧장 목표로
+        kept = []
+        for q in pts[:-1]:
+            kept.append(q)
+            if math.dist(q, goal) < 2.5:
+                break
+        pts = kept + [goal]
     print(f"── {how} ({mode}): {len(pts)} 점, 지금 {tuple(round(v, 1) for v in here)} → {tuple(round(v, 1) for v in goal)}", flush=True)
-    ok = walk(tm, pad, pts, na, mode, how)
+    ok = walk(tm, pad, pts, na, mode, how, fine_near=goal if "--top" in args else None)
     if ok and "--merchant" in args:
         nb = navmesh.Navmesh(mr.MAP_B)
         time.sleep(1.0)
