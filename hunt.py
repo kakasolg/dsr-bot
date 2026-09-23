@@ -1719,6 +1719,22 @@ class Hunter(vp.Probe):
                     if act in ("roll", "roll_heavy"):     # 3500 휘청 — 붙어 있으면 구를 것 없이 바로 친다
                         act = "roll" if c.dist >= self.REACH["heavy" if act == "roll_heavy" else "light"] else ("light" if act == "roll" else "heavy")
                     ready = locked or self.aim(s, c)       # 락온 없으면 몸을 그놈에 맞추고 스틱을 놓은 뒤라야 R1·B
+                    if (act == "bs" and self.ZWEI and acted_for != (a, self._etrk["t"]) and ready and c.dist >= 1.2 and age < 0.3
+                            and p.heading is not None and not nav.ground_ahead(nm, p, math.sin(p.heading), math.cos(p.heading), reach=2.2)):
+                        # 뒤에 바닥이 없어 백스텝을 못 한다 (5번 턱·위쪽에서 7번 연속) — 무기 가드는 약하니(사용자) 막지 말고
+                        # 공격 시작에 맞춰 곧장 휘두른다: 특대검은 휘두르는 중 안 끊기고, 할로우는 한 방이다 (맞바꿈)
+                        acted_for = (a, self._etrk["t"])
+                        r = self.strike("light", c, s, ptr, locked=locked, nm=nm)
+                        r = {"vs": a, "age": round(age, 2), "act": "trade", "d": round(c.dist, 2), **r}
+                        counters.append(r)
+                        self._ev("act", **r)
+                        print(f"      {a} +{age:.2f}s {c.dist:.1f} m → 맞바꿔 휘두름(뒤 바닥 없음): 적 피해 {r.get('enemy_dmg')}, 내 피해 {r.get('hit_after')}", flush=True)
+                        if r.get("enemy_dead"):
+                            if ptr != orig_ptr:
+                                continue
+                            why = "처치"
+                            break
+                        continue
                     if act == "bs" and acted_for != (a, self._etrk["t"]):
                         bs_at = (self.BS_AT_ZWEI if self.ZWEI else self.BS_AT).get(a, 0.5)
                         if (age < bs_at or not ready) and age < bs_at + 0.25:
@@ -1766,9 +1782,10 @@ class Hunter(vp.Probe):
                             idle_near_since = None
                             continue
                     # 공격 중이 아니고 붙어 있는데 1 s 넘게 안 휘두르면 약공으로 찌른다 (약공 ~0.4 s 가 3000 의 0.63 s 보다 빠르다)
+                    zone = self.ZWEI and 1.6 <= c.dist <= 2.6   # 사용자: "길이가 길어서 유리" — 내 사거리 안·그놈 사거리 밖에 들어오면 바로
                     if not (3000 <= a < 3600) and c.dist <= self.REACH["light"]:
                         idle_near_since = idle_near_since or time.time()
-                        if time.time() - idle_near_since > 1.0 and ready:
+                        if (zone or time.time() - idle_near_since > 1.0) and ready:
                             idle_near_since = None
                             r = self.strike("light", c, s, ptr, locked=locked)
                             r = {"vs": a, "age": round(age, 2), "act": "poke", "d": round(c.dist, 2), **r}
@@ -2080,7 +2097,7 @@ def main() -> None:
     h.then_run = "--run" in sys.argv           # 목표를 다 잡으면 BOUND_A 까지 달려서 지나간다
     if "--zwei" in sys.argv:                    # 츠바이헨더 양손 — 백스텝 공격 위주, 사거리가 길다
         h.ZWEI = True
-        h.REACH = {"light": 2.0, "heavy": 2.4}
+        h.REACH = {"light": 2.6, "heavy": 2.6}
     if "--lure" in args:                        # 예: --lure 4,5,6 — 목표를 잡은 뒤 위 무리를 하나씩 평지로 꾀어 잡는다
         h.lure_group = [int(x) for x in args[args.index("--lure") + 1].split(",")]
         del args[args.index("--lure"):args.index("--lure") + 2]
