@@ -149,6 +149,7 @@ class Hunter(vp.Probe):
         self.hist.clear()
         self.last_kill_pos = None
         # 쉰 직후 = 전부 스폰 자리. 포인터를 잡아 두면 스폰을 떠나도 따라갈 수 있다 (3번은 1번이 죽으면 자리를 뜬다)
+        time.sleep(1.0)                   # 일어나자마자 잡았더니 1번이 아직 안 놓여 '포인터 없음' 이 난 적이 있다
         s0 = self.tm.snapshot(within=200.0)
         self.ptr_of = {}
         for i, e in enumerate(MAP, 1):
@@ -278,6 +279,70 @@ class Hunter(vp.Probe):
         return False
 
     last_kill_pos = None
+    melee_style = "block"     # "block": 막고 → 강공 / "roll": 적 공격 시작 → 구르기(무적) → 약공, 휘두르지 않을 땐 강공
+    ROLL_DELAY = 0.35         # 공격 애니 시작 뒤 이만큼 기다렸다 구른다 — 맞기까지 0.5~0.9 s(중앙 ~0.75), 구르기 무적은 누르고 ~0.1~0.5 s
+    # 구르기 누르고 이만큼 뒤 약공 — 구르는 중에 눌러 구르기 공격(구른 방향 그대로)이 나가게 한다. 2~3.5 m 에서 그놈 쪽으로
+    # 굴렀으니 그 방향에 그놈이 있다 (사용자: "구르기와 약공 간격이 짧아야"). 0.70 s(구른 뒤 일반 약공)는 옆 구르기와 함께 6/6 헛돎.
+    ROLL_TO_R1 = 0.45
+
+    def _press(self, button, hold: float = 0.06) -> None:
+        """누르고 **뗀다** — tap 만 하고 release_due 를 안 부르면 눌린 채 남아 다음 누름이 게임에 안 간다 (farm.rest 에서 겪음)."""
+        self.pad.tap(button, hold)
+        time.sleep(hold + 0.03)
+        self.pad.release_due()
+
+    def roll_attack(self, c, p, cam_yaw, nm, ptr) -> dict:
+        """그놈 쪽으로 구르고(스틱과 B 를 같은 입력에) ROLL_TO_R1 뒤 약공(R1, 스틱은 그놈 쪽). 구를 방향 2.5 m 에 바닥이 없으면 안 구른다.
+        기록: 구르는 동안 내가 맞았나(무적 성공?), 약공이 들어갔나."""
+        dx, dz = c.x - p.x, c.z - p.z
+        if cam_yaw is None:
+            return {"rolled": False, "why": "카메라 없음"}
+        # 2~3.5 m 에서 공격을 시작한 놈 쪽으로 구른다 — 무적으로 그 공격을 뚫고 들어가 코앞에서 구르기 공격.
+        # (붙은 적 쪽으로 구르면 뚫고 지나가 등 뒤(0.96 m → 2.83 m, −157°), 옆으로 구르면 그놈이 돌진해 지나가 등 뒤 3~4 m — 둘 다 헛돎.
+        #  2.2 m 에서 그놈 쪽으로 구른 한 번은 약공 때 정면 9°·1.0 m 였다)
+        if not nav.ground_ahead(nm, p, dx, dz, reach=2.5):
+            return {"rolled": False, "why": "구를 방향에 바닥 없음"}
+        st = control.world_to_stick(dx, dz, cam_yaw, nav.YAW_OFFSET, nav.FLIP_X)
+        hp0, ehp0 = p.hp, c.hp
+        self.pad.guard(False)
+        self.pad.move(*st)
+        self._press(control.B.XUSB_GAMEPAD_B)
+        t_roll = time.time()
+        my_min, e_min = hp0, ehp0
+        while time.time() - t_roll < self.ROLL_TO_R1:
+            s = self.tm.snapshot(within=10.0)
+            if s:
+                my_min = min(my_min, s.player.hp)
+                ce = next((x for x in s.chars if x.ptr == ptr), None)
+                e_min = 0 if ce is None else min(e_min, ce.hp)
+            time.sleep(0.01)
+        hit_in_roll = hp0 - my_min
+        s = self.tm.snapshot(within=10.0)
+        ce = next((x for x in s.chars if x.ptr == ptr), None) if s else None
+        geo = {}
+        if ce is not None and s.player.heading is not None:
+            # 약공을 누르는 순간 그놈이 어디 있나 — 12번 중 10번이 헛돌았다. 적 쪽으로 구르면 지나쳐 등 뒤로 가는지 본다
+            geo = {"d_at_r1": round(ce.dist, 2), "off_at_r1": round(math.degrees(patrol.rel_angle(s.player, ce))),
+                   "d_start": round(c.dist, 2), "moved": round(math.dist((p.x, p.z), (s.player.x, s.player.z)), 2)}
+        if ce is not None and s.cam_yaw is not None:
+            self.pad.move(*control.world_to_stick(ce.x - s.player.x, ce.z - s.player.z, s.cam_yaw, nav.YAW_OFFSET, nav.FLIP_X))
+        self._press(control.B.XUSB_GAMEPAD_RIGHT_SHOULDER)
+        self.pad.move(0.0, 0.0)
+        t_a = time.time()
+        my_after = my_min
+        e_anims = []
+        while time.time() - t_a < 1.2:        # 0.9 s 로는 구르기 끝(~0.7 s) 뒤 나가는 공격이 닿기 전에 끝날 수 있다
+            s = self.tm.snapshot(within=10.0)
+            if s:
+                my_after = min(my_after, s.player.hp)
+                ce = next((x for x in s.chars if x.ptr == ptr), None)
+                e_min = 0 if ce is None else min(e_min, ce.hp)
+                if ce is not None and (not e_anims or e_anims[-1][1] != ce.anim):
+                    e_anims.append((round(time.time() - t_a, 2), ce.anim))
+            time.sleep(0.02)
+        geo["e_anims"] = e_anims
+        return {"rolled": True, "hit_in_roll": hit_in_roll, "hit_after": my_min - my_after, "enemy_dmg": ehp0 - e_min,
+                "enemy_dead": e_min <= 0, **geo}
 
     def melee(self, k: int, ti: int, e: dict, ptr, nm, pull_to=None) -> bool:
         """정면 돌파 — 사용자: "폭탄이 없으면 근접으로 정면 돌파, 캐릭터가 강해서 강공이 먹히면 한 방에 끝난다".
@@ -292,6 +357,8 @@ class Hunter(vp.Probe):
         hp_start = None
         why = None
         last_anim, att_start, waits = None, 0.0, 0
+        rolled_for, rolls = None, []
+        getting_up_hit = False
         mode, wait_since, prog_pos, prog_t = "approach", 0.0, None, time.time()
         if pull_to is not None:
             print(f"      알아챘다 — 평평한 자리 {tuple(round(v, 1) for v in pull_to)} 로 물러나 맞이한다", flush=True)
@@ -326,6 +393,21 @@ class Hunter(vp.Probe):
                 print(f"      근접 +{time.time() - t0:4.1f}s: 거리 {c.dist:.1f} m (높이차 {c.y - p.y:+.1f}), 나 ({p.x:.1f},{p.y:.1f},{p.z:.1f}), "
                       f"적 ({c.x:.1f},{c.y:.1f},{c.z:.1f}) 애니 {c.anim}", flush=True)
             same_level = abs(c.y - p.y) < 0.8
+            # 구르기 반격 (사용자: "적과 정렬할 수 있다면 구르고 약공 — 간격이 짧아야, 구르기 무적 프레임을 이용"):
+            # 공격 애니가 시작되면 ROLL_DELAY 뒤 그놈 쪽으로 구르고 ROLL_TO_R1 뒤 약공. 기다리는 동안엔 다가가지 않는다 (타이밍이 흐트러진다)
+            if (self.melee_style == "roll" and enemy_swinging and same_level and 2.0 <= c.dist <= 3.5 and att_start != rolled_for):
+                if time.time() - att_start < self.ROLL_DELAY:
+                    self.pad.move(0.0, 0.0)
+                    time.sleep(0.01)
+                    continue
+                rolled_for = att_start
+                rr = self.roll_attack(c, p, s.cam_yaw, nm, ptr)
+                rolls.append(rr)
+                print(f"      구르기 반격: {rr}", flush=True)
+                if rr.get("enemy_dead"):
+                    why = "처치"
+                    break
+                continue
             if c.dist > 2.0 or not same_level:
                 if mode == "wait":
                     self.pad.move(0.0, 0.0)     # 방패 들고 제자리 — 오게 둔다
@@ -344,10 +426,39 @@ class Hunter(vp.Probe):
                 path = nm.find_path((p.x, p.y, p.z), (c.x, c.y, c.z))
                 q = path[1] if path and len(path) > 1 else (c.x, c.y, c.z)
                 d_now = c.dist
-                nav.goto(self.tm, self.pad, q, tolerance=1.8 if len(path or []) <= 2 else 1.0, timeout=1.2, log=lambda *a: None,
+                # 4 m 안에선 goto 를 짧게 끊는다 — 1.2 s 동안 막혀 있으면 적 공격 시작을 늦게 봐서 구르기 타이밍이 틀어진다
+                nav.goto(self.tm, self.pad, q, tolerance=1.8 if len(path or []) <= 2 else 1.0, timeout=0.4 if c.dist < 4.0 else 1.2, log=lambda *a: None,
                          on_tick=lambda sn, _d=None: self.note(sn), terrain=nm,
                          mode_fn=lambda _s: "creep" if d_now < 4.0 else "walk")
                 continue
+            # 넘어진 놈(99xx: 9910 쓰러짐 → 9930 누움 → 9920 일어남)은 맞지 않는다 — 강공 62 로 넘어뜨린 뒤 휘두른 강공이 전부 0 이었다.
+            # 누워 있는 동안은 방패 들고 기다리다, 일어나기 시작하면(9920) 곧바로 약공 — 강공보다 빨라 일어나며 휘두르는 놈(1.2 s 뒤 3003)보다 먼저 닿는다.
+            if 9900 <= (c.anim or 0) < 10000:
+                if c.anim == 9920 and not getting_up_hit:
+                    getting_up_hit = True
+                    st_ = control.world_to_stick(c.x - p.x, c.z - p.z, s.cam_yaw, nav.YAW_OFFSET, nav.FLIP_X) if s.cam_yaw is not None else (0.0, 0.0)
+                    self.pad.guard(False)
+                    self.pad.move(*st_)
+                    self._press(control.B.XUSB_GAMEPAD_RIGHT_SHOULDER)
+                    self.pad.move(0.0, 0.0)
+                    ehp = c.hp
+                    t1 = time.time()
+                    while time.time() - t1 < 0.9:
+                        s2 = self.tm.snapshot(within=10.0)
+                        c2 = next((x for x in s2.chars if x.ptr == ptr), None) if s2 else None
+                        ehp = 0 if c2 is None else min(ehp, c2.hp)
+                        time.sleep(0.03)
+                    print(f"      일어날 때 약공 → 피해 {c.hp - ehp}", flush=True)
+                    hits.append(c.hp - ehp)
+                    if ehp <= 0:
+                        why = "처치"
+                        break
+                    continue
+                self.pad.move(0.0, 0.0)
+                self.pad.guard(True)
+                time.sleep(0.02)
+                continue
+            getting_up_hit = False
             # 막고 → 한 대 (사용자 원칙): 적이 휘두르는 중(공격 애니 시작 뒤 1.3 s)이면 방패만 든다. 그 사이에 R2 를 누르면
             # 우리 공격이 나가기 전에 맞아서 끊긴다 — 첫 근접에서 강공 4번 중 3번이 0 피해, 그동안 421 맞았다 (적 애니 3003·3006 중에 휘두름).
             if enemy_swinging:
@@ -369,13 +480,17 @@ class Hunter(vp.Probe):
             swings += 1
             t1 = time.time()
             hp_min = hp_before
+            e_anims = []
             while time.time() - t1 < 1.3:
                 s2 = self.tm.snapshot(within=10.0)
                 c2 = next((x for x in s2.chars if x.ptr == ptr), None) if s2 else None
                 hp_min = 0 if c2 is None else min(hp_min, c2.hp)
+                if c2 is not None and (not e_anims or e_anims[-1][1] != c2.anim):
+                    e_anims.append((round(time.time() - t1, 2), c2.anim))   # 0 피해일 때 방패로 막았나 (막기 반응 애니)
                 self.pad.release_due()
                 time.sleep(0.03)
             hits.append(hp_before - hp_min)
+            print(f"      강공 → 피해 {hp_before - hp_min}, 그놈 애니 {e_anims}", flush=True)
             if hp_min <= 0:
                 why = "처치"
                 break
@@ -389,7 +504,8 @@ class Hunter(vp.Probe):
         self.pad.guard(False)
         self.pad.neutral()
         s = self.tm.snapshot(within=5.0)
-        res = {"plan": "melee", "result": why or "시간 초과", "swings": swings, "dmg_per_swing": hits, "guard_ticks": waits,
+        res = {"plan": "melee", "style": self.melee_style, "rolls": rolls,
+               "result": why or "시간 초과", "swings": swings, "dmg_per_swing": hits, "guard_ticks": waits,
                "my_hp_lost": (hp_start - s.player.hp) if (s and hp_start) else None}
         self._record(k, ti, e, None, None, {}, res)
         print(f"   #{ti} {e['npc']} 근접: {res['result']} — 강공 {swings}번, 피해 {hits}, 내가 잃은 HP {res['my_hp_lost']}", flush=True)
@@ -537,10 +653,15 @@ def main() -> None:
             i, v = kv.split(":")
             plans[int(i)] = v
         del args[args.index("--plan"):args.index("--plan") + 2]
+    style = "block"
+    if "--style" in args:                 # block (막고 → 강공) | roll (공격 시작 → 구르기 → 약공)
+        style = args[args.index("--style") + 1]
+        del args[args.index("--style"):args.index("--style") + 2]
     n = int(args[0]) if args else 1
     h = Hunter()
     h.observe_s = obs
     h.plans = plans
+    h.melee_style = style
     for k in range(1, n + 1):
         h.hunt(k, targets, dist)
     h.pad.neutral()
