@@ -175,6 +175,65 @@ def safe_back(terrain, p, dx: float, dz: float):
     return None
 
 
+STEEP = 0.45        # 오르막/내리막 기울기(높이/수평) — 이보다 가파른 구간은 입구를 정확히 밟는다
+TIGHT_TOL = 0.4
+
+
+def trim_path(path: list, goal, within: float = 2.5) -> list:
+    """목표 within m 안에 든 첫 점에서 자르고 목표로 끝낸다. 내비메시 경로는 끝에서 목표를 지나쳤다 돌아오곤 하는데,
+    5번 위 계단(바닥이 계단 축 하나뿐)에서 그 지나친 점(축에서 16° 비껴 있음)으로 가다 옆면에 걸려 떨어졌다."""
+    out = []
+    for q in path:
+        out.append(q)
+        if math.dist(q, goal) < within:
+            break
+    if not out or math.dist(out[-1], goal) > 0.05:
+        out.append(tuple(goal))
+    return out
+
+
+def path_tolerances(path: list, default: float = 1.0) -> list[float]:
+    """경유점마다 도착 판정. 다음 구간이 가파르면(계단·경사로) 그 점을 TIGHT_TOL 로 정확히 밟는다 — 1 m 에서 '도착' 치고
+    대각선으로 꺾었더니 계단 입구를 지나쳐 옆 아래층으로 가서 옆면에 막혔다(2/2), 0.4 m 로 입구 0.31 m·꼭대기 0.45 m.
+    마지막 점도 TIGHT_TOL."""
+    tols = []
+    for i, q in enumerate(path):
+        if i + 1 >= len(path):
+            tols.append(TIGHT_TOL)
+            continue
+        r = path[i + 1]
+        h = math.dist((q[0], q[2]), (r[0], r[2]))
+        steep = len(q) > 2 and h > 0.3 and abs(r[1] - q[1]) / h > STEEP
+        tols.append(TIGHT_TOL if steep else default)
+    return tols
+
+
+def follow(tm, pad, path: list, terrain=None, mode_fn=None, on_tick=None, default_tol: float = 1.0,
+           timeout_per: float = 12.0, stop_fn=None, log=lambda *a: None) -> str:
+    """경로 따라가기 (trim 은 부르는 쪽에서). 점마다 path_tolerances 로 판정. stop_fn(snapshot) 가 참이면 'stopped'.
+    → 'arrived' | goto 의 실패 값 | 'stopped'. 연속 3번 못 가면 그 실패 값."""
+    tols = path_tolerances(path, default_tol)
+    fails = 0
+    for q, tol in zip(path, tols):
+        r = goto(tm, pad, tuple(q), tolerance=tol, timeout=timeout_per, log=log, terrain=terrain,
+                 on_tick=on_tick, mode_fn=mode_fn)
+        if r in ("dead", "retreat"):
+            return r
+        if stop_fn is not None:
+            s = tm.snapshot(within=40.0)
+            if s is not None and stop_fn(s):
+                return "stopped"
+        if r != "arrived":
+            fails += 1
+            if fails >= 3:
+                pad.neutral()
+                return r
+        else:
+            fails = 0
+    pad.neutral()
+    return "arrived"
+
+
 def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float], tolerance: float = 1.5,
          timeout: float = 60.0, on_tick=None, log=print, sprint_always: bool = False, mode_fn=None,
          mover: "Mover | None" = None, engage_fn=None, abort_on_stuck: bool = False,

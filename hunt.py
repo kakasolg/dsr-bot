@@ -451,11 +451,10 @@ class Hunter(vp.Probe):
             print(f"   #{ti}: 폭탄이 없다", flush=True)
             return False
         s = self.tm.snapshot(within=1.0)
-        path = nm.find_path((s.player.x, s.player.y, s.player.z), spot) or [spot]
-        for q in path[1:]:
-            if nav.goto(self.tm, self.pad, q, tolerance=0.8, timeout=10, log=lambda *a: None, terrain=nm,
-                        on_tick=lambda sn, _d=None: self.note(sn), mode_fn=lambda _s: "sprint") == "dead":
-                return False
+        path = nav.trim_path((nm.find_path((s.player.x, s.player.y, s.player.z), spot) or [spot])[1:], spot)
+        if nav.follow(self.tm, self.pad, path, terrain=nm, mode_fn=lambda _s: "sprint", default_tol=0.8,
+                      on_tick=lambda sn, _d=None: self.note(sn), timeout_per=10) == "dead":
+            return False
         self.pad.neutral()
         pt = self.cam_pitch()
         if pt is None or abs(pt) > 15:
@@ -495,6 +494,24 @@ class Hunter(vp.Probe):
         if self.lock_state(ptr) == "target":
             self._r3(0.1)
         return res is not None and res["result"] == "처치"
+
+    def climb_to(self, goal, mode: str = "walk") -> str:
+        """사냥 봇 이동 코드(nav.follow)로 goal 까지 — 사용자: "사냥 봇에 계단 수정 넣고, 몹 없는 상태로 천천히 올라가게".
+        화톳불에서 쉬지 않는다 (쉬면 몹이 되살아난다)."""
+        nm = self.run.nm[mr.MAP_A]
+        s = self.tm.snapshot(within=5.0)
+        path = nav.trim_path((nm.find_path((s.player.x, s.player.y, s.player.z), goal) or [goal])[1:], goal)
+        tols = nav.path_tolerances(path, 1.0)
+        print(f"── 오르기: {len(path)} 점, 좁게(0.4 m) {sum(1 for t in tols if t < 1.0)} 점 → {tuple(round(v, 2) for v in goal)}", flush=True)
+        self.phase = "오르기"
+        t0 = time.time()
+        r = nav.follow(self.tm, self.pad, path, terrain=nm, mode_fn=lambda _s: mode, default_tol=1.0,
+                       on_tick=lambda sn, _d=None: self.note(sn), log=lambda *a: print("     ", *a, flush=True))
+        s = self.tm.snapshot(within=5.0)
+        left = None if not s else round(math.dist((s.player.x, s.player.y, s.player.z), goal), 2)
+        print(f"   오르기: {r} — {time.time() - t0:.0f} s, 목표까지 {left} m, HP {s.player.hp if s else '?'}", flush=True)
+        self._ev("climb", result=r, left=left)
+        return r
 
     def heal_if_needed(self, frac: float = 0.55, max_sips: int = 2) -> None:
         """잡은 뒤 HP 가 frac 아래고 5 m 안에 적이 없으면 에스트 (사용자가 2번 칸에 넣어 줌, 10회분)."""
@@ -742,9 +759,10 @@ class Hunter(vp.Probe):
                         walk = to_flat[1:] + fp[1:i2] + [st2]
                         print(f"   #{ti}: 평평한 자리에서 다가간다 ({len(walk)} 점)", flush=True)
             wi, blocks = 0, 0
+            tols = nav.path_tolerances(walk, 1.5)           # 가파른 구간(계단·경사로) 입구는 0.4 m 로 정확히
             while wi < len(walk):
                 q = walk[wi]
-                r = nav.goto(self.tm, self.pad, q, tolerance=0.8 if q == stand else 1.5, timeout=20, log=lambda *a: None,
+                r = nav.goto(self.tm, self.pad, q, tolerance=0.8 if q == stand else tols[wi], timeout=20, log=lambda *a: None,
                              on_tick=on_tick, mode_fn=mode_fn, terrain=nm)
                 if r == "dead":
                     print("   사망", flush=True)
@@ -782,16 +800,14 @@ class Hunter(vp.Probe):
                 # 화염병 하나는 방패로 받고(76) 하나는 움직이는 중이라 빗나감. 1.6 m 에서 R1 로 처치
                 self.phase = f"#{ti} 방패 들고 붙기"
                 sp_ = self.tm.snapshot(within=1.0)
-                rp = nm.find_path((sp_.player.x, sp_.player.y, sp_.player.z), spawn) or [spawn]
+                rp = nav.trim_path((nm.find_path((sp_.player.x, sp_.player.y, sp_.player.z), spawn) or [spawn])[1:], spawn)
                 t_r = time.time()
-                for q in rp[1:]:
-                    tc = next((x for x in (self.tm.snapshot(within=40.0) or type("S", (), {"chars": []})).chars if x.ptr == tptr), None)
-                    if tc is not None and tc.dist < 3.0:
-                        break
-                    if nav.goto(self.tm, self.pad, q, tolerance=1.0, timeout=12, log=lambda *a: None, terrain=nm,
-                                on_tick=lambda sn, _d=None: self.note(sn), mode_fn=lambda _s: "guard") == "dead":
-                        print("   사망", flush=True)
-                        return
+                r_ = nav.follow(self.tm, self.pad, rp, terrain=nm, mode_fn=lambda _s: "guard", default_tol=1.0,
+                                on_tick=lambda sn, _d=None: self.note(sn),
+                                stop_fn=lambda sn: any(x.ptr == tptr and x.dist < 3.0 for x in sn.chars))
+                if r_ == "dead":
+                    print("   사망", flush=True)
+                    return
                 self.pad.neutral()
                 print(f"   #{ti}: 방패 들고 붙음 {time.time() - t_r:.1f} s", flush=True)
                 if not self.melee(k, ti, e, tptr, nm, pull_to=None):
@@ -992,6 +1008,7 @@ class Hunter(vp.Probe):
         s = self.tm.snapshot(within=1.0)
         hp0, t0 = s.player.hp, time.time()
         path = nm.find_path((s.player.x, s.player.y, s.player.z), mr.BOUND_A) or [mr.BOUND_A]
+        tols = nav.path_tolerances(path[1:], 1.5)
         hits, chasers = [], set()
         last = {"hp": hp0}
 
@@ -1008,8 +1025,8 @@ class Hunter(vp.Probe):
                 if x.hp > 0:
                     chasers.add(x.ptr)
         res = "도착"
-        for q in path[1:]:
-            r = nav.goto(self.tm, self.pad, q, tolerance=1.5, timeout=15, log=lambda *a: None, terrain=nm,
+        for q, tol in zip(path[1:], tols):
+            r = nav.goto(self.tm, self.pad, q, tolerance=tol, timeout=15, log=lambda *a: None, terrain=nm,
                          on_tick=on_tick, mode_fn=lambda _s: "sprint")
             if r == "dead":
                 res = "사망"
@@ -1924,6 +1941,15 @@ def main() -> None:
     if "--lure" in args:                        # 예: --lure 4,5,6 — 목표를 잡은 뒤 위 무리를 하나씩 평지로 꾀어 잡는다
         h.lure_group = [int(x) for x in args[args.index("--lure") + 1].split(",")]
         del args[args.index("--lure"):args.index("--lure") + 2]
+    if "--climb" in args:                        # 몹 없는 상태로 사용자가 서 있던 자리(5번 위)까지 — 휴식 없이
+        goal = tuple(json.loads((ROOT / "data" / "climb-goal.json").read_text(encoding="utf-8"))["top"])
+        h.trace = Trace(h, f"climb_{time.strftime('%Y%m%d_%H%M%S')}").start()
+        try:
+            h.climb_to(goal, mode="walk")
+        finally:
+            h.trace.stop()
+            h.pad.neutral()
+        return
     for k in range(1, n + 1):
         h.hunt(k, targets, dist)
     h.pad.neutral()
