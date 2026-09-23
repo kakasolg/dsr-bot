@@ -766,6 +766,7 @@ class Hunter(vp.Probe):
             if not self.run.rest():
                 print("   휴식 실패 — 중단", flush=True)
                 return
+        self.ensure_two_hand()
         nm = self.run.nm[mr.MAP_A]
         self.run.cur_nm = nm
         self.hist.clear()
@@ -1321,6 +1322,13 @@ class Hunter(vp.Probe):
     # 실측(화톳불, 2026-09-23): 스틱을 놓은 **그 순간** B 여도 10/10 백스텝(애니 680, 뒤로 2.06 m) — 멈춰 설 시간은 필요 없다.
     # R1 을 B 뒤 0.1·0.25 s 에 누르면 씹히고, 0.4·0.55 s 면 백스텝 공격(333500)이 B 뒤 0.66 s 에 시작해 앞으로 1.7~2.8 m 파고든다.
     BS_TO_R1 = 0.45
+    # 츠바이헨더 +5 양손 (사용자: 하벨 반지·츠바이헨더 5강, 힘이 모자라 양손). 방패가 없어 막고 튕겨 리포스트(3500)가 잘 안 나올 것 —
+    # 사용자가 가장 잘 맞는다고 본 **백스텝 → 백스텝 공격** 을 거의 모든 공격에. 할로우 HP 75 라 닿으면 한 방.
+    # 화톳불 실측: 약공 264000 후딜 ~2.7 s, 백스텝 공격 B 뒤 ~0.7 s 에 264500 시작, 구르기 공격 264900. 3009 는 0.22 s 라 막는다
+    ZWEI = False
+    REACT_ZWEI = {3000: "bs", 3001: "bs", 3002: "bs", 3003: "bs", 3004: "bs", 3005: "bs", 3006: "bs", 3007: "bs",
+                  3010: "bs", 3009: "guard", 3500: "roll"}
+    BS_AT_ZWEI = {3000: 0.08, 3001: 0.28, 3002: 0.45, 3003: 0.73, 3004: 0.5, 3005: 0.55, 3006: 0.4, 3007: 0.4, 3010: 0.55}
     REACH = {"light": 1.4, "heavy": 1.6}      # 중심 거리. 처치는 전부 1.2 m 안, 1.6 m 넘으면 약공·강공 5/5 헛침
 
     def backstep_attack(self, c, s, ptr, nm) -> dict:
@@ -1359,6 +1367,20 @@ class Hunter(vp.Probe):
                     break
             time.sleep(0.01)
         return {"done": True, "enemy_dmg": ehp0 - e_min, "enemy_dead": e_min <= 0, "hit_after": hp0 - my_min, "e_anims": e_anims}
+
+    def ensure_two_hand(self) -> None:
+        """양손으로 잡혀 있나 (PlayerGameData+0x308 = 3). 아니면 Y — 힘이 모자라 한손이면 츠바이헨더가 제대로 안 나간다."""
+        if not self.ZWEI:
+            return
+        for _ in range(2):
+            g = self.tm.grip()
+            if g == 3:
+                return
+            print(f"   양손 아님 ({g}) — Y", flush=True)
+            self.pad.tap(control.B.XUSB_GAMEPAD_Y, 0.1)
+            time.sleep(0.15)
+            self.pad.release_due()
+            time.sleep(1.2)
 
     def _track(self, c) -> None:
         if c is not None and c.anim != self._etrk["anim"]:
@@ -1671,7 +1693,7 @@ class Hunter(vp.Probe):
                 if same_level and c.dist <= 3.5:
                     a = c.anim if c.anim is not None else -1
                     age = time.time() - self._etrk["t"]
-                    table = {**self.REACT, **self.REACT_NPC.get(c.npc_param, {})}
+                    table = self.REACT_ZWEI if self.ZWEI else {**self.REACT, **self.REACT_NPC.get(c.npc_param, {})}
                     act = table.get(a) if 3000 <= a < 3600 else "light" if 2000 <= a < 3000 else None
                     stale = time.time() - last_dmg_t > 10.0
                     if a == 3500 and act == "roll" and c.dist < self.REACH["light"] and c.y - p.y > 0.4:
@@ -1698,7 +1720,7 @@ class Hunter(vp.Probe):
                         act = "roll" if c.dist >= self.REACH["heavy" if act == "roll_heavy" else "light"] else ("light" if act == "roll" else "heavy")
                     ready = locked or self.aim(s, c)       # 락온 없으면 몸을 그놈에 맞추고 스틱을 놓은 뒤라야 R1·B
                     if act == "bs" and acted_for != (a, self._etrk["t"]):
-                        bs_at = self.BS_AT.get(a, 0.5)
+                        bs_at = (self.BS_AT_ZWEI if self.ZWEI else self.BS_AT).get(a, 0.5)
                         if (age < bs_at or not ready) and age < bs_at + 0.25:
                             self.pad.guard(True)          # 백스텝 전까지는 방패 (다른 놈 대비)
                             time.sleep(0.005)
@@ -2056,6 +2078,9 @@ def main() -> None:
     h.melee_style = style
     h.use_lock = "--lock" in sys.argv          # 기본은 락온 없이 (사용자: DS1 고수는 락온을 안 쓴다)
     h.then_run = "--run" in sys.argv           # 목표를 다 잡으면 BOUND_A 까지 달려서 지나간다
+    if "--zwei" in sys.argv:                    # 츠바이헨더 양손 — 백스텝 공격 위주, 사거리가 길다
+        h.ZWEI = True
+        h.REACH = {"light": 2.0, "heavy": 2.4}
     if "--lure" in args:                        # 예: --lure 4,5,6 — 목표를 잡은 뒤 위 무리를 하나씩 평지로 꾀어 잡는다
         h.lure_group = [int(x) for x in args[args.index("--lure") + 1].split(",")]
         del args[args.index("--lure"):args.index("--lure") + 2]

@@ -318,6 +318,19 @@ class DSRTelemetry:
                 return self.i32(pgd + 0x360 + 4 * k)
         return None
 
+    def grip(self) -> Optional[int]:
+        """오른손 무기 잡기: 3 = 양손, 1 = 한손. PlayerGameData+0x308 — Y 로 풀었다 잡으며 비교해 찾음 (3→1→3, 2026-09-23).
+        (arm_style() 은 엘든링 인터페이스용이라 None 을 돌려준다 — 이걸 쓴다)"""
+        cb = self.q(self.static["ChrClassBase"])
+        pgd = self.q(cb + 0x10) if cb else None
+        return self.i32(pgd + 0x308) if pgd else None
+
+    def right_weapon(self) -> Optional[int]:
+        """오른손 무기 ID (PlayerGameData+0x328, 츠바이헨더+5 = 350005)."""
+        cb = self.q(self.static["ChrClassBase"])
+        pgd = self.q(cb + 0x10) if cb else None
+        return self.i32(pgd + 0x328) if pgd else None
+
     def goods_count(self, item: int) -> Optional[int]:
         """소모품(goods) 개수. PlayerGameData 안 인벤토리 항목 0x1C 바이트 = (분류 0x40000000, ID, 개수, ...).
         실측 2026-09-23: +0xF08 파이어밤 292 x2, +0xED0 에스트 205 x10, 나이프 290 x57. 항목이 없으면 0.
