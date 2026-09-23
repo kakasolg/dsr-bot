@@ -441,7 +441,9 @@ class Hunter(vp.Probe):
         return out
 
     # 5번(가만히 서서 화염병만 던진다)을 폭탄으로 — 경사로 위 #3 스폰 옆(경로 81 m), 5번과 수평 6.1 m·1.1 m 아래
-    BOMB_FROM = {5: (-20.7, -40.4, 19.3)}
+    # 4번: 경로 83 m (4번과 9.1 m, 같은 높이) — 모를 때 9.5~10 m 폭탄은 1번에게 11/11. 달려오는 놈에게 던진 미끼 폭탄은 5/5 빗나감.
+    # 6번: 5번 위 계단 꼭대기(사람이 서 있던 자리, 오르기 10/10) — 6번과 5.4 m, 2.3 m 아래
+    BOMB_FROM = {5: (-20.7, -40.4, 19.3), 4: (-18.9, -39.9, 18.7), 6: (-20.61, -36.04, 11.92)}
 
     def bomb_at(self, k: int, ti: int, e: dict, ptr, nm) -> bool:
         """사용자: "firebomb 을 잘 써 봐. 제대로 맞추면 즉사". 자리로 달려가(멈추면 화염병을 맞는다) 락온(메모리로 확인) → 던지기.
@@ -450,18 +452,50 @@ class Hunter(vp.Probe):
         if not self.select_bomb():                 # 달려가기 전에 골라 둔다 (칸 넘기기 0.35 s × 몇 번)
             print(f"   #{ti}: 폭탄이 없다", flush=True)
             return False
-        s = self.tm.snapshot(within=1.0)
-        path = nav.trim_path((nm.find_path((s.player.x, s.player.y, s.player.z), spot) or [spot])[1:], spot)
-        if nav.follow(self.tm, self.pad, path, terrain=nm, mode_fn=lambda _s: "sprint", default_tol=0.8,
-                      on_tick=lambda sn, _d=None: self.note(sn), timeout_per=10) == "dead":
-            return False
+        # 걸어서 간다. 5번 쪽은 달리다 화염병 폭발에 날려 경사로에서 떨어졌고(2/2) 아래층 2번에게 죽었다 →
+        # 5번이 던지기 시작하면(3008) 멈춰서 5번을 보고 방패로 받고(막으면 안 날아간다) 다시 걷는다. 4·6번은 기습이라 걷는다
+        p5 = self.ptr_of.get(5)
+        seen = {"a": None, "t": 0.0}
+
+        def bomb_started(sn):
+            c5 = next((x for x in sn.chars if x.ptr == p5 and x.hp > 0), None) if p5 else None
+            if c5 is None or c5.dist > 20.0:
+                return False
+            new = c5.anim == 3008 and seen["a"] != 3008
+            seen["a"] = c5.anim
+            if new:
+                seen["t"] = time.time()
+            return new
+        for _ in range(14):
+            s = self.tm.snapshot(within=1.0)
+            if math.dist((s.player.x, s.player.y, s.player.z), spot) < 1.0:
+                break
+            path = nav.trim_path((nm.find_path((s.player.x, s.player.y, s.player.z), spot) or [spot])[1:], spot)
+            r_ = nav.follow(self.tm, self.pad, path, terrain=nm, mode_fn=lambda _s: "walk", default_tol=0.8,
+                            on_tick=lambda sn, _d=None: self.note(sn), timeout_per=12, stop_fn=bomb_started)
+            if r_ == "dead":
+                return False
+            if r_ == "stopped":
+                self.block_bomb(p5, seen["t"])
+                continue
+            if r_ != "arrived":
+                break
         self.pad.neutral()
         pt = self.cam_pitch()
         if pt is None or abs(pt) > 15:
             self.reset_camera()                    # 카메라가 많이 숙거나 들렸을 때만
         res, n = None, 0
         idx = {v: k_ for k_, v in self.ptr_of.items()}
-        for attempt in range(4):
+        for attempt in range(6):
+            sc = self.tm.snapshot(within=10.0)
+            close = [x for x in (sc.hostile(3.5) if sc else []) if x.hp > 0]
+            if close:
+                # 이미 깨서 붙은 놈이 있다 — 방패 내리고 락온·던지기를 붙들고 있으면 맞는다(4번 84~136 씩) → 근접으로
+                print(f"   #{ti}: {close[0].dist:.1f} m 안에 적 — 폭탄 접고 근접", flush=True)
+                if self.lock_state(ptr) == "target":
+                    self._r3(0.1)
+                return False
+            self.pad.guard(True)                    # 락온 맞추는 동안은 방패
             st = self.lock_state(ptr)
             if st == "none":
                 sa = self.tm.snapshot(within=30.0)
@@ -475,6 +509,13 @@ class Hunter(vp.Probe):
                 h = self.tm.lock_target()
                 so = self.tm.snapshot(within=20.0)
                 other = next((x for x in (so.hostile(20.0) if so else []) if x.hp > 0 and self.tm.handle(x.ptr) == h), None)
+                # 10 m 안·높이차 2.5 m 안인 놈만 (아래층 2번에게 걸려 던진 폭탄은 6 피해로 낭비)
+                if other is not None and (other.dist > 10.0 or abs(other.y - so.player.y) > 2.5):
+                    print(f"   #{ti}: 락온이 멀리 있는 #{idx.get(other.ptr, '?')} ({other.dist:.1f} m) 에게 — 풀고 다시", flush=True)
+                    self._r3(0.1)
+                    self.align(ptr)
+                    self._r3(0.3)
+                    continue
                 if other is not None and self.tm.goods_count(self.tm.selected_item() or 0):
                     ro = self.throw_at(other.ptr, locked_already=True, release_if_alive=True)
                     print(f"   #{ti}: 락온이 #{idx.get(other.ptr, '?')} 에게 — 그놈부터 폭탄 → {ro['result']} (HP {ro['hp0']}→{ro['hp_after']})", flush=True)
@@ -485,11 +526,12 @@ class Hunter(vp.Probe):
             if st != "target":
                 continue
             n += 1
-            res = self.throw_at(ptr, locked_already=True, release_if_alive=(n >= 2))
+            self.pad.guard(False)                   # 던질 때만 방패를 내린다
+            res = self.throw_at(ptr, locked_already=True, release_if_alive=(n >= 3))
             print(f"   #{ti} 폭탄 {n}: {res['result']} (HP {res['hp0']}→{res['hp_after']})", flush=True)
             self._record(k, ti, e, None, None, {}, {**res, "plan": "bomb_at", "n": n})
             self._ev("bomb", target=ti, n=n, result=res["result"], hp=[res["hp0"], res["hp_after"]])
-            if res["result"] == "처치" or n >= 2 or not self.tm.goods_count(self.tm.selected_item() or 0):
+            if res["result"] == "처치" or n >= 3 or not self.tm.goods_count(self.tm.selected_item() or 0):
                 break
         if self.lock_state(ptr) == "target":
             self._r3(0.1)
@@ -793,8 +835,15 @@ class Hunter(vp.Probe):
                 if self.bomb_at(k, ti, e, tptr, nm):
                     self.heal_if_needed()
                     continue
-                print(f"   #{ti}: 폭탄으로 못 잡음 — 방패 들고 붙어 근접", flush=True)
-                plan = "rushg"
+                if ti == 5:
+                    print(f"   #{ti}: 폭탄으로 못 잡음 — 방패 들고 붙어 근접", flush=True)
+                    plan = "rushg"
+                else:
+                    print(f"   #{ti}: 폭탄으로 못 잡음 — 그 자리에서 근접", flush=True)
+                    if not self.melee(k, ti, e, tptr, nm, pull_to=None):
+                        return
+                    self.heal_if_needed()
+                    continue
             if plan == "rushg":
                 # 사람 기록(2026-09-23): 5번에게 방패(LB)를 든 채 걸어서 붙었다 — 걷는 쪽이 5번이라 방패가 늘 5번을 향한다.
                 # 화염병 하나는 방패로 받고(76) 하나는 움직이는 중이라 빗나감. 1.6 m 에서 R1 로 처치
@@ -1599,6 +1648,8 @@ class Hunter(vp.Probe):
                             self._ev("act", **r)
                             print(f"      {a} +{age:.2f}s {c.dist:.1f} m → 백스텝 공격: {r}", flush=True)
                             if r.get("enemy_dead"):
+                                if ptr != orig_ptr:
+                                    continue            # 끼어든 놈을 잡았다 — 다음 틱에 원래 목표로 돌아간다 (전엔 여기서 '처치' 로 끝내 3번이 살아서 따라왔다)
                                 why = "처치"
                                 break
                             continue
@@ -1623,6 +1674,8 @@ class Hunter(vp.Probe):
                             print(f"      {a} +{age:.2f}s {c.dist:.1f} m → {act}: 적 피해 {r.get('enemy_dmg')}, "
                                   f"내 피해 {r.get('hit_in_roll', 0) + r.get('hit_after', 0)}, 적 애니 {r.get('e_anims')}, 내 애니 {r.get('my_anims')}", flush=True)
                             if r.get("enemy_dead"):
+                                if ptr != orig_ptr:
+                                    continue            # 끼어든 놈을 잡았다 — 다음 틱에 원래 목표로 돌아간다 (전엔 여기서 '처치' 로 끝내 3번이 살아서 따라왔다)
                                 why = "처치"
                                 break
                             idle_near_since = None
@@ -1638,6 +1691,8 @@ class Hunter(vp.Probe):
                             self._ev("act", **r)
                             print(f"      가만있음 {c.dist:.1f} m → 약공: 적 피해 {r['enemy_dmg']}, 내 피해 {r['hit_after']}, 적 애니 {r['e_anims']}", flush=True)
                             if r["enemy_dead"]:
+                                if ptr != orig_ptr:
+                                    continue
                                 why = "처치"
                                 break
                             continue
