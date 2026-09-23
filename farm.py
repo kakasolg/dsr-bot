@@ -60,16 +60,17 @@ def log(msg: str) -> None:
 
 
 # ── 한 판 ──────────────────────────────────────────────
-def rest(tm, pad, nm, bonfire) -> bool:
-    """화톳불까지 가서 앉는다 — 적 리스폰·HP·성배 충전. 앉는 데 2.5 s 걸린다(anim2 -1 → 7710 → 7711)."""
+def rest(tm, pad, nm, bonfire, mode: str = "walk") -> bool:
+    """화톳불까지 가서 앉는다 — 적 리스폰·HP·성배 충전. 앉는 데 2.5 s 걸린다(anim2 -1 → 7710 → 7711).
+    돌아갈 땐 걷는다 — 사용자: "최소한 돌아갈 땐 천천히. 뛰다가 구석에 박힌다" (예전: 달리기·도착 판정 2 m).
+    가파른 곳 입구는 정확히 밟고(nav.path_tolerances), 끝에서 지나치지 않는다(nav.trim_path)."""
     import vgamepad
     s = tm.snapshot(within=1.0)
     if not s:
         return False
-    for wp in nm.find_path((s.player.x, s.player.y, s.player.z), tuple(bonfire["stand"]))[1:]:
-        if nav.goto(tm, pad, wp, tolerance=2.0, timeout=30, log=lambda *a: None,
-                    mode_fn=lambda _s: "sprint") == "dead":
-            break
+    stand = tuple(bonfire["stand"])
+    path = nav.trim_path((nm.find_path((s.player.x, s.player.y, s.player.z), stand) or [stand])[1:], stand)
+    nav.follow(tm, pad, path, terrain=nm, mode_fn=lambda _s: mode, default_tol=1.2, timeout_per=20)
     pad.neutral()
 
     def press(button, hold=0.1):
