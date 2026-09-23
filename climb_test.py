@@ -76,13 +76,22 @@ def main() -> None:
     na = navmesh.Navmesh(mr.MAP_A)
     s = tm.snapshot(within=5.0)
     here = (s.player.x, s.player.y, s.player.z)
+    goal = mr.BOUND_A
+    if "--top" in args:                    # 사용자가 서 있던 자리 (5번 바로 위 윗길) — "지금 있는 위치까지 올라와야 해"
+        goal = tuple(json.loads((ROOT / "data" / "climb-goal.json").read_text(encoding="utf-8"))["top"])
     if how == "route":
         pts = [tuple(q) for q in mr.ROUTE["segments"][0]["points"]]
         k = min(range(len(pts)), key=lambda j: math.dist(pts[j], here))
         pts = pts[k:]
+    elif how == "user":
+        # 사람이 올라간 길 (녹화에서 1.5 m 간격) — 경사로 밑(-24.5,-47.0,29.1)부터. 거기까진 내비메시로
+        up = [tuple(q) for q in json.loads((ROOT / "data" / "routes" / "user-climb.json").read_text(encoding="utf-8"))["points"]]
+        k0 = min(range(len(up)), key=lambda j: math.dist(up[j], (-24.5, -47.0, 29.1)))
+        up = up[k0:] + [goal]
+        pts = (na.find_path(here, up[0]) or [up[0]])[1:] + up[1:]
     else:
-        pts = (na.find_path(here, mr.BOUND_A) or [mr.BOUND_A])[1:]
-    print(f"── {how} ({mode}): {len(pts)} 점, 지금 {tuple(round(v, 1) for v in here)} → 경계 {mr.BOUND_A}", flush=True)
+        pts = (na.find_path(here, goal) or [goal])[1:]
+    print(f"── {how} ({mode}): {len(pts)} 점, 지금 {tuple(round(v, 1) for v in here)} → {tuple(round(v, 1) for v in goal)}", flush=True)
     ok = walk(tm, pad, pts, na, mode, how)
     if ok and "--merchant" in args:
         nb = navmesh.Navmesh(mr.MAP_B)

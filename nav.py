@@ -240,11 +240,26 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
                 mover.set("walk")
                 if env.GAME != "dsr":   # DS1 의 A 는 점프가 아니라 상호작용 (NPC 대화창이 뜨면 멈춤)
                     pad.jump()
-                side = 1.0 if escapes % 2 else -1.0
-                sx, sy = control.world_to_stick(dx, dz, s.cam_yaw, YAW_OFFSET, FLIP_X)
-                pad.move(-sx * 0.8, -sy * 0.8)        # 벽에 박힌 채 밀지 말고 먼저 뒤로 물러난다
-                time.sleep(0.5)
-                pad.move(sx * 0.4 + side * 0.9, sy * 0.4)   # 옆으로 틀어 재접근
+                # 뒤·옆으로 빠져나갈 때도 발밑부터 — 바닥 확인 없이 옆걸음하다 5번 위 좁은 계단에서 떨어져 죽었다 (climb_test, 2026-09-23).
+                # 바닥 있는 옆으로만, 양옆 다 없으면 움직이지 않고 'stuck'
+                yaw = math.atan2(dx, dz)
+                first = 1.0 if escapes % 2 else -1.0
+                side_dir = None
+                for sd in (first, -first):
+                    wx, wz = math.sin(yaw + sd * 1.2), math.cos(yaw + sd * 1.2)
+                    if ground_ahead(terrain, p, wx, wz, reach=1.6):
+                        side_dir = (wx, wz)
+                        break
+                if side_dir is None:
+                    pad.neutral()
+                    log("  막힘 — 양옆이 낭떠러지라 빠져나가지 않음")
+                    return "stuck"
+                if ground_ahead(terrain, p, -dx, -dz, reach=1.2):
+                    bx, by = control.world_to_stick(-dx, -dz, s.cam_yaw, YAW_OFFSET, FLIP_X)
+                    pad.move(bx * 0.8, by * 0.8)      # 벽에 박힌 채 밀지 말고 먼저 뒤로 물러난다
+                    time.sleep(0.5)
+                ox, oy = control.world_to_stick(side_dir[0], side_dir[1], s.cam_yaw, YAW_OFFSET, FLIP_X)
+                pad.move(ox * 0.9, oy * 0.9)          # 바닥 있는 옆으로 틀어 재접근
                 time.sleep(0.7)
                 last_progress_d, last_progress_t = dist, time.time()
                 if escapes >= 6:
