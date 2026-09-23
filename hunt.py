@@ -1776,11 +1776,25 @@ class Hunter(vp.Probe):
                         # 강공은 2.9 m, 약공은 1.6 m 앞으로 나간다 — 계단 꼭대기에서 강공이 6번 너머로 나가 떨어져 죽었다 (바닥은 1.8 m 만 봤다).
                         # 앞 3.0 m(±20°)에 바닥이 있으면 강공, 1.8 m 면 약공(가로 베기), 둘 다 없으면 잠깐 기다린다
                         kind = None
-                        for kk, reach in (("heavy", 3.0), ("light", 1.8)):
+                        for kk, reach, cone in (("heavy", 3.0, (-0.35, 0.0, 0.35)), ("light", 1.8, (0.0,))):
                             if all(nav.ground_ahead(nm, p, math.sin(math.atan2(c.x - p.x, c.z - p.z) + da), math.cos(math.atan2(c.x - p.x, c.z - p.z) + da), reach=reach)
-                                   for da in (-0.35, 0.0, 0.35)):
+                                   for da in cone):
                                 kind = kk
                                 break
+                        if kind is None and self.bombs_left() and acted_for != ("nog", round(time.time() / 3)):
+                            # 좁은 계단에서 붙은 6번 — 휘두를 바닥이 없다(30 s 기다리다 시간 초과). 폭탄은 내게 피해가 없으니 붙은 채 던진다
+                            acted_for = ("nog", round(time.time() / 3))
+                            r = self.close_bomb(ptr)
+                            r = {"vs": a, "age": round(age, 2), "act": "bomb", "d": round(c.dist, 2), **r}
+                            counters.append(r)
+                            self._ev("act", **r)
+                            print(f"      {c.dist:.1f} m 앞에 바닥 없음 → 붙어서 폭탄: {r}", flush=True)
+                            if r.get("enemy_dead"):
+                                if ptr != orig_ptr:
+                                    continue
+                                why = "처치"
+                                break
+                            continue
                         if kind is None:
                             if time.time() - getattr(self, "_noground_t", 0) > 2.0:
                                 self._noground_t = time.time()
