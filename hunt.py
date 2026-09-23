@@ -566,7 +566,11 @@ class Hunter(vp.Probe):
                 return any(fightable(c, sn.player) for c in sn.hostile(fight_r))
             # 내비메시가 비어 있는 곳(다리 위 A70: 바닥이 아래층 -49.8 로 잡힘)은 바닥 확인을 끄고 걷는다 — 확인하면 '앞에 바닥 없음' 으로 못 간다
             f_ = nm.floor_at(q[0], q[2], q[1]) if len(q) > 2 else None
-            terr = nm if (f_ is not None and abs(f_[0] - q[1]) < 2.0) else None
+            sp_ = self.tm.snapshot(within=1.0)
+            fp_ = nm.floor_at(sp_.player.x, sp_.player.z, sp_.player.y) if sp_ else None
+            # 목표와 **지금 서 있는 자리** 둘 다 이 내비메시 위일 때만 바닥 확인 — 경계에서 성벽 마을 내비메시로 발밑을 보니
+            # 바닥이 없어 한 걸음도 안 떼고 '막힘' 이었다
+            terr = nm if (f_ is not None and abs(f_[0] - q[1]) < 2.0 and fp_ is not None and abs(fp_[0] - sp_.player.y) < 2.0) else None
             r = nav.goto(self.tm, self.pad, tuple(q), tolerance=tol if terr is not None else max(tol, 0.8), timeout=15, log=lambda *a: None,
                          terrain=terr, on_tick=lambda sn, _d=None: self.note(sn), mode_fn=lambda sn: "retreat" if enemy_close(sn) else mode)
             if r == "dead":
