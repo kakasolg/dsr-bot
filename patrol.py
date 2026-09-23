@@ -559,7 +559,9 @@ class Guard:
                 self.mode = "hold"        # 방금 맞았다 — 되받아치지 말고 가드만 (경직 중에 휘두르면 또 맞는다)
                 self.combo_at = 0.0
                 return act
-            attacking = (self.engage.anim or 0) in ENEMY_ATTACK_ANIMS
+            # 반사 스레드가 있으면 '공격 애니로 바뀐 뒤 1.3 s' 로만 본다 — 번호는 공격이 끝나도 남아 늘 켜져 있었다 (reflex.ATTACK_WINDOW)
+            aptrs = getattr(self.reflex, "attacking_ptrs", None) if self.reflex else None
+            attacking = (self.engage.ptr in aptrs) if aptrs is not None else (self.engage.anim or 0) in ENEMY_ATTACK_ANIMS
             # 가까이(THREAT_DIST) 있는 놈이 휘두르는 중이면 치지 않는다. 4 m 전부로 잡았더니 여럿일 때 한 번도 못 쳤다
             thr_c = next((c for c in hostile if self.reflex and c.ptr == self.reflex.threat_ptr), None)
             threat = bool(thr_c is not None and thr_c.dist < THREAT_DIST)

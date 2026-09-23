@@ -20,6 +20,10 @@ import time
 import control
 
 ENEMY_ATTACK_ANIMS = range(3000, 3600)   # patrol 과 같은 값 (3500 도 공격 — 해골 실측)
+# 공격 애니로 **바뀐 뒤** 이 시간까지만 '휘두르는 중'. 애니 번호는 공격이 끝나도 다음 동작 전까지 남는다 —
+# 상인 달리기 5판 기록에서 3000번대가 한 번 켜지면 중앙 1.5~5.3 s 유지(3005 는 5.3 s)였고, 번호만 보면 할로우가
+# 거의 늘 '휘두르는 중' 이라 휘두름 0 이었다 (노트 H-7). 1.3 s = 해골 선딜 중앙 ~750 ms·최대 ~1.2 s 를 덮는 길이.
+ATTACK_WINDOW = 1.3
 WATCH_RADIUS = 4.0
 PERIOD = 0.005
 
@@ -34,6 +38,7 @@ class Reflex(threading.Thread):
         self._halt = threading.Event()
         self.threat = False            # 판단 루프가 읽는다 — True 면 공격·투척 금지
         self.paused = False            # True 면 공격을 감지만 하고 가드는 안 든다 (도망 중)
+        self.attacking_ptrs: frozenset = frozenset()   # 지금 휘두르는 중(시작 뒤 ATTACK_WINDOW 안)인 적 — 판단 루프가 읽는다
         self.threat_ptr = None
         self.transitions: list[tuple] = []   # (t, npc, ptr, 이전 애니, 새 애니)
         self.attacks: list[dict] = []        # 공격 시작 이벤트: t, npc, anim, guard_t(가드 누른 시각)
@@ -89,9 +94,10 @@ class Reflex(threading.Thread):
                         self.attacks.append({"t": attacking[ptr], "npc": npc, "anim": a, "guard_t": time.time()})
                     elif a not in self.attack_anims and ptr in attacking:
                         del attacking[ptr]
-            for ptr in list(attacking):              # 목록에서 빠진(멀어진/죽은) 놈
-                if ptr not in watch:
-                    del attacking[ptr]
+            for ptr in list(attacking):              # 목록에서 빠진(멀어진/죽은) 놈, 휘두른 지 ATTACK_WINDOW 지난 놈
+                if ptr not in watch or time.time() - attacking[ptr] > ATTACK_WINDOW:
+                    del attacking[ptr]                # prev 는 그대로라 같은 번호가 남아 있는 동안 다시 켜지지 않는다
+            self.attacking_ptrs = frozenset(attacking)
             self.threat = bool(attacking)
             self.threat_ptr = next(iter(attacking), None)
             if not attacking and self.pad.force_guard:

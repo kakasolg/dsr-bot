@@ -121,6 +121,7 @@ class Runner:
         self.flee_req = False            # on_tick 이 켜면 경로 루프가 도망을 실행한다
         self.fleeing = False
         self.flee_block_until = 0.0
+        self.cur_nm = None               # 지금 구간의 내비메시 (가장자리 판정용)
         self.cliff_pts = {m: n.centroid[n.cliffs()] for m, n in self.nm.items()}   # 낭떠러지에 닿은 면 (게임 파일에서 계산, 캐시됨)
         self.bandit = bandit.Thompson(list(TACTICS), TACTICS_F)
         self.tactic_draws: dict[str, float] = {}
@@ -140,6 +141,7 @@ class Runner:
         if not s or s.player.hp <= 0:
             return "dead"
         nm = self.nm[map_id]
+        self.cur_nm = nm
         path = nm.find_path((s.player.x, s.player.y, s.player.z), goal)
         if not path:
             st["notes"].append(f"{tag}: 경로 없음 @({s.player.x:.1f},{s.player.y:.1f},{s.player.z:.1f})")
@@ -155,6 +157,14 @@ class Runner:
                 st["best_d"], st["best_t"] = dg, time.time()
             prog = st["leg_base"] + max(0.0, st["leg_len"] - dg)
             st["progress"] = max(st["progress"], prog / st["route_len"])
+            # 싸우는 시간은 '진전 없음' 에 넣지 않는다 — 4판(bomb_stop)은 폭탄 4·휘두름 6·처치 3 으로 싸우던 중에 포기했다.
+            # 최근 5 s 안에 맞거나·때리거나·막았으면 그 틱만큼 진전 시계를 민다 (교착은 Guard 의 8 s 무시·이 시계가 여전히 잡는다).
+            now_t = time.time()
+            dt_tick = now_t - st.get("last_tick", now_t)
+            st["last_tick"] = now_t
+            last_ex = max(st.get("last_hit_t", 0.0), st.get("last_dealt_t", 0.0), self.guard.last_block if self.guard else 0.0)
+            if now_t - last_ex < 5.0:
+                st["best_t"] += dt_tick
             if st["abort"] is None and p.hp > 0:
                 if p.hp < p.max_hp * ABORT_HP:
                     st["abort"] = f"HP {p.hp}"
@@ -185,6 +195,7 @@ class Runner:
                 prev = st["ehp"].get(c.ptr)
                 if prev is not None and c.hp < prev:
                     st["dealt"] += prev - c.hp
+                    st["last_dealt_t"] = time.time()
                     if c.hp <= 0 < prev:
                         st["kills"] += 1
                 st["ehp"][c.ptr] = c.hp
@@ -303,7 +314,7 @@ class Runner:
             kind = "skeleton" if 290000 <= c.npc_param < 300000 else ("hollow" if 250000 <= c.npc_param < 260000 else "enemy")
             enemies.append({"type": kind, "distance_m": round(c.dist, 1), "height_diff_m": round(dy, 1),
                             "blocking_path": ang < 35 and abs(dy) < 2.5 and c.dist < 12.0,
-                            "attacking": bool(self.rfx and self.rfx.threat_ptr == c.ptr) or (c.anim or 0) in patrol.ENEMY_ATTACK_ANIMS,
+                            "attacking": bool(self.rfx and c.ptr in self.rfx.attacking_ptrs),   # 시작 뒤 1.3 s 만 (reflex.ATTACK_WINDOW)
                             "where": where})
         near_drop = any(math.dist((p.x, p.y, p.z), q) < 8.0 for q in CLIFFS)
         g = self.guard
@@ -403,6 +414,20 @@ class Runner:
             self.flee_block_until = time.time() + FLEE_COOLDOWN
             st["flees"] = st.get("flees", 0) + 1
 
+    def near_edge(self, s) -> bool:
+        """낭떠러지 3 m 안이거나 발밑이 내비메시 밖(좁은 경사로 가장자리)인가.
+        실측(톰슨 5판): 추락 4번이 전부 경사로 (−22, −41, 16~22) 에서 적에게 다가가는(engage) 중 — 1판은 피해 2 로
+        밀린 게 아니라 걸어 나갔다. 그 자리 둘은 발밑 바닥이 내비메시에 없었고 12방향 중 절반이 '바닥 없음' 이었다."""
+        nm = self.cur_nm
+        if nm is None:
+            return False
+        p = s.player
+        fl = nm.floor_at(p.x, p.z, p.y)
+        if fl is None or abs(fl[0] - p.y) > 1.0:
+            return True
+        cl = self.cliff_pts.get(nm.map_id)
+        return cl is not None and len(cl) > 0 and float(np.min(np.linalg.norm(cl - np.array([p.x, p.y, p.z]), axis=1))) < 3.0
+
     def mode(self, s) -> str:
         """전술별 이동. 적이 없으면 질주. gemini 팔이면 Gemini 가 고른 전술(self.active)을 따른다."""
         g = self.guard
@@ -413,6 +438,8 @@ class Runner:
         if not near and g.engage is None:
             return "sprint"
         gm = g.mode if g.mode != "retreat" else "hold"
+        if gm in ("engage", "face", "circle") and self.near_edge(s):
+            gm = "hold"                   # 가장자리에선 다가가거나 돌지 않는다 — 오게 두고 막고 친다 (hold 는 발밑이 나쁘면 안전한 쪽으로 옮긴다)
         d = near[0].dist if near else 99.0
         bombs_left = g.bombs_thrown < getattr(g.pb, "bombs_per_episode", 0)
         if self.active == "bomb_stop" and bombs_left:
