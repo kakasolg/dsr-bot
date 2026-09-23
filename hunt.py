@@ -1368,6 +1368,20 @@ class Hunter(vp.Probe):
             time.sleep(0.01)
         return {"done": True, "enemy_dmg": ehp0 - e_min, "enemy_dead": e_min <= 0, "hit_after": hp0 - my_min, "e_anims": e_anims}
 
+    def follow_heavy(self, r: dict, ptr, nm, locked: bool) -> dict | None:
+        """약공이 맞았는데 안 죽었으면(HP 85 인 2번 등) 곧장 강공 — 츠바이헨더 강공(세로 내려찍기)은 인간형 작은 놈을
+        경직시키거나 넘어뜨린다 (사용자)."""
+        if not self.ZWEI or not r.get("enemy_dmg") or r.get("enemy_dead"):
+            return None
+        s = self.tm.snapshot(within=10.0)
+        c = next((x for x in s.chars if x.ptr == ptr), None) if s else None
+        if c is None or c.hp <= 0 or c.dist > 2.8:
+            return None
+        r2 = self.strike("heavy", c, s, ptr, locked=locked, nm=nm)
+        print(f"      이어서 강공 → 적 피해 {r2.get('enemy_dmg')}, 적 애니 {r2.get('e_anims')}", flush=True)
+        self._ev("act", act="heavy_follow", **r2)
+        return r2
+
     def ensure_two_hand(self) -> None:
         """양손으로 잡혀 있나 (PlayerGameData+0x308 = 3). 아니면 Y — 힘이 모자라 한손이면 츠바이헨더가 제대로 안 나간다."""
         if not self.ZWEI:
@@ -1719,7 +1733,8 @@ class Hunter(vp.Probe):
                     if act in ("roll", "roll_heavy"):     # 3500 휘청 — 붙어 있으면 구를 것 없이 바로 친다
                         act = "roll" if c.dist >= self.REACH["heavy" if act == "roll_heavy" else "light"] else ("light" if act == "roll" else "heavy")
                     ready = locked or self.aim(s, c)       # 락온 없으면 몸을 그놈에 맞추고 스틱을 놓은 뒤라야 R1·B
-                    if (act == "bs" and self.ZWEI and acted_for != (a, self._etrk["t"]) and ready and c.dist >= 1.2 and age < 0.3
+                    # 약공은 가로 베기라 붙은 놈에게도 닿는다 (사용자) — 1.2 m 조건을 뺐다 (0.9~1.0 m 에서 뒤 바닥 없음 5연속, 막다가 347)
+                    if (act == "bs" and self.ZWEI and acted_for != (a, self._etrk["t"]) and ready and age < 0.3
                             and p.heading is not None and not nav.ground_ahead(nm, p, math.sin(p.heading), math.cos(p.heading), reach=2.2)):
                         # 뒤에 바닥이 없어 백스텝을 못 한다 (5번 턱·위쪽에서 7번 연속) — 무기 가드는 약하니(사용자) 막지 말고
                         # 공격 시작에 맞춰 곧장 휘두른다: 특대검은 휘두르는 중 안 끊기고, 할로우는 한 방이다 (맞바꿈)
@@ -1734,6 +1749,7 @@ class Hunter(vp.Probe):
                                 continue
                             why = "처치"
                             break
+                        self.follow_heavy(r, ptr, nm, locked)
                         continue
                     if act == "bs" and acted_for != (a, self._etrk["t"]):
                         bs_at = (self.BS_AT_ZWEI if self.ZWEI else self.BS_AT).get(a, 0.5)
@@ -1782,7 +1798,7 @@ class Hunter(vp.Probe):
                             idle_near_since = None
                             continue
                     # 공격 중이 아니고 붙어 있는데 1 s 넘게 안 휘두르면 약공으로 찌른다 (약공 ~0.4 s 가 3000 의 0.63 s 보다 빠르다)
-                    zone = self.ZWEI and 1.6 <= c.dist <= 2.6   # 사용자: "길이가 길어서 유리" — 내 사거리 안·그놈 사거리 밖에 들어오면 바로
+                    zone = self.ZWEI and c.dist <= 2.6   # 사용자: "길이가 길어서 유리" — 사거리 안이면 바로 (가로 베기라 붙어도 닿는다)
                     if not (3000 <= a < 3600) and c.dist <= self.REACH["light"]:
                         idle_near_since = idle_near_since or time.time()
                         if (zone or time.time() - idle_near_since > 1.0) and ready:
@@ -1797,6 +1813,7 @@ class Hunter(vp.Probe):
                                     continue
                                 why = "처치"
                                 break
+                            self.follow_heavy(r, ptr, nm, locked)
                             continue
                     else:
                         idle_near_since = None
