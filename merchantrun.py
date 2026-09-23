@@ -296,8 +296,12 @@ class Runner:
         if self.active == "bomb_stop" and bombs_left:
             if d < 4.0:
                 return gm                     # 붙었다 — 근접
-            if d <= 9.5:
-                return "hold"                 # 폭탄 사거리 — 서서 던진다 (가드 든 채)
+            # 폭탄 사거리 **안쪽**에서만 선다. 예전엔 9.5 m 에서 섰는데 폭탄은 9.0 m 까지만 던져서, 9.5 m 에 가만히 있는
+            # 할로우 앞에 25 s 서 있다가 포기했다 (gemini 1판 실측). 9.0 m 는 교전(락온) 거리 밖이라 락온도 없었다.
+            if d <= getattr(g.pb, "bomb_max_dist", 9.0) - 0.5:
+                # 서서 던지되 **적을 바라본다** — "hold" 는 스틱 0 이라 몸이 안 돈다 (사용자: "적을 감지하면 몸 방향을 적에 맞추지 않았다").
+                # Guard 는 hold 를 face 로 바꿔 주지만 여기선 Guard 를 거치지 않고 모드를 정하므로 직접 face 로.
+                return "face" if g.engage is not None else "creep"
             return "creep"                    # 사거리 밖 — 천천히 다가간다
         if self.active == "bomb_sprint":
             if g.bomb_step in (1, 2) and 4.0 <= d <= 9.5:
@@ -335,8 +339,12 @@ class Runner:
         return False
 
     def darksign(self, tries: int = 3) -> bool:
-        """다크사인으로 화톳불 복귀. 칸(117)·확인창 글자·YES 칸을 **확인한 뒤에만** 누른다 (기본값이 YES)."""
+        """다크사인으로 화톳불 복귀. 칸(117)·확인창 글자·YES 칸을 **확인한 뒤에만** 누른다 (기본값이 YES).
+        다크사인은 쓸 때마다 소울·인간성을 잃는다 — **A 를 누른 뒤 위치가 바뀌었으면 절대 다시 쓰지 않는다.**
+        (실측: 도착 판정이 'stand 8 m 안' 이었는데 다크사인 도착점은 8.3 m 라, 돌아와 놓고 '실패' 로 보고 15 s 마다 다시 썼다.)"""
         for _ in range(tries):
+            s0 = self.tm.snapshot(within=1.0)
+            pre = (s0.player.x, s0.player.y, s0.player.z) if s0 else None
             self.pad.guard(False)
             self.pad.neutral()
             quitout.close_menu(self.tm, self.pad)
@@ -357,19 +365,26 @@ class Runner:
                 continue
             quitout._press(self.pad, quitout.B.XUSB_GAMEPAD_A, 0.0)
             t2 = time.time()
+            moved = False
             while time.time() - t2 < 15.0:
                 try:
                     s = self.tm.snapshot(within=1.0)
                 except Exception:
                     s = None
-                if s and s.player.hp > 0 and math.dist((s.player.x, s.player.y, s.player.z), tuple(BONFIRE["stand"])) < 8.0:
-                    time.sleep(1.5)
-                    return True
+                if s and s.player.hp > 0:
+                    here = (s.player.x, s.player.y, s.player.z)
+                    moved = moved or (pre is not None and math.dist(here, pre) > 20.0)
+                    if moved or math.dist(here, tuple(BONFIRE["stand"])) < 15.0:   # 순간이동했거나 화톳불 옆이면 도착
+                        time.sleep(1.5)
+                        return True
                 time.sleep(0.2)
                 try:
                     self.tm = env.make_telemetry({})
                 except Exception:
                     pass
+            s = self.tm.snapshot(within=1.0)
+            if s and pre is not None and math.dist((s.player.x, s.player.y, s.player.z), pre) > 3.0:
+                return True     # 어딘가로 옮겨졌다 — 다시 쓰면 소울만 또 잃는다 (다음 판 휴식이 화톳불로 데려간다)
         return False
 
     def pick_tactic(self) -> str:
@@ -429,13 +444,18 @@ class Runner:
         blocks = self.guard.blocks
         llm_calls = list(self.tactician.calls) if self.tactician else None
         self.guard, self.rfx, self.tactician, self.cur_wp = None, None, None, None
-        # 돌아가기: 죽었으면 부활을 기다리고, 살아 있으면(도착했든 포기했든) 다크사인
+        # 돌아가기: 죽었으면 부활을 기다린다. 다크사인은 **필요할 때만** — 쓸 때마다 소울·인간성을 잃는다 (사용자: "다크사인만 남용").
+        #   쓴다: 상인 도착(멀다) · HP 가 낮아 포기 · 추락 · 구역 경계 너머(성벽 마을 쪽 — 화톳불 쪽 내비메시로 못 걸어 돌아간다)
+        #   안 쓴다: 피해 없는 교착·막힘 — 걸어서 화톳불로 돌아가 앉는다 (휴식 절차 그대로)
+        need_ds = reached or (st["abort"] or "").startswith("HP") or st["fall"] is not None or st["leg_base"] > 0
         if not alive or out == "dead":
             st["death_at"] = st["last_pos"]
             self.wait_respawn()
             back = "respawn"
-        else:
+        elif need_ds:
             back = "darksign" if self.darksign() else "darksign_failed"
+        else:
+            back = "walk" if self.rest() else "walk_failed"
         glog.write(f"  결과: {'도착' if reached else out} {st['abort'] or ''}  진행 {st['progress']:.0%}  복귀 {back}\n")
         glog.close()
         self.record_tactic(self.tactic, reached, st["progress"])
