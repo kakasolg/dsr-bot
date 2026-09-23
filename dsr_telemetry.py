@@ -341,6 +341,16 @@ class DSRTelemetry:
         return self.i32(w + OFF_LASTBONFIRE) if w else None
 
     # ── 쓰기 (리셋용) ──
+    # ChrDbg 바이트 플래그 (DSR-Gadget 순서 — +0x1 PlayerExterminate 는 kill_player 로 실측 확인)
+    DBG_PLAYER_NO_DEAD, DBG_PLAYER_HIDE, DBG_ALL_NO_DAMAGE = 0x0, 0x6, 0x9
+
+    def set_dbg(self, off: int, on: bool) -> None:
+        """디버그 플래그 켜기/끄기 (오프라인 전용). 사용자: "캐릭터 무적 상태로 만들고 그 상태로 올라가게"."""
+        self.pm.write_uchar(self.static["ChrDbg"] + off, 1 if on else 0)
+
+    def get_dbg(self, off: int) -> int:
+        return self.pm.read_uchar(self.static["ChrDbg"] + off)
+
     def kill_player(self) -> None:
         """ChrDbg.PlayerExterminate — 켰다가 사망 확인 후 끈다 (켜 둔 채면 리스폰하자마자 또 죽는다)."""
         a = self.static["ChrDbg"] + 0x1

@@ -1942,13 +1942,56 @@ def main() -> None:
         h.lure_group = [int(x) for x in args[args.index("--lure") + 1].split(",")]
         del args[args.index("--lure"):args.index("--lure") + 2]
     if "--climb" in args:                        # 몹 없는 상태로 사용자가 서 있던 자리(5번 위)까지 — 휴식 없이
+        # n 번: 오르기 → 화톳불 자리로 걸어 내려오기 → 다시 (사용자: "10번은 성공해야 믿겠어")
         goal = tuple(json.loads((ROOT / "data" / "climb-goal.json").read_text(encoding="utf-8"))["top"])
+        home = tuple(mr.BONFIRE["stand"])
+        ok_up = ok_down = 0
+        god = "--god" in args
+        # 무적: 안 죽음·피해 없음만 켰더니 피해는 0 인데 적 셋이 계단에서 계속 때려 휘청(2007)이고 몸으로 막아 내려오지 못했다 →
+        # 적이 못 보게(PlayerHide)·아무도 공격 안 하게(AllNoAttack 0xB)도 켠다
+        GOD = (h.tm.DBG_PLAYER_NO_DEAD, h.tm.DBG_ALL_NO_DAMAGE, h.tm.DBG_PLAYER_HIDE, 0xB)
+        if god:
+            for o in GOD:
+                h.tm.set_dbg(o, True)
+            print(f"무적 켬: {[h.tm.get_dbg(o) for o in GOD]}", flush=True)
+            s_ = h.tm.snapshot(within=5.0)
+            if s_ and s_.player.hp < s_.player.max_hp * 0.5:
+                print(f"HP {s_.player.hp} — 화톳불에서 쉬고 시작 (몹은 되살아나도 못 본다)", flush=True)
+                h.run.rest()
         h.trace = Trace(h, f"climb_{time.strftime('%Y%m%d_%H%M%S')}").start()
         try:
-            h.climb_to(goal, mode="walk")
+            for k in range(1, n + 1):
+                s0 = h.tm.snapshot(within=5.0)
+                hp0 = s0.player.hp if s0 else None
+                print(f"── 오르기 {k}/{n}", flush=True)
+                r_up = h.climb_to(goal, mode="walk")
+                s1 = h.tm.snapshot(within=5.0)
+                up_ok = r_up == "arrived" and s1 is not None and math.dist((s1.player.x, s1.player.y, s1.player.z), goal) < 0.8
+                ok_up += up_ok
+                if not up_ok or s1 is None or s1.player.hp <= 0:
+                    print(f"   {k}: 오르기 실패 ({r_up}) — 멈춤", flush=True)
+                    break
+                r_dn = h.climb_to(home, mode="walk")
+                s2 = h.tm.snapshot(within=5.0)
+                dn_ok = r_dn == "arrived" and s2 is not None and s2.player.hp > 0
+                ok_down += dn_ok
+                print(f"   {k}: 오르기 성공, 내려오기 {r_dn} — HP {hp0} → {s2.player.hp if s2 else '?'}  (누적 오르기 {ok_up}/{k})", flush=True)
+                if not dn_ok:
+                    print(f"   {k}: 내려오기 실패 — 멈춤", flush=True)
+                    break
         finally:
             h.trace.stop()
             h.pad.neutral()
+            if god:
+                # 화톳불 옆이 아닐 때 끄면 둘러싼 적에게 죽는다 (첫 시험: 계단 꼭대기에서 끄자마자 사망) — 그땐 켜 둔다
+                se = h.tm.snapshot(within=5.0)
+                if se and math.dist((se.player.x, se.player.y, se.player.z), home) < 10.0:
+                    for o in GOD:
+                        h.tm.set_dbg(o, False)
+                    print(f"무적 끔: {[h.tm.get_dbg(o) for o in GOD]}", flush=True)
+                else:
+                    print("화톳불 옆이 아니라 무적은 켜 둠 — 필요하면 직접 끄거나 말해 달라", flush=True)
+        print(f"결과: 오르기 {ok_up}/{n}, 내려오기 {ok_down}/{n}", flush=True)
         return
     for k in range(1, n + 1):
         h.hunt(k, targets, dist)
