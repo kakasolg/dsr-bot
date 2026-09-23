@@ -613,8 +613,18 @@ class Hunter(vp.Probe):
         self.phase = "상인: 성벽 마을"
         time.sleep(1.0)
         self.run.cur_nm = nb
-        B = [tuple(q) for q in mr.ROUTE["segments"][1]["points"]]
-        r = self.walk_fight(B + [tuple(mr.MERCHANT)], nb, "상인 B")
+        # 성벽 마을은 사람 녹화 경로를 따른다 (사용자: "위로 올라가 성 안으로 들어가는 비밀 통로") — 내비메시 경로(156 m)와
+        # 녹화(119 m)가 다르다. 녹화가 끊긴 곳(B5→B6 1 s 에 14.6 m, 마지막 12 m)만 내비메시로 채운다
+        B = [tuple(q) for q in mr.ROUTE["segments"][1]["points"]] + [tuple(mr.MERCHANT)]
+        pb = [B[0]]
+        for q in B[1:]:
+            if math.dist((pb[-1][0], pb[-1][2]), (q[0], q[2])) > 6.0:
+                fill = nb.find_path(pb[-1], q)
+                if fill and len(fill) > 2:
+                    pb.extend(fill[1:-1])
+                    print(f"   구간 B: 끊긴 곳 {tuple(round(v, 1) for v in pb[-1])} → {tuple(round(v, 1) for v in q)} 를 내비메시 {len(fill) - 2} 점으로", flush=True)
+            pb.append(q)
+        r = self.walk_fight(pb, nb, "상인 B")
         s = self.tm.snapshot(within=5.0)
         d = None if not s else math.dist((s.player.x, s.player.y, s.player.z), tuple(mr.MERCHANT))
         self.run.cur_nm = na
