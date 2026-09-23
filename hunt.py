@@ -1776,7 +1776,9 @@ class Hunter(vp.Probe):
                         # 강공은 2.9 m, 약공은 1.6 m 앞으로 나간다 — 계단 꼭대기에서 강공이 6번 너머로 나가 떨어져 죽었다 (바닥은 1.8 m 만 봤다).
                         # 앞 3.0 m(±20°)에 바닥이 있으면 강공, 1.8 m 면 약공(가로 베기), 둘 다 없으면 잠깐 기다린다
                         kind = None
-                        for kk, reach, cone in (("heavy", 3.0, (-0.35, 0.0, 0.35)), ("light", 1.8, (0.0,))):
+                        # 붙어 있으면(1.7 m 안) 강공은 2.9 m 전진해서 그놈을 지나쳐 헛친다 (0.9~1.0 m 강공 0 피해, 몸-그놈 79~127°) → 가로 베기 약공
+                        opts = (("heavy", 3.0, (-0.35, 0.0, 0.35)), ("light", 1.8, (0.0,))) if c.dist >= 1.7 else (("light", 1.8, (0.0,)),)
+                        for kk, reach, cone in opts:
                             if all(nav.ground_ahead(nm, p, math.sin(math.atan2(c.x - p.x, c.z - p.z) + da), math.cos(math.atan2(c.x - p.x, c.z - p.z) + da), reach=reach)
                                    for da in cone):
                                 kind = kk
