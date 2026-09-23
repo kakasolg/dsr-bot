@@ -1,6 +1,7 @@
 """불의 제전 화톳불 → 망자 상인 달리기, 여러 판. 싸우지 않고 **막무가내로 달린다** (사용자: "자꾸 하다 보면 뭐가 생긴다").
 
   python merchantrun.py [판 수]
+  python merchantrun.py report        전술별 사후 분포만 보기 (게임 불필요)
 
 한 판: 화톳불 휴식(HP·적 초기화) → 구역 경계까지 질주(m10_02 내비메시) → 상인까지 질주(m10_01) → 성공 판정
 → 화톳불로 질주 복귀(귀로는 적이 경계 상태라 따로 센다). 죽으면 화톳불에서 부활을 기다려 다음 판.
@@ -22,6 +23,7 @@ from pathlib import Path
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
+import bandit
 import control
 import env
 import farm
@@ -46,7 +48,11 @@ LEG_TIMEOUT = 180.0
 ITEM_DARKSIGN = 117
 ABORT_HP = 0.35        # 에스트가 없다 — 이 아래면 다크사인으로 돌아가 쉬고 다시 (다크사인이 곧 회복)
 STALL_S = 25.0         # 이만큼 목표에 1.5 m 도 못 다가가면 "판단이 안 되는 상황" — 다크사인
-TACTICS_F = ROOT / "data" / "merchant-tactics.json"
+TACTICS_F = ROOT / "data" / "merchant-tactics.json"   # 톰슨 샘플링 기록 (bandit.Thompson)
+# 전술 보상 = 성공 1.0 / 실패 PROGRESS_WEIGHT × 진행도. 성공 전에는 진행도가 유일한 신호라 남기되 약하게 —
+# 가짜 환경 셋(bandit.py sim)에서 0.8 은 "멀리 가지만 성공 못 하는" 전술에 끌려 C 환경 성공 7 (예전 방식 14),
+# 0.1 은 17 이었고 하위 10 %도 11 (예전 2). 0 과 0.1 은 거의 같았지만 0 이면 첫 성공 전까지 전술을 가를 신호가 없다.
+PROGRESS_WEIGHT = 0.1
 # 전술: 실패하면 다크사인으로 돌아가 **다른 전술**로 다시 한다 (사용자: "해결도 안 하고 멈추면 시간 낭비, 전술을 새로 짜서 다시")
 TACTICS = {
     "fight":       {"desc": "폭탄 + 근접 (지금까지의 전투)", "pb": {}},
@@ -81,6 +87,8 @@ class Runner:
         self.guard = None
         self.rfx = None
         self.tactic = "fight"
+        self.bandit = bandit.Thompson(list(TACTICS), TACTICS_F)
+        self.tactic_draws: dict[str, float] = {}
         pa = self.nm[MAP_A].find_path(tuple(BONFIRE["stand"]), BOUND_A)
         pbp = self.nm[MAP_B].find_path(BOUND_B, MERCHANT)
 
@@ -295,23 +303,14 @@ class Runner:
         return False
 
     def pick_tactic(self) -> str:
-        """안 해 본 전술 먼저, 그다음엔 성공·진행도가 가장 좋은 전술 (20 % 는 다른 것도 시험)."""
-        import random
-        stats = json.loads(TACTICS_F.read_text(encoding="utf-8")) if TACTICS_F.exists() else {}
-        untried = [k for k in TACTICS if stats.get(k, {}).get("n", 0) == 0]
-        if untried:
-            return untried[0]
-        if random.random() < 0.2:
-            return random.choice(list(TACTICS))
-        return max(TACTICS, key=lambda k: (stats[k]["succ"] / stats[k]["n"]) * 2 + stats[k]["prog"] / stats[k]["n"])
+        """톰슨 샘플링 — 전술마다 믿음 Beta 에서 한 번씩 뽑아 가장 큰 것. 판이 적을 땐 골고루, 쌓일수록 나은 쪽으로.
+        예전(안 해 본 것 → 성공×2+진행도 최고, 20 % 무작위)은 초반 운에 한 전술로 굳을 수 있었다 (가짜 환경 C 하위 10 % 성공 2)."""
+        arm, self.tactic_draws = self.bandit.pick()
+        return arm
 
     def record_tactic(self, name: str, success: bool, progress: float) -> None:
-        stats = json.loads(TACTICS_F.read_text(encoding="utf-8")) if TACTICS_F.exists() else {}
-        s = stats.setdefault(name, {"n": 0, "succ": 0, "prog": 0.0})
-        s["n"] += 1
-        s["succ"] += int(success)
-        s["prog"] = round(s["prog"] + progress, 3)
-        TACTICS_F.write_text(json.dumps(stats, ensure_ascii=False, indent=1), encoding="utf-8")
+        self.bandit.record(name, 1.0 if success else PROGRESS_WEIGHT * progress,
+                           success=bool(success), progress=round(progress, 3))
 
     def episode(self, i: int) -> dict:
         import dataclasses
@@ -329,6 +328,7 @@ class Runner:
         self.rfx.start()
         glog = GLOG.open("a", encoding="utf-8")
         glog.write(f"\n=== {i}판 [{self.tactic}] {time.strftime('%H:%M:%S')} ===\n")
+        glog.write("  톰슨 뽑기: " + "  ".join(f"{k} {v:.2f}" for k, v in self.tactic_draws.items()) + "\n")
         t_ep = time.time()
 
         def gl(*a):
@@ -370,10 +370,15 @@ class Runner:
 
 
 def main() -> None:
+    if len(sys.argv) > 1 and sys.argv[1] == "report":
+        print(f"전술 사후 분포 ({TACTICS_F.name}, 보상 = 성공 1 / 실패 {PROGRESS_WEIGHT}×진행도)")
+        print(bandit.Thompson(list(TACTICS), TACTICS_F).format_report())
+        return
     n = int(sys.argv[1]) if len(sys.argv) > 1 else 100
     run = Runner()
     wins = 0
     print(f"상인 달리기 {n}판 — 경계 {BOUND_A}→{BOUND_B}, 상인 {MERCHANT}", flush=True)
+    print("전술 사후 분포 (시작):\n" + run.bandit.format_report(), flush=True)
     for i in range(1, n + 1):
         r = run.episode(i)
         with OUT.open("a", encoding="utf-8") as f:
@@ -389,6 +394,7 @@ def main() -> None:
               flush=True)
         for note in r["notes"]:
             print(f"     · {note}", flush=True)
+    print("전술 사후 분포 (끝):\n" + run.bandit.format_report(), flush=True)
 
 
 if __name__ == "__main__":
