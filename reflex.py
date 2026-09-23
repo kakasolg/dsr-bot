@@ -33,6 +33,7 @@ class Reflex(threading.Thread):
         self._lock = threading.Lock()
         self._halt = threading.Event()
         self.threat = False            # 판단 루프가 읽는다 — True 면 공격·투척 금지
+        self.paused = False            # True 면 공격을 감지만 하고 가드는 안 든다 (도망 중)
         self.threat_ptr = None
         self.transitions: list[tuple] = []   # (t, npc, ptr, 이전 애니, 새 애니)
         self.attacks: list[dict] = []        # 공격 시작 이벤트: t, npc, anim, guard_t(가드 누른 시각)
@@ -82,8 +83,9 @@ class Reflex(threading.Thread):
                     prev[ptr] = a
                     if a in self.attack_anims and ptr not in attacking:
                         attacking[ptr] = time.time()
-                        self.pad.force_guard = True
-                        self.pad.guard(True)
+                        if not self.paused:               # 도망 중엔 가드를 들지 않는다 — 들면 달리기가 걷기로 떨어진다
+                            self.pad.force_guard = True
+                            self.pad.guard(True)
                         self.attacks.append({"t": attacking[ptr], "npc": npc, "anim": a, "guard_t": time.time()})
                     elif a not in self.attack_anims and ptr in attacking:
                         del attacking[ptr]

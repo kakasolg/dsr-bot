@@ -21,6 +21,8 @@ import sys
 import time
 from pathlib import Path
 
+import numpy as np
+
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
@@ -60,6 +62,14 @@ TACTICS_F = ROOT / "data" / "merchant-tactics.json"   # 톰슨 샘플링 기록 
 # 가짜 환경 셋(bandit.py sim)에서 0.8 은 "멀리 가지만 성공 못 하는" 전술에 끌려 C 환경 성공 7 (예전 방식 14),
 # 0.1 은 17 이었고 하위 10 %도 11 (예전 2). 0 과 0.1 은 거의 같았지만 0 이면 첫 성공 전까지 전술을 가를 신호가 없다.
 PROGRESS_WEIGHT = 0.1
+# 도망 (사용자: "적이 둘 이상 몸 근처에 붙으면 도망가야 하는데 가드만 하고 있다", "적의 위치를 파악하고 없는 곳으로").
+# 예전엔 도망을 껐다 ("도망친 게 실패 — 구석에 몰려 죽는다"). 그래서 아무 데로나 뒤로 빠지지 않고, 내비메시에서
+# 적과 멀고·넓고·낭떠러지가 아닌 곳을 골라 **경로를 따라** 달린다. 경로가 적 옆을 지나면 그 후보는 버린다.
+FLEE_NEAR = 3.0        # 같은 층 이 안에
+FLEE_COUNT = 2         # 이만큼 붙으면 도망
+FLEE_COOLDOWN = 3.0    # 도망 끝나고 이만큼은 다시 도망 안 함 (같은 자리 왕복 방지)
+FLEE_MIN, FLEE_MAX = 5.0, 12.0   # 도망 목표 후보 거리
+FLEE_PATH_CLEAR = 1.2  # 가는 길이 적과 이보다 가까이 지나면 그 후보는 안 쓴다
 # 전술: 실패하면 다크사인으로 돌아가 **다른 전술**로 다시 한다 (사용자: "해결도 안 하고 멈추면 시간 낭비, 전술을 새로 짜서 다시")
 TACTICS = {
     "fight":       {"desc": "폭탄 + 근접 (지금까지의 전투)", "pb": {}},
@@ -106,6 +116,10 @@ class Runner:
         self.cur_wp = None               # 지금 가는 경로점 — Gemini 에게 "앞/뒤/옆" 을 알려 줄 기준
         self.force: str | None = None    # --force <전술>: 톰슨 대신 이 전술만 (시험용, 결과는 그대로 기록)
         self.gl = print                  # 판마다 전투 로그 함수로 바뀐다
+        self.flee_req = False            # on_tick 이 켜면 경로 루프가 도망을 실행한다
+        self.fleeing = False
+        self.flee_block_until = 0.0
+        self.cliff_pts = {m: n.centroid[n.cliffs()] for m, n in self.nm.items()}   # 낭떠러지에 닿은 면 (게임 파일에서 계산, 캐시됨)
         self.bandit = bandit.Thompson(list(TACTICS), TACTICS_F)
         self.tactic_draws: dict[str, float] = {}
         pa = self.nm[MAP_A].find_path(tuple(BONFIRE["stand"]), BOUND_A)
@@ -153,6 +167,14 @@ class Runner:
                                    "t": round(time.time() - st["t0"], 1),
                                    "by": near.npc_param if near else None, "dist": round(near.dist, 1) if near else None})
             st["last_hp"] = p.hp
+            tr = st.setdefault("trail", [])     # 지나온 자리 (1 m 간격) — 도망 목표를 못 찾으면 이 길로 물러난다
+            if p.hp > 0 and (not tr or math.dist(here, tr[-1]) >= 1.0):
+                tr.append(here)
+                del tr[:-80]
+            if not self.fleeing and not self.flee_req and p.hp > 0 and time.time() > self.flee_block_until:
+                close = [c for c in sn.hostile(FLEE_NEAR) if c.hp > 0 and not patrol.dormant(c) and abs(c.y - p.y) < 2.0]
+                if len(close) >= FLEE_COUNT:
+                    self.flee_req = True        # mode_fn 이 retreat 를 돌려 goto 를 빠져나오면 경로 루프가 도망을 실행한다
             for c in sn.chars:                  # 처치·준 피해 — HP 가 줄면 준 피해, 0 이 되면 처치 (죽은 적은 팀 표시가 바뀌어 목록 방식은 0 으로 셌다)
                 if c.max_hp <= 0 or c.dist > 25 or c.team != 6 and c.hp > 0:
                     continue
@@ -162,7 +184,7 @@ class Runner:
                     if c.hp <= 0 < prev:
                         st["kills"] += 1
                 st["ehp"][c.ptr] = c.hp
-            if self.guard is not None:
+            if self.guard is not None and not self.fleeing:   # 도망 중엔 싸우지 않는다 (락온·휘두르기가 달리기를 끊는다)
                 a = self.guard.tick(sn)
                 if a in ("bomb",):
                     st["bombs"] += 1
@@ -188,13 +210,15 @@ class Runner:
         while True:
             if time.time() - t0 > LEG_TIMEOUT:
                 return "stuck"
-            failed = False
+            failed = fled = False
             for q in path[1:]:
                 if time.time() - t0 > LEG_TIMEOUT:
                     return "stuck"
                 def mode_fn(_s):
                     if st["abort"]:
                         return "retreat"              # 포기 신호 → goto 가 곧바로 돌아온다
+                    if self.flee_req:
+                        return "retreat"              # 둘 이상 붙었다 → goto 를 빠져나와 도망
                     if self.guard and self.guard.mode == "retreat":
                         return "hold"                 # Guard 의 후퇴는 끔 — 그 자리에서 계속 싸운다
                     return self.mode(_s)
@@ -206,6 +230,10 @@ class Runner:
                     return "abort"
                 if r == "dead":
                     return "dead"
+                if r == "retreat" and self.flee_req:
+                    self.escape(nm, st, on_tick, tag)
+                    failed = fled = True               # 도망 뒤엔 지금 자리에서 경로를 다시 찾는다
+                    break
                 if r in ("timeout", "unreachable", "lost", "stuck"):
                     failed = True
                     break
@@ -218,7 +246,7 @@ class Runner:
                 break
             if best is None or d < best - 2.0:
                 best, replans = d, 0                 # 가까워지고 있으면 다시 센다
-            else:
+            elif not fled:                           # 도망으로 멀어진 건 '못 감' 이 아니다
                 replans += 1
                 if replans >= 4:
                     st["notes"].append(f"{tag}: 다시 찾아도 못 감 {replans}회 @({here[0]:.1f},{here[1]:.1f},{here[2]:.1f}) 남은 {d:.0f} m")
@@ -280,6 +308,96 @@ class Runner:
                 "hp_pct": round(p.hp / max(1, p.max_hp), 2),
                 "bombs_left": max(0, getattr(g.pb, "bombs_per_episode", 0) - g.bombs_thrown) if g else 0,
                 "enemies": enemies[:5]}
+
+    def pick_escape(self, nm, s, trail: list) -> tuple[list, str, float] | None:
+        """적이 없는 곳 고르기 → (경로, 어떻게, 도착점의 적과 거리). 후보 = 5~12 m 안의 내비메시 면 + 지나온 자리.
+        점수 = 적과의 거리(최대 10) + 넓이(주변 4 m 안의 면 수 × 0.15, 구석 피하기) − 낭떠러지 3 m 안 6.
+        경로 계산은 한 번에 ~18 ms 라 점수 상위 6개만 실제 경로를 찾고, 적 옆 1.2 m 안을 지나는 경로는 버린다."""
+        p = s.player
+        me = np.array([p.x, p.y, p.z])
+        foes = np.array([[c.x, c.y, c.z] for c in s.hostile(20.0) if c.hp > 0 and not patrol.dormant(c) and abs(c.y - p.y) < 4.0])
+        if foes.size == 0:
+            return None
+        C = nm.centroid
+        d = np.linalg.norm(C - me, axis=1)
+        mask = (d >= FLEE_MIN) & (d <= FLEE_MAX) & (np.abs(C[:, 1] - p.y) < 2.5) & nm.walkable()
+        cands = C[mask]
+        tr = np.array(trail[-40:]) if trail else np.zeros((0, 3))
+        if len(tr):
+            dt = np.linalg.norm(tr - me, axis=1)
+            cands = np.vstack([cands, tr[(dt >= FLEE_MIN) & (dt <= FLEE_MAX)]])
+        if len(cands) == 0:
+            return None
+        clear = np.min(np.linalg.norm(cands[:, None, :] - foes[None, :, :], axis=2), axis=1)
+        near_c = np.abs(C[None, :, 1] - cands[:, None, 1]) < 1.5
+        openness = np.sum((np.hypot(C[None, :, 0] - cands[:, None, 0], C[None, :, 2] - cands[:, None, 2]) < 4.0) & near_c, axis=1)
+        cl = self.cliff_pts.get(nm.map_id)
+        cliff = np.min(np.linalg.norm(cands[:, None, :] - cl[None, :, :], axis=2), axis=1) if cl is not None and len(cl) else np.full(len(cands), 99.0)
+        score = np.minimum(clear, 10.0) + 0.15 * np.minimum(openness, 20) - 6.0 * (cliff < 3.0)
+        best = None
+        for k in np.argsort(-score)[:6]:
+            path = nm.find_path(tuple(me), tuple(cands[k]))
+            if not path:
+                continue
+            pts = np.array(path)
+            far = pts[np.linalg.norm(pts - me, axis=1) > 1.5]      # 출발 직후는 원래 적 옆이다
+            pc = float(np.min(np.linalg.norm(far[:, None, :] - foes[None, :, :], axis=2))) if len(far) else float(clear[k])
+            if pc < FLEE_PATH_CLEAR:
+                continue
+            total = float(score[k]) + 0.5 * min(pc, 4.0)
+            if best is None or total > best[0]:
+                best = (total, path, float(clear[k]))
+        return (best[1], "빈 곳", best[2]) if best else None
+
+    def escape(self, nm, st, on_tick, tag: str, stop_on_abort: bool = True) -> None:
+        """둘 이상 붙었다 → 적이 없는 곳으로 경로를 따라 달린다 (가드 없이). 못 고르면 지나온 길로 ~10 m.
+        도착하거나, 5 m 안에 적이 없어지면 멈추고 FLEE_COOLDOWN 동안은 다시 도망가지 않는다."""
+        self.flee_req = False
+        s = self.snap(25.0)
+        if not s or s.player.hp <= 0:
+            return
+        p = s.player
+        n_close = len([c for c in s.hostile(FLEE_NEAR) if c.hp > 0 and not patrol.dormant(c) and abs(c.y - p.y) < 2.0])
+        t_pick = time.perf_counter()
+        pick = self.pick_escape(nm, s, st.get("trail", []))
+        ms = (time.perf_counter() - t_pick) * 1000
+        if pick:
+            path, how, clear = pick
+        else:
+            back, acc, prev = [], 0.0, (p.x, p.y, p.z)
+            for q in reversed(st.get("trail", [])[:-1]):
+                acc += math.dist(prev, q)
+                back.append(q)
+                prev = q
+                if acc >= 10.0:
+                    break
+            path, how, clear = [(p.x, p.y, p.z)] + back, "지나온 길", float("nan")
+        if len(path) < 2:
+            self.flee_block_until = time.time() + FLEE_COOLDOWN
+            return
+        self.gl(f"  도망: {FLEE_NEAR:.0f} m 안 적 {n_close} → {how} {math.dist((p.x, p.y, p.z), path[-1]):.1f} m "
+                f"(도착점 적과 {clear:.1f} m, 고르는 데 {ms:.0f} ms)")
+        self.fleeing = True
+        if self.rfx:
+            self.rfx.paused = True
+        self.pad.force_guard = False
+        self.pad.guard(False)
+        t0 = time.time()
+        try:
+            for q in path[1:]:
+                r = nav.goto(self.tm, self.pad, q, tolerance=1.2, timeout=3.0, log=lambda *a: None, on_tick=on_tick,
+                             mode_fn=lambda _s: "sprint", abort_on_stuck=True, terrain=nm)
+                if r in ("dead", "stuck", "timeout", "lost") or (stop_on_abort and st["abort"]):
+                    break
+                s2 = self.snap(6.0)
+                if s2 and time.time() - t0 > 1.5 and not [c for c in s2.hostile(5.0) if c.hp > 0 and not patrol.dormant(c)]:
+                    break                         # 떨어졌다 — 여기서 다시 길을 찾는다
+        finally:
+            self.fleeing = False
+            if self.rfx:
+                self.rfx.paused = False
+            self.flee_block_until = time.time() + FLEE_COOLDOWN
+            st["flees"] = st.get("flees", 0) + 1
 
     def mode(self, s) -> str:
         """전술별 이동. 적이 없으면 질주. gemini 팔이면 Gemini 가 고른 전술(self.active)을 따른다."""
@@ -424,7 +542,8 @@ class Runner:
             glog.write(f"{time.time() - t_ep:6.1f} {' '.join(str(x) for x in a)}\n")
             glog.flush()
         self.gl = gl
-        self.tactician = tactic_llm.Tactician(FIXED_TACTICS, log=gl, tag=f"merchant {i}") if llm else None
+        # min_gap 6 s: 2 s 로 뒀더니 적 수가 오르내릴 때마다 물어 sprint↔bomb_stop↔fight 를 14번 뒤집었다 (gemini 2판)
+        self.tactician = tactic_llm.Tactician(FIXED_TACTICS, log=gl, tag=f"merchant {i}", min_gap=6.0) if llm else None
         self.guard = patrol.Guard(self.pad, pb, log=gl, item_fn=getattr(self.tm, "selected_item", None), reflex=self.rfx)
         self.guard.has_estus = any(patrol.is_estus(x) for x in self.tm.quick_items())
         out = self.leg(MAP_A, BOUND_A, st, "out-A")
@@ -453,6 +572,12 @@ class Runner:
             self.wait_respawn()
             back = "respawn"
         elif need_ds:
+            # 둘러싸인 채 다크사인을 쓰면(쓰는 동작 2~3 s 무방비) 맞아 죽는다 (gemini 2판: HP 247 에서 5마리 옆 → 실패).
+            # 5 m 안에 적이 있으면 먼저 빈 곳으로 물러난다.
+            nm_here = self.nm[MAP_B if st["leg_base"] > 0 else MAP_A]
+            s = self.snap(6.0)
+            if s and [c for c in s.hostile(5.0) if c.hp > 0 and not patrol.dormant(c)]:
+                self.escape(nm_here, st, None, "pre-darksign", stop_on_abort=False)
             back = "darksign" if self.darksign() else "darksign_failed"
         else:
             back = "walk" if self.rest() else "walk_failed"
@@ -462,6 +587,7 @@ class Runner:
         return {"ep": i, "tactic": self.tactic, "success": reached, "outbound": out, "abort": st["abort"],
                 "progress": round(st["progress"], 3), "back": back,
                 "bombs": st["bombs"], "kills": st["kills"], "dealt": st["dealt"], "swings": st["swings"], "blocks": blocks,
+                "flees": st.get("flees", 0),
                 "seconds": t_out, "hp_left": hp_out, "hp_lost": sum(h["dmg"] for h in st["hits"]),
                 "hits": st["hits"], "fall": st["fall"], "death_at": st.get("death_at"), "notes": st["notes"], "t": time.time(),
                 **({"llm_calls": llm_calls} if llm_calls is not None else {}), **({"forced": True} if self.force else {})}
@@ -495,7 +621,7 @@ def main() -> None:
         wins += bool(r["success"])
         print(f"── {i}/{n} [{r['tactic']}]: {'✔ 도착' if r['success'] else '✖ ' + str(r['outbound'])}"
               f"{' (' + r['abort'] + ')' if r['abort'] else ''}  진행 {r['progress']:.0%}  {r['seconds']}s  "
-              f"잃은HP {r['hp_lost']}  폭탄 {r['bombs']}  휘두름 {r['swings']}  처치 {r['kills']}  "
+              f"잃은HP {r['hp_lost']}  폭탄 {r['bombs']}  휘두름 {r['swings']}  처치 {r['kills']}  도망 {r.get('flees', 0)}  "
               f"{'사망 ' + str(r['death_at']) + '  ' if r['death_at'] else ''}복귀 {r['back']}  누적 {wins}/{i} ({wins / i:.0%})",
               flush=True)
         for note in r["notes"]:
