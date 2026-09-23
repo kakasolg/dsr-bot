@@ -139,7 +139,7 @@ class Hunter(vp.Probe):
         """던지기용 정밀 조준 — 락온 없이 몸을 그놈에 deg 안으로. 스틱을 짧게 쳐서 조금씩 돌리고 놓은 뒤 결과를 본다.
         → 마지막 각도(°) (None = 그놈 없음)."""
         t = time.time()
-        off, prev, dur = None, None, None
+        off = None
         while time.time() - t < timeout:
             s = self.tm.snapshot(within=40.0)
             c = next((x for x in s.chars if x.ptr == ptr), None) if s else None
@@ -148,16 +148,13 @@ class Hunter(vp.Probe):
             off = math.degrees(patrol.rel_angle(s.player, c))
             if abs(off) <= deg:
                 break
-            # 짧게 치면 게임이 못 알아챈다 (0.035 s 로 -26° 에서 세 번 그대로 → 나이프 셋 다 빗나감). 안 돌았으면 더 길게
-            base = 0.08 if abs(off) > 30 else 0.06 if abs(off) > 10 else 0.05
-            dur = base if (dur is None or prev is None or abs(off - prev) > 1.0) else min(dur * 1.5, 0.2)
-            prev = off
+            # 실측(화톳불, 2026-09-23): 스틱 0.6 을 0.05~0.08 s 치면 몸이 그 방향으로 딱 선다 — ±40° 에서 한 번에 0.15° 안(4/4),
+            # 3~10° 에서도 0.9° 안(10/10). 0.3 이하는 게임이 안 받아서 2~5° 에서 멈췄고 칠 때마다 걷기만 했다 (나이프 6/6 빗나감)
             st = control.world_to_stick(c.x - s.player.x, c.z - s.player.z, s.cam_yaw, nav.YAW_OFFSET, nav.FLIP_X)
-            mag = 0.6 if abs(off) > 30 else 0.4 if abs(off) > 10 else 0.3
-            self.pad.move(*[mag * v for v in st])
-            time.sleep(dur)
+            self.pad.move(*[0.6 * v for v in st])
+            time.sleep(0.08 if abs(off) > 10 else 0.05)
             self.pad.move(0.0, 0.0)
-            time.sleep(0.15)
+            time.sleep(0.25)
         self.pad.move(0.0, 0.0)
         time.sleep(self.STICK_RELEASE_S)
         return off
@@ -177,7 +174,7 @@ class Hunter(vp.Probe):
             return False
         spawn = tuple(MAP[ti - 1]["pos"])
         for attempt in range(3):
-            off = self.aim_fine(ptr)
+            off = self.aim_fine(ptr, deg=1.2, timeout=4.0)   # 14 m 에서 3.3~4.6° 는 6/6 빗나감, 0.2° 는 2/2 맞음
             c0 = next((x for x in (self.tm.snapshot(within=40.0) or type("S", (), {"chars": []})).chars if x.ptr == ptr), None)
             if c0 is None:
                 return False
@@ -577,7 +574,8 @@ class Hunter(vp.Probe):
     #   3500 = 방패에 튕겨 휘청 (앞선 공격을 막은 직후에 나온다, 스스로는 안 닿음 2/2). 이때 약공 = **리포스트** — 피해는 누르고 ~1 s 뒤에
     #          들어가 약공 창(0.9 s)엔 0 으로 찍히고 곧 HP 0 (9/9 처치). 1.6 m 밖이면 구르며 들어가 약공 (5/5)
     #   2xxx (맞고 휘청) → 곧바로 약공 한 번 더
-    REACT = {3003: "heavy", 3010: "guard", 3004: "guard", 3001: "guard", 3000: "guard", 3002: "guard", 3005: "guard", 3500: "roll"}
+    #   (추가) 락온 없이 3003 강공은 0/10 (333600 이 나가지만 안 닿거나 139 맞바꿈) → 방패. 254000 은 막고 3500 리포스트로만 잡는다
+    REACT = {3003: "guard", 3010: "guard", 3004: "guard", 3001: "guard", 3000: "guard", 3002: "guard", 3005: "guard", 3500: "roll"}
     # 255010(2번, HP 85, 3005 한 방 210): 막으면 똑같이 3500 으로 1.38 s 휘청이지만 약공은 리포스트가 안 된다 (0 피해 → 703) → 강공
     #   3003 강공은 1.2 m 에서 0 피해 → 이어진 3009·3004 에 466 맞고 사망 (254000 과 다르다) → 방패, 막으면 3500 이 온다
     #   막아도 한 대에 31~74 가 들어오고 가드가 깨지면 322 → 막지 말고 백스텝으로 피한 뒤 백스텝 공격 ("bs"). 3009 는 0.22 s 라 방패
