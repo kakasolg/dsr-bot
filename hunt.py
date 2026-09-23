@@ -539,6 +539,90 @@ class Hunter(vp.Probe):
             self._r3(0.1)
         return res is not None and res["result"] == "처치"
 
+    def walk_fight(self, path: list, nm, tag: str, fight_r: float = 4.5, mode: str = "walk") -> str:
+        """경로를 걷다가 적이 fight_r m 안에 붙으면 멈춰서 그놈부터 (근접 — 지금 스타일). 잡으면 같은 경로점부터 다시.
+        → 'arrived' | 'dead' | 'hp' | 'stuck'"""
+        tols = nav.path_tolerances(path, 1.0)
+        i, fights, fails = 0, 0, 0
+        while i < len(path):
+            q, tol = path[i], tols[i]
+
+            def enemy_close(sn):
+                return any(c.hp > 0 and c.dist < fight_r and abs(c.y - sn.player.y) < 2.5 and not patrol.dormant(c)
+                           for c in sn.hostile(fight_r))
+            r = nav.goto(self.tm, self.pad, tuple(q), tolerance=tol, timeout=15, log=lambda *a: None, terrain=nm,
+                         on_tick=lambda sn, _d=None: self.note(sn), mode_fn=lambda sn: "retreat" if enemy_close(sn) else mode)
+            if r == "dead":
+                return "dead"
+            s = self.tm.snapshot(within=fight_r + 1.0)
+            if s and s.player.hp <= 0:
+                return "dead"
+            near = [c for c in (s.hostile(fight_r) if s else []) if c.hp > 0 and abs(c.y - s.player.y) < 2.5 and not patrol.dormant(c)]
+            if near and fights < 12:
+                c = min(near, key=lambda x: x.dist)
+                fights += 1
+                print(f"   {tag}: {c.npc_param} 가 {c.dist:.1f} m — 싸운다", flush=True)
+                self.phase = f"{tag} 싸움 {c.npc_param}"
+                ok = self.melee(0, 0, {"npc": c.npc_param, "pos": [round(c.x, 2), round(c.y, 2), round(c.z, 2)]}, c.ptr, nm, pull_to=None)
+                s2 = self.tm.snapshot(within=5.0)
+                if s2 is None or s2.player.hp <= 0:
+                    return "dead"
+                if not ok and s2.player.hp < s2.player.max_hp * 0.25:
+                    return "hp"
+                self.heal_if_needed()
+                self.phase = tag
+                continue                                    # 같은 경로점부터 다시
+            if r != "arrived":
+                fails += 1
+                if fails >= 3:
+                    return "stuck"
+            else:
+                fails = 0
+            i += 1
+        self.pad.neutral()
+        return "arrived"
+
+    def go_merchant(self) -> str:
+        """경사로 무리를 치운 뒤 상인까지 — 사용자: "10판 끝나면 상인까지 가는 길도 해봐".
+        계단 꼭대기 → (녹화 경로 A67~A70: 다리 높이로) → 내비메시로 경계 → 성벽 마을(구간 B, 녹화 경로) → 상인.
+        내비메시의 꼭대기→경계 경로는 14 m 떨어졌다가 16 m 를 1.2 m 안에서 오르는 연결 오류가 있어 그 구간만 녹화 경로로."""
+        na, nb = self.run.nm[mr.MAP_A], self.run.nm[mr.MAP_B]
+        top = tuple(json.loads((ROOT / "data" / "climb-goal.json").read_text(encoding="utf-8"))["top"])
+        t0 = time.time()
+        self.phase = "상인: 꼭대기"
+        s = self.tm.snapshot(within=1.0)
+        p1 = nav.trim_path((na.find_path((s.player.x, s.player.y, s.player.z), top) or [top])[1:], top)
+        r = self.walk_fight(p1, na, "상인 A-꼭대기")
+        if r != "arrived":
+            return f"꼭대기까지 {r}"
+        A = [tuple(q) for q in mr.ROUTE["segments"][0]["points"]]
+        bridge = A[67:71]                                   # 다리 높이(y -33.8)로 올라서는 녹화 점
+        p2 = (na.find_path(bridge[-1], mr.BOUND_A) or [mr.BOUND_A])[1:]
+        # 혹시 남은 연결 오류(짧은 수평에 3 m 넘는 높이 차) 는 버린다
+        clean = [bridge[-1]]
+        for q in p2:
+            h = math.dist((clean[-1][0], clean[-1][2]), (q[0], q[2]))
+            if abs(q[1] - clean[-1][1]) > 3.0 and h < 3.0:
+                continue
+            clean.append(q)
+        self.phase = "상인: 다리→경계"
+        r = self.walk_fight(bridge + clean[1:], na, "상인 A-다리")
+        if r != "arrived":
+            return f"경계까지 {r}"
+        print(f"   경계 도착 {time.time() - t0:.0f} s", flush=True)
+        self.phase = "상인: 성벽 마을"
+        time.sleep(1.0)
+        self.run.cur_nm = nb
+        B = [tuple(q) for q in mr.ROUTE["segments"][1]["points"]]
+        r = self.walk_fight(B + [tuple(mr.MERCHANT)], nb, "상인 B")
+        s = self.tm.snapshot(within=5.0)
+        d = None if not s else math.dist((s.player.x, s.player.y, s.player.z), tuple(mr.MERCHANT))
+        self.run.cur_nm = na
+        res = "도착" if (r == "arrived" and d is not None and d < 3.0) else f"구간 B {r} (상인까지 {d if d is None else round(d, 1)} m)"
+        print(f"   상인: {res} — {time.time() - t0:.0f} s, HP {s.player.hp if s else '?'}", flush=True)
+        self._ev("merchant", result=res, secs=round(time.time() - t0), left=None if d is None else round(d, 1))
+        return res
+
     def climb_to(self, goal, mode: str = "walk") -> str:
         """사냥 봇 이동 코드(nav.follow)로 goal 까지 — 사용자: "사냥 봇에 계단 수정 넣고, 몹 없는 상태로 천천히 올라가게".
         화톳불에서 쉬지 않는다 (쉬면 몹이 되살아난다)."""
@@ -1037,6 +1121,9 @@ class Hunter(vp.Probe):
             if self.observe_s > 0:
                 self.observe(k, ti)
         print("   목표 전부 처치", flush=True)
+        if self.to_merchant:
+            self.go_merchant()
+            return
         if self.lure_group:
             if not self.lure_fight(k, nm, self.lure_group):
                 return
@@ -1046,6 +1133,7 @@ class Hunter(vp.Probe):
     observe_s = 0.0
     plans: dict = {}
     then_run = False
+    to_merchant = False
     lure_group: list = []
 
     def lure_fight(self, k: int, nm, group: list[int]) -> bool:
@@ -2222,6 +2310,7 @@ def main() -> None:
     h.melee_style = style
     h.use_lock = "--lock" in sys.argv          # 기본은 락온 없이 (사용자: DS1 고수는 락온을 안 쓴다)
     h.then_run = "--run" in sys.argv           # 목표를 다 잡으면 BOUND_A 까지 달려서 지나간다
+    h.to_merchant = "--merchant" in sys.argv   # 목표를 다 잡으면 상인까지 (다리 → 경계 → 성벽 마을)
     h.HEAVY_FIRST = "--heavy" in sys.argv or "--brute" in sys.argv   # 강공 위주 (사용자: 상대 공격을 무시하고 강공)
     h.BRUTE = "--brute" in sys.argv
     if "--zwei" in sys.argv:                    # 츠바이헨더 양손 — 백스텝 공격 위주, 사거리가 길다
