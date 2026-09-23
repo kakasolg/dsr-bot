@@ -1326,6 +1326,7 @@ class Hunter(vp.Probe):
     # 사용자가 가장 잘 맞는다고 본 **백스텝 → 백스텝 공격** 을 거의 모든 공격에. 할로우 HP 75 라 닿으면 한 방.
     # 화톳불 실측: 약공 264000 후딜 ~2.7 s, 백스텝 공격 B 뒤 ~0.7 s 에 264500 시작, 구르기 공격 264900. 3009 는 0.22 s 라 막는다
     ZWEI = False
+    HEAVY_FIRST = False
     REACT_ZWEI = {3000: "bs", 3001: "bs", 3002: "bs", 3003: "bs", 3004: "bs", 3005: "bs", 3006: "bs", 3007: "bs",
                   3010: "bs", 3009: "guard", 3500: "roll"}
     BS_AT_ZWEI = {3000: 0.08, 3001: 0.28, 3002: 0.45, 3003: 0.73, 3004: 0.5, 3005: 0.55, 3006: 0.4, 3007: 0.4, 3010: 0.55}
@@ -1707,6 +1708,31 @@ class Hunter(vp.Probe):
                 if same_level and c.dist <= 3.5:
                     a = c.anim if c.anim is not None else -1
                     age = time.time() - self._etrk["t"]
+                    if self.HEAVY_FIRST and c.dist <= 2.8 and not (9900 <= a < 10000):
+                        # 사용자: "강공 위주로 — 상대 공격을 무시하고 공격". 특대검 강공은 휘두르는 중 안 끊기고(강인도),
+                        # 세로 내려찍기로 인간형을 경직·넘어뜨린다. 몸이 그놈을 향하면(25°) 공격 중이든 아니든 강공
+                        off_ = abs(math.degrees(patrol.rel_angle(p, c))) if p.heading is not None else 180.0
+                        if p.sp < 40:
+                            self.pad.guard(True)          # 강공 한 번 36 — 스태미나가 모자라면 방패 들고 한숨 돌린다
+                            self.aim(s, c)
+                            time.sleep(0.02)
+                            continue
+                        if off_ > 25:
+                            self.pad.guard(True)
+                            self.aim(s, c)
+                            time.sleep(0.01)
+                            continue
+                        r = self.strike("heavy", c, s, ptr, locked=locked, nm=nm)
+                        r = {"vs": a, "age": round(age, 2), "act": "heavy_first", "d": round(c.dist, 2), **r}
+                        counters.append(r)
+                        self._ev("act", **r)
+                        print(f"      {a} {c.dist:.1f} m → 강공: 적 피해 {r.get('enemy_dmg')}, 내 피해 {r.get('hit_after')}, 적 애니 {r.get('e_anims')}", flush=True)
+                        if r.get("enemy_dead"):
+                            if ptr != orig_ptr:
+                                continue
+                            why = "처치"
+                            break
+                        continue
                     table = self.REACT_ZWEI if self.ZWEI else {**self.REACT, **self.REACT_NPC.get(c.npc_param, {})}
                     act = table.get(a) if 3000 <= a < 3600 else "light" if 2000 <= a < 3000 else None
                     stale = time.time() - last_dmg_t > 10.0
@@ -2112,6 +2138,7 @@ def main() -> None:
     h.melee_style = style
     h.use_lock = "--lock" in sys.argv          # 기본은 락온 없이 (사용자: DS1 고수는 락온을 안 쓴다)
     h.then_run = "--run" in sys.argv           # 목표를 다 잡으면 BOUND_A 까지 달려서 지나간다
+    h.HEAVY_FIRST = "--heavy" in sys.argv       # 강공 위주 (사용자: 상대 공격을 무시하고 강공)
     if "--zwei" in sys.argv:                    # 츠바이헨더 양손 — 백스텝 공격 위주, 사거리가 길다
         h.ZWEI = True
         h.REACH = {"light": 2.6, "heavy": 2.6}
