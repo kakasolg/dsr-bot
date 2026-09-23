@@ -71,27 +71,39 @@ def rest(tm, pad, nm, bonfire) -> bool:
                     mode_fn=lambda _s: "sprint") == "dead":
             break
     pad.neutral()
+
+    def press(button, hold=0.1):
+        # tap 은 뗄 시각만 예약한다 — release_due 를 안 부르면 버튼이 눌린 채 남아, 다음 누름이 게임에 '새로 누름' 으로 안 간다
+        # (앉기 재시도·일어나기 B 가 안 먹혔다. 예전엔 사이에 goto 가 떼 줘서 가려져 있었다)
+        pad.tap(button, hold)
+        time.sleep(hold + 0.03)
+        pad.release_due()
+
+    def seated() -> bool:
+        # 화톳불 앞에서 A 를 누른 뒤 메뉴가 열려 있으면 앉은 것 — 화톳불 메뉴가 떠 있는데 sitting() 이 False 인 적이 있다
+        return tm.sitting() or tm.menu_open() is True
+
     for _ in range(4):
         tm.pos_warp(*bonfire["stand"], bonfire["heading"])
         time.sleep(0.9)
         control.focus_game()                # 창이 포커스를 잃으면 패드 입력을 무시한다 (옆에서 띄운 기록 프로세스가 포커스를 가져간 적 있음)
         time.sleep(0.3)
-        pad.interact()
+        press(vgamepad.XUSB_BUTTON.XUSB_GAMEPAD_A)   # DSR 상호작용 (pad.interact 와 같은 버튼)
         for _ in range(16):
             time.sleep(0.25)
-            if tm.sitting():
+            if seated():
                 break
-        if tm.sitting():
+        if seated():
             break
-    if not tm.sitting():
+    if not seated():
         return False
     time.sleep(1.0)
-    for _ in range(6):                      # 일어나기
-        if not tm.sitting():
+    for _ in range(6):                      # 일어나기 = 메뉴 닫기
+        if not seated():
             break
-        pad.tap(vgamepad.XUSB_BUTTON.XUSB_GAMEPAD_B, 0.1)
+        press(vgamepad.XUSB_BUTTON.XUSB_GAMEPAD_B)
         time.sleep(1.0)
-    return True
+    return not seated()
 
 
 def goal_xyz(nm, spot) -> tuple:

@@ -147,6 +147,7 @@ class Hunter(vp.Probe):
         nm = self.run.nm[mr.MAP_A]
         self.run.cur_nm = nm
         self.hist.clear()
+        self.last_kill_pos = None
         # 쉰 직후 = 전부 스폰 자리. 포인터를 잡아 두면 스폰을 떠나도 따라갈 수 있다 (3번은 1번이 죽으면 자리를 뜬다)
         s0 = self.tm.snapshot(within=200.0)
         self.ptr_of = {}
@@ -173,7 +174,7 @@ class Hunter(vp.Probe):
             left = {"v": False}
 
             def mode_fn(_s):
-                if plan == "bait" and tptr is not None:
+                if plan in ("bait", "melee") and tptr is not None:
                     tc = next((x for x in _s.chars if x.ptr == tptr), None)
                     if tc is not None and math.dist((tc.x, tc.y, tc.z), spawn) > 1.0:
                         left["v"] = True
@@ -191,6 +192,12 @@ class Hunter(vp.Probe):
             time.sleep(0.3)
             if plan == "bait":
                 if not self.bait(k, ti, e, tptr):
+                    return
+                continue
+            if plan == "melee":
+                # 알아채고 스폰을 떠났으면 앞 적을 잡은 평평한 자리로 물러나 거기서 맞이한다 (사용자: 원하는 지형까지 끌고 가기).
+                # 경사로 한가운데서 3번과 싸우다 2.2 m 아래 놈에게 강공이 헛돌고 325 맞았다.
+                if not self.melee(k, ti, e, tptr, nm, pull_to=self.last_kill_pos if left["v"] else None):
                     return
                 continue
             c, s = self.find(spawn)
@@ -235,6 +242,9 @@ class Hunter(vp.Probe):
             if res["result"] != "처치":
                 print("   못 잡음 — 화톳불로", flush=True)
                 return
+            sk = self.tm.snapshot(within=1.0)
+            if sk:
+                self.last_kill_pos = (sk.player.x, sk.player.y, sk.player.z)
             if self.observe_s > 0:
                 self.observe(k, ti)
         print("   목표 전부 처치", flush=True)
@@ -266,6 +276,130 @@ class Hunter(vp.Probe):
         time.sleep(0.1)
         self.pad.release_due()
         return False
+
+    last_kill_pos = None
+
+    def melee(self, k: int, ti: int, e: dict, ptr, nm, pull_to=None) -> bool:
+        """정면 돌파 — 사용자: "폭탄이 없으면 근접으로 정면 돌파, 캐릭터가 강해서 강공이 먹히면 한 방에 끝난다".
+        같은 높이(높이차 0.8 m 미만)로 2 m 안이면 막고 → R2 강공 (적이 휘두르는 중엔 방패, 끝나면 스틱을 그놈 쪽으로 + R2).
+        pull_to 가 있으면 먼저 그 평평한 자리로 물러나 기다린다. 다가가다 2 s 진전이 없으면(낙차·다른 층) 밀지 않고 기다리고,
+        10 s 를 기다려도 안 오면 다시 다가간다. 내 HP 40 % 아래면 포기. 30 s 안에 못 끝내면 포기."""
+        if ptr is None:
+            print(f"   #{ti}: 포인터 없음", flush=True)
+            return False
+        t0 = time.time()
+        swings, locked, hits = 0, False, []
+        hp_start = None
+        why = None
+        last_anim, att_start, waits = None, 0.0, 0
+        mode, wait_since, prog_pos, prog_t = "approach", 0.0, None, time.time()
+        if pull_to is not None:
+            print(f"      알아챘다 — 평평한 자리 {tuple(round(v, 1) for v in pull_to)} 로 물러나 맞이한다", flush=True)
+            nav.goto(self.tm, self.pad, pull_to, tolerance=1.0, timeout=8, log=lambda *a: None, terrain=nm,
+                     on_tick=lambda sn, _d=None: self.note(sn), mode_fn=lambda _s: "sprint")
+            mode, wait_since = "wait", time.time()
+        while time.time() - t0 < 30.0:
+            s = self.tm.snapshot(within=30.0)
+            if not s:
+                time.sleep(0.05)
+                continue
+            self.note(s)
+            p = s.player
+            hp_start = hp_start or p.hp
+            if p.hp <= 0:
+                why = "사망"
+                break
+            if p.hp < p.max_hp * 0.4:
+                why = f"내 HP {p.hp}"
+                break
+            c = next((x for x in s.chars if x.ptr == ptr), None)
+            if c is None or c.hp <= 0:
+                why = "처치"
+                break
+            if c.anim != last_anim:              # 공격 애니로 **바뀐** 순간 (번호는 끝나도 남는다 — reflex.ATTACK_WINDOW)
+                if 3000 <= (c.anim or 0) < 3600:
+                    att_start = time.time()
+                last_anim = c.anim
+            enemy_swinging = 3000 <= (c.anim or 0) < 3600 and time.time() - att_start < 1.3
+            if time.time() - getattr(self, "_mdbg", 0) > 2.0:
+                self._mdbg = time.time()
+                print(f"      근접 +{time.time() - t0:4.1f}s: 거리 {c.dist:.1f} m (높이차 {c.y - p.y:+.1f}), 나 ({p.x:.1f},{p.y:.1f},{p.z:.1f}), "
+                      f"적 ({c.x:.1f},{c.y:.1f},{c.z:.1f}) 애니 {c.anim}", flush=True)
+            same_level = abs(c.y - p.y) < 0.8
+            if c.dist > 2.0 or not same_level:
+                if mode == "wait":
+                    self.pad.move(0.0, 0.0)     # 방패 들고 제자리 — 오게 둔다
+                    self.pad.guard(True)
+                    if time.time() - wait_since > 10.0:
+                        mode, prog_pos, prog_t = "approach", None, time.time()
+                        self.pad.guard(False)
+                    time.sleep(0.03)
+                    continue
+                if prog_pos is None or math.dist((p.x, p.z), prog_pos) > 0.5:
+                    prog_pos, prog_t = (p.x, p.z), time.time()
+                elif time.time() - prog_t > 2.0:
+                    print(f"      2 s 진전 없음 (거리 {c.dist:.1f} m, 높이차 {c.y - p.y:+.1f}) — 밀지 않고 기다린다", flush=True)
+                    mode, wait_since = "wait", time.time()
+                    continue
+                path = nm.find_path((p.x, p.y, p.z), (c.x, c.y, c.z))
+                q = path[1] if path and len(path) > 1 else (c.x, c.y, c.z)
+                d_now = c.dist
+                nav.goto(self.tm, self.pad, q, tolerance=1.8 if len(path or []) <= 2 else 1.0, timeout=1.2, log=lambda *a: None,
+                         on_tick=lambda sn, _d=None: self.note(sn), terrain=nm,
+                         mode_fn=lambda _s: "creep" if d_now < 4.0 else "walk")
+                continue
+            # 막고 → 한 대 (사용자 원칙): 적이 휘두르는 중(공격 애니 시작 뒤 1.3 s)이면 방패만 든다. 그 사이에 R2 를 누르면
+            # 우리 공격이 나가기 전에 맞아서 끊긴다 — 첫 근접에서 강공 4번 중 3번이 0 피해, 그동안 421 맞았다 (적 애니 3003·3006 중에 휘두름).
+            if enemy_swinging:
+                self.pad.move(0.0, 0.0)
+                self.pad.guard(True)
+                waits += 1
+                time.sleep(0.03)
+                continue
+            self.pad.guard(False)
+            self.pad.neutral()
+            # 락온 없이 겨눈다 — 붙은 적에게 정렬·락온 확인은 너무 느렸다 (1번이 2.4 s 만에 0.9 m 로 붙어 치는 동안 락온 확인 중 90 맞음).
+            # 공격을 누르는 순간의 스틱 방향으로 몸이 틀어진다.
+            if s.cam_yaw is None:
+                time.sleep(0.05)
+                continue
+            st_ = control.world_to_stick(c.x - p.x, c.z - p.z, s.cam_yaw, nav.YAW_OFFSET, nav.FLIP_X)
+            hp_before = c.hp
+            self.pad.heavy(stick=st_)
+            swings += 1
+            t1 = time.time()
+            hp_min = hp_before
+            while time.time() - t1 < 1.3:
+                s2 = self.tm.snapshot(within=10.0)
+                c2 = next((x for x in s2.chars if x.ptr == ptr), None) if s2 else None
+                hp_min = 0 if c2 is None else min(hp_min, c2.hp)
+                self.pad.release_due()
+                time.sleep(0.03)
+            hits.append(hp_before - hp_min)
+            if hp_min <= 0:
+                why = "처치"
+                break
+            if swings >= 4:
+                why = "4번 쳐도 안 죽음"
+                break
+        if why == "처치":
+            sk = self.tm.snapshot(within=1.0)
+            if sk:
+                self.last_kill_pos = (sk.player.x, sk.player.y, sk.player.z)   # 다음 적을 끌어올 평평한 자리
+        self.pad.guard(False)
+        self.pad.neutral()
+        s = self.tm.snapshot(within=5.0)
+        res = {"plan": "melee", "result": why or "시간 초과", "swings": swings, "dmg_per_swing": hits, "guard_ticks": waits,
+               "my_hp_lost": (hp_start - s.player.hp) if (s and hp_start) else None}
+        self._record(k, ti, e, None, None, {}, res)
+        print(f"   #{ti} {e['npc']} 근접: {res['result']} — 강공 {swings}번, 피해 {hits}, 내가 잃은 HP {res['my_hp_lost']}", flush=True)
+        if why != "처치":
+            if locked:
+                self.pad.lock_on()
+                time.sleep(0.1)
+                self.pad.release_due()
+            return False
+        return True
 
     def bait(self, k: int, ti: int, e: dict, ptr) -> bool:
         """알아채고 오게 둔다 — 폭탄을 고르고, 스폰을 떠난 그놈에 **먼저** 정렬·락온(확인)해 둔 채 방패를 들고 기다리다,
@@ -342,6 +476,10 @@ class Hunter(vp.Probe):
             self.pad.lock_on()          # 살아 있으면 락온 풀기
             time.sleep(0.1)
             self.pad.release_due()
+        if res["result"] == "처치":
+            sk = self.tm.snapshot(within=1.0)
+            if sk:
+                self.last_kill_pos = (sk.player.x, sk.player.y, sk.player.z)
         if res["result"] != "처치":
             print("   못 잡음 — 화톳불로", flush=True)
             return False

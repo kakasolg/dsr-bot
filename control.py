@@ -190,6 +190,21 @@ class Pad:
     SLOT_ESTUS, SLOT_BOMB, SLOT_KNIFE = 0, 1, 2
     def attack(self) -> None: self.tap(B.XUSB_GAMEPAD_RIGHT_SHOULDER, 0.06)
 
+    def heavy(self, hold: float = 0.12, stick: tuple[float, float] | None = None) -> None:
+        """R2 강공 — 오른쪽 트리거라 tap(버튼 예약)을 못 쓴다. hold 동안 눌렀다 뗀다 (그동안 잔다).
+        stick 을 주면 같은 입력에 왼스틱도 — 공격 시작 순간의 스틱 방향으로 몸이 틀어진다 (락온 없이 겨누기, kick 과 같은 방식)."""
+        with self._lock:
+            if stick is not None:
+                self.pad.left_joystick_float(x_value_float=stick[0], y_value_float=stick[1])
+            self.pad.right_trigger_float(value_float=1.0)
+            self.pad.update()
+        time.sleep(hold)
+        with self._lock:
+            self.pad.right_trigger_float(value_float=0.0)
+            if stick is not None:
+                self.pad.left_joystick_float(x_value_float=0.0, y_value_float=0.0)
+            self.pad.update()
+
     def kick(self, sx: float, sy: float) -> None:
         """발차기 = 캐릭터 정면으로 스틱을 끝까지 + RB 를 **같은 보고(report)에** 넣는다.
         (sx, sy) 는 world_to_stick 으로 바꾼 '캐릭터 정면' 방향. 한손 무기일 때만 나간다.
