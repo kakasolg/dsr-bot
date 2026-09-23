@@ -539,10 +539,13 @@ class Hunter(vp.Probe):
             self._r3(0.1)
         return res is not None and res["result"] == "처치"
 
-    def walk_fight(self, path: list, nm, tag: str, fight_r: float = 4.5, mode: str = "walk") -> str:
+    def walk_fight(self, path: list, nm, tag: str, fight_r: float = 4.5, mode: str = "walk", recorded: int = 0) -> str:
         """경로를 걷다가 적이 fight_r m 안에 붙으면 멈춰서 그놈부터 (근접 — 지금 스타일). 잡으면 같은 경로점부터 다시.
         → 'arrived' | 'dead' | 'hp' | 'stuck'"""
         tols = nav.path_tolerances(path, 1.0)
+        # 앞의 recorded 개 점은 사람 녹화 점 — 0.4 m 로 좁히면 계단 끝에서 0.6~0.7 m 넘게 못 다가가 '막힘' 이었다 → 0.8 m
+        for j in range(min(recorded, len(tols))):
+            tols[j] = 0.8
         i, fights, fails = 0, 0, 0
         first_seen: dict = {}
         ignore: set = set()
@@ -561,8 +564,11 @@ class Hunter(vp.Probe):
 
             def enemy_close(sn):
                 return any(fightable(c, sn.player) for c in sn.hostile(fight_r))
-            r = nav.goto(self.tm, self.pad, tuple(q), tolerance=tol, timeout=15, log=lambda *a: None, terrain=nm,
-                         on_tick=lambda sn, _d=None: self.note(sn), mode_fn=lambda sn: "retreat" if enemy_close(sn) else mode)
+            # 내비메시가 비어 있는 곳(다리 위 A70: 바닥이 아래층 -49.8 로 잡힘)은 바닥 확인을 끄고 걷는다 — 확인하면 '앞에 바닥 없음' 으로 못 간다
+            f_ = nm.floor_at(q[0], q[2], q[1]) if len(q) > 2 else None
+            terr = nm if (f_ is not None and abs(f_[0] - q[1]) < 2.0) else None
+            r = nav.goto(self.tm, self.pad, tuple(q), tolerance=tol if terr is not None else max(tol, 0.8), timeout=15, log=lambda *a: None,
+                         terrain=terr, on_tick=lambda sn, _d=None: self.note(sn), mode_fn=lambda sn: "retreat" if enemy_close(sn) else mode)
             if r == "dead":
                 return "dead"
             s = self.tm.snapshot(within=fight_r + 1.0)
@@ -622,7 +628,7 @@ class Hunter(vp.Probe):
                 continue
             clean.append(q)
         self.phase = "상인: 다리→경계"
-        r = self.walk_fight(bridge + clean[1:], na, "상인 A-다리")
+        r = self.walk_fight(bridge + clean[1:], na, "상인 A-다리", recorded=len(bridge))
         if r != "arrived":
             return f"경계까지 {r}"
         print(f"   경계 도착 {time.time() - t0:.0f} s", flush=True)
@@ -640,7 +646,7 @@ class Hunter(vp.Probe):
                     pb.extend(fill[1:-1])
                     print(f"   구간 B: 끊긴 곳 {tuple(round(v, 1) for v in pb[-1])} → {tuple(round(v, 1) for v in q)} 를 내비메시 {len(fill) - 2} 점으로", flush=True)
             pb.append(q)
-        r = self.walk_fight(pb, nb, "상인 B")
+        r = self.walk_fight(pb, nb, "상인 B", recorded=len(pb))
         s = self.tm.snapshot(within=5.0)
         d = None if not s else math.dist((s.player.x, s.player.y, s.player.z), tuple(mr.MERCHANT))
         self.run.cur_nm = na
