@@ -14,6 +14,7 @@
 """
 from __future__ import annotations
 
+import dataclasses
 import json
 import math
 import sys
@@ -33,8 +34,14 @@ import patrol
 import playbook as pbm
 import quitout
 import reflex
+import tactic_llm
 
 ROOT = Path(__file__).resolve().parent
+try:
+    from dotenv import load_dotenv   # GEMINI_API_KEY (gemini 전술)
+    load_dotenv(ROOT.parent / ".env")
+except ImportError:
+    pass
 OUT = ROOT / "data" / "merchantrun.jsonl"
 GLOG = ROOT / "data" / "merchantrun.log"      # 전투 판단 기록 (왜 못 잡는지 보려고)
 ROUTE = json.loads((ROOT / "data" / "routes" / "firelink-merchant-run.json").read_text(encoding="utf-8"))
@@ -59,7 +66,14 @@ TACTICS = {
     "bomb_stop":   {"desc": "4~9.5 m 까지 다가가 멈춰 서서 폭탄, 4 m 안으로 오면 근접", "pb": {}},
     "bomb_sprint": {"desc": "달리다 사거리에 들면 폭탄만, 근접 안 함", "pb": {"attack_range": 0.0, "melee_proactive": False}},
     "sprint":      {"desc": "싸우지 않고 달린다", "pb": {}},
+    # 고정 전술이 아니라 "교전이 바뀔 때마다 Gemini 가 위 넷 중 하나를 고른다" (tactic_llm). 첫 답이 오기 전엔 fight.
+    # 12 상황 프로브에서 3.5 Flash-Lite 가 8/10 이었지만 틀린 답을 가려낼 신뢰도 신호가 없었다 — 그래서 믿을지 말지는
+    # 이 팔의 성적(톰슨 샘플링)이 정한다.
+    "gemini":      {"desc": "교전마다 Gemini 3.5 Flash-Lite 가 위 넷 중 하나를 고른다", "pb": {}, "llm": True},
 }
+FIXED_TACTICS = [k for k, v in TACTICS.items() if not v.get("llm")]
+CLIFFS = [tuple(p) for p in json.loads((ROOT / "data" / "cliffs" / f"{MAP_A}.json").read_text(encoding="utf-8"))] \
+    if (ROOT / "data" / "cliffs" / f"{MAP_A}.json").exists() else []   # 실제로 떨어졌던 자리 — 경사로 판정
 PB_DIR = ROOT / "data" / "playbook-merchant"
 # 막무가내 질주는 경사로의 할로우 둘에게 길이 막혀 0.8 m 안에서 13대 맞고 죽었다 (1판 실측).
 # 그래서 길을 막는 놈은 치우고 지나간다: 멀리서 파이어밤(할로우 HP 75 = 한 방, 9.4 m 까지 실측), 붙으면 막고 한 대.
@@ -87,6 +101,11 @@ class Runner:
         self.guard = None
         self.rfx = None
         self.tactic = "fight"
+        self.active = "fight"            # 지금 실제로 쓰는 고정 전술 (gemini 팔이면 Gemini 가 바꾼다)
+        self.tactician: tactic_llm.Tactician | None = None
+        self.cur_wp = None               # 지금 가는 경로점 — Gemini 에게 "앞/뒤/옆" 을 알려 줄 기준
+        self.force: str | None = None    # --force <전술>: 톰슨 대신 이 전술만 (시험용, 결과는 그대로 기록)
+        self.gl = print                  # 판마다 전투 로그 함수로 바뀐다
         self.bandit = bandit.Thompson(list(TACTICS), TACTICS_F)
         self.tactic_draws: dict[str, float] = {}
         pa = self.nm[MAP_A].find_path(tuple(BONFIRE["stand"]), BOUND_A)
@@ -149,6 +168,7 @@ class Runner:
                     st["bombs"] += 1
                 if a in ("attack", "counter", "combo"):
                     st["swings"] += 1
+                self._llm_tick(sn, st)
             if p.hp > 0:
                 st["last_pos"] = [round(p.x, 1), round(p.y, 1), round(p.z, 1)]
             ys = st["ys"]
@@ -178,6 +198,7 @@ class Runner:
                     if self.guard and self.guard.mode == "retreat":
                         return "hold"                 # Guard 의 후퇴는 끔 — 그 자리에서 계속 싸운다
                     return self.mode(_s)
+                self.cur_wp = q
                 r = nav.goto(self.tm, self.pad, q, tolerance=1.5, timeout=20, log=lambda *a: None,
                              on_tick=on_tick, mode_fn=mode_fn, terrain=nm,
                              engage_fn=lambda _s: self.guard.engage_pos() if self.guard else None)
@@ -211,10 +232,59 @@ class Runner:
             return "dead"
         return "ok" if math.dist((s.player.x, s.player.y, s.player.z), goal) < 6.0 else "stuck"
 
-    def mode(self, s) -> str:
-        """전술별 이동. 적이 없으면 질주."""
+    def _llm_tick(self, s, st) -> None:
+        """gemini 팔: 새 답이 왔으면 전술을 바꾸고, 교전 상황이 바뀌었으면 다시 묻는다 (적이 없으면 안 묻는다)."""
+        tc = self.tactician
+        if tc is None or self.guard is None:
+            return
+        new = tc.take()
+        if new and new != self.active:
+            self.active = new
+            self.guard.pb = dataclasses.replace(self.pb, **TACTICS[new]["pb"])   # Guard 는 pb 를 틱마다 읽는다
+            self.gl(f"  전술 → {new} (gemini)")
+        state = self.llm_state(s, st)
+        if not state["enemies"]:
+            return
+        d0 = state["enemies"][0]["distance_m"]
+        # 상황 요약 — 이게 바뀔 때만 묻는다: 적 수, 최근접 거리 구간(근접/폭탄 사거리/밖), 길 막힘, 낭떠러지 옆
+        sig = (len(state["enemies"]), 0 if d0 < 4.0 else (1 if d0 <= 9.5 else 2),
+               any(e["blocking_path"] for e in state["enemies"]), state["terrain"] != "stone path")
+        tc.maybe_ask(sig, state)
+
+    def llm_state(self, s, st) -> dict:
+        """12 상황 프로브(score_judge.SCENARIOS)와 같은 모양의 상태. '앞' 은 지금 가는 경로점 방향."""
+        p = s.player
+        fx, fz = (self.cur_wp[0] - p.x, self.cur_wp[2] - p.z) if self.cur_wp else (0.0, 0.0)
+        fn = math.hypot(fx, fz)
+        enemies = []
+        for c in s.hostile(20.0):
+            if c.hp <= 0 or patrol.dormant(c) or abs(c.y - p.y) > 6.0:
+                continue
+            dx, dz, dy = c.x - p.x, c.z - p.z, c.y - p.y
+            dn = math.hypot(dx, dz)
+            ang = math.degrees(math.acos(max(-1.0, min(1.0, (dx * fx + dz * fz) / (dn * fn))))) if fn > 0.1 and dn > 0.1 else 90.0
+            where = "on the path ahead" if ang < 35 else ("behind, chasing" if ang > 135 else "to the side")
+            if dy > 2.5:
+                where = "above, on a ledge or balcony"
+            elif dy < -2.5:
+                where = "below"
+            kind = "skeleton" if 290000 <= c.npc_param < 300000 else ("hollow" if 250000 <= c.npc_param < 260000 else "enemy")
+            enemies.append({"type": kind, "distance_m": round(c.dist, 1), "height_diff_m": round(dy, 1),
+                            "blocking_path": ang < 35 and abs(dy) < 2.5 and c.dist < 12.0,
+                            "attacking": bool(self.rfx and self.rfx.threat_ptr == c.ptr) or (c.anim or 0) in patrol.ENEMY_ATTACK_ANIMS,
+                            "where": where})
+        near_drop = any(math.dist((p.x, p.y, p.z), q) < 8.0 for q in CLIFFS)
         g = self.guard
-        if g is None or self.tactic == "sprint":
+        return {"terrain": "narrow ramp with a 20 m drop on one side" if near_drop else "stone path",
+                "path_left_m": round(st["route_len"] * (1 - st["progress"])),
+                "hp_pct": round(p.hp / max(1, p.max_hp), 2),
+                "bombs_left": max(0, getattr(g.pb, "bombs_per_episode", 0) - g.bombs_thrown) if g else 0,
+                "enemies": enemies[:5]}
+
+    def mode(self, s) -> str:
+        """전술별 이동. 적이 없으면 질주. gemini 팔이면 Gemini 가 고른 전술(self.active)을 따른다."""
+        g = self.guard
+        if g is None or self.active == "sprint":
             return "sprint"
         near = sorted((c for c in s.hostile(15.0) if c.hp > 0 and not patrol.dormant(c) and abs(c.y - s.player.y) < 4),
                       key=lambda c: c.dist)
@@ -223,13 +293,13 @@ class Runner:
         gm = g.mode if g.mode != "retreat" else "hold"
         d = near[0].dist if near else 99.0
         bombs_left = g.bombs_thrown < getattr(g.pb, "bombs_per_episode", 0)
-        if self.tactic == "bomb_stop" and bombs_left:
+        if self.active == "bomb_stop" and bombs_left:
             if d < 4.0:
                 return gm                     # 붙었다 — 근접
             if d <= 9.5:
                 return "hold"                 # 폭탄 사거리 — 서서 던진다 (가드 든 채)
             return "creep"                    # 사거리 밖 — 천천히 다가간다
-        if self.tactic == "bomb_sprint":
+        if self.active == "bomb_sprint":
             if g.bomb_step in (1, 2) and 4.0 <= d <= 9.5:
                 return "hold"                 # 폭탄을 들고 사거리 안 — 잠깐 서서 던진다
             return "sprint"
@@ -310,12 +380,16 @@ class Runner:
 
     def record_tactic(self, name: str, success: bool, progress: float) -> None:
         self.bandit.record(name, 1.0 if success else PROGRESS_WEIGHT * progress,
-                           success=bool(success), progress=round(progress, 3))
+                           success=bool(success), progress=round(progress, 3), **({"forced": True} if self.force else {}))
 
     def episode(self, i: int) -> dict:
-        import dataclasses
-        self.tactic = self.pick_tactic()
-        pb = dataclasses.replace(self.pb, **TACTICS[self.tactic]["pb"])
+        if self.force:
+            self.tactic, self.tactic_draws = self.force, {}
+        else:
+            self.tactic = self.pick_tactic()
+        llm = bool(TACTICS[self.tactic].get("llm"))
+        self.active = "fight" if llm else self.tactic
+        pb = dataclasses.replace(self.pb, **TACTICS[self.active]["pb"])
         st = {"ep": i, "t0": time.time(), "hits": [], "fall": None, "notes": [], "last_hp": None, "last_pos": None, "ys": [],
               "bombs": 0, "kills": 0, "dealt": 0, "swings": 0, "ehp": {}, "abort": None, "progress": 0.0,
               "route_len": self.len_a + self.len_b, "leg_base": 0.0, "leg_len": self.len_a,
@@ -334,6 +408,8 @@ class Runner:
         def gl(*a):
             glog.write(f"{time.time() - t_ep:6.1f} {' '.join(str(x) for x in a)}\n")
             glog.flush()
+        self.gl = gl
+        self.tactician = tactic_llm.Tactician(FIXED_TACTICS, log=gl, tag=f"merchant {i}") if llm else None
         self.guard = patrol.Guard(self.pad, pb, log=gl, item_fn=getattr(self.tm, "selected_item", None), reflex=self.rfx)
         self.guard.has_estus = any(patrol.is_estus(x) for x in self.tm.quick_items())
         out = self.leg(MAP_A, BOUND_A, st, "out-A")
@@ -351,7 +427,8 @@ class Runner:
         self.rfx.stop()
         self.rfx.join(1.0)
         blocks = self.guard.blocks
-        self.guard, self.rfx = None, None
+        llm_calls = list(self.tactician.calls) if self.tactician else None
+        self.guard, self.rfx, self.tactician, self.cur_wp = None, None, None, None
         # 돌아가기: 죽었으면 부활을 기다리고, 살아 있으면(도착했든 포기했든) 다크사인
         if not alive or out == "dead":
             st["death_at"] = st["last_pos"]
@@ -366,7 +443,8 @@ class Runner:
                 "progress": round(st["progress"], 3), "back": back,
                 "bombs": st["bombs"], "kills": st["kills"], "dealt": st["dealt"], "swings": st["swings"], "blocks": blocks,
                 "seconds": t_out, "hp_left": hp_out, "hp_lost": sum(h["dmg"] for h in st["hits"]),
-                "hits": st["hits"], "fall": st["fall"], "death_at": st.get("death_at"), "notes": st["notes"], "t": time.time()}
+                "hits": st["hits"], "fall": st["fall"], "death_at": st.get("death_at"), "notes": st["notes"], "t": time.time(),
+                **({"llm_calls": llm_calls} if llm_calls is not None else {}), **({"forced": True} if self.force else {})}
 
 
 def main() -> None:
@@ -374,8 +452,16 @@ def main() -> None:
         print(f"전술 사후 분포 ({TACTICS_F.name}, 보상 = 성공 1 / 실패 {PROGRESS_WEIGHT}×진행도)")
         print(bandit.Thompson(list(TACTICS), TACTICS_F).format_report())
         return
-    n = int(sys.argv[1]) if len(sys.argv) > 1 else 100
+    args = sys.argv[1:]
+    force = None
+    if "--force" in args:                 # 시험용: 톰슨 대신 이 전술만 (결과는 forced 표시와 함께 그대로 기록)
+        force = args[args.index("--force") + 1]
+        if force not in TACTICS:
+            raise SystemExit(f"--force 는 {list(TACTICS)} 중 하나")
+        del args[args.index("--force"):args.index("--force") + 2]
+    n = int(args[0]) if args else 100
     run = Runner()
+    run.force = force
     wins = 0
     print(f"상인 달리기 {n}판 — 경계 {BOUND_A}→{BOUND_B}, 상인 {MERCHANT}", flush=True)
     print("전술 사후 분포 (시작):\n" + run.bandit.format_report(), flush=True)
@@ -394,6 +480,11 @@ def main() -> None:
               flush=True)
         for note in r["notes"]:
             print(f"     · {note}", flush=True)
+        if r.get("llm_calls") is not None:
+            calls = r["llm_calls"]
+            ms = sorted(c["ms"] for c in calls if c.get("pick"))
+            print(f"     · gemini {len(calls)}회: {' '.join(c.get('pick') or '×' for c in calls) or '(교전 없음)'}"
+                  f"{f'  p50 {ms[len(ms) // 2]} ms' if ms else ''}", flush=True)
     print("전술 사후 분포 (끝):\n" + run.bandit.format_report(), flush=True)
 
 

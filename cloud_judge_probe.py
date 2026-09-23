@@ -81,52 +81,11 @@ def chat(model: str, state: dict, temperature: float) -> tuple[str | None, float
     return pick, ms, {"usage": out.get("usage"), "raw": c[:80]}
 
 
-GEMINI_API = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-
-
 def chat_direct(model: str, state: dict, temperature: float) -> tuple[str | None, float, dict]:
-    """Gemini API 직접 (게이트웨이 무료 등급에서 3.x 가 403 이라). 키 = GEMINI_API_KEY (상위 .env 또는 환경 변수).
-    모델 이름은 "gemini-direct:<모델>" 로 넘긴다. 생각(thinking)은 최소로 — 3.x 는 thinkingLevel, 2.x 는 thinkingBudget."""
-    key = os.environ.get("GEMINI_API_KEY")
-    if not key:
-        return None, 0.0, {"error": "GEMINI_API_KEY 없음 — 상위 폴더 .env 에 GEMINI_API_KEY=... 한 줄을 넣는다"}
-    name = model.split(":", 1)[1]
-    user = sj.prompt(state).split("<|im_start|>user\n")[1].split("<|im_end|>")[0]
-    thinking = {"thinkingLevel": "minimal"} if name.startswith("gemini-3") else {"thinkingBudget": 0}
-    body = {"systemInstruction": {"parts": [{"text": sj.SYSTEM.replace("Answer with exactly one line: Tactic: <name>", "Reply with the JSON object only.")}]},
-            "contents": [{"role": "user", "parts": [{"text": user}]}],
-            # 한도는 생각 토큰까지 포함한다 — 256 이면 3.8 Flash 가 'minimal' 에도 생각에 123~248 을 써서 답이 잘렸다 (첫 실행 무효)
-            "generationConfig": {"temperature": temperature, "maxOutputTokens": 4096, "responseMimeType": "application/json",
-                                 "responseSchema": {"type": "OBJECT", "properties": {"tactic": {"type": "STRING", "enum": list(sj.TACTICS)}},
-                                                    "required": ["tactic"]},
-                                 "thinkingConfig": thinking}}
-    for attempt in range(6):
-        req = urllib.request.Request(GEMINI_API.format(model=name), data=json.dumps(body).encode(), method="POST",
-                                     headers={"x-goog-api-key": key, "Content-Type": "application/json"})
-        t0 = time.perf_counter()
-        try:
-            with urllib.request.urlopen(req, timeout=30) as r:
-                out = json.loads(r.read().decode())
-            break
-        except urllib.error.HTTPError as e:
-            msg = e.read().decode()[:300]
-            if e.code == 429 and attempt < 5:
-                time.sleep(13.0)
-                continue
-            if e.code == 400 and "thinking" in msg.lower() and "thinkingConfig" in body["generationConfig"]:
-                body["generationConfig"].pop("thinkingConfig")      # 이 모델이 그 생각 설정을 안 받으면 기본값으로
-                continue
-            return None, (time.perf_counter() - t0) * 1000, {"error": f"{e.code} {msg}"}
-        except Exception as e:  # noqa: BLE001
-            return None, (time.perf_counter() - t0) * 1000, {"error": str(e)[:200]}
-    ms = (time.perf_counter() - t0) * 1000
-    parts = ((out.get("candidates") or [{}])[0].get("content") or {}).get("parts") or []
-    text = "".join(p.get("text", "") for p in parts if not p.get("thought"))
-    try:
-        pick = json.loads(text[text.find("{"): text.rfind("}") + 1])["tactic"]
-    except Exception:  # noqa: BLE001
-        pick = None
-    return pick, ms, {"usage": out.get("usageMetadata"), "raw": text[:80]}
+    """Gemini API 직접 (게이트웨이 무료 등급에서 3.x 가 403 이라). 모델 이름은 "gemini-direct:<모델>" — 봇이 쓰는 것과 같은 호출(tactic_llm)."""
+    import tactic_llm
+    return tactic_llm.gemini_choice(model.split(":", 1)[1], tactic_llm.system_text(), tactic_llm.user_text(state),
+                                    list(sj.TACTICS), temperature=temperature)
 
 
 def jev_pick(state: dict) -> tuple[str | None, float, dict]:
