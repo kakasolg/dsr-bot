@@ -35,6 +35,7 @@ OUT = ROOT / "data" / "hunt.jsonl"
 MAP = json.loads((ROOT / "data" / "enemy-map.json").read_text(encoding="utf-8"))["enemies"]
 ITEM_BOMB = 292
 ITEM_KNIFE = 290
+ITEM_ESTUS = 205
 JUDGE_MODEL = "gemini-3.8-flash"
 # 경사로 아래 평지. 처음 쓴 (-31.0, -49.7, 26.0) 은 150~270° 쪽 2 m 에 바닥이 없는 낭떠러지 끝이었다 (1.25 m) —
 # 거기서 두 번 추락사(애니 1500, 931 한 번에). 반경 3 m 16방향 바닥이 다 있고 가장 가까운 낙차까지 4.0 m 인 자리로 옮김.
@@ -433,6 +434,32 @@ class Hunter(vp.Probe):
         self._ev("block_test", hits=out)
         return out
 
+    def heal_if_needed(self, frac: float = 0.55, max_sips: int = 2) -> None:
+        """잡은 뒤 HP 가 frac 아래고 5 m 안에 적이 없으면 에스트 (사용자가 2번 칸에 넣어 줌, 10회분)."""
+        for _ in range(max_sips):
+            s = self.tm.snapshot(within=10.0)
+            if not s or s.player.hp >= s.player.max_hp * frac:
+                return
+            if any(c.hp > 0 for c in s.hostile(5.0)):
+                print("      에스트: 5 m 안에 적 — 안 마심", flush=True)
+                return
+            if not self.tm.goods_count(ITEM_ESTUS):
+                print("      에스트 없음", flush=True)
+                return
+            if not self.select_item(ITEM_ESTUS):
+                print("      에스트 칸을 못 고름", flush=True)
+                return
+            hp0 = s.player.hp
+            self.pad.neutral()
+            self.pad.use_item()
+            t = time.time()
+            while time.time() - t < 2.6:
+                self.pad.release_due()
+                time.sleep(0.02)
+            s2 = self.tm.snapshot(within=10.0)
+            print(f"      에스트: HP {hp0} → {s2.player.hp if s2 else '?'} (남은 {self.tm.goods_count(ITEM_ESTUS)})", flush=True)
+            self._ev("estus", hp0=hp0, hp1=s2.player.hp if s2 else None)
+
     def knife_pull(self, ti: int, ptr, nm) -> bool:
         """평지(ARENA)에서 투척 나이프로 그놈을 부른다 — 걸어서 다가가면 좁은 띠(서쪽 낭떠러지)에서 싸우게 됐다.
         지도 적은 휴식하면 늘 같은 자리·같은 방향이라 평지에서 곧게 던지면 닿는다."""
@@ -600,10 +627,15 @@ class Hunter(vp.Probe):
             self.phase = f"#{ti} 접근"
             s = self.tm.snapshot(within=1.0)
             path = nm.find_path((s.player.x, s.player.y, s.player.z), mr.BOUND_A)
-            idx, stand = self.standpoint(path, spawn, dist)
+            # 사람 순서(fight)는 경사로에서 만난다 — 3 m 까지 올라간다 (9.5 m 앞에서 기다리면 3번이 평지로 내려와 1번과 같이 붙었다)
+            idx, stand = self.standpoint(path, spawn, 3.0 if self.plans.get(ti) == "fight" else dist)
             if stand is None:
-                print(f"   #{ti}: 경로에서 {dist} m 안에 드는 점 없음 — 건너뜀", flush=True)
-                continue
+                if self.plans.get(ti, "sneak") in ("fight", "knife", "rushg", "rush", "snipe", "plunge"):
+                    idx, stand = 1, None                    # 경로 밖(이미 지나친 1번, 경로에서 3 m 안에 안 드는 4번) — 걷지 않고 바로 그 공략으로
+                    path = [path[0]] if path else []
+                else:
+                    print(f"   #{ti}: 경로에서 {dist} m 안에 드는 점 없음 — 건너뜀", flush=True)
+                    continue
             near = {"v": False}
 
             bomb = {"ptr": None, "t": 0.0, "anim": {}}
@@ -622,13 +654,19 @@ class Hunter(vp.Probe):
             def mode_fn(_s):
                 if bomb["ptr"] is not None and time.time() - bomb["t"] < 2.8:
                     return "retreat"                        # goto 를 끊고 방패로 받는다
-                if plan in ("bait", "melee", "study") and tptr is not None:
+                if plan in ("bait", "melee", "study", "fight") and tptr is not None:
                     tc = next((x for x in _s.chars if x.ptr == tptr), None)
                     if tc is not None and math.dist((tc.x, tc.y, tc.z), spawn) > 1.0:
                         left["v"] = True
                         return "retreat"                    # 알아채고 스폰을 떠났다 → 멈춰서 맞이한다
+                if plan == "fight":
+                    return "sprint"                         # 사람은 달려 올라갔다 (1번은 뒤에 두고)
                 return "creep" if near["v"] else "walk"
-            walk = path[1:idx] + [stand] if plan not in ("knife", "plunge", "snipe", "rush") else []
+            walk = (path[1:idx] + [stand]) if (stand is not None and plan not in ("knife", "plunge", "snipe", "rush", "rushg")) else []
+            if plan == "fight" and tptr is not None:
+                tc0 = next((x for x in (self.tm.snapshot(within=200.0) or type("S", (), {"chars": []})).chars if x.ptr == tptr), None)
+                if tc0 is not None and math.dist((tc0.x, tc0.y, tc0.z), spawn) > 1.5:
+                    walk = []                           # 이미 깨서 따라오는 놈(1번) — 걸어가지 않고 바로 싸운다
             from_flat = False
             if self.last_kill_pos is not None and plan in ("melee", "study") and walk:
                 # 앞 적을 잡은 평평한 자리에서 곧게 이어지면(15 m 안) 거기서 다가가 알아채게 하고 그 자리로 끌어온다.
@@ -668,6 +706,27 @@ class Hunter(vp.Probe):
                 if not self.bait(k, ti, e, tptr):
                     return
                 continue
+            if plan == "rushg":
+                # 사람 기록(2026-09-23): 5번에게 방패(LB)를 든 채 걸어서 붙었다 — 걷는 쪽이 5번이라 방패가 늘 5번을 향한다.
+                # 화염병 하나는 방패로 받고(76) 하나는 움직이는 중이라 빗나감. 1.6 m 에서 R1 로 처치
+                self.phase = f"#{ti} 방패 들고 붙기"
+                sp_ = self.tm.snapshot(within=1.0)
+                rp = nm.find_path((sp_.player.x, sp_.player.y, sp_.player.z), spawn) or [spawn]
+                t_r = time.time()
+                for q in rp[1:]:
+                    tc = next((x for x in (self.tm.snapshot(within=40.0) or type("S", (), {"chars": []})).chars if x.ptr == tptr), None)
+                    if tc is not None and tc.dist < 3.0:
+                        break
+                    if nav.goto(self.tm, self.pad, q, tolerance=1.0, timeout=12, log=lambda *a: None, terrain=nm,
+                                on_tick=lambda sn, _d=None: self.note(sn), mode_fn=lambda _s: "guard") == "dead":
+                        print("   사망", flush=True)
+                        return
+                self.pad.neutral()
+                print(f"   #{ti}: 방패 들고 붙음 {time.time() - t_r:.1f} s", flush=True)
+                if not self.melee(k, ti, e, tptr, nm, pull_to=None):
+                    return
+                self.heal_if_needed()
+                continue
             if plan == "rush":
                 # 사용자: "화염병 던지는 몹부터, 내가 위에서 아래로". 아래에선 5번이 절벽 턱 뒤라 칼이 안 닿고(0/12), 멈춰서 막으면
                 # 3.6 s 마다 던져서 한 걸음도 못 갔다(19 m 에 20 s). 화염병은 던질 때 자리로 떨어지니 멈추지 않고 달려 붙는다
@@ -704,6 +763,13 @@ class Hunter(vp.Probe):
                     return
                 if not self.melee(k, ti, e, tptr, nm, pull_to=None, wait_first=True):
                     return
+                self.heal_if_needed()
+                continue
+            if plan == "fight":
+                # 사람 순서: 만나는 자리에서 그대로 막고 리포스트 (평지로 끌어오지 않는다)
+                if not self.melee(k, ti, e, tptr, nm, pull_to=None):
+                    return
+                self.heal_if_needed()
                 continue
             if plan in ("melee", "study"):
                 # 알아채고 스폰을 떠났으면 앞 적을 잡은 평평한 자리로 물러나 거기서 맞이한다 (사용자: 원하는 지형까지 끌고 가기).
@@ -1268,6 +1334,7 @@ class Hunter(vp.Probe):
         self._etrk = {"anim": None, "t": 0.0}
         acted_for, idle_near_since, counters = None, None, []
         last_hp, dmg_log, close_since, last_seen = None, [], None, None
+        orig_ptr, switched_at = ptr, 0.0
         self._stick_zero_t = None
         self.phase = f"#{ti} 근접"
         if not self.use_lock:
@@ -1325,6 +1392,32 @@ class Hunter(vp.Probe):
                 why = f"내 HP {p.hp}"
                 break
             c = next((x for x in s.chars if x.ptr == ptr), None)
+            if (c is None or c.hp <= 0) and ptr != orig_ptr:
+                # 옆에서 끼어든 놈을 잡았다 — 원래 목표로 돌아간다
+                co = next((x for x in s.chars if x.ptr == orig_ptr and x.hp > 0), None)
+                if co is not None:
+                    print(f"      끼어든 놈 처치 — 원래 목표로 ({co.dist:.1f} m)", flush=True)
+                    self._ev("retarget_back", to=orig_ptr)
+                    ptr, c = orig_ptr, co
+                    self._etrk = {"anim": None, "t": 0.0}
+                    acted_for, idle_near_since = None, None
+            if c is not None and c.hp > 0:
+                # 다른 놈이 3 m 안에서 휘두르기 시작했는데(3000~3599) 지금 목표는 안 휘두르면, 또는 1 m 넘게 더 가까우면 그놈부터
+                # (사람 순서 첫 시도: 5번에게 붙었을 때 4번이 옆에서 3006 — 5번만 보다 230 맞고 둘과 함께 턱에서 떨어짐)
+                cand = [x for x in s.hostile(3.0) if x.ptr != ptr and x.hp > 0 and abs(x.y - p.y) < 1.5]
+                if cand:
+                    o = min(cand, key=lambda x: x.dist)
+                    o_sw = 3000 <= (o.anim or 0) < 3600
+                    c_sw = 3000 <= (c.anim or 0) < 3600
+                    # 바꾼 뒤 1.2 s 는 그대로 (5번↔4번 을 틱마다 오갔다), 지금 목표가 휘두르는 중이면 '더 가깝다' 만으로는 안 바꾼다
+                    if time.time() - switched_at > 1.2 and ((o_sw and not c_sw) or (o.dist + 1.0 < c.dist and not c_sw)):
+                        switched_at = time.time()
+                        idx_ = {v: k_ for k_, v in self.ptr_of.items()}
+                        print(f"      목표 바꿈: #{idx_.get(o.ptr, '?')} ({o.dist:.1f} m, 애니 {o.anim}) — 지금 목표 {c.dist:.1f} m 애니 {c.anim}", flush=True)
+                        self._ev("retarget", to=o.ptr, anim=o.anim, d=round(o.dist, 1))
+                        ptr, c = o.ptr, o
+                        self._etrk = {"anim": None, "t": 0.0}
+                        acted_for, idle_near_since = None, None
             if c is None:
                 # 30 m 밖으로 갔거나 죽어서 목록에서 빠졌다 — 넓게 다시 본다 (전엔 둘 다 '처치' 로 셌다)
                 sw = self.tm.snapshot(within=250.0)
