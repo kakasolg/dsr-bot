@@ -62,10 +62,17 @@ MY_KICK_ANIM = 333100  # 발차기 (강화 곤봉 한손 실측). 약공은 3330
 THROW_TIME = 1.6       # 던지는 동작 + 여유 (s). 이 안에 붙을 적에게는 안 던진다
 CHIP_DMG = 10          # 막았을 때도 1~4 씩 깎인다 (실측) — 이하면 '막음'으로 본다. 예전엔 HP 가 그대로일 때만 막음으로 봐서 반격이 한 번도 안 나갔다
 TURN_S = 0.35          # 옆/뒤 적 쪽으로 몸을 돌리는 시간
+TURN_RETRY_S = 0.5     # 돌아서기가 끝나고 이 안에 또 돌아야 하면 실패로 센다
 TURN_MAX_DIST = 2.2    # 이보다 가까운 놈에게만 돌아선다
 THREAT_DIST = 2.5      # 이보다 가까운 놈이 휘두를 때만 공격을 멈춘다
 NOLOCK_AFTER_TURN_S = 3.0
 HIT_GUARD_S = 0.3      # 맞은 뒤 이 시간은 공격 없이 가드만 (적 공격 중 가드는 reflex.py 가 5 ms 단위로 맡는다)
+
+
+def rel_angle(p, c) -> float:
+    """c 가 내 정면에서 몇 rad 옆에 있나 (−π..π, + 가 오른쪽). 실측: 월드 yaw = heading + π."""
+    fwd = p.heading + math.pi
+    return (math.atan2(c.x - p.x, c.z - p.z) - fwd + math.pi) % (2 * math.pi) - math.pi
 
 
 def dormant(c) -> bool:
@@ -132,8 +139,8 @@ class Guard:
         self.pb = pb
         self.turn_until = 0.0    # 옆/뒤의 적 쪽으로 도는 중
         self.turn_block_until = 0.0
-        self.turn_prev = None
         self.turn_fail = 0
+        self.last_touch = 0.0    # 마지막으로 막았거나 맞은 시각 — 무시 중인 적이 실제로 닿는지 판정
         self.nolock_until = 0.0  # 이때까지 락온 안 함 (돌아선 직후)
         self.anchor = None       # (x, z) 지키는 자리 — 여기서 anchor_radius 밖으로는 적을 쫓아가지 않는다
         self.reflex = reflex     # 반사 스레드(reflex.py) — 적 공격 중(threat)이면 공격·투척을 하지 않는다
@@ -292,6 +299,22 @@ class Guard:
         # 경사에서는 붙어 있는 적도 높이가 2 m 넘게 차이 난다. 그걸 "다른 층"으로 보면 교전도 도망도 안 한다
         # (사용자: "4명한테 둘러싸였는데 도망도 안 치고 공격도 안 함"). 가까울수록 높이 기준을 넉넉히 본다.
         floor = [c for c in hostile if abs(c.y - p.y) < (3.5 if c.dist < 6.0 else 2.0)]
+        # '닿지 않는 적'으로 무시하던 놈이 붙어서 실제로 닿으면(1 s 안에 막기·피격 + 그놈이 휘두르는 중이거나 가장 가까움) 무시를 푼다.
+        # 실측(상인 달리기): 무시 중인 할로우가 옆에서 때리면 돌아서며 교전 대상으로 잡았다가, 다음 틱에 '무시 중'이라 교전이
+        # 풀려 다른 놈을 잡고, 또 돌아서기를 반복했다 — 돌아서기 317번 중 155번이 무시 목록의 npc 였다.
+        # 휘두르는 애니만으로는 풀지 않는다 (창살 너머 적도 휘두르고, 공격 애니 판정엔 오탐이 있다 — 노트 H-7).
+        thr_ptr = self.reflex.threat_ptr if self.reflex else None
+        if blocked or (self.last_hp is not None and p.hp < self.last_hp):
+            self.last_touch = now
+        closest = min((c for c in floor if c.hp > 0 and not dormant(c)), key=lambda c: c.dist, default=None)
+        for c in floor:
+            if (self.ignore.get(c.ptr, 0) > now and c.dist <= TURN_MAX_DIST and now - self.last_touch < 1.0
+                    and (c.ptr == thr_ptr or c is closest)):
+                del self.ignore[c.ptr]
+                self.log(f"  guard: 무시하던 적이 {c.dist:.1f} m 에서 닿음 — 무시 해제 (npc {c.npc_param})")
+                if self.engage is None or self.engage.dist > c.dist:   # 때리는 놈을 두고 먼 놈과 싸우지 않는다
+                    self.engage, self.engage_since, self.engage_hp0, self.my_hp0 = c, now, c.hp, p.hp
+                    self.engage_pos0, self.engage_move_t = (p.x, p.z), now
         cands = [c for c in floor if self.ignore.get(c.ptr, 0) < now or c.dist <= 3.0]
         for c in floor:
             h = self.dist_hist.setdefault(c.ptr, [])
@@ -365,6 +388,11 @@ class Guard:
                 self.engage = cur
                 if cur.hp != self.engage_hp0 or p.hp != self.my_hp0:   # 서로 HP 가 변했으면 "교착" 타이머 리셋
                     self.engage_since, self.engage_hp0, self.my_hp0 = now, cur.hp, p.hp
+                elif blocked and (closest is None or closest.ptr == cur.ptr):
+                    # 막았다(교전 대상이 가장 가까운 놈일 때) = 그 적의 공격이 방패에 닿았다. HP 가 그대로여도 닿는 거리의 싸움이지 교착이 아니다.
+                    # 실측(farm.log 18:10:15~16): 두 번 막은 직후 1.5 m 앞 해골을 "8 s 동안 서로 안 맞음"으로 60 s 무시했다
+                    # (attack_range 1.0 + 0.3 < 1.5 라 교착 조건을 통과).
+                    self.engage_since = now
                 if self.engage_pos0 is None or math.hypot(p.x - self.engage_pos0[0], p.z - self.engage_pos0[1]) > 0.5:
                     self.engage_pos0, self.engage_move_t = (p.x, p.z), now   # 우리가 움직이면 교착 타이머 리셋
                 # 3 m 안에서 "벽 치기·빙글빙글 유인" 을 하면 붙어 있는 해골에게 패링·앞잡을 당한다 (실측: 86×4)
@@ -417,16 +445,22 @@ class Guard:
             att = min((c for c in hostile if c.dist < 2.5 and c.hp > 0 and not dormant(c)), key=lambda c: c.dist, default=None)
         if att is not None and att.dist > TURN_MAX_DIST:
             att = None                                    # 멀리서 휘두르는 놈은 닿지 않는다 — 그쪽으로 돌다가 눈앞의 놈을 놓쳤다 (할로우 3~4마리: 0.35 s 마다 이리저리)
+        if (att is not None and att.ptr != thr and self.engage is not None and att.ptr != self.engage.ptr
+                and p.heading is not None and self.engage.dist <= self.pb.attack_range
+                and abs(rel_angle(p, self.engage)) <= math.radians(50)):
+            att = None                                    # 사거리 안 정면에 교전 대상이 있다 — 휘두르지도 않는 옆 놈 때문에 등을 돌리지 않는다
         if att is not None and p.heading is not None:
-            fwd = p.heading + math.pi                     # 실측: 월드 yaw = heading + π
-            off = (math.atan2(att.x - p.x, att.z - p.z) - fwd + math.pi) % (2 * math.pi) - math.pi
-            # 돌았는데도 각도가 안 줄면(막혀서 못 돎) 세 번 뒤 2 s 동안 돌기를 멈추고 앞의 적을 상대한다
+            off = rel_angle(p, att)
+            # 돌아서기가 끝나자마자(TURN_RETRY_S 안) 또 돌아야 하면 실패로 센다 — 대상이 바뀌어도, 각도가 조금 줄었어도.
+            # 세 번이면 2 s 동안 돌기를 멈추고 앞의 적을 상대한다.
+            # 예전엔 '같은 적 + 각도가 20° 넘게 안 줄었을 때'만 셌다. 같은 npc 의 할로우 둘이 번갈아 잡히거나 각도가 한 번이라도
+            # 20° 줄면 0 으로 돌아가서, 0.9 m 앞 할로우 쪽으로 +90~160° 돌기만 50 s 넘게 반복했다
+            # (상인 달리기 21:19 판 돌아서기 142번 · 전체 317번 중 '3번 실패' 차단은 2번, 마지막 4판 공격 0회).
             if abs(off) > math.radians(50) and now > self.turn_until and now > self.turn_block_until:
-                if self.turn_prev is not None and self.turn_prev[0] == att.ptr and abs(off) > abs(self.turn_prev[1]) - math.radians(20):
+                if now - self.turn_until < TURN_RETRY_S:
                     self.turn_fail += 1
                 else:
                     self.turn_fail = 0
-                self.turn_prev = (att.ptr, off)
                 if self.turn_fail >= 3:
                     self.turn_block_until, self.turn_fail = now + 2.0, 0
                     self.log(f"  guard: 돌아서기 3번 실패 ({math.degrees(off):+.0f}°) — 2 s 동안 앞의 적만")
@@ -439,7 +473,7 @@ class Guard:
                 if self.locked:
                     self.pad.lock_on()                    # 다른 놈에 락온된 채로는 몸이 안 돈다
                     self.locked, self.lock_ptr = False, None
-                self.log(f"  guard: {'공격 중인 ' if thr else ''}적이 {math.degrees(off):+.0f}° 쪽 — 돌아선다 (npc {att.npc_param}, {att.dist:.1f} m)")
+                self.log(f"  guard: {'공격 중인 ' if att.ptr == thr else ''}적이 {math.degrees(off):+.0f}° 쪽 — 돌아선다 (npc {att.npc_param}, {att.dist:.1f} m)")
         if now < self.turn_until and self.engage is not None:
             self.mode = "engage"                          # 그 적 쪽으로 반 걸음 — 몸이 돌아간다 (가드는 든 채)
             return act or "turn"
@@ -651,12 +685,16 @@ def run_episode(route: str, pb, harasser=None, max_seconds: float = 240.0, laps:
     pts = rt["points"]
     grace_id = rt.get("grace")
     gp = rt.get("grace_pos") or pts[0]   # 축복 정확한 위치 (워프 도착점) — 없으면 wp0
-    grace_heading = None
     if rt.get("bonfires"):               # DSR: 화톳불 여러 개 — 쉴 땐 가장 가까운 것 (TODO: 지금은 첫 번째)
         grace_id = rt["bonfires"][0]["id"]
         gp = rt["bonfires"][0]["pos"]
-        grace_heading = rt["bonfires"][0].get("heading")
     grace_pos = (gp[0], gp[2])
+
+    def learn_heading(h: float) -> None:
+        rt["bonfires"][0]["heading"] = round(h, 3)   # 배운 각도를 기억 — 다음 휴식부터는 8 방향을 안 돌린다
+        (ROUTES / f"{route}.json").write_text(json.dumps(rt, ensure_ascii=False, indent=1))
+        log(f"  화톳불 각도 학습 → 경로 파일에 저장 ({h:.2f})")
+
     tm = tm or env.make_telemetry(env.load_names())
     pad = pad or control.Pad()
     guard = Guard(pad, pb, log, jev=jev)
@@ -759,7 +797,8 @@ def run_episode(route: str, pb, harasser=None, max_seconds: float = 240.0, laps:
             # ── 성배병이 바닥이면 축복으로 가서 쉰다 (실패하면 30 s 뒤 다시) ──
             if guard.need_rest and time.time() - last_rest_try > 30.0:
                 last_rest_try = time.time()
-                ok = rest_at_grace(tm, pad, guard, grace_pos, grace_id, log, on_tick, ep)
+                ok = rest_at_grace(tm, pad, guard, grace_pos, grace_id, log, on_tick, ep,
+                                   bonfire=(rt.get("bonfires") or [None])[0], on_heading=learn_heading)
                 still["since"] = time.time()   # 앉아 있던 시간을 멈춤으로 세지 않는다
                 if ok:
                     k = nearest_k()            # 축복에서 다시 순찰
@@ -862,21 +901,26 @@ def run_episode(route: str, pb, harasser=None, max_seconds: float = 240.0, laps:
     return result
 
 
-def rest_at_grace(tm, pad, guard, grace_pos, grace_id, log, on_tick, ep) -> bool:
+def rest_at_grace(tm, pad, guard, grace_pos, grace_id, log, on_tick, ep, bonfire: dict | None = None, on_heading=None) -> bool:
     """가까운 축복(지금은 경로 시작 축복)으로 가서 앉는다 → HP·성배병 충전. 가는 길에도 on_tick(Guard·방해)이 돈다.
     축복 앞에서 Y 로 앉으면 메뉴가 뜨고 그 순간 회복된다 → 회복 확인 후 B 로 닫고 일어난다.
-    Y 가 안 먹으면(범위 밖) 조금 더 다가가 재시도, 그래도 안 되면 브릿지 warp — 적이 붙어 있으면 워프가 막혀 실패(호출자가 30 s 뒤 재시도)."""
+    Y 가 안 먹으면(범위 밖) 조금 더 다가가 재시도, 그래도 안 되면 브릿지 warp — 적이 붙어 있으면 워프가 막혀 실패(호출자가 30 s 뒤 재시도).
+    DSR: bonfire = 경로 파일의 화톳불 항목 {id, pos, heading?}. 각도를 새로 알아내면 on_heading(각도) 로 알려 준다 (호출자가 저장).
+    (예전엔 run_episode 의 지역 변수 gp/grace_heading/rt/route 를 그대로 써서 DSR 에서 여기에 오면 NameError 였다.
+     에스트 수를 못 읽어 need_rest 가 늘 False 라 드러나지 않았을 뿐.)"""
     cur, mx = tm.flasks()
     log(f"  성배병 {cur}/{mx} — 축복으로 가서 쉼")
     ep.write({"t": round(time.time(), 3), "event": "rest", "phase": "go", "flasks": cur})
     if nav.goto(tm, pad, grace_pos, tolerance=2.0, timeout=120, on_tick=on_tick, log=log, mode_fn=lambda s: guard.mode) == "dead":
         return False
     if env.GAME == "dsr":
-        ok = rest_at_bonfire(tm, pad, (gp[0], gp[1], gp[2]), log, on_tick, ep, heading=grace_heading)
-        if ok and grace_heading is None and getattr(tm, "last_rest_heading", None) is not None:
-            rt["bonfires"][0]["heading"] = round(tm.last_rest_heading, 3)   # 배운 각도를 기억
-            (ROUTES / f"{route}.json").write_text(json.dumps(rt, ensure_ascii=False, indent=1))
-            log(f"  화톳불 각도 학습 → 경로 파일에 저장 ({tm.last_rest_heading:.2f})")
+        if not bonfire or not bonfire.get("pos"):
+            log("  경로 파일에 화톳불 위치가 없음 — 쉬지 못함")
+            return False
+        heading = bonfire.get("heading")
+        ok = rest_at_bonfire(tm, pad, tuple(bonfire["pos"][:3]), log, on_tick, ep, heading=heading)
+        if ok and heading is None and on_heading and getattr(tm, "last_rest_heading", None) is not None:
+            on_heading(tm.last_rest_heading)
         return ok
     # 앉기 판정 반경이 0.7 m 도 안 된다 (실측: 격자 0.7 m 에서 한 점만 성공) → 정확한 지점 + 주변 4점을 0.35 m 오차로 밟으며 Y
     spots = [grace_pos] + [(grace_pos[0] + dx, grace_pos[1] + dz) for dx, dz in ((0.4, 0), (-0.4, 0), (0, 0.4), (0, -0.4))]

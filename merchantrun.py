@@ -350,6 +350,7 @@ class Runner:
         hp_out = s.player.hp if alive else 0
         self.rfx.stop()
         self.rfx.join(1.0)
+        blocks = self.guard.blocks
         self.guard, self.rfx = None, None
         # 돌아가기: 죽었으면 부활을 기다리고, 살아 있으면(도착했든 포기했든) 다크사인
         if not alive or out == "dead":
@@ -363,7 +364,7 @@ class Runner:
         self.record_tactic(self.tactic, reached, st["progress"])
         return {"ep": i, "tactic": self.tactic, "success": reached, "outbound": out, "abort": st["abort"],
                 "progress": round(st["progress"], 3), "back": back,
-                "bombs": st["bombs"], "kills": st["kills"], "dealt": st["dealt"], "swings": st["swings"],
+                "bombs": st["bombs"], "kills": st["kills"], "dealt": st["dealt"], "swings": st["swings"], "blocks": blocks,
                 "seconds": t_out, "hp_left": hp_out, "hp_lost": sum(h["dmg"] for h in st["hits"]),
                 "hits": st["hits"], "fall": st["fall"], "death_at": st.get("death_at"), "notes": st["notes"], "t": time.time()}
 

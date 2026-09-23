@@ -169,8 +169,9 @@ def episode(tm, pad, nm, guard, dng, spot, max_seconds: float) -> dict:
             st["swings"] += 1
             if st["pend"] is None:
                 st["pend"] = (time.time(), guard.engage.ptr, guard.engage.hp)
-        if a == "blocked":
-            st["blocks"] += 1
+        # 막기는 tick 의 반환값이 아니라 Guard.blocks 로만 센다 (Guard 는 "blocked" 를 반환하지 않는다).
+        # 예전엔 a == "blocked" 를 세서 18판 모두 blocks=0 — "막고 한 대" 지표가 한 번도 측정되지 않았다. Guard 는 판마다 새로 만든다.
+        st["blocks"] = guard.blocks
 
     guard.anchor = (spot_xyz[0], spot_xyz[2])
     t0 = time.time()
