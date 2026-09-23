@@ -334,19 +334,28 @@ class Hunter(vp.Probe):
             if c0 is None:
                 return False
             hp0 = c0.hp
+            n0 = self.tm.goods_count(ITEM_KNIFE)
             self.pad.use_item()
             t = time.time()
-            woke = False
+            woke, my_anims, shot = False, [], None
             while time.time() - t < 2.5:
                 self.pad.release_due()
+                if shot is None and time.time() - t > 0.6:
+                    im = self._shot()                 # 조준 0.1° 인데 반응 없음 3/3 — 던지는 동작이 나갔나, 가려서 막혔나
+                    if im is not None:
+                        shot = f"knife_{time.strftime('%H%M%S')}_{attempt + 1}.jpg"
+                        im.save(vp.IMG_DIR / shot, quality=80)
                 sn = self.tm.snapshot(within=40.0)
+                if sn and (not my_anims or my_anims[-1][1] != sn.player.anim):
+                    my_anims.append((round(time.time() - t, 2), sn.player.anim))
                 c = next((x for x in sn.chars if x.ptr == ptr), None) if sn else None
                 if c is not None and (c.hp < hp0 or math.dist((c.x, c.y, c.z), spawn) > 1.0):
                     woke = True
                     break
                 time.sleep(0.05)
+            n1 = self.tm.goods_count(ITEM_KNIFE)
             print(f"   #{ti}: 나이프 {attempt + 1}번째 (몸-그놈 {off if off is None else round(off, 1)}°, {c0.dist:.1f} m) → "
-                  f"{'알아챔' if woke else '반응 없음'}", flush=True)
+                  f"{'알아챔' if woke else '반응 없음'} | 나이프 {n0}→{n1}, 내 애니 {my_anims[:5]} {shot or ''}", flush=True)
             self._ev("knife", target=ti, off=off, dist=round(c0.dist, 1), woke=woke)
             if woke:
                 return True

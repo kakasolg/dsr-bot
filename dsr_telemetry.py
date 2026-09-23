@@ -320,8 +320,8 @@ class DSRTelemetry:
 
     def goods_count(self, item: int) -> Optional[int]:
         """소모품(goods) 개수. PlayerGameData 안 인벤토리 항목 0x1C 바이트 = (분류 0x40000000, ID, 개수, ...).
-        실측 2026-09-23: +0xF08 파이어밤 292 x2, +0xED0 에스트 205 x10. 다 쓰면 항목이 없어진다 — **퀵슬롯엔 ID 가 남는다**
-        (나이프를 다 쓴 뒤에도 슬롯은 290 이라 조준이 0.1° 인데 '반응 없음' 이 세 번 났다). 없으면 0."""
+        실측 2026-09-23: +0xF08 파이어밤 292 x2, +0xED0 에스트 205 x10, 나이프 290 x57. 항목이 없으면 0.
+        (퀵슬롯 ID 만으로는 남은 개수를 모른다)"""
         cb = self.q(self.static["ChrClassBase"])
         pgd = self.q(cb + 0x10) if cb else None
         if not pgd:
