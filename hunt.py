@@ -733,8 +733,33 @@ class Hunter(vp.Probe):
             self.trace.stop()
             print(f"   위치 기록: {self.trace.path.name}", flush=True)
 
+    def go_home(self) -> bool:
+        """살아서 화톳불에서 먼 곳이면 다크사인으로 복귀 — 사용자: "돌아갈 때 darksign 쓰는 게 좋아 보여. 낙사하고 길을 못 찾아
+        힘들어 한다". 소울·인간성을 잃지만 지금 소울 0. 확인창을 화면으로 확인한 뒤에만 누르고, 누른 뒤엔 다시 쓰지 않는다
+        (merchantrun.darksign). 죽었으면 어차피 화톳불에서 깬다."""
+        s = self.tm.snapshot(within=1.0)
+        if not s or s.player.hp <= 0:
+            return False
+        far = math.dist((s.player.x, s.player.y, s.player.z), tuple(mr.BONFIRE["stand"]))
+        if far < 15.0 or not self.tm.goods_count(117):
+            return False
+        if not hasattr(self.run, "gl"):
+            self.run.gl = lambda *a: print(*a, flush=True)
+        self.pad.guard(False)
+        self.pad.neutral()
+        try:
+            ok = self.run.darksign()
+        except Exception as ex:                 # 실패하면 예전처럼 걸어서 돌아간다
+            print(f"   다크사인 오류: {ex}", flush=True)
+            ok = False
+        self.tm = self.run.tm                   # 로딩 뒤 다시 붙었을 수 있다
+        print(f"   다크사인으로 복귀 ({far:.0f} m 밖에서): {'됨' if ok else '실패 — 걸어서'}", flush=True)
+        self._ev("darksign", ok=ok, far=round(far))
+        return ok
+
     def _hunt(self, k: int, targets: list[int], dist: float) -> None:
         print(f"── 시도 {k}: 화톳불 휴식 (적 초기화)", flush=True)
+        self.go_home()
         if not self.run.rest():
             self.pad.reconnect()          # 가상 패드를 게임이 놓칠 때가 있다 (휴식 실패 — 안내가 키보드 E 로 바뀜)
             control.focus_game()
@@ -2089,6 +2114,7 @@ def main() -> None:
     for k in range(1, n + 1):
         h.hunt(k, targets, dist)
     h.pad.neutral()
+    h.go_home()
     h.run.rest()
 
 
