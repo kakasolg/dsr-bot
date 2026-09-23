@@ -23,24 +23,28 @@ import score_judge as sj
 GEMINI_API = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 MODEL = os.environ.get("TACTIC_LLM_MODEL", "gemini-3.5-flash-lite")
 LOG = Path(__file__).resolve().parent / "data" / "tactic_llm.jsonl"
+_NO_THINKING_CFG: set[str] = set()   # 'minimal' 생각 설정을 거절한 모델 (3.8 Flash — "Thinking level MINIMAL is not supported")
 
 
 def gemini_choice(model: str, system: str, user: str, options: list[str], temperature: float = 0.0,
-                  timeout: float = 30.0, retry_429: int = 5) -> tuple[str | None, float, dict]:
+                  timeout: float = 30.0, retry_429: int = 5, image_jpeg_b64: str | None = None) -> tuple[str | None, float, dict]:
     """Gemini API 직접 호출 → (선택지, ms, 부가 정보). 답은 JSON 스키마 enum 으로 options 안에서만 나온다.
-    생각은 최소 — 3.x 는 thinkingLevel, 2.x 는 thinkingBudget. 한도는 생각 토큰을 포함하므로 넉넉히 (256 이면 3.8 Flash 가 잘렸다)."""
+    생각은 최소 — 3.x 는 thinkingLevel, 2.x 는 thinkingBudget. 한도는 생각 토큰을 포함하므로 넉넉히 (256 이면 3.8 Flash 가 잘렸다).
+    3.8 Flash 는 'minimal' 을 안 받아(400) 기본 생각으로 다시 보낸다 — 텍스트 프로브의 3.8 숫자도 사실 기본 생각이었다.
+    image_jpeg_b64 가 있으면 이미지를 앞에 붙인다 (적 단계 판정용 스크린샷)."""
     key = os.environ.get("GEMINI_API_KEY")
     if not key:
         return None, 0.0, {"error": "GEMINI_API_KEY 없음 — 상위 폴더 .env 에 GEMINI_API_KEY=... 한 줄을 넣는다"}
-    thinking = {"thinkingLevel": "minimal"} if model.startswith("gemini-3") else {"thinkingBudget": 0}
+    thinking = None if model in _NO_THINKING_CFG else ({"thinkingLevel": "minimal"} if model.startswith("gemini-3") else {"thinkingBudget": 0})
+    parts =([{"inline_data": {"mime_type": "image/jpeg", "data": image_jpeg_b64}}] if image_jpeg_b64 else []) + [{"text": user}]
     body = {"systemInstruction": {"parts": [{"text": system}]},
-            "contents": [{"role": "user", "parts": [{"text": user}]}],
+            "contents": [{"role": "user", "parts": parts}],
             "generationConfig": {"temperature": temperature, "maxOutputTokens": 4096, "responseMimeType": "application/json",
                                  "responseSchema": {"type": "OBJECT", "properties": {"tactic": {"type": "STRING", "enum": list(options)}},
                                                     "required": ["tactic"]},
-                                 "thinkingConfig": thinking}}
+                                 **({"thinkingConfig": thinking} if thinking else {})}}
     t0 = time.perf_counter()
-    for attempt in range(retry_429 + 1):
+    for attempt in range(retry_429 + 2):     # +1 은 생각 설정 거절(400) 뒤 다시 보내는 몫 — 예전엔 429 몫을 같이 써서 retry_429=0 이면 못 보냈다
         req = urllib.request.Request(GEMINI_API.format(model=model), data=json.dumps(body).encode(), method="POST",
                                      headers={"x-goog-api-key": key, "Content-Type": "application/json"})
         t0 = time.perf_counter()
@@ -55,6 +59,7 @@ def gemini_choice(model: str, system: str, user: str, options: list[str], temper
                 continue
             if e.code == 400 and "thinking" in msg.lower() and "thinkingConfig" in body["generationConfig"]:
                 body["generationConfig"].pop("thinkingConfig")      # 이 모델이 그 생각 설정을 안 받으면 기본값으로
+                _NO_THINKING_CFG.add(model)                         # 다음부턴 처음부터 빼고 보낸다
                 continue
             return None, (time.perf_counter() - t0) * 1000, {"error": f"{e.code} {msg}"}
         except Exception as e:  # noqa: BLE001 — 네트워크·타임아웃 전부 "답 없음"
