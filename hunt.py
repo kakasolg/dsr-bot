@@ -159,6 +159,158 @@ class Hunter(vp.Probe):
         time.sleep(self.STICK_RELEASE_S)
         return off
 
+    # 5번(화염병) 뒤 3.2 m 위 — 경로 92~96 m 가 5번 등 뒤 위를 지난다. 여기서 5번 쪽으로 걸어 떨어지며 R1 = 낙하 공격.
+    # 사용자: "화염병 던지는 몹부터, 내가 상단에서 하단으로 공격". 5번은 북서(낭떠러지 쪽)를 보고 있어 등 뒤에서 덮친다.
+    PLUNGE_FROM = {5: (-20.5, -36.0, 12.2)}
+
+    def plunge(self, ti: int, ptr, nm) -> bool:
+        """위에서 뛰어내리며 공격. 떨어지기 시작하면(높이가 0.3 m 넘게 줄면) 곧바로 R1."""
+        top = self.PLUNGE_FROM[ti]
+        s = self.tm.snapshot(within=1.0)
+        path = nm.find_path((s.player.x, s.player.y, s.player.z), top) or [top]
+        t_go = time.time()
+        for q in path[1:]:
+            r = nav.goto(self.tm, self.pad, q, tolerance=0.6 if q == path[-1] else 1.2, timeout=12, log=lambda *a: None, terrain=nm,
+                         on_tick=lambda sn, _d=None: self.note(sn), mode_fn=lambda _s: "sprint")
+            if r == "dead":
+                return False
+        self.pad.neutral()
+        s = self.tm.snapshot(within=40.0)
+        c = next((x for x in s.chars if x.ptr == ptr), None) if s else None
+        if c is None:
+            print(f"   #{ti}: 낙하 자리에서 안 보임", flush=True)
+            return False
+        print(f"   #{ti}: 낙하 자리 도착 {time.time() - t_go:.1f} s — 그놈 {c.dist:.1f} m, 높이차 {s.player.y - c.y:+.1f}, 애니 {c.anim}", flush=True)
+        off = self.aim_fine(ptr, deg=6.0, timeout=1.5)
+        s = self.tm.snapshot(within=40.0)
+        c = next((x for x in s.chars if x.ptr == ptr), None)
+        y0, hp0 = s.player.y, c.hp
+        st = control.world_to_stick(c.x - s.player.x, c.z - s.player.z, s.cam_yaw, nav.YAW_OFFSET, nav.FLIP_X)
+        self.pad.move(*[0.6 * v for v in st])                 # 걸어서 떨어진다 (달리면 너무 멀리 날아간다)
+        t = time.time()
+        fell, r1_at, my_anims = False, None, []
+        while time.time() - t < 3.0:
+            s2 = self.tm.snapshot(within=40.0)
+            if not s2:
+                continue
+            if not my_anims or my_anims[-1][1] != s2.player.anim:
+                my_anims.append((round(time.time() - t, 2), s2.player.anim, round(s2.player.y - y0, 1)))
+            if not fell and s2.player.y < y0 - 0.3:
+                fell = True
+                self.pad.move(0.0, 0.0)
+                self._press(control.B.XUSB_GAMEPAD_RIGHT_SHOULDER)   # 공중 R1 = 낙하 공격
+                r1_at = round(time.time() - t, 2)
+            c2 = next((x for x in s2.chars if x.ptr == ptr), None)
+            if fell and (c2 is None or c2.hp <= 0 or time.time() - t > (r1_at or 0) + 1.8):
+                break
+            if not fell and time.time() - t > 1.5:
+                break
+            time.sleep(0.01)
+        self.pad.move(0.0, 0.0)
+        s3 = self.tm.snapshot(within=40.0)
+        c3 = next((x for x in s3.chars if x.ptr == ptr), None) if s3 else None
+        dead = c3 is None or c3.hp <= 0
+        res = {"plan": "plunge", "fell": fell, "r1_at": r1_at, "aim_off": off, "enemy_hp": [hp0, None if c3 is None else c3.hp],
+               "dead": dead, "my_anims": my_anims[:12]}
+        self._record(0, ti, MAP[ti - 1], None, None, {}, res)
+        self._ev("plunge", **res)
+        print(f"   #{ti} 낙하 공격: {'처치' if dead else '실패'} — {res}", flush=True)
+        return dead
+
+    # 락온 거리는 ~20 m (평지 중앙 20.7 m 에선 안 걸림, 19.8 m 에선 걸림) — 5번 쪽으로 1.1 m 나간 19.7 m 자리
+    SNIPE_FROM = {5: (-29.46, -49.13, 28.04)}
+
+    def snipe(self, ti: int, ptr, nm, max_knives: int = 5) -> bool:
+        """평지(5번에서 20.7 m)에서 5번을 나이프로 저격 — 5번은 19.1~19.3 m 부터 자리를 안 뜨고 화염병(3008)을 던진다.
+        그 안으로 들어가 경사로를 오르면 계속 맞고(152, 날려감), 낙하 자리로 가다 5·4 사이에 끼어 죽었다.
+        10 m 위라 곧게 던지면 안 닿으니 **이때만 락온** — PlayerIns+0xEF0 으로 5번에 걸렸는지 확인하고 던진다."""
+        spot = self.SNIPE_FROM.get(ti, ARENA)
+        s = self.tm.snapshot(within=1.0)
+        path = nm.find_path((s.player.x, s.player.y, s.player.z), spot) or [spot]
+        for q in path[1:]:
+            if nav.goto(self.tm, self.pad, q, tolerance=0.4 if q == path[-1] else 0.8, timeout=10, log=lambda *a: None, terrain=nm,
+                        on_tick=lambda sn, _d=None: self.note(sn), mode_fn=lambda _s: "walk") == "dead":
+                return False
+        self.pad.neutral()
+        if not self.select_item(ITEM_KNIFE):
+            print(f"   #{ti}: 투척 나이프 칸을 못 고름", flush=True)
+            return False
+        self.aim_fine(ptr, deg=8.0, timeout=2.0)     # 락온이 그놈을 잡도록 몸·카메라를 그쪽으로
+        # 5번은 10 m 위(올려다보는 각 ~27°) — 세로 시야가 ±23.5° 라 카메라를 옆으로만 돌리면 화면 밖이라 락온할 게 없었다.
+        # 오른 스틱 위아래로 카메라를 들어 본다 (방향 부호를 몰라 양쪽)
+        im = self._shot()
+        if im is not None:
+            im.save(vp.IMG_DIR / f"snipe_{time.strftime('%H%M%S')}_0.jpg", quality=80)
+        locked = self.lock_verified(ptr)
+        tries = []
+        for ly, dur in ((0.7, 0.3), (-0.7, 0.6), (-0.7, 0.3)):
+            if locked:
+                break
+            self.pad.look(0.0, ly)
+            time.sleep(dur)
+            self.pad.look(0.0, 0.0)
+            time.sleep(0.1)
+            im = self._shot()
+            if im is not None:
+                im.save(vp.IMG_DIR / f"snipe_{time.strftime('%H%M%S')}_{ly:+.1f}.jpg", quality=80)
+            locked = self.lock_verified(ptr, align=False)
+            tries.append((ly, dur, locked, self.tm.lock_target()))
+        print(f"   #{ti}: 락온 {'됨' if locked else '안 걸림'} (카메라 들기 {tries})", flush=True)
+        if not locked:
+            return False
+        thrown, log = 0, []
+        try:
+            while thrown < max_knives:
+                if self.lock_state(ptr) != "target":
+                    if not self.lock_verified(ptr, align=False):
+                        break
+                sn = self.tm.snapshot(within=40.0)
+                c = next((x for x in sn.chars if x.ptr == ptr), None) if sn else None
+                if c is None or c.hp <= 0:
+                    break
+                if c.anim == 3008:
+                    # 화염병을 던지는 중(2.4 s 뒤 떨어진다) — 락온이라 몸이 그놈을 향한다, 방패로 받는다
+                    self.pad.guard(True)
+                    tw = time.time()
+                    while time.time() - tw < 3.0:
+                        sn2 = self.tm.snapshot(within=40.0)
+                        c2 = next((x for x in sn2.chars if x.ptr == ptr), None) if sn2 else None
+                        if c2 is None or c2.anim != 3008:
+                            break
+                        time.sleep(0.03)
+                    time.sleep(0.3)
+                    self.pad.guard(False)
+                    continue
+                hp0 = c.hp
+                self.pad.use_item()
+                thrown += 1
+                t = time.time()
+                hit = None
+                while time.time() - t < 1.6:
+                    self.pad.release_due()
+                    sn = self.tm.snapshot(within=40.0)
+                    c = next((x for x in sn.chars if x.ptr == ptr), None) if sn else None
+                    if c is None or c.hp < hp0:
+                        hit = hp0 - (c.hp if c is not None else 0)
+                        if c is None or c.hp <= 0:
+                            break
+                    time.sleep(0.03)
+                log.append({"n": thrown, "dmg": hit, "d": None if c is None else round(c.dist, 1), "anim": None if c is None else c.anim})
+                print(f"   #{ti}: 저격 {thrown} → 피해 {hit} ({'죽음' if c is None or c.hp <= 0 else f'HP {c.hp}, {c.dist:.1f} m, 애니 {c.anim}'})", flush=True)
+                if c is None or c.hp <= 0:
+                    break
+        finally:
+            if self.lock_state(ptr) == "target":
+                self._r3(0.15)                    # 락온 풀기 (그 뒤는 락온 없이)
+        sn = self.tm.snapshot(within=60.0)
+        c = next((x for x in sn.chars if x.ptr == ptr), None) if sn else None
+        dead = c is None or c.hp <= 0
+        self._record(0, ti, MAP[ti - 1], None, None, {}, {"plan": "snipe", "throws": log, "dead": dead})
+        self._ev("snipe", target=ti, throws=log, dead=dead)
+        if dead:
+            sk = self.tm.snapshot(within=1.0)
+        return dead
+
     def knife_pull(self, ti: int, ptr, nm) -> bool:
         """평지(ARENA)에서 투척 나이프로 그놈을 부른다 — 걸어서 다가가면 좁은 띠(서쪽 낭떠러지)에서 싸우게 됐다.
         지도 적은 휴식하면 늘 같은 자리·같은 방향이라 평지에서 곧게 던지면 닿는다."""
@@ -169,6 +321,9 @@ class Hunter(vp.Probe):
                         on_tick=lambda sn, _d=None: self.note(sn), mode_fn=lambda _s: "walk") == "dead":
                 return False
         self.pad.neutral()
+        if not self.tm.goods_count(ITEM_KNIFE):
+            print(f"   #{ti}: 투척 나이프가 없다 (인벤토리 0)", flush=True)
+            return False
         if not self.select_item(ITEM_KNIFE):
             print(f"   #{ti}: 투척 나이프 칸을 못 고름", flush=True)
             return False
@@ -330,7 +485,7 @@ class Hunter(vp.Probe):
                         left["v"] = True
                         return "retreat"                    # 알아채고 스폰을 떠났다 → 멈춰서 맞이한다
                 return "creep" if near["v"] else "walk"
-            walk = path[1:idx] + [stand] if plan != "knife" else []
+            walk = path[1:idx] + [stand] if plan not in ("knife", "plunge", "snipe") else []
             from_flat = False
             if self.last_kill_pos is not None and plan in ("melee", "study") and walk:
                 # 앞 적을 잡은 평평한 자리에서 곧게 이어지면(15 m 안) 거기서 다가가 알아채게 하고 그 자리로 끌어온다.
@@ -359,6 +514,16 @@ class Hunter(vp.Probe):
             time.sleep(0.3)
             if plan == "bait":
                 if not self.bait(k, ti, e, tptr):
+                    return
+                continue
+            if plan == "snipe":
+                self.phase = f"#{ti} 저격"
+                if not self.snipe(ti, tptr, nm):
+                    return
+                continue
+            if plan == "plunge":
+                self.phase = f"#{ti} 낙하"
+                if not self.plunge(ti, tptr, nm):
                     return
                 continue
             if plan == "knife":

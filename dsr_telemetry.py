@@ -318,6 +318,24 @@ class DSRTelemetry:
                 return self.i32(pgd + 0x360 + 4 * k)
         return None
 
+    def goods_count(self, item: int) -> Optional[int]:
+        """소모품(goods) 개수. PlayerGameData 안 인벤토리 항목 0x1C 바이트 = (분류 0x40000000, ID, 개수, ...).
+        실측 2026-09-23: +0xF08 파이어밤 292 x2, +0xED0 에스트 205 x10. 다 쓰면 항목이 없어진다 — **퀵슬롯엔 ID 가 남는다**
+        (나이프를 다 쓴 뒤에도 슬롯은 290 이라 조준이 0.1° 인데 '반응 없음' 이 세 번 났다). 없으면 0."""
+        cb = self.q(self.static["ChrClassBase"])
+        pgd = self.q(cb + 0x10) if cb else None
+        if not pgd:
+            return None
+        try:
+            raw = self.pm.read_bytes(pgd, 0x8000)
+        except pymem.exception.PymemError:
+            return None
+        for o in range(0x600, 0x8000 - 12, 4):
+            cat, iid, qty = struct.unpack_from("<Iii", raw, o)
+            if cat == 0x40000000 and iid == item and 0 <= qty < 10000:
+                return qty
+        return 0
+
     def last_bonfire(self) -> Optional[int]:
         w = self.q(self.static["ChrClassWarp"])
         return self.i32(w + OFF_LASTBONFIRE) if w else None
