@@ -423,9 +423,130 @@ class Hunter(vp.Probe):
             if self.observe_s > 0:
                 self.observe(k, ti)
         print("   목표 전부 처치", flush=True)
+        if self.lure_group:
+            if not self.lure_fight(k, nm, self.lure_group):
+                return
+        if self.then_run:
+            self.run_past(nm)
 
     observe_s = 0.0
     plans: dict = {}
+    then_run = False
+    lure_group: list = []
+
+    def lure_fight(self, k: int, nm, group: list[int]) -> bool:
+        """위 무리(4·5·6 + 지도 밖 한 놈)를 하나씩 평지로 꾀어 잡는다. 그냥 달려 지나가면 굽이(~90 m)에서 4·6·5 가 한꺼번에
+        붙어 23 s 만에 죽었다. 평지에서 경로를 따라 천천히 올라가다 누구든 자리를 뜨면(알아챔) 곧장 평지로 돌아와
+        방패 들고 기다리고, 먼저 온 놈부터 근접 반격. 평지는 5번(화염병)에서 20.7 m — 사거리(~18 m) 밖."""
+        idx = {v: k_ for k_, v in self.ptr_of.items()}
+        home = {}
+        s0 = self.tm.snapshot(within=80.0)
+        for c in (s0.hostile(80.0) if s0 else []):
+            if c.hp > 0 and (idx.get(c.ptr) in group or c.ptr not in idx):
+                home[c.ptr] = (c.x, c.y, c.z)
+        for rnd in range(5):
+            sn = self.tm.snapshot(within=80.0)
+            alive = {c.ptr: c for c in (sn.hostile(80.0) if sn else []) if c.ptr in home and c.hp > 0}
+            if not alive:
+                print("   위 무리 전부 처치", flush=True)
+                return True
+            self.phase = f"꾀기 {rnd + 1}"
+            # 이미 누가 오고 있으면 올라가지 않는다
+            moving = [p_ for p_, c in alive.items() if math.dist((c.x, c.y, c.z), home[p_]) > 1.5]
+            if not moving:
+                path = nm.find_path(ARENA, mr.BOUND_A) or []
+                woke = {"p": None}
+
+                def on_tick(sn_, _d=None):
+                    self.note(sn_)
+                    for c in sn_.hostile(80.0):
+                        if c.ptr in alive and c.hp > 0 and math.dist((c.x, c.y, c.z), home[c.ptr]) > 1.5:
+                            woke["p"] = c.ptr
+
+                def mode_fn(_s):
+                    return "retreat" if woke["p"] else "creep"
+                for q in path[1:]:
+                    r = nav.goto(self.tm, self.pad, q, tolerance=1.2, timeout=12, log=lambda *a: None, terrain=nm,
+                                 on_tick=on_tick, mode_fn=mode_fn)
+                    if r == "dead":
+                        return False
+                    if woke["p"]:
+                        break
+                if not woke["p"]:
+                    print("   꾀기: 경로 끝까지 아무도 안 움직임", flush=True)
+                    return True
+                who = idx.get(woke["p"], "?")
+                print(f"   꾀기 {rnd + 1}: #{who} 가 알아챔 — 평지로 돌아간다", flush=True)
+            # 평지로 (경로를 따라). 달려야 먼저 닿는다
+            sp = self.tm.snapshot(within=1.0)
+            back = nm.find_path((sp.player.x, sp.player.y, sp.player.z), ARENA) or [ARENA]
+            for q in back[1:]:
+                if nav.goto(self.tm, self.pad, q, tolerance=1.0, timeout=10, log=lambda *a: None, terrain=nm,
+                            on_tick=lambda sn_, _d=None: self.note(sn_), mode_fn=lambda _s: "sprint") == "dead":
+                    return False
+            self.pad.neutral()
+            # 먼저 오는 놈을 기다린다 (20 s)
+            t_w = time.time()
+            tgt = None
+            while time.time() - t_w < 20.0:
+                sn = self.tm.snapshot(within=40.0)
+                if sn:
+                    near = [c for c in sn.hostile(12.0) if c.ptr in home and c.hp > 0]
+                    if near:
+                        tgt = min(near, key=lambda c: c.dist)
+                        if tgt.dist < 7.0:
+                            break
+                    far = min((c for c in sn.hostile(40.0) if c.ptr in home and c.hp > 0), key=lambda c: c.dist, default=None)
+                    self.pad.guard(True)
+                    if far is not None:
+                        self.aim(sn, far)
+                time.sleep(0.02)
+            if tgt is None:
+                print("   꾀기: 아무도 평지로 안 옴", flush=True)
+                continue
+            ti = idx.get(tgt.ptr, 0)
+            e = MAP[ti - 1] if ti else {"npc": tgt.npc_param, "pos": list(home[tgt.ptr])}
+            print(f"   꾀기: #{ti or '?'} ({tgt.npc_param}) 가 평지로 옴 — 근접", flush=True)
+            if not self.melee(k, ti, e, tgt.ptr, nm, pull_to=None, wait_first=True):
+                return False
+        return True
+
+    def run_past(self, nm) -> dict:
+        """아래 무리(1·3·2)를 치운 뒤 남은 4·5·6 을 싸우지 않고 달려서 지나간다 — 목표는 상인까지 가는 것.
+        경로(내비메시)로 BOUND_A 까지 달리며 맞은 것·쫓아오는 놈을 적는다."""
+        self.phase = "달려 지나가기"
+        s = self.tm.snapshot(within=1.0)
+        hp0, t0 = s.player.hp, time.time()
+        path = nm.find_path((s.player.x, s.player.y, s.player.z), mr.BOUND_A) or [mr.BOUND_A]
+        hits, chasers = [], set()
+        last = {"hp": hp0}
+
+        def on_tick(sn, _d=None):
+            self.note(sn)
+            if sn.player.hp < last["hp"]:
+                idx = {v: k_ for k_, v in self.ptr_of.items()}
+                who = [(f"#{idx.get(x.ptr, '?')}", round(x.dist, 1), x.anim) for x in sn.hostile(20.0) if x.hp > 0]
+                hits.append((round(time.time() - t0, 1), last["hp"] - sn.player.hp, who))
+                self._ev("hit", dmg=last["hp"] - sn.player.hp, who=who)
+                print(f"      달리다 맞음 {last['hp'] - sn.player.hp} ← {who}", flush=True)
+            last["hp"] = sn.player.hp
+            for x in sn.hostile(6.0):
+                if x.hp > 0:
+                    chasers.add(x.ptr)
+        res = "도착"
+        for q in path[1:]:
+            r = nav.goto(self.tm, self.pad, q, tolerance=1.5, timeout=15, log=lambda *a: None, terrain=nm,
+                         on_tick=on_tick, mode_fn=lambda _s: "sprint")
+            if r == "dead":
+                res = "사망"
+                break
+        s = self.tm.snapshot(within=1.0)
+        idx = {v: k_ for k_, v in self.ptr_of.items()}
+        out = {"result": res if s else "로딩/사망", "hp_lost": (hp0 - s.player.hp) if s else None, "secs": round(time.time() - t0, 1),
+               "hits": hits, "near": sorted(f"#{idx.get(q, '?')}" for q in chasers)}
+        print(f"   달려 지나가기: {out}", flush=True)
+        self._ev("run_past", **out)
+        return out
 
     def approach_speed(self, ptr) -> float:
         h = [x for x in self.hist.get(ptr, []) if time.time() - x[0] <= 0.6]
@@ -1262,6 +1383,10 @@ def main() -> None:
     h.plans = plans
     h.melee_style = style
     h.use_lock = "--lock" in sys.argv          # 기본은 락온 없이 (사용자: DS1 고수는 락온을 안 쓴다)
+    h.then_run = "--run" in sys.argv           # 목표를 다 잡으면 BOUND_A 까지 달려서 지나간다
+    if "--lure" in args:                        # 예: --lure 4,5,6 — 목표를 잡은 뒤 위 무리를 하나씩 평지로 꾀어 잡는다
+        h.lure_group = [int(x) for x in args[args.index("--lure") + 1].split(",")]
+        del args[args.index("--lure"):args.index("--lure") + 2]
     for k in range(1, n + 1):
         h.hunt(k, targets, dist)
     h.pad.neutral()
