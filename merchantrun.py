@@ -513,27 +513,28 @@ class Runner:
                 quitout._press(self.pad, quitout.B.XUSB_GAMEPAD_B, 0.4)   # 창이 아니면 닫고 다시 (맞아서 끊겼을 수도)
                 continue
             quitout._press(self.pad, quitout.B.XUSB_GAMEPAD_A, 0.0)
+            # ── A 를 눌렀으면 여기서 끝이다. 결과를 못 읽어도 **다시 쓰지 않는다** ──
+            # 다크사인은 로딩을 거치고 그동안 포인터가 무효라 스냅샷이 None 이다. 예전엔 15 s 안에 못 읽으면 '실패' 로 보고
+            # 다시 썼다 (톰슨 10판 중 '실패' 3번 — 전부 실제로는 화톳불에 와 있었다). 텔레메트리는 못 읽을 때만 다시 붙는다.
             t2 = time.time()
-            moved = False
-            while time.time() - t2 < 15.0:
+            while time.time() - t2 < 25.0:
                 try:
                     s = self.tm.snapshot(within=1.0)
                 except Exception:
                     s = None
                 if s and s.player.hp > 0:
                     here = (s.player.x, s.player.y, s.player.z)
-                    moved = moved or (pre is not None and math.dist(here, pre) > 20.0)
-                    if moved or math.dist(here, tuple(BONFIRE["stand"])) < 15.0:   # 순간이동했거나 화톳불 옆이면 도착
+                    if (pre is not None and math.dist(here, pre) > 20.0) or math.dist(here, tuple(BONFIRE["stand"])) < 15.0:
                         time.sleep(1.5)
                         return True
-                time.sleep(0.2)
-                try:
-                    self.tm = env.make_telemetry({})
-                except Exception:
-                    pass
-            s = self.tm.snapshot(within=1.0)
-            if s and pre is not None and math.dist((s.player.x, s.player.y, s.player.z), pre) > 3.0:
-                return True     # 어딘가로 옮겨졌다 — 다시 쓰면 소울만 또 잃는다 (다음 판 휴식이 화톳불로 데려간다)
+                if s is None and time.time() - t2 > 3.0:
+                    try:
+                        self.tm = env.make_telemetry({})
+                    except Exception:
+                        pass
+                time.sleep(0.3)
+            self.gl("  다크사인: 눌렀지만 도착을 확인 못 함 — 다시 쓰지 않는다 (다음 판 휴식이 화톳불로 데려간다)")
+            return False
         return False
 
     def pick_tactic(self) -> str:
