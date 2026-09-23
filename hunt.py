@@ -615,9 +615,9 @@ class Hunter(vp.Probe):
         bridge = A[67:71]                                   # 다리 높이(y -33.8)로 올라서는 녹화 점 (다리 위는 내비메시가 비어 있다)
         p2 = (na.find_path(bridge[-1], mr.BOUND_A) or [mr.BOUND_A])[1:]
         clean = [bridge[-1]]
-        for q in p2:                                        # 남은 연결 오류(짧은 수평에 3 m 넘는 높이 차)는 버린다
-            h = math.dist((clean[-1][0], clean[-1][2]), (q[0], q[2]))
-            if abs(q[1] - clean[-1][1]) > 3.0 and h < 3.0:
+        for q in p2:
+            # 다리 위(y -33.7)는 평평하다 — 1.5 m 넘게 튀는 점은 내비메시 연결 오류 (-25.2, -30.8, 7.2 로 가려다 다리 위에서 맴돌았다)
+            if abs(q[1] - bridge[-1][1]) > 1.5:
                 continue
             clean.append(q)
         route = [top] + bridge + clean[1:]                  # 꼭대기 → 다리 → 경계
