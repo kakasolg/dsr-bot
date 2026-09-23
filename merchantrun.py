@@ -67,7 +67,8 @@ PROGRESS_WEIGHT = 0.1
 # 적과 멀고·넓고·낭떠러지가 아닌 곳을 골라 **경로를 따라** 달린다. 경로가 적 옆을 지나면 그 후보는 버린다.
 FLEE_NEAR = 3.0        # 같은 층 이 안에
 FLEE_COUNT = 2         # 이만큼 붙으면 도망
-FLEE_COOLDOWN = 3.0    # 도망 끝나고 이만큼은 다시 도망 안 함 (같은 자리 왕복 방지)
+FLEE_COOLDOWN = 1.0    # 도망 끝나고 이만큼은 다시 도망 안 함 (같은 자리 왕복 방지) — 단 방금 맞았으면 무시.
+                       # 3 s 였을 때 쿨다운 중에 둘이 붙어 0.7 s 에 514 를 맞았다 (gemini 3판 37.2 s)
 FLEE_MIN, FLEE_MAX = 5.0, 12.0   # 도망 목표 후보 거리
 FLEE_PATH_CLEAR = 1.2  # 가는 길이 적과 이보다 가까이 지나면 그 후보는 안 쓴다
 # 전술: 실패하면 다크사인으로 돌아가 **다른 전술**로 다시 한다 (사용자: "해결도 안 하고 멈추면 시간 낭비, 전술을 새로 짜서 다시")
@@ -161,6 +162,7 @@ class Runner:
                 elif st["fall"] is not None:
                     st["abort"] = f"추락 {st['fall']['drop']} m"
             if st["last_hp"] is not None and p.hp < st["last_hp"]:
+                st["last_hit_t"] = time.time()
                 near = min(sn.hostile(12.0), key=lambda c: c.dist, default=None)
                 st["hits"].append({"leg": tag, "dmg": st["last_hp"] - p.hp, "hp": p.hp,
                                    "pos": [round(p.x, 1), round(p.y, 1), round(p.z, 1)],
@@ -171,7 +173,8 @@ class Runner:
             if p.hp > 0 and (not tr or math.dist(here, tr[-1]) >= 1.0):
                 tr.append(here)
                 del tr[:-80]
-            if not self.fleeing and not self.flee_req and p.hp > 0 and time.time() > self.flee_block_until:
+            if (not self.fleeing and not self.flee_req and p.hp > 0
+                    and (time.time() > self.flee_block_until or time.time() - st.get("last_hit_t", 0.0) < 0.5)):
                 close = [c for c in sn.hostile(FLEE_NEAR) if c.hp > 0 and not patrol.dormant(c) and abs(c.y - p.y) < 2.0]
                 if len(close) >= FLEE_COUNT:
                     self.flee_req = True        # mode_fn 이 retreat 를 돌려 goto 를 빠져나오면 경로 루프가 도망을 실행한다
