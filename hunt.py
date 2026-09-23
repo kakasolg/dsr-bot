@@ -570,7 +570,37 @@ class Hunter(vp.Probe):
         self.pad.guard(True)
         return {"done": True, "enemy_dead": res["result"] == "처치", "result": res["result"], "hp": [res["hp0"], res["hp_after"]]}
 
-    def heal_if_needed(self, frac: float = 0.55, max_sips: int = 2) -> None:
+    def sip_estus(self, s, nm) -> dict | None:
+        """싸우는 중 에스트 한 모금. 4 m 안 적이 전부 넘어져 있거나(99xx) 공격 중이 아니고 2.5 m 넘게 떨어져 있을 때만.
+        붙어 있으면 뒤에 바닥이 있을 때 백스텝으로 거리를 벌리고 다음 틱에 다시 본다. 마시는 중 맞으면 끊긴다.
+        → 마셨으면 {"hp": [전, 후]}, 백스텝만 했으면 {"backstep": True}, 못 하면 None."""
+        p = s.player
+        near = [c for c in s.hostile(4.0) if c.hp > 0]
+        busy = [c for c in near if not (9900 <= (c.anim or 0) < 10000) and (3000 <= (c.anim or 0) < 3600 or c.dist < 2.5)]
+        if busy:
+            if (p.heading is not None and min(c.dist for c in busy) < 2.5 and not any(3000 <= (c.anim or 0) < 3600 for c in busy)
+                    and nav.ground_ahead(nm, p, math.sin(p.heading), math.cos(p.heading), reach=2.2)):
+                self.pad.move(0.0, 0.0)
+                self.pad.guard(False)
+                time.sleep(0.1)
+                self._press(control.B.XUSB_GAMEPAD_B)       # 백스텝으로 거리를 벌린다
+                time.sleep(0.7)
+                return {"backstep": True}
+            return None
+        if not self.select_item(ITEM_ESTUS):
+            return None
+        hp0 = p.hp
+        self.pad.guard(False)
+        self.pad.neutral()
+        self.pad.use_item()
+        t = time.time()
+        while time.time() - t < 2.2:
+            self.pad.release_due()
+            time.sleep(0.02)
+        s2 = self.tm.snapshot(within=10.0)
+        return {"hp": [hp0, s2.player.hp if s2 else None]}
+
+    def heal_if_needed(self, frac: float = 0.7, max_sips: int = 2) -> None:
         """잡은 뒤 HP 가 frac 아래고 5 m 안에 적이 없으면 에스트 (사용자가 2번 칸에 넣어 줌, 10회분)."""
         for _ in range(max_sips):
             s = self.tm.snapshot(within=10.0)
@@ -1549,6 +1579,7 @@ class Hunter(vp.Probe):
         acted_for, idle_near_since, counters = None, None, []
         last_hp, dmg_log, close_since, last_seen = None, [], None, None
         orig_ptr, switched_at = ptr, 0.0
+        estus_left, last_sip_t = self.tm.goods_count(ITEM_ESTUS) or 0, 0.0
         last_dmg_t, last_ehp = time.time(), None
         self._stick_zero_t = None
         self.phase = f"#{ti} 근접"
@@ -1603,7 +1634,8 @@ class Hunter(vp.Probe):
             if p.hp <= 0:
                 why = "사망"
                 break
-            if p.hp < p.max_hp * 0.4:
+            # 에스트가 남아 있으면 20 % 까지 버틴다 (싸우는 중에도 마신다 — 사용자: "에스트 잘 마시면서 플레이")
+            if p.hp < p.max_hp * (0.2 if estus_left else 0.4):
                 why = f"내 HP {p.hp}"
                 break
             c = next((x for x in s.chars if x.ptr == ptr), None)
@@ -1647,6 +1679,14 @@ class Hunter(vp.Probe):
             if last_ehp is None or c.hp < last_ehp:
                 last_dmg_t = time.time()              # 그놈에게 피해를 넣은 마지막 시각 (교착 판단)
             last_ehp = c.hp
+            if p.hp < p.max_hp * 0.5 and estus_left and time.time() - last_sip_t > 3.0:
+                last_sip_t = time.time()
+                r_ = self.sip_estus(s, nm)
+                estus_left = self.tm.goods_count(ITEM_ESTUS) or 0
+                if r_ is not None:
+                    print(f"      싸우는 중 에스트: {r_}", flush=True)
+                    self._ev("estus_mid", **r_)
+                    continue
             self._track(c)                        # 애니가 **바뀐** 순간 — 우리 공격을 지켜보는 동안에도 잰다 (늦게 보면 이미 닿을 때)
             if 3000 <= (c.anim or 0) < 3600:
                 att_start = self._etrk["t"]
