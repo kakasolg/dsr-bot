@@ -176,6 +176,8 @@ class Guard:
         self.last_block = 0.0
         self.blocks = 0
         self.block_log: list[float] = []
+        self.aware: set[int] = set()      # 이 판에서 봇을 알아챈 적 (enemy_state)
+        self.bomb_log: list[dict] = []    # 던진 폭탄마다 그때 적의 단계 — 어느 단계에서 던진 게 맞았나
         self.engage_prev_attacking = False
         self.dist_hist: dict[int, list] = {}   # ptr → [(t, dist)] 최근 1.5 s — "다가오는 중" 판정
         self.flee_until = 0.0    # 도망 결정의 히스테리시스 (틱마다 뒤집히지 않게)
@@ -214,7 +216,9 @@ class Guard:
         sel = self.item_fn() if self.item_fn else None
         lo = getattr(self.pb, "bomb_min_dist", 4.0)
         hi = getattr(self.pb, "bomb_max_dist", 7.0)
-        if self.bomb_step in (1, 2) and (near < lo or now - self.bomb_t0 > 10.0):
+        on_approach = getattr(self.pb, "bomb_trigger", "range") == "state"   # 적의 단계(준비·경계·공격)를 보고 던진다
+        # 다가올 때 던지기는 적이 올 때까지 폭탄을 들고 기다린다 — 10 s 로 끊으면 기다리다 접기만 반복한다
+        if self.bomb_step in (1, 2) and (near < lo or now - self.bomb_t0 > (30.0 if on_approach else 10.0)):
             self.log(f"  guard: 폭탄 중단 ({'적이 붙음' if near < lo else '시간 초과'}, {near:.1f} m) — 에스트로 복귀")
             self.bomb_step, self.bomb_t0 = 3, now
             self.bomb_retry = now + 8.0     # 곧바로 다시 고르면 고르기-중단을 반복한다
@@ -227,18 +231,28 @@ class Guard:
                 self.bomb_at = now + 0.35
         if self.bomb_step == 2:
             tgt = self.engage
+            aimed = tgt is not None and self.locked and self.lock_ptr == tgt.ptr
+            why = ""
+            if on_approach:
+                # 준비·공격 단계에만 — 경계 중인 적은 던지는 걸 보고 피한다 (사용자). 오늘 13판: 폭탄 26개 중 8개가
+                # 정확히 사거리 끝 9.0 m (들어온 순간), 중앙 ~7 m, 처치는 근접 포함 9.
+                fire, why = self._approach_throw(tgt, now) if aimed else (False, "")
+            else:
+                fire = (aimed and lo <= tgt.dist <= hi
+                        # 붙어서 던지기(bomb_min_dist 0): 폭탄은 나에게 피해가 없다 (사용자) — '닿기 전에' 검사는 붙은 적에겐 의미가 없고,
+                        # 휘두름 판정은 할로우에게 거의 늘 켜져(노트 H-7) 한 번도 못 던진다 → 막은 직후(0.6 s)엔 던진다. 근접 반격과 같은 창
+                        and (lo <= 0.0 or min((self._time_to_reach(c, now) for c in hostile if not dormant(c) and c.dist < 9.0), default=99) > THROW_TIME)
+                        and (not (self.reflex and self.reflex.threat) or (lo <= 0.0 and now - self.last_block < 0.6)))
             if sel != ITEM_BOMB:
                 self.bomb_step = 1
-            elif (tgt is not None and lo <= tgt.dist <= hi and self.locked and self.lock_ptr == tgt.ptr
-                  # 붙어서 던지기(bomb_min_dist 0): 폭탄은 나에게 피해가 없다 (사용자) — '닿기 전에' 검사는 붙은 적에겐 의미가 없고,
-                  # 휘두름 판정은 할로우에게 거의 늘 켜져(노트 H-7) 한 번도 못 던진다 → 막은 직후(0.6 s)엔 던진다. 근접 반격과 같은 창
-                  and (lo <= 0.0 or min((self._time_to_reach(c, now) for c in hostile if not dormant(c) and c.dist < 9.0), default=99) > THROW_TIME)
-                  and (not (self.reflex and self.reflex.threat) or (lo <= 0.0 and now - self.last_block < 0.6))):
+            elif fire:
                 self.pad.use_item()
                 self.bombs_thrown += 1
                 self.last_bomb = now
                 self.bomb_step, self.bomb_t0, self.bomb_at = 3, now, now + 1.3   # 던지는 동작이 끝난 뒤 칸을 돌린다
-                self.log(f"  guard: 파이어밤 던짐 ({tgt.dist:.1f} m, npc {tgt.npc_param})")
+                self.log(f"  guard: 파이어밤 던짐 ({tgt.dist:.1f} m, npc {tgt.npc_param}{', 적 ' + why if why else ''})")
+                self.bomb_log.append({"t": round(now, 3), "ptr": tgt.ptr, "npc": tgt.npc_param, "dist": round(tgt.dist, 1),
+                                      "hp": tgt.hp, "state": why or "사거리"})   # 맞았나는 나중에 대상 HP 로 본다
                 return "bomb"
         elif self.bomb_step == 3:
             if not self.has_estus:
@@ -253,6 +267,39 @@ class Guard:
                 self.pad.item_next()
                 self.bomb_at = now + 0.35
         return None
+
+    def _approach_speed(self, c, now) -> float:
+        """최근 0.6 s 동안 이 적이 다가온 속도 (m/s, 멀어지면 음수). 기록이 모자라면 0."""
+        h = [(t, d) for t, d in self.dist_hist.get(c.ptr, []) if now - t <= 0.6]
+        if len(h) < 3 or h[-1][0] - h[0][0] < 0.2:
+            return 0.0
+        return (h[0][1] - h[-1][1]) / (h[-1][0] - h[0][0])
+
+    def enemy_state(self, c, now) -> str:
+        """적의 세 단계 (사용자): '준비'(아직 봇을 모른다) / '경계'(알아챘다) / '공격'(휘두르거나 달려든다).
+        몸 방향만으론 못 가른다 — 경사로 할로우는 원래 길 쪽을 보고 서 있다. 그래서 행동으로: 공격 애니 시작 뒤 1.3 s 거나
+        초속 1 m 넘게 달려들면 공격, 한 번이라도 다가왔거나(0.5 m/s, 12 m 안)·휘둘렀거나·나를 때렸으면 이 판 동안 경계."""
+        aptrs = getattr(self.reflex, "attacking_ptrs", frozenset()) if self.reflex else frozenset()
+        v = self._approach_speed(c, now)
+        if c.ptr in aptrs or (v >= 1.0 and c.dist <= 6.0):
+            self.aware.add(c.ptr)
+            return "공격"
+        if (v >= 0.5 and c.dist <= 12.0) or c.ptr in self.aware:
+            self.aware.add(c.ptr)
+            return "경계"
+        return "준비"
+
+    def _approach_throw(self, tgt, now) -> tuple[bool, str]:
+        """던질 때인가 (사용자: "아직 인지 못한 준비 단계에 던지던가, 적이 공격할 때 던져야 하는데, 항상 경계 모드일 때 던진다").
+        준비 → 사거리(bomb_max_dist) 안이면 / 공격 → 5 m 안이면 / 막은 직후 0.6 s → 2.5 m 안이면. 경계 중엔 들고 기다린다."""
+        st = self.enemy_state(tgt, now)
+        if now - self.last_block < 0.6 and tgt.dist <= 2.5:
+            return True, "막은 직후"
+        if st == "준비":
+            return tgt.dist <= getattr(self.pb, "bomb_max_dist", 9.0), st
+        if st == "공격":
+            return tgt.dist <= 5.0, st
+        return False, st
 
     def _time_to_reach(self, c, now) -> float:
         """이 적이 지금 속도로 1.5 m(한 대 맞는 거리)까지 오는 데 걸리는 시간 (s). 안 다가오면 큰 값.
@@ -325,6 +372,11 @@ class Guard:
             h = self.dist_hist.setdefault(c.ptr, [])
             h.append((now, c.dist))
             del h[:-30]
+        if closest is not None and now - self.last_touch < 0.3:
+            self.aware.add(closest.ptr)           # 나를 때린(막은) 놈은 알아챈 놈이다
+        for c in floor:
+            if c.dist <= 15.0 and c.hp > 0 and not dormant(c):
+                self.enemy_state(c, now)          # 단계는 매 틱 갱신 — 던지려 할 때만 보면 그 전에 다가왔던 걸 놓친다
         def approaching(c):
             h = [d for t, d in self.dist_hist.get(c.ptr, []) if now - t <= 1.0]
             return len(h) >= 5 and h[0] - h[-1] > 0.8

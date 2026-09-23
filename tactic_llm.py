@@ -5,7 +5,7 @@
 정확도는 8/10(3.5 Flash-Lite)까지 나오지만 틀린 답을 가려낼 신뢰도 신호가 어느 모델에도 없었다. 그래서 믿을지 말지를
 모델에게 묻지 않고, 이 팔 전체의 성적(성공·진행도)을 고정 전술들과 나란히 재서 정한다.
 
-프롬프트(시스템 문장·전술 설명)는 score_judge 의 것을 그대로 쓴다 — 12 상황 프로브에서 잰 그 프롬프트다.
+프롬프트: 봇은 BOT_SYSTEM·BOT_DESC (폭탄 전술을 뺀 뒤의 선택지), 12 상황 프로브는 score_judge 의 넷짜리 그대로.
 키: GEMINI_API_KEY (상위 폴더 .env). 호출은 스레드 — 봇 루프를 막지 않는다 (p50 750 ms).
 """
 from __future__ import annotations
@@ -71,12 +71,28 @@ def gemini_choice(model: str, system: str, user: str, options: list[str], temper
     return (pick if pick in options else None), ms, {"usage": out.get("usageMetadata"), "raw": text[:80]}
 
 
-def user_text(state: dict) -> str:
-    return sj.prompt(state).split("<|im_start|>user\n")[1].split("<|im_end|>")[0]
+# 봇의 gemini 팔이 쓰는 설명 — 폭탄 전술(bomb_stop·bomb_sprint)을 뺀 뒤의 선택지와 원칙 (사용자: 경계 중인 적은 폭탄을 피한다,
+# 둘 이상 붙으면 빈 곳으로, 낭떠러지 옆에서 싸우면 죽는다). 12 상황 프로브(cloud_judge_probe)는 score_judge 의 넷짜리를 그대로 쓴다.
+BOT_DESC = {
+    "fight": "Stand and fight: block, then hit back. A firebomb is thrown only while an enemy is still unaware or is charging in, never while it is on guard.",
+    "sprint": "Do not fight at all; sprint past everything.",
+}
+BOT_SYSTEM = ("You pick the tactic for a Dark Souls Remastered bot running from the Firelink Shrine bonfire to the Undead Merchant. "
+              "Hollows are slow, but an alert hollow dodges a thrown firebomb. Principles from the player: enemies that block the path are "
+              "cleared, not fled from; when two or more are on top of the bot it escapes to open ground and fights them one at a time; "
+              "fighting next to a drop is how the bot dies; standing still under ranged fire from above is bad. Reply with the JSON object only.")
 
 
-def system_text() -> str:
-    return sj.SYSTEM.replace("Answer with exactly one line: Tactic: <name>", "Reply with the JSON object only.")
+def user_text(state: dict, desc: dict | None = None) -> str:
+    """desc 가 없으면 프로브와 같은 넷짜리 (score_judge), 있으면 그 선택지만."""
+    if desc is None:
+        return sj.prompt(state).split("<|im_start|>user\n")[1].split("<|im_end|>")[0]
+    tactics = "\n".join(f"- {k}: {v}" for k, v in desc.items())
+    return f"STATE:\n{json.dumps(state, ensure_ascii=False)}\n\nTACTICS:\n{tactics}"
+
+
+def system_text(bot: bool = False) -> str:
+    return BOT_SYSTEM if bot else sj.SYSTEM.replace("Answer with exactly one line: Tactic: <name>", "Reply with the JSON object only.")
 
 
 class Tactician:
@@ -102,7 +118,8 @@ class Tactician:
 
     def _run(self, state: dict, sig) -> None:
         try:
-            pick, ms, extra = gemini_choice(self.model, system_text(), user_text(state), self.options, timeout=5.0, retry_429=0)
+            pick, ms, extra = gemini_choice(self.model, system_text(bot=True), user_text(state, {k: BOT_DESC[k] for k in self.options}),
+                                           self.options, timeout=5.0, retry_429=0)
             row = {"t": round(time.time(), 2), "tag": self.tag, "model": self.model, "sig": list(sig) if isinstance(sig, tuple) else sig,
                    "pick": pick, "ms": round(ms), "state": state, **({"error": extra["error"]} if extra.get("error") else {}),
                    "usage": extra.get("usage")}

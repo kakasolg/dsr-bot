@@ -72,15 +72,16 @@ FLEE_COOLDOWN = 1.0    # 도망 끝나고 이만큼은 다시 도망 안 함 (�
 FLEE_MIN, FLEE_MAX = 5.0, 12.0   # 도망 목표 후보 거리
 FLEE_PATH_CLEAR = 1.2  # 가는 길이 적과 이보다 가까이 지나면 그 후보는 안 쓴다
 # 전술: 실패하면 다크사인으로 돌아가 **다른 전술**로 다시 한다 (사용자: "해결도 안 하고 멈추면 시간 낭비, 전술을 새로 짜서 다시")
+# bomb_stop(사거리에서 서서 던지기)·bomb_sprint(달리며 사거리에 들면 던지기)는 뺐다 — 둘 다 "자리 잡으면 던진다" 라
+# 적이 경계 단계일 때 던져 피하게 만든다 (사용자, 오늘 13판 폭탄 26개 중 8개가 사거리 끝 9.0 m). 폭탄은 이제 전술이 아니라
+# Guard 의 bomb_trigger="state" 가 적의 단계를 보고 던진다. 뺀 전술의 톰슨 기록은 파일에 남아 있고 사후 분포에서만 빠진다.
 TACTICS = {
-    "fight":       {"desc": "폭탄 + 근접 (지금까지의 전투)", "pb": {}},
-    "bomb_stop":   {"desc": "4~9.5 m 까지 다가가 멈춰 서서 폭탄, 4 m 안으로 오면 근접", "pb": {}},
-    "bomb_sprint": {"desc": "달리다 사거리에 들면 폭탄만, 근접 안 함", "pb": {"attack_range": 0.0, "melee_proactive": False}},
+    "fight":       {"desc": "근접 (막고 한 대) + 폭탄은 적이 준비·공격 단계일 때만", "pb": {}},
     "sprint":      {"desc": "싸우지 않고 달린다", "pb": {}},
-    # 고정 전술이 아니라 "교전이 바뀔 때마다 Gemini 가 위 넷 중 하나를 고른다" (tactic_llm). 첫 답이 오기 전엔 fight.
-    # 12 상황 프로브에서 3.5 Flash-Lite 가 8/10 이었지만 틀린 답을 가려낼 신뢰도 신호가 없었다 — 그래서 믿을지 말지는
-    # 이 팔의 성적(톰슨 샘플링)이 정한다.
-    "gemini":      {"desc": "교전마다 Gemini 3.5 Flash-Lite 가 위 넷 중 하나를 고른다", "pb": {}, "llm": True},
+    # 고정 전술이 아니라 "교전이 바뀔 때마다 Gemini 가 위 둘 중 하나를 고른다" (tactic_llm). 첫 답이 오기 전엔 fight.
+    # 12 상황 프로브(전술 넷)에서 3.5 Flash-Lite 가 8/10 이었지만 틀린 답을 가려낼 신뢰도 신호가 없었다 — 그래서 믿을지 말지는
+    # 이 팔의 성적(톰슨 샘플링)이 정한다. 선택지가 둘로 줄어 프로브 숫자는 그대로 옮겨지지 않는다.
+    "gemini":      {"desc": "교전마다 Gemini 3.5 Flash-Lite 가 위 둘 중 하나를 고른다", "pb": {}, "llm": True},
 }
 FIXED_TACTICS = [k for k, v in TACTICS.items() if not v.get("llm")]
 CLIFFS = [tuple(p) for p in json.loads((ROOT / "data" / "cliffs" / f"{MAP_A}.json").read_text(encoding="utf-8"))] \
@@ -440,22 +441,6 @@ class Runner:
         gm = g.mode if g.mode != "retreat" else "hold"
         if gm in ("engage", "face", "circle") and self.near_edge(s):
             gm = "hold"                   # 가장자리에선 다가가거나 돌지 않는다 — 오게 두고 막고 친다 (hold 는 발밑이 나쁘면 안전한 쪽으로 옮긴다)
-        d = near[0].dist if near else 99.0
-        bombs_left = g.bombs_thrown < getattr(g.pb, "bombs_per_episode", 0)
-        if self.active == "bomb_stop" and bombs_left:
-            if d < 4.0:
-                return gm                     # 붙었다 — 근접
-            # 폭탄 사거리 **안쪽**에서만 선다. 예전엔 9.5 m 에서 섰는데 폭탄은 9.0 m 까지만 던져서, 9.5 m 에 가만히 있는
-            # 할로우 앞에 25 s 서 있다가 포기했다 (gemini 1판 실측). 9.0 m 는 교전(락온) 거리 밖이라 락온도 없었다.
-            if d <= getattr(g.pb, "bomb_max_dist", 9.0) - 0.5:
-                # 서서 던지되 **적을 바라본다** — "hold" 는 스틱 0 이라 몸이 안 돈다 (사용자: "적을 감지하면 몸 방향을 적에 맞추지 않았다").
-                # Guard 는 hold 를 face 로 바꿔 주지만 여기선 Guard 를 거치지 않고 모드를 정하므로 직접 face 로.
-                return "face" if g.engage is not None else "creep"
-            return "creep"                    # 사거리 밖 — 천천히 다가간다
-        if self.active == "bomb_sprint":
-            if g.bomb_step in (1, 2) and 4.0 <= d <= 9.5:
-                return "hold"                 # 폭탄을 들고 사거리 안 — 잠깐 서서 던진다
-            return "sprint"
         return gm
 
     def wait_respawn(self, timeout=40.0) -> bool:

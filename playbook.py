@@ -66,6 +66,8 @@ class Playbook:
     bomb_max_dist: float = 7.0         # 실측(사용자 폭탄 플레이): 직격 77 피해가 7.09 m 까지, 빗나감은 정렬 문제였다
     bombs_per_episode: int = 2         # 한 판에 이만큼만. 보급이 어렵다 (50 소울, 성벽 마을 상인까지 가야 함)
     bomb_min_enemies: int = 2          # 15 m 안에 적이 이만큼일 때만 — 하나는 근접으로 충분하다
+    bomb_trigger: str = "range"        # "range": 대상이 사거리에 들면 던진다 / "state": 적이 준비(모름)·공격 단계이거나 막은 직후에만, 경계 중엔 안 던짐
+                                       # (사용자: "적이 다가오면 던져야 하는데 자리 잡자마자 성급하게 던지고, 적 AI 가 먼저 감지해 피한다")
     melee_proactive: bool = True       # False 면 먼저 휘두르지 않는다 — 막은 직후·적 공격이 끝난 직후에만 친다
     anchor_radius: float = 4.0         # 사냥터 중심에서 이 밖의 적은 쫓지 않고 제자리에서 기다린다
     pull_one: bool = False             # 다수면 하나만 끌어내기(뒤로 빠지기) — 실측상 모퉁이에서 후퇴가 막혀 죽음. 기본 꺼짐
