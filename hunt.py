@@ -544,12 +544,23 @@ class Hunter(vp.Probe):
         → 'arrived' | 'dead' | 'hp' | 'stuck'"""
         tols = nav.path_tolerances(path, 1.0)
         i, fights, fails = 0, 0, 0
+        first_seen: dict = {}
+        ignore: set = set()
+
+        def awake(c) -> bool:
+            # 깨서 움직이는 놈만 — 계단 위 2.4 m 위의 120100(HP 80)은 어느 기록에서도 애니 -1·제자리라 30 s 싸움을 계속 되풀이했다
+            if c.ptr in ignore:
+                return False
+            p0 = first_seen.setdefault(c.ptr, (c.x, c.y, c.z))
+            return (c.anim or -1) != -1 or math.dist(p0, (c.x, c.y, c.z)) > 1.0
+
+        def fightable(c, pl) -> bool:
+            return c.hp > 0 and c.dist < fight_r and abs(c.y - pl.y) < 1.5 and not patrol.dormant(c) and awake(c)
         while i < len(path):
             q, tol = path[i], tols[i]
 
             def enemy_close(sn):
-                return any(c.hp > 0 and c.dist < fight_r and abs(c.y - sn.player.y) < 2.5 and not patrol.dormant(c)
-                           for c in sn.hostile(fight_r))
+                return any(fightable(c, sn.player) for c in sn.hostile(fight_r))
             r = nav.goto(self.tm, self.pad, tuple(q), tolerance=tol, timeout=15, log=lambda *a: None, terrain=nm,
                          on_tick=lambda sn, _d=None: self.note(sn), mode_fn=lambda sn: "retreat" if enemy_close(sn) else mode)
             if r == "dead":
@@ -557,13 +568,18 @@ class Hunter(vp.Probe):
             s = self.tm.snapshot(within=fight_r + 1.0)
             if s and s.player.hp <= 0:
                 return "dead"
-            near = [c for c in (s.hostile(fight_r) if s else []) if c.hp > 0 and abs(c.y - s.player.y) < 2.5 and not patrol.dormant(c)]
+            near = [c for c in (s.hostile(fight_r) if s else []) if fightable(c, s.player)]
             if near and fights < 12:
                 c = min(near, key=lambda x: x.dist)
                 fights += 1
                 print(f"   {tag}: {c.npc_param} 가 {c.dist:.1f} m — 싸운다", flush=True)
                 self.phase = f"{tag} 싸움 {c.npc_param}"
                 ok = self.melee(0, 0, {"npc": c.npc_param, "pos": [round(c.x, 2), round(c.y, 2), round(c.z, 2)]}, c.ptr, nm, pull_to=None)
+                sc = self.tm.snapshot(within=30.0)
+                cc = next((x for x in sc.chars if x.ptr == c.ptr), None) if sc else None
+                if not ok and cc is not None and cc.hp >= c.hp:
+                    ignore.add(c.ptr)                       # 한 대도 못 넣고 끝났다 — 이 길에선 그놈은 무시
+                    print(f"   {tag}: {c.npc_param} 에게 한 대도 못 넣음 — 이 길에선 무시", flush=True)
                 s2 = self.tm.snapshot(within=5.0)
                 if s2 is None or s2.player.hp <= 0:
                     return "dead"
