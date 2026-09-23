@@ -235,6 +235,9 @@ class Hunter(vp.Probe):
         if not self.select_item(ITEM_KNIFE):
             print(f"   #{ti}: 투척 나이프 칸을 못 고름", flush=True)
             return False
+        if self.snipe_nolock:
+            return self.snipe_free(ti, ptr)
+        self.reset_camera()
         self.aim_fine(ptr, deg=8.0, timeout=2.0)     # 락온이 그놈을 잡도록 몸·카메라를 그쪽으로
         # 5번은 10 m 위(올려다보는 각 ~27°) — 세로 시야가 ±23.5° 라 카메라를 옆으로만 돌리면 화면 밖이라 락온할 게 없었다.
         # 오른 스틱 위아래로 카메라를 들어 본다 (방향 부호를 몰라 양쪽)
@@ -257,6 +260,8 @@ class Hunter(vp.Probe):
             tries.append((ly, dur, locked, self.tm.lock_target()))
         print(f"   #{ti}: 락온 {'됨' if locked else '안 걸림'} (카메라 들기 {tries})", flush=True)
         if not locked:
+            self.reset_camera()
+            self.block_test(ptr, 14.0)
             return False
         thrown, log = 0, []
         try:
@@ -302,6 +307,7 @@ class Hunter(vp.Probe):
         finally:
             if self.lock_state(ptr) == "target":
                 self._r3(0.15)                    # 락온 풀기 (그 뒤는 락온 없이)
+            self.reset_camera()                   # 들어 올린 카메라를 되돌린다 — 안 그러면 다음 나이프가 발밑으로
         sn = self.tm.snapshot(within=60.0)
         c = next((x for x in sn.chars if x.ptr == ptr), None) if sn else None
         dead = c is None or c.hp <= 0
@@ -310,6 +316,122 @@ class Hunter(vp.Probe):
         if dead:
             sk = self.tm.snapshot(within=1.0)
         return dead
+
+    snipe_nolock = True
+
+    def snipe_free(self, ti: int, ptr, max_knives: int = 6) -> bool:
+        """락온 없이 저격 — 몸을 그놈에 맞추고(aim_fine) 카메라를 올려다보는 각에 맞춘 뒤 던진다. 5번은 10 m 위(~27°)라
+        락온이 끝내 안 걸렸다 (카메라를 들어도). 던지는 중(3008)이면 몸을 맞춘 채 방패로 받고 기다린다."""
+        self._press(control.B.XUSB_GAMEPAD_A)          # 핏자국('잃은 힘 되찾기') 위면 소울 회수 — 전에 여기서 죽었다
+        thrown, log = 0, []
+        bias = 0.0                                      # 맞지 않으면 기울기를 조금씩 바꿔 본다
+        while thrown < max_knives:
+            s = self.tm.snapshot(within=40.0)
+            c = next((x for x in s.chars if x.ptr == ptr), None) if s else None
+            if c is None or c.hp <= 0:
+                break
+            if c.anim == 3008:
+                self.pad.guard(True)
+                tw = time.time()
+                while time.time() - tw < 3.0:
+                    s2 = self.tm.snapshot(within=40.0)
+                    c2 = next((x for x in s2.chars if x.ptr == ptr), None) if s2 else None
+                    if c2 is None or c2.anim != 3008:
+                        break
+                    self.aim(s2, c2)
+                    time.sleep(0.02)
+                time.sleep(0.3)
+                self.pad.guard(False)
+                self.pad.move(0.0, 0.0)
+                continue
+            off = self.aim_fine(ptr, deg=1.0, timeout=2.0)
+            s = self.tm.snapshot(within=40.0)
+            c = next((x for x in s.chars if x.ptr == ptr), None) if s else None
+            if c is None:
+                break
+            want = self.elevation(c, s) + bias
+            pitch = self.set_pitch(want)
+            hp0 = c.hp
+            self.pad.use_item()
+            thrown += 1
+            t = time.time()
+            hit = None
+            while time.time() - t < 1.8:
+                self.pad.release_due()
+                sn = self.tm.snapshot(within=40.0)
+                cc = next((x for x in sn.chars if x.ptr == ptr), None) if sn else None
+                if cc is None or cc.hp < hp0:
+                    hit = hp0 - (cc.hp if cc is not None else 0)
+                    break
+                time.sleep(0.03)
+            log.append({"n": thrown, "off": None if off is None else round(off, 1), "want": round(want, 1),
+                        "pitch": None if pitch is None else round(pitch, 1), "dmg": hit, "d": round(c.dist, 1)})
+            print(f"   #{ti}: 저격 {thrown} (몸 {log[-1]['off']}°, 기울기 {log[-1]['pitch']}° / 목표 {log[-1]['want']}°, {c.dist:.1f} m) → 피해 {hit}", flush=True)
+            if hit is None:
+                bias = [2.0, -2.0, 4.0, -4.0, 6.0][min(thrown - 1, 4)]
+        sn = self.tm.snapshot(within=60.0)
+        c = next((x for x in sn.chars if x.ptr == ptr), None) if sn else None
+        dead = c is None or c.hp <= 0
+        self._record(0, ti, MAP[ti - 1], None, None, {}, {"plan": "snipe_free", "throws": log, "dead": dead})
+        self._ev("snipe", target=ti, throws=log, dead=dead)
+        if not dead:
+            self.block_test(ptr, 8.0)
+        return dead
+
+    def block_bomb(self, ptr, t_start: float) -> None:
+        """화염병이 떨어질 때(시작 + 2.4 s)까지 그놈 쪽으로 몸을 맞추고 방패를 든다. 맞으면 적는다."""
+        self.pad.neutral()
+        hp0 = None
+        while time.time() - t_start < 2.8:
+            s = self.tm.snapshot(within=40.0)
+            c = next((x for x in s.chars if x.ptr == ptr), None) if s else None
+            if c is None:
+                break
+            hp0 = hp0 if hp0 is not None else s.player.hp
+            self.pad.guard(True)
+            self.aim(s, c)
+            time.sleep(0.02)
+        self.pad.move(0.0, 0.0)
+        s = self.tm.snapshot(within=5.0)
+        lost = (hp0 - s.player.hp) if (s and hp0 is not None) else None
+        print(f"      화염병 방패로 받음 → 피해 {lost}", flush=True)
+        self._ev("bomb_block", dmg=lost)
+        self.pad.guard(False)
+
+    def block_test(self, ptr, secs: float) -> list:
+        """화염병(3008)을 방패로 받을 수 있나 — 그놈 쪽으로 몸을 맞추고, 던지기 시작하면 방패. 맞은 피해·내 애니를 적는다.
+        (등지고 맞으면 109, 날아가 낭떠러지로 떨어진 적도 있다)"""
+        self._press(control.B.XUSB_GAMEPAD_A)          # 핏자국('잃은 힘 되찾기') 위면 소울 회수 — 전에 여기서 죽었다
+        t0 = time.time()
+        out, last_anim, hp_last, t_throw = [], None, None, None
+        while time.time() - t0 < secs:
+            s = self.tm.snapshot(within=40.0)
+            c = next((x for x in s.chars if x.ptr == ptr), None) if s else None
+            if c is None:
+                break
+            p = s.player
+            if hp_last is not None and p.hp < hp_last:
+                out.append({"t": round(time.time() - t0, 2), "dmg": hp_last - p.hp, "my_anim": p.anim, "lb": self.pad.guard_held(),
+                            "rel": round(math.degrees(patrol.rel_angle(p, c))) if p.heading is not None else None})
+                print(f"      화염병 맞음 {out[-1]}", flush=True)
+            hp_last = p.hp
+            if c.anim != last_anim:
+                if c.anim == 3008:
+                    print(f"      +{time.time() - t0:.1f}s 5번 던지기 시작 ({c.dist:.1f} m)", flush=True)
+                    t_throw = time.time()
+                last_anim = c.anim
+            if t_throw is not None and time.time() - t_throw > 2.35:
+                im = self._shot()                 # 떨어지는 순간 — 방패로 받았나, 턱에 걸렸나
+                if im is not None:
+                    im.save(vp.IMG_DIR / f"bomb_{time.strftime('%H%M%S')}.jpg", quality=80)
+                t_throw = None
+            self.pad.guard(True)
+            self.aim(s, c)
+            time.sleep(0.02)
+        self.pad.guard(False)
+        self.pad.move(0.0, 0.0)
+        self._ev("block_test", hits=out)
+        return out
 
     def knife_pull(self, ti: int, ptr, nm) -> bool:
         """평지(ARENA)에서 투척 나이프로 그놈을 부른다 — 걸어서 다가가면 좁은 띠(서쪽 낭떠러지)에서 싸우게 됐다.
@@ -327,9 +449,13 @@ class Hunter(vp.Probe):
         if not self.select_item(ITEM_KNIFE):
             print(f"   #{ti}: 투척 나이프 칸을 못 고름", flush=True)
             return False
+        self.reset_camera()
         spawn = tuple(MAP[ti - 1]["pos"])
         for attempt in range(3):
             off = self.aim_fine(ptr, deg=1.2, timeout=4.0)   # 14 m 에서 3.3~4.6° 는 6/6 빗나감, 0.2° 는 2/2 맞음
+            sp_ = self.tm.snapshot(within=40.0)
+            cp_ = next((x for x in sp_.chars if x.ptr == ptr), None) if sp_ else None
+            pitch = self.set_pitch(self.elevation(cp_, sp_)) if cp_ is not None else None
             c0 = next((x for x in (self.tm.snapshot(within=40.0) or type("S", (), {"chars": []})).chars if x.ptr == ptr), None)
             if c0 is None:
                 return False
@@ -354,7 +480,7 @@ class Hunter(vp.Probe):
                     break
                 time.sleep(0.05)
             n1 = self.tm.goods_count(ITEM_KNIFE)
-            print(f"   #{ti}: 나이프 {attempt + 1}번째 (몸-그놈 {off if off is None else round(off, 1)}°, {c0.dist:.1f} m) → "
+            print(f"   #{ti}: 나이프 {attempt + 1}번째 (몸-그놈 {off if off is None else round(off, 1)}°, 카메라 {pitch if pitch is None else round(pitch, 1)}°, {c0.dist:.1f} m) → "
                   f"{'알아챔' if woke else '반응 없음'} | 나이프 {n0}→{n1}, 내 애니 {my_anims[:5]} {shot or ''}", flush=True)
             self._ev("knife", target=ti, off=off, dist=round(c0.dist, 1), woke=woke)
             if woke:
@@ -480,21 +606,29 @@ class Hunter(vp.Probe):
                 continue
             near = {"v": False}
 
+            bomb = {"ptr": None, "t": 0.0, "anim": {}}
+
             def on_tick(sn, _d=None):
                 self.note(sn)
                 near["v"] = any(c.hp > 0 and not patrol.dormant(c) for c in sn.hostile(25.0))
+                for c in sn.hostile(30.0):             # 화염병(3008)을 던지기 시작한 놈 — 떨어지기(2.4 s) 전에 멈춰 방패
+                    if c.anim == 3008 and bomb["anim"].get(c.ptr) != 3008:
+                        bomb["ptr"], bomb["t"] = c.ptr, time.time()
+                    bomb["anim"][c.ptr] = c.anim
             plan = self.plans.get(ti, "sneak")
             tptr = self.ptr_of.get(ti)
             left = {"v": False}
 
             def mode_fn(_s):
+                if bomb["ptr"] is not None and time.time() - bomb["t"] < 2.8:
+                    return "retreat"                        # goto 를 끊고 방패로 받는다
                 if plan in ("bait", "melee", "study") and tptr is not None:
                     tc = next((x for x in _s.chars if x.ptr == tptr), None)
                     if tc is not None and math.dist((tc.x, tc.y, tc.z), spawn) > 1.0:
                         left["v"] = True
                         return "retreat"                    # 알아채고 스폰을 떠났다 → 멈춰서 맞이한다
                 return "creep" if near["v"] else "walk"
-            walk = path[1:idx] + [stand] if plan not in ("knife", "plunge", "snipe") else []
+            walk = path[1:idx] + [stand] if plan not in ("knife", "plunge", "snipe", "rush") else []
             from_flat = False
             if self.last_kill_pos is not None and plan in ("melee", "study") and walk:
                 # 앞 적을 잡은 평평한 자리에서 곧게 이어지면(15 m 안) 거기서 다가가 알아채게 하고 그 자리로 끌어온다.
@@ -511,7 +645,9 @@ class Hunter(vp.Probe):
                         to_flat = nm.find_path((s.player.x, s.player.y, s.player.z), self.last_kill_pos) or [self.last_kill_pos]
                         walk = to_flat[1:] + fp[1:i2] + [st2]
                         print(f"   #{ti}: 평평한 자리에서 다가간다 ({len(walk)} 점)", flush=True)
-            for q in walk:
+            wi, blocks = 0, 0
+            while wi < len(walk):
+                q = walk[wi]
                 r = nav.goto(self.tm, self.pad, q, tolerance=0.8 if q == stand else 1.5, timeout=20, log=lambda *a: None,
                              on_tick=on_tick, mode_fn=mode_fn, terrain=nm)
                 if r == "dead":
@@ -519,10 +655,37 @@ class Hunter(vp.Probe):
                     return
                 if left["v"]:
                     break
+                if bomb["ptr"] is not None and time.time() - bomb["t"] < 2.8 and blocks < 8:
+                    # 5번 화염병 — 던지는 놈 쪽으로 몸을 돌리고 방패. 등지고 맞으면 109~152 에 날아가 낭떠러지로 떨어졌다
+                    blocks += 1
+                    self.block_bomb(bomb["ptr"], bomb["t"])
+                    bomb["ptr"] = None
+                    continue                                # 같은 경로점부터 다시
+                wi += 1
             self.pad.neutral()
             time.sleep(0.3)
             if plan == "bait":
                 if not self.bait(k, ti, e, tptr):
+                    return
+                continue
+            if plan == "rush":
+                # 사용자: "화염병 던지는 몹부터, 내가 위에서 아래로". 아래에선 5번이 절벽 턱 뒤라 칼이 안 닿고(0/12), 멈춰서 막으면
+                # 3.6 s 마다 던져서 한 걸음도 못 갔다(19 m 에 20 s). 화염병은 던질 때 자리로 떨어지니 멈추지 않고 달려 붙는다
+                self.phase = f"#{ti} 달려 붙기"
+                sp_ = self.tm.snapshot(within=1.0)
+                rp = nm.find_path((sp_.player.x, sp_.player.y, sp_.player.z), spawn) or [spawn]
+                t_r = time.time()
+                for q in rp[1:]:
+                    tc = next((x for x in (self.tm.snapshot(within=40.0) or type("S", (), {"chars": []})).chars if x.ptr == tptr), None)
+                    if tc is not None and tc.dist < 3.0:
+                        break
+                    if nav.goto(self.tm, self.pad, q, tolerance=1.0, timeout=8, log=lambda *a: None, terrain=nm,
+                                on_tick=lambda sn, _d=None: self.note(sn), mode_fn=lambda _s: "sprint") == "dead":
+                        print("   사망", flush=True)
+                        return
+                self.pad.neutral()
+                print(f"   #{ti}: 달려 붙음 {time.time() - t_r:.1f} s", flush=True)
+                if not self.melee(k, ti, e, tptr, nm, pull_to=None):
                     return
                 continue
             if plan == "snipe":
@@ -824,6 +987,41 @@ class Hunter(vp.Probe):
         if h is None or h == -1:
             return "none"
         return "target" if h == self.tm.handle(ptr) else "other"
+
+    def cam_pitch(self) -> float | None:
+        """카메라 상하 기울기(°, + 가 위). ChrFollowCam 정면 행의 y = sin(기울기) — 실측 2026-09-23: 오른 스틱 +0.7 을 0.15 s 치면
+        ~10° 씩 올라가 −40°(−0.65) → +40°(+0.64). (vision_probe.cam_matrix 주석의 '기울기 없음' 은 틀렸다)"""
+        m = vp.cam_matrix(self.tm)
+        if m is None:
+            return None
+        return math.degrees(math.asin(max(-1.0, min(1.0, float(m[2][1])))))
+
+    def set_pitch(self, deg: float, tol: float = 1.5) -> float | None:
+        """카메라를 deg 기울기로. 락온 없이 던지면 카메라 기울기대로 날아간다 (−40° 로 숙인 채 던진 나이프 3/3 발밑)."""
+        pt = None
+        for _ in range(14):
+            pt = self.cam_pitch()
+            if pt is None or abs(deg - pt) <= tol:
+                break
+            err = deg - pt
+            self.pad.look(0.0, 0.7 if err > 0 else -0.7)
+            time.sleep(max(0.02, min(0.25, abs(err) / 10.0 * 0.15)))
+            self.pad.look(0.0, 0.0)
+            time.sleep(0.12)
+        return pt
+
+    def elevation(self, c, s) -> float:
+        """그놈 가슴(발 +1.2 m)을 내 손(발 +1.3 m)에서 올려다보는 각(°)."""
+        p = s.player
+        return math.degrees(math.atan2((c.y + 1.2) - (p.y + 1.3), math.dist((p.x, p.z), (c.x, c.z))))
+
+    def reset_camera(self) -> None:
+        """카메라 기울기 초기화 — R3 를 누르면 카메라가 등 뒤 기본 높이로 돌아온다. 그때 락온이 걸리면 한 번 더 눌러 푼다.
+        락온 없이 던지면 **카메라 기울기대로** 날아간다: 저격 때 오른 스틱으로 카메라를 숙여 둔 채 2번에게 던졌더니
+        조준 0.0° 인데 3/3 발밑에 꽂혔다 (화면: 카메라가 캐릭터를 거의 수직으로 내려다봄)."""
+        self._r3(0.35)
+        if self.tm.lock_target() not in (None, -1):
+            self._r3(0.2)
 
     def _r3(self, wait: float = 0.3) -> None:
         self.pad.lock_on()
