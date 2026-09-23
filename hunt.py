@@ -489,6 +489,8 @@ class Hunter(vp.Probe):
         for attempt in range(6):
             sc = self.tm.snapshot(within=10.0)
             close = [x for x in (sc.hostile(3.5) if sc else []) if x.hp > 0]
+            if self.BRUTE:                         # 강인도 세팅 — 옆에 다른 놈이 있어도 던진다 (사용자: 폭탄은 그래도 잘 써야). 목표가 2 m 안에 붙었을 때만 접는다
+                close = [x for x in close if x.ptr == ptr and x.dist < 2.0]
             if close:
                 # 이미 깨서 붙은 놈이 있다 — 방패 내리고 락온·던지기를 붙들고 있으면 맞는다(4번 84~136 씩) → 근접으로
                 print(f"   #{ti}: {close[0].dist:.1f} m 안에 적 — 폭탄 접고 근접", flush=True)
@@ -1771,11 +1773,26 @@ class Hunter(vp.Probe):
                             self.aim(s, c)
                             time.sleep(0.01)
                             continue
-                        r = self.strike("heavy", c, s, ptr, locked=locked, nm=nm)
-                        r = {"vs": a, "age": round(age, 2), "act": "heavy_first", "d": round(c.dist, 2), **r}
+                        # 강공은 2.9 m, 약공은 1.6 m 앞으로 나간다 — 계단 꼭대기에서 강공이 6번 너머로 나가 떨어져 죽었다 (바닥은 1.8 m 만 봤다).
+                        # 앞 3.0 m(±20°)에 바닥이 있으면 강공, 1.8 m 면 약공(가로 베기), 둘 다 없으면 잠깐 기다린다
+                        kind = None
+                        for kk, reach in (("heavy", 3.0), ("light", 1.8)):
+                            if all(nav.ground_ahead(nm, p, math.sin(math.atan2(c.x - p.x, c.z - p.z) + da), math.cos(math.atan2(c.x - p.x, c.z - p.z) + da), reach=reach)
+                                   for da in (-0.35, 0.0, 0.35)):
+                                kind = kk
+                                break
+                        if kind is None:
+                            if time.time() - getattr(self, "_noground_t", 0) > 2.0:
+                                self._noground_t = time.time()
+                                print(f"      {c.dist:.1f} m — 앞에 바닥이 없어 안 휘두름", flush=True)
+                            self.aim(s, c)
+                            time.sleep(0.15)
+                            continue
+                        r = self.strike(kind, c, s, ptr, locked=locked, nm=None)   # 바닥은 위에서 봤다
+                        r = {"vs": a, "age": round(age, 2), "act": "heavy_first" if kind == "heavy" else "light_first", "d": round(c.dist, 2), **r}
                         counters.append(r)
                         self._ev("act", **r)
-                        print(f"      {a} {c.dist:.1f} m → 강공: 적 피해 {r.get('enemy_dmg')}, 내 피해 {r.get('hit_after')}, 적 애니 {r.get('e_anims')}", flush=True)
+                        print(f"      {a} {c.dist:.1f} m → {'강공' if kind == 'heavy' else '약공'}: 적 피해 {r.get('enemy_dmg')}, 내 피해 {r.get('hit_after')}, 적 애니 {r.get('e_anims')}", flush=True)
                         if r.get("enemy_dead"):
                             if ptr != orig_ptr:
                                 continue
