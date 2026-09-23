@@ -555,6 +555,21 @@ class Hunter(vp.Probe):
         self._ev("climb", result=r, left=left)
         return r
 
+    def bombs_left(self) -> bool:
+        q = self.tm.quick_items()
+        return any(i in q and self.tm.goods_count(i) for i in (ITEM_BLACK_BOMB, ITEM_BOMB))
+
+    def close_bomb(self, ptr) -> dict:
+        """붙은 채로 폭탄 — 락온(가까우니 정렬 없이) → 던지기. 내게는 피해가 없다 (사용자)."""
+        if not self.select_bomb():
+            return {"done": False, "why": "폭탄 없음"}
+        if not (self.lock_state(ptr) == "target" or self.lock_verified(ptr, align=False)):
+            return {"done": False, "why": "락온 안 걸림"}
+        self.pad.guard(False)
+        res = self.throw_at(ptr, locked_already=True, release_if_alive=True)
+        self.pad.guard(True)
+        return {"done": True, "enemy_dead": res["result"] == "처치", "result": res["result"], "hp": [res["hp0"], res["hp_after"]]}
+
     def heal_if_needed(self, frac: float = 0.55, max_sips: int = 2) -> None:
         """잡은 뒤 HP 가 frac 아래고 5 m 안에 적이 없으면 에스트 (사용자가 2번 칸에 넣어 줌, 10회분)."""
         for _ in range(max_sips):
@@ -1472,6 +1487,7 @@ class Hunter(vp.Probe):
         acted_for, idle_near_since, counters = None, None, []
         last_hp, dmg_log, close_since, last_seen = None, [], None, None
         orig_ptr, switched_at = ptr, 0.0
+        last_dmg_t, last_ehp = time.time(), None
         self._stick_zero_t = None
         self.phase = f"#{ti} 근접"
         if not self.use_lock:
@@ -1566,6 +1582,9 @@ class Hunter(vp.Probe):
                 why = "처치"
                 break
             last_seen = (c.anim, round(c.y - p.y, 1), c.hp)
+            if last_ehp is None or c.hp < last_ehp:
+                last_dmg_t = time.time()              # 그놈에게 피해를 넣은 마지막 시각 (교착 판단)
+            last_ehp = c.hp
             self._track(c)                        # 애니가 **바뀐** 순간 — 우리 공격을 지켜보는 동안에도 잰다 (늦게 보면 이미 닿을 때)
             if 3000 <= (c.anim or 0) < 3600:
                 att_start = self._etrk["t"]
@@ -1629,8 +1648,27 @@ class Hunter(vp.Probe):
                     age = time.time() - self._etrk["t"]
                     table = {**self.REACT, **self.REACT_NPC.get(c.npc_param, {})}
                     act = table.get(a) if 3000 <= a < 3600 else "light" if 2000 <= a < 3000 else None
+                    stale = time.time() - last_dmg_t > 10.0
                     if a == 3500 and act == "roll" and c.dist < self.REACH["light"] and c.y - p.y > 0.4:
-                        act = "guard"                     # 그놈이 0.6~0.7 m 위(비탈)면 리포스트가 안 나간다 (0/3, 약공만 나가고 맞음)
+                        # 그놈이 0.6~0.7 m 위(비탈·계단)면 리포스트가 안 나간다 (0/3) — 6번이 계단 위에서 30 s 버텨 3/3 시간 초과.
+                        # 사용자: "폭탄은 나한테 피해 안 주니 붙어도 써도 된다" → 휘청일 때 폭탄
+                        act = "bomb" if self.bombs_left() else "guard"
+                    elif stale and not (3000 <= a < 3600) and c.dist < 4.0 and self.bombs_left() and acted_for != ("stale", round(last_dmg_t)):
+                        act = "bomb"                      # 10 s 넘게 한 대도 못 넣음 — 공격 중이 아닐 때 폭탄
+                    if act == "bomb":
+                        acted_for = ("stale", round(last_dmg_t)) if a != 3500 else (a, self._etrk["t"])
+                        r = self.close_bomb(ptr)
+                        r = {"vs": a, "age": round(age, 2), "act": "bomb", "d": round(c.dist, 2), **r}
+                        counters.append(r)
+                        self._ev("act", **r)
+                        print(f"      {a} {c.dist:.1f} m (높이차 {c.y - p.y:+.1f}) → 붙어서 폭탄: {r}", flush=True)
+                        if r.get("enemy_dead"):
+                            if ptr != orig_ptr:
+                                continue
+                            why = "처치"
+                            break
+                        last_dmg_t = time.time()
+                        continue
                     if act in ("roll", "roll_heavy"):     # 3500 휘청 — 붙어 있으면 구를 것 없이 바로 친다
                         act = "roll" if c.dist >= self.REACH["heavy" if act == "roll_heavy" else "light"] else ("light" if act == "roll" else "heavy")
                     ready = locked or self.aim(s, c)       # 락온 없으면 몸을 그놈에 맞추고 스틱을 놓은 뒤라야 R1·B
