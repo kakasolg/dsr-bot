@@ -19,6 +19,8 @@
     +0x2A4  ChrFlags1 — 0x8000 이 켜진 것만 실제로 스폰된 캐릭터 (꺼진 건 목록엔 있지만 안 보이고 안 움직임)
     +0xA44  특수 동작 애니 ID (int32, 없으면 -1) — 화톳불에 앉아 있는 동안 77xx (위 화톳불 7711, 아래 7721). +0xA48 = 1 이면 그 동작 중.
             mapd 쪽 "현재 애니"(+0x48→+0x80) 는 공격 304000/에스트 7585/백스텝 690 은 보이지만 앉기는 안 보인다.
+    +0x08  핸들 (int32, 예: 0x10008015)
+    +0xEF0 (PlayerIns) 락온 대상의 핸들, 안 걸렸으면 -1 — R3 누르기 전후 PlayerIns 0x1000 바이트를 비교해 찾음 (2/2, 2026-09-23)
   ChrClassWarp = [static]: +0xB34 마지막 화톳불 ID (예: 1812960 = 불의 제전)
             **쓰면 귀환의 뼛조각이 그 화톳불로 간다** (실측: 어둠숲에서 이 값을 불의 제전으로 바꾸고
             뼛조각을 쓰니 불의 제전으로 이동). 다만 **사망 부활 지점은 아니다** — 값을 바꾸고 죽여도
@@ -64,6 +66,7 @@ OFF_MAPDATA, OFF_MODEL, OFF_NPC = 0x68, 0x88, 0xC8
 OFF_LASTBONFIRE = 0xB34
 CHR_LIST_OFFSETS = (0xA8, 0xB0, 0xB8, 0xC0, 0xC8)   # WorldChrMan 안의 구역별 캐릭터 목록 (실측: 불의 제전은 0xB0)
 OFF_ANIM2 = 0xA44
+OFF_HANDLE, OFF_LOCK_TARGET = 0x8, 0xEF0
 OFF_MENU_FLAG = 0x1A294F0   # 모듈 기준. 1=게임 조작 중, 0=메뉴 열림 (App ver 1.03.1 실측)
 OFF_FLAGS1 = 0x2A4      # DSR-Gadget ChrFlags1(0x284) + 보정 0x20
 FLAG_ACTIVE = 0x8000    # 실측: 월드에 실제로 있는(애니가 도는) 캐릭터만 켜짐
@@ -238,6 +241,14 @@ class DSRTelemetry:
 
     def flasks(self) -> tuple[Optional[int], Optional[int]]:
         return None, None   # TODO 에스트 수 (인벤토리 오프셋 미확인) — Guard 는 "효과 없음 → 빈 병" 휴리스틱으로 폴백
+
+    def handle(self, p: int) -> Optional[int]:
+        return self.i32(p + OFF_HANDLE) if p else None
+
+    def lock_target(self) -> Optional[int]:
+        """락온 대상의 핸들, 안 걸렸으면 -1. R3 는 토글이라 이걸 봐야 몇 번 누를지 안다."""
+        pp = self.player_ptr()
+        return self.i32(pp + OFF_LOCK_TARGET) if pp else None
 
     def last_grace(self) -> Optional[int]:
         return self.last_bonfire()
