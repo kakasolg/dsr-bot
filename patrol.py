@@ -175,6 +175,7 @@ class Guard:
         self.last_sp: int | None = None
         self.last_block = 0.0
         self.blocks = 0
+        self.block_log: list[float] = []
         self.engage_prev_attacking = False
         self.dist_hist: dict[int, list] = {}   # ptr → [(t, dist)] 최근 1.5 s — "다가오는 중" 판정
         self.flee_until = 0.0    # 도망 결정의 히스테리시스 (틱마다 뒤집히지 않게)
@@ -229,8 +230,10 @@ class Guard:
             if sel != ITEM_BOMB:
                 self.bomb_step = 1
             elif (tgt is not None and lo <= tgt.dist <= hi and self.locked and self.lock_ptr == tgt.ptr
-                  and min((self._time_to_reach(c, now) for c in hostile if not dormant(c) and c.dist < 9.0), default=99) > THROW_TIME
-                  and not (self.reflex and self.reflex.threat)):
+                  # 붙어서 던지기(bomb_min_dist 0): 폭탄은 나에게 피해가 없다 (사용자) — '닿기 전에' 검사는 붙은 적에겐 의미가 없고,
+                  # 휘두름 판정은 할로우에게 거의 늘 켜져(노트 H-7) 한 번도 못 던진다 → 막은 직후(0.6 s)엔 던진다. 근접 반격과 같은 창
+                  and (lo <= 0.0 or min((self._time_to_reach(c, now) for c in hostile if not dormant(c) and c.dist < 9.0), default=99) > THROW_TIME)
+                  and (not (self.reflex and self.reflex.threat) or (lo <= 0.0 and now - self.last_block < 0.6))):
                 self.pad.use_item()
                 self.bombs_thrown += 1
                 self.last_bomb = now
@@ -278,6 +281,7 @@ class Guard:
             blocked = True
             self.blocks += 1
             self.last_block = now
+            self.block_log.append(round(now, 3))   # 적 공격 애니 표 만들기용 (어느 애니 뒤에 막기가 왔나)
             self.log(f"  guard: blocked (sp {self.last_sp}→{p.sp}, hostile {len(hostile)})")
         self.last_sp = p.sp
         # 반사: HP 가 줄면 **생각하기 전에** 막는다 (사용자: "HP 가 줄기 시작하면, 뭔지 모르면 가드하든가 도망쳐야지 거기서 생각하면 안 된다").
@@ -286,7 +290,8 @@ class Guard:
             self.hit_at = now
             if self.bomb_step in (1, 2):
                 self.bomb_step, self.bomb_t0, self.bomb_at = 3, now, now
-                self.bomb_retry = now + 8.0
+                # 붙어서도 던지는 설정이면 맞는 게 일상이라 8 s 쉬면 폭탄을 거의 못 쓴다 → 2 s
+                self.bomb_retry = now + (2.0 if getattr(self.pb, "bomb_min_dist", 4.0) <= 0.0 else 8.0)
                 self.log(f"  guard: 맞음 (-{self.last_hp - p.hp}) — 폭탄 접고 가드")
         # 같은 층의 적 전부(무시 목록도 3 m 안이면 포함 — 창살 너머라 믿었던 놈이 붙어서 때리는 일이 있었다)
         # 위층에서 던지는 적(화염병 등)은 같은 층 판정에 안 걸려 "적 없음"이 된다 → 봇이 가만히 서서 맞는다.
@@ -560,24 +565,32 @@ class Guard:
             threat = bool(thr_c is not None and thr_c.dist < THREAT_DIST)
             recovering = self.engage_prev_attacking and not attacking   # 공격 애니가 방금 끝남 = 빈틈
             self.engage_prev_attacking = attacking
+            # 막고 → 한 대 (사용자): 방금(0.6 s) 막았으면 교전 대상의 '휘두르는 중' 판정은 보지 않는다 — 그 공격은 이미
+            # 방패에 닿았고, 튕긴 적은 자세가 무너져 있다. 참는 건 **다른** 놈이 2.5 m 안에서 휘두를 때뿐.
+            # 이게 없어서 상인 달리기 모든 판에서 휘두름 0 이었다 — 3000~3599 판정이 할로우에게 거의 늘 켜져
+            # (노트 H-7 의심) 막기 5번에도 반격 0 (gemini 3판). 판정 자체는 애니 기록을 모아 따로 고친다.
+            just_blocked = blocked or now - self.last_block < 0.6
+            other_threat = bool(threat and thr_c is not None and thr_c.ptr != self.engage.ptr)
             if self.engage.dist <= self.pb.attack_range:
                 self.mode = "hold"
                 # 막고 → 한 대: 적이 휘두르는 중엔 절대 안 치고 가드. 막았거나(스태미나) 적 공격이 끝난 직후에 친다.
                 # 적이 가만히 있으면 attack_cooldown 마다 한 대 (할로우는 느려서 선공도 통한다)
                 proactive = getattr(self.pb, "melee_proactive", True) and now - self.last_attack > self.pb.attack_cooldown
-                if now - getattr(self, "_swing_why_t", 0) > 1.0:
+                counter_ok = just_blocked and not other_threat and now - self.last_attack > 0.6
+                normal_ok = not attacking and not threat and (recovering or proactive)
+                if now - getattr(self, "_swing_why_t", 0) > 1.0 and not counter_ok:
                     why = [w for w, bad in (("스태미나", sp_pct <= 0.25), ("적 휘두르는 중", attacking), ("옆 적 위협", threat),
                                             (f"내 경직 {p.anim}", player_locked(p.anim)),
                                             ("쿨다운", not (blocked or recovering or proactive))) if bad]
                     if why:
                         self._swing_why_t = now
                         self.log(f"  guard: 안 침 — {', '.join(why)} (대상 {self.engage.dist:.1f} m)")
-                if sp_pct > 0.25 and not attacking and not threat and not player_locked(p.anim) and (blocked or recovering or proactive):
+                if sp_pct > 0.25 and not player_locked(p.anim) and (counter_ok or normal_ok):
                     self.pad.attack()
                     self.last_attack = now
-                    self.combo_at = now + 0.55 if blocked else 0.0   # 방패에 튕기면 자세가 무너진다 (사용자) → 한 대 더
-                    act = "counter" if (blocked or recovering) else "attack"
-                elif self.combo_at and now >= self.combo_at and not attacking and not threat and sp_pct > 0.2:
+                    self.combo_at = now + 0.55 if just_blocked else 0.0   # 방패에 튕기면 자세가 무너진다 (사용자) → 한 대 더
+                    act = "counter" if (just_blocked or recovering) else "attack"
+                elif self.combo_at and now >= self.combo_at and not other_threat and sp_pct > 0.2:   # 막은 뒤 2타 — 대상 판정은 안 본다 (위와 같은 이유)
                     self.pad.attack()
                     self.last_attack = now
                     self.combo_at = 0.0

@@ -89,7 +89,8 @@ PB_DIR = ROOT / "data" / "playbook-merchant"
 # 막무가내 질주는 경사로의 할로우 둘에게 길이 막혀 0.8 m 안에서 13대 맞고 죽었다 (1판 실측).
 # 그래서 길을 막는 놈은 치우고 지나간다: 멀리서 파이어밤(할로우 HP 75 = 한 방, 9.4 m 까지 실측), 붙으면 막고 한 대.
 # 할로우는 느려서 먼저 쳐도 된다(melee_proactive). 도망은 끈다(사용자: "도망친 게 실패").
-PB_DEFAULTS = {"use_bombs": True, "bomb_min_dist": 4.0, "bomb_max_dist": 9.0, "bombs_per_episode": 8,
+# bomb_min_dist 0: 폭탄은 나에게 피해가 없다 — 붙어도 던진다 (사용자, 2026-09-22). 할로우 75 HP 라 붙은 놈도 한 방.
+PB_DEFAULTS = {"use_bombs": True, "bomb_min_dist": 0.0, "bomb_max_dist": 9.0, "bombs_per_episode": 8,
                "bomb_min_enemies": 1, "melee_proactive": True, "crowd_threshold": 5, "attack_range": 1.0,
                "hold_range": 1.6, "lock_range": 9.0, "mode_open": "sprint", "mode_near_enemy": "guard", "retreat_hp_pct": 0.0,
                "flask_hp_pct": 0.5}
@@ -565,6 +566,14 @@ class Runner:
         self.rfx.join(1.0)
         blocks = self.guard.blocks
         llm_calls = list(self.tactician.calls) if self.tactician else None
+        # 적 공격 애니 표 재료: 애니 전환·피격·막기 시각 (노트 H-7 — 3000~3599 판정이 할로우에게 거의 늘 켜진다)
+        try:
+            (ROOT / "data" / "reflex-merchant").mkdir(parents=True, exist_ok=True)
+            (ROOT / "data" / "reflex-merchant" / f"{int(st['t0'])}.json").write_text(json.dumps(
+                {"ep": i, "tactic": self.tactic, "t0": st["t0"], "transitions": self.rfx.transitions, "attacks": self.rfx.attacks,
+                 "hits": [(t, d) for t, d, *_ in self.rfx.hits], "blocks": self.guard.block_log}, ensure_ascii=False), encoding="utf-8")
+        except (OSError, TypeError) as e:
+            self.gl(f"  애니 기록 저장 실패: {e}")
         self.guard, self.rfx, self.tactician, self.cur_wp = None, None, None, None
         # 돌아가기: 죽었으면 부활을 기다린다. 다크사인은 **필요할 때만** — 쓸 때마다 소울·인간성을 잃는다 (사용자: "다크사인만 남용").
         #   쓴다: 상인 도착(멀다) · HP 가 낮아 포기 · 추락 · 구역 경계 너머(성벽 마을 쪽 — 화톳불 쪽 내비메시로 못 걸어 돌아간다)
