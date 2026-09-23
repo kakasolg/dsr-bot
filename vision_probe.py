@@ -157,6 +157,7 @@ class Probe:
             if not c or s.cam_yaw is None:
                 self.pad.look(0, 0)
                 return None
+            self.note(s)
             err = rel_to_camera(s, c)
             if abs(err) < math.radians(8):
                 self.pad.look(0, 0)
@@ -196,6 +197,8 @@ class Probe:
         while time.time() - t0 < seconds:
             s = self.tm.snapshot(within=SEE + 5)
             c = next((x for x in s.hostile(SEE + 5) if x.ptr == ptr), None) if s else None
+            if s:
+                self.note(s)
             if c:
                 d0 = c.dist if d0 is None else d0
                 dmin = min(dmin, c.dist)
@@ -204,12 +207,26 @@ class Probe:
                 attacked = attacked or (3000 <= (c.anim or 0) < 3600)
             time.sleep(0.1)
         closed = (d0 - dmin) if d0 is not None else 0.0
+        hw = [x for x in self.hist.get(ptr, []) if x[0] >= t0 and x[2] is not None]
+        f0, f1 = (hw[0][2], hw[-1][2]) if hw else (None, None)
+        turned_to_me = f0 is not None and f1 is not None and f0 - f1 > 30 and f1 < 45   # 내가 서 있는데 나를 향해 30° 넘게 돌았다
         return {"closed_m": round(closed, 1), "attack_anim": attacked, "anims": anims[:8],
-                "aware_by_behavior": bool(closed > 1.5 or attacked)}
+                "facing_watch": [None if f0 is None else round(f0), None if f1 is None else round(f1)],
+                "turned_to_me": turned_to_me,
+                "aware_by_behavior": bool(closed > 1.5 or attacked or turned_to_me)}
+
+    def note(self, s) -> None:
+        """25 m 안 적마다 (시각, 몸 방향, 나를 보는 각도, 거리) — 걷는 중·정렬 중·지켜보는 중 전부."""
+        now = time.time()
+        for c in s.hostile(25.0):
+            hh = self.hist.setdefault(c.ptr, [])
+            hh.append((now, c.heading, facing_player(c, s.player), c.dist))
+            del hh[:-200]
 
     def tracking(self, ptr, now: float) -> dict:
-        """최근 3 s: 적 몸 방향이 얼마나 돌았나, 그동안 나를 보는 각도는. 내가 움직이는데 적이 따라 돌며 계속 나를 보면 = 알아챔 후보."""
-        h = [x for x in self.hist.get(ptr, []) if now - x[0] <= 3.0 and x[1] is not None]
+        """찍기 직전 4 s: 적 몸 방향이 얼마나 돌았나, 그동안 나를 보는 각도는. 내가 움직이는데 적이 따라 돌며 계속 나를 보면 = 알아챔 후보.
+        (예전엔 '지금부터 3 s' 로 잘라서 정렬에 몇 초 걸리면 기록이 다 빠졌다 — 첫 3시도 전부 None)"""
+        h = [x for x in self.hist.get(ptr, []) if now - x[0] <= 4.0 and x[1] is not None]
         if len(h) < 2:
             return {"turned_deg": None, "facing_3s_ago": None}
         turned = abs(math.degrees((h[-1][1] - h[0][1] + math.pi) % (2 * math.pi) - math.pi))
@@ -241,11 +258,7 @@ class Probe:
         def on_tick(sn, _d=None):
             p = sn.player
             stop["near"] = any(c.hp > 0 and not patrol.dormant(c) for c in sn.hostile(25.0))
-            now = time.time()
-            for c in sn.hostile(25.0):
-                hh = self.hist.setdefault(c.ptr, [])
-                hh.append((now, c.heading, facing_player(c, p), c.dist))
-                del hh[:-60]
+            self.note(sn)
             for c in sn.hostile(SEE):
                 if c.hp <= 0 or patrol.dormant(c) or abs(c.y - p.y) > 4.0:
                     continue
@@ -301,7 +314,8 @@ class Probe:
                 f.write(json.dumps(row, ensure_ascii=False) + "\n")
             g = "  ".join(f"{m.split('-')[1]}:{a.get('state')}({a.get('ms')}ms)" for m, a in ans.items())
             print(f"   {c.dist:4.1f} m npc {c.npc_param} anim {c.anim} 나를 보는 각 {feats['facing_deg']}° (3 s 전 {feats['facing_3s_ago']}°, 몸 {feats['turned_deg']}° 돎) | {g} | "
-                  f"3 s 행동: {beh['closed_m']} m 다가옴, 공격애니 {beh['attack_anim']} → {'알아챔' if beh['aware_by_behavior'] else '모름'}  [{name}]",
+                  f"3 s 행동: {beh['closed_m']} m 다가옴, 공격애니 {beh['attack_anim']}, 보는 각 {beh['facing_watch'][0]}→{beh['facing_watch'][1]}° "
+                  f"→ {'알아챔' if beh['aware_by_behavior'] else '모름'}  [{name}]",
                   flush=True)
             last_shot_d[ptr] = c.dist
             stop["ptr"] = None
