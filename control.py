@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import math
 import sys
+import threading
 import time
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -89,26 +90,49 @@ def focus_game() -> bool:
 class Pad:
     def __init__(self):
         self._due: dict = {}      # 버튼 → 뗄 시각 (tap 이 자지 않도록)
+        # 반사 스레드(reflex.py)와 판단 루프가 같이 누른다 — 보고서(report)를 동시에 고치지 않게 잠근다
+        self._lock = threading.RLock()
+        self.force_guard = False  # 반사 스레드가 켜면 판단 루프가 가드를 내려도 무시한다 (적 공격 중)
         self.pad = vg.VX360Gamepad()
         self.neutral()
         time.sleep(2.0)  # 게임이 새 XInput 장치를 인식할 시간 (바로 누르면 첫 입력이 씹힘)
 
+    def reconnect(self) -> None:
+        """가상 패드를 뺐다 다시 꽂는다. 실측: 이전 프로세스의 패드가 막 빠진 직후 새 패드를 만들면
+        게임이 입력을 안 받는 때가 있다 (화면에 '컨트롤러 연결 해제' 알림 둘, 버튼 표시가 키보드 E 로 바뀜)."""
+        with self._lock:
+            self._due.clear()
+            self.pad = None
+        import gc
+        gc.collect()
+        time.sleep(1.5)
+        with self._lock:
+            self.pad = vg.VX360Gamepad()
+            self.pad.reset()
+            self.pad.update()
+        time.sleep(2.5)
+
     def neutral(self) -> None:
-        self.pad.reset()
-        self.pad.update()
+        with self._lock:
+            self.pad.reset()
+            if self.force_guard:
+                self.pad.press_button(B.XUSB_GAMEPAD_LEFT_SHOULDER)
+            self.pad.update()
 
     def move(self, x: float, y: float) -> None:
         """왼스틱. x: 오른쪽 +, y: 앞 + (각 -1..1)"""
         m = math.hypot(x, y)
         if m > 1.0:
             x, y = x / m, y / m
-        self.pad.left_joystick_float(x_value_float=x, y_value_float=y)
-        self.pad.update()
+        with self._lock:
+            self.pad.left_joystick_float(x_value_float=x, y_value_float=y)
+            self.pad.update()
 
     def look(self, x: float, y: float) -> None:
         """오른스틱 (카메라)."""
-        self.pad.right_joystick_float(x_value_float=x, y_value_float=y)
-        self.pad.update()
+        with self._lock:
+            self.pad.right_joystick_float(x_value_float=x, y_value_float=y)
+            self.pad.update()
 
     def tap(self, button, hold: float = 0.08) -> None:
         """버튼을 누르고 **뗄 시각만 예약**한다 — 자지 않는다.
@@ -116,25 +140,33 @@ class Pad:
         예전엔 누른 뒤 time.sleep(hold) 했다. 그 동안 감지 루프가 통째로 멈춰서, 공격 한 번에 한 틱을
         버렸다 (틱 65 ms, 공격 hold 60 ms — 사용자 지적: "순차적으로 하는 것 같다"). 뗄 시각은
         release_due() 가 매 틱 처리한다."""
-        self.pad.press_button(button)
-        self.pad.update()
-        self._due[button] = time.time() + hold
+        with self._lock:
+            self.pad.press_button(button)
+            self.pad.update()
+            self._due[button] = time.time() + hold
 
     def release_due(self) -> None:
         """예약된 버튼 떼기 — 감지 루프가 매 틱 부른다."""
         if not self._due:
             return
-        now = time.time()
-        done = [b for b, t in self._due.items() if now >= t]
-        for b in done:
-            self.pad.release_button(b)
-            del self._due[b]
-        if done:
-            self.pad.update()
+        with self._lock:
+            now = time.time()
+            done = [b for b, t in self._due.items() if now >= t]
+            for b in done:
+                self.pad.release_button(b)
+                del self._due[b]
+            if done:
+                self.pad.update()
+
+    def guard_held(self) -> bool:
+        return bool(self.pad.report.wButtons & B.XUSB_GAMEPAD_LEFT_SHOULDER) if self.pad else False
 
     def hold(self, button, on: bool) -> None:
-        (self.pad.press_button if on else self.pad.release_button)(button)
-        self.pad.update()
+        with self._lock:
+            if not on and button == B.XUSB_GAMEPAD_LEFT_SHOULDER and self.force_guard:
+                return
+            (self.pad.press_button if on else self.pad.release_button)(button)
+            self.pad.update()
 
     # 의미 있는 이름들
     def dodge(self) -> None: self.tap(B.XUSB_GAMEPAD_B, 0.06)
@@ -157,6 +189,19 @@ class Pad:
     # 실측된 슬롯 순서 (화면 확인, 2026-09-22): 초기화=에스트병+2, 1칸=파이어밤, 2칸=투척 나이프, 3칸=한 바퀴
     SLOT_ESTUS, SLOT_BOMB, SLOT_KNIFE = 0, 1, 2
     def attack(self) -> None: self.tap(B.XUSB_GAMEPAD_RIGHT_SHOULDER, 0.06)
+
+    def kick(self, sx: float, sy: float) -> None:
+        """발차기 = 캐릭터 정면으로 스틱을 끝까지 + RB 를 **같은 보고(report)에** 넣는다.
+        (sx, sy) 는 world_to_stick 으로 바꾼 '캐릭터 정면' 방향. 한손 무기일 때만 나간다.
+
+        실측(강화 곤봉 한손, 2026-09-22): RB 만 → 애니 333000(→333040), 스틱 앞+RB → 333100 (화면에서 다리를 뻗고
+        팔을 벌린 자세 확인). 같은 프레임·스틱 30 ms 먼저·중립에서 튕기기 세 방식 모두 333100.
+        쓰임새(사용자): 방패 든 적의 가드를 깨서 틈을 만들거나, 그 틈에 빠져나갈 때."""
+        with self._lock:
+            self.pad.left_joystick_float(x_value_float=sx, y_value_float=sy)
+            self.pad.press_button(B.XUSB_GAMEPAD_RIGHT_SHOULDER)
+            self.pad.update()
+            self._due[B.XUSB_GAMEPAD_RIGHT_SHOULDER] = time.time() + 0.06
     def lock_on(self) -> None: self.tap(B.XUSB_GAMEPAD_RIGHT_THUMB, 0.06)
     def sprint(self, on: bool) -> None: self.hold(B.XUSB_GAMEPAD_B, on)
     def guard(self, on: bool) -> None: self.hold(B.XUSB_GAMEPAD_LEFT_SHOULDER, on)

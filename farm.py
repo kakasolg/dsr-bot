@@ -32,6 +32,7 @@ if hasattr(sys.stdout, "reconfigure"):
 
 import control
 import danger
+import reflex
 import env
 import nav
 import navmesh
@@ -46,6 +47,9 @@ LOG = ROOT / "data" / "playbook-dsr" / "farm.log"
 EVIDENCE = 2          # 같은 제안이 이만큼 나와야 적용
 EVAL_EPISODES = 3     # 새 버전으로 이만큼 뛴 뒤 평가
 ROLLBACK_RATIO = 1.25 # 점수(낮을수록 좋음)가 이 배 넘게 나빠지면 되돌린다
+
+
+CHASE_RADIUS = 12.0   # 경로 끝에서 남은 적을 정리할 때 사냥터 중심에서 이 안의 적만
 
 
 def log(msg: str) -> None:
@@ -70,6 +74,8 @@ def rest(tm, pad, nm, bonfire) -> bool:
     for _ in range(4):
         tm.pos_warp(*bonfire["stand"], bonfire["heading"])
         time.sleep(0.9)
+        control.focus_game()                # 창이 포커스를 잃으면 패드 입력을 무시한다 (옆에서 띄운 기록 프로세스가 포커스를 가져간 적 있음)
+        time.sleep(0.3)
         pad.interact()
         for _ in range(16):
             time.sleep(0.25)
@@ -115,6 +121,17 @@ def episode(tm, pad, nm, guard, dng, spot, max_seconds: float) -> dict:
         p = s.player
         if st["hp0"] is None:
             st["hp0"] = p.hp
+        # 어디서 무엇에게 얼마나 맞았나 — 사망 원인을 추측이 아니라 기록으로 본다
+        if st.get("last_hp") is not None and p.hp < st["last_hp"]:
+            near = min(s.hostile(10.0), key=lambda c: c.dist, default=None)
+            hit = {"dmg": st["last_hp"] - p.hp, "hp": p.hp, "pos": [round(p.x, 1), round(p.y, 1), round(p.z, 1)],
+                   "by": near.npc_param if near else None, "dist": round(near.dist, 1) if near else None,
+                   "mode": guard.mode, "bomb": guard.bomb_step}
+            st.setdefault("hits_taken", []).append(hit)
+            guard.log(f"  ♥ -{hit['dmg']} (hp {p.hp}) @{tuple(hit['pos'])} ← npc {hit['by']} {hit['dist']} m  [{hit['mode']}]")
+        st["last_hp"] = p.hp
+        if p.hp > 0:
+            st["last_pos"] = [round(p.x, 1), round(p.y, 1), round(p.z, 1)]
         if st["pend"] is not None:          # 직전 스윙 판정
             at, ptr, hp0 = st["pend"]
             cur = next((c for c in s.chars if c.ptr == ptr), None)
@@ -130,9 +147,16 @@ def episode(tm, pad, nm, guard, dng, spot, max_seconds: float) -> dict:
                 st["kills"] += 1
             seen_hp[c.ptr] = c.hp
         # 낙사 감지 — 순식간에 크게 떨어지면 그 자리를 기억한다 (사용자 경고: 이 구간은 낙사 위험)
-        if st["last_y"] is not None and st["last_y"] - p.y > 4.0:
+        # 한 틱에 4 m 가 아니라 **2 s 안에 4 m** — 틱이 25 ms 라 떨어지는 중엔 한 틱에 조금씩만 준다 (그래서 24 m 추락을 놓쳤다)
+        ys = st.setdefault("y_hist", [])
+        ys.append((time.time(), p.y, p.x, p.z))
+        while ys and time.time() - ys[0][0] > 2.0:
+            ys.pop(0)
+        top = max(ys, key=lambda v: v[1])
+        if top[1] - p.y > 4.0 and not st["fell"]:
             st["fell"] = True
-            st["fall_at"] = (round(p.x, 1), round(st["last_y"], 1), round(p.z, 1))
+            st["fall_at"] = (round(top[2], 1), round(top[1], 1), round(top[3], 1))
+            guard.log(f"  ⚠ 추락 중 — {top[1] - p.y:.1f} m, 떨어진 자리 {st['fall_at']}")
         st["last_y"] = p.y
         st["y_max"] = max(st["y_max"], p.y)          # 얼마나 올라갔나 — 목표가 위층이면 도달 여부 확인용
         if abs(p.y - spot_y[0]) < 2.5 and math.dist((p.x, p.y, p.z), spot_xyz) < 6.0:
@@ -148,24 +172,29 @@ def episode(tm, pad, nm, guard, dng, spot, max_seconds: float) -> dict:
         if a == "blocked":
             st["blocks"] += 1
 
+    guard.anchor = (spot_xyz[0], spot_xyz[2])
     t0 = time.time()
     s = tm.snapshot(within=1.0)
     st["hp0"] = s.player.hp if s else None
     path = nm.find_path((s.player.x, s.player.y, s.player.z), goal_xyz(nm, spot))
-    res = navwalk.walk(path, tm, pad, log=lambda *a: None, guard=guard, dng=dng, extra_tick=on_tick)
+    # terrain 을 꼭 넘긴다 — 안 넘기면 nav 의 발밑 검사(footing·safe_back)가 통째로 꺼진다.
+    # 실측: 이걸 빠뜨려서 스태미나 회복하려 뒷걸음질하다 묘지 서쪽 끝에서 24 m 추락 (2판 연속)
+    res = navwalk.walk(path, tm, pad, log=lambda *a: None, guard=guard, dng=dng, extra_tick=on_tick, terrain=nm)
     # 남은 적 정리 (경로 끝에서 주변 적이 없어질 때까지)
     while time.time() - t0 < max_seconds:
         s = tm.snapshot(within=25.0)
         if not s or s.player.hp <= 0:
             st["death"] = True
             break
-        live = [c for c in s.hostile(20.0) if c.hp > 0 and abs(c.y - s.player.y) < 3.0]
+        # 사냥터 근처 적만 정리한다 — 20 m 안이면 다 쫓았더니 묘지 안쪽 큰 해골(c2910, 한 대 306)까지 가서 죽었다
+        live = [c for c in s.hostile(20.0) if c.hp > 0 and abs(c.y - s.player.y) < 3.0
+                and math.dist((c.x, c.y, c.z), spot_xyz) < CHASE_RADIUS]
         if not live:
             break
         tgt = (live[0].x, live[0].y, live[0].z)
         nav.goto(tm, pad, tgt, tolerance=guard.pb.attack_range - 0.3, timeout=12,
                  log=lambda *a: None, on_tick=on_tick, mode_fn=lambda _s: guard.mode,
-                 engage_fn=lambda _s: guard.engage_pos())
+                 engage_fn=lambda _s: guard.engage_pos(), terrain=nm)
     pad.guard(False)
     pad.neutral()
     s = tm.snapshot(within=1.0)
@@ -180,6 +209,10 @@ def episode(tm, pad, nm, guard, dng, spot, max_seconds: float) -> dict:
     st["hit_rate"] = round(st["hits"] / st["swings"], 2) if st["swings"] else None
     st.pop("pend", None)
     st.pop("last_y", None)
+    st.pop("last_hp", None)
+    st.pop("y_hist", None)
+    if st["death"]:
+        st["death_at"] = st.get("last_pos")
     st["y_max"] = round(st["y_max"], 1)
     return st
 
@@ -239,7 +272,8 @@ def report() -> None:
         hr = [r["hit_rate"] for r in rs if r.get("hit_rate") is not None]
         print(f"  v{v}: n={len(rs)}  점수 중앙 {statistics.median(sc):.1f}" if sc else f"  v{v}: n={len(rs)}  점수 없음",
               f" 명중률 {statistics.mean(hr):.0%}" if hr else "",
-              f" 사망 {sum(1 for r in rs if r['death'])}  처치 {sum(r['kills'] for r in rs)}")
+              f" 사망 {sum(1 for r in rs if r['death'])}  처치 {sum(r['kills'] for r in rs)}",
+              f" 성공 {sum(1 for r in rs if r.get('success'))}/{sum(1 for r in rs if 'success' in r)}")
 
 
 # ── 메인 ───────────────────────────────────────────────
@@ -250,6 +284,8 @@ def main() -> None:
     ap.add_argument("--max-seconds", type=float, default=150.0)
     ap.add_argument("--no-learn", action="store_true")
     ap.add_argument("--report", action="store_true")
+    ap.add_argument("--verbose", action="store_true", help="교전 판단(guard) 로그도 출력")
+    ap.add_argument("--target-kills", type=int, default=4, help="성공 = 생존 + 추락 없음 + 이만큼 처치 (묘지 입구 해골 4)")
     args = ap.parse_args()
     if args.report:
         report(); return
@@ -271,17 +307,42 @@ def main() -> None:
 
     for i in range(args.episodes):
         if not rest(tm, pad, nm, bonfire):
-            log("  화톳불 휴식 실패 — 중단"); break
-        guard = patrol.Guard(pad, pb, log=lambda *a: None)
+            log("  화톳불 휴식 실패 — 가상 패드를 다시 연결하고 재시도")
+            pad.reconnect()
+            control.focus_game()
+            if not rest(tm, pad, nm, bonfire):
+                log("  화톳불 휴식 재시도도 실패 — 중단"); break
+        rfx = reflex.Reflex(tm, pad) if env.GAME == "dsr" else None
+        if rfx:
+            rfx.start()
+        guard = patrol.Guard(pad, pb, log=log if args.verbose else (lambda *a: None),
+                             item_fn=getattr(tm, "selected_item", None), reflex=rfx)
         r = episode(tm, pad, nm, guard, dng, spot, args.max_seconds)
+        if rfx:
+            rfx.stop()
+            rfx.join(1.0)
+            r["reflex"] = rfx.report()
+            (ROOT / "data" / "reflex-last.json").write_text(json.dumps(
+                {"report": r["reflex"], "transitions": rfx.transitions, "attacks": rfx.attacks, "hits": rfx.hits},
+                ensure_ascii=False), encoding="utf-8")
+            log(f"  반사: 루프 {r['reflex']['loop_ms_median']} ms (90% {r['reflex']['loop_ms_p90']}), "
+                f"적 공격 감지 {r['reflex']['attacks']}회, 피격 {r['reflex']['hits']}회, "
+                f"선딜 최소 {r['reflex'].get('windup_ms_min')} ms / 중앙 {r['reflex'].get('windup_ms_median')} ms")
+            for h in r["reflex"]["hit_context"]:
+                log(f"    피격 -{h['dmg']}: 직전 적 애니 (ms 전, npc, 애니) {h['before']}")
         r.update(version=pb.version, episode=i + 1, t=time.time())
+        # 성공 기준 (사용자: 100판 중 최소 90% 성공): 살아서, 떨어지지 않고, 사냥터의 적을 다 잡았다
+        r["success"] = (not r["death"]) and (not r.get("fell")) and r["kills"] >= args.target_kills
         record(r)
+        done = [x for x in rows()[-(i + 1):]]
+        wins = sum(1 for x in done if x.get("success"))
         if r.get("fell"):
             dng.add(*r["fall_at"], 999)          # 낙하 지점을 위험 지점으로 (다음 판부터 그 근처는 아주 천천히)
             log(f"  ⚠ 낙하 감지 {r['fall_at']} — 위험 지점 기록")
         log(f"── {i+1}/{args.episodes} v{pb.version}: 처치 {r['kills']}  잃은HP {r['hp_lost']}  "
             f"점수 {r['score']}  명중률 {r['hit_rate']}  스태고갈 {r['stam_out']}  후퇴 {r['retreats']}  {'목표도달' if r['reached'] else f"미도달(최고 y {r['y_max']})"}  "
-            f"{'사망' if r['death'] else '생존'}  {r['seconds']}s")
+            f"{'사망' if r['death'] else '생존'}  {r['seconds']}s  {'✔ 성공' if r['success'] else '✖ 실패'}  "
+            f"누적 성공 {wins}/{i + 1} ({wins / (i + 1):.0%})")
         if r["kills"] == 0:
             log("  처치 0 — 집계 제외"); continue
         since_change += 1

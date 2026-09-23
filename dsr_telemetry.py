@@ -64,8 +64,12 @@ OFF_MAPDATA, OFF_MODEL, OFF_NPC = 0x68, 0x88, 0xC8
 OFF_LASTBONFIRE = 0xB34
 CHR_LIST_OFFSETS = (0xA8, 0xB0, 0xB8, 0xC0, 0xC8)   # WorldChrMan 안의 구역별 캐릭터 목록 (실측: 불의 제전은 0xB0)
 OFF_ANIM2 = 0xA44
+OFF_MENU_FLAG = 0x1A294F0   # 모듈 기준. 1=게임 조작 중, 0=메뉴 열림 (App ver 1.03.1 실측)
 OFF_FLAGS1 = 0x2A4      # DSR-Gadget ChrFlags1(0x284) + 보정 0x20
 FLAG_ACTIVE = 0x8000    # 실측: 월드에 실제로 있는(애니가 도는) 캐릭터만 켜짐
+# 실측(불의 제전~묘지): 이 비트가 켜진 놈은 보이지도 맞지도 않는다 — c5330 HP 11120 (0x280c400), c3510 (0x2808800),
+# 화톳불 옆 c2750 HP 32 (0x2808400). 진짜 적은 0x808400/0x808800. 봇이 c5330 을 1 m 앞에 두고 8 s 동안 헛스윙했다.
+FLAG_GHOST = 0x2000000
 FRIENDLY = {279070, 100000}   # 낙담한 전사, 사람 NPC(c1000) — 필요하면 data/dsr_friendly.json 으로
 
 
@@ -139,6 +143,8 @@ class DSRTelemetry:
             team = 26   # FriendlyNPC (엘든링 팀 번호를 흉내 — Snapshot.hostile() 이 6/7/24/25/27/33 만 적으로 본다)
         elif not (flags1 & FLAG_ACTIVE):
             team = 0    # 비활성(스폰 안 됨/이벤트로 꺼짐) — 목록엔 있지만 월드에 없다. 실측: 안 보이는 할로우가 0x800400, 움직이는 놈은 0x808400
+        elif flags1 & FLAG_GHOST:
+            team = 0
         else:
             team = 6
         return Chr(ptr=p, npc_param=npc, team=team, hp=hp, max_hp=mhp, sp=self.i32(p + OFF_SP) or 0, max_sp=self.i32(p + OFF_MAXSP) or 0,
@@ -269,6 +275,38 @@ class DSRTelemetry:
         return bool(s) and abs((heading - s.player.heading + math.pi) % (2 * math.pi) - math.pi) < tol
 
     # ── 진행 상태 ──
+    def menu_open(self) -> Optional[bool]:
+        """메뉴(START)가 열려 있나. 실측: 모듈 +0x1A294F0 바이트가 평소 1, 메뉴가 열리면 10 ms 안에 0 —
+        시스템·확인창 같은 하위 메뉴에서도 0 을 유지하고, 완전히 닫혀야 1 로 돌아온다 (정적 메모리 diff 로 찾음).
+        quit-out 에서 START 가 먹었는지 확인하는 데 쓴다 — 로드 직후엔 START 가 씹혀서 나머지 입력이 게임에 샜다."""
+        try:
+            return self.pm.read_uchar(self.base + OFF_MENU_FLAG) == 0
+        except pymem.exception.PymemError:
+            return None
+
+    def quick_items(self) -> list[int]:
+        """소모품 5칸의 아이템 ID (빈 칸은 -1). 에스트를 빼고 다크사인을 넣는 식으로 사용자가 바꾼다."""
+        cb = self.q(self.static["ChrClassBase"])
+        pgd = self.q(cb + 0x10) if cb else None
+        return [self.i32(pgd + 0x360 + 4 * k) for k in range(5)] if pgd else []
+
+    def selected_item(self) -> Optional[int]:
+        """지금 선택된 소모품 칸의 아이템 ID (에스트 200~215, 파이어밤 292, 투척 나이프 290).
+
+        실측(PlayerGameData = [ChrClassBase]+0x10): +0x2E0 부터 소모품 5칸의 **인벤토리 인덱스**,
+        +0x360 부터 같은 5칸의 **아이템 ID**, +0x44C 가 지금 선택된 칸의 인벤토리 인덱스.
+        (D-패드 ↓ 를 누르며 76 → 78 → 132 → 76 으로 바뀌는 것을 diff 로 찾음. 빈 칸은 건너뛴다)
+        버튼만 누르고 믿으면 안 된다 — 초기화 직후 ↓ 가 씹혀서 폭탄 대신 에스트를 마신 적이 있다."""
+        cb = self.q(self.static["ChrClassBase"])
+        pgd = self.q(cb + 0x10) if cb else None
+        if not pgd:
+            return None
+        sel = self.i32(pgd + 0x44C)
+        for k in range(5):
+            if self.i32(pgd + 0x2E0 + 4 * k) == sel:
+                return self.i32(pgd + 0x360 + 4 * k)
+        return None
+
     def last_bonfire(self) -> Optional[int]:
         w = self.q(self.static["ChrClassWarp"])
         return self.i32(w + OFF_LASTBONFIRE) if w else None

@@ -26,7 +26,7 @@ import navwalk
 
 ROOT = Path(__file__).resolve().parent
 OUT = ROOT / "data" / "routes"
-MIN_STEP = 1.5      # 이만큼 움직여야 한 점으로 기록
+MIN_STEP = 0.8      # 이만큼 움직여야 한 점으로 기록 (촘촘할수록 봇이 따라가기 쉽다)
 SAVE_EVERY = 10     # **반드시 중간 저장** — 끝날 때만 저장하면 강제 종료에 전부 날아간다 (실측: 770점 손실)
 
 
@@ -58,12 +58,16 @@ def main() -> None:
                 time.sleep(0.2); continue
             found = navwalk.locate(tm, p)
             mid = found[0] if found else None
+            if mid is None:                       # 내비메시가 없는 구역(카타콤 등)은 화톳불 ID 로 구분한다
+                bf = getattr(tm, "last_bonfire", lambda: None)()
+                mid = f"bonfire:{bf}" if bf else None
             if mid != cur_map:
                 cur_map = mid
                 segs.append({"map": mid, "points": []})
                 print(f"  ── 구역 {mid} 진입  ({here[0]:.1f},{here[1]:.1f},{here[2]:.1f})", flush=True)
             segs[-1]["points"].append(list(here))
             segs[-1].setdefault("times", []).append(round(time.time(), 1))   # 다른 기록과 맞춰 보려면 시각이 필요하다
+            segs[-1].setdefault("hp", []).append(p.hp)                       # 어디서 맞았는지도 같이 남는다
             last = here
             n = sum(len(sg["points"]) for sg in segs)
             if n % SAVE_EVERY == 0:

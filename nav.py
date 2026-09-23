@@ -94,6 +94,8 @@ BACK_PROBE = 1.4          # 뒤로 갈 때 이만큼 앞을 미리 본다 (m)
 BACK_MAX_DROP = 1.2       # 그 자리 바닥이 지금보다 이만큼 넘게 낮으면 안 간다
 
 
+FACE_STICK = 0.45         # 실측(가드 든 채): 0.4 미만은 회전도 안 한다(데드존), 0.45 는 0.6 s 에 84° 돌고 0.75 m 걷는다
+FACE_TOL = math.radians(20)
 FOOTING_R = 1.6           # 발밑 안전도를 재는 반경 (m)
 FOOTING_MIN = 0.6         # 이보다 나쁘면 그 자리에서 싸우지 않는다
 
@@ -119,6 +121,38 @@ def footing(terrain, p, r: float = FOOTING_R):
             if n > best_n:
                 best_n, best = n, (math.sin(a), math.cos(a))
     return ok / 12.0, best
+
+
+def ground_ahead(terrain, p, dx: float, dz: float, reach: float = 1.2) -> bool:
+    """그 방향으로 reach m 앞에 발 디딜 바닥이 있나 (내비메시, 큰 낙차 없음). terrain 이 없으면 True.
+
+    전투 이동(적에게 다가가기·돌아서기·빙글빙글)은 경로점이 아니라 적 쪽으로 스틱을 미는 것이라 내비메시를 벗어날 수 있다.
+    실측(상인 달리기 1판): 경사로에서 싸우다 가장자리로 밀려 22 m 추락사 — 가만히 설 때(hold)만 발밑을 봤었다."""
+    if terrain is None:
+        return True
+    n = math.hypot(dx, dz)
+    if n < 1e-6:
+        return True
+    for step in (reach * 0.5, reach):
+        qx, qz = p.gx + dx / n * step, p.gz + dz / n * step
+        hit = terrain.floor_at(qx, qz, p.gy)
+        if hit is None or hit[0] < p.gy - BACK_MAX_DROP:
+            return False
+    return True
+
+
+def safe_heading(terrain, p, dx: float, dz: float, reach: float = 1.2):
+    """(dx, dz) 쪽에 바닥이 있으면 그대로, 없으면 ±30°·±60° 로 틀어 본다. 다 없으면 None (멈춘다).
+    경로점으로 곧장 갈 때도 쓴다 — 싸우다 경로에서 밀려난 뒤 경로점을 직선으로 향하면 그 사이가 낭떠러지일 수 있다
+    (실측: 상인 달리기에서 같은 자리 (-21.9, 12.6) 에서 두 번 22 m 추락)."""
+    if ground_ahead(terrain, p, dx, dz, reach):
+        return dx, dz
+    base = math.atan2(dx, dz)
+    for deg in (30, -30, 60, -60):
+        a = base + math.radians(deg)
+        if ground_ahead(terrain, p, math.sin(a), math.cos(a), reach):
+            return math.sin(a), math.cos(a)
+    return None
 
 
 def safe_back(terrain, p, dx: float, dz: float):
@@ -234,7 +268,10 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
                 last_progress_d, last_progress_t = dist, now
             elif mode == "circle":
                 a = now * 2.5             # 제자리 근처를 빙글빙글 (유인) — 스틱 방향을 돌린다
-                pad.move(math.sin(a) * 0.6, math.cos(a) * 0.6)
+                if ground_ahead(terrain, p, math.sin(a + s.cam_yaw), math.cos(a + s.cam_yaw)):
+                    pad.move(math.sin(a) * 0.6, math.cos(a) * 0.6)
+                else:
+                    pad.move(0.0, 0.0)
                 mover.set("guard")
                 last_progress_d, last_progress_t = dist, now
             elif mode == "backoff" and engage_fn and engage_fn(s):
@@ -277,18 +314,45 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
                     probe_off[0] = True
                     last_progress_d, last_progress_t = dist, now
             elif mode == "creep":
-                sx, sy = control.world_to_stick(dx, dz, s.cam_yaw, YAW_OFFSET, FLIP_X)
-                pad.move(sx * CREEP_STICK, sy * CREEP_STICK)   # 적이 여럿 보이면 천천히 — 한꺼번에 어그로를 안 끌도록 (사용자 원칙)
+                h = safe_heading(terrain, p, dx, dz)
+                if h is None:
+                    pad.move(0.0, 0.0)
+                else:
+                    sx, sy = control.world_to_stick(h[0], h[1], s.cam_yaw, YAW_OFFSET, FLIP_X)
+                    pad.move(sx * CREEP_STICK, sy * CREEP_STICK)   # 적이 여럿 보이면 천천히 — 한꺼번에 어그로를 안 끌도록 (사용자 원칙)
                 mover.set("guard")
+            elif mode == "face" and engage_fn and engage_fn(s):
+                ex, ez = engage_fn(s)       # 제자리에서 그 적을 바라본다 (락온 없이)
+                off = 0.0
+                if p.heading is not None:
+                    off = (math.atan2(ex - p.gx, ez - p.gz) - (p.heading + math.pi) + math.pi) % (2 * math.pi) - math.pi
+                reach = min(1.2, max(0.4, math.hypot(ex - p.gx, ez - p.gz) - 0.3))   # 적이 서 있는 데까지는 바닥이다
+                if abs(off) > FACE_TOL and ground_ahead(terrain, p, ex - p.gx, ez - p.gz, reach):
+                    sx, sy = control.world_to_stick(ex - p.gx, ez - p.gz, s.cam_yaw, YAW_OFFSET, FLIP_X)
+                    pad.move(sx * FACE_STICK, sy * FACE_STICK)
+                else:
+                    pad.move(0.0, 0.0)
+                mover.set("guard")
+                last_progress_d, last_progress_t = dist, now
             elif mode == "engage" and engage_fn and engage_fn(s):
                 ex, ez = engage_fn(s)       # 적에게 다가간다 (가드 올린 채, 걷기 — 뛰어들지 않고 오게 만든다)
-                sx, sy = control.world_to_stick(ex - p.gx, ez - p.gz, s.cam_yaw, YAW_OFFSET, FLIP_X)
-                pad.move(sx * ENGAGE_STICK, sy * ENGAGE_STICK)
+                # 확인 거리는 적까지만 — 1.2 m 로 고정했더니 0.9 m 앞 적 **너머**(경사로 밖)를 보고 막혀서,
+                # 돌아서지도 못하고 "돌아선다" 만 천 번 넘게 반복했다 (상인 달리기 실측)
+                reach = min(1.2, max(0.4, math.hypot(ex - p.gx, ez - p.gz) - 0.3))
+                if ground_ahead(terrain, p, ex - p.gx, ez - p.gz, reach):
+                    sx, sy = control.world_to_stick(ex - p.gx, ez - p.gz, s.cam_yaw, YAW_OFFSET, FLIP_X)
+                    pad.move(sx * ENGAGE_STICK, sy * ENGAGE_STICK)
+                else:
+                    pad.move(0.0, 0.0)      # 그쪽은 낭떠러지 — 적이 오게 둔다
                 mover.set("guard")
                 last_progress_d, last_progress_t = dist, now
             else:
-                sx, sy = control.world_to_stick(dx, dz, s.cam_yaw, YAW_OFFSET, FLIP_X)
-                pad.move(sx, sy)
+                h = safe_heading(terrain, p, dx, dz)
+                if h is None:
+                    pad.move(0.0, 0.0)          # 어느 쪽도 바닥이 없다 — 서서 막힘 처리에 맡긴다
+                else:
+                    sx, sy = control.world_to_stick(h[0], h[1], s.cam_yaw, YAW_OFFSET, FLIP_X)
+                    pad.move(sx, sy)
                 mover.set(mode)
             pad.release_due()        # 예약된 버튼 떼기 (tap 이 자지 않으므로 여기서 처리)
             time.sleep(0.02)         # snapshot 이 4 ms 로 줄어 틱을 더 촘촘히 돌 수 있다

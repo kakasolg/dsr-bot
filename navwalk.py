@@ -245,7 +245,7 @@ def main():
         import json, patrol, playbook
         pbf = playbook.ROOT / "data" / "playbook-dsr" / "current.json"   # DSR 은 별도 플레이북 (learn.py 와 같은 경로)
         pb = playbook.Playbook.from_json(pbf.read_text(encoding="utf-8")) if pbf.exists() else playbook.Playbook()
-        guard = patrol.Guard(pad, pb, log=print)
+        guard = patrol.Guard(pad, pb, log=print, item_fn=getattr(tm, "selected_item", None))
         print(f"전투 켬 — 사거리 {pb.attack_range} 쿨 {pb.attack_cooldown} 락온 {pb.lock_range} 다수기준 {pb.crowd_threshold}")
     t0 = time.time()
     try:

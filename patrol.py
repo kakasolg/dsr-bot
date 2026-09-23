@@ -47,7 +47,7 @@ STALL_WINDOW = 4.0    # 초 — 성배병(1.5 s)·경직/넘어짐(최대 3.5 s 
 STALL_MOVE = 0.5      # m
 STALL_MAX = 3         # 이만큼 흔들어도 안 움직이면 에피소드 종료
 RETREAT_DIST = 8.0     # 후퇴/도망 때 뒤로 달리는 거리 (m) — 경로를 따라 이만큼 떨어진 점까지 한 번에
-ENEMY_ATTACK_ANIMS = range(3000, 3500)   # DS1 적 공격 애니 (실측: 3000/3001/3005/3007/3008 직후 피격)
+ENEMY_ATTACK_ANIMS = range(3000, 3600)   # DS1 적 공격 애니 (실측: 3000~3008 직후 피격, 3500 도 — 해골 3500 뒤 383~895 ms 에 피격 86·127)
 
 
 def player_locked(anim) -> bool:
@@ -57,6 +57,25 @@ def player_locked(anim) -> bool:
     a = anim or 0
     return 2000 <= a < 2100 or a == 160 or 7585 <= a <= 7587
 FLASK_SAFE_DIST = 4.0  # m
+ITEM_BOMB = 292        # 파이어밤 (DSR 아이템 ID, 메모리 실측)
+MY_KICK_ANIM = 333100  # 발차기 (강화 곤봉 한손 실측). 약공은 333000 — 무기 종류에 따라 앞자리가 바뀐다 (할버드는 303xxx)
+THROW_TIME = 1.6       # 던지는 동작 + 여유 (s). 이 안에 붙을 적에게는 안 던진다
+CHIP_DMG = 10          # 막았을 때도 1~4 씩 깎인다 (실측) — 이하면 '막음'으로 본다. 예전엔 HP 가 그대로일 때만 막음으로 봐서 반격이 한 번도 안 나갔다
+TURN_S = 0.35          # 옆/뒤 적 쪽으로 몸을 돌리는 시간
+TURN_MAX_DIST = 2.2    # 이보다 가까운 놈에게만 돌아선다
+THREAT_DIST = 2.5      # 이보다 가까운 놈이 휘두를 때만 공격을 멈춘다
+NOLOCK_AFTER_TURN_S = 3.0
+HIT_GUARD_S = 0.3      # 맞은 뒤 이 시간은 공격 없이 가드만 (적 공격 중 가드는 reflex.py 가 5 ms 단위로 맡는다)
+
+
+def dormant(c) -> bool:
+    """누워서 자는(죽은 척) 해골 — 9000번대 애니 (실측: 9000/9001). 다가가면 일어나지만 지금 당장 위협은 아니다.
+    폭탄 '적이 붙음' 판정에 이놈들이 걸려서 던지기가 계속 중단됐다."""
+    return 9000 <= (c.anim or 0) < 9100
+
+
+def is_estus(item) -> bool:
+    return item is not None and 200 <= item <= 215   # 에스트병 ID 는 강화 단계·빈 병마다 다르다
 STAM_BACKOFF, STAM_RESUME = 0.30, 0.70   # 플레이북에 값이 없을 때의 기본값 (학습이 조정하는 값은 Playbook 쪽)   # 스태미나가 30 % 아래면 물러나고, 70 % 넘으면 다시 붙는다 — 이 안에 적이 있으면 마시다 맞는다(1.5 s) → 후퇴로 거리부터 벌린다
 REST_FLASKS_LEFT = 1   # 성배병이 이만큼 남으면 무조건 축복에 가서 쉰다 (사용자 규칙 — 학습 대상 아님)
 
@@ -108,9 +127,18 @@ class Guard:
     """결정론적 안전 규칙. 플레이북 파라미터를 읽고 순찰 루프의 매 틱에서 불린다.
     조향은 nav 가 하고 여기선 끼어들기(구르기·성배병)와 상태 플래그(후퇴·도망·스프린트)만 결정한다."""
 
-    def __init__(self, pad: control.Pad, pb, log=print, jev=None):
+    def __init__(self, pad: control.Pad, pb, log=print, jev=None, item_fn=None, reflex=None):
         self.pad = pad
         self.pb = pb
+        self.turn_until = 0.0    # 옆/뒤의 적 쪽으로 도는 중
+        self.turn_block_until = 0.0
+        self.turn_prev = None
+        self.turn_fail = 0
+        self.nolock_until = 0.0  # 이때까지 락온 안 함 (돌아선 직후)
+        self.anchor = None       # (x, z) 지키는 자리 — 여기서 anchor_radius 밖으로는 적을 쫓아가지 않는다
+        self.reflex = reflex     # 반사 스레드(reflex.py) — 적 공격 중(threat)이면 공격·투척을 하지 않는다
+        self.item_fn = item_fn
+        self.has_estus = True    # 소모품 칸에 에스트가 있나 — 없으면(다크사인으로 바꿈) 마시기·에스트 복귀를 끈다   # () -> 지금 선택된 소모품 ID (DSR). 없으면 폭탄을 안 쓴다 — 눈 감고 누르면 칸이 어긋난다
         self.log = log
         self.jev = jev         # jev.Shadow — 없으면 규칙만
         self.last_hp: int | None = None
@@ -155,7 +183,7 @@ class Guard:
         self.bomb_at = 0.0       # 다음 단계 시각
         self.bombs_thrown = 0
         self.last_bomb = 0.0
-        self.bomb_slot = 1       # 1=파이어밤, 2=투척 나이프 (실측 슬롯 순서)
+        self.bomb_t0 = 0.0       # 지금 단계를 시작한 시각 (시간 초과 판정)
         self.circled: set = set()
         self.circle_until = 0.0
         self.retreat_block_until = 0.0
@@ -164,36 +192,66 @@ class Guard:
         self.engage_move_t = 0.0
 
     def _bomb_tick(self, s, hostile, now) -> str | None:
-        """파이어밤 던지기 — **블로킹하지 않는 상태 기계**.
+        """파이어밤 던지기 — **블로킹하지 않는 상태 기계**. 선택 칸은 매번 메모리로 확인한다 (item_fn).
 
         사용자 교리: 적이 보이면 안전한 곳으로 물러나고, 멀리 있을 때 던져서 HP 를 깎는다.
-        슬롯 조작은 "길게 눌러 1번(에스트)으로 초기화 → 한 칸 내려 파이어밤 → 사용 → 다시 초기화" 다.
-        길게 누르기가 있어 **지금 몇 번 칸인지 추적할 필요가 없다** (사용자가 알려준 편의 기능).
-        마지막에 반드시 에스트로 되돌린다 — 안 그러면 HP 위험할 때 폭탄을 마신다.
-
-        전체 2 s 쯤 걸리므로 **적이 멀 때만** 시작한다. 시작한 뒤 적이 붙으면 즉시 중단하고 에스트로 복귀."""
+        1 = ↓ 를 눌러 선택 칸이 파이어밤이 될 때까지 (0.35 s 간격, 매번 확인)
+        2 = 대상이 사거리(bomb_min~max) 안에 들어오면 던진다
+        3 = ↓ 를 눌러 **에스트로 돌아올 때까지** — 안 그러면 HP 위험할 때 폭탄을 마신다
+        예전엔 "길게 눌러 초기화 → 한 칸 ↓ → 사용" 을 눈 감고 했다. 2.8 s 걸려 해골이 먼저 붙었고,
+        초기화 직후의 ↓ 가 씹혀 폭탄 대신 에스트를 마셨다 (실측 HP 710→951)."""
         if now < self.bomb_at:
             return None
-        near = min((c.dist for c in hostile), default=999)
-        if self.bomb_step and near < 4.0:            # 붙었다 — 중단하고 에스트로
-            self.pad.item_reset()
-            self.bomb_step, self.bomb_at = 0, now + 1.0
-            self.log("  guard: 적이 붙어 폭탄 중단 — 에스트로 복귀")
+        near = min((c.dist for c in hostile if not dormant(c)), default=999)
+        sel = self.item_fn() if self.item_fn else None
+        lo = getattr(self.pb, "bomb_min_dist", 4.0)
+        hi = getattr(self.pb, "bomb_max_dist", 7.0)
+        if self.bomb_step in (1, 2) and (near < lo or now - self.bomb_t0 > 10.0):
+            self.log(f"  guard: 폭탄 중단 ({'적이 붙음' if near < lo else '시간 초과'}, {near:.1f} m) — 에스트로 복귀")
+            self.bomb_step, self.bomb_t0 = 3, now
+            self.bomb_retry = now + 8.0     # 곧바로 다시 고르면 고르기-중단을 반복한다
             return "bomb_abort"
         if self.bomb_step == 1:
-            for _ in range(self.bomb_slot):           # 에스트에서 원하는 칸까지 (폭탄 1칸, 나이프 2칸)
+            if sel == ITEM_BOMB:
+                self.bomb_step = 2
+            else:
                 self.pad.item_next()
-                time.sleep(0.25)
-            self.bomb_step, self.bomb_at = 2, now + 0.9
-        elif self.bomb_step == 2:
-            self.pad.use_item()                       # 던진다
-            self.bomb_step, self.bomb_at = 3, now + 1.4
-            self.bombs_thrown += 1
-            return "bomb"
+                self.bomb_at = now + 0.35
+        if self.bomb_step == 2:
+            tgt = self.engage
+            if sel != ITEM_BOMB:
+                self.bomb_step = 1
+            elif (tgt is not None and lo <= tgt.dist <= hi and self.locked and self.lock_ptr == tgt.ptr
+                  and min((self._time_to_reach(c, now) for c in hostile if not dormant(c) and c.dist < 9.0), default=99) > THROW_TIME
+                  and not (self.reflex and self.reflex.threat)):
+                self.pad.use_item()
+                self.bombs_thrown += 1
+                self.last_bomb = now
+                self.bomb_step, self.bomb_t0, self.bomb_at = 3, now, now + 1.3   # 던지는 동작이 끝난 뒤 칸을 돌린다
+                self.log(f"  guard: 파이어밤 던짐 ({tgt.dist:.1f} m, npc {tgt.npc_param})")
+                return "bomb"
         elif self.bomb_step == 3:
-            self.pad.item_reset()                     # 반드시 에스트로 복귀
-            self.bomb_step, self.bomb_at = 0, now + 1.0
+            if not self.has_estus:
+                self.bomb_step, self.bomb_at = 0, now + 0.3   # 에스트가 칸에 없으면 돌아갈 곳이 없다 — 폭탄 칸에 둔다
+            elif is_estus(sel):
+                self.bomb_step, self.bomb_at = 0, now + 0.3
+            elif now - self.bomb_t0 > 4.0:
+                self.pad.item_reset()                 # 누르기로 못 돌아오면 길게 눌러 초기화
+                self.bomb_t0, self.bomb_at = now, now + 1.3
+                self.log(f"  guard: 에스트로 못 돌아옴 (선택 {sel}) — 길게 눌러 초기화")
+            else:
+                self.pad.item_next()
+                self.bomb_at = now + 0.35
         return None
+
+    def _time_to_reach(self, c, now) -> float:
+        """이 적이 지금 속도로 1.5 m(한 대 맞는 거리)까지 오는 데 걸리는 시간 (s). 안 다가오면 큰 값.
+        던지는 동작(THROW_TIME)은 취소가 안 된다 — 그 안에 올 놈에게 던지면 던지는 동안 맞는다 (실측: 6 m 에서 던지고 115 맞음)."""
+        h = [(t, d) for t, d in self.dist_hist.get(c.ptr, []) if now - t <= 0.6]
+        if len(h) < 3 or h[-1][0] - h[0][0] < 0.2:
+            return 99.0
+        v = (h[0][1] - h[-1][1]) / (h[-1][0] - h[0][0])     # 다가오는 속도 m/s
+        return (c.dist - 1.5) / v if v > 0.3 else 99.0
 
     def engage_pos(self):
         return (self.engage.x, self.engage.z) if self.engage is not None else None
@@ -208,13 +266,21 @@ class Guard:
         # 막기 감지: 가드 든 상태에서 HP 는 그대로인데 스태미나가 한 틱에 8 넘게 빠지면 막은 것 (화살 포함).
         # 우리 공격/구르기 직후 0.6 s 는 제외 (그것도 스태미나를 쓴다). 막았으면 "막고 → 한 대": 쿨다운 무시하고 바로 친다.
         blocked = False
-        if (self.last_sp is not None and self.mode in ("guard", "hold", "engage") and p.sp < self.last_sp - 8
-                and self.last_hp is not None and p.hp >= self.last_hp and now - self.last_attack > 0.6 and now - self.last_dodge > 0.6):
+        if (self.last_sp is not None and self.mode in ("guard", "hold", "engage", "face") and p.sp < self.last_sp - 8
+                and self.last_hp is not None and p.hp >= self.last_hp - CHIP_DMG and now - self.last_attack > 0.6 and now - self.last_dodge > 0.6):
             blocked = True
             self.blocks += 1
             self.last_block = now
             self.log(f"  guard: blocked (sp {self.last_sp}→{p.sp}, hostile {len(hostile)})")
         self.last_sp = p.sp
+        # 반사: HP 가 줄면 **생각하기 전에** 막는다 (사용자: "HP 가 줄기 시작하면, 뭔지 모르면 가드하든가 도망쳐야지 거기서 생각하면 안 된다").
+        # 폭탄을 고르거나 기다리던 중이면 즉시 접고, 1 s 동안은 공격·폭탄 없이 가드만 든다.
+        if self.last_hp is not None and p.hp < self.last_hp - CHIP_DMG:
+            self.hit_at = now
+            if self.bomb_step in (1, 2):
+                self.bomb_step, self.bomb_t0, self.bomb_at = 3, now, now
+                self.bomb_retry = now + 8.0
+                self.log(f"  guard: 맞음 (-{self.last_hp - p.hp}) — 폭탄 접고 가드")
         # 같은 층의 적 전부(무시 목록도 3 m 안이면 포함 — 창살 너머라 믿었던 놈이 붙어서 때리는 일이 있었다)
         # 위층에서 던지는 적(화염병 등)은 같은 층 판정에 안 걸려 "적 없음"이 된다 → 봇이 가만히 서서 맞는다.
         # 맞고 있는데 근처에 때릴 적이 없으면 **그 자리를 뜬다** (사용자 보고: 위에서 폭탄 맞다가 사망).
@@ -301,7 +367,8 @@ class Guard:
                     self.engage_since, self.engage_hp0, self.my_hp0 = now, cur.hp, p.hp
                 if self.engage_pos0 is None or math.hypot(p.x - self.engage_pos0[0], p.z - self.engage_pos0[1]) > 0.5:
                     self.engage_pos0, self.engage_move_t = (p.x, p.z), now   # 우리가 움직이면 교착 타이머 리셋
-                stuck_engage = now - self.engage_move_t > 6.0 and cur.dist > self.pb.attack_range
+                # 3 m 안에서 "벽 치기·빙글빙글 유인" 을 하면 붙어 있는 해골에게 패링·앞잡을 당한다 (실측: 86×4)
+                stuck_engage = now - self.engage_move_t > 6.0 and cur.dist > max(self.pb.attack_range, 3.0)
                 if stuck_engage and cur.ptr not in self.lured:
                     # 사용자 제안 1: 홈에 낀/안 오는 적은 벽을 쳐서 소리로 끌어내 본다 — 한 번만, 4 s 기다려 본다
                     self.lured.add(cur.ptr)
@@ -320,8 +387,19 @@ class Guard:
                 lured_now = self.engage_move_t > now - 2.5 and cur.ptr in (self.lured | self.circled)   # 유인 직후엔 포기 판정 보류
                 # 이미 사거리 안(붙어서 막는 중)이면 "교착"으로 포기하지 않는다 — 계속 막기만 하고 못 때려도 그건 싸움이지 닿지 않는 게 아니다.
                 # 실측: 붙은 채 8 s 순수 방어(HP·적 HP 둘 다 그대로)만 하다가 이 규칙이 포기시키고, 그 직후 무방비 후퇴로 이어져 사망.
-                stalemate = now - self.engage_since > 8.0 and not approaching(cur) and cur.dist > self.pb.attack_range
-                if (stalemate or stuck_engage) and not lured_now:
+                stalemate = now - self.engage_since > 8.0 and not approaching(cur) and cur.dist > self.pb.attack_range + 0.3
+                bomb_ok = (getattr(self.pb, "use_bombs", False) and self.item_fn is not None
+                           and self.bombs_thrown < getattr(self.pb, "bombs_per_episode", 2)
+                           and getattr(self.pb, "bomb_min_dist", 4.0) <= cur.dist <= getattr(self.pb, "bomb_max_dist", 7.0) + 3.0
+                           and abs(cur.y - p.y) < 2.0)
+                if (stalemate or stuck_engage) and bomb_ok:
+                    # 물러나서 안 오는 적 = 폭탄 쏘기 딱 좋은 적 (사용자: "해골이 멀리 도망쳤는데 봇이 판단을 못해서 실패").
+                    # 무시하지 않고 교전 대상으로 둔 채 제자리에서 락온 → 폭탄. 교착 타이머만 다시 건다.
+                    if now - getattr(self, "_bomb_tgt_log", 0) > 4.0:
+                        self._bomb_tgt_log = now
+                        self.log(f"  guard: 물러난 적 {cur.dist:.1f} m — 쫓지 않고 폭탄 대상 (npc {cur.npc_param})")
+                    self.engage_since = self.engage_move_t = now
+                elif (stalemate or stuck_engage) and not lured_now:
                     self.ignore[cur.ptr] = now + 60.0
                     self.log(f"  guard: {'6 s 동안 못 다가감' if stuck_engage else '8 s 동안 서로 안 맞음'} — 닿지 않는 적, 60 s 무시 (npc {cur.npc_param}, {cur.dist:.1f} m, hp {cur.hp})")
                     self.engage = None
@@ -330,8 +408,49 @@ class Guard:
             self.engage, self.engage_since, self.engage_hp0, self.my_hp0 = near, now, near.hp, p.hp
             self.engage_pos0, self.engage_move_t = (p.x, p.z), now
             act = "engage"
+        # 공격하는 놈을 정면에 둔다 (사용자: "적이 뒤에 있는데 가드를 반대로 하면 당연히 죽지").
+        # 실측: 86~194 짜리 피격이 전부 등 뒤(-177°, -153° ...)에서 왔다. 방패는 정면만 막는다.
+        # 반사 스레드가 본 '지금 휘두르는 놈', 없으면 2.5 m 안의 가장 가까운 놈이 50° 넘게 옆/뒤면 락온을 풀고 그쪽으로 돈다.
+        thr = self.reflex.threat_ptr if self.reflex else None
+        att = next((c for c in hostile if c.ptr == thr), None) if thr else None
+        if att is None:
+            att = min((c for c in hostile if c.dist < 2.5 and c.hp > 0 and not dormant(c)), key=lambda c: c.dist, default=None)
+        if att is not None and att.dist > TURN_MAX_DIST:
+            att = None                                    # 멀리서 휘두르는 놈은 닿지 않는다 — 그쪽으로 돌다가 눈앞의 놈을 놓쳤다 (할로우 3~4마리: 0.35 s 마다 이리저리)
+        if att is not None and p.heading is not None:
+            fwd = p.heading + math.pi                     # 실측: 월드 yaw = heading + π
+            off = (math.atan2(att.x - p.x, att.z - p.z) - fwd + math.pi) % (2 * math.pi) - math.pi
+            # 돌았는데도 각도가 안 줄면(막혀서 못 돎) 세 번 뒤 2 s 동안 돌기를 멈추고 앞의 적을 상대한다
+            if abs(off) > math.radians(50) and now > self.turn_until and now > self.turn_block_until:
+                if self.turn_prev is not None and self.turn_prev[0] == att.ptr and abs(off) > abs(self.turn_prev[1]) - math.radians(20):
+                    self.turn_fail += 1
+                else:
+                    self.turn_fail = 0
+                self.turn_prev = (att.ptr, off)
+                if self.turn_fail >= 3:
+                    self.turn_block_until, self.turn_fail = now + 2.0, 0
+                    self.log(f"  guard: 돌아서기 3번 실패 ({math.degrees(off):+.0f}°) — 2 s 동안 앞의 적만")
+                    att = None
+            if att is not None and p.heading is not None and abs(off) > math.radians(50) and now > self.turn_until and now > self.turn_block_until:
+                self.turn_until = now + TURN_S
+                self.nolock_until = now + NOLOCK_AFTER_TURN_S
+                self.engage, self.engage_since, self.engage_hp0, self.my_hp0 = att, now, att.hp, p.hp
+                self.engage_pos0, self.engage_move_t = (p.x, p.z), now
+                if self.locked:
+                    self.pad.lock_on()                    # 다른 놈에 락온된 채로는 몸이 안 돈다
+                    self.locked, self.lock_ptr = False, None
+                self.log(f"  guard: {'공격 중인 ' if thr else ''}적이 {math.degrees(off):+.0f}° 쪽 — 돌아선다 (npc {att.npc_param}, {att.dist:.1f} m)")
+        if now < self.turn_until and self.engage is not None:
+            self.mode = "engage"                          # 그 적 쪽으로 반 걸음 — 몸이 돌아간다 (가드는 든 채)
+            return act or "turn"
         # 락온은 교전 대상과 같이 간다
-        want_lock = self.engage is not None
+        # 돌아선 직후엔 다시 락온하지 않는다 — R3 는 화면 가운데에 가까운 적을 잡아서 **다른 놈**에게 몸을 도로 돌렸다
+        # (실측: "-137° 쪽 — 돌아선다" 가 0.35 s 마다 반복되며 각도가 그대로). 락온 없이 스틱으로 그 적을 바라본다.
+        # 락온은 **폭탄 던질 때만**. 근접에서 락온을 쓰면, 대상이 죽거나 저절로 풀릴 때 우리 쪽 기록(locked)과 게임 상태가
+        # 어긋나 R3 가 '풀기' 대신 '걸기'가 되고, 몸이 엉뚱한 적에게 붙들려 "돌아선다" 가 2천 번 반복됐다 (상인 달리기 실측).
+        # 근접에선 스틱으로 바라본다 (0.45 에서 0.6 s 에 84° 도는 것 실측).
+        want_lock = (self.engage is not None and now > self.nolock_until
+                     and (self.bomb_step in (1, 2) or getattr(self.pb, "melee_lock", False)))
         if self.locked and not want_lock:
             self.pad.lock_on()
             self.locked, self.lock_ptr = False, None
@@ -346,24 +465,38 @@ class Guard:
         # 파이어밤: 적이 멀리 있을 때만 (던지는 동안 2 s 무방비)
         if self.bomb_step:
             a2 = self._bomb_tick(s, hostile, now)
-            self.mode = "hold"
-            return a2 or act
+            if a2 == "bomb" or (self.bomb_step == 3 and now < self.bomb_at):
+                self.mode = "hold"        # 던지는 동작 중에만 멈춘다
+                return a2 or act
+            act = a2 or act               # 폭탄을 든 채로도 평소처럼 움직이고 막는다 (서서 기다리기만 하면 안 오는 적 앞에서 멈춘다)
         # 폭탄은 아껴 쓴다: 보급이 50 소울에 성벽 마을 상인까지 가야 하고, 봇은 혼자 못 간다 (사용자 지적).
         # 혼자 오는 적 하나는 근접으로 충분하다 — **여럿일 때만**, 그리고 한 판에 정해진 개수만.
+        # 조준은 락온에 맡긴다 — 락온 없이 던지면 옆으로 빗나간다 (실측: 3~5 m 에서 7~19 피해 = 가장자리만 스침).
+        # 그래서 "교전 대상에 락온된 상태 + 그 대상이 min~max 거리" 일 때만 던진다. 가장 가까운 적도 min 밖이어야 한다.
         group = [c for c in hostile if c.dist <= 15.0]
-        if (getattr(self.pb, "use_bombs", False) and self.engage is None and not self.retreat
-                and hostile and now - self.last_bomb > 6.0
-                and self.bombs_thrown < getattr(self.pb, "bombs_per_episode", 2)
-                and len(group) >= getattr(self.pb, "bomb_min_enemies", 2)
-                and min(c.dist for c in hostile) > getattr(self.pb, "bomb_min_dist", 7.0)):
-            # 여럿이면 범위 피해인 폭탄, 하나만 끌어낼 땐 값싼 나이프 (사용자 원칙)
-            self.bomb_slot = 1 if len(group) >= 2 else 2
-            self.bomb_step, self.bomb_at, self.last_bomb = 1, now + 1.0, now
-            self.pad.item_reset()                     # 1번 칸(에스트)으로 초기화부터
-            self.log(f"  guard: 파이어밤 {self.bombs_thrown+1}/{getattr(self.pb,'bombs_per_episode',2)} "
-                     f"(적 {len(group)}마리, 가장 가까운 {min(c.dist for c in hostile):.1f} m)")
-            self.mode = "hold"
-            return "bomb_start"
+        # 미리 고른다: 교전(락온 6 m)이 시작된 뒤에 고르면 해골이 먼저 붙는다 (실측: 5.9 m 에서 고르기 시작 → 2.6 m 에서 던짐 → 던지는 동안 239 맞음).
+        # 적이 보이면(12 m) 걸어가는 동안 폭탄을 들고 있다가, 락온한 대상이 min~max 에 들어오는 순간 던진다.
+        lo = getattr(self.pb, "bomb_min_dist", 4.0)
+        hi = getattr(self.pb, "bomb_max_dist", 7.0)
+        tgt = self.engage or min(cands, key=lambda c: c.dist, default=None)
+        if (getattr(self.pb, "use_bombs", False) and self.item_fn is not None and tgt is not None and not self.bomb_step
+                and tgt.dist <= hi + 5.0 and now > getattr(self, "bomb_retry", 0) and now - getattr(self, "_bomb_why_t", 0) > 3.0):
+            why = [w for w, bad in (
+                ("후퇴 중", self.retreat),
+                ("쿨다운", now - self.last_bomb <= 6.0),
+                ("개수 소진", self.bombs_thrown >= getattr(self.pb, "bombs_per_episode", 2)),
+                (f"적 {len(group)}마리", len(group) < getattr(self.pb, "bomb_min_enemies", 2)),
+                (f"높이차 {tgt.y - p.y:.1f}", abs(tgt.y - p.y) >= 2.0),
+                (f"대상 {tgt.dist:.1f} m 너무 가까움", tgt.dist < lo),
+            ) if bad]
+            if why:
+                self._bomb_why_t = now
+                self.log(f"  guard: 폭탄 안 던짐 — {', '.join(why)}")
+            else:
+                self.bomb_step, self.bomb_t0, self.bomb_at = 1, now, now
+                self.log(f"  guard: 파이어밤 준비 {self.bombs_thrown+1}/{getattr(self.pb,'bombs_per_episode',2)} "
+                         f"(적 {len(group)}마리, 대상 {tgt.dist:.1f} m)")
+                return "bomb_start"
         if self.engage is None and now - self.ranged_since < 3.0:
             self.mode = "sprint"      # 원거리 피격 중 — 서 있으면 계속 맞는다
             return act
@@ -380,34 +513,61 @@ class Guard:
                 self.recovering = False
                 self.log(f"  guard: 스태미나 회복 {p.sp}/{p.max_sp} — 재교전")
             if self.recovering:
-                self.mode = "backoff"
+                # 적이 붙어 있으면 뒷걸음질하지 않는다 — 해골이 더 빨라서 등 뒤로 맞는다 (실측: backoff 중 90·100·104 연속 피격 → 사망)
+                self.mode = "hold" if self.engage.dist < 2.5 else "backoff"
+                return act
+            if now - getattr(self, "hit_at", 0.0) < HIT_GUARD_S:
+                self.mode = "hold"        # 방금 맞았다 — 되받아치지 말고 가드만 (경직 중에 휘두르면 또 맞는다)
+                self.combo_at = 0.0
                 return act
             attacking = (self.engage.anim or 0) in ENEMY_ATTACK_ANIMS
+            # 가까이(THREAT_DIST) 있는 놈이 휘두르는 중이면 치지 않는다. 4 m 전부로 잡았더니 여럿일 때 한 번도 못 쳤다
+            thr_c = next((c for c in hostile if self.reflex and c.ptr == self.reflex.threat_ptr), None)
+            threat = bool(thr_c is not None and thr_c.dist < THREAT_DIST)
             recovering = self.engage_prev_attacking and not attacking   # 공격 애니가 방금 끝남 = 빈틈
             self.engage_prev_attacking = attacking
             if self.engage.dist <= self.pb.attack_range:
                 self.mode = "hold"
                 # 막고 → 한 대: 적이 휘두르는 중엔 절대 안 치고 가드. 막았거나(스태미나) 적 공격이 끝난 직후에 친다.
                 # 적이 가만히 있으면 attack_cooldown 마다 한 대 (할로우는 느려서 선공도 통한다)
-                if sp_pct > 0.25 and not attacking and not player_locked(p.anim) and (blocked or recovering or now - self.last_attack > self.pb.attack_cooldown):
+                proactive = getattr(self.pb, "melee_proactive", True) and now - self.last_attack > self.pb.attack_cooldown
+                if now - getattr(self, "_swing_why_t", 0) > 1.0:
+                    why = [w for w, bad in (("스태미나", sp_pct <= 0.25), ("적 휘두르는 중", attacking), ("옆 적 위협", threat),
+                                            (f"내 경직 {p.anim}", player_locked(p.anim)),
+                                            ("쿨다운", not (blocked or recovering or proactive))) if bad]
+                    if why:
+                        self._swing_why_t = now
+                        self.log(f"  guard: 안 침 — {', '.join(why)} (대상 {self.engage.dist:.1f} m)")
+                if sp_pct > 0.25 and not attacking and not threat and not player_locked(p.anim) and (blocked or recovering or proactive):
                     self.pad.attack()
                     self.last_attack = now
                     self.combo_at = now + 0.55 if blocked else 0.0   # 방패에 튕기면 자세가 무너진다 (사용자) → 한 대 더
                     act = "counter" if (blocked or recovering) else "attack"
-                elif self.combo_at and now >= self.combo_at and not attacking and sp_pct > 0.2:
+                elif self.combo_at and now >= self.combo_at and not attacking and not threat and sp_pct > 0.2:
                     self.pad.attack()
                     self.last_attack = now
                     self.combo_at = 0.0
                     act = "combo"
             else:
                 self.mode = "engage"
+                if now - getattr(self, "_swing_why_t", 0) > 1.5:
+                    self._swing_why_t = now
+                    self.log(f"  guard: 사거리 밖 {self.engage.dist:.2f} m > {self.pb.attack_range} — 다가감")
+                if self.anchor is not None:
+                    ar = getattr(self.pb, "anchor_radius", 4.0)
+                    if math.hypot(self.engage.x - self.anchor[0], self.engage.z - self.anchor[1]) > ar                             and math.hypot(p.x - self.anchor[0], p.z - self.anchor[1]) > ar - 1.0:
+                        self.mode = "hold"   # 자리를 지킨다 — 쫓아가면 구석에서 둘러싸인다 (사용자: "구석에 처박혀서 죽는다")
             if self.circle_until > now:
                 self.mode = "circle"
+            elif self.mode == "hold" and not self.locked:
+                self.mode = "face"        # 락온이 없으면 제자리에서 스틱을 살짝 — 몸(방패)이 그 적을 따라 돈다
         return act
 
     def tick(self, s: telemetry.Snapshot) -> str | None:
         p = s.player
         now = time.time()
+        if self.reflex is not None:
+            self.reflex.update(s)
         hostile = s.hostile(20.0)
         action = None
         if self.last_hp is not None and p.hp < self.last_hp and now - self.last_dodge > 0.8 and env.GAME != "dsr":
@@ -424,9 +584,13 @@ class Guard:
             self.hp_at_flask = None
         self.flasks = s.flask_hp
         have_flask = (self.flasks > 0) if self.flasks is not None else (not self.flask_empty)
-        want_flask = hp_pct < self.pb.flask_hp_pct and have_flask
+        want_flask = hp_pct < self.pb.flask_hp_pct and have_flask and self.has_estus
         enemy_close = any(c.dist < FLASK_SAFE_DIST for c in hostile)
-        if want_flask and not enemy_close and now - self.last_flask > 4.0:
+        sel = self.item_fn() if (self.item_fn and want_flask) else None
+        if want_flask and not enemy_close and now - self.last_flask > 4.0 and not self.bomb_step and sel is not None and not is_estus(sel):
+            self.pad.item_next()                # 에스트가 아닌 칸 — 마시지 말고 칸부터 돌린다. 0.4 s 뒤 다시 확인
+            self.last_flask = now - 3.6
+        elif want_flask and not enemy_close and now - self.last_flask > 4.0 and not self.bomb_step:
             self.pad.use_item()
             self.last_flask = now
             self.hp_at_flask = p.hp
