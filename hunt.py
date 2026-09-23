@@ -611,24 +611,32 @@ class Hunter(vp.Probe):
         na, nb = self.run.nm[mr.MAP_A], self.run.nm[mr.MAP_B]
         top = tuple(json.loads((ROOT / "data" / "climb-goal.json").read_text(encoding="utf-8"))["top"])
         t0 = time.time()
-        self.phase = "상인: 꼭대기"
-        s = self.tm.snapshot(within=1.0)
-        p1 = nav.trim_path((na.find_path((s.player.x, s.player.y, s.player.z), top) or [top])[1:], top)
-        r = self.walk_fight(p1, na, "상인 A-꼭대기")
-        if r != "arrived":
-            return f"꼭대기까지 {r}"
         A = [tuple(q) for q in mr.ROUTE["segments"][0]["points"]]
-        bridge = A[67:71]                                   # 다리 높이(y -33.8)로 올라서는 녹화 점
+        bridge = A[67:71]                                   # 다리 높이(y -33.8)로 올라서는 녹화 점 (다리 위는 내비메시가 비어 있다)
         p2 = (na.find_path(bridge[-1], mr.BOUND_A) or [mr.BOUND_A])[1:]
-        # 혹시 남은 연결 오류(짧은 수평에 3 m 넘는 높이 차) 는 버린다
         clean = [bridge[-1]]
-        for q in p2:
+        for q in p2:                                        # 남은 연결 오류(짧은 수평에 3 m 넘는 높이 차)는 버린다
             h = math.dist((clean[-1][0], clean[-1][2]), (q[0], q[2]))
             if abs(q[1] - clean[-1][1]) > 3.0 and h < 3.0:
                 continue
             clean.append(q)
+        route = [top] + bridge + clean[1:]                  # 꼭대기 → 다리 → 경계
+        n_rec = 1 + len(bridge)
+        s = self.tm.snapshot(within=1.0)
+        here = (s.player.x, s.player.y, s.player.z)
+        k = min(range(len(route)), key=lambda j_: math.dist(route[j_], here))
+        if math.dist(route[k], here) < 4.0:
+            # 이미 길 위(다리 위 등)면 거기서부터 — 다리 위에서 꼭대기로 돌아가려다 내비메시 빈 곳 때문에 '막힘'
+            start, rec = route[k:], max(0, n_rec - k)
+        else:
+            self.phase = "상인: 꼭대기"
+            p1 = nav.trim_path((na.find_path(here, top) or [top])[1:], top)
+            r = self.walk_fight(p1, na, "상인 A-꼭대기")
+            if r != "arrived":
+                return f"꼭대기까지 {r}"
+            start, rec = route, n_rec
         self.phase = "상인: 다리→경계"
-        r = self.walk_fight(bridge + clean[1:], na, "상인 A-다리", recorded=len(bridge))
+        r = self.walk_fight(start, na, "상인 A-다리", recorded=rec)
         if r != "arrived":
             return f"경계까지 {r}"
         print(f"   경계 도착 {time.time() - t0:.0f} s", flush=True)
