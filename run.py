@@ -63,6 +63,8 @@ def main() -> None:
     ap.add_argument("cmd", choices=["status", "burg-bonfire", "clear-ramp", "merchant", "light-burg", "quit-test"])
     ap.add_argument("--no-rest", action="store_true")
     ap.add_argument("--no-lure", action="store_true", help="나이프로 한 놈씩 깨우지 않고 예전처럼 걸어가 붙는다 (비교용)")
+    ap.add_argument("--style", choices=["guard", "backstep"], default="guard",
+                    help="guard: 방패로 받고 휘청에 친다 (기본) | backstep: 양손, 백스텝으로 피하고 헛친 뒤 약공 (사용자 제안, 실험)")
     a = ap.parse_args()
     if a.cmd == "status":
         return status()
@@ -84,7 +86,9 @@ def main() -> None:
     log(f"무기: {w.name} (약공 {w.combo}연타, 닿는 거리 {w.reach} m, 강공 {'씀' if w.use_heavy else '안 씀'})")
     esc = Escape(pad, list(nms.values()), log=log, events=log.event).start()
     blood = Blood(log=log).start()
-    fld = Field(mv, w, esc, bonfires=[missions.FIRELINK["stand"], missions.BURG_BONFIRE], log=log, events=log.event)
+    fld = Field(mv, w, esc, bonfires=[missions.FIRELINK["stand"], missions.BURG_BONFIRE], log=log, events=log.event, style=a.style)
+    log(f"스타일: {a.style}")
+    log.event("style", style=a.style)
     ms = missions.Missions(fld, nms, log=log)
     try:
         if a.cmd == "burg-bonfire":

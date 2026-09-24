@@ -114,8 +114,13 @@ def _approach(mv: M.Moves, weapon, s, c, nm, foe, cancel, log=lambda *a: None) -
     return mv.walk_path(path, nm, mode, stop, timeout_per=6.0)
 
 
+PUNISH_AFTER = 1.1       # 백스텝 스타일: 공격 시작 뒤 이만큼 지나야 칼이 지나갔다 (1.0 s 안에 들어간 11회 중 8회 맞음, 1.0~1.3 s 는 3/3 무피해)
+PUNISH_MIN_R = 1.8       # 이보다 붙어 있으면 헛친 뒤 치기 대신 반사에 맡긴다 (≤1.6 m 에서 들어간 7회 중 5회가 다음 타에 맞음)
+PUNISH_R = 1.6           # 닿는 거리 + 이만큼 안이면 걸어 들어가 친다 (0.9 로는 2.5 m 에서 6 s 동안 못 들어감)
+
+
 def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: float = 0.25,
-         cancel=lambda: False, care=None, reflex=None, arena=None) -> DuelResult:
+         cancel=lambda: False, care=None, reflex=None, arena=None, style: str = "guard") -> DuelResult:
     """care: 4층이 주는 회복 담당 — care.wants(s) (마시고 싶나), care.take(recheck) (마신다; recheck(s) 로 틈을 다시 본다).
     틈인지는 여기(3층)가 본다: opening(). 붙어 있으면 백스텝으로 벌리고 다음 틱에 다시 본다.
     reflex: 반사(souls/reflex.py) — 매 틱 가장 먼저. 움직였으면 이 틱은 쉰다 (상대가 아닌 놈의 공격도 정면으로 막는다).
@@ -261,6 +266,19 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
                 return done("killed")
             continue
         if reflex is not None and reflex.tick(s):          # 반사: 2.5 m 안 누구든 휘두르기 시작하면 정면으로 막는다
+            bh = getattr(reflex, "last_hit", None)
+            if bh is not None:                             # 백스텝 공격(한 동작) 결과 — 기록
+                reflex.last_hit = None
+                d = bh.as_dict()
+                res.hits.append({k: d[k] for k in ("kind", "presses", "dmg", "dead", "taken")})
+                if bh.dmg > 0:
+                    last_dmg_t = time.time()
+                    res.dealt += bh.dmg
+                log(f"      백스텝 공격 → 피해 {bh.dmg}, 내 피해 {bh.taken} ({h:.1f} m)")
+                note("백스텝공격", s, c)
+                if bh.dead and orig_ptr is None:
+                    return done("killed")
+                continue
             note("반사", s, c)
             time.sleep(0.02)
             continue
@@ -327,6 +345,31 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
                     return done("killed")
             else:
                 note("휘청돌기", s, c)
+            continue
+        if style == "backstep" and a in M.ATTACK and h < NEAR:
+            # 1b) 백스텝 스타일 (사용자 2026-09-24: "고수들은 백스텝을 적절하게 사용, 백스텝 + 약공, 양손이면 더 강함, 가드 스태미나도 안 씀")
+            #     휘두르기 시작은 반사가 백스텝으로 피했다(뒤에 바닥 있을 때). 칼이 지나간 뒤(PUNISH_AFTER)면 한 걸음 들어가 약공.
+            if (age is not None and age >= PUNISH_AFTER and PUNISH_MIN_R <= h <= weapon.reach + PUNISH_R and abs(dy) <= 1.0
+                    and (p.sp or 0) >= weapon.sp_min and mv.face(s, c, deg=30.0)):
+                if h > weapon.reach and s.cam_yaw is not None:
+                    mv.pad.move(*mv.stick_to(s, c.x, c.z, 0.8))
+                    time.sleep(min(0.45, 0.12 + (h - weapon.reach) * 0.22))   # 2.5 m/s 걷기 — 남은 거리만큼
+                    mv.pad.move(0.0, 0.0)
+                hit = mv.light(s, c, n=weapon.combo, sp_second=weapon.sp_min)
+                d = hit.as_dict()
+                res.hits.append({k: d[k] for k in ("kind", "presses", "dmg", "dead", "taken")})
+                if hit.dmg > 0:
+                    last_dmg_t = time.time()
+                    res.dealt += hit.dmg
+                note("뒤치기", s, c)
+                log(f"      헛친 뒤 → {hit.kind}×{hit.presses} 피해 {hit.dmg}, 내 피해 {hit.taken} ({h:.1f} m, {age:.2f} s)")
+                if hit.dead and orig_ptr is None:
+                    return done("killed")
+                continue
+            mv.guard(False)
+            mv.face(s, c, deg=25.0)                        # 정면에 둔 채 칼이 지나가길 기다린다 (방패 없이)
+            note("피함대기", s, c)
+            time.sleep(0.02)
             continue
         if a in M.ATTACK and h < NEAR:                     # 1) 휘두르는 중 → 막는다
             mv.guard(True)

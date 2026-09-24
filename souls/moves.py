@@ -28,6 +28,7 @@ ESTUS_IDS = range(200, 216)      # 에스트 아이템 번호는 강화 단계�
 ITEM_DARKSIGN = 117
 ITEM_KNIFE = 290                 # 투척 나이프 (퀵 슬롯에 있어야 고를 수 있다)
 SECOND_R1_AT = 0.45              # 약공 2연타: 첫 R1 뒤 이때 한 번 더 (입력 버퍼)
+BS_TO_R1 = 0.45                  # 백스텝 공격: B 뒤 이때 R1 (옛 hunt.backstep_attack 실측값) — 앞으로 1.7~2.8 m 파고든다
 KICK_TO_R1 = 0.6                 # 발차기 뒤 늦어도 이때 R1 (닿으면 그 순간) — 방패병이 9600 된 게 0.45~0.61 s
 B = control.B
 
@@ -56,6 +57,7 @@ class Moves:
     def __init__(self, tm, pad: control.Pad):
         self.tm, self.pad = tm, pad
         self._estus: int | None = None
+        self.guard_ok = True     # False = 방패를 절대 안 든다 (백스텝 스타일. 사용자: "백스텝 할 땐 가드하지 마 — 피하고 공격 심플하게")
 
     # ── 보기 ────────────────────────────────────────────────
     def snap(self, within: float = 40.0):
@@ -83,7 +85,7 @@ class Moves:
         return True
 
     def guard(self, on: bool) -> None:
-        self.pad.guard(on)
+        self.pad.guard(on and self.guard_ok)
 
     # ── 공격 ─────────────────────────────────────────────────
     def _watch(self, hit: Hit, ptr, hp0: int, ehp0: int, secs: float, on_tick=None, early_exit=None) -> None:
@@ -131,7 +133,7 @@ class Moves:
             # 마지막 R1 을 누르고 0.6 s(한 번이면 0.35 s) 뒤에 방패 — 더 일찍 LB 를 누르면 버퍼된 R1 이 가드로 덮일 수 있다
             if not state["guard"] and state["second"] and t >= (SECOND_R1_AT + 0.6 if h.presses == 2 else 0.35):
                 state["guard"] = True
-                self.pad.guard(True)
+                self.guard(True)
         self._watch(hit, ptr, hp0, ehp0, 1.5 if want_second else 0.9, tick,
                     early_exit=lambda t, h: state["second"] and t > (SECOND_R1_AT + 0.3 if h.presses == 2 else 0.3))
         self.pad.move(0.0, 0.0)
@@ -144,7 +146,7 @@ class Moves:
         self.pad.guard(False)
         self.pad.heavy()
         self._watch(hit, ptr, hp0, ehp0, 1.3,
-                    lambda t, h: self.pad.guard(True) if t > 0.9 else None)
+                    lambda t, h: self.guard(True) if t > 0.9 else None)
         return hit
 
     def kick(self, s, c) -> Hit:
@@ -189,7 +191,7 @@ class Moves:
                     state["r1"] += 1
                     h.presses = 1 + state["r1"]
             if state["r1"] >= n and t >= (state["broke_t"] or KICK_TO_R1) + n * SECOND_R1_AT + 0.3:
-                self.pad.guard(True)
+                self.guard(True)
         self._watch(hit, ptr, hp0, ehp0, 2.4, tick,
                     early_exit=lambda t, h: state["r1"] >= n and t > (state["broke_t"] or KICK_TO_R1) + n * SECOND_R1_AT + 0.3)
         return hit
@@ -203,6 +205,41 @@ class Moves:
         while time.time() - t0 < 0.7:
             self.pad.release_due()
             time.sleep(0.02)
+
+    def backstep_attack(self, s, c, nm=None) -> Hit:
+        """백스텝 + R1 을 **한 동작**으로 (사용자 2026-09-24: "백스텝 후 공격이 두 동작이면 안 된다, 하나의 동작이어야").
+        스틱 중립 → B → BS_TO_R1 뒤 R1. 뒤 2.6 m·앞 3.0 m 에 바닥이 있어야 한다 (앞으로 파고든다). 몸이 그놈을 40° 안에 봐야 한다."""
+        hit = Hit("bsattack", presses=0)
+        p = s.player
+        if p.heading is None:
+            hit.skipped = "heading 없음"
+            return hit
+        if nm is not None:
+            back = (math.sin(p.heading), math.cos(p.heading))
+            if not nav.ground_ahead(nm, p, back[0], back[1], reach=2.6):
+                hit.skipped = "뒤에 바닥 없음"
+                return hit
+            if not nav.ground_ahead(nm, p, -back[0], -back[1], reach=3.0):
+                hit.skipped = "앞에 바닥 없음"
+                return hit
+        if abs(math.degrees(patrol.rel_angle(p, c))) > 40:
+            hit.skipped = "몸이 딴 데"
+            return hit
+        hp0, ehp0 = p.hp, c.hp
+        self.pad.release_stick()
+        self.pad.guard(False)
+        self.pad.tap(B.XUSB_GAMEPAD_B, 0.06)
+        hit.presses = 1
+        state = {"r1": False}
+
+        def tick(t, h):
+            if not state["r1"] and t >= BS_TO_R1:
+                state["r1"] = True
+                self.pad.tap(B.XUSB_GAMEPAD_RIGHT_SHOULDER, 0.06, stick_ok=True)   # 스틱은 이미 놓았다
+                h.presses = 2
+        self._watch(hit, c.ptr, hp0, ehp0, BS_TO_R1 + 1.1, tick,
+                    early_exit=lambda t, h: state["r1"] and t > BS_TO_R1 + 0.4)
+        return hit
 
     def roll_toward(self, s, x: float, z: float) -> None:
         """그쪽으로 스틱 + B 톡 = 구르기 (상자 깨기 등)."""
@@ -352,7 +389,7 @@ class Moves:
         if self.tm.lock_target() not in (None, -1):
             self._r3(0.2)
 
-    def throw_knife(self, ptr, watch: float = 1.8) -> dict:
+    def throw_knife(self, ptr, watch: float = 1.8, require_lock: bool = False) -> dict:
         """투척 나이프 한 개 — 던질 때만 락온 (사용자: 평소엔 락온 안 씀. 옛 실측: 락온 없이는 14 m 에서 1.2° 안이어야 하고
         위에 선 놈은 3/3 반응 없음, 락온이면 20 m 위 5번도 맞음). 락온이 안 걸리면 정밀 조준으로 던진다.
         → {"ok": 던졌나, "locked", "hit": 피해, "woke": 움직였나, "dist", "knives": 남은 개수, "why"}"""
@@ -381,6 +418,8 @@ class Moves:
                 self.pad.lock_on()                # 옆 놈에 걸림 → 풀고 다시
                 time.sleep(0.15)
         off = None
+        if not locked and require_lock:
+            return {"ok": False, "locked": False, "why": "락온 안 걸림 — 안 던짐 (락온 없는 나이프는 오늘 0/5)", "dist": round(c.dist, 1)}
         if not locked:
             # 사용자 2026-09-24: "나이프 던질 때 조준 문제 — 적과 방향 정렬". 몸을 맞춘 뒤 카메라를 몸 뒤로 되돌려야
             # 카메라 방향 = 몸 방향이 된다 (그 전엔 걷던 카메라가 옆을 보고 있었다)

@@ -27,6 +27,9 @@ import nav
 from . import moves as M
 
 THREAT_R = 2.5           # 수평
+EVADE_DELAY = 0.3        # 공격 시작 뒤 이만큼 지나서 피한다 — 즉시 피하면 그놈이 추적해 따라 들어온다 (10판: 백스텝 51회 중 절반 맞음)
+EVADE_R = 1.8            # 백스텝 스타일: 이 안에서 휘두를 때만 피한다 — 2.5~3 m 에서도 피하니 계속 밀려나 6 s 동안 못 들어갔다 (2026-09-24)
+MIXED_R = 4.0            # 백스텝 스타일이라도 다른 놈이 이 안에 깨어 있으면 방패로 (방패 없이 둘에게 250)
 GUARD_SP = 25            # 이 아래로 막으면 가드가 깨진다 (SP 12~22 에서 막다 깨져 밀려나 낙사, 2026-09-24) — 대신 물러난다
 THREAT_S = 1.3           # 공격 애니가 시작된 뒤 이만큼만 위협
 HIT_R = 3.0
@@ -35,6 +38,10 @@ HIT_R = 3.0
 class Reflex:
     def __init__(self, mv: M.Moves, nm=None, unblockable=lambda c: False):
         self.mv, self.nm, self.unblockable = mv, nm, unblockable
+        self.evade = False       # True 면 막지 않고 **모든** 공격을 백스텝·구르기로 피한다 (백스텝 스타일 — 양손, 방패 안 씀)
+        self.events = None       # 4층이 넣어 주면 회피마다 'evade' 사건 (kind·거리·그 뒤 1.3 s 안에 맞았나) — style_report.py 가 센다
+        self._pending: dict | None = None
+        self.last_hit = None     # 마지막 백스텝 공격 결과 (duel 이 기록용으로 가져간다)
         self._dodged: dict = {}        # ptr → 피한 공격의 시작 시각 (한 공격에 한 번만 피한다)
         self.prefer = None             # 지금 싸우는 상대 (duel 이 매 틱 넣는다) — 위협이 여럿이면 이놈 먼저
         self._lock = (None, 0.0)       # (ptr, 까지) — 한 공격 동안 막기 시작한 놈을 계속 정면에
@@ -56,6 +63,14 @@ class Reflex:
         if self._hp is not None and hp is not None and hp < self._hp:
             self._hit_t = now
         self._hp = hp
+        if self._pending is not None:
+            pe = self._pending
+            if hp is not None:
+                pe["min_hp"] = min(pe["min_hp"], hp)
+            if now - pe["t"] >= THREAT_S:
+                self._pending = None
+                if self.events:
+                    self.events("evade", kind=pe["kind"], dist=pe["dist"], eanim=pe["eanim"], npc=pe["npc"], taken=pe["hp0"] - pe["min_hp"])
 
     def attack_age(self, ptr) -> float | None:
         """그놈의 지금 공격이 시작된 지 몇 초 (공격 중이 아니면 None)."""
@@ -92,16 +107,23 @@ class Reflex:
             return False
         p = s.player
         start = self._start.get(c.ptr)
-        if c.anim is not None and start is not None and self.unblockable(c):
+        evade_now = self.evade and M.horiz(p, c) <= EVADE_R          # 둘이어도 피한다 — 방패는 안 쓴다 (사용자)
+        if evade_now and start is not None and now - start < EVADE_DELAY and self._dodged.get(c.ptr) != start:
+            self.step_away(s, c)                           # 아직 이르다 — 정면만 두고 기다린다 (칼이 궤도에 든 뒤 피해야 추적을 못 한다)
+            self.acted += 1
+            return True
+        if c.anim is not None and start is not None and (evade_now or self.unblockable(c)):
             if self._dodged.get(c.ptr) != start:
                 self._dodged[c.ptr] = start
-                self.dodge(s, c)
+                kind = self.dodge(s, c, attack=evade_now)
+                self._pending = {"t": now, "kind": kind, "dist": round(M.horiz(p, c), 2), "eanim": c.anim, "npc": c.npc_param,
+                                 "hp0": p.hp or 0, "min_hp": p.hp or 0}
             else:
                 self.step_away(s, c)                       # 한 번 피했으면 그 공격 동안 방패 없이 거리를 둔다
             self.acted += 1
             return True
-        if (p.sp or 0) < GUARD_SP:
-            self.step_away(s, c)
+        if (p.sp or 0) < GUARD_SP or self.evade:
+            self.step_away(s, c)                       # 백스텝 스타일: 못 피하는 상황(멀다)이면 정면만 본다, 방패 없이
             self.acted += 1
             return True
         self.mv.pad.guard(True)
@@ -113,19 +135,32 @@ class Reflex:
         self.acted += 1
         return True
 
-    def dodge(self, s, c) -> str:
+    def _others_near(self, s, c) -> bool:
+        return any(x.ptr != c.ptr and x.hp > 0 and x.anim not in (-1, None) and M.horiz(s.player, x) < MIXED_R for x in s.hostile(MIXED_R + 1))
+
+    def dodge(self, s, c, attack: bool = False) -> str:
         """막으면 안 되는 공격 — 뒤에 바닥이 있으면 백스텝, 없으면 바닥이 있는 옆으로 구른다. 둘 다 없으면 방패 (어쩔 수 없다)."""
         p = s.player
         if p.heading is not None and self.nm is not None:
             back = (math.sin(p.heading), math.cos(p.heading))          # heading 방향 = 몸 뒤 (hunt.backstep_attack 과 같은 규약)
-            if nav.ground_ahead(self.nm, p, back[0], back[1], reach=2.2):
+            if nav.ground_ahead(self.nm, p, back[0], back[1], reach=2.6):
+                if attack and nav.ground_ahead(self.nm, p, -back[0], -back[1], reach=3.0):
+                    h = self.mv.backstep_attack(s, c, self.nm)     # 백스텝 + R1 한 동작 (사용자)
+                    if h.presses:
+                        self.last_hit = h
+                        return "bsattack"
                 self.mv.backstep()
                 return "backstep"
+            if self.evade:
+                # 백스텝 스타일: 뒤에 바닥이 없으면 구르지 않는다 — 옆 2.5 m 검사를 통과하고도 굴러서 16 m 추락사 (2026-09-24 4판).
+                # 한 대 맞는 게 낙사보다 싸다. 정면만 본다.
+                self.step_away(s, c)
+                return "hold"
             for side in ((back[1], -back[0]), (-back[1], back[0])):
                 if nav.ground_ahead(self.nm, p, side[0], side[1], reach=2.5) and s.cam_yaw is not None:
                     self.mv.roll_toward(s, p.x + side[0] * 3.0, p.z + side[1] * 3.0)
                     return "roll"
-        self.mv.pad.guard(True)
+        self.mv.guard(True)                                # 뒤도 옆도 바닥이 없다 — guard_ok 가 아니면 정면만
         return "guard"
 
     def step_away(self, s, c) -> None:

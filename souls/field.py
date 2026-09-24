@@ -36,19 +36,24 @@ def awake(c) -> bool:
 SEEK_R = 100.0           # 그놈을 찾는 반경 (duel.SEEK_R 과 같게)
 LURE_R = 10.0            # 나이프를 던지는 거리 — 락온 상태로 11.9·11.4 m 는 빗나가고 10.8 m 에서 맞음 (2026-09-24, 던진 물건은 ~10 m 날아간다)
 LURE_TRIES = 3
+LURE_DY = 1.5            # 던질 자리와 목표·지금 자리의 높이차 상한 — 절벽 아래 놈에게 뛰어내리지 않게 (2026-09-24 8판)
 LURE_ABORT_R = 10.0              # 던지는 중 이 안에 깨어 움직이는 다른 놈이 있으면 중단
 LURE_MIN, LURE_MAX = 6.0, 13.0   # 평지에서 던지는 조건 — 이보다 가까우면 걸어가는 것만으로 깨고, 멀면 락온이 안 걸린다
 KNIFE_LOW = 5            # 이 아래면 경고 — 상인에게 사러 가는 건 나중 과제 (사용자 2026-09-24)
 
 
 class Field:
-    def __init__(self, mv: M.Moves, weapon, escape, bonfires: list, log=print, events=None):
+    def __init__(self, mv: M.Moves, weapon, escape, bonfires: list, log=print, events=None, style: str = "guard"):
         self.mv, self.w, self.esc, self.log = mv, weapon, escape, log
+        self.style = style                                 # guard: 방패로 받고 휘청에 친다 | backstep: 백스텝으로 피하고 헛친 뒤 친다 (양손)
         self.bonfires = [tuple(b) for b in bonfires]      # 핏자국 줍기(A) 금지 구역
         self.home = self.bonfires[0] if self.bonfires else None   # 마지막으로 쉰 화톳불 (물러날 곳, 다크사인 도착 확인)
         self.events = events or (lambda *a, **k: None)
         # 반사 — 싸우든 걷든 매 틱 먼저 (발밑 확인용 내비메시는 쓸 때 넣는다). 막으면 안 되는 공격은 적 데이터(3층)에서
         self.reflex = Reflex(mv, unblockable=lambda c: (c.anim or -1) in foes_.of(c.npc_param).unblockable)
+        self.reflex.evade = style == "backstep"
+        mv.guard_ok = style != "backstep"
+        self.reflex.events = self.events
 
     # ── 상태 ─────────────────────────────────────────────────
     def alive(self) -> bool:
@@ -150,8 +155,12 @@ class Field:
         if e is not None and self.mv.tm.selected_item() != e:
             self.mv.select_item(e)                         # 미리 골라 둔다 — 틈이 났을 때 칸 돌리는 1~3 s 가 없게
         self.reflex.nm = nm
+        if self.style == "backstep" and self.mv.tm.grip() == 1:
+            self.mv.pad.two_hand_right()                   # 양손 — 방패를 안 쓰니 한 대가 더 크다 (사용자)
+            time.sleep(0.5)
+            self.log(f"   양손: grip {self.mv.tm.grip()}")
         r = D.duel(self.mv, self.w, ptr, nm, log=self.log, cancel=lambda: self.esc.escaping or self.esc.gen != g0,
-                   care=Care(self), reflex=self.reflex, arena=arena, low_hp=0.0 if desperate else 0.25)
+                   care=Care(self), reflex=self.reflex, arena=arena, low_hp=0.0 if desperate else 0.25, style=self.style)
         self.log(f"   {tag}{' (끝까지)' if desperate else ''}: {r.line()}")
         self.events("duel", tag=tag, npc=r.npc, result=r.result, secs=round(r.secs, 1), dealt=r.dealt, taken=r.taken)
         if r.result == "killed":
@@ -194,9 +203,9 @@ class Field:
             path = nm.find_path(here, goal)
             if not path:
                 return "no_path"
-            spot = next((tuple(q) for q in path if math.dist(tuple(q), goal) <= LURE_R), None)
+            spot = next((tuple(q) for q in path if math.dist(tuple(q), goal) <= LURE_R and abs(q[1] - goal[1]) <= LURE_DY), None)
             if spot is None:
-                return "no_spot"
+                return "no_spot"                              # 절벽 아래·위 놈은 던질 자리가 없다 — 평소 길로 (8판: 절벽 아래 2번에게 뛰어내림)
         if math.dist(here, spot) > 1.5:
             r = self.walk_to(spot, nm, f"{tag} 던질 자리로")
             if r == "dead":
@@ -229,7 +238,8 @@ class Field:
                     return "dead"
                 path = nm.find_path((s.player.x, s.player.y, s.player.z), (c.x, c.y, c.z)) if (s := self.mv.snap(5.0)) else None
                 want = max(LURE_MIN, c.dist - 4.0)
-                nxt = next((tuple(q) for q in (path or []) if math.dist(tuple(q), (c.x, c.y, c.z)) <= want), None)
+                nxt = next((tuple(q) for q in (path or []) if math.dist(tuple(q), (c.x, c.y, c.z)) <= want and abs(q[1] - c.y) <= LURE_DY
+                            and abs(q[1] - s.player.y) <= LURE_DY), None)
                 if nxt is None:
                     return "no_spot"
                 self.log(f"   {tag}: 락온 안 걸림 — {want:.0f} m 까지 다가감")
@@ -237,7 +247,7 @@ class Field:
                     return "dead"
                 if not self._asleep(ptr):
                     return "lured"
-            r = self.mv.throw_knife(ptr)
+            r = self.mv.throw_knife(ptr, require_lock=True)
             locked_once = locked_once or bool(r.get("locked"))
             s2 = self.mv.snap(25.0)
             others = [x for x in (s2.hostile(25.0) if s2 else []) if x.ptr != ptr and awake(x) and x.anim not in (-1, None)]
