@@ -17,6 +17,8 @@ class Foe:
     avoid: bool = False             # 지금 레벨로는 상대 안 함 (길을 돌아간다)
     singles: tuple = ()             # 한 방으로 끝나는 공격 애니 — 막고 나서 바로 반격해도 된다
     combos: tuple = ()              # 이어지는 공격의 시작 애니 — 끝까지 막고 반격
+    unblockable: tuple = ()         # 막으면 안 되는 공격 (가드 브레이크 등) — 반사가 방패 대신 피한다
+    punish_hits: int | None = None  # 휘청(막기에 튕김) 반격 약공 수 — None 이면 무기대로. 휘청이 짧은 놈은 1
     note: str = ""
 
 
@@ -25,9 +27,11 @@ _HOLLOW = dict(kind="hollow", singles=(3008,), combos=(3003, 3005))
 HOLLOW = Foe("망자(칼)", **_HOLLOW)
 FIREBOMB_HOLLOW = Foe("망자(화염병)", ranged=True, **_HOLLOW,
                       note="경사로 4번: 4.9 m 위 턱에서 안 내려오고 화염병만 — 방패로 받아도 56~224. 달려 올라가 근접")
-SHIELD = Foe("방패 병사", kind="shield", kick_when_idle=True,
+SHIELD = Foe("방패 병사", kind="shield", kick_when_idle=True, unblockable=(3009,), punish_hits=1,
              note="가만히 서면 방패를 들어 약공이 12 씩만 (6번 쳐도 못 잡음). 가드 올린 채면 발차기로 휘청 (위키). "
-                  "내가 가드만 하면 가드 브레이크 3009 로 깨러 온다 (Lua IsTargetGuard)")
+                  "내가 가드만 하면 가드 브레이크 3009 로 깨러 온다 (Lua IsTargetGuard) — 2026-09-24 실측: 3009 를 막다 가드가 깨져"
+                  "(내 애니 160) 스태미나 42→14, 밀려나 경사로에서 낙사. 3009 는 막지 말고 피한다. "
+                  "휘청이 짧다 — 휘청 반격 2연타의 두 번째 사이에 100~115 를 되받아쳤다 (세 번 중 두 번) → 한 대만")
 SKELETON = Foe("묘지 해골", kind="skeleton", avoid=True, singles=(3003, 3004, 3005), combos=(3000,),
                note="스텝인(700)으로 한 번에 붙고 구르기로 피한다. 한 대 111~167 — 기사 레벨로는 못 이김 (사용자 2026-09-24)")
 ASYLUM_DEMON = Foe("수용소 데몬", kind="boss", note="boss/README.md — 필드 규칙과 섞지 않는다")

@@ -11,6 +11,9 @@
 그래서:
   1) 공격 애니가 **막 시작된 뒤 THREAT_S 동안**만 위협. 2.5 m 안 위협 중 가장 가까운 놈을 **몸 정면**에 두고 방패
   2) 위협이 없는데 방금 HP 가 깎였으면(보이지 않는 공격) → 3 m 안 가장 가까운 놈 쪽으로 방패
+  4) 스태미나가 GUARD_SP 아래면 막지 않고 바닥이 있는 쪽으로 물러난다 (가드가 깨지면 밀려나 떨어진다)
+  3) 막으면 안 되는 공격(가드 브레이크 3009 등 — 무엇이 그런지는 4층이 unblockable(c) 로 알려 준다)은
+     방패 대신 백스텝, 뒤가 낭떠러지면 옆으로 구른다 (막다가 가드가 깨져 밀려나 낙사, 2026-09-24)
   몸을 돌릴 때 그쪽 발밑이 없으면 돌지 않는다 (경사로 추락 2 번 기록).
   (둘 이상이 2.5 m 안에 붙는 건 watch.Escape 가 퀵 종료로 푼다)
 """
@@ -24,13 +27,18 @@ import nav
 from . import moves as M
 
 THREAT_R = 2.5           # 수평
+GUARD_SP = 25            # 이 아래로 막으면 가드가 깨진다 (SP 12~22 에서 막다 깨져 밀려나 낙사, 2026-09-24) — 대신 물러난다
 THREAT_S = 1.3           # 공격 애니가 시작된 뒤 이만큼만 위협
 HIT_R = 3.0
 
 
 class Reflex:
-    def __init__(self, mv: M.Moves, nm=None):
-        self.mv, self.nm = mv, nm
+    def __init__(self, mv: M.Moves, nm=None, unblockable=lambda c: False):
+        self.mv, self.nm, self.unblockable = mv, nm, unblockable
+        self._dodged: dict = {}        # ptr → 피한 공격의 시작 시각 (한 공격에 한 번만 피한다)
+        self.prefer = None             # 지금 싸우는 상대 (duel 이 매 틱 넣는다) — 위협이 여럿이면 이놈 먼저
+        self._lock = (None, 0.0)       # (ptr, 까지) — 한 공격 동안 막기 시작한 놈을 계속 정면에
+        # 가장 가까운 놈으로 매 틱 바꿨더니 앞뒤로 붙은 둘을 번갈아 보며 옆·뒤를 맞았다 (몸-그놈 -117~-141°, 188 → 0, 2026-09-24)
         self._anim: dict = {}          # ptr → 마지막 애니
         self._start: dict = {}         # ptr → 공격 애니가 시작된 시각
         self._hp = None
@@ -48,6 +56,11 @@ class Reflex:
         if self._hp is not None and hp is not None and hp < self._hp:
             self._hit_t = now
         self._hp = hp
+
+    def attack_age(self, ptr) -> float | None:
+        """그놈의 지금 공격이 시작된 지 몇 초 (공격 중이 아니면 None)."""
+        a = self._anim.get(ptr)
+        return time.time() - self._start[ptr] if a in M.ATTACK and ptr in self._start else None
 
     def threats(self, s) -> list:
         now = time.time()
@@ -67,13 +80,31 @@ class Reflex:
         """→ 이번 틱에 반사가 움직였나 (방패·몸 돌리기)."""
         self.update(s)
         th = self.threats(s)
-        c = min(th, key=lambda x: M.horiz(s.player, x)) if th else None
+        now = time.time()
+        lock_ptr, lock_until = self._lock
+        c = next((x for x in th if x.ptr == lock_ptr), None) if now < lock_until else None
+        if c is None and th:
+            c = next((x for x in th if x.ptr == self.prefer), None) or min(th, key=lambda x: M.horiz(s.player, x))
+            self._lock = (c.ptr, self._start.get(c.ptr, now) + THREAT_S)
         if c is None and time.time() - self._hit_t < 0.4:
             c = self._nearest(s, HIT_R)                    # 2) 어디서 맞았는지 모를 때 — 가장 가까운 놈
         if c is None:
             return False
-        self.mv.pad.guard(True)
         p = s.player
+        start = self._start.get(c.ptr)
+        if c.anim is not None and start is not None and self.unblockable(c):
+            if self._dodged.get(c.ptr) != start:
+                self._dodged[c.ptr] = start
+                self.dodge(s, c)
+            else:
+                self.step_away(s, c)                       # 한 번 피했으면 그 공격 동안 방패 없이 거리를 둔다
+            self.acted += 1
+            return True
+        if (p.sp or 0) < GUARD_SP:
+            self.step_away(s, c)
+            self.acted += 1
+            return True
+        self.mv.pad.guard(True)
         safe_turn = self.nm is None or nav.ground_ahead(self.nm, p, c.x - p.x, c.z - p.z, reach=0.8)
         if safe_turn:
             self.mv.face(s, c, deg=25.0)
@@ -81,6 +112,31 @@ class Reflex:
             self.mv.pad.move(0.0, 0.0)
         self.acted += 1
         return True
+
+    def dodge(self, s, c) -> str:
+        """막으면 안 되는 공격 — 뒤에 바닥이 있으면 백스텝, 없으면 바닥이 있는 옆으로 구른다. 둘 다 없으면 방패 (어쩔 수 없다)."""
+        p = s.player
+        if p.heading is not None and self.nm is not None:
+            back = (math.sin(p.heading), math.cos(p.heading))          # heading 방향 = 몸 뒤 (hunt.backstep_attack 과 같은 규약)
+            if nav.ground_ahead(self.nm, p, back[0], back[1], reach=2.2):
+                self.mv.backstep()
+                return "backstep"
+            for side in ((back[1], -back[0]), (-back[1], back[0])):
+                if nav.ground_ahead(self.nm, p, side[0], side[1], reach=2.5) and s.cam_yaw is not None:
+                    self.mv.roll_toward(s, p.x + side[0] * 3.0, p.z + side[1] * 3.0)
+                    return "roll"
+        self.mv.pad.guard(True)
+        return "guard"
+
+    def step_away(self, s, c) -> None:
+        """방패 없이 그놈 반대쪽(바닥이 있는 쪽)으로 한 걸음. 바닥이 없으면 제자리."""
+        p = s.player
+        self.mv.pad.guard(False)
+        d = nav.safe_back(self.nm, p, p.x - c.x, p.z - c.z) if self.nm is not None else (p.x - c.x, p.z - c.z)
+        if d is None or s.cam_yaw is None:
+            self.mv.pad.move(0.0, 0.0)
+            return
+        self.mv.pad.move(*self.mv.stick_to(s, p.x + d[0], p.z + d[1]))
 
     def hold(self, max_s: float = 2.0) -> None:
         """위협이 지나갈 때까지 반사만 돈다 (걷다가 멈췄을 때)."""

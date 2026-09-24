@@ -14,6 +14,7 @@ import time
 import nav
 
 from . import duel as D
+from . import foes as foes_
 from . import moves as M
 from .reflex import Reflex
 from .watch import Blood
@@ -22,6 +23,7 @@ FOLLOW_R = 4.5           # 길을 걷다 이 안(수평)에 깨어 있는 놈이
 FOLLOW_DY = 2.5          # 계단에서 따라오는 놈 — 높이차 이만큼까지
 SAFE_R = 6.0             # 에스트: 이 안에 깨어 있는 적이 없고
 SAFE_ATTACK_R = 8.0      #          이 안에 휘두르는 놈이 없을 때
+RANGED_R = 25.0          #          그리고 이 안에 깨어 움직이는 '던지는 놈'(foes.ranged)이 없을 때
 BONFIRE_NO_A = 6.0
 FIGHT_HEAL = 0.5         # 싸우는 중: HP 가 이 아래면 틈(duel.opening)에 마신다
 WALK_HEAL = 0.6          # 걷는 중: 이 아래고 안전하면 70 % 까지
@@ -35,8 +37,10 @@ class Field:
     def __init__(self, mv: M.Moves, weapon, escape, bonfires: list, log=print, events=None):
         self.mv, self.w, self.esc, self.log = mv, weapon, escape, log
         self.bonfires = [tuple(b) for b in bonfires]      # 핏자국 줍기(A) 금지 구역
+        self.home = self.bonfires[0] if self.bonfires else None   # 마지막으로 쉰 화톳불 (물러날 곳, 다크사인 도착 확인)
         self.events = events or (lambda *a, **k: None)
-        self.reflex = Reflex(mv)                           # 반사 — 싸우든 걷든 매 틱 먼저 (발밑 확인용 내비메시는 쓸 때 넣는다)
+        # 반사 — 싸우든 걷든 매 틱 먼저 (발밑 확인용 내비메시는 쓸 때 넣는다). 막으면 안 되는 공격은 적 데이터(3층)에서
+        self.reflex = Reflex(mv, unblockable=lambda c: (c.anim or -1) in foes_.of(c.npc_param).unblockable)
 
     # ── 상태 ─────────────────────────────────────────────────
     def alive(self) -> bool:
@@ -58,8 +62,16 @@ class Field:
         return False
 
     def safe(self, s) -> bool:
-        return not any(awake(c) and (c.dist < SAFE_R or ((c.anim or -1) in M.ATTACK and c.dist < SAFE_ATTACK_R))
-                       for c in s.hostile(SAFE_ATTACK_R))
+        """에스트를 마셔도 되나 — 가까운 적이 없고, 휘두르는 놈이 없고, **던지는 놈(화염병)이 RANGED_R 안에 깨어 있지 않을 때**.
+        8 m 만 봤더니 위 턱의 화염병 망자에게 마시는 도중 맞아 끊기고 죽었다 (2026-09-24)."""
+        for c in s.hostile(RANGED_R):
+            if not awake(c):
+                continue
+            if c.dist < SAFE_R or ((c.anim or -1) in M.ATTACK and c.dist < SAFE_ATTACK_R):
+                return False
+            if foes_.of(c.npc_param).ranged and (c.anim not in (None, -1)):
+                return False
+        return True
 
     # ── 회복 ─────────────────────────────────────────────────
     def heal(self, frac: float = 0.7, sips: int = 3) -> None:
@@ -82,28 +94,56 @@ class Field:
     def care(self) -> "Care":
         return Care(self)
 
+    def wait_escape(self, timeout: float = 40.0) -> None:
+        """퀵 종료가 끝날 때까지 기다린다 — 안 기다렸더니 그 10 s 동안 남은 적 다섯을 0.5 s 만에 전부 '취소' 로 넘겼다."""
+        t0 = time.time()
+        while self.esc.escaping and time.time() - t0 < timeout:
+            time.sleep(0.2)
+
     def shake_off(self, why: str) -> dict:
         """퀵 종료로 적을 스폰으로 돌려보낸다 (경계 풀림, 죽은 적은 그대로)."""
         return self.esc.fire(why, "shake")
 
-    def recover(self, why: str) -> bool:
-        """싸움이 틀어졌을 때: 적이 가까우면 떼어내고, 에스트로 90 % 까지. → 계속 싸울 만한가"""
+    def retreat(self, nm, home) -> str:
+        """화톳불 쪽으로 경로를 따라 물러난다 — 안전해지면 멈춘다 (적은 경계 범위를 벗어나면 돌아간다)."""
+        s = self.mv.snap(5.0)
+        if s is None or home is None:
+            return "no_home"
+        path = nm.find_path((s.player.x, s.player.y, s.player.z), tuple(home)) if nm is not None else None
+        if not path:
+            return "no_path"
+        t0 = time.time()
+        return self.mv.walk_path(nav.trim_path(path[1:], tuple(home)), nm, "sprint",
+                                 stop=lambda sn: time.time() - t0 > 3.0 and self.safe(sn))
+
+    def recover(self, why: str, nm=None) -> bool:
+        """싸움이 틀어졌을 때. → 계속 싸울 만한가
+          · 안전하면 에스트로 90 % 까지
+          · 적이 가까운데 HP 가 낮으면: 화톳불 쪽으로 물러나 안전해지면 마신다
+          · 퀵 종료로 떼어내지 않는다 — 같은 자리에서 다시 시작해 곧바로 다시 붙었다 (5 번 반복, HP 659 → 24, 사용자:
+            "지금 위치 강종하기 안 좋아")"""
         s = self.mv.snap(15.0)
-        if s and not self.safe(s):
-            self.shake_off(why)
+        if s is None:
+            return False
+        low = s.player.hp < s.player.max_hp * 0.6
+        if not self.safe(s) and low:
+            # 다크사인은 쓰지 않는다 — 쉬는 것처럼 잡은 적이 전부 살아나고(사용자 2026-09-24) 소울·인간성까지 잃는다.
+            # 죽는 것보다도 나쁘다 (죽으면 핏자국으로 되찾을 수 있다). 붙은 채 쓰면 쓰는 2~3 s 동안 맞아 죽기도 했다
+            r = self.retreat(nm, self.home)
+            self.log(f"   {why}: 적이 가깝고 HP {s.player.hp} — 화톳불 쪽으로 물러남: {r}")
         self.heal(0.9, sips=4)
         s = self.mv.snap(5.0)
         return bool(s and s.player.hp >= s.player.max_hp * 0.6)
 
     # ── 싸움 ─────────────────────────────────────────────────
-    def fight(self, ptr, nm, tag: str) -> D.DuelResult:
+    def fight(self, ptr, nm, tag: str, arena=None) -> D.DuelResult:
         g0 = self.esc.gen
         e = self.mv.estus_id()
         if e is not None and self.mv.tm.selected_item() != e:
             self.mv.select_item(e)                         # 미리 골라 둔다 — 틈이 났을 때 칸 돌리는 1~3 s 가 없게
         self.reflex.nm = nm
         r = D.duel(self.mv, self.w, ptr, nm, log=self.log, cancel=lambda: self.esc.escaping or self.esc.gen != g0,
-                   care=Care(self), reflex=self.reflex)
+                   care=Care(self), reflex=self.reflex, arena=arena)
         self.log(f"   {tag}: {r.line()}")
         self.events("duel", tag=tag, npc=r.npc, result=r.result, secs=round(r.secs, 1), dealt=r.dealt, taken=r.taken)
         if r.result == "killed":
@@ -117,25 +157,39 @@ class Field:
         cands = [c for c in s.chars if c.npc_param == npc and c.hp > 0 and math.dist((c.x, c.y, c.z), tuple(pos)) < r]
         return min(cands, key=lambda c: math.dist((c.x, c.y, c.z), tuple(pos)), default=None)
 
-    def clear(self, targets: list[dict], nm, tries: int = 3) -> str:
-        """스폰 지도 순서대로 하나씩. targets = [{"npc":…, "pos":[x,y,z]}, …]. → 'cleared' | 'died' | 'no_estus'
+    def clear(self, targets: list[dict], nm, tries: int = 3, arena=None) -> str:
+        """스폰 지도 순서대로 하나씩. targets = [{"npc":…, "pos":[x,y,z]}, …].
+        → 'cleared' | 'left #2 #4' (세 번 해도 못 잡은 놈) | 'died' | 'no_estus'
         없는 놈은 건너뛴다 (이미 죽었다 — 퀵 종료로는 안 살아난다)."""
-        for i, e in enumerate(targets, 1):
+        left = []
+        for n, e in enumerate(targets, 1):
+            i = e.get("label", n)                          # 지도 번호 (순서를 바꿔도 기록은 지도 번호로)
+            killed = False
             for k in range(tries):
                 if not self.alive():
                     return "died"
-                c = self.find_at(e["npc"], e["pos"], 3.0) or self.find_at(e["npc"], e["pos"], 12.0)
+                # 쫓아오느라 스폰에서 멀어진 놈도 있다 — 12 m 만 봤더니 살아 있는 4번을 '이미 죽음' 으로 건너뛰고 등을 맞았다
+                c = (self.find_at(e["npc"], e["pos"], 3.0) or self.find_at(e["npc"], e["pos"], 12.0)
+                     or self.find_at(e["npc"], e["pos"], 30.0))
                 if c is None:
-                    self.log(f"   #{i} {e['npc']}: 스폰 근처에 없음 — 이미 죽음")
+                    self.log(f"   #{i} {e['npc']}: 스폰 30 m 안에 없음 — 이미 죽음")
+                    killed = True
                     break
-                r = self.fight(c.ptr, nm, f"#{i} {e['npc']}" + (f" ({k + 1}번째)" if k else ""))
+                self.wait_escape()
+                r = self.fight(c.ptr, nm, f"#{i} {e['npc']}" + (f" ({k + 1}번째)" if k else ""), arena=arena)
                 if r.result == "killed":
+                    killed = True
                     break
                 if r.result == "me_dead":
                     return "died"
-                if not self.recover(f"#{i} {r.result}") and self.mv.estus_left() <= 0:
+                self.wait_escape()
+                if not self.alive():
+                    return "died"
+                if not self.recover(f"#{i} {r.result}", nm) and self.mv.estus_left() <= 0:
                     return "no_estus"
-        return "cleared"
+            if not killed:
+                left.append(f"#{i}")
+        return "cleared" if not left else "left " + " ".join(left)
 
     # ── 길 ───────────────────────────────────────────────────
     def walk(self, path: list, nm, tag: str, tol: float = 1.0, tight: dict | None = None, mode: str = "walk") -> str:
@@ -197,7 +251,7 @@ class Field:
                         if res.result == "me_dead":
                             return "dead"
                         if res.result != "killed":
-                            if not self.recover(f"{tag} {res.result}") and self.mv.estus_left() <= 0:
+                            if not self.recover(f"{tag} {res.result}", nm) and self.mv.estus_left() <= 0:
                                 return "no_estus"
                             if res.result in ("stuck", "lost"):
                                 ignore.add(c.ptr)          # 못 닿는 놈 — 이 길에선 무시 (쫓아오면 퀵 종료가 떼어낸다)

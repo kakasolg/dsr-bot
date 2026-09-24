@@ -19,10 +19,12 @@ import nav
 import patrol
 import quitout
 
-ATTACK = range(3000, 3600)       # 적 공격 애니 (DS1 인간형 공통)
+ATTACK = range(3000, 3500)       # 적 공격 애니 (DS1 인간형 공통)
+STAGGER = range(3500, 3600)      # 휘청 — 내 방패에 막혀 튕김 등. **공격이 아니라 틈** (2026-09-24: 이걸 공격으로 봐서 12 s 동안 막기만 했다)
 DOWNED = range(9900, 10000)      # 넘어짐·누움·일어남 (9920 = 일어나는 중)
 GETTING_UP = 9920
 ESTUS_IDS = range(200, 216)      # 에스트 아이템 번호는 강화 단계별 (새 캐릭터 201)
+ITEM_DARKSIGN = 117
 SECOND_R1_AT = 0.45              # 약공 2연타: 첫 R1 뒤 이때 한 번 더 (입력 버퍼)
 B = control.B
 
@@ -81,7 +83,7 @@ class Moves:
         self.pad.guard(on)
 
     # ── 공격 ─────────────────────────────────────────────────
-    def _watch(self, hit: Hit, ptr, hp0: int, ehp0: int, secs: float, on_tick=None) -> None:
+    def _watch(self, hit: Hit, ptr, hp0: int, ehp0: int, secs: float, on_tick=None, early_exit=None) -> None:
         t1 = time.time()
         my_min, e_min = hp0, ehp0
         while time.time() - t1 < secs:
@@ -98,6 +100,10 @@ class Moves:
                 if not hit.my_anims or hit.my_anims[-1][1] != s2.player.anim:
                     hit.my_anims.append((round(time.time() - t1, 2), s2.player.anim))
                 if e_min <= 0:
+                    break
+                # 공격 애니가 한 번 나간 뒤 -1(서 있음)로 돌아왔고 더 누를 것이 없으면 끝 — 남은 시간을 기다리며 아무것도 못 보는 일을 줄인다
+                if (early_exit is not None and early_exit(time.time() - t1, hit) and len(hit.my_anims) >= 2
+                        and hit.my_anims[-1][1] in (-1, None)):
                     break
             time.sleep(0.01)
         hit.dmg, hit.dead, hit.taken = ehp0 - e_min, e_min <= 0, hp0 - my_min
@@ -123,7 +129,8 @@ class Moves:
             if not state["guard"] and state["second"] and t >= (SECOND_R1_AT + 0.6 if h.presses == 2 else 0.35):
                 state["guard"] = True
                 self.pad.guard(True)
-        self._watch(hit, ptr, hp0, ehp0, 1.5 if want_second else 0.9, tick)
+        self._watch(hit, ptr, hp0, ehp0, 1.5 if want_second else 0.9, tick,
+                    early_exit=lambda t, h: state["second"] and t > (SECOND_R1_AT + 0.3 if h.presses == 2 else 0.3))
         self.pad.move(0.0, 0.0)
         return hit
 
@@ -219,6 +226,49 @@ class Moves:
         n1 = self.tm.goods_count(e) or 0
         return {"ok": n1 < n0, "hp": [hp0, s2.player.hp if s2 else None], "left": n1,
                 "why": None if n1 < n0 else "끊김 (개수 그대로)"}
+
+    def darksign(self, bonfire_stand) -> bool:
+        """다크사인 — 소울·인간성을 전부 잃고 마지막으로 쉰 화톳불로. 칸(117)·확인창 글자·YES 칸을 **확인한 뒤에만** A
+        (기본값이 YES). A 를 누른 뒤엔 결과를 못 읽어도 **다시 쓰지 않는다** (merchantrun 실측: 도착해 놓고 '실패' 로 보고 또 썼다).
+        쓸지는 위층이 정한다 (잃을 게 거의 없을 때만 — 사용자 2026-09-24 "다크사인 쓰자")."""
+        import env
+        for _ in range(3):
+            s0 = self.snap(5.0)
+            pre = (s0.player.x, s0.player.y, s0.player.z) if s0 else None
+            self.pad.guard(False)
+            self.pad.neutral()
+            quitout.close_menu(self.tm, self.pad)
+            if not self.select_item(ITEM_DARKSIGN):
+                continue
+            quitout._press(self.pad, B.XUSB_GAMEPAD_X, 0.0)
+            ok = quitout._wait(lambda: quitout._is_screen("darksign_q") is True and quitout._is_screen("darksign_yes") is True, 1.5)
+            if not ok:
+                quitout._press(self.pad, B.XUSB_GAMEPAD_B, 0.4)      # 창이 아니면 닫고 다시 (맞아서 끊겼을 수도)
+                continue
+            quitout._press(self.pad, B.XUSB_GAMEPAD_A, 0.0)
+            t0 = last = time.time()
+            while time.time() - t0 < 40.0:                         # 로딩 뒤 포인터가 바뀐다 — 4 s 마다 새로 붙는다
+                try:
+                    s = self.tm.snapshot(within=1.0)
+                except Exception:
+                    s = None
+                if s and s.player.hp and s.player.hp > 0:
+                    here = (s.player.x, s.player.y, s.player.z)
+                    if (pre is not None and math.dist(here, pre) > 20.0) or math.dist(here, tuple(bonfire_stand)) < 15.0:
+                        time.sleep(1.5)
+                        e = self.estus_id()
+                        if e is not None:
+                            self.select_item(e)                      # 칸을 에스트로 되돌려 둔다
+                        return True
+                if time.time() - last > 4.0:
+                    last = time.time()
+                    try:
+                        self.tm = env.make_telemetry({})
+                    except Exception:
+                        pass
+                time.sleep(0.3)
+            return False
+        return False
 
     # ── 이동 ─────────────────────────────────────────────────
     def walk_path(self, path: list, nm, mode="walk", stop=None, on_tick=None, tol: float = 1.0,

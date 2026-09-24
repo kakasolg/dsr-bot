@@ -24,15 +24,16 @@ NO_GROUND = (1500, 1550, 121500, 1600, 6074, 6174)
 
 class Escape:
     """긴급 탈출. 50 Hz 로 보고, 쏠 때는 패드를 얼려(Pad.freeze) 판단 루프의 입력이 메뉴 입력에 섞이지 않게 한다.
-      · 낙사: 떨어지는 모션(1550)이고 발밑 바닥이 LETHAL_DROP 넘게 아래 → 종료하면 떨어지기 전 가장자리에서 다시 선다
-      · 둘러싸임: 2.5 m 안에 둘, 3.5 m 안에 셋, 또는 3.5 m 안 둘인데 (HP 40 % 아래 또는 **2.8 s 뒤 예상 HP**가 15 % 아래)
+      · 낙사: 떨어지는 중(모션 1550, 또는 0.4 s 에 2.5 m 넘게 내려감)이고 발밑 바닥이 8 m 넘게 아래
+        → 종료하면 떨어지기 전 가장자리에서 다시 선다
+      · 곧 죽음: 3.5 m 안에 둘 이상이고 **2.8 s 뒤 예상 HP**가 15 % 아래 (60 s 에 한 번 — 그 자리에서 다시 시작하므로)
         — 종료 입력에 2.4~2.5 s 걸리는 동안에도 맞는다 (298 → 24 로 끝난 적이 있다). 그래서 들어오는 피해 속도를 본다
     gen 은 나갔다 올 때마다 +1 — 적 포인터가 전부 바뀌니 위층은 gen 이 바뀌면 적을 다시 찾는다."""
-    LETHAL_DROP = 15.0
+    LETHAL_DROP = 8.0         # 15 m 로 뒀더니 경사로 옆(약 10~12 m)에서 HP 413 인 채 떨어져 죽었다 (2026-09-24)
+    FALL_V = 2.5              # 0.4 s 에 이만큼 내려가면 떨어지는 중 — 애니 번호(1550)가 안 뜨는 추락(가드가 깨져 밀려남)도 잡는다
     FALL_COOLDOWN = 4.0       # 예전 30 s: 가장자리에서 다시 서자마자 또 떨어지는 걸 못 막았다
-    CROWD_COOLDOWN = 20.0
+    CROWD_COOLDOWN = 60.0     # 같은 자리에서 반복하지 않게
     QUIT_S = 2.8
-    CLOSE_R = 2.5             # 수평 — 이 안에 깨어 있는 놈이 둘이면 퀵 종료
 
     def __init__(self, pad, nms: list, log=print, events=None):
         self.pad, self.nms, self.log, self.events = pad, nms, log, events
@@ -43,6 +44,7 @@ class Escape:
         self._lock = threading.Lock()
         self._stop = False
         self._hp = collections.deque(maxlen=60)
+        self._y = collections.deque(maxlen=40)
         self.th = threading.Thread(target=self._run, daemon=True)
 
     def floor_drop(self, p) -> float:
@@ -68,17 +70,20 @@ class Escape:
                 continue
             now, p = time.time(), s.player
             self._hp.append((now, p.hp))
+            self._y.append((now, p.y))
             why = None
-            if p.anim in FALL_ANIMS and now - self.last_fall > self.FALL_COOLDOWN:
+            ys = [y for t, y in self._y if now - t <= 0.4]
+            falling = p.anim in FALL_ANIMS or (len(ys) >= 3 and max(ys) - p.y > self.FALL_V)
+            if falling and now - self.last_fall > self.FALL_COOLDOWN:
                 drop = self.floor_drop(p)
                 if drop > self.LETHAL_DROP:
                     why, kind = f"낙사 (발밑 바닥 {drop:.0f} m 아래)", "fall"
             elif now - self.last_crowd > self.CROWD_COOLDOWN:
                 near = [c for c in s.hostile(3.5) if c.hp > 0 and not (9000 <= (c.anim or 0) < 9100)]
-                close = [c for c in near if ((c.x - p.x) ** 2 + (c.z - p.z) ** 2) ** 0.5 < self.CLOSE_R]
                 future = p.hp - self._dps(now) * self.QUIT_S
-                # 2.5 m 안에 둘 — 한 놈을 정면으로 막아도 다른 놈이 옆·뒤를 친다 (기록: 2.5 m 안 둘 이상 4건 570, 사망 1).
-                if len(near) >= 3 or len(close) >= 2 or (len(near) >= 2 and (p.hp < p.max_hp * 0.4 or future < p.max_hp * 0.15)):
+                # 퀵 종료는 **그 자리에서** 다시 시작한다 — 적 스폰 옆이면 곧바로 다시 붙는다 (2026-09-24: 5 번 반복, 659 → 24,
+                # 사용자: "지금 위치 강종하기 안 좋아"). 그래서 '곧 죽는다' 일 때만 — 둘러싸임 자체는 4층이 물러나기·다크사인으로
+                if len(near) >= 2 and future < p.max_hp * 0.15:
                     why, kind = f"둘러싸임 {len(near)}명, HP {p.hp}/{p.max_hp}, 2.8 s 뒤 예상 {future:.0f}", "crowd"
             if why:
                 self.fire(why, kind, tm, p)
@@ -119,6 +124,7 @@ class Escape:
             elif kind == "crowd":
                 self.last_crowd = now
             self._hp.clear()
+            self._y.clear()
             self.gen += 1
             self.escaping = False
             self.log(f"   ⚠ 퀵 종료 결과: {res}")

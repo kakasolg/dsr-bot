@@ -39,8 +39,9 @@ class Log:
         self.txt.write(line + "\n")
         self.txt.flush()
 
-    def event(self, kind: str, **kw) -> None:
-        self.ev.write(json.dumps({"t": round(time.time() - self.t0, 2), "ev": kind, **kw}, ensure_ascii=False, default=str) + "\n")
+    def event(self, _ev: str, **kw) -> None:
+        # 인자 이름이 kind 였더니 퀵 종료 결과의 kind 와 겹쳐 봇이 멈췄다 (2026-09-24)
+        self.ev.write(json.dumps({"t": round(time.time() - self.t0, 2), "ev": _ev, **kw}, ensure_ascii=False, default=str) + "\n")
         self.ev.flush()
 
 
@@ -99,7 +100,20 @@ def main() -> None:
             r = quit_test(ms, mv, esc, log)
         log(f"══ 결과: {r}")
         log.event("result", cmd=a.cmd, result=r)
+    except BaseException as ex:
+        # 봇이 멈추면 캐릭터가 적 옆에 조작 없이 서서 죽는다 (2026-09-24 두 번) — 멈추기 전에 퀵 종료로 적을 떼어낸다
+        import traceback
+        log(f"══ 오류로 멈춤: {ex!r}\n{traceback.format_exc()}")
+        if not esc.escaping:
+            try:
+                esc.fire(f"봇 오류({type(ex).__name__}) — 적 떼어내고 멈춤", "shake")
+            except Exception as ex2:
+                log(f"   퀵 종료도 실패: {ex2!r}")
+        raise
     finally:
+        t_wait = time.time()
+        while esc.escaping and time.time() - t_wait < 40.0:  # 퀵 종료 도중에 끝내면 메뉴·로딩에 멈춘다
+            time.sleep(0.2)
         esc.stop()
         blood.stop()
         pad.neutral()

@@ -25,6 +25,11 @@ FIRELINK_ID = 1022960                                  # 마지막 화톳불 ID 
 BURG_BONFIRE = (3.2, -10.0, -61.2)                     # 성벽 마을 화톳불(o0200_0002) — 상인에서 동쪽 42 m, 10 m 위
 BURG_BONFIRE_SIDE = (1.7, -10.02, -61.2)               # 그 옆 바닥
 RAMP = json.loads((DATA / "enemy-map.json").read_text(encoding="utf-8"))["enemies"]   # 경사로 6마리, 쉰 직후 스폰 자리
+# 경사로 아래 평지 — 반경 3 m 16방향 바닥이 다 있고 가장 가까운 낙차까지 4.0 m (hunt.py 실측). 낭떠러지 옆에서 싸우지 않고 여기서 맞이한다
+RAMP_ARENA = (-30.0, -49.25, 29.0)
+# 잡는 순서 (지도 번호). 2번 방패병은 맨 나중 — 자리가 너무 안 좋다 (서쪽 낭떠러지 + 위 턱 화염병, 사용자 2026-09-24:
+# "두번째 공격하러 가는 얘를 맨 나중에 해봐", "거기 위치 너무 안 좋아"). 거기서 먼저 붙으면 1 s 에 275 를 맞거나 떨어졌다
+RAMP_ORDER = [1, 3, 4, 5, 6, 2]
 
 
 def _route():
@@ -52,7 +57,8 @@ class Missions:
         return ok
 
     def clear_ramp(self) -> str:
-        r = self.f.clear(RAMP, self.nms[MAP_A])
+        targets = [dict(RAMP[i - 1], label=i) for i in RAMP_ORDER]
+        r = self.f.clear(targets, self.nms[MAP_A], arena=RAMP_ARENA)
         self.log(f"── 경사로: {r}")
         return r
 
