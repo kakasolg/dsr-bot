@@ -86,9 +86,23 @@ def rest(tm, pad, nm, bonfire, mode: str = "walk") -> bool:
         # 화톳불 앞에서 A 를 누른 뒤 메뉴가 열려 있으면 앉은 것 — 화톳불 메뉴가 떠 있는데 sitting() 이 False 인 적이 있다
         return tm.sitting() or tm.menu_open() is True
 
-    for _ in range(4):
-        tm.pos_warp(*bonfire["stand"], bonfire["heading"])
-        time.sleep(0.9)
+    obj = bonfire.get("object")
+    for attempt in range(4):
+        if attempt < 2 and obj is not None:
+            # 사용자 2026-09-24: "화톳불도 정확하게 못 가고 지정한 위치로 감" — 워프 대신 자리까지 걸어가 화톳불 쪽으로 몸을 돌리고 A.
+            # (성벽 마을 화톳불은 이 방식으로 됐다.) 두 번 안 되면 예전처럼 워프.
+            nav.goto(tm, pad, stand, tolerance=0.35, timeout=8, log=lambda *a: None, terrain=nm, mode_fn=lambda _s: "walk")
+            pad.neutral()
+            s = tm.snapshot(within=1.0)
+            if s and s.cam_yaw is not None:
+                st = control.world_to_stick(obj[0] - s.player.x, obj[2] - s.player.z, s.cam_yaw, nav.YAW_OFFSET, nav.FLIP_X)
+                pad.move(st[0] * 0.45, st[1] * 0.45)
+                time.sleep(0.18)
+                pad.move(0.0, 0.0)
+                time.sleep(0.4)
+        else:
+            tm.pos_warp(*bonfire["stand"], bonfire["heading"])
+            time.sleep(0.9)
         control.focus_game()                # 창이 포커스를 잃으면 패드 입력을 무시한다 (옆에서 띄운 기록 프로세스가 포커스를 가져간 적 있음)
         time.sleep(0.3)
         press(vgamepad.XUSB_BUTTON.XUSB_GAMEPAD_A)   # DSR 상호작용 (pad.interact 와 같은 버튼)
@@ -98,6 +112,7 @@ def rest(tm, pad, nm, bonfire, mode: str = "walk") -> bool:
                 break
         if seated():
             break
+        print(f"   화톳불 앉기 {attempt + 1}번째 실패{' — 다음은 워프' if attempt == 1 else ''}", flush=True)
     if not seated():
         return False
     time.sleep(1.0)

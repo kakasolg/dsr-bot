@@ -338,6 +338,20 @@ class Moves:
             self.pad.lock_on()                    # R3 는 토글
             time.sleep(0.15)
 
+    def _r3(self, wait: float = 0.3) -> None:
+        self.pad.lock_on()
+        t = time.time()
+        while time.time() - t < wait:
+            self.pad.release_due()
+            time.sleep(0.01)
+
+    def reset_camera(self) -> None:
+        """R3 = 락온 대상이 없으면 카메라가 등 뒤 기본 높이로. 락온 없이 던지면 나이프가 **카메라 방향·기울기**대로 날아간다
+        (옛 실측: 카메라 숙인 채 조준 0.0° 로 던진 3 개가 발밑). 걸리면 한 번 더 눌러 푼다."""
+        self._r3(0.35)
+        if self.tm.lock_target() not in (None, -1):
+            self._r3(0.2)
+
     def throw_knife(self, ptr, watch: float = 1.8) -> dict:
         """투척 나이프 한 개 — 던질 때만 락온 (사용자: 평소엔 락온 안 씀. 옛 실측: 락온 없이는 14 m 에서 1.2° 안이어야 하고
         위에 선 놈은 3/3 반응 없음, 락온이면 20 m 위 5번도 맞음). 락온이 안 걸리면 정밀 조준으로 던진다.
@@ -368,13 +382,19 @@ class Moves:
                 time.sleep(0.15)
         off = None
         if not locked:
+            # 사용자 2026-09-24: "나이프 던질 때 조준 문제 — 적과 방향 정렬". 몸을 맞춘 뒤 카메라를 몸 뒤로 되돌려야
+            # 카메라 방향 = 몸 방향이 된다 (그 전엔 걷던 카메라가 옆을 보고 있었다)
+            self.reset_camera()
             off = self.aim(ptr, deg=1.5, timeout=3.0)
+            self.reset_camera()
         s = self.snap(40.0)
         c = self.find(s, ptr)
         if c is None:
             self.unlock()
             return {"ok": False, "why": "그놈 없음", "locked": locked}
         hp0, pos0, n0 = c.hp, (c.x, c.y, c.z), self.tm.goods_count(ITEM_KNIFE) or 0
+        self.pad.release_due()                    # 예약된 버튼 뗌이 남아 있으면 X 가 씹힌다 ("안 던져짐 (개수 그대로)" 2/3)
+        time.sleep(0.05)
         self.pad.use_item()
         t, hit, woke = time.time(), 0, False
         while time.time() - t < watch:
