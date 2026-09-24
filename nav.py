@@ -214,24 +214,28 @@ def follow(tm, pad, path: list, terrain=None, mode_fn=None, on_tick=None, defaul
     → 'arrived' | goto 의 실패 값 | 'stopped'. 연속 3번 못 가면 그 실패 값."""
     tols = path_tolerances(path, default_tol)
     fails = 0
-    for q, tol in zip(path, tols):
-        r = goto(tm, pad, tuple(q), tolerance=tol, timeout=timeout_per, log=log, terrain=terrain,
-                 on_tick=on_tick, mode_fn=mode_fn)
-        if r in ("dead", "retreat"):
-            return r
-        if stop_fn is not None:
-            s = tm.snapshot(within=40.0)
-            if s is not None and stop_fn(s):
-                return "stopped"
-        if r != "arrived":
-            fails += 1
-            if fails >= 3:
-                pad.neutral()
+    # 이동 상태(달리기 B 홀드)를 경로 내내 하나로 유지한다. 예전엔 점마다 새 Mover 가 B 를 눌렀다 뗐다 —
+    # 점 사이가 짧으면 '짧은 B' = 구르기·백스텝(달리는 중이면 점프)이 되어 경사로에서 떨어졌다 (2026-09-24 리뷰)
+    mover = Mover(pad)
+    try:
+        for q, tol in zip(path, tols):
+            r = goto(tm, pad, tuple(q), tolerance=tol, timeout=timeout_per, log=log, terrain=terrain,
+                     on_tick=on_tick, mode_fn=mode_fn, mover=mover)
+            if r in ("dead", "retreat"):
                 return r
-        else:
-            fails = 0
-    pad.neutral()
-    return "arrived"
+            if stop_fn is not None:
+                s = tm.snapshot(within=40.0)
+                if s is not None and stop_fn(s):
+                    return "stopped"
+            if r != "arrived":
+                fails += 1
+                if fails >= 3:
+                    return r
+            else:
+                fails = 0
+        return "arrived"
+    finally:
+        mover.stop()
 
 
 def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float], tolerance: float = 1.5,
@@ -249,6 +253,7 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
     last_progress_t, last_progress_d = t_start, None
     escapes = 0
     no_cam_since = None
+    own_mover = mover is None             # 받은 mover 는 부른 쪽이 멈춘다 (경로 내내 달리기 유지)
     mover = mover or Mover(pad)
     probe_t0 = time.time()
     probe_off = [False]      # probe 로 전진이 안 되면 이 goto 동안은 보통 걷기로
@@ -431,7 +436,10 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
             pad.release_due()        # 예약된 버튼 떼기 (tap 이 자지 않으므로 여기서 처리)
             time.sleep(0.02)         # snapshot 이 4 ms 로 줄어 틱을 더 촘촘히 돌 수 있다
     finally:
-        mover.stop()
+        if own_mover:
+            mover.stop()
+        else:
+            pad.move(0.0, 0.0)
 
 
 if __name__ == "__main__":

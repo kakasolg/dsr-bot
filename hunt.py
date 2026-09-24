@@ -39,6 +39,15 @@ MAP = json.loads((ROOT / "data" / "enemy-map.json").read_text(encoding="utf-8"))
 ITEM_BOMB = 292
 ITEM_KNIFE = 290
 ITEM_ESTUS = 205
+ESTUS_IDS = range(200, 216)   # 에스트 아이템 번호는 강화 단계별 — 새 캐릭터는 201 (205 고정이라 기사 캐릭터가 에스트 10개를 두고 '없음')
+
+
+def estus_item(tm) -> int:
+    """지금 가진 에스트의 아이템 번호. 하나도 없으면 ITEM_ESTUS."""
+    for i in ESTUS_IDS:
+        if tm.goods_count(i):
+            return i
+    return ITEM_ESTUS
 ITEM_BLACK_BOMB = 297
 JUDGE_MODEL = "gemini-3.8-flash"
 # 경사로 아래 평지. 처음 쓴 (-31.0, -49.7, 26.0) 은 150~270° 쪽 2 m 에 바닥이 없는 낭떠러지 끝이었다 (1.25 m) —
@@ -358,7 +367,7 @@ class Hunter(vp.Probe):
             if not fell and s2.player.y < y0 - 0.3:
                 fell = True
                 self.pad.move(0.0, 0.0)
-                self._press(control.B.XUSB_GAMEPAD_RIGHT_SHOULDER)   # 공중 R1 = 낙하 공격
+                self._press(control.B.XUSB_GAMEPAD_RIGHT_SHOULDER, stick_ok=True)   # 공중 R1 = 낙하 공격
                 r1_at = round(time.time() - t, 2)
             c2 = next((x for x in s2.chars if x.ptr == ptr), None)
             if fell and (c2 is None or c2.hp <= 0 or time.time() - t > (r1_at or 0) + 1.8):
@@ -712,6 +721,14 @@ class Hunter(vp.Probe):
             for j, q in enumerate(path):
                 if math.dist((q[0], q[2]), (tight["center"][0], tight["center"][2])) < tight["r"]:
                     tols[j] = 0.45
+        if self.NO_FIGHT:
+            # 사용자(2026-09-24): 기사 레벨로는 계단 위 망자·방패 병사를 못 뚫는다 → 싸우지 않고 달린다.
+            # 좁은 다리(tight)에서만 걷는다 — 달리다 모서리를 자르면 떨어진다
+            fight_r = 0.0
+            tc = (tight["center"][0], tight["center"][2]) if tight else None
+            mode_ = lambda sn: "walk" if tc and math.dist((sn.player.x, sn.player.z), tc) < tight["r"] + 1.0 else "sprint"
+        else:
+            mode_ = None
         i, fights, fails = 0, 0, 0
         first_seen: dict = {}
         ignore: set = set()
@@ -753,7 +770,7 @@ class Hunter(vp.Probe):
             # 바닥이 없어 한 걸음도 안 떼고 '막힘' 이었다
             terr = nm if (f_ is not None and abs(f_[0] - q[1]) < 2.0 and fp_ is not None and abs(fp_[0] - sp_.player.y) < 2.0) else None
             r = nav.goto(self.tm, self.pad, tuple(q), tolerance=tol if terr is not None else max(tol, 0.8), timeout=15, log=lambda *a: None,
-                         terrain=terr, on_tick=lambda sn, _d=None: self.note(sn), mode_fn=lambda sn: "retreat" if enemy_close(sn) else mode)
+                         terrain=terr, on_tick=lambda sn, _d=None: self.note(sn), mode_fn=mode_ or (lambda sn: "retreat" if enemy_close(sn) else mode))
             if r == "dead":
                 return "dead"
             s = self.tm.snapshot(within=fight_r + 1.0)
@@ -1021,7 +1038,7 @@ class Hunter(vp.Probe):
 
     def go_burg_bonfire(self) -> str:
         """상인 앞 → 성벽 마을 화톳불 옆 — 사용자: "상인까지 가는 길 근처 화톳불로 가 봐".
-        거기서 쉬면 죽었을 때 돌아가는 화톳불이 바뀌므로 A 는 누르지 않고 스크린샷만."""
+        기본은 스크린샷만 (쉬면 죽었을 때 돌아가는 화톳불이 바뀐다). --light-burg 면 불 붙이고 앉는다."""
         nb = self.run.nm[mr.MAP_B]
         self.run.cur_nm = nb
         s = self.tm.snapshot(within=5.0)
@@ -1050,7 +1067,62 @@ class Hunter(vp.Probe):
                 im.save(vp.IMG_DIR / shot, quality=88)
         print(f"   성벽 마을 화톳불: {r} — {time.time() - t0:.0f} s, 남은 {d if d is None else round(d, 1)} m, HP {s.player.hp if s else '?'}, 스크린샷 {shot}", flush=True)
         self._ev("burg_bonfire", result=r, left=None if d is None else round(d, 1), shot=shot)
+        if r == "arrived" and self.light_burg_bonfire:
+            self.light_and_rest_burg()
         return r
+
+    def light_and_rest_burg(self) -> bool:
+        """성벽 마을 화톳불에 불 붙이고 한 번 앉아 귀환 지점으로 — 사용자(2026-09-24): 묘지 해골은 레벨이 모자라 못 이긴다,
+        계획을 "망자 상인 쪽 화톳불 찍기"로. 처음 A = 불 붙이기(BONFIRE LIT 연출), 다음 A = 앉기. 마지막 화톳불 ID 가 바뀌면 성공."""
+        import vgamepad
+        A, B = vgamepad.XUSB_BUTTON.XUSB_GAMEPAD_A, vgamepad.XUSB_BUTTON.XUSB_GAMEPAD_B
+
+        def press(button):
+            self.pad.tap(button, 0.1)
+            time.sleep(0.13)
+            self.pad.release_due()
+            time.sleep(quitout.MENU_GAP)
+
+        def seated():
+            return self.tm.sitting() or self.tm.menu_open() is True
+
+        # 사용자: "적이 따라 붙으면 화톳불 못 사용해" — 12 m 안에 깨어 있는 적이 있으면 먼저 잡고 누른다
+        nb = self.run.nm[mr.MAP_B]
+        for _ in range(3):
+            s = self.tm.snapshot(within=15.0)
+            foes = [c for c in (s.hostile(12.0) if s else []) if c.hp > 0 and not patrol.dormant(c)]
+            if not foes:
+                break
+            print(f"   화톳불 전에 따라온 적 {len(foes)} — 먼저 정리", flush=True)
+            here = (s.player.x, s.player.y, s.player.z)
+            if self.walk_fight([here], nb, "화톳불 정리", fight_r=12.0) in ("dead", "hp"):
+                return False
+            nav.goto(self.tm, self.pad, self.BURG_BONFIRE_SIDE, tolerance=0.5, timeout=6, log=lambda *a: None, mode_fn=lambda _s: "walk")
+        before = self.tm.last_bonfire()
+        self.pad.neutral()
+        control.focus_game()
+        for _ in range(4):
+            press(A)
+            for _ in range(24):              # 불 붙이기 연출 + 앉기 2.5 s
+                time.sleep(0.25)
+                if seated():
+                    break
+            if seated():
+                break
+        sat = seated()
+        time.sleep(1.0)
+        after = self.tm.last_bonfire()
+        for _ in range(6):                   # 일어나기 = 메뉴 닫기
+            if not seated():
+                break
+            press(B)
+            time.sleep(1.0)
+        # 이미 여기가 귀환 지점이었으면 ID 가 안 바뀐다 — 그땐 앉은 것만으로 성공, 새 ID 는 로그로 남겨 상수로 옮긴다
+        ok = sat and after is not None
+        note = "귀환 지점 변경" if ok and after != before else ("이미 여기" if ok else "확인 못 함")
+        print(f"   성벽 마을 화톳불 불·휴식: 앉음 {sat}, 마지막 화톳불 {before} → {after} — {note}", flush=True)
+        self._ev("burg_bonfire_lit", sat=sat, before=before, after=after, ok=ok)
+        return ok
 
     def bloodstain(self) -> dict | None:
         try:
@@ -1166,7 +1238,7 @@ class Hunter(vp.Probe):
                 time.sleep(0.7)
                 return {"backstep": True}
             return None
-        if not self.select_item(ITEM_ESTUS):
+        if not self.select_item(estus_item(self.tm)):
             return None
         hp0 = p.hp
         self.pad.guard(False)
@@ -1188,10 +1260,10 @@ class Hunter(vp.Probe):
             if any(c.hp > 0 for c in s.hostile(5.0)):
                 print("      에스트: 5 m 안에 적 — 안 마심", flush=True)
                 return
-            if not self.tm.goods_count(ITEM_ESTUS):
+            if not self.tm.goods_count(estus_item(self.tm)):
                 print("      에스트 없음", flush=True)
                 return
-            if not self.select_item(ITEM_ESTUS):
+            if not self.select_item(estus_item(self.tm)):
                 print("      에스트 칸을 못 고름", flush=True)
                 return
             hp0 = s.player.hp
@@ -1202,7 +1274,7 @@ class Hunter(vp.Probe):
                 self.pad.release_due()
                 time.sleep(0.02)
             s2 = self.tm.snapshot(within=10.0)
-            print(f"      에스트: HP {hp0} → {s2.player.hp if s2 else '?'} (남은 {self.tm.goods_count(ITEM_ESTUS)})", flush=True)
+            print(f"      에스트: HP {hp0} → {s2.player.hp if s2 else '?'} (남은 {self.tm.goods_count(estus_item(self.tm))})", flush=True)
             self._ev("estus", hp0=hp0, hp1=s2.player.hp if s2 else None)
 
     def knife_pull(self, ti: int, ptr, nm) -> bool:
@@ -1377,6 +1449,15 @@ class Hunter(vp.Probe):
     def _hunt(self, k: int, targets: list[int], dist: float) -> None:
         print(f"── 시도 {k}: 화톳불 휴식 (적 초기화)", flush=True)
         self.go_home()
+        s_ = self.tm.snapshot(within=1.0)
+        stand = tuple(mr.BONFIRE["stand"])
+        if s_ and s_.player.hp > 0 and math.dist((s_.player.x, s_.player.y, s_.player.z), stand) > 5.0:
+            # 사용자: "적이 있는데 왜 대응 안해" — 휴식(farm.rest)은 적을 안 보고 걷기만 해서, 따라온 방패 병사에게 등을 맞으며 화톳불 앞에서 죽었다.
+            # 복귀도 상인 길처럼 걷다가 붙는 놈부터 잡는다
+            nm_ = self.run.nm[mr.MAP_A]
+            p_ = nav.trim_path((nm_.find_path((s_.player.x, s_.player.y, s_.player.z), stand) or [stand])[1:], stand)
+            r_ = self.walk_fight(p_, nm_, "복귀")
+            print(f"   복귀 (싸우며 걷기): {r_}", flush=True)
         if not self.run.rest():
             self.pad.reconnect()          # 가상 패드를 게임이 놓칠 때가 있다 (휴식 실패 — 안내가 키보드 E 로 바뀜)
             control.focus_game()
@@ -1394,6 +1475,16 @@ class Hunter(vp.Probe):
         self.ensure_two_hand()
         nm = self.run.nm[mr.MAP_A]
         self.run.cur_nm = nm
+        if self.NO_FIGHT:
+            print("   싸우지 않고 상인까지 달린다 (--no-fight)", flush=True)
+            if self.bloodstain():
+                self.recover_bloodstain(nm, detour=60.0)
+            res = self.go_merchant()
+            self.results.append(res)
+            if res == "도착" and self.to_burg_bonfire:
+                self.go_burg_bonfire()
+            self.stop_all = True
+            return
         self.hist.clear()
         self.last_kill_pos = None
         # 쉰 직후 = 전부 스폰 자리. 포인터를 잡아 두면 스폰을 떠나도 따라갈 수 있다 (3번은 1번이 죽으면 자리를 뜬다)
@@ -1548,6 +1639,7 @@ class Hunter(vp.Probe):
                 print(f"   #{ti}: 달려 붙음 {time.time() - t_r:.1f} s", flush=True)
                 if not self.melee(k, ti, e, tptr, nm, pull_to=None):
                     return
+                self.heal_if_needed()        # 사용자: "에스트 안 마심" — 달려 올라가며 화염병에 맞아 204 인 채 다음 놈으로 갔다
                 continue
             if plan == "snipe":
                 self.phase = f"#{ti} 저격"
@@ -1584,6 +1676,7 @@ class Hunter(vp.Probe):
                 # 평평한 자리에서 다가간 경우(2번)도 끌어온다 — 그놈을 본 채 백스텝(띠 방향이라 뒤에 바닥이 있다). 등 돌려 달리면 3005(210)를 등에 맞는다
                 if not self.melee(k, ti, e, tptr, nm, pull_to=self.last_kill_pos if left["v"] else None, study=plan == "study"):
                     return
+                self.heal_if_needed()
                 continue
             c, s = self.find(spawn)
             if c is None:
@@ -1668,6 +1761,8 @@ class Hunter(vp.Probe):
     then_run = False
     quit_at_merchant = False
     to_burg_bonfire = False
+    light_burg_bonfire = False
+    NO_FIGHT = False
     stop_all = False
     use_darksign = False      # 사용자: "이제 다크사인 쓰지 마" — --darksign 으로만 켠다
     results: list = []        # 판마다 go_merchant 결과 — 10판 세트 성공률 (사용자: "10번 트라이 세트를 90% 될 때까지")
@@ -1988,6 +2083,7 @@ class Hunter(vp.Probe):
     # 화톳불 실측: 약공 264000 후딜 ~2.7 s, 백스텝 공격 B 뒤 ~0.7 s 에 264500 시작, 구르기 공격 264900. 3009 는 0.22 s 라 막는다
     ZWEI = False
     HEAVY_FIRST = False
+    LIGHT_ONLY = True                   # 강공(양손 브로드소드 = 뛰어드는 공격) 대신 약공 — --heavy·--brute·--zwei 면 끈다
     BRUTE = False                       # 가드 안 함 + 강공 + 적을 가리지 않고 에스트 (강인도 세팅)
     REACT_ZWEI = {3000: "bs", 3001: "bs", 3002: "bs", 3003: "bs", 3004: "bs", 3005: "bs", 3006: "bs", 3007: "bs",
                   3010: "bs", 3009: "guard", 3500: "roll"}
@@ -2032,7 +2128,7 @@ class Hunter(vp.Probe):
         return {"done": True, "enemy_dmg": ehp0 - e_min, "enemy_dead": e_min <= 0, "hit_after": hp0 - my_min, "e_anims": e_anims}
 
     COMBO_SP = 125          # 강공 120 + 약공이 나갈 여유 (0 보다 크면 나간다)
-    SHIELD_NPC = (255000, 255002)   # 방패 든 병사 — 가만히 설 때 방패를 들고 있다
+    SHIELD_NPC = (255000, 255002, 255010)   # 방패 든 병사 (255010 = 경사로 2번) — 가만히 설 때 방패를 들고 있다
     KICK_REACH = 1.5
     HEAVY_MAX = 2.3         # 츠바이헨더 강공은 이 거리 안에서만 (2.3 m 넘으면 4/14 명중)
 
@@ -2148,6 +2244,23 @@ class Hunter(vp.Probe):
         """약공(R1)/강공(R2) 한 번. 약공 0.9 s·강공 1.3 s(watch 로 바꿈) 동안 적 HP·내 HP·적 애니를 본다.
         **스틱 + R1 을 같이 넣으면 발차기다** (control.kick 실측) — '약공 0 피해' 가 전부 이것이었다(리포스트만 우선이라 들어감).
         그래서 약공은 락온이면 스틱 없이, 아니면 스틱으로 먼저 돌려 놓고 놓은 뒤에 R1."""
+        if kind == "heavy" and self.LIGHT_ONLY:
+            # 사용자(2026-09-24): "왜 점프 공격 하지. 그냥 약공." — 양손 브로드소드 강공은 2.9 m 뛰어드는 공격.
+            # 멀면(1.6 m 넘게) 스틱으로 한 걸음씩 붙고, 스틱을 놓은 뒤 R1 (스틱 + R1 = 발차기)
+            kind = "light"
+            for _ in range(4):
+                if c.dist <= 1.6 or s.cam_yaw is None or (nm is not None and not nav.ground_ahead(nm, s.player, c.x - s.player.x, c.z - s.player.z, reach=0.8)):
+                    break
+                self.pad.guard(False)
+                self.pad.move(*control.world_to_stick(c.x - s.player.x, c.z - s.player.z, s.cam_yaw, nav.YAW_OFFSET, nav.FLIP_X))
+                time.sleep(0.15)
+                self.pad.move(0.0, 0.0)
+                time.sleep(self.STICK_RELEASE_S)
+                s2 = self.tm.snapshot(within=10.0)
+                c2 = next((x for x in s2.chars if x.ptr == ptr), None) if s2 else None
+                if c2 is None or c2.hp <= 0:
+                    return {"enemy_dmg": 0, "enemy_dead": c2 is not None, "hit_after": 0, "e_anims": [], "skipped": "붙는 중 사라짐"}
+                s, c = s2, c2
         p = s.player
         st = control.world_to_stick(c.x - p.x, c.z - p.z, s.cam_yaw, nav.YAW_OFFSET, nav.FLIP_X) if s.cam_yaw is not None else (0.0, 0.0)
         hp0, ehp0 = p.hp, c.hp
@@ -2168,9 +2281,16 @@ class Hunter(vp.Probe):
                 time.sleep(self.STICK_RELEASE_S)      # 스틱 놓음이 먹기 전에 R1 이면 발차기
             self._press(control.B.XUSB_GAMEPAD_RIGHT_SHOULDER)
         t1 = time.time()
+        # 사용자(2026-09-24): "평범하게 약공이 좋아. 대신 약공 2대" — 첫 약공 도중(입력 버퍼) R1 한 번 더, 스태미나가 있을 때만
+        second_at = 0.45 if (kind == "light" and self.LIGHT_ONLY and p.sp >= 40) else None
+        guard_after = 0.25 if second_at is None else second_at + 0.25
         my_min, e_min, e_anims, my_anims = hp0, ehp0, [], [(0.0, p.anim)]
-        while time.time() - t1 < (watch or (1.3 if kind == "heavy" else 0.9)):
-            if time.time() - t1 > 0.25:
+        while time.time() - t1 < (watch or (1.3 if kind == "heavy" else (0.9 if second_at is None else 1.5))):
+            if second_at is not None and time.time() - t1 >= second_at:
+                second_at = None
+                if e_min > 0:
+                    self._press(control.B.XUSB_GAMEPAD_RIGHT_SHOULDER)
+            if time.time() - t1 > guard_after:
                 self.pad.guard(True)   # 휘두른 뒤 바로 방패 — 누르고 있으면 회복 끝나자마자 올라간다 (강공 뒤 1.3 s 무방비로 3009·3004 에 맞았다)
             self.pad.release_due()
             s2 = self.tm.snapshot(within=10.0)
@@ -2187,11 +2307,12 @@ class Hunter(vp.Probe):
                     break
             time.sleep(0.01)
         self.pad.neutral()
-        return {"enemy_dmg": ehp0 - e_min, "enemy_dead": e_min <= 0, "hit_after": hp0 - my_min, "e_anims": e_anims, "my_anims": my_anims}
+        return {"enemy_dmg": ehp0 - e_min, "enemy_dead": e_min <= 0, "hit_after": hp0 - my_min, "e_anims": e_anims, "my_anims": my_anims,
+                "kind": kind}
 
-    def _press(self, button, hold: float = 0.06) -> None:
+    def _press(self, button, hold: float = 0.06, stick_ok: bool = False) -> None:
         """누르고 **뗀다** — tap 만 하고 release_due 를 안 부르면 눌린 채 남아 다음 누름이 게임에 안 간다 (farm.rest 에서 겪음)."""
-        self.pad.tap(button, hold)
+        self.pad.tap(button, hold, stick_ok=stick_ok)
         time.sleep(hold + 0.03)
         self.pad.release_due()
 
@@ -2292,7 +2413,7 @@ class Hunter(vp.Probe):
         acted_for, idle_near_since, counters = None, None, []
         last_hp, dmg_log, close_since, last_seen = None, [], None, None
         orig_ptr, switched_at = ptr, 0.0
-        estus_left, last_sip_t = self.tm.goods_count(ITEM_ESTUS) or 0, 0.0
+        estus_left, last_sip_t = self.tm.goods_count(estus_item(self.tm)) or 0, 0.0
         if self.BRUTE and not getattr(self, "_guard_off", False):
             # 사용자: "방어도 하지 마 — 공격력으로 찍어누르고 에스트 마시면서". 이 싸움 동안 가드(LB)는 누르지 않는다
             self._guard_real, self._guard_off = self.pad.guard, True
@@ -2423,7 +2544,7 @@ class Hunter(vp.Probe):
             if p.hp < p.max_hp * 0.5 and estus_left and time.time() - last_sip_t > 3.0:
                 last_sip_t = time.time()
                 r_ = self.sip_estus(s, nm)
-                estus_left = self.tm.goods_count(ITEM_ESTUS) or 0
+                estus_left = self.tm.goods_count(estus_item(self.tm)) or 0
                 if r_ is not None:
                     print(f"      싸우는 중 에스트: {r_}", flush=True)
                     self._ev("estus_mid", **r_)
@@ -2569,7 +2690,7 @@ class Hunter(vp.Probe):
                         r = {"vs": a, "age": round(age, 2), "act": "heavy_first" if kind == "heavy" else "light_first", "d": round(c.dist, 2), **r}
                         counters.append(r)
                         self._ev("act", **r)
-                        print(f"      {a} {c.dist:.1f} m → {'강공' if kind == 'heavy' else '약공'}: 적 피해 {r.get('enemy_dmg')}, 내 피해 {r.get('hit_after')}, 적 애니 {r.get('e_anims')}", flush=True)
+                        print(f"      {a} {c.dist:.1f} m → {'강공' if r.get('kind', kind) == 'heavy' else '약공'}: 적 피해 {r.get('enemy_dmg')}, 내 피해 {r.get('hit_after')}, 적 애니 {r.get('e_anims')}", flush=True)
                         if kind == "heavy" and not r.get("enemy_dead") and not r.get("skipped"):
                             r2 = self.combo_light(ptr, sp_before)
                             if r2 is not None:
@@ -2753,6 +2874,23 @@ class Hunter(vp.Probe):
                             why = "처치"
                             break
                         continue
+                    if time.time() - getattr(self, "_climb_t", 0.0) > 6.0:
+                        # 높은 턱·계단 위에 서서 안 내려오는 놈(4번 화염병 +4.9 m, 6번 +5.6 m, 5번 +1.2 m) — 기다리면 30 s 시간 초과였다.
+                        # 파이어밤이 없으니 근접으로 간다 (사용자): rush 처럼 내비메시 경로 전체를 달려 3 m 안까지
+                        self._climb_t = time.time()
+                        print(f"      2 s 진전 없음 (거리 {c.dist:.1f} m, 높이차 {c.y - p.y:+.1f}) — 경로 따라 올라간다", flush=True)
+                        rp = nm.find_path((p.x, p.y, p.z), (c.x, c.y, c.z)) or []
+                        for q_ in rp[1:]:
+                            sc_ = self.tm.snapshot(within=40.0)
+                            cc_ = next((x for x in sc_.chars if x.ptr == ptr), None) if sc_ else None
+                            if cc_ is None or cc_.hp <= 0 or cc_.dist < 3.0:
+                                break
+                            if nav.goto(self.tm, self.pad, q_, tolerance=1.0, timeout=8, log=lambda *a: None, terrain=nm,
+                                        on_tick=lambda sn, _d=None: self.note(sn), mode_fn=lambda _s: "sprint") == "dead":
+                                break
+                        self.pad.neutral()
+                        prog_pos, prog_t = None, time.time()
+                        continue
                     print(f"      2 s 진전 없음 (거리 {c.dist:.1f} m, 높이차 {c.y - p.y:+.1f}) — 밀지 않고 기다린다", flush=True)
                     mode, wait_since = "wait", time.time()
                     continue
@@ -2811,6 +2949,26 @@ class Hunter(vp.Probe):
                 continue
             st_ = control.world_to_stick(c.x - p.x, c.z - p.z, s.cam_yaw, nav.YAW_OFFSET, nav.FLIP_X)
             hp_before = c.hp
+            if self.LIGHT_ONLY:
+                # 브로드소드: 양손 강공은 뛰어드는 모션, 짧은 대신 약공 연타가 유리 (사용자: "평범하게 약공, 대신 2대") — 무기별 모션이 다르다
+                if (c.npc_param in self.SHIELD_NPC and (c.anim or -1) == -1 and c.dist <= self.KICK_REACH and p.sp >= 40
+                        and time.time() - getattr(self, "_kick_t", 0.0) > 2.5):
+                    # 방패 들고 선 병사(255010)에게 약공 6번이 12씩만 — 사용자: "병사가 막고 있으면 발로 차". 차고 곧장 약공 2대
+                    self._kick_t = time.time()
+                    r = self.kick_break(c, s, ptr, nm)
+                    print(f"      방패 병사 → 발차기: 적 애니 {r.get('e_anims')}, 이어서 {r.get('follow')} 피해 {r.get('enemy_dmg')}", flush=True)
+                else:
+                    r = self.strike("light", c, s, ptr, nm=nm)
+                swings += 1
+                hits.append(r.get("enemy_dmg", 0))
+                print(f"      약공 2대 → 피해 {r.get('enemy_dmg')}, 내 피해 {r.get('hit_after')}, 그놈 애니 {r.get('e_anims')}", flush=True)
+                if r.get("enemy_dead"):
+                    why = "처치"
+                    break
+                if swings >= 6:
+                    why = "6번 쳐도 안 죽음"
+                    break
+                continue
             self.pad.heavy(stick=st_)
             swings += 1
             t1 = time.time()
@@ -2848,7 +3006,7 @@ class Hunter(vp.Probe):
         self._ev("melee_end", target=ti, result=res["result"], my_hp_lost=res["my_hp_lost"])
         if getattr(self, "_guard_off", False):
             self.pad.guard, self._guard_off = self._guard_real, False
-        print(f"   #{ti} {e['npc']} 근접: {res['result']} — 강공 {swings}번, 피해 {hits}, 내가 잃은 HP {res['my_hp_lost']}", flush=True)
+        print(f"   #{ti} {e['npc']} 근접: {res["result"]} — {"약공" if self.LIGHT_ONLY else "강공"} {swings}번, 피해 {hits}, 내가 잃은 HP {res['my_hp_lost']}", flush=True)
         if why != "처치":
             if locked:
                 self.pad.lock_on()
@@ -3010,8 +3168,12 @@ def main() -> None:
     h.quit_at_merchant = "--quit-at-merchant" in sys.argv
     h.use_darksign = "--darksign" in sys.argv
     h.to_burg_bonfire = "--burg-bonfire" in sys.argv   # 상인에 닿으면 성벽 마을 화톳불까지 걸어가 스크린샷 찍고 멈춘다   # 상인에 닿으면 종료→재접속 한 번 하고 거기서 멈춘다   # 낙사·둘러싸임이면 메뉴로 나갔다 온다 (EscapeWatch)
+    h.light_burg_bonfire = "--light-burg" in sys.argv   # 화톳불에 불 붙이고 앉아 귀환 지점으로 (사용자: 해골 대신 상인 쪽 화톳불 찍기)
+    h.to_burg_bonfire = h.to_burg_bonfire or h.light_burg_bonfire
+    h.NO_FIGHT = "--no-fight" in sys.argv   # 경사로 목표·길 위 적과 싸우지 않고 달린다 (좁은 다리만 걷기)
     h.HEAVY_FIRST = "--heavy" in sys.argv or "--brute" in sys.argv   # 강공 위주 (사용자: 상대 공격을 무시하고 강공)
     h.BRUTE = "--brute" in sys.argv
+    h.LIGHT_ONLY = not (h.HEAVY_FIRST or "--zwei" in sys.argv)
     if "--zwei" in sys.argv:                    # 츠바이헨더 양손 — 백스텝 공격 위주, 사거리가 길다
         h.ZWEI = True
         h.REACH = {"light": 2.6, "heavy": 2.6}
@@ -3095,8 +3257,8 @@ def main() -> None:
     if h.to_merchant:
         ok = sum(1 for r in h.results if r == "도착")
         print(f"\n── 세트 결과: 상인 도착 {ok}/{len(h.results)} — {h.results}", flush=True)
-    if h.stop_all:
-        return                                   # 그 자리에 그대로 (다크사인·휴식 안 함)
+    if h.stop_all or "--stay" in sys.argv:
+        return                                   # 그 자리에 그대로 (다크사인·휴식 안 함) — 쉬면 잡은 적이 다 살아난다
     h.go_home()
     h.run.rest()
 

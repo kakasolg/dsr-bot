@@ -128,8 +128,15 @@ class Pad:
         with self._lock:
             self._frozen_by = None
 
+    # 스틱을 놓은 걸 게임이 알아채는 데 60fps ~0.16 s (30fps 0.33 s, 사용자 실측). 그 전에 R1 이면 발차기, R2 면 점프 공격
+    # (조작표: 앞 + R1 = 발차기, 앞 + R2 = 점프 공격). 공격 버튼은 이 층에서 늘 스틱을 놓고 기다린 뒤 누른다 —
+    # 부르는 쪽이 15군데라 거기서 지키게 했더니 빠진 곳에서 발차기·점프 공격이 나갔다 (2026-09-24)
+    STICK_RELEASE_S = 0.16
+
     def __init__(self):
         self._due: dict = {}      # 버튼 → 뗄 시각 (tap 이 자지 않도록)
+        self._stick_on = False    # 왼스틱이 지금 중립이 아닌가
+        self._stick_off_t = 0.0   # 왼스틱을 마지막으로 놓은 시각
         # 반사 스레드(reflex.py)와 판단 루프가 같이 누른다 — 보고서(report)를 동시에 고치지 않게 잠근다
         self._lock = threading.RLock()
         self.force_guard = False  # 반사 스레드가 켜면 판단 루프가 가드를 내려도 무시한다 (적 공격 중)
@@ -152,8 +159,23 @@ class Pad:
             self.pad.update()
         time.sleep(2.5)
 
+    def _note_stick(self, x: float, y: float) -> None:
+        on = abs(x) > 1e-3 or abs(y) > 1e-3
+        if self._stick_on and not on:
+            self._stick_off_t = time.time()
+        self._stick_on = on
+
+    def release_stick(self) -> None:
+        """공격 버튼 전에: 스틱을 놓고 게임이 알아챌 때까지(STICK_RELEASE_S) 기다린다. 이미 놓은 지 오래면 바로 돌아온다."""
+        if self._stick_on:
+            self.move(0.0, 0.0)
+        left = self.STICK_RELEASE_S - (time.time() - self._stick_off_t)
+        if left > 0:
+            time.sleep(left)
+
     def neutral(self) -> None:
         with self._lock:
+            self._note_stick(0.0, 0.0)
             self.pad.reset()
             if self.force_guard:
                 self.pad.press_button(B.XUSB_GAMEPAD_LEFT_SHOULDER)
@@ -165,6 +187,7 @@ class Pad:
         if m > 1.0:
             x, y = x / m, y / m
         with self._lock:
+            self._note_stick(x, y)
             self.pad.left_joystick_float(x_value_float=x, y_value_float=y)
             self.pad.update()
 
@@ -174,12 +197,15 @@ class Pad:
             self.pad.right_joystick_float(x_value_float=x, y_value_float=y)
             self.pad.update()
 
-    def tap(self, button, hold: float = 0.08) -> None:
+    def tap(self, button, hold: float = 0.08, stick_ok: bool = False) -> None:
         """버튼을 누르고 **뗄 시각만 예약**한다 — 자지 않는다.
 
         예전엔 누른 뒤 time.sleep(hold) 했다. 그 동안 감지 루프가 통째로 멈춰서, 공격 한 번에 한 틱을
         버렸다 (틱 65 ms, 공격 hold 60 ms — 사용자 지적: "순차적으로 하는 것 같다"). 뗄 시각은
-        release_due() 가 매 틱 처리한다."""
+        release_due() 가 매 틱 처리한다.
+        R1 은 스틱을 놓고 누른다 (release_stick). stick_ok=True 는 스틱과 같이 누르는 게 목적일 때만 (낙하 공격 등)."""
+        if button == B.XUSB_GAMEPAD_RIGHT_SHOULDER and not stick_ok:
+            self.release_stick()
         with self._lock:
             self.pad.press_button(button)
             self.pad.update()
@@ -232,17 +258,30 @@ class Pad:
 
     def heavy(self, hold: float = 0.12, stick: tuple[float, float] | None = None) -> None:
         """R2 강공 — 오른쪽 트리거라 tap(버튼 예약)을 못 쓴다. hold 동안 눌렀다 뗀다 (그동안 잔다).
-        stick 을 주면 같은 입력에 왼스틱도 — 공격 시작 순간의 스틱 방향으로 몸이 틀어진다 (락온 없이 겨누기, kick 과 같은 방식)."""
+        stick 을 주면 그쪽으로 **먼저 몸을 돌리고 스틱을 놓은 뒤** R2 — 예전엔 같은 입력에 넣었는데, 앞 + R2 는
+        점프 공격이다 (조작표; 사용자: "브로드소드 점프 공격 모션이 안 좋아"). 점프 공격이 목적이면 jump_attack."""
+        if stick is not None:
+            self.move(stick[0] * 0.4, stick[1] * 0.4)
+            time.sleep(0.08)
+        self.release_stick()
+        self._r2(hold)
+
+    def jump_attack(self, stick: tuple[float, float], hold: float = 0.12) -> None:
+        """앞 + R2 = 점프 공격 (뛰어들며 내려친다). 일부러 쓸 때만."""
         with self._lock:
-            if stick is not None:
-                self.pad.left_joystick_float(x_value_float=stick[0], y_value_float=stick[1])
+            self._note_stick(*stick)
+            self.pad.left_joystick_float(x_value_float=stick[0], y_value_float=stick[1])
+            self.pad.update()
+        self._r2(hold)
+        self.move(0.0, 0.0)
+
+    def _r2(self, hold: float) -> None:
+        with self._lock:
             self.pad.right_trigger_float(value_float=1.0)
             self.pad.update()
         time.sleep(hold)
         with self._lock:
             self.pad.right_trigger_float(value_float=0.0)
-            if stick is not None:
-                self.pad.left_joystick_float(x_value_float=0.0, y_value_float=0.0)
             self.pad.update()
 
     def kick(self, sx: float, sy: float) -> None:
@@ -253,6 +292,7 @@ class Pad:
         팔을 벌린 자세 확인). 같은 프레임·스틱 30 ms 먼저·중립에서 튕기기 세 방식 모두 333100.
         쓰임새(사용자): 방패 든 적의 가드를 깨서 틈을 만들거나, 그 틈에 빠져나갈 때."""
         with self._lock:
+            self._note_stick(sx, sy)
             self.pad.left_joystick_float(x_value_float=sx, y_value_float=sy)
             self.pad.press_button(B.XUSB_GAMEPAD_RIGHT_SHOULDER)
             self.pad.update()
