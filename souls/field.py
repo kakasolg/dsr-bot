@@ -36,6 +36,8 @@ def awake(c) -> bool:
 SEEK_R = 100.0           # 그놈을 찾는 반경 (duel.SEEK_R 과 같게)
 LURE_R = 13.0            # 나이프를 던지는 거리 — 옛 실측 14 m 에서 락온 던지기 맞음. 더 멀면 다른 놈 시야도 안 건드린다
 LURE_TRIES = 3
+LURE_ABORT_R = 10.0              # 던지는 중 이 안에 깨어 움직이는 다른 놈이 있으면 중단
+LURE_MIN, LURE_MAX = 6.0, 16.0   # 평지에서 던지는 조건 — 이보다 가까우면 걸어가는 것만으로 깨고, 멀면 락온이 안 걸린다
 KNIFE_LOW = 5            # 이 아래면 경고 — 상인에게 사러 가는 건 나중 과제 (사용자 2026-09-24)
 
 
@@ -184,25 +186,59 @@ class Field:
             self.log(f"   ⚠ 투척 나이프 {knives} 개 — 상인에게 사야 한다")
         here = (s.player.x, s.player.y, s.player.z)
         goal = (c.x, c.y, c.z)
-        if arena is not None and math.dist(tuple(arena), goal) <= LURE_R + 3.0:
+        d_arena = math.dist(tuple(arena), goal) if arena is not None else None
+        if d_arena is not None and LURE_MIN <= d_arena <= LURE_MAX:
             spot = tuple(arena)
         else:
+            # 평지가 너무 가깝거나(1번: 5 m — 걸어가면 그냥 깬다) 멀면 경로 위에서 LURE_R 안에 드는 첫 점
             path = nm.find_path(here, goal)
             if not path:
                 return "no_path"
-            spot = next((tuple(q) for q in path if math.dist(tuple(q), goal) <= LURE_R), tuple(path[-1]))
+            spot = next((tuple(q) for q in path if math.dist(tuple(q), goal) <= LURE_R), None)
+            if spot is None:
+                return "no_spot"
         if math.dist(here, spot) > 1.5:
             r = self.walk_to(spot, nm, f"{tag} 던질 자리로")
             if r == "dead":
                 return "dead"
             if r != "arrived":
                 self.log(f"   {tag}: 던질 자리까지 {r} — 지금 자리에서 던진다")
+        c = self.mv.find(self.mv.snap(SEEK_R), ptr)
+        if c is None:
+            return "dead"
+        if c.dist > LURE_MAX:
+            # 락온 범위 밖 — 6번(22 m, 위 턱)에 나이프 3 개를 허공에 던졌다 (2026-09-24)
+            self.log(f"   {tag}: 던질 자리에서 {c.dist:.1f} m — 너무 멀어 안 던진다")
+            return "too_far"
+        locked_once = False
         for n in range(1, LURE_TRIES + 1):
-            if self.mv.find(self.mv.snap(SEEK_R), ptr) is None:
+            s = self.mv.snap(SEEK_R)
+            if self.mv.find(s, ptr) is None:
                 return "dead"
+            # 던지는 동안 다른 깨어 있는 놈이 다가오면 그만둔다 — 던지기 루프엔 방어가 없어 742 → 154 (2026-09-24 1번)
+            near = [x for x in s.hostile(LURE_ABORT_R) if x.ptr != ptr and awake(x) and x.anim not in (-1, None)]
+            if near:
+                self.log(f"   {tag}: 다른 놈 {len(near)} 접근 ({near[0].dist:.1f} m) — 끌어오기 중단, 그놈부터")
+                return "interrupted"
             if not self._asleep(ptr):
                 return "lured" if n > 1 else "awake"
+            if n > 1 and not locked_once:
+                # 락온이 안 걸렸다 = 가려졌거나 멀다 (사용자: "벽이 가리는데 던져서 안 맞음") — 허공에 던지지 말고 길 따라 4 m 더
+                c = self.mv.find(self.mv.snap(SEEK_R), ptr)
+                if c is None:
+                    return "dead"
+                path = nm.find_path((s.player.x, s.player.y, s.player.z), (c.x, c.y, c.z)) if (s := self.mv.snap(5.0)) else None
+                want = max(LURE_MIN, c.dist - 4.0)
+                nxt = next((tuple(q) for q in (path or []) if math.dist(tuple(q), (c.x, c.y, c.z)) <= want), None)
+                if nxt is None:
+                    return "no_spot"
+                self.log(f"   {tag}: 락온 안 걸림 — {want:.0f} m 까지 다가감")
+                if self.walk_to(nxt, nm, f"{tag} 더 가까이") == "dead":
+                    return "dead"
+                if not self._asleep(ptr):
+                    return "lured"
             r = self.mv.throw_knife(ptr)
+            locked_once = locked_once or bool(r.get("locked"))
             s2 = self.mv.snap(25.0)
             others = [x for x in (s2.hostile(25.0) if s2 else []) if x.ptr != ptr and awake(x) and x.anim not in (-1, None)]
             self.log(f"   {tag}: 나이프 {n} ({r.get('dist')} m, 락온 {r.get('locked')}, 조준 {r.get('aim_off')}°) → "
@@ -247,6 +283,14 @@ class Field:
                     if lr == "dead":
                         killed = True
                         break
+                    if lr == "interrupted":
+                        s_ = self.mv.snap(SEEK_R)
+                        near = [x for x in s_.hostile(LURE_ABORT_R) if x.ptr != c.ptr and awake(x) and x.anim not in (-1, None)] if s_ else []
+                        if near:
+                            r0 = self.fight(near[0].ptr, nm, f"#{i} 끼어든 {near[0].npc_param}", arena=arena)
+                            if r0.result == "me_dead":
+                                return "died"
+                            c = self.find_at(e["npc"], e["pos"], 30.0) or c
                 r = self.fight(c.ptr, nm, f"#{i} {e['npc']}" + (f" ({k + 1}번째)" if k else ""), arena=arena, desperate=desperate)
                 if r.result == "killed":
                     killed = True
