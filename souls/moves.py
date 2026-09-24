@@ -225,20 +225,65 @@ class Moves:
         if abs(math.degrees(patrol.rel_angle(p, c))) > 40:
             hit.skipped = "몸이 딴 데"
             return hit
+        return self.combo("backstep_r1", s, c, nm=None)   # 바닥은 위에서 검사했다
+
+    # ── 조합 = 시퀀스 (사용자 2026-09-24: "공격 조합을 하나의 시퀀스로 — 구르기 약공, 점프 강공, 백스텝 약공 이런 식으로") ──
+    # 한 줄 = (시각 s, 동작). 동작: "stick_fwd" 그놈 쪽 스틱 | "stick_off" 스틱 놓기 | "B" | "R1" | "R2"(트리거)
+    # 한 번의 _watch 로 결과를 본다. 새 조합은 여기 한 줄로 추가하고 위 층은 이름만 부른다.
+    COMBOS = {
+        "backstep_r1": ((0.0, "stick_off"), (0.0, "B"), (BS_TO_R1, "R1")),                 # 백스텝 약공 — 앞으로 1.7~2.8 m 파고든다
+        "roll_r1":     ((0.0, "stick_fwd"), (0.3, "B"), (0.3 + 0.55, "R1")),               # 구르기 약공 — 구르기 끝에 R1 (입력 버퍼)
+        "jump_r2":     ((0.0, "stick_fwd"), (0.1, "R2"), (0.25, "stick_off")),             # 점프 강공 — 앞+R2 (조작표)
+    }
+    COMBO_WATCH = {"backstep_r1": BS_TO_R1 + 1.1, "roll_r1": 2.0, "jump_r2": 1.8}
+
+    def combo(self, name: str, s, c, nm=None, need_back: float = 0.0, need_front: float = 3.0) -> Hit:
+        """조합 하나를 한 동작으로. 바닥 검사: 뒤 need_back m·앞 need_front m (구르기·점프는 앞으로 나간다)."""
+        hit = Hit(name, presses=0)
+        p = s.player
+        if p.heading is None or s.cam_yaw is None:
+            hit.skipped = "heading 없음"
+            return hit
+        if nm is not None:
+            back = (math.sin(p.heading), math.cos(p.heading))
+            if need_back and not nav.ground_ahead(nm, p, back[0], back[1], reach=need_back):
+                hit.skipped = "뒤에 바닥 없음"
+                return hit
+            if need_front and not nav.ground_ahead(nm, p, c.x - p.x, c.z - p.z, reach=need_front):
+                hit.skipped = "앞에 바닥 없음"
+                return hit
+        if abs(math.degrees(patrol.rel_angle(p, c))) > 40:
+            hit.skipped = "몸이 딴 데"
+            return hit
+        steps = list(self.COMBOS[name])
         hp0, ehp0 = p.hp, c.hp
-        self.pad.release_stick()
         self.pad.guard(False)
-        self.pad.tap(B.XUSB_GAMEPAD_B, 0.06)
-        hit.presses = 1
-        state = {"r1": False}
+        fwd = self.stick_to(s, c.x, c.z)
+        state = {"i": 0}
+
+        def do(act):
+            if act == "stick_fwd":
+                self.pad.move(*fwd)
+            elif act == "stick_off":
+                self.pad.move(0.0, 0.0)
+                self.pad.release_stick()
+            elif act == "B":
+                self.pad.tap(B.XUSB_GAMEPAD_B, 0.06, stick_ok=True)
+                hit.presses += 1
+            elif act == "R1":
+                self.pad.tap(B.XUSB_GAMEPAD_RIGHT_SHOULDER, 0.06, stick_ok=True)
+                hit.presses += 1
+            elif act == "R2":
+                self.pad._r2(0.12)
+                hit.presses += 1
 
         def tick(t, h):
-            if not state["r1"] and t >= BS_TO_R1:
-                state["r1"] = True
-                self.pad.tap(B.XUSB_GAMEPAD_RIGHT_SHOULDER, 0.06, stick_ok=True)   # 스틱은 이미 놓았다
-                h.presses = 2
-        self._watch(hit, c.ptr, hp0, ehp0, BS_TO_R1 + 1.1, tick,
-                    early_exit=lambda t, h: state["r1"] and t > BS_TO_R1 + 0.4)
+            while state["i"] < len(steps) and t >= steps[state["i"]][0]:
+                do(steps[state["i"]][1])
+                state["i"] += 1
+        self._watch(hit, c.ptr, hp0, ehp0, self.COMBO_WATCH[name], tick,
+                    early_exit=lambda t, h: state["i"] >= len(steps) and t > steps[-1][0] + 0.4)
+        self.pad.move(0.0, 0.0)
         return hit
 
     def roll_toward(self, s, x: float, z: float) -> None:
