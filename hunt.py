@@ -24,9 +24,12 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
 import control
+import env
 import merchantrun as mr
 import nav
+import navmesh
 import patrol
+import quitout
 import tactic_llm
 import vision_probe as vp
 
@@ -41,6 +44,152 @@ JUDGE_MODEL = "gemini-3.8-flash"
 # 경사로 아래 평지. 처음 쓴 (-31.0, -49.7, 26.0) 은 150~270° 쪽 2 m 에 바닥이 없는 낭떠러지 끝이었다 (1.25 m) —
 # 거기서 두 번 추락사(애니 1500, 931 한 번에). 반경 3 m 16방향 바닥이 다 있고 가장 가까운 낙차까지 4.0 m 인 자리로 옮김.
 ARENA = (-30.0, -49.25, 29.0)
+
+
+class EscapeWatch:
+    """긴급 탈출 — 메뉴 → Quit Game → 이어하기. 사용자: "적이 몰려 있거나, 낙사할 때도 시도해 봐".
+
+    escape_test.py 실측 (2026-09-23, 안 죽음 플래그만 켜고):
+      · 낙사: 다리 가장자리(사용자가 강공으로 떨어져 죽은 자리)에서 떨어짐(1550) 감지 → 종료 2.48 s. 게임은 y -61.06 에서 멈춰
+        저장했고(사용자는 y -61~-63 에서 HP 0), 다시 들어오니 **떨어지기 전 가장자리**(y -33.74)에 HP 그대로. 여유가 1~2 m 라
+        메뉴 전 준비 대기(0.3 s)를 뺀다.
+      · 둘러싸임(셋, HP 717): 종료 2.47 s 동안 129 더 맞음 → 다시 들어오니 적은 스폰 자리에서 대기(-1), 경계 풀림.
+    판단 루프와 따로 50 Hz 로 보고, 쏠 때는 패드를 얼려(control.Pad.freeze) 판단 루프의 입력이 메뉴 입력에 섞이지 않게 한다."""
+    LETHAL_DROP = 15.0        # 떨어지는 중 발밑 바닥이 이만큼 아래면 (다리 가장자리 27 m, 작은 다리·상자 계단 5 m 이하)
+    FALL_ANIMS = (1550, 121500)
+
+    MAX_PER_RUN = 2
+
+    def __init__(self, h: "Hunter"):
+        self.h = h
+        self.stop_ = False
+        self.last = 0.0
+        self.fired = 0
+        self.th = threading.Thread(target=self._run, daemon=True)
+        self.nms = list(h.run.nm.values())
+
+    def floor_drop(self, p) -> float:
+        below = [y for nm in self.nms for y, f, _i in nm.tris_at(p.x, p.z) if not (f & navmesh.BLOCKED) and y <= p.y + 0.3]
+        return p.y - max(below) if below else 99.0
+
+    def _run(self) -> None:
+        tm = env.make_telemetry({})
+        while not self.stop_:
+            try:
+                s = tm.snapshot(within=5.0)
+            except Exception:
+                s = None
+            if (s is None or s.player.hp is None or s.player.hp <= 0 or time.time() - self.last < 30.0
+                    or self.fired >= self.MAX_PER_RUN):
+                time.sleep(0.05)
+                continue
+            p, why = s.player, None
+            if self.h.allow_fall:
+                time.sleep(0.05)
+                continue
+            if p.anim in self.FALL_ANIMS:
+                drop = self.floor_drop(p)
+                if drop > self.LETHAL_DROP:
+                    why = f"낙사 (발밑 바닥 {drop:.0f} m 아래)"
+            else:
+                near = [c for c in s.hostile(3.5) if c.hp > 0]
+                if len(near) >= 3 or (len(near) >= 2 and p.hp < p.max_hp * 0.4):
+                    why = f"둘러싸임 {len(near)}명, HP {p.hp}/{p.max_hp}"
+            if why:
+                self.fire(tm, why, p)
+            time.sleep(0.02)
+
+    def fire(self, tm, why: str, p) -> None:
+        h = self.h
+        self.last = time.time()
+        pos0 = (round(p.x, 2), round(p.y, 2), round(p.z, 2))
+        print(f"   ⚠ 긴급 탈출: {why} @ {pos0}", flush=True)
+        # 첫 실전(둘러싸임): 로딩 동안 목표가 목록에서 빠지자 싸움 루프가 '처치' 로 판정했다 → 나가는 순간부터 알린다
+        h.escaping = True
+        h.pad.freeze()
+        res: dict = {"why": why, "pos0": list(pos0)}
+        try:
+            q = quitout.quit_out(tm, h.pad, gap=quitout.MENU_GAP, settle=0.1, ready_wait=0.05)
+            res["quit_s"] = None if q is None else round(q, 2)
+            if q is None:
+                quitout.close_menu(tm, h.pad)
+            else:
+                r = quitout.reload(h.pad)
+                res["reload_s"] = None if r is None else round(r, 1)
+                time.sleep(1.0)
+        finally:
+            h.pad.neutral()
+            h.pad.unfreeze()
+        s = tm.snapshot(within=5.0)
+        if s:
+            res["pos"] = [round(s.player.x, 2), round(s.player.y, 2), round(s.player.z, 2)]
+            res["hp"] = s.player.hp
+        h.escape_gen += 1
+        h.escaping = False
+        self.fired += 1
+        self.last = time.time()
+        print(f"   ⚠ 탈출 결과: {res}", flush=True)
+        h._ev("escape", **res)
+
+    def start(self) -> "EscapeWatch":
+        self.th.start()
+        return self
+
+    def stop(self) -> None:
+        self.stop_ = True
+        self.th.join(timeout=2.0)
+
+
+BLOODSTAIN = ROOT / "data" / "bloodstain.json"
+
+
+class BloodWatch:
+    """죽은 자리(핏자국) 기록 — 사용자: "다크사인·죽음은 인간성을 0 으로 만든다. 그래서 죽은 자리 가서 회수해야 해".
+    땅을 딛고 서 있던 마지막 자리와 그때의 소울·인간성을 들고 있다가, HP 가 0 이 되면 data/bloodstain.json 에 남긴다.
+    떨어져 죽으면 핏자국은 떨어지기 직전 가장자리에 생긴다 → 낙하 모션 동안은 자리를 갱신하지 않는다.
+    판 밖(걸어서 복귀·낙사 복귀)에서도 죽을 수 있어 main 에서 한 번 켜 끝까지 돈다."""
+    NO_GROUND = (1500, 1550, 121500, 1600, 6074, 6174)
+
+    def __init__(self):
+        self.stop_ = False
+        self.th = threading.Thread(target=self._run, daemon=True)
+
+    def _run(self) -> None:
+        tm = env.make_telemetry({})
+        last, dead_logged, last_attach = None, False, time.time()
+        while not self.stop_:
+            try:
+                s = tm.snapshot(within=1.0)
+            except Exception:
+                s = None
+            if s is None:
+                if time.time() - last_attach > 3.0:          # 로딩(죽음·재접속) 뒤 포인터가 바뀐다
+                    last_attach = time.time()
+                    try:
+                        tm = env.make_telemetry({})
+                    except Exception:
+                        pass
+                time.sleep(0.2)
+                continue
+            p = s.player
+            if p.hp > 0:
+                dead_logged = False
+                if p.anim not in self.NO_GROUND:
+                    last = {"pos": [round(p.x, 2), round(p.y, 2), round(p.z, 2)], "souls": tm.souls() or 0,
+                            "humanity": tm.humanity() or 0}
+            elif not dead_logged and last is not None:
+                dead_logged = True
+                rec = {**last, "t": time.strftime("%Y-%m-%d %H:%M:%S")}
+                if rec["souls"] > 0 or rec["humanity"] > 0:
+                    BLOODSTAIN.write_text(json.dumps(rec, ensure_ascii=False), encoding="utf-8")
+                    print(f"   ✝ 죽음 — 핏자국 {rec['pos']} (소울 {rec['souls']}, 인간성 {rec['humanity']}) → 다음에 회수", flush=True)
+                else:
+                    BLOODSTAIN.unlink(missing_ok=True)       # 잃은 게 없으면 이전 핏자국도 사라진다
+            time.sleep(0.2)
+
+    def start(self) -> "BloodWatch":
+        self.th.start()
+        return self
 
 
 class Trace:
@@ -106,6 +255,10 @@ class Trace:
 class Hunter(vp.Probe):
     phase = ""
     trace = None
+    escape_gen = 0            # EscapeWatch 가 나갔다 올 때마다 +1 — 판단 루프는 바뀌면 하던 싸움을 접는다 (적 포인터가 다 바뀐다)
+    escaping = False          # 나갔다 오는 중(~10 s) — 판단 루프는 아무것도 판단하지 말고 기다린다
+    allow_fall = False        # 일부러 떨어지는 중(fall_home) — 긴급 탈출이 낙사를 막지 않게
+    use_escape = True
 
     def _ev(self, kind: str, **kw) -> None:
         if self.trace is not None:
@@ -484,7 +637,7 @@ class Hunter(vp.Probe):
         pt = self.cam_pitch()
         if pt is None or abs(pt) > 15:
             self.reset_camera()                    # 카메라가 많이 숙거나 들렸을 때만
-        res, n = None, 0
+        res, n, far_locks = None, 0, 0
         idx = {v: k_ for k_, v in self.ptr_of.items()}
         for attempt in range(6):
             sc = self.tm.snapshot(within=10.0)
@@ -513,6 +666,13 @@ class Hunter(vp.Probe):
                 other = next((x for x in (so.hostile(20.0) if so else []) if x.hp > 0 and self.tm.handle(x.ptr) == h), None)
                 # 10 m 안·높이차 2.5 m 안인 놈만 (아래층 2번에게 걸려 던진 폭탄은 6 피해로 낭비)
                 if other is not None and (other.dist > 10.0 or abs(other.y - so.player.y) > 2.5):
+                    far_locks += 1
+                    if far_locks >= 2:
+                        # 4번 자리에선 락온이 늘 12.8 m 의 6번에게 간다 — 풀고 다시를 되풀이하며 10 s 서 있었다(세 판 연속).
+                        # 그 뒤 근접으로 가면 매번 피해 0 으로 잡았다 → 두 번째면 바로 근접으로
+                        print(f"   #{ti}: 락온이 또 멀리 있는 #{idx.get(other.ptr, '?')} 에게 — 폭탄 접고 근접", flush=True)
+                        self._r3(0.1)
+                        return False
                     print(f"   #{ti}: 락온이 멀리 있는 #{idx.get(other.ptr, '?')} ({other.dist:.1f} m) 에게 — 풀고 다시", flush=True)
                     self._r3(0.1)
                     self.align(ptr)
@@ -539,16 +699,23 @@ class Hunter(vp.Probe):
             self._r3(0.1)
         return res is not None and res["result"] == "처치"
 
-    def walk_fight(self, path: list, nm, tag: str, fight_r: float = 4.5, mode: str = "walk", recorded: int = 0) -> str:
+    def walk_fight(self, path: list, nm, tag: str, fight_r: float = 4.5, mode: str = "walk", recorded: int = 0,
+                   tight: dict | None = None) -> str:
         """경로를 걷다가 적이 fight_r m 안에 붙으면 멈춰서 그놈부터 (근접 — 지금 스타일). 잡으면 같은 경로점부터 다시.
         → 'arrived' | 'dead' | 'hp' | 'stuck'"""
         tols = nav.path_tolerances(path, 1.0)
         # 앞의 recorded 개 점은 사람 녹화 점 — 0.4 m 로 좁히면 계단 끝에서 0.6~0.7 m 넘게 못 다가가 '막힘' 이었다 → 0.8 m
         for j in range(min(recorded, len(tols))):
             tols[j] = 0.8
+        if tight:
+            # 난간 없는 좁은 다리 — 0.8 m 로 모서리를 자르면 떨어진다 (녹화: 다리 머리에서 남→동으로 꺾는다)
+            for j, q in enumerate(path):
+                if math.dist((q[0], q[2]), (tight["center"][0], tight["center"][2])) < tight["r"]:
+                    tols[j] = 0.45
         i, fights, fails = 0, 0, 0
         first_seen: dict = {}
         ignore: set = set()
+        esc_gen, esc_until = self.escape_gen, 0.0
 
         def awake(c) -> bool:
             # 깨서 움직이는 놈만 — 계단 위 2.4 m 위의 120100(HP 80)은 어느 기록에서도 애니 -1·제자리라 30 s 싸움을 계속 되풀이했다
@@ -558,8 +725,22 @@ class Hunter(vp.Probe):
             return (c.anim or -1) != -1 or math.dist(p0, (c.x, c.y, c.z)) > 1.0
 
         def fightable(c, pl) -> bool:
-            return c.hp > 0 and c.dist < fight_r and abs(c.y - pl.y) < 1.5 and not patrol.dormant(c) and awake(c)
+            if not (c.hp > 0 and c.dist < fight_r and abs(c.y - pl.y) < 1.5):
+                return False
+            # 긴급 탈출 뒤 30 s 는 가만히 선 놈(스폰으로 돌아가 경계가 풀린 놈)도 잡는다 — 그냥 지나가면 다시 쫓아온다
+            return time.time() < esc_until or (not patrol.dormant(c) and awake(c))
         while i < len(path):
+            while self.escaping:
+                time.sleep(0.1)
+            if self.bloodstain() and self.recover_bloodstain(nm) == "miss":
+                self._blood_miss = getattr(self, "_blood_miss", 0) + 1
+                if self._blood_miss >= 3:                    # 세 번 밟아도 안 들어오면 이미 회수한 것 — 기록만 지운다
+                    BLOODSTAIN.unlink(missing_ok=True)
+                    self._blood_miss = 0
+            if self.escape_gen != esc_gen:
+                esc_gen, esc_until = self.escape_gen, time.time() + 30.0
+                first_seen.clear()
+                ignore.clear()
             q, tol = path[i], tols[i]
 
             def enemy_close(sn):
@@ -608,62 +789,328 @@ class Hunter(vp.Probe):
         self.pad.neutral()
         return "arrived"
 
+    def roll_once(self, to) -> tuple | None:
+        """to 쪽으로 스틱 + B 톡(구르기) 한 번 — 상자·통 같은 부서지는 것을 깬다. → 구른 뒤 위치"""
+        s = self.tm.snapshot(within=1.0)
+        if s is None or s.cam_yaw is None:
+            return None
+        sx, sy = control.world_to_stick(to[0] - s.player.x, to[2] - s.player.z, s.cam_yaw, nav.YAW_OFFSET, nav.FLIP_X)
+        self.pad.move(sx, sy)
+        time.sleep(0.3)                                     # 몸을 돌릴 틈
+        self.pad.dodge()
+        t = time.time()
+        while time.time() - t < 1.2:
+            self.pad.release_due()
+            time.sleep(0.02)
+        self.pad.move(0.0, 0.0)
+        time.sleep(0.2)
+        s = self.tm.snapshot(within=1.0)
+        pos = None if s is None else (round(s.player.x, 2), round(s.player.y, 2), round(s.player.z, 2))
+        self._ev("roll_once", to=[round(v, 2) for v in to], pos=pos)
+        return pos
+
+    def roll_through(self, frm, to, tries: int = 3) -> bool:
+        """상자 더미를 굴러서 깨며 지나간다 — 사용자: "박스가 가리고 있어서, 굴러서 깨면서 들어가는게 좋아".
+        frm 에 서서 to 쪽으로 스틱 + B 톡(구르기). 계단으로 0.5 m 넘게 내려가거나 to 에 1.5 m 안이면 성공."""
+        def past(sn) -> bool:
+            return sn.player.y < frm[1] - 0.5 or math.dist((sn.player.x, sn.player.z), (to[0], to[2])) < 1.5
+        for k in range(tries):
+            s = self.tm.snapshot(within=1.0)
+            if s is None or s.cam_yaw is None:
+                return False
+            if past(s):
+                return True
+            # 경로 끝(0.8 m 허용)에서 바로 구르면 시작점이 어긋나 위층을 따라 서쪽으로 굴렀다 (두 판 모두 첫 구르기 y 그대로) —
+            # 사용자가 구른 자리에 0.3 m 안으로 서고 나서 구른다
+            nav.goto(self.tm, self.pad, tuple(frm), tolerance=0.3, timeout=5, log=lambda *a: None)
+            self.pad.neutral()
+            time.sleep(0.15)
+            s = self.tm.snapshot(within=1.0)
+            if s is None or s.cam_yaw is None:
+                return False
+            sx, sy = control.world_to_stick(to[0] - s.player.x, to[2] - s.player.z, s.cam_yaw, nav.YAW_OFFSET, nav.FLIP_X)
+            self.pad.move(sx, sy)
+            time.sleep(0.3)                                 # 몸을 돌릴 틈
+            self.pad.dodge()
+            t0 = time.time()
+            while time.time() - t0 < 1.2:
+                self.pad.release_due()
+                time.sleep(0.02)
+            self.pad.move(0, 0)
+            time.sleep(0.2)
+            s = self.tm.snapshot(within=1.0)
+            print(f"   구르기 {k + 1}: {tuple(round(v, 2) for v in (s.player.x, s.player.y, s.player.z))}", flush=True)
+            self._ev("roll_through", k=k + 1, pos=[round(s.player.x, 2), round(s.player.y, 2), round(s.player.z, 2)])
+            if past(s):
+                return True
+        return False
+
     def go_merchant(self) -> str:
-        """경사로 무리를 치운 뒤 상인까지 — 사용자: "10판 끝나면 상인까지 가는 길도 해봐".
-        계단 꼭대기 → (녹화 경로 A67~A70: 다리 높이로) → 내비메시로 경계 → 성벽 마을(구간 B, 녹화 경로) → 상인.
-        내비메시의 꼭대기→경계 경로는 14 m 떨어졌다가 16 m 를 1.2 m 안에서 오르는 연결 오류가 있어 그 구간만 녹화 경로로."""
+        """경사로 무리를 치운 뒤 상인까지 — 사용자가 직접 걸은 길 (data/routes/passage-merchant.json, 2026-09-23 녹화).
+        계단 꼭대기 → 다리 높이(A67~A70) → 다리 아치 입구 → 안쪽 통로 → 경계 → 성벽 마을 → 작은 다리 → 테라스 →
+        상자 더미를 굴러 깨고 계단 아래 → 창고 방 아치 → 상인 앞."""
         na, nb = self.run.nm[mr.MAP_A], self.run.nm[mr.MAP_B]
+        R = json.loads((ROOT / "data" / "routes" / "passage-merchant.json").read_text(encoding="utf-8"))
         top = tuple(json.loads((ROOT / "data" / "climb-goal.json").read_text(encoding="utf-8"))["top"])
         t0 = time.time()
         A = [tuple(q) for q in mr.ROUTE["segments"][0]["points"]]
-        bridge = A[67:71]                                   # 다리 높이(y -33.8)로 올라서는 녹화 점 (다리 위는 내비메시가 비어 있다)
-        p2 = (na.find_path(bridge[-1], mr.BOUND_A) or [mr.BOUND_A])[1:]
-        clean = [bridge[-1]]
-        for q in p2:
-            # 다리 위(y -33.7)는 평평하다 — 1.5 m 넘게 튀는 점은 내비메시 연결 오류 (-25.2, -30.8, 7.2 로 가려다 다리 위에서 맴돌았다)
-            if abs(q[1] - bridge[-1][1]) > 1.5:
-                continue
-            clean.append(q)
-        route = [top] + bridge + clean[1:]                  # 꼭대기 → 다리 → 경계
-        n_rec = 1 + len(bridge)
+        route = [top] + A[67:71] + [tuple(q) for q in R["a"]]
         s = self.tm.snapshot(within=1.0)
         here = (s.player.x, s.player.y, s.player.z)
         k = min(range(len(route)), key=lambda j_: math.dist(route[j_], here))
         if math.dist(route[k], here) < 4.0:
-            # 이미 길 위(다리 위 등)면 거기서부터 — 다리 위에서 꼭대기로 돌아가려다 내비메시 빈 곳 때문에 '막힘'
-            start, rec = route[k:], max(0, n_rec - k)
+            start = route[k:]                               # 이미 길 위면 거기서부터
         else:
             self.phase = "상인: 꼭대기"
             p1 = nav.trim_path((na.find_path(here, top) or [top])[1:], top)
             r = self.walk_fight(p1, na, "상인 A-꼭대기")
             if r != "arrived":
                 return f"꼭대기까지 {r}"
-            start, rec = route, n_rec
-        self.phase = "상인: 다리→경계"
-        r = self.walk_fight(start, na, "상인 A-다리", recorded=rec)
+            start = route
+        self.phase = "상인: 통로"
+        r = self.walk_fight(start, na, "상인 A-통로", recorded=len(start))
         if r != "arrived":
-            return f"경계까지 {r}"
+            return self._merchant_end(f"통로 {r}", t0, R)
         print(f"   경계 도착 {time.time() - t0:.0f} s", flush=True)
-        self.phase = "상인: 성벽 마을"
-        time.sleep(1.0)
         self.run.cur_nm = nb
-        # 성벽 마을은 사람 녹화 경로를 따른다 (사용자: "위로 올라가 성 안으로 들어가는 비밀 통로") — 내비메시 경로(156 m)와
-        # 녹화(119 m)가 다르다. 녹화가 끊긴 곳(B5→B6 1 s 에 14.6 m, 마지막 12 m)만 내비메시로 채운다
-        B = [tuple(q) for q in mr.ROUTE["segments"][1]["points"]] + [tuple(mr.MERCHANT)]
-        pb = [B[0]]
-        for q in B[1:]:
-            if math.dist((pb[-1][0], pb[-1][2]), (q[0], q[2])) > 6.0:
-                fill = nb.find_path(pb[-1], q)
-                if fill and len(fill) > 2:
-                    pb.extend(fill[1:-1])
-                    print(f"   구간 B: 끊긴 곳 {tuple(round(v, 1) for v in pb[-1])} → {tuple(round(v, 1) for v in q)} 를 내비메시 {len(fill) - 2} 점으로", flush=True)
-            pb.append(q)
-        r = self.walk_fight(pb, nb, "상인 B", recorded=len(pb))
+        self.phase = "상인: 성벽 마을"
+        pb = [tuple(q) for q in R["b"]]
+        r = self.walk_fight(pb, nb, "상인 B", recorded=len(pb), tight=R["small_bridge"])
+        if r != "arrived":
+            return self._merchant_end(f"성벽 마을 {r}", t0, R)
+        print(f"   상자 앞 {time.time() - t0:.0f} s", flush=True)
+        self.phase = "상인: 상자 구르기"
+        if not self.roll_through(R["roll"]["from"], R["roll"]["to"]):
+            return self._merchant_end("상자 못 지나감", t0, R)
+        self.phase = "상인: 창고 방"
+        pc = [tuple(q) for q in R["c"]]
+        rest = pc
+        for extra in range(3):
+            r = self.walk_fight(rest, nb, "상인 C", recorded=len(rest))
+            if r != "stuck" or extra == 2:
+                break
+            # 굴러서 계단에 들어섰는데 바로 앞 점(1.3 m)을 못 갔다 — 남은 상자가 계단을 막고 있었다 (2026-09-23 스크린샷:
+            # 깬 조각 사이로 좁은 틈, 양옆에 안 깬 상자). 다음 점 쪽으로 한 번 더 굴러 깨고 거기서부터 다시
+            s = self.tm.snapshot(within=1.0)
+            k = min(range(len(pc)), key=lambda j: math.dist(pc[j], (s.player.x, s.player.y, s.player.z)))
+            nxt = pc[min(k + 1, len(pc) - 1)]
+            print(f"   창고 방 가다 막힘 — {tuple(round(v, 1) for v in nxt)} 쪽으로 한 번 더 구른다", flush=True)
+            self.roll_once(nxt)
+            rest = pc[k:]
+        return self._merchant_end("도착" if r == "arrived" else f"창고 방 {r}", t0, R)
+
+    def go_back(self) -> str:
+        """상인(또는 그 길 어디든) → 화톳불을 걸어서. 사용자: "이제 다크사인 쓰지 마", "돌아갈 땐 천천히".
+        올 때 녹화 경로(passage-merchant.json)를 거꾸로: C(창고 방) → 상자 계단 위로 → B(성벽 마을·작은 다리) →
+        A(통로·다리) → 계단 꼭대기 → climb_to(화톳불 자리) (내려오기 10/10 검증). → 'home' | 실패 이유"""
+        na, nb = self.run.nm[mr.MAP_A], self.run.nm[mr.MAP_B]
+        R = json.loads((ROOT / "data" / "routes" / "passage-merchant.json").read_text(encoding="utf-8"))
+        top = tuple(json.loads((ROOT / "data" / "climb-goal.json").read_text(encoding="utf-8"))["top"])
+        A = [tuple(q) for q in mr.ROUTE["segments"][0]["points"]]
+        # 앞으로 가는 순서의 (점, 구간) — 뒤집어서 걷는다
+        # 꼭대기 ↔ 다리는 사용자 녹화(top_bridge, 0.4 m 간격) — A67~A70(1 s 간격)을 거꾸로 걸으니 옆으로 흘러 막혔다
+        fwd = ([(q, "a") for q in [top] + [tuple(q) for q in R["top_bridge"]] + [tuple(q) for q in R["a"]]]
+               + [(tuple(q), "b") for q in R["b"]]
+               + [(tuple(R["roll"]["to"]), "c")] + [(tuple(q), "c") for q in R["c"]] + [(tuple(R["stand"]), "c")])
         s = self.tm.snapshot(within=5.0)
-        d = None if not s else math.dist((s.player.x, s.player.y, s.player.z), tuple(mr.MERCHANT))
+        if s is None or s.player.hp <= 0:
+            return "dead"
+        here = (s.player.x, s.player.y, s.player.z)
+        if math.dist(here, tuple(mr.BONFIRE["stand"])) < 15.0:
+            return "home"
+        k = min(range(len(fwd)), key=lambda j: math.dist(fwd[j][0], here))
+        if math.dist(fwd[k][0], here) > 8.0:
+            return f"길에서 {math.dist(fwd[k][0], here):.0f} m 벗어남"
+        t0 = time.time()
+        self.run.cur_nm = nb
+        back = list(reversed(fwd[:k + 1]))
+        c_part = [q for q, seg in back if seg == "c"]
+        b_part = [q for q, seg in back if seg == "b"]
+        a_part = [q for q, seg in back if seg == "a"]
+        if c_part:
+            self.phase = "복귀: 창고 방"
+            r = self.walk_fight(c_part, nb, "복귀 C", recorded=len(c_part))
+            if r not in ("arrived", "stuck"):
+                return f"창고 방 {r}"
+            # 상자 계단 위로 — 다시 생긴 상자가 막으면 굴러서 깬다
+            frm = tuple(R["roll"]["from"])
+            for i in range(4):
+                r = nav.goto(self.tm, self.pad, frm, tolerance=0.8, timeout=6, log=lambda *a: None, mode_fn=lambda _s: "walk")
+                if r == "arrived":
+                    break
+                print(f"   복귀: 상자 계단 위로 못 감({r}) — 굴러서 깬다 {i + 1}", flush=True)
+                self.roll_once(frm)
+            else:
+                return "상자 계단 못 올라감"
+        if b_part:
+            self.phase = "복귀: 성벽 마을"
+            r = self.walk_fight(b_part, nb, "복귀 B", recorded=len(b_part), tight=R["small_bridge"])
+            if r != "arrived":
+                return f"성벽 마을 {r}"
         self.run.cur_nm = na
-        res = "도착" if (r == "arrived" and d is not None and d < 3.0) else f"구간 B {r} (상인까지 {d if d is None else round(d, 1)} m)"
-        print(f"   상인: {res} — {time.time() - t0:.0f} s, HP {s.player.hp if s else '?'}", flush=True)
+        if a_part:
+            self.phase = "복귀: 통로"
+            r = self.walk_fight(a_part, na, "복귀 A", recorded=len(a_part), tight=R["top_bridge_tight"])
+            if r != "arrived":
+                print(f"   복귀: 통로 {r} — 다리 가장자리에서 떨어져 화톳불로", flush=True)
+                return "home" if self.fall_home(R) else f"통로 {r}, 낙사 복귀도 실패"
+        self.phase = "복귀: 계단 아래로"
+        # 세트 1 첫 판: 계단 꼭대기에서 살아 있던 두 놈(갈 때 '처치'로 센 놈이 실은 떨어져 목록에서 빠졌던 듯)이 막고 때려
+        # 싸우지 않는 climb_to 가 세 번 '막힘' — 내려갈 때도 싸우면서 걷는다 (경로는 같은 내비메시, 가파른 입구는 좁게)
+        s = self.tm.snapshot(within=5.0)
+        home = tuple(mr.BONFIRE["stand"])
+        path = nav.trim_path((na.find_path((s.player.x, s.player.y, s.player.z), home) or [home])[1:], home)
+        r = self.walk_fight(path, na, "복귀 계단")
+        if r not in ("arrived", "dead"):
+            s = self.tm.snapshot(within=5.0)
+            left = None if s is None else math.dist((s.player.x, s.player.y, s.player.z), home)
+            if left is not None and left > 15.0:
+                print(f"   복귀: 계단 {r} — 다리 가장자리에서 떨어져 화톳불로", flush=True)
+                if self.fall_home(R):
+                    return "home"
+        s = self.tm.snapshot(within=5.0)
+        left = None if s is None else math.dist((s.player.x, s.player.y, s.player.z), tuple(mr.BONFIRE["stand"]))
+        res = "home" if (left is not None and left < 15.0) else f"계단 {r} ({left if left is None else round(left)} m)"
+        print(f"   복귀: {res} — {time.time() - t0:.0f} s, HP {s.player.hp if s else '?'}", flush=True)
+        self._ev("go_back", result=res, secs=round(time.time() - t0))
+        return res
+
+    def fall_home(self, R: dict) -> bool:
+        """다리 가장자리에서 떨어져 죽어 화톳불로 — 사용자: "다크사인 없어도 낙사하면 돌아가잖아", "이 게임은 할 수 있는 건 다 써".
+        소울은 핏자국으로 떨어진다(못 줍는 골짜기). 긴급 탈출(EscapeWatch)이 이 낙하를 막지 않게 allow_fall 을 켠다."""
+        edge, d = tuple(R["fall_edge"]["pos"]), R["fall_edge"]["dir"]
+        na = self.run.nm[mr.MAP_A]
+        s = self.tm.snapshot(within=5.0)
+        if s is None or math.dist((s.player.x, s.player.y, s.player.z), edge) > 15.0:
+            return False
+        nav.goto(self.tm, self.pad, edge, tolerance=0.35, timeout=10, log=lambda *a: None, mode_fn=lambda _s: "walk")
+        self.pad.neutral()
+        time.sleep(0.5)
+        self.allow_fall = True
+        try:
+            t0 = time.time()
+            while time.time() - t0 < 6.0:
+                s = self.tm.snapshot(within=1.0)
+                if s is None or s.player.hp <= 0 or s.player.y < edge[1] - 3.0:
+                    break
+                if s.cam_yaw is not None:
+                    st = control.world_to_stick(d[0], d[1], s.cam_yaw, nav.YAW_OFFSET, nav.FLIP_X)
+                    self.pad.move(0.6 * st[0], 0.6 * st[1])
+                time.sleep(0.02)
+            self.pad.neutral()
+            t1 = time.time()
+            while time.time() - t1 < 45.0:            # 죽음 → 화톳불에서 깨어나기
+                try:
+                    s = self.tm.snapshot(within=1.0)
+                except Exception:
+                    s = None
+                if s and s.player.hp > 0 and math.dist((s.player.x, s.player.y, s.player.z), tuple(mr.BONFIRE["stand"])) < 15.0:
+                    time.sleep(1.5)
+                    print(f"   낙사 복귀: 화톳불 — {time.time() - t0:.0f} s", flush=True)
+                    self._ev("fall_home", ok=True, secs=round(time.time() - t0))
+                    return True
+                time.sleep(0.3)
+        finally:
+            self.allow_fall = False
+            self.pad.neutral()
+        self._ev("fall_home", ok=False)
+        return False
+
+    BURG_BONFIRE = (3.2, -10.0, -61.2)        # 성벽 마을 화톳불(o0200_0002) — 상인에서 동쪽 42 m, 10 m 위
+    BURG_BONFIRE_SIDE = (1.7, -10.02, -61.2)  # 그 옆 바닥 (상인 앞에서 내비메시 경로 72.6 m)
+
+    def go_burg_bonfire(self) -> str:
+        """상인 앞 → 성벽 마을 화톳불 옆 — 사용자: "상인까지 가는 길 근처 화톳불로 가 봐".
+        거기서 쉬면 죽었을 때 돌아가는 화톳불이 바뀌므로 A 는 누르지 않고 스크린샷만."""
+        nb = self.run.nm[mr.MAP_B]
+        self.run.cur_nm = nb
+        s = self.tm.snapshot(within=5.0)
+        path = nav.trim_path((nb.find_path((s.player.x, s.player.y, s.player.z), self.BURG_BONFIRE_SIDE) or [])[1:],
+                             self.BURG_BONFIRE_SIDE)
+        if not path:
+            print("   화톳불 가는 길 없음", flush=True)
+            return "no path"
+        self.phase = "성벽 마을 화톳불로"
+        t0 = time.time()
+        r = self.walk_fight(path + [self.BURG_BONFIRE_SIDE], nb, "화톳불")
+        s = self.tm.snapshot(within=5.0)
+        d = None if s is None else math.dist((s.player.x, s.player.y, s.player.z), self.BURG_BONFIRE_SIDE)
+        shot = None
+        if r == "arrived":
+            dx, dz = self.BURG_BONFIRE[0] - s.player.x, self.BURG_BONFIRE[2] - s.player.z
+            if s.cam_yaw is not None:                      # 화톳불 쪽을 보고 찍는다
+                st = control.world_to_stick(dx, dz, s.cam_yaw, nav.YAW_OFFSET, nav.FLIP_X)
+                self.pad.move(0.45 * st[0], 0.45 * st[1])
+                time.sleep(0.18)
+                self.pad.move(0.0, 0.0)
+                time.sleep(0.5)
+            im = self._shot()
+            if im is not None:
+                shot = f"burg_bonfire_{time.strftime('%H%M%S')}.jpg"
+                im.save(vp.IMG_DIR / shot, quality=88)
+        print(f"   성벽 마을 화톳불: {r} — {time.time() - t0:.0f} s, 남은 {d if d is None else round(d, 1)} m, HP {s.player.hp if s else '?'}, 스크린샷 {shot}", flush=True)
+        self._ev("burg_bonfire", result=r, left=None if d is None else round(d, 1), shot=shot)
+        return r
+
+    def bloodstain(self) -> dict | None:
+        try:
+            return json.loads(BLOODSTAIN.read_text(encoding="utf-8"))
+        except Exception:
+            return None
+
+    def recover_bloodstain(self, nm=None, near: float = 6.0, detour: float = 0.0) -> str | None:
+        """핏자국이 가까우면(near m, 같은 층) 밟고 A — 소울·인간성이 늘면 성공, 파일을 지운다.
+        detour > 0 이면 그만큼까지는 내비메시 경로로 일부러 찾아간다 (적을 다 잡은 뒤 경사로 쪽).
+        → None(없음·멂) | 'got' | 'miss'"""
+        b = self.bloodstain()
+        if not b:
+            return None
+        s = self.tm.snapshot(within=5.0)
+        if s is None or s.player.hp <= 0:
+            return None
+        here, pos = (s.player.x, s.player.y, s.player.z), tuple(b["pos"])
+        d = math.dist(here, pos)
+        if abs(here[1] - pos[1]) > 2.0 and d > 3.0 and not detour:
+            return None
+        if d > near:
+            if not detour or nm is None:
+                return None
+            path = nm.find_path(here, pos)
+            L = sum(math.dist(path[i], path[i + 1]) for i in range(len(path) - 1)) if path else 999.0
+            if not path or L > detour or abs(path[-1][1] - pos[1]) > 1.5:
+                return None
+            print(f"   핏자국으로 {L:.0f} m 돌아간다 (소울 {b['souls']}, 인간성 {b['humanity']})", flush=True)
+            r = self.walk_fight([tuple(q) for q in path[1:]] + [pos], nm, "핏자국")
+            if r != "arrived":
+                return "miss"
+        nav.goto(self.tm, self.pad, pos, tolerance=0.4, timeout=6, log=lambda *a: None, mode_fn=lambda _s: "walk")
+        self.pad.neutral()
+        s0, h0 = self.tm.souls() or 0, self.tm.humanity() or 0
+        got = False
+        for k in range(2):
+            time.sleep(0.4)
+            if (self.tm.souls() or 0) > s0 or (self.tm.humanity() or 0) > h0:
+                got = True                                   # 닿기만 해도 들어오는 경우
+                break
+            self._press(control.B.XUSB_GAMEPAD_A)
+            time.sleep(1.5)
+            if (self.tm.souls() or 0) > s0 or (self.tm.humanity() or 0) > h0:
+                got = True
+                break
+        s1, h1 = self.tm.souls() or 0, self.tm.humanity() or 0
+        print(f"   핏자국 회수 {'됨' if got else '안 됨'}: 소울 {s0}→{s1}, 인간성 {h0}→{h1}", flush=True)
+        self._ev("bloodstain", got=got, pos=list(pos), souls=[s0, s1], humanity=[h0, h1])
+        if got:
+            BLOODSTAIN.unlink(missing_ok=True)
+        return "got" if got else "miss"
+
+    def _merchant_end(self, res: str, t0: float, R: dict) -> str:
+        s = self.tm.snapshot(within=5.0)
+        d = None if not s else math.dist((s.player.x, s.player.y, s.player.z), tuple(R["stand"]))
+        if res == "도착" and (d is None or d > 2.0):
+            res = f"끝까지 걸었는데 상인 자리에서 {d if d is None else round(d, 1)} m"
+        self.run.cur_nm = self.run.nm[mr.MAP_A]
+        print(f"   상인: {res} — {time.time() - t0:.0f} s, HP {s.player.hp if s else '?'}, 남은 {d if d is None else round(d, 1)} m", flush=True)
         self._ev("merchant", result=res, secs=round(time.time() - t0), left=None if d is None else round(d, 1))
         return res
 
@@ -887,9 +1334,12 @@ class Hunter(vp.Probe):
     def hunt(self, k: int, targets: list[int], dist: float) -> None:
         self.phase = "휴식"
         self.trace = Trace(self, f"hunt_{time.strftime('%Y%m%d_%H%M%S')}_{k}").start()
+        esc = EscapeWatch(self).start() if self.use_escape else None
         try:
             self._hunt(k, targets, dist)
         finally:
+            if esc is not None:
+                esc.stop()
             self.phase = "끝"
             self.trace.event("end")
             self.trace.stop()
@@ -903,6 +1353,11 @@ class Hunter(vp.Probe):
         if not s or s.player.hp <= 0:
             return False
         far = math.dist((s.player.x, s.player.y, s.player.z), tuple(mr.BONFIRE["stand"]))
+        if not self.use_darksign:
+            # 사용자 (2026-09-23): "이제 다크사인 쓰지 마" — 소울·인간성을 다 잃는다. 가까우면 걸어서(휴식이 걸어 데려간다)
+            if far >= 15.0:
+                print(f"   다크사인 안 씀 — 화톳불에서 {far:.0f} m", flush=True)
+            return False
         if far < 15.0 or not self.tm.goods_count(117):
             return False
         if not hasattr(self.run, "gl"):
@@ -925,6 +1380,14 @@ class Hunter(vp.Probe):
         if not self.run.rest():
             self.pad.reconnect()          # 가상 패드를 게임이 놓칠 때가 있다 (휴식 실패 — 안내가 키보드 E 로 바뀜)
             control.focus_game()
+            if not self.run.rest():
+                # 세트 1 마지막 판: 복귀 때 따라 내려온 할로우가 화톳불 19 m 에 서 있어 'Rest' 가 안 떴다(적이 가까우면 못 쉰다).
+                # 메뉴로 나갔다 오면 적은 스폰으로 돌아간다 → 곧바로 쉬어졌다
+                print("   휴식 실패 — 근처 적 때문일 수 있어 종료→재접속 후 다시", flush=True)
+                q = quitout.quit_out(self.tm, self.pad, gap=quitout.MENU_GAP, settle=0.1)
+                if q is not None:
+                    quitout.reload(self.pad)
+                    time.sleep(1.5)
             if not self.run.rest():
                 print("   휴식 실패 — 중단", flush=True)
                 return
@@ -1098,9 +1561,14 @@ class Hunter(vp.Probe):
                 continue
             if plan == "knife":
                 self.phase = f"#{ti} 나이프"
-                if not self.knife_pull(ti, tptr, nm):
-                    return
-                if not self.melee(k, ti, e, tptr, nm, pull_to=None, wait_first=True):
+                pulled = self.knife_pull(ti, tptr, nm)
+                if not pulled:
+                    # 평지에서 던진 나이프 3개가 비탈에 박혀 판이 통째로 끝났다(2026-09-23) — 버리지 말고 걸어가서 근접
+                    s_ = self.tm.snapshot(within=1.0)
+                    if s_ is None or s_.player.hp <= 0:
+                        return
+                    print(f"   #{ti}: 나이프로 못 불렀다 — 걸어가서 근접", flush=True)
+                if not self.melee(k, ti, e, tptr, nm, pull_to=None, wait_first=pulled):
                     return
                 self.heal_if_needed()
                 continue
@@ -1165,8 +1633,29 @@ class Hunter(vp.Probe):
             if self.observe_s > 0:
                 self.observe(k, ti)
         print("   목표 전부 처치", flush=True)
+        if self.bloodstain():
+            self.recover_bloodstain(self.run.nm[mr.MAP_A], detour=60.0)
         if self.to_merchant:
-            self.go_merchant()
+            res = self.go_merchant()
+            self.results.append(res)
+            if res == "도착" and self.to_burg_bonfire:
+                self.go_burg_bonfire()
+                self.stop_all = True
+                return
+            if res == "도착" and self.quit_at_merchant:
+                # 사용자: "상인 앞에 가면 한 번 quit game 하고 재접속하고 멈춰 봐"
+                self.pad.neutral()
+                s0 = self.tm.snapshot(within=5.0)
+                q = quitout.quit_out(self.tm, self.pad, gap=quitout.MENU_GAP, settle=0.1)
+                r = quitout.reload(self.pad) if q is not None else None
+                time.sleep(1.0)
+                s1 = self.tm.snapshot(within=5.0)
+                moved = None if not (s0 and s1) else round(math.dist((s0.player.x, s0.player.y, s0.player.z),
+                                                                     (s1.player.x, s1.player.y, s1.player.z)), 2)
+                print(f"   상인 앞 종료→재접속: 종료 {q if q is None else round(q, 2)} s, 재접속 {r if r is None else round(r, 1)} s, "
+                      f"위치 차 {moved} m, HP {s1.player.hp if s1 else '?'} — 여기서 멈춤", flush=True)
+                self._ev("merchant_quit", quit_s=q, reload_s=r, moved=moved)
+                self.stop_all = True
             return
         if self.lure_group:
             if not self.lure_fight(k, nm, self.lure_group):
@@ -1177,6 +1666,12 @@ class Hunter(vp.Probe):
     observe_s = 0.0
     plans: dict = {}
     then_run = False
+    quit_at_merchant = False
+    to_burg_bonfire = False
+    stop_all = False
+    use_darksign = False      # 사용자: "이제 다크사인 쓰지 마" — --darksign 으로만 켠다
+    results: list = []        # 판마다 go_merchant 결과 — 10판 세트 성공률 (사용자: "10번 트라이 세트를 90% 될 때까지")
+    WALK_HOME_MAX = 60.0      # 다크사인 없이 이보다 멀면 걸어 돌아가지 않고 그 자리에서 멈춘다 (상인 앞 136 m — 되짚는 길은 검증 안 됨)
     to_merchant = False
     lure_group: list = []
 
@@ -1536,6 +2031,87 @@ class Hunter(vp.Probe):
             time.sleep(0.01)
         return {"done": True, "enemy_dmg": ehp0 - e_min, "enemy_dead": e_min <= 0, "hit_after": hp0 - my_min, "e_anims": e_anims}
 
+    COMBO_SP = 125          # 강공 120 + 약공이 나갈 여유 (0 보다 크면 나간다)
+    SHIELD_NPC = (255000, 255002)   # 방패 든 병사 — 가만히 설 때 방패를 들고 있다
+    KICK_REACH = 1.5
+    HEAVY_MAX = 2.3         # 츠바이헨더 강공은 이 거리 안에서만 (2.3 m 넘으면 4/14 명중)
+
+    def kick_break(self, c, s, ptr, nm) -> dict:
+        """발차기로 방패 가드를 깨고 곧장 강공(1.7 m 안이면 약공). 발차기 = 몸 정면 스틱 + R1 같은 입력 (control.kick)."""
+        p = s.player
+        self.pad.guard(False)
+        fx, fz = c.x - p.x, c.z - p.z
+        st = control.world_to_stick(fx, fz, s.cam_yaw, nav.YAW_OFFSET, nav.FLIP_X) if s.cam_yaw is not None else (0.0, 1.0)
+        self.pad.kick(*st)
+        t0 = time.time()
+        e_anims, broke = [], False
+        while time.time() - t0 < 1.0:
+            if time.time() - t0 > 0.1:
+                self.pad.move(0.0, 0.0)
+            self.pad.release_due()
+            s2 = self.tm.snapshot(within=10.0)
+            c2 = next((x for x in s2.chars if x.ptr == ptr), None) if s2 else None
+            if c2 is not None and (not e_anims or e_anims[-1][1] != c2.anim):
+                e_anims.append((round(time.time() - t0, 2), c2.anim))
+                if c2.anim not in (-1, None):
+                    broke = True
+            time.sleep(0.01)
+        self.pad.neutral()
+        out = {"e_anims": e_anims, "broke": broke, "follow": None, "enemy_dmg": 0, "enemy_dead": False}
+        time.sleep(0.35)                                    # 발차기 후딜 (264100 1.7 s 중 나머지) — 서두르면 입력이 씹힌다
+        s3 = self.tm.snapshot(within=10.0)
+        c3 = next((x for x in s3.chars if x.ptr == ptr), None) if s3 else None
+        if c3 is None or c3.hp <= 0:
+            out["enemy_dead"] = True
+            return out
+        kind = "heavy" if c3.dist >= 1.7 else "light"
+        r = self.strike(kind, c3, s3, ptr, locked=False, nm=nm)
+        out.update({"follow": kind, "enemy_dmg": r.get("enemy_dmg", 0), "enemy_dead": r.get("enemy_dead", False),
+                    "hit_after": r.get("hit_after"), "follow_anims": r.get("e_anims")})
+        return out
+
+    def combo_light(self, ptr, sp0: int) -> dict | None:
+        """강공 → 약공 연속 — 사용자: "강공 그리고 약공을 연속으로. 보통 두 번째는 피하기 힘들다. 스태미나가 충분한 경우에만".
+        화톳불 실측(2026-09-23, 츠바이헨더 양손): 강공이 스태미나 120 을 쓴다(140 → 20). R1 은 강공 누른 뒤 0.9 s 까지는 씹히고
+        1.2~1.8 s 에 누르면 1.83 s 에 약공이 나간다. 약공은 70 을 더 써서 -50 까지 — 강공 뒤 0 보다 크면 나간다.
+        strike("heavy") 가 1.3 s 를 보고 돌아오니 곧바로 누르면 창 안이다. 스틱은 놓은 채 (스틱 + R1 = 발차기)."""
+        if sp0 < self.COMBO_SP:
+            return None
+        s = self.tm.snapshot(within=10.0)
+        c = next((x for x in s.chars if x.ptr == ptr), None) if s else None
+        if c is None or c.hp <= 0 or c.dist > 3.0:
+            return None
+        if c.anim is not None and 9000 <= c.anim < 10000:
+            # 강공에 넘어졌다(9600·9910 → 9920 일어남) — 넘어진 놈은 안 맞는다. 이어 친 약공 4/4 가 0 이었고
+            # 그놈이 일어나 곧장 3000 을 휘두를 때 내 스태미나는 -50 이었다 (2026-09-23). 넘어졌으면 잇지 않는다
+            print(f"      이어서 약공 안 함 — 그놈이 넘어짐 ({c.anim})", flush=True)
+            return None
+        hp0, ehp0 = s.player.hp, c.hp
+        self.pad.move(0.0, 0.0)
+        self._press(control.B.XUSB_GAMEPAD_RIGHT_SHOULDER)
+        t1 = time.time()
+        my_min, e_min, e_anims, started = hp0, ehp0, [], None
+        while time.time() - t1 < 1.4:
+            self.pad.release_due()
+            s2 = self.tm.snapshot(within=10.0)
+            if s2:
+                my_min = min(my_min, s2.player.hp)
+                c2 = next((x for x in s2.chars if x.ptr == ptr), None)
+                e_min = 0 if c2 is None else min(e_min, c2.hp)
+                self._track(c2)
+                if c2 is not None and (not e_anims or e_anims[-1][1] != c2.anim):
+                    e_anims.append((round(time.time() - t1, 2), c2.anim))
+                if started is None and s2.player.anim in (264000, 264001, 264002):
+                    started = round(time.time() - t1, 2)
+                if e_min <= 0:
+                    break
+            time.sleep(0.01)
+        r = {"enemy_dmg": ehp0 - e_min, "enemy_dead": e_min <= 0, "hit_after": hp0 - my_min, "e_anims": e_anims,
+             "light_started": started, "sp0": sp0}
+        print(f"      이어서 약공 (SP {sp0}) → 나감 {started}, 적 피해 {r['enemy_dmg']}, 적 애니 {e_anims}", flush=True)
+        self._ev("act", act="combo_light", **r)
+        return r
+
     def follow_heavy(self, r: dict, ptr, nm, locked: bool) -> dict | None:
         """약공이 맞았는데 안 죽었으면(HP 85 인 2번 등) 곧장 강공 — 츠바이헨더 강공(세로 내려찍기)은 인간형 작은 놈을
         경직시키거나 넘어뜨린다 (사용자)."""
@@ -1746,7 +2322,31 @@ class Hunter(vp.Probe):
             mode, wait_since = "wait", time.time()
         if wait_first:                            # 나이프로 부른 놈 — 평지에서 기다린다 (걸어 나가면 좁은 띠에서 싸우게 된다)
             mode, wait_since = "wait", time.time()
+        gen0 = self.escape_gen
         while time.time() - t0 < 30.0:
+            if self.escaping:
+                t0 += 0.1                          # 나갔다 오는 동안은 싸움 시간에 안 친다
+                time.sleep(0.1)
+                continue
+            if self.escape_gen != gen0:
+                # 나갔다 왔다 — 적 포인터가 전부 바뀌고 적은 스폰으로 돌아가 경계가 풀렸다.
+                # 사용자: "다시 들어오면 원래 있던 적은 거기가 원위치이니 그것들은 없애야 할 거야" → 그 자리 근처의 그놈을 다시 잡는다
+                gen0 = self.escape_gen
+                sn = self.tm.snapshot(within=40.0)
+                spot = tuple(e["pos"])
+                cand = min((x for x in (sn.hostile(40.0) if sn else []) if x.hp > 0),
+                           key=lambda x: math.dist((x.x, x.y, x.z), spot), default=None)
+                if cand is None or math.dist((cand.x, cand.y, cand.z), spot) > 8.0:
+                    why = "긴급 탈출"
+                    break
+                print(f"      탈출 뒤 다시: {cand.npc_param} {cand.dist:.1f} m (애니 {cand.anim}) — 원위치로 돌아간 그놈부터", flush=True)
+                self._ev("after_escape", npc=cand.npc_param, d=round(cand.dist, 1), anim=cand.anim)
+                ptr = orig_ptr = cand.ptr
+                if ti in self.ptr_of:
+                    self.ptr_of[ti] = ptr
+                t0, mode, prog_pos, prog_t = time.time(), "approach", None, time.time()
+                last_hp, last_ehp, last_dmg_t, acted_for = None, None, time.time(), None
+                continue
             s = self.tm.snapshot(within=30.0)
             if not s:
                 time.sleep(0.05)
@@ -1889,9 +2489,20 @@ class Hunter(vp.Probe):
                 if same_level and c.dist <= 3.5:
                     a = c.anim if c.anim is not None else -1
                     age = time.time() - self._etrk["t"]
-                    if self.HEAVY_FIRST and c.dist <= 2.8 and not (9900 <= a < 10000):
+                    # 2.8~3.5 m 에 가만히 선 놈(상자 앞 방패 병사 둘)에겐 반격 표(공격 애니에만 반응)로 넘어가 10 s 를 서 있었다
+                    # (세트 1 두 판 연속, 그동안 화살). 강공 위주면 3.5 m 안은 다 이 가지에서 붙어서 친다
+                    if self.HEAVY_FIRST and c.dist <= (3.5 if self.BRUTE else 2.8) and not (9900 <= a < 10000):
                         # 사용자: "강공 위주로 — 상대 공격을 무시하고 공격". 특대검 강공은 휘두르는 중 안 끊기고(강인도),
                         # 세로 내려찍기로 인간형을 경직·넘어뜨린다. 몸이 그놈을 향하면(25°) 공격 중이든 아니든 강공
+                        if (c.dist > self.HEAVY_MAX and s.cam_yaw is not None
+                                and nav.ground_ahead(nm, p, c.x - p.x, c.z - p.z, reach=0.8)):
+                            # 상인 길 4판 집계: 2.3 m 안 강공 5/5 명중, 2.3 m 넘어서는 4/14 — 헛친 강공 뒤에 이은 약공도 10/10 헛쳤다.
+                            # 멀면 휘두르지 말고 한 걸음 더 붙는다
+                            st_ = control.world_to_stick(c.x - p.x, c.z - p.z, s.cam_yaw, nav.YAW_OFFSET, nav.FLIP_X)
+                            self.pad.move(*st_)
+                            time.sleep(0.12)
+                            self.pad.move(0.0, 0.0)
+                            continue
                         off_ = abs(math.degrees(patrol.rel_angle(p, c))) if p.heading is not None else 180.0
                         if p.sp < 40:
                             if not self.BRUTE:
@@ -1904,6 +2515,23 @@ class Hunter(vp.Probe):
                                 self.pad.guard(True)
                             self.aim(s, c)
                             time.sleep(0.01)
+                            continue
+                        if (c.npc_param in self.SHIELD_NPC and a == -1 and c.dist <= self.KICK_REACH and p.sp >= 40
+                                and c.heading is not None and abs(math.degrees(patrol.rel_angle(c, p))) < 60
+                                and time.time() - getattr(self, "_kick_t", 0.0) > 2.5):
+                            # 사용자: "병사가 막고 있으면 발로 차". 방패 병사는 가만히 설 때(-1) 방패를 들고 있어 약공이 5~14 만 들어갔다
+                            # (공격 중·넘어졌을 땐 75~85). 나를 보고 서 있으면 발차기(양손도 나감: 264100, 1.7 s)로 가드를 깨고 곧장 강공
+                            self._kick_t = time.time()
+                            r = self.kick_break(c, s, ptr, nm)
+                            r = {"vs": a, "act": "kick", "d": round(c.dist, 2), **r}
+                            counters.append(r)
+                            self._ev("act", **r)
+                            print(f"      방패 병사 {c.dist:.1f} m → 발차기: 적 애니 {r.get('e_anims')}, 이어서 {r.get('follow')} 피해 {r.get('enemy_dmg')}", flush=True)
+                            if r.get("enemy_dead"):
+                                if ptr != orig_ptr:
+                                    continue
+                                why = "처치"
+                                break
                             continue
                         # 강공은 2.9 m, 약공은 1.6 m 앞으로 나간다 — 계단 꼭대기에서 강공이 6번 너머로 나가 떨어져 죽었다 (바닥은 1.8 m 만 봤다).
                         # 앞 3.0 m(±20°)에 바닥이 있으면 강공, 1.8 m 면 약공(가로 베기), 둘 다 없으면 잠깐 기다린다
@@ -1936,11 +2564,18 @@ class Hunter(vp.Probe):
                             self.aim(s, c)
                             time.sleep(0.15)
                             continue
+                        sp_before = p.sp
                         r = self.strike(kind, c, s, ptr, locked=locked, nm=None)   # 바닥은 위에서 봤다
                         r = {"vs": a, "age": round(age, 2), "act": "heavy_first" if kind == "heavy" else "light_first", "d": round(c.dist, 2), **r}
                         counters.append(r)
                         self._ev("act", **r)
                         print(f"      {a} {c.dist:.1f} m → {'강공' if kind == 'heavy' else '약공'}: 적 피해 {r.get('enemy_dmg')}, 내 피해 {r.get('hit_after')}, 적 애니 {r.get('e_anims')}", flush=True)
+                        if kind == "heavy" and not r.get("enemy_dead") and not r.get("skipped"):
+                            r2 = self.combo_light(ptr, sp_before)
+                            if r2 is not None:
+                                counters.append({"vs": a, "act": "combo_light", **r2})
+                                if r2.get("enemy_dead"):
+                                    r["enemy_dead"] = True
                         if r.get("enemy_dead"):
                             if ptr != orig_ptr:
                                 continue
@@ -2102,6 +2737,22 @@ class Hunter(vp.Probe):
                 if prog_pos is None or math.dist((p.x, p.z), prog_pos) > 0.5:
                     prog_pos, prog_t = (p.x, p.z), time.time()
                 elif time.time() - prog_t > 2.0:
+                    if self.BRUTE and c.dist < 9.0 and self.bombs_left() and acted_for != ("noprog", round(prog_t)):
+                        # 화염병 할로우(254012)가 4.5 m 앞 난간 너머에 서서 4 s 마다 78 — 기다리는 동안 두 번 맞았다(2026-09-23).
+                        # 못 다가가면 기다리지 말고 그 자리에서 폭탄 (할로우 HP 75 라 맞으면 한 방)
+                        acted_for = ("noprog", round(prog_t))
+                        r = self.close_bomb(ptr)
+                        r = {"vs": c.anim, "act": "bomb_noprog", "d": round(c.dist, 2), **r}
+                        counters.append(r)
+                        self._ev("act", **r)
+                        print(f"      2 s 진전 없음 ({c.dist:.1f} m, 높이차 {c.y - p.y:+.1f}) → 폭탄: {r}", flush=True)
+                        prog_pos, prog_t = None, time.time()
+                        if r.get("enemy_dead"):
+                            if ptr != orig_ptr:
+                                continue
+                            why = "처치"
+                            break
+                        continue
                     print(f"      2 s 진전 없음 (거리 {c.dist:.1f} m, 높이차 {c.y - p.y:+.1f}) — 밀지 않고 기다린다", flush=True)
                     mode, wait_since = "wait", time.time()
                     continue
@@ -2355,6 +3006,10 @@ def main() -> None:
     h.use_lock = "--lock" in sys.argv          # 기본은 락온 없이 (사용자: DS1 고수는 락온을 안 쓴다)
     h.then_run = "--run" in sys.argv           # 목표를 다 잡으면 BOUND_A 까지 달려서 지나간다
     h.to_merchant = "--merchant" in sys.argv   # 목표를 다 잡으면 상인까지 (다리 → 경계 → 성벽 마을)
+    h.use_escape = "--no-escape" not in sys.argv
+    h.quit_at_merchant = "--quit-at-merchant" in sys.argv
+    h.use_darksign = "--darksign" in sys.argv
+    h.to_burg_bonfire = "--burg-bonfire" in sys.argv   # 상인에 닿으면 성벽 마을 화톳불까지 걸어가 스크린샷 찍고 멈춘다   # 상인에 닿으면 종료→재접속 한 번 하고 거기서 멈춘다   # 낙사·둘러싸임이면 메뉴로 나갔다 온다 (EscapeWatch)
     h.HEAVY_FIRST = "--heavy" in sys.argv or "--brute" in sys.argv   # 강공 위주 (사용자: 상대 공격을 무시하고 강공)
     h.BRUTE = "--brute" in sys.argv
     if "--zwei" in sys.argv:                    # 츠바이헨더 양손 — 백스텝 공격 위주, 사거리가 길다
@@ -2363,6 +3018,11 @@ def main() -> None:
     if "--lure" in args:                        # 예: --lure 4,5,6 — 목표를 잡은 뒤 위 무리를 하나씩 평지로 꾀어 잡는다
         h.lure_group = [int(x) for x in args[args.index("--lure") + 1].split(",")]
         del args[args.index("--lure"):args.index("--lure") + 2]
+    BloodWatch().start()                         # 어느 모드든 죽으면 핏자국을 남겨 다음에 회수
+    if "--go-back" in args:                      # 지금 자리(상인 길 위)에서 걸어서 화톳불로만
+        print("복귀 결과:", h.go_back(), flush=True)
+        h.pad.neutral()
+        return
     if "--climb" in args:                        # 몹 없는 상태로 사용자가 서 있던 자리(5번 위)까지 — 휴식 없이
         # n 번: 오르기 → 화톳불 자리로 걸어 내려오기 → 다시 (사용자: "10번은 성공해야 믿겠어")
         goal = tuple(json.loads((ROOT / "data" / "climb-goal.json").read_text(encoding="utf-8"))["top"])
@@ -2417,7 +3077,26 @@ def main() -> None:
         return
     for k in range(1, n + 1):
         h.hunt(k, targets, dist)
+        if h.stop_all:
+            break
+        se = h.tm.snapshot(within=5.0)
+        far = None if se is None else math.dist((se.player.x, se.player.y, se.player.z), tuple(mr.BONFIRE["stand"]))
+        if not h.use_darksign and far is not None and far > h.WALK_HOME_MAX and se.player.hp > 0:
+            if h.to_merchant:
+                rb = h.go_back()                 # 올 때 길을 거꾸로 걸어서 화톳불로
+                if rb == "home":
+                    continue
+                print(f"   걸어서 복귀 실패 ({rb}) — 여기서 멈춤", flush=True)
+            else:
+                print(f"   화톳불에서 {far:.0f} m — 다크사인 없이 걸어 돌아가기엔 멀어 여기서 멈춤", flush=True)
+            h.stop_all = True
+            break
     h.pad.neutral()
+    if h.to_merchant:
+        ok = sum(1 for r in h.results if r == "도착")
+        print(f"\n── 세트 결과: 상인 도착 {ok}/{len(h.results)} — {h.results}", flush=True)
+    if h.stop_all:
+        return                                   # 그 자리에 그대로 (다크사인·휴식 안 함)
     h.go_home()
     h.run.rest()
 

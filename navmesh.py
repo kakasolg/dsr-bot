@@ -60,6 +60,16 @@ class Navmesh:
         if not path.exists():
             raise SystemExit(f"내비메시 없음: {path}")
         bnd = NVMBND.from_path(path)
+        # 조각마다 MSB 배치(이동·Y 회전)를 적용한다 — 불의 제전·성벽 마을은 전부 0 이라 몰랐는데, 수용소(m18_01)는
+        # 조각이 전부 y +200 에 놓여 있어 게임 좌표와 200 m 어긋났다 (데이터 8.4 vs 실제 184.7)
+        place: dict[str, tuple] = {}
+        try:
+            from soulstruct.darksouls1r.maps import MSB
+            msb = MSB.from_path(Path(game_dir) / "map" / "MapStudio" / f"{map_id}.msb")
+            for p in msb.navmeshes:
+                place[p.model.name] = ((p.translate.x, p.translate.y, p.translate.z), p.rotate.y)
+        except Exception:
+            pass
         verts, tris, flags, piece, adj = [], [], [], [], []
         self.model_tri_offset: dict[str, int] = {}   # 조각 모델 이름 → 전역 삼각형 번호 시작점
         off = t_off = 0
@@ -67,6 +77,15 @@ class Navmesh:
             stem = entry.name.replace(".nvm", "")
             nvm = bnd.get_nvm(stem)
             v = np.asarray(nvm.vertices, dtype=np.float64)
+            pl = next((place[k] for k in place if stem.startswith(k)), None)
+            if pl is not None:
+                (tx, ty, tz), ry = pl
+                if abs(ry) > 1e-6:
+                    a = np.radians(ry)
+                    ca, sa = np.cos(a), np.sin(a)
+                    x, z = v[:, 0].copy(), v[:, 2].copy()
+                    v[:, 0], v[:, 2] = ca * x + sa * z, -sa * x + ca * z
+                v = v + np.array([tx, ty, tz])
             verts.append(v)
             self.model_tri_offset[stem] = t_off
             for t in nvm.triangles:

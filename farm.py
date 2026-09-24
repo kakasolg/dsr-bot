@@ -38,6 +38,7 @@ import nav
 import navmesh
 import navwalk
 import patrol
+import quitout
 import playbook as pbm
 
 ROOT = Path(__file__).resolve().parent
@@ -79,6 +80,7 @@ def rest(tm, pad, nm, bonfire, mode: str = "walk") -> bool:
         pad.tap(button, hold)
         time.sleep(hold + 0.03)
         pad.release_due()
+        time.sleep(quitout.MENU_GAP)        # 화톳불 메뉴도 연속 입력이면 버퍼가 꼬인다 (사용자)
 
     def seated() -> bool:
         # 화톳불 앞에서 A 를 누른 뒤 메뉴가 열려 있으면 앉은 것 — 화톳불 메뉴가 떠 있는데 sitting() 이 False 인 적이 있다

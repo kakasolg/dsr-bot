@@ -87,7 +87,47 @@ def focus_game() -> bool:
     return u.GetForegroundWindow() == h
 
 
+class _NullPad:
+    """얼린 동안 다른 스레드가 보는 패드 — 무엇을 눌러도 게임에 안 간다."""
+    class _Report:
+        wButtons = 0
+    report = _Report()
+
+    def __getattr__(self, name):
+        return lambda *a, **k: None
+
+
+_NULL_PAD = _NullPad()
+
+
 class Pad:
+    # 긴급 탈출(메뉴 → Quit Game) 동안 판단 루프가 스틱·버튼을 계속 넣으면 메뉴 입력과 섞인다 → 탈출 스레드만 패드를 쓴다
+    _frozen_by: int | None = None
+    _vpad = None
+
+    @property
+    def pad(self):
+        if self._frozen_by is not None and threading.get_ident() != self._frozen_by:
+            return _NULL_PAD
+        return self._vpad
+
+    @pad.setter
+    def pad(self, v) -> None:
+        self._vpad = v
+
+    def freeze(self) -> None:
+        """이 스레드만 패드를 쓴다 — 다른 스레드의 입력은 버려진다. 눌려 있던 것은 전부 뗀다."""
+        with self._lock:
+            self._frozen_by = threading.get_ident()
+            self._due.clear()
+            if self._vpad is not None:
+                self._vpad.reset()
+                self._vpad.update()
+
+    def unfreeze(self) -> None:
+        with self._lock:
+            self._frozen_by = None
+
     def __init__(self):
         self._due: dict = {}      # 버튼 → 뗄 시각 (tap 이 자지 않도록)
         # 반사 스레드(reflex.py)와 판단 루프가 같이 누른다 — 보고서(report)를 동시에 고치지 않게 잠근다

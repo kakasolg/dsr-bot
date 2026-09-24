@@ -28,6 +28,9 @@ B = vg.XUSB_BUTTON
 QUIT_SEQ = [B.XUSB_GAMEPAD_START, B.XUSB_GAMEPAD_DPAD_LEFT, B.XUSB_GAMEPAD_A, B.XUSB_GAMEPAD_DPAD_UP,
             B.XUSB_GAMEPAD_A, B.XUSB_GAMEPAD_DPAD_LEFT, B.XUSB_GAMEPAD_A]
 HOLD = 0.05
+# 메뉴 입력 사이 최소 간격 — 사용자: "메뉴 버튼 작업 때 한 번에 연속으로 하면 입력 버퍼가 꼬인다. 0.1 초씩 간격 줘봐".
+# gap 0.0 으로 부르던 곳(다크사인 X → 확인창 → A, 종료 메뉴 이동)은 뗀 뒤 곧바로 다음 버튼이 들어갔다
+MENU_GAP = 0.1
 
 
 def _in_world(tm) -> bool:
@@ -46,7 +49,7 @@ def _press(pad, b, gap: float) -> None:
     with pad._lock:
         pad.pad.release_button(b)
         pad.pad.update()
-    time.sleep(max(0.0, gap - HOLD))
+    time.sleep(max(MENU_GAP, gap - HOLD))
 
 
 OFF_SCREEN = 0x1C69698   # 모듈 기준 u32 — 지금 떠 있는 메뉴 화면마다 다른 값 (닫힘/아이템/시스템/확인창). 커서 이동엔 안 바뀐다
@@ -144,7 +147,7 @@ def calibrate(tm, pad) -> None:
     close_menu(tm, pad)            # B 로만 빠진다 — A 는 절대 누르지 않는다
 
 
-def quit_out(tm, pad, gap: float = 0.08, settle: float = 0.1, timeout: float = 8.0) -> float | None:
+def quit_out(tm, pad, gap: float = 0.08, settle: float = 0.1, timeout: float = 8.0, ready_wait: float = 0.3) -> float | None:
     """→ 첫 입력부터 월드에서 사라질 때까지 걸린 시간(s). 실패면 None.
 
     화면이 바뀌는 입력(START·A·A) 뒤에는 **메모리로 화면 전환을 확인**하고 settle 만큼 쉰 뒤 다음을 누른다.
@@ -158,7 +161,7 @@ def quit_out(tm, pad, gap: float = 0.08, settle: float = 0.1, timeout: float = 8
     while time.time() - t_ready < 5.0:
         if tm.menu_open() is False:
             stable_from = stable_from or time.time()
-            if time.time() - stable_from >= 0.3:
+            if time.time() - stable_from >= ready_wait:   # 긴급(낙하 중)엔 짧게 — 월드 안인 게 확실하다
                 break
         else:
             stable_from = None

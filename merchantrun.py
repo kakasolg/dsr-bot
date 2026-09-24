@@ -501,8 +501,10 @@ class Runner:
             # ── A 를 눌렀으면 여기서 끝이다. 결과를 못 읽어도 **다시 쓰지 않는다** ──
             # 다크사인은 로딩을 거치고 그동안 포인터가 무효라 스냅샷이 None 이다. 예전엔 15 s 안에 못 읽으면 '실패' 로 보고
             # 다시 썼다 (톰슨 10판 중 '실패' 3번 — 전부 실제로는 화톳불에 와 있었다). 텔레메트리는 못 읽을 때만 다시 붙는다.
-            t2 = time.time()
-            while time.time() - t2 < 25.0:
+            # 상인 앞(136 m)에서 쓴 다크사인은 화톳불에 와 있었는데 25 s 내내 '확인 못 함' 이었다 (2026-09-23) — 로딩이 끝난 뒤에도
+            # 옛 포인터가 None 이 아니라 떠나기 전 자리를 계속 돌려줬다. 그래서 못 읽을 때만이 아니라 4 s 마다 새로 붙는다
+            t2 = last_attach = time.time()
+            while time.time() - t2 < 40.0:
                 try:
                     s = self.tm.snapshot(within=1.0)
                 except Exception:
@@ -512,7 +514,8 @@ class Runner:
                     if (pre is not None and math.dist(here, pre) > 20.0) or math.dist(here, tuple(BONFIRE["stand"])) < 15.0:
                         time.sleep(1.5)
                         return True
-                if s is None and time.time() - t2 > 3.0:
+                if (s is None and time.time() - t2 > 3.0) or time.time() - last_attach > 4.0:
+                    last_attach = time.time()
                     try:
                         self.tm = env.make_telemetry({})
                     except Exception:

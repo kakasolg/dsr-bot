@@ -60,7 +60,13 @@ AOBS = {
     "ChrDbg": ("80 3D ? ? ? ? 00 48 8B 8F ? ? ? ? 0F B6 DB", 2, 7),
     "ChrFollowCam": ("48 8B 0D ? ? ? ? E8 ? ? ? ? 48 8B 4E 68 48 8B 05 ? ? ? ? 48 89 48 60", 3, 7),
     "ChrClassBase": ("48 8B 05 ? ? ? ? 48 85 C0 ? ? F3 0F 58 80 AC 00 00 00", 3, 7),
+    # 게임 기록(이벤트 플래그) — JKAnderson/EventPocket DSOffsets.EventFlagsAOBR (DSR)
+    "EventFlags": ("48 8B 0D ? ? ? ? 99 33 C2 45 33 C0 2B C2 8D 50 F6", 3, 7),
 }
+# 이벤트 플래그 id 8자리 = 그룹 1 · 지역 3 · 구역 1 · 번호 3 → 바이트 위치 (EventPocket DSProcess.getEventFlagAddress)
+EVENT_GROUPS = {"0": 0x00000, "1": 0x00500, "5": 0x05F00, "6": 0x0B900, "7": 0x11300}
+EVENT_AREAS = {"000": 0, "100": 1, "101": 2, "102": 3, "110": 4, "120": 5, "121": 6, "130": 7, "131": 8, "132": 9,
+               "140": 10, "141": 11, "150": 12, "151": 13, "160": 14, "170": 15, "180": 16, "181": 17}
 OFF_HP, OFF_MAXHP, OFF_SP, OFF_MAXSP = 0x3E8, 0x3EC, 0x3F8, 0x3FC
 OFF_MAPDATA, OFF_MODEL, OFF_NPC = 0x68, 0x88, 0xC8
 OFF_LASTBONFIRE = 0xB34
@@ -330,6 +336,37 @@ class DSRTelemetry:
         cb = self.q(self.static["ChrClassBase"])
         pgd = self.q(cb + 0x10) if cb else None
         return self.i32(pgd + 0x328) if pgd else None
+
+    def event_flag(self, fid: int) -> Optional[bool]:
+        """게임 기록(이벤트 플래그) 한 칸 — 보물(ItemLotParam.ItemFlag)을 주웠나, 보스·문·NPC 상태 등.
+        EventPocket(DSR) 방식: static EventFlags → 포인터 → 포인터 = 기본 주소, id 를 그룹·지역·구역·번호로 나눠 비트 위치."""
+        sid = f"{fid:08d}"
+        if len(sid) != 8 or sid[0] not in EVENT_GROUPS or sid[1:4] not in EVENT_AREAS:
+            return None
+        p = self.q(self.static["EventFlags"])
+        base = self.q(p) if p else None
+        if not base:
+            return None
+        num = int(sid[5:8])
+        off = EVENT_GROUPS[sid[0]] + EVENT_AREAS[sid[1:4]] * 0x500 + int(sid[4]) * 128 + (num - num % 32) // 8
+        try:
+            v = self.pm.read_uint(base + off)
+        except pymem.exception.PymemError:
+            return None
+        return bool(v & (0x80000000 >> (num % 32)))
+
+    def humanity(self) -> Optional[int]:
+        """인간성 (화면 왼쪽 위 숫자) — PlayerGameData+0x84 (JKAnderson/DSR-Gadget DSROffsets.ChrData2.Humanity).
+        죽거나 다크사인을 쓰면 0 이 되고 핏자국에 남는다."""
+        cb = self.q(self.static["ChrClassBase"])
+        pgd = self.q(cb + 0x10) if cb else None
+        return self.i32(pgd + 0x84) if pgd else None
+
+    def souls(self) -> Optional[int]:
+        """가진 소울 — PlayerGameData+0x94 (DSR-Gadget ChrData2.Souls)."""
+        cb = self.q(self.static["ChrClassBase"])
+        pgd = self.q(cb + 0x10) if cb else None
+        return self.i32(pgd + 0x94) if pgd else None
 
     def goods_count(self, item: int) -> Optional[int]:
         """소모품(goods) 개수. PlayerGameData 안 인벤토리 항목 0x1C 바이트 = (분류 0x40000000, ID, 개수, ...).
