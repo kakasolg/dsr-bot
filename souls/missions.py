@@ -22,6 +22,7 @@ MAP_A, MAP_B = "m10_02_00_00", "m10_01_00_00"        # 불의 제전 쪽 / 성�
 SPOTS = json.loads((DATA / "spots.json").read_text(encoding="utf-8"))
 FIRELINK = SPOTS["firelink-bonfire"]
 FIRELINK_ID = 1022960                                  # 마지막 화톳불 ID (2026-09-24 실측, 불의 제전)
+BURG_BONFIRE_ID = 1012962                              # 성벽 마을 화톳불 (2026-09-24 불 붙이고 앉아 확인)
 BURG_BONFIRE = (3.2, -10.0, -61.2)                     # 성벽 마을 화톳불(o0200_0002) — 상인에서 동쪽 42 m, 10 m 위
 BURG_BONFIRE_SIDE = (1.7, -10.02, -61.2)               # 그 옆 바닥
 RAMP = json.loads((DATA / "enemy-map.json").read_text(encoding="utf-8"))["enemies"]   # 경사로 6마리, 쉰 직후 스폰 자리
@@ -63,28 +64,45 @@ class Missions:
         return r
 
     def to_merchant(self) -> str:
+        """상인까지. 지금 자리에서 가장 가까운 구간·점부터 이어 간다 — 통로(A) · 성벽 마을(B) · 창고 방(C).
+        예전엔 A 구간만 보고 '멀다' 며 계단 꼭대기로 되돌아가 막혔다 (성벽 마을 안에서 시작, 2026-09-24)."""
         na, nb = self.nms[MAP_A], self.nms[MAP_B]
         top, route, R = _route()
+        pb = [tuple(q) for q in R["b"]]
+        pc = [tuple(q) for q in R["c"]]
         t0 = time.time()
         s = self.mv.snap(5.0)
         here = (s.player.x, s.player.y, s.player.z)
-        k = min(range(len(route)), key=lambda j: math.dist(route[j], here))
-        if math.dist(route[k], here) > 4.0:
-            r = self.f.walk_to(top, na, "꼭대기로")
+        seg, k, d = min(((name, j, math.dist(q, here)) for name, pts in (("A", route), ("B", pb), ("C", pc))
+                         for j, q in enumerate(pts)), key=lambda t: t[2])
+        self.log(f"   상인 길: 가장 가까운 곳 {seg}{k} ({d:.1f} m)")
+        if d > 6.0:
+            if seg == "A":
+                r = self.f.walk_to(top, na, "꼭대기로")
+                if r != "arrived":
+                    return f"꼭대기까지 {r}"
+                seg, k = "A", 0
+            else:
+                pts = pb if seg == "B" else pc
+                r = self.f.walk_to(pts[k], nb, "길로")
+                if r != "arrived":
+                    return f"길까지 {r}"
+        if seg == "A":
+            r = self.f.walk(route[k:], na, "통로", tol=0.8)
             if r != "arrived":
-                return f"꼭대기까지 {r}"
-            k = 0
-        r = self.f.walk(route[k:], na, "통로", tol=0.8)
-        if r != "arrived":
-            return f"통로 {r}"
-        self.log(f"   경계 {time.time() - t0:.0f} s")
-        r = self.f.walk(R["b"], nb, "성벽 마을", tol=0.8, tight=R["small_bridge"])
-        if r != "arrived":
-            return f"성벽 마을 {r}"
-        if not self._roll_boxes(R["roll"]["from"], R["roll"]["to"]):
-            return "상자 못 지나감"
-        pc = [tuple(q) for q in R["c"]]
-        rest = pc
+                return f"통로 {r}"
+            self.log(f"   경계 {time.time() - t0:.0f} s")
+            seg, k = "B", 0
+        if seg in ("B", "C"):
+            self.f.home = pb[0]                            # 성벽 마을에선 입구 쪽으로 물러난다 (불의 제전까지는 이 내비메시로 경로가 없다 — no_path 헛돌기)
+        if seg == "B":
+            r = self.f.walk(pb[k:], nb, "성벽 마을", tol=0.8, tight=R["small_bridge"])
+            if r != "arrived":
+                return f"성벽 마을 {r}"
+            if not self._roll_boxes(R["roll"]["from"], R["roll"]["to"]):
+                return "상자 못 지나감"
+            seg, k = "C", 0
+        rest = pc[k:]
         for extra in range(3):
             r = self.f.walk(rest, nb, "창고 방", tol=0.8)
             if r != "stuck" or extra == 2:
@@ -125,9 +143,15 @@ class Missions:
         """성벽 마을 화톳불에 불 붙이고 앉는다: 처음 A = 불 붙이기(BONFIRE LIT), 다음 A = 앉기.
         성공 = 앉았고 마지막 화톳불 ID 가 불의 제전이 아니게 됨. B(일어나기)는 **앉아 있을 때만** 누른다 (아니면 백스텝)."""
         nb = self.nms[MAP_B]
+        _, _, R = _route()
+        self.f.home = tuple(R["b"][0])                     # 물러날 곳 = 성벽 마을 입구 (이 내비메시 안)
         r = self.f.walk_to(BURG_BONFIRE_SIDE, nb, "화톳불로")
         if r != "arrived":
             return f"화톳불까지 {r}"
+        # 화톳불 옆 핏자국부터 (2026-09-24: 여기서 죽어 소울 740) — 어차피 앉을 화톳불이라 A 가 앉기로 들어가도 괜찮다
+        b = self.f.pick_blood(nb, near=10.0, bonfire_ok=True)
+        if b:
+            self.log(f"   핏자국: {b}")
         s = self.mv.snap(15.0)
         if s and not self.f.safe(s):
             self.f.shake_off("화톳불 앞 적")               # 적이 가까우면 불도 못 붙이고 앉지도 못한다

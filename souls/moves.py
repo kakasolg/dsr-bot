@@ -20,12 +20,14 @@ import patrol
 import quitout
 
 ATTACK = range(3000, 3500)       # 적 공격 애니 (DS1 인간형 공통)
+GUARD_BROKEN = 9600              # 가드가 깨져 휘청 (방패병 발차기 뒤) — 틈
 STAGGER = range(3500, 3600)      # 휘청 — 내 방패에 막혀 튕김 등. **공격이 아니라 틈** (2026-09-24: 이걸 공격으로 봐서 12 s 동안 막기만 했다)
 DOWNED = range(9900, 10000)      # 넘어짐·누움·일어남 (9920 = 일어나는 중)
 GETTING_UP = 9920
 ESTUS_IDS = range(200, 216)      # 에스트 아이템 번호는 강화 단계별 (새 캐릭터 201)
 ITEM_DARKSIGN = 117
 SECOND_R1_AT = 0.45              # 약공 2연타: 첫 R1 뒤 이때 한 번 더 (입력 버퍼)
+KICK_TO_R1 = 0.6                 # 발차기 뒤 늦어도 이때 R1 (닿으면 그 순간) — 방패병이 9600 된 게 0.45~0.61 s
 B = control.B
 
 
@@ -157,6 +159,38 @@ class Moves:
             time.sleep(0.01)
         self.pad.move(0.0, 0.0)
         self._watch(hit, ptr, hp0, ehp0, 1.2)
+        return hit
+
+    def kick_combo(self, s, c, n: int = 2) -> Hit:
+        """발차기 → 가드가 깨지는 순간 곧장 약공 n 연타 (한 동작, 판단 루프를 안 거친다).
+        사용자: "발차기 이후 공격이 너무 시간 간격이 커서 방패병이 다시 가드해서 실패함" — 발차기가 닿아 9600(가드 깨짐)·9920 이
+        되는 건 0.45~0.6 s 인데, 발차기 결과를 1.2 s 지켜본 뒤 몸 맞추고 판단하느라 약공이 1.5 s 넘게 늦었다.
+        그놈 애니가 -1 에서 바뀌면(맞음) 또는 늦어도 KICK_TO_R1 에 R1 — 발차기 모션이 끝나기 전 누른 R1 은 버퍼에 들어간다."""
+        hit = Hit("kick+light", presses=1)
+        ptr, hp0, ehp0 = c.ptr, s.player.hp, c.hp
+        self.pad.guard(False)
+        st = self.stick_to(s, c.x, c.z) if s.cam_yaw is not None else (0.0, 1.0)
+        self.pad.kick(*st)
+        t0 = time.time()
+        while time.time() - t0 < 0.12:
+            self.pad.release_due()
+            time.sleep(0.01)
+        self.pad.move(0.0, 0.0)
+        state = {"r1": 0, "broke_t": None}
+
+        def tick(t, h):
+            if state["broke_t"] is None and h.e_anims and h.e_anims[-1][1] not in (-1, None) and t > 0.2:
+                state["broke_t"] = t                       # 발차기가 닿았다 (9600 가드 깨짐 / 9920 등)
+            due = state["broke_t"] is not None or t >= KICK_TO_R1
+            if due and state["r1"] < n and t >= (state["broke_t"] or KICK_TO_R1) + state["r1"] * SECOND_R1_AT:
+                if not h.dead:
+                    self.pad.tap(B.XUSB_GAMEPAD_RIGHT_SHOULDER, 0.06, stick_ok=True)   # 스틱은 이미 놓았다
+                    state["r1"] += 1
+                    h.presses = 1 + state["r1"]
+            if state["r1"] >= n and t >= (state["broke_t"] or KICK_TO_R1) + n * SECOND_R1_AT + 0.3:
+                self.pad.guard(True)
+        self._watch(hit, ptr, hp0, ehp0, 2.4, tick,
+                    early_exit=lambda t, h: state["r1"] >= n and t > (state["broke_t"] or KICK_TO_R1) + n * SECOND_R1_AT + 0.3)
         return hit
 
     def backstep(self) -> None:

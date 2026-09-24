@@ -11,7 +11,7 @@
 그래서:
   1) 공격 애니가 **막 시작된 뒤 THREAT_S 동안**만 위협. 2.5 m 안 위협 중 가장 가까운 놈을 **몸 정면**에 두고 방패
   2) 위협이 없는데 방금 HP 가 깎였으면(보이지 않는 공격) → 3 m 안 가장 가까운 놈 쪽으로 방패
-  4) 스태미나가 GUARD_SP 아래면 막지 않고 바닥이 있는 쪽으로 물러난다 (가드가 깨지면 밀려나 떨어진다)
+  4) 스태미나가 GUARD_SP 아래면 막지 않는다 (가드가 깨지면 밀려나 떨어진다) — 그놈을 정면에 둔 채 선다 (등 돌려 물러나지 않는다)
   3) 막으면 안 되는 공격(가드 브레이크 3009 등 — 무엇이 그런지는 4층이 unblockable(c) 로 알려 준다)은
      방패 대신 백스텝, 뒤가 낭떠러지면 옆으로 구른다 (막다가 가드가 깨져 밀려나 낙사, 2026-09-24)
   몸을 돌릴 때 그쪽 발밑이 없으면 돌지 않는다 (경사로 추락 2 번 기록).
@@ -129,14 +129,10 @@ class Reflex:
         return "guard"
 
     def step_away(self, s, c) -> None:
-        """방패 없이 그놈 반대쪽(바닥이 있는 쪽)으로 한 걸음. 바닥이 없으면 제자리."""
-        p = s.player
+        """방패 없이 그놈을 정면에 둔 채 선다. 예전엔 반대쪽으로 스틱을 밀었는데 락온이 없으면 **뒤돌아 걸어가** 등을 맞았다
+        (몸-그놈 ±180°, 2026-09-24 테라스 — 사용자: "방향 정렬 못하고 엉뚱한 데로 공격")."""
         self.mv.pad.guard(False)
-        d = nav.safe_back(self.nm, p, p.x - c.x, p.z - c.z) if self.nm is not None else (p.x - c.x, p.z - c.z)
-        if d is None or s.cam_yaw is None:
-            self.mv.pad.move(0.0, 0.0)
-            return
-        self.mv.pad.move(*self.mv.stick_to(s, p.x + d[0], p.z + d[1]))
+        self.mv.face(s, c, deg=25.0)
 
     def hold(self, max_s: float = 2.0) -> None:
         """위협이 지나갈 때까지 반사만 돈다 (걷다가 멈췄을 때)."""

@@ -114,6 +114,12 @@ def main() -> None:
         t_wait = time.time()
         while esc.escaping and time.time() - t_wait < 40.0:  # 퀵 종료 도중에 끝내면 메뉴·로딩에 멈춘다
             time.sleep(0.2)
+        try:
+            if not fld.alive():
+                fld.wait_respawn(30.0)                     # 죽은 채 끝내면 핏자국이 안 남는다 (부활 뒤 소울 감소로 확인하므로)
+                time.sleep(1.5)
+        except Exception:
+            pass
         esc.stop()
         blood.stop()
         pad.neutral()

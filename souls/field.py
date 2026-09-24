@@ -111,7 +111,7 @@ class Field:
             return "no_home"
         path = nm.find_path((s.player.x, s.player.y, s.player.z), tuple(home)) if nm is not None else None
         if not path:
-            return "no_path"
+            return "no_path"                               # (헛돌기는 recover 가 False → 다음 싸움을 끝까지로 막는다)
         t0 = time.time()
         return self.mv.walk_path(nav.trim_path(path[1:], tuple(home)), nm, "sprint",
                                  stop=lambda sn: time.time() - t0 > 3.0 and self.safe(sn))
@@ -136,15 +136,15 @@ class Field:
         return bool(s and s.player.hp >= s.player.max_hp * 0.6)
 
     # ── 싸움 ─────────────────────────────────────────────────
-    def fight(self, ptr, nm, tag: str, arena=None) -> D.DuelResult:
+    def fight(self, ptr, nm, tag: str, arena=None, desperate: bool = False) -> D.DuelResult:
         g0 = self.esc.gen
         e = self.mv.estus_id()
         if e is not None and self.mv.tm.selected_item() != e:
             self.mv.select_item(e)                         # 미리 골라 둔다 — 틈이 났을 때 칸 돌리는 1~3 s 가 없게
         self.reflex.nm = nm
         r = D.duel(self.mv, self.w, ptr, nm, log=self.log, cancel=lambda: self.esc.escaping or self.esc.gen != g0,
-                   care=Care(self), reflex=self.reflex, arena=arena)
-        self.log(f"   {tag}: {r.line()}")
+                   care=Care(self), reflex=self.reflex, arena=arena, low_hp=0.0 if desperate else 0.25)
+        self.log(f"   {tag}{' (끝까지)' if desperate else ''}: {r.line()}")
         self.events("duel", tag=tag, npc=r.npc, result=r.result, secs=round(r.secs, 1), dealt=r.dealt, taken=r.taken)
         if r.result == "killed":
             self.heal(0.7)
@@ -164,7 +164,7 @@ class Field:
         left = []
         for n, e in enumerate(targets, 1):
             i = e.get("label", n)                          # 지도 번호 (순서를 바꿔도 기록은 지도 번호로)
-            killed = False
+            killed, desperate = False, False
             for k in range(tries):
                 if not self.alive():
                     return "died"
@@ -176,7 +176,7 @@ class Field:
                     killed = True
                     break
                 self.wait_escape()
-                r = self.fight(c.ptr, nm, f"#{i} {e['npc']}" + (f" ({k + 1}번째)" if k else ""), arena=arena)
+                r = self.fight(c.ptr, nm, f"#{i} {e['npc']}" + (f" ({k + 1}번째)" if k else ""), arena=arena, desperate=desperate)
                 if r.result == "killed":
                     killed = True
                     break
@@ -185,29 +185,38 @@ class Field:
                 self.wait_escape()
                 if not self.alive():
                     return "died"
-                if not self.recover(f"#{i} {r.result}", nm) and self.mv.estus_left() <= 0:
+                ok = self.recover(f"#{i} {r.result}", nm)
+                if not ok and self.mv.estus_left() <= 0:
                     return "no_estus"
+                # 물러나지도 마시지도 못했다 — 다음엔 HP 가 낮아도 빠지지 않고 끝까지 (0.1 s 마다 '낮음→못 물러남→못 마심' 을 되풀이하며
+                # 방패도 안 들고 서서 맞아 죽었다, 2026-09-24)
+                desperate = not ok
             if not killed:
                 left.append(f"#{i}")
         return "cleared" if not left else "left " + " ".join(left)
 
     # ── 길 ───────────────────────────────────────────────────
-    def walk(self, path: list, nm, tag: str, tol: float = 1.0, tight: dict | None = None, mode: str = "walk") -> str:
+    def walk(self, path: list, nm, tag: str, tol: float | None = None, tight: dict | None = None, mode: str = "walk") -> str:
         """경로를 걷다가 쫓아와 붙는 놈은 먼저 잡는다. → 'arrived' | 'dead' | 'stuck' | 'no_estus'
         점마다 바닥 확인은 목표와 지금 자리 둘 다 이 내비메시 위일 때만 (경계·다리 위는 내비메시가 비어 있다).
         tight = {"center": [x,y,z], "r": m} 안(난간 없는 좁은 다리)은 0.45 m 로 좁게 밟는다."""
         path = [tuple(q) for q in path]
+        # tol 이 없으면(내비메시 경로) 가파른 구간(계단·경사로)만 0.4 m 로 정확히 밟는다 (nav.path_tolerances) — 전부 1 m 로 밟았더니
+        # 경사로 위 턱에서 계단 꼭대기로 못 올라가 '통로 막힘' (2026-09-24). 사람이 녹화한 길은 부르는 쪽이 tol(0.8)을 준다
+        # — 녹화 점을 0.4 m 로 좁히면 계단 끝에서 0.6~0.7 m 넘게 못 다가가 막혔다 (hunt.walk_fight)
+        tols = nav.path_tolerances(path, 1.0) if tol is None else [tol] * len(path)
         self.reflex.nm = nm
         mover = nav.Mover(self.mv.pad)
         i, fails, fights = 0, 0, 0
         ignore: set = set()
+        desperate = False
         try:
             while i < len(path):
                 if self.esc.escaping:
                     time.sleep(0.2)
                     continue
                 q = path[i]
-                t = tol
+                t = tols[i]
                 if tight and math.dist((q[0], q[2]), (tight["center"][0], tight["center"][2])) < tight["r"]:
                     t = 0.45
                 s = self.mv.snap(40.0)
@@ -247,17 +256,26 @@ class Field:
                     elif c is not None:
                         fights += 1
                         mover.stop()
-                        res = self.fight(c.ptr, nm, f"{tag}: 따라온 {c.npc_param}")
+                        res = self.fight(c.ptr, nm, f"{tag}: 따라온 {c.npc_param}", desperate=desperate)
                         if res.result == "me_dead":
                             return "dead"
+                        desperate = False
                         if res.result != "killed":
-                            if not self.recover(f"{tag} {res.result}", nm) and self.mv.estus_left() <= 0:
+                            ok = self.recover(f"{tag} {res.result}", nm)
+                            if not ok and self.mv.estus_left() <= 0:
                                 return "no_estus"
+                            desperate = not ok
                             if res.result in ("stuck", "lost"):
                                 ignore.add(c.ptr)          # 못 닿는 놈 — 이 길에선 무시 (쫓아오면 퀵 종료가 떼어낸다)
                     continue
                 if r != "arrived":
                     fails += 1
+                    if fails >= 2 and self.fog_through(q):
+                        fails = 0                          # 안개벽을 지났다 — 가장 가까운 점부터 다시
+                        s2 = self.mv.snap(5.0)
+                        if s2:
+                            i = min(range(len(path)), key=lambda j: math.dist(path[j], (s2.player.x, s2.player.y, s2.player.z)))
+                        continue
                     if fails >= 3:
                         return "stuck"
                 else:
@@ -266,6 +284,30 @@ class Field:
             return "arrived"
         finally:
             mover.stop()
+
+    def fog_through(self, toward) -> bool:
+        """안개벽 앞에서 막혔으면: 다음 경로점 쪽으로 몸을 돌리고, 안내창이 뜨면 A (사용자: "안개벽 A 눌러", "방향 정렬").
+        안개 옆에 서서 벽을 보고 밀기만 해 '막힘' 이었다 (2026-09-24). 안내창은 몸이 안개를 봐야 뜬다.
+        → 지나갔나 (2 m 넘게 움직임)"""
+        import ladder_test as L                          # 안내창 판별(화면 아래 가운데 어두운 비율, 뜨면 ~900)
+        s = self.mv.snap(5.0)
+        if s is None or s.cam_yaw is None:
+            return False
+        p0 = (s.player.x, s.player.y, s.player.z)
+        for scale in (0.5, 0.7):
+            self.mv.pad.move(*self.mv.stick_to(s, toward[0], toward[2], scale))
+            time.sleep(0.3)
+            self.mv.pad.move(0.0, 0.0)
+            time.sleep(0.4)
+            if L.prompt_px() >= 850:
+                self.mv.press(M.B.XUSB_GAMEPAD_A, 0.3)
+                time.sleep(4.5)
+                s2 = self.mv.snap(5.0)
+                moved = math.dist(p0, (s2.player.x, s2.player.y, s2.player.z)) if s2 else 0.0
+                self.log(f"   안개벽: A → {moved:.1f} m 이동")
+                return moved > 2.0
+            s = self.mv.snap(5.0) or s
+        return False
 
     def walk_to(self, goal, nm, tag: str, mode: str = "walk") -> str:
         s = self.mv.snap(5.0)
@@ -277,12 +319,13 @@ class Field:
         return self.walk(nav.trim_path(path[1:], tuple(goal)), nm, tag, mode=mode)
 
     # ── 핏자국 ────────────────────────────────────────────────
-    def pick_blood(self, nm, near: float = 20.0) -> str | None:
+    def pick_blood(self, nm, near: float = 20.0, bonfire_ok: bool = False) -> str | None:
+        """bonfire_ok: 어차피 이 화톳불에 앉을 거라 A 가 앉기로 잘못 들어가도 괜찮을 때 (성벽 마을 화톳불 옆 핏자국)."""
         b = Blood.read()
         if not b:
             return None
         pos = tuple(b["pos"])
-        if any(math.dist(pos, bf) < BONFIRE_NO_A for bf in self.bonfires):
+        if not bonfire_ok and any(math.dist(pos, bf) < BONFIRE_NO_A for bf in self.bonfires):
             self.log(f"   핏자국 {pos} 이 화톳불 옆 — A 를 누르면 앉아 버려(적 전부 부활) 안 줍는다. 기록은 남긴다")
             return "near_bonfire"
         s = self.mv.snap(5.0)

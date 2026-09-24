@@ -31,7 +31,10 @@ CARE_RETRY = 3.0
 FINISH_KEEP_HP = 40     # 그놈 HP 가 이 아래면 내 HP 가 낮아도(12 % 까지) 빠지지 않는다 (다크사인 뒤 방패병이 10 → 85)
 FINISH_HP, FINISH_SP = 25, 15   # 그놈 HP 가 약공 한 대(실측 34~41) 안쪽이면 스태미나 15 만 있어도 친다
 INTERRUPT_S = 0.35       # 그놈 공격이 시작된 지 이만큼 안이면 막지 말고 먼저 친다 (약공이 닿는 게 더 빠르다)
+SWITCH_MARGIN, SWITCH_HOLD = 0.8, 3.0
 SWITCH_R = 2.5           # 이 안(수평·같은 높이)에 목표보다 가까운 깨어 있는 놈이 있으면 그놈부터
+LEDGE_DY = 3.0           # 그놈이 arena 보다 이만큼 높거나 낮으면 끌어오지 않는다 (따라오지 않는다)
+SWING_S = 1.6            # 공격 애니가 시작된 지 이만큼 넘으면 휘두르는 중으로 안 본다
 PULL_R = 8.0             # 끌어오기: 그놈이 이 안이면(움직이지 않아도) 물러나기 시작
 SEEK_R = 100.0           # 그놈을 이 반경 안에서 찾는다 — 40 m 로 뒀더니 화톳불에서 42 m 인 1번을 못 보고 전부 '놓침' 이었다
 
@@ -204,8 +207,10 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             return done("stalemate")
         h, dy, a = M.horiz(p, c), c.y - p.y, (c.anim if c.anim is not None else -1)
         cut = [x for x in s.hostile(SWITCH_R + 2.0) if x.ptr != ptr and x.hp > 0 and not (9000 <= (x.anim or 0) < 9100)
-               and M.horiz(p, x) < min(SWITCH_R, h) and abs(x.y - p.y) < 1.2]
-        if cut and now - switch_t > 1.0:
+               and M.horiz(p, x) < min(SWITCH_R, h - SWITCH_MARGIN) and abs(x.y - p.y) < 1.2]
+        # 거리가 비슷한 둘 사이에서 1~2 s 마다 목표를 바꿔 몸을 돌리다 등을 맞았다 (±140~166°, 25 s 에 442) —
+        # 확실히 더 가까울 때만(SWITCH_MARGIN), 바꾼 뒤 SWITCH_HOLD 동안은 그대로
+        if cut and now - switch_t > SWITCH_HOLD:
             # 끼어든 놈부터 (옛 hunt.py 규칙, 사용자: "가까운 적 공격 못해?") — 지도 목표만 보다 옆에서 치는 놈에게 13 s 에 387 맞고 죽었다.
             # 그놈을 잡으면 원래 목표로 돌아간다
             x = min(cut, key=lambda y: M.horiz(p, y))
@@ -216,7 +221,8 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             last_seen, foe = x, foes_.of(x.npc_param)
             h, dy, a = M.horiz(p, c), c.y - p.y, (c.anim if c.anim is not None else -1)
 
-        if (c.hp <= FINISH_HP and a not in M.ATTACK and h <= weapon.reach + 0.2 and abs(dy) <= 1.0
+        if (c.hp <= FINISH_HP and a not in M.ATTACK and h <= weapon.reach and abs(dy) <= 1.0
+                and not (foe is not None and foe.kick_when_idle and a == -1)
                 and (p.sp or 0) >= FINISH_SP and mv.face(s, c, deg=30.0)):
             # 한 대면 죽고 지금 안 휘두른다 — 반사보다 먼저 친다 (HP 18 인 놈 앞에서 반사가 매 틱 방패만 쥐다 죽었다)
             hit = mv.light(s, c, n=1)
@@ -233,7 +239,11 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             reflex.prefer = ptr
             reflex.update(s)
         age = reflex.attack_age(ptr) if reflex is not None else None
-        if (foe.kind != "shield" and h <= weapon.reach + 0.2 and abs(dy) <= 1.0 and (p.sp or 0) >= weapon.sp_min
+        if a in M.ATTACK and age is not None and age > SWING_S:
+            # 3000 번대가 SWING_S 넘게 이어지면 휘두르는 중이 아니다 (공격이 끝나도 1.5~5.3 s 남는다 — 기록 분석).
+            # 창 방패병(255002)은 3001 에 머문 채 방패를 들고 있어, 15 s 내내 1.4 m 에서 막기만 했고 발차기도 안 나갔다
+            a = -1
+        if (foe.kind != "shield" and h <= weapon.reach and abs(dy) <= 1.0 and (p.sp or 0) >= weapon.sp_min
                 and (a == -1 or (a in M.ATTACK and age is not None and age < INTERRUPT_S))
                 and not any(x.ptr != ptr and (x.anim or -1) in M.ATTACK and M.horiz(p, x) < 2.5 for x in s.hostile(4.5))
                 and mv.face(s, c, deg=30.0)):
@@ -254,7 +264,9 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             note("반사", s, c)
             time.sleep(0.02)
             continue
-        if (not pulled and nm is not None and a not in M.ATTACK and (a != -1 or h < PULL_R)
+        ledge = arena is not None and abs(c.y - arena[1]) > LEDGE_DY
+        # 턱 위에 선 놈(경사로 5번 y -39 vs 평지 -49)은 안 내려온다 — 평지로 끌어오거나 물러나면 오르내리기만 반복했다 (세 번 '막힘')
+        if (not pulled and not ledge and nm is not None and a not in M.ATTACK and (a != -1 or h < PULL_R)
                 and math.dist((p.x, p.y, p.z), tuple(arena)) > 3.0):
             # 0--) 끌어오기 (사용자: "원하는 지형까지 끌고 가기") — 그놈이 알아채면(움직이거나 가까우면) arena 로 물러난다.
             # 경사로 2번 자리는 위 턱의 화염병이 떨어지는 곳이라, 거기서 붙었더니 1 s 에 275 를 맞았다 (2026-09-24)
@@ -270,7 +282,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
                 and nav.footing(nm, p)[0] < nav.FOOTING_MIN):
             # 0-) 낭떠러지 옆 — 평평한 자리로 (그놈은 따라온다). arena 가 없으면 바닥이 가장 넓은 쪽으로 한 걸음
             move_t = now
-            if arena is not None and math.dist((p.x, p.y, p.z), tuple(arena)) > 1.5:
+            if arena is not None and not ledge and math.dist((p.x, p.y, p.z), tuple(arena)) > 1.5:
                 path = nm.find_path((p.x, p.y, p.z), tuple(arena))
                 if path:
                     r = mv.walk_path(nav.trim_path(path[1:], tuple(arena), within=0.8), nm, "walk",
@@ -300,7 +312,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
                 note("백스텝", s, c)
                 continue
 
-        if a in M.STAGGER and h <= weapon.reach + 0.6 and abs(dy) <= 1.0 and (p.sp or 0) >= weapon.sp_min:
+        if (a in M.STAGGER or a == M.GUARD_BROKEN) and h <= weapon.reach + 0.3 and abs(dy) <= 1.0 and (p.sp or 0) >= weapon.sp_min:
             # 1-) 휘청 = 틈. 몸만 맞으면 곧장 친다 (막기에 튕긴 뒤 바로 — 옛 메모 "3500 휘청 — 붙어 있으면 바로 친다")
             if mv.face(s, c, deg=30.0):
                 hit = mv.light(s, c, n=foe.punish_hits or weapon.combo, sp_second=weapon.sp_min)
@@ -318,8 +330,14 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             continue
         if a in M.ATTACK and h < NEAR:                     # 1) 휘두르는 중 → 막는다
             mv.guard(True)
-            mv.face(s, c)
-            note("막기", s, c)
+            if h > weapon.reach + 0.3 and abs(dy) <= 1.0 and s.cam_yaw is not None and (
+                    nm is None or nav.ground_ahead(nm, p, c.x - p.x, c.z - p.z, reach=0.8)):
+                # 닿는 거리 밖에서 제자리로 막기만 하면 멀리서 휘두르는 놈(3008 반복)에게 영영 못 닿는다 — 방패 든 채 다가간다
+                mv.pad.move(*mv.stick_to(s, c.x, c.z, 0.6))
+                note("막으며다가감", s, c)
+            else:
+                mv.face(s, c)
+                note("막기", s, c)
             time.sleep(0.02)
             continue
         if a in M.DOWNED and a != M.GETTING_UP:            # 2) 누워 있다
@@ -340,7 +358,8 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             if r == "dead":
                 return done("me_dead")
             continue
-        if c.hp <= FINISH_HP and (p.sp or 0) >= FINISH_SP and mv.face(s, c, deg=30.0):
+        if (c.hp <= FINISH_HP and (p.sp or 0) >= FINISH_SP and not (foe.kick_when_idle and a == -1)
+                and mv.face(s, c, deg=30.0)):   # 방패 든 채 서 있는 방패병은 마무리도 막힌다 (22 → 21 → 20, 되받아 114) — 발차기로
             # 3+) 한 대면 죽는다 — 스태미나가 조금 모자라도 친다 (방패병이 HP 10 으로 4 s 버티는 동안 가드가 깨졌다)
             hit = mv.light(s, c, n=1)
             d = hit.as_dict()
@@ -352,16 +371,10 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             if hit.dead and orig_ptr is None:
                 return done("killed")
             continue
-        if (p.sp or 0) < weapon.sp_min:                    # 4) 스태미나 — 방패를 들면 회복이 80 % 준다(위키). 붙어 있으면 물러나 회복
+        if (p.sp or 0) < weapon.sp_min:                    # 4) 스태미나 — 방패를 내리고(회복 80 % 감소, 위키) 그놈을 정면에 둔 채 선다
+            # 물러나게 했더니 락온 없이 반대쪽으로 스틱을 밀어 **뒤돌아 걸어가** 등을 맞았다 (몸-그놈 ±180°, 사용자: "방향 정렬 못하고")
             mv.guard(False)
-            if h < 2.5 and s.cam_yaw is not None:
-                d = nav.safe_back(nm, p, p.x - c.x, p.z - c.z) if nm is not None else (p.x - c.x, p.z - c.z)
-                if d is not None:
-                    mv.pad.move(*mv.stick_to(s, p.x + d[0], p.z + d[1], 0.7))
-                else:
-                    mv.pad.move(0.0, 0.0)
-            else:
-                mv.face(s, c)
+            mv.face(s, c)
             note("SP회복", s, c)
             time.sleep(0.05)
             continue
@@ -374,10 +387,12 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
         if c is None:
             continue
         a = c.anim if c.anim is not None else -1
+        if a in M.ATTACK and reflex is not None and (reflex.attack_age(ptr) or 0.0) > SWING_S:
+            a = -1                                         # 가드 자세로 머문 3000 번대 — 선 것으로 (발차기)
         looks_at_me = c.heading is not None and abs(math.degrees(patrol.rel_angle(c, s.player))) < 60
         if foe.kick_when_idle and a == -1 and looks_at_me and now - kick_t > KICK_COOLDOWN:
             kick_t = now
-            hit = mv.kick(s, c)
+            hit = mv.kick_combo(s, c, n=weapon.combo)       # 발차기 → 곧장 약공 (간격이 크면 방패병이 다시 가드, 사용자)
         elif weapon.use_heavy:
             hit = mv.heavy(s, c)
         else:
