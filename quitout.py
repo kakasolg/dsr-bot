@@ -41,7 +41,9 @@ def _in_world(tm) -> bool:
         return False
 
 
-def _press(pad, b, gap: float) -> None:
+def _press(pad, b, gap: float, min_gap: float = MENU_GAP) -> None:
+    """min_gap: 뗀 뒤 최소 대기. 다음 입력 전에 화면 전환을 **확인하는** 곳은 그 확인이 간격 노릇을 하므로 VERIFIED_GAP 으로 줄인다
+    (사용자 2026-09-24 "강종이 사람보다 느려" — 7 번 × 0.1 s 가 전부 확인 대기와 겹쳐 있었다)."""
     with pad._lock:
         pad.pad.press_button(b)
         pad.pad.update()
@@ -49,7 +51,12 @@ def _press(pad, b, gap: float) -> None:
     with pad._lock:
         pad.pad.release_button(b)
         pad.pad.update()
-    time.sleep(max(MENU_GAP, gap - HOLD))
+    time.sleep(max(min_gap, gap - HOLD))
+
+
+VERIFIED_GAP = 0.02
+A_EVERY = 0.5        # 재접속 중 A 간격 (예전 1.2)
+LAST_STEPS: dict[str, float] = {}   # 마지막 quit_out 의 단계별 걸린 시간 (ms) — 어디가 느린지
 
 
 OFF_SCREEN = 0x1C69698   # 모듈 기준 u32 — 지금 떠 있는 메뉴 화면마다 다른 값 (닫힘/아이템/시스템/확인창). 커서 이동엔 안 바뀐다
@@ -169,12 +176,24 @@ def quit_out(tm, pad, gap: float = 0.08, settle: float = 0.1, timeout: float = 8
     else:
         return None
     t0 = time.time()
+    LAST_STEPS.clear()
+    LAST_STEPS["ready"] = round((t0 - t_ready) * 1000)
+    tl = [t0]
+
+    def lap(name: str) -> None:
+        now = time.time()
+        LAST_STEPS[name] = round((now - tl[0]) * 1000)
+        tl[0] = now
     for _ in range(5):                                       # 1) START → 플래그가 1→0 으로 **바뀌는 것**을 확인
-        _press(pad, B.XUSB_GAMEPAD_START, 0.0)
+        _press(pad, B.XUSB_GAMEPAD_START, 0.0, VERIFIED_GAP)
         if _wait(tm.menu_open, 0.25):
             break
     else:
         return None
+    # 메뉴가 **다 그려질 때까지** (아이템 탭 설명 글자) — 플래그만 보고 0.02 s 뒤 LEFT 를 누르면 애니메이션 중에 씹혀
+    # 0.8 s 를 기다렸다 다시 누른다 (실측 2026-09-24: systab 단계 1.3 s). 글자를 보고 누르면 씹히지 않는다.
+    _wait(lambda: _is_screen("itemtab") is not False, 0.6)
+    lap("start")
     # 커서 이동 → 그 칸에 불이 들어왔는지(설명 글자) 확인, 안 됐으면 한 번 더 → A → 다음 화면이 맞는지 확인
     for move, sel, expect in ((B.XUSB_GAMEPAD_DPAD_LEFT, "systab", "system"),
                               (B.XUSB_GAMEPAD_DPAD_UP, "quitsel", "confirm_quit")):
@@ -182,7 +201,7 @@ def quit_out(tm, pad, gap: float = 0.08, settle: float = 0.1, timeout: float = 8
         # 한 번 누르고 설명 글자가 다 나타날 때까지 기다린다 (글자가 서서히 나타나서 0.35 s 로는 부족 — 다시 눌렀다가
         # 한 칸 더 넘어간 적 있음). 재시도는 **아직 원래 칸일 때만** (아이템 탭 설명이 그대로면 입력이 씹힌 것)
         for _ in range(2):
-            _press(pad, move, 0.0)
+            _press(pad, move, 0.0, VERIFIED_GAP)
             if _wait(lambda: _is_screen(sel) is not False, 0.8):
                 break
             if sel != "systab" or _is_screen("itemtab") is not True:
@@ -191,24 +210,28 @@ def quit_out(tm, pad, gap: float = 0.08, settle: float = 0.1, timeout: float = 8
         else:
             _fail_shot(sel)
             return None
+        lap(sel)
         before = _screen(tm)
-        _press(pad, B.XUSB_GAMEPAD_A, 0.0)
+        _press(pad, B.XUSB_GAMEPAD_A, 0.0, VERIFIED_GAP)
         if not _wait(lambda: _screen(tm) != before, 0.6):
             return None
         # **그 화면이 맞는지 글자로 확인** — 아니면 멈춘다. 실측: LEFT 가 씹혀 A 가 아이템 창을 열었고,
         # 이어진 입력이 다크사인 확인창("영혼과 인간성을 모두 잃고 화톳불로...")까지 갔다.
         if not _wait(lambda: _is_screen(expect) is not False, 0.5):
             return None
+        lap(expect)
     time.sleep(settle)
     for _ in range(3):                                       # 확인창: 기본값 CANCEL → OK 로 옮겨졌나
-        _press(pad, B.XUSB_GAMEPAD_DPAD_LEFT, 0.0)
+        _press(pad, B.XUSB_GAMEPAD_DPAD_LEFT, 0.0, VERIFIED_GAP)
         if _wait(lambda: _is_screen("ok_sel") is not False, 0.35):
             break
     else:
         return None
-    _press(pad, B.XUSB_GAMEPAD_A, 0.0)
+    lap("ok_sel")
+    _press(pad, B.XUSB_GAMEPAD_A, 0.0, VERIFIED_GAP)
     while time.time() - t0 < timeout:
         if not _in_world(tm):
+            lap("gone")
             return time.time() - t0
         time.sleep(0.02)
     return None
@@ -222,7 +245,8 @@ def close_menu(tm, pad) -> None:
 
 
 def reload(pad, timeout: float = 40.0) -> float | None:
-    """타이틀에서 이어하기. 로드될 때까지 1.2 s 마다 A (오프라인 안내 OK → Continue). → 걸린 시간 또는 None."""
+    """타이틀에서 이어하기. 로드될 때까지 A_EVERY 마다 A (오프라인 안내 OK → Continue). → 걸린 시간 또는 None.
+    예전 1.2 s 간격은 타이틀에서 평균 0.6 s 를 놀렸다 (2026-09-24). 월드에 들어온 뒤 남는 A 는 상호작용 대상이 없으면 아무 일도 없다."""
     t0 = time.time()
     last_a = 0.0
     while time.time() - t0 < timeout:
@@ -232,10 +256,10 @@ def reload(pad, timeout: float = 40.0) -> float | None:
                 return time.time() - t0
         except Exception:
             pass
-        if time.time() - last_a > 1.2:
+        if time.time() - last_a > A_EVERY:
             _press(pad, B.XUSB_GAMEPAD_A, 0.1)
             last_a = time.time()
-        time.sleep(0.2)
+        time.sleep(0.1)
     return None
 
 

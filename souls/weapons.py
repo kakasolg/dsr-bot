@@ -34,7 +34,13 @@ BROADSWORD = Weapon("브로드소드", 202000, reach=1.2, combo=2, use_heavy=Fal
 ZWEIHANDER = Weapon("츠바이헨더", 350000, reach=2.3, combo=1, use_heavy=True, two_hand=True, str_req=24, sp_min=60,
                     note="강공 내려찍기로 경직·넘어뜨림")
 
-KNOWN = {w.base_id: w for w in (BROADSWORD, ZWEIHANDER)}
+# 배틀 액스 701000 (밴딧 시작 무기). 사용자(2026-09-24): "브로드소드보다 도끼가 퍼포먼스가 좋아 — 비슷한 동작인데 더 효과적".
+# 위키: 요구 근력 14·기량 8, 약공은 세로 내려찍기(인간형 경직이 큼), 이어 치기 됨. 옛 기록(playbook-notes·reach.py): 사거리 1.8 m, 불사원 망자 2~3타.
+# 닿는 거리는 브로드소드 실측(1.2)보다 길게 두되 옛 1.8 은 낙관적 — 1.5 로 시작하고 헛침이 나오면 reach.py 로 다시 잰다.
+BATTLE_AXE = Weapon("배틀 액스", 701000, reach=1.5, combo=2, use_heavy=False, two_hand=False, str_req=14,
+                    note="약공 세로 찍기 2연타. 강공(R2 큰 내려찍기)은 아직 안 시험함 — 넘어뜨리면 방패병에 쓸 후보")
+
+KNOWN = {w.base_id: w for w in (BROADSWORD, ZWEIHANDER, BATTLE_AXE)}
 
 
 def of(weapon_id: int | None) -> Weapon:

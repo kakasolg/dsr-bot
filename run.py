@@ -62,6 +62,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("cmd", choices=["status", "burg-bonfire", "clear-ramp", "merchant", "light-burg", "quit-test"])
     ap.add_argument("--no-rest", action="store_true")
+    ap.add_argument("--no-lure", action="store_true", help="나이프로 한 놈씩 깨우지 않고 예전처럼 걸어가 붙는다 (비교용)")
     a = ap.parse_args()
     if a.cmd == "status":
         return status()
@@ -91,7 +92,7 @@ def main() -> None:
         elif a.cmd == "clear-ramp":
             if not a.no_rest:
                 ms.start_fresh()
-            r = ms.clear_ramp()
+            r = ms.clear_ramp(lure=not a.no_lure)
         elif a.cmd == "merchant":
             r = ms.to_merchant()
         elif a.cmd == "light-burg":
@@ -123,6 +124,8 @@ def main() -> None:
         esc.stop()
         blood.stop()
         pad.neutral()
+        if hasattr(tm, "stats"):
+            log(f"텔레메트리 피드: {tm.stats()}")   # frames = 아래 읽기 수, fresh/waited = 층이 받은 프레임, direct = 폴백
 
 
 def quit_test(ms, mv, esc, log) -> str:

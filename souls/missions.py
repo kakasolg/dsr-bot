@@ -57,9 +57,9 @@ class Missions:
         self.log(f"── 불의 제전 휴식: {'됨' if ok else '실패'}")
         return ok
 
-    def clear_ramp(self) -> str:
+    def clear_ramp(self, lure: bool = True) -> str:
         targets = [dict(RAMP[i - 1], label=i) for i in RAMP_ORDER]
-        r = self.f.clear(targets, self.nms[MAP_A], arena=RAMP_ARENA)
+        r = self.f.clear(targets, self.nms[MAP_A], arena=RAMP_ARENA, lure=lure)
         self.log(f"── 경사로: {r}")
         return r
 

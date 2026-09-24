@@ -33,6 +33,12 @@ def awake(c) -> bool:
     return c.hp > 0 and not (9000 <= (c.anim or 0) < 9100)
 
 
+SEEK_R = 100.0           # 그놈을 찾는 반경 (duel.SEEK_R 과 같게)
+LURE_R = 13.0            # 나이프를 던지는 거리 — 옛 실측 14 m 에서 락온 던지기 맞음. 더 멀면 다른 놈 시야도 안 건드린다
+LURE_TRIES = 3
+KNIFE_LOW = 5            # 이 아래면 경고 — 상인에게 사러 가는 건 나중 과제 (사용자 2026-09-24)
+
+
 class Field:
     def __init__(self, mv: M.Moves, weapon, escape, bonfires: list, log=print, events=None):
         self.mv, self.w, self.esc, self.log = mv, weapon, escape, log
@@ -150,6 +156,65 @@ class Field:
             self.heal(0.7)
         return r
 
+    def _asleep(self, ptr, hold: float = 0.4) -> bool:
+        """서 있는 채(애니 -1) hold 동안 안 움직였나. 지도 스폰 좌표와 비교하지 않는다 — 적이 스폰에서 6 m 떨어져 서 있어
+        '이미 깸' 으로 오판했다 (2026-09-24 3번)."""
+        s0 = self.mv.snap(SEEK_R)
+        c0 = self.mv.find(s0, ptr)
+        if c0 is None or c0.anim not in (-1, None):
+            return False
+        time.sleep(hold)
+        c1 = self.mv.find(self.mv.snap(SEEK_R), ptr)
+        return c1 is not None and c1.anim in (-1, None) and math.dist((c0.x, c0.y, c0.z), (c1.x, c1.y, c1.z)) < 0.3
+
+    def lure(self, ptr, spawn, nm, tag: str, arena=None) -> str:
+        """한 놈만 깨운다 (사용자 2026-09-24: "가장 좋은 건 하나씩 불러와서 때려야 함", "투척 나이프 있으니 멀리서 하나씩").
+        arena 가 그놈에서 LURE_R+3 안이면 거기서, 아니면 경로를 따라 LURE_R 까지만 다가가 나이프를 던진다.
+        → 'lured' (움직였다) | 'awake' (이미 깨어 있어 안 던짐) | 'no_reaction' | 'no_knife' | 'no_path' | 'dead'"""
+        s = self.mv.snap(SEEK_R)
+        c = self.mv.find(s, ptr)
+        if c is None:
+            return "dead"
+        if not self._asleep(ptr):
+            return "awake"
+        knives = self.mv.tm.goods_count(M.ITEM_KNIFE) or 0
+        if not knives:
+            return "no_knife"
+        if knives <= KNIFE_LOW:
+            self.log(f"   ⚠ 투척 나이프 {knives} 개 — 상인에게 사야 한다")
+        here = (s.player.x, s.player.y, s.player.z)
+        goal = (c.x, c.y, c.z)
+        if arena is not None and math.dist(tuple(arena), goal) <= LURE_R + 3.0:
+            spot = tuple(arena)
+        else:
+            path = nm.find_path(here, goal)
+            if not path:
+                return "no_path"
+            spot = next((tuple(q) for q in path if math.dist(tuple(q), goal) <= LURE_R), tuple(path[-1]))
+        if math.dist(here, spot) > 1.5:
+            r = self.walk_to(spot, nm, f"{tag} 던질 자리로")
+            if r == "dead":
+                return "dead"
+            if r != "arrived":
+                self.log(f"   {tag}: 던질 자리까지 {r} — 지금 자리에서 던진다")
+        for n in range(1, LURE_TRIES + 1):
+            if self.mv.find(self.mv.snap(SEEK_R), ptr) is None:
+                return "dead"
+            if not self._asleep(ptr):
+                return "lured" if n > 1 else "awake"
+            r = self.mv.throw_knife(ptr)
+            s2 = self.mv.snap(25.0)
+            others = [x for x in (s2.hostile(25.0) if s2 else []) if x.ptr != ptr and awake(x) and x.anim not in (-1, None)]
+            self.log(f"   {tag}: 나이프 {n} ({r.get('dist')} m, 락온 {r.get('locked')}, 조준 {r.get('aim_off')}°) → "
+                     f"피해 {r.get('hit')}, {'움직임' if r.get('woke') else '반응 없음'}{' | ' + r['why'] if r.get('why') else ''}"
+                     f"{' | 다른 놈 깸 ' + str(len(others)) if others else ''}")
+            self.events("lure", tag=tag, n=n, **{k: r.get(k) for k in ("dist", "locked", "aim_off", "hit", "woke", "knives")})
+            if r.get("woke"):
+                return "lured"
+            if not r.get("ok"):
+                time.sleep(0.5)
+        return "no_reaction"
+
     def find_at(self, npc: int, pos, r: float = 3.0):
         s = self.mv.snap(200.0)
         if s is None:
@@ -157,7 +222,7 @@ class Field:
         cands = [c for c in s.chars if c.npc_param == npc and c.hp > 0 and math.dist((c.x, c.y, c.z), tuple(pos)) < r]
         return min(cands, key=lambda c: math.dist((c.x, c.y, c.z), tuple(pos)), default=None)
 
-    def clear(self, targets: list[dict], nm, tries: int = 3, arena=None) -> str:
+    def clear(self, targets: list[dict], nm, tries: int = 3, arena=None, lure: bool = False) -> str:
         """스폰 지도 순서대로 하나씩. targets = [{"npc":…, "pos":[x,y,z]}, …].
         → 'cleared' | 'left #2 #4' (세 번 해도 못 잡은 놈) | 'died' | 'no_estus'
         없는 놈은 건너뛴다 (이미 죽었다 — 퀵 종료로는 안 살아난다)."""
@@ -176,6 +241,12 @@ class Field:
                     killed = True
                     break
                 self.wait_escape()
+                if lure and k == 0:
+                    lr = self.lure(c.ptr, e["pos"], nm, f"#{i}", arena=arena)
+                    self.log(f"   #{i} 끌어오기: {lr}")
+                    if lr == "dead":
+                        killed = True
+                        break
                 r = self.fight(c.ptr, nm, f"#{i} {e['npc']}" + (f" ({k + 1}번째)" if k else ""), arena=arena, desperate=desperate)
                 if r.result == "killed":
                     killed = True

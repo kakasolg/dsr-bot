@@ -47,9 +47,13 @@ class Escape:
         self._y = collections.deque(maxlen=40)
         self.th = threading.Thread(target=self._run, daemon=True)
 
-    def floor_drop(self, p) -> float:
+    FREEFALL = 4.0            # 바닥을 모르는 곳(내비메시 빈 곳: 계단 꼭대기·다리)에선 0.8 s 에 이만큼 떨어져야 낙사로 본다
+                              # — 2026-09-24 같은 자리에서 y 0.4 m 변화로 "99 m 아래" 오경보 2번, 매번 10 s 강종만 낭비
+
+    def floor_drop(self, p) -> float | None:
+        """발밑 바닥까지 거리. 내비메시가 없는 곳이면 None (모름) — 99 로 두면 계단 꼭대기에서 오경보."""
         below = [y for nm in self.nms for y, f, _i in nm.tris_at(p.x, p.z) if not (f & navmesh.BLOCKED) and y <= p.y + 0.3]
-        return p.y - max(below) if below else 99.0
+        return p.y - max(below) if below else None
 
     def _dps(self, now: float) -> float:
         pts = [(t, hp) for t, hp in self._hp if now - t <= 1.5]
@@ -76,7 +80,11 @@ class Escape:
             falling = p.anim in FALL_ANIMS or (len(ys) >= 3 and max(ys) - p.y > self.FALL_V)
             if falling and now - self.last_fall > self.FALL_COOLDOWN:
                 drop = self.floor_drop(p)
-                if drop > self.LETHAL_DROP:
+                if drop is None:
+                    ys8 = [y for t, y in self._y if now - t <= 0.8]
+                    if len(ys8) >= 4 and max(ys8) - p.y > self.FREEFALL:
+                        why, kind = f"낙사 (바닥 모름, 0.8 s 에 {max(ys8) - p.y:.1f} m)", "fall"
+                elif drop > self.LETHAL_DROP:
                     why, kind = f"낙사 (발밑 바닥 {drop:.0f} m 아래)", "fall"
             elif now - self.last_crowd > self.CROWD_COOLDOWN:
                 near = [c for c in s.hostile(3.5) if c.hp > 0 and not (9000 <= (c.anim or 0) < 9100)]
@@ -102,8 +110,9 @@ class Escape:
             self.pad.freeze()
             res: dict = {"why": why, "kind": kind, "pos0": pos0}
             try:
-                q = quitout.quit_out(tm, self.pad, gap=quitout.MENU_GAP, settle=0.1, ready_wait=0.05)
+                q = quitout.quit_out(tm, self.pad, gap=quitout.MENU_GAP, settle=0.03, ready_wait=0.05)
                 res["quit_s"] = None if q is None else round(q, 2)
+                res["quit_steps"] = dict(quitout.LAST_STEPS)
                 if q is None:
                     quitout.close_menu(tm, self.pad)
                 else:

@@ -26,6 +26,7 @@ DOWNED = range(9900, 10000)      # 넘어짐·누움·일어남 (9920 = 일어�
 GETTING_UP = 9920
 ESTUS_IDS = range(200, 216)      # 에스트 아이템 번호는 강화 단계별 (새 캐릭터 201)
 ITEM_DARKSIGN = 117
+ITEM_KNIFE = 290                 # 투척 나이프 (퀵 슬롯에 있어야 고를 수 있다)
 SECOND_R1_AT = 0.45              # 약공 2연타: 첫 R1 뒤 이때 한 번 더 (입력 버퍼)
 KICK_TO_R1 = 0.6                 # 발차기 뒤 늦어도 이때 R1 (닿으면 그 순간) — 방패병이 9600 된 게 0.45~0.61 s
 B = control.B
@@ -303,6 +304,94 @@ class Moves:
                 time.sleep(0.3)
             return False
         return False
+
+    # ── 던지기 ───────────────────────────────────────────────
+    def aim(self, ptr, deg: float = 1.5, timeout: float = 3.0) -> float | None:
+        """락온 없는 정밀 조준 — 스틱을 0.6 으로 짧게 쳐 몸을 그놈 쪽으로 (hunt.aim_fine 실측: 한 번에 0.15~0.9° 안).
+        → 마지막 어긋난 각도(°), 그놈이 없으면 None."""
+        t, off = time.time(), None
+        while time.time() - t < timeout:
+            s = self.snap(40.0)
+            c = self.find(s, ptr)
+            if c is None or s.player.heading is None or s.cam_yaw is None:
+                return None
+            off = math.degrees(patrol.rel_angle(s.player, c))
+            if abs(off) <= deg:
+                break
+            self.pad.move(*[0.6 * v for v in self.stick_to(s, c.x, c.z)])
+            time.sleep(0.08 if abs(off) > 10 else 0.05)
+            self.pad.move(0.0, 0.0)
+            time.sleep(0.25)
+        self.pad.move(0.0, 0.0)
+        time.sleep(0.16)
+        return off
+
+    def lock_state(self, ptr) -> str:
+        """'target' | 'other' | 'none' — 락온이 그놈에 걸렸나 (PlayerIns+0xEF0 핸들)."""
+        h = self.tm.lock_target()
+        if h is None or h == -1:
+            return "none"
+        return "target" if ptr and h == self.tm.handle(ptr) else "other"
+
+    def unlock(self) -> None:
+        if self.tm.lock_target() not in (None, -1):
+            self.pad.lock_on()                    # R3 는 토글
+            time.sleep(0.15)
+
+    def throw_knife(self, ptr, watch: float = 1.8) -> dict:
+        """투척 나이프 한 개 — 던질 때만 락온 (사용자: 평소엔 락온 안 씀. 옛 실측: 락온 없이는 14 m 에서 1.2° 안이어야 하고
+        위에 선 놈은 3/3 반응 없음, 락온이면 20 m 위 5번도 맞음). 락온이 안 걸리면 정밀 조준으로 던진다.
+        → {"ok": 던졌나, "locked", "hit": 피해, "woke": 움직였나, "dist", "knives": 남은 개수, "why"}"""
+        if not self.tm.goods_count(ITEM_KNIFE):
+            return {"ok": False, "why": "나이프 없음"}
+        if not self.select_item(ITEM_KNIFE):
+            return {"ok": False, "why": "나이프 칸을 못 고름"}
+        s = self.snap(40.0)
+        c = self.find(s, ptr)
+        if c is None:
+            return {"ok": False, "why": "그놈 없음"}
+        self.pad.guard(False)
+        self.aim(ptr, deg=8.0, timeout=1.5)       # 락온이 그놈을 잡도록 몸을 그쪽으로
+        locked = False
+        for _ in range(2):
+            self.pad.lock_on()
+            t = time.time()
+            while time.time() - t < 0.4:
+                self.pad.release_due()
+                time.sleep(0.02)
+            st = self.lock_state(ptr)
+            if st == "target":
+                locked = True
+                break
+            if st == "other":
+                self.pad.lock_on()                # 옆 놈에 걸림 → 풀고 다시
+                time.sleep(0.15)
+        off = None
+        if not locked:
+            off = self.aim(ptr, deg=1.5, timeout=3.0)
+        s = self.snap(40.0)
+        c = self.find(s, ptr)
+        if c is None:
+            self.unlock()
+            return {"ok": False, "why": "그놈 없음", "locked": locked}
+        hp0, pos0, n0 = c.hp, (c.x, c.y, c.z), self.tm.goods_count(ITEM_KNIFE) or 0
+        self.pad.use_item()
+        t, hit, woke = time.time(), 0, False
+        while time.time() - t < watch:
+            self.pad.release_due()
+            s2 = self.snap(40.0)
+            c2 = self.find(s2, ptr)
+            if c2 is not None:
+                hit = max(hit, hp0 - c2.hp)
+                if math.dist((c2.x, c2.y, c2.z), pos0) > 0.8 or c2.anim not in (-1, None):
+                    woke = True
+                if hit > 0 and woke:
+                    break
+            time.sleep(0.03)
+        self.unlock()
+        n1 = self.tm.goods_count(ITEM_KNIFE) or 0
+        return {"ok": n1 < n0, "locked": locked, "aim_off": None if off is None else round(off, 1), "hit": hit, "woke": woke,
+                "dist": round(c.dist, 1), "knives": n1, "why": None if n1 < n0 else "안 던져짐 (개수 그대로)"}
 
     # ── 이동 ─────────────────────────────────────────────────
     def walk_path(self, path: list, nm, mode="walk", stop=None, on_tick=None, tol: float = 1.0,

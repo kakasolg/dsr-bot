@@ -386,6 +386,15 @@ class DSRTelemetry:
                 return qty
         return 0
 
+    def set_last_bonfire(self, bonfire_id: int) -> bool:
+        """마지막 화톳불 ID 를 바꾼다 — 뼛조각·다크사인이 그 화톳불로 간다 (사망 부활 지점은 아님). 사용자 2026-09-24: 구역을 건너갈 때 워프 대신 이걸로."""
+        w = self.static.get("ChrClassWarp")
+        w = self.q(w) if w else None
+        if not w:
+            return False
+        self.pm.write_int(w + OFF_LASTBONFIRE, bonfire_id)
+        return self.i32(w + OFF_LASTBONFIRE) == bonfire_id
+
     def last_bonfire(self) -> Optional[int]:
         w = self.q(self.static["ChrClassWarp"])
         return self.i32(w + OFF_LASTBONFIRE) if w else None
