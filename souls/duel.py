@@ -32,6 +32,7 @@ FINISH_HP, FINISH_SP = 25, 15   # 그놈 HP 가 약공 한 대(실측 34~41) 안
 INTERRUPT_S = 0.35       # 그놈 공격이 시작된 지 이만큼 안이면 막지 말고 먼저 친다 (약공이 닿는 게 더 빠르다)
 SWITCH_MARGIN, SWITCH_HOLD = 0.8, 3.0
 SWITCH_R = 2.5           # 이 안(수평·같은 높이)에 목표보다 가까운 깨어 있는 놈이 있으면 그놈부터
+RANGED_SWITCH_R = 25.0   # 던지는/쏘는 놈(foes.ranged)이 휘두르는 중(던지는 중)이면 거리·높이 상관없이 이 안이면 그놈부터 (사용자: "위에 화살 쏘는 놈부터")
 LEDGE_DY = 3.0           # 그놈이 arena 보다 이만큼 높거나 낮으면 끌어오지 않는다 (따라오지 않는다)
 SWING_S = 1.6            # 공격 애니가 시작된 지 이만큼 넘으면 휘두르는 중으로 안 본다
 PULL_R = 8.0             # 끌어오기: 그놈이 이 안이면(움직이지 않아도) 물러나기 시작
@@ -247,6 +248,18 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
         if now - last_dmg_t > STALEMATE_S:
             return done("stalemate")
         h, dy, a = M.horiz(p, c), c.y - p.y, (c.anim if c.anim is not None else -1)
+        ranged_cut = [x for x in s.hostile(RANGED_SWITCH_R) if x.ptr != ptr and x.hp > 0
+                      and foes_.of(x.npc_param).ranged and (x.anim or -1) in M.ATTACK]
+        # 위(또는 멀리)에서 쏘는 놈은 가까운 끼어든 놈(cut, 아래)과 달리 거리·높이 제한이 없다 — 맞으면서 눈앞 상대만 방어 위주로
+        # 상대하게 됐다 (사용자 2026-09-25: "화살 쏘는 애가 공격하니 방어 위주로 세팅됨 — 그놈부터 처리해야 함")
+        if ranged_cut and now - switch_t > SWITCH_HOLD:
+            x = min(ranged_cut, key=lambda y: M.horiz(p, y))
+            if orig_ptr is None:
+                orig_ptr = ptr
+            log(f"      원거리부터: {x.npc_param} ({M.horiz(p, x):.1f} m, 높이차 {x.y - p.y:+.1f}) — 원래 목표 {h:.1f} m")
+            ptr, c, switch_t = x.ptr, x, now
+            last_seen, foe = x, foes_.of(x.npc_param)
+            h, dy, a = M.horiz(p, c), c.y - p.y, (c.anim if c.anim is not None else -1)
         cut = [x for x in s.hostile(SWITCH_R + 2.0) if x.ptr != ptr and x.hp > 0 and not (9000 <= (x.anim or 0) < 9100)
                and M.horiz(p, x) < min(SWITCH_R, h - SWITCH_MARGIN) and abs(x.y - p.y) < 1.2]
         # 거리가 비슷한 둘 사이에서 1~2 s 마다 목표를 바꿔 몸을 돌리다 등을 맞았다 (±140~166°, 25 s 에 442) —
