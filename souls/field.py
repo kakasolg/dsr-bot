@@ -17,6 +17,7 @@ from . import duel as D
 from . import foes as foes_
 from . import moves as M
 from .reflex import Reflex
+from . import style as style_
 from .watch import Blood
 
 FOLLOW_R = 4.5           # 길을 걷다 이 안(수평)에 깨어 있는 놈이 붙으면 싸운다
@@ -43,19 +44,18 @@ KNIFE_LOW = 5            # 이 아래면 경고 — 상인에게 사러 가는 �
 
 
 class Field:
-    def __init__(self, mv: M.Moves, weapon, escape, bonfires: list, log=print, events=None, style: str = "guard"):
+    def __init__(self, mv: M.Moves, weapon, escape, bonfires: list, log=print, events=None, style="guard"):
         self.mv, self.w, self.esc, self.log = mv, weapon, escape, log
-        self.style = style                                 # guard: 방패로 받고 휘청에 친다 | backstep: 백스텝으로 피하고 헛친 뒤 친다 (양손)
+        self.style = style_.of(style)                      # souls/style.py — 각 층은 이 객체를 읽기만 한다
         self.bonfires = [tuple(b) for b in bonfires]      # 핏자국 줍기(A) 금지 구역
         self.home = self.bonfires[0] if self.bonfires else None   # 마지막으로 쉰 화톳불 (물러날 곳, 다크사인 도착 확인)
-        self.reset_spot = None   # 막혔을 때 되돌아가 길을 다시 잡는 평지 (경사로: RAMP_ARENA). 경사로 아래 (-24.5,-48.3,26.0) 은 내비메시 밖
-                                 # 주머니라 첫 경로점이 2.3 m 위 턱에 잡혀 17 s 씩 세 번 막혔다 (2026-09-24 밤)
         self.events = events or (lambda *a, **k: None)
         # 반사 — 싸우든 걷든 매 틱 먼저 (발밑 확인용 내비메시는 쓸 때 넣는다). 막으면 안 되는 공격은 적 데이터(3층)에서
         self.reflex = Reflex(mv, unblockable=lambda c: (c.anim or -1) in foes_.of(c.npc_param).unblockable,
                              bs_ok=lambda c: foes_.of(c.npc_param).kind != "shield")
-        self.reflex.evade = style == "backstep"
-        mv.guard_ok = style != "backstep"
+        self.reflex.evade = self.style.evade
+        self.reflex.bs_attack = self.style.bs_attack
+        mv.guard_ok = self.style.shield
         self.reflex.events = self.events
 
     # ── 상태 ─────────────────────────────────────────────────
@@ -158,7 +158,7 @@ class Field:
         if e is not None and self.mv.tm.selected_item() != e:
             self.mv.select_item(e)                         # 미리 골라 둔다 — 틈이 났을 때 칸 돌리는 1~3 s 가 없게
         self.reflex.nm = nm
-        want = 3 if self.style == "backstep" else 1                  # 방패 스타일은 한손+방패, 백스텝 스타일은 양손
+        want = self.style.grip
         if self.mv.tm.grip() not in (None, want):
             self.mv.pad.two_hand_right()                   # Y 홀드 + RB 토글
             time.sleep(0.5)
@@ -214,11 +214,6 @@ class Field:
             r = self.walk_to(spot, nm, f"{tag} 던질 자리로")
             if r == "dead":
                 return "dead"
-            if r != "arrived" and self.reset_spot is not None:
-                self.log(f"   {tag}: 던질 자리까지 {r} — 평지로 되돌아가 길을 다시 잡는다")
-                if self.walk_to(tuple(self.reset_spot), nm, f"{tag} 평지로") == "dead":
-                    return "dead"
-                r = self.walk_to(spot, nm, f"{tag} 던질 자리로(2)")
             if r != "arrived":
                 self.log(f"   {tag}: 던질 자리까지 {r} — 지금 자리에서 던진다")
         c = self.mv.find(self.mv.snap(SEEK_R), ptr)
@@ -281,7 +276,80 @@ class Field:
         return min(cands, key=lambda c: math.dist((c.x, c.y, c.z), tuple(pos)), default=None)
 
     def clear(self, targets: list[dict], nm, tries: int = 3, arena=None, lure: bool = False) -> str:
-        """스폰 지도 순서대로 하나씩. targets = [{"npc":…, "pos":[x,y,z]}, …].
+        """교전 큐 (2026-09-25 층 설계 2단계): **깨어서 오는 놈이 있으면 가까운 순으로 먼저**, 없을 때만 스폰 목록의 다음 놈을
+        끌어오거나 찾아간다. 실제 처치 대부분이 '가는 길에 쫓아온 놈' 이었는데 예전 코드는 그걸 walk 안의 예외로 다뤘다.
+        targets = [{"npc":…, "pos":[x,y,z], "label":n, "lure":bool}, …] 는 '다음에 깨울 놈' 의도.
+        → 'cleared' | 'left #2 #4' (세 번 해도 못 잡은 놈) | 'died' | 'no_estus'"""
+        pending = list(targets)
+        left: list[str] = []
+        tried: dict = {}                                   # 스폰 번호 / ptr → 시도 수
+        ignore: set = set()                                # 세 번 못 잡은 오는 놈 (퀵 종료 감시에 맡긴다)
+        desperate = False
+        while pending:
+            if not self.alive():
+                return "died"
+            self.wait_escape()
+            s = self.mv.snap(SEEK_R)
+            if s is None:
+                time.sleep(0.1)
+                continue
+            coming = [c for c in s.hostile(FOLLOW_R + 2.0) if awake(c) and c.ptr not in ignore and c.anim not in (None, -1)
+                      and M.horiz(s.player, c) < FOLLOW_R + 2.0 and abs(c.y - s.player.y) < FOLLOW_DY]
+            if coming:
+                c = min(coming, key=lambda x: M.horiz(s.player, x))
+                tried[c.ptr] = tried.get(c.ptr, 0) + 1
+                r = self.fight(c.ptr, nm, f"오는 놈 {c.npc_param}" + (f" ({tried[c.ptr]}번째)" if tried[c.ptr] > 1 else ""),
+                               arena=arena, desperate=desperate)
+                if r.result == "me_dead":
+                    return "died"
+                if r.result != "killed":
+                    ok = self.recover(f"오는 놈 {r.result}", nm)
+                    if not ok and self.mv.estus_left() <= 0:
+                        return "no_estus"
+                    desperate = not ok
+                    if tried[c.ptr] >= tries or r.result in ("stuck", "lost"):
+                        ignore.add(c.ptr)
+                else:
+                    desperate = False
+                continue
+            e = pending[0]
+            i = e.get("label", 0)
+            c = (self.find_at(e["npc"], e["pos"], 3.0) or self.find_at(e["npc"], e["pos"], 12.0)
+                 or self.find_at(e["npc"], e["pos"], 30.0))
+            if c is None:
+                self.log(f"   #{i} {e['npc']}: 스폰 30 m 안에 없음 — 이미 죽음")
+                pending.pop(0)
+                continue
+            k = tried.get(i, 0)
+            if lure and k == 0 and e.get("lure", True):
+                lr = self.lure(c.ptr, e["pos"], nm, f"#{i}", arena=arena)
+                self.log(f"   #{i} 끌어오기: {lr}")
+                tried[i] = 1
+                if lr == "dead":
+                    pending.pop(0)
+                continue                                   # 깨어 오면 위의 '오는 놈' 이 받는다; 안 오면 다음 바퀴에 찾아간다
+            tried[i] = k + 1
+            r = self.fight(c.ptr, nm, f"#{i} {e['npc']}" + (f" ({tried[i]}번째)" if tried[i] > 1 else ""), arena=arena, desperate=desperate)
+            if r.result == "killed":
+                pending.pop(0)
+                desperate = False
+                continue
+            if r.result == "me_dead":
+                return "died"
+            self.wait_escape()
+            if not self.alive():
+                return "died"
+            ok = self.recover(f"#{i} {r.result}", nm)
+            if not ok and self.mv.estus_left() <= 0:
+                return "no_estus"
+            desperate = not ok                             # 물러나지도 마시지도 못했으면 다음엔 끝까지
+            if tried[i] >= tries + 1:
+                left.append(f"#{i}")
+                pending.pop(0)
+        return "cleared" if not left else "left " + " ".join(left)
+
+    def _clear_old(self, targets: list[dict], nm, tries: int = 3, arena=None, lure: bool = False) -> str:
+        """(예전) 스폰 지도 순서대로 하나씩. targets = [{"npc":…, "pos":[x,y,z]}, …].
         → 'cleared' | 'left #2 #4' (세 번 해도 못 잡은 놈) | 'died' | 'no_estus'
         없는 놈은 건너뛴다 (이미 죽었다 — 퀵 종료로는 안 살아난다)."""
         left = []
@@ -322,10 +390,6 @@ class Field:
                 self.wait_escape()
                 if not self.alive():
                     return "died"
-                if r.result == "stuck" and self.reset_spot is not None:
-                    self.log(f"   #{i}: 막힘 — 평지로 되돌아가 다시")
-                    if self.walk_to(tuple(self.reset_spot), nm, f"#{i} 평지로") == "dead":
-                        return "died"
                 ok = self.recover(f"#{i} {r.result}", nm)
                 if not ok and self.mv.estus_left() <= 0:
                     return "no_estus"

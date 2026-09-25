@@ -40,6 +40,7 @@ class Reflex:
         self.mv, self.nm, self.unblockable, self.bs_ok = mv, nm, unblockable, bs_ok
         # bs_ok(c): 이 놈에게 백스텝 공격을 써도 되나 — 방패병은 파고드는 도끼가 방패에 막히고 그 콤보에 351 (2026-09-24 진단)
         self.evade = False       # True 면 막지 않고 **모든** 공격을 백스텝·구르기로 피한다 (백스텝 스타일 — 양손, 방패 안 씀)
+        self.bs_attack = False   # 피할 때 백스텝 공격(B → R1)을 붙이나 (Style.bs_attack)
         self.events = None       # 4층이 넣어 주면 회피마다 'evade' 사건 (kind·거리·그 뒤 1.3 s 안에 맞았나) — style_report.py 가 센다
         self._pending: dict | None = None
         self.last_hit = None     # 마지막 백스텝 공격 결과 (duel 이 기록용으로 가져간다)
@@ -116,7 +117,7 @@ class Reflex:
         if c.anim is not None and start is not None and (evade_now or self.unblockable(c)):
             if self._dodged.get(c.ptr) != start:
                 self._dodged[c.ptr] = start
-                kind = self.dodge(s, c, attack=evade_now)
+                kind = self.dodge(s, c, attack=evade_now and self.bs_attack)
                 self._pending = {"t": now, "kind": kind, "dist": round(M.horiz(p, c), 2), "eanim": c.anim, "npc": c.npc_param,
                                  "hp0": p.hp or 0, "min_hp": p.hp or 0}
             else:

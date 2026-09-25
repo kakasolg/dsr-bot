@@ -16,7 +16,6 @@ from dataclasses import dataclass, field
 import control
 import farm
 import nav
-import patrol
 import quitout
 
 ATTACK = range(3000, 3500)       # 적 공격 애니 (DS1 인간형 공통)
@@ -53,6 +52,12 @@ def horiz(p, c) -> float:
     return math.hypot(c.x - p.x, c.z - p.z)
 
 
+def rel_angle(p, c) -> float:
+    """c 가 내 정면에서 몇 rad 옆에 있나 (−π..π, + 가 오른쪽). 실측: 월드 yaw = heading + π. (옛 patrol.rel_angle — 1층으로 옮김)"""
+    fwd = p.heading + math.pi
+    return (math.atan2(c.x - p.x, c.z - p.z) - fwd + math.pi) % (2 * math.pi) - math.pi
+
+
 class Moves:
     def __init__(self, tm, pad: control.Pad):
         self.tm, self.pad = tm, pad
@@ -78,7 +83,7 @@ class Moves:
         p = s.player
         if p.heading is None or s.cam_yaw is None:
             return False
-        if abs(math.degrees(patrol.rel_angle(p, c))) > deg:
+        if abs(math.degrees(rel_angle(p, c))) > deg:
             self.pad.move(*self.stick_to(s, c.x, c.z, 0.55))     # 0.35 로는 방패 든 채 거의 안 돌았다
             return False
         self.pad.move(0.0, 0.0)
@@ -222,17 +227,18 @@ class Moves:
             if not nav.ground_ahead(nm, p, -back[0], -back[1], reach=2.2):
                 hit.skipped = "앞에 바닥 없음"
                 return hit
-        if abs(math.degrees(patrol.rel_angle(p, c))) > 40:
+        if abs(math.degrees(rel_angle(p, c))) > 40:
             hit.skipped = "몸이 딴 데"
             return hit
         return self.combo("backstep_r1", s, c, nm=None)   # 바닥은 위에서 검사했다
 
     # ── 조합 = 시퀀스 (사용자 2026-09-24: "공격 조합을 하나의 시퀀스로 — 구르기 약공, 점프 강공, 백스텝 약공 이런 식으로") ──
     # 한 줄 = (시각 s, 동작). 동작: "stick_fwd" 그놈 쪽 스틱 | "stick_off" 스틱 놓기 | "B" | "R1" | "R2"(트리거)
+    # 시각: B 앞 단계는 시작 기준, **B 뒤 단계는 B 를 누른 순간 기준** (스틱 놓기 대기 0.16 s 가 끼어도 간격이 유지되게)
     # 한 번의 _watch 로 결과를 본다. 새 조합은 여기 한 줄로 추가하고 위 층은 이름만 부른다.
     COMBOS = {
         "backstep_r1": ((0.0, "stick_off"), (0.0, "B"), (BS_TO_R1, "R1")),                 # 백스텝 약공 — 앞으로 1.7~2.8 m 파고든다
-        "roll_r1":     ((0.0, "stick_fwd"), (0.3, "B"), (0.3 + 0.55, "R1")),               # 구르기 약공 — 구르기 끝에 R1 (입력 버퍼)
+        "roll_r1":     ((0.0, "stick_fwd"), (0.3, "B"), (0.55, "R1")),                      # 구르기 약공 — B 뒤 0.55 s R1 (B 이후 시각은 B 기준)
         "jump_r2":     ((0.0, "stick_fwd"), (0.1, "R2"), (0.25, "stick_off")),             # 점프 강공 — 앞+R2 (조작표)
     }
     COMBO_WATCH = {"backstep_r1": BS_TO_R1 + 1.1, "roll_r1": 2.0, "jump_r2": 1.8}
@@ -252,7 +258,7 @@ class Moves:
             if need_front and not nav.ground_ahead(nm, p, c.x - p.x, c.z - p.z, reach=need_front):
                 hit.skipped = "앞에 바닥 없음"
                 return hit
-        if abs(math.degrees(patrol.rel_angle(p, c))) > 40:
+        if abs(math.degrees(rel_angle(p, c))) > 40:
             hit.skipped = "몸이 딴 데"
             return hit
         steps = list(self.COMBOS[name])
@@ -277,12 +283,24 @@ class Moves:
                 self.pad._r2(0.12)
                 hit.presses += 1
 
+        # 시각은 **B 를 누른 순간 기준** — 절대 시각으로 두면 스틱 놓기 대기(0.16 s)만큼 R1 이 당겨져 0.45 가 0.29 가 됐다 (moves_test 가 잡음)
+        state["anchor"] = None
+
+        t_start = time.time()
+
         def tick(t, h):
-            while state["i"] < len(steps) and t >= steps[state["i"]][0]:
-                do(steps[state["i"]][1])
+            while state["i"] < len(steps):
+                st_t, act = steps[state["i"]]
+                now = time.time()                          # _watch 의 t 는 틱 시작 시각이라 do() 안의 대기(0.16 s)를 못 본다 — 실시간으로
+                base = state["anchor"] if (state["anchor"] is not None and st_t > 0) else t_start
+                if now - base < st_t:
+                    break
+                do(act)
+                if act == "B" and state["anchor"] is None:
+                    state["anchor"] = time.time()          # B 이후 단계의 시각은 B 를 누른 순간 기준
                 state["i"] += 1
-        self._watch(hit, c.ptr, hp0, ehp0, self.COMBO_WATCH[name], tick,
-                    early_exit=lambda t, h: state["i"] >= len(steps) and t > steps[-1][0] + 0.4)
+        self._watch(hit, c.ptr, hp0, ehp0, self.COMBO_WATCH[name] + 0.3, tick,
+                    early_exit=lambda t, h: state["i"] >= len(steps) and time.time() > (state["anchor"] or t_start) + steps[-1][0] + 0.4)
         self.pad.move(0.0, 0.0)
         return hit
 
@@ -397,7 +415,7 @@ class Moves:
             c = self.find(s, ptr)
             if c is None or s.player.heading is None or s.cam_yaw is None:
                 return None
-            off = math.degrees(patrol.rel_angle(s.player, c))
+            off = math.degrees(rel_angle(s.player, c))
             if abs(off) <= deg:
                 break
             self.pad.move(*[0.6 * v for v in self.stick_to(s, c.x, c.z)])

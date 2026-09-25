@@ -303,6 +303,22 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
                     return "unreachable"
                 log(f"  stuck at {dist:.1f} m — escape #{escapes}")
                 mover.set("walk")
+                # 0층 복구: 내비메시 밖(주머니)에 서 있으면 뒤·옆 탈출보다 먼저 같은 높이의 메시 점으로 돌아온다
+                if terrain is not None and hasattr(terrain, "on_mesh") and not terrain.on_mesh(p.gx, p.gy, p.gz):
+                    nw = terrain.nearest_walkable(p.gx, p.gy, p.gz)
+                    if nw is not None and math.hypot(nw[0] - p.gx, nw[2] - p.gz) > 0.4:
+                        log(f"  메시 밖 — {nw[0]:.1f},{nw[2]:.1f} 로 복귀")
+                        rx, ry = control.world_to_stick(nw[0] - p.gx, nw[2] - p.gz, s.cam_yaw, YAW_OFFSET, FLIP_X)
+                        t_r = time.time()
+                        while time.time() - t_r < 1.5:
+                            pad.move(rx * 0.9, ry * 0.9)
+                            s2 = tm.snapshot(within=5.0)
+                            if s2 and s2.player.gx is not None and math.hypot(nw[0] - s2.player.gx, nw[2] - s2.player.gz) < 0.5:
+                                break
+                            time.sleep(0.05)
+                        pad.move(0.0, 0.0)
+                        last_progress_d, last_progress_t = None, time.time()
+                        continue
                 if env.GAME != "dsr":   # DS1 의 A 는 점프가 아니라 상호작용 (NPC 대화창이 뜨면 멈춤)
                     pad.jump()
                 # 뒤·옆으로 빠져나갈 때도 발밑부터 — 바닥 확인 없이 옆걸음하다 5번 위 좁은 계단에서 떨어져 죽었다 (climb_test, 2026-09-23).

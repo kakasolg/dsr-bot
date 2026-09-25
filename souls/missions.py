@@ -62,7 +62,6 @@ class Missions:
 
     def clear_ramp(self, lure: bool = True) -> str:
         targets = [dict(RAMP[i - 1], label=i, lure=(i not in NO_LURE)) for i in RAMP_ORDER]
-        self.f.reset_spot = RAMP_ARENA
         r = self.f.clear(targets, self.nms[MAP_A], arena=RAMP_ARENA, lure=lure)
         self.log(f"── 경사로: {r}")
         return r

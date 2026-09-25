@@ -17,7 +17,6 @@ import time
 from dataclasses import dataclass, field
 
 import nav
-import patrol
 
 from . import foes as foes_
 from . import moves as M
@@ -120,12 +119,14 @@ PUNISH_R = 1.6           # 닿는 거리 + 이만큼 안이면 걸어 들어가 
 
 
 def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: float = 0.25,
-         cancel=lambda: False, care=None, reflex=None, arena=None, style: str = "guard") -> DuelResult:
+         cancel=lambda: False, care=None, reflex=None, arena=None, style=None) -> DuelResult:
     """care: 4층이 주는 회복 담당 — care.wants(s) (마시고 싶나), care.take(recheck) (마신다; recheck(s) 로 틈을 다시 본다).
     틈인지는 여기(3층)가 본다: opening(). 붙어 있으면 백스텝으로 벌리고 다음 틱에 다시 본다.
     reflex: 반사(souls/reflex.py) — 매 틱 가장 먼저. 움직였으면 이 틱은 쉰다 (상대가 아닌 놈의 공격도 정면으로 막는다).
     arena: 이 근처 평평한 자리 — 발밑이 낭떠러지 쪽이면(nav.footing) 그놈이 안 휘두를 때 거기로 물러나 맞이한다.
       사용자 원칙: "애초에 위험한 위치에 있으면 안 되는 게 먼저" — 추락은 퀵 종료로 못 구한다 (떨어지는 중엔 메뉴가 안 열림, 2026-09-24)."""
+    from . import style as style_
+    style = style_.of(style or "guard")
     t0 = time.time()
     s0 = mv.snap()
     hp_start = s0.player.hp if s0 else 0
@@ -148,7 +149,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
         p_ = s_.player
         a_ = c_.anim if c_.anim is not None else -1
         line = (f"      [{time.time() - t0:4.1f}s] 거리 {M.horiz(p_, c_):.1f} 높이 {c_.y - p_.y:+.1f} 그놈 애니 {a_} HP {c_.hp} | "
-                f"나 HP {p_.hp} SP {p_.sp} 애니 {p_.anim} 각 {math.degrees(patrol.rel_angle(p_, c_)) if p_.heading is not None else 0:+.0f}° | "
+                f"나 HP {p_.hp} SP {p_.sp} 애니 {p_.anim} 각 {math.degrees(M.rel_angle(p_, c_)) if p_.heading is not None else 0:+.0f}° | "
                 + " ".join(f"{k}×{v}" for k, v in acts.items()))
         log(line)
         acts.clear()
@@ -346,10 +347,10 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             else:
                 note("휘청돌기", s, c)
             continue
-        if style == "backstep" and a in M.ATTACK and h < NEAR:
+        if style.evade and a in M.ATTACK and h < NEAR:
             # 1b) 백스텝 스타일 (사용자 2026-09-24: "고수들은 백스텝을 적절하게 사용, 백스텝 + 약공, 양손이면 더 강함, 가드 스태미나도 안 씀")
             #     휘두르기 시작은 반사가 백스텝으로 피했다(뒤에 바닥 있을 때). 칼이 지나간 뒤(PUNISH_AFTER)면 한 걸음 들어가 약공.
-            if (age is not None and age >= PUNISH_AFTER and PUNISH_MIN_R <= h <= weapon.reach + PUNISH_R and abs(dy) <= 1.0
+            if (age is not None and age >= style.punish_after and style.punish_min_r <= h <= weapon.reach + PUNISH_R and abs(dy) <= 1.0
                     and (p.sp or 0) >= weapon.sp_min and mv.face(s, c, deg=30.0)):
                 if h > weapon.reach and s.cam_yaw is not None:
                     mv.pad.move(*mv.stick_to(s, c.x, c.z, 0.8))
@@ -432,7 +433,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
         a = c.anim if c.anim is not None else -1
         if a in M.ATTACK and reflex is not None and (reflex.attack_age(ptr) or 0.0) > SWING_S:
             a = -1                                         # 가드 자세로 머문 3000 번대 — 선 것으로 (발차기)
-        looks_at_me = c.heading is not None and abs(math.degrees(patrol.rel_angle(c, s.player))) < 60
+        looks_at_me = c.heading is not None and abs(math.degrees(M.rel_angle(c, s.player))) < 60
         if foe.kick_when_idle and a == -1 and looks_at_me and now - kick_t > KICK_COOLDOWN:
             kick_t = now
             hit = mv.kick_combo(s, c, n=weapon.combo)       # 발차기 → 곧장 약공 (간격이 크면 방패병이 다시 가드, 사용자)

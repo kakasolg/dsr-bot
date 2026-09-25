@@ -269,6 +269,39 @@ class Navmesh:
                         g[i].append((j, float(np.linalg.norm(self.centroid[i] - self.centroid[j]))))
         return g
 
+    # ── 복구 (2026-09-25 층 설계 1단계: "0층이 복구를 책임진다") ──
+    def walkable_mask(self) -> np.ndarray:
+        return (self.flags & (BLOCKED | 8 | 2048)) == 0             # Disable/Degenerate/Wall/Hole 제외
+
+    def on_mesh(self, x: float, y: float, z: float, dy: float = 1.0) -> bool:
+        """그 자리 발밑에 걸을 수 있는 바닥이 dy 안에 있나. 경사로 아래 (-24.5,-48.3,26.0) 은 False (내비메시 밖 주머니)."""
+        f = self.floor_at(x, z, y)
+        return f is not None and abs(f[0] - y) <= dy and (int(f[1]) & (BLOCKED | 8 | 2048)) == 0
+
+    def nearest_walkable(self, x: float, y: float, z: float, r: float = 8.0, dy: float = 2.5):
+        """높이차 dy 안, 반경 r 안에서 가장 가까운 걸을 수 있는 삼각형 무게중심 → (x, y, z) 또는 None.
+        메시 밖에 서 있을 때 돌아갈 곳. 높이차를 보는 이유: 2.3 m 위 턱의 삼각형이 3D 로는 더 가까워 보였다."""
+        ok = self.walkable_mask()
+        c = self.centroid
+        d = np.linalg.norm(c - np.array([x, y, z]), axis=1)
+        d[~ok] = np.inf
+        d[np.abs(c[:, 1] - y) > dy] = np.inf
+        i = int(d.argmin())
+        if not np.isfinite(d[i]) or d[i] > r:
+            return None
+        return tuple(float(v) for v in c[i])
+
+    @staticmethod
+    def ledge_step(path: list, dy_min: float = 1.0, slope_min: float = 1.2) -> int | None:
+        """경로에 걸어서 못 오르는 단차가 있나 → 그 구간 번호. 경사로(기울기 ~1)는 통과, 2.3 m 위 턱(기울기 >1.2)은 걸린다."""
+        for i in range(1, len(path)):
+            a, b = path[i - 1], path[i]
+            dy = b[1] - a[1]
+            horiz = max(0.05, ((b[0] - a[0]) ** 2 + (b[2] - a[2]) ** 2) ** 0.5)
+            if dy > dy_min and dy / horiz > slope_min:
+                return i
+        return None
+
     def nearest_tri(self, x: float, y: float, z: float) -> int:
         """그 지점을 덮는 삼각형 중 높이가 가장 가까운 것. 없으면 무게중심이 가장 가까운 삼각형."""
         cands = [(abs(ty - y), ti) for ty, f, ti in self.tris_at(x, z) if not (f & BLOCKED)]
@@ -280,6 +313,19 @@ class Navmesh:
     def find_path(self, start: tuple[float, float, float], goal: tuple[float, float, float]) -> list[tuple[float, float, float]]:
         """A* — 삼각형 무게중심을 잇는 경로점 목록. 길이 없으면 빈 목록."""
         import heapq
+        # 시작·끝이 메시 밖이면 같은 높이의 가장 가까운 걸을 수 있는 점으로 보정 (없으면 길 없음).
+        # 예전엔 3D 로 가장 가까운 삼각형을 잡아 2.3 m 위 턱에서 출발하는 경로가 나왔다 (경사로 아래 주머니, 2026-09-24)
+        start, goal = tuple(start), tuple(goal)
+        if not self.on_mesh(*start):
+            s2 = self.nearest_walkable(*start)
+            if s2 is None:
+                return []
+            start = s2
+        if not self.on_mesh(*goal):
+            g2 = self.nearest_walkable(*goal)
+            if g2 is None:
+                return []
+            goal = g2
         g = self.graph()
         s, t = self.nearest_tri(*start), self.nearest_tri(*goal)
         if s not in g or t not in g:
@@ -309,7 +355,10 @@ class Navmesh:
             seq.append(prev[seq[-1]])
         seq.reverse()
         pts = [tuple(float(c) for c in self.centroid[i]) for i in seq]
-        return self.simplify(self.keep_inside([start] + pts + [goal]))
+        out = self.simplify(self.keep_inside([start] + pts + [goal]))
+        if self.ledge_step(out) is not None:                  # 걸어서 못 오르는 단차 — 길 없음으로 (위 층이 다른 수를 찾게)
+            return []
+        return out
 
     def clear_line(self, p0, p1, step: float = 0.5, max_dy: float = 0.8, max_step: float = 0.5) -> bool:
         """두 점을 잇는 직선 위를 걸어도 되는가.

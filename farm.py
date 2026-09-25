@@ -32,7 +32,6 @@ if hasattr(sys.stdout, "reconfigure"):
 
 import control
 import danger
-import reflex
 import env
 import nav
 import navmesh
@@ -343,6 +342,7 @@ def main() -> None:
             control.focus_game()
             if not rest(tm, pad, nm, bonfire):
                 log("  화톳불 휴식 재시도도 실패 — 중단"); break
+        import legacy.reflex as reflex                     # 옛 반사 (legacy/) — farm 의 옛 순찰 경로에서만
         rfx = reflex.Reflex(tm, pad) if env.GAME == "dsr" else None
         if rfx:
             rfx.start()
