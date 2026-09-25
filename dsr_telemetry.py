@@ -357,8 +357,8 @@ class DSRTelemetry:
 
     STAT_OFF = {"VIT": 0x40, "ATN": 0x48, "END": 0x50, "STR": 0x58, "DEX": 0x60, "INT": 0x68, "FTH": 0x70, "RES": 0x88, "SL": 0x90}
 
-    def stats(self) -> dict:
-        """스탯 (PlayerGameData, 2026-09-25 덤프로 추정: 0x14 HP, 0x30 스태미나, 0x40 부터 8 바이트 간격 VIT·ATN·END·STR·DEX·INT·FTH,
+    def char_stats(self) -> dict:
+        """스탯 (PlayerGameData — 이름이 stats 면 feed.Feed.stats(피드 통계)에 가려진다), 2026-09-25 덤프로 추정: 0x14 HP, 0x30 스태미나, 0x40 부터 8 바이트 간격 VIT·ATN·END·STR·DEX·INT·FTH,
         0x88 RES, 0x90 SL, 0x94 소울, 0x98 누적 소울). VIT 20 ↔ HP 793, STR 16, SL 24 는 확인; 나머지 라벨은 상태 화면과 대조할 것."""
         cb = self.q(self.static["ChrClassBase"])
         pgd = self.q(cb + 0x10) if cb else None
