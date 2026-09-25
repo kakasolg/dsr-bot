@@ -24,7 +24,9 @@ class Foe:
 
 
 # 망자 c2540 (Lua 2026-09-24): 가까우면 절반이 단발 3008, 나머지가 2~3타 콤보(3003→3004→3009, 3005~3007)
-_HOLLOW = dict(kind="hollow", singles=(3008,), combos=(3003, 3005))
+# 2026-09-25 실측(254001): 3009 를 몇 초씩 막다 스태미나 6까지 떨어지고 죽음(반사×29 연속, 준 피해 0, 받은 376) —
+# SHIELD 뿐 아니라 망자 콤보의 3009 도 막으면 안 된다 (같은 애니 번호, 같은 위험). unblockable 에 추가.
+_HOLLOW = dict(kind="hollow", singles=(3008,), combos=(3003, 3005), unblockable=(3009,))
 HOLLOW = Foe("망자(칼)", **_HOLLOW)
 FIREBOMB_HOLLOW = Foe("망자(화염병)", ranged=True, **_HOLLOW,
                       note="경사로 4번: 4.9 m 위 턱에서 안 내려오고 화염병만 — 방패로 받아도 56~224. 달려 올라가 근접")
@@ -41,7 +43,7 @@ ASYLUM_DEMON = Foe("수용소 데몬", kind="boss", note="boss/README.md — 필
 BY_NPC: dict[int, Foe] = {
     254000: HOLLOW, 254002: HOLLOW, 254010: HOLLOW, 254011: HOLLOW,
     254001: FIREBOMB_HOLLOW, 254012: FIREBOMB_HOLLOW,
-    250000: Foe("망자(성벽 마을)", kind="hollow", combos=(3000, 3004)),
+    250000: Foe("망자(성벽 마을)", kind="hollow", combos=(3000, 3004), unblockable=(3009,)),
     255000: SHIELD, 255002: SHIELD, 255010: SHIELD,
     # 254013·254014 (성벽 마을 화톳불 옆, HP150): 등록이 안 돼 "모르는 적"(kind=other)으로 새서 방패 제외 규칙을 피해
     # "먼저 치기" 약공을 18연속 0 피해로 맞고 515 를 받았다 (2026-09-25) — SHIELD 로 등록해 재확인할 것

@@ -144,7 +144,12 @@ def _approach(mv: M.Moves, weapon, s, c, nm, foe, cancel, log=lambda *a: None) -
         cc = mv.find(sn, ptr)                               # 30 m 밖이면 None — 그땐 그냥 걷는다
         if cc is not None and M.horiz(sn.player, cc) < NEAR:
             return "guard"                                  # 가까우면 방패 든 채 걷는다
-        return "sprint" if foe.ranged else "walk"           # 던지는 놈은 기다리면 계속 던진다 — 달려 붙는다
+        if foe.ranged and not any(x.ptr != ptr and x.hp > 0 and not (9000 <= (x.anim or 0) < 9100)
+                                   and M.horiz(sn.player, x) < OTHERS_ATTACK_R for x in sn.hostile(OTHERS_ATTACK_R + 2.0)):
+            return "sprint"                                 # 던지는 놈은 기다리면 계속 던진다 — 달려 붙는다, 단 주변이 조용할 때만
+        # 다른 놈이 8 m 안에 있으면 뛰지 않는다 — 뛰는 동안은 못 막아 2.5 m(SWITCH_R) 안에 들어올 때까지 무방비로 맞는다
+        # (사용자 2026-09-25: "쏘는 놈을 잡으려는데 대응이 느려서 다른 몹들에게 둘러싸여") → 방패 들고 걷는다
+        return "guard" if foe.ranged else "walk"
     return mv.walk_path(path, nm, mode, stop, timeout_per=6.0)
 
 
