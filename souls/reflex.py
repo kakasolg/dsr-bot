@@ -41,6 +41,7 @@ class Reflex:
         # bs_ok(c): 이 놈에게 백스텝 공격을 써도 되나 — 방패병은 파고드는 도끼가 방패에 막히고 그 콤보에 351 (2026-09-24 진단)
         self.evade = False       # True 면 막지 않고 **모든** 공격을 백스텝·구르기로 피한다 (백스텝 스타일 — 양손, 방패 안 씀)
         self.bs_attack = False   # 피할 때 백스텝 공격(B → R1)을 붙이나 (Style.bs_attack)
+        self.reflex_on = True    # False 면 tick() 이 기록(update)만 하고 움직이지 않는다 — rush 스타일: 막지도 피하지도 않고 계속 공격
         self.events = None       # 4층이 넣어 주면 회피마다 'evade' 사건 (kind·거리·그 뒤 1.3 s 안에 맞았나) — style_report.py 가 센다
         self._pending: dict | None = None
         self.last_hit = None     # 마지막 백스텝 공격 결과 (duel 이 기록용으로 가져간다)
@@ -96,6 +97,8 @@ class Reflex:
     def tick(self, s) -> bool:
         """→ 이번 틱에 반사가 움직였나 (방패·몸 돌리기)."""
         self.update(s)
+        if not self.reflex_on:
+            return False         # rush: 기록(attack_age 등)만 하고 막지도 피하지도 않는다 — 공격 루프가 안 끊긴다
         th = self.threats(s)
         now = time.time()
         lock_ptr, lock_until = self._lock

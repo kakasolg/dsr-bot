@@ -64,8 +64,9 @@ def main() -> None:
     ap.add_argument("cmd", choices=["status", "burg-bonfire", "burg-loop", "clear-ramp", "merchant", "light-burg", "quit-test"])
     ap.add_argument("--no-rest", action="store_true")
     ap.add_argument("--no-lure", action="store_true", help="나이프로 한 놈씩 깨우지 않고 예전처럼 걸어가 붙는다 (비교용)")
-    ap.add_argument("--style", choices=["guard", "backstep"], default="guard",
-                    help="guard: 방패로 받고 휘청에 친다 (기본) | backstep: 양손, 백스텝으로 피하고 헛친 뒤 약공 (사용자 제안, 실험)")
+    ap.add_argument("--style", choices=["guard", "backstep", "rush"], default="guard",
+                    help="guard: 방패로 받고 휘청에 친다 (기본) | backstep: 양손, 백스텝으로 피하고 헛친 뒤 약공 | "
+                         "rush: 양손, 막지도 피하지도 않고 계속 공격, 에스트로 버틴다 (사용자 제안, 실험)")
     a = ap.parse_args()
     if a.cmd == "status":
         return status()

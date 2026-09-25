@@ -55,6 +55,7 @@ class Field:
                              bs_ok=lambda c: foes_.of(c.npc_param).kind != "shield")
         self.reflex.evade = self.style.evade
         self.reflex.bs_attack = self.style.bs_attack
+        self.reflex.reflex_on = self.style.reflex_on
         mv.guard_ok = self.style.shield
         self.reflex.events = self.events
 
