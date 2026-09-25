@@ -357,6 +357,14 @@ class DSRTelemetry:
 
     STAT_OFF = {"VIT": 0x40, "ATN": 0x48, "END": 0x50, "STR": 0x58, "DEX": 0x60, "INT": 0x68, "FTH": 0x70, "RES": 0x88, "SL": 0x90}
 
+    EQUIP_OFF = {"왼손1": 0x324, "오른손1": 0x328, "왼손2": 0x32C, "오른손2": 0x330, "화살": 0x344, "머리": 0x348, "몸": 0x34C, "팔": 0x350,
+                 "반지1": 0x358, "반지2": 0x35C}   # 2026-09-25 덤프: 오른손1 701000(도끼) 로 맞춤. 반지 ID 146·147 의 이름은 미확인 (사용자: 늑대의 반지 착용)
+
+    def equipment(self) -> dict:
+        cb = self.q(self.static["ChrClassBase"])
+        pgd = self.q(cb + 0x10) if cb else None
+        return {k: self.i32(pgd + o) for k, o in self.EQUIP_OFF.items()} if pgd else {}
+
     def char_stats(self) -> dict:
         """스탯 (PlayerGameData — 이름이 stats 면 feed.Feed.stats(피드 통계)에 가려진다), 2026-09-25 덤프로 추정: 0x14 HP, 0x30 스태미나, 0x40 부터 8 바이트 간격 VIT·ATN·END·STR·DEX·INT·FTH,
         0x88 RES, 0x90 SL, 0x94 소울, 0x98 누적 소울). VIT 20 ↔ HP 793, STR 16, SL 24 는 확인; 나머지 라벨은 상태 화면과 대조할 것."""

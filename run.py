@@ -89,6 +89,12 @@ def main() -> None:
     fld = Field(mv, w, esc, bonfires=[missions.FIRELINK["stand"], missions.BURG_BONFIRE], log=log, events=log.event, style=a.style)
     log(f"스타일: {a.style}")
     log.event("style", style=a.style)
+    try:   # 판마다 캐릭터 상태를 남긴다 — 레벨업·반지(강인도)·무기가 성적을 바꾸는데 기록이 없어 묶음 비교가 흐려졌다 (사용자 2026-09-25)
+        st, eq = tm.char_stats(), tm.equipment()
+        log(f"캐릭터: SL {st.get('SL')} VIT {st.get('VIT')} END {st.get('END')} STR {st.get('STR')} DEX {st.get('DEX')} | 반지 {eq.get('반지1')},{eq.get('반지2')} 왼손 {eq.get('왼손1')}")
+        log.event("char", stats=st, equip=eq)
+    except Exception as ex:
+        log(f"캐릭터 상태 읽기 실패: {ex!r}")
     ms = missions.Missions(fld, nms, log=log)
     try:
         if a.cmd == "burg-bonfire":
