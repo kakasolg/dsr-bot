@@ -49,10 +49,15 @@ def rescue(tm) -> None:
     log("   ⚠ 본체 반응 없음 — 패드 잡고 퀵 종료 시도")
     control.focus_game()
     pad = control.Pad()
+    pad.reconnect()                # 죽은 본체의 패드가 막 빠진 직후라 게임이 새 패드를 못 받을 때가 있다 (실측 2026-09-25 — 첫 시도 실패)
     t = quitout.quit_out(tm, pad)
     if t is None:
-        log("   퀵 종료 실패 — 메뉴가 이미 열려 있거나 조작 불가 상태일 수 있음")
-        return
+        log("   퀵 종료 실패 — 한 번 더 시도")
+        pad.reconnect()
+        t = quitout.quit_out(tm, pad)
+        if t is None:
+            log("   퀵 종료 재시도도 실패 — 메뉴가 이미 열려 있거나 조작 불가 상태일 수 있음")
+            return
     rt = quitout.reload(pad)
     log(f"   퀵 종료 {t:.1f}s, 재접속 {rt}")
 
