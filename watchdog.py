@@ -124,29 +124,47 @@ def watch_safety(tm, pad) -> None:
     log(f"   {SAFE_WATCH_S:.0f}s 지켜봤는데 계속 인식 범위 안 — 포기(다음 순찰에서 다시 봄)")
 
 
+DANGER_HP_FRAC = 0.5     # 잠금이 풀린 순간 HP 가 이 아래면 위급 — 정상 종료(판 끝, 판 사이 쉬는 시간)는 대개 HP 가 높다
+
+
 def main() -> None:
-    log("watchdog 시작 — 텔레메트리만 읽음, 본체가 잠금을 쥐고 있으면(=살아있으면) 아무것도 안 함")
+    """잠금이 비어 있는 것 자체는 정상이다(판 사이엔 아무도 안 쥔다 — loop_runs.py 는 잠금을 안 쥐고,
+    run.py 는 한 판 끝나면 놓는다). '아무도 안 쥠' 을 매번 위급으로 보면 판 사이마다 다크사인을 쏘고,
+    그 사이 다음 판 run.py 가 잠금을 못 가져가 "이미 실행 중" 으로 계속 막힌다(실전 사고, 2026-09-25).
+    **쥐어져 있다가 방금 풀린 전환 순간**에만, 그것도 HP 가 낮거나(DANGER_HP_FRAC) 근처에 깨어있는 적이
+    있을 때만 진짜 위급으로 본다 — 판이 깨끗이 끝난 것과 구분한다."""
+    log("watchdog 시작 — 텔레메트리만 읽음, 본체가 살아있으면(잠금을 쥐고 있으면) 아무것도 안 함")
     tm = env.make_telemetry({})
     lock = BotLock()
+    was_held = False
     try:
         while True:
-            if lock.acquire():                 # 성공 = 아무도 안 쥐고 있었다 = 본체가 진짜 죽었다 (OS 보장, 추측 없음)
+            got = lock.acquire()
+            if got and was_held:               # 전환: 방금까지 누가 쥐고 있다가 지금 풀렸다
                 try:
-                    s = tm.snapshot(within=20.0)
+                    s = tm.snapshot(within=PERCEIVE_R + 5.0)
                 except Exception as ex:
                     s = None
                     log(f"   텔레메트리 읽기 실패: {ex!r}")
-                if s is not None and s.player.hp is not None and s.player.hp > 0:
-                    log(f"본체 없음 — HP {s.player.hp}, 위치 ({s.player.x:.1f}, {s.player.y:.1f}, {s.player.z:.1f})")
-                    rescue(tm)
+                if s is not None and s.player.hp is not None and 0 < s.player.hp:
+                    frac = s.player.hp / (s.player.max_hp or s.player.hp)
+                    threats = nearby_awake(s, PERCEIVE_R)
+                    if frac < DANGER_HP_FRAC or threats:
+                        log(f"본체 방금 사라짐, 위급 — HP {s.player.hp}/{s.player.max_hp}({frac:.0%}), "
+                            f"근처 적 {[(c.npc_param, round(c.dist,1)) for c in threats]}")
+                        rescue(tm)
+                    else:
+                        log(f"본체 방금 사라짐, 정상 종료로 보임 — HP {s.player.hp}/{s.player.max_hp}({frac:.0%}), 아무것도 안 함")
                 elif s is not None and s.player.hp == 0:
-                    log("본체 없음 — 이미 죽음(부활 대기), 입력 필요 없음")
-                lock.release()                  # 나중에 본체가 다시 켜지면 도로 쥘 수 있게 — 개입 뒤엔 놓아준다
-                time.sleep(3.0)                  # 방금 개입했으니 본체가 다시 뜰 시간을 좀 둔다(계속 뺏고 놓기 방지)
+                    log("본체 방금 사라짐 — 이미 죽음(부활 대기), 입력 필요 없음")
+            if got:
+                lock.release()
+            was_held = not got
             time.sleep(POLL)
     except KeyboardInterrupt:
         log("watchdog 종료")
-        lock.release()
+        if lock is not None:
+            lock.release()
 
 
 if __name__ == "__main__":
