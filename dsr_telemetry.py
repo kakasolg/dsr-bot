@@ -355,6 +355,21 @@ class DSRTelemetry:
             return None
         return bool(v & (0x80000000 >> (num % 32)))
 
+    STAT_OFF = {"VIT": 0x40, "ATN": 0x48, "END": 0x50, "STR": 0x58, "DEX": 0x60, "INT": 0x68, "FTH": 0x70, "RES": 0x88, "SL": 0x90}
+
+    def stats(self) -> dict:
+        """스탯 (PlayerGameData, 2026-09-25 덤프로 추정: 0x14 HP, 0x30 스태미나, 0x40 부터 8 바이트 간격 VIT·ATN·END·STR·DEX·INT·FTH,
+        0x88 RES, 0x90 SL, 0x94 소울, 0x98 누적 소울). VIT 20 ↔ HP 793, STR 16, SL 24 는 확인; 나머지 라벨은 상태 화면과 대조할 것."""
+        cb = self.q(self.static["ChrClassBase"])
+        pgd = self.q(cb + 0x10) if cb else None
+        if not pgd:
+            return {}
+        out = {k: self.i32(pgd + o) for k, o in self.STAT_OFF.items()}
+        out["소울"] = self.i32(pgd + 0x94)
+        out["누적소울"] = self.i32(pgd + 0x98)
+        out["인간성"] = self.humanity()
+        return out
+
     def humanity(self) -> Optional[int]:
         """인간성 (화면 왼쪽 위 숫자) — PlayerGameData+0x84 (JKAnderson/DSR-Gadget DSROffsets.ChrData2.Humanity).
         죽거나 다크사인을 쓰면 0 이 되고 핏자국에 남는다."""
