@@ -24,6 +24,31 @@ from botlock import BotLock
 ROOT = Path(__file__).resolve().parent
 LOG_FILE = ROOT / "data" / "watchdog.log"
 POLL = 0.5
+PERCEIVE_R = 12.0        # 적의 인식 범위 추정(사용자 2026-09-25: "적의 인식 범위를 기준으로") — 위키 기반 첫 값, 실측 전
+SAFE_WATCH_S = 15.0      # 퀵 종료 뒤 이만큼 실시간으로 다시 확인 — 재접속했는데도 인식 범위 안이면 더 물러난다
+STABLE_S = 3.0           # 이만큼 연속으로 안전(인식 범위 밖)이면 됐다고 본다
+
+
+def nearby_awake(s, r: float) -> list:
+    """r 안에서 이미 깨어(idle 이 아닌) 있는 적 — 재접속했는데도 바로 이러면 인식 범위를 못 벗어난 것."""
+    return [c for c in s.hostile(r) if c.hp > 0 and (c.anim or -1) != -1]
+
+
+def retreat_step(tm, pad, s, threats: list) -> None:
+    """가장 가까운 적에게서 먼 쪽으로 한 걸음 — 정확한 길찾기 없이 그냥 반대 방향(막다른 곳일 수 있음, 최선은 아니다)."""
+    import math
+    import control
+    import nav
+    if s.cam_yaw is None or not threats:
+        return
+    nearest = min(threats, key=lambda c: c.dist if c.dist is not None else 999)
+    dx, dz = s.player.x - nearest.x, s.player.z - nearest.z
+    n = math.hypot(dx, dz) or 1.0
+    gx, gz = s.player.x + dx / n * 4.0, s.player.z + dz / n * 4.0
+    stx, sty = control.world_to_stick(gx - s.player.x, gz - s.player.z, s.cam_yaw, nav.YAW_OFFSET, nav.FLIP_X)
+    pad.move(stx, sty)
+    time.sleep(0.4)
+    pad.move(0.0, 0.0)
 
 
 def log(msg: str) -> None:
@@ -53,6 +78,37 @@ def rescue(tm) -> None:
             return
     rt = quitout.reload(pad)
     log(f"   퀵 종료 {t:.1f}s, 재접속 {rt}")
+    watch_safety(tm, pad)
+
+
+def watch_safety(tm, pad) -> None:
+    """재접속한 자리가 진짜 안전한지 실시간으로 본다 — 자리는 안 바뀌니 적의 인식 범위 안이면 바로 또 위험하다
+    (사용자 2026-09-25: "실시간으로 안전 지역을 평가하는 것이 필요해 보여", "적의 인식 범위를 기준으로")."""
+    t0 = time.time()
+    stable_from = None
+    while time.time() - t0 < SAFE_WATCH_S:
+        try:
+            s = tm.snapshot(within=PERCEIVE_R + 5.0)
+        except Exception:
+            s = None
+        if s is None or s.player.hp is None:
+            time.sleep(POLL)
+            continue
+        if s.player.hp <= 0:
+            log("   재접속 뒤 다시 사망 — 더 볼 것 없음")
+            return
+        threats = nearby_awake(s, PERCEIVE_R)
+        if not threats:
+            stable_from = stable_from or time.time()
+            if time.time() - stable_from >= STABLE_S:
+                log(f"   안전 확인됨 ({time.time() - t0:.1f}s 뒤, 인식 범위 {PERCEIVE_R} m 안 깨어있는 적 없음)")
+                return
+        else:
+            stable_from = None
+            log(f"   아직 인식 범위 안: {[(c.npc_param, round(c.dist, 1)) for c in threats]} — 물러남")
+            retreat_step(tm, pad, s, threats)
+        time.sleep(POLL)
+    log(f"   {SAFE_WATCH_S:.0f}s 지켜봤는데 계속 인식 범위 안 — 포기(다음 순찰에서 다시 봄)")
 
 
 def main() -> None:
