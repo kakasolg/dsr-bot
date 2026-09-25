@@ -32,7 +32,7 @@ CREEP_STICK = 0.45        # 실측(가드 든 채): 스틱 <0.4 = 정지, 0.4~0.
 ENGAGE_STICK = 0.5        # 교전 접근도 걷기
 ARRIVE_DY = 2.0         # 도착 판정에 높이도 본다 — 수평 거리만 보면 10 m 위의 경로점도 "도착"이 되어
                         # 나선형 경사에서 길을 통째로 건너뛰고 목표 아래에 서서 맞는다 (실측)
-UNREACHABLE_DY = 2.5      # m — 2D 로 5 m 안인데 높이 차가 이보다 크면 절벽/층 차이
+UNREACHABLE_DY = 1.5      # m — 2D 로 5 m 안인데 높이 차가 이보다 크면 절벽/층 차이
 
 
 JUMP_PERIOD = 1.2       # guardjump 모드: 이 주기로 점프
@@ -252,6 +252,7 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
     t_start = time.time()
     last_progress_t, last_progress_d = t_start, None
     escapes = 0
+    boost_until = 0.0
     no_cam_since = None
     own_mover = mover is None             # 받은 mover 는 부른 쪽이 멈춘다 (경로 내내 달리기 유지)
     mover = mover or Mover(pad)
@@ -318,13 +319,21 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
                     pad.neutral()
                     log("  막힘 — 양옆이 낭떠러지라 빠져나가지 않음")
                     return "stuck"
-                if ground_ahead(terrain, p, -dx, -dz, reach=1.2):
+                # 사용자 2026-09-24: "충분히 뒤로 갔다 앞으로 가야 함" — 0.5 s(1.2 m) 후진으론 경사로 아래 턱(-24.5,-48.3,26.0)에서
+                # 매번 같은 자리에 다시 박혔다. 뒤 바닥이 있으면 막힐수록 더 멀리(0.9→1.3→1.7 s) 물러나고, 옆으로 살짝 튼 뒤 달려서 재접근
+                back_s = min(1.7, 0.9 + 0.4 * (escapes - 1))
+                if ground_ahead(terrain, p, -dx, -dz, reach=3.0):
                     bx, by = control.world_to_stick(-dx, -dz, s.cam_yaw, YAW_OFFSET, FLIP_X)
-                    pad.move(bx * 0.8, by * 0.8)      # 벽에 박힌 채 밀지 말고 먼저 뒤로 물러난다
+                    pad.move(bx * 0.9, by * 0.9)
+                    time.sleep(back_s)
+                elif ground_ahead(terrain, p, -dx, -dz, reach=1.2):
+                    bx, by = control.world_to_stick(-dx, -dz, s.cam_yaw, YAW_OFFSET, FLIP_X)
+                    pad.move(bx * 0.8, by * 0.8)
                     time.sleep(0.5)
                 ox, oy = control.world_to_stick(side_dir[0], side_dir[1], s.cam_yaw, YAW_OFFSET, FLIP_X)
                 pad.move(ox * 0.9, oy * 0.9)          # 바닥 있는 옆으로 틀어 재접근
-                time.sleep(0.7)
+                time.sleep(0.4)
+                boost_until = time.time() + 1.5       # 재접근은 달려서 (턱은 걸어선 못 오르고 달리면 오른다)
                 last_progress_d, last_progress_t = dist, time.time()
                 if escapes >= 6:
                     pad.neutral()
@@ -332,6 +341,8 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
                 continue
 
             mode = mode_fn(s) if mode_fn else ("sprint" if (sprint_always or dist > SPRINT_BEYOND) else "walk")
+            if now < boost_until and mode in ("walk", "sprint"):
+                mode = "sprint"                        # 막힘 탈출 직후 달려서 재접근
             if mode == "retreat":
                 pad.neutral()               # Guard 가 후퇴/도망을 원한다 — 경로 루프가 뒤로 간다
                 return "retreat"

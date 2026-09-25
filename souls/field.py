@@ -48,6 +48,8 @@ class Field:
         self.style = style                                 # guard: 방패로 받고 휘청에 친다 | backstep: 백스텝으로 피하고 헛친 뒤 친다 (양손)
         self.bonfires = [tuple(b) for b in bonfires]      # 핏자국 줍기(A) 금지 구역
         self.home = self.bonfires[0] if self.bonfires else None   # 마지막으로 쉰 화톳불 (물러날 곳, 다크사인 도착 확인)
+        self.reset_spot = None   # 막혔을 때 되돌아가 길을 다시 잡는 평지 (경사로: RAMP_ARENA). 경사로 아래 (-24.5,-48.3,26.0) 은 내비메시 밖
+                                 # 주머니라 첫 경로점이 2.3 m 위 턱에 잡혀 17 s 씩 세 번 막혔다 (2026-09-24 밤)
         self.events = events or (lambda *a, **k: None)
         # 반사 — 싸우든 걷든 매 틱 먼저 (발밑 확인용 내비메시는 쓸 때 넣는다). 막으면 안 되는 공격은 적 데이터(3층)에서
         self.reflex = Reflex(mv, unblockable=lambda c: (c.anim or -1) in foes_.of(c.npc_param).unblockable,
@@ -212,6 +214,11 @@ class Field:
             r = self.walk_to(spot, nm, f"{tag} 던질 자리로")
             if r == "dead":
                 return "dead"
+            if r != "arrived" and self.reset_spot is not None:
+                self.log(f"   {tag}: 던질 자리까지 {r} — 평지로 되돌아가 길을 다시 잡는다")
+                if self.walk_to(tuple(self.reset_spot), nm, f"{tag} 평지로") == "dead":
+                    return "dead"
+                r = self.walk_to(spot, nm, f"{tag} 던질 자리로(2)")
             if r != "arrived":
                 self.log(f"   {tag}: 던질 자리까지 {r} — 지금 자리에서 던진다")
         c = self.mv.find(self.mv.snap(SEEK_R), ptr)
@@ -263,11 +270,14 @@ class Field:
                 time.sleep(0.5)
         return "no_reaction"
 
-    def find_at(self, npc: int, pos, r: float = 3.0):
+    def find_at(self, npc: int, pos, r: float = 3.0, dy_max: float = 3.0):
+        """스폰 pos 근처의 그 종류. 넓게(30 m) 찾을 때도 **높이차 dy_max 안**만 — 경사로 아래에서 위 턱의 6번을 1번으로 잡아
+        15 m 절벽을 향해 걷다 17 s 씩 세 번 막혔다 (2026-09-24 밤 3판, 5 분 낭비)."""
         s = self.mv.snap(200.0)
         if s is None:
             return None
-        cands = [c for c in s.chars if c.npc_param == npc and c.hp > 0 and math.dist((c.x, c.y, c.z), tuple(pos)) < r]
+        cands = [c for c in s.chars if c.npc_param == npc and c.hp > 0 and math.dist((c.x, c.y, c.z), tuple(pos)) < r
+                 and abs(c.y - pos[1]) <= dy_max]
         return min(cands, key=lambda c: math.dist((c.x, c.y, c.z), tuple(pos)), default=None)
 
     def clear(self, targets: list[dict], nm, tries: int = 3, arena=None, lure: bool = False) -> str:
@@ -312,6 +322,10 @@ class Field:
                 self.wait_escape()
                 if not self.alive():
                     return "died"
+                if r.result == "stuck" and self.reset_spot is not None:
+                    self.log(f"   #{i}: 막힘 — 평지로 되돌아가 다시")
+                    if self.walk_to(tuple(self.reset_spot), nm, f"#{i} 평지로") == "dead":
+                        return "died"
                 ok = self.recover(f"#{i} {r.result}", nm)
                 if not ok and self.mv.estus_left() <= 0:
                     return "no_estus"
