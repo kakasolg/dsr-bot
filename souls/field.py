@@ -35,6 +35,8 @@ def awake(c) -> bool:
 
 
 SEEK_R = 100.0           # 그놈을 찾는 반경 (duel.SEEK_R 과 같게)
+COMING_LIMIT = 12.0      # 끼어든 놈은 이 안에 못 죽이면 물러난다 — 나쁜 거래(17~22 s, 400+ 피해)로 끌고 가지 않는다
+                         # (사용자 2026-09-25: "한방에 방해하는 몹을 없애지 못하면 도망치는게 나아")
 LURE_R = 10.0            # 나이프를 던지는 거리 — 락온 상태로 11.9·11.4 m 는 빗나가고 10.8 m 에서 맞음 (2026-09-24, 던진 물건은 ~10 m 날아간다)
 LURE_TRIES = 3
 LURE_DY = 1.5            # 던질 자리와 목표·지금 자리의 높이차 상한 — 절벽 아래 놈에게 뛰어내리지 않게 (2026-09-24 8판)
@@ -153,7 +155,7 @@ class Field:
         return bool(s and s.player.hp >= s.player.max_hp * 0.6)
 
     # ── 싸움 ─────────────────────────────────────────────────
-    def fight(self, ptr, nm, tag: str, arena=None, desperate: bool = False) -> D.DuelResult:
+    def fight(self, ptr, nm, tag: str, arena=None, desperate: bool = False, limit: float = 45.0) -> D.DuelResult:
         g0 = self.esc.gen
         e = self.mv.estus_id()
         if e is not None and self.mv.tm.selected_item() != e:
@@ -171,7 +173,8 @@ class Field:
                     break
             self.log(f"   잡기: grip {self.mv.tm.grip()} (원함 {want})")
         r = D.duel(self.mv, self.w, ptr, nm, log=self.log, cancel=lambda: self.esc.escaping or self.esc.gen != g0,
-                   care=Care(self), reflex=self.reflex, arena=arena, low_hp=0.0 if desperate else 0.25, style=self.style)
+                   care=Care(self), reflex=self.reflex, arena=arena, low_hp=0.0 if desperate else 0.25, style=self.style,
+                   limit=limit)
         self.log(f"   {tag}{' (끝까지)' if desperate else ''}: {r.line()}")
         self.events("duel", tag=tag, npc=r.npc, result=r.result, secs=round(r.secs, 1), dealt=r.dealt, taken=r.taken)
         if r.result == "killed":
@@ -306,7 +309,7 @@ class Field:
                 c = min(coming, key=lambda x: M.horiz(s.player, x))
                 tried[c.ptr] = tried.get(c.ptr, 0) + 1
                 r = self.fight(c.ptr, nm, f"오는 놈 {c.npc_param}" + (f" ({tried[c.ptr]}번째)" if tried[c.ptr] > 1 else ""),
-                               arena=arena, desperate=desperate)
+                               arena=arena, desperate=desperate, limit=COMING_LIMIT)
                 if r.result == "me_dead":
                     return "died"
                 if r.result != "killed":
@@ -314,8 +317,11 @@ class Field:
                     if not ok and self.mv.estus_left() <= 0:
                         return "no_estus"
                     desperate = not ok
-                    if tried[c.ptr] >= tries:                  # stuck·lost 도 다른 실패처럼 tries 번은 다시 (사용자 2026-09-25:
-                        ignore.add(c.ptr)                       # "Rush mode는 적을 끝까지 공격해야지" — 한 번 막혔다고 바로 포기 안 함
+                    if r.result == "timeout" or tried[c.ptr] >= tries:
+                        # timeout = 짧게 붙어 봤는데 못 죽였다 — 나쁜 거래로 끌고 가지 않고 바로 물러난다
+                        # (사용자 2026-09-25: "한방에 방해하는 몹을 없애지 못하면 도망치는게 나아"). stuck·lost 는 다르다 —
+                        # 그건 못 붙은 것뿐이라 tries 번은 다시 시도한다("Rush mode는 적을 끝까지 공격해야지").
+                        ignore.add(c.ptr)
                 else:
                     desperate = False
                 continue
