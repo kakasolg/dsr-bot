@@ -62,12 +62,25 @@ def log(msg: str) -> None:
 
 
 def rescue(tm) -> None:
-    """잠금을 가져왔다 = 본체가 진짜 죽었다(OS 가 확인해 줌, 추측 아님) — 이 프로세스가 직접 패드를 잡아 퀵 종료한다."""
+    """잠금을 가져왔다 = 본체가 진짜 죽었다(OS 가 확인해 줌, 추측 아님) — 이 프로세스가 직접 패드를 잡아 구한다.
+    다크사인을 먼저 시도한다 — 퀵 종료(자리 안 바뀜)와 달리 알려진 화톳불로 순간이동해 안전 지역이 확정된다
+    (소울·인간성은 잃지만, 프로세스가 죽은 위급 상황엔 그게 더 맞다). 퀵 아이템 링에 없으면(select_item 실패) 못 쓰니
+    그때만 퀵 종료로 물러난다 — 이건 자리가 안 바뀌니 재접속 뒤 실시간으로 안전한지 계속 본다(watch_safety)."""
     import control
-    log("   ⚠ 본체 잠금 확보(=본체 없음, OS 확인됨) — 패드 잡고 퀵 종료 시도")
+    from souls import missions, moves
+    log("   ⚠ 본체 잠금 확보(=본체 없음, OS 확인됨) — 패드 잡고 구조 시도")
     control.focus_game()
     pad = control.Pad()
     pad.reconnect()                # 죽은 본체의 패드가 막 빠진 직후라 게임이 새 패드를 못 받을 때가 있다 (실측 2026-09-25 — 첫 시도 실패)
+    mv = moves.Moves(tm, pad)
+    if mv.select_item(117, timeout=3.0):           # 다크사인이 퀵 링에 있나 — 없으면 15 s+ 돌려도 안 됨, 짧게만 본다
+        ok = mv.darksign(missions.FIRELINK["stand"])
+        log(f"   다크사인 {ok} — 됐으면 화톳불(알려진 안전 지역)로 순간이동")
+        if ok:
+            return
+        log("   다크사인 실패 — 퀵 종료로 대신")
+    else:
+        log("   다크사인 퀵 링에 없음 — 퀵 종료로 대신")
     t = quitout.quit_out(tm, pad)
     if t is None:
         log("   퀵 종료 실패 — 한 번 더 시도")
@@ -78,7 +91,7 @@ def rescue(tm) -> None:
             return
     rt = quitout.reload(pad)
     log(f"   퀵 종료 {t:.1f}s, 재접속 {rt}")
-    watch_safety(tm, pad)
+    watch_safety(tm, pad)          # 퀵 종료는 자리를 안 바꾸니(다크사인과 달리) 여기서만 실시간으로 다시 확인한다
 
 
 def watch_safety(tm, pad) -> None:
