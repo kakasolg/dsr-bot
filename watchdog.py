@@ -3,7 +3,7 @@ run.py 가 심장박동(heartbeat.py, data/heartbeat.json)을 못 남기면(죽�
 그때만 자기 패드를 만들어 퀵 종료로 캐릭터를 뺀다. 사용자 2026-09-25: "Bios, os, application 레이어처럼" —
 본체를 강제로 꺼도(사용자가 겪은 사고: 적 옆에서 그냥 죽음) 이 프로세스는 따로 살아있어 구해 준다.
 
-  BOT_GAME=dsr python watchdog.py [--timeout 8]      Ctrl+C 로 끝
+  BOT_GAME=dsr python watchdog.py [--timeout 2]      Ctrl+C 로 끝
 """
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ import quitout
 ROOT = Path(__file__).resolve().parent
 HB_FILE = ROOT / "data" / "heartbeat.json"
 LOG_FILE = ROOT / "data" / "watchdog.log"
-POLL = 1.0
+POLL = 0.3
 
 
 def log(msg: str) -> None:
@@ -64,7 +64,7 @@ def rescue(tm) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--timeout", type=float, default=8.0, help="이만큼 심장박동이 없으면 본체가 죽은 것으로 본다")
+    ap.add_argument("--timeout", type=float, default=2.0, help="이만큼 심장박동이 없으면 본체가 죽은 것으로 본다 (별도 스레드라 짧아도 오작동 안 함)")
     a = ap.parse_args()
     log(f"watchdog 시작 (timeout {a.timeout}s) — 텔레메트리만 읽음, 본체 살아있으면 아무것도 안 함")
     tm = env.make_telemetry({})

@@ -15,7 +15,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 FILE = ROOT / "data" / "heartbeat.json"
-PERIOD = 1.0
+PERIOD = 0.2   # 별도 스레드라 본체 로직이 느려도 계속 갱신된다 — 끊기는 건 프로세스가 죽었을 때뿐(사용자 2026-09-25: "그 정도는 항상 체크해야지")
 
 
 class Heartbeat:
