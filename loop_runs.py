@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parent
 PY = str(ROOT / ".venv" / "Scripts" / "python.exe")
 
 
-def between_rounds(i: int) -> None:
+def between_rounds(i: int, mission: str) -> None:
     import control
     import env
     from souls import missions, moves
@@ -47,7 +47,10 @@ def between_rounds(i: int) -> None:
         s = tm.snapshot(within=15.0) or s
     d = math.dist((s.player.x, s.player.y, s.player.z), tuple(missions.FIRELINK["stand"]))
     souls = tm.souls() or 0
-    print(f"[{i}] 판 사이: HP {s.player.hp}, 소울 {souls}, 불의 제전까지 {d:.0f} m, 10 m 안 적 {len(s.hostile(10.0))}", flush=True)
+    lb = tm.last_bonfire()
+    print(f"[{i}] 판 사이: HP {s.player.hp}, 소울 {souls}, 화톳불 {lb}, 불의 제전까지 {d:.0f} m, 10 m 안 적 {len(s.hostile(10.0))}", flush=True)
+    # burg-loop(to_firelink 로 걸어서 귀환)는 화톳불을 안 바꾸니 보통 여기 안 걸린다.
+    # 퀵 종료(quit+reload)는 자리를 안 바꾼다(실측 2026-09-25) — 화톳불에서 멀면 다크사인 말고는 순간이동 수단이 없다.
     if d > 15 and souls < 500 and not s.hostile(15.0):
         control.focus_game()
         pad = control.Pad()
@@ -61,11 +64,12 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--n", type=int, default=10)
     ap.add_argument("--style", default="backstep")
+    ap.add_argument("--mission", default="clear-ramp", choices=["clear-ramp", "burg-bonfire", "burg-loop"])
     a = ap.parse_args()
     for i in range(1, a.n + 1):
-        between_rounds(i)
+        between_rounds(i, a.mission)
         t0 = time.time()
-        r = subprocess.run([PY, "run.py", "clear-ramp", "--style", a.style], cwd=str(ROOT), capture_output=True, text=True,
+        r = subprocess.run([PY, "run.py", a.mission, "--style", a.style], cwd=str(ROOT), capture_output=True, text=True,
                            encoding="utf-8", errors="replace", timeout=600)
         tail = [l for l in r.stdout.splitlines() if "══ 결과" in l or "Traceback" in l]
         print(f"[{i}/{a.n}] {time.time() - t0:.0f} s  {tail[-1] if tail else r.stdout[-200:]}", flush=True)

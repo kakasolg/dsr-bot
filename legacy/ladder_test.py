@@ -22,7 +22,6 @@ from PIL import ImageGrab
 
 import control
 import env
-import merchantrun as mr
 import nav
 import navmesh
 import vision_probe as vp
@@ -90,6 +89,7 @@ def watch(tm, pad, stick, secs, until=None):
 
 
 def main() -> None:
+    import legacy.merchantrun as mr           # scan·down·up·flags-off·prompt_px() 는 안 씀 — CLI 시험용(go-burg 등)만 필요
     sys.stdout.reconfigure(encoding="utf-8")
     what = sys.argv[1] if len(sys.argv) > 1 else "scan"
     name = sys.argv[2] if len(sys.argv) > 2 else "burg"

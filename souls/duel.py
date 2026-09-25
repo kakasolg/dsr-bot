@@ -36,6 +36,40 @@ LEDGE_DY = 3.0           # 그놈이 arena 보다 이만큼 높거나 낮으면 
 SWING_S = 1.6            # 공격 애니가 시작된 지 이만큼 넘으면 휘두르는 중으로 안 본다
 PULL_R = 8.0             # 끌어오기: 그놈이 이 안이면(움직이지 않아도) 물러나기 시작
 SEEK_R = 100.0           # 그놈을 이 반경 안에서 찾는다 — 40 m 로 뒀더니 화톳불에서 42 m 인 1번을 못 보고 전부 '놓침' 이었다
+CIRCLE_BEHIND_DEG = 130  # 그놈 정면 기준 이 각 넘게 벗어나면 '등 뒤' — 방패는 정면 부채꼴만 막는다 (사용자 2026-09-25: "방패병도 뒤를 공격 해야함")
+CIRCLE_LEAD_DEG = 60     # 매 틱 목표점을 이만큼 앞서 잡아 — 멈추지 않고 계속 돈다 (사용자 시범: 3.5~3.8 s 큰 원호, 걸음마다 서면 그놈이 회전을 따라잡았다)
+CIRCLE_SWEEP_S = 4.0     # 한 번에 도는 최대 시간 (실측 3.5~3.8 s + 여유)
+CIRCLE_MAX_SWEEPS = 2    # 이만큼 돌아도 등 뒤가 안 되면 포기(길 막힘 등) — 발차기로 대신 (무한 루프 방지)
+
+
+def _circle_sweep(mv, s, c, cancel) -> float:
+    """그놈 둘레를 멈추지 않고 계속 돈다 — 사용자 시범(2026-09-25, play_20260925_062345.jsonl): 3.5~3.8 s 이어지는 큰
+    원호로 등 뒤(150~180°)까지 붙어 약공 한 대(303000, 보통 약공과 같은 애니)로 54 피해(HP 85의 63 %) — 걸음마다 서던 예전
+    _circle_step 은 그 사이 그놈이 몸을 돌려 따라잡았다. → 마지막 등 뒤 각(절대값, deg)."""
+    ptr = c.ptr
+    t0 = time.time()
+    behind_deg = abs(math.degrees(M.rel_angle(c, s.player)))
+    while time.time() - t0 < CIRCLE_SWEEP_S and not cancel():
+        s = mv.snap(8.0)
+        if s is None or s.cam_yaw is None:
+            break
+        c = mv.find(s, ptr)
+        if c is None or (c.anim or -1) != -1:               # 그놈이 움직이기 시작하면(더는 idle) 멈춘다
+            break
+        p = s.player
+        ang = M.rel_angle(c, p)
+        behind_deg = abs(math.degrees(ang))
+        if behind_deg >= CIRCLE_BEHIND_DEG:
+            break
+        sign = 1.0 if ang >= 0 else -1.0
+        th = math.radians(CIRCLE_LEAD_DEG) * sign
+        dx, dz = p.x - c.x, p.z - c.z
+        rx = dx * math.cos(th) + dz * math.sin(th)          # atan2(x, z) 규약 — bearing 을 +th 만큼 돌리는 회전식
+        rz = dz * math.cos(th) - dx * math.sin(th)
+        mv.pad.move(*mv.stick_to(s, c.x + rx, c.z + rz, 0.7))
+        time.sleep(0.05)
+    mv.pad.move(0.0, 0.0)
+    return behind_deg
 
 
 def _others_quiet(s, ptr) -> bool:
@@ -137,6 +171,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
     care_t, backstep_t, move_t = 0.0, 0.0, 0.0
     pulled = arena is None
     orig_ptr, switch_t = None, 0.0
+    circle_n = 0                                            # 등 뒤로 도는 시도 횟수 (foe.circle_behind) — 무한 루프 방지
     acts: dict = {}                                        # 1 s 동안 한 일 (기록용)
     note_t = [t0]
 
@@ -433,7 +468,16 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
         a = c.anim if c.anim is not None else -1
         if a in M.ATTACK and reflex is not None and (reflex.attack_age(ptr) or 0.0) > SWING_S:
             a = -1                                         # 가드 자세로 머문 3000 번대 — 선 것으로 (발차기)
-        looks_at_me = c.heading is not None and abs(math.degrees(M.rel_angle(c, s.player))) < 60
+        behind_deg = abs(math.degrees(M.rel_angle(c, s.player))) if c.heading is not None else 0.0
+        looks_at_me = behind_deg < 60
+        if (foe.circle_behind and a == -1 and behind_deg < CIRCLE_BEHIND_DEG and circle_n < CIRCLE_MAX_SWEEPS
+                and h <= weapon.reach + 1.5 and (nm is None or nav.ground_ahead(nm, p, c.x - p.x, c.z - p.z, reach=1.0))):
+            # 방패는 정면 부채꼴만 막는다 — 도는 동안은 공격하지 않는다(무기대로 치면 또 막힌다). CIRCLE_MAX_SWEEPS 넘으면 포기하고 아래(발차기 등)로
+            circle_n += 1
+            behind_deg = _circle_sweep(mv, s, c, cancel)
+            note(f"등뒤돌기:{behind_deg:.0f}", s, c)
+            continue
+        circle_n = 0
         if foe.kick_when_idle and a == -1 and looks_at_me and now - kick_t > KICK_COOLDOWN:
             kick_t = now
             hit = mv.kick_combo(s, c, n=weapon.combo)       # 발차기 → 곧장 약공 (간격이 크면 방패병이 다시 가드, 사용자)

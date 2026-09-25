@@ -30,7 +30,6 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
 import control
-import merchantrun as mr
 import nav
 import patrol
 import tactic_llm
@@ -137,6 +136,8 @@ def facing_player(c, p) -> float | None:
 
 class Probe:
     def __init__(self):
+        global mr                            # window_rect()·IMG_DIR 등은 안 씀 — Probe 클래스(CLI 시험용)만 필요
+        import legacy.merchantrun as mr
         self.run = mr.Runner()          # 텔레메트리·패드·내비메시·휴식을 같이 쓴다
         self.tm, self.pad = self.run.tm, self.run.pad
         # 새 프로세스의 가상 패드를 게임이 못 잡을 때가 있다 (화면 안내가 패드 A 대신 키보드 E — 첫 시도 휴식 2번 실패).

@@ -122,6 +122,46 @@ class Missions:
         self.log(f"── 상인: {res} — {time.time() - t0:.0f} s")
         return res
 
+    def to_firelink(self) -> str:
+        """불의 제전으로 걸어서 돌아온다 — to_merchant 의 역순. 성벽 마을(B) 내비메시엔 불의 제전으로 가는 경로가
+        없어(no_path) 기록한 길을 거꾸로 걷는다. 상자는 갈 때 이미 부숴 놨으니 다시 굴리지 않는다."""
+        na, nb = self.nms[MAP_A], self.nms[MAP_B]
+        top, route, R = _route()
+        pb = list(reversed([tuple(q) for q in R["b"]]))
+        pc = list(reversed([tuple(q) for q in R["c"]]))
+        route_r = list(reversed(route))
+        t0 = time.time()
+        s = self.mv.snap(5.0)
+        here = (s.player.x, s.player.y, s.player.z)
+        pts = {"C": pc, "B": pb, "A": route_r}
+        seg, k, d = min(((name, j, math.dist(q, here)) for name, ps in pts.items()
+                         for j, q in enumerate(ps)), key=lambda t: t[2])
+        self.log(f"   귀환 길: 가장 가까운 곳 {seg}{k} ({d:.1f} m)")
+        self.f.home = FIRELINK["stand"] if seg == "A" else tuple(R["b"][0])
+        if d > 6.0:                                     # 화톳불 등 기록한 길에서 떨어진 자리에서 시작 — 먼저 그 점으로
+            r = self.f.walk_to(pts[seg][k], na if seg == "A" else nb, "귀환 길로")
+            if r != "arrived":
+                return f"귀환 길까지 {r}"
+        if seg == "C":
+            r = self.f.walk(pc[k:], nb, "창고 방(귀환)", tol=0.8)
+            if r != "arrived":
+                return f"창고 방 {r}"
+            seg, k = "B", 0
+        if seg == "B":
+            self.f.home = tuple(R["b"][0])
+            r = self.f.walk(pb[k:], nb, "성벽 마을(귀환)", tol=0.8, tight=R["small_bridge"])
+            if r != "arrived":
+                return f"성벽 마을 {r}"
+            seg, k = "A", 0
+        if seg == "A":
+            self.f.home = FIRELINK["stand"]
+            r = self.f.walk(route_r[k:], na, "통로(귀환)", tol=0.8)
+            if r != "arrived":
+                return f"통로 {r}"
+        r = self.f.walk_to(tuple(FIRELINK["stand"]), na, "불의 제전으로")
+        self.log(f"── 귀환: {r} — {time.time() - t0:.0f} s")
+        return r
+
     def _roll_boxes(self, frm, to, tries: int = 3) -> bool:
         """상자 더미를 굴러 깨며 지나간다 (사용자: "굴러서 깨면서 들어가는 게 좋아"). 시작점에 0.3 m 안으로 서고 구른다."""
         def past(sn) -> bool:
@@ -199,3 +239,25 @@ class Missions:
         if r != "도착":
             return f"상인 {r}"
         return self.light_burg_bonfire()
+
+    def burg_bonfire_round_trip(self) -> str:
+        """경사로 → 상인 → 성벽 마을 화톳불까지 걸어갔다가, 쉬지 않고 걸어서 불의 제전으로 돌아온다 (사용자 2026-09-25:
+        "화톳불 쉬지 말고 걸어서 돌아 오게 해"). 화톳불에 앉지 않으니 귀환 지점이 안 바뀌어 다음 판도 그냥 걸어서 시작한다."""
+        if not self.f.alive():
+            self.f.wait_respawn()
+        if not self.start_fresh():
+            return "휴식 실패"
+        r = self.clear_ramp()
+        if r != "cleared":
+            return f"경사로 {r}"
+        r = self.to_merchant()
+        if r != "도착":
+            return f"상인 {r}"
+        nb = self.nms[MAP_B]
+        _, _, R = _route()
+        self.f.home = tuple(R["b"][0])
+        r = self.f.walk_to(BURG_BONFIRE_SIDE, nb, "화톳불로")
+        if r != "arrived":
+            return f"화톳불까지 {r}"
+        self.log("── 성벽 마을 화톳불: 쉬지 않고 돌아간다")
+        return self.to_firelink()

@@ -494,7 +494,7 @@ class Field:
         """안개벽 앞에서 막혔으면: 다음 경로점 쪽으로 몸을 돌리고, 안내창이 뜨면 A (사용자: "안개벽 A 눌러", "방향 정렬").
         안개 옆에 서서 벽을 보고 밀기만 해 '막힘' 이었다 (2026-09-24). 안내창은 몸이 안개를 봐야 뜬다.
         → 지나갔나 (2 m 넘게 움직임)"""
-        import ladder_test as L                          # 안내창 판별(화면 아래 가운데 어두운 비율, 뜨면 ~900)
+        import legacy.ladder_test as L                    # 안내창 판별(화면 아래 가운데 어두운 비율, 뜨면 ~900)
         s = self.mv.snap(5.0)
         if s is None or s.cam_yaw is None:
             return False

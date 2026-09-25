@@ -1,7 +1,8 @@
 """DSR 봇 실행 — 층 구조(souls/)의 진입점. 층 설명은 LAYERS.md.
 
   python run.py status                   HP·에스트·무기·마지막 화톳불·핏자국 (게임에 입력 안 함)
-  python run.py burg-bonfire             불의 제전 → 경사로 하나씩 → 상인 → 성벽 마을 화톳불 찍기
+  python run.py burg-bonfire             불의 제전 → 경사로 하나씩 → 상인 → 성벽 마을 화톳불 찍고 앉기(귀환 지점 바뀜)
+  python run.py burg-loop                위와 같은 길이지만 화톳불엔 앉지 않고 걸어서 불의 제전으로 되돌아온다 (반복 시험용)
   python run.py clear-ramp [--no-rest]   경사로 6마리만 (--no-rest: 쉬지 않고 지금 상태에서)
   python run.py merchant                 지금 자리에서 상인까지 (쉬지 않음)
   python run.py light-burg               지금 자리(성벽 마을)에서 화톳불 찍기만
@@ -60,7 +61,7 @@ def status() -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["status", "burg-bonfire", "clear-ramp", "merchant", "light-burg", "quit-test"])
+    ap.add_argument("cmd", choices=["status", "burg-bonfire", "burg-loop", "clear-ramp", "merchant", "light-burg", "quit-test"])
     ap.add_argument("--no-rest", action="store_true")
     ap.add_argument("--no-lure", action="store_true", help="나이프로 한 놈씩 깨우지 않고 예전처럼 걸어가 붙는다 (비교용)")
     ap.add_argument("--style", choices=["guard", "backstep"], default="guard",
@@ -99,6 +100,8 @@ def main() -> None:
     try:
         if a.cmd == "burg-bonfire":
             r = ms.burg_bonfire()
+        elif a.cmd == "burg-loop":
+            r = ms.burg_bonfire_round_trip()
         elif a.cmd == "clear-ramp":
             if not a.no_rest:
                 ms.start_fresh()
