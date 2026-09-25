@@ -81,7 +81,13 @@ def main() -> None:
 
     log = Log(a.cmd)
     lock = BotLock()
-    if not lock.acquire():                     # watchdog.py 가 이 잠금으로 본체 생사를 본다 — OS 가 죽으면(강제 종료 포함) 자동으로 풀어준다
+    # watchdog.py 도 잡았다 곧장 놓는 짧은 폴링을 한다 — 그 찰나와 겹치면 한 번은 실패할 수 있어 몇 번 다시 본다
+    # (실측 2026-09-25: 재시도 없이 한 번만 보다가 10판 중 6판이 겹쳐서 즉시 실패했다)
+    for _ in range(10):
+        if lock.acquire():
+            break
+        time.sleep(0.2)
+    else:
         log("   ⚠ 이미 다른 본체가 실행 중 — 겹쳐 켜면 패드가 부딪힌다, 멈춤")
         return
     tm = env.make_telemetry({})
