@@ -31,6 +31,7 @@ RAMP_ARENA = (-30.0, -49.25, 29.0)
 # 잡는 순서 (지도 번호). 2번 방패병은 맨 나중 — 자리가 너무 안 좋다 (서쪽 낭떠러지 + 위 턱 화염병, 사용자 2026-09-24:
 # "두번째 공격하러 가는 얘를 맨 나중에 해봐", "거기 위치 너무 안 좋아"). 거기서 먼저 붙으면 1 s 에 275 를 맞거나 떨어졌다
 RAMP_ORDER = [1, 3, 4, 5, 6, 2]
+NO_LURE = {1}            # 1번은 높은 자리라 멀리선 바위에 막히고 가까이선 이미 내려온다 (사용자 2026-09-24) — 평지로 걸어가면 스스로 온다
 
 
 def _route():
@@ -58,7 +59,7 @@ class Missions:
         return ok
 
     def clear_ramp(self, lure: bool = True) -> str:
-        targets = [dict(RAMP[i - 1], label=i) for i in RAMP_ORDER]
+        targets = [dict(RAMP[i - 1], label=i, lure=(i not in NO_LURE)) for i in RAMP_ORDER]
         r = self.f.clear(targets, self.nms[MAP_A], arena=RAMP_ARENA, lure=lure)
         self.log(f"── 경사로: {r}")
         return r

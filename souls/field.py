@@ -156,10 +156,11 @@ class Field:
         if e is not None and self.mv.tm.selected_item() != e:
             self.mv.select_item(e)                         # 미리 골라 둔다 — 틈이 났을 때 칸 돌리는 1~3 s 가 없게
         self.reflex.nm = nm
-        if self.style == "backstep" and self.mv.tm.grip() == 1:
-            self.mv.pad.two_hand_right()                   # 양손 — 방패를 안 쓰니 한 대가 더 크다 (사용자)
+        want = 3 if self.style == "backstep" else 1                  # 방패 스타일은 한손+방패, 백스텝 스타일은 양손
+        if self.mv.tm.grip() not in (None, want):
+            self.mv.pad.two_hand_right()                   # Y 홀드 + RB 토글
             time.sleep(0.5)
-            self.log(f"   양손: grip {self.mv.tm.grip()}")
+            self.log(f"   잡기: grip {self.mv.tm.grip()} (원함 {want})")
         r = D.duel(self.mv, self.w, ptr, nm, log=self.log, cancel=lambda: self.esc.escaping or self.esc.gen != g0,
                    care=Care(self), reflex=self.reflex, arena=arena, low_hp=0.0 if desperate else 0.25, style=self.style)
         self.log(f"   {tag}{' (끝까지)' if desperate else ''}: {r.line()}")
@@ -288,7 +289,7 @@ class Field:
                     killed = True
                     break
                 self.wait_escape()
-                if lure and k == 0:
+                if lure and k == 0 and e.get("lure", True):
                     lr = self.lure(c.ptr, e["pos"], nm, f"#{i}", arena=arena)
                     self.log(f"   #{i} 끌어오기: {lr}")
                     if lr == "dead":

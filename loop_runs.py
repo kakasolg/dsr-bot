@@ -48,7 +48,7 @@ def between_rounds(i: int) -> None:
     d = math.dist((s.player.x, s.player.y, s.player.z), tuple(missions.FIRELINK["stand"]))
     souls = tm.souls() or 0
     print(f"[{i}] 판 사이: HP {s.player.hp}, 소울 {souls}, 불의 제전까지 {d:.0f} m, 10 m 안 적 {len(s.hostile(10.0))}", flush=True)
-    if d > 15 and souls < 1500 and not s.hostile(15.0):
+    if d > 15 and souls < 500 and not s.hostile(15.0):
         control.focus_game()
         pad = control.Pad()
         mv = moves.Moves(tm, pad)
