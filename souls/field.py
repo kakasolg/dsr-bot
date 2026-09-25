@@ -449,9 +449,16 @@ class Field:
                 terr = nm if (f_q is not None and abs(f_q[0] - q[1]) < 2.0 and f_p is not None and abs(f_p[0] - s.player.y) < 2.0) else None
 
                 def chaser(sn):
-                    return next((c for c in sn.hostile(FOLLOW_R + 1.0) if awake(c) and c.ptr not in ignore
-                                 and M.horiz(sn.player, c) < FOLLOW_R and abs(c.y - sn.player.y) < FOLLOW_DY
-                                 and (c.anim not in (None, -1) or c.dist < 2.0)), None)
+                    # 방패병은 뒤로 미룬다 — 여럿이면 쉬운 놈부터(사용자 2026-09-25: "다른 적부터 해결 하고 가라니깐",
+                    # "방패병 둘한테 너무 빨리 가 잖아" — 성벽 마을 테라스의 방패병 둘을 연달아 만나 회복할 틈 없이
+                    # 220+ 피해씩 받고 둘러싸였다). 쉬운 놈이 하나도 없을 때만(방패병뿐일 때) 어쩔 수 없이 그놈부터.
+                    cands = [c for c in sn.hostile(FOLLOW_R + 1.0) if awake(c) and c.ptr not in ignore
+                             and M.horiz(sn.player, c) < FOLLOW_R and abs(c.y - sn.player.y) < FOLLOW_DY
+                             and (c.anim not in (None, -1) or c.dist < 2.0)]
+                    if not cands:
+                        return None
+                    easy = [c for c in cands if foes_.of(c.npc_param).kind != "shield"]
+                    return min(easy or cands, key=lambda c: c.dist if c.dist is not None else 999.0)
                 g0 = self.esc.gen
                 r = nav.goto(self.mv.tm, self.mv.pad, q, tolerance=t if terr is not None else max(t, 0.8), timeout=15,
                              log=lambda *a: None, terrain=terr, mover=mover,
