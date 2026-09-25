@@ -314,8 +314,8 @@ class Field:
                     if not ok and self.mv.estus_left() <= 0:
                         return "no_estus"
                     desperate = not ok
-                    if tried[c.ptr] >= tries or r.result in ("stuck", "lost"):
-                        ignore.add(c.ptr)
+                    if tried[c.ptr] >= tries:                  # stuck·lost 도 다른 실패처럼 tries 번은 다시 (사용자 2026-09-25:
+                        ignore.add(c.ptr)                       # "Rush mode는 적을 끝까지 공격해야지" — 한 번 막혔다고 바로 포기 안 함
                 else:
                     desperate = False
                 continue
