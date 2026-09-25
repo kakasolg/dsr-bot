@@ -27,7 +27,7 @@ import nav
 from . import moves as M
 
 THREAT_R = 2.5           # 수평
-EVADE_DELAY = 0.3        # 공격 시작 뒤 이만큼 지나서 피한다 — 즉시 피하면 그놈이 추적해 따라 들어온다 (10판: 백스텝 51회 중 절반 맞음)
+EVADE_DELAY = 0.0        # 공격 시작 뒤 이만큼 지나서 피한다 — 즉시 피하면 그놈이 추적해 따라 들어온다 (10판: 백스텝 51회 중 절반 맞음)
 EVADE_R = 1.8            # 백스텝 스타일: 이 안에서 휘두를 때만 피한다 — 2.5~3 m 에서도 피하니 계속 밀려나 6 s 동안 못 들어갔다 (2026-09-24)
 MIXED_R = 4.0            # 백스텝 스타일이라도 다른 놈이 이 안에 깨어 있으면 방패로 (방패 없이 둘에게 250)
 GUARD_SP = 25            # 이 아래로 막으면 가드가 깨진다 (SP 12~22 에서 막다 깨져 밀려나 낙사, 2026-09-24) — 대신 물러난다
@@ -36,8 +36,9 @@ HIT_R = 3.0
 
 
 class Reflex:
-    def __init__(self, mv: M.Moves, nm=None, unblockable=lambda c: False):
-        self.mv, self.nm, self.unblockable = mv, nm, unblockable
+    def __init__(self, mv: M.Moves, nm=None, unblockable=lambda c: False, bs_ok=lambda c: True):
+        self.mv, self.nm, self.unblockable, self.bs_ok = mv, nm, unblockable, bs_ok
+        # bs_ok(c): 이 놈에게 백스텝 공격을 써도 되나 — 방패병은 파고드는 도끼가 방패에 막히고 그 콤보에 351 (2026-09-24 진단)
         self.evade = False       # True 면 막지 않고 **모든** 공격을 백스텝·구르기로 피한다 (백스텝 스타일 — 양손, 방패 안 씀)
         self.events = None       # 4층이 넣어 주면 회피마다 'evade' 사건 (kind·거리·그 뒤 1.3 s 안에 맞았나) — style_report.py 가 센다
         self._pending: dict | None = None
@@ -144,7 +145,7 @@ class Reflex:
         if p.heading is not None and self.nm is not None:
             back = (math.sin(p.heading), math.cos(p.heading))          # heading 방향 = 몸 뒤 (hunt.backstep_attack 과 같은 규약)
             if nav.ground_ahead(self.nm, p, back[0], back[1], reach=2.6):
-                if attack and nav.ground_ahead(self.nm, p, -back[0], -back[1], reach=3.0):
+                if attack and self.bs_ok(c) and nav.ground_ahead(self.nm, p, -back[0], -back[1], reach=2.2):   # 첫 타는 시작 자리 근처, 3.0 은 경사로에서 거의 항상 실패
                     h = self.mv.backstep_attack(s, c, self.nm)     # 백스텝 + R1 한 동작 (사용자)
                     if h.presses:
                         self.last_hit = h

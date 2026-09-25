@@ -274,7 +274,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
                 if bh.dmg > 0:
                     last_dmg_t = time.time()
                     res.dealt += bh.dmg
-                log(f"      백스텝 공격 → 피해 {bh.dmg}, 내 피해 {bh.taken} ({h:.1f} m)")
+                log(f"      백스텝 공격 → 피해 {bh.dmg}, 내 피해 {bh.taken} ({h:.1f} m) 내 애니 {bh.my_anims[:6]} 그놈 {bh.e_anims[:5]}")
                 note("백스텝공격", s, c)
                 if bh.dead and orig_ptr is None:
                     return done("killed")

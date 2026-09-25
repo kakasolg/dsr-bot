@@ -219,7 +219,7 @@ class Moves:
             if not nav.ground_ahead(nm, p, back[0], back[1], reach=2.6):
                 hit.skipped = "뒤에 바닥 없음"
                 return hit
-            if not nav.ground_ahead(nm, p, -back[0], -back[1], reach=3.0):
+            if not nav.ground_ahead(nm, p, -back[0], -back[1], reach=2.2):
                 hit.skipped = "앞에 바닥 없음"
                 return hit
         if abs(math.degrees(patrol.rel_angle(p, c))) > 40:

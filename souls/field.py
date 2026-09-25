@@ -50,7 +50,8 @@ class Field:
         self.home = self.bonfires[0] if self.bonfires else None   # 마지막으로 쉰 화톳불 (물러날 곳, 다크사인 도착 확인)
         self.events = events or (lambda *a, **k: None)
         # 반사 — 싸우든 걷든 매 틱 먼저 (발밑 확인용 내비메시는 쓸 때 넣는다). 막으면 안 되는 공격은 적 데이터(3층)에서
-        self.reflex = Reflex(mv, unblockable=lambda c: (c.anim or -1) in foes_.of(c.npc_param).unblockable)
+        self.reflex = Reflex(mv, unblockable=lambda c: (c.anim or -1) in foes_.of(c.npc_param).unblockable,
+                             bs_ok=lambda c: foes_.of(c.npc_param).kind != "shield")
         self.reflex.evade = style == "backstep"
         mv.guard_ok = style != "backstep"
         self.reflex.events = self.events
