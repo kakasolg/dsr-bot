@@ -425,7 +425,8 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             note("피함대기", s, c)
             time.sleep(0.02)
             continue
-        if a in M.ATTACK and h < NEAR:                     # 1) 휘두르는 중 → 막는다
+        if style.shield and a in M.ATTACK and h < NEAR:     # 1) 휘두르는 중 → 막는다 (방패 있는 스타일만 —
+            # rush(방패 없음·안 피함)는 여기서 서서 맞기만 하면 상대 콤보가 안 끊겨 8 s+ 0 공격으로 676 받았다, 2026-09-25)
             mv.guard(True)
             if h > weapon.reach + 0.3 and abs(dy) <= 1.0 and s.cam_yaw is not None and (
                     nm is None or nav.ground_ahead(nm, p, c.x - p.x, c.z - p.z, reach=0.8)):
