@@ -138,7 +138,11 @@ def _approach(mv: M.Moves, weapon, s, c, nm, foe, cancel, log=lambda *a: None) -
         if any(x.ptr != ptr and x.hp > 0 and not (9000 <= (x.anim or 0) < 9100) and M.horiz(sn.player, x) < SWITCH_R
                and abs(x.y - sn.player.y) < 1.2 for x in sn.hostile(SWITCH_R + 2.0)):
             return True           # 걸어가는데 다른 놈이 붙었다 — 멈추고 그놈부터 (duel 이 목표를 바꾼다)
-        return (d <= weapon.reach and abs(cc.y - sn.player.y) <= 1.0) or ((cc.anim or -1) in M.ATTACK and d < NEAR)
+        # 높이차가 크면(안 내려오는 놈, 못 오르는 턱) '휘두르는 중 + 가까움'만으로 멈추면 거기서 굳는다 — 높이차 안에서만
+        # 조기 정지, 아니면 경로를 끝까지 따라간다(있으면 돌아가는 길로) (사용자 2026-09-25: "전투 중에 멈춰 있으려면 돌아가야지",
+        # "위험 구역에 왜 머무르고 있어" — 실측: 높이차 1.7~1.9 m 에서 45 s+ "붙기:stopped" 무한 반복, 공격 0회)
+        return (d <= weapon.reach and abs(cc.y - sn.player.y) <= 1.0) or (
+            (cc.anim or -1) in M.ATTACK and d < NEAR and abs(cc.y - sn.player.y) <= 1.2)
 
     def mode(sn) -> str:
         cc = mv.find(sn, ptr)                               # 30 m 밖이면 None — 그땐 그냥 걷는다
@@ -446,8 +450,13 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             continue
         if h > weapon.reach or abs(dy) > 1.0:              # 3) 붙는다
             last_dmg_t = now                               # 교착은 닿는 거리 안에서만 센다 (42 m 걸어가는 동안 '교착' 이었다)
-            if h < 3.0 or best_h is None or h < best_h - 0.5:
-                best_h, best_t = h, now                    # 3 m 안이면 막힌 게 아니다 (1.5~1.8 m 에 붙은 방패병을 HP 10 남기고 '막힘')
+            # 수평 거리만 보고 "3 m 안이면 막힌 게 아니다"로 두면, 안 내려오는 놈(높이차만 큰 경우)에서 h 가 계속 <3 이라
+            # best_t 가 매 틱 갱신돼 stuck 판정이 영영 안 났다 (실측 2026-09-25: 높이차 1.7~1.9 m 에서 45 s+ "붙기:stopped" 반복,
+            # 공격 0회 — 사용자: "전투 중에 멈춰 있으려면 돌아가야지", "위험 구역에 왜 머무르고 있어"). 높이차까지 좁아져야 진전으로 친다.
+            if h < 3.0 and abs(dy) <= 1.2:
+                best_h, best_t = h, now                    # 진짜 닿는 거리 안(높이도)이면 막힌 게 아니다
+            elif best_h is None or h < best_h - 0.5:
+                best_h, best_t = h, now
             elif now - best_t > 8.0:
                 return done("stuck")
             r = _approach(mv, weapon, s, c, nm, foe, cancel, log)
