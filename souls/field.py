@@ -161,8 +161,14 @@ class Field:
         self.reflex.nm = nm
         want = self.style.grip
         if self.mv.tm.grip() not in (None, want):
-            self.mv.pad.two_hand_right()                   # Y 홀드 + RB 토글
-            time.sleep(0.5)
+            # 첫 판(막 쉬고 난 뒤)엔 토글 한 번·0.5 s 로는 안 바뀐 채 싸운 적이 있다(2026-09-25, rush 스타일 1번째 표적이
+            # grip 1 그대로 싸움) — 실제로 바뀐 걸 확인할 때까지 다시 시도한다
+            for _ in range(3):
+                self.mv.pad.two_hand_right()               # Y 홀드 + RB 토글
+                time.sleep(0.5)
+                g = self.mv.tm.grip()
+                if g == want:
+                    break
             self.log(f"   잡기: grip {self.mv.tm.grip()} (원함 {want})")
         r = D.duel(self.mv, self.w, ptr, nm, log=self.log, cancel=lambda: self.esc.escaping or self.esc.gen != g0,
                    care=Care(self), reflex=self.reflex, arena=arena, low_hp=0.0 if desperate else 0.25, style=self.style)
