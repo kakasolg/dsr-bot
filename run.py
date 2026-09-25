@@ -74,13 +74,16 @@ def main() -> None:
     import control
     import env
     import navmesh
-    from heartbeat import Heartbeat
+    from botlock import BotLock
     from souls import missions, moves, weapons
     from souls.field import Field
     from souls.watch import Blood, Escape
 
     log = Log(a.cmd)
-    hb = Heartbeat(tag=a.cmd).start()          # watchdog.py 가 본다 — 이 프로세스가 죽으면(강제 종료 포함) 저절로 끊긴다
+    lock = BotLock()
+    if not lock.acquire():                     # watchdog.py 가 이 잠금으로 본체 생사를 본다 — OS 가 죽으면(강제 종료 포함) 자동으로 풀어준다
+        log("   ⚠ 이미 다른 본체가 실행 중 — 겹쳐 켜면 패드가 부딪힌다, 멈춤")
+        return
     tm = env.make_telemetry({})
     control.focus_game()
     pad = control.Pad()
@@ -139,7 +142,7 @@ def main() -> None:
             pass
         esc.stop()
         blood.stop()
-        hb.stop()
+        lock.release()
         pad.neutral()
         if hasattr(tm, "stats"):
             log(f"텔레메트리 피드: {tm.stats()}")   # frames = 아래 읽기 수, fresh/waited = 층이 받은 프레임, direct = 폴백
