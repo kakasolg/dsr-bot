@@ -96,14 +96,36 @@ def test_waits_at_arena_not_elsewhere() -> None:
     print("ok  player 3 m off the arena → walk_to(arena) only")
 
 
-def test_same_floor_unchanged() -> None:
-    """평지와 같은 높이로 움직인 목표는 예전 그대로 (끌어오기 → 싸움)."""
-    w = world_with_hook([(0, lambda w: w.move(3, (ARENA[0] + 6.0, ARENA[1] + 0.3, ARENA[2] - 4.0)))])
+def test_same_floor_inside_zone_unchanged() -> None:
+    """평지 구역(2.5 m) 안, 같은 높이로 들어온 목표는 예전 그대로 (끌어오기 → 싸움)."""
+    w = world_with_hook([(0, lambda w: w.move(3, (ARENA[0] + 2.0, ARENA[1] + 0.3, ARENA[2] - 1.0)))])
     f = make(w)
     f.lure_result = "no_reaction"
     r = f.clear([dict(T3)], nm=None, arena=ARENA, lure=True)
     assert r == "cleared" and len(f.lures) == 1 and [x["ptr"] for x in f.fights] == [3], (r, f.lures, f.fights)
-    print("ok  moved but same floor as the arena → existing lure → fight path (unchanged)")
+    print("ok  moved into the arena zone (same floor, 2.2 m) → existing lure → fight path (unchanged)")
+
+
+def test_same_floor_outside_zone_waits() -> None:
+    """E-1b: 같은 높이라도 평지 구역 밖이면 찾아가지 않고 기다린다 — 133016 의 #3 (평지 가장자리, 약 5 m)."""
+    w = world_with_hook([(0, lambda w: w.move(3, (-25.8, -48.7, 24.0)))])
+    f = make(w)
+    r = f.clear([dict(T3)], nm=None, arena=ARENA, lure=True)
+    assert r == "left #3~" and f.lures == [] and f.fights == [], (r, f.lures, f.fights)
+    assert any("평지 구역 밖" in l for l in f.logs), f.logs
+    print("ok  E-1b: same floor but 6.5 m off the arena (133016's #3 spot) → wait, never pursued → 'left #3~'")
+
+
+def test_near_hold_spawn_waits() -> None:
+    """E-1b: 아직 남은 방패병(제자리 고수 대상) 스폰에서 12 m 안이면 기다린다."""
+    T2 = {"npc": 255010, "pos": [-23.4, -49.67, 16.15], "label": 2, "lure": True,
+          "lure_at": {"spot": (-30.35, -49.43, 27.91), "min": 13.0, "max": 15.0, "hold": True}}
+    w = world_with_hook([(0, lambda w: w.move(3, (-24.5, -49.5, 22.0)))])
+    w.add(2, 0x1018, 255010, T2["pos"], hp=85, max_hp=85)
+    f = make(w)
+    reasons = f._wait_reasons(w.chars[3], ARENA, [dict(T3), T2])
+    assert any("스폰에서" in r for r in reasons), reasons
+    print(f"ok  E-1b: moved target 6 m from the shield's spawn → wait ({', '.join(reasons)})")
 
 
 def test_at_spawn_ledge_unchanged() -> None:
@@ -121,6 +143,8 @@ if __name__ == "__main__":
     test_wait_then_coming()
     test_never_comes_down()
     test_waits_at_arena_not_elsewhere()
-    test_same_floor_unchanged()
+    test_same_floor_inside_zone_unchanged()
+    test_same_floor_outside_zone_waits()
+    test_near_hold_spawn_waits()
     test_at_spawn_ledge_unchanged()
     print("전부 통과")

@@ -58,7 +58,8 @@ DEFEND_SLICE = 1.0
 APPROACH_DV = 0.3        # 0.5 s 에 이만큼 좁혀 오면 '다가옴'
 LURE_UNBLOCK_S = 0.5     # 끌어오기 막음은 5 m 안이 이만큼 **계속** 조용해야 풀린다 (경계를 스치는 놈에 흔들리지 않게)
 MOVED_WAIT_DY = 1.2      # 평지(arena)와 이만큼 넘게 높이가 다르면 '다른 높이' — 찾아가지 않고 평지에서 기다린다 (Patch E-1)
-MOVED_WAIT_S = 20.0      # 한 번에 기다리는 시간. 두 번 기다려도 안 내려오면 'left #i~' (찾아가지 않음)
+MOVED_WAIT_S = 20.0
+HOLD_KEEP_R = 12.0       # E-1b: 움직인 목표가 아직 남은 제자리 고수 대상(방패병) 스폰에서 이 안이면 찾아가지 않는다 (사용자 #1·#3 처치 12.3~17.7 m)      # 한 번에 기다리는 시간. 두 번 기다려도 안 내려오면 'left #i~' (찾아가지 않음)
 CLOSE_MELEE_R = 3.0      # 접촉 싸움 중 다른 놈이 이 안이면 끝낸다 (duel.SWITCH_R 2.5 보다 넓게 — 목표 바꾸기 전에 끊긴다)
 
 
@@ -440,6 +441,28 @@ class Field:
         time.sleep(0.05)
         return "approach", t
 
+    # Patch E-1/E-1b: 움직인 평지 목표를 찾아가지 않고 기다릴 조건. E-1b(사용자 2026-09-26 "두번째 적을 공격할 때 위험 지역에서
+    # 공격했음"): 같은 높이여도 평지 구역 밖이거나 방패병 스폰 근처면 기다린다 — #3 을 쫓아 방패병 8.8 m 까지 가서 들켰다(133016)
+    def _wait_reasons(self, c, arena, pending) -> list:
+        out = []
+        if abs(c.y - arena[1]) > MOVED_WAIT_DY:
+            out.append(f"평지와 높이차 {c.y - arena[1]:+.1f} m")
+        d = math.hypot(c.x - arena[0], c.z - arena[2])
+        if d > HOLD_ZONE_R:
+            out.append(f"평지 구역 밖 {d:.1f} m")
+        for pe in pending:
+            if (pe.get("lure_at") or {}).get("hold"):
+                ds = math.hypot(c.x - pe["pos"][0], c.z - pe["pos"][2])
+                if ds < HOLD_KEEP_R:
+                    out.append(f"제자리 고수 대상 #{pe.get('label')} 스폰에서 {ds:.1f} m")
+        return out
+
+    def _wait_moved(self, c, arena, pending) -> bool:
+        return bool(self._wait_reasons(c, arena, pending))
+
+    def _wait_why(self, c, arena, pending) -> str:
+        return ", ".join(self._wait_reasons(c, arena, pending))
+
     def _hold_tick(self, i, spot, s, nm, arena, ignore, lb, hold_until: dict):
         """제자리(spot)에서 한 틱 — _hold_at 상태를 보고 제자리 방어 / 묶인 접촉 싸움. 제자리 고수(#2)와 평지 기다림(E-1)이 같이 쓴다.
         → 'died' | None"""
@@ -654,14 +677,14 @@ class Field:
                 continue
             k = tried.get(i, 0)
             la = e.get("lure_at") or {}
-            if arena is not None and not la.get("hold") and st == "moved" and abs(c.y - arena[1]) > MOVED_WAIT_DY:
+            if arena is not None and not la.get("hold") and st == "moved" and self._wait_moved(c, arena, pending):
                 # Patch E-1 (사용자 2026-09-26): 평지에서 잡을 목표(#1·#3 등)가 움직여 다른 높이에 있으면 찾아가지 않고 평지에서
                 # 기다린다 — 방패병 제자리 고수와 같은 방식, 내려오면 '오는 놈' 이 받는다. Patch A 뒤로 봇이 내려오는 #3 의 **예전
                 # 자리**(경사로 위)로 걸어 올라가 평지를 떠났다 (observe 131752·132053, 평지에서 5.95~6.0 m).
                 w0 = wait_since.get(i)
                 if w0 is None:
                     w0 = wait_since[i] = time.time()
-                    self.log(f"   #{i} {e['npc']}: 움직여 다른 높이 (평지와 높이차 {c.y - arena[1]:+.1f} m) — 찾아가지 않고 평지에서 기다림")
+                    self.log(f"   #{i} {e['npc']}: 움직임 — {self._wait_why(c, arena, pending)} — 찾아가지 않고 평지에서 기다림")
                 if time.time() - w0 < MOVED_WAIT_S:
                     if self._hold_tick(i, tuple(arena), s, nm, arena, ignore, blocks.setdefault(("wait", i), LureBlock()), {}) == "died":
                         return "died"
