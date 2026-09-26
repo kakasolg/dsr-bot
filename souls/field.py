@@ -238,7 +238,7 @@ class Field:
 
     # ── 싸움 ─────────────────────────────────────────────────
     def fight(self, ptr, nm, tag: str, arena=None, desperate: bool = False, limit: float = 45.0, wait_far: bool = False,
-              leash=None) -> D.DuelResult:
+              leash=None, may_approach=None) -> D.DuelResult:
         """leash() 가 참이면 그 틱에 싸움을 끝낸다 (cancel) — 제자리 고수 중 접촉 싸움을 안전 구역 안에 묶는다 (Patch C)."""
         g0 = self.esc.gen
         e = self.mv.estus_id()
@@ -261,7 +261,7 @@ class Field:
             r = D.duel(self.mv, self.w, ptr, nm, log=self.log,
                        cancel=lambda: self.esc.escaping or self.esc.gen != g0 or (leash is not None and leash()),
                        care=Care(self), reflex=self.reflex, arena=arena, low_hp=0.0 if desperate else 0.25, style=self.style,
-                       limit=limit, wait_far=wait_far, gen=self.esc.gen, events=self.events)
+                       limit=limit, wait_far=wait_far, gen=self.esc.gen, events=self.events, may_approach=may_approach)
         finally:
             self.mv.cam_target = None
         self.log(f"   {tag}{' (끝까지)' if desperate else ''}: {r.line()}")
@@ -457,6 +457,31 @@ class Field:
                     out.append(f"제자리 고수 대상 #{pe.get('label')} 스폰에서 {ds:.1f} m")
         return out
 
+    def _approach_guard(self, arena, pending, binds: dict):
+        """E-2·E-3 가 duel 에 넘기는 '다가가도 되나' (cc, snapshot) → bool.
+        · 스폰 그대로인 목록 목표 → 된다 (위 턱 #4~#6 은 예전처럼 올라가 잡는다)
+        · 움직인 목록 목표 → E-1b 기다림 조건(다른 높이·평지 구역 밖·방패병 스폰 12 m 안)이면 안 된다 — 플레이어 위치와 상관없이
+        · 목록에 없는 놈 → 플레이어가 평지 근처(6 m, 같은 높이)일 때만 같은 조건으로 막는다 (위 턱 싸움은 예전 그대로)"""
+        if arena is None:
+            return None
+
+        def spawn_of(ptr):
+            for pe in pending:
+                b = binds.get(id(pe)) or {}
+                if b.get("ptr") == ptr and b.get("gen") == self.esc.gen:
+                    return pe["pos"]
+            return None
+
+        def may(cc, sn) -> bool:
+            sp = spawn_of(cc.ptr)
+            if sp is not None:
+                moved = math.hypot(cc.x - sp[0], cc.z - sp[2]) > MOVED_R or abs(cc.y - sp[1]) > MOVED_DY
+                return not (moved and self._wait_moved(cc, arena, pending))
+            p = sn.player if sn is not None else None
+            near_arena = p is not None and math.hypot(p.x - arena[0], p.z - arena[2]) <= 6.0 and abs(p.y - arena[1]) < 1.2
+            return not (near_arena and self._wait_moved(cc, arena, pending))
+        return may
+
     def _wait_moved(self, c, arena, pending) -> bool:
         return bool(self._wait_reasons(c, arena, pending))
 
@@ -625,9 +650,12 @@ class Field:
                 # 아직 먼 놈에게 걸어가면 그 사이 다른 깨어있는 놈까지 붙어서 혼자 올 걸 여럿이 동시에 상대하게 된다
                 # (사용자 2026-09-25: "기다리면 올텐데 왜 뛰쳐 올라가 기회를 놓쳤잖아") — 닿는 거리 밖이면 기다린다
                 r = self.fight(c.ptr, nm, f"오는 놈 {c.npc_param}" + (f" ({tried[c.ptr]}번째)" if tried[c.ptr] > 1 else ""),
-                               arena=arena, desperate=desperate, limit=COMING_LIMIT, wait_far=True)
+                               arena=arena, desperate=desperate, limit=COMING_LIMIT, wait_far=True,
+                               may_approach=self._approach_guard(arena, pending, binds))
                 if r.result == "me_dead":
                     return "died"
+                if r.result == "unsafe_approach":
+                    continue                               # E-2: 쫓지 않고 다음 바퀴 (평지 기다림으로)
                 if r.result != "killed":
                     ok = self.recover(f"오는 놈 {r.result}", nm)
                     if not ok and self.estus_left() <= 0:
@@ -747,7 +775,11 @@ class Field:
                     pending.pop(0)
                 continue                                   # 깨어 오면 위의 '오는 놈' 이 받는다; 안 오면 다음 바퀴에 찾아간다
             tried[i] = k + 1
-            r = self.fight(c.ptr, nm, f"#{i} {e['npc']}" + (f" ({tried[i]}번째)" if tried[i] > 1 else ""), arena=arena, desperate=desperate)
+            r = self.fight(c.ptr, nm, f"#{i} {e['npc']}" + (f" ({tried[i]}번째)" if tried[i] > 1 else ""), arena=arena, desperate=desperate,
+                           may_approach=self._approach_guard(arena, pending, binds))
+            if r.result == "unsafe_approach":
+                tried[i] = k                               # E-2: 시도로 세지 않는다 — 다음 바퀴에 E-1 평지 기다림
+                continue
             if r.result == "killed":
                 pending.pop(0)
                 desperate = False

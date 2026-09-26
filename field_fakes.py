@@ -136,8 +136,8 @@ def make_field(world: World, fight_kills: bool = True) -> F.Field:
     f.recovers: list[str] = []
     f.walks: list[tuple] = []
 
-    def fight(ptr, nm, tag, arena=None, desperate=False, limit=45.0, wait_far=False, leash=None):
-        f.fights.append(dict(ptr=ptr, tag=tag, limit=limit, wait_far=wait_far, leash=leash))
+    def fight(ptr, nm, tag, arena=None, desperate=False, limit=45.0, wait_far=False, leash=None, may_approach=None):
+        f.fights.append(dict(ptr=ptr, tag=tag, limit=limit, wait_far=wait_far, leash=leash, may=may_approach))
         if fight_kills and ptr in world.chars:
             world.chars[ptr].hp = 0
             return D.DuelResult("killed")

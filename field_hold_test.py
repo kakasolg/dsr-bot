@@ -117,7 +117,7 @@ def test_contact_in_zone_leash() -> None:
     # clear 수준: 싸움 중 둘째 놈이 붙으면 그 틱에 끊기고, 그 싸움 안에서 목표를 바꾸지 않는다
     calls = []
 
-    def fight(ptr, nm, tag, arena=None, desperate=False, limit=45.0, wait_far=False, leash=None):
+    def fight(ptr, nm, tag, arena=None, desperate=False, limit=45.0, wait_far=False, leash=None, may_approach=None):
         calls.append(dict(ptr=ptr, tag=tag, wait_far=wait_far, limit=limit, leash=leash))
         if len(calls) == 1:
             w.add(4, 0x1014, 254001, at(dx=-1.5))    # 둘째 놈이 붙음

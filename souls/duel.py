@@ -140,6 +140,7 @@ def _separate(mv, s, ptr, others: list, nm, arena, cancel) -> str:
     return r
 
 
+GOAL_STALE_M = 3.0       # Patch E-2: 붙으러 가는 중 그놈이 경로를 짠 자리에서 이만큼 움직이면 멈추고 다시 판단
 SHADOW_WINDOW = 1.5      # 그림자 발차기 후보 뒤 이만큼 지나 결과(내 HP·그놈 HP 변화)를 남긴다
 
 
@@ -241,7 +242,7 @@ class DuelResult:
         return f"{self.result} — {self.secs:.0f} s, 준 피해 {self.dealt}, 받은 피해 {self.taken}, 공격 {' '.join(kinds) or '없음'}"
 
 
-def _approach(mv: M.Moves, weapon, s, c, nm, foe, cancel, log=lambda *a: None) -> str:
+def _approach(mv: M.Moves, weapon, s, c, nm, foe, cancel, log=lambda *a: None, may_approach=None) -> str:
     """경로를 따라 그놈에게 붙는다. 붙거나 / 그놈이 휘두르기 시작하거나 / 취소면 그 틱에 멈춘다.
     경로는 **출발할 때 그놈 자리**로 짠다 — 그놈이 움직이면 도착한 뒤 다시 짠다 (1 s 마다 그놈 위치를 기록)."""
     p, ptr = s.player, c.ptr
@@ -269,6 +270,12 @@ def _approach(mv: M.Moves, weapon, s, c, nm, foe, cancel, log=lambda *a: None) -
             return False          # goto 의 스냅샷은 30 m 안만 담는다 — 멀리 있는 그놈이 안 보이는 건 사라진 게 아니다
         if cc.hp <= 0:
             return True
+        # Patch E-2 (2026-09-26): 그놈이 경로를 짠 자리에서 GOAL_STALE_M 넘게 움직였으면 멈추고 duel 이 지금 자리로 다시 판단한다.
+        # 예전엔 출발 때 자리로 끝까지 걸어, 내려오는 #3 을 지나쳐 경사로 위 예전 자리로 올라갔다 (observe 131752·132053·133827).
+        if math.dist((cc.x, cc.y, cc.z), goal) > GOAL_STALE_M:
+            return True
+        if may_approach is not None and not may_approach(cc, sn):
+            return True           # 다가가면 안 되는 곳으로 가는 중 — duel 이 'unsafe_approach' 로 끝낸다
         d = M.horiz(sn.player, cc)
         if any(x.ptr != ptr and x.hp > 0 and not (9000 <= (x.anim or 0) < 9100) and M.horiz(sn.player, x) < SWITCH_R
                and abs(x.y - sn.player.y) < 1.2 for x in sn.hostile(SWITCH_R + 2.0)):
@@ -301,7 +308,7 @@ PUNISH_R = 1.6           # 닿는 거리 + 이만큼 안이면 걸어 들어가 
 
 def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: float = 0.25,
          cancel=lambda: False, care=None, reflex=None, arena=None, style=None, wait_far: bool = False,
-         gen=None, events=None) -> DuelResult:
+         gen=None, events=None, may_approach=None) -> DuelResult:
     """care: 4층이 주는 회복 담당 — care.wants(s) (마시고 싶나), care.take(recheck) (마신다; recheck(s) 로 틈을 다시 본다).
     틈인지는 여기(3층)가 본다: opening(). 붙어 있으면 백스텝으로 벌리고 다음 틱에 다시 본다.
     reflex: 반사(souls/reflex.py) — 매 틱 가장 먼저. 움직였으면 이 틱은 쉰다 (상대가 아닌 놈의 공격도 정면으로 막는다).
@@ -670,6 +677,11 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
                 wait_t0, wait_hmin = now, h
             if h < wait_hmin - WAIT_CLOSE_M:
                 wait_t0, wait_hmin = now, h                  # 다가오는 중 — 계속 기다린다
+            elif now - wait_t0 > WAIT_APPROACH_S and may_approach is not None and not may_approach(c, s):
+                # Patch E-3 (2026-09-26): 다가가면 안전 구역을 벗어나거나 방패병 스폰에 가까워지는 놈이면 '안옴→붙기' 로 바꾸지 않고
+                # 계속 기다린다 — 평지 가장자리 6.4 m 에 선 #3 에게 붙으러 가다 방패병 스폰 6.6 m 에서 들켜 둘러싸였다 (133827)
+                wait_t0 = now
+                note("안옴→기다림유지", s, c)
             elif now - wait_t0 > WAIT_APPROACH_S:
                 # 안 다가오는 놈을 기다리면 끝이 없다: 방패병 255002 가 4.6 m 에서 가드(3000/3001)로 버티고 봇도 막고만 서서
                 # 15 s 교착 → 같은 놈과 다시 교착 반복 (사용자 2026-09-25: "적이 앞에 있는데 가드만 하고 기다려")
@@ -701,7 +713,10 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
                 best_h, best_t = h, now
             elif now - best_t > 8.0:
                 return done("stuck")
-            r = _approach(mv, weapon, s, c, nm, foe, cancel, log)
+            if may_approach is not None and not may_approach(c, s):
+                log(f"      다가가지 않음 — {c.npc_param} ({c.x:.1f}, {c.y:.1f}, {c.z:.1f}) 는 안전 구역 밖 (Patch E-2)")
+                return done("unsafe_approach")
+            r = _approach(mv, weapon, s, c, nm, foe, cancel, log, may_approach=may_approach)
             last_dmg_t = time.time()                       # 붙는 데 걸린 시간은 교착이 아니다 (한 번에 17 s 걸었다)
             note(f"붙기:{r}", s, c)
             if r == "dead":
