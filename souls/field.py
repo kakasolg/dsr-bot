@@ -415,11 +415,13 @@ class Field:
         """교전 큐 (2026-09-25 층 설계 2단계): **깨어서 오는 놈이 있으면 가까운 순으로 먼저**, 없을 때만 스폰 목록의 다음 놈을
         끌어오거나 찾아간다. 실제 처치 대부분이 '가는 길에 쫓아온 놈' 이었는데 예전 코드는 그걸 walk 안의 예외로 다뤘다.
         targets = [{"npc":…, "pos":[x,y,z], "label":n, "lure":bool}, …] 는 '다음에 깨울 놈' 의도.
-        → 'cleared' | 'left #2 #4' (세 번 해도 못 잡은 놈; '#3?' = 생존을 확인 못 함, 죽음으로 보지 않음) | 'died' | 'no_estus'"""
+        → 'cleared' | 'left #2 #4' (세 번 해도 못 잡은 놈; '#3?' = 생존을 확인 못 함, 죽음으로 보지 않음) | 'died' | 'no_estus'
+          | 'partial deferred_unreachable #2' (제자리 고수 대상을 끝내 못 끌어옴 — 성공 아님, 찾아가지 않음)"""
         pending = list(targets)
         lure_n: dict = {}                                  # 제자리 고수 대상: 끌어오기 시도 수 / 기다림 끝 / 한 번 미뤘나
         hold_until: dict = {}
         deferred: dict = {}
+        unreachable: list[str] = []                        # 제자리 고수 대상 중 끝내 못 끌어온 놈 (Patch B)
         binds: dict = {}                                   # id(목표) → 런타임 신원 (Patch A)
         unres: dict = {}                                   # 스폰에서 못 찾음·신원 끊김 횟수
         last_bind = 0.0
@@ -495,7 +497,7 @@ class Field:
                 continue
             k = tried.get(i, 0)
             la = e.get("lure_at") or {}
-            if lure and la.get("hold") and not deferred.get(i):
+            if lure and la.get("hold"):
                 # 제자리 고수 (사용자 2026-09-26: "첫번째 적을 잡은 위치를 고수해야 돼 — 2번째 적이 그쪽으로 끌려와. 그 근처에서 하면
                 # 방패병이 인식을 못함"). 봇은 끌어오기가 안 되면 방패병에게 걸어갔고, 매번 (-28,-49.3,23.8) — 방패병 8.8~9.1 m —
                 # 에서 들켰다 (observe 090241·092141·092612·094231). 사용자는 방패병 12 m 안으로 들어가지 않고 13.7 m 에서 던졌다
@@ -512,12 +514,21 @@ class Field:
                         hold_until[i] = time.time() + HOLD_WAIT   # 제자리에서 기다린다 — 오는 놈은 위의 '오는 놈' 이 받는다
                         self.log(f"   #{i}: 다가가지 않고 던질 자리에서 {HOLD_WAIT:.0f} s 기다림")
                     continue
-                deferred[i] = True
-                if len(pending) > 1:
-                    self.log(f"   #{i}: 끌어오기 {HOLD_TRIES}번 안 됨 — 맨 뒤로 미룬다")
-                    pending.append(pending.pop(0))
+                # Patch B: 미룬 뒤에도 절대 찾아가지 않는다 — 예전엔 두 번째 차례에 fight() 로 걸어가 0.85 m 까지 붙었다
+                # (R3 observe 101913). 미루고 한 바퀴 더 제자리에서 던져 보고, 그래도 안 되면 안전하게 끝낸다
+                if not deferred.get(i):
+                    deferred[i] = True
+                    lure_n[i] = 0
+                    if len(pending) > 1:
+                        self.log(f"   #{i}: 끌어오기 {HOLD_TRIES}번 안 됨 — 맨 뒤로 미룬다")
+                        pending.append(pending.pop(0))
+                    else:
+                        self.log(f"   #{i}: 끌어오기 {HOLD_TRIES}번 안 됨, 남은 게 이놈뿐 — 제자리에서 한 바퀴 더")
                     continue
-                self.log(f"   #{i}: 끌어오기 {HOLD_TRIES}번 안 됨, 남은 게 이놈뿐 — 찾아간다")
+                self._deferred_unreachable(e, i, b, c, s)
+                unreachable.append(f"#{i}")
+                pending.pop(0)
+                continue
             if lure and k == 0 and e.get("lure", True) and not la.get("hold"):
                 lr = self.lure(c.ptr, e["pos"], nm, f"#{i}", arena=arena, lure_at=e.get("lure_at"))
                 self.log(f"   #{i} 끌어오기: {lr}")
@@ -543,7 +554,22 @@ class Field:
             if tried[i] >= tries + 1:
                 left.append(f"#{i}")
                 pending.pop(0)
+        if unreachable:                                    # 성공이 아니다 — 부르는 쪽은 길을 더 가지 않는다
+            return "partial deferred_unreachable " + " ".join(unreachable) + ("" if not left else " left " + " ".join(left))
         return "cleared" if not left else "left " + " ".join(left)
+
+    def _deferred_unreachable(self, e: dict, i, b: dict, c, s) -> None:
+        """Patch B 끝내기 약속: 입력 중립·방패 내림, 그놈 쪽으로 자동 추적 없음, 마지막 신원·HP·위치를 남긴다."""
+        self.mv.pad.neutral()
+        self.mv.guard(False)
+        p = s.player if s is not None else None
+        pos = None if c is None else [round(c.x, 2), round(c.y, 2), round(c.z, 2)]
+        dist = None if (c is None or p is None) else round(math.dist((p.x, p.y, p.z), (c.x, c.y, c.z)), 2)
+        hp = None if c is None else c.hp
+        self.log(f"   #{i} {e['npc']}: 끝내 못 끌어옴 — deferred_unreachable (핸들 {b.get('handle')}, 세대 {b.get('gen')}, "
+                 f"raw HP {hp}, 위치 {pos}, 거리 {dist} m). 찾아가지 않는다")
+        self.events("deferred_unreachable", label=i, npc=e["npc"], handle=b.get("handle"), gen=b.get("gen"),
+                    hp=hp, pos=pos, dist=dist, lure_tries=2 * HOLD_TRIES)
 
     def _clear_old(self, targets: list[dict], nm, tries: int = 3, arena=None, lure: bool = False) -> str:
         """(예전) 스폰 지도 순서대로 하나씩. targets = [{"npc":…, "pos":[x,y,z]}, …].

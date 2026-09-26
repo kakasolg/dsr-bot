@@ -100,6 +100,8 @@ def score(path: Path) -> dict:
             flags.append(f"끝까지×{desperate}")
         if min_frac is not None and min_frac < 0.25:
             flags.append(f"최저{min_frac:.0%}")
+        if "partial" in rtxt:                      # 못 끌어온 놈을 남기고 끝냈다 (Patch B) — 깨끗한 판이 아니다
+            flags.append("partial")
         verdict = "위험" if flags else "깨끗"
         warn = [f"{k}×{duels[k]}" for k in WARN_RESULTS if duels.get(k)]
         warn += [f"결과:{k}" for k in ("stuck", "no_estus", "timeout") if k in rtxt]
