@@ -23,6 +23,11 @@ class Foe:
     windup: tuple = ()              # 시작하고 한참 뒤에 닿는 공격 — windup_act_s 안이면 먼저 발차기로 끊고, 넘으면 막는다
     windup_act_s: float = 1.2
     kick_on_stagger: bool = False   # 공격 뒤 휘청(3500)에 곧장 발차기 — 곧 물러나 닿는 거리를 벗어난다
+    # 위 windup·kick_on_stagger 조건에서 빠른 발차기를 어떻게 할지 (Patch D, 2026-09-26):
+    #   "off"    — 아무것도 안 함
+    #   "shadow" — 발차기는 안 하고 후보 사건만 기록(duel.ShadowKick). 원시 애니 3004·3500 의 뜻이 검증 전이라 기본값
+    #   "act"    — 실제로 발차기. 어떤 Foe 데이터도 이 값을 쓰지 않는다 — 켜려면 앞으로 따로 승인받은 실험 전용 변경이 필요
+    early_kick: str = "off"
     note: str = ""
 
 
@@ -39,7 +44,7 @@ FIREBOMB_HOLLOW = Foe("망자(화염병)", ranged=True, **_HOLLOW,
 #  · 3005 돌진(4 m 에서 3~4.5 m/s, +1.0 s 에 닿음)은 막으면 1~2 — 그대로 막기
 #  · 3500 은 0.8~1.3 s, 그 사이 1.5~1.9 m/s 로 물러난다(1 m → 3~4.7 m) — 곧장 발차기 (예전엔 '끌어오기'로 평지로 뛰어가 버림)
 SHIELD = Foe("방패 병사", kind="shield", kick_when_idle=True, circle_behind=False, unblockable=(3009,), punish_hits=1,
-             windup=(3004,), windup_act_s=1.2, kick_on_stagger=True,
+             windup=(3004,), windup_act_s=1.2, kick_on_stagger=True, early_kick="shadow",
              note="가만히 서면 방패를 들어 약공이 12 씩만 (6번 쳐도 못 잡음). 가드 올린 채면 발차기로 휘청 (위키). "
                   "내가 가드만 하면 가드 브레이크 3009 로 깨러 온다 (Lua IsTargetGuard) — 2026-09-24 실측: 3009 를 막다 가드가 깨져"
                   "(내 애니 160) 스태미나 42→14, 밀려나 경사로에서 낙사. 3009 는 막지 말고 피한다. "

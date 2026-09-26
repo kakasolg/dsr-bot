@@ -140,6 +140,74 @@ def _separate(mv, s, ptr, others: list, nm, arena, cancel) -> str:
     return r
 
 
+SHADOW_WINDOW = 1.5      # 그림자 발차기 후보 뒤 이만큼 지나 결과(내 HP·그놈 HP 변화)를 남긴다
+
+
+def _early_kick_candidate(foe, a: int, age, h: float, dy: float, sp: float, weapon, others_attacking: bool) -> bool:
+    """빠른 발차기 후보인가 — 원시 애니(foe.windup 이 막 시작 / STAGGER)·거리·높이·스태미나·옆 공격자만 본다. 부작용 없음
+    (예전 조건 안의 mv.face() 는 몸을 움직였다 — 그건 'act' 일 때만 따로 부른다)."""
+    if not foe.kick_when_idle or h > weapon.reach + 0.3 or abs(dy) > 1.0 or sp < weapon.sp_min or others_attacking:
+        return False
+    return (a in foe.windup and age is not None and age < foe.windup_act_s) or (foe.kick_on_stagger and a in M.STAGGER)
+
+
+class ShadowKick:
+    """Patch D — 원시 애니 3004·3500 에 거는 빠른 발차기는 뜻이 검증 전이라 하지 않고 후보 사건만 남긴다.
+    사건 하나 = (핸들, 세대, 애니, 시작 시각) 하나. SHADOW_WINDOW 뒤 결과 사건을 한 번 더 남긴다."""
+
+    def __init__(self, log=print, events=None, gen=None):
+        self.log, self.events, self.gen = log, events or (lambda *a, **k: None), gen
+        self.seen: set = set()
+        self.pending: list = []
+        self._last: dict = {}                              # ptr → (anim, 시작 시각)
+
+    def note_anim(self, ptr, anim: int, now: float) -> None:
+        prev = self._last.get(ptr)
+        if prev is None or prev[0] != anim:
+            self._last[ptr] = (anim, now)
+
+    def onset(self, ptr, anim: int, age, now: float) -> float:
+        if age is not None and anim in M.ATTACK:
+            return now - age
+        last = self._last.get(ptr)
+        return last[1] if last and last[0] == anim else now
+
+    def observe(self, now, ptr, handle, npc, anim, age, h, dy, sp, max_sp, others_n, player_hp, target_hp) -> str | None:
+        on = round(self.onset(ptr, anim, age, now) / 0.05) * 0.05
+        key = f"{handle}|g{self.gen}|{anim}|{on:.2f}"
+        if key in self.seen:
+            return None
+        self.seen.add(key)
+        ev = dict(key=key, handle=handle, gen=self.gen, ptr=ptr, npc=npc, anim=anim,
+                  age=None if age is None else round(age, 2), h=round(h, 2), dy=round(dy, 2), sp=sp, max_sp=max_sp,
+                  hostiles_4_5m=others_n, t=round(now, 2))
+        self.log(f"      그림자 발차기 후보 (안 함) key={key} 애니 {anim} age {ev['age']} 거리 {ev['h']} m SP {sp}/{max_sp} 옆 {others_n}")
+        self.events("shadow_kick", **ev)
+        self.pending.append(dict(key=key, t=now, ptr=ptr, php=player_hp, thp=target_hp))
+        return key
+
+    def _emit(self, pe, now, s, cancelled: bool, truncated: bool) -> None:
+        p = s.player if s is not None else None
+        c = next((x for x in s.chars if x.ptr == pe["ptr"]), None) if s is not None else None
+        out = dict(key=pe["key"], window_s=round(now - pe["t"], 2), truncated=truncated,
+                   player_hp_delta=None if p is None or pe["php"] is None else p.hp - pe["php"],
+                   target_hp_delta=None if c is None or pe["thp"] is None else c.hp - pe["thp"],
+                   escape_or_cancel=cancelled, death=bool(p is not None and p.hp is not None and p.hp <= 0))
+        self.log(f"      그림자 발차기 결과 key={out['key']} 내 HP {out['player_hp_delta']} 그놈 HP {out['target_hp_delta']}"
+                 f"{' (잘림)' if truncated else ''}")
+        self.events("shadow_kick_outcome", **out)
+
+    def tick(self, now: float, s) -> None:
+        for pe in [x for x in self.pending if now - x["t"] >= SHADOW_WINDOW]:
+            self.pending.remove(pe)
+            self._emit(pe, now, s, False, False)
+
+    def flush(self, now: float, s, cancelled: bool) -> None:
+        for pe in list(self.pending):
+            self.pending.remove(pe)
+            self._emit(pe, now, s, cancelled, True)
+
+
 def _others_quiet(s, ptr) -> bool:
     for x in s.hostile(OTHERS_ATTACK_R):
         if x.ptr == ptr or 9000 <= (x.anim or 0) < 9100:
@@ -232,7 +300,8 @@ PUNISH_R = 1.6           # 닿는 거리 + 이만큼 안이면 걸어 들어가 
 
 
 def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: float = 0.25,
-         cancel=lambda: False, care=None, reflex=None, arena=None, style=None, wait_far: bool = False) -> DuelResult:
+         cancel=lambda: False, care=None, reflex=None, arena=None, style=None, wait_far: bool = False,
+         gen=None, events=None) -> DuelResult:
     """care: 4층이 주는 회복 담당 — care.wants(s) (마시고 싶나), care.take(recheck) (마신다; recheck(s) 로 틈을 다시 본다).
     틈인지는 여기(3층)가 본다: opening(). 붙어 있으면 백스텝으로 벌리고 다음 틱에 다시 본다.
     reflex: 반사(souls/reflex.py) — 매 틱 가장 먼저. 움직였으면 이 틱은 쉰다 (상대가 아닌 놈의 공격도 정면으로 막는다).
@@ -277,10 +346,13 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
 
     hp_min = [hp_start]
 
+    shadow = ShadowKick(log=log, events=events, gen=gen)   # gen·events: Field.fight 가 넣는다 (그림자 발차기 사건용)
+
     def done(result: str) -> DuelResult:
         mv.pad.guard(False)
         mv.pad.move(0.0, 0.0)
         s_ = mv.snap(5.0)
+        shadow.flush(time.time(), s_, cancelled=(result == "cancel"))
         if s_ and s_.player.hp is not None:
             hp_min[0] = min(hp_min[0], s_.player.hp)
         res.result, res.secs = result, time.time() - t0
@@ -400,13 +472,19 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             reflex.prefer = ptr
             reflex.update(s)
         age = reflex.attack_age(ptr) if reflex is not None else None
-        if (foe.kick_when_idle and h <= weapon.reach + 0.3 and abs(dy) <= 1.0 and (p.sp or 0) >= weapon.sp_min
-                and ((a in foe.windup and age is not None and age < foe.windup_act_s)
-                     or (foe.kick_on_stagger and a in M.STAGGER))
-                and not any(x.ptr != ptr and (x.anim or -1) in M.ATTACK and M.horiz(p, x) < 2.5 for x in s.hostile(4.5))
-                and mv.face(s, c, deg=30.0)):
-            # 한 템포 빨리 발차기 (사용자 2026-09-26) — 느리게 닿는 공격(3004)의 앞부분, 또는 공격 뒤 휘청(3500)이 막 시작됐을 때.
-            # 반사·끌어오기보다 먼저 본다: 3500 을 공격이 아니라고 보고 '끌어오기'로 평지로 뛰어가 틈을 버렸다 (091308)
+        shadow.note_anim(ptr, a, now)
+        shadow.tick(now, s)
+        near45 = [x for x in s.hostile(4.5) if x.ptr != ptr]
+        ek = getattr(foe, "early_kick", "off")
+        cand = ek != "off" and _early_kick_candidate(
+            foe, a, age, h, dy, p.sp or 0, weapon,
+            any((x.anim or -1) in M.ATTACK and M.horiz(p, x) < 2.5 for x in near45))
+        if cand and ek == "shadow":
+            # Patch D: 원시 애니만 보고 발차기하지 않는다 — 기록만 하고 아래 가지로 그대로 흘러간다 (B8 이 없던 것처럼)
+            shadow.observe(now, ptr, mv.tm.handle(ptr), c.npc_param, a, age, h, dy, p.sp, p.max_sp, len(near45), p.hp, c.hp)
+        if cand and ek == "act" and mv.face(s, c, deg=30.0):
+            # (실험 전용, 어떤 Foe 데이터도 켜지 않음) 한 템포 빨리 발차기 (사용자 2026-09-26) — 느리게 닿는 공격(3004)의 앞부분,
+            # 또는 공격 뒤 휘청(3500)이 막 시작됐을 때. 반사·끌어오기보다 먼저 본다
             kick_t = now
             why = f"{a} {age:.2f}s" if a in foe.windup else f"휘청 {a}"
             hit = mv.kick_combo(s, c, n=foe.punish_hits or weapon.combo)

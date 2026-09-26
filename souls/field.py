@@ -258,7 +258,7 @@ class Field:
             r = D.duel(self.mv, self.w, ptr, nm, log=self.log,
                        cancel=lambda: self.esc.escaping or self.esc.gen != g0 or (leash is not None and leash()),
                        care=Care(self), reflex=self.reflex, arena=arena, low_hp=0.0 if desperate else 0.25, style=self.style,
-                       limit=limit, wait_far=wait_far)
+                       limit=limit, wait_far=wait_far, gen=self.esc.gen, events=self.events)
         finally:
             self.mv.cam_target = None
         self.log(f"   {tag}{' (끝까지)' if desperate else ''}: {r.line()}")
