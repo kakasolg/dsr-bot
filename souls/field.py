@@ -50,6 +50,36 @@ HOLD_WAIT = 8.0
 MISSING_S = 5.0          # 묶어 둔 목표가 스냅샷에서 이만큼 계속 안 보이면 'unknown' (죽음으로 보지 않는다)
 MOVED_R, MOVED_DY = 3.0, 3.0   # 스폰에서 이만큼 벗어나 살아 있으면 'moved'
 BIND_EVERY = 1.0         # 안 묶인 목표를 스폰에서 다시 찾는 간격
+HOLD_ZONE_R = 2.5        # 던질 자리 둘레 안전 구역 (자리는 RAMP_ARENA 에서 1.1 m, 그 평지의 가장 가까운 낙차 4.0 m)
+HOLD_CALM_R = 5.0        # 이 안에 적이 없으면 '조용' — 방패 내림
+HOLD_GUARD_R = 3.0       # 이 안이면 '접촉'
+HOLD_GUARD_SP = 0.25     # 최대 스태미나 대비 — 이 아래면 방패 대신 제자리 방어
+DEFEND_SLICE = 1.0
+APPROACH_DV = 0.3        # 0.5 s 에 이만큼 좁혀 오면 '다가옴'
+LURE_UNBLOCK_S = 0.5     # 끌어오기 막음은 5 m 안이 이만큼 **계속** 조용해야 풀린다 (경계를 스치는 놈에 흔들리지 않게)
+CLOSE_MELEE_R = 3.0      # 접촉 싸움 중 다른 놈이 이 안이면 끝낸다 (duel.SWITCH_R 2.5 보다 넓게 — 목표 바꾸기 전에 끊긴다)
+
+
+class LureBlock:
+    """끌어오기 막음 + 해제 히스테리시스 — set() 뒤, 적이 HOLD_CALM_R 안에 없음이 LURE_UNBLOCK_S 넘게 **계속**이어야 풀린다."""
+
+    def __init__(self):
+        self.on, self.calm_since = False, None
+
+    def set(self) -> None:
+        self.on, self.calm_since = True, None
+
+    def update(self, near: bool, now: float) -> bool:
+        """→ 아직 막혀 있나."""
+        if not self.on:
+            return False
+        if near:
+            self.calm_since = None
+        elif self.calm_since is None:
+            self.calm_since = now
+        elif now - self.calm_since >= LURE_UNBLOCK_S:
+            self.on, self.calm_since = False, None
+        return self.on
 
 
 class Field:
@@ -204,7 +234,9 @@ class Field:
         return bool(s and s.player.hp >= s.player.max_hp * 0.6)
 
     # ── 싸움 ─────────────────────────────────────────────────
-    def fight(self, ptr, nm, tag: str, arena=None, desperate: bool = False, limit: float = 45.0, wait_far: bool = False) -> D.DuelResult:
+    def fight(self, ptr, nm, tag: str, arena=None, desperate: bool = False, limit: float = 45.0, wait_far: bool = False,
+              leash=None) -> D.DuelResult:
+        """leash() 가 참이면 그 틱에 싸움을 끝낸다 (cancel) — 제자리 고수 중 접촉 싸움을 안전 구역 안에 묶는다 (Patch C)."""
         g0 = self.esc.gen
         e = self.mv.estus_id()
         if e is not None and self.mv.tm.selected_item() != e:
@@ -223,7 +255,8 @@ class Field:
             self.log(f"   잡기: grip {self.mv.tm.grip()} (원함 {want})")
         self.mv.cam_target = ptr                           # camera.CamFollow 가 이 놈 쪽으로 카메라를 돌린다
         try:
-            r = D.duel(self.mv, self.w, ptr, nm, log=self.log, cancel=lambda: self.esc.escaping or self.esc.gen != g0,
+            r = D.duel(self.mv, self.w, ptr, nm, log=self.log,
+                       cancel=lambda: self.esc.escaping or self.esc.gen != g0 or (leash is not None and leash()),
                        care=Care(self), reflex=self.reflex, arena=arena, low_hp=0.0 if desperate else 0.25, style=self.style,
                        limit=limit, wait_far=wait_far)
         finally:
@@ -347,14 +380,113 @@ class Field:
                 time.sleep(0.5)
         return "no_reaction"
 
-    def _hold_at(self, spot, nm, tag: str) -> None:
-        """제자리(던질 자리)로 돌아가 방패를 들고 선다 — 한 틱만."""
-        s = self.mv.snap(5.0)
-        if s is not None and math.dist((s.player.x, s.player.y, s.player.z), spot) > 1.5:
+    # ── 제자리 고수 (Patch C, 2026-09-26) ─────────────────────
+    # 예전엔 기다리는 내내 방패를 들어(B-1) 스태미나가 안 찼다 (R3 34/106). 이제 한 틱마다 상태만 판단해 돌려주고, 싸움은 하지
+    # 않는다. 방패는 다가오는 놈이 실제로 좁혀 올 때만. 가까이 붙은 놈은: 스태미나가 모자라면 제자리 방어만(_defend_in_place),
+    # 넉넉하고 그놈이 안전 구역 안이면 그 신원에 묶인 싸움(_zone_leash) — 구역을 벗어나거나 둘째 놈이 붙으면 끝낸다.
+
+    def _in_zone(self, spot, x: float, y: float, z: float, nm) -> bool:
+        if math.hypot(x - spot[0], z - spot[2]) > HOLD_ZONE_R or abs(y - spot[1]) >= 1.2:
+            return False
+        return nm is None or nm.on_mesh(x, y, z)
+
+    def _closing(self, c, h: float) -> bool:
+        """그놈이 지난 0.5 s 동안 APPROACH_DV 넘게 좁혀 왔나 (수평 거리 기록으로 — 애니 번호 안 봄)."""
+        hist = self.__dict__.setdefault("_hold_hist", {}).setdefault(c.ptr, [])
+        now = time.time()
+        hist.append((now, h))
+        while hist and now - hist[0][0] > 1.0:
+            hist.pop(0)
+        old = [hh for t, hh in hist if now - t >= 0.5]
+        return bool(old) and old[-1] - h >= APPROACH_DV
+
+    def _hold_at(self, spot, nm, tag: str, s=None, ignore=()) -> tuple[str, object]:
+        """한 틱 판단 → (상태, 그놈). 상태: returning | coming | low_stamina_threat | contact_in_zone | contact_out_of_zone |
+        approach | calm. 싸움·다가가기는 하지 않는다 — 부르는 쪽(clear)이 상태를 보고 정한다."""
+        s = s or self.mv.snap(SEEK_R)
+        if s is None:
+            time.sleep(0.05)
+            return "calm", None
+        p = s.player
+        if math.dist((p.x, p.y, p.z), spot) > 1.5:
             self.walk_to(spot, nm, f"{tag} 제자리로")
-            return
-        self.mv.guard(True)
-        time.sleep(0.2)
+            return "returning", None
+        coming = [c for c in s.hostile(FOLLOW_R + 2.0) if awake(c) and c.ptr not in ignore and c.anim not in (None, -1)
+                  and M.horiz(p, c) < FOLLOW_R + 2.0 and abs(c.y - p.y) < FOLLOW_DY]
+        if coming:
+            return "coming", min(coming, key=lambda x: M.horiz(p, x))   # 기존 '오는 놈' 가지가 받는다 — 여기선 아무것도 안 함
+        near = [c for c in s.hostile(HOLD_CALM_R + 3.0) if abs(c.y - p.y) < 1.2 and M.horiz(p, c) <= HOLD_CALM_R]
+        self.mv.pad.move(0.0, 0.0)
+        if not near:
+            self.mv.guard(False)                           # 조용하면 방패를 내려 스태미나를 채운다
+            time.sleep(0.05)
+            return "calm", None
+        t = min(near, key=lambda x: M.horiz(p, x))
+        h = M.horiz(p, t)
+        sp_ok = (p.sp or 0) >= HOLD_GUARD_SP * (p.max_sp or 1)
+        closing = self._closing(t, h)
+        if h <= HOLD_GUARD_R:
+            if not sp_ok:
+                self.mv.guard(False)
+                return "low_stamina_threat", t
+            if self._in_zone(spot, t.x, t.y, t.z, nm):
+                return "contact_in_zone", t
+            self.mv.guard(closing)
+            time.sleep(0.05)
+            return "contact_out_of_zone", t
+        self.mv.guard(sp_ok and closing)
+        time.sleep(0.05)
+        return "approach", t
+
+    def _defend_in_place(self, threat_ptr, nm) -> str:
+        """스태미나가 모자란데 붙은 놈 — DEFEND_SLICE 동안 제자리 방어만. 스틱 중립(다가가지 않음), 방패는 반사가 공격이
+        실제로 시작될 때만(계속 들지 않음), 반사의 반격(백스텝 공격)은 끈다. HP 25 % 아래면 기존 recover()(물러나 마시기).
+        → 'defended' | 'recovered' | 'cancel'"""
+        saved = self.reflex.bs_attack
+        self.reflex.bs_attack = False
+        t0 = time.time()
+        try:
+            self.mv.pad.move(0.0, 0.0)
+            self.mv.guard(False)
+            while time.time() - t0 < DEFEND_SLICE:
+                if self.esc.escaping:
+                    return "cancel"
+                s = self.mv.snap(10.0)
+                if s is None:
+                    time.sleep(0.05)
+                    continue
+                p = s.player
+                if p.max_hp and p.hp < 0.25 * p.max_hp:
+                    self.recover("제자리 방어 중 HP 낮음", nm)
+                    return "recovered"
+                self.reflex.update(s)
+                self.reflex.tick(s)
+                time.sleep(0.03)
+            return "defended"
+        finally:
+            self.reflex.bs_attack = saved
+            self.mv.pad.move(0.0, 0.0)
+
+    def _zone_leash(self, threat, spot, nm):
+        """접촉 싸움 끈 — 처음 묶은 신원(ptr·핸들·세대)에만. 신원이 바뀌거나, 그놈·내가 안전 구역을 벗어나거나, 다른 놈이
+        CLOSE_MELEE_R 안으로 붙으면 참 → fight 가 그 틱에 끝난다. 다른 놈으로 목표를 바꾸지 않는다."""
+        ptr, handle, gen = threat.ptr, self.mv.tm.handle(threat.ptr), self.esc.gen
+
+        def leash() -> bool:
+            if self.esc.gen != gen:
+                return True
+            s = self.mv.snap(10.0)
+            if s is None:
+                return False
+            c = self.mv.find(s, ptr)
+            if c is None or c.hp <= 0 or self.mv.tm.handle(ptr) != handle:
+                return True
+            p = s.player
+            if not self._in_zone(spot, c.x, c.y, c.z, nm) or not self._in_zone(spot, p.x, p.y, p.z, nm):
+                return True
+            return any(x.ptr != ptr and M.horiz(p, x) < CLOSE_MELEE_R and abs(x.y - p.y) < 1.2
+                       for x in s.hostile(CLOSE_MELEE_R + 1.0))
+        return leash
 
     def find_at(self, npc: int, pos, r: float = 3.0, dy_max: float = 3.0):
         """스폰 pos 근처의 그 종류. 넓게(30 m) 찾을 때도 **높이차 dy_max 안**만 — 경사로 아래에서 위 턱의 6번을 1번으로 잡아
@@ -422,6 +554,7 @@ class Field:
         hold_until: dict = {}
         deferred: dict = {}
         unreachable: list[str] = []                        # 제자리 고수 대상 중 끝내 못 끌어온 놈 (Patch B)
+        blocks: dict = {}                                  # 제자리 고수 대상별 LureBlock (Patch C)
         binds: dict = {}                                   # id(목표) → 런타임 신원 (Patch A)
         unres: dict = {}                                   # 스폰에서 못 찾음·신원 끊김 횟수
         last_bind = 0.0
@@ -501,8 +634,26 @@ class Field:
                 # 제자리 고수 (사용자 2026-09-26: "첫번째 적을 잡은 위치를 고수해야 돼 — 2번째 적이 그쪽으로 끌려와. 그 근처에서 하면
                 # 방패병이 인식을 못함"). 봇은 끌어오기가 안 되면 방패병에게 걸어갔고, 매번 (-28,-49.3,23.8) — 방패병 8.8~9.1 m —
                 # 에서 들켰다 (observe 090241·092141·092612·094231). 사용자는 방패병 12 m 안으로 들어가지 않고 13.7 m 에서 던졌다
-                if time.time() < hold_until.get(i, 0.0):
-                    self._hold_at(tuple(la["spot"]), nm, f"#{i}")
+                spot = tuple(la["spot"])
+                lb = blocks.setdefault(i, LureBlock())
+                near5 = any(abs(x.y - s.player.y) < 1.2 and M.horiz(s.player, x) <= HOLD_CALM_R
+                            for x in s.hostile(HOLD_CALM_R + 3.0))
+                if time.time() < hold_until.get(i, 0.0) or lb.update(near5, time.time()):
+                    st, thr = self._hold_at(spot, nm, f"#{i}", s, ignore)
+                    if st == "low_stamina_threat":
+                        # 이번 기다림을 끝내고(새 끌어오기는 막음), 제자리 방어만 — 다가가지도, 계속 막지도 않는다
+                        if not lb.on:
+                            self.log(f"   #{i}: 스태미나 {s.player.sp}/{s.player.max_sp} 인데 {thr.npc_param} {M.horiz(s.player, thr):.1f} m"
+                                     " — 제자리 방어")
+                        hold_until[i] = time.time()
+                        lb.set()
+                        self._defend_in_place(thr.ptr, nm)
+                    elif st == "contact_in_zone":
+                        lb.set()
+                        r = self.fight(thr.ptr, nm, f"hold 접촉 {thr.npc_param}", arena=arena, limit=COMING_LIMIT,
+                                       wait_far=True, leash=self._zone_leash(thr, spot, nm))
+                        if r.result == "me_dead":
+                            return "died"
                     continue
                 if lure_n.get(i, 0) < HOLD_TRIES:
                     lr = self.lure(c.ptr, e["pos"], nm, f"#{i}", arena=arena, lure_at=la)
