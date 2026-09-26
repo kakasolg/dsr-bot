@@ -24,6 +24,10 @@ from . import moves as M
 STALEMATE_S = 15.0       # 닿는 거리 안에서 이만큼 피해를 못 주면 교착 — 예전엔 '6번 쳐도 안 죽음'(발차기·막힌 약공도 셌다)으로 판을 버렸다
 NEAR = 4.0               # 이 안에서 그놈이 휘두르면 방패
 KICK_COOLDOWN = 2.5
+SEP_R = 4.0              # 목표와 다른 깨어 있는 놈이 둘 다 이 안이면 떼어 놓는다 (_separate)
+SEP_RUN = 5.0            # 그만큼 달아난다 — 망자(느림)와 방패병 돌진(3~4.5 m/s)이 시차를 두고 온다
+SEP_COOLDOWN = 5.0       # 연달아 달리기만 하지 않게
+SEP_MAX = 3              # 한 싸움에 이만큼까지
 OPEN_R = 3.0             # 싸우는 중 에스트 '틈': 그놈이 넘어졌거나, 휘두르지 않고 이만큼 떨어져 있을 때
 OTHERS_R, OTHERS_ATTACK_R = 5.0, 8.0   # 그리고 다른 깨어 있는 놈이 5 m 안에 없고, 8 m 안에 휘두르는 놈이 없을 때
 CARE_RETRY = 3.0
@@ -80,6 +84,60 @@ def _circle_sweep(mv, s, c, cancel) -> float:
         time.sleep(0.05)
     mv.pad.move(0.0, 0.0)
     return behind_deg
+
+
+def _pair_close(s, p, ptr, h: float) -> list:
+    """목표 말고 SEP_R 안(같은 높이)에 깨어 움직이는 놈 — 목표도 SEP_R 안일 때만. 가만히 선(-1)·쓰러진 놈은 빼고."""
+    if h >= SEP_R:
+        return []
+    near = [x for x in s.hostile(SEP_R + 1.0) if x.hp > 0 and M.horiz(p, x) < SEP_R and abs(x.y - p.y) < 1.2
+            and not (9000 <= (x.anim or 0) < 9100) and (x.anim or -1) not in M.DOWNED]
+    # 누가 휘두르는(돌진하는) 중이면 달리지 않는다 — 돌진(3005, 3~4.5 m/s)이 달리기보다 빨라 등을 맞았다:
+    # 2.7 m 에서 돌진 중인 방패병을 두고 돌아서 뛰다 +178° 로 −281 (observe 094231). 공격 사이에만 떼어 놓는다
+    if any((x.anim or -1) in M.ATTACK for x in near):
+        return []
+    return [x for x in near if x.ptr != ptr]
+
+
+def _separate(mv, s, ptr, others: list, nm, arena, cancel) -> str:
+    """둘이 붙어 오면 떼어 놓는다 (사용자 2026-09-26 (a)) — 둘의 가운데에서 멀어지는 쪽으로 SEP_RUN m 달려 한 놈씩 오게 한다.
+    방패병 옆에서 망자가 휘둘러 −161, 그동안 약공으로 스태미나 −5 → 방패병 3210 에 가드가 깨져 −103 (observe 092612).
+    갈 자리: 내비메시 위이고 직선으로 끊김 없이(clear_line) 가는 곳만. arena 가 그쪽이면 arena. 없으면 안 달린다.
+    → 'arrived' | 'stopped' | 'no_spot' | …(walk_path 값)"""
+    p = s.player
+    c = mv.find(s, ptr)
+    group = [x for x in [c, *others] if x is not None]
+    cx, cz = sum(x.x for x in group) / len(group), sum(x.z for x in group) / len(group)
+    ax, az = p.x - cx, p.z - cz
+    n = math.hypot(ax, az)
+    if n < 0.3:                                            # 둘 사이에 끼었다 — 목표 반대쪽으로
+        ax, az = p.x - c.x, p.z - c.z
+        n = math.hypot(ax, az) or 1.0
+    ax, az = ax / n, az / n
+    cands = []
+    if arena is not None:
+        dx, dz = arena[0] - p.x, arena[2] - p.z
+        da = math.hypot(dx, dz)
+        if 2.0 < da < SEP_RUN + 4.0 and (dx * ax + dz * az) / da > 0.3:
+            cands.append(tuple(arena))
+    base = math.atan2(ax, az)
+    for off in (0, 30, -30, 60, -60):
+        t = base + math.radians(off)
+        q = (p.x + math.sin(t) * SEP_RUN, p.y, p.z + math.cos(t) * SEP_RUN)
+        w = nm.nearest_walkable(*q, r=1.5, dy=1.2) if nm is not None else None
+        if w is not None:
+            cands.append(w)
+    here = (p.x, p.y, p.z)
+    goal = next((g for g in cands if nm is not None and nm.clear_line(here, g)), None)
+    if goal is None:
+        return "no_spot"
+    r = mv.walk_path([goal], nm, "sprint", stop=lambda sn: cancel(), timeout_per=2.5)
+    mv.guard(True)
+    s2 = mv.snap(10.0)
+    c2 = mv.find(s2, ptr) if s2 else None
+    if c2 is not None:
+        mv.face(s2, c2, deg=20.0)
+    return r
 
 
 def _others_quiet(s, ptr) -> bool:
@@ -191,6 +249,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
     hp_start = s0.player.hp if s0 else 0
     res = DuelResult("timeout")
     last_dmg_t, kick_t = t0, 0.0
+    sep_t, sep_n = 0.0, 0
     best_h, best_t = None, t0
     wait_t0, wait_hmin = 0.0, 0.0
     wait_hp0 = None                                         # wait_far 로 기다리기 시작한 시점의 HP (다른 데서 맞는지 보려고)
@@ -311,6 +370,18 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
         if not (h > weapon.reach and wait_far):                 # 기다리는 중이 아니면 기다림 HP 기준점도 없앤다
             wait_hp0 = None
 
+        pair = _pair_close(s, p, ptr, h)
+        if (pair and nm is not None and sep_n < SEP_MAX and now - sep_t > SEP_COOLDOWN and a not in M.STAGGER
+                and a not in M.DOWNED and c.hp > FINISH_HP):
+            # 둘이 같이 붙었다 — 떼어 놓고 한 놈씩 (사용자 2026-09-26 (a)). 휘청·누움(틈)과 한 대면 죽는 놈 앞에선 안 달린다
+            sep_t, sep_n = now, sep_n + 1
+            r = _separate(mv, s, ptr, pair, nm, arena, cancel)
+            log(f"      떼어놓기 {sep_n}: {c.npc_param}({h:.1f} m) + " + ", ".join(f"{x.npc_param}({M.horiz(p, x):.1f} m, {x.anim})" for x in pair)
+                + f" → {r}")
+            note(f"떼어놓기:{r}", s, c)
+            if r != "no_spot":
+                continue
+
         if (c.hp <= FINISH_HP and a not in M.ATTACK and h <= weapon.reach and abs(dy) <= 1.0
                 and not (foe is not None and foe.kick_when_idle and a == -1)
                 and (p.sp or 0) >= FINISH_SP and mv.face(s, c, deg=30.0)):
@@ -329,6 +400,33 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             reflex.prefer = ptr
             reflex.update(s)
         age = reflex.attack_age(ptr) if reflex is not None else None
+        if (foe.kick_when_idle and h <= weapon.reach + 0.3 and abs(dy) <= 1.0 and (p.sp or 0) >= weapon.sp_min
+                and ((a in foe.windup and age is not None and age < foe.windup_act_s)
+                     or (foe.kick_on_stagger and a in M.STAGGER))
+                and not any(x.ptr != ptr and (x.anim or -1) in M.ATTACK and M.horiz(p, x) < 2.5 for x in s.hostile(4.5))
+                and mv.face(s, c, deg=30.0)):
+            # 한 템포 빨리 발차기 (사용자 2026-09-26) — 느리게 닿는 공격(3004)의 앞부분, 또는 공격 뒤 휘청(3500)이 막 시작됐을 때.
+            # 반사·끌어오기보다 먼저 본다: 3500 을 공격이 아니라고 보고 '끌어오기'로 평지로 뛰어가 틈을 버렸다 (091308)
+            kick_t = now
+            why = f"{a} {age:.2f}s" if a in foe.windup else f"휘청 {a}"
+            hit = mv.kick_combo(s, c, n=foe.punish_hits or weapon.combo)
+            d = hit.as_dict()
+            res.hits.append({k: d[k] for k in ("kind", "presses", "dmg", "dead", "taken", "others")})
+            if hit.dmg > 0:
+                last_dmg_t = time.time()
+                res.dealt += hit.dmg
+            note("빠른발차기", s, c)
+            log(f"      빠른 발차기({why}) → {hit.kind}×{hit.presses} 피해 {hit.dmg}, 내 피해 {hit.taken}, 그놈 애니 {hit.e_anims[:4]}")
+            if hit.dead and orig_ptr is None:
+                return done("killed")
+            continue
+        if a in foe.windup and age is not None and age >= foe.windup_act_s and h < NEAR:
+            # 늦었다 — 곧 닿는다(시작 2.0~2.1 s). SWING_S 로 '선 것'으로 바꿔 발차기를 내면 그 순간 맞는다 (−220·−323) → 막는다
+            mv.guard(True)
+            mv.face(s, c)
+            note("늦은windup막기", s, c)
+            time.sleep(0.02)
+            continue
         if a in M.ATTACK and age is not None and age > SWING_S:
             # 3000 번대가 SWING_S 넘게 이어지면 휘두르는 중이 아니다 (공격이 끝나도 1.5~5.3 s 남는다 — 기록 분석).
             # 창 방패병(255002)은 3001 에 머문 채 방패를 들고 있어, 15 s 내내 1.4 m 에서 막기만 했고 발차기도 안 나갔다

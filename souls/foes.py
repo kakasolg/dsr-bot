@@ -20,6 +20,9 @@ class Foe:
     combos: tuple = ()              # 이어지는 공격의 시작 애니 — 끝까지 막고 반격
     unblockable: tuple = ()         # 막으면 안 되는 공격 (가드 브레이크 등) — 반사가 방패 대신 피한다
     punish_hits: int | None = None  # 휘청(막기에 튕김) 반격 약공 수 — None 이면 무기대로. 휘청이 짧은 놈은 1
+    windup: tuple = ()              # 시작하고 한참 뒤에 닿는 공격 — windup_act_s 안이면 먼저 발차기로 끊고, 넘으면 막는다
+    windup_act_s: float = 1.2
+    kick_on_stagger: bool = False   # 공격 뒤 휘청(3500)에 곧장 발차기 — 곧 물러나 닿는 거리를 벗어난다
     note: str = ""
 
 
@@ -30,7 +33,13 @@ _HOLLOW = dict(kind="hollow", singles=(3008,), combos=(3003, 3005), unblockable=
 HOLLOW = Foe("망자(칼)", **_HOLLOW)
 FIREBOMB_HOLLOW = Foe("망자(화염병)", ranged=True, **_HOLLOW,
                       note="경사로 4번: 4.9 m 위 턱에서 안 내려오고 화염병만 — 방패로 받아도 56~224. 달려 올라가 근접")
+# 2026-09-26 관찰 녹화(observe 090241·091308·092141) 경사로 2번 255010, 사용자: "한 템포 빨리 발차기가 들어가야 함":
+#  · 3004 는 다가오는 속도(0.1~1.3 m/s)와 상관없이 시작 2.0~2.1 s 뒤에 닿는다 (4번). 1.6 s 넘어 친 두 번 −220·−323,
+#    0.4~0.7 s 에 친 두 번은 공격이 끊기고 0 → windup=(3004,), 1.2 s 안이면 발차기, 넘으면 막기
+#  · 3005 돌진(4 m 에서 3~4.5 m/s, +1.0 s 에 닿음)은 막으면 1~2 — 그대로 막기
+#  · 3500 은 0.8~1.3 s, 그 사이 1.5~1.9 m/s 로 물러난다(1 m → 3~4.7 m) — 곧장 발차기 (예전엔 '끌어오기'로 평지로 뛰어가 버림)
 SHIELD = Foe("방패 병사", kind="shield", kick_when_idle=True, circle_behind=False, unblockable=(3009,), punish_hits=1,
+             windup=(3004,), windup_act_s=1.2, kick_on_stagger=True,
              note="가만히 서면 방패를 들어 약공이 12 씩만 (6번 쳐도 못 잡음). 가드 올린 채면 발차기로 휘청 (위키). "
                   "내가 가드만 하면 가드 브레이크 3009 로 깨러 온다 (Lua IsTargetGuard) — 2026-09-24 실측: 3009 를 막다 가드가 깨져"
                   "(내 애니 160) 스태미나 42→14, 밀려나 경사로에서 낙사. 3009 는 막지 말고 피한다. "

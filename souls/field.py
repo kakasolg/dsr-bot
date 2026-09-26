@@ -45,6 +45,8 @@ LURE_DY = 1.5            # 던질 자리와 목표·지금 자리의 높이차 �
 LURE_ABORT_R = 10.0              # 던지는 중 이 안에 깨어 움직이는 다른 놈이 있으면 중단
 LURE_MIN, LURE_MAX = 6.0, 13.0   # 평지에서 던지는 조건 — 이보다 가까우면 걸어가는 것만으로 깨고, 멀면 락온이 안 걸린다
 KNIFE_LOW = 5            # 이 아래면 경고 — 상인에게 사러 가는 건 나중 과제 (사용자 2026-09-24)
+HOLD_TRIES = 3           # 제자리 고수 대상(lure_at.hold): 끌어오기 시도 수, 그 사이 HOLD_WAIT 씩 제자리에서 기다린다
+HOLD_WAIT = 8.0
 
 
 class Field:
@@ -216,9 +218,13 @@ class Field:
                 if g == want:
                     break
             self.log(f"   잡기: grip {self.mv.tm.grip()} (원함 {want})")
-        r = D.duel(self.mv, self.w, ptr, nm, log=self.log, cancel=lambda: self.esc.escaping or self.esc.gen != g0,
-                   care=Care(self), reflex=self.reflex, arena=arena, low_hp=0.0 if desperate else 0.25, style=self.style,
-                   limit=limit, wait_far=wait_far)
+        self.mv.cam_target = ptr                           # camera.CamFollow 가 이 놈 쪽으로 카메라를 돌린다
+        try:
+            r = D.duel(self.mv, self.w, ptr, nm, log=self.log, cancel=lambda: self.esc.escaping or self.esc.gen != g0,
+                       care=Care(self), reflex=self.reflex, arena=arena, low_hp=0.0 if desperate else 0.25, style=self.style,
+                       limit=limit, wait_far=wait_far)
+        finally:
+            self.mv.cam_target = None
         self.log(f"   {tag}{' (끝까지)' if desperate else ''}: {r.line()}")
         self.events("duel", tag=tag, npc=r.npc, result=r.result, secs=round(r.secs, 1), dealt=r.dealt, taken=r.taken)
         if r.result == "killed":
@@ -236,10 +242,21 @@ class Field:
         c1 = self.mv.find(self.mv.snap(SEEK_R), ptr)
         return c1 is not None and c1.anim in (-1, None) and math.dist((c0.x, c0.y, c0.z), (c1.x, c1.y, c1.z)) < 0.3
 
-    def lure(self, ptr, spawn, nm, tag: str, arena=None) -> str:
+    def lure(self, ptr, spawn, nm, tag: str, arena=None, lure_at: dict | None = None) -> str:
         """한 놈만 깨운다 (사용자 2026-09-24: "가장 좋은 건 하나씩 불러와서 때려야 함", "투척 나이프 있으니 멀리서 하나씩").
         arena 가 그놈에서 LURE_R+3 안이면 거기서, 아니면 경로를 따라 LURE_R 까지만 다가가 나이프를 던진다.
-        → 'lured' (움직였다) | 'awake' (이미 깨어 있어 안 던짐) | 'no_reaction' | 'no_knife' | 'no_path' | 'dead'"""
+        lure_at = {"spot", "min", "max"} 이면 그 자리에서 그 거리로만 던지고 더 다가가지 않는다 (경사로 2번 방패병 —
+        사용자 2026-09-26: "내가 던진 거리 만큼 충분한 거리에서만 … 화염병이 닿지 않는 거리").
+        → 'lured' (움직였다) | 'awake' (이미 깨어 있어 안 던짐) | 'no_reaction' | 'no_knife' | 'no_path' | 'dead'
+          | 'too_far' / 'too_close' / 'no_lock' (lure_at 조건 밖 — 안 던짐)"""
+        lo, hi = (lure_at.get("min", LURE_MIN), lure_at.get("max", LURE_MAX)) if lure_at else (LURE_MIN, LURE_MAX)
+        self.mv.cam_target = ptr                           # 던질 자리로 걷는 동안에도 그놈을 보여 준다
+        try:
+            return self._lure(ptr, nm, tag, arena, lure_at, lo, hi)
+        finally:
+            self.mv.cam_target = None
+
+    def _lure(self, ptr, nm, tag: str, arena, lure_at, lo: float, hi: float) -> str:
         s = self.mv.snap(SEEK_R)
         c = self.mv.find(s, ptr)
         if c is None:
@@ -254,7 +271,9 @@ class Field:
         here = (s.player.x, s.player.y, s.player.z)
         goal = (c.x, c.y, c.z)
         d_arena = math.dist(tuple(arena), goal) if arena is not None else None
-        if d_arena is not None and LURE_MIN <= d_arena <= LURE_MAX:
+        if lure_at and lure_at.get("spot"):
+            spot = tuple(lure_at["spot"])
+        elif d_arena is not None and LURE_MIN <= d_arena <= LURE_MAX:
             spot = tuple(arena)
         else:
             # 평지가 너무 가깝거나(1번: 5 m — 걸어가면 그냥 깬다) 멀면 경로 위에서 LURE_R 안에 드는 첫 점
@@ -273,10 +292,13 @@ class Field:
         c = self.mv.find(self.mv.snap(SEEK_R), ptr)
         if c is None:
             return "dead"
-        if c.dist > LURE_MAX:
+        if c.dist > hi:
             # 락온 범위 밖 — 6번(22 m, 위 턱)에 나이프 3 개를 허공에 던졌다 (2026-09-24)
             self.log(f"   {tag}: 던질 자리에서 {c.dist:.1f} m — 너무 멀어 안 던진다")
             return "too_far"
+        if lure_at and c.dist < lo:
+            self.log(f"   {tag}: 던질 자리에서 {c.dist:.1f} m — {lo:.0f} m 안이라 안 던진다 (화염병 거리)")
+            return "too_close"
         locked_once = False
         for n in range(1, LURE_TRIES + 1):
             s = self.mv.snap(SEEK_R)
@@ -289,6 +311,9 @@ class Field:
                 return "interrupted"
             if not self._asleep(ptr):
                 return "lured" if n > 1 else "awake"
+            if n > 1 and not locked_once and lure_at:
+                self.log(f"   {tag}: 락온 안 걸림 — 이 놈은 {lo:.0f} m 안으로 다가가지 않는다")
+                return "no_lock"
             if n > 1 and not locked_once:
                 # 락온이 안 걸렸다 = 가려졌거나 멀다 (사용자: "벽이 가리는데 던져서 안 맞음") — 허공에 던지지 말고 길 따라 4 m 더
                 c = self.mv.find(self.mv.snap(SEEK_R), ptr)
@@ -319,6 +344,15 @@ class Field:
                 time.sleep(0.5)
         return "no_reaction"
 
+    def _hold_at(self, spot, nm, tag: str) -> None:
+        """제자리(던질 자리)로 돌아가 방패를 들고 선다 — 한 틱만."""
+        s = self.mv.snap(5.0)
+        if s is not None and math.dist((s.player.x, s.player.y, s.player.z), spot) > 1.5:
+            self.walk_to(spot, nm, f"{tag} 제자리로")
+            return
+        self.mv.guard(True)
+        time.sleep(0.2)
+
     def find_at(self, npc: int, pos, r: float = 3.0, dy_max: float = 3.0):
         """스폰 pos 근처의 그 종류. 넓게(30 m) 찾을 때도 **높이차 dy_max 안**만 — 경사로 아래에서 위 턱의 6번을 1번으로 잡아
         15 m 절벽을 향해 걷다 17 s 씩 세 번 막혔다 (2026-09-24 밤 3판, 5 분 낭비)."""
@@ -335,6 +369,9 @@ class Field:
         targets = [{"npc":…, "pos":[x,y,z], "label":n, "lure":bool}, …] 는 '다음에 깨울 놈' 의도.
         → 'cleared' | 'left #2 #4' (세 번 해도 못 잡은 놈) | 'died' | 'no_estus'"""
         pending = list(targets)
+        lure_n: dict = {}                                  # 제자리 고수 대상: 끌어오기 시도 수 / 기다림 끝 / 한 번 미뤘나
+        hold_until: dict = {}
+        deferred: dict = {}
         left: list[str] = []
         tried: dict = {}                                   # 스폰 번호 / ptr → 시도 수
         ignore: set = set()                                # 세 번 못 잡은 오는 놈 (퀵 종료 감시에 맡긴다)
@@ -380,8 +417,32 @@ class Field:
                 pending.pop(0)
                 continue
             k = tried.get(i, 0)
-            if lure and k == 0 and e.get("lure", True):
-                lr = self.lure(c.ptr, e["pos"], nm, f"#{i}", arena=arena)
+            la = e.get("lure_at") or {}
+            if lure and la.get("hold") and not deferred.get(i):
+                # 제자리 고수 (사용자 2026-09-26: "첫번째 적을 잡은 위치를 고수해야 돼 — 2번째 적이 그쪽으로 끌려와. 그 근처에서 하면
+                # 방패병이 인식을 못함"). 봇은 끌어오기가 안 되면 방패병에게 걸어갔고, 매번 (-28,-49.3,23.8) — 방패병 8.8~9.1 m —
+                # 에서 들켰다 (observe 090241·092141·092612·094231). 사용자는 방패병 12 m 안으로 들어가지 않고 13.7 m 에서 던졌다
+                if time.time() < hold_until.get(i, 0.0):
+                    self._hold_at(tuple(la["spot"]), nm, f"#{i}")
+                    continue
+                if lure_n.get(i, 0) < HOLD_TRIES:
+                    lr = self.lure(c.ptr, e["pos"], nm, f"#{i}", arena=arena, lure_at=la)
+                    lure_n[i] = lure_n.get(i, 0) + 1
+                    self.log(f"   #{i} 끌어오기 {lure_n[i]}/{HOLD_TRIES}: {lr}")
+                    if lr == "dead":
+                        pending.pop(0)
+                    elif lr != "lured":
+                        hold_until[i] = time.time() + HOLD_WAIT   # 제자리에서 기다린다 — 오는 놈은 위의 '오는 놈' 이 받는다
+                        self.log(f"   #{i}: 다가가지 않고 던질 자리에서 {HOLD_WAIT:.0f} s 기다림")
+                    continue
+                deferred[i] = True
+                if len(pending) > 1:
+                    self.log(f"   #{i}: 끌어오기 {HOLD_TRIES}번 안 됨 — 맨 뒤로 미룬다")
+                    pending.append(pending.pop(0))
+                    continue
+                self.log(f"   #{i}: 끌어오기 {HOLD_TRIES}번 안 됨, 남은 게 이놈뿐 — 찾아간다")
+            if lure and k == 0 and e.get("lure", True) and not la.get("hold"):
+                lr = self.lure(c.ptr, e["pos"], nm, f"#{i}", arena=arena, lure_at=e.get("lure_at"))
                 self.log(f"   #{i} 끌어오기: {lr}")
                 tried[i] = 1
                 if lr == "dead":

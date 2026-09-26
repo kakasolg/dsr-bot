@@ -112,6 +112,8 @@ def main() -> None:
     from blackbox import BlackBox
     bbox = BlackBox(tm, log.path, events=log.event, log=log).start()
     fld = Field(mv, w, esc, bonfires=[missions.FIRELINK["stand"], missions.BURG_BONFIRE], log=log, events=log.event, style=a.style)
+    from souls.camera import CamFollow
+    cam = CamFollow(mv, esc, log=log).start()          # 화면 보는 사람이 봇이 뭘 하는지 보이게 (사용자 2026-09-26)
     log(f"스타일: {a.style}")
     log.event("style", style=a.style)
     try:   # 판마다 캐릭터 상태를 남긴다 — 레벨업·반지(강인도)·무기가 성적을 바꾸는데 기록이 없어 묶음 비교가 흐려졌다 (사용자 2026-09-25)
@@ -162,6 +164,7 @@ def main() -> None:
                 time.sleep(1.5)
         except Exception:
             pass
+        cam.stop()
         esc.stop()
         blood.stop()
         bbox.stop()

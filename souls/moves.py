@@ -69,6 +69,56 @@ class Moves:
         self._zero: dict = {}    # ptr → 닿는 거리에서 피해 0 으로 끝난 휘두르기 수 (_phantom_check)
         self.weapon = None       # 2층 weapons.Weapon — 약공 타이밍(chain_at·guard·watch)이 무기마다 다르다. run.py 가 넣는다
         self.guard_ok = True     # False = 방패를 절대 안 든다 (백스텝 스타일. 사용자: "백스텝 할 땐 가드하지 마 — 피하고 공격 심플하게")
+        self.cam_target = None   # 카메라가 바라볼 적 ptr — 4층(field.fight·lure)이 넣고 camera.CamFollow 가 따라간다
+        self.cam_busy = False    # 이 층이 카메라를 직접 쓰는 중(나이프 락온) — CamFollow 는 손대지 않는다
+
+    # ── 카메라 ───────────────────────────────────────────────
+    # 사용자 2026-09-26: "이 게임은 자동 락온이 있어서 … 우측 스틱을 다시 눌러 릴리스하고, 원하는 적으로 카메라 잡고, 스틱을 누름".
+    # R3 는 카메라 가운데에 가까운 놈을 잡는다 — 몸만 돌리고 R3 를 두 번 눌러도 옆 놈에 다시 걸렸다 (clear-ramp 090241, 2번 방패병 대신 3번).
+    # 오른스틱 x 를 +로 밀면 cam_yaw 가 어느 쪽으로 도는지는 실측 전이라 첫 펄스에서 배운다.
+    LOOK_SIGN: int | None = None
+
+    def cam_err(self, s, x: float, z: float) -> float | None:
+        """카메라 정면(cam_yaw + nav.YAW_OFFSET — world_to_stick 과 같은 규칙)에서 (x, z) 까지 각(°)."""
+        if s is None or s.cam_yaw is None:
+            return None
+        ang = math.atan2(x - s.player.x, z - s.player.z)
+        return math.degrees((ang - (s.cam_yaw + nav.YAW_OFFSET) + math.pi) % (2 * math.pi) - math.pi)
+
+    def look_pulse(self, err: float, dur: float = 0.06) -> None:
+        """오른스틱을 err 쪽으로 짧게 한 번. 부호를 모르면 이 펄스로 배운다."""
+        if Moves.LOOK_SIGN is None:
+            s0 = self.snap(5.0)
+            self.pad.look(0.6, 0.0)
+            time.sleep(0.08)
+            self.pad.look(0.0, 0.0)
+            time.sleep(0.12)
+            s1 = self.snap(5.0)
+            if s0 and s1 and s0.cam_yaw is not None and s1.cam_yaw is not None:
+                d = (s1.cam_yaw - s0.cam_yaw + math.pi) % (2 * math.pi) - math.pi
+                if abs(d) > math.radians(0.5):
+                    Moves.LOOK_SIGN = 1 if d > 0 else -1
+            return
+        mag = min(1.0, max(0.35, abs(err) / 60.0))
+        self.pad.look(Moves.LOOK_SIGN * (1 if err > 0 else -1) * mag, 0.0)
+        time.sleep(dur)
+        self.pad.look(0.0, 0.0)
+
+    def look_at(self, ptr, tol: float = 5.0, timeout: float = 1.5) -> float | None:
+        """카메라를 그놈 쪽으로 (오른스틱). 락온 중엔 오른스틱이 대상을 바꾸므로 풀어 둔 뒤 부를 것. → 마지막 어긋난 각(°)."""
+        t, err = time.time(), None
+        while time.time() - t < timeout:
+            s = self.snap(40.0)
+            c = self.find(s, ptr)
+            if c is None:
+                return None
+            err = self.cam_err(s, c.x, c.z)
+            if err is None or abs(err) <= tol:
+                break
+            self.look_pulse(err, 0.08 if abs(err) > 30 else 0.04)
+            time.sleep(0.06)
+        self.pad.look(0.0, 0.0)
+        return err
 
     # ── 보기 ────────────────────────────────────────────────
     def snap(self, within: float = 40.0):
@@ -534,9 +584,18 @@ class Moves:
         if c is None:
             return {"ok": False, "why": "그놈 없음"}
         self.pad.guard(False)
+        self.cam_busy = True
+        try:
+            return self._throw_knife(ptr, c, watch, require_lock)
+        finally:
+            self.cam_busy = False
+
+    def _throw_knife(self, ptr, c, watch: float, require_lock: bool) -> dict:
         self.aim(ptr, deg=8.0, timeout=1.5)       # 락온이 그놈을 잡도록 몸을 그쪽으로
         locked = False
-        for _ in range(2):
+        for _ in range(3):
+            if self.lock_state(ptr) == "none":
+                self.look_at(ptr, tol=5.0, timeout=2.5)   # R3 는 카메라 가운데 놈을 잡는다 — 먼저 카메라를 그놈에게 (사용자 방식)
             self.pad.lock_on()
             t = time.time()
             while time.time() - t < 0.4:
