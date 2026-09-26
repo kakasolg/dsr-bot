@@ -26,6 +26,7 @@ GETTING_UP = 9920
 ESTUS_IDS = range(200, 216)      # 에스트 아이템 번호는 강화 단계별 (새 캐릭터 201)
 ITEM_DARKSIGN = 117
 ITEM_KNIFE = 290                 # 투척 나이프 (퀵 슬롯에 있어야 고를 수 있다)
+ITEM_FIREBOMB = 292              # 화염병 — 비상용만 (사용자: 50 소울, '죽는 것보다는 폭탄'). id 는 DS1 goods 표 기준, 실측 전
 PHANTOM_SWINGS = 3                # 이만큼 헛치면(닿는 거리·피해 0·안 움직임) 유령으로 본다
 OTHERS_R = 3.5                    # 가로 베기에 같이 맞았나 볼 반경
 REPAIR_POWDER = 280               # 수리 분말 아이템 ID
@@ -571,14 +572,18 @@ class Moves:
         if self.tm.lock_target() not in (None, -1):
             self._r3(0.2)
 
-    def throw_knife(self, ptr, watch: float = 1.8, require_lock: bool = False) -> dict:
+    def throw_firebomb(self, ptr, watch: float = 2.2) -> dict:
+        """비상용 화염병 한 개 — 나이프와 같은 조준·락온 경로, 칸만 다르다."""
+        return self.throw_knife(ptr, watch=watch, require_lock=True, item=ITEM_FIREBOMB)
+
+    def throw_knife(self, ptr, watch: float = 1.8, require_lock: bool = False, item: int = ITEM_KNIFE) -> dict:
         """투척 나이프 한 개 — 던질 때만 락온 (사용자: 평소엔 락온 안 씀. 옛 실측: 락온 없이는 14 m 에서 1.2° 안이어야 하고
         위에 선 놈은 3/3 반응 없음, 락온이면 20 m 위 5번도 맞음). 락온이 안 걸리면 정밀 조준으로 던진다.
         → {"ok": 던졌나, "locked", "hit": 피해, "woke": 움직였나, "dist", "knives": 남은 개수, "why"}"""
-        if not self.tm.goods_count(ITEM_KNIFE):
-            return {"ok": False, "why": "나이프 없음"}
-        if not self.select_item(ITEM_KNIFE):
-            return {"ok": False, "why": "나이프 칸을 못 고름"}
+        if not self.tm.goods_count(item):
+            return {"ok": False, "why": f"{item} 없음"}
+        if not self.select_item(item):
+            return {"ok": False, "why": f"{item} 칸을 못 고름"}
         s = self.snap(40.0)
         c = self.find(s, ptr)
         if c is None:
@@ -586,11 +591,11 @@ class Moves:
         self.pad.guard(False)
         self.cam_busy = True
         try:
-            return self._throw_knife(ptr, c, watch, require_lock)
+            return self._throw_knife(ptr, c, watch, require_lock, item)
         finally:
             self.cam_busy = False
 
-    def _throw_knife(self, ptr, c, watch: float, require_lock: bool) -> dict:
+    def _throw_knife(self, ptr, c, watch: float, require_lock: bool, item: int = ITEM_KNIFE) -> dict:
         self.aim(ptr, deg=8.0, timeout=1.5)       # 락온이 그놈을 잡도록 몸을 그쪽으로
         locked = False
         for _ in range(3):
@@ -622,7 +627,7 @@ class Moves:
         if c is None:
             self.unlock()
             return {"ok": False, "why": "그놈 없음", "locked": locked}
-        hp0, pos0, n0 = c.hp, (c.x, c.y, c.z), self.tm.goods_count(ITEM_KNIFE) or 0
+        hp0, pos0, n0 = c.hp, (c.x, c.y, c.z), self.tm.goods_count(item) or 0
         self.pad.release_due()                    # 예약된 버튼 뗌이 남아 있으면 X 가 씹힌다 ("안 던져짐 (개수 그대로)" 2/3)
         time.sleep(0.05)
         self.pad.use_item()
@@ -639,7 +644,7 @@ class Moves:
                     break
             time.sleep(0.03)
         self.unlock()
-        n1 = self.tm.goods_count(ITEM_KNIFE) or 0
+        n1 = self.tm.goods_count(item) or 0
         return {"ok": n1 < n0, "locked": locked, "aim_off": None if off is None else round(off, 1), "hit": hit, "woke": woke,
                 "dist": round(c.dist, 1), "knives": n1, "why": None if n1 < n0 else "안 던져짐 (개수 그대로)"}
 

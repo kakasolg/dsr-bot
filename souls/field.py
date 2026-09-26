@@ -300,9 +300,10 @@ class Field:
     def _lure(self, ptr, nm, tag: str, arena, lure_at, lo: float, hi: float) -> str:
         s = self.mv.snap(SEEK_R)
         c = self.mv.find(s, ptr)
-        if c is None:
-            return "dead"
-        if not self._asleep(ptr):
+        if c is None or c.hp <= 0:
+            return "dead"                                  # 152540: '오는 놈' 으로 이미 잡은 #4 시체에 나이프를 던지려 했다
+        want = int((lure_at or {}).get("knives") or 0)   # 맞힐 횟수 — 깨어 있어도(화염병 던지는 중) 던진다
+        if not want and not self._asleep(ptr):
             return "awake"
         knives = self.mv.tm.goods_count(M.ITEM_KNIFE) or 0
         if not knives:
@@ -343,8 +344,8 @@ class Field:
         if lure_at and c.dist < lo:
             self.log(f"   {tag}: 던질 자리에서 {c.dist:.1f} m — {lo:.0f} m 안이라 안 던진다 (화염병 거리)")
             return "too_close"
-        locked_once = False
-        for n in range(1, LURE_TRIES + 1):
+        locked_once, hits = False, 0
+        for n in range(1, (want + 2 if want else LURE_TRIES) + 1):
             s = self.mv.snap(SEEK_R)
             if self.mv.find(s, ptr) is None:
                 return "dead"
@@ -353,7 +354,7 @@ class Field:
             if near:
                 self.log(f"   {tag}: 다른 놈 {len(near)} 접근 ({near[0].dist:.1f} m) — 끌어오기 중단, 그놈부터")
                 return "interrupted"
-            if not self._asleep(ptr):
+            if not want and not self._asleep(ptr):
                 return "lured" if n > 1 else "awake"
             if n > 1 and not locked_once and lure_at:
                 self.log(f"   {tag}: 락온 안 걸림 — 이 놈은 {lo:.0f} m 안으로 다가가지 않는다")
@@ -375,6 +376,9 @@ class Field:
                 if not self._asleep(ptr):
                     return "lured"
             r = self.mv.throw_knife(ptr, require_lock=True)
+            if want and r.get("why") and not (self.mv.tm.goods_count(M.ITEM_KNIFE) or 0) and self._emergency():
+                r = self.mv.throw_firebomb(ptr)            # 나이프가 떨어졌고 죽을 위기일 때만 화염병
+                self.log(f"   {tag}: 나이프 없음 + 위기 — 화염병 → 피해 {r.get('hit')}")
             locked_once = locked_once or bool(r.get("locked"))
             s2 = self.mv.snap(25.0)
             others = [x for x in (s2.hostile(25.0) if s2 else []) if x.ptr != ptr and awake(x) and x.anim not in (-1, None)]
@@ -382,11 +386,25 @@ class Field:
                      f"피해 {r.get('hit')}, {'움직임' if r.get('woke') else '반응 없음'}{' | ' + r['why'] if r.get('why') else ''}"
                      f"{' | 다른 놈 깸 ' + str(len(others)) if others else ''}")
             self.events("lure", tag=tag, n=n, **{k: r.get(k) for k in ("dist", "locked", "aim_off", "hit", "woke", "knives")})
+            if want:
+                hits += 1 if (r.get("hit") or 0) > 0 else 0
+                if self.mv.find(self.mv.snap(SEEK_R), ptr) is None:
+                    return "dead"
+                if hits >= want:
+                    return "lured"
+                if r.get("ok"):
+                    time.sleep(0.3)
+                continue
             if r.get("woke"):
                 return "lured"
             if not r.get("ok"):
                 time.sleep(0.5)
-        return "no_reaction"
+        return "lured" if hits else "no_reaction"
+
+    def _emergency(self) -> bool:
+        """죽을 위기 — HP 35 % 밑이고 에스트가 없다 (화염병 쓰는 조건, 사용자 '죽는 것보다는 폭탄')."""
+        s = self.mv.snap(5.0)
+        return s is not None and s.player.hp < 0.35 * (s.player.max_hp or 1) and self.estus_left() <= 0
 
     # ── 제자리 고수 (Patch C, 2026-09-26) ─────────────────────
     # 예전엔 기다리는 내내 방패를 들어(B-1) 스태미나가 안 찼다 (R3 34/106). 이제 한 틱마다 상태만 판단해 돌려주고, 싸움은 하지

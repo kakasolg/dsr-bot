@@ -37,7 +37,7 @@ class Foe:
 _HOLLOW = dict(kind="hollow", singles=(3008,), combos=(3003, 3005), unblockable=(3009,))
 HOLLOW = Foe("망자(칼)", **_HOLLOW)
 FIREBOMB_HOLLOW = Foe("망자(화염병)", ranged=True, **_HOLLOW,
-                      note="경사로 4번: 4.9 m 위 턱에서 안 내려오고 화염병만 — 방패로 받아도 56~224. 달려 올라가 근접")
+                      note="위 턱에서 안 내려오고 화염병만 — 방패로 받아도 56~224. 경사로에선 #5(254002)가 던진다 — 시범 140708: 스폰 자리에서 3.5 s 마다 3008, 나이프 두 번(75→31→0)으로 죽음")
 # 2026-09-26 관찰 녹화(observe 090241·091308·092141) 경사로 2번 255010, 사용자: "한 템포 빨리 발차기가 들어가야 함":
 #  · 3004 는 다가오는 속도(0.1~1.3 m/s)와 상관없이 시작 2.0~2.1 s 뒤에 닿는다 (4번). 1.6 s 넘어 친 두 번 −220·−323,
 #    0.4~0.7 s 에 친 두 번은 공격이 끊기고 0 → windup=(3004,), 1.2 s 안이면 발차기, 넘으면 막기
@@ -55,8 +55,9 @@ SKELETON = Foe("묘지 해골", kind="skeleton", avoid=True, singles=(3003, 3004
 ASYLUM_DEMON = Foe("수용소 데몬", kind="boss", note="boss/README.md — 필드 규칙과 섞지 않는다")
 
 BY_NPC: dict[int, Foe] = {
-    254000: HOLLOW, 254002: HOLLOW, 254010: HOLLOW, 254011: HOLLOW,
-    254001: FIREBOMB_HOLLOW, 254012: FIREBOMB_HOLLOW,
+    254000: HOLLOW, 254010: HOLLOW, 254011: HOLLOW,
+    # 254002: 예전엔 칼 망자로 봤는데 시범 140708 에서 화염병을 던진 건 #5(254002). 254001(#4)은 134451 에서 던졌다는 기록이 있어 둘 다 원거리로 둔다
+    254001: FIREBOMB_HOLLOW, 254002: FIREBOMB_HOLLOW, 254012: FIREBOMB_HOLLOW,
     250000: Foe("망자(성벽 마을)", kind="hollow", combos=(3000, 3004), unblockable=(3009,)),
     255000: SHIELD, 255010: SHIELD,
     # 255002 는 방패병이 아니라 석궁병 — 3000/3001 이 가드 자세가 아니라 쏘는 동작이다. 애니 구조체 +0xA0 이 1 로 켜지고
