@@ -167,14 +167,14 @@ class ShadowKick:
             self._last[ptr] = (anim, now)
 
     def onset(self, ptr, anim: int, age, now: float) -> float:
-        if age is not None and anim in M.ATTACK:
-            return now - age
+        """이 애니가 이 놈에게 **끊김 없이 보이기 시작한 때** — now − age 는 틱마다 흔들려(±0.05 s) 한 번의 3004 가 사건 둘이
+        됐다 (observe 133016). age 는 기록에만 남긴다."""
         last = self._last.get(ptr)
         return last[1] if last and last[0] == anim else now
 
     def observe(self, now, ptr, handle, npc, anim, age, h, dy, sp, max_sp, others_n, player_hp, target_hp) -> str | None:
-        on = round(self.onset(ptr, anim, age, now) / 0.05) * 0.05
-        key = f"{handle}|g{self.gen}|{anim}|{on:.2f}"
+        on = self.onset(ptr, anim, age, now)
+        key = f"{handle}|g{self.gen}|{anim}|{on:.3f}"
         if key in self.seen:
             return None
         self.seen.add(key)

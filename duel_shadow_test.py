@@ -66,6 +66,20 @@ def test_shadow_dedupe_and_outcome() -> None:
     print(f"ok  one shadow event per handle+gen+anim+onset (10 ticks → 1), outcome after 1.5 s, new onset/gen → new key")
 
 
+def test_jittering_age_one_event() -> None:
+    """한 번의 3004 시작 — age 가 틱마다 조금씩 흔들려도(now − age 가 ±0.05 s) 사건은 하나 (observe 133016 에서 둘이 됐다)."""
+    evs = []
+    sk = D.ShadowKick(log=lambda *a: None, events=lambda k, **kw: evs.append((k, kw)), gen=0)
+    t0 = 200.0
+    for k, jitter in enumerate((0.0, 0.03, -0.04, 0.05, -0.02, 0.06)):
+        now = t0 + 0.05 * k
+        sk.note_anim(2, 3004, now)
+        sk.observe(now, 2, 0x1018, 255010, 3004, 0.05 * k + jitter, 1.7, 0.0, 97, 106, 0, 793, 85)
+    keys = [kw["key"] for k, kw in evs if k == "shadow_kick"]
+    assert len(keys) == 1, keys
+    print("ok  jittering age on one 3004 onset → exactly one shadow event")
+
+
 class DuelMv(FakeMv):
     """duel() 이 부르는 것만 — 모르는 걸 부르면 바로 실패한다."""
 
@@ -140,6 +154,7 @@ def test_non_shield_no_events() -> None:
 if __name__ == "__main__":
     test_candidate_truth_table()
     test_shadow_dedupe_and_outcome()
+    test_jittering_age_one_event()
     test_duel_shadow_never_kicks()
     test_duel_act_is_test_only()
     test_non_shield_no_events()
