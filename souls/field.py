@@ -8,8 +8,10 @@
 """
 from __future__ import annotations
 
+import json
 import math
 import time
+from pathlib import Path
 
 import nav
 
@@ -61,6 +63,12 @@ LURE_UNBLOCK_S = 0.5     # 끌어오기 막음은 5 m 안이 이만큼 **계속*
 MOVED_WAIT_DY = 1.2      # 평지(arena)와 이만큼 넘게 높이가 다르면 '다른 높이' — 찾아가지 않고 평지에서 기다린다 (Patch E-1)
 MOVED_WAIT_S = 20.0
 HOLD_KEEP_R = 12.0       # E-1b: 움직인 목표가 아직 남은 제자리 고수 대상(방패병) 스폰에서 이 안이면 찾아가지 않는다 (사용자 #1·#3 처치 12.3~17.7 m)      # 한 번에 기다리는 시간. 두 번 기다려도 안 내려오면 'left #i~' (찾아가지 않음)
+RETURN_LEG_M = 2.0       # 제자리로 돌아가는 경로의 첫 구간 길이 — 이 방향이 깨어 있는 놈 쪽이면 걷지 않는다
+# 사용자가 F9 로 찍은 '그나마 나은 자리' (data/safe-zones.json, observe 161923) — 안전 보장이 아니라 물러날 목적지일 뿐.
+# 사용자: "완전 안전 구역은 아니야", "내가 말한 데도 가드는 해야 할 거야" → 가드 든 채 걸어가고, 거기서도 막으며 받는다
+ZONES = [tuple(z["pos"]) for z in json.loads((Path(__file__).resolve().parent.parent / "data" / "safe-zones.json")
+                                              .read_text(encoding="utf-8"))["zones"]]
+ZONE_REACH = 15.0        # 따라온 놈과 싸우기 전, 이 안(수평·같은 층 1.5 m)에 찍힌 자리가 있으면 거기로 물러나 받는다
 UNSAFE_PAUSE = 5.0       # E-2 로 붙으러 가지 않은 오는 놈 — 이만큼 평지에서 기다림·방어 틱 뒤 다시 본다 (사용자: "2초도 짧아, 5초 기다려")
 CLOSE_MELEE_R = 3.0      # 접촉 싸움 중 다른 놈이 이 안이면 끝낸다 (duel.SWITCH_R 2.5 보다 넓게 — 목표 바꾸기 전에 끊긴다)
 
@@ -216,7 +224,7 @@ class Field:
         if not path:
             return "no_path"                               # (헛돌기는 recover 가 False → 다음 싸움을 끝까지로 막는다)
         t0 = time.time()
-        return self.mv.walk_path(nav.trim_path(path[1:], tuple(home)), nm, "sprint",
+        return self.mv.walk_path(nav.trim_path(path[1:], tuple(home)), nm, "walk",   # 달리기 안전은 NavMesh 추정뿐 (근거 등급 게이트, 2026-09-26)
                                  stop=lambda sn: time.time() - t0 > 3.0 and self.safe(sn))
 
     def recover(self, why: str, nm=None) -> bool:
@@ -239,6 +247,30 @@ class Field:
         return bool(s and s.player.hp >= s.player.max_hp * 0.6)
 
     # ── 싸움 ─────────────────────────────────────────────────
+    def _near_zone(self, s, nm):
+        """지금 자리에서 ZONE_REACH 안, 같은 층, 이 내비메시 위의 찍힌 자리 중 가장 가까운 것 (이미 2.5 m 안이면 None)."""
+        if s is None or nm is None:
+            return None
+        p = s.player
+        best = None
+        for z in ZONES:
+            d = math.hypot(z[0] - p.x, z[2] - p.z)
+            if d <= HOLD_ZONE_R:
+                return None
+            if d <= ZONE_REACH and abs(z[1] - p.y) < 1.5 and nm.on_mesh(*z) and (best is None or d < best[0]):
+                best = (d, z)
+        return best and best[1]
+
+    def _retreat_to_zone(self, zone, nm) -> str:
+        """가드 든 채 걸어서 찍힌 자리로. 경로가 없으면 안 간다 (직선으로 걷지 않음)."""
+        s = self.mv.snap(5.0)
+        if s is None:
+            return "no_snapshot"
+        path = nm.find_path((s.player.x, s.player.y, s.player.z), tuple(zone))
+        if not path:
+            return "no_path"
+        return self.mv.walk_path(nav.trim_path(path[1:], tuple(zone), within=0.8), nm, "guard", timeout_per=4.0)
+
     def fight(self, ptr, nm, tag: str, arena=None, desperate: bool = False, limit: float = 45.0, wait_far: bool = False,
               leash=None, may_approach=None) -> D.DuelResult:
         """leash() 가 참이면 그 틱에 싸움을 끝낸다 (cancel) — 제자리 고수 중 접촉 싸움을 안전 구역 안에 묶는다 (Patch C)."""
@@ -335,7 +367,8 @@ class Field:
             if lure_at:
                 self._settle(spot)                         # 정해 둔 던질 자리는 0.5 m 안까지 (13 m 최소 거리와 부딪히지 않게)
         c = self.mv.find(self.mv.snap(SEEK_R), ptr)
-        if c is None:
+        if c is None or c.hp <= 0:
+            # 155129: 던질 자리로 걷는 중 따라온 #4 를 walk 안에서 잡았는데, 여기선 None 만 봐서 시체에 록온을 10 s 시도했다
             return "dead"
         if c.dist > hi:
             # 락온 범위 밖 — 6번(22 m, 위 턱)에 나이프 3 개를 허공에 던졌다 (2026-09-24)
@@ -347,7 +380,8 @@ class Field:
         locked_once, hits = False, 0
         for n in range(1, (want + 2 if want else LURE_TRIES) + 1):
             s = self.mv.snap(SEEK_R)
-            if self.mv.find(s, ptr) is None:
+            cn = self.mv.find(s, ptr)
+            if cn is None or cn.hp <= 0:
                 return "dead"
             # 던지는 동안 다른 깨어 있는 놈이 다가오면 그만둔다 — 던지기 루프엔 방어가 없어 742 → 154 (2026-09-24 1번)
             near = [x for x in s.hostile(LURE_ABORT_R) if x.ptr != ptr and awake(x) and x.anim not in (-1, None)]
@@ -388,7 +422,8 @@ class Field:
             self.events("lure", tag=tag, n=n, **{k: r.get(k) for k in ("dist", "locked", "aim_off", "hit", "woke", "knives")})
             if want:
                 hits += 1 if (r.get("hit") or 0) > 0 else 0
-                if self.mv.find(self.mv.snap(SEEK_R), ptr) is None:
+                cn = self.mv.find(self.mv.snap(SEEK_R), ptr)
+                if cn is None or cn.hp <= 0:
                     return "dead"
                 if hits >= want:
                     return "lured"
@@ -426,6 +461,30 @@ class Field:
         old = [hh for t, hh in hist if now - t >= 0.5]
         return bool(old) and old[-1] - h >= APPROACH_DV
 
+    def _return_leg_toward_foe(self, spot, s, nm, ignore=()):
+        """돌아가는 경로의 첫 구간(RETURN_LEG_M)이 깨어 있는 놈 쪽(cos > 0.5)이고 제자리 쪽이 아니면(cos < 0.5) 그놈, 아니면 None."""
+        if nm is None:
+            return None
+        p = s.player
+        path = nm.find_path((p.x, p.y, p.z), tuple(spot))
+        if not path:
+            return None
+        q = next((tuple(x) for x in path[1:] if math.hypot(x[0] - p.x, x[2] - p.z) >= RETURN_LEG_M), tuple(path[-1]))
+        lx, lz = q[0] - p.x, q[2] - p.z
+        L = math.hypot(lx, lz)
+        if L < 0.3:
+            return None
+        sx, sz = spot[0] - p.x, spot[2] - p.z
+        if (lx * sx + lz * sz) / (L * (math.hypot(sx, sz) or 1e-9)) >= 0.5:
+            return None
+        for c in s.hostile(SEEK_R):
+            if c.ptr in ignore or not awake(c) or c.hp <= 0:
+                continue
+            cx, cz = c.x - p.x, c.z - p.z
+            if (lx * cx + lz * cz) / (L * (math.hypot(cx, cz) or 1e-9)) > 0.5:
+                return c
+        return None
+
     def _hold_at(self, spot, nm, tag: str, s=None, ignore=()) -> tuple[str, object]:
         """한 틱 판단 → (상태, 그놈). 상태: returning | coming | low_stamina_threat | contact_in_zone | contact_out_of_zone |
         approach | calm. 싸움·다가가기는 하지 않는다 — 부르는 쪽(clear)이 상태를 보고 정한다."""
@@ -437,6 +496,14 @@ class Field:
         d_spot = math.dist((p.x, p.y, p.z), spot)
         if d_spot > HOLD_SPOT_TOL:
             if d_spot > 1.5:
+                foe_c = self._return_leg_toward_foe(spot, s, nm, ignore)
+                if foe_c is not None:
+                    # 160200: 던질 자리(평지 17 m)에서 평지로 돌아가는 경로 첫 구간이 동쪽(#6 쪽)으로 꺾여, 내려오는 #6 에게
+                    # 0.96 m/s 로 다가갔다 (추적 감시가 멈춤). 첫 구간이 깨어 있는 놈 쪽이고 평지 쪽이 아니면 걷지 않고 제자리 방어
+                    self.mv.guard(True)
+                    self.mv.face(s, foe_c, deg=20.0)
+                    time.sleep(0.1)
+                    return "returning", None
                 self.walk_to(spot, nm, f"{tag} 제자리로", tol=HOLD_SPOT_TOL)
             self._settle(spot)
             return "returning", None
@@ -498,25 +565,9 @@ class Field:
                     return pe["pos"]
             return None
 
-        def clear_of_hold(a, b) -> bool:
-            """a→b 직선이 아직 남은 제자리 고수 대상(방패병) 스폰에서 HOLD_KEEP_R 밖인가 (수평)."""
-            for pe in pending:
-                if not (pe.get("lure_at") or {}).get("hold"):
-                    continue
-                hx, hz = pe["pos"][0], pe["pos"][2]
-                vx, vz = b[0] - a[0], b[1] - a[1]
-                L2 = vx * vx + vz * vz or 1e-9
-                k = max(0.0, min(1.0, ((hx - a[0]) * vx + (hz - a[1]) * vz) / L2))
-                if math.hypot(a[0] + k * vx - hx, a[1] + k * vz - hz) < HOLD_KEEP_R:
-                    return False
-            return True
-
         def may(cc, sn) -> bool:
             p = sn.player if sn is not None else None
-            # 원거리 놈(화염병 등): 기다리면 계속 던진다 — 같은 높이이고 가는 길이 방패병 스폰 12 m 밖이면 붙으러 간다 (사용자 승인 (a))
-            if (p is not None and foes_.of(cc.npc_param).ranged and abs(cc.y - p.y) < 1.2
-                    and clear_of_hold((p.x, p.z), (cc.x, cc.z))):
-                return True
+            # 원거리 예외(같은 높이 1.2 m·방패병 12 m 밖이면 붙기)는 뺐다 (근거 등급 게이트, 2026-09-26) — 두 값 다 code_constant_only 라 다가가기 근거가 못 된다
             sp = spawn_of(cc.ptr)
             if sp is not None:
                 moved = math.hypot(cc.x - sp[0], cc.z - sp[2]) > MOVED_R or abs(cc.y - sp[1]) > MOVED_DY
@@ -996,7 +1047,13 @@ class Field:
                         fights += 1
                         mover.stop()
                         # 오는 놈과 같은 원칙(wait_far) — 여기도 걸어가 붙으면 그 사이 다른 놈까지 붙는다 (사용자: "또 올라가네")
-                        res = self.fight(c.ptr, nm, f"{tag}: 따라온 {c.npc_param}", desperate=desperate, wait_far=True)
+                        zone = self._near_zone(s2, nm)
+                        if zone is not None:
+                            zr = self._retreat_to_zone(zone, nm)
+                            self.log(f"   {tag}: 따라온 {c.npc_param} — 찍어 둔 자리 ({zone[0]:.1f},{zone[1]:.1f},{zone[2]:.1f})로 가드 든 채 물러남: {zr}")
+                            if zr == "dead":
+                                return "dead"
+                        res = self.fight(c.ptr, nm, f"{tag}: 따라온 {c.npc_param}", arena=zone, desperate=desperate, wait_far=True)
                         if res.result == "me_dead":
                             return "dead"
                         desperate = False

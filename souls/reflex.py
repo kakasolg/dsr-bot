@@ -161,10 +161,10 @@ class Reflex:
                 # 한 대 맞는 게 낙사보다 싸다. 정면만 본다.
                 self.step_away(s, c)
                 return "hold"
-            for side in ((back[1], -back[0]), (-back[1], back[0])):
-                if nav.ground_ahead(self.nm, p, side[0], side[1], reach=2.5) and s.cam_yaw is not None:
-                    self.mv.roll_toward(s, p.x + side[0] * 3.0, p.z + side[1] * 3.0)
-                    return "roll"
+            # 옆 구르기는 뺐다 (근거 등급 게이트, 2026-09-26) — 방향을 NavMesh 가 골랐다 (옆 2.5 m 검사 통과하고도 16 m 추락사, 2026-09-24).
+            # 백스텝은 사용자 팁(human_verified)이고 NavMesh 는 뒤에 바닥이 없을 때 막기만 한다
+            self.step_away(s, c)
+            return "hold"
         self.mv.guard(True)                                # 뒤도 옆도 바닥이 없다 — guard_ok 가 아니면 정면만
         return "guard"
 

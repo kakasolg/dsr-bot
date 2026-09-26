@@ -195,16 +195,16 @@ def test_loop_fix_pause() -> None:
 
 
 def test_ranged_exception() -> None:
-    """원거리 놈: 같은 높이이고 가는 직선이 방패병 스폰 12 m 밖이면 붙으러 간다, 방패병 근처를 지나면 안 간다."""
+    """근거 등급 게이트: 원거리 예외를 뺐다 — 같은 높이·방패병 먼 쪽이어도 평지 근처면 붙으러 가지 않는다."""
     w = World(player=ARENA)
     w.add(9, 0x1099, 254001, (-34.0, -49.3, 33.0))                  # 방패병 스폰에서 먼 쪽 (18 m+)
     _, may = guard_for(w, bound=False)
-    assert may(w.chars[9], w.snapshot()) is True
+    assert may(w.chars[9], w.snapshot()) is False
     w.move(9, (-25.6, -48.7, 24.3))                                  # 134451 의 #4 자리 — 방패병 스폰 8.4 m
     assert may(w.chars[9], w.snapshot()) is False
     w.move(9, (-34.0, -45.0, 33.0))                                  # 다른 높이
     assert may(w.chars[9], w.snapshot()) is False
-    print("ok  ranged exception: same floor + path clear of the shield's 12 m → approach; near shield or other floor → no")
+    print("ok  ranged exception removed: ranged foe near the arena → no approach (same floor or not)")
 
 
 def test_settle_within_half_metre() -> None:

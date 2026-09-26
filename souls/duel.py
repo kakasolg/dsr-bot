@@ -131,7 +131,7 @@ def _separate(mv, s, ptr, others: list, nm, arena, cancel) -> str:
     goal = next((g for g in cands if nm is not None and nm.clear_line(here, g)), None)
     if goal is None:
         return "no_spot"
-    r = mv.walk_path([goal], nm, "sprint", stop=lambda sn: cancel(), timeout_per=2.5)
+    r = mv.walk_path([goal], nm, "walk", stop=lambda sn: cancel(), timeout_per=2.5)   # 달리기 → 걷기 (근거 등급 게이트, 2026-09-26)
     mv.guard(True)
     s2 = mv.snap(10.0)
     c2 = mv.find(s2, ptr) if s2 else None
@@ -292,9 +292,7 @@ def _approach(mv: M.Moves, weapon, s, c, nm, foe, cancel, log=lambda *a: None, m
         cc = mv.find(sn, ptr)                               # 30 m 밖이면 None — 그땐 그냥 걷는다
         if cc is not None and M.horiz(sn.player, cc) < NEAR:
             return "guard"                                  # 가까우면 방패 든 채 걷는다
-        if foe.ranged and not any(x.ptr != ptr and x.hp > 0 and not (9000 <= (x.anim or 0) < 9100)
-                                   and M.horiz(sn.player, x) < OTHERS_ATTACK_R for x in sn.hostile(OTHERS_ATTACK_R + 2.0)):
-            return "sprint"                                 # 던지는 놈은 기다리면 계속 던진다 — 달려 붙는다, 단 주변이 조용할 때만
+        # 원거리 놈에게 달려 붙기는 뺐다 (근거 등급 게이트, 2026-09-26) — 투사체 포물선 unknown, 달리기 안전은 NavMesh 추정뿐
         # 다른 놈이 8 m 안에 있으면 뛰지 않는다 — 뛰는 동안은 못 막아 2.5 m(SWITCH_R) 안에 들어올 때까지 무방비로 맞는다
         # (사용자 2026-09-25: "쏘는 놈을 잡으려는데 대응이 느려서 다른 몹들에게 둘러싸여") → 방패 들고 걷는다
         return "guard" if foe.ranged else "walk"
@@ -560,7 +558,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             pulled = True
             path = nm.find_path((p.x, p.y, p.z), tuple(arena))
             if path:
-                r = mv.walk_path(nav.trim_path(path[1:], tuple(arena), within=0.8), nm, "sprint",
+                r = mv.walk_path(nav.trim_path(path[1:], tuple(arena), within=0.8), nm, "walk",
                                  stop=lambda sn: cancel() or any((x.anim or -1) in M.ATTACK and M.horiz(sn.player, x) < NEAR
                                                                  for x in sn.hostile(NEAR + 1.0)))
                 note(f"끌어오기:{r}", s, c)
@@ -577,21 +575,11 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
                                                                      for x in sn.hostile(NEAR + 1.0)))
                     note(f"자리옮김:{r}", s, c)
                     continue
-            best = nav.footing(nm, p)[1]
-            if best is not None and s.cam_yaw is not None:
-                mv.pad.guard(False)
-                mv.pad.move(*mv.stick_to(s, p.x + best[0], p.z + best[1]))
-                time.sleep(0.35)
-                mv.pad.move(0.0, 0.0)
-                # 걸어 벗어나면 몸이 걷는 쪽으로 돈다 — 그대로 두면 쏘는 놈에게 등을 보였다(±175°, 석궁 −149, 2026-09-25).
-                # 곧장 그놈 쪽으로 다시 돌고 방패를 든다
-                s2 = mv.snap(10.0)
-                c2 = mv.find(s2, ptr) if s2 else None
-                if c2 is not None:
-                    mv.guard(True)
-                    mv.face(s2, c2, deg=20.0)
-                note("가장자리벗어남", s, c)
-                continue
+            # NavMesh 는 막기만 — '바닥이 넓은 쪽' 으로 걸음을 고르지 않는다 (근거 등급 게이트, 2026-09-26). 가장자리면 방패 들고 그놈을 본다
+            mv.guard(True)
+            mv.face(s, c, deg=20.0)
+            note("가장자리방어", s, c)
+            continue
         if care is not None and now - care_t > CARE_RETRY and care.wants(s):   # 0) 싸우는 중 에스트 (사용자: 안전하면 마셔)
             if opening(s, ptr):
                 care_t = now
