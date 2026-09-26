@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<!-- 로컬 파일만 읽는다: 네트워크 요청 전부 차단 -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>관찰 기록 뷰어</title>
+<style>
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --ink: #1d2330; --muted: #6a7384; --line: #dde1e8; --grid: #eceff4;
+  --accent: #2f6fde; --player: #2f6fde; --lock: #d9a400; --mark: #d23f6c; --warn: #b8561b; --lane: #f0f2f6;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14171d; --panel: #1b1f27; --ink: #e3e7ee; --muted: #8b94a5; --line: #2c323d; --grid: #222731;
+    --accent: #6c9cf0; --player: #6c9cf0; --lock: #f0c33c; --mark: #f06a92; --warn: #e89452; --lane: #20252e;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.4 system-ui, "Segoe UI", "Malgun Gothic", sans-serif; }
+header { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--panel); }
+header h1 { font-size: 15px; margin: 0; font-weight: 600; }
+#meta { color: var(--muted); font-size: 12px; }
+#drop { border: 1px dashed var(--line); border-radius: 6px; padding: 4px 10px; color: var(--muted); }
+#drop.over { border-color: var(--accent); color: var(--accent); }
+main { display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 12px; padding: 12px 16px; }
+@media (max-width: 1000px) { main { grid-template-columns: 1fr; } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px; min-width: 0; }
+.card h2 { font-size: 12px; margin: 0 0 6px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+#map { width: 100%; height: 520px; display: block; cursor: grab; touch-action: none; }
+#map.drag { cursor: grabbing; }
+.row { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
+.row label { color: var(--muted); }
+button, select, input[type=file] { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 5px; padding: 3px 9px; }
+button:hover { border-color: var(--accent); }
+#scrub { width: 100%; }
+#timebar { position: relative; height: 10px; margin: 2px 0 6px; }
+#timebar i { position: absolute; top: 0; width: 2px; height: 10px; background: var(--mark); }
+#tnow { font-variant-numeric: tabular-nums; min-width: 150px; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 12px; }
+th, td { text-align: left; padding: 2px 5px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { color: var(--muted); font-weight: 500; }
+td.num { text-align: right; }
+tr.lock td { background: color-mix(in srgb, var(--lock) 18%, transparent); }
+.sw { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 1px 10px; font-variant-numeric: tabular-nums; }
+.kv b { color: var(--muted); font-weight: 500; }
+#ents { max-height: 300px; overflow: auto; }
+#lanes { width: 100%; height: 190px; display: block; }
+#evlist { max-height: 220px; overflow: auto; font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+#evlist div { padding: 1px 4px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+#evlist .now { border-top: 2px solid var(--accent); }
+.k-mk { color: var(--mark); } .k-sys { color: var(--warn); } .k-pad { color: var(--accent); }
+.full { grid-column: 1 / -1; }
+.muted { color: var(--muted); }
+#err { color: var(--warn); }
+#empty { padding: 60px 16px; text-align: center; color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>관찰 기록 뷰어 <span class="muted">v0</span></h1>
+  <input type="file" id="file" accept=".jsonl,.json,.txt">
+  <span id="drop">또는 여기로 파일을 끌어 놓기</span>
+  <span id="meta"></span>
+  <span id="err"></span>
+</header>
+<div id="empty">
+  <code>data/observe/*.jsonl</code> 파일을 여세요. 원시 기록을 읽기만 합니다 — 네트워크·게임 연결 없음, 의미 라벨 없음.
+</div>
+<main id="app" hidden>
+  <section class="card">
+    <h2>위에서 본 지도 (가로 x · 세로 z)</h2>
+    <div class="row" style="margin-bottom:6px">
+      <label>궤적 <select id="trail"><option value="5">5 s</option><option value="10" selected>10 s</option><option value="30">30 s</option><option value="0">전부</option></select></label>
+      <label><input type="checkbox" id="follow"> 플레이어 따라가기</label>
+      <label><input type="checkbox" id="labels" checked> 라벨</label>
+      <button id="fit">맞춤</button>
+      <span class="muted">휠 = 확대 · 끌기 = 이동</span>
+    </div>
+    <canvas id="map"></canvas>
+  </section>
+  <section class="card">
+    <h2>지금 시각</h2>
+    <div class="kv" id="pkv"></div>
+    <h2 style="margin-top:10px">패드 (원시 XInput)</h2>
+    <div class="kv" id="padkv"></div>
+    <h2 style="margin-top:10px">캐릭터 (거리순)</h2>
+    <div id="ents"></div>
+  </section>
+  <section class="card full">
+    <div class="row">
+      <button id="play">▶ 재생</button>
+      <button id="pmk">[ 이전 마커</button>
+      <button id="nmk">다음 마커 ]</button>
+      <label>속도 <select id="speed"><option>0.25</option><option>0.5</option><option selected>1</option><option>2</option><option>4</option></select>×</label>
+      <span id="tnow"></span>
+      <span class="muted">Space 재생 · ←/→ 0.1 s · Shift+←/→ 1 s</span>
+    </div>
+    <input type="range" id="scrub" min="0" max="1000" step="1" value="0">
+    <div id="timebar"></div>
+  </section>
+  <section class="card full">
+    <h2>±2 s 사건 보기</h2>
+    <canvas id="lanes"></canvas>
+    <div class="row" style="margin:6px 0">
+      <label><input type="checkbox" id="showstick"> 스틱만 바뀐 패드 줄도 목록에</label>
+      <label><input type="checkbox" id="showeanim" checked> 캐릭터 anim 변화</label>
+    </div>
+    <div id="evlist"></div>
+  </section>
+</main>
+<script>
+"use strict";
+// ── XInput 비트 이름 (의미 라벨 아님 — 버튼 이름일 뿐) ──
+const BTN = [[0x1000,"A"],[0x2000,"B"],[0x4000,"X"],[0x8000,"Y"],[0x0100,"LB"],[0x0200,"RB"],[0x0040,"LS"],[0x0080,"RS"],
+             [0x0010,"Start"],[0x0020,"Back"],[0x0001,"D↑"],[0x0002,"D↓"],[0x0004,"D←"],[0x0008,"D→"]];
+const TRIG_ON = 30;          // lt/rt 0..255 중 이 이상이면 "당김"으로 표시만
+const STICK_ON = 8000;       // 레인 그림에서 스틱 기울기 표시 기준 (원시 -32768..32767)
+const GAP_MS = 150;          // 이보다 벌어지면 궤적을 끊는다 (월드 10 Hz)
+const WIN_MS = 2000;
+
+const $ = id => document.getElementById(id);
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const f = (v, n = 2) => v == null ? "—" : Number(v).toFixed(n);
+const btnNames = b => BTN.filter(([m]) => b & m).map(([, n]) => n);
+
+let D = null;                // 불러온 기록
+let t = 0, playing = false, lastTs = 0;
+let view = { cx: 0, cz: 0, scale: 10 };   // 지도: 월드 중심, px/m
+
+function hashColor(s, alpha = 1) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return `hsla(${h % 360}, 62%, 52%, ${alpha})`;
+}
+
+// ── 불러오기 ──
+function loadText(text, name = "") {
+  const rows = [], bad = [];
+  text.split(/\r?\n/).forEach((ln, i) => {
+    if (!ln.trim()) return;
+    try { rows.push(JSON.parse(ln)); } catch { bad.push(i + 1); }
+  });
+  const hdr = rows[0];
+  if (!hdr || hdr.k !== "hdr" || hdr.v !== 1)
+    throw new Error("관찰 기록(v1) 파일이 아닙니다 — 첫 줄이 {\"k\":\"hdr\",\"v\":1} 이어야 합니다.");
+  const W = rows.filter(r => r.k === "w").sort((a, b) => a.ms - b.ms);
+  if (!W.length) throw new Error("월드 스냅샷(w) 줄이 없습니다.");
+  const pads = rows.filter(r => r.k === "pad").sort((a, b) => a.ms - b.ms);
+  const mks = rows.filter(r => r.k === "mk").sort((a, b) => a.ms - b.ms);
+  const sys = rows.filter(r => r.k === "sys").sort((a, b) => a.ms - b.ms);
+  const end = sys.find(r => r.ev === "end") || null;
+  // 패드: 줄이 가장 많은 번호를 주 패드로
+  const cnt = {};
+  pads.forEach(p => cnt[p.i] = (cnt[p.i] || 0) + 1);
+  const mainPad = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0];
+  const P = pads.filter(p => String(p.i) === mainPad);
+  // 캐릭터 궤적: 프레임 번호를 같이 두어 빈칸(그 스냅샷에 없음)에서 끊는다
+  const ents = new Map();
+  W.forEach((w, fi) => (w.e || []).forEach(e => {
+    let T = ents.get(e.id);
+    if (!T) ents.set(e.id, T = { id: e.id, npc: e.npc, color: hashColor(e.id), pts: [] });
+    T.pts.push({ fi, ms: w.ms, x: e.pos[0], y: e.pos[1], z: e.pos[2] });
+  }));
+  // 사건 목록 (±2 s 보기용)
+  const ev = [];
+  let prevBtn = 0, prevLt = 0, prevRt = 0;
+  P.forEach(p => {
+    const parts = [];
+    const on = p.btn & ~prevBtn, off = prevBtn & ~p.btn;
+    if (on) parts.push("↓" + btnNames(on).join("+"));
+    if (off) parts.push("↑" + btnNames(off).join("+"));
+    if ((p.lt >= TRIG_ON) !== (prevLt >= TRIG_ON)) parts.push(`LT ${p.lt}`);
+    if ((p.rt >= TRIG_ON) !== (prevRt >= TRIG_ON)) parts.push(`RT ${p.rt}`);
+    prevBtn = p.btn; prevLt = p.lt; prevRt = p.rt;
+    ev.push({ ms: p.ms, k: "pad", stickOnly: !parts.length,
+              txt: parts.length ? `pad ${parts.join(" ")}  (btn=${p.btn})` : `pad stick L(${p.lx},${p.ly}) R(${p.rx},${p.ry})` });
+  });
+  mks.forEach(m => ev.push({ ms: m.ms, k: "mk", txt: `마커 #${m.n}` }));
+  sys.forEach(s => ev.push({ ms: s.ms, k: "sys", txt: `sys ${s.ev}` + (s.i != null ? ` i=${s.i}` : "") + (s.epoch != null ? ` epoch=${s.epoch}` : "") + (s.msg ? ` ${s.msg}` : "") }));
+  let pa;
+  const ea = new Map();
+  W.forEach(w => {
+    if (w.p.anim !== pa) { ev.push({ ms: w.ms, k: "panim", txt: `플레이어 anim ${pa ?? "—"} → ${w.p.anim}` }); pa = w.p.anim; }
+    (w.e || []).forEach(e => {
+      const was = ea.get(e.id);
+      if (was !== undefined && was !== e.anim) ev.push({ ms: w.ms, k: "eanim", id: e.id, txt: `${e.id} (npc ${e.npc}) anim ${was} → ${e.anim}` });
+      ea.set(e.id, e.anim);
+    });
+  });
+  ev.sort((a, b) => a.ms - b.ms);
+  D = { name, hdr, W, P, mks, sys, end, ents, ev, bad, t0: W[0].ms, t1: W[W.length - 1].ms, wMs: W.map(w => w.ms), pMs: P.map(p => p.ms) };
+  t = D.t0;
+  $("empty").hidden = true;
+  $("app").hidden = false;
+  $("err").textContent = bad.length ? `읽지 못한 줄 ${bad.length}개 (줄 ${bad.slice(0, 5).join(", ")}${bad.length > 5 ? "…" : ""})` : "";
+  const s = end || {};
+  $("meta").textContent = `${name} · ${((D.t1 - D.t0) / 1000).toFixed(1)} s · 월드 ${W.length} · 패드 ${pads.length}` +
+    ` · 마커 ${mks.length} · 캐릭터 ${ents.size}명 · 반경 ${hdr.radius_m} m` +
+    (end ? ` · p95 read_ms ${s.read_ms_p95} · 적 읽기 실패 ${s.enemy_read_fail}` : " · sys:end 없음(끝이 잘린 기록)");
+  $("timebar").innerHTML = mks.map(m => `<i style="left:${(100 * (m.ms - D.t0) / (D.t1 - D.t0 || 1)).toFixed(2)}%" title="마커 #${m.n}"></i>`).join("");
+  fitView();
+  render();
+}
+
+// ── 조회 ──
+function idxAt(arr, ms) {        // arr[i] <= ms 인 마지막 i, 없으면 -1
+  let lo = 0, hi = arr.length - 1, r = -1;
+  while (lo <= hi) { const m = (lo + hi) >> 1; if (arr[m] <= ms) { r = m; lo = m + 1; } else hi = m - 1; }
+  return r;
+}
+const frameAt = ms => D.W[Math.max(0, idxAt(D.wMs, ms))];
+const padAt = ms => { const i = idxAt(D.pMs, ms); return i < 0 ? null : D.P[i]; };
+
+// ── 지도 ──
+const map = $("map"), mctx = map.getContext("2d");
+function sizeCanvas(c) {
+  const r = c.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  if (c.width !== Math.round(r.width * dpr) || c.height !== Math.round(r.height * dpr)) {
+    c.width = Math.round(r.width * dpr); c.height = Math.round(r.height * dpr);
+  }
+  const ctx = c.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return [r.width, r.height];
+}
+function fitView() {
+  let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+  const add = (x, z) => { x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z); };
+  D.W.forEach(w => add(w.p.pos[0], w.p.pos[2]));
+  D.ents.forEach(T => T.pts.forEach(p => add(p.x, p.z)));
+  const [w, h] = sizeCanvas(map);
+  view.cx = (x0 + x1) / 2; view.cz = (z0 + z1) / 2;
+  view.scale = Math.min(w / Math.max(4, x1 - x0), h / Math.max(4, z1 - z0)) * 0.9;
+}
+const toScr = (x, z, w, h) => [w / 2 + (x - view.cx) * view.scale, h / 2 - (z - view.cz) * view.scale];
+
+function drawMap() {
+  const [w, h] = sizeCanvas(map), c = mctx;
+  const fr = frameAt(t);
+  if ($("follow").checked) { view.cx = fr.p.pos[0]; view.cz = fr.p.pos[2]; }
+  c.clearRect(0, 0, w, h);
+  // 격자 (5 m / 25 m)
+  const step = view.scale > 12 ? 5 : 25;
+  c.lineWidth = 1;
+  c.font = "11px system-ui";
+  const xa = view.cx - w / 2 / view.scale, xb = view.cx + w / 2 / view.scale;
+  const za = view.cz - h / 2 / view.scale, zb = view.cz + h / 2 / view.scale;
+  c.strokeStyle = css("--grid"); c.fillStyle = css("--muted");
+  for (let x = Math.ceil(xa / step) * step; x <= xb; x += step) { const [sx] = toScr(x, 0, w, h); c.beginPath(); c.moveTo(sx, 0); c.lineTo(sx, h); c.stroke(); c.fillText(`x ${x}`, sx + 2, h - 4); }
+  for (let z = Math.ceil(za / step) * step; z <= zb; z += step) { const [, sy] = toScr(0, z, w, h); c.beginPath(); c.moveTo(0, sy); c.lineTo(w, sy); c.stroke(); c.fillText(`z ${z}`, 2, sy - 2); }
+  // 1 m 눈금자
+  c.strokeStyle = css("--muted"); c.beginPath(); c.moveTo(w - 20 - view.scale * 5, 14); c.lineTo(w - 20, 14); c.stroke(); c.fillText("5 m", w - 20 - view.scale * 5, 11);
+
+  const trail = +$("trail").value * 1000, fromMs = trail ? t - trail : -Infinity;
+  const fi = idxAt(D.wMs, t);
+  // 캐릭터 궤적 — 빈칸(연속 프레임이 아님)에서 끊는다
+  D.ents.forEach(T => {
+    c.strokeStyle = T.color.replace(/, 1\)$/, ", 0.45)"); c.lineWidth = 1.5; c.beginPath();
+    let prev = null;
+    for (const p of T.pts) {
+      if (p.ms < fromMs) continue;
+      if (p.ms > t) break;
+      const [sx, sy] = toScr(p.x, p.z, w, h);
+      if (!prev || p.fi !== prev.fi + 1 || p.ms - prev.ms > GAP_MS) c.moveTo(sx, sy); else c.lineTo(sx, sy);
+      prev = p;
+    }
+    c.stroke();
+  });
+  // 플레이어 궤적
+  c.strokeStyle = css("--player"); c.globalAlpha = 0.5; c.lineWidth = 2; c.beginPath();
+  let pv = null;
+  for (let i = 0; i <= fi; i++) {
+    const r = D.W[i];
+    if (r.ms < fromMs) continue;
+    const [sx, sy] = toScr(r.p.pos[0], r.p.pos[2], w, h);
+    if (!pv || r.ms - pv.ms > GAP_MS || r.epoch !== pv.epoch) c.moveTo(sx, sy); else c.lineTo(sx, sy);
+    pv = r;
+  }
+  c.stroke(); c.globalAlpha = 1;
+  const stale = t - fr.ms > GAP_MS;
+  // 캐릭터 — 이 스냅샷에 있는 것만
+  const lockId = fr.lock && fr.lock.id;
+  const showLab = $("labels").checked;
+  for (const e of fr.e || []) {
+    const [sx, sy] = toScr(e.pos[0], e.pos[2], w, h);
+    const col = hashColor(e.id);
+    c.beginPath(); c.arc(sx, sy, 5, 0, Math.PI * 2);
+    if (e.alive_derived) { c.fillStyle = col; c.fill(); } else { c.strokeStyle = col; c.lineWidth = 2; c.stroke(); }
+    if (e.hd != null) {                               // 바라보는 방향 = hd + π (실측, dsr_telemetry.face 와 같은 규칙)
+      const a = e.hd + Math.PI;
+      c.strokeStyle = col; c.lineWidth = 1.5; c.beginPath(); c.moveTo(sx, sy);
+      c.lineTo(sx + Math.sin(a) * 11, sy - Math.cos(a) * 11); c.stroke();
+    }
+    if (e.id === lockId) { c.strokeStyle = css("--lock"); c.lineWidth = 2.5; c.beginPath(); c.arc(sx, sy, 10, 0, Math.PI * 2); c.stroke(); }
+    if (showLab) {
+      c.fillStyle = css("--ink");
+      c.fillText(`${e.npc} y${f(e.pos[1], 1)} a${e.anim}`, sx + 8, sy - 4);
+      c.fillStyle = css("--muted");
+      c.fillText(`hp ${e.hp_raw}/${e.max_hp_raw}${e.bot_phantom ? " phantom?" : ""}`, sx + 8, sy + 9);
+    }
+  }
+  // 플레이어 화살표
+  const [px, py] = toScr(fr.p.pos[0], fr.p.pos[2], w, h);
+  const a = (fr.p.hd ?? 0) + Math.PI;
+  c.save(); c.translate(px, py); c.rotate(a);
+  c.fillStyle = css("--player"); c.beginPath(); c.moveTo(0, -12); c.lineTo(7, 8); c.lineTo(0, 4); c.lineTo(-7, 8); c.closePath(); c.fill();
+  c.restore();
+  if (showLab) { c.fillStyle = css("--ink"); c.fillText(`나 y${f(fr.p.pos[1], 1)} a${fr.p.anim}`, px + 10, py + 14); }
+  if (stale) { c.fillStyle = css("--warn"); c.fillText(`월드 스냅샷 없음 — 마지막 ${((t - fr.ms) / 1000).toFixed(2)} s 전`, 8, 16); }
+}
+
+// 지도 조작
+let dragging = null;
+map.addEventListener("pointerdown", e => { dragging = { x: e.clientX, y: e.clientY, cx: view.cx, cz: view.cz }; map.classList.add("drag"); map.setPointerCapture(e.pointerId); $("follow").checked = false; });
+map.addEventListener("pointermove", e => { if (!dragging) return; view.cx = dragging.cx - (e.clientX - dragging.x) / view.scale; view.cz = dragging.cz + (e.clientY - dragging.y) / view.scale; render(); });
+map.addEventListener("pointerup", () => { dragging = null; map.classList.remove("drag"); });
+map.addEventListener("wheel", e => {
+  e.preventDefault();
+  const r = map.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
+  const wx = view.cx + (mx - r.width / 2) / view.scale, wz = view.cz - (my - r.height / 2) / view.scale;
+  view.scale = Math.min(400, Math.max(1, view.scale * (e.deltaY < 0 ? 1.2 : 1 / 1.2)));
+  view.cx = wx - (mx - r.width / 2) / view.scale; view.cz = wz + (my - r.height / 2) / view.scale;
+  render();
+}, { passive: false });
+
+// ── 오른쪽 표 ──
+function drawPanel() {
+  const fr = frameAt(t), p = fr.p, L = fr.lock || {};
+  const lockTxt = L.h == null ? "못 읽음" : L.resolved == null ? `없음 (h=${L.h})` : L.resolved ? `${L.id}` : `목록에 없음 (h=${L.h})`;
+  $("pkv").innerHTML = [
+    ["스냅샷", `${((fr.ms - D.t0) / 1000).toFixed(2)} s · read ${f(fr.read_ms)} ms · epoch ${fr.epoch}`],
+    ["pos x/z", `${f(p.pos[0])} / ${f(p.pos[2])}`], ["y", f(p.pos[1])], ["hd", f(p.hd, 3)], ["anim", p.anim],
+    ["HP", `${p.hp_raw} / ${p.max_hp_raw}`], ["SP", `${p.sp} / ${p.max_sp}`], ["cam_yaw", f(fr.cam_yaw, 3)],
+    ["lock", esc(lockTxt)], ["e_fail", fr.e_fail],
+  ].map(([k, v]) => `<b>${k}</b><span>${v}</span>`).join("");
+  const pd = padAt(t);
+  $("padkv").innerHTML = pd ? [
+    ["버튼", `${btnNames(pd.btn).join(" + ") || "—"} <span class="muted">(btn=${pd.btn})</span>`],
+    ["LT / RT", `${pd.lt} / ${pd.rt}`], ["L 스틱", `${pd.lx}, ${pd.ly}`], ["R 스틱", `${pd.rx}, ${pd.ry}`],
+    ["패드", `i=${pd.i} · pkt ${pd.pkt} · ${((t - pd.ms) / 1000).toFixed(2)} s 전 변화`],
+  ].map(([k, v]) => `<b>${k}</b><span>${v}</span>`).join("") : `<span class="muted">아직 패드 줄 없음</span>`;
+  const es = [...(fr.e || [])].sort((a, b) => a.d - b.d);
+  $("ents").innerHTML = `<table><tr><th>id</th><th>npc</th><th>y</th><th>dy</th><th>d</th><th>anim</th><th>HP</th><th>team_bot</th><th>phantom?</th><th>why</th></tr>` +
+    es.map(e => `<tr class="${e.id === L.id ? "lock" : ""}"><td><span class="sw" style="background:${hashColor(e.id)}"></span>${esc(e.id)}${e.id_src === "ptr" ? " <span class=muted>(ptr)</span>" : ""}</td>` +
+      `<td>${e.npc}</td><td class=num>${f(e.pos[1], 1)}</td><td class=num>${f(e.dy, 1)}</td><td class=num>${f(e.d, 1)}</td><td class=num>${e.anim}</td>` +
+      `<td class=num>${e.hp_raw}/${e.max_hp_raw}${e.alive_derived ? "" : " ✕"}</td><td>${e.team_bot}</td><td>${e.bot_phantom ? "예" : ""}</td><td>${e.why.join(",")}</td></tr>`).join("") +
+    `</table>` + (es.length ? "" : `<div class="muted">이 스냅샷에 캐릭터 없음</div>`);
+}
+
+// ── ±2 s 레인 ──
+const lanes = $("lanes"), lctx = lanes.getContext("2d");
+function segs(get, from, to) {            // 월드 프레임에서 값이 같은 구간들
+  const out = [];
+  let i = Math.max(0, idxAt(D.wMs, from)), cur = null;
+  for (; i < D.W.length && D.W[i].ms <= to; i++) {
+    const v = get(D.W[i]);
+    if (!cur || cur.v !== v || D.W[i].ms - cur.last > GAP_MS) { if (cur) out.push(cur); cur = { v, a: D.W[i].ms, last: D.W[i].ms }; }
+    else cur.last = D.W[i].ms;
+  }
+  if (cur) out.push(cur);
+  out.forEach(s => s.b = s.last + 100);   // 10 Hz — 다음 스냅샷까지 유지된 것으로 그린다
+  return out;
+}
+function drawLanes() {
+  const [w, h] = sizeCanvas(lanes), c = lctx;
+  c.clearRect(0, 0, w, h);
+  const from = t - WIN_MS, to = t + WIN_MS, LW = 110;
+  const X = ms => LW + (ms - from) / (to - from) * (w - LW - 6);
+  const fr = frameAt(t);
+  // 레인 구성: 플레이어 anim · 버튼 · 트리거 · 스틱 · 마커 · 락온 대상/가장 가까운 캐릭터 2명 anim
+  const near = [...(fr.e || [])].sort((a, b) => (b.id === (fr.lock && fr.lock.id)) - (a.id === (fr.lock && fr.lock.id)) || a.d - b.d).slice(0, 3);
+  const rows = [["플레이어 anim", "panim"], ["버튼", "btn"], ["LT / RT", "trig"], ["스틱 L / R", "stick"], ["마커", "mk"],
+                ...near.map(e => [`${e.npc} ${e.id.slice(0, 11)}`, "e:" + e.id])];
+  const rh = (h - 16) / rows.length;
+  c.font = "11px system-ui"; c.textBaseline = "middle";
+  // 1 s 눈금
+  c.fillStyle = css("--muted"); c.strokeStyle = css("--grid");
+  for (let s = Math.ceil(from / 500) * 500; s <= to; s += 500) {
+    const x = X(s); c.beginPath(); c.moveTo(x, 0); c.lineTo(x, h - 14); c.stroke();
+    if (s % 1000 === 0) c.fillText(`${((s - t) / 1000).toFixed(0)} s`, x - 8, h - 6);
+  }
+  const box = (x0, x1, y, txt, col) => {
+    x0 = Math.max(LW, x0); x1 = Math.min(w - 6, x1); if (x1 <= x0) return;
+    c.fillStyle = col; c.fillRect(x0, y + 3, x1 - x0, rh - 6);
+    if (txt != null && x1 - x0 > 26) { c.fillStyle = css("--ink"); c.fillText(String(txt), x0 + 3, y + rh / 2); }
+  };
+  rows.forEach(([name, key], ri) => {
+    const y = ri * rh;
+    c.fillStyle = css("--lane"); c.fillRect(LW, y + 2, w - LW - 6, rh - 4);
+    c.fillStyle = css("--muted"); c.fillText(name, 4, y + rh / 2);
+    if (key === "panim") segs(fr => fr.p.anim, from, to).forEach(s => s.v !== -1 && box(X(s.a), X(s.b), y, s.v, hashColor("a" + s.v, 0.55)));
+    else if (key.startsWith("e:")) {
+      const id = key.slice(2);
+      segs(fr => { const e = (fr.e || []).find(e => e.id === id); return e ? e.anim : "∅"; }, from, to)
+        .forEach(s => s.v === "∅" ? box(X(s.a), X(s.b), y, "빈칸", "rgba(128,128,128,.25)") : s.v !== -1 && box(X(s.a), X(s.b), y, s.v, hashColor("a" + s.v, 0.55)));
+    } else if (key === "mk") {
+      D.mks.forEach(m => { if (m.ms >= from && m.ms <= to) { c.fillStyle = css("--mark"); c.fillRect(X(m.ms) - 1, y + 2, 3, rh - 4); c.fillText(`#${m.n}`, X(m.ms) + 4, y + rh / 2); } });
+    } else {
+      // 패드: 구간 [이 줄, 다음 줄)
+      let i = Math.max(0, idxAt(D.pMs, from));
+      for (; i < D.P.length && D.P[i].ms <= to; i++) {
+        const p = D.P[i], nx = i + 1 < D.P.length ? D.P[i + 1].ms : D.t1;
+        if (key === "btn" && p.btn) box(X(p.ms), X(nx), y, btnNames(p.btn).join("+"), hashColor("b" + p.btn, 0.55));
+        if (key === "trig") {
+          if (p.lt >= TRIG_ON) box(X(p.ms), X(nx), y, "LT", "rgba(90,160,110,.5)");
+          if (p.rt >= TRIG_ON) box(X(p.ms), X(nx), y, "RT", "rgba(200,120,60,.5)");
+        }
+        if (key === "stick") {
+          const Lm = Math.hypot(p.lx, p.ly) >= STICK_ON, Rm = Math.hypot(p.rx, p.ry) >= STICK_ON;
+          if (Lm) { c.fillStyle = "rgba(90,130,210,.5)"; c.fillRect(Math.max(LW, X(p.ms)), y + 3, Math.max(0, Math.min(w - 6, X(nx)) - Math.max(LW, X(p.ms))), rh / 2 - 3); }
+          if (Rm) { c.fillStyle = "rgba(170,110,200,.5)"; c.fillRect(Math.max(LW, X(p.ms)), y + rh / 2, Math.max(0, Math.min(w - 6, X(nx)) - Math.max(LW, X(p.ms))), rh / 2 - 3); }
+        }
+      }
+    }
+  });
+  c.strokeStyle = css("--accent"); c.lineWidth = 2; c.beginPath(); c.moveTo(X(t), 0); c.lineTo(X(t), h - 14); c.stroke(); c.lineWidth = 1;
+}
+function drawEvents() {
+  const from = t - WIN_MS, to = t + WIN_MS, showStick = $("showstick").checked, showE = $("showeanim").checked;
+  const list = D.ev.filter(e => e.ms >= from && e.ms <= to && (showStick || !e.stickOnly) && (showE || e.k !== "eanim"));
+  let nowDone = false;
+  $("evlist").innerHTML = list.map(e => {
+    const cls = `k-${e.k}` + (!nowDone && e.ms >= t ? " now" : "");
+    if (e.ms >= t) nowDone = true;
+    const d = (e.ms - t) / 1000;
+    return `<div class="${cls}">${d >= 0 ? "+" : ""}${d.toFixed(3)} s  ${esc(e.txt)}</div>`;
+  }).join("") || `<div class="muted">±2 s 안에 사건 없음</div>`;
+}
+
+// ── 시간 ──
+function setT(ms) { t = Math.min(D.t1, Math.max(D.t0, ms)); render(); }
+function render() {
+  if (!D) return;
+  $("scrub").value = Math.round(1000 * (t - D.t0) / (D.t1 - D.t0 || 1));
+  $("tnow").textContent = `${((t - D.t0) / 1000).toFixed(2)} / ${((D.t1 - D.t0) / 1000).toFixed(2)} s`;
+  drawMap(); drawPanel(); drawLanes(); drawEvents();
+}
+function tick(ts) {
+  if (!playing) return;
+  const dt = lastTs ? ts - lastTs : 0; lastTs = ts;
+  t += dt * +$("speed").value;
+  if (t >= D.t1) { t = D.t1; setPlaying(false); }
+  render();
+  requestAnimationFrame(tick);
+}
+function setPlaying(on) {
+  playing = on && !!D; lastTs = 0;
+  $("play").textContent = playing ? "❚❚ 정지" : "▶ 재생";
+  if (playing) { if (t >= D.t1) t = D.t0; requestAnimationFrame(tick); }
+}
+function jumpMarker(dir) {
+  if (!D || !D.mks.length) return;
+  const m = dir > 0 ? D.mks.find(m => m.ms > t + 1) : [...D.mks].reverse().find(m => m.ms < t - 1);
+  if (m) setT(m.ms);
+}
+$("play").onclick = () => setPlaying(!playing);
+$("pmk").onclick = () => jumpMarker(-1);
+$("nmk").onclick = () => jumpMarker(1);
+$("fit").onclick = () => { $("follow").checked = false; fitView(); render(); };
+$("scrub").oninput = e => { setPlaying(false); setT(D.t0 + (D.t1 - D.t0) * e.target.value / 1000); };
+["trail", "follow", "labels", "showstick", "showeanim"].forEach(id => $(id).onchange = render);
+window.addEventListener("resize", render);
+window.addEventListener("keydown", e => {
+  if (!D || e.target.tagName === "SELECT" || e.target.tagName === "INPUT" && e.target.type !== "range") return;
+  if (e.code === "Space") { e.preventDefault(); setPlaying(!playing); }
+  else if (e.key === "ArrowRight" || e.key === "ArrowLeft") { e.preventDefault(); setPlaying(false); setT(t + (e.key === "ArrowRight" ? 1 : -1) * (e.shiftKey ? 1000 : 100)); }
+  else if (e.key === "]") jumpMarker(1);
+  else if (e.key === "[") jumpMarker(-1);
+});
+
+// ── 파일 열기 ──
+function openFile(file) {
+  if (!file) return;
+  const rd = new FileReader();
+  rd.onload = () => { try { setPlaying(false); loadText(rd.result, file.name); } catch (err) { $("err").textContent = err.message; } };
+  rd.readAsText(file);
+}
+$("file").onchange = e => openFile(e.target.files[0]);
+const drop = $("drop");
+["dragenter", "dragover"].forEach(n => document.addEventListener(n, e => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach(n => document.addEventListener(n, e => { e.preventDefault(); drop.classList.remove("over"); }));
+document.addEventListener("drop", e => openFile(e.dataTransfer.files[0]));
+
+window.__observeView = { loadText };   // 디버그·검증용: 문자열로 기록을 넣는다
+</script>
+</body>
+</html>
