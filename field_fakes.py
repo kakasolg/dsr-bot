@@ -156,7 +156,7 @@ def make_field(world: World, fight_kills: bool = True) -> F.Field:
     f.fight = fight
     f.lure = lure
     f.recover = lambda why, nm=None: (f.recovers.append(why), True)[1]
-    f.walk_to = lambda goal, nm, tag, mode="walk", tol=None: (f.walks.append((tuple(goal), tag)), "arrived")[1]
+    f.walk_to = lambda goal, nm, tag, mode="walk", tol=None, done=None: (f.walks.append((tuple(goal), tag)), "arrived")[1]
     f.alive = lambda: True
     f.wait_escape = lambda timeout=40.0: None
     f.estus_left = lambda: 5

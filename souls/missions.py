@@ -118,7 +118,17 @@ class Missions:
         for i, e in enumerate(BURG_TOWN, 1):
             if not self.f.alive():
                 return "died"
-            r = self.f.walk_to(tuple(e["pos"]), nb, f"#{i} 이동")
+            s0 = self.mv.snap(40.0)
+            if (s0 is not None and math.dist((s0.player.x, s0.player.y, s0.player.z), tuple(e["pos"])) < 15.0
+                    and self.f.find_at(e["npc"], e["pos"], 15.0) is None):
+                # 163921: 쫓아와 이미 잡은 #6(255000)의 스폰 (-36.0,-13.5,-70.1) 은 상자·벽에 붙어 설 수 없어 2.6 m 앞에서
+                # 35 s 맴돌았다. 스폰이 가깝고(15 m) 그 둘레에 그놈이 안 보이면 걸어가지 않는다
+                self.log(f"   #{i} {e['npc']}: 스폰 15 m 안인데 안 보임 — 이미 잡음, 걸어가지 않음")
+                continue
+            # 걷는 중 쫓아온 그놈을 잡았으면 설 수 없는 스폰까지 가지 않는다 (163921·다음 판: #6 스폰 2.2 m 앞에서 17~35 s)
+            gone = (lambda sn, e=e: math.dist((sn.player.x, sn.player.y, sn.player.z), tuple(e["pos"])) < 8.0
+                    and self.f.find_at(e["npc"], e["pos"], 15.0) is None)
+            r = self.f.walk_to(tuple(e["pos"]), nb, f"#{i} 이동", done=gone)
             if r == "dead":
                 return "died"
             if r != "arrived":
@@ -219,6 +229,12 @@ class Missions:
                 return "상자 못 지나감"
             seg, k = "C", 0
         rest = pc[k:]
+        s = self.f.snap_settled(5.0)
+        if k == 0 and s is not None and math.dist((s.player.x, s.player.y, s.player.z), tuple(R["roll"]["to"])) < 1.5:
+            # 상자 굴러 깨기 끝자리 (-30.2,-14.6,-76.6) 에서 세 판 연속(161024·zones·163921) 걷기로는 0 m — 계단을 막은
+            # 상자가 남아 있고, 구르기 한 번이면 곧장 내려갔다 (163921: 50 s 정지 → 710 한 번에 통과). 먼저 한 번 구른다
+            self.mv.roll_toward(s, pc[0][0], pc[0][2])
+            time.sleep(0.8)
         for extra in range(3):
             r = self.f.walk(rest, nb, "창고 방", tol=0.8)
             if r != "stuck" or extra == 2:

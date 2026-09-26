@@ -979,7 +979,8 @@ class Field:
         return "cleared" if not left else "left " + " ".join(left)
 
     # ── 길 ───────────────────────────────────────────────────
-    def walk(self, path: list, nm, tag: str, tol: float | None = None, tight: dict | None = None, mode: str = "walk") -> str:
+    def walk(self, path: list, nm, tag: str, tol: float | None = None, tight: dict | None = None, mode: str = "walk",
+             done=None) -> str:
         """경로를 걷다가 쫓아와 붙는 놈은 먼저 잡는다. → 'arrived' | 'dead' | 'stuck' | 'no_estus'
         점마다 바닥 확인은 목표와 지금 자리 둘 다 이 내비메시 위일 때만 (경계·다리 위는 내비메시가 비어 있다).
         tight = {"center": [x,y,z], "r": m} 안(난간 없는 좁은 다리)은 0.45 m 로 좁게 밟는다."""
@@ -1006,6 +1007,9 @@ class Field:
                 if s is None:
                     time.sleep(0.1)
                     continue
+                if done is not None and done(s):
+                    mover.stop()
+                    return "arrived"                       # 부르는 쪽이 정한 '더 갈 필요 없음'
                 if s.player.hp < s.player.max_hp * WALK_HEAL and self.safe(s) and self.estus_left() > 0:
                     mover.stop()                           # 걷다 맞은 피해(화염병 등) — 다음 싸움까지 미루지 않는다
                     self.heal(0.7)
@@ -1135,14 +1139,14 @@ class Field:
             s = self.mv.snap(5.0) or s
         return False
 
-    def walk_to(self, goal, nm, tag: str, mode: str = "walk", tol: float | None = None) -> str:
+    def walk_to(self, goal, nm, tag: str, mode: str = "walk", tol: float | None = None, done=None) -> str:
         s = self.mv.snap(5.0)
         if s is None:
             return "no_snapshot"
         path = nm.find_path((s.player.x, s.player.y, s.player.z), tuple(goal))
         if not path:
             return "no_path"                               # 경로가 없으면 직선으로 걷지 않는다 (낭떠러지)
-        return self.walk(nav.trim_path(path[1:], tuple(goal)), nm, tag, mode=mode, tol=tol)
+        return self.walk(nav.trim_path(path[1:], tuple(goal)), nm, tag, mode=mode, tol=tol, done=done)
 
     def _settle(self, spot, tol: float = None, tries: int = 10) -> float:
         """마지막 몇 걸음 — 스틱을 짧게 쳐서 spot 에서 tol 안으로 (수평). 던질 자리 허용 오차 1.5 m 가 끌어오기 최소 13 m 와
