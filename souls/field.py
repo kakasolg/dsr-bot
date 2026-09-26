@@ -50,6 +50,7 @@ HOLD_WAIT = 8.0
 MISSING_S = 5.0          # 묶어 둔 목표가 스냅샷에서 이만큼 계속 안 보이면 'unknown' (죽음으로 보지 않는다)
 MOVED_R, MOVED_DY = 3.0, 3.0   # 스폰에서 이만큼 벗어나 살아 있으면 'moved'
 BIND_EVERY = 1.0         # 안 묶인 목표를 스폰에서 다시 찾는 간격
+HOLD_SPOT_TOL = 0.5      # 던질 자리·평지 기다림 자리에 서는 허용 오차 (예전 1.5 m)
 HOLD_ZONE_R = 2.5        # 던질 자리 둘레 안전 구역 (자리는 RAMP_ARENA 에서 1.1 m, 그 평지의 가장 가까운 낙차 4.0 m)
 HOLD_CALM_R = 5.0        # 이 안에 적이 없으면 '조용' — 방패 내림
 HOLD_GUARD_R = 3.0       # 이 안이면 '접촉'
@@ -60,6 +61,7 @@ LURE_UNBLOCK_S = 0.5     # 끌어오기 막음은 5 m 안이 이만큼 **계속*
 MOVED_WAIT_DY = 1.2      # 평지(arena)와 이만큼 넘게 높이가 다르면 '다른 높이' — 찾아가지 않고 평지에서 기다린다 (Patch E-1)
 MOVED_WAIT_S = 20.0
 HOLD_KEEP_R = 12.0       # E-1b: 움직인 목표가 아직 남은 제자리 고수 대상(방패병) 스폰에서 이 안이면 찾아가지 않는다 (사용자 #1·#3 처치 12.3~17.7 m)      # 한 번에 기다리는 시간. 두 번 기다려도 안 내려오면 'left #i~' (찾아가지 않음)
+UNSAFE_PAUSE = 5.0       # E-2 로 붙으러 가지 않은 오는 놈 — 이만큼 평지에서 기다림·방어 틱 뒤 다시 본다 (사용자: "2초도 짧아, 5초 기다려")
 CLOSE_MELEE_R = 3.0      # 접촉 싸움 중 다른 놈이 이 안이면 끝낸다 (duel.SWITCH_R 2.5 보다 넓게 — 목표 바꾸기 전에 끊긴다)
 
 
@@ -322,12 +324,15 @@ class Field:
             spot = next((tuple(q) for q in path if math.dist(tuple(q), goal) <= LURE_R and abs(q[1] - goal[1]) <= LURE_DY), None)
             if spot is None:
                 return "no_spot"                              # 절벽 아래·위 놈은 던질 자리가 없다 — 평소 길로 (8판: 절벽 아래 2번에게 뛰어내림)
-        if math.dist(here, spot) > 1.5:
-            r = self.walk_to(spot, nm, f"{tag} 던질 자리로")
+        if math.dist(here, spot) > (HOLD_SPOT_TOL if lure_at else 1.5):
+            r = self.walk_to(spot, nm, f"{tag} 던질 자리로", tol=HOLD_SPOT_TOL if lure_at else None) \
+                if math.dist(here, spot) > 1.5 else "arrived"
             if r == "dead":
                 return "dead"
             if r != "arrived":
                 self.log(f"   {tag}: 던질 자리까지 {r} — 지금 자리에서 던진다")
+            if lure_at:
+                self._settle(spot)                         # 정해 둔 던질 자리는 0.5 m 안까지 (13 m 최소 거리와 부딪히지 않게)
         c = self.mv.find(self.mv.snap(SEEK_R), ptr)
         if c is None:
             return "dead"
@@ -411,8 +416,11 @@ class Field:
             time.sleep(0.05)
             return "calm", None
         p = s.player
-        if math.dist((p.x, p.y, p.z), spot) > 1.5:
-            self.walk_to(spot, nm, f"{tag} 제자리로")
+        d_spot = math.dist((p.x, p.y, p.z), spot)
+        if d_spot > HOLD_SPOT_TOL:
+            if d_spot > 1.5:
+                self.walk_to(spot, nm, f"{tag} 제자리로", tol=HOLD_SPOT_TOL)
+            self._settle(spot)
             return "returning", None
         coming = [c for c in s.hostile(FOLLOW_R + 2.0) if awake(c) and c.ptr not in ignore and c.anim not in (None, -1)
                   and M.horiz(p, c) < FOLLOW_R + 2.0 and abs(c.y - p.y) < FOLLOW_DY]
@@ -472,12 +480,29 @@ class Field:
                     return pe["pos"]
             return None
 
+        def clear_of_hold(a, b) -> bool:
+            """a→b 직선이 아직 남은 제자리 고수 대상(방패병) 스폰에서 HOLD_KEEP_R 밖인가 (수평)."""
+            for pe in pending:
+                if not (pe.get("lure_at") or {}).get("hold"):
+                    continue
+                hx, hz = pe["pos"][0], pe["pos"][2]
+                vx, vz = b[0] - a[0], b[1] - a[1]
+                L2 = vx * vx + vz * vz or 1e-9
+                k = max(0.0, min(1.0, ((hx - a[0]) * vx + (hz - a[1]) * vz) / L2))
+                if math.hypot(a[0] + k * vx - hx, a[1] + k * vz - hz) < HOLD_KEEP_R:
+                    return False
+            return True
+
         def may(cc, sn) -> bool:
+            p = sn.player if sn is not None else None
+            # 원거리 놈(화염병 등): 기다리면 계속 던진다 — 같은 높이이고 가는 길이 방패병 스폰 12 m 밖이면 붙으러 간다 (사용자 승인 (a))
+            if (p is not None and foes_.of(cc.npc_param).ranged and abs(cc.y - p.y) < 1.2
+                    and clear_of_hold((p.x, p.z), (cc.x, cc.z))):
+                return True
             sp = spawn_of(cc.ptr)
             if sp is not None:
                 moved = math.hypot(cc.x - sp[0], cc.z - sp[2]) > MOVED_R or abs(cc.y - sp[1]) > MOVED_DY
                 return not (moved and self._wait_moved(cc, arena, pending))
-            p = sn.player if sn is not None else None
             near_arena = p is not None and math.hypot(p.x - arena[0], p.z - arena[2]) <= 6.0 and abs(p.y - arena[1]) < 1.2
             return not (near_arena and self._wait_moved(cc, arena, pending))
         return may
@@ -487,6 +512,21 @@ class Field:
 
     def _wait_why(self, c, arena, pending) -> str:
         return ", ".join(self._wait_reasons(c, arena, pending))
+
+    def _arena_wait(self, arena, nm, ignore, secs: float) -> str | None:
+        """평지(arena)에서 secs 동안 기다림·방어 틱만 — 다가가지 않는다. → 'died' | None"""
+        lb, t0 = LureBlock(), time.time()
+        while time.time() - t0 < secs:
+            if not self.alive():
+                return "died"
+            s = self.mv.snap(SEEK_R)
+            if s is None:
+                time.sleep(0.1)
+                continue
+            if self._hold_tick("평지", tuple(arena), s, nm, arena, ignore, lb, {}) == "died":
+                return "died"
+            time.sleep(0.05)
+        return None
 
     def _hold_tick(self, i, spot, s, nm, arena, ignore, lb, hold_until: dict):
         """제자리(spot)에서 한 틱 — _hold_at 상태를 보고 제자리 방어 / 묶인 접촉 싸움. 제자리 고수(#2)와 평지 기다림(E-1)이 같이 쓴다.
@@ -655,7 +695,11 @@ class Field:
                 if r.result == "me_dead":
                     return "died"
                 if r.result == "unsafe_approach":
-                    continue                               # E-2: 쫓지 않고 다음 바퀴 (평지 기다림으로)
+                    # E-2 루프 수정 (2026-09-26 134451): 곧바로 새 싸움을 열면 원거리 놈(wait_far 안 씀)에게 1 s 에 20 번 넘게
+                    # 싸움을 열고 닫으며 방어 없이 섰다. 평지에서 UNSAFE_PAUSE 동안 기다림·방어 틱을 돌린 뒤 다시 본다
+                    if self._arena_wait(arena, nm, ignore, UNSAFE_PAUSE) == "died":
+                        return "died"
+                    continue
                 if r.result != "killed":
                     ok = self.recover(f"오는 놈 {r.result}", nm)
                     if not ok and self.estus_left() <= 0:
@@ -1016,14 +1060,32 @@ class Field:
             s = self.mv.snap(5.0) or s
         return False
 
-    def walk_to(self, goal, nm, tag: str, mode: str = "walk") -> str:
+    def walk_to(self, goal, nm, tag: str, mode: str = "walk", tol: float | None = None) -> str:
         s = self.mv.snap(5.0)
         if s is None:
             return "no_snapshot"
         path = nm.find_path((s.player.x, s.player.y, s.player.z), tuple(goal))
         if not path:
             return "no_path"                               # 경로가 없으면 직선으로 걷지 않는다 (낭떠러지)
-        return self.walk(nav.trim_path(path[1:], tuple(goal)), nm, tag, mode=mode)
+        return self.walk(nav.trim_path(path[1:], tuple(goal)), nm, tag, mode=mode, tol=tol)
+
+    def _settle(self, spot, tol: float = None, tries: int = 10) -> float:
+        """마지막 몇 걸음 — 스틱을 짧게 쳐서 spot 에서 tol 안으로 (수평). 던질 자리 허용 오차 1.5 m 가 끌어오기 최소 13 m 와
+        부딪혀 12.8~13.0 m 로 'too_close' 가 났다 (R3 101913, 134451 세 번) — 사용자 승인 2026-09-26 '0.5 m 로'. → 남은 거리"""
+        tol = HOLD_SPOT_TOL if tol is None else tol
+        d = None
+        for _ in range(tries):
+            s = self.mv.snap(5.0)
+            if s is None or s.cam_yaw is None:
+                break
+            d = math.hypot(s.player.x - spot[0], s.player.z - spot[2])
+            if d <= tol:
+                break
+            self.mv.pad.move(*self.mv.stick_to(s, spot[0], spot[2], 0.45))
+            time.sleep(0.12)
+            self.mv.pad.move(0.0, 0.0)
+            time.sleep(0.12)
+        return d if d is not None else 0.0
 
     # ── 핏자국 ────────────────────────────────────────────────
     def pick_blood(self, nm, near: float = 20.0, bonfire_ok: bool = False) -> str | None:

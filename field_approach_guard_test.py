@@ -166,10 +166,72 @@ def test_clear_unsafe_no_retreat() -> None:
     print("ok  clear: queue fight → 'unsafe_approach' → no retreat/recover, not counted as a try; guard passed to fight()")
 
 
+def test_loop_fix_pause() -> None:
+    """루프 수정: 오는 원거리 놈에게 unsafe_approach 가 나면 곧바로 새 싸움을 열지 않고 평지 기다림·방어 틱을 UNSAFE_PAUSE 동안."""
+    import time
+    from souls import field as F
+    w = World(player=ARENA)
+    w.add(4, 0x1016, 254001, (-25.6, -48.7, 24.3), anim=3008)       # 134451: 평지 가장자리에서 던지는 화염병 망자
+    f = make_field(w)
+    old = F.UNSAFE_PAUSE
+    F.UNSAFE_PAUSE = 0.4
+    times = []
+
+    def fight(ptr, nm, tag, arena=None, desperate=False, limit=45.0, wait_far=False, leash=None, may_approach=None):
+        times.append(time.time())
+        if len(times) >= 3:
+            w.chars[ptr].hp = 0
+            return D.DuelResult("killed")
+        return D.DuelResult("unsafe_approach")
+    f.fight = fight
+    try:
+        # 목록에는 못 찾는 가짜 목표 하나 — clear 가 돌면서 매 바퀴 '오는 놈' 을 먼저 본다
+        f.clear([{"npc": 254000, "pos": [0.0, -49.4, 0.0], "label": 9, "lure": False}], nm=None, arena=ARENA, lure=True)
+    finally:
+        F.UNSAFE_PAUSE = old
+    gaps = [b - a for a, b in zip(times, times[1:])]
+    assert len(times) >= 2 and all(g >= 0.35 for g in gaps), (times, gaps)
+    print(f"ok  loop fix: after 'unsafe_approach' the next fight waits UNSAFE_PAUSE (gaps {[round(g, 2) for g in gaps]} s); default {old} s")
+
+
+def test_ranged_exception() -> None:
+    """원거리 놈: 같은 높이이고 가는 직선이 방패병 스폰 12 m 밖이면 붙으러 간다, 방패병 근처를 지나면 안 간다."""
+    w = World(player=ARENA)
+    w.add(9, 0x1099, 254001, (-34.0, -49.3, 33.0))                  # 방패병 스폰에서 먼 쪽 (18 m+)
+    _, may = guard_for(w, bound=False)
+    assert may(w.chars[9], w.snapshot()) is True
+    w.move(9, (-25.6, -48.7, 24.3))                                  # 134451 의 #4 자리 — 방패병 스폰 8.4 m
+    assert may(w.chars[9], w.snapshot()) is False
+    w.move(9, (-34.0, -45.0, 33.0))                                  # 다른 높이
+    assert may(w.chars[9], w.snapshot()) is False
+    print("ok  ranged exception: same floor + path clear of the shield's 12 m → approach; near shield or other floor → no")
+
+
+def test_settle_within_half_metre() -> None:
+    """던질 자리 허용 오차 0.5 m — 스틱을 짧게 쳐서 자리 0.5 m 안으로."""
+    spot = (-30.35, -49.43, 27.91)
+    w = World(player=(spot[0] + 1.2, spot[1], spot[2] + 0.4))
+    f = make_field(w)
+    orig = f.mv.pad.move
+
+    def move(x, y):
+        orig(x, y)
+        if x or y:                                                   # 한 번 칠 때 0.3 m 씩 그쪽으로
+            w.player.x += x / 0.45 * 0.3
+            w.player.z += y / 0.45 * 0.3
+    f.mv.pad.move = move
+    d = f._settle(spot)
+    assert d <= 0.5, d
+    print(f"ok  settle: 1.26 m off the throw spot → {d:.2f} m (≤ 0.5 m)")
+
+
 if __name__ == "__main__":
     test_guard_predicate()
     test_e3_no_switch_when_unsafe()
     test_e2_duel_refuses_unsafe_approach()
     test_e2_approach_stops_on_stale_goal()
     test_clear_unsafe_no_retreat()
+    test_loop_fix_pause()
+    test_ranged_exception()
+    test_settle_within_half_metre()
     print("전부 통과")

@@ -87,8 +87,8 @@ def test_low_stamina_low_hp_recovers() -> None:
 
 def test_contact_out_of_zone() -> None:
     """C5: 구역 밖 접촉 — 싸움 없음, 다가가지 않음."""
-    w = base(sp=80, player=at(dx=1.4))
-    w.add(3, 0x1013, 254000, at(dx=3.9))              # 나에게서 2.5 m, 자리에서 3.9 m (> 2.5 m 구역)
+    w = base(sp=80, player=at(dx=0.4))                 # 던질 자리 허용 오차(0.5 m) 안
+    w.add(3, 0x1013, 254000, at(dx=2.9))              # 나에게서 2.5 m, 자리에서 2.9 m (> 2.5 m 구역)
     f = make_field(w)
     st, thr = f._hold_at(SPOT, None, "#2", w.snapshot(), ())
     assert st == "contact_out_of_zone" and thr.ptr == 3, st
