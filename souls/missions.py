@@ -34,6 +34,10 @@ RAMP_ORDER = [1, 3, 4, 5, 6, 2]
 # 2026-09-25 실측: [3,1,…](3번을 위 턱 같은 높이에서 먼저 끌어내기)은 8판에 사망 2 — 3번 던질 자리가 4·5번 옆 턱이라 셋에게 둘러싸였고,
 # 가는 길에 방패병이 쫓아와 790. 아래 평지에서 시작하는 [1,3,…](10/10, 피해 중앙 282)이 낫다 — 위 턱 놈들은 한 놈씩 내려오게 두는 편이 안전
 NO_LURE = {1}            # 1번은 높은 자리라 멀리선 바위에 막히고 가까이선 이미 내려온다 (사용자 2026-09-24) — 평지로 걸어가면 스스로 온다
+# 성벽 마을 6마리 — 사용자가 직접 죽인 순서 그대로(녹화 분석, 2026-09-25): "내가 죽이는 순서대로 죽이도록 코딩해봐"
+# ("좋은 방법은 아닌데, 일단은 너무 순서를 어겨서 어쩔 수가 없어" — 일반화된 판단 대신 시범 순서를 그대로 스크립트로).
+# 화염병 놈(254012)을 일찍, 방패병 둘(255000·255002)을 맨 나중에 — 기존 "원거리 우선"·"방패병은 나중" 원칙과도 맞는다.
+BURG_TOWN = json.loads((DATA / "burg-town-map.json").read_text(encoding="utf-8"))["enemies"]
 
 
 def _route():
@@ -42,7 +46,27 @@ def _route():
     R = json.loads((DATA / "routes" / "passage-merchant.json").read_text(encoding="utf-8"))
     top = tuple(json.loads((DATA / "climb-goal.json").read_text(encoding="utf-8"))["top"])
     A = [tuple(q) for q in run["segments"][0]["points"]]
-    return top, [top] + A[67:71] + [tuple(q) for q in R["a"]], R
+    return top, _no_void([top] + A[67:71] + [tuple(q) for q in R["a"]]), R
+
+
+_VOID_NM = None
+
+
+def _no_void(pts: list) -> list:
+    """허공 위에 찍힌 녹화 점을 뺀다 — 발밑에 같은 높이 바닥은 없고 3 m 넘게 아래 바닥만 있는 점.
+    통로 4번 (-24.0,-33.8,10.6) 은 바닥이 16 m 아래였다: 녹화 때 경사로 위 낭떠러지 턱을 밟고 지나간 자리. 귀환 때 그 점으로 가다
+    낭떠러지 회피에 막혀 "통로 stuck" 이 네 판, 넘어가면 낙사 (2026-09-25). 다리처럼 내비메시가 아예 없는 점은 둔다."""
+    global _VOID_NM
+    if _VOID_NM is None:
+        import navmesh
+        _VOID_NM = navmesh.Navmesh(MAP_A)
+    out = []
+    for q in pts:
+        ys = [y for y, _f, _i in _VOID_NM.tris_at(q[0], q[2])]
+        if ys and min(abs(y - q[1]) for y in ys) > 1.0 and any(q[1] - y > 3.0 for y in ys):
+            continue
+        out.append(q)
+    return out
 
 
 class Missions:
@@ -66,6 +90,61 @@ class Missions:
         self.log(f"── 경사로: {r}")
         return r
 
+    def clear_burg_town(self) -> str:
+        """성벽 마을 6마리를 사용자가 직접 죽인 순서 그대로(BURG_TOWN) 처치.
+        **field.clear() 대신 walk_to() 를 쓴다** — 처음엔 clear() 로 했다가 실측 실패(2026-09-25, burg-loop 101100):
+        #1~3(가까움)은 됐지만 #4~6(화톳불 방 근처, 멀고 벽 너머)은 duel() 의 로컬 접근(_approach)만으로 안 닿아
+        "stuck" 4번씩 반복 — 110 s+ 제자리에서 허비하고 그 직후 죽음. 4~6은 실제 길찾기(navmesh)가 필요한 거리였다.
+        그래서 각 목표마다 먼저 walk_to() 로 그 좌표까지 실제 경로를 걸어간다(그 길에 깨어있는 놈과는 walk() 의
+        chaser 가 알아서 붙는다 — 오히려 목표 자신을 가는 길에 이미 잡는 경우도 있다), 도착한 뒤 살아 있으면 fight() 한다."""
+        nb = self.nms[MAP_B]
+        for i, e in enumerate(BURG_TOWN, 1):
+            if not self.f.alive():
+                return "died"
+            r = self.f.walk_to(tuple(e["pos"]), nb, f"#{i} 이동")
+            if r == "dead":
+                return "died"
+            if r != "arrived":
+                self.log(f"   #{i} 이동: {r} — 지금 자리에서 찾아본다")
+            c = self.f.find_at(e["npc"], e["pos"], 5.0) or self.f.find_at(e["npc"], e["pos"], 15.0)
+            if c is None:
+                self.log(f"   #{i} {e['npc']}: 안 보임 — 가는 길에 이미 잡았거나 죽음")
+                continue
+            res = self.f.fight(c.ptr, nb, f"#{i} {e['npc']}")
+            if res.result == "me_dead":
+                return "died"
+            if res.result != "killed":
+                ok = self.f.recover(f"#{i} {res.result}", nb)
+                if not ok and self.f.estus_left() <= 0:
+                    return "no_estus"
+        self.log("── 성벽 마을(순서 고정): 끝")
+        return "cleared"
+
+    def hunt_one(self, i: int) -> str:
+        """성벽 마을 화톳불에서 BURG_TOWN i 번 한 마리만 잡고 화톳불로 걸어 돌아온다 — 한 놈 상대법 시험용
+        (사용자 2026-09-25: "그 궁수만 공격하고 화톳불로 돌아오게 해봐" — 5번 = 석궁병 255002)."""
+        nb = self.nms[MAP_B]
+        e = BURG_TOWN[i - 1]
+        tag = f"#{i} {e['npc']}"
+        # 먼저 성벽 마을 화톳불에서 쉰다 — HP·에스트가 차고 그놈도 되살아나 매 판이 같은 조건 (사용자: "쉬었다가")
+        ok = self.f.rest_at(nb, SPOTS["burg-bonfire"])
+        self.log(f"── 성벽 마을 휴식: {'됨' if ok else '안 됨'}")
+        r = self.f.walk_to(tuple(e["pos"]), nb, f"{tag} 이동")
+        if r == "dead":
+            return "died"
+        c = self.f.find_at(e["npc"], e["pos"], 5.0) or self.f.find_at(e["npc"], e["pos"], 15.0)
+        if c is None:
+            self.log(f"   {tag}: 안 보임")
+            res = "not_found"
+        else:
+            d = self.f.fight(c.ptr, nb, tag)
+            res = d.result
+            if res == "me_dead":
+                return "died"
+        back = self.f.walk_to(BURG_BONFIRE_SIDE, nb, "화톳불로")
+        self.log(f"── 한 마리: {res}, 귀환 {back}")
+        return f"{res} / 귀환 {back}"
+
     def to_merchant(self) -> str:
         """상인까지. 지금 자리에서 가장 가까운 구간·점부터 이어 간다 — 통로(A) · 성벽 마을(B) · 창고 방(C).
         예전엔 A 구간만 보고 '멀다' 며 계단 꼭대기로 되돌아가 막혔다 (성벽 마을 안에서 시작, 2026-09-24)."""
@@ -74,7 +153,7 @@ class Missions:
         pb = [tuple(q) for q in R["b"]]
         pc = [tuple(q) for q in R["c"]]
         t0 = time.time()
-        s = self.mv.snap(5.0)
+        s = self.f.snap_settled(5.0)
         here = (s.player.x, s.player.y, s.player.z)
         seg, k, d = min(((name, j, math.dist(q, here)) for name, pts in (("A", route), ("B", pb), ("C", pc))
                          for j, q in enumerate(pts)), key=lambda t: t[2])
@@ -99,6 +178,23 @@ class Missions:
         if seg in ("B", "C"):
             self.f.home = pb[0]                            # 성벽 마을에선 입구 쪽으로 물러난다 (불의 제전까지는 이 내비메시로 경로가 없다 — no_path 헛돌기)
         if seg == "B":
+            # 성벽 마을 들어서면 먼저 정해진 순서(BURG_TOWN)로 6마리 정리 — 그 뒤 걷는 동안은 opportunistic 전투만
+            # (사용자 2026-09-25: "내가 죽이는 순서대로 죽이도록 코딩해봐", "순서를 반드시 지켜줘")
+            r = self.clear_burg_town()
+            if r != "cleared" and not r.startswith("left"):
+                return f"성벽 마을 순서 {r}"
+            # 6마리를 잡으러 마을 끝(#6)까지 돌아다닌 뒤다 — 들어올 때 정한 k(입구)부터 걸으면 먼 입구 점으로 곧장 가다 벽에
+            # 막혔다 (2026-09-25 네 판 연속 "성벽 마을 stuck"). 지금 자리에서 가장 가까운 점을 다시 찾아 거기까지 길찾기로 간다.
+            s = self.f.snap_settled(5.0)
+            if s is None:
+                return "성벽 마을 위치 못 읽음"
+            here = (s.player.x, s.player.y, s.player.z)
+            k = min(range(len(pb)), key=lambda j: math.dist(pb[j], here))
+            self.log(f"   마을 정리 뒤: 가장 가까운 B{k} ({math.dist(pb[k], here):.1f} m)")
+            if math.dist(pb[k], here) > 3.0:
+                r = self.f.walk_to(pb[k], nb, "길로")
+                if r != "arrived":
+                    return f"성벽 마을 길까지 {r}"
             r = self.f.walk(pb[k:], nb, "성벽 마을", tol=0.8, tight=R["small_bridge"])
             if r != "arrived":
                 return f"성벽 마을 {r}"
@@ -111,12 +207,12 @@ class Missions:
             if r != "stuck" or extra == 2:
                 break
             # 남은 상자가 계단을 막고 있었다 (2026-09-23 스크린샷) — 다음 점 쪽으로 한 번 더 굴러 깬다
-            s = self.mv.snap(5.0)
+            s = self.f.snap_settled(5.0)
             j = min(range(len(pc)), key=lambda i: math.dist(pc[i], (s.player.x, s.player.y, s.player.z)))
             nxt = pc[min(j + 1, len(pc) - 1)]
             self.mv.roll_toward(s, nxt[0], nxt[2])
             rest = pc[j:]
-        s = self.mv.snap(5.0)
+        s = self.f.snap_settled(5.0)
         d = math.dist((s.player.x, s.player.y, s.player.z), tuple(R["stand"])) if s else None
         res = "도착" if r == "arrived" and d is not None and d < 2.5 else f"창고 방 {r} (상인까지 {d if d is None else round(d, 1)} m)"
         self.log(f"── 상인: {res} — {time.time() - t0:.0f} s")
@@ -131,7 +227,7 @@ class Missions:
         pc = list(reversed([tuple(q) for q in R["c"]]))
         route_r = list(reversed(route))
         t0 = time.time()
-        s = self.mv.snap(5.0)
+        s = self.f.snap_settled(5.0)
         here = (s.player.x, s.player.y, s.player.z)
         pts = {"C": pc, "B": pb, "A": route_r}
         seg, k, d = min(((name, j, math.dist(q, here)) for name, ps in pts.items()
@@ -167,7 +263,7 @@ class Missions:
         def past(sn) -> bool:
             return sn.player.y < frm[1] - 0.5 or math.dist((sn.player.x, sn.player.z), (to[0], to[2])) < 1.5
         for _ in range(tries):
-            s = self.mv.snap(5.0)
+            s = self.f.snap_settled(5.0)
             if s is None or s.cam_yaw is None:
                 return False
             if past(s):
@@ -175,9 +271,9 @@ class Missions:
             nav.goto(self.mv.tm, self.mv.pad, tuple(frm), tolerance=0.3, timeout=5, log=lambda *a: None)
             self.mv.pad.neutral()
             time.sleep(0.15)
-            s = self.mv.snap(5.0)
+            s = self.f.snap_settled(5.0)
             self.mv.roll_toward(s, to[0], to[2])
-            s = self.mv.snap(5.0)
+            s = self.f.snap_settled(5.0)
             if s and past(s):
                 return True
         return False
@@ -198,7 +294,7 @@ class Missions:
         s = self.mv.snap(15.0)
         if s and not self.f.safe(s):
             self.f.shake_off("화톳불 앞 적")               # 적이 가까우면 불도 못 붙이고 앉지도 못한다
-        s = self.mv.snap(5.0)
+        s = self.f.snap_settled(5.0)
         if s and s.cam_yaw is not None:                     # 화톳불 쪽을 본다
             self.mv.pad.move(*self.mv.stick_to(s, BURG_BONFIRE[0], BURG_BONFIRE[2], 0.45))
             time.sleep(0.18)

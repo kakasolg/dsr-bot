@@ -70,6 +70,9 @@ EVENT_AREAS = {"000": 0, "100": 1, "101": 2, "102": 3, "110": 4, "120": 5, "121"
 OFF_HP, OFF_MAXHP, OFF_SP, OFF_MAXSP = 0x3E8, 0x3EC, 0x3F8, 0x3FC
 OFF_MAPDATA, OFF_MODEL, OFF_NPC = 0x68, 0x88, 0xC8
 OFF_LASTBONFIRE = 0xB34
+BONFIRE_WARP_AOB = "48 89 5C 24 08 57 48 83 EC 20 48 8B D9 8B FA 48 8B 49 08 48 85 C9 0F 84 ? ? ? ? E8 ? ? ? ? 48 8B 4B 08"  # DSR-Gadget DSROffsets
+QUIT_GONE_S = 0.5          # 퀵 종료: 캐릭터가 이만큼 연달아 안 보여야 타이틀로 나간 것
+QUIT_REQ = 0x19            # ChrClassWarp — 1 을 쓰면 타이틀 화면으로 나간다 (퀵 종료, warp_re.py 로 찾음)
 CHR_LIST_OFFSETS = (0xA8, 0xB0, 0xB8, 0xC0, 0xC8)   # WorldChrMan 안의 구역별 캐릭터 목록 (실측: 불의 제전은 0xB0)
 OFF_ANIM2 = 0xA44
 OFF_HANDLE, OFF_LOCK_TARGET = 0x8, 0xEF0
@@ -79,6 +82,10 @@ FLAG_ACTIVE = 0x8000    # 실측: 월드에 실제로 있는(애니가 도는) �
 # 실측(불의 제전~묘지): 이 비트가 켜진 놈은 보이지도 맞지도 않는다 — c5330 HP 11120 (0x280c400), c3510 (0x2808800),
 # 화톳불 옆 c2750 HP 32 (0x2808400). 진짜 적은 0x808400/0x808800. 봇이 c5330 을 1 m 앞에 두고 8 s 동안 헛스윙했다.
 FLAG_GHOST = 0x2000000
+PHANTOM_NPC = {254013, 254014}   # 성벽 마을 화톳불 방 옆 HP 150 두 놈 — 몸 없음 (사용자 화면 확인 "아무것도 없는데 왜 휘두르지").
+                                 # 겹침·헛침으로 잡기 전에 봇이 구멍 옆에서 15 s 씩 치다 세 번 떨어졌다 (2026-09-25) — 번호로 바로 뺀다
+PHANTOM_S = 1.0
+PHANTOM_R = 0.45           # 이보다 가까이 겹친 적 = 몸 없음 (한 번 걸리면 그 ptr 은 프로세스 동안 적 아님)
 FRIENDLY = {279070, 100000}   # 낙담한 전사, 사람 NPC(c1000) — 필요하면 data/dsr_friendly.json 으로
 
 
@@ -89,6 +96,8 @@ class DSRTelemetry:
         self.base = self.mod.lpBaseOfDll
         self.names = names or {}
         self.static: dict[str, int] = {}
+        self.phantom: set[int] = set()   # 몸이 없는 적 (ptr) — snapshot 이 찾아 team 0 으로 돌린다
+        self._overlap: dict[int, float] = {}   # ptr → 겹치기 시작한 시각
         for k, (pat, ao, il) in AOBS.items():
             a = pymem.pattern.pattern_scan_module(self.pm.process_handle, self.mod, self._aob(pat))
             if not a:
@@ -236,6 +245,17 @@ class DSRTelemetry:
             if not c:
                 continue
             c.dist = math.dist((px, py, pz), (c.x, c.y, c.z))
+            # 몸이 겹치면 그 적은 월드에 없다 — 실제 적은 충돌 캡슐 때문에 이만큼 못 붙는다. 플래그(0x808400)는
+            # 살아 있는 놈과 같아서 못 가른다: 성벽 마을 254014 에 0.19 m 까지 붙어 약공 18연속 0 피해 (2026-09-25)
+            # 백스탭·반격은 순간 겹친다 — PHANTOM_S 넘게 계속 겹칠 때만
+            if c.team == 6 and c.hp > 0 and math.hypot(c.x - px, c.z - pz) < PHANTOM_R and abs(c.y - py) < 0.6:
+                t0 = self._overlap.setdefault(p, time.time())
+                if time.time() - t0 >= PHANTOM_S:
+                    self.phantom.add(p)
+            else:
+                self._overlap.pop(p, None)
+            if p in self.phantom or c.npc_param in PHANTOM_NPC:
+                c.team = 0
             if c.dist <= within:
                 chars.append(c)
         chars.sort(key=lambda c: c.dist)
@@ -300,6 +320,24 @@ class DSRTelemetry:
             return self.pm.read_uchar(self.base + OFF_MENU_FLAG) == 0
         except pymem.exception.PymemError:
             return None
+
+    def weapon_durability(self, weapon_id: int | None = None) -> Optional[int]:
+        """오른손 무기(또는 weapon_id)의 내구도. 인벤토리 항목 (분류 0, ID, 개수, 핸들, ?, **내구도**, ?) 의 +0x14.
+        실측 2026-09-25: 클레이모어 188 → 수리 분말 뒤 200 (클레이모어 최대 200)."""
+        wid = weapon_id or self.right_weapon()
+        cb = self.q(self.static["ChrClassBase"])
+        pgd = self.q(cb + 0x10) if cb else None
+        if not pgd or not wid:
+            return None
+        try:
+            raw = self.pm.read_bytes(pgd, 0x8000)
+        except pymem.exception.PymemError:
+            return None
+        for o in range(0x600, 0x8000 - 0x1C, 4):
+            cat, iid = struct.unpack_from("<Ii", raw, o)
+            if cat == 0 and iid == wid:
+                return struct.unpack_from("<i", raw, o + 0x14)[0]
+        return None
 
     def quick_items(self) -> list[int]:
         """소모품 5칸의 아이템 ID (빈 칸은 -1). 에스트를 빼고 다크사인을 넣는 식으로 사용자가 바꾼다."""
@@ -444,7 +482,114 @@ class DSRTelemetry:
                 break
         self.pm.write_uchar(a, 0)
 
+    def bonfire_warp(self, bonfire_id: int, timeout: float = 40.0, log=print, unlit_ok: bool = False) -> bool:
+        """**구역을 건너는 순간이동** — 게임의 화톳불 워프 함수를 직접 부른다 (화톳불 메뉴 워프와 같은 길, 로딩 화면 포함).
+
+        pos_warp 는 좌표만 바꿔 먼 구역에선 땅을 뚫고 떨어진다 (2026-09-25 소울 3840 잃음). 이건 게임이 도착 구역을
+        불러온다. 방식은 DSR-Gadget(JKAnderson) DSRHook.BonfireWarp 그대로: 마지막 화톳불을 바꾸고
+        func(*ChrClassBase, 1) 을 부르는 기계어를 게임 안에 써서 스레드로 실행. 소울·인간성은 안 잃는다."""
+        import bonfires
+        if not unlit_ok and bonfire_id not in bonfires.load():
+            log(f"   화톳불 워프 {bonfire_id}: 불 붙인 목록(bonfires.py)에 없음 — 안 감 (unlit_ok=True 로 강제)")
+            return False
+        if not self.set_last_bonfire(bonfire_id):
+            return False
+        fn = pymem.pattern.pattern_scan_module(self.pm.process_handle, self.mod, self._aob(BONFIRE_WARP_AOB))
+        if not fn:
+            log("   화톳불 워프: 함수 AOB 못 찾음 — 게임 버전?")
+            return False
+        # movabs rcx,<ChrClassBase>; mov rcx,[rcx]; mov edx,1; sub rsp,0x38; movabs r14,<fn>; call r14; add rsp,0x38; ret
+        code = (b"\x48\xB9" + struct.pack("<Q", self.static["ChrClassBase"]) + b"\x48\x8B\x09" + b"\xBA\x01\x00\x00\x00"
+                + b"\x48\x83\xEC\x38" + b"\x49\xBE" + struct.pack("<Q", fn) + b"\x41\xFF\xD6" + b"\x48\x83\xC4\x38" + b"\xC3")
+        mem = self.pm.allocate(len(code))
+        try:
+            self.pm.write_bytes(mem, code, len(code))
+            self.pm.start_thread(mem)
+        finally:
+            self.pm.free(mem)
+        t0, gone = time.time(), False
+        while time.time() - t0 < timeout:
+            s = self.snapshot(within=1.0)
+            if s is None:
+                gone = True
+            elif gone:
+                time.sleep(1.0)                          # 막 선 직후 — 좌표가 자리 잡게
+                s = self.snapshot(within=1.0)
+                if s:
+                    log(f"   화톳불 워프 {bonfire_id}: {time.time() - t0:.1f} s → ({s.player.x:.1f},{s.player.y:.1f},{s.player.z:.1f})")
+                    return True
+            time.sleep(0.05)
+        log(f"   화톳불 워프 {bonfire_id}: {timeout:.0f} s 안에 안 끝남 (로딩 시작={gone})")
+        return False
+
+    def quit_to_title(self, timeout: float = 10.0) -> bool:
+        """**메뉴를 안 거치는 퀵 종료** — ChrClassWarp+0x19 에 1 을 쓰면 게임이 곧장 타이틀 화면으로 나간다.
+
+        역공학(2026-09-25, warp_re.py): 처음엔 다크사인 워프 요청으로 잘못 읽었다 — 사용자가 눌러 보니 타이틀 첫 화면
+        ("그걸 누르니 메뉴 첫 화면이 나와. 좋은데, 필요했었어"). 0.6 s 안에 로딩이 시작된다.
+        quitout.py 는 메뉴를 패드로 눌러 2~2.8 s 가 걸리고 떨어지는 중엔 메뉴가 안 열렸다 — 이건 메뉴가 필요 없다.
+        아직 모름: 떨어지는 중·맞는 중에도 되나, 타이틀에서 이어하기까지 자동으로 누를 수 있나 (quitout.py 의 뒷부분)."""
+        w = self.q(self.static["ChrClassWarp"])
+        if not w:
+            return False
+        self.pm.write_uchar(w + QUIT_REQ, 1)
+        # 한 프레임 안 보인 것으로 "나갔다" 하면 안 된다 — 타이틀로 넘어가는 도중 잠깐 사라졌다 다시 보여, 이어하기(quitout.reload)가
+        # "이미 월드 안"(0.0 s)으로 끝나 게임이 타이틀에 멈췄다. 봇은 캐릭터가 없으니 죽었다고 판을 끝냈다 (2026-09-25 두 판)
+        t0, gone = time.time(), None
+        while time.time() - t0 < timeout:
+            if self.snapshot(within=1.0) is None:
+                gone = gone or time.time()
+                if time.time() - gone >= QUIT_GONE_S:
+                    return True
+            else:
+                gone = None
+            time.sleep(0.02)
+        return False
+
+    def safe_warp(self, x: float, y: float, z: float, angle: float = 0.0, hold_s: float = 8.0, log=print) -> bool:
+        """**순간이동은 이걸로** — pos_warp 는 좌표만 바꿔, 충돌이 안 올라온 먼 구역이면 땅을 뚫고 떨어진다.
+
+        2026-09-25: 성벽 마을 방 → 불의 제전 화톳불(137 m)로 pos_warp → y −138 까지 추락사, 소울 3840 잃음.
+        1) 그동안 PlayerNoDead 를 켠다 (떨어져도 HP 1 에서 안 죽는다) — 끝나면 원래 값으로.
+        2) 목표 좌표를 계속 다시 써서 붙잡아 두고, 0.3 s 놓아 봐서 1 m 넘게 안 떨어지면 바닥이 올라온 것 → 성공.
+        3) hold_s 안에 바닥이 안 서면 출발 자리로 같은 방법으로 되돌아가고 False."""
+        s = self.snapshot(within=1.0)
+        if not s:
+            return False
+        home = (s.player.x, s.player.y, s.player.z, s.player.heading or 0.0)
+        nodead = self.get_dbg(self.DBG_PLAYER_NO_DEAD)
+        self.set_dbg(self.DBG_PLAYER_NO_DEAD, True)
+        landed = False
+        try:
+            if self._hold_warp(x, y, z, angle, hold_s):
+                landed = True
+                return True
+            log(f"   순간이동: ({x:.1f},{y:.1f},{z:.1f}) 바닥이 {hold_s:.0f} s 안에 안 섬 — 출발 자리로 되돌림")
+            landed = self._hold_warp(*home, hold_s)
+            if not landed:
+                log("   순간이동: 되돌아가기도 실패 — 사람이 봐야 함 (PlayerNoDead 는 켜 둔다)")
+            return False
+        finally:
+            if landed:                                # 발이 땅에 있을 때만 원래대로 — 떨어지는 중에 끄면 죽는다
+                self.set_dbg(self.DBG_PLAYER_NO_DEAD, bool(nodead))
+
+    def _hold_warp(self, x, y, z, angle, hold_s) -> bool:
+        t0 = time.time()
+        while time.time() - t0 < hold_s:
+            for _ in range(10):                       # 붙잡기 0.5 s — 그동안 구역이 올라온다
+                self.pos_warp(x, y, z, angle)
+                time.sleep(0.05)
+            time.sleep(0.3)                           # 놓아 보기
+            s = self.snapshot(within=1.0)
+            if s and math.hypot(s.player.x - x, s.player.z - z) < 1.5 and y - s.player.y < 1.0:
+                time.sleep(0.5)                       # 한 번 더 — 막 올라온 바닥이 꺼지는지
+                s = self.snapshot(within=1.0)
+                if s and y - s.player.y < 1.0:
+                    return True
+        return False
+
     def pos_warp(self, x: float, y: float, z: float, angle: float = 0.0) -> bool:
+        """좌표만 바꾸는 낮은 층 — 같은 구역 안 짧은 이동(지형 스캔)용. 먼 이동은 safe_warp."""
         pp = self.player_ptr()
         mapd = self.q(pp + OFF_MAPDATA) if pp else None
         if not mapd:

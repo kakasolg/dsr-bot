@@ -60,6 +60,9 @@ def log(msg: str) -> None:
 
 
 # ── 한 판 ──────────────────────────────────────────────
+WARP_NEAR_M = 20.0    # rest 의 순간이동 폴백은 이 거리 안에서만
+
+
 def rest(tm, pad, nm, bonfire, mode: str = "walk") -> bool:
     """화톳불까지 가서 앉는다 — 적 리스폰·HP·성배 충전. 앉는 데 2.5 s 걸린다(anim2 -1 → 7710 → 7711).
     돌아갈 땐 걷는다 — 사용자: "최소한 돌아갈 땐 천천히. 뛰다가 구석에 박힌다" (예전: 달리기·도착 판정 2 m).
@@ -100,8 +103,12 @@ def rest(tm, pad, nm, bonfire, mode: str = "walk") -> bool:
                 pad.move(0.0, 0.0)
                 time.sleep(0.4)
         else:
-            tm.pos_warp(*bonfire["stand"], bonfire["heading"])
-            time.sleep(0.9)
+            s = tm.snapshot(within=1.0)
+            if s and math.dist((s.player.x, s.player.y, s.player.z), stand) > WARP_NEAR_M:
+                # 좌표 순간이동은 같은 구역 안에서만 — 142 m 떨어진 성벽 마을에서 불의 제전으로 하려다 땅을 뚫고 떨어졌다 (2026-09-25)
+                print(f"   화톳불에서 {WARP_NEAR_M:.0f} m 넘게 떨어짐 — 순간이동 안 함 (구역 간은 bonfire_warp)", flush=True)
+                break
+            tm.safe_warp(*bonfire["stand"], bonfire["heading"])
         control.focus_game()                # 창이 포커스를 잃으면 패드 입력을 무시한다 (옆에서 띄운 기록 프로세스가 포커스를 가져간 적 있음)
         time.sleep(0.3)
         press(vgamepad.XUSB_BUTTON.XUSB_GAMEPAD_A)   # DSR 상호작용 (pad.interact 와 같은 버튼)
@@ -114,6 +121,11 @@ def rest(tm, pad, nm, bonfire, mode: str = "walk") -> bool:
         print(f"   화톳불 앉기 {attempt + 1}번째 실패{' — 다음은 워프' if attempt == 1 else ''}", flush=True)
     if not seated():
         return False
+    try:                                    # 쉰 화톳불 = 불 붙은 화톳불 — 워프할 수 있는 곳 목록에 더한다
+        import bonfires
+        bonfires.note(tm)
+    except Exception:
+        pass
     time.sleep(1.0)
     for _ in range(6):                      # 일어나기 = 메뉴 닫기
         if not seated():

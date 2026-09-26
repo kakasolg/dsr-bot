@@ -32,6 +32,10 @@ class Escape:
     LETHAL_DROP = 8.0         # 15 m 로 뒀더니 경사로 옆(약 10~12 m)에서 HP 413 인 채 떨어져 죽었다 (2026-09-24)
     FALL_V = 2.5              # 0.4 s 에 이만큼 내려가면 떨어지는 중 — 애니 번호(1550)가 안 뜨는 추락(가드가 깨져 밀려남)도 잡는다
     FALL_COOLDOWN = 4.0       # 예전 30 s: 가장자리에서 다시 서자마자 또 떨어지는 걸 못 막았다
+    LEDGE_DROP = 3.0          # 발밑 바닥이 이보다 아래인데 아직 안 떨어지는 중 = 낭떠러지 턱 위
+    LEDGE_SLIDE = 0.6         # (0.4~0.7 을 추락 2번·사람 녹화로 맞춤: 0.6·0.5 가 추락 1.1~1.2 s 전, 오경보 1) 마지막 안전 자리보다 이만큼 내려왔으면 미끄러지는 중 (다리 위는 높이가 그대로라 안 걸린다)
+    NUDGE_COOLDOWN = 0.6
+    LEDGE_CREEP = 0.5         # 1 s 에 이보다 덜 움직이며 내려가면 미끄러짐 (계단은 더 빨리 움직인다)
     CROWD_COOLDOWN = 60.0     # 같은 자리에서 반복하지 않게
     QUIT_S = 2.8
 
@@ -41,6 +45,10 @@ class Escape:
         self.gen = 0
         self.last_fall = self.last_crowd = 0.0
         self.last_fall_pos = None     # 낙사 탈출 직후 위층이 가장자리에서 물러나게
+        self.safe_pos = None          # 마지막으로 발밑에 바로 바닥이 있던 자리 (_ledge)
+        self.last_nudge = 0.0
+        self.nudges = 0
+        self._pos = collections.deque(maxlen=120)
         self._lock = threading.Lock()
         self._stop = False
         self._hp = collections.deque(maxlen=60)
@@ -78,6 +86,8 @@ class Escape:
             why = None
             ys = [y for t, y in self._y if now - t <= 0.4]
             falling = p.anim in FALL_ANIMS or (len(ys) >= 3 and max(ys) - p.y > self.FALL_V)
+            if not falling and now - self.last_nudge > self.NUDGE_COOLDOWN:
+                self._ledge(s, p, now)
             if falling and now - self.last_fall > self.FALL_COOLDOWN:
                 drop = self.floor_drop(p)
                 if drop is None:
@@ -97,6 +107,67 @@ class Escape:
                 self.fire(why, kind, tm, p)
             time.sleep(0.02)
 
+    def _back_to_mesh(self, secs: float = 2.5) -> str | None:
+        """낙사 퀵 종료 뒤: 게임은 떨어지기 직전 자리(턱 위)에서 다시 시작한다 — 그대로 두면 또 미끄러져
+        떨어짐 → 종료 → 턱 위 재시작을 세 번 되풀이했다 (2026-09-25 183328). 다른 층이 움직이기 전에(패드를 얼린 채)
+        가장 가까운 걸을 수 있는 바닥으로 걸어간다."""
+        import control
+        import nav
+        tm = env.make_telemetry({})
+        t0 = time.time()
+        goal = None
+        while time.time() - t0 < secs:
+            s = tm.snapshot(within=2.0)
+            if s is None or s.cam_yaw is None:
+                time.sleep(0.05)
+                continue
+            p = s.player
+            if goal is None:
+                cands = [g for nm in self.nms for g in [nm.nearest_walkable(p.x, p.y, p.z, r=8.0, dy=1.5)] if g]
+                if not cands:
+                    return "바닥 못 찾음"
+                goal = min(cands, key=lambda g: (g[0] - p.x) ** 2 + (g[2] - p.z) ** 2)
+            d = ((goal[0] - p.x) ** 2 + (goal[2] - p.z) ** 2) ** 0.5
+            if d < 0.5:
+                self.pad.move(0.0, 0.0)
+                return f"{d:.1f} m"
+            st = control.world_to_stick(goal[0] - p.x, goal[2] - p.z, s.cam_yaw, nav.YAW_OFFSET, nav.FLIP_X)
+            self.pad.move(st[0] * 0.6, st[1] * 0.6)          # fire() 안 — 패드를 얼린 이 스레드만 입력이 먹는다
+            time.sleep(0.05)
+        self.pad.move(0.0, 0.0)
+        return "시간 초과"
+
+    def _ledge(self, s, p, now: float) -> None:
+        """낭떠러지 턱 위에서 미끄러지면 떨어지기 전에 마지막 안전 자리로 한 걸음 되돌린다.
+        블랙박스(2026-09-25 152400): 봇이 경사로 위에서 메시 밖으로 걸어 나가 2.6 s 동안 턱 위에서 y −39.3 → −40.2 로
+        미끄러진 뒤 떨어져 죽었다 — 낙사 감시는 떨어지기 시작한 뒤에야 퀵 종료를 해서 늦었다."""
+        self._pos.append((now, p.x, p.z))
+        drop = self.floor_drop(p)
+        if drop is not None and drop < 0.6:
+            self.safe_pos = (p.x, p.y, p.z)
+            return
+        # 발밑에 걸을 바닥이 없다(None — 그 턱 밑은 비활성 판뿐이었다) 또는 3 m 넘게 아래.
+        # 계단을 내려갈 때도 메시가 비고 y 가 준다 — 그땐 옆으로 빠르게 움직인다. 턱 위 미끄러짐은 1 s 에 0.8 m 도 안 움직였다
+        sp = self.safe_pos
+        if sp is None or s.cam_yaw is None or (drop is not None and drop < self.LEDGE_DROP):
+            return
+        if sp[1] - p.y < self.LEDGE_SLIDE or ((p.x - sp[0]) ** 2 + (p.z - sp[2]) ** 2) ** 0.5 > 4.0:
+            return
+        old = [q for q in self._pos if now - q[0] <= 1.0]
+        if len(old) < 3 or ((p.x - old[0][1]) ** 2 + (p.z - old[0][2]) ** 2) ** 0.5 > self.LEDGE_CREEP:
+            return
+        import control
+        import nav
+        st = control.world_to_stick(sp[0] - p.x, sp[2] - p.z, s.cam_yaw, nav.YAW_OFFSET, nav.FLIP_X)
+        self.pad.move(st[0], st[1])
+        time.sleep(0.35)
+        self.pad.move(0.0, 0.0)
+        self.last_nudge = time.time()
+        self.nudges += 1
+        self.log(f"   ⤺ 턱 위 미끄러짐 (바닥 {'없음' if drop is None else f'{drop:.0f} m 아래'}, {sp[1] - p.y:.1f} m 내려옴) — 안전 자리로 되돌림")
+        if self.events:
+            self.events("ledge", drop=None if drop is None else round(drop, 1), slide=round(sp[1] - p.y, 2), pos=[round(p.x, 2), round(p.y, 2), round(p.z, 2)])
+
     def fire(self, why: str, kind: str, tm=None, p=None) -> dict:
         """메뉴로 나갔다 온다. 위층이 적을 떼어낼 때도 이걸 부른다 (kind='shake'). → 결과"""
         with self._lock:
@@ -110,15 +181,23 @@ class Escape:
             self.pad.freeze()
             res: dict = {"why": why, "kind": kind, "pos0": pos0}
             try:
-                q = quitout.quit_out(tm, self.pad, gap=quitout.MENU_GAP, settle=0.03, ready_wait=0.05)
+                # 메뉴 없이 곧장 타이틀로 (ChrClassWarp+0x19, 0.58 s) — 메뉴 방식은 2~2.8 s 이고 떨어지는 중엔 메뉴가 안 열렸다.
+                # 안 되면 예전 메뉴 방식
+                t_q = time.time()
+                q = time.time() - t_q if tm.quit_to_title(timeout=2.0) else None
+                res["how"] = "byte" if q is not None else "menu"
+                if q is None:
+                    q = quitout.quit_out(tm, self.pad, gap=quitout.MENU_GAP, settle=0.03, ready_wait=0.05)
+                    res["quit_steps"] = dict(quitout.LAST_STEPS)
                 res["quit_s"] = None if q is None else round(q, 2)
-                res["quit_steps"] = dict(quitout.LAST_STEPS)
                 if q is None:
                     quitout.close_menu(tm, self.pad)
                 else:
                     r = quitout.reload(self.pad)
                     res["reload_s"] = None if r is None else round(r, 1)
                     time.sleep(1.0)
+                    if kind == "fall":
+                        res["back"] = self._back_to_mesh()
             finally:
                 self.pad.neutral()
                 self.pad.unfreeze()

@@ -39,6 +39,7 @@ class Feed:
         self.frames = 0
         self.read_ms = 0.0                      # 지수 이동 평균
         self.served = {"fresh": 0, "waited": 0, "direct": 0, "none": 0}
+        self.listeners: list = []               # 프레임마다 불림 (피드 스레드) — blackbox.py. 가볍게, 예외는 삼킨다
 
     def start(self, first: float = 2.0) -> "Feed":
         self._th.start()
@@ -65,6 +66,11 @@ class Feed:
                 self.latest = s
                 self.frames += 1
                 self._cv.notify_all()
+            for fn in list(self.listeners):
+                try:
+                    fn(s)
+                except Exception:
+                    pass
             rest = MIN_PERIOD - dt
             if rest > 0:
                 time.sleep(rest)

@@ -24,6 +24,8 @@ FOLLOW_R = 4.5           # 길을 걷다 이 안(수평)에 깨어 있는 놈이
 FOLLOW_DY = 2.5          # 계단에서 따라오는 놈 — 높이차 이만큼까지
 SAFE_R = 6.0             # 에스트: 이 안에 깨어 있는 적이 없고
 SAFE_ATTACK_R = 8.0      #          이 안에 휘두르는 놈이 없을 때
+RESYNC_BACK, RESYNC_AHEAD = 3, 15   # 걷다 싸운 뒤 경로점을 다시 고를 범위 (field.walk)
+REPAIR_FRAC = 0.4        # 무기 내구도가 최대의 이만큼 아래면 수리 분말 (field.repair)
 RANGED_R = 25.0          #          그리고 이 안에 깨어 움직이는 '던지는 놈'(foes.ranged)이 없을 때
 BONFIRE_NO_A = 6.0
 FIGHT_HEAL = 0.5         # 싸우는 중: HP 가 이 아래면 틈(duel.opening)에 마신다
@@ -48,6 +50,7 @@ KNIFE_LOW = 5            # 이 아래면 경고 — 상인에게 사러 가는 �
 class Field:
     def __init__(self, mv: M.Moves, weapon, escape, bonfires: list, log=print, events=None, style="guard"):
         self.mv, self.w, self.esc, self.log = mv, weapon, escape, log
+        self._detour = False                               # walk 의 "돌아서" 가 되부르지 않게
         self.style = style_.of(style)                      # souls/style.py — 각 층은 이 객체를 읽기만 한다
         self.bonfires = [tuple(b) for b in bonfires]      # 핏자국 줍기(A) 금지 구역
         self.home = self.bonfires[0] if self.bonfires else None   # 마지막으로 쉰 화톳불 (물러날 곳, 다크사인 도착 확인)
@@ -62,8 +65,34 @@ class Field:
         self.reflex.events = self.events
 
     # ── 상태 ─────────────────────────────────────────────────
+    def snap_settled(self, within: float = 5.0):
+        """퀵 종료(로딩) 중이면 끝날 때까지 기다렸다 스냅샷 — 위치를 읽는 곳은 이걸로. 로딩 중 None 을 그대로 읽다
+        마을 정리 직후 낙사 퀵 종료와 겹쳐 AttributeError 로 판이 멈췄다 (2026-09-25 195213)."""
+        t0 = time.time()
+        while time.time() - t0 < 45.0:
+            if not self.esc.escaping:
+                s = self.mv.snap(within)
+                if s is not None:
+                    return s
+            time.sleep(0.2)
+        return None
+
+    def estus_left(self) -> int:
+        """에스트 개수 — 퀵 종료(로딩) 중엔 0 으로 읽힌다. 그걸 믿고 한 번도 안 마신 판을 "no_estus" 로 끝냈다
+        (2026-09-25 202220: 경사로 둘러싸임 퀵 종료 직후). 끝날 때까지 기다렸다 읽는다"""
+        self.snap_settled(5.0)
+        return self.mv.estus_left()
+
     def alive(self) -> bool:
+        # 퀵 종료 중(로딩)엔 캐릭터가 안 보인다 — 그걸 죽음으로 읽어 HP 343 인 판을 "died" 로 끝냈다 (2026-09-25 190651:
+        # 메뉴 없는 퀵 종료는 0.6 s 만에 로딩에 들어가 이 틈이 드러났다). 끝날 때까지 기다린 뒤 본다
+        t0 = time.time()
+        while self.esc.escaping and time.time() - t0 < 40.0:
+            time.sleep(0.2)
         s = self.mv.snap(5.0)
+        if s is None:                                       # 로딩이 막 끝났거나 아직 — 잠깐 더
+            time.sleep(1.5)
+            s = self.mv.snap(5.0)
         return bool(s and s.player.hp and s.player.hp > 0)
 
     def wait_respawn(self, timeout: float = 45.0) -> bool:
@@ -94,11 +123,12 @@ class Field:
 
     # ── 회복 ─────────────────────────────────────────────────
     def heal(self, frac: float = 0.7, sips: int = 3) -> None:
+        self.repair()
         for _ in range(sips):
             s = self.mv.snap(15.0)
             if not s or s.player.hp >= s.player.max_hp * frac:
                 return
-            if self.mv.estus_left() <= 0:
+            if self.estus_left() <= 0:
                 self.log("      에스트 없음")
                 return
             if not self.safe(s):
@@ -109,6 +139,20 @@ class Field:
             self.events("estus", **r)
             if not r["ok"]:
                 return
+
+    def repair(self, frac: float = REPAIR_FRAC) -> None:
+        """무기 내구도가 최대의 frac 아래면 수리 분말 — 싸움 사이 안전할 때만 (heal 과 같은 자리).
+        클레이모어가 한 세트 안에 망가졌다 (사용자 2026-09-25: "유난히 약한 무기가 있어")."""
+        mx = self.w.max_dur
+        d = self.mv.tm.weapon_durability() if mx else None
+        if d is None or d >= mx * frac:
+            return
+        s = self.mv.snap(15.0)
+        if not s or not self.safe(s):
+            return
+        r = self.mv.repair(self.safe)
+        self.log(f"      수리: 내구도 {d}/{mx} → {r}")
+        self.events("repair", **r)
 
     def care(self) -> "Care":
         return Care(self)
@@ -155,7 +199,7 @@ class Field:
         return bool(s and s.player.hp >= s.player.max_hp * 0.6)
 
     # ── 싸움 ─────────────────────────────────────────────────
-    def fight(self, ptr, nm, tag: str, arena=None, desperate: bool = False, limit: float = 45.0) -> D.DuelResult:
+    def fight(self, ptr, nm, tag: str, arena=None, desperate: bool = False, limit: float = 45.0, wait_far: bool = False) -> D.DuelResult:
         g0 = self.esc.gen
         e = self.mv.estus_id()
         if e is not None and self.mv.tm.selected_item() != e:
@@ -174,7 +218,7 @@ class Field:
             self.log(f"   잡기: grip {self.mv.tm.grip()} (원함 {want})")
         r = D.duel(self.mv, self.w, ptr, nm, log=self.log, cancel=lambda: self.esc.escaping or self.esc.gen != g0,
                    care=Care(self), reflex=self.reflex, arena=arena, low_hp=0.0 if desperate else 0.25, style=self.style,
-                   limit=limit)
+                   limit=limit, wait_far=wait_far)
         self.log(f"   {tag}{' (끝까지)' if desperate else ''}: {r.line()}")
         self.events("duel", tag=tag, npc=r.npc, result=r.result, secs=round(r.secs, 1), dealt=r.dealt, taken=r.taken)
         if r.result == "killed":
@@ -308,13 +352,15 @@ class Field:
             if coming:
                 c = min(coming, key=lambda x: M.horiz(s.player, x))
                 tried[c.ptr] = tried.get(c.ptr, 0) + 1
+                # 아직 먼 놈에게 걸어가면 그 사이 다른 깨어있는 놈까지 붙어서 혼자 올 걸 여럿이 동시에 상대하게 된다
+                # (사용자 2026-09-25: "기다리면 올텐데 왜 뛰쳐 올라가 기회를 놓쳤잖아") — 닿는 거리 밖이면 기다린다
                 r = self.fight(c.ptr, nm, f"오는 놈 {c.npc_param}" + (f" ({tried[c.ptr]}번째)" if tried[c.ptr] > 1 else ""),
-                               arena=arena, desperate=desperate, limit=COMING_LIMIT)
+                               arena=arena, desperate=desperate, limit=COMING_LIMIT, wait_far=True)
                 if r.result == "me_dead":
                     return "died"
                 if r.result != "killed":
                     ok = self.recover(f"오는 놈 {r.result}", nm)
-                    if not ok and self.mv.estus_left() <= 0:
+                    if not ok and self.estus_left() <= 0:
                         return "no_estus"
                     desperate = not ok
                     if r.result == "timeout" or tried[c.ptr] >= tries:
@@ -353,7 +399,7 @@ class Field:
             if not self.alive():
                 return "died"
             ok = self.recover(f"#{i} {r.result}", nm)
-            if not ok and self.mv.estus_left() <= 0:
+            if not ok and self.estus_left() <= 0:
                 return "no_estus"
             desperate = not ok                             # 물러나지도 마시지도 못했으면 다음엔 끝까지
             if tried[i] >= tries + 1:
@@ -404,7 +450,7 @@ class Field:
                 if not self.alive():
                     return "died"
                 ok = self.recover(f"#{i} {r.result}", nm)
-                if not ok and self.mv.estus_left() <= 0:
+                if not ok and self.estus_left() <= 0:
                     return "no_estus"
                 # 물러나지도 마시지도 못했다 — 다음엔 HP 가 낮아도 빠지지 않고 끝까지 (0.1 s 마다 '낮음→못 물러남→못 마심' 을 되풀이하며
                 # 방패도 안 들고 서서 맞아 죽었다, 2026-09-24)
@@ -441,7 +487,7 @@ class Field:
                 if s is None:
                     time.sleep(0.1)
                     continue
-                if s.player.hp < s.player.max_hp * WALK_HEAL and self.safe(s) and self.mv.estus_left() > 0:
+                if s.player.hp < s.player.max_hp * WALK_HEAL and self.safe(s) and self.estus_left() > 0:
                     mover.stop()                           # 걷다 맞은 피해(화염병 등) — 다음 싸움까지 미루지 않는다
                     self.heal(0.7)
                 f_q = nm.floor_at(q[0], q[2], q[1]) if len(q) > 2 else None
@@ -481,20 +527,50 @@ class Field:
                     elif c is not None:
                         fights += 1
                         mover.stop()
-                        res = self.fight(c.ptr, nm, f"{tag}: 따라온 {c.npc_param}", desperate=desperate)
+                        # 오는 놈과 같은 원칙(wait_far) — 여기도 걸어가 붙으면 그 사이 다른 놈까지 붙는다 (사용자: "또 올라가네")
+                        res = self.fight(c.ptr, nm, f"{tag}: 따라온 {c.npc_param}", desperate=desperate, wait_far=True)
                         if res.result == "me_dead":
                             return "dead"
                         desperate = False
                         if res.result != "killed":
                             ok = self.recover(f"{tag} {res.result}", nm)
-                            if not ok and self.mv.estus_left() <= 0:
+                            if not ok and self.estus_left() <= 0:
                                 return "no_estus"
                             desperate = not ok
                             if res.result in ("stuck", "lost"):
                                 ignore.add(c.ptr)          # 못 닿는 놈 — 이 길에선 무시 (쫓아오면 퀵 종료가 떼어낸다)
+                        # 싸우다 밀리거나 쫓아가 자리가 바뀌었다 — 싸우기 전 향하던 점(i)을 고집하면 그 점이 벽·턱 너머가 돼
+                        # 막혔다 (2026-09-25 귀환 통로 두 판 연속 "따라온 놈 처치 → 30~50 s 뒤 stuck"). 퀵 종료·안개벽 뒤처럼
+                        # 가장 가까운 점부터 — 단 크게 되돌아가지 않게 i 앞뒤 RESYNC_BACK·RESYNC_AHEAD 안에서만.
+                        s2 = self.mv.snap(5.0)
+                        if s2:
+                            here = (s2.player.x, s2.player.y, s2.player.z)
+                            lo, hi = max(0, i - RESYNC_BACK), min(len(path), i + RESYNC_AHEAD)
+                            i = min(range(lo, hi), key=lambda j: math.dist(path[j], here))
                     continue
                 if r != "arrived":
                     fails += 1
+                    s3 = self.mv.snap(5.0)
+                    if s3:                                  # 어디서 막히는지 (2026-09-25 귀환 통로 stuck 이 고쳐도 되풀이)
+                        pp = (s3.player.x, s3.player.y, s3.player.z)
+                        self.log(f"      {tag}: {i}/{len(path)}번 점 {tuple(round(v, 1) for v in q)} 못 감 ({r}, {fails}번째) — "
+                                 f"나 {tuple(round(v, 1) for v in pp)}, {math.dist(pp, q):.1f} m")
+                        self.events("walk_fail", tag=tag, i=i, n=len(path), q=[round(v, 2) for v in q],
+                                    pos=[round(v, 2) for v in pp], r=r, fails=fails)
+                        # 직선으로 못 가면 한 번은 내비메시 길찾기로 돌아간다 — 싸우다 밀려 계단 옆 위쪽 통로(1.1~1.5 m 높음)에
+                        # 섰을 때 계단 점으로 곧장 가려다 난간에 막혀 세 점 연속 실패했다 (2026-09-25 191817 귀환 통로 28~30번)
+                        # 돌아서 가는 walk_to 도 안에서 walk 를 쓴다 — 거기서 또 돌아서 가면 끝없이 되부른다 ("돌아서 돌아서 …",
+                        # 경사로 #2 앞에서 15 분 시간 초과, 2026-09-25 194804). 한 겹만
+                        if fails == 1 and not self._detour and nm.find_path(pp, q):
+                            self._detour = True
+                            try:
+                                r2 = self.walk_to(q, nm, f"{tag} 돌아서")
+                            finally:
+                                self._detour = False
+                            if r2 == "arrived":
+                                fails = 0
+                                i += 1
+                                continue
                     if fails >= 2 and self.fog_through(q):
                         fails = 0                          # 안개벽을 지났다 — 가장 가까운 점부터 다시
                         s2 = self.mv.snap(5.0)
@@ -587,13 +663,13 @@ class Care:
 
     def __init__(self, f: Field):
         self.f = f
-        self.left = f.mv.estus_left()
+        self.left = f.estus_left()
 
     def wants(self, s) -> bool:
         return self.left > 0 and s.player.hp < s.player.max_hp * FIGHT_HEAL
 
     def take(self, recheck) -> dict:
         r = self.f.mv.drink(recheck)
-        self.left = r.get("left", self.f.mv.estus_left())
+        self.left = r.get("left", self.f.estus_left())
         self.f.events("estus", fight=True, **r)
         return r

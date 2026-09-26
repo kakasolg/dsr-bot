@@ -95,7 +95,7 @@ def main():
         if not walk_to(tuple(bonfire["stand"])):
             return False
         for _ in range(4):
-            tm.pos_warp(*bonfire["stand"], bonfire["heading"])
+            tm.safe_warp(*bonfire["stand"], bonfire["heading"], hold_s=3.0)
             time.sleep(0.8)
             pad.interact()
             for _ in range(16):            # 앉는 데 2.5 s (anim2 -1 → 7710 → 7711)

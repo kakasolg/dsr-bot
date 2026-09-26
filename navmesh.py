@@ -47,6 +47,7 @@ BLOCKED = 1 | 16          # Disable, Degenerate — 길찾기에서 제외
 # 제대로 하려면 실제 충돌 데이터(map/*.hkxbhd 의 Havok 메시)나, 그 구간만 워프 스캔(고체/허공은 충돌 기반이라 정확)이 필요하다.
 EDGE_PENALTY = 1.0
 MAX_SIMPLIFY_SLOPE = 0.25
+PUSH_MAX_DY = 1.0           # keep_inside 가 민 점의 바닥 높이가 이보다 바뀌면 다른 층 — 밀지 않는다
 CLIFF_MARGIN = 2.2          # 실측된 낭떠러지 점에서 경로를 이만큼 떼어 놓는다 (cliffscan.py)   # 이보다 가파른 구간은 단순화하지 않고 원래 점을 남긴다 (계단·경사를 따라가야 한다)
 CELL = 0.5
 
@@ -430,7 +431,10 @@ class Navmesh:
                         push += away / n * (margin - d) * 0.5
             nq = (q[0] + float(push[0]), q[1], q[2] + float(push[2]))
             inside = self.floor_tri_at(nq[0], nq[2], q[1])
-            out.append((nq[0], inside[0] if inside else q[1], nq[2]) if inside else q)
+            # 민 자리에 같은 층 바닥이 없으면 밀지 않는다 — 계단 옆에서 밀려 나가 8 m 위 통로 바닥을 잡았고,
+            # ledge_step 이 그걸 못 오르는 턱으로 보고 길 전체를 버렸다 (성벽 마을 #4~6 no_path, 2026-09-25 사용자 경로 대조)
+            ok = inside is not None and abs(inside[0] - q[1]) <= PUSH_MAX_DY
+            out.append((nq[0], inside[0], nq[2]) if ok else q)
         return out
 
     def simplify(self, path: list, step: float = 0.5, max_dy: float = 0.8,

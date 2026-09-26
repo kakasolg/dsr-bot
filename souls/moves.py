@@ -26,6 +26,9 @@ GETTING_UP = 9920
 ESTUS_IDS = range(200, 216)      # 에스트 아이템 번호는 강화 단계별 (새 캐릭터 201)
 ITEM_DARKSIGN = 117
 ITEM_KNIFE = 290                 # 투척 나이프 (퀵 슬롯에 있어야 고를 수 있다)
+PHANTOM_SWINGS = 3                # 이만큼 헛치면(닿는 거리·피해 0·안 움직임) 유령으로 본다
+OTHERS_R = 3.5                    # 가로 베기에 같이 맞았나 볼 반경
+REPAIR_POWDER = 280               # 수리 분말 아이템 ID
 SECOND_R1_AT = 0.45              # 약공 2연타: 첫 R1 뒤 이때 한 번 더 (입력 버퍼)
 BS_TO_R1 = 0.45                  # 백스텝 공격: B 뒤 이때 R1 (옛 hunt.backstep_attack 실측값) — 앞으로 1.7~2.8 m 파고든다
 KICK_TO_R1 = 0.6                 # 발차기 뒤 늦어도 이때 R1 (닿으면 그 순간) — 방패병이 9600 된 게 0.45~0.61 s
@@ -43,6 +46,7 @@ class Hit:
     e_anims: list = field(default_factory=list)
     my_anims: list = field(default_factory=list)
     skipped: str | None = None
+    others: int = 0               # 목표 말고 같이 HP 가 준 적 수 (클레이모어 가로 베기 — 사용자: "근처 다른 적도 같이 피해")
 
     def as_dict(self) -> dict:
         return dict(self.__dict__)
@@ -62,6 +66,8 @@ class Moves:
     def __init__(self, tm, pad: control.Pad):
         self.tm, self.pad = tm, pad
         self._estus: int | None = None
+        self._zero: dict = {}    # ptr → 닿는 거리에서 피해 0 으로 끝난 휘두르기 수 (_phantom_check)
+        self.weapon = None       # 2층 weapons.Weapon — 약공 타이밍(chain_at·guard·watch)이 무기마다 다르다. run.py 가 넣는다
         self.guard_ok = True     # False = 방패를 절대 안 든다 (백스텝 스타일. 사용자: "백스텝 할 땐 가드하지 마 — 피하고 공격 심플하게")
 
     # ── 보기 ────────────────────────────────────────────────
@@ -96,6 +102,10 @@ class Moves:
     def _watch(self, hit: Hit, ptr, hp0: int, ehp0: int, secs: float, on_tick=None, early_exit=None) -> None:
         t1 = time.time()
         my_min, e_min = hp0, ehp0
+        s0 = self.snap(4.0)
+        side0 = {c.ptr: c.hp for c in s0.hostile(OTHERS_R)} if s0 else {}
+        side0.pop(ptr, None)
+        side_min = dict(side0)
         while time.time() - t1 < secs:
             self.pad.release_due()
             if on_tick is not None:
@@ -105,6 +115,9 @@ class Moves:
                 my_min = min(my_min, s2.player.hp)
                 c2 = self.find(s2, ptr)
                 e_min = 0 if c2 is None else min(e_min, c2.hp)
+                for x in s2.chars:
+                    if x.ptr in side_min:
+                        side_min[x.ptr] = min(side_min[x.ptr], x.hp)
                 if c2 is not None and (not hit.e_anims or hit.e_anims[-1][1] != c2.anim):
                     hit.e_anims.append((round(time.time() - t1, 2), c2.anim))
                 if not hit.my_anims or hit.my_anims[-1][1] != s2.player.anim:
@@ -117,41 +130,72 @@ class Moves:
                     break
             time.sleep(0.01)
         hit.dmg, hit.dead, hit.taken = ehp0 - e_min, e_min <= 0, hp0 - my_min
+        hit.others = sum(1 for k, v in side0.items() if side_min[k] < v)
 
     def light(self, s, c, n: int = 1, sp_second: int = 40) -> Hit:
         """약공(R1) n 번 (1 또는 2). 두 번째는 첫 R1 뒤 SECOND_R1_AT 에, 스태미나가 sp_second 넘을 때만.
         방패는 마지막 공격 애니가 시작된 뒤에 올린다 (두 번째 R1 이 가드에 덮이지 않게)."""
         hit = Hit("light")
         ptr, hp0, ehp0 = c.ptr, s.player.hp, c.hp
-        self.pad.guard(False)
+        w = self.weapon
+        chain = w.chain_at if w else SECOND_R1_AT
+        g1, g2 = (w.guard1, w.guard2) if w else (0.35, SECOND_R1_AT + 0.6)
+        w1, w2 = (w.watch1, w.watch2) if w else (0.9, 1.5)
+        # 방패가 있으면 LB 를 **누른 채** 친다 — 가드 → 공격 → 가드가 끊기지 않는다 (사용자 2026-09-25: "자연스러워야 해").
+        # 실측(클레이모어 허공): LB 를 누르고 있으면 휘두르기가 캔슬 프레임(1.39 s)에서 바로 끝나고 방패가 저절로 다시 선다.
+        # 놓았다 다시 누르면 동작이 2.67 s 까지 이어지고, 다시 누르는 시각이 어긋나면 방패가 빈다. 대가: 방패 든 동안 스태미나가 느리게 찬다.
+        hold = self.guard_ok
+        self.pad.guard(hold)
         self.pad.tap(B.XUSB_GAMEPAD_RIGHT_SHOULDER, 0.06)      # 스틱 대기는 Pad
         hit.presses = 1
         want_second = n >= 2 and (s.player.sp or 0) >= sp_second
-        state = {"second": not want_second, "guard": False}
+        state = {"second": not want_second, "guard": hold}
 
         def tick(t, h):
-            if not state["second"] and t >= SECOND_R1_AT:
+            if not state["second"] and t >= chain:
                 state["second"] = True
                 if not h.dead:
                     self.pad.tap(B.XUSB_GAMEPAD_RIGHT_SHOULDER, 0.06)
                     h.presses = 2
             # 마지막 R1 을 누르고 0.6 s(한 번이면 0.35 s) 뒤에 방패 — 더 일찍 LB 를 누르면 버퍼된 R1 이 가드로 덮일 수 있다
-            if not state["guard"] and state["second"] and t >= (SECOND_R1_AT + 0.6 if h.presses == 2 else 0.35):
+            if not state["guard"] and state["second"] and t >= (g2 if h.presses == 2 else g1):
                 state["guard"] = True
                 self.guard(True)
-        self._watch(hit, ptr, hp0, ehp0, 1.5 if want_second else 0.9, tick,
-                    early_exit=lambda t, h: state["second"] and t > (SECOND_R1_AT + 0.3 if h.presses == 2 else 0.3))
+        # 누른 채면 끝은 게임이 알려 준다 — 내 애니가 -1 로 돌아오면(캔슬 프레임) 곧장 나온다
+        exit_at = (lambda t, h: state["second"] and t > chain + 0.1) if hold else \
+                  (lambda t, h: state["second"] and t > (g2 - 0.3 if h.presses == 2 else g1 - 0.05))
+        self._watch(hit, ptr, hp0, ehp0, w2 if want_second else w1, tick, early_exit=exit_at)
         self.pad.move(0.0, 0.0)
+        self._phantom_check(s, c, hit)
         return hit
+
+    def _phantom_check(self, s, c, hit: Hit) -> None:
+        """닿는 거리에서 휘둘렀는데 피해 0, 그놈은 한 번도 안 움직였고 HP 가득 — PHANTOM_SWINGS 번이면 몸 없는 놈.
+        0층의 "몸이 겹친다"(dsr_telemetry.PHANTOM_R)는 0.45 m 안에서만 걸려, 0.6 m 에 선 유령 254013 을 9 s 동안 쳤고
+        그러다 화톳불 방 가장자리에서 떨어졌다 (2026-09-25 183328)."""
+        reach = self.weapon.reach if self.weapon else 1.2
+        still = all(a in (-1, None) for _t, a in hit.e_anims)
+        if hit.dmg == 0 and still and c.hp >= c.max_hp and horiz(s.player, c) <= reach:
+            n = self._zero.get(c.ptr, 0) + 1
+            self._zero[c.ptr] = n
+            if n >= PHANTOM_SWINGS and hasattr(self.tm, "phantom"):
+                self.tm.phantom.add(c.ptr)
+        else:
+            self._zero.pop(c.ptr, None)
 
     def heavy(self, s, c) -> Hit:
         """강공(R2) — 스틱을 놓고 누른다 (앞+R2 는 점프 공격). 무기가 강공을 쓸 때만 위층이 부른다."""
         hit = Hit("heavy", presses=1)
         ptr, hp0, ehp0 = c.ptr, s.player.hp, c.hp
-        self.pad.guard(False)
+        # 방패가 있으면 약공처럼 LB 를 누른 채 — 끝나면 방패가 저절로 선다 (클레이모어 실측: 1.65 s 에 끝, 1.67 s 방패)
+        hold = self.guard_ok
+        self.pad.guard(hold)
         self.pad.heavy()
-        self._watch(hit, ptr, hp0, ehp0, 1.3,
-                    lambda t, h: self.guard(True) if t > 0.9 else None)
+        if hold:
+            self._watch(hit, ptr, hp0, ehp0, 2.0, early_exit=lambda t, h: t > 1.0)
+        else:
+            self._watch(hit, ptr, hp0, ehp0, 1.3,
+                        lambda t, h: self.guard(True) if t > 0.9 else None)
         return hit
 
     def kick(self, s, c) -> Hit:
@@ -190,15 +234,16 @@ class Moves:
             if state["broke_t"] is None and h.e_anims and h.e_anims[-1][1] not in (-1, None) and t > 0.2:
                 state["broke_t"] = t                       # 발차기가 닿았다 (9600 가드 깨짐 / 9920 등)
             due = state["broke_t"] is not None or t >= KICK_TO_R1
-            if due and state["r1"] < n and t >= (state["broke_t"] or KICK_TO_R1) + state["r1"] * SECOND_R1_AT:
+            if due and state["r1"] < n and t >= (state["broke_t"] or KICK_TO_R1) + state["r1"] * (self.weapon.chain_at if self.weapon else SECOND_R1_AT):
                 if not h.dead:
                     self.pad.tap(B.XUSB_GAMEPAD_RIGHT_SHOULDER, 0.06, stick_ok=True)   # 스틱은 이미 놓았다
                     state["r1"] += 1
                     h.presses = 1 + state["r1"]
-            if state["r1"] >= n and t >= (state["broke_t"] or KICK_TO_R1) + n * SECOND_R1_AT + 0.3:
+            if state["r1"] >= n and t >= (state["broke_t"] or KICK_TO_R1) + n * (self.weapon.chain_at if self.weapon else SECOND_R1_AT) + 0.3:
                 self.guard(True)
         self._watch(hit, ptr, hp0, ehp0, 2.4, tick,
-                    early_exit=lambda t, h: state["r1"] >= n and t > (state["broke_t"] or KICK_TO_R1) + n * SECOND_R1_AT + 0.3)
+                    early_exit=lambda t, h: state["r1"] >= n and t > (state["broke_t"] or KICK_TO_R1) + n * (self.weapon.chain_at if self.weapon else SECOND_R1_AT) + 0.3)
+        self._phantom_check(s, c, hit)          # 발차기 콤보도 센다 — 약공만 셌더니 유령과 번갈아 쳐 2번에서 멈췄다
         return hit
 
     def backstep(self) -> None:
@@ -361,6 +406,30 @@ class Moves:
         n1 = self.tm.goods_count(e) or 0
         return {"ok": n1 < n0, "hp": [hp0, s2.player.hp if s2 else None], "left": n1,
                 "why": None if n1 < n0 else "끊김 (개수 그대로)"}
+
+    def repair(self, safe) -> dict:
+        """수리 분말(280) — 퀵슬롯에 있어야 한다 (사용자 2026-09-25: "퀵슬롯에 수리분말 넣었으니 앞으로 이용해").
+        drink 와 같은 순서: 칸 고르기 → 다시 안전한지 → 사용 → 개수가 줄고 내구도가 올랐나."""
+        if REPAIR_POWDER not in self.tm.quick_items():
+            return {"ok": False, "why": "퀵슬롯에 수리 분말 없음"}
+        if not self.select_item(REPAIR_POWDER):
+            return {"ok": False, "why": "수리 분말 칸을 못 고름"}
+        s = self.snap(15.0)
+        if s is None or not safe(s):
+            return {"ok": False, "why": "칸 고르는 사이 적이 옴"}
+        n0, d0 = self.tm.goods_count(REPAIR_POWDER) or 0, self.tm.weapon_durability()
+        self.pad.guard(False)
+        self.pad.neutral()
+        self.pad.use_item()
+        t0 = time.time()
+        while time.time() - t0 < 3.0:
+            self.pad.release_due()
+            time.sleep(0.02)
+        n1, d1 = self.tm.goods_count(REPAIR_POWDER) or 0, self.tm.weapon_durability()
+        e = self.estus_id()
+        if e is not None:
+            self.select_item(e)                  # 에스트 칸으로 되돌려 둔다 — 급할 때 수리 분말을 마시지 않게
+        return {"ok": n1 < n0, "dur": [d0, d1], "left": n1, "why": None if n1 < n0 else "안 씀 (개수 그대로)"}
 
     def darksign(self, bonfire_stand) -> bool:
         """다크사인 — 소울·인간성을 전부 잃고 마지막으로 쉰 화톳불로. 칸(117)·확인창 글자·YES 칸을 **확인한 뒤에만** A
@@ -538,13 +607,20 @@ class Moves:
         """메뉴 → Quit Game → 이어하기. 적은 스폰 자리로 돌아가 경계가 풀린다. 죽은 적은 그대로 (사용자 확인 2026-09-24).
         쉬면(화톳불) 적이 전부 살아나니, 적을 떼어내기만 할 땐 이걸 쓴다."""
         self.pad.neutral()
-        q = quitout.quit_out(self.tm, self.pad, gap=quitout.MENU_GAP, settle=0.1, ready_wait=0.05)
+        # 메뉴를 안 거친다 — ChrClassWarp+0x19 = 1 이면 게임이 곧장 타이틀로 나간다 (2026-09-25, 사용자: "굳이 메뉴 조작해서
+        # quit 할 필요 없잖아"). 메뉴 방식은 2~2.8 s 였고 떨어지는 중엔 메뉴가 안 열려 낙사를 못 막았다. 안 먹히면 메뉴로.
+        t0, how = time.time(), "byte"
+        quitout.LAST_STEPS.clear()
+        q = time.time() - t0 if self.tm.quit_to_title(timeout=2.0) else None
+        if q is None:
+            how = "menu"
+            q = quitout.quit_out(self.tm, self.pad, gap=quitout.MENU_GAP, settle=0.1, ready_wait=0.05)
         if q is None:
             quitout.close_menu(self.tm, self.pad)
             return {"ok": False}
         r = quitout.reload(self.pad)
         time.sleep(1.0)
-        return {"ok": r is not None, "quit_s": round(q, 2), "reload_s": None if r is None else round(r, 1)}
+        return {"ok": r is not None, "how": how, "quit_s": round(q, 2), "reload_s": None if r is None else round(r, 1)}
 
     def rest(self, nm, bonfire: dict) -> bool:
         """화톳불까지 걸어가 앉았다 일어난다 (farm.rest). 적이 전부 살아나고 HP·에스트가 찬다."""

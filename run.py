@@ -4,6 +4,8 @@
   python run.py burg-bonfire             불의 제전 → 경사로 하나씩 → 상인 → 성벽 마을 화톳불 찍고 앉기(귀환 지점 바뀜)
   python run.py burg-loop                위와 같은 길이지만 화톳불엔 앉지 않고 걸어서 불의 제전으로 되돌아온다 (반복 시험용)
   python run.py clear-ramp [--no-rest]   경사로 6마리만 (--no-rest: 쉬지 않고 지금 상태에서)
+  python run.py hunt-one [--i 5]         성벽 마을 화톳불에서 BURG_TOWN i 번 한 마리만 잡고 돌아옴 (5 = 석궁병)
+  python run.py clear-burg-town          지금 자리(성벽 마을 안)에서 6마리를 사용자가 죽인 순서 그대로(BURG_TOWN) 처치
   python run.py merchant                 지금 자리에서 상인까지 (쉬지 않음)
   python run.py light-burg               지금 자리(성벽 마을)에서 화톳불 찍기만
   python run.py quit-test                1번을 잡고 퀵 종료 전후 경사로 적 생존 비교 (퀵 종료가 죽은 적을 살리나)
@@ -14,6 +16,7 @@ import argparse
 import json
 import math
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -30,20 +33,25 @@ class Log:
         d = ROOT / "data" / "runs"
         d.mkdir(parents=True, exist_ok=True)
         stamp = time.strftime("%Y%m%d_%H%M%S")
+        self.path = d / f"{stamp}_{name}.jsonl"
         self.txt = (d / f"{stamp}_{name}.log").open("a", encoding="utf-8")
-        self.ev = (d / f"{stamp}_{name}.jsonl").open("a", encoding="utf-8")
+        self.ev = self.path.open("a", encoding="utf-8")
+        self._lock = threading.Lock()          # 블랙박스 쓰기 스레드도 같은 파일에 쓴다
         self.t0 = time.time()
 
     def __call__(self, msg: str) -> None:
         line = f"[{time.time() - self.t0:7.1f}] {msg}"
-        print(line, flush=True)
-        self.txt.write(line + "\n")
-        self.txt.flush()
+        with self._lock:
+            print(line, flush=True)
+            self.txt.write(line + "\n")
+            self.txt.flush()
 
     def event(self, _ev: str, **kw) -> None:
         # 인자 이름이 kind 였더니 퀵 종료 결과의 kind 와 겹쳐 봇이 멈췄다 (2026-09-24)
-        self.ev.write(json.dumps({"t": round(time.time() - self.t0, 2), "ev": _ev, **kw}, ensure_ascii=False, default=str) + "\n")
-        self.ev.flush()
+        line = json.dumps({"t": round(time.time() - self.t0, 2), "ev": _ev, **kw}, ensure_ascii=False, default=str)
+        with self._lock:
+            self.ev.write(line + "\n")
+            self.ev.flush()
 
 
 def status() -> None:
@@ -61,8 +69,9 @@ def status() -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["status", "burg-bonfire", "burg-loop", "clear-ramp", "merchant", "light-burg", "quit-test"])
+    ap.add_argument("cmd", choices=["status", "burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt-one", "merchant", "light-burg", "quit-test"])
     ap.add_argument("--no-rest", action="store_true")
+    ap.add_argument("--i", type=int, default=5, help="hunt-one: BURG_TOWN 몇 번째 (5 = 석궁병 255002)")
     ap.add_argument("--no-lure", action="store_true", help="나이프로 한 놈씩 깨우지 않고 예전처럼 걸어가 붙는다 (비교용)")
     ap.add_argument("--style", choices=["guard", "backstep", "rush"], default="guard",
                     help="guard: 방패로 받고 휘청에 친다 (기본) | backstep: 양손, 백스텝으로 피하고 헛친 뒤 약공 | "
@@ -96,9 +105,12 @@ def main() -> None:
     nms = {missions.MAP_A: navmesh.Navmesh(missions.MAP_A), missions.MAP_B: navmesh.Navmesh(missions.MAP_B)}
     mv = moves.Moves(tm, pad)
     w = weapons.of(tm.right_weapon())
+    mv.weapon = w
     log(f"무기: {w.name} (약공 {w.combo}연타, 닿는 거리 {w.reach} m, 강공 {'씀' if w.use_heavy else '안 씀'})")
     esc = Escape(pad, list(nms.values()), log=log, events=log.event).start()
     blood = Blood(log=log).start()
+    from blackbox import BlackBox
+    bbox = BlackBox(tm, log.path, events=log.event, log=log).start()
     fld = Field(mv, w, esc, bonfires=[missions.FIRELINK["stand"], missions.BURG_BONFIRE], log=log, events=log.event, style=a.style)
     log(f"스타일: {a.style}")
     log.event("style", style=a.style)
@@ -118,6 +130,10 @@ def main() -> None:
             if not a.no_rest:
                 ms.start_fresh()
             r = ms.clear_ramp(lure=not a.no_lure)
+        elif a.cmd == "clear-burg-town":
+            r = ms.clear_burg_town()
+        elif a.cmd == "hunt-one":
+            r = ms.hunt_one(a.i)
         elif a.cmd == "merchant":
             r = ms.to_merchant()
         elif a.cmd == "light-burg":
@@ -148,6 +164,12 @@ def main() -> None:
             pass
         esc.stop()
         blood.stop()
+        bbox.stop()
+        try:
+            import risk_report
+            log(risk_report.one_line(risk_report.score(log.path)))
+        except Exception as ex:
+            log(f"위험 요약 실패: {ex!r}")
         lock.release()
         pad.neutral()
         if hasattr(tm, "stats"):

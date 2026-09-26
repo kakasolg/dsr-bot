@@ -44,9 +44,14 @@ BY_NPC: dict[int, Foe] = {
     254000: HOLLOW, 254002: HOLLOW, 254010: HOLLOW, 254011: HOLLOW,
     254001: FIREBOMB_HOLLOW, 254012: FIREBOMB_HOLLOW,
     250000: Foe("망자(성벽 마을)", kind="hollow", combos=(3000, 3004), unblockable=(3009,)),
-    255000: SHIELD, 255002: SHIELD, 255010: SHIELD,
-    # 254013·254014 (성벽 마을 화톳불 옆, HP150): 등록이 안 돼 "모르는 적"(kind=other)으로 새서 방패 제외 규칙을 피해
-    # "먼저 치기" 약공을 18연속 0 피해로 맞고 515 를 받았다 (2026-09-25) — SHIELD 로 등록해 재확인할 것
+    255000: SHIELD, 255010: SHIELD,
+    # 255002 는 방패병이 아니라 석궁병 — 3000/3001 이 가드 자세가 아니라 쏘는 동작이다. 애니 구조체 +0xA0 이 1 로 켜지고
+    # 0.3~0.7 s 뒤 내 방패에 충격(내 애니 140, SP −7)이 2.7 s 마다 (2026-09-25 실측, 사용자 "화살 맞고 있다니깐, 바로 앞에 있어").
+    # SHIELD 로 두니 wait_far 가 "안 다가온다"며 막고만 8 분 서 있었다. 발사 동작 번호가 안 바뀌어 애니 변화로는 안 보인다.
+    255002: Foe("석궁 병사", kind="shield", ranged=True, kick_when_idle=True, unblockable=(3009,), punish_hits=1,
+                note="3000/3001 = 석궁 발사 (방패 들고 쏜다). 기다리지 말고 붙어 발차기 → 약공"),
+    # 254013·254014 (성벽 마을 화톳불 옆, HP150): 방패병이 아니라 몸 없는 유령이었다 — 사용자 "아무것도 없는데 왜 휘두르지"
+    # (2026-09-25). 254013 은 비활성 플래그로, 254014 는 몸 겹침(dsr_telemetry.PHANTOM_R)으로 0층에서 걸러진다. 아래 등록은 남겨 둔다.
     254013: SHIELD, 254014: SHIELD,
     290000: SKELETON, 290002: SKELETON, 290003: SKELETON, 290004: SKELETON, 291000: SKELETON,
     223200: ASYLUM_DEMON,

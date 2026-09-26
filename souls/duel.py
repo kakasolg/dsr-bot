@@ -29,10 +29,19 @@ OTHERS_R, OTHERS_ATTACK_R = 5.0, 8.0   # 그리고 다른 깨어 있는 놈이 5
 CARE_RETRY = 3.0
 FINISH_KEEP_HP = 40     # 그놈 HP 가 이 아래면 내 HP 가 낮아도(12 % 까지) 빠지지 않는다 (다크사인 뒤 방패병이 10 → 85)
 FINISH_HP, FINISH_SP = 25, 15   # 그놈 HP 가 약공 한 대(실측 34~41) 안쪽이면 스태미나 15 만 있어도 친다
+HEAVY_SP = 100           # 휘청 틈 강공은 스태미나가 이 이상일 때만 (가드 든 채 강공 한 번에 90)
+INTERRUPT_STARTUP_MAX = 0.45   # 선 딜레이가 이보다 긴 무기(클레이모어 0.68 s)는 휘두르기 시작한 놈을 끊지 못한다 — 가만히 선 놈만 먼저 친다.
+                               # 배틀 액스는 딜레이가 거의 없어 끊었지만, 클레이모어로 같은 규칙을 쓰니 큰 피격 범인이 망자(254010)였다 (2026-09-25)
 INTERRUPT_S = 0.35       # 그놈 공격이 시작된 지 이만큼 안이면 막지 말고 먼저 친다 (약공이 닿는 게 더 빠르다)
 SWITCH_MARGIN, SWITCH_HOLD = 0.8, 3.0
 SWITCH_R = 2.5           # 이 안(수평·같은 높이)에 목표보다 가까운 깨어 있는 놈이 있으면 그놈부터
-RANGED_SWITCH_R = 25.0   # 던지는/쏘는 놈(foes.ranged)이 휘두르는 중(던지는 중)이면 거리·높이 상관없이 이 안이면 그놈부터 (사용자: "위에 화살 쏘는 놈부터")
+RANGED_SWITCH_R = 25.0   # 던지는/쏘는 놈(foes.ranged)이 휘두르는 중(던지는 중)이면 거리 상관없이 이 안이면 그놈부터 (사용자: "위에 화살 쏘는 놈부터")
+RANGED_REACHABLE_DY = 3.0   # 이보다 높이차 나면 걸어서 못 붙는 자리로 보고 원거리 전환 대상에서 뺀다 (성공 전환은 전부 ≤ +3.0;
+                            # 4.0 일 땐 +3.6 턱 석궁병으로 갈아타 8 s 막히고 옆 망자에게 맞았다, 2026-09-25 164722)
+MELEE_BUSY_R = 2.0       # 이 안(같은 높이)에 칼 든 놈이 있으면 원거리 전환을 안 한다 — 0.9 m 앞 망자를 두고 15.8 m 석궁병으로 갔다
+WAIT_APPROACH_S = 3.0    # wait_far: 이 시간 동안 WAIT_CLOSE_M 도 안 다가오면 안 올 놈 — 기다림을 풀고 붙는다
+WAIT_CLOSE_M = 0.5
+WAIT_HURT_HP = 120.0    # wait_far 로 기다리는 동안 이만큼 깎이면 — 추적 중인 목표(안 휘두름)가 아닌 다른 원인으로 맞는 중, 그만 기다린다
 LEDGE_DY = 3.0           # 그놈이 arena 보다 이만큼 높거나 낮으면 끌어오지 않는다 (따라오지 않는다)
 SWING_S = 1.6            # 공격 애니가 시작된 지 이만큼 넘으면 휘두르는 중으로 안 본다
 PULL_R = 8.0             # 끌어오기: 그놈이 이 안이면(움직이지 않아도) 물러나기 시작
@@ -141,8 +150,10 @@ def _approach(mv: M.Moves, weapon, s, c, nm, foe, cancel, log=lambda *a: None) -
         # 높이차가 크면(안 내려오는 놈, 못 오르는 턱) '휘두르는 중 + 가까움'만으로 멈추면 거기서 굳는다 — 높이차 안에서만
         # 조기 정지, 아니면 경로를 끝까지 따라간다(있으면 돌아가는 길로) (사용자 2026-09-25: "전투 중에 멈춰 있으려면 돌아가야지",
         # "위험 구역에 왜 머무르고 있어" — 실측: 높이차 1.7~1.9 m 에서 45 s+ "붙기:stopped" 무한 반복, 공격 0회)
+        # 쏘는 놈(foe.ranged)은 "휘두르는 중이면 멈춰 막기"를 안 한다 — 석궁병 255002 의 3000/3001 은 늘 조준·발사 자세라
+        # 2~3 m 앞에서 매번 멈춰 닿는 거리(1.8 m)에 못 들어갔다: 34 s 공격 0회·피해 653 (2026-09-25 164722, 사용자 "궁수만 보면 대응 못하네")
         return (d <= weapon.reach and abs(cc.y - sn.player.y) <= 1.0) or (
-            (cc.anim or -1) in M.ATTACK and d < NEAR and abs(cc.y - sn.player.y) <= 1.2)
+            not foe.ranged and (cc.anim or -1) in M.ATTACK and d < NEAR and abs(cc.y - sn.player.y) <= 1.2)
 
     def mode(sn) -> str:
         cc = mv.find(sn, ptr)                               # 30 m 밖이면 None — 그땐 그냥 걷는다
@@ -163,12 +174,16 @@ PUNISH_R = 1.6           # 닿는 거리 + 이만큼 안이면 걸어 들어가 
 
 
 def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: float = 0.25,
-         cancel=lambda: False, care=None, reflex=None, arena=None, style=None) -> DuelResult:
+         cancel=lambda: False, care=None, reflex=None, arena=None, style=None, wait_far: bool = False) -> DuelResult:
     """care: 4층이 주는 회복 담당 — care.wants(s) (마시고 싶나), care.take(recheck) (마신다; recheck(s) 로 틈을 다시 본다).
     틈인지는 여기(3층)가 본다: opening(). 붙어 있으면 백스텝으로 벌리고 다음 틱에 다시 본다.
     reflex: 반사(souls/reflex.py) — 매 틱 가장 먼저. 움직였으면 이 틱은 쉰다 (상대가 아닌 놈의 공격도 정면으로 막는다).
     arena: 이 근처 평평한 자리 — 발밑이 낭떠러지 쪽이면(nav.footing) 그놈이 안 휘두를 때 거기로 물러나 맞이한다.
-      사용자 원칙: "애초에 위험한 위치에 있으면 안 되는 게 먼저" — 추락은 퀵 종료로 못 구한다 (떨어지는 중엔 메뉴가 안 열림, 2026-09-24)."""
+      사용자 원칙: "애초에 위험한 위치에 있으면 안 되는 게 먼저" — 추락은 퀵 종료로 못 구한다 (떨어지는 중엔 메뉴가 안 열림, 2026-09-24).
+    wait_far: 닿는 거리 밖이면 다가가지 않고 그 자리서 막고 기다린다 — 걸어오는 중인 놈에게 이걸 켠다.
+      사용자 2026-09-25: "기다리면 올텐데 왜 뛰쳐 올라가 기회를 놓쳤잖아" — 아직 먼 적에게 걸어가면 그 사이 다른 놈까지
+      함께 오게 만들어 혼자 올 걸 여럿이서 동시에 상대하게 됐다(경사로, 0 피해/8 s, 493 받음, 둘러싸임으로 강종).
+      "기다려야 할 때와 행동할 때"를 구분 — 먼 적은 오게 두고, 닿는 거리 안에 들어온 뒤에야 반응한다."""
     from . import style as style_
     style = style_.of(style or "guard")
     t0 = time.time()
@@ -177,6 +192,8 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
     res = DuelResult("timeout")
     last_dmg_t, kick_t = t0, 0.0
     best_h, best_t = None, t0
+    wait_t0, wait_hmin = 0.0, 0.0
+    wait_hp0 = None                                         # wait_far 로 기다리기 시작한 시점의 HP (다른 데서 맞는지 보려고)
     last_seen, foe = None, None
     care_t, backstep_t, move_t = 0.0, 0.0, 0.0
     pulled = arena is None
@@ -258,10 +275,17 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             return done("stalemate")
         h, dy, a = M.horiz(p, c), c.y - p.y, (c.anim if c.anim is not None else -1)
         ranged_cut = [x for x in s.hostile(RANGED_SWITCH_R) if x.ptr != ptr and x.hp > 0
-                      and foes_.of(x.npc_param).ranged and (x.anim or -1) in M.ATTACK]
-        # 위(또는 멀리)에서 쏘는 놈은 가까운 끼어든 놈(cut, 아래)과 달리 거리·높이 제한이 없다 — 맞으면서 눈앞 상대만 방어 위주로
-        # 상대하게 됐다 (사용자 2026-09-25: "화살 쏘는 애가 공격하니 방어 위주로 세팅됨 — 그놈부터 처리해야 함")
-        if ranged_cut and now - switch_t > SWITCH_HOLD:
+                      and foes_.of(x.npc_param).ranged and (x.anim or -1) in M.ATTACK
+                      and abs(x.y - p.y) < RANGED_REACHABLE_DY]
+        # 위(또는 멀리)에서 쏘는 놈은 가까운 끼어든 놈(cut, 아래)과 달리 거리 제한이 없다 — 맞으면서 눈앞 상대만 방어 위주로
+        # 상대하게 됐다 (사용자 2026-09-25: "화살 쏘는 애가 공격하니 방어 위주로 세팅됨 — 그놈부터 처리해야 함").
+        # 단, 높이차는 제한한다 — 254012(테라스 궁수, 높이차 +6~8.5m)로 목표가 바뀌면 _approach()가 걸어서
+        # 못 붙는 거리를 무한정 좁히려다 30 s 동안 화살만 맞고 HP 695→137 (2026-09-25, burg-loop 091110).
+        # 실측: 성공적으로 붙은 원거리 전환은 전부 높이차 ≤ +3.0m — 그 위는 애초에 도달 불가로 보고 무시.
+        # 눈앞(MELEE_BUSY_R)에 칼 든 놈이 붙어 있으면 그놈부터 — 등을 보이고 멀리 쏘는 놈에게 가면 둘에게 다 맞는다
+        busy = any(x.hp > 0 and not foes_.of(x.npc_param).ranged and M.horiz(p, x) < MELEE_BUSY_R and abs(x.y - p.y) < 1.2
+                   and not (9000 <= (x.anim or 0) < 9100) for x in s.hostile(MELEE_BUSY_R + 1.0))
+        if ranged_cut and not busy and now - switch_t > SWITCH_HOLD:
             x = min(ranged_cut, key=lambda y: M.horiz(p, y))
             if orig_ptr is None:
                 orig_ptr = ptr
@@ -284,13 +308,16 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             last_seen, foe = x, foes_.of(x.npc_param)
             h, dy, a = M.horiz(p, c), c.y - p.y, (c.anim if c.anim is not None else -1)
 
+        if not (h > weapon.reach and wait_far):                 # 기다리는 중이 아니면 기다림 HP 기준점도 없앤다
+            wait_hp0 = None
+
         if (c.hp <= FINISH_HP and a not in M.ATTACK and h <= weapon.reach and abs(dy) <= 1.0
                 and not (foe is not None and foe.kick_when_idle and a == -1)
                 and (p.sp or 0) >= FINISH_SP and mv.face(s, c, deg=30.0)):
             # 한 대면 죽고 지금 안 휘두른다 — 반사보다 먼저 친다 (HP 18 인 놈 앞에서 반사가 매 틱 방패만 쥐다 죽었다)
             hit = mv.light(s, c, n=1)
             d = hit.as_dict()
-            res.hits.append({k: d[k] for k in ("kind", "presses", "dmg", "dead", "taken")})
+            res.hits.append({k: d[k] for k in ("kind", "presses", "dmg", "dead", "taken", "others")})
             if hit.dmg > 0:
                 last_dmg_t = time.time()
                 res.dealt += hit.dmg
@@ -307,19 +334,20 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             # 창 방패병(255002)은 3001 에 머문 채 방패를 들고 있어, 15 s 내내 1.4 m 에서 막기만 했고 발차기도 안 나갔다
             a = -1
         if (foe.kind != "shield" and h <= weapon.reach and abs(dy) <= 1.0 and (p.sp or 0) >= weapon.sp_min
-                and (a == -1 or (a in M.ATTACK and age is not None and age < INTERRUPT_S))
+                and (a == -1 or (a in M.ATTACK and age is not None and age < INTERRUPT_S
+                                 and (weapon.startup or 0.0) <= INTERRUPT_STARTUP_MAX))
                 and not any(x.ptr != ptr and (x.anim or -1) in M.ATTACK and M.horiz(p, x) < 2.5 for x in s.hostile(4.5))
                 and mv.face(s, c, deg=30.0)):
             # 먼저 친다 (사용자: "한 대라도 휘두르면 그 적이 물러났을 텐데") — 망자는 약공 한 대에 경직(2000·2002)돼 물러난다.
             # 공격을 막 시작했을 때(INTERRUPT_S 안)나 가만히 서 있을 때. 방패병은 방패에 막히니 제외, 옆에서 다른 놈이 휘두르면 막기부터
             hit = mv.light(s, c, n=weapon.combo, sp_second=weapon.sp_min)
             d = hit.as_dict()
-            res.hits.append({k: d[k] for k in ("kind", "presses", "dmg", "dead", "taken")})
+            res.hits.append({k: d[k] for k in ("kind", "presses", "dmg", "dead", "taken", "others")})
             if hit.dmg > 0:
                 last_dmg_t = time.time()
                 res.dealt += hit.dmg
             note("먼저치기", s, c)
-            log(f"      먼저 치기 → {hit.kind}×{hit.presses} 피해 {hit.dmg}, 내 피해 {hit.taken}")
+            log(f"      먼저 치기 → {hit.kind}×{hit.presses} 피해 {hit.dmg}, 옆 {hit.others}, 내 피해 {hit.taken}")
             if hit.dead and orig_ptr is None:
                 return done("killed")
             continue
@@ -328,7 +356,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             if bh is not None:                             # 백스텝 공격(한 동작) 결과 — 기록
                 reflex.last_hit = None
                 d = bh.as_dict()
-                res.hits.append({k: d[k] for k in ("kind", "presses", "dmg", "dead", "taken")})
+                res.hits.append({k: d[k] for k in ("kind", "presses", "dmg", "dead", "taken", "others")})
                 if bh.dmg > 0:
                     last_dmg_t = time.time()
                     res.dealt += bh.dmg
@@ -372,6 +400,13 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
                 mv.pad.move(*mv.stick_to(s, p.x + best[0], p.z + best[1]))
                 time.sleep(0.35)
                 mv.pad.move(0.0, 0.0)
+                # 걸어 벗어나면 몸이 걷는 쪽으로 돈다 — 그대로 두면 쏘는 놈에게 등을 보였다(±175°, 석궁 −149, 2026-09-25).
+                # 곧장 그놈 쪽으로 다시 돌고 방패를 든다
+                s2 = mv.snap(10.0)
+                c2 = mv.find(s2, ptr) if s2 else None
+                if c2 is not None:
+                    mv.guard(True)
+                    mv.face(s2, c2, deg=20.0)
                 note("가장자리벗어남", s, c)
                 continue
         if care is not None and now - care_t > CARE_RETRY and care.wants(s):   # 0) 싸우는 중 에스트 (사용자: 안전하면 마셔)
@@ -391,14 +426,19 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
         if (a in M.STAGGER or a == M.GUARD_BROKEN) and h <= weapon.reach + 0.3 and abs(dy) <= 1.0 and (p.sp or 0) >= weapon.sp_min:
             # 1-) 휘청 = 틈. 몸만 맞으면 곧장 친다 (막기에 튕긴 뒤 바로 — 옛 메모 "3500 휘청 — 붙어 있으면 바로 친다")
             if mv.face(s, c, deg=30.0):
-                hit = mv.light(s, c, n=foe.punish_hits or weapon.combo, sp_second=weapon.sp_min)
+                # 방패병 휘청 틈엔 강공 (사용자 2026-09-25: "가드·강공·가드가 강한 적에게 더 유리") — 강공은 가드 든 채 스태미나 90 을
+                # 먹으니 가득(HEAVY_SP)일 때만. 약공과 피해를 비교하려고 kind 를 로그에 남긴다
+                if weapon.heavy_punish and foe.kind == "shield" and (p.sp or 0) >= HEAVY_SP:
+                    hit = mv.heavy(s, c)
+                else:
+                    hit = mv.light(s, c, n=foe.punish_hits or weapon.combo, sp_second=weapon.sp_min)
                 d = hit.as_dict()
-                res.hits.append({k: d[k] for k in ("kind", "presses", "dmg", "dead", "taken")})
+                res.hits.append({k: d[k] for k in ("kind", "presses", "dmg", "dead", "taken", "others")})
                 if hit.dmg > 0:
                     last_dmg_t = time.time()
                     res.dealt += hit.dmg
                 note("휘청반격", s, c)
-                log(f"      휘청 → {hit.kind}×{hit.presses} 피해 {hit.dmg}, 내 피해 {hit.taken}")
+                log(f"      휘청 → {hit.kind}×{hit.presses} 피해 {hit.dmg}, 옆 {hit.others}, 내 피해 {hit.taken}")
                 if hit.dead and orig_ptr is None:
                     return done("killed")
             else:
@@ -415,7 +455,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
                     mv.pad.move(0.0, 0.0)
                 hit = mv.light(s, c, n=weapon.combo, sp_second=weapon.sp_min)
                 d = hit.as_dict()
-                res.hits.append({k: d[k] for k in ("kind", "presses", "dmg", "dead", "taken")})
+                res.hits.append({k: d[k] for k in ("kind", "presses", "dmg", "dead", "taken", "others")})
                 if hit.dmg > 0:
                     last_dmg_t = time.time()
                     res.dealt += hit.dmg
@@ -448,6 +488,29 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             note("누움대기", s, c)
             time.sleep(0.03)
             continue
+        if h > weapon.reach and wait_far and not (foe and foe.ranged):   # 3-wait) 쏘는 놈은 기다리면 계속 쏜다 — 안 기다림. 아직 멀다 — 다가가지 않고 그 자리서 막고 기다린다
+            if wait_hp0 is None:
+                wait_hp0 = p.hp
+                wait_t0, wait_hmin = now, h
+            if h < wait_hmin - WAIT_CLOSE_M:
+                wait_t0, wait_hmin = now, h                  # 다가오는 중 — 계속 기다린다
+            elif now - wait_t0 > WAIT_APPROACH_S:
+                # 안 다가오는 놈을 기다리면 끝이 없다: 방패병 255002 가 4.6 m 에서 가드(3000/3001)로 버티고 봇도 막고만 서서
+                # 15 s 교착 → 같은 놈과 다시 교착 반복 (사용자 2026-09-25: "적이 앞에 있는데 가드만 하고 기다려")
+                wait_far = False
+                note("안옴→붙기", s, c)
+                continue
+            elif p.hp is not None and wait_hp0 - p.hp > WAIT_HURT_HP:
+                # 추적 중인 놈은 안 휘두르는데(a not in M.ATTACK, 안 다가옴) HP 만 깎인다 — 다른 놈에게 맞는 중이란 뜻.
+                # "기다리면 안전하다"고 가만있으면 안 된다 (사용자 2026-09-25: "적들이 안심시키고 위험을 가중시키는 거야,
+                # 이 게임은 절대 쉽지 않아" — 실측: 4.3 m 밖 안 휘두르는 목표 앞에서 11 s 기다리다 490→242 로 깎였다).
+                return done("low_hp")
+            if style.shield:
+                mv.guard(True)
+            mv.face(s, c)
+            note("기다림", s, c)
+            time.sleep(0.03)
+            continue
         if h > weapon.reach:                                # 3) 붙는다 — 수평으로 닿는 거리 안이면 높이차만으로는 여기 안 들어간다
             # (사용자 2026-09-25: "중간에 멈추려면, 약공이라도 휘두르면서 멈춰 있으라는 거지" — 높이차 때문에 못 붙는 상황도
             # 아래(공격 시도)로 내려가 최소한 약공은 휘두른다. 예전엔 h<=reach 여도 dy>1.0 이면 여기서 계속 붙기만 시도해
@@ -473,7 +536,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             # 3+) 한 대면 죽는다 — 스태미나가 조금 모자라도 친다 (방패병이 HP 10 으로 4 s 버티는 동안 가드가 깨졌다)
             hit = mv.light(s, c, n=1)
             d = hit.as_dict()
-            res.hits.append({k: d[k] for k in ("kind", "presses", "dmg", "dead", "taken")})
+            res.hits.append({k: d[k] for k in ("kind", "presses", "dmg", "dead", "taken", "others")})
             if hit.dmg > 0:
                 last_dmg_t = time.time()
                 res.dealt += hit.dmg
@@ -517,7 +580,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
         else:
             hit = mv.light(s, c, n=weapon.combo, sp_second=weapon.sp_min)
         d = hit.as_dict()
-        res.hits.append({k: d[k] for k in ("kind", "presses", "dmg", "dead", "taken")})
+        res.hits.append({k: d[k] for k in ("kind", "presses", "dmg", "dead", "taken", "others")})
         if hit.dmg > 0:
             last_dmg_t = time.time()
             res.dealt += hit.dmg
