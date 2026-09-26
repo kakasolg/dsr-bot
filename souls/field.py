@@ -57,6 +57,8 @@ HOLD_GUARD_SP = 0.25     # 최대 스태미나 대비 — 이 아래면 방패 �
 DEFEND_SLICE = 1.0
 APPROACH_DV = 0.3        # 0.5 s 에 이만큼 좁혀 오면 '다가옴'
 LURE_UNBLOCK_S = 0.5     # 끌어오기 막음은 5 m 안이 이만큼 **계속** 조용해야 풀린다 (경계를 스치는 놈에 흔들리지 않게)
+MOVED_WAIT_DY = 1.2      # 평지(arena)와 이만큼 넘게 높이가 다르면 '다른 높이' — 찾아가지 않고 평지에서 기다린다 (Patch E-1)
+MOVED_WAIT_S = 20.0      # 한 번에 기다리는 시간. 두 번 기다려도 안 내려오면 'left #i~' (찾아가지 않음)
 CLOSE_MELEE_R = 3.0      # 접촉 싸움 중 다른 놈이 이 안이면 끝낸다 (duel.SWITCH_R 2.5 보다 넓게 — 목표 바꾸기 전에 끊긴다)
 
 
@@ -438,6 +440,26 @@ class Field:
         time.sleep(0.05)
         return "approach", t
 
+    def _hold_tick(self, i, spot, s, nm, arena, ignore, lb, hold_until: dict):
+        """제자리(spot)에서 한 틱 — _hold_at 상태를 보고 제자리 방어 / 묶인 접촉 싸움. 제자리 고수(#2)와 평지 기다림(E-1)이 같이 쓴다.
+        → 'died' | None"""
+        st, thr = self._hold_at(spot, nm, f"#{i}", s, ignore)
+        if st == "low_stamina_threat":
+            # 이번 기다림을 끝내고(새 끌어오기는 막음), 제자리 방어만 — 다가가지도, 계속 막지도 않는다
+            if not lb.on:
+                self.log(f"   #{i}: 스태미나 {s.player.sp}/{s.player.max_sp} 인데 {thr.npc_param} {M.horiz(s.player, thr):.1f} m"
+                         " — 제자리 방어")
+            hold_until[i] = time.time()
+            lb.set()
+            self._defend_in_place(thr.ptr, nm)
+        elif st == "contact_in_zone":
+            lb.set()
+            r = self.fight(thr.ptr, nm, f"hold 접촉 {thr.npc_param}", arena=arena, limit=COMING_LIMIT,
+                           wait_far=True, leash=self._zone_leash(thr, spot, nm))
+            if r.result == "me_dead":
+                return "died"
+        return None
+
     def _defend_in_place(self, threat_ptr, nm) -> str:
         """스태미나가 모자란데 붙은 놈 — DEFEND_SLICE 동안 제자리 방어만. 스틱 중립(다가가지 않음), 방패는 반사가 공격이
         실제로 시작될 때만(계속 들지 않음), 반사의 반격(백스텝 공격)은 끈다. HP 25 % 아래면 기존 recover()(물러나 마시기).
@@ -555,6 +577,8 @@ class Field:
         deferred: dict = {}
         unreachable: list[str] = []                        # 제자리 고수 대상 중 끝내 못 끌어온 놈 (Patch B)
         blocks: dict = {}                                  # 제자리 고수 대상별 LureBlock (Patch C)
+        wait_since: dict = {}                              # 움직여 다른 높이인 목표를 평지에서 기다리기 시작한 때 (Patch E-1)
+        moved_n: dict = {}                                 # 그 기다림이 끝난 횟수
         binds: dict = {}                                   # id(목표) → 런타임 신원 (Patch A)
         unres: dict = {}                                   # 스폰에서 못 찾음·신원 끊김 횟수
         last_bind = 0.0
@@ -630,6 +654,31 @@ class Field:
                 continue
             k = tried.get(i, 0)
             la = e.get("lure_at") or {}
+            if arena is not None and not la.get("hold") and st == "moved" and abs(c.y - arena[1]) > MOVED_WAIT_DY:
+                # Patch E-1 (사용자 2026-09-26): 평지에서 잡을 목표(#1·#3 등)가 움직여 다른 높이에 있으면 찾아가지 않고 평지에서
+                # 기다린다 — 방패병 제자리 고수와 같은 방식, 내려오면 '오는 놈' 이 받는다. Patch A 뒤로 봇이 내려오는 #3 의 **예전
+                # 자리**(경사로 위)로 걸어 올라가 평지를 떠났다 (observe 131752·132053, 평지에서 5.95~6.0 m).
+                w0 = wait_since.get(i)
+                if w0 is None:
+                    w0 = wait_since[i] = time.time()
+                    self.log(f"   #{i} {e['npc']}: 움직여 다른 높이 (평지와 높이차 {c.y - arena[1]:+.1f} m) — 찾아가지 않고 평지에서 기다림")
+                if time.time() - w0 < MOVED_WAIT_S:
+                    if self._hold_tick(i, tuple(arena), s, nm, arena, ignore, blocks.setdefault(("wait", i), LureBlock()), {}) == "died":
+                        return "died"
+                    continue
+                wait_since.pop(i, None)
+                moved_n[i] = moved_n.get(i, 0) + 1
+                if moved_n[i] < 2:
+                    self.log(f"   #{i}: {MOVED_WAIT_S:.0f} s 기다려도 안 내려옴 — " + ("맨 뒤로 미룬다" if len(pending) > 1 else "한 번 더 기다림"))
+                    if len(pending) > 1:
+                        pending.append(pending.pop(0))
+                    continue
+                self.log(f"   #{i} {e['npc']}: 끝내 안 내려옴 — 찾아가지 않는다 (핸들 {b.get('handle')}, 위치 "
+                         f"({c.x:.1f},{c.y:.1f},{c.z:.1f}))")
+                left.append(f"#{i}~")
+                pending.pop(0)
+                continue
+            wait_since.pop(i, None)
             if lure and la.get("hold"):
                 # 제자리 고수 (사용자 2026-09-26: "첫번째 적을 잡은 위치를 고수해야 돼 — 2번째 적이 그쪽으로 끌려와. 그 근처에서 하면
                 # 방패병이 인식을 못함"). 봇은 끌어오기가 안 되면 방패병에게 걸어갔고, 매번 (-28,-49.3,23.8) — 방패병 8.8~9.1 m —
@@ -639,21 +688,8 @@ class Field:
                 near5 = any(abs(x.y - s.player.y) < 1.2 and M.horiz(s.player, x) <= HOLD_CALM_R
                             for x in s.hostile(HOLD_CALM_R + 3.0))
                 if time.time() < hold_until.get(i, 0.0) or lb.update(near5, time.time()):
-                    st, thr = self._hold_at(spot, nm, f"#{i}", s, ignore)
-                    if st == "low_stamina_threat":
-                        # 이번 기다림을 끝내고(새 끌어오기는 막음), 제자리 방어만 — 다가가지도, 계속 막지도 않는다
-                        if not lb.on:
-                            self.log(f"   #{i}: 스태미나 {s.player.sp}/{s.player.max_sp} 인데 {thr.npc_param} {M.horiz(s.player, thr):.1f} m"
-                                     " — 제자리 방어")
-                        hold_until[i] = time.time()
-                        lb.set()
-                        self._defend_in_place(thr.ptr, nm)
-                    elif st == "contact_in_zone":
-                        lb.set()
-                        r = self.fight(thr.ptr, nm, f"hold 접촉 {thr.npc_param}", arena=arena, limit=COMING_LIMIT,
-                                       wait_far=True, leash=self._zone_leash(thr, spot, nm))
-                        if r.result == "me_dead":
-                            return "died"
+                    if self._hold_tick(i, spot, s, nm, arena, ignore, lb, hold_until) == "died":
+                        return "died"
                     continue
                 if lure_n.get(i, 0) < HOLD_TRIES:
                     lr = self.lure(c.ptr, e["pos"], nm, f"#{i}", arena=arena, lure_at=la)
