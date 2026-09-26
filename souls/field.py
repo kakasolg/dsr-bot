@@ -47,6 +47,9 @@ LURE_MIN, LURE_MAX = 6.0, 13.0   # 평지에서 던지는 조건 — 이보다 �
 KNIFE_LOW = 5            # 이 아래면 경고 — 상인에게 사러 가는 건 나중 과제 (사용자 2026-09-24)
 HOLD_TRIES = 3           # 제자리 고수 대상(lure_at.hold): 끌어오기 시도 수, 그 사이 HOLD_WAIT 씩 제자리에서 기다린다
 HOLD_WAIT = 8.0
+MISSING_S = 5.0          # 묶어 둔 목표가 스냅샷에서 이만큼 계속 안 보이면 'unknown' (죽음으로 보지 않는다)
+MOVED_R, MOVED_DY = 3.0, 3.0   # 스폰에서 이만큼 벗어나 살아 있으면 'moved'
+BIND_EVERY = 1.0         # 안 묶인 목표를 스폰에서 다시 찾는 간격
 
 
 class Field:
@@ -363,15 +366,63 @@ class Field:
                  and abs(c.y - pos[1]) <= dy_max]
         return min(cands, key=lambda c: math.dist((c.x, c.y, c.z), tuple(pos)), default=None)
 
+    # ── 목표 생존 (Patch A, 2026-09-26) ─────────────────────────
+    # find_at 은 스폰 근처·높이차 3 m 안만 봐서, 위 턱에서 평지로 내려온 #3(raw HP 75)을 "스폰 30 m 안에 없음 — 이미 죽음" 으로
+    # 빼 버렸다 (R1·R2·R3 observe 101202·101538·101913). 목표는 처음 한 번만 스폰에서 찾고 그 뒤로는 **런타임 신원**
+    # (ptr + 핸들 + esc.gen)으로 따라간다. 죽음 = 같은 세대에서 raw HP 0 이 **서로 다른 스냅샷 두 번 연속**. 원시 사망 플래그는
+    # 모른다(OBSERVE.md). 못 읽은 틱(read_chr 실패 → 목록에서 빠짐)은 'missing' 이지 죽음이 아니다.
+    # 퀵 종료·다시 불러오기(esc.gen 변화)는 새 생명 경계 — 옛 신원을 버리고 스폰에서 새로 묶는다 (R1: 0 이 된 #2 가 다시 85 로 섰다).
+
+    def _bind(self, b: dict, e: dict, s) -> None:
+        """안 묶인 목표를 스폰에서 찾아 묶는다 (find_at — 첫 해석만)."""
+        c = self.find_at(e["npc"], e["pos"], 3.0) or self.find_at(e["npc"], e["pos"], 12.0) or self.find_at(e["npc"], e["pos"], 30.0)
+        if c is None:
+            return
+        b.update(ptr=c.ptr, handle=self.mv.tm.handle(c.ptr), gen=self.esc.gen, zero_n=0, zero_t=None,
+                 last_hp=c.hp, missing_since=None)
+
+    def _liveness(self, b: dict, e: dict, s) -> tuple[str, object]:
+        """→ (state, chr). state: 'dead' | 'moved' | 'alive' | 'missing' | 'unknown' | 'unbound'."""
+        if b.get("ptr") is None:
+            return "unbound", None
+        if b["gen"] != self.esc.gen:                       # 새 생명 경계 — 옛 신원은 버린다
+            b.clear()
+            return "unknown", None
+        c = self.mv.find(s, b["ptr"])
+        if c is not None and self.mv.tm.handle(b["ptr"]) != b["handle"]:
+            c = None                                       # 같은 ptr 에 다른 놈 — 그놈이 아니다
+        now = time.time()
+        if c is None:
+            if b.get("missing_since") is None:
+                b["missing_since"] = now
+            if now - b["missing_since"] >= MISSING_S:
+                b.clear()
+                return "unknown", None
+            return "missing", None
+        b["missing_since"] = None
+        if c.hp <= 0:
+            if b.get("zero_t") != s.t:
+                b["zero_n"] = b.get("zero_n", 0) + 1
+                b["zero_t"] = s.t
+            if b["zero_n"] >= 2:
+                return "dead", c
+            return "alive", c                              # 한 번 0 은 아직 모른다 — 다음 스냅샷을 본다
+        b["zero_n"], b["zero_t"], b["last_hp"] = 0, None, c.hp
+        far = math.dist((c.x, c.z), (e["pos"][0], e["pos"][2])) > MOVED_R or abs(c.y - e["pos"][1]) > MOVED_DY
+        return ("moved" if far else "alive"), c
+
     def clear(self, targets: list[dict], nm, tries: int = 3, arena=None, lure: bool = False) -> str:
         """교전 큐 (2026-09-25 층 설계 2단계): **깨어서 오는 놈이 있으면 가까운 순으로 먼저**, 없을 때만 스폰 목록의 다음 놈을
         끌어오거나 찾아간다. 실제 처치 대부분이 '가는 길에 쫓아온 놈' 이었는데 예전 코드는 그걸 walk 안의 예외로 다뤘다.
         targets = [{"npc":…, "pos":[x,y,z], "label":n, "lure":bool}, …] 는 '다음에 깨울 놈' 의도.
-        → 'cleared' | 'left #2 #4' (세 번 해도 못 잡은 놈) | 'died' | 'no_estus'"""
+        → 'cleared' | 'left #2 #4' (세 번 해도 못 잡은 놈; '#3?' = 생존을 확인 못 함, 죽음으로 보지 않음) | 'died' | 'no_estus'"""
         pending = list(targets)
         lure_n: dict = {}                                  # 제자리 고수 대상: 끌어오기 시도 수 / 기다림 끝 / 한 번 미뤘나
         hold_until: dict = {}
         deferred: dict = {}
+        binds: dict = {}                                   # id(목표) → 런타임 신원 (Patch A)
+        unres: dict = {}                                   # 스폰에서 못 찾음·신원 끊김 횟수
+        last_bind = 0.0
         left: list[str] = []
         tried: dict = {}                                   # 스폰 번호 / ptr → 시도 수
         ignore: set = set()                                # 세 번 못 잡은 오는 놈 (퀵 종료 감시에 맡긴다)
@@ -408,13 +459,39 @@ class Field:
                 else:
                     desperate = False
                 continue
+            if time.time() - last_bind >= BIND_EVERY:        # 안 묶인 목표는 스폰에서 (보통 첫 바퀴에 전부 묶인다)
+                last_bind = time.time()
+                for pe in pending:
+                    pb = binds.setdefault(id(pe), {})
+                    if pb.get("ptr") is None:
+                        self._bind(pb, pe, s)
             e = pending[0]
             i = e.get("label", 0)
-            c = (self.find_at(e["npc"], e["pos"], 3.0) or self.find_at(e["npc"], e["pos"], 12.0)
-                 or self.find_at(e["npc"], e["pos"], 30.0))
-            if c is None:
-                self.log(f"   #{i} {e['npc']}: 스폰 30 m 안에 없음 — 이미 죽음")
+            b = binds.setdefault(id(e), {})
+            st, c = self._liveness(b, e, s)
+            if st == "dead":
+                self.log(f"   #{i} {e['npc']}: 죽음 (raw HP 0 ×2, 핸들 {b.get('handle')}, 세대 {b.get('gen')})")
                 pending.pop(0)
+                continue
+            if st == "missing":                            # 잠깐 안 보임 — 죽음으로 보지 않는다
+                if len(pending) > 1:
+                    pending.append(pending.pop(0))
+                else:
+                    time.sleep(0.2)
+                continue
+            if st in ("unbound", "unknown"):
+                if st == "unbound":
+                    self._bind(b, e, s)
+                    if b.get("ptr") is not None:
+                        continue
+                unres[i] = unres.get(i, 0) + 1
+                self.log(f"   #{i} {e['npc']}: {'스폰에서 못 찾음' if st == 'unbound' else '신원 끊김(세대 변화·오래 안 보임)'}"
+                         f" — 죽음으로 보지 않는다 ({unres[i]}번째)")
+                if unres[i] >= 2:
+                    left.append(f"#{i}?")
+                    pending.pop(0)
+                elif len(pending) > 1:
+                    pending.append(pending.pop(0))
                 continue
             k = tried.get(i, 0)
             la = e.get("lure_at") or {}
