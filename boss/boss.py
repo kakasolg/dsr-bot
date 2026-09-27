@@ -4,7 +4,7 @@
 첫 판 분석(boss_223135): 3008 = 뛰어올라 내려찍기(192 × 3), 3006 = 앞으로 망치(169 × 2) — 방패로 못 막았다. 3003/3005/3013 은 막았고(스태미나 91→39),
 약공 한 번 38. 낙하 피해 189 (낙하 공격이 빗나가 12 m 를 그냥 떨어졌다). 에스트를 3.4 m 앞에서 마시다 곧장 3008 에 맞았다."""
 import json, math, sys, threading, time
-sys.path.insert(0, r"D:\dev\chzzk-souls-chaos\bot")
+sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent)); sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent.parent))
 import ah
 from ah import tm, pad, L, nav, control
@@ -494,7 +494,7 @@ def run():
     finally:
         _stop[0] = True; th.join(2)
         out = {"events": EVENTS, "shots": SHOTS, "fine": FINE}
-        json.dump(out, open(f"D:/dev/chzzk-souls-chaos/bot/data/trace/boss_{TAG}.json", "w", encoding="utf-8"), ensure_ascii=False)
+        json.dump(out, open(str(__import__("pathlib").Path(__file__).resolve().parent.parent / "data" / "trace" / f"boss_{TAG}.json"), "w", encoding="utf-8"), ensure_ascii=False)
         print("기록", f"boss_{TAG}.json", "세밀", len(FINE), "스크린샷", len(SHOTS), flush=True)
         pad.neutral(); pad.guard(True)
 

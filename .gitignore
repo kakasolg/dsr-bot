@@ -1,0 +1,8 @@
+.venv/
+.venv-llm/
+__pycache__/
+data/
+*.out
+*.err
+*.log
+.env

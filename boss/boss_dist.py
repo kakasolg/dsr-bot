@@ -4,7 +4,7 @@ import collections, glob, json, os, sys
 sys.stdout.reconfigure(encoding="utf-8")
 agg = collections.defaultdict(lambda: collections.Counter())
 dist_sum = collections.defaultdict(float)
-files = sorted(glob.glob(r"D:/dev/chzzk-souls-chaos/bot/data/trace/boss_*.json"), key=os.path.getmtime)
+files = sorted(glob.glob(str(__import__("pathlib").Path(__file__).resolve().parent.parent / "data" / "trace" / "boss_*.json")), key=os.path.getmtime)
 for f in files:
     J = json.load(open(f, encoding="utf-8"))
     if not isinstance(J, dict):

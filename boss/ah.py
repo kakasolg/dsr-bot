@@ -1,6 +1,6 @@
 """수용소 진행용 도우미 — 적이 가까우면 먼저 잡고(방패 들고 다가가 R1), 없으면 경로를 걷는다. 안내창은 보는 즉시 끈다."""
 import math, sys, time
-sys.path.insert(0, r"D:\dev\chzzk-souls-chaos\bot")
+sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent.parent))
 sys.stdout.reconfigure(encoding="utf-8")
 import control, env, nav, navmesh, patrol, quitout
 import ladder_test as L

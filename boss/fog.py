@@ -1,6 +1,6 @@
 """두 번째 화톳불 → 보스 안개 앞 (3.4, 210.1, -34.8). 끝에서 HP 80% 밑이면 에스트."""
 import sys, time
-sys.path.insert(0, r"D:\dev\chzzk-souls-chaos\bot")
+sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent)); sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent.parent))
 import ah
 from ah import tm, pad, go, L, nav, control
