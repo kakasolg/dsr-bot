@@ -23,6 +23,25 @@
 
 ---
 
+## 기존 도구 조사 (2026-09-27)
+
+새로 만들기 전에 이미 있는 것을 먼저 쓴다. 이 저장소는 MIT라서 **GPL/AGPL 코드는 복사하지 않고** 참고하거나 따로 실행하는 도구로만 쓴다.
+
+| 필요한 것 | 기존 도구 | 라이선스 | 쓰는 방법 |
+|---|---|---|---|
+| 충돌 메시(hkx) 읽기 (3번) | [soulstruct-havok](https://github.com/Grimrukh/soulstruct-havok) — soulstruct와 같은 저자, 맵 충돌 지원 | 확인 필요 | 의존성으로 추가해서 사용 (가장 유력) |
+| 맵 눈으로 확인 (2·3번 검증) | [DarkSoulsModelViewerDX](https://github.com/soulsmods/DarkSoulsModelViewerDX), [DSMapStudio](https://github.com/katalash/DSMapStudio) (DSR은 비공식), [soulstruct-blender](https://github.com/Grimrukh/soulstruct-blender) | — | [사람]/[win]이 추출 결과와 비교할 때 사용 |
+| AI Lua 디컴파일 (7번) | [DSLuaDecompiler](https://github.com/katalash/DSLuaDecompiler) — DS1 AI 스크립트(Lua 5.0) 대상 | — | 따로 실행해서 결과만 읽음 |
+| 공격 타이밍 TAE (7번) | [DSAnimStudio](https://github.com/Meowmaritus/DSAnimStudio) — DSR 지원 TAE 편집기 | — | 공격 판정 프레임 확인용 |
+| 게임 위 오버레이 (4번) | [DSR Practice Tool](https://github.com/fruizt/Dark_Souls_Remastered_Practice_Tool) — Rust, DLL 주입 + DX11 ImGui, 무적·충돌 끄기·게임 속도 | AGPL-3.0 | 코드 복사 금지. 탐험 모드 수동 검증에 도구로 사용 가능. 우리 오버레이는 계획대로 투명 창 방식 |
+| 학습 환경·시뮬레이터 (6번) | [DSLE](https://github.com/ConnAALL/dsle) — DSR 1.04, 보스 22개, 실제 게임을 Wine 컨테이너로 여러 개 실행 | GPL-3.0 | 시뮬레이터가 아니라 실제 게임 병렬 실행. 보스전 전용이라 필드 이동과는 다름. 설계 참고 |
+| 〃 | [SoulsGym](https://github.com/amacati/SoulsGym) — DS3/엘든링 보스전 Gymnasium 환경 | — | 메모리 읽기·쓰기로 환경을 만드는 방식 참고 |
+
+**결론**
+- 3번(충돌 메시)은 직접 파서를 만들지 말고 soulstruct-havok부터 시험한다.
+- 4번 레이더·오버레이, 6번 필드용 2D 시뮬레이터에 해당하는 기존 도구는 없다. 계획대로 만든다.
+- 7번(Lua·TAE)은 기존 도구로 뽑은 결과를 읽는 방식으로 한다.
+
 ## 1. 기반 정리 — 게임 없이 테스트
 
 - [x] [cloud] pymem/vgamepad 없이도 모듈이 불러와지게 함 (`telemetry.py`, `dsr_telemetry.py`, `control.py`, `quitout.py`) — Linux Python 3.12에서 오프라인 테스트 11/11 통과
@@ -45,7 +64,7 @@
 
 ## 3. 충돌 메시 — 벽과 낭떠러지 구분
 
-- [ ] [cloud] `map/*.hkxbhd` 충돌 메시를 읽을 수 있는지 조사 (soulstruct 지원 여부)
+- [ ] [cloud] `map/*.hkxbhd` 충돌 메시를 soulstruct-havok으로 읽을 수 있는지 시험 (기존 도구 조사 참고)
 - [ ] [cloud] NavMesh 경계를 벽/낭떠러지로 분류 → `navmesh.py`의 `EDGE_PENALTY` 활성화
 - [ ] [win] 실제 경로에서 낭떠러지 회피 확인
 
@@ -111,4 +130,5 @@
 ## 9. 변경 이력
 
 - 2026-09-27: 문서 작성. 대화에서 정한 순서 반영 (기반 → 추출 → 충돌 메시 → 오버레이 → 기록 재생 → 시뮬레이터 → 탐험·전투)
+- 2026-09-27: 기존 도구 조사 추가. 3번은 soulstruct-havok 사용으로 변경
 - 2026-09-27: CD는 불필요(배포 대상 없음)로 판단, CI만 추가
