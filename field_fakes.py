@@ -88,6 +88,7 @@ class FakeMv:
         self.cam_target = None
         self.show_path = None
         self.show_spot = None
+        self.show_smash = None
 
     def snap(self, within: float = 40.0):
         return self.w.snapshot(within)

@@ -1046,8 +1046,13 @@ class Field:
                     easy = [c for c in cands if foes_.of(c.npc_param).kind != "shield"]
                     return min(easy or cands, key=lambda c: c.dist if c.dist is not None else 999.0)
                 g0 = self.esc.gen
+
+                def on_stuck(p, target, q=q):
+                    # stuck on the way (nav.goto STUCK_WINDOW, 2 s) — a crate in front? break it now, not after the 15 s timeout
+                    return self._smash_blocking(nm, (p.x, p.y, p.z), q, smashed, tag, mover)
+
                 r = nav.goto(self.mv.tm, self.mv.pad, q, tolerance=t if terr is not None else max(t, 0.8), timeout=15,
-                             log=lambda *a: None, terrain=terr, mover=mover,
+                             log=lambda *a: None, terrain=terr, mover=mover, on_stuck=on_stuck,
                              mode_fn=lambda sn: "retreat" if (self.reflex.threat_now(sn) or chaser(sn) or self.esc.escaping
                                                               or self.esc.gen != g0) else mode)
                 if r == "dead":
@@ -1105,11 +1110,7 @@ class Field:
                                     pos=[round(v, 2) for v in pp], r=r, fails=fails)
                         # a breakable prop on the way (the NavMesh doesn't know crates) — break it and try the same point again, before
                         # detouring: the detour's navmesh path runs through the same crate (2026-09-27 burg-bonfire #6, ROADMAP P-6)
-                        prop = next((o for o in props_.blocking(getattr(nm, "map_id", None), pp, q)
-                                     if smashed.get(o["name"], 0) < SMASH_TRIES), None)
-                        if prop is not None:
-                            smashed[prop["name"]] = smashed.get(prop["name"], 0) + 1
-                            self._smash(prop, tag)
+                        if self._smash_blocking(nm, pp, q, smashed, tag, mover):
                             fails = 0
                             continue
                         # if the straight line fails, detour once via navmesh pathfinding — pushed while fighting onto the upper passage beside the stairs (1.1~1.5 m higher),
@@ -1140,6 +1141,19 @@ class Field:
             return "arrived"
         finally:
             mover.stop()
+
+    def _smash_blocking(self, nm, me, goal, smashed: dict, tag: str, mover=None) -> bool:
+        """A breakable prop between me and goal not yet swung at SMASH_TRIES times this walk → break it, True. Else False."""
+        prop = next((o for o in props_.blocking(getattr(nm, "map_id", None), me, goal)
+                     if smashed.get(o["name"], 0) < SMASH_TRIES), None)
+        if prop is None:
+            return False
+        smashed[prop["name"]] = smashed.get(prop["name"], 0) + 1
+        if mover is not None:
+            mover.stop()                                   # release run (B) before stepping up and swinging
+        self._smash(prop, tag)
+        self.mv.show_smash = (prop["name"], tuple(prop["pos"]), time.time())    # viewers only (radar)
+        return True
 
     def _smash(self, prop: dict, tag: str) -> None:
         """Step up to a breakable prop (to SMASH_R, or until it stops getting closer), turn to it and swing twice (light

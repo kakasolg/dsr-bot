@@ -75,6 +75,7 @@ class Moves:
         # what layer 4 is doing, for viewers only (radar.py reads these; nothing in the bot reads them back)
         self.show_path = None    # (tag, [(x, y, z), ...]) while field.walk follows a path
         self.show_spot = None    # (tag, (x, y, z), time) — last spot field._hold_at held
+        self.show_smash = None   # (prop name, (x, y, z), time) — last prop field._smash_blocking swung at
 
     # ── Camera ───────────────────────────────────────────────
     # User 2026-09-26: "This game has auto lock-on, so … press the right stick again to release, point the camera at the enemy you want, press the stick".
