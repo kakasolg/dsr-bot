@@ -55,6 +55,14 @@
 - [x] [cloud] `.gitignore`의 `data/` 규칙 정리 (필요한 파일이 무시되지 않게) — `data/*` + 예외(`*.json`, `*.txt`, `routes/`, `gamefiles/`, `samples/`), 새 파일로 추적·무시 확인
 - [ ] [cloud] 루트 정리: 실험 스크립트는 `experiments/`로, `telemetry`/`dsr_telemetry`와 `nav`/`navmesh`의 관계를 문서화
 
+## 1-b. 윈도우 1차 결과로 나온 할 일 (2026-09-27 [cloud] 분석)
+
+- [ ] [cloud] P-6 상세 1: `souls/duel.py`의 "목표 바꿈"(끼어든 적 먼저)이 **잠든 적(애니 -1)**도 고름. 주석은 "awake foe"인데 코드는 9000번대만 뺌 → 잠든 적 제외 + 높이차 경계(-1.2 m) 조정, 결과 로그를 실제 상대 기준으로. 가짜 월드 테스트 추가
+- [ ] [cloud] P-6 상세 2: 경로 점 (-36.0,-13.5,-70.1)에서 0.7 m·1.3 m 거리에 부서지는 상자 `o1132_06`·`o1130_12` 확인 → 막힌 경로 점 근처에 `breakable` 오브젝트가 있으면 **한 대 쳐서 부수고 다시 걷기**. `data/gamefiles/`를 읽는 작은 모듈 + `field.walk` 실패 처리에 연결
+- [ ] [cloud] P-4: `counts.enemies` → `enemies_hostile`/`humans`로 이름 분리. `MinAttackForDamage` > 약공 피해인 오브젝트(Burg 12개, 값 90)는 `breakable: "strong"`처럼 따로 표시
+- [ ] [cloud] P-5: `.gitignore`를 파일 단위 허용 목록으로 좁힘 (윈도우 실행 산출물이 안 뜨게)
+- [ ] [win] 위 수정 후 `burg-bonfire --radar` 재실행, P-6 두 장면 비교
+
 ## 2. 게임 파일에서 지형·적 정보 추출
 
 - [x] [cloud] `msb_extract.py <mapID>` 작성 — `.msb`에서 추출해 `data/gamefiles/<mapID>.json`으로 저장 (`data/maps/`는 mapmem·navmesh 캐시가 쓰므로 분리) — 가짜 MSB로 `msb_extract_test.py` 통과, CI 포함. 실제 게임 파일로는 미확인 → [win] 확인 필요
@@ -156,5 +164,6 @@
 ## 9. 변경 이력
 
 - 2026-09-27: 문서 작성. 대화에서 정한 순서 반영 (기반 → 추출 → 충돌 메시 → 오버레이 → 기록 재생 → 시뮬레이터 → 탐험·전투)
+- 2026-09-27: 윈도우 1차 결과 분석 → 1-b 섹션 추가
 - 2026-09-27: 기존 도구 조사 추가. 3번은 soulstruct-havok 사용으로 변경
 - 2026-09-27: CD는 불필요(배포 대상 없음)로 판단, CI만 추가
