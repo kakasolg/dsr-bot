@@ -66,6 +66,8 @@ BOT_GAME=dsr .venv/Scripts/python run.py burg-bonfire --no-quit     # no quit-ou
 ```
 
 Offline tests (fake world, no game needed): `python field_*_test.py`, `duel_shadow_test.py`, `moves_test.py`, etc.
+They also run on Linux/macOS without the Windows-only packages (`pymem`, `vgamepad`) — install the rest of
+`requirements-lock.txt`. (`axe_heavy_test.py` is an in-game measurement, not an offline test.)
 
 `data/` only contains the small files the missions need — routes a human walked and recorded (`data/routes/`), enemy spawn
 maps, and user-marked safe zones (`safe-zones.json`). Observation recordings and run logs (1 GB+) are not included; open an

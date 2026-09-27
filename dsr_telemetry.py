@@ -47,10 +47,15 @@ from typing import Optional
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
-import pymem
-import pymem.exception
-import pymem.pattern
-import pymem.process
+# pymem is Windows-only. Offline tests only need the data classes (Chr, Snapshot),
+# so a missing pymem must not break the import; attaching to the game still requires it.
+try:
+    import pymem
+    import pymem.exception
+    import pymem.pattern
+    import pymem.process
+except ImportError:
+    pymem = None
 
 from telemetry import Chr, Snapshot   # same shape as Elden Ring → nav/patrol use it as-is
 
@@ -91,6 +96,8 @@ FRIENDLY = {279070, 100000}   # Crestfallen Warrior, human NPC (c1000) — move 
 
 class DSRTelemetry:
     def __init__(self, names: Optional[dict[int, str]] = None):
+        if pymem is None:
+            raise RuntimeError("pymem is not installed (Windows only) — cannot attach to the game")
         self.pm = pymem.Pymem("DarkSoulsRemastered.exe")
         self.mod = pymem.process.module_from_name(self.pm.process_handle, "DarkSoulsRemastered.exe")
         self.base = self.mod.lpBaseOfDll

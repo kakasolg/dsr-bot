@@ -20,9 +20,19 @@ if hasattr(sys.stdout, "reconfigure"):
 import ctypes
 import ctypes.wintypes
 
-import vgamepad as vg
+# vgamepad (ViGEmBus) is Windows-only. Offline tests only need the button constants,
+# so fall back to a stand-in; creating a real pad still requires vgamepad.
+try:
+    import vgamepad as vg
+    B = vg.XUSB_BUTTON
+except ImportError:
+    vg = None
 
-B = vg.XUSB_BUTTON
+    class _Buttons:
+        def __getattr__(self, name):
+            return name
+
+    B = _Buttons()
 
 
 _game_hwnd = None
@@ -140,6 +150,8 @@ class Pad:
         # 반사 스레드(reflex.py)와 판단 루프가 같이 누른다 — 보고서(report)를 동시에 고치지 않게 잠근다
         self._lock = threading.RLock()
         self.force_guard = False  # 반사 스레드가 켜면 판단 루프가 가드를 내려도 무시한다 (적 공격 중)
+        if vg is None:
+            raise RuntimeError("vgamepad is not installed (Windows only) — cannot create the virtual pad")
         self.pad = vg.VX360Gamepad()
         self.neutral()
         time.sleep(2.0)  # 게임이 새 XInput 장치를 인식할 시간 (바로 누르면 첫 입력이 씹힘)

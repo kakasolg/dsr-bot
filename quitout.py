@@ -22,9 +22,8 @@ if hasattr(sys.stdout, "reconfigure"):
 
 import control
 import env
-import vgamepad as vg
 
-B = vg.XUSB_BUTTON
+B = control.B   # vgamepad button constants (stand-in when vgamepad is missing — offline tests)
 QUIT_SEQ = [B.XUSB_GAMEPAD_START, B.XUSB_GAMEPAD_DPAD_LEFT, B.XUSB_GAMEPAD_A, B.XUSB_GAMEPAD_DPAD_UP,
             B.XUSB_GAMEPAD_A, B.XUSB_GAMEPAD_DPAD_LEFT, B.XUSB_GAMEPAD_A]
 HOLD = 0.05
