@@ -23,6 +23,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 import radar
+import translate
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
@@ -51,7 +52,8 @@ def load_props(folder: Path = GAMEFILES) -> list[list]:
 
 
 class State:
-    def __init__(self, props: list | None = None):
+    def __init__(self, props: list | None = None, english: bool = True):
+        self.english = english                 # translate the bot's Korean log lines / tags for display (translate.py)
         self.props = props if props is not None else load_props()
         self.lock = threading.Lock()
         self.snap: dict | None = None
@@ -68,8 +70,13 @@ class State:
 
     def get(self) -> dict:
         with self.lock:
-            snap = self.snap
-            out = {"snap": snap, "says": list(self.says), "age": round(time.time() - self.t_recv, 2) if self.t_recv else None}
+            snap, says = self.snap, list(self.says)
+            age = round(time.time() - self.t_recv, 2) if self.t_recv else None
+        if self.english:
+            says = [{**x, "line": translate.line(x.get("line"))} for x in says]
+            if snap:
+                snap = {**snap, **{k: translate.line(snap[k]) for k in ("path_tag", "spot_tag") if snap.get(k)}}
+        out = {"snap": snap, "says": says, "age": age}
         p = (snap or {}).get("player") or {}
         if p.get("x") is not None:
             out["props"] = [o for o in self.props if abs(o[0] - p["x"]) < PROP_R and abs(o[2] - p["z"]) < PROP_R
@@ -164,10 +171,11 @@ def main() -> None:
     ap.add_argument("--demo", action="store_true", help="fake world, no game needed")
     ap.add_argument("--udp", type=int, default=radar.PORT)
     ap.add_argument("--http", type=int, default=HTTP_PORT)
+    ap.add_argument("--korean", action="store_true", help="show the bot's log lines untranslated (default: English)")
     a = ap.parse_args()
     demo_props = [[6.0, 0.0, 1.0, False, "o1130_d2"], [7.0, 0.0, -1.5, False, "o1132_d3"], [-3.0, 0.0, 6.0, True, "o1230_d4"],
                   [2.0, 0.0, -7.0, False, "o1154_d5"]]
-    state = State(props=demo_props if a.demo else None)
+    state = State(props=demo_props if a.demo else None, english=not a.korean)
     if not a.demo:
         print(f"breakable props: {len(state.props)} (data/gamefiles)")
     threading.Thread(target=udp_loop, args=(state, a.udp), daemon=True).start()

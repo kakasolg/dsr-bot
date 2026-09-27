@@ -74,7 +74,7 @@ r.say("교전: 망자 (4.0 m)")
 time.sleep(0.3)
 s = state(http)
 check("스냅샷 도착", s["snap"] and s["snap"]["player"]["hp"] == 500 and s["snap"]["chars"][0]["anim"] == 3004)
-check("판단 한 줄 도착", s["says"] and s["says"][-1]["line"] == "교전: 망자 (4.0 m)")
+check("판단 한 줄 도착 (영어로 번역)", s["says"] and s["says"][-1]["line"] == "fight: Hollow (4.0 m)")
 r.snapshot(snap)
 before = r._last
 r.snapshot(snap)
@@ -89,7 +89,7 @@ r.snapshot(snap)
 time.sleep(0.3)
 s = state(http)["snap"]
 check("목표 ptr", s.get("target") == 2)
-check("경로: 줄여서 보내고 끝점은 유지", s.get("path_tag") == "경사로" and len(s["path"]) <= radar.MAX_PATH + 1 and s["path"][-1] == [499.0, 0.0, 0.0])
+check("경로: 줄여서 보내고 끝점은 유지", s.get("path_tag") == "ramp" and len(s["path"]) <= radar.MAX_PATH + 1 and s["path"][-1] == [499.0, 0.0, 0.0])
 check("지킬 자리", s.get("spot") == [3.0, 0.0, 4.0] and s.get("spot_tag") == "대기")
 mv.show_spot = ("대기", (3.0, 0.0, 4.0), time.time() - 10)
 mv.cam_target, mv.show_path = None, None
