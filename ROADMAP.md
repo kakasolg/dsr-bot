@@ -59,8 +59,8 @@
 
 - [ ] [cloud] P-6 상세 1: `souls/duel.py`의 "목표 바꿈"(끼어든 적 먼저)이 **잠든 적(애니 -1)**도 고름. 주석은 "awake foe"인데 코드는 9000번대만 뺌 → 잠든 적 제외 + 높이차 경계(-1.2 m) 조정, 결과 로그를 실제 상대 기준으로. 가짜 월드 테스트 추가
 - [ ] [cloud] P-6 상세 2: 경로 점 (-36.0,-13.5,-70.1)에서 0.7 m·1.3 m 거리에 부서지는 상자 `o1132_06`·`o1130_12` 확인 → 막힌 경로 점 근처에 `breakable` 오브젝트가 있으면 **한 대 쳐서 부수고 다시 걷기**. `data/gamefiles/`를 읽는 작은 모듈 + `field.walk` 실패 처리에 연결
-- [ ] [cloud] P-4: `counts.enemies` → `enemies_hostile`/`humans`로 이름 분리. `MinAttackForDamage` > 약공 피해인 오브젝트(Burg 12개, 값 90)는 `breakable: "strong"`처럼 따로 표시
-- [ ] [cloud] P-5: `.gitignore`를 파일 단위 허용 목록으로 좁힘 (윈도우 실행 산출물이 안 뜨게)
+- [x] [cloud] P-4: counts에 `characters`(전체)·`enemies`(사람형 제외)·`humans`를 나눠 표시. 오브젝트에 `min_attack`(MinAttackForDamage) 추가, 50 이상은 `breakable_strong`으로 셈 (Burg 12, Firelink 0). 커밋된 JSON 2개도 같은 규칙으로 갱신(추가만, 기존 값 불변). `msb_extract_test.py` 통과
+- [x] [cloud] P-5: `.gitignore`를 파일 단위 허용 목록으로 좁힘 (윈도우 실행 산출물이 안 뜨게) — `data/*`·`data/routes/*`는 무시하고 필요한 파일만 이름으로 허용. 가짜 파일로 확인: `diag.json`·`dmglog*.json`·`routes/asylum-*.json` 숨김, `gamefiles/`·`samples/`는 보임, 추적 중인 12개 영향 없음
 - [ ] [win] 위 수정 후 `burg-bonfire --radar` 재실행, P-6 두 장면 비교
 
 ## 2. 게임 파일에서 지형·적 정보 추출
@@ -144,12 +144,12 @@
 ### P-4 msb_extract 요약 수치·미발견 행 (2026-09-27, [win], 2번)
 - 증상: 콘솔 요약의 적 수가 JSON `enemies` 길이와 다름 (Firelink 27 vs 41, Burg 166 vs 174). 차이 = `kind: human`(모델 `c0000`) 수. Firelink 오브젝트 30개가 `param_row_found: false`, 그중 28개가 `o0020`. Burg는 `o1111`(7), `o1301`/`o1302`(각 4) 등 22개
 - 원인 (추정): `counts.enemies`가 human을 뺀 수로 보임 (의도라면 이름을 분명히). `o0020` 등은 ObjectParam 행이 없는 장식/특수 모델이거나 행 번호가 모델 번호와 다른 경우. Burg 부서짐 407/529는 통·상자가 많은 구역이라 그럴듯하나, `o1230`처럼 `MinAttackForDamage: 90`인 것도 breakable로 잡힘
-- 해결: 미해결 ([cloud] 판단)
+- 해결: counts 이름 분리(`characters`/`enemies`/`humans`), `min_attack`·`breakable_strong` 추가 (2026-09-27 [cloud]). 행이 없는 `o0020` 등은 부서지지 않음으로 둠 (행이 없으면 게임도 기본값으로 처리한다고 추정 — [사람] 확인 필요 시 추가)
 
 ### P-5 .gitignore 변경 후 로컬 실행 파일이 추적 후보로 뜸 (2026-09-27, [win], 1번)
 - 증상: `data/*.json` 예외 때문에 윈도우 로컬의 `data/diag.json`, `data/dmglog*.json`, `data/char-state.json`, `data/routes/asylum-*.json` 등 20여 개가 `git status`에 untracked로 나옴
 - 원인 (확인): `.gitignore`가 `data/*.json`, `data/routes/`를 모두 허용함. 봇·실험 스크립트가 실행 중 쓰는 파일이 섞임
-- 해결: 미해결. [win]은 커밋하지 않음. 실행 산출물 이름을 따로 무시하거나 허용 목록을 파일 단위로 좁힐 것 ([cloud])
+- 해결: `.gitignore`를 파일 단위 허용 목록으로 바꿈 (2026-09-27 [cloud]). 새로 공유할 파일은 `.gitignore`에 한 줄 추가
 
 ### P-6 burg-bonfire 성벽 마을 구간 위험 (2026-09-27, [win], 1번)
 - 증상: `run.py burg-bonfire --radar` 완주(`lit`, 418 s)했지만 위험 판정 "위험": 최저 HP 2%, 큰 피격 8번 -1085 (254011×4, 254001×2, 254010×2), 둘러싸임(crowd) 퀵 종료 2번 — (-55.0,-22.8,-29.5) HP 151, (-21.2,-13.4,-59.3) HP 338. `#1 254011` stuck 18 s(가장자리 방어, 높이 -1.2), `#4` 경로점 (-9.8,-11.3,-68.6) stuck, `#6` (-36.0,-13.5,-70.1) timeout. 같은 날 레이더 없이 돈 1회차(상인까지)는 이 정도로 위험하지 않았음

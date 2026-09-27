@@ -40,7 +40,7 @@ def fake_msb():
 
 
 def fake_params():
-    objs = {1200: SimpleNamespace(ObjectHP=1, PreventAllDamage=False, IsLadder=False)}
+    objs = {1200: SimpleNamespace(ObjectHP=1, PreventAllDamage=False, IsLadder=False, MinAttackForDamage=90)}
     think = {225000: SimpleNamespace(SightDistance=20, HearingDistance=10, MaxRetreatDistance=15)}
     return objs, think
 
@@ -57,7 +57,7 @@ def check(name, cond):
 print("MSB만")
 d = X.extract("m_test", with_params=False, msb=fake_msb())
 e0, e1 = d["enemies"]
-check("적 수 (c0000 은 human 으로 분리)", d["counts"]["enemies"] == 1 and e1["kind"] == "human")
+check("적 수 (c0000 은 human 으로 분리)", d["counts"]["enemies"] == 1 and d["counts"]["humans"] == 1 and d["counts"]["characters"] == 2 and e1["kind"] == "human")
 check("적 위치·방향", e0["pos"] == [10.0, 0.0, 5.0] and e0["rot_y"] == 90.0)
 check("순찰 경로 (빈 칸 건너뜀)", [p["name"] for p in e0["patrol"]] == ["patrol_a", "patrol_b"])
 check("params 없으면 breakable/think 는 None", d["objects"][0]["breakable"] is None and e0["think"] is None)
@@ -69,6 +69,7 @@ d = X.extract("m_test", msb=fake_msb())
 box, door = d["objects"]
 check("박스: 행 있음, 부서짐", box["param_row_found"] is True and box["breakable"] is True)
 check("문: 행 없음 → 부서지지 않음", door["param_row_found"] is False and door["breakable"] is False)
+check("강공 필요 표시", box["min_attack"] == 90 and d["counts"]["breakable_strong"] == 1)
 check("적 think 붙음", d["enemies"][0]["think"] == {"SightDistance": 20, "HearingDistance": 10, "MaxRetreatDistance": 15})
 check("ai_id -1 이면 think None", d["enemies"][1]["think"] is None)
 check("breakable 판정", X.is_breakable({"ObjectHP": 0}) is False and X.is_breakable({"ObjectHP": 5, "PreventAllDamage": True}) is False)

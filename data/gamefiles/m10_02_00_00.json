@@ -8,7 +8,10 @@
  "counts": {
   "objects": 82,
   "breakable": 25,
+  "breakable_strong": 0,
+  "characters": 41,
   "enemies": 27,
+  "humans": 14,
   "with_patrol": 0
  },
  "objects": [
@@ -25,6 +28,7 @@
    "break_term": 0,
    "param_row_found": false,
    "breakable": false,
+   "min_attack": null,
    "param": null
   },
   {
@@ -40,6 +44,7 @@
    "break_term": 0,
    "param_row_found": false,
    "breakable": false,
+   "min_attack": null,
    "param": null
   },
   {
@@ -55,6 +60,7 @@
    "break_term": 0,
    "param_row_found": false,
    "breakable": false,
+   "min_attack": null,
    "param": null
   },
   {
@@ -70,6 +76,7 @@
    "break_term": 0,
    "param_row_found": false,
    "breakable": false,
+   "min_attack": null,
    "param": null
   },
   {
@@ -85,6 +92,7 @@
    "break_term": 0,
    "param_row_found": false,
    "breakable": false,
+   "min_attack": null,
    "param": null
   },
   {
@@ -100,6 +108,7 @@
    "break_term": 0,
    "param_row_found": false,
    "breakable": false,
+   "min_attack": null,
    "param": null
   },
   {
@@ -115,6 +124,7 @@
    "break_term": 0,
    "param_row_found": false,
    "breakable": false,
+   "min_attack": null,
    "param": null
   },
   {
@@ -130,6 +140,7 @@
    "break_term": 0,
    "param_row_found": false,
    "breakable": false,
+   "min_attack": null,
    "param": null
   },
   {
@@ -145,6 +156,7 @@
    "break_term": 0,
    "param_row_found": false,
    "breakable": false,
+   "min_attack": null,
    "param": null
   },
   {
@@ -160,6 +172,7 @@
    "break_term": 0,
    "param_row_found": false,
    "breakable": false,
+   "min_attack": null,
    "param": null
   },
   {
@@ -175,6 +188,7 @@
    "break_term": 0,
    "param_row_found": false,
    "breakable": false,
+   "min_attack": null,
    "param": null
   },
   {
@@ -190,6 +204,7 @@
    "break_term": 0,
    "param_row_found": false,
    "breakable": false,
+   "min_attack": null,
    "param": null
   },
   {
@@ -205,6 +220,7 @@
    "break_term": 0,
    "param_row_found": false,
    "breakable": false,
+   "min_attack": null,
    "param": null
   },
   {
@@ -220,6 +236,7 @@
    "break_term": 0,
    "param_row_found": false,
    "breakable": false,
+   "min_attack": null,
    "param": null
   },
   {
@@ -235,6 +252,7 @@
    "break_term": 0,
    "param_row_found": false,
    "breakable": false,
+   "min_attack": null,
    "param": null
   },
   {
@@ -250,6 +268,7 @@
    "break_term": 0,
    "param_row_found": false,
    "breakable": false,
+   "min_attack": null,
    "param": null
   },
   {
@@ -265,6 +284,7 @@
    "break_term": 0,
    "param_row_found": false,
    "breakable": false,
+   "min_attack": null,
    "param": null
   },
   {
@@ -280,6 +300,7 @@
    "break_term": 0,
    "param_row_found": false,
    "breakable": false,
+   "min_attack": null,
    "param": null
   },
   {
@@ -295,6 +316,7 @@
    "break_term": 0,
    "param_row_found": false,
    "breakable": false,
+   "min_attack": null,
    "param": null
   },
   {
@@ -310,6 +332,7 @@
    "break_term": 0,
    "param_row_found": false,
    "breakable": false,
+   "min_attack": null,
    "param": null
   },
   {
@@ -325,6 +348,7 @@
    "break_term": 0,
    "param_row_found": false,
    "breakable": false,
+   "min_attack": null,
    "param": null
   },
   {
@@ -340,6 +364,7 @@
    "break_term": 0,
    "param_row_found": false,
    "breakable": false,
+   "min_attack": null,
    "param": null
   },
   {
@@ -355,6 +380,7 @@
    "break_term": 0,
    "param_row_found": false,
    "breakable": false,
+   "min_attack": null,
    "param": null
   },
   {
@@ -370,6 +396,7 @@
    "break_term": 0,
    "param_row_found": false,
    "breakable": false,
+   "min_attack": null,
    "param": null
   },
   {
@@ -385,6 +412,7 @@
    "break_term": 0,
    "param_row_found": false,
    "breakable": false,
+   "min_attack": null,
    "param": null
   },
   {
@@ -400,6 +428,7 @@
    "break_term": 0,
    "param_row_found": false,
    "breakable": false,
+   "min_attack": null,
    "param": null
   },
   {
@@ -415,6 +444,7 @@
    "break_term": 0,
    "param_row_found": false,
    "breakable": false,
+   "min_attack": null,
    "param": null
   },
   {
@@ -430,6 +460,7 @@
    "break_term": 0,
    "param_row_found": false,
    "breakable": false,
+   "min_attack": null,
    "param": null
   },
   {
@@ -445,6 +476,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": false,
+   "min_attack": 0,
    "param": {
     "ObjectHP": -1,
     "MinAttackForDamage": 0,
@@ -469,6 +501,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": false,
+   "min_attack": 0,
    "param": {
     "ObjectHP": -1,
     "MinAttackForDamage": 0,
@@ -493,6 +526,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": false,
+   "min_attack": 0,
    "param": {
     "ObjectHP": -1,
     "MinAttackForDamage": 0,
@@ -517,6 +551,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": false,
+   "min_attack": 0,
    "param": {
     "ObjectHP": -1,
     "MinAttackForDamage": 0,
@@ -541,6 +576,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": false,
+   "min_attack": 0,
    "param": {
     "ObjectHP": -1,
     "MinAttackForDamage": 0,
@@ -565,6 +601,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": false,
+   "min_attack": 0,
    "param": {
     "ObjectHP": -1,
     "MinAttackForDamage": 0,
@@ -589,6 +626,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": false,
+   "min_attack": 0,
    "param": {
     "ObjectHP": -1,
     "MinAttackForDamage": 0,
@@ -613,6 +651,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": false,
+   "min_attack": 0,
    "param": {
     "ObjectHP": -1,
     "MinAttackForDamage": 0,
@@ -637,6 +676,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": false,
+   "min_attack": 0,
    "param": {
     "ObjectHP": -1,
     "MinAttackForDamage": 0,
@@ -661,6 +701,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": false,
+   "min_attack": 0,
    "param": {
     "ObjectHP": -1,
     "MinAttackForDamage": 0,
@@ -685,6 +726,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": false,
+   "min_attack": 0,
    "param": {
     "ObjectHP": -1,
     "MinAttackForDamage": 0,
@@ -709,6 +751,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": false,
+   "min_attack": 0,
    "param": {
     "ObjectHP": -1,
     "MinAttackForDamage": 0,
@@ -733,6 +776,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": false,
+   "min_attack": 0,
    "param": {
     "ObjectHP": -1,
     "MinAttackForDamage": 0,
@@ -757,6 +801,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": false,
+   "min_attack": 0,
    "param": {
     "ObjectHP": -1,
     "MinAttackForDamage": 0,
@@ -781,6 +826,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": false,
+   "min_attack": 0,
    "param": {
     "ObjectHP": -1,
     "MinAttackForDamage": 0,
@@ -805,6 +851,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": false,
+   "min_attack": 0,
    "param": {
     "ObjectHP": -1,
     "MinAttackForDamage": 0,
@@ -829,6 +876,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": false,
+   "min_attack": 0,
    "param": {
     "ObjectHP": -1,
     "MinAttackForDamage": 0,
@@ -853,6 +901,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": false,
+   "min_attack": 0,
    "param": {
     "ObjectHP": -1,
     "MinAttackForDamage": 0,
@@ -877,6 +926,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": false,
+   "min_attack": 0,
    "param": {
     "ObjectHP": -1,
     "MinAttackForDamage": 0,
@@ -901,6 +951,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": false,
+   "min_attack": 0,
    "param": {
     "ObjectHP": -1,
     "MinAttackForDamage": 0,
@@ -925,6 +976,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": false,
+   "min_attack": 0,
    "param": {
     "ObjectHP": -1,
     "MinAttackForDamage": 0,
@@ -949,6 +1001,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": false,
+   "min_attack": 0,
    "param": {
     "ObjectHP": -1,
     "MinAttackForDamage": 0,
@@ -973,6 +1026,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": false,
+   "min_attack": 0,
    "param": {
     "ObjectHP": -1,
     "MinAttackForDamage": 0,
@@ -997,6 +1051,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": false,
+   "min_attack": 0,
    "param": {
     "ObjectHP": -1,
     "MinAttackForDamage": 0,
@@ -1021,6 +1076,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": false,
+   "min_attack": 0,
    "param": {
     "ObjectHP": -1,
     "MinAttackForDamage": 0,
@@ -1045,6 +1101,7 @@
    "break_term": 0,
    "param_row_found": false,
    "breakable": false,
+   "min_attack": null,
    "param": null
   },
   {
@@ -1060,6 +1117,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": false,
+   "min_attack": 0,
    "param": {
     "ObjectHP": -1,
     "MinAttackForDamage": 0,
@@ -1084,6 +1142,7 @@
    "break_term": 0,
    "param_row_found": false,
    "breakable": false,
+   "min_attack": null,
    "param": null
   },
   {
@@ -1099,6 +1158,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": true,
+   "min_attack": 0,
    "param": {
     "ObjectHP": 1,
     "MinAttackForDamage": 0,
@@ -1123,6 +1183,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": true,
+   "min_attack": 0,
    "param": {
     "ObjectHP": 1,
     "MinAttackForDamage": 0,
@@ -1147,6 +1208,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": true,
+   "min_attack": 0,
    "param": {
     "ObjectHP": 1,
     "MinAttackForDamage": 0,
@@ -1171,6 +1233,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": true,
+   "min_attack": 0,
    "param": {
     "ObjectHP": 1,
     "MinAttackForDamage": 0,
@@ -1195,6 +1258,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": true,
+   "min_attack": 0,
    "param": {
     "ObjectHP": 1,
     "MinAttackForDamage": 0,
@@ -1219,6 +1283,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": true,
+   "min_attack": 0,
    "param": {
     "ObjectHP": 1,
     "MinAttackForDamage": 0,
@@ -1243,6 +1308,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": true,
+   "min_attack": 0,
    "param": {
     "ObjectHP": 1,
     "MinAttackForDamage": 0,
@@ -1267,6 +1333,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": true,
+   "min_attack": 0,
    "param": {
     "ObjectHP": 1,
     "MinAttackForDamage": 0,
@@ -1291,6 +1358,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": true,
+   "min_attack": 0,
    "param": {
     "ObjectHP": 1,
     "MinAttackForDamage": 0,
@@ -1315,6 +1383,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": true,
+   "min_attack": 0,
    "param": {
     "ObjectHP": 1,
     "MinAttackForDamage": 0,
@@ -1339,6 +1408,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": true,
+   "min_attack": 0,
    "param": {
     "ObjectHP": 1,
     "MinAttackForDamage": 0,
@@ -1363,6 +1433,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": true,
+   "min_attack": 0,
    "param": {
     "ObjectHP": 1,
     "MinAttackForDamage": 0,
@@ -1387,6 +1458,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": true,
+   "min_attack": 0,
    "param": {
     "ObjectHP": 1,
     "MinAttackForDamage": 0,
@@ -1411,6 +1483,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": true,
+   "min_attack": 0,
    "param": {
     "ObjectHP": 1,
     "MinAttackForDamage": 0,
@@ -1435,6 +1508,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": true,
+   "min_attack": 0,
    "param": {
     "ObjectHP": 1,
     "MinAttackForDamage": 0,
@@ -1459,6 +1533,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": true,
+   "min_attack": 0,
    "param": {
     "ObjectHP": 1,
     "MinAttackForDamage": 0,
@@ -1483,6 +1558,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": true,
+   "min_attack": 0,
    "param": {
     "ObjectHP": 1,
     "MinAttackForDamage": 0,
@@ -1507,6 +1583,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": true,
+   "min_attack": 0,
    "param": {
     "ObjectHP": 1,
     "MinAttackForDamage": 0,
@@ -1531,6 +1608,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": true,
+   "min_attack": 0,
    "param": {
     "ObjectHP": 1,
     "MinAttackForDamage": 0,
@@ -1555,6 +1633,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": true,
+   "min_attack": 0,
    "param": {
     "ObjectHP": 1,
     "MinAttackForDamage": 0,
@@ -1579,6 +1658,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": true,
+   "min_attack": 0,
    "param": {
     "ObjectHP": 1,
     "MinAttackForDamage": 0,
@@ -1603,6 +1683,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": true,
+   "min_attack": 0,
    "param": {
     "ObjectHP": 1,
     "MinAttackForDamage": 0,
@@ -1627,6 +1708,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": true,
+   "min_attack": 0,
    "param": {
     "ObjectHP": 1,
     "MinAttackForDamage": 0,
@@ -1651,6 +1733,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": true,
+   "min_attack": 0,
    "param": {
     "ObjectHP": 1,
     "MinAttackForDamage": 0,
@@ -1675,6 +1758,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": true,
+   "min_attack": 0,
    "param": {
     "ObjectHP": 1,
     "MinAttackForDamage": 0,
@@ -1699,6 +1783,7 @@
    "break_term": 0,
    "param_row_found": true,
    "breakable": false,
+   "min_attack": 0,
    "param": {
     "ObjectHP": -1,
     "MinAttackForDamage": 0,

@@ -11,6 +11,9 @@ Evidence grade of everything written here: "file" — it is what the game data s
 Units are raw param values; which ones are metres is still to be checked in play (ROADMAP.md 2).
   · ObjectParam row = object model number (o1200 → 1200) is the usual DS1 convention — unverified here, hence
     "param_row_found". An object with no row, or ObjectHP -1 / PreventAllDamage, is treated as not breakable.
+  · "min_attack" = ObjectParam MinAttackForDamage. At or above STRONG_MIN_ATTACK a light attack may not break it (Burg: 12 objects at 90)
+    — counted apart as "breakable_strong" (ROADMAP P-4).
+  · counts: "enemies" = non-human characters only; "humans" = c0000 (NPCs, phantoms); "characters" = both.
 """
 from __future__ import annotations
 
@@ -27,6 +30,7 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
 OUT_DIR = Path(__file__).parent / "data" / "gamefiles"
+STRONG_MIN_ATTACK = 50
 
 THINK_FIELDS = (
     "SightDistance", "SightRangeWidth", "SightRangeHeight", "SightForgetTime",
@@ -106,6 +110,7 @@ def extract(map_id: str, game_dir: Path = GAME_DIR, with_params: bool = True, ms
             "break_term": getattr(o, "break_term", None),
             "param_row_found": p is not None if obj_param is not None else None,
             "breakable": is_breakable(p) if obj_param is not None else None,
+            "min_attack": (p or {}).get("MinAttackForDamage"),
             "param": p,
         })
 
@@ -136,7 +141,10 @@ def extract(map_id: str, game_dir: Path = GAME_DIR, with_params: bool = True, ms
                    "params": "param/GameParam/GameParam.parambnd.dcx" if obj_param is not None else None},
         "counts": {"objects": len(objects),
                    "breakable": sum(1 for o in objects if o["breakable"]),
+                   "breakable_strong": sum(1 for o in objects if o["breakable"] and (o["min_attack"] or 0) >= STRONG_MIN_ATTACK),
+                   "characters": len(enemies),
                    "enemies": sum(1 for e in enemies if e["kind"] == "enemy"),
+                   "humans": sum(1 for e in enemies if e["kind"] == "human"),
                    "with_patrol": sum(1 for e in enemies if e["patrol"])},
         "objects": objects,
         "enemies": enemies,
@@ -155,7 +163,8 @@ def main() -> None:
         path = a.out / f"{map_id}.json"
         path.write_text(json.dumps(data, ensure_ascii=False, indent=1, default=str), encoding="utf-8")
         c = data["counts"]
-        print(f"{map_id}: 오브젝트 {c['objects']} (부서짐 {c['breakable']}), 적 {c['enemies']} (순찰 {c['with_patrol']}) → {path}")
+        print(f"{map_id}: 오브젝트 {c['objects']} (부서짐 {c['breakable']}, 강공 필요 {c['breakable_strong']}), "
+              f"캐릭터 {c['characters']} = 적 {c['enemies']} + 사람형 {c['humans']} (순찰 {c['with_patrol']}) → {path}")
 
 
 if __name__ == "__main__":
