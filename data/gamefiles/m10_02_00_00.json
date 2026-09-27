@@ -12,7 +12,11 @@
   "characters": 41,
   "enemies": 27,
   "humans": 14,
-  "with_patrol": 0
+  "with_patrol": 0,
+  "treasures": 49,
+  "treasures_soul": 8,
+  "treasures_humanity": 1,
+  "treasures_titanite": 0
  },
  "objects": [
   {
@@ -1794,6 +1798,1140 @@
     "IsMovingObject": 0,
     "CharacterCollision": 1
    }
+  }
+ ],
+ "treasures": [
+  {
+   "name": "宝_救済用00",
+   "part": "o0020_0000",
+   "pos": [
+    -38.4,
+    -55.14,
+    104.44
+   ],
+   "item_lots": [
+    4000
+   ],
+   "in_chest": true,
+   "hidden": true,
+   "flags": [
+    50004000
+   ],
+   "items": [
+    {
+     "id": 2001,
+     "category": "good",
+     "count": 1,
+     "name": "Basement Key",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Basement Key"
+  },
+  {
+   "name": "宝_救済用01",
+   "part": "o0020_0001",
+   "pos": [
+    -38.4,
+    -55.14,
+    104.44
+   ],
+   "item_lots": [
+    4010
+   ],
+   "in_chest": true,
+   "hidden": true,
+   "flags": [
+    50004009
+   ],
+   "items": [
+    {
+     "id": 2010,
+     "category": "good",
+     "count": 1,
+     "name": "Dungeon Cell Key",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Dungeon Cell Key"
+  },
+  {
+   "name": "宝_救済用02",
+   "part": "o0020_0002",
+   "pos": [
+    -38.4,
+    -55.14,
+    104.44
+   ],
+   "item_lots": [
+    4020
+   ],
+   "in_chest": true,
+   "hidden": true,
+   "flags": [
+    50004018
+   ],
+   "items": [
+    {
+     "id": 2019,
+     "category": "good",
+     "count": 1,
+     "name": "Watchtower Basement Key",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Watchtower Basement Key"
+  },
+  {
+   "name": "宝_救済用03",
+   "part": "o0020_0003",
+   "pos": [
+    -38.4,
+    -55.14,
+    104.44
+   ],
+   "item_lots": [
+    4030
+   ],
+   "in_chest": true,
+   "hidden": true,
+   "flags": [
+    50004027
+   ],
+   "items": [
+    {
+     "id": 139,
+     "category": "ring",
+     "count": 1,
+     "name": "Orange Charred Ring",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Orange Charred Ring"
+  },
+  {
+   "name": "宝_救済用04",
+   "part": "o0020_0004",
+   "pos": [
+    -38.4,
+    -55.14,
+    104.44
+   ],
+   "item_lots": [
+    4040
+   ],
+   "in_chest": true,
+   "hidden": true,
+   "flags": [
+    50004036
+   ],
+   "items": [
+    {
+     "id": 114,
+     "category": "good",
+     "count": 1,
+     "name": "Dragon Eye",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Dragon Eye"
+  },
+  {
+   "name": "宝_救済用05",
+   "part": "o0020_0005",
+   "pos": [
+    -38.4,
+    -55.14,
+    104.44
+   ],
+   "item_lots": [
+    4050
+   ],
+   "in_chest": true,
+   "hidden": true,
+   "flags": [
+    50004045
+   ],
+   "items": [
+    {
+     "id": 214,
+     "category": "good",
+     "count": 1,
+     "name": "Estus Flask+7",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Estus Flask+7"
+  },
+  {
+   "name": "宝_救済用06",
+   "part": "o0020_0006",
+   "pos": [
+    -38.4,
+    -55.14,
+    104.44
+   ],
+   "item_lots": [
+    4060
+   ],
+   "in_chest": true,
+   "hidden": true,
+   "flags": [
+    50004054
+   ],
+   "items": [
+    {
+     "id": 377,
+     "category": "good",
+     "count": 1,
+     "name": "Dragon Head Stone",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Dragon Head Stone"
+  },
+  {
+   "name": "宝_救済用07",
+   "part": "o0020_0007",
+   "pos": [
+    -38.4,
+    -55.14,
+    104.44
+   ],
+   "item_lots": [
+    4070
+   ],
+   "in_chest": true,
+   "hidden": true,
+   "flags": [
+    50004063
+   ],
+   "items": [
+    {
+     "id": 810,
+     "category": "good",
+     "count": 1,
+     "name": "Dark Ember",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Dark Ember"
+  },
+  {
+   "name": "宝_救済用08",
+   "part": "o0020_0008",
+   "pos": [
+    -38.4,
+    -55.14,
+    104.44
+   ],
+   "item_lots": [],
+   "in_chest": true,
+   "hidden": true,
+   "flags": [],
+   "items": [],
+   "kind": null,
+   "label": ""
+  },
+  {
+   "name": "宝_救済用09",
+   "part": "o0020_0009",
+   "pos": [
+    -38.4,
+    -55.14,
+    104.44
+   ],
+   "item_lots": [],
+   "in_chest": true,
+   "hidden": true,
+   "flags": [],
+   "items": [],
+   "kind": null,
+   "label": ""
+  },
+  {
+   "name": "宝_救済用10",
+   "part": "o0020_0010",
+   "pos": [
+    -38.4,
+    -55.14,
+    104.44
+   ],
+   "item_lots": [],
+   "in_chest": true,
+   "hidden": true,
+   "flags": [],
+   "items": [],
+   "kind": null,
+   "label": ""
+  },
+  {
+   "name": "宝_救済用11",
+   "part": "o0020_0011",
+   "pos": [
+    -38.4,
+    -55.14,
+    104.44
+   ],
+   "item_lots": [],
+   "in_chest": true,
+   "hidden": true,
+   "flags": [],
+   "items": [],
+   "kind": null,
+   "label": ""
+  },
+  {
+   "name": "宝_救済用12",
+   "part": "o0020_0012",
+   "pos": [
+    -38.4,
+    -55.14,
+    104.44
+   ],
+   "item_lots": [],
+   "in_chest": true,
+   "hidden": true,
+   "flags": [],
+   "items": [],
+   "kind": null,
+   "label": ""
+  },
+  {
+   "name": "宝_救済用13",
+   "part": "o0020_0013",
+   "pos": [
+    -38.4,
+    -55.14,
+    104.44
+   ],
+   "item_lots": [],
+   "in_chest": true,
+   "hidden": true,
+   "flags": [],
+   "items": [],
+   "kind": null,
+   "label": ""
+  },
+  {
+   "name": "宝_救済用14",
+   "part": "o0020_0014",
+   "pos": [
+    -38.4,
+    -55.14,
+    104.44
+   ],
+   "item_lots": [],
+   "in_chest": true,
+   "hidden": true,
+   "flags": [],
+   "items": [],
+   "kind": null,
+   "label": ""
+  },
+  {
+   "name": "宝_救済用15",
+   "part": "o0020_0015",
+   "pos": [
+    -38.4,
+    -55.14,
+    104.44
+   ],
+   "item_lots": [],
+   "in_chest": true,
+   "hidden": true,
+   "flags": [],
+   "items": [],
+   "kind": null,
+   "label": ""
+  },
+  {
+   "name": "宝_救済用16",
+   "part": "o0020_0016",
+   "pos": [
+    -38.4,
+    -55.14,
+    104.44
+   ],
+   "item_lots": [],
+   "in_chest": true,
+   "hidden": true,
+   "flags": [],
+   "items": [],
+   "kind": null,
+   "label": ""
+  },
+  {
+   "name": "宝_救済用17",
+   "part": "o0020_0017",
+   "pos": [
+    -38.4,
+    -55.14,
+    104.44
+   ],
+   "item_lots": [],
+   "in_chest": true,
+   "hidden": true,
+   "flags": [],
+   "items": [],
+   "kind": null,
+   "label": ""
+  },
+  {
+   "name": "宝_救済用18",
+   "part": "o0020_0018",
+   "pos": [
+    -38.4,
+    -55.14,
+    104.44
+   ],
+   "item_lots": [],
+   "in_chest": true,
+   "hidden": true,
+   "flags": [],
+   "items": [],
+   "kind": null,
+   "label": ""
+  },
+  {
+   "name": "宝_救済用19",
+   "part": "o0020_0019",
+   "pos": [
+    -38.4,
+    -55.14,
+    104.44
+   ],
+   "item_lots": [],
+   "in_chest": true,
+   "hidden": true,
+   "flags": [],
+   "items": [],
+   "kind": null,
+   "label": ""
+  },
+  {
+   "name": "宝_救済用20",
+   "part": "o0020_0020",
+   "pos": [
+    -38.4,
+    -55.14,
+    104.44
+   ],
+   "item_lots": [],
+   "in_chest": true,
+   "hidden": true,
+   "flags": [],
+   "items": [],
+   "kind": null,
+   "label": ""
+  },
+  {
+   "name": "宝_救済用21",
+   "part": "o0020_0021",
+   "pos": [
+    -38.4,
+    -55.14,
+    104.44
+   ],
+   "item_lots": [],
+   "in_chest": true,
+   "hidden": true,
+   "flags": [],
+   "items": [],
+   "kind": null,
+   "label": ""
+  },
+  {
+   "name": "宝_救済用22",
+   "part": "o0020_0022",
+   "pos": [
+    -38.4,
+    -55.14,
+    104.44
+   ],
+   "item_lots": [],
+   "in_chest": true,
+   "hidden": true,
+   "flags": [],
+   "items": [],
+   "kind": null,
+   "label": ""
+  },
+  {
+   "name": "宝_救済用23",
+   "part": "o0020_0023",
+   "pos": [
+    -38.4,
+    -55.14,
+    104.44
+   ],
+   "item_lots": [],
+   "in_chest": true,
+   "hidden": true,
+   "flags": [],
+   "items": [],
+   "kind": null,
+   "label": ""
+  },
+  {
+   "name": "宝_救済用24",
+   "part": "o0020_0024",
+   "pos": [
+    -38.4,
+    -55.14,
+    104.44
+   ],
+   "item_lots": [],
+   "in_chest": true,
+   "hidden": true,
+   "flags": [],
+   "items": [],
+   "kind": null,
+   "label": ""
+  },
+  {
+   "name": "宝_救済用25",
+   "part": "o0020_0025",
+   "pos": [
+    -38.4,
+    -55.14,
+    104.44
+   ],
+   "item_lots": [],
+   "in_chest": true,
+   "hidden": true,
+   "flags": [],
+   "items": [],
+   "kind": null,
+   "label": ""
+  },
+  {
+   "name": "宝_救済用26",
+   "part": "o0020_0026",
+   "pos": [
+    -38.4,
+    -55.14,
+    104.44
+   ],
+   "item_lots": [],
+   "in_chest": true,
+   "hidden": true,
+   "flags": [],
+   "items": [],
+   "kind": null,
+   "label": ""
+  },
+  {
+   "name": "宝_救済用27",
+   "part": "o0020_0027",
+   "pos": [
+    -38.4,
+    -55.14,
+    104.44
+   ],
+   "item_lots": [],
+   "in_chest": true,
+   "hidden": true,
+   "flags": [],
+   "items": [],
+   "kind": null,
+   "label": ""
+  },
+  {
+   "name": "宝死体00",
+   "part": "o0500_0000",
+   "pos": [
+    -39.37,
+    -58.16,
+    53.44
+   ],
+   "item_lots": [
+    1020000
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51020000
+   ],
+   "items": [
+    {
+     "id": 500,
+     "category": "good",
+     "count": 3,
+     "name": "Humanity",
+     "kind": "humanity"
+    }
+   ],
+   "kind": "humanity",
+   "label": "Humanity x3"
+  },
+  {
+   "name": "宝死体01",
+   "part": "o0500_0001",
+   "pos": [
+    -55.15,
+    -61.48,
+    112.55
+   ],
+   "item_lots": [
+    1020010
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51020010
+   ],
+   "items": [
+    {
+     "id": 401,
+     "category": "good",
+     "count": 1,
+     "name": "Large Soul of a Lost Undead",
+     "kind": "soul"
+    }
+   ],
+   "kind": "soul",
+   "label": "Large Soul of a Lost Undead"
+  },
+  {
+   "name": "宝死体02",
+   "part": "o0500_0002",
+   "pos": [
+    -51.0,
+    -69.42,
+    138.2
+   ],
+   "item_lots": [
+    1020020
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51020020
+   ],
+   "items": [
+    {
+     "id": 1410000,
+     "category": "weapon",
+     "count": 1,
+     "name": "Caduceus Round Shield",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Caduceus Round Shield"
+  },
+  {
+   "name": "宝死体03",
+   "part": "o0500_0003",
+   "pos": [
+    -40.2,
+    -65.77,
+    141.9
+   ],
+   "item_lots": [
+    1020030
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51020030
+   ],
+   "items": [
+    {
+     "id": 401,
+     "category": "good",
+     "count": 1,
+     "name": "Large Soul of a Lost Undead",
+     "kind": "soul"
+    }
+   ],
+   "kind": "soul",
+   "label": "Large Soul of a Lost Undead"
+  },
+  {
+   "name": "宝死体04",
+   "part": "o0500_0004",
+   "pos": [
+    -38.0,
+    -33.7,
+    2.1
+   ],
+   "item_lots": [
+    1020040
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51020040
+   ],
+   "items": [
+    {
+     "id": 400,
+     "category": "good",
+     "count": 1,
+     "name": "Soul of a Lost Undead",
+     "kind": "soul"
+    }
+   ],
+   "kind": "soul",
+   "label": "Soul of a Lost Undead"
+  },
+  {
+   "name": "宝死体05",
+   "part": "o0500_0005",
+   "pos": [
+    -35.4,
+    -49.54,
+    78.7
+   ],
+   "item_lots": [
+    1020050
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51020050
+   ],
+   "items": [
+    {
+     "id": 400,
+     "category": "good",
+     "count": 1,
+     "name": "Soul of a Lost Undead",
+     "kind": "soul"
+    }
+   ],
+   "kind": "soul",
+   "label": "Soul of a Lost Undead"
+  },
+  {
+   "name": "宝死体06",
+   "part": "o0500_0006",
+   "pos": [
+    -14.6,
+    -41.64,
+    94.05
+   ],
+   "item_lots": [
+    1020060
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51020060
+   ],
+   "items": [
+    {
+     "id": 400,
+     "category": "good",
+     "count": 1,
+     "name": "Soul of a Lost Undead",
+     "kind": "soul"
+    }
+   ],
+   "kind": "soul",
+   "label": "Soul of a Lost Undead"
+  },
+  {
+   "name": "宝死体07",
+   "part": "o0500_0007",
+   "pos": [
+    -23.7,
+    -70.3,
+    167.5
+   ],
+   "item_lots": [
+    1020150
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51020150
+   ],
+   "items": [
+    {
+     "id": 350000,
+     "category": "weapon",
+     "count": 1,
+     "name": "Zweihander",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Zweihander"
+  },
+  {
+   "name": "宝死体08",
+   "part": "o0500_0008",
+   "pos": [
+    -27.5,
+    -62.87,
+    147.8
+   ],
+   "item_lots": [
+    1020160
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51020160
+   ],
+   "items": [
+    {
+     "id": 1001000,
+     "category": "weapon",
+     "count": 1,
+     "name": "Winged Spear",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Winged Spear"
+  },
+  {
+   "name": "宝死体09",
+   "part": "o0500_0009",
+   "pos": [
+    -48.8,
+    -54.4,
+    78.82
+   ],
+   "item_lots": [
+    1020090
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51020090
+   ],
+   "items": [
+    {
+     "id": 400,
+     "category": "good",
+     "count": 1,
+     "name": "Soul of a Lost Undead",
+     "kind": "soul"
+    }
+   ],
+   "kind": "soul",
+   "label": "Soul of a Lost Undead"
+  },
+  {
+   "name": "宝死体10",
+   "part": "o0500_0010",
+   "pos": [
+    -22.0,
+    -76.17,
+    186.2
+   ],
+   "item_lots": [
+    1020170
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51020170
+   ],
+   "items": [
+    {
+     "id": 371,
+     "category": "good",
+     "count": 1,
+     "name": "Binoculars",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Binoculars"
+  },
+  {
+   "name": "宝死体11",
+   "part": "o0500_0011",
+   "pos": [
+    -21.5,
+    -54.57,
+    83.2
+   ],
+   "item_lots": [
+    1020110
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51020110
+   ],
+   "items": [
+    {
+     "id": 292,
+     "category": "good",
+     "count": 6,
+     "name": "Firebomb",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Firebomb x6"
+  },
+  {
+   "name": "宝死体12",
+   "part": "o0500_0012",
+   "pos": [
+    -27.15,
+    -50.08,
+    17.7
+   ],
+   "item_lots": [
+    1020120
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51020120
+   ],
+   "items": [
+    {
+     "id": 400,
+     "category": "good",
+     "count": 1,
+     "name": "Soul of a Lost Undead",
+     "kind": "soul"
+    }
+   ],
+   "kind": "soul",
+   "label": "Soul of a Lost Undead"
+  },
+  {
+   "name": "宝死体13",
+   "part": "o0500_0013",
+   "pos": [
+    -38.85,
+    -49.82,
+    -3.05
+   ],
+   "item_lots": [
+    1020130
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51020130
+   ],
+   "items": [
+    {
+     "id": 126,
+     "category": "ring",
+     "count": 1,
+     "name": "Ring of Sacrifice",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Ring of Sacrifice"
+  },
+  {
+   "name": "宝死体14",
+   "part": "o0500_0014",
+   "pos": [
+    -15.5,
+    -33.73,
+    12.55
+   ],
+   "item_lots": [
+    1020140
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51020140
+   ],
+   "items": [
+    {
+     "id": 400,
+     "category": "good",
+     "count": 1,
+     "name": "Soul of a Lost Undead",
+     "kind": "soul"
+    }
+   ],
+   "kind": "soul",
+   "label": "Soul of a Lost Undead"
+  },
+  {
+   "name": "宝死体15",
+   "part": "o0500_0015",
+   "pos": [
+    -24.6,
+    -39.02,
+    94.0
+   ],
+   "item_lots": [
+    1020210
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51020210
+   ],
+   "items": [
+    {
+     "id": 2016,
+     "category": "good",
+     "count": 1,
+     "name": "Undead Asylum F2 West Key",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Undead Asylum F2 West Key"
+  },
+  {
+   "name": "宝死体_event00",
+   "part": "o1475_0000",
+   "pos": [
+    -53.2,
+    -64.5,
+    49.5
+   ],
+   "item_lots": [
+    2030
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    50001030
+   ],
+   "items": [
+    {
+     "id": 400000,
+     "category": "armor",
+     "count": 1,
+     "name": "Dingy Hood",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Dingy Hood"
+  },
+  {
+   "name": "宝箱00",
+   "part": "o0110_0000",
+   "pos": [
+    -30.1,
+    -53.54,
+    119.6
+   ],
+   "item_lots": [
+    1020070
+   ],
+   "in_chest": true,
+   "hidden": false,
+   "flags": [
+    51020070
+   ],
+   "items": [
+    {
+     "id": 296,
+     "category": "good",
+     "count": 4,
+     "name": "Lloyd's Talisman",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Lloyd's Talisman x4"
+  },
+  {
+   "name": "宝箱01",
+   "part": "o0110_0001",
+   "pos": [
+    -27.5,
+    -51.07,
+    104.0
+   ],
+   "item_lots": [
+    1020180
+   ],
+   "in_chest": true,
+   "hidden": false,
+   "flags": [
+    51020180
+   ],
+   "items": [
+    {
+     "id": 802000,
+     "category": "weapon",
+     "count": 1,
+     "name": "Morning Star",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Morning Star"
+  },
+  {
+   "name": "宝箱02",
+   "part": "o0110_0002",
+   "pos": [
+    -27.2,
+    -51.58,
+    109.0
+   ],
+   "item_lots": [
+    1020190
+   ],
+   "in_chest": true,
+   "hidden": false,
+   "flags": [
+    51020190
+   ],
+   "items": [
+    {
+     "id": 330,
+     "category": "good",
+     "count": 6,
+     "name": "Homeward Bone",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Homeward Bone x6"
+  },
+  {
+   "name": "宝箱03",
+   "part": "o0110_0003",
+   "pos": [
+    -19.5,
+    -51.26,
+    101.1
+   ],
+   "item_lots": [
+    1020200
+   ],
+   "in_chest": true,
+   "hidden": false,
+   "flags": [
+    51020200
+   ],
+   "items": [
+    {
+     "id": 111,
+     "category": "good",
+     "count": 4,
+     "name": "Cracked Red Eye Orb",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Cracked Red Eye Orb x4"
   }
  ],
  "enemies": [

@@ -12,7 +12,11 @@
   "characters": 174,
   "enemies": 166,
   "humans": 8,
-  "with_patrol": 2
+  "with_patrol": 2,
+  "treasures": 42,
+  "treasures_soul": 12,
+  "treasures_humanity": 3,
+  "treasures_titanite": 0
  },
  "objects": [
   {
@@ -13041,6 +13045,1084 @@
     "IsMovingObject": 0,
     "CharacterCollision": 1
    }
+  }
+ ],
+ "treasures": [
+  {
+   "name": "宝死体00",
+   "part": "o0500_0000",
+   "pos": [
+    -9.46,
+    15.32,
+    26.7
+   ],
+   "item_lots": [
+    1010000
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51010000
+   ],
+   "items": [
+    {
+     "id": 2017,
+     "category": "good",
+     "count": 1,
+     "name": "Mystery Key",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Mystery Key"
+  },
+  {
+   "name": "宝死体01",
+   "part": "o0500_0001",
+   "pos": [
+    27.8,
+    -12.88,
+    -102.2
+   ],
+   "item_lots": [
+    1010010
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [],
+   "items": [],
+   "kind": null,
+   "label": ""
+  },
+  {
+   "name": "宝死体02",
+   "part": "o0500_0002",
+   "pos": [
+    -23.7,
+    -31.82,
+    -57.9
+   ],
+   "item_lots": [
+    1010020
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51010020
+   ],
+   "items": [
+    {
+     "id": 600000,
+     "category": "weapon",
+     "count": 1,
+     "name": "Mail Breaker",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Mail Breaker"
+  },
+  {
+   "name": "宝死体04壷",
+   "part": "o0500_0004",
+   "pos": [
+    5.5,
+    38.12,
+    114.65
+   ],
+   "item_lots": [
+    1010040
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51010040
+   ],
+   "items": [
+    {
+     "id": 500,
+     "category": "good",
+     "count": 1,
+     "name": "Humanity",
+     "kind": "humanity"
+    }
+   ],
+   "kind": "humanity",
+   "label": "Humanity"
+  },
+  {
+   "name": "宝死体05",
+   "part": "o0504_0000",
+   "pos": [
+    10.9,
+    30.06,
+    124.15
+   ],
+   "item_lots": [
+    1010050
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51010050
+   ],
+   "items": [
+    {
+     "id": 396,
+     "category": "good",
+     "count": 1,
+     "name": "Fire Keeper Soul",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Fire Keeper Soul"
+  },
+  {
+   "name": "宝死体06",
+   "part": "o0500_0006",
+   "pos": [
+    -57.19,
+    -25.75,
+    -34.17
+   ],
+   "item_lots": [
+    1010070
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51010070
+   ],
+   "items": [
+    {
+     "id": 401,
+     "category": "good",
+     "count": 1,
+     "name": "Large Soul of a Lost Undead",
+     "kind": "soul"
+    }
+   ],
+   "kind": "soul",
+   "label": "Large Soul of a Lost Undead"
+  },
+  {
+   "name": "宝死体07",
+   "part": "o0500_0007",
+   "pos": [
+    -69.0,
+    -31.83,
+    -33.4
+   ],
+   "item_lots": [
+    1010080
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51010080
+   ],
+   "items": [
+    {
+     "id": 380,
+     "category": "good",
+     "count": 1,
+     "name": "Rubbish",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Rubbish"
+  },
+  {
+   "name": "宝死体08",
+   "part": "o0500_0008",
+   "pos": [
+    -56.1,
+    -15.35,
+    -15.95
+   ],
+   "item_lots": [
+    1010090
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51010090
+   ],
+   "items": [
+    {
+     "id": 1250000,
+     "category": "weapon",
+     "count": 1,
+     "name": "Light Crossbow",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Light Crossbow"
+  },
+  {
+   "name": "宝死体09",
+   "part": "o0500_0009",
+   "pos": [
+    -48.8,
+    -22.79,
+    -8.45
+   ],
+   "item_lots": [
+    1010100
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51010100
+   ],
+   "items": [
+    {
+     "id": 500,
+     "category": "good",
+     "count": 1,
+     "name": "Humanity",
+     "kind": "humanity"
+    }
+   ],
+   "kind": "humanity",
+   "label": "Humanity"
+  },
+  {
+   "name": "宝死体10",
+   "part": "o0500_0010",
+   "pos": [
+    -48.5,
+    -14.02,
+    -33.5
+   ],
+   "item_lots": [
+    1010120
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51010120
+   ],
+   "items": [
+    {
+     "id": 290,
+     "category": "good",
+     "count": 10,
+     "name": "Throwing Knife",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Throwing Knife x10"
+  },
+  {
+   "name": "宝死体11",
+   "part": "o0500_0011",
+   "pos": [
+    7.55,
+    20.5,
+    44.11
+   ],
+   "item_lots": [
+    1010140
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51010140
+   ],
+   "items": [
+    {
+     "id": 2001,
+     "category": "good",
+     "count": 1,
+     "name": "Basement Key",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Basement Key"
+  },
+  {
+   "name": "宝死体12",
+   "part": "o0500_0012",
+   "pos": [
+    41.0,
+    -8.74,
+    -100.5
+   ],
+   "item_lots": [
+    1010150
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [],
+   "items": [],
+   "kind": null,
+   "label": ""
+  },
+  {
+   "name": "宝死体13",
+   "part": "o0500_0013",
+   "pos": [
+    -4.6,
+    -16.38,
+    -92.0
+   ],
+   "item_lots": [
+    1010160
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51010160
+   ],
+   "items": [
+    {
+     "id": 147,
+     "category": "ring",
+     "count": 1,
+     "name": "Blue Tearstone Ring",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Blue Tearstone Ring"
+  },
+  {
+   "name": "宝死体14",
+   "part": "o0500_0014",
+   "pos": [
+    -8.0,
+    9.45,
+    -82.2
+   ],
+   "item_lots": [
+    1010190
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [],
+   "items": [],
+   "kind": null,
+   "label": ""
+  },
+  {
+   "name": "宝死体15",
+   "part": "o0500_0015",
+   "pos": [
+    11.8,
+    9.41,
+    -47.0
+   ],
+   "item_lots": [
+    1010210
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51010210
+   ],
+   "items": [
+    {
+     "id": 301000,
+     "category": "weapon",
+     "count": 1,
+     "name": "Claymore",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Claymore"
+  },
+  {
+   "name": "宝死体18",
+   "part": "o0500_0018",
+   "pos": [
+    -19.3,
+    -22.82,
+    -96.15
+   ],
+   "item_lots": [
+    1010360
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [],
+   "items": [],
+   "kind": null,
+   "label": ""
+  },
+  {
+   "name": "宝死体19",
+   "part": "o0500_0019",
+   "pos": [
+    -60.05,
+    -43.48,
+    -28.85
+   ],
+   "item_lots": [
+    1010380
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51010380
+   ],
+   "items": [
+    {
+     "id": 300000,
+     "category": "armor",
+     "count": 1,
+     "name": "Thief Mask",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Thief Mask"
+  },
+  {
+   "name": "宝死体21",
+   "part": "o0500_0021",
+   "pos": [
+    -65.73,
+    -26.1,
+    -23.35
+   ],
+   "item_lots": [
+    1010400
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51010400
+   ],
+   "items": [
+    {
+     "id": 400,
+     "category": "good",
+     "count": 1,
+     "name": "Soul of a Lost Undead",
+     "kind": "soul"
+    }
+   ],
+   "kind": "soul",
+   "label": "Soul of a Lost Undead"
+  },
+  {
+   "name": "宝死体23",
+   "part": "o0500_0023",
+   "pos": [
+    -43.9,
+    -24.57,
+    -41.0
+   ],
+   "item_lots": [
+    1010110
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [],
+   "items": [],
+   "kind": null,
+   "label": ""
+  },
+  {
+   "name": "宝死体24",
+   "part": "o0500_0024",
+   "pos": [
+    -10.9,
+    -13.3,
+    -73.55
+   ],
+   "item_lots": [
+    1010130
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51010130
+   ],
+   "items": [
+    {
+     "id": 1401000,
+     "category": "weapon",
+     "count": 1,
+     "name": "Wooden Shield",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Wooden Shield"
+  },
+  {
+   "name": "宝死体26壺",
+   "part": "o0500_0027",
+   "pos": [
+    -61.68,
+    -43.57,
+    -39.09
+   ],
+   "item_lots": [
+    1010370
+   ],
+   "in_chest": false,
+   "hidden": true,
+   "flags": [
+    51010370
+   ],
+   "items": [
+    {
+     "id": 401,
+     "category": "good",
+     "count": 1,
+     "name": "Large Soul of a Lost Undead",
+     "kind": "soul"
+    }
+   ],
+   "kind": "soul",
+   "label": "Large Soul of a Lost Undead"
+  },
+  {
+   "name": "宝死体41",
+   "part": "o0502_0019",
+   "pos": [
+    15.42,
+    32.47,
+    -14.42
+   ],
+   "item_lots": [
+    1010410
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51010410
+   ],
+   "items": [
+    {
+     "id": 400,
+     "category": "good",
+     "count": 1,
+     "name": "Soul of a Lost Undead",
+     "kind": "soul"
+    }
+   ],
+   "kind": "soul",
+   "label": "Soul of a Lost Undead"
+  },
+  {
+   "name": "宝死体42",
+   "part": "o0500_0025",
+   "pos": [
+    12.13,
+    -34.83,
+    -89.73
+   ],
+   "item_lots": [
+    1010030
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [],
+   "items": [],
+   "kind": null,
+   "label": ""
+  },
+  {
+   "name": "宝死体43",
+   "part": "o0500_0028",
+   "pos": [
+    -113.59,
+    -54.08,
+    -1.09
+   ],
+   "item_lots": [
+    1010430
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51010430
+   ],
+   "items": [
+    {
+     "id": 401,
+     "category": "good",
+     "count": 1,
+     "name": "Large Soul of a Lost Undead",
+     "kind": "soul"
+    }
+   ],
+   "kind": "soul",
+   "label": "Large Soul of a Lost Undead"
+  },
+  {
+   "name": "宝死体44",
+   "part": "o0500_0029",
+   "pos": [
+    -43.71,
+    -21.65,
+    -37.57
+   ],
+   "item_lots": [
+    1010440
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51010440
+   ],
+   "items": [
+    {
+     "id": 400,
+     "category": "good",
+     "count": 1,
+     "name": "Soul of a Lost Undead",
+     "kind": "soul"
+    }
+   ],
+   "kind": "soul",
+   "label": "Soul of a Lost Undead"
+  },
+  {
+   "name": "宝死体45",
+   "part": "o0500_0030",
+   "pos": [
+    5.82,
+    -1.84,
+    -84.04
+   ],
+   "item_lots": [
+    1010470
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51010470
+   ],
+   "items": [
+    {
+     "id": 400,
+     "category": "good",
+     "count": 1,
+     "name": "Soul of a Lost Undead",
+     "kind": "soul"
+    }
+   ],
+   "kind": "soul",
+   "label": "Soul of a Lost Undead"
+  },
+  {
+   "name": "宝死体46",
+   "part": "o0500_0031",
+   "pos": [
+    -29.06,
+    17.06,
+    -97.54
+   ],
+   "item_lots": [
+    1010480
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51010480
+   ],
+   "items": [
+    {
+     "id": 401,
+     "category": "good",
+     "count": 1,
+     "name": "Large Soul of a Lost Undead",
+     "kind": "soul"
+    }
+   ],
+   "kind": "soul",
+   "label": "Large Soul of a Lost Undead"
+  },
+  {
+   "name": "宝死体47",
+   "part": "o0504_0001",
+   "pos": [
+    13.3,
+    -34.51,
+    -99.8
+   ],
+   "item_lots": [
+    1010490
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51010490
+   ],
+   "items": [
+    {
+     "id": 501,
+     "category": "good",
+     "count": 1,
+     "name": "Twin Humanities",
+     "kind": "humanity"
+    }
+   ],
+   "kind": "humanity",
+   "label": "Twin Humanities"
+  },
+  {
+   "name": "宝死体48",
+   "part": "o0500_0033",
+   "pos": [
+    20.45,
+    35.86,
+    68.79
+   ],
+   "item_lots": [
+    1010500
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51010500
+   ],
+   "items": [
+    {
+     "id": 403,
+     "category": "good",
+     "count": 1,
+     "name": "Large Soul of a Nameless Soldier",
+     "kind": "soul"
+    }
+   ],
+   "kind": "soul",
+   "label": "Large Soul of a Nameless Soldier"
+  },
+  {
+   "name": "宝死体49壺",
+   "part": "o0500_0034",
+   "pos": [
+    0.77,
+    -31.4,
+    -76.51
+   ],
+   "item_lots": [
+    1010510
+   ],
+   "in_chest": false,
+   "hidden": true,
+   "flags": [
+    51010510
+   ],
+   "items": [
+    {
+     "id": 220000,
+     "category": "armor",
+     "count": 1,
+     "name": "Sorcerer Hat",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Sorcerer Hat"
+  },
+  {
+   "name": "宝死体50",
+   "part": "o0500_0005",
+   "pos": [
+    -1.22,
+    26.87,
+    59.86
+   ],
+   "item_lots": [
+    1010520
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51010520
+   ],
+   "items": [
+    {
+     "id": 1100000,
+     "category": "weapon",
+     "count": 1,
+     "name": "Halberd",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Halberd"
+  },
+  {
+   "name": "宝死体502_05",
+   "part": "o0502_0005",
+   "pos": [
+    -3.85,
+    9.43,
+    -67.45
+   ],
+   "item_lots": [
+    1010200
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [],
+   "items": [],
+   "kind": null,
+   "label": ""
+  },
+  {
+   "name": "宝死体502_06",
+   "part": "o0502_0006",
+   "pos": [
+    12.5,
+    9.45,
+    -40.0
+   ],
+   "item_lots": [
+    1010220
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51010220
+   ],
+   "items": [
+    {
+     "id": 402,
+     "category": "good",
+     "count": 1,
+     "name": "Soul of a Nameless Soldier",
+     "kind": "soul"
+    }
+   ],
+   "kind": "soul",
+   "label": "Soul of a Nameless Soldier"
+  },
+  {
+   "name": "宝死体502_07",
+   "part": "o0502_0007",
+   "pos": [
+    40.85,
+    9.9,
+    -22.75
+   ],
+   "item_lots": [
+    1010230
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [],
+   "items": [],
+   "kind": null,
+   "label": ""
+  },
+  {
+   "name": "宝死体502_08",
+   "part": "o0502_0008",
+   "pos": [
+    -17.6,
+    4.71,
+    -94.85
+   ],
+   "item_lots": [
+    1010240
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [],
+   "items": [],
+   "kind": null,
+   "label": ""
+  },
+  {
+   "name": "宝死体502_10",
+   "part": "o0502_0010",
+   "pos": [
+    3.05,
+    23.06,
+    30.8
+   ],
+   "item_lots": [
+    1010260
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51010260
+   ],
+   "items": [
+    {
+     "id": 294,
+     "category": "good",
+     "count": 4,
+     "name": "Alluring Skull",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Alluring Skull x4"
+  },
+  {
+   "name": "宝死体502_12",
+   "part": "o0502_0012",
+   "pos": [
+    -8.2,
+    22.83,
+    36.25
+   ],
+   "item_lots": [
+    1010280
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51010280
+   ],
+   "items": [
+    {
+     "id": 401,
+     "category": "good",
+     "count": 1,
+     "name": "Large Soul of a Lost Undead",
+     "kind": "soul"
+    }
+   ],
+   "kind": "soul",
+   "label": "Large Soul of a Lost Undead"
+  },
+  {
+   "name": "宝死体502_13",
+   "part": "o0502_0013",
+   "pos": [
+    36.4,
+    27.5,
+    32.35
+   ],
+   "item_lots": [
+    1010300
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51010300
+   ],
+   "items": [
+    {
+     "id": 1451000,
+     "category": "weapon",
+     "count": 1,
+     "name": "Knight Shield",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Knight Shield"
+  },
+  {
+   "name": "宝死体502_15",
+   "part": "o0502_0015",
+   "pos": [
+    37.7,
+    29.81,
+    81.4
+   ],
+   "item_lots": [
+    1010320
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [],
+   "items": [],
+   "kind": null,
+   "label": ""
+  },
+  {
+   "name": "宝死体502_20",
+   "part": "o0502_0020",
+   "pos": [
+    10.8,
+    32.68,
+    -8.8
+   ],
+   "item_lots": [
+    1010420
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51010420
+   ],
+   "items": [
+    {
+     "id": 400,
+     "category": "good",
+     "count": 1,
+     "name": "Soul of a Lost Undead",
+     "kind": "soul"
+    }
+   ],
+   "kind": "soul",
+   "label": "Soul of a Lost Undead"
+  },
+  {
+   "name": "宝箱00",
+   "part": "o0110_0000",
+   "pos": [
+    13.99,
+    -8.8,
+    -104.16
+   ],
+   "item_lots": [
+    1010450
+   ],
+   "in_chest": true,
+   "hidden": true,
+   "flags": [
+    51010450
+   ],
+   "items": [
+    {
+     "id": 297,
+     "category": "good",
+     "count": 5,
+     "name": "Black Firebomb",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Black Firebomb x5"
+  },
+  {
+   "name": "宝箱01",
+   "part": "o0110_0001",
+   "pos": [
+    31.34,
+    -7.45,
+    -111.07
+   ],
+   "item_lots": [
+    1010460
+   ],
+   "in_chest": true,
+   "hidden": true,
+   "flags": [
+    51010460
+   ],
+   "items": [
+    {
+     "id": 311,
+     "category": "good",
+     "count": 3,
+     "name": "Gold Pine Resin",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Gold Pine Resin x3"
   }
  ],
  "enemies": [
