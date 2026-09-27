@@ -109,12 +109,15 @@ def main() -> None:
     tm = env.make_telemetry({})
     if a.radar:
         import radar
-        log.on_line = radar.Radar().attach(tm).say
+        radar_ = radar.Radar().attach(tm)
+        log.on_line = radar_.say
         log("레이더: 보내는 중 — python radar_server.py → http://127.0.0.1:47801")
     control.focus_game()
     pad = control.Pad()
     nms = {missions.MAP_A: navmesh.Navmesh(missions.MAP_A), missions.MAP_B: navmesh.Navmesh(missions.MAP_B)}
     mv = moves.Moves(tm, pad)
+    if a.radar:
+        radar_.follow(mv)                                   # target · path · held spot on the radar
     w = weapons.of(tm.right_weapon())
     mv.weapon = w
     log(f"무기: {w.name} (약공 {w.combo}연타, 닿는 거리 {w.reach} m, 강공 {'씀' if w.use_heavy else '안 씀'})")

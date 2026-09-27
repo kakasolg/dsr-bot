@@ -9,17 +9,17 @@
 <style>
 :root {
   --bg: #f6f7f9; --panel: #ffffff; --ink: #1d2330; --muted: #6a7384; --line: #dde1e8; --ring: #e3e7ee;
-  --player: #2f6fde; --foe: #d23f3f; --friend: #2e9a5b; --other: #8a93a3; --cam: #d9a400; --hp: #2e9a5b; --hplow: #d23f3f;
+  --player: #2f6fde; --foe: #d23f3f; --friend: #2e9a5b; --other: #8a93a3; --cam: #d9a400; --hp: #2e9a5b; --hplow: #d23f3f; --path: #7a5cd6; --target: #d9a400;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #14171d; --panel: #1b1f27; --ink: #e3e7ee; --muted: #8b94a5; --line: #2c323d; --ring: #262b35;
-    --player: #6c9cf0; --foe: #f06a6a; --friend: #5cc98a; --other: #7d8697; --cam: #f0c33c; --hp: #5cc98a; --hplow: #f06a6a;
+    --player: #6c9cf0; --foe: #f06a6a; --friend: #5cc98a; --other: #7d8697; --cam: #f0c33c; --hp: #5cc98a; --hplow: #f06a6a; --path: #a98cf5; --target: #f0c33c;
   }
 }
 :root[data-theme="dark"] {
   --bg: #14171d; --panel: #1b1f27; --ink: #e3e7ee; --muted: #8b94a5; --line: #2c323d; --ring: #262b35;
-  --player: #6c9cf0; --foe: #f06a6a; --friend: #5cc98a; --other: #7d8697; --cam: #f0c33c; --hp: #5cc98a; --hplow: #f06a6a;
+  --player: #6c9cf0; --foe: #f06a6a; --friend: #5cc98a; --other: #7d8697; --cam: #f0c33c; --hp: #5cc98a; --hplow: #f06a6a; --path: #a98cf5; --target: #f0c33c;
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.4 system-ui, "Segoe UI", "Malgun Gothic", sans-serif; }
@@ -39,6 +39,9 @@ h2 { font-size: 12px; font-weight: 600; color: var(--muted); margin: 0 0 6px; te
 #vitals div { display: flex; justify-content: space-between; gap: 8px; }
 .bar { height: 6px; background: var(--ring); border-radius: 3px; margin: 2px 0 8px; overflow: hidden; }
 .bar > i { display: block; height: 100%; background: var(--hp); }
+#intent div { display: flex; justify-content: space-between; gap: 8px; }
+#intent span:first-child { color: var(--muted); }
+.key { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
 #says { list-style: none; margin: 0; padding: 0; }
 #says li { padding: 4px 0; border-bottom: 1px solid var(--line); color: var(--muted); overflow-wrap: anywhere; }
 #says li:first-child { color: var(--ink); font-weight: 600; }
@@ -61,6 +64,7 @@ h2 { font-size: 12px; font-weight: 600; color: var(--muted); margin: 0 0 6px; te
   <div class="card"><div id="wrap"><canvas id="cv"></canvas></div></div>
   <div class="side">
     <div class="card"><h2>봇</h2><div id="vitals">—</div></div>
+    <div class="card"><h2>하는 일</h2><div id="intent">—</div></div>
     <div class="card"><h2>판단</h2><ul id="says"><li>—</li></ul></div>
     <div class="card"><h2>가까운 적</h2><table id="foes"></table></div>
   </div>
@@ -122,6 +126,26 @@ function draw() {
   // camera direction (north-up mode only; in camera-up it is always straight up)
   if (!camUp && snap.cam_yaw != null) arrow(cx, cy, snap.cam_yaw, R, css("--cam"), 1);
   if (!camUp) { ctx.fillStyle = css("--muted"); ctx.fillText("N", cx - 3, 12); }
+  // path (field.walk) and held spot (field._hold_at)
+  if (snap.path && snap.path.length) {
+    ctx.beginPath();
+    snap.path.forEach((q, i) => { const [x, y] = toScreen(q[0] - p.x, q[2] - p.z); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+    ctx.strokeStyle = css("--path"); ctx.lineWidth = 2; ctx.setLineDash([6, 4]); ctx.stroke(); ctx.setLineDash([]);
+    const g = snap.path[snap.path.length - 1], [gx, gy] = toScreen(g[0] - p.x, g[2] - p.z);
+    ctx.beginPath(); ctx.moveTo(gx - 5, gy - 5); ctx.lineTo(gx + 5, gy + 5); ctx.moveTo(gx + 5, gy - 5); ctx.lineTo(gx - 5, gy + 5);
+    ctx.strokeStyle = css("--path"); ctx.lineWidth = 2; ctx.stroke();
+  }
+  if (snap.spot) {
+    const [x, y] = toScreen(snap.spot[0] - p.x, snap.spot[2] - p.z);
+    ctx.beginPath(); ctx.arc(x, y, 9, 0, 2 * Math.PI); ctx.strokeStyle = css("--friend"); ctx.lineWidth = 2; ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, y, 2, 0, 2 * Math.PI); ctx.fillStyle = css("--friend"); ctx.fill();
+  }
+  const tgt = snap.target != null ? snap.chars.find(c => c.ptr === snap.target) : null;
+  if (tgt) {
+    const [x, y] = toScreen(tgt.x - p.x, tgt.z - p.z);
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(x, y); ctx.strokeStyle = css("--target"); ctx.lineWidth = 1; ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, y, 10, 0, 2 * Math.PI); ctx.lineWidth = 2; ctx.stroke();
+  }
   const showAnim = $("anim").checked;
   for (const c of snap.chars) {
     const dx = c.x - p.x, dz = c.z - p.z;
@@ -155,6 +179,12 @@ function side() {
     `<div><span>스태미나</span><span>${p.sp} / ${p.max_sp}</span></div><div class="bar"><i style="width:${pct(p.sp, p.max_sp)}%"></i></div>` +
     `<div><span>에스트</span><span>${snap.flask_hp ?? "?"} / ${snap.max_flask_hp ?? "?"}</span></div>` +
     `<div><span>위치</span><span>${p.x?.toFixed(1)}, ${p.y?.toFixed(1)}, ${p.z?.toFixed(1)}</span></div>`;
+  const tgt = snap.target != null ? snap.chars.find(c => c.ptr === snap.target) : null;
+  const row = (k, v) => `<div><span>${k}</span><span>${v}</span></div>`;
+  $("intent").innerHTML =
+    row(`<i class="key" style="background:var(--target)"></i>목표`, tgt ? `${esc(tgt.name || tgt.npc)} · ${tgt.dist?.toFixed(1)} m` : "없음") +
+    row(`<i class="key" style="background:var(--path)"></i>경로`, snap.path ? `${esc(snap.path_tag || "")} · ${snap.path.length}점` : "없음") +
+    row(`<i class="key" style="background:var(--friend)"></i>지킬 자리`, snap.spot ? esc(snap.spot_tag || "") + ` · ${Math.hypot(snap.spot[0] - p.x, snap.spot[2] - p.z).toFixed(1)} m` : "없음");
   const foes = snap.chars.filter(c => HOSTILE.has(c.team) && c.hp > 0).slice(0, 8);
   $("foes").innerHTML = foes.map(c =>
     `<tr><td>${esc(c.name || c.npc)}</td><td class="n">${c.dist?.toFixed(1)} m</td><td class="n">${c.hp}/${c.max_hp}</td></tr>`).join("")

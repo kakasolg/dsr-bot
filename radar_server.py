@@ -98,6 +98,8 @@ def demo_loop(port: int) -> None:
                  spd=rng.uniform(-0.3, 0.3), hp=200) for i in range(6)]
     lines = ["이동: 경사로 아래 → 대기 지점", "끌어오기: 망자 #3 에 나이프", "교전: 망자 #3 (4.2 m)",
              "공격 모션 3004 → 구르기", "후퇴: 적 2명 접근", "휘청 → 약공 2연타"]
+    mv = _C(cam_target=None, show_path=None, show_spot=None)
+    r.follow(mv)
     t0, k = time.time(), 0
     while True:
         t = time.time() - t0
@@ -111,6 +113,15 @@ def demo_loop(port: int) -> None:
                             x=x, y=0.0, z=z, dist=math.hypot(x - px, z - pz), heading=math.atan2(px - x, pz - z) + math.pi,
                             anim=3004 if f["rad"] < 9 else 7000))
         chars.sort(key=lambda c: c.dist)
+        phase = int(t / 8) % 3                     # cycle: walk a path → fight the nearest → hold a spot
+        if phase == 0:
+            mv.cam_target, mv.show_spot = None, None
+            mv.show_path = ("경사로 아래로", [(px + 1.5 * i, 0.0, pz + 3 * math.sin(i / 3)) for i in range(12)])
+        elif phase == 1:
+            mv.show_path, mv.cam_target = None, chars[0].ptr
+        else:
+            mv.cam_target, mv.show_path = None, None
+            mv.show_spot = ("대기 지점", (px - 4.0, 0.0, pz + 2.0), time.time())
         player = _C(ptr=1, name="", npc_param=0, team=1, hp=int(420 + 150 * math.sin(t / 5)), max_hp=600, sp=90, max_sp=120,
                     x=px, y=0.0, z=pz, dist=0.0, heading=t / 4 % (2 * math.pi), anim=None)
         r.snapshot(_C(t=time.time(), player=player, chars=chars, cam_yaw=t / 6 % (2 * math.pi), flask_hp=3, max_flask_hp=5))

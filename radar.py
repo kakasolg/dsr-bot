@@ -3,6 +3,7 @@
   from radar import Radar
   r = Radar()               # 127.0.0.1:47800 (RADAR_PORT)
   r.attach(tm)              # follows the feed's frames (at most RATE_HZ per second)
+  r.follow(mv)              # + what layer 4 is doing: target (mv.cam_target), path (mv.show_path), held spot (mv.show_spot)
   r.say("후퇴: 적 2명 접근")  # one decision line (run.py's Log does this for every log line)
 
 Fire-and-forget: UDP to localhost, nothing waits for an answer, every error is swallowed. With no server
@@ -19,6 +20,8 @@ import time
 PORT = int(os.environ.get("RADAR_PORT", "47800"))
 RATE_HZ = 10.0
 POLL_WITHIN = 40.0     # radius for the fallback poll (no feed)
+MAX_PATH = 200          # path points sent (evenly thinned)
+SPOT_FRESH = 2.0       # s — a held spot older than this is no longer shown
 MAX_CHARS = 40          # nearest first; keeps one packet well under the UDP size limit
 
 
@@ -38,9 +41,33 @@ def snapshot_dict(s) -> dict:
             "cam_yaw": _r(s.cam_yaw, 3), "flask_hp": s.flask_hp, "max_flask_hp": s.max_flask_hp}
 
 
+def _pts(path) -> list:
+    step = max(1, -(-len(path) // MAX_PATH))
+    pts = list(path[::step])
+    if pts and pts[-1] is not path[-1]:
+        pts.append(path[-1])
+    return [[_r(q[0]), _r(q[1]), _r(q[2])] for q in pts]
+
+
+def intent_dict(mv) -> dict:
+    """Layer 4's intent as set on Moves — read only. Missing attributes (fakes, old code) just leave fields out."""
+    out = {}
+    t = getattr(mv, "cam_target", None)
+    if t is not None:
+        out["target"] = t
+    p = getattr(mv, "show_path", None)
+    if p:
+        out["path_tag"], out["path"] = p[0], _pts(p[1])
+    sp = getattr(mv, "show_spot", None)
+    if sp and time.time() - sp[2] < SPOT_FRESH:
+        out["spot_tag"], out["spot"] = sp[0], [_r(v) for v in sp[1]]
+    return out
+
+
 class Radar:
     def __init__(self, host: str = "127.0.0.1", port: int = PORT):
         self.addr = (host, port)
+        self.mv = None
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setblocking(False)
         self._last = 0.0
@@ -57,12 +84,19 @@ class Radar:
             return
         self._last = now
         try:
-            self._send({"type": "snap", **snapshot_dict(s)})
+            msg = {"type": "snap", **snapshot_dict(s)}
+            if self.mv is not None:
+                msg.update(intent_dict(self.mv))
+            self._send(msg)
         except Exception:
             pass
 
     def say(self, line: str) -> None:
         self._send({"type": "say", "t": time.time(), "line": str(line)[:300]})
+
+    def follow(self, mv) -> "Radar":
+        self.mv = mv
+        return self
 
     def attach(self, tm) -> "Radar":
         """Follow what the bot reads. With feed.Feed (the default telemetry) subscribe to its frames like blackbox.py;

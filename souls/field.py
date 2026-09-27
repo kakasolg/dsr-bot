@@ -488,6 +488,7 @@ class Field:
     def _hold_at(self, spot, nm, tag: str, s=None, ignore=()) -> tuple[str, object]:
         """Judge one tick → (state, foe). States: returning | coming | low_stamina_threat | contact_in_zone | contact_out_of_zone |
         approach | calm. No fighting or approaching — the caller (clear) decides from the state."""
+        self.mv.show_spot = (tag, tuple(spot), time.time())     # viewers only (radar)
         s = s or self.mv.snap(SEEK_R)
         if s is None:
             time.sleep(0.05)
@@ -981,6 +982,14 @@ class Field:
     # ── Path───────────────────────────────────────────────────
     def walk(self, path: list, nm, tag: str, tol: float | None = None, tight: dict | None = None, mode: str = "walk",
              done=None) -> str:
+        prev, self.mv.show_path = self.mv.show_path, (tag, [tuple(q) for q in path])   # viewers only (radar)
+        try:
+            return self._walk(path, nm, tag, tol, tight, mode, done)
+        finally:
+            self.mv.show_path = prev                       # a detour (walk_to inside walk) hands the outer path back
+
+    def _walk(self, path: list, nm, tag: str, tol: float | None = None, tight: dict | None = None, mode: str = "walk",
+              done=None) -> str:
         """Walk the path, killing first any foe that chases and closes in. → 'arrived' | 'dead' | 'stuck' | 'no_estus'
         Per-point floor check only when both the target and current spot are on this navmesh (edges / bridges have navmesh gaps).
         Inside tight = {"center": [x,y,z], "r": m} (narrow bridge without railings), step precisely at 0.45 m."""

@@ -80,6 +80,43 @@ before = r._last
 r.snapshot(snap)
 check("RATE_HZ 제한 (바로 다음 프레임은 버림)", r._last == before)
 
+print("목표·경로·지킬 자리")
+mv = type("Mv", (), {})()
+mv.cam_target, mv.show_path, mv.show_spot = 2, ("경사로", [(float(i), 0.0, 0.0) for i in range(500)]), ("대기", (3.0, 0.0, 4.0), time.time())
+r.follow(mv)
+r._last = 0
+r.snapshot(snap)
+time.sleep(0.3)
+s = state(http)["snap"]
+check("목표 ptr", s.get("target") == 2)
+check("경로: 줄여서 보내고 끝점은 유지", s.get("path_tag") == "경사로" and len(s["path"]) <= radar.MAX_PATH + 1 and s["path"][-1] == [499.0, 0.0, 0.0])
+check("지킬 자리", s.get("spot") == [3.0, 0.0, 4.0] and s.get("spot_tag") == "대기")
+mv.show_spot = ("대기", (3.0, 0.0, 4.0), time.time() - 10)
+mv.cam_target, mv.show_path = None, None
+check("오래된 자리·빈 목표·빈 경로는 안 보냄", radar.intent_dict(mv) == {})
+check("속성 없는 mv 도 괜찮음", radar.intent_dict(object()) == {})
+
+print("field.walk 가 경로를 걸고 푼다 (돌아가기 중첩 포함)")
+from souls import field as F
+
+
+class W:
+    def __init__(self):
+        self.mv = type("Mv", (), {"show_path": None})()
+        self.seen = []
+
+    def _walk(self, path, nm, tag, *a):
+        self.seen.append(self.mv.show_path[0])
+        if tag == "밖":
+            F.Field.walk(self, [(9, 0, 9)], nm, "돌아서")
+            self.seen.append(self.mv.show_path[0])
+        return "arrived"
+
+
+w = W()
+F.Field.walk(w, [(0, 0, 0), (1, 0, 1)], None, "밖")
+check("안쪽 경로 → 끝나면 바깥 경로로 복귀 → 끝나면 비움", w.seen == ["밖", "돌아서", "밖"] and w.mv.show_path is None)
+
 print("안전")
 r.snapshot(None)
 dead = radar.Radar(port=free_port(socket.SOCK_DGRAM))

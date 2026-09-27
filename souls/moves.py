@@ -72,6 +72,9 @@ class Moves:
         self.guard_ok = True     # False = never raise the shield (backstep style. User: "Don't guard when backstepping — dodge and attack, keep it simple")
         self.cam_target = None   # enemy ptr for the camera to face — set by layer 4 (field.fight·lure), followed by camera.CamFollow
         self.cam_busy = False    # this layer is using the camera directly (knife lock-on) — CamFollow stays hands off
+        # what layer 4 is doing, for viewers only (radar.py reads these; nothing in the bot reads them back)
+        self.show_path = None    # (tag, [(x, y, z), ...]) while field.walk follows a path
+        self.show_spot = None    # (tag, (x, y, z), time) — last spot field._hold_at held
 
     # ── Camera ───────────────────────────────────────────────
     # User 2026-09-26: "This game has auto lock-on, so … press the right stick again to release, point the camera at the enemy you want, press the stick".
