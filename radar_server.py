@@ -33,7 +33,7 @@ PAGE = Path(__file__).parent / "radar.html"
 GAMEFILES = Path(__file__).parent / "data" / "gamefiles"
 PROP_R, PROP_DY = 40.0, 1.0     # props sent: within this (horizontal) of the player, and this height (±1 m: same floor only — user 2026-09-27, lower floors showed up)
 STRONG_MIN_ATTACK = 50         # same as msb_extract.py
-ITEM_DY = 1.0                  # items: same floor only, like props (user 2026-09-27: marks from other floors looked like missing items)
+ITEM_DY = 5.0                  # items: ±5 m — a ledge or stairs above still matters (user 2026-09-27; props stay ±1 m)
 HTTP_PORT = radar.PORT + 1
 SAY_KEEP = 12
 
