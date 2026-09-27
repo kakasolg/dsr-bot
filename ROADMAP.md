@@ -58,7 +58,7 @@
   - 오브젝트: 위치, 모델명, 부서짐 여부 (ObjectParam)
   - 적: 위치, 방향, 순찰 경로, ThinkParam ID
 - [x] [cloud] NpcThinkParam 추출: 시야 거리·각도, 청각 범위, 귀환 거리 → 적 데이터에 붙이기 — 같은 스크립트의 `think` 필드. 단위(미터 여부)는 게임에서 확인 필요
-- [ ] [win] `python msb_extract.py m10_02_00_00 m10_01_00_00` 실행하고 `data/gamefiles/*.json` 커밋. 확인할 것: 오류 없이 도는지, 오브젝트·적 수가 그럴듯한지, 박스(`breakable: true`)가 실제로 부서지는지 몇 개. ObjectParam 행 번호 = 모델 번호 가정이 맞는지(`param_row_found`가 대부분 true인지)
+- [~] [win] `python msb_extract.py m10_02_00_00 m10_01_00_00` 실행하고 `data/gamefiles/*.json` 커밋. 확인할 것: 오류 없이 도는지, 오브젝트·적 수가 그럴듯한지, 박스(`breakable: true`)가 실제로 부서지는지 몇 개. ObjectParam 행 번호 = 모델 번호 가정이 맞는지(`param_row_found`가 대부분 true인지)
 - [ ] [사람] 결과가 실제 게임과 맞는지 몇 개 확인 (박스 위치, 적 대기 위치)
 - [ ] [cloud] 증거 등급 추가: "파일 근거" (LAYERS.md에 반영)
 
