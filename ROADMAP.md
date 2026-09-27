@@ -45,7 +45,8 @@
 ## 1. 기반 정리 — 게임 없이 테스트
 
 - [x] [cloud] pymem/vgamepad 없이도 모듈이 불러와지게 함 (`telemetry.py`, `dsr_telemetry.py`, `control.py`, `quitout.py`) — Linux Python 3.12에서 오프라인 테스트 11/11 통과
-- [ ] [win] 위 수정 후 실제 게임에서 `run.py burg-bonfire` 한 번 정상 동작 확인
+- [~] [win] 위 수정 후 실제 게임에서 `run.py burg-bonfire` 한 번 정상 동작 확인
+  - 2026-09-27 [win] `clear-ramp`(사용자 지시, `--radar` 없음)로 대신 확인: 1회차는 캐릭터가 Burg 화톳불에 있어 `no_path`·적 못 찾음(시작 위치 문제, 코드 문제 아님). 불의 제전으로 bonfire_warp 후 2회차: 휴식 됨 → 6/6 `cleared`, 108 s, 최저 HP 61%, 큰 피격 2번, 예외 없음. clear-ramp는 정상. `burg-bonfire` 전 구간은 아직 미확인이라 [~] 유지
 - [ ] [cloud] 테스트를 `tests/`로 옮기고 pytest로 실행 (`axe_heavy_test.py`는 게임 측정 스크립트라 제외)
 - [x] [cloud] GitHub Actions CI: Python 3.12, Windows 전용 패키지 뺀 의존성, 오프라인 테스트 실행 — `.github/workflows/test.yml`, 로컬 3.12에서 같은 명령 통과
 - [x] [cloud] 클라우드 세션 시작 훅 (`.claude/hooks/session-start.sh`): Python 3.12 venv + 오프라인 테스트 의존성 자동 설치 — 훅 실행·재실행 OK, `moves_test.py` 통과
