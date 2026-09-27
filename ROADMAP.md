@@ -45,9 +45,10 @@
 ## 1. 기반 정리 — 게임 없이 테스트
 
 - [x] [cloud] pymem/vgamepad 없이도 모듈이 불러와지게 함 (`telemetry.py`, `dsr_telemetry.py`, `control.py`, `quitout.py`) — Linux Python 3.12에서 오프라인 테스트 11/11 통과
-- [~] [win] 위 수정 후 실제 게임에서 `run.py burg-bonfire` 한 번 정상 동작 확인
+- [x] [win] 위 수정 후 실제 게임에서 `run.py burg-bonfire` 한 번 정상 동작 확인
   - 2026-09-27 [win] `clear-ramp`(사용자 지시, `--radar` 없음)로 대신 확인: 1회차는 캐릭터가 Burg 화톳불에 있어 `no_path`·적 못 찾음(시작 위치 문제, 코드 문제 아님). 불의 제전으로 bonfire_warp 후 2회차: 휴식 됨 → 6/6 `cleared`, 108 s, 최저 HP 61%, 큰 피격 2번, 예외 없음. clear-ramp는 정상. `burg-bonfire` 전 구간은 아직 미확인이라 [~] 유지
   - 2026-09-27 [win] `burg-bonfire`(레이더 없음) 실행: 휴식 됨 → 경사로 cleared(125 s) → 성벽 마을 끝(320 s) → 상인 도착(331 s), 예외 없음. 사용자 요청으로 상인 앞에서 중단 — 버그 화톳불 구간 미확인. 다음 실행은 `--radar`로
+  - 2026-09-27 [win] `burg-bonfire --radar` 전 구간: 휴식 → 경사로 cleared(116 s) → 성벽 마을 끝(373 s) → 상인(386 s) → 버그 화톳불 앉음(418 s, 결과 `lit`), 예외 없음 → 동작 정상. 단 위험 판정 "위험"(최저 HP 2%, 퀵 종료 2번) — P-6
 - [ ] [cloud] 테스트를 `tests/`로 옮기고 pytest로 실행 (`axe_heavy_test.py`는 게임 측정 스크립트라 제외)
 - [x] [cloud] GitHub Actions CI: Python 3.12, Windows 전용 패키지 뺀 의존성, 오프라인 테스트 실행 — `.github/workflows/test.yml`, 로컬 3.12에서 같은 명령 통과
 - [x] [cloud] 클라우드 세션 시작 훅 (`.claude/hooks/session-start.sh`): Python 3.12 venv + 오프라인 테스트 의존성 자동 설치 — 훅 실행·재실행 OK, `moves_test.py` 통과
@@ -141,6 +142,12 @@
 - 증상: `data/*.json` 예외 때문에 윈도우 로컬의 `data/diag.json`, `data/dmglog*.json`, `data/char-state.json`, `data/routes/asylum-*.json` 등 20여 개가 `git status`에 untracked로 나옴
 - 원인 (확인): `.gitignore`가 `data/*.json`, `data/routes/`를 모두 허용함. 봇·실험 스크립트가 실행 중 쓰는 파일이 섞임
 - 해결: 미해결. [win]은 커밋하지 않음. 실행 산출물 이름을 따로 무시하거나 허용 목록을 파일 단위로 좁힐 것 ([cloud])
+
+### P-6 burg-bonfire 성벽 마을 구간 위험 (2026-09-27, [win], 1번)
+- 증상: `run.py burg-bonfire --radar` 완주(`lit`, 418 s)했지만 위험 판정 "위험": 최저 HP 2%, 큰 피격 8번 -1085 (254011×4, 254001×2, 254010×2), 둘러싸임(crowd) 퀵 종료 2번 — (-55.0,-22.8,-29.5) HP 151, (-21.2,-13.4,-59.3) HP 338. `#1 254011` stuck 18 s(가장자리 방어, 높이 -1.2), `#4` 경로점 (-9.8,-11.3,-68.6) stuck, `#6` (-36.0,-13.5,-70.1) timeout. 같은 날 레이더 없이 돈 1회차(상인까지)는 이 정도로 위험하지 않았음
+- 원인 (추정): README의 알려진 약점(여러 마리가 동시에 붙는 전투). 레이더 켠 영향은 read_ms 3.7로 없어 보임
+- 재현: 불의 제전에서 `BOT_GAME=dsr python run.py burg-bonfire --radar`. 로그는 [win] 로컬에만 있음(필요하면 data/samples/에 올림)
+- 해결: 미해결 ([cloud])
 
 ---
 
