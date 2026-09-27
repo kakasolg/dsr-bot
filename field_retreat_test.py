@@ -45,8 +45,14 @@ def test_retreat_uses_mode_fn() -> None:
     f.mv.walk_path = walk_path
     nm = type("Nm", (), {"find_path": lambda self, a, b: [a, (5.0, 0.0, 0.0), b]})()
     assert f.retreat(nm, (10.0, 0.0, 0.0)) == "stopped"
-    assert seen["mode"] is F.Field._retreat_mode, seen
-    print("ok  retreat passes the guard/walk mode function to walk_path")
+    fn = seen["mode"]
+    w.add(10, 110, 255000, (1.85, 0.0, 0.0), anim=3000)
+    assert fn(w.snapshot()) == "guard" and fn(w.snapshot()) == "guard"
+    w.move(10, (8.0, 0.0, 0.0))
+    assert fn(w.snapshot()) == "walk"
+    modes = [l for l in f.logs if "후퇴 모드" in l]
+    assert len(modes) == 2 and "guard" in modes[0] and "255000 1.9 m" in modes[0] and "walk" in modes[1], modes
+    print("ok  retreat: guard/walk mode per tick, each switch logged")
 
 
 if __name__ == "__main__":

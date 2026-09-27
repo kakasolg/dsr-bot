@@ -232,7 +232,17 @@ class Field:
         if not path:
             return "no_path"                               # (spinning in place → recover returns False → next fight is to-the-end)
         t0 = time.time()
-        return self.mv.walk_path(nav.trim_path(path[1:], tuple(home)), nm, self._retreat_mode,   # walk, not run: running safety is only a NavMesh estimate (evidence-grade gate, 2026-09-26)
+        last = [None]
+
+        def mode(sn):
+            m = self._retreat_mode(sn)
+            if m != last[0]:                               # log each switch — whether the guard was up can be read off the log (1-c)
+                c = min(sn.hostile(RETREAT_GUARD_R + 1.0), key=lambda x: M.horiz(sn.player, x), default=None)
+                self.log(f"      후퇴 모드: {m}" + (f" (가장 가까운 {c.npc_param} {M.horiz(sn.player, c):.1f} m)" if c else ""))
+                last[0] = m
+            return m
+
+        return self.mv.walk_path(nav.trim_path(path[1:], tuple(home)), nm, mode,   # walk, not run: running safety is only a NavMesh estimate (evidence-grade gate, 2026-09-26)
                                  stop=lambda sn: time.time() - t0 > 3.0 and self.safe(sn))
 
     @staticmethod
@@ -1058,7 +1068,8 @@ class Field:
 
                 def on_stuck(p, target, q=q):
                     # stuck on the way (nav.goto STUCK_WINDOW, 2 s) — a crate in front? break it now, not after the 15 s timeout
-                    return self._smash_blocking(nm, (p.x, p.y, p.z), q, smashed, tag, mover)
+                    return self._smash_blocking(nm, (p.x, p.y, p.z), q, smashed, tag, mover,
+                                                why=f"막힘 감지 ({nav.STUCK_WINDOW:.0f} s 동안 {nav.STUCK_MIN_PROGRESS} m 미만)")
 
                 r = nav.goto(self.mv.tm, self.mv.pad, q, tolerance=t if terr is not None else max(t, 0.8), timeout=15,
                              log=lambda *a: None, terrain=terr, mover=mover, on_stuck=on_stuck,
@@ -1119,7 +1130,7 @@ class Field:
                                     pos=[round(v, 2) for v in pp], r=r, fails=fails)
                         # a breakable prop on the way (the NavMesh doesn't know crates) — break it and try the same point again, before
                         # detouring: the detour's navmesh path runs through the same crate (2026-09-27 burg-bonfire #6, ROADMAP P-6)
-                        if self._smash_blocking(nm, pp, q, smashed, tag, mover):
+                        if self._smash_blocking(nm, pp, q, smashed, tag, mover, why=f"점 못 감 ({r})"):
                             fails = 0
                             continue
                         # if the straight line fails, detour once via navmesh pathfinding — pushed while fighting onto the upper passage beside the stairs (1.1~1.5 m higher),
@@ -1151,13 +1162,15 @@ class Field:
         finally:
             mover.stop()
 
-    def _smash_blocking(self, nm, me, goal, smashed: dict, tag: str, mover=None) -> bool:
-        """A breakable prop between me and goal not yet swung at SMASH_TRIES times this walk → break it, True. Else False."""
+    def _smash_blocking(self, nm, me, goal, smashed: dict, tag: str, mover=None, why: str = "") -> bool:
+        """A breakable prop between me and goal not yet swung at SMASH_TRIES times this walk → break it, True. Else False.
+        why = what noticed the block (logged, so the time from stuck to swing can be read off the log)."""
         prop = next((o for o in props_.blocking(getattr(nm, "map_id", None), me, goal)
                      if smashed.get(o["name"], 0) < SMASH_TRIES), None)
         if prop is None:
             return False
         smashed[prop["name"]] = smashed.get(prop["name"], 0) + 1
+        self.log(f"      {tag}: {why or '막힘'} — 앞길에 {prop['model']} ({prop['name']}, {math.dist(me, prop['pos']):.1f} m)")
         if mover is not None:
             mover.stop()                                   # release run (B) before stepping up and swinging
         self._smash(prop, tag)

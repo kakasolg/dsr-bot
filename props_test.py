@@ -87,6 +87,7 @@ first = f3._smash_blocking(nm, (-34.3, -13.5, -72.0), (-36.0, -13.5, -70.1), sma
 for _ in range(5):
     f3._smash_blocking(nm, (-34.3, -13.5, -72.0), (-36.0, -13.5, -70.1), smashed, "t")
 check("P-6 장면 상자 부숨 → True, 레이더용 기록", first and f3.mv.show_smash and f3.mv.show_smash[0] in ("o1130_12", "o1132_06"))
+check("무엇이 막힘을 알렸는지 로그", any("막힘 — 앞길에" in l for l in f3.logs))
 check(f"같은 물건은 걷기 한 번에 {F.SMASH_TRIES}회까지 {smashed}", all(v <= F.SMASH_TRIES for v in smashed.values())
       and not f3._smash_blocking(nm, (-34.3, -13.5, -72.0), (-36.0, -13.5, -70.1), smashed, "t"))
 check("지도 없는 nm → False", not f3._smash_blocking(type("N", (), {})(), (0, 0, 0), (1, 0, 0), {}, "t"))
