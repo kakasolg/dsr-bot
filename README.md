@@ -1,68 +1,84 @@
-# dsr-bot — Dark Souls Remastered 규칙 기반 봇
+# dsr-bot — a rule-based Dark Souls Remastered bot
 
-**오프라인 전용.** 다크소울 리마스터(PC, Steam)를 게임 메모리 읽기 + NavMesh A\* 길찾기 + 규칙 기반 전투로 진행하는 파이썬 봇입니다.
-지금은 **불의 제전 → 성벽 마을 경사로 6마리 → 성벽 마을 → 상인 → 성벽 마을 화톳불**까지 혼자 갑니다.
+**Offline only.** A Python bot that plays Dark Souls Remastered (PC, Steam) by reading game memory, pathfinding with A\* on the
+game's NavMesh, and fighting with a hand-tuned rule table.
+It currently gets from **Firelink Shrine → the 6 hollows on the Undead Burg ramp → Undead Burg → the merchant → the Undead Burg
+bonfire** on its own.
 
-**영상 (7:43, 자막 CC 로 봇의 판단 표시):** https://youtu.be/_ihMBcxvG5w
-— 퀵 종료·순간이동 없이 패드 입력만으로 돈 한 판 (`run.py burg-bonfire --no-quit`).
+**Video (7:43, turn on CC to see what the bot is deciding):** https://youtu.be/_ihMBcxvG5w
+— one run with controller input only, no quit-outs or teleports (`run.py burg-bonfire --no-quit`).
 
-> 온라인에 접속한 상태로 쓰지 마세요. 메모리를 일부 쓰는 기능(화톳불 워프, 타이틀로 나가기)이 있어 온라인에선 제재 위험이 있고,
-> 다른 플레이어에게 피해가 갑니다. 이 저장소는 연구·학습용입니다.
+> Do not use it while connected online. Some features write to game memory (bonfire warp, quit to title), which risks a ban
+> online and can affect other players. This repository is for research and learning.
 
-## 현재 상태 (2026-09)
+## How it "sees" the game
 
-- 실행 중에는 LLM·학습 모델을 쓰지 않습니다 — 전부 규칙과 수치입니다. (`tactic_llm.py`, `bandit.py`, `learn.py` 등은 예전 실험)
-- 개발은 AI 코딩 도구(Claude)가 코드 대부분을 쓰고, 사람이 플레이 시연·판단·검증을 맡는 방식으로 했습니다. 커밋의 `Co-Authored-By` 참고.
-- 최근 판: 경사로 6/6, 성벽 마을 화톳불 도착. 최소 장비에서 최저 HP 27~47% — 여럿이 붙는 싸움이 약점.
-- 원 작성자는 더 이어가기 어려워 공개합니다. **이어받거나 함께할 분 환영** — 특히 LLM / JEPA 같은 모델을 한 층에 끼워 보고 싶은 분.
+It doesn't. There is no screen capture, image recognition or video analysis. The bot reads values straight from game memory —
+positions, HP and stamina, enemy IDs, which animation each enemy is playing (i.e. which attack is coming), facing, camera angle,
+lock-on target, item counts — and makes every decision from those numbers plus the NavMesh from the game files.
 
-## 구조
+## Status (2026-09)
+
+- No LLM or machine-learning model runs during play — it is all rules and numbers. (`tactic_llm.py`, `bandit.py`, `learn.py`
+  etc. are old experiments.)
+- Development: most of the code was written by an AI coding assistant (Claude); a human did the play demonstrations, decisions
+  and verification. See the `Co-Authored-By` lines in the commits.
+- Recent runs: ramp 6/6, Undead Burg bonfire reached. With minimal gear the lowest HP is 27–47% — fights where several enemies
+  close in at once are the weak point.
+- The original author can't keep working on it and is releasing it. **Anyone who wants to take it over or join in is welcome** —
+  especially if you'd like to plug an LLM or a JEPA-style model into one of the layers.
+
+## Layout
 
 ```
-dsr_telemetry.py / telemetry.py   게임 메모리 읽기 (pymem) — 위치·HP·애니·적·카메라
-navmesh.py / nav.py               게임 파일의 NavMesh(soulstruct) → 삼각형 그래프 A* 길찾기, 발밑 검사
-souls/                            층 구조 — 아래 층은 위 층을 모른다 (LAYERS.md)
-  moves.py     1층 조작 (패드: vgamepad)
-  duel.py      2층 1:1 싸움 규칙
-  foes.py      적 종류별 데이터 (애니 번호·막으면 안 되는 공격 등)
-  field.py     4층 필드 — 교전 큐, 끌어오기(투척 나이프), 제자리 고수, 안전 구역
-  missions.py  5층 임무 — 경사로 / 성벽 마을 / 상인 / 화톳불
-run.py                            실행 진입점
-observe_record.py                 읽기 전용 관찰 녹화 (사람 시연과 봇 판을 같은 형식으로)
-risk_report.py, blackbox.py       판 평가 — 큰 피격, 최저 HP, 막힘
+dsr_telemetry.py / telemetry.py   game memory reads (pymem) — position, HP, animation, enemies, camera
+navmesh.py / nav.py               game NavMesh (via soulstruct) → triangle graph, A* pathfinding, footing checks
+souls/                            layered — lower layers never know about upper ones (LAYERS.md)
+  moves.py     layer 1: controls (virtual pad via vgamepad)
+  duel.py      layer 2: one-on-one combat rules
+  foes.py      per-enemy data (animation IDs, attacks that must not be blocked, ...)
+  field.py     layer 4: field play — engagement queue, luring with throwing knives, holding a spot, safe zones
+  missions.py  layer 5: missions — ramp / Undead Burg / merchant / bonfire
+run.py                            entry point
+observe_record.py                 read-only observation recorder (human demos and bot runs in the same format)
+risk_report.py, blackbox.py       run evaluation — big hits, lowest HP, getting stuck
 ```
 
-규칙과 그 근거는 [LAYERS.md](LAYERS.md) 한 곳에 있습니다 — 특히 **"근거 등급 게이트"**: 수치마다 사람 시연 / 반복 관찰 / NavMesh 추정 /
-코드 상수 / 모름 중 무엇이 근거인지 적고, 등급이 허용하는 행동만 합니다. 관찰 녹화 형식은 [OBSERVE.md](OBSERVE.md).
+The rules and their justification live in one place, [LAYERS.md](LAYERS.md) (written in Korean). In particular the
+**evidence-grade gate**: every number is tagged with what backs it — human demo / repeated observation / NavMesh estimate /
+code constant / unknown — and only actions that grade allows are taken. The recording format is in [OBSERVE.md](OBSERVE.md).
+Code comments and logs are mostly in Korean.
 
-## 실행
+## Running it
 
-필요한 것: Windows, DSR (Steam), Xbox 패드 드라이버용 [ViGEmBus](https://github.com/nefarius/ViGEmBus), Python 3.12, [uv](https://docs.astral.sh/uv/).
-Steam Input 은 끄세요 (패드 입력을 Steam 이 가로챕니다).
+You need: Windows, DSR (Steam), [ViGEmBus](https://github.com/nefarius/ViGEmBus) for the virtual Xbox pad, Python 3.12,
+[uv](https://docs.astral.sh/uv/). Turn Steam Input off (Steam intercepts the pad input otherwise).
 
 ```bash
 uv venv .venv --python 3.12
 uv pip install --python .venv/Scripts/python.exe -r requirements-lock.txt
-# DSR 설치 경로가 다르면: set DSR_GAME_DIR=...\DARK SOULS REMASTERED
-BOT_GAME=dsr .venv/Scripts/python run.py clear-ramp      # 경사로만
-BOT_GAME=dsr .venv/Scripts/python run.py burg-bonfire    # 불의 제전 → 성벽 마을 화톳불
-BOT_GAME=dsr .venv/Scripts/python run.py burg-bonfire --no-quit   # 퀵 종료·화톳불 자리 순간이동 없이 (영상 촬영용)
-.venv/Scripts/python observe_record.py --minutes 15      # 읽기 전용 녹화 (F9 = 마커)
+# if DSR is installed elsewhere: set DSR_GAME_DIR=...\DARK SOULS REMASTERED
+BOT_GAME=dsr .venv/Scripts/python run.py clear-ramp                 # ramp only
+BOT_GAME=dsr .venv/Scripts/python run.py burg-bonfire               # Firelink → Undead Burg bonfire
+BOT_GAME=dsr .venv/Scripts/python run.py burg-bonfire --no-quit     # no quit-outs, no bonfire teleport (for recording)
+.venv/Scripts/python observe_record.py --minutes 15                 # read-only recording (F9 = marker)
 ```
 
-오프라인 테스트: `python field_*_test.py`, `duel_shadow_test.py`, `moves_test.py` 등 (게임 없이 가짜 월드로).
+Offline tests (fake world, no game needed): `python field_*_test.py`, `duel_shadow_test.py`, `moves_test.py`, etc.
 
-`data/` 에는 임무에 필요한 작은 파일만 올렸습니다 — 사람이 걸어 녹화한 경로(`data/routes/`), 적 스폰 지도, 안전 구역(`safe-zones.json`).
-관찰 녹화·실행 기록(1 GB+)은 없습니다. 필요하면 이슈로 요청해 주세요.
+`data/` only contains the small files the missions need — routes a human walked and recorded (`data/routes/`), enemy spawn
+maps, and user-marked safe zones (`safe-zones.json`). Observation recordings and run logs (1 GB+) are not included; open an
+issue if you need them.
 
-## 이어서 해 볼 만한 것
+## Worth trying next
 
-- 여럿이 붙는 싸움 (지금 가장 큰 피해원) — 떼어놓기, 자리 선택
-- 적 공격 예측 — 애니 번호의 뜻이 아직 영상으로 검증되지 않음 (`foes.py` 의 3004/3500 등)
-- 사람 시연에서 배우기 — 관찰 녹화가 사람·봇 같은 형식이라 비교·학습 재료로 쓸 수 있음
-- NavMesh 경로 다듬기(funnel), 부서지는 물체 인식
+- Fights with several enemies at once (the biggest source of damage now) — separating them, choosing where to fight
+- Predicting enemy attacks — the meaning of the animation IDs (e.g. 3004/3500 in `foes.py`) is not yet verified on video
+- Learning from human demos — observation recordings use the same format for humans and the bot, so they can be compared or
+  used as training data
+- Smoothing NavMesh paths (funnel algorithm), recognising breakable objects
 
-## 예전 문서
+## Older docs
 
-엘든링 시절 README 는 [README-legacy.md](README-legacy.md). 이 봇은 원래 [chzzk-souls-chaos](https://github.com/kakasolg/chzzk-souls-chaos)
-(치지직 후원 → 게임 효과 어댑터)의 하위 폴더에서 시작했습니다.
+The Elden Ring-era README is [README-legacy.md](README-legacy.md). This bot started as a subfolder of
+[chzzk-souls-chaos](https://github.com/kakasolg/chzzk-souls-chaos) (a Chzzk-donation → game-effect adapter).
