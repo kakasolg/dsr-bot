@@ -179,6 +179,41 @@ def test_result_line_names_actual_opponent() -> None:
     print("ok  result line names the foe actually fought when it switched")
 
 
+def test_shield_pair_rules() -> None:
+    from telemetry import Chr, Snapshot
+    p = Chr(ptr=1, npc_param=0, team=1, hp=262, max_hp=793, x=0.0, y=0.0, z=0.0)
+
+    def foe(ptr, x, anim=-1, hp=85, npc=255000, y=0.0):
+        return Chr(ptr=ptr, npc_param=npc, team=6, hp=hp, max_hp=85, x=x, y=y, z=0.0, anim=anim, dist=abs(x))
+
+    def snap(*cs):
+        return Snapshot(t=0.0, player=p, chars=sorted(cs, key=lambda c: c.dist))
+
+    # P-8 284.3 s: staggered shield soldier (target 2) + hollow 3003 at 1.2 m → don't punish, block
+    assert D._other_swinging(snap(foe(2, 1.1, anim=3500), foe(3, 1.2, anim=3003, npc=254010)), 2)
+    assert not D._other_swinging(snap(foe(2, 1.1, anim=3500), foe(3, 1.2, anim=-1)), 2)          # standing, not swinging
+    assert not D._other_swinging(snap(foe(2, 1.1, anim=3500), foe(3, 3.5, anim=3003)), 2)        # too far
+    assert not D._other_swinging(snap(foe(2, 1.1, anim=3003)), 2)                                 # the target itself
+    # retreat line: two shield soldiers standing within 4 m → 45 %, one → 25 %, desperate stays 0
+    two = snap(foe(2, 1.2), foe(3, 2.4))
+    assert D._low_hp_line(two, 0.25) == D.CROWD_LOW_HP
+    assert D._low_hp_line(snap(foe(2, 1.2), foe(3, 6.0)), 0.25) == 0.25
+    assert D._low_hp_line(snap(foe(2, 1.2), foe(3, 2.4, anim=9010)), 0.25) == 0.25             # downed doesn't count
+    assert D._low_hp_line(snap(foe(2, 1.2), foe(3, 2.4, hp=0)), 0.25) == 0.25
+    assert D._low_hp_line(snap(foe(2, 1.2), foe(3, 2.4, y=-4.0)), 0.25) == 0.25                # other level
+    assert D._low_hp_line(two, 0.0) == 0.0
+    print("ok  shield pair: no punish while another foe swings; retreat at 45 % with two foes within 4 m")
+
+
+def test_foe_follows_target_after_switch_back() -> None:
+    # P-8 291.3 s: after "interloper killed — back to the original target" the shield soldier got the hollow's moves.
+    # duel() now re-reads the foe data from the current target every tick — guard the line against regressions.
+    import inspect
+    src = inspect.getsource(D.duel)
+    assert "foe = foes_.of(c.npc_param)\n" in src and "if foe is None:\n            foe = foes_.of(c.npc_param)" not in src
+    print("ok  foe data re-read from the current target every tick")
+
+
 if __name__ == "__main__":
     test_candidate_truth_table()
     test_shadow_dedupe_and_outcome()
@@ -188,4 +223,6 @@ if __name__ == "__main__":
     test_non_shield_no_events()
     test_interloper_skips_standing_foes()
     test_result_line_names_actual_opponent()
+    test_shield_pair_rules()
+    test_foe_follows_target_after_switch_back()
     print("전부 통과")

@@ -209,6 +209,29 @@ class ShadowKick:
             self._emit(pe, now, s, cancelled, True)
 
 
+OTHER_SWING_R = 2.5      # another foe swinging within this (horizontal) → don't start our own attack, block
+CROWD_R = 4.0            # awake foes within this count as "surrounded" for the retreat line
+CROWD_LOW_HP = 0.45      # retreat line with ≥2 awake foes that close: two shield soldiers took 262 → 22 → dead in one exchange (P-8)
+
+
+def _other_swinging(s, ptr) -> bool:
+    """A foe other than ptr is mid-attack within OTHER_SWING_R."""
+    p = s.player
+    return any(x.ptr != ptr and (x.anim or -1) in M.ATTACK and M.horiz(p, x) < OTHER_SWING_R for x in s.hostile(OTHER_SWING_R + 2.0))
+
+
+def _low_hp_line(s, low_hp: float) -> float:
+    """HP fraction below which the duel ends with low_hp. Raised to CROWD_LOW_HP when ≥2 living, not-downed foes (target
+    included) are within CROWD_R at our level. low_hp 0 (desperate, fight to the end) stays 0."""
+    if low_hp <= 0:
+        return low_hp
+    p = s.player
+    # standing foes count too: a shield soldier stands (anim -1) behind its raised shield
+    n = sum(1 for x in s.hostile(CROWD_R + 1.0) if x.hp > 0 and M.horiz(p, x) < CROWD_R and abs(x.y - p.y) < 2.0
+            and not (9000 <= (x.anim or 0) < 9100))
+    return max(low_hp, CROWD_LOW_HP) if n >= 2 else low_hp
+
+
 def _others_quiet(s, ptr) -> bool:
     for x in s.hostile(OTHERS_ATTACK_R):
         if x.ptr == ptr or 9000 <= (x.anim or 0) < 9100:
@@ -415,10 +438,13 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
                 continue
             return done("killed")
         last_seen = c
-        if foe is None:
-            foe = foes_.of(c.npc_param)
+        if res.npc is None:
             res.npc = c.npc_param
-        if p.hp < p.max_hp * low_hp and not (c.hp <= FINISH_KEEP_HP and p.hp >= p.max_hp * 0.12):
+        # the foe data must follow whoever ptr is now. It used to be set once, so after "interloper killed — back to the
+        # original target" a shield soldier kept the hollow's data and got hollow moves (먼저 치기 into the shield: dealt 4,
+        # took 240, then died — 2026-09-27 burg-bonfire 27c, ROADMAP P-8)
+        foe = foes_.of(c.npc_param)
+        if p.hp < p.max_hp * _low_hp_line(s, low_hp) and not (c.hp <= FINISH_KEEP_HP and p.hp >= p.max_hp * 0.12):
             return done("low_hp")                          # don't retreat from an almost-dead foe — if we leave and return, a survivor's HP refills
         if now - last_dmg_t > STALEMATE_S:
             return done("stalemate")
@@ -529,7 +555,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
         if (foe.kind != "shield" and h <= weapon.reach and abs(dy) <= 1.0 and (p.sp or 0) >= weapon.sp_min
                 and (a == -1 or (a in M.ATTACK and age is not None and age < INTERRUPT_S
                                  and (weapon.startup or 0.0) <= INTERRUPT_STARTUP_MAX))
-                and not any(x.ptr != ptr and (x.anim or -1) in M.ATTACK and M.horiz(p, x) < 2.5 for x in s.hostile(4.5))
+                and not _other_swinging(s, ptr)
                 and mv.face(s, c, deg=30.0)):
             # hit first (user: "if you'd swung even once, that enemy would have backed off") — a hollow flinches (2000·2002) from one light attack and backs off.
             # when it has just started attacking (within INTERRUPT_S) or is standing still. Shield soldiers excluded (blocked by shield); if another foe swings beside us, block first
@@ -606,7 +632,10 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
                 note("백스텝", s, c)
                 continue
 
-        if (a in M.STAGGER or a == M.GUARD_BROKEN) and h <= weapon.reach + 0.3 and abs(dy) <= 1.0 and (p.sp or 0) >= weapon.sp_min:
+        if (a in M.STAGGER or a == M.GUARD_BROKEN) and h <= weapon.reach + 0.3 and abs(dy) <= 1.0 and (p.sp or 0) >= weapon.sp_min \
+                and not _other_swinging(s, ptr):
+            # not while another foe is swinging next to us — punishing the staggered shield soldier took -115 from a hollow's 3003
+            # 1.2 m away (dealt 4, 2026-09-27 27c P-8); the reflex blocks that swing instead and the stagger is taken next time
             # 1-) stagger = opening. If facing is right, hit at once (right after bouncing off the guard — old note "3500 stagger — if close, hit immediately")
             if mv.face(s, c, deg=30.0):
                 # heavy attack in a shield soldier's stagger opening (user 2026-09-25: "guard·heavy·guard is better against strong-guard enemies") — heavy while guarding
