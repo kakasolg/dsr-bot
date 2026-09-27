@@ -21,6 +21,7 @@
 from __future__ import annotations
 
 import math
+import os
 import sys
 import types
 from pathlib import Path
@@ -35,7 +36,7 @@ for _n in ("soulstruct.darksouls1r.events", "soulstruct.darksouls1ptde.events",
            "soulstruct.darksouls1r.ai", "soulstruct.darksouls1r.ezstate"):
     sys.modules.setdefault(_n, types.ModuleType(_n))
 
-GAME_DIR = Path(r"D:/SteamLibrary/steamapps/common/DARK SOULS REMASTERED")
+GAME_DIR = Path(os.environ.get("DSR_GAME_DIR") or r"D:/SteamLibrary/steamapps/common/DARK SOULS REMASTERED")
 
 FLAGS = {1: "Disable", 2: "Exit", 4: "Obstacle", 8: "Wall", 16: "Degenerate", 32: "FloorBeneathWall",
          64: "LandingPoint", 128: "Event", 256: "Edge", 512: "LargeSpace", 1024: "Ladder", 2048: "Hole",

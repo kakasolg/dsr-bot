@@ -1,0 +1,101 @@
+{
+ "route_len_a": 165.7,
+ "enemies": [
+  {
+   "leg": "A",
+   "along_m": 71.0,
+   "off_m": 6.3,
+   "npc": 254000,
+   "hp": 75,
+   "pos": [
+    -29.79,
+    -49.62,
+    24.88
+   ],
+   "heading": 2.618,
+   "face_path_deg": 58,
+   "dy_path": -1.2,
+   "anim": -1
+  },
+  {
+   "leg": "A",
+   "along_m": 75.4,
+   "off_m": 3.9,
+   "npc": 255010,
+   "hp": 85,
+   "pos": [
+    -23.4,
+    -49.67,
+    16.15
+   ],
+   "heading": 2.443,
+   "face_path_deg": 136,
+   "dy_path": 0.2,
+   "anim": -1
+  },
+  {
+   "leg": "A",
+   "along_m": 76.9,
+   "off_m": 0.3,
+   "npc": 254000,
+   "hp": 75,
+   "pos": [
+    -20.57,
+    -40.35,
+    18.93
+   ],
+   "heading": 2.269,
+   "face_path_deg": 36,
+   "dy_path": 0.1,
+   "anim": -1
+  },
+  {
+   "leg": "A",
+   "along_m": 83.7,
+   "off_m": 4.5,
+   "npc": 254001,
+   "hp": 75,
+   "pos": [
+    -13.15,
+    -39.07,
+    11.73
+   ],
+   "heading": 2.269,
+   "face_path_deg": 14,
+   "dy_path": 0.2,
+   "anim": -1
+  },
+  {
+   "leg": "A",
+   "along_m": 88.8,
+   "off_m": 1.8,
+   "npc": 254002,
+   "hp": 75,
+   "pos": [
+    -21.1,
+    -39.27,
+    13.23
+   ],
+   "heading": 2.269,
+   "face_path_deg": 139,
+   "dy_path": -1.9,
+   "anim": -1
+  },
+  {
+   "leg": "A",
+   "along_m": 94.6,
+   "off_m": 0.1,
+   "npc": 254000,
+   "hp": 75,
+   "pos": [
+    -24.72,
+    -33.71,
+    9.28
+   ],
+   "heading": -2.721,
+   "face_path_deg": 162,
+   "dy_path": -0.1,
+   "anim": -1
+  }
+ ]
+}
