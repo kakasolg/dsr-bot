@@ -1,45 +1,45 @@
 """
-엘든링 텔레메트리 리더 (pymem).
+Elden Ring telemetry reader (pymem).
 
-Cheat Engine 브릿지가 내보낸 symbols.json(테이블의 AOB 스캔 결과)을 재사용해서
-플레이어·주변 캐릭터 상태를 초당 수십 회 읽는다. 아무것도 쓰지 않는다 (읽기 전용).
+Reuses symbols.json exported by the Cheat Engine bridge (the table's AOB scan results) to
+read player and nearby character state dozens of times per second. Writes nothing (read-only).
 
-포인터 경로는 Hexinton All in One 8.0.4 테이블의 NPC Manager / Character Data 스크립트에서 가져왔다.
+Pointer paths come from the NPC Manager / Character Data scripts of the Hexinton All in One 8.0.4 table.
 
   WorldChrMan  = [symbol]
-  ChrIns[]     = [[WorldChrMan]+0x1F1B8] .. [[WorldChrMan]+0x1F1C0]  (8바이트 포인터 배열)
-  Player       = [[[WorldChrMan]+0x10EF8]+0]  (LocalPlayerOffset 은 PlayerIns 슬롯을 가리키고, 그 안의 첫 포인터가 ChrIns)
+  ChrIns[]     = [[WorldChrMan]+0x1F1B8] .. [[WorldChrMan]+0x1F1C0]  (array of 8-byte pointers)
+  Player       = [[[WorldChrMan]+0x10EF8]+0]  (LocalPlayerOffset points to the PlayerIns slot; its first pointer is the ChrIns)
   ChrIns:
-    +0x60  NpcParamId (int32)  → 이름표 (CharNames)
-    +0x6C  team (byte)         6=Enemy, 47=Spirit Summon, 1=Live(플레이어) …
+    +0x60  NpcParamId (int32)  → name label (CharNames)
+    +0x6C  team (byte)         6=Enemy, 47=Spirit Summon, 1=Live(player) …
     +0x74  chrType? (int16)
     +0x190 → modules
-        [modules+0x00] → +0x138 HP, +0x13C MaxHP, +0x148 FP, +0x154 SP(스태미나), +0x158 MaxSP (int32)
-        [modules+0x18] → +0x40  (int32, 애니메이션 관련 추정 — 검증 중)
+        [modules+0x00] → +0x138 HP, +0x13C MaxHP, +0x148 FP, +0x154 SP(stamina), +0x158 MaxSP (int32)
+        [modules+0x18] → +0x40  (int32, presumably animation-related — being verified)
         [modules+0x68] → +0x70 x, +0x74 y, +0x78 z (float)
-        [modules+0x80] → +0x90 현재 애니메이션 ID (플레이어 Character Data 기준)
-    +0x6C0 x, +0x6C4 y(높이), +0x6C8 z (float)  — **256 m 타일 기준 상대 좌표** (실측: 테이블 표기 6B0 과 달리 6C0)
-    +0x6CC heading (rad), +0x6D0 MapID = 0xAAXXZZ00 (AA 지역, XX 타일 x, ZZ 타일 z)
-    → 연속 월드 좌표 gx = x + XX*256, gz = z + ZZ*256  (타일 경계에서 x 가 124→-128 로 튀는 것으로 확인)
-  [camadr](symbol → 포인터): +0xB4 카메라 yaw, +0xB8 pitch  (테이블의 [ Teleport, Coords, NoClip/FreeCam ] 이 켜져야 존재)
+        [modules+0x80] → +0x90 current animation ID (per player Character Data)
+    +0x6C0 x, +0x6C4 y(height), +0x6C8 z (float)  — **coordinates relative to a 256 m tile** (measured: 6C0, unlike the table's 6B0)
+    +0x6CC heading (rad), +0x6D0 MapID = 0xAAXXZZ00 (AA area, XX tile x, ZZ tile z)
+    → continuous world coords gx = x + XX*256, gz = z + ZZ*256  (confirmed by x jumping 124→-128 at tile borders)
+  [camadr](symbol → pointer): +0xB4 camera yaw, +0xB8 pitch  (exists only when the table's [ Teleport, Coords, NoClip/FreeCam ] is enabled)
   [[GameDataMan]+8] = PlayerGameData(ChrAsm):
     +0x324 ArmStyle (byte) 0 EmptyHand · 1 OneHand · 2 LeftBothHand · 3 RightBothHand
-           — 테이블 v8.0.4 는 +0x328 로 적혀 있지만 현재 게임 버전에선 실측 +0x324 (Y+RB 토글로 3↔1 확인)
-    +0x398 왼손1 무기 ID (110000 = 맨손), +0x39C 오른손1 무기 ID
-    +0x101 MaxEstusHP (byte) 성배병(진홍) 최대 수, +0x102 MaxEstusMP
-    +0x418 → 인벤토리 항목 배열: 4 바이트 정렬로 {item_id(상위 4비트 = 종류, 4 = goods), 수량} 이 이어진다.
-           성배병(진홍) = goods 1000~1012 (강화 단계별 ID). 실측 배열+0x150 에 goods 1001 qty 3. 위치는 바뀔 수 있어 스캔.
+           — table v8.0.4 lists +0x328, but measured +0x324 on the current game version (confirmed 3↔1 via Y+RB toggle)
+    +0x398 left-hand 1 weapon ID (110000 = bare hand), +0x39C right-hand 1 weapon ID
+    +0x101 MaxEstusHP (byte) max Crimson Flask count, +0x102 MaxEstusMP
+    +0x418 → inventory item array: 4-byte-aligned {item_id(top 4 bits = category, 4 = goods), quantity} entries.
+           Crimson Flask = goods 1000~1012 (ID per upgrade level). Measured goods 1001 qty 3 at array+0x150. Position may change, so scan.
 
-── 알려진 한계 ──────────────────────────────
- · 로딩 중에는 포인터가 잠깐 무효라 읽기가 실패한다 → snapshot() 이 None 을 돌려준다.
- · 테이블이 갱신되어 오프셋이 바뀌면 여기도 맞춰야 한다.
+── Known limitations ──────────────────────────────
+ · During loading, pointers are briefly invalid and reads fail → snapshot() returns None.
+ · If the table is updated and offsets change, update them here too.
 """
 from __future__ import annotations
 
 import sys
 
 if hasattr(sys.stdout, "reconfigure"):
-    sys.stdout.reconfigure(encoding="utf-8")  # Windows 콘솔 cp1252 대비
+    sys.stdout.reconfigure(encoding="utf-8")  # guard against Windows console cp1252
 
 import json
 import math
@@ -80,7 +80,7 @@ class Chr:
     anim: Optional[int] = None
     dist: float = 0.0
     name: str = ""
-    gx: Optional[float] = None  # global coords (플레이어만 채움)
+    gx: Optional[float] = None  # global coords (filled for the player only)
     gy: Optional[float] = None
     gz: Optional[float] = None
     heading: Optional[float] = None
@@ -95,11 +95,11 @@ class Chr:
 class Snapshot:
     t: float
     player: Chr
-    chars: list[Chr] = field(default_factory=list)  # 플레이어 제외, 거리순
+    chars: list[Chr] = field(default_factory=list)  # excluding the player, sorted by distance
     cam_yaw: Optional[float] = None
     cam_pitch: Optional[float] = None
-    arm_style: Optional[int] = None   # 3 = 오른손 무기 양손 — 왼손이 빈 캐릭터는 이때만 LB 가 가드 (한손이면 LB = 주먹)
-    flask_hp: Optional[int] = None    # 남은 성배병(진홍) 수. 못 읽으면 None
+    arm_style: Optional[int] = None   # 3 = right-hand weapon two-handed — for a character with an empty left hand, LB guards only then (one-handed LB = punch)
+    flask_hp: Optional[int] = None    # remaining Crimson Flask count. None if unreadable
     max_flask_hp: Optional[int] = None
 
     def hostile(self, within: float = 30.0) -> list[Chr]:
@@ -117,7 +117,7 @@ class Telemetry:
         self.world_chr_man = int(self.symbols["WorldChrMan"], 16)
         self.camadr = int(self.symbols["camadr"], 16) if self.symbols.get("camadr") else None
         self.game_data_man = int(self.symbols["GameDataMan"], 16) if self.symbols.get("GameDataMan") else None
-        self._flask_off: Optional[int] = None   # 인벤토리 배열 안에서 성배병 항목을 찾은 위치 (캐시)
+        self._flask_off: Optional[int] = None   # offset of the flask entry found in the inventory array (cached)
         self._flask_cache: tuple[float, Optional[int], Optional[int]] = (0.0, None, None)
 
     @staticmethod
@@ -129,7 +129,7 @@ class Telemetry:
             raise RuntimeError("symbols.json 에 WorldChrMan 이 없음 — 테이블 [ Enable ] 이 켜져 있는지 확인")
         return s
 
-    # ── 저수준 읽기 (실패 시 None) ──
+    # ── low-level reads (None on failure) ──
     def q(self, addr: int) -> Optional[int]:
         try:
             v = self.pm.read_ulonglong(addr)
@@ -155,7 +155,7 @@ class Telemetry:
         except pymem.exception.PymemError:
             return None
 
-    # ── ChrIns 해석 ──
+    # ── ChrIns parsing ──
     def read_chr(self, p: int) -> Optional[Chr]:
         modules = self.q(p + 0x190)
         if not modules:
@@ -179,7 +179,7 @@ class Telemetry:
                    x=x, y=y, z=z, anim=anim, name=self.names.get(npc, ""))
 
     def arm_style(self) -> Optional[int]:
-        """0 EmptyHand · 1 OneHand · 2 LeftBothHand · 3 RightBothHand. 사람이 게임 안에서 바꿀 수 있으니 매번 읽는다."""
+        """0 EmptyHand · 1 OneHand · 2 LeftBothHand · 3 RightBothHand. Read every time since a human can change it in-game."""
         if not self.game_data_man:
             return None
         gdm = self.q(self.game_data_man)
@@ -193,7 +193,7 @@ class Telemetry:
         return self.q(gdm + 8) if gdm else None
 
     def flasks(self) -> tuple[Optional[int], Optional[int]]:
-        """(남은 성배병 수, 최대 수). 0.5 s 캐시 — 인벤토리 배열 스캔이라 틱마다 읽지 않는다."""
+        """(remaining flasks, max). 0.5 s cache — it scans the inventory array, so not read every tick."""
         now = time.time()
         if now - self._flask_cache[0] < 0.5:
             return self._flask_cache[1], self._flask_cache[2]
@@ -204,7 +204,7 @@ class Telemetry:
             mx = self.u8(pgd + 0x101)
         if arr:
             try:
-                if self._flask_off is not None:   # 캐시된 위치가 여전히 성배병이면 바로
+                if self._flask_off is not None:   # use the cached offset directly if it's still the flask
                     iid, qty = struct.unpack("<II", self.pm.read_bytes(arr + self._flask_off, 8))
                     if (iid >> 28) == 4 and 1000 <= (iid & 0x0FFFFFFF) <= 1012:
                         cur = qty
@@ -277,13 +277,13 @@ TILE = 256.0
 
 
 def tile_to_world(x: float, y: float, z: float, map_id: int) -> tuple[float, float, float]:
-    """타일 상대 좌표 + MapID(0xAAXXZZ00) → 연속 월드 좌표."""
+    """Tile-relative coords + MapID(0xAAXXZZ00) → continuous world coords."""
     tx, tz = (map_id >> 16) & 0xFF, (map_id >> 8) & 0xFF
     return x + tx * TILE, y, z + tz * TILE
 
 
 def load_names(ct_path: Optional[str] = None) -> dict[int, str]:
-    """Hexinton 테이블의 CharNames 드롭다운(NpcParamId → 이름)을 읽는다. 없으면 빈 dict."""
+    """Read the Hexinton table's CharNames dropdown (NpcParamId → name). Empty dict if absent."""
     if not ct_path and not os.environ.get("HEXINTON_CT"):
         try:
             from dotenv import load_dotenv  # type: ignore
@@ -308,7 +308,7 @@ def load_names(ct_path: Optional[str] = None) -> dict[int, str]:
 
 
 if __name__ == "__main__":
-    # 실시간 표시: python telemetry.py
+    # live display: python telemetry.py
     from dotenv import load_dotenv  # type: ignore
     load_dotenv(Path(__file__).resolve().parent.parent / ".env")
     tm = Telemetry(load_names())

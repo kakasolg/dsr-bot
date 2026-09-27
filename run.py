@@ -1,14 +1,14 @@
-"""DSR 봇 실행 — 층 구조(souls/)의 진입점. 층 설명은 LAYERS.md.
+"""DSR bot runner — entry point for the layer stack (souls/). Layers are described in LAYERS.md.
 
-  python run.py status                   HP·에스트·무기·마지막 화톳불·핏자국 (게임에 입력 안 함)
-  python run.py burg-bonfire             불의 제전 → 경사로 하나씩 → 상인 → 성벽 마을 화톳불 찍고 앉기(귀환 지점 바뀜)
-  python run.py burg-loop                위와 같은 길이지만 화톳불엔 앉지 않고 걸어서 불의 제전으로 되돌아온다 (반복 시험용)
-  python run.py clear-ramp [--no-rest]   경사로 6마리만 (--no-rest: 쉬지 않고 지금 상태에서)
-  python run.py hunt-one [--i 5]         성벽 마을 화톳불에서 BURG_TOWN i 번 한 마리만 잡고 돌아옴 (5 = 석궁병)
-  python run.py clear-burg-town          지금 자리(성벽 마을 안)에서 6마리를 사용자가 죽인 순서 그대로(BURG_TOWN) 처치
-  python run.py merchant                 지금 자리에서 상인까지 (쉬지 않음)
-  python run.py light-burg               지금 자리(성벽 마을)에서 화톳불 찍기만
-  python run.py quit-test                1번을 잡고 퀵 종료 전후 경사로 적 생존 비교 (퀵 종료가 죽은 적을 살리나)
+  python run.py status                   HP, Estus, weapon, last bonfire, bloodstain (sends no game input)
+  python run.py burg-bonfire             Firelink Shrine → ramp one by one → merchant → light and rest at Undead Burg bonfire (changes respawn point)
+  python run.py burg-loop                same route, but don't rest at the bonfire; walk back to Firelink Shrine (for repeated testing)
+  python run.py clear-ramp [--no-rest]   only the 6 ramp enemies (--no-rest: no rest, from current state)
+  python run.py hunt-one [--i 5]         from the Undead Burg bonfire, kill only BURG_TOWN #i and return (5 = crossbowman)
+  python run.py clear-burg-town          from here (inside Undead Burg), kill 6 enemies in the user's kill order (BURG_TOWN)
+  python run.py merchant                 from here to the merchant (no rest)
+  python run.py light-burg               from here (Undead Burg), just light the bonfire
+  python run.py quit-test                kill #1 and compare ramp enemy survival before/after quit-out (does quit-out revive dead enemies?)
 """
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ ROOT = Path(__file__).resolve().parent
 
 
 class Log:
-    """화면 + data/runs/<시각>.log, 사건은 .jsonl 로."""
+    """Screen + data/runs/<timestamp>.log; events go to .jsonl."""
 
     def __init__(self, name: str):
         d = ROOT / "data" / "runs"
@@ -36,7 +36,7 @@ class Log:
         self.path = d / f"{stamp}_{name}.jsonl"
         self.txt = (d / f"{stamp}_{name}.log").open("a", encoding="utf-8")
         self.ev = self.path.open("a", encoding="utf-8")
-        self._lock = threading.Lock()          # 블랙박스 쓰기 스레드도 같은 파일에 쓴다
+        self._lock = threading.Lock()          # the black box writer thread writes to the same file
         self.t0 = time.time()
 
     def __call__(self, msg: str) -> None:
@@ -47,7 +47,7 @@ class Log:
             self.txt.flush()
 
     def event(self, _ev: str, **kw) -> None:
-        # 인자 이름이 kind 였더니 퀵 종료 결과의 kind 와 겹쳐 봇이 멈췄다 (2026-09-24)
+        # the arg used to be named kind; it collided with the quit-out result's kind and stopped the bot (2026-09-24)
         line = json.dumps({"t": round(time.time() - self.t0, 2), "ev": _ev, **kw}, ensure_ascii=False, default=str)
         with self._lock:
             self.ev.write(line + "\n")
@@ -91,8 +91,8 @@ def main() -> None:
 
     log = Log(a.cmd)
     lock = BotLock()
-    # watchdog.py 도 잡았다 곧장 놓는 짧은 폴링을 한다 — 그 찰나와 겹치면 한 번은 실패할 수 있어 몇 번 다시 본다
-    # (실측 2026-09-25: 재시도 없이 한 번만 보다가 10판 중 6판이 겹쳐서 즉시 실패했다)
+    # watchdog.py also polls briefly, grabbing and releasing at once — overlapping that instant can fail once, so retry a few times
+    # (measured 2026-09-25: with a single try and no retry, 6 of 10 runs overlapped and failed immediately)
     for _ in range(10):
         if lock.acquire():
             break
@@ -112,17 +112,17 @@ def main() -> None:
     esc.quit_ok = not a.no_quit
     if a.no_quit:
         import os
-        os.environ["BOT_NO_WARP"] = "1"                   # farm.rest 의 화톳불 자리 순간이동도 끈다
+        os.environ["BOT_NO_WARP"] = "1"                   # also disable farm.rest's warp to the bonfire
     esc.start()
     blood = Blood(log=log).start()
     from blackbox import BlackBox
     bbox = BlackBox(tm, log.path, events=log.event, log=log).start()
     fld = Field(mv, w, esc, bonfires=[missions.FIRELINK["stand"], missions.BURG_BONFIRE], log=log, events=log.event, style=a.style)
     from souls.camera import CamFollow
-    cam = CamFollow(mv, esc, log=log).start()          # 화면 보는 사람이 봇이 뭘 하는지 보이게 (사용자 2026-09-26)
+    cam = CamFollow(mv, esc, log=log).start()          # so a viewer can see what the bot is doing (user 2026-09-26)
     log(f"스타일: {a.style}")
     log.event("style", style=a.style)
-    try:   # 판마다 캐릭터 상태를 남긴다 — 레벨업·반지(강인도)·무기가 성적을 바꾸는데 기록이 없어 묶음 비교가 흐려졌다 (사용자 2026-09-25)
+    try:   # log character state each run — level-ups, rings (poise) and weapon change results, and without records batch comparisons got muddy (user 2026-09-25)
         st, eq = tm.char_stats(), tm.equipment()
         log(f"캐릭터: SL {st.get('SL')} VIT {st.get('VIT')} END {st.get('END')} STR {st.get('STR')} DEX {st.get('DEX')} | 반지 {eq.get('반지1')},{eq.get('반지2')} 왼손 {eq.get('왼손1')}")
         log.event("char", stats=st, equip=eq)
@@ -151,7 +151,7 @@ def main() -> None:
         log(f"══ 결과: {r}")
         log.event("result", cmd=a.cmd, result=r)
     except BaseException as ex:
-        # 봇이 멈추면 캐릭터가 적 옆에 조작 없이 서서 죽는다 (2026-09-24 두 번) — 멈추기 전에 퀵 종료로 적을 떼어낸다
+        # if the bot stops, the character stands idle next to enemies and dies (twice on 2026-09-24) — quit out to shake enemies before stopping
         import traceback
         log(f"══ 오류로 멈춤: {ex!r}\n{traceback.format_exc()}")
         if not esc.escaping:
@@ -162,11 +162,11 @@ def main() -> None:
         raise
     finally:
         t_wait = time.time()
-        while esc.escaping and time.time() - t_wait < 40.0:  # 퀵 종료 도중에 끝내면 메뉴·로딩에 멈춘다
+        while esc.escaping and time.time() - t_wait < 40.0:  # exiting mid quit-out leaves the game stuck in menu/loading
             time.sleep(0.2)
         try:
             if not fld.alive():
-                fld.wait_respawn(30.0)                     # 죽은 채 끝내면 핏자국이 안 남는다 (부활 뒤 소울 감소로 확인하므로)
+                fld.wait_respawn(30.0)                     # ending while dead leaves no bloodstain (it's confirmed by the soul drop after respawn)
                 time.sleep(1.5)
         except Exception:
             pass
@@ -182,11 +182,11 @@ def main() -> None:
         lock.release()
         pad.neutral()
         if hasattr(tm, "stats"):
-            log(f"텔레메트리 피드: {tm.stats()}")   # frames = 아래 읽기 수, fresh/waited = 층이 받은 프레임, direct = 폴백
+            log(f"텔레메트리 피드: {tm.stats()}")   # frames = underlying read count, fresh/waited = frames received by layers, direct = fallback
 
 
 def quit_test(ms, mv, esc, log) -> str:
-    """퀵 종료가 죽은 적을 살리나 — 쉬고, 1번만 잡고, 퀵 종료 전후 스폰 자리 생존을 비교. 끝나도 쉬지 않는다."""
+    """Does quit-out revive dead enemies — rest, kill only #1, compare survival at spawn spots before/after quit-out. Doesn't rest at the end."""
     from souls import missions
 
     def alive_map() -> str:

@@ -1,22 +1,22 @@
-"""게임이 갖고 있는 지형 — DSR 설치 폴더의 내비메시(.nvmbnd)를 읽는다.
+"""Terrain the game itself has — reads the NavMesh (.nvmbnd) from the DSR install folder.
 
-봇이 워프로 한 점씩 찍어 바닥 높이를 재던 것(mapmem.scan)을 대체한다. 프롬소프트가 적 AI 길찾기용으로 만든
-**보행 가능 삼각형 + 인접 관계 + 의미 플래그(사다리·문·구멍·벽)**가 그대로 들어 있고, 좌표가 런타임 메모리에서
-읽는 좌표와 같은 공간이다 (실측: 불의 제전 화톳불 y −59.9 vs 내비메시 −59.79, 차이 0.11 m. MSB 의 배치 변환이
-전부 0 이라 변환 없이 바로 쓴다).
+Replaces having the bot warp point by point to measure floor height (mapmem.scan). It contains as-is what FromSoftware built
+for enemy AI pathfinding — **walkable triangles + adjacency + semantic flags (ladder/door/hole/wall)** — in the same space as
+coordinates read from runtime memory (measured: Firelink Shrine bonfire y −59.9 vs NavMesh −59.79, 0.11 m difference. MSB placement
+transforms are all 0, so it is used directly without transform).
 
-  python navmesh.py info  <맵ID>            삼각형 수·범위·플래그 분포
-  python navmesh.py render <맵ID> [out]     위에서 내려다본 지형도 HTML (높이=색)
-  python navmesh.py at <맵ID> <x> <z>       그 자리의 바닥 높이 후보
-  python navmesh.py path <맵ID> <x y z> <x y z> [out]   두 지점 사이 A* 경로 (조각 사이는 MCG 게이트로 연결)
+  python navmesh.py info  <mapID>            triangle count, bounds, flag distribution
+  python navmesh.py render <mapID> [out]     top-down terrain map HTML (height = color)
+  python navmesh.py at <mapID> <x> <z>       floor height candidates at that spot
+  python navmesh.py path <mapID> <x y z> <x y z> [out]   A* path between two points (pieces connected via MCG gates)
 
-맵 ID: m10_02_00_00 = 불의 제전(+묘지), m10_01_00_00 = 성벽 마을, m18_01_00_00 = 북쪽 불사자 아스라이 등.
+Map IDs: m10_02_00_00 = Firelink Shrine (+graveyard), m10_01_00_00 = Undead Burg, m18_01_00_00 = Northern Undead Asylum, etc.
 
-── 알려진 한계 ──────────────────────────────
- · 내비메시는 **적 AI 가 다닐 수 있는 면**이라 플레이어가 갈 수 있는 모든 곳을 덮지는 않는다.
- · 실제 지형을 단순화한 근사라 계단 같은 곳은 평평한 면 하나로 뭉갠다 (실측: 워프 스캔과 중앙값 0.25 m 차이,
-   다층 구조 지점에선 몇 m 까지 벌어짐).
- · 조각(NVM) 하나 안에서만 인접 정보가 있다. 조각끼리의 연결은 같은 폴더의 .mcg(게이트 노드) 가 갖고 있다.
+── Known limitations ──────────────────────────────
+ · The NavMesh is **surfaces enemy AI can traverse**, so it doesn't cover everywhere the player can go.
+ · It is a simplified approximation of real terrain, flattening things like stairs into one flat surface (measured: median 0.25 m difference from warp scan,
+   up to several m at multi-level spots).
+ · Adjacency exists only within one piece (NVM). Connections between pieces are in the .mcg (gate nodes) in the same folder.
 """
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ if hasattr(sys.stdout, "reconfigure"):
 
 import numpy as np
 
-# soulstruct 휠에 emedf JSON 이 빠져 있어 events 임포트가 깨진다 — 지형만 읽으므로 빈 모듈로 대체
+# the soulstruct wheel lacks the emedf JSON so importing events breaks — we only read terrain, so replace with empty modules
 for _n in ("soulstruct.darksouls1r.events", "soulstruct.darksouls1ptde.events",
            "soulstruct.darksouls1r.ai", "soulstruct.darksouls1r.ezstate"):
     sys.modules.setdefault(_n, types.ModuleType(_n))
@@ -41,20 +41,20 @@ GAME_DIR = Path(os.environ.get("DSR_GAME_DIR") or r"D:/SteamLibrary/steamapps/co
 FLAGS = {1: "Disable", 2: "Exit", 4: "Obstacle", 8: "Wall", 16: "Degenerate", 32: "FloorBeneathWall",
          64: "LandingPoint", 128: "Event", 256: "Edge", 512: "LargeSpace", 1024: "Ladder", 2048: "Hole",
          4096: "Door", 8192: "ClosedDoor", 16384: "BlockExit", 32768: "InsideWall"}
-BLOCKED = 1 | 16          # Disable, Degenerate — 길찾기에서 제외
-# 낙사 회피용 가장자리 비용 — **지금은 꺼 둔다(1.0)**.
-# 내비메시만으로는 낭떠러지와 벽을 구분할 수 없다: 둘 다 그냥 "면이 없음"으로 보인다.
-# 실측(불의 제전): 걸을 수 있는 면 2111 중 1629 가 경계, 그중 1365 가 "낭떠러지"로 판정됐다 — 대부분은 벽이다.
-# 제대로 하려면 실제 충돌 데이터(map/*.hkxbhd 의 Havok 메시)나, 그 구간만 워프 스캔(고체/허공은 충돌 기반이라 정확)이 필요하다.
+BLOCKED = 1 | 16          # Disable, Degenerate — excluded from pathfinding
+# Edge cost for fall avoidance — **currently disabled (1.0)**.
+# The NavMesh alone can't distinguish cliffs from walls: both just look like "no surface".
+# Measured (Firelink Shrine): of 2111 walkable faces, 1629 are border, of which 1365 were judged "cliff" — most are walls.
+# Doing it properly needs real collision data (Havok meshes in map/*.hkxbhd) or a warp scan of just that section (solid/void is collision-based, so accurate).
 EDGE_PENALTY = 1.0
 MAX_SIMPLIFY_SLOPE = 0.25
-PUSH_MAX_DY = 1.0           # keep_inside 가 민 점의 바닥 높이가 이보다 바뀌면 다른 층 — 밀지 않는다
-CLIFF_MARGIN = 2.2          # 실측된 낭떠러지 점에서 경로를 이만큼 떼어 놓는다 (cliffscan.py)   # 이보다 가파른 구간은 단순화하지 않고 원래 점을 남긴다 (계단·경사를 따라가야 한다)
+PUSH_MAX_DY = 1.0           # if the floor height at the point keep_inside pushed changes by more than this, it's another level — don't push
+CLIFF_MARGIN = 2.2          # keep the path this far from measured cliff points (cliffscan.py)   # sections steeper than this are not simplified and keep original points (must follow stairs/slopes)
 CELL = 0.5
 
 
 class Navmesh:
-    """한 맵의 내비메시 전체 (조각들을 하나로 합침)."""
+    """Whole NavMesh of one map (pieces merged into one)."""
 
     def __init__(self, map_id: str, game_dir: Path | str = GAME_DIR):
         from soulstruct.darksouls1r.maps.navmesh import NVMBND
@@ -62,8 +62,8 @@ class Navmesh:
         if not path.exists():
             raise SystemExit(f"내비메시 없음: {path}")
         bnd = NVMBND.from_path(path)
-        # 조각마다 MSB 배치(이동·Y 회전)를 적용한다 — 불의 제전·성벽 마을은 전부 0 이라 몰랐는데, 수용소(m18_01)는
-        # 조각이 전부 y +200 에 놓여 있어 게임 좌표와 200 m 어긋났다 (데이터 8.4 vs 실제 184.7)
+        # apply MSB placement (translate, Y rotation) per piece — Firelink Shrine/Undead Burg are all 0 so it went unnoticed, but in the Asylum (m18_01)
+        # every piece sits at y +200, 200 m off from game coordinates (data 8.4 vs actual 184.7)
         place: dict[str, tuple] = {}
         try:
             from soulstruct.darksouls1r.maps import MSB
@@ -73,7 +73,7 @@ class Navmesh:
         except Exception:
             pass
         verts, tris, flags, piece, adj = [], [], [], [], []
-        self.model_tri_offset: dict[str, int] = {}   # 조각 모델 이름 → 전역 삼각형 번호 시작점
+        self.model_tri_offset: dict[str, int] = {}   # piece model name → global triangle index start
         off = t_off = 0
         for i, entry in enumerate(bnd.entries):
             stem = entry.name.replace(".nvm", "")
@@ -102,7 +102,7 @@ class Navmesh:
         self.t = np.array(tris)
         self.flags = np.array(flags)
         self.piece = np.array(piece)
-        self.adj = np.array(adj)                                  # 조각 **안**에서의 이웃 삼각형 (조각끼리는 MCG 가 잇는다)
+        self.adj = np.array(adj)                                  # neighbor triangles **within** a piece (MCG connects pieces)
         self.centroid = (self.v[self.t[:, 0]] + self.v[self.t[:, 1]] + self.v[self.t[:, 2]]) / 3.0
         self._gates: list[list[int]] | None = None
         self.a, self.b, self.c = self.v[self.t[:, 0]], self.v[self.t[:, 1]], self.v[self.t[:, 2]]
@@ -114,7 +114,7 @@ class Navmesh:
         return (self.flags & BLOCKED) == 0
 
     def tris_at(self, x: float, z: float) -> list[tuple[float, int, int]]:
-        """(x,z) 을 위에서 내려다봤을 때 걸치는 삼각형들 → [(바닥 높이, 플래그, 삼각형 번호)] 높은 순."""
+        """Triangles covering (x,z) seen from above → [(floor height, flags, triangle index)] highest first."""
         a, b, c = self.a, self.b, self.c
         d1 = (b[:, 0] - a[:, 0]) * (z - a[:, 2]) - (b[:, 2] - a[:, 2]) * (x - a[:, 0])
         d2 = (c[:, 0] - b[:, 0]) * (z - b[:, 2]) - (c[:, 2] - b[:, 2]) * (x - b[:, 0])
@@ -129,21 +129,21 @@ class Navmesh:
         return sorted(out, reverse=True)
 
     def floor_at(self, x: float, z: float, near_y: float) -> tuple[float, int] | None:
-        """near_y 에 가장 가까운 바닥 — 다층 구조(육교 아래 등)에서 지금 있는 층을 고른다."""
+        """Floor closest to near_y — picks the current level in multi-level structures (e.g. under a bridge)."""
         hit = self.floor_tri_at(x, z, near_y)
         return (hit[0], hit[1]) if hit else None
 
     def floor_tri_at(self, x: float, z: float, near_y: float) -> tuple[float, int, int] | None:
-        """floor_at 과 같되 삼각형 번호까지 — 두 지점이 실제로 이어진 면인지 보려면 번호가 필요하다."""
+        """Same as floor_at but with the triangle index — needed to check whether two points are on actually connected faces."""
         cands = [(y, f, i) for y, f, i in self.tris_at(x, z) if not (f & BLOCKED)]
         return min(cands, key=lambda c: abs(c[0] - near_y)) if cands else None
 
     def gates(self, game_dir: Path | str = GAME_DIR) -> list[list[int]]:
-        """MCG 게이트 — 조각(NVM)끼리 이어 주는 문. 각 게이트는 서로 통하는 삼각형 묶음이다.
+        """MCG gates — doors connecting pieces (NVM). Each gate is a group of mutually connected triangles.
 
-        NVM 의 connected_indices 는 같은 조각 안에서만 이웃을 안다. 조각 사이는 같은 폴더의 .mcg 가 갖고 있고,
-        엣지마다 (지나가는 조각, 양 끝 노드, 각 노드에 닿는 삼각형들)을 준다. 한 노드에 모이는 삼각형끼리는
-        서로 통한다 — 그게 곧 조각 사이의 통로다."""
+        NVM connected_indices only knows neighbors within the same piece. Between pieces, the .mcg in the same folder has it:
+        per edge it gives (piece traversed, both end nodes, triangles touching each node). Triangles gathered at one node are
+        mutually connected — that is the passage between pieces."""
         if self._gates is not None:
             return self._gates
         from soulstruct.darksouls1r.maps.navmesh import MCG
@@ -151,7 +151,7 @@ class Navmesh:
         game_dir = Path(game_dir)
         mcg = MCG.from_path(game_dir / "map" / self.map_id / f"{self.map_id}.mcg")
         msb = MSB.from_path(game_dir / "map" / "MapStudio" / f"{self.map_id}.msb")
-        models = [p.model.name for p in msb.navmeshes]            # MCG 의 navmesh_index 는 MSB 부품 순서
+        models = [p.model.name for p in msb.navmeshes]            # MCG navmesh_index follows MSB part order
         node_tris: dict[int, set[int]] = {}
         for e in mcg.edges:
             ni = e.navmesh_index
@@ -171,13 +171,13 @@ class Navmesh:
         return self._gates
 
     def border(self) -> np.ndarray:
-        """이웃이 없는 면 = 내비메시의 끝 = 낭떠러지 아니면 벽. 길찾기는 여기를 비싸게 쳐서 통로 가운데로 간다."""
+        """Faces with no neighbor = end of the NavMesh = cliff or wall. Pathfinding makes them expensive so it goes through the middle of passages."""
         return (self.adj < 0).any(axis=1) | ((self.flags & 256) != 0)   # 256 = Edge
 
     def cliffs(self, drop: float = 3.0, out: float = 0.8) -> np.ndarray:
-        """**낭떠러지에 닿은 면**. 이웃 없는 변 바깥으로 out m 나가 봐서, 거기 바닥이 drop m 넘게 아래거나
-        아예 없으면 낭떠러지로 본다. 벽 경계와 구분하려는 것 — 내비메시 면의 77 %가 어떤 식으로든 경계라
-        경계 전체를 피하면 길이 없어진다. 결과는 파일에 캐시한다 (한 맵 한 번만 계산)."""
+        """**Faces touching a cliff**. Step out m outside each neighborless edge; if the floor there is more than drop m below
+        or absent, treat as cliff. Meant to distinguish from wall borders — 77 % of NavMesh faces are border in some way,
+        so avoiding all borders leaves no path. Result is cached to a file (computed once per map)."""
         import json
         cache = Path(__file__).parent / "data" / "maps" / f"{self.map_id}-cliffs.json"
         if cache.exists():
@@ -207,11 +207,11 @@ class Navmesh:
         return mask
 
     def seams(self, tol: float = 0.6) -> list[tuple[int, int]]:
-        """**맞닿은 조각을 잇는다** — 서로 다른 NVM 조각의 열린 변이 거의 같은 자리에 있으면 통한다고 본다.
+        """**Join touching pieces** — if open edges of different NVM pieces are at nearly the same spot, treat them as connected.
 
-        MCG 게이트만으로는 부족하다. 게이트는 적 AI 가 실제로 다니는 길만 잇기 때문에, 조각이 물리적으로
-        맞닿아 있어도 그래프가 끊긴다 — 실측: 성벽 교회는 연결 성분 58개, 어둠숲은 20개로 쪼개져
-        캐릭터가 선 조각(183개)에서 어디로도 길을 못 뽑았다. 불의 제전은 우연히 MCG 만으로 이어졌을 뿐."""
+        MCG gates alone aren't enough. Gates only connect routes enemy AI actually walks, so even when pieces physically
+        touch, the graph is cut — measured: Undead Parish split into 58 connected components, Darkroot into 20,
+        and no path could be drawn from the piece the character stood on (183). Firelink Shrine just happened to connect via MCG alone."""
         if getattr(self, "_seams", None) is not None:
             return self._seams
         buckets: dict = {}
@@ -219,7 +219,7 @@ class Navmesh:
             vi = self.t[i]
             for e, (a, b) in enumerate(((0, 1), (1, 2), (0, 2))):
                 if self.adj[i][e] >= 0:
-                    continue                                  # 조각 안에서 이미 이어진 변
+                    continue                                  # edge already connected within the piece
                 mid = (self.v[vi[a]] + self.v[vi[b]]) / 2.0
                 key = (round(float(mid[0]) / tol), round(float(mid[1]) / tol), round(float(mid[2]) / tol))
                 for dx in (-1, 0, 1):
@@ -241,12 +241,12 @@ class Navmesh:
         return out
 
     def graph(self, edge_penalty: float = EDGE_PENALTY) -> dict[int, list[tuple[int, float]]]:
-        """삼각형 단위 길찾기 그래프 — 조각 안은 NVM 인접, 조각 사이는 MCG 게이트.
+        """Triangle-level pathfinding graph — NVM adjacency within pieces, MCG gates between pieces.
 
-        **낭떠러지에 닿은 면**으로 들어가는 비용에 edge_penalty 를 곱한다. 벼랑길에서 굳이 바깥쪽으로
-        붙지 않게 — DS1 은 좁은 길이 많아 낙사가 흔하고, 봇은 점프로 복구할 수단이 없다 (사용자 경고).
-        벽 경계까지 피하면 길이 없어지므로 cliffs() 로 진짜 낭떠러지만 고른다."""
-        ok = (self.flags & (BLOCKED | 8 | 2048)) == 0             # Disable/Degenerate/Wall/Hole 제외
+        The cost of entering **faces touching a cliff** is multiplied by edge_penalty, so it doesn't hug the outer side
+        of cliff paths — DS1 has many narrow paths so falling deaths are common, and the bot can't recover by jumping (user warning).
+        Avoiding wall borders too leaves no path, so cliffs() picks only real cliffs."""
+        ok = (self.flags & (BLOCKED | 8 | 2048)) == 0             # exclude Disable/Degenerate/Wall/Hole
         edge = self.cliffs()
         g: dict[int, list[tuple[int, float]]] = {}
         for i in range(len(self.t)):
@@ -258,7 +258,7 @@ class Navmesh:
                     w = float(np.linalg.norm(self.centroid[i] - self.centroid[j]))
                     out.append((int(j), w * (edge_penalty if edge[j] else 1.0)))
             g[i] = out
-        for i, j in self.seams():                              # 맞닿은 조각 잇기
+        for i, j in self.seams():                              # join touching pieces
             if i in g and j in g:
                 w = float(np.linalg.norm(self.centroid[i] - self.centroid[j]))
                 g[i].append((j, w))
@@ -271,18 +271,18 @@ class Navmesh:
                         g[i].append((j, float(np.linalg.norm(self.centroid[i] - self.centroid[j]))))
         return g
 
-    # ── 복구 (2026-09-25 층 설계 1단계: "0층이 복구를 책임진다") ──
+    # ── Recovery (2026-09-25 layer design step 1: "layer 0 is responsible for recovery") ──
     def walkable_mask(self) -> np.ndarray:
-        return (self.flags & (BLOCKED | 8 | 2048)) == 0             # Disable/Degenerate/Wall/Hole 제외
+        return (self.flags & (BLOCKED | 8 | 2048)) == 0             # exclude Disable/Degenerate/Wall/Hole
 
     def on_mesh(self, x: float, y: float, z: float, dy: float = 1.0) -> bool:
-        """그 자리 발밑에 걸을 수 있는 바닥이 dy 안에 있나. 경사로 아래 (-24.5,-48.3,26.0) 은 False (내비메시 밖 주머니)."""
+        """Is there walkable floor within dy under that spot. Under the ramp (-24.5,-48.3,26.0) is False (pocket outside the NavMesh)."""
         f = self.floor_at(x, z, y)
         return f is not None and abs(f[0] - y) <= dy and (int(f[1]) & (BLOCKED | 8 | 2048)) == 0
 
     def nearest_walkable(self, x: float, y: float, z: float, r: float = 8.0, dy: float = 2.5):
-        """높이차 dy 안, 반경 r 안에서 가장 가까운 걸을 수 있는 삼각형 무게중심 → (x, y, z) 또는 None.
-        메시 밖에 서 있을 때 돌아갈 곳. 높이차를 보는 이유: 2.3 m 위 턱의 삼각형이 3D 로는 더 가까워 보였다."""
+        """Centroid of the nearest walkable triangle within height difference dy and radius r → (x, y, z) or None.
+        Where to return when standing off the mesh. Why height difference: a triangle on a ledge 2.3 m above looked closer in 3D."""
         ok = self.walkable_mask()
         c = self.centroid
         d = np.linalg.norm(c - np.array([x, y, z]), axis=1)
@@ -295,7 +295,7 @@ class Navmesh:
 
     @staticmethod
     def ledge_step(path: list, dy_min: float = 1.0, slope_min: float = 1.2) -> int | None:
-        """경로에 걸어서 못 오르는 단차가 있나 → 그 구간 번호. 경사로(기울기 ~1)는 통과, 2.3 m 위 턱(기울기 >1.2)은 걸린다."""
+        """Is there a height step on the path that can't be climbed on foot → that segment index. Ramps (slope ~1) pass; a ledge 2.3 m up (slope >1.2) is caught."""
         for i in range(1, len(path)):
             a, b = path[i - 1], path[i]
             dy = b[1] - a[1]
@@ -305,7 +305,7 @@ class Navmesh:
         return None
 
     def nearest_tri(self, x: float, y: float, z: float) -> int:
-        """그 지점을 덮는 삼각형 중 높이가 가장 가까운 것. 없으면 무게중심이 가장 가까운 삼각형."""
+        """Among triangles covering the point, the one closest in height. If none, the triangle with the nearest centroid."""
         cands = [(abs(ty - y), ti) for ty, f, ti in self.tris_at(x, z) if not (f & BLOCKED)]
         if cands:
             return min(cands)[1]
@@ -313,10 +313,10 @@ class Navmesh:
         return int(d.argmin())
 
     def find_path(self, start: tuple[float, float, float], goal: tuple[float, float, float]) -> list[tuple[float, float, float]]:
-        """A* — 삼각형 무게중심을 잇는 경로점 목록. 길이 없으면 빈 목록."""
+        """A* — list of path points joining triangle centroids. Empty list if there is no path."""
         import heapq
-        # 시작·끝이 메시 밖이면 같은 높이의 가장 가까운 걸을 수 있는 점으로 보정 (없으면 길 없음).
-        # 예전엔 3D 로 가장 가까운 삼각형을 잡아 2.3 m 위 턱에서 출발하는 경로가 나왔다 (경사로 아래 주머니, 2026-09-24)
+        # if start/end are off the mesh, snap to the nearest walkable point at the same height (no path if none).
+        # previously it grabbed the nearest triangle in 3D, producing a path starting from a ledge 2.3 m above (pocket under the ramp, 2026-09-24)
         start, goal = tuple(start), tuple(goal)
         if not self.on_mesh(*start):
             s2 = self.nearest_walkable(*start)
@@ -358,19 +358,19 @@ class Navmesh:
         seq.reverse()
         pts = [tuple(float(c) for c in self.centroid[i]) for i in seq]
         out = self.simplify(self.keep_inside([start] + pts + [goal]))
-        if self.ledge_step(out) is not None:                  # 걸어서 못 오르는 단차 — 길 없음으로 (위 층이 다른 수를 찾게)
+        if self.ledge_step(out) is not None:                  # height step that can't be climbed on foot — treat as no path (so upper layers find another move)
             return []
         return out
 
     def clear_line(self, p0, p1, step: float = 0.5, max_dy: float = 0.8, max_step: float = 0.5) -> bool:
-        """두 점을 잇는 직선 위를 걸어도 되는가.
+        """Is it OK to walk along the straight line joining two points.
 
-        step 마다 (a) 그 자리에 걸을 수 있는 바닥이 있고 (b) 그 높이가 직선 높이에서 max_dy 안이며
-        (c) 바로 앞 샘플과의 높이 차가 max_step 안이고 (d) **바로 앞 샘플의 삼각형과 실제로 이어져 있어야** 한다.
+        At every step, (a) there is walkable floor there, (b) its height is within max_dy of the line height,
+        (c) the height difference from the previous sample is within max_step, and (d) **it is actually connected to the previous sample's triangle**.
 
-        (d) 가 핵심이다. 높이만 보면(c) 테라스 위 바닥에서 아래 바닥으로 값이 부드럽게 이어지는 것처럼 보여서
-        사이의 수직 벽을 못 본다. 실측: 화톳불 광장을 둘러싼 돌 단을 가로지르는 직선이 통과돼서, 점프를 못 하는
-        봇이 8 m 앞 턱에 걸려 멈췄다 (화면 캡처로 확인). 삼각형이 이웃인지 보면 그 벽이 드러난다."""
+        (d) is the key. Looking only at height (c), the floor on a terrace and the floor below seem to continue smoothly,
+        missing the vertical wall between. Measured: a straight line across the stone tier around the bonfire plaza passed, and the bot,
+        which can't jump, got stuck at a ledge 8 m ahead (confirmed by screen capture). Checking triangle adjacency reveals that wall."""
         p0, p1 = np.asarray(p0, float), np.asarray(p1, float)
         d = float(np.linalg.norm(p1[[0, 2]] - p0[[0, 2]]))
         n = max(2, int(d / step))
@@ -384,18 +384,18 @@ class Navmesh:
             if hit is None or abs(hit[0] - q[1]) > max_dy or abs(hit[0] - prev_y) > max_step:
                 return False
             if hit[2] != prev_tri and prev_tri not in self.adj[hit[2]] and hit[2] not in self.adj[prev_tri]:
-                return False          # 이웃이 아닌 면으로 건너뛰었다 = 사이에 벽/단차가 있다
+                return False          # jumped to a non-neighbor face = a wall/step in between
             prev_y, prev_tri = hit[0], hit[2]
         return True
 
     def keep_inside(self, path: list, margin: float = 1.2) -> list:
-        """경로점을 내비메시 **경계에서 떼어 놓는다** — 통로 한가운데로 걷게 한다.
+        """**Keep path points away from** the NavMesh border — walk down the middle of passages.
 
-        경계가 벽인지 낭떠러지인지는 내비메시만으로 구분할 수 없지만(둘 다 "면이 없음"), 구분할 필요가 없다.
-        벽이면 끼임이 줄고 낭떠러지면 낙사가 준다. 삼각형 무게중심을 잇는 경로는 경계에 바짝 붙기 쉬운데,
-        DS1 은 좁은 길이 많고 봇은 점프로 복구할 수단이 없다 (사용자: 낙사 반복).
+        Whether a border is a wall or a cliff can't be told from the NavMesh alone (both are "no surface"), but there's no need to.
+        For walls it reduces getting stuck, for cliffs it reduces falling deaths. Paths joining triangle centroids tend to hug the border,
+        and DS1 has many narrow paths while the bot can't recover by jumping (user: repeated falling deaths).
 
-        각 점에서 경계 변이 margin 안에 있으면 그 변의 반대쪽으로 민다. 삼각형 밖으로 나가지 않게 절반만."""
+        At each point, if a border edge is within margin, push away from that edge. Only half, so it doesn't leave the triangle."""
         try:
             import cliffscan
             known = cliffscan.load(self.map_id)
@@ -403,7 +403,7 @@ class Navmesh:
             known = []
         out = []
         for q in path:
-            # 실측으로 확인된 낭떠러지 점에서 먼저 밀어낸다 (내비메시 경계만으로는 벽과 구분이 안 된다)
+            # first push away from measured cliff points (NavMesh borders alone can't be distinguished from walls)
             for cx, _cy, cz in known:
                 d = math.hypot(q[0] - cx, q[2] - cz)
                 if d < CLIFF_MARGIN and d > 1e-6:
@@ -418,7 +418,7 @@ class Navmesh:
             push = np.zeros(3)
             for e, (a, b) in enumerate(((0, 1), (1, 2), (0, 2))):
                 if self.adj[ti][e] >= 0:
-                    continue                      # 이웃이 있는 변 = 안쪽
+                    continue                      # edge with a neighbor = inside
                 p0, p1 = self.v[vi[a]], self.v[vi[b]]
                 seg = p1 - p0
                 L2 = float(seg[0] ** 2 + seg[2] ** 2)
@@ -432,19 +432,19 @@ class Navmesh:
                         push += away / n * (margin - d) * 0.5
             nq = (q[0] + float(push[0]), q[1], q[2] + float(push[2]))
             inside = self.floor_tri_at(nq[0], nq[2], q[1])
-            # 민 자리에 같은 층 바닥이 없으면 밀지 않는다 — 계단 옆에서 밀려 나가 8 m 위 통로 바닥을 잡았고,
-            # ledge_step 이 그걸 못 오르는 턱으로 보고 길 전체를 버렸다 (성벽 마을 #4~6 no_path, 2026-09-25 사용자 경로 대조)
+            # if there is no same-level floor at the pushed spot, don't push — pushed off beside stairs it grabbed the walkway floor 8 m above,
+            # and ledge_step saw it as an unclimbable ledge and discarded the whole path (Undead Burg #4~6 no_path, 2026-09-25 compared against the user's route)
             ok = inside is not None and abs(inside[0] - q[1]) <= PUSH_MAX_DY
             out.append((nq[0], inside[0], nq[2]) if ok else q)
         return out
 
     def simplify(self, path: list, step: float = 0.5, max_dy: float = 0.8,
                  max_slope: float = MAX_SIMPLIFY_SLOPE) -> list:
-        """삼각형 무게중심을 이은 지그재그를 곧게 편다 (string pulling).
+        """Straighten the zigzag joining triangle centroids (string pulling).
 
-        **오르내리는 구간은 펴지 않는다.** 계단·경사를 긴 대각선 하나로 뭉치면 봇이 계단을 따라가는 대신
-        비스듬히 벽으로 밀게 된다 — 실측: 수평 11.8 m 를 가며 4.6 m 오르는 구간이 한 점으로 합쳐져
-        봇이 그 앞(y≈−48)에서 더 못 올라갔다 (사용자 지적: "어디서 올라가고 내려가는지 인식이 없다")."""
+        **Sections going up/down are not straightened.** Collapsing stairs/slopes into one long diagonal makes the bot push
+        diagonally into a wall instead of following the stairs — measured: a section rising 4.6 m over 11.8 m horizontal merged into one point,
+        and the bot couldn't climb further in front of it (y≈−48) (user remark: "it has no awareness of where to go up and down")."""
         if len(path) <= 2:
             return list(path)
 
@@ -473,7 +473,7 @@ class Navmesh:
 
     def render_html(self, out: Path | str | None = None, mark: tuple[float, float] | None = None,
                     px_per_m: float = 4.0, path: list | None = None) -> str:
-        """위에서 내려다본 지형도 — 삼각형을 높이 색으로 칠한다 (사람이 위키 지도와 대조하는 용도)."""
+        """Top-down terrain map — triangles colored by height (for a human to compare against wiki maps)."""
         w_ok = self.walkable()
         ys = self.v[:, 1]
         lo, hi = float(np.percentile(ys, 2)), float(np.percentile(ys, 98))

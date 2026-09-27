@@ -44,10 +44,11 @@ observe_record.py                 read-only observation recorder (human demos an
 risk_report.py, blackbox.py       run evaluation — big hits, lowest HP, getting stuck
 ```
 
-The rules and their justification live in one place, [LAYERS.md](LAYERS.md) (written in Korean). In particular the
+The rules and their justification live in one place, [LAYERS.md](LAYERS.md). In particular the
 **evidence-grade gate**: every number is tagged with what backs it — human demo / repeated observation / NavMesh estimate /
 code constant / unknown — and only actions that grade allows are taken. The recording format is in [OBSERVE.md](OBSERVE.md).
-Code comments and logs are mostly in Korean.
+Code comments and docs in the core modules are in English; the bot's runtime log messages are still Korean
+(LAYERS.md glosses the ones it quotes). `legacy/` and older experiment scripts are untranslated.
 
 ## Running it
 

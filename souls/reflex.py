@@ -1,21 +1,21 @@
-"""반사 — 1층(moves) 위, 3층(duel) 아래. 싸우든 걷든 **매 틱 가장 먼저** 부른다 (숨 쉬듯).
-반사가 움직인 틱(True)은 부른 쪽이 자기 행동을 한 틱 쉰다. 무기도 목적도 모른다.
+"""Reflex — above layer 1 (moves), below layer 3 (duel). Called **first on every tick**, fighting or walking (like breathing).
+On a tick where the reflex moved (True), the caller skips its own action for that tick. Knows neither weapon nor goal.
 
-근거 (2026-09-24 기록 분석, 경사로 23판 피해 5,987):
-  · 방패 들고 **정면**에서 막으면 34 (안 들면 115) — 그런데 방패 든 채 **옆·뒤**로 맞은 게 16건 1,560 (평균 74, 안 든 것과 같음)
-  · 싸우던 상대보다 **다른 놈**에게 더 맞았다 (12대 1,082 vs 5대 588). 75 % 가 2.5 m 안에 적이 있을 때
-  · 옛 reflex.py 는 공격 시작에 0 초대로 방패를 들었지만 방향을 안 맞춰, 맞은 것의 81 % 가 방패를 든 뒤였다
-  · 3000 번대 애니는 공격이 끝나도 1.5~5.3 s 남는다 — 그걸 위협으로 계속 보면 공격을 못 한다 (87 s 에 1 번)
-  · 방패를 들면 스태미나 회복이 80 % 준다 (위키) — 늘 들지 말고 위협일 때만
+Evidence (2026-09-24 log analysis, ramp 23 runs, 5,987 damage):
+  · Blocking with shield **facing** the attacker: 34 (115 without shield) — but hits taken to the **side/back** while shield up: 16 hits, 1,560 (avg 74, same as no shield)
+  · Took more from **other enemies** than from the current opponent (12 hits 1,082 vs 5 hits 588). 75 % happened with an enemy within 2.5 m
+  · The old reflex.py raised the shield at ~0 s after attack start but did not face the attacker; 81 % of hits came after the shield was up
+  · 3000-series anims linger 1.5~5.3 s after the attack ends — treating that as a threat means never attacking (once in 87 s)
+  · Holding the shield cuts stamina regen by 80 % (wiki) — raise it only on threats, not always
 
-그래서:
-  1) 공격 애니가 **막 시작된 뒤 THREAT_S 동안**만 위협. 2.5 m 안 위협 중 가장 가까운 놈을 **몸 정면**에 두고 방패
-  2) 위협이 없는데 방금 HP 가 깎였으면(보이지 않는 공격) → 3 m 안 가장 가까운 놈 쪽으로 방패
-  4) 스태미나가 GUARD_SP 아래면 막지 않는다 (가드가 깨지면 밀려나 떨어진다) — 그놈을 정면에 둔 채 선다 (등 돌려 물러나지 않는다)
-  3) 막으면 안 되는 공격(가드 브레이크 3009 등 — 무엇이 그런지는 4층이 unblockable(c) 로 알려 준다)은
-     방패 대신 백스텝, 뒤가 낭떠러지면 옆으로 구른다 (막다가 가드가 깨져 밀려나 낙사, 2026-09-24)
-  몸을 돌릴 때 그쪽 발밑이 없으면 돌지 않는다 (경사로 추락 2 번 기록).
-  (둘 이상이 2.5 m 안에 붙는 건 watch.Escape 가 퀵 종료로 푼다)
+Therefore:
+  1) A threat only for THREAT_S **right after an attack anim starts**. Put the nearest threat within 2.5 m **in front of the body** and guard
+  2) No threat but HP just dropped (unseen attack) → guard toward the nearest enemy within 3 m
+  4) Below GUARD_SP stamina, don't block (a guard break pushes you off an edge) — stand facing that enemy (don't turn your back and retreat)
+  3) Unblockable attacks (guard break 3009 etc. — layer 4 tells which via unblockable(c)) get
+     a backstep instead of the shield; if behind is a cliff, roll sideways (blocked, guard broke, pushed off, fatal fall, 2026-09-24)
+  Don't turn toward a direction with no ground underfoot (2 ramp falls recorded).
+  (Two or more within 2.5 m is resolved by watch.Escape via quit-out)
 """
 from __future__ import annotations
 
@@ -26,31 +26,31 @@ import nav
 
 from . import moves as M
 
-THREAT_R = 2.5           # 수평
-EVADE_DELAY = 0.0        # 공격 시작 뒤 이만큼 지나서 피한다 — 즉시 피하면 그놈이 추적해 따라 들어온다 (10판: 백스텝 51회 중 절반 맞음)
-EVADE_R = 1.8            # 백스텝 스타일: 이 안에서 휘두를 때만 피한다 — 2.5~3 m 에서도 피하니 계속 밀려나 6 s 동안 못 들어갔다 (2026-09-24)
-MIXED_R = 4.0            # 백스텝 스타일이라도 다른 놈이 이 안에 깨어 있으면 방패로 (방패 없이 둘에게 250)
-GUARD_SP = 25            # 이 아래로 막으면 가드가 깨진다 (SP 12~22 에서 막다 깨져 밀려나 낙사, 2026-09-24) — 대신 물러난다
-THREAT_S = 1.3           # 공격 애니가 시작된 뒤 이만큼만 위협
+THREAT_R = 2.5           # horizontal
+EVADE_DELAY = 0.0        # dodge this long after attack start — dodging instantly lets the enemy track and follow in (10 runs: half of 51 backsteps got hit)
+EVADE_R = 1.8            # backstep style: dodge only swings within this — dodging at 2.5~3 m too kept pushing us back, couldn't close in for 6 s (2026-09-24)
+MIXED_R = 4.0            # even in backstep style, use the shield if another enemy is awake within this (250 taken from two without shield)
+GUARD_SP = 25            # blocking below this breaks the guard (blocked at SP 12~22, guard broke, pushed off, fatal fall, 2026-09-24) — back off instead
+THREAT_S = 1.3           # a threat only for this long after an attack anim starts
 HIT_R = 3.0
 
 
 class Reflex:
     def __init__(self, mv: M.Moves, nm=None, unblockable=lambda c: False, bs_ok=lambda c: True):
         self.mv, self.nm, self.unblockable, self.bs_ok = mv, nm, unblockable, bs_ok
-        # bs_ok(c): 이 놈에게 백스텝 공격을 써도 되나 — 방패병은 파고드는 도끼가 방패에 막히고 그 콤보에 351 (2026-09-24 진단)
-        self.evade = False       # True 면 막지 않고 **모든** 공격을 백스텝·구르기로 피한다 (백스텝 스타일 — 양손, 방패 안 씀)
-        self.bs_attack = False   # 피할 때 백스텝 공격(B → R1)을 붙이나 (Style.bs_attack)
-        self.reflex_on = True    # False 면 tick() 이 기록(update)만 하고 움직이지 않는다 — rush 스타일: 막지도 피하지도 않고 계속 공격
-        self.events = None       # 4층이 넣어 주면 회피마다 'evade' 사건 (kind·거리·그 뒤 1.3 s 안에 맞았나) — style_report.py 가 센다
+        # bs_ok(c): may we backstep-attack this enemy — shield soldiers block the lunging axe, then their combo dealt 351 (2026-09-24 diagnosis)
+        self.evade = False       # True = don't block; dodge **every** attack with backstep/roll (backstep style — two-handed, no shield)
+        self.bs_attack = False   # append a backstep attack (B → R1) when dodging (Style.bs_attack)
+        self.reflex_on = True    # False = tick() only records (update), never moves — rush style: no block, no dodge, keep attacking
+        self.events = None       # if layer 4 sets it, an 'evade' event per dodge (kind, distance, hit within the next 1.3 s) — counted by style_report.py
         self._pending: dict | None = None
-        self.last_hit = None     # 마지막 백스텝 공격 결과 (duel 이 기록용으로 가져간다)
-        self._dodged: dict = {}        # ptr → 피한 공격의 시작 시각 (한 공격에 한 번만 피한다)
-        self.prefer = None             # 지금 싸우는 상대 (duel 이 매 틱 넣는다) — 위협이 여럿이면 이놈 먼저
-        self._lock = (None, 0.0)       # (ptr, 까지) — 한 공격 동안 막기 시작한 놈을 계속 정면에
-        # 가장 가까운 놈으로 매 틱 바꿨더니 앞뒤로 붙은 둘을 번갈아 보며 옆·뒤를 맞았다 (몸-그놈 -117~-141°, 188 → 0, 2026-09-24)
-        self._anim: dict = {}          # ptr → 마지막 애니
-        self._start: dict = {}         # ptr → 공격 애니가 시작된 시각
+        self.last_hit = None     # last backstep-attack result (duel takes it for logging)
+        self._dodged: dict = {}        # ptr → start time of the dodged attack (dodge once per attack)
+        self.prefer = None             # current opponent (duel sets it every tick) — preferred when there are several threats
+        self._lock = (None, 0.0)       # (ptr, until) — keep the enemy we started guarding against in front for the whole attack
+        # switching to the nearest enemy every tick flip-flopped between two in front and behind, taking side/back hits (body-to-enemy -117~-141°, 188 → 0, 2026-09-24)
+        self._anim: dict = {}          # ptr → last anim
+        self._start: dict = {}         # ptr → time the attack anim started
         self._hp = None
         self._hit_t = 0.0
         self.acted = 0
@@ -76,7 +76,7 @@ class Reflex:
                     self.events("evade", kind=pe["kind"], dist=pe["dist"], eanim=pe["eanim"], npc=pe["npc"], taken=pe["hp0"] - pe["min_hp"])
 
     def attack_age(self, ptr) -> float | None:
-        """그놈의 지금 공격이 시작된 지 몇 초 (공격 중이 아니면 None)."""
+        """Seconds since this enemy's current attack started (None if not attacking)."""
         a = self._anim.get(ptr)
         return time.time() - self._start[ptr] if a in M.ATTACK and ptr in self._start else None
 
@@ -95,10 +95,10 @@ class Reflex:
         return min(near, key=lambda c: M.horiz(s.player, c), default=None)
 
     def tick(self, s) -> bool:
-        """→ 이번 틱에 반사가 움직였나 (방패·몸 돌리기)."""
+        """→ whether the reflex moved this tick (shield, turning)."""
         self.update(s)
         if not self.reflex_on:
-            return False         # rush: 기록(attack_age 등)만 하고 막지도 피하지도 않는다 — 공격 루프가 안 끊긴다
+            return False         # rush: record only (attack_age etc.), no block or dodge — the attack loop isn't interrupted
         th = self.threats(s)
         now = time.time()
         lock_ptr, lock_until = self._lock
@@ -107,14 +107,14 @@ class Reflex:
             c = next((x for x in th if x.ptr == self.prefer), None) or min(th, key=lambda x: M.horiz(s.player, x))
             self._lock = (c.ptr, self._start.get(c.ptr, now) + THREAT_S)
         if c is None and time.time() - self._hit_t < 0.4:
-            c = self._nearest(s, HIT_R)                    # 2) 어디서 맞았는지 모를 때 — 가장 가까운 놈
+            c = self._nearest(s, HIT_R)                    # 2) hit from an unknown source — nearest enemy
         if c is None:
             return False
         p = s.player
         start = self._start.get(c.ptr)
-        evade_now = self.evade and M.horiz(p, c) <= EVADE_R          # 둘이어도 피한다 — 방패는 안 쓴다 (사용자)
+        evade_now = self.evade and M.horiz(p, c) <= EVADE_R          # dodge even with two — never use the shield (user)
         if evade_now and start is not None and now - start < EVADE_DELAY and self._dodged.get(c.ptr) != start:
-            self.step_away(s, c)                           # 아직 이르다 — 정면만 두고 기다린다 (칼이 궤도에 든 뒤 피해야 추적을 못 한다)
+            self.step_away(s, c)                           # too early — just face it and wait (dodge after the blade is committed so it can't track)
             self.acted += 1
             return True
         if c.anim is not None and start is not None and (evade_now or self.unblockable(c)):
@@ -124,11 +124,11 @@ class Reflex:
                 self._pending = {"t": now, "kind": kind, "dist": round(M.horiz(p, c), 2), "eanim": c.anim, "npc": c.npc_param,
                                  "hp0": p.hp or 0, "min_hp": p.hp or 0}
             else:
-                self.step_away(s, c)                       # 한 번 피했으면 그 공격 동안 방패 없이 거리를 둔다
+                self.step_away(s, c)                       # once dodged, keep distance without shield for the rest of that attack
             self.acted += 1
             return True
         if (p.sp or 0) < GUARD_SP or self.evade:
-            self.step_away(s, c)                       # 백스텝 스타일: 못 피하는 상황(멀다)이면 정면만 본다, 방패 없이
+            self.step_away(s, c)                       # backstep style: if we can't dodge (too far), just face it, no shield
             self.acted += 1
             return True
         self.mv.pad.guard(True)
@@ -144,38 +144,38 @@ class Reflex:
         return any(x.ptr != c.ptr and x.hp > 0 and x.anim not in (-1, None) and M.horiz(s.player, x) < MIXED_R for x in s.hostile(MIXED_R + 1))
 
     def dodge(self, s, c, attack: bool = False) -> str:
-        """막으면 안 되는 공격 — 뒤에 바닥이 있으면 백스텝, 없으면 바닥이 있는 옆으로 구른다. 둘 다 없으면 방패 (어쩔 수 없다)."""
+        """Unblockable attack — backstep if there is ground behind, else roll to a side with ground. If neither, guard (no choice)."""
         p = s.player
         if p.heading is not None and self.nm is not None:
-            back = (math.sin(p.heading), math.cos(p.heading))          # heading 방향 = 몸 뒤 (hunt.backstep_attack 과 같은 규약)
+            back = (math.sin(p.heading), math.cos(p.heading))          # heading direction = behind the body (same convention as hunt.backstep_attack)
             if nav.ground_ahead(self.nm, p, back[0], back[1], reach=2.6):
-                if attack and self.bs_ok(c) and nav.ground_ahead(self.nm, p, -back[0], -back[1], reach=2.2):   # 첫 타는 시작 자리 근처, 3.0 은 경사로에서 거의 항상 실패
-                    h = self.mv.backstep_attack(s, c, self.nm)     # 백스텝 + R1 한 동작 (사용자)
+                if attack and self.bs_ok(c) and nav.ground_ahead(self.nm, p, -back[0], -back[1], reach=2.2):   # first hit lands near the start spot; 3.0 almost always fails on the ramp
+                    h = self.mv.backstep_attack(s, c, self.nm)     # backstep + R1 as one move (user)
                     if h.presses:
                         self.last_hit = h
                         return "bsattack"
                 self.mv.backstep()
                 return "backstep"
             if self.evade:
-                # 백스텝 스타일: 뒤에 바닥이 없으면 구르지 않는다 — 옆 2.5 m 검사를 통과하고도 굴러서 16 m 추락사 (2026-09-24 4판).
-                # 한 대 맞는 게 낙사보다 싸다. 정면만 본다.
+                # backstep style: no roll if there's no ground behind — passed the 2.5 m side check yet rolled into a 16 m fatal fall (2026-09-24, 4 runs).
+                # taking one hit is cheaper than a fatal fall. Just face it.
                 self.step_away(s, c)
                 return "hold"
-            # 옆 구르기는 뺐다 (근거 등급 게이트, 2026-09-26) — 방향을 NavMesh 가 골랐다 (옆 2.5 m 검사 통과하고도 16 m 추락사, 2026-09-24).
-            # 백스텝은 사용자 팁(human_verified)이고 NavMesh 는 뒤에 바닥이 없을 때 막기만 한다
+            # side roll removed (evidence-grade gate, 2026-09-26) — NavMesh picked the direction (passed the 2.5 m side check yet 16 m fatal fall, 2026-09-24).
+            # backstep is a user tip (human_verified); NavMesh only blocks it when there's no ground behind
             self.step_away(s, c)
             return "hold"
-        self.mv.guard(True)                                # 뒤도 옆도 바닥이 없다 — guard_ok 가 아니면 정면만
+        self.mv.guard(True)                                # no ground behind or to the sides — just face it unless guard_ok
         return "guard"
 
     def step_away(self, s, c) -> None:
-        """방패 없이 그놈을 정면에 둔 채 선다. 예전엔 반대쪽으로 스틱을 밀었는데 락온이 없으면 **뒤돌아 걸어가** 등을 맞았다
-        (몸-그놈 ±180°, 2026-09-24 테라스 — 사용자: "방향 정렬 못하고 엉뚱한 데로 공격")."""
+        """Stand facing the enemy without shield. We used to push the stick away, but without lock-on that **turned and walked off**, taking hits in the back
+        (body-to-enemy ±180°, 2026-09-24 terrace — user: "it can't line up its facing and attacks in the wrong direction")."""
         self.mv.pad.guard(False)
         self.mv.face(s, c, deg=25.0)
 
     def hold(self, max_s: float = 2.0) -> None:
-        """위협이 지나갈 때까지 반사만 돈다 (걷다가 멈췄을 때)."""
+        """Run only the reflex until the threat passes (when stopped while walking)."""
         t0 = time.time()
         while time.time() - t0 < max_s:
             s = self.mv.snap(15.0)

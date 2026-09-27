@@ -1,8 +1,8 @@
-"""5층 — 임무. 어느 플레이북을 어떤 순서로 쓸지만 정한다. 싸우는 법·걷는 법은 아래 층.
+"""Layer 5 — missions. Only decides which playbooks to use in what order. How to fight and walk lives in the lower layers.
 
-임무 목록:
-  burg_bonfire   불의 제전 → 경사로 무리 하나씩 → 계단 꼭대기 → 다리·통로 → 성벽 마을 → 상인 → 성벽 마을 화톳불에 불 붙이고 앉기
-  clear_ramp     경사로 무리만 하나씩 (시험용)
+Missions:
+  burg_bonfire   Firelink Shrine → ramp group one at a time → top of stairs → bridge·passage → Undead Burg → merchant → light the Undead Burg bonfire and sit
+  clear_ramp     ramp group only, one at a time (for testing)
 """
 from __future__ import annotations
 
@@ -18,47 +18,47 @@ from .field import Field
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
-MAP_A, MAP_B = "m10_02_00_00", "m10_01_00_00"        # 불의 제전 쪽 / 성벽 마을 쪽 내비메시
+MAP_A, MAP_B = "m10_02_00_00", "m10_01_00_00"        # Firelink Shrine side / Undead Burg side navmesh
 SPOTS = json.loads((DATA / "spots.json").read_text(encoding="utf-8"))
 FIRELINK = SPOTS["firelink-bonfire"]
-FIRELINK_ID = 1022960                                  # 마지막 화톳불 ID (2026-09-24 실측, 불의 제전)
-BURG_BONFIRE_ID = 1012962                              # 성벽 마을 화톳불 (2026-09-24 불 붙이고 앉아 확인)
-BURG_BONFIRE = (3.2, -10.0, -61.2)                     # 성벽 마을 화톳불(o0200_0002) — 상인에서 동쪽 42 m, 10 m 위
-BURG_BONFIRE_SIDE = (1.7, -10.02, -61.2)               # 그 옆 바닥
-RAMP = json.loads((DATA / "enemy-map.json").read_text(encoding="utf-8"))["enemies"]   # 경사로 6마리, 쉰 직후 스폰 자리
-# 경사로 아래 평지 — 반경 3 m 16방향 바닥이 다 있고 가장 가까운 낙차까지 4.0 m (hunt.py 실측). 낭떠러지 옆에서 싸우지 않고 여기서 맞이한다
+FIRELINK_ID = 1022960                                  # last bonfire ID (measured 2026-09-24, Firelink Shrine)
+BURG_BONFIRE_ID = 1012962                              # Undead Burg bonfire (2026-09-24 confirmed by lighting it and sitting)
+BURG_BONFIRE = (3.2, -10.0, -61.2)                     # Undead Burg bonfire (o0200_0002) — 42 m east of the merchant, 10 m up
+BURG_BONFIRE_SIDE = (1.7, -10.02, -61.2)               # floor next to it
+RAMP = json.loads((DATA / "enemy-map.json").read_text(encoding="utf-8"))["enemies"]   # 6 on the ramp, spawn spots right after resting
+# Flat ground below the ramp — floor exists in all 16 directions at 3 m radius, nearest drop 4.0 m away (measured by hunt.py). Meet them here instead of fighting next to the cliff
 RAMP_ARENA = (-30.0, -49.25, 29.0)
-# 잡는 순서 (지도 번호). 2번 방패병은 맨 나중 — 자리가 너무 안 좋다 (서쪽 낭떠러지 + 위 턱 화염병, 사용자 2026-09-24:
-# "두번째 공격하러 가는 얘를 맨 나중에 해봐", "거기 위치 너무 안 좋아"). 거기서 먼저 붙으면 1 s 에 275 를 맞거나 떨어졌다
-RAMP_ORDER = [1, 3, 2, 5, 4, 6]      # 5 먼저 (2026-09-26 사용자: 폭탄병에 나이프 두 번부터)
-# 2026-09-26 사용자: "#1, #3을 먼저 없애고, 방패병은 내가 던진 거리 만큼 충분한 거리에서만 단검을 던졌으면 — 거기가 화염병이
-# 닿지 않는 거리". 사용자 시범 두 판(observe 083705·084654)이 모두 1 → 3 → 2 순서였고, 방패병엔 평지(-30.3,-49.4,27.9)에서
-# 락온 나이프 13.65·13.7 m 두 번 다 맞음(85→51). 위의 "2번은 맨 나중"은 가까이 붙으면 1 s 에 275 를 맞았기 때문인데,
-# 멀리서 깨워 평지로 오게 하면 그 자리에서 싸우지 않는다. 4·5 는 시범마다 순서가 달랐다(첫 판 5→4, 둘째 판 4→5).
-# 끌어오기 자리·거리를 놈마다 따로 둔다 — 2번은 사용자가 던진 자리에서만, 13 m 안으로는 다가가지 않는다 (field.lure 의 lure_at)
-# hold: 끌어오기가 안 되면 방패병에게 걸어가지 말고 그 자리를 고수 (사용자: "첫번째 적을 잡은 위치를 고수해야 돼") — 봇은
-# 매번 방패병 8.8~9.1 m 에서 들켰고, 사용자는 #1·#3 을 방패병 12.3~17.7 m 에서 잡았다. max 14.5 → 15.0: 던질 자리에 1 m 남짓
-# 비껴 서서 14.5 m 로 '너무 멀다' 며 안 던졌다 (094231)
+# Kill order (map numbers). #2 shield soldier goes last — its spot is too bad (west cliff + firebombs from the ledge above, user 2026-09-24:
+# "Try doing the second one you go attack last", "That position is too bad"). Engaging there first took 275 in 1 s or fell off
+RAMP_ORDER = [1, 3, 2, 5, 4, 6]      # 5 first (2026-09-26 user: start with two knives on the bomber)
+# 2026-09-26 user: "Take out #1, #3 first, and throw daggers at the shield soldier only from a distance as far as where I threw — that's
+# the distance firebombs don't reach". Both user demo runs (observe 083705·084654) were 1 → 3 → 2, and on the shield soldier, from flat ground (-30.3,-49.4,27.9)
+# lock-on knives at 13.65·13.7 m both hit (85→51). The "#2 last" above was because closing in took 275 in 1 s,
+# but waking it from afar and having it come to the flat ground means we don't fight at its spot. 4·5 order varied per demo (first run 5→4, second 4→5).
+# Lure spot·distance set per enemy — #2 only from where the user threw, never closer than 13 m (field.lure's lure_at)
+# hold: if the lure fails, don't walk to the shield soldier, hold that spot (user: "You have to hold the position where you killed the first enemy") — the bot
+# was spotted every time at 8.8~9.1 m from the shield soldier, while the user killed #1·#3 at 12.3~17.7 m from it. max 14.5 → 15.0: stood a bit over 1 m
+# off the throw spot, at 14.5 m, and refused to throw as 'too far' (094231)
 RAMP_LURE_AT = {2: {"spot": (-30.35, -49.43, 27.91), "min": 13.0, "max": 15.0, "hold": True}}
-# 위 턱 #4~#6 — 사용자 시범 140708 의 던진 자리 그대로 (경사로 중간). 록온은 캐릭터 발밑 기준 3D 반지름
-# (LockCamParam.chrLockRangeMaxRadius) — 시범 최대 14.97 m(같은 높이)·14.19 m(높이차 +3.2) → 14.5 m 까지만.
-# knives: 맞은 횟수가 이만큼 될 때까지 던진다 (깨어나도 멈추지 않음). #5 는 두 번에 죽었다(75→31→0), #4·#6 은 한 번 뒤 내려와 근접
+# Upper ledge #4~#6 — exactly the throw spots from user demo 140708 (mid-ramp). Lock-on is a 3D radius from the character's feet
+# (LockCamParam.chrLockRangeMaxRadius) — demo max 14.97 m (same height)·14.19 m (height diff +3.2) → only up to 14.5 m.
+# knives: keep throwing until this many hits (don't stop even if it wakes). #5 died in two (75→31→0), #4·#6 came down after one to melee
 RAMP_LURE_AT.update({
     5: {"spot": (-23.8, -43.5, 23.1), "min": 0.0, "max": 14.5, "knives": 2},
     4: {"spot": (-23.6, -42.4, 21.5), "min": 0.0, "max": 14.5, "knives": 1},
     6: {"spot": (-20.7, -40.5, 19.3), "min": 0.0, "max": 14.5, "knives": 1},
 })
-# 2026-09-25 실측: [3,1,…](3번을 위 턱 같은 높이에서 먼저 끌어내기)은 8판에 사망 2 — 3번 던질 자리가 4·5번 옆 턱이라 셋에게 둘러싸였고,
-# 가는 길에 방패병이 쫓아와 790. 아래 평지에서 시작하는 [1,3,…](10/10, 피해 중앙 282)이 낫다 — 위 턱 놈들은 한 놈씩 내려오게 두는 편이 안전
-NO_LURE = {1}            # 1번은 높은 자리라 멀리선 바위에 막히고 가까이선 이미 내려온다 (사용자 2026-09-24) — 평지로 걸어가면 스스로 온다
-# 성벽 마을 6마리 — 사용자가 직접 죽인 순서 그대로(녹화 분석, 2026-09-25): "내가 죽이는 순서대로 죽이도록 코딩해봐"
-# ("좋은 방법은 아닌데, 일단은 너무 순서를 어겨서 어쩔 수가 없어" — 일반화된 판단 대신 시범 순서를 그대로 스크립트로).
-# 화염병 놈(254012)을 일찍, 방패병 둘(255000·255002)을 맨 나중에 — 기존 "원거리 우선"·"방패병은 나중" 원칙과도 맞는다.
+# Measured 2026-09-25: [3,1,…] (luring #3 first from the upper ledge at the same height) died 2 in 8 runs — #3's throw spot is the ledge beside #4·#5, so it got surrounded by three,
+# and on the way the shield soldier chased it for 790. Starting from the flat ground below, [1,3,…] (10/10, median damage 282) is better — safer to let the upper-ledge ones come down one at a time
+NO_LURE = {1}            # #1 is on a high spot: from afar it's blocked by rocks, up close it's already coming down (user 2026-09-24) — walk to the flat ground and it comes on its own
+# Undead Burg 6 — exactly the order the user killed them (recording analysis, 2026-09-25): "Code it to kill in the order I kill"
+# ("Not a good method, but for now it breaks the order too much, no choice" — script the demo order as-is instead of generalized judgment).
+# The firebomb one (254012) early, the two shield soldiers (255000·255002) last — also consistent with the existing "ranged first"·"shield soldiers later" principles.
 BURG_TOWN = json.loads((DATA / "burg-town-map.json").read_text(encoding="utf-8"))["enemies"]
 
 
 def _route():
-    """사용자가 직접 걸어 녹화한 길 (2026-09-23): 계단 꼭대기 → 다리 높이 → 통로 → 경계 → 성벽 마을 → 상자 → 창고 방 → 상인."""
+    """The path the user walked and recorded (2026-09-23): top of stairs → bridge height → passage → boundary → Undead Burg → boxes → storeroom → merchant."""
     run = json.loads((DATA / "routes" / "firelink-merchant-run.json").read_text(encoding="utf-8"))
     R = json.loads((DATA / "routes" / "passage-merchant.json").read_text(encoding="utf-8"))
     top = tuple(json.loads((DATA / "climb-goal.json").read_text(encoding="utf-8"))["top"])
@@ -70,9 +70,9 @@ _VOID_NM = None
 
 
 def _no_void(pts: list) -> list:
-    """허공 위에 찍힌 녹화 점을 뺀다 — 발밑에 같은 높이 바닥은 없고 3 m 넘게 아래 바닥만 있는 점.
-    통로 4번 (-24.0,-33.8,10.6) 은 바닥이 16 m 아래였다: 녹화 때 경사로 위 낭떠러지 턱을 밟고 지나간 자리. 귀환 때 그 점으로 가다
-    낭떠러지 회피에 막혀 "통로 stuck" 이 네 판, 넘어가면 낙사 (2026-09-25). 다리처럼 내비메시가 아예 없는 점은 둔다."""
+    """Drop recorded points over the void — points with no floor at the same height underfoot, only floor more than 3 m below.
+    Passage point 4 (-24.0,-33.8,10.6) had floor 16 m below: during recording it stepped on the cliff ledge above the ramp. Heading to that point on the way back,
+    cliff avoidance blocked it — "passage stuck" four runs, and crossing means a fatal fall (2026-09-25). Points with no navmesh at all, like the bridge, are kept."""
     global _VOID_NM
     if _VOID_NM is None:
         import navmesh
@@ -91,9 +91,9 @@ class Missions:
         self.f, self.nms, self.log = fld, nms, log
         self.mv: M.Moves = fld.mv
 
-    # ── 조각 ─────────────────────────────────────────────────
+    # ── Pieces ───────────────────────────────────────────────
     def start_fresh(self) -> bool:
-        """불의 제전에서 쉬고 시작 (적 전부 부활, HP·에스트 가득)."""
+        """Rest at Firelink Shrine and start (all enemies revived, full HP·Estus)."""
         last = self.mv.tm.last_bonfire()
         if last != FIRELINK_ID:
             self.log(f"   ⚠ 마지막 화톳불이 불의 제전이 아님 ({last}) — 죽으면 거기서 깬다")
@@ -108,12 +108,12 @@ class Missions:
         return r
 
     def clear_burg_town(self) -> str:
-        """성벽 마을 6마리를 사용자가 직접 죽인 순서 그대로(BURG_TOWN) 처치.
-        **field.clear() 대신 walk_to() 를 쓴다** — 처음엔 clear() 로 했다가 실측 실패(2026-09-25, burg-loop 101100):
-        #1~3(가까움)은 됐지만 #4~6(화톳불 방 근처, 멀고 벽 너머)은 duel() 의 로컬 접근(_approach)만으로 안 닿아
-        "stuck" 4번씩 반복 — 110 s+ 제자리에서 허비하고 그 직후 죽음. 4~6은 실제 길찾기(navmesh)가 필요한 거리였다.
-        그래서 각 목표마다 먼저 walk_to() 로 그 좌표까지 실제 경로를 걸어간다(그 길에 깨어있는 놈과는 walk() 의
-        chaser 가 알아서 붙는다 — 오히려 목표 자신을 가는 길에 이미 잡는 경우도 있다), 도착한 뒤 살아 있으면 fight() 한다."""
+        """Kill the 6 in Undead Burg in exactly the order the user killed them (BURG_TOWN).
+        **Uses walk_to() instead of field.clear()** — initially used clear() and it failed when measured (2026-09-25, burg-loop 101100):
+        #1~3 (close) worked but #4~6 (near the bonfire room, far and behind walls) couldn't be reached by duel()'s local approach (_approach) alone,
+        repeating "stuck" 4 times each — wasting 110 s+ in place and dying right after. 4~6 were at distances needing real pathfinding (navmesh).
+        So for each target, first walk_to() along a real path to its coordinates (awake enemies on the way are engaged by walk()'s
+        chaser automatically — sometimes the target itself is already killed on the way), and after arriving, fight() it if alive."""
         nb = self.nms[MAP_B]
         for i, e in enumerate(BURG_TOWN, 1):
             if not self.f.alive():
@@ -121,11 +121,11 @@ class Missions:
             s0 = self.mv.snap(40.0)
             if (s0 is not None and math.dist((s0.player.x, s0.player.y, s0.player.z), tuple(e["pos"])) < 15.0
                     and self.f.find_at(e["npc"], e["pos"], 15.0) is None):
-                # 163921: 쫓아와 이미 잡은 #6(255000)의 스폰 (-36.0,-13.5,-70.1) 은 상자·벽에 붙어 설 수 없어 2.6 m 앞에서
-                # 35 s 맴돌았다. 스폰이 가깝고(15 m) 그 둘레에 그놈이 안 보이면 걸어가지 않는다
+                # 163921: the spawn (-36.0,-13.5,-70.1) of #6 (255000), already killed after it chased us, is against boxes·wall and can't be stood on, so it
+                # circled 2.6 m in front for 35 s. If the spawn is close (15 m) and that enemy isn't seen around it, don't walk there
                 self.log(f"   #{i} {e['npc']}: 스폰 15 m 안인데 안 보임 — 이미 잡음, 걸어가지 않음")
                 continue
-            # 걷는 중 쫓아온 그놈을 잡았으면 설 수 없는 스폰까지 가지 않는다 (163921·다음 판: #6 스폰 2.2 m 앞에서 17~35 s)
+            # If that enemy chased us while walking and got killed, don't go to an unstandable spawn (163921·next run: 17~35 s 2.2 m in front of #6 spawn)
             gone = (lambda sn, e=e: math.dist((sn.player.x, sn.player.y, sn.player.z), tuple(e["pos"])) < 8.0
                     and self.f.find_at(e["npc"], e["pos"], 15.0) is None)
             r = self.f.walk_to(tuple(e["pos"]), nb, f"#{i} 이동", done=gone)
@@ -148,12 +148,12 @@ class Missions:
         return "cleared"
 
     def hunt_one(self, i: int) -> str:
-        """성벽 마을 화톳불에서 BURG_TOWN i 번 한 마리만 잡고 화톳불로 걸어 돌아온다 — 한 놈 상대법 시험용
-        (사용자 2026-09-25: "그 궁수만 공격하고 화톳불로 돌아오게 해봐" — 5번 = 석궁병 255002)."""
+        """From the Undead Burg bonfire, kill only BURG_TOWN #i and walk back to the bonfire — for testing single-enemy handling
+        (user 2026-09-25: "Make it attack only that archer and come back to the bonfire" — #5 = crossbowman 255002)."""
         nb = self.nms[MAP_B]
         e = BURG_TOWN[i - 1]
         tag = f"#{i} {e['npc']}"
-        # 먼저 성벽 마을 화톳불에서 쉰다 — HP·에스트가 차고 그놈도 되살아나 매 판이 같은 조건 (사용자: "쉬었다가")
+        # Rest at the Undead Burg bonfire first — HP·Estus refill and that enemy respawns, so every run has the same conditions (user: "rest first")
         ok = self.f.rest_at(nb, SPOTS["burg-bonfire"])
         self.log(f"── 성벽 마을 휴식: {'됨' if ok else '안 됨'}")
         r = self.f.walk_to(tuple(e["pos"]), nb, f"{tag} 이동")
@@ -173,8 +173,8 @@ class Missions:
         return f"{res} / 귀환 {back}"
 
     def to_merchant(self) -> str:
-        """상인까지. 지금 자리에서 가장 가까운 구간·점부터 이어 간다 — 통로(A) · 성벽 마을(B) · 창고 방(C).
-        예전엔 A 구간만 보고 '멀다' 며 계단 꼭대기로 되돌아가 막혔다 (성벽 마을 안에서 시작, 2026-09-24)."""
+        """To the merchant. Continues from the segment·point nearest the current position — passage (A) · Undead Burg (B) · storeroom (C).
+        Previously it only looked at segment A, called it 'far', went back to the top of the stairs and got stuck (started inside Undead Burg, 2026-09-24)."""
         na, nb = self.nms[MAP_A], self.nms[MAP_B]
         top, route, R = _route()
         pb = [tuple(q) for q in R["b"]]
@@ -203,15 +203,15 @@ class Missions:
             self.log(f"   경계 {time.time() - t0:.0f} s")
             seg, k = "B", 0
         if seg in ("B", "C"):
-            self.f.home = pb[0]                            # 성벽 마을에선 입구 쪽으로 물러난다 (불의 제전까지는 이 내비메시로 경로가 없다 — no_path 헛돌기)
+            self.f.home = pb[0]                            # in Undead Burg, retreat toward the entrance (this navmesh has no path to Firelink Shrine — no_path spinning)
         if seg == "B":
-            # 성벽 마을 들어서면 먼저 정해진 순서(BURG_TOWN)로 6마리 정리 — 그 뒤 걷는 동안은 opportunistic 전투만
-            # (사용자 2026-09-25: "내가 죽이는 순서대로 죽이도록 코딩해봐", "순서를 반드시 지켜줘")
+            # On entering Undead Burg, first clear the 6 in the fixed order (BURG_TOWN) — after that, only opportunistic fights while walking
+            # (user 2026-09-25: "Code it to kill in the order I kill", "Make sure to keep the order")
             r = self.clear_burg_town()
             if r != "cleared" and not r.startswith("left"):
                 return f"성벽 마을 순서 {r}"
-            # 6마리를 잡으러 마을 끝(#6)까지 돌아다닌 뒤다 — 들어올 때 정한 k(입구)부터 걸으면 먼 입구 점으로 곧장 가다 벽에
-            # 막혔다 (2026-09-25 네 판 연속 "성벽 마을 stuck"). 지금 자리에서 가장 가까운 점을 다시 찾아 거기까지 길찾기로 간다.
+            # This is after roaming to the far end of town (#6) to kill the 6 — walking from the k (entrance) chosen on entry went straight toward the far entrance point
+            # and hit a wall (2026-09-25, four runs in a row "Undead Burg stuck"). Re-find the nearest point from here and pathfind to it.
             s = self.f.snap_settled(5.0)
             if s is None:
                 return "성벽 마을 위치 못 읽음"
@@ -231,15 +231,15 @@ class Missions:
         rest = pc[k:]
         s = self.f.snap_settled(5.0)
         if k == 0 and s is not None and math.dist((s.player.x, s.player.y, s.player.z), tuple(R["roll"]["to"])) < 1.5:
-            # 상자 굴러 깨기 끝자리 (-30.2,-14.6,-76.6) 에서 세 판 연속(161024·zones·163921) 걷기로는 0 m — 계단을 막은
-            # 상자가 남아 있고, 구르기 한 번이면 곧장 내려갔다 (163921: 50 s 정지 → 710 한 번에 통과). 먼저 한 번 구른다
+            # At the box-rolling end spot (-30.2,-14.6,-76.6), three runs in a row (161024·zones·163921) walking made 0 m — boxes blocking the stairs
+            # remained, and one roll went straight down (163921: 50 s stuck → through in one at 710). Roll once first
             self.mv.roll_toward(s, pc[0][0], pc[0][2])
             time.sleep(0.8)
         for extra in range(3):
             r = self.f.walk(rest, nb, "창고 방", tol=0.8)
             if r != "stuck" or extra == 2:
                 break
-            # 남은 상자가 계단을 막고 있었다 (2026-09-23 스크린샷) — 다음 점 쪽으로 한 번 더 굴러 깬다
+            # A remaining box was blocking the stairs (2026-09-23 screenshot) — roll once more toward the next point to break it
             s = self.f.snap_settled(5.0)
             j = min(range(len(pc)), key=lambda i: math.dist(pc[i], (s.player.x, s.player.y, s.player.z)))
             nxt = pc[min(j + 1, len(pc) - 1)]
@@ -252,8 +252,8 @@ class Missions:
         return res
 
     def to_firelink(self) -> str:
-        """불의 제전으로 걸어서 돌아온다 — to_merchant 의 역순. 성벽 마을(B) 내비메시엔 불의 제전으로 가는 경로가
-        없어(no_path) 기록한 길을 거꾸로 걷는다. 상자는 갈 때 이미 부숴 놨으니 다시 굴리지 않는다."""
+        """Walk back to Firelink Shrine — the reverse of to_merchant. The Undead Burg (B) navmesh has no path to Firelink Shrine
+        (no_path), so walk the recorded path backwards. Boxes were already broken on the way there, so don't roll again."""
         na, nb = self.nms[MAP_A], self.nms[MAP_B]
         top, route, R = _route()
         pb = list(reversed([tuple(q) for q in R["b"]]))
@@ -267,7 +267,7 @@ class Missions:
                          for j, q in enumerate(ps)), key=lambda t: t[2])
         self.log(f"   귀환 길: 가장 가까운 곳 {seg}{k} ({d:.1f} m)")
         self.f.home = FIRELINK["stand"] if seg == "A" else tuple(R["b"][0])
-        if d > 6.0:                                     # 화톳불 등 기록한 길에서 떨어진 자리에서 시작 — 먼저 그 점으로
+        if d > 6.0:                                     # starting away from the recorded path, e.g. at a bonfire — go to that point first
             r = self.f.walk_to(pts[seg][k], na if seg == "A" else nb, "귀환 길로")
             if r != "arrived":
                 return f"귀환 길까지 {r}"
@@ -292,7 +292,7 @@ class Missions:
         return r
 
     def _roll_boxes(self, frm, to, tries: int = 3) -> bool:
-        """상자 더미를 굴러 깨며 지나간다 (사용자: "굴러서 깨면서 들어가는 게 좋아"). 시작점에 0.3 m 안으로 서고 구른다."""
+        """Roll through the box pile, breaking it (user: "Rolling in and breaking them is better"). Stand within 0.3 m of the start point and roll."""
         def past(sn) -> bool:
             return sn.player.y < frm[1] - 0.5 or math.dist((sn.player.x, sn.player.z), (to[0], to[2])) < 1.5
         for _ in range(tries):
@@ -312,23 +312,23 @@ class Missions:
         return False
 
     def light_burg_bonfire(self) -> str:
-        """성벽 마을 화톳불에 불 붙이고 앉는다: 처음 A = 불 붙이기(BONFIRE LIT), 다음 A = 앉기.
-        성공 = 앉았고 마지막 화톳불 ID 가 불의 제전이 아니게 됨. B(일어나기)는 **앉아 있을 때만** 누른다 (아니면 백스텝)."""
+        """Light the Undead Burg bonfire and sit: first A = light (BONFIRE LIT), next A = sit.
+        Success = sat and the last bonfire ID is no longer Firelink Shrine. B (stand up) is pressed **only while sitting** (otherwise it's a backstep)."""
         nb = self.nms[MAP_B]
         _, _, R = _route()
-        self.f.home = tuple(R["b"][0])                     # 물러날 곳 = 성벽 마을 입구 (이 내비메시 안)
+        self.f.home = tuple(R["b"][0])                     # retreat spot = Undead Burg entrance (inside this navmesh)
         r = self.f.walk_to(BURG_BONFIRE_SIDE, nb, "화톳불로")
         if r != "arrived":
             return f"화톳불까지 {r}"
-        # 화톳불 옆 핏자국부터 (2026-09-24: 여기서 죽어 소울 740) — 어차피 앉을 화톳불이라 A 가 앉기로 들어가도 괜찮다
+        # Bloodstain next to the bonfire first (2026-09-24: died here, 740 souls) — we'll sit at this bonfire anyway, so it's fine if A goes into sitting
         b = self.f.pick_blood(nb, near=10.0, bonfire_ok=True)
         if b:
             self.log(f"   핏자국: {b}")
         s = self.mv.snap(15.0)
         if s and not self.f.safe(s):
-            self.f.shake_off("화톳불 앞 적")               # 적이 가까우면 불도 못 붙이고 앉지도 못한다
+            self.f.shake_off("화톳불 앞 적")               # with an enemy close, can't light or sit
         s = self.f.snap_settled(5.0)
-        if s and s.cam_yaw is not None:                     # 화톳불 쪽을 본다
+        if s and s.cam_yaw is not None:                     # face the bonfire
             self.mv.pad.move(*self.mv.stick_to(s, BURG_BONFIRE[0], BURG_BONFIRE[2], 0.45))
             time.sleep(0.18)
             self.mv.pad.move(0.0, 0.0)
@@ -355,7 +355,7 @@ class Missions:
         self.log(f"── 성벽 마을 화톳불: 앉음 {sat}, 마지막 화톳불 {before} → {after} — {'귀환 지점 바뀜' if ok else '확인 못 함'}")
         return "lit" if ok else f"실패 (앉음 {sat}, {before}→{after})"
 
-    # ── 임무 ─────────────────────────────────────────────────
+    # ── Missions ─────────────────────────────────────────────
     def burg_bonfire(self) -> str:
         if not self.f.alive():
             self.f.wait_respawn()
@@ -370,8 +370,8 @@ class Missions:
         return self.light_burg_bonfire()
 
     def burg_bonfire_round_trip(self) -> str:
-        """경사로 → 상인 → 성벽 마을 화톳불까지 걸어갔다가, 쉬지 않고 걸어서 불의 제전으로 돌아온다 (사용자 2026-09-25:
-        "화톳불 쉬지 말고 걸어서 돌아 오게 해"). 화톳불에 앉지 않으니 귀환 지점이 안 바뀌어 다음 판도 그냥 걸어서 시작한다."""
+        """Ramp → merchant → walk to the Undead Burg bonfire, then walk back to Firelink Shrine without resting (user 2026-09-25:
+        "Don't rest at the bonfire, make it walk back"). Not sitting at the bonfire keeps the respawn point unchanged, so the next run also just starts by walking."""
         if not self.f.alive():
             self.f.wait_respawn()
         if not self.start_fresh():

@@ -1,39 +1,39 @@
 """
-다크소울 리마스터(DSR) 텔레메트리 — pymem 으로 DarkSoulsRemastered.exe 에 직접 붙는다 (EAC 없음, CE/브릿지 불필요).
-읽기 전용 + 리셋용 쓰기 두 개(즉사 플래그, 좌표 워프). **반드시 오프라인으로 실행** (온라인 소프트밴).
+Dark Souls Remastered (DSR) telemetry — attaches directly to DarkSoulsRemastered.exe via pymem (no EAC, no CE/bridge needed).
+Read-only + two writes for resets (instant-death flag, coordinate warp). **Always run offline** (online soft ban).
 
-포인터 지도는 JKAnderson/DSR-Gadget 의 DSROffsets.cs 에서 (AOB → RIP 상대 주소 → 정적 포인터). 실측 2026-09-21, 모듈 크기 0x319B000
-(DSR-Gadget 이 아는 1.03 보다 새 버전 — 1.03 용 보정 오프셋(+0x20/+0x10)이 그대로 맞았다).
+Pointer map from JKAnderson/DSR-Gadget's DSROffsets.cs (AOB → RIP-relative address → static pointer). Measured 2026-09-21, module size 0x319B000
+(newer than the 1.03 that DSR-Gadget knows — the 1.03 correction offsets (+0x20/+0x10) matched as-is).
 
   WorldChrMan  = [WorldChrBase]                (AOB 48 8B 05 ? ? ? ? 48 8B 48 68 ...)
   Player       = [WorldChrMan+0x68]            (ChrIns)
-  캐릭터 목록   = [[WorldChrMan+0xA8]+0x50]      항목 0x38 바이트, 첫 8바이트 = ChrIns 포인터. 개수 = [WorldChrMan+0xA8]+0x48 (int)
+  Character list = [[WorldChrMan+0xA8]+0x50]      entries 0x38 bytes, first 8 bytes = ChrIns pointer. Count = [WorldChrMan+0xA8]+0x48 (int)
   ChrIns:
-    +0x00  vtable  (PlayerIns 0x1413251F0 / EnemyIns 0x141322E68 — 베이스 상대로 저장)
-    +0x88  모델 이름 (UTF-16, "c2500" 등)
-    +0xC8  NpcParam ID (int32, 예: 250023 할로우, 279070 낙담한 전사) — 적/비적 판정 키
-    +0x68  → ChrMapData: +0x28 → ChrPosData(+0x4 각도, +0x10 x, +0x14 y(높이), +0x18 z)
-                          +0x48 → +0x80 현재 애니메이션 ID
-                          +0x108 Warp(byte) +0x110/114/118 WarpXYZ +0x124 WarpAngle  (좌표 순간이동)
-    +0x3E8 HP  +0x3EC MaxHP  +0x3F8 스태미나  +0x3FC 최대 스태미나   (DSR-Gadget 0x3D8/0x3DC/0x3E8/0x3EC + 보정 0x10)
-    +0x2A4  ChrFlags1 — 0x8000 이 켜진 것만 실제로 스폰된 캐릭터 (꺼진 건 목록엔 있지만 안 보이고 안 움직임)
-    +0xA44  특수 동작 애니 ID (int32, 없으면 -1) — 화톳불에 앉아 있는 동안 77xx (위 화톳불 7711, 아래 7721). +0xA48 = 1 이면 그 동작 중.
-            mapd 쪽 "현재 애니"(+0x48→+0x80) 는 공격 304000/에스트 7585/백스텝 690 은 보이지만 앉기는 안 보인다.
-    +0x08  핸들 (int32, 예: 0x10008015)
-    +0xEF0 (PlayerIns) 락온 대상의 핸들, 안 걸렸으면 -1 — R3 누르기 전후 PlayerIns 0x1000 바이트를 비교해 찾음 (2/2, 2026-09-23)
-  ChrClassWarp = [static]: +0xB34 마지막 화톳불 ID (예: 1812960 = 불의 제전)
-            **쓰면 귀환의 뼛조각이 그 화톳불로 간다** (실측: 어둠숲에서 이 값을 불의 제전으로 바꾸고
-            뼛조각을 쓰니 불의 제전으로 이동). 다만 **사망 부활 지점은 아니다** — 값을 바꾸고 죽여도
-            원래 자리에서 부활한다(2회 확인). 부활 지점은 다른 곳에 저장된다.
-  ChrDbg (static 바이트 배열): +0x1 PlayerExterminate = 1 이면 즉사
-  ChrFollowCam = [[[static]+0x60]+0x60]: +0x10 부터 4x4 행렬(float) — 3행 = 카메라 forward, 4행 = 위치. yaw = atan2(fwd.x, fwd.z)
+    +0x00  vtable  (PlayerIns 0x1413251F0 / EnemyIns 0x141322E68 — stored relative to base)
+    +0x88  model name (UTF-16, "c2500" etc.)
+    +0xC8  NpcParam ID (int32, e.g. 250023 Hollow, 279070 Crestfallen Warrior) — key for enemy/non-enemy judgment
+    +0x68  → ChrMapData: +0x28 → ChrPosData(+0x4 angle, +0x10 x, +0x14 y(height), +0x18 z)
+                          +0x48 → +0x80 current animation ID
+                          +0x108 Warp(byte) +0x110/114/118 WarpXYZ +0x124 WarpAngle  (coordinate teleport)
+    +0x3E8 HP  +0x3EC MaxHP  +0x3F8 stamina  +0x3FC max stamina   (DSR-Gadget 0x3D8/0x3DC/0x3E8/0x3EC + correction 0x10)
+    +0x2A4  ChrFlags1 — only characters with 0x8000 set are actually spawned (unset ones are in the list but invisible and don't move)
+    +0xA44  special-action anim ID (int32, -1 if none) — 77xx while sitting at a bonfire (upper bonfire 7711, lower 7721). +0xA48 = 1 while in that action.
+            The mapd "current anim" (+0x48→+0x80) shows attack 304000/Estus 7585/backstep 690 but not sitting.
+    +0x08  handle (int32, e.g. 0x10008015)
+    +0xEF0 (PlayerIns) handle of the lock-on target, -1 if none — found by diffing 0x1000 bytes of PlayerIns before/after pressing R3 (2/2, 2026-09-23)
+  ChrClassWarp = [static]: +0xB34 last bonfire ID (e.g. 1812960 = Firelink Shrine)
+            **Writing it makes the Homeward Bone go to that bonfire** (measured: in Darkroot, changed this value to Firelink Shrine
+            and used a bone, which went to Firelink Shrine). But it is **not the death respawn point** — changing it and dying
+            still respawns at the original spot (confirmed 2x). The respawn point is stored elsewhere.
+  ChrDbg (static byte array): +0x1 PlayerExterminate = 1 means instant death
+  ChrFollowCam = [[[static]+0x60]+0x60]: 4x4 matrix (float) from +0x10 — row 3 = camera forward, row 4 = position. yaw = atan2(fwd.x, fwd.z)
 
-팀 타입(적/아군) 바이트는 못 찾았다 → NpcParam ID 로 판정: FRIENDLY 에 있으면 비적, EnemyIns 인데 없으면 적.
-스틱 실측: 앞 = 카메라 forward, 오른쪽 = +90° (엘든링과 같음).
+Couldn't find the team-type (enemy/ally) byte → judged by NpcParam ID: non-enemy if in FRIENDLY, enemy if EnemyIns and not in it.
+Stick measured: forward = camera forward, right = +90° (same as Elden Ring).
 
-── 알려진 한계 ──────────────────────────────
- · 로딩 중엔 포인터가 무효 → snapshot() 이 None.
- · 캐릭터 목록은 로드된 것 전부(멀리 있는 것 포함) — within 으로 거른다.
+── Known limitations ──────────────────────────────
+ · During loading the pointers are invalid → snapshot() is None.
+ · The character list is everything loaded (including far away) — filter with within.
 """
 from __future__ import annotations
 
@@ -52,7 +52,7 @@ import pymem.exception
 import pymem.pattern
 import pymem.process
 
-from telemetry import Chr, Snapshot   # 엘든링과 같은 모양 → nav/patrol 이 그대로 쓴다
+from telemetry import Chr, Snapshot   # same shape as Elden Ring → nav/patrol use it as-is
 
 AOBS = {
     "WorldChrBase": ("48 8B 05 ? ? ? ? 48 8B 48 68 48 85 C9 0F 84 ? ? ? ? 48 39 5E 10 0F 84 ? ? ? ? 48", 3, 7),
@@ -60,10 +60,10 @@ AOBS = {
     "ChrDbg": ("80 3D ? ? ? ? 00 48 8B 8F ? ? ? ? 0F B6 DB", 2, 7),
     "ChrFollowCam": ("48 8B 0D ? ? ? ? E8 ? ? ? ? 48 8B 4E 68 48 8B 05 ? ? ? ? 48 89 48 60", 3, 7),
     "ChrClassBase": ("48 8B 05 ? ? ? ? 48 85 C0 ? ? F3 0F 58 80 AC 00 00 00", 3, 7),
-    # 게임 기록(이벤트 플래그) — JKAnderson/EventPocket DSOffsets.EventFlagsAOBR (DSR)
+    # game records (event flags) — JKAnderson/EventPocket DSOffsets.EventFlagsAOBR (DSR)
     "EventFlags": ("48 8B 0D ? ? ? ? 99 33 C2 45 33 C0 2B C2 8D 50 F6", 3, 7),
 }
-# 이벤트 플래그 id 8자리 = 그룹 1 · 지역 3 · 구역 1 · 번호 3 → 바이트 위치 (EventPocket DSProcess.getEventFlagAddress)
+# event flag id, 8 digits = group 1 · area 3 · block 1 · number 3 → byte position (EventPocket DSProcess.getEventFlagAddress)
 EVENT_GROUPS = {"0": 0x00000, "1": 0x00500, "5": 0x05F00, "6": 0x0B900, "7": 0x11300}
 EVENT_AREAS = {"000": 0, "100": 1, "101": 2, "102": 3, "110": 4, "120": 5, "121": 6, "130": 7, "131": 8, "132": 9,
                "140": 10, "141": 11, "150": 12, "151": 13, "160": 14, "170": 15, "180": 16, "181": 17}
@@ -71,22 +71,22 @@ OFF_HP, OFF_MAXHP, OFF_SP, OFF_MAXSP = 0x3E8, 0x3EC, 0x3F8, 0x3FC
 OFF_MAPDATA, OFF_MODEL, OFF_NPC = 0x68, 0x88, 0xC8
 OFF_LASTBONFIRE = 0xB34
 BONFIRE_WARP_AOB = "48 89 5C 24 08 57 48 83 EC 20 48 8B D9 8B FA 48 8B 49 08 48 85 C9 0F 84 ? ? ? ? E8 ? ? ? ? 48 8B 4B 08"  # DSR-Gadget DSROffsets
-QUIT_GONE_S = 0.5          # 퀵 종료: 캐릭터가 이만큼 연달아 안 보여야 타이틀로 나간 것
-QUIT_REQ = 0x19            # ChrClassWarp — 1 을 쓰면 타이틀 화면으로 나간다 (퀵 종료, warp_re.py 로 찾음)
-CHR_LIST_OFFSETS = (0xA8, 0xB0, 0xB8, 0xC0, 0xC8)   # WorldChrMan 안의 구역별 캐릭터 목록 (실측: 불의 제전은 0xB0)
+QUIT_GONE_S = 0.5          # quit-out: the character must be invisible this long in a row to count as having exited to title
+QUIT_REQ = 0x19            # ChrClassWarp — writing 1 exits to the title screen (quit-out, found with warp_re.py)
+CHR_LIST_OFFSETS = (0xA8, 0xB0, 0xB8, 0xC0, 0xC8)   # per-area character lists inside WorldChrMan (measured: Firelink Shrine is 0xB0)
 OFF_ANIM2 = 0xA44
 OFF_HANDLE, OFF_LOCK_TARGET = 0x8, 0xEF0
-OFF_MENU_FLAG = 0x1A294F0   # 모듈 기준. 1=게임 조작 중, 0=메뉴 열림 (App ver 1.03.1 실측)
-OFF_FLAGS1 = 0x2A4      # DSR-Gadget ChrFlags1(0x284) + 보정 0x20
-FLAG_ACTIVE = 0x8000    # 실측: 월드에 실제로 있는(애니가 도는) 캐릭터만 켜짐
-# 실측(불의 제전~묘지): 이 비트가 켜진 놈은 보이지도 맞지도 않는다 — c5330 HP 11120 (0x280c400), c3510 (0x2808800),
-# 화톳불 옆 c2750 HP 32 (0x2808400). 진짜 적은 0x808400/0x808800. 봇이 c5330 을 1 m 앞에 두고 8 s 동안 헛스윙했다.
+OFF_MENU_FLAG = 0x1A294F0   # module-relative. 1=in gameplay, 0=menu open (App ver 1.03.1 measured)
+OFF_FLAGS1 = 0x2A4      # DSR-Gadget ChrFlags1(0x284) + correction 0x20
+FLAG_ACTIVE = 0x8000    # measured: set only for characters actually in the world (anim running)
+# measured (Firelink Shrine~graveyard): ones with this bit set are neither visible nor hittable — c5330 HP 11120 (0x280c400), c3510 (0x2808800),
+# c2750 HP 32 next to the bonfire (0x2808400). Real enemies are 0x808400/0x808800. The bot whiffed at c5330 1 m ahead for 8 s.
 FLAG_GHOST = 0x2000000
-PHANTOM_NPC = {254013, 254014}   # 성벽 마을 화톳불 방 옆 HP 150 두 놈 — 몸 없음 (사용자 화면 확인 "아무것도 없는데 왜 휘두르지").
-                                 # 겹침·헛침으로 잡기 전에 봇이 구멍 옆에서 15 s 씩 치다 세 번 떨어졌다 (2026-09-25) — 번호로 바로 뺀다
+PHANTOM_NPC = {254013, 254014}   # two HP 150 ones next to the Undead Burg bonfire room — no body (user saw on screen: "there's nothing there, why is it swinging").
+                                 # before overlap/whiff detection caught them, the bot hit them for 15 s at a time next to a hole and fell three times (2026-09-25) — exclude by ID directly
 PHANTOM_S = 1.0
-PHANTOM_R = 0.45           # 이보다 가까이 겹친 적 = 몸 없음 (한 번 걸리면 그 ptr 은 프로세스 동안 적 아님)
-FRIENDLY = {279070, 100000}   # 낙담한 전사, 사람 NPC(c1000) — 필요하면 data/dsr_friendly.json 으로
+PHANTOM_R = 0.45           # an enemy overlapping closer than this = no body (once caught, that ptr is not an enemy for the rest of the process)
+FRIENDLY = {279070, 100000}   # Crestfallen Warrior, human NPC (c1000) — move to data/dsr_friendly.json if needed
 
 
 class DSRTelemetry:
@@ -96,8 +96,8 @@ class DSRTelemetry:
         self.base = self.mod.lpBaseOfDll
         self.names = names or {}
         self.static: dict[str, int] = {}
-        self.phantom: set[int] = set()   # 몸이 없는 적 (ptr) — snapshot 이 찾아 team 0 으로 돌린다
-        self._overlap: dict[int, float] = {}   # ptr → 겹치기 시작한 시각
+        self.phantom: set[int] = set()   # enemies with no body (ptr) — snapshot finds them and sets them to team 0
+        self._overlap: dict[int, float] = {}   # ptr → time overlap started
         for k, (pat, ao, il) in AOBS.items():
             a = pymem.pattern.pattern_scan_module(self.pm.process_handle, self.mod, self._aob(pat))
             if not a:
@@ -111,7 +111,7 @@ class DSRTelemetry:
     def _aob(p: str) -> bytes:
         return b"".join(b"." if t == "?" else re.escape(bytes([int(t, 16)])) for t in p.split())
 
-    # ── 저수준 ──
+    # ── low level ──
     def q(self, a: int) -> Optional[int]:
         try:
             v = self.pm.read_ulonglong(a)
@@ -131,7 +131,7 @@ class DSRTelemetry:
         except pymem.exception.PymemError:
             return None
 
-    # ── 캐릭터 ──
+    # ── characters ──
     def world_chr_man(self) -> Optional[int]:
         return self.q(self.static["WorldChrBase"])
 
@@ -158,9 +158,9 @@ class DSRTelemetry:
         if vt == self.vt_player:
             team = 1
         elif npc in FRIENDLY:
-            team = 26   # FriendlyNPC (엘든링 팀 번호를 흉내 — Snapshot.hostile() 이 6/7/24/25/27/33 만 적으로 본다)
+            team = 26   # FriendlyNPC (mimics Elden Ring team numbers — Snapshot.hostile() only treats 6/7/24/25/27/33 as enemies)
         elif not (flags1 & FLAG_ACTIVE):
-            team = 0    # 비활성(스폰 안 됨/이벤트로 꺼짐) — 목록엔 있지만 월드에 없다. 실측: 안 보이는 할로우가 0x800400, 움직이는 놈은 0x808400
+            team = 0    # inactive (not spawned / disabled by event) — in the list but not in the world. Measured: invisible Hollow is 0x800400, a moving one 0x808400
         elif flags1 & FLAG_GHOST:
             team = 0
         else:
@@ -169,11 +169,11 @@ class DSRTelemetry:
                    x=x, y=y, z=z, anim=anim, name=self.names.get(npc, ""), gx=x, gy=y, gz=z, heading=ang, map_id=0)
 
     def chr_ptrs(self) -> list[int]:
-        """로드된 **모든** 구역의 캐릭터. DS1 은 인접 구역을 같이 올려 두고 목록도 구역마다 따로 둔다.
+        """Characters of **all** loaded areas. DS1 keeps adjacent areas loaded too, with a separate list per area.
 
-        실측(불의 제전): +0xA8 은 174명이지만 전부 64 m 밖이고, 지금 서 있는 구역은 +0xB0 의 41명이었다
-        (가장 가까운 NPC 5.1 m). 아스라이에선 마침 +0xA8 이 그 구역이라 하나만 읽어도 됐던 것 —
-        그래서 불의 제전·묘지에서 적이 하나도 안 잡혔고, 봇이 해골에게 맞으면서도 "적 없음"으로 판단했다."""
+        Measured (Firelink Shrine): +0xA8 had 174 but all beyond 64 m; the area we stood in was +0xB0 with 41
+        (nearest NPC 5.1 m). In the Asylum +0xA8 happened to be that area, so reading one was enough —
+        hence no enemies were detected at Firelink Shrine/graveyard, and the bot judged "no enemies" even while being hit by skeletons."""
         w = self.world_chr_man()
         if not w:
             return []
@@ -205,7 +205,7 @@ class DSRTelemetry:
         except pymem.exception.PymemError:
             return ""
 
-    # ── 카메라 ──
+    # ── camera ──
     def cam_yaw(self) -> Optional[float]:
         c1 = self.q(self.static["ChrFollowCam"])
         c2 = self.q(c1 + 0x60) if c1 else None
@@ -224,8 +224,8 @@ class DSRTelemetry:
         player = self.read_chr(pp)
         if not player:
             return None
-        # 좌표만 먼저 싸게 읽고 가까운 것만 전체를 읽는다. 구역별 목록을 다 읽게 고친 뒤 목록이 391명까지
-        # 늘어서, 전부 read_chr 하면 snapshot 하나에 14 ms 가 걸렸다 (틱이 65 ms 로 떨어짐, 초당 15회).
+        # read only coordinates cheaply first, and fully read only nearby ones. After fixing it to read all per-area lists, the list
+        # grew to 391, and read_chr on all of them took 14 ms per snapshot (tick dropped to 65 ms, 15/s).
         chars = []
         px, py, pz = player.x, player.y, player.z
         for p in self.chr_ptrs():
@@ -239,15 +239,15 @@ class DSRTelemetry:
             z = self.f32(posd + 0x18)
             if x is None or z is None or not (math.isfinite(x) and math.isfinite(z)):
                 continue
-            if math.hypot(x - px, z - pz) > within + 2.0:   # 높이 차는 뒤에서 정확히 본다
+            if math.hypot(x - px, z - pz) > within + 2.0:   # height difference is checked precisely later
                 continue
             c = self.read_chr(p)
             if not c:
                 continue
             c.dist = math.dist((px, py, pz), (c.x, c.y, c.z))
-            # 몸이 겹치면 그 적은 월드에 없다 — 실제 적은 충돌 캡슐 때문에 이만큼 못 붙는다. 플래그(0x808400)는
-            # 살아 있는 놈과 같아서 못 가른다: 성벽 마을 254014 에 0.19 m 까지 붙어 약공 18연속 0 피해 (2026-09-25)
-            # 백스탭·반격은 순간 겹친다 — PHANTOM_S 넘게 계속 겹칠 때만
+            # if bodies overlap, that enemy isn't in the world — real enemies can't get this close due to collision capsules. The flags (0x808400)
+            # are the same as live ones, so they can't separate it: at Undead Burg, got to 0.19 m of 254014, 18 light attacks in a row for 0 damage (2026-09-25)
+            # backstabs/ripostes overlap momentarily — only when overlapping continuously for more than PHANTOM_S
             if c.team == 6 and c.hp > 0 and math.hypot(c.x - px, c.z - pz) < PHANTOM_R and abs(c.y - py) < 0.6:
                 t0 = self._overlap.setdefault(p, time.time())
                 if time.time() - t0 >= PHANTOM_S:
@@ -261,18 +261,18 @@ class DSRTelemetry:
         chars.sort(key=lambda c: c.dist)
         return Snapshot(t=time.time(), player=player, chars=chars, cam_yaw=self.cam_yaw(), cam_pitch=None)
 
-    # ── 엘든링 텔레메트리와 인터페이스 맞추기 (patrol/learn 이 게임을 모르게) ──
+    # ── match the Elden Ring telemetry interface (so patrol/learn don't need to know the game) ──
     def arm_style(self) -> Optional[int]:
-        return None   # DS1 은 왼손이 비어도 LB 가 가드(맨손 가드) — 양손 검사 불필요
+        return None   # in DS1, LB guards even with an empty left hand (bare-hand guard) — no two-hand check needed
 
     def flasks(self) -> tuple[Optional[int], Optional[int]]:
-        return None, None   # TODO 에스트 수 (인벤토리 오프셋 미확인) — Guard 는 "효과 없음 → 빈 병" 휴리스틱으로 폴백
+        return None, None   # TODO Estus count (inventory offset unknown) — Guard falls back to the "no effect → empty flask" heuristic
 
     def handle(self, p: int) -> Optional[int]:
         return self.i32(p + OFF_HANDLE) if p else None
 
     def lock_target(self) -> Optional[int]:
-        """락온 대상의 핸들, 안 걸렸으면 -1. R3 는 토글이라 이걸 봐야 몇 번 누를지 안다."""
+        """Handle of the lock-on target, -1 if none. R3 is a toggle, so this tells how many times to press."""
         pp = self.player_ptr()
         return self.i32(pp + OFF_LOCK_TARGET) if pp else None
 
@@ -280,20 +280,20 @@ class DSRTelemetry:
         return self.last_bonfire()
 
     def sitting(self) -> bool:
-        """화톳불에 앉아 있는가 — ChrIns+0xA48 == 1 이고 +0xA44 가 77xx (실측: 위 화톳불 7711, 아래 화톳불 7721)."""
+        """Sitting at a bonfire? — ChrIns+0xA48 == 1 and +0xA44 is 77xx (measured: upper bonfire 7711, lower bonfire 7721)."""
         pp = self.player_ptr()
         if not pp:
             return False
         a = self.i32(pp + OFF_ANIM2)
         try:
-            flag = self.pm.read_uchar(pp + OFF_ANIM2 + 4)   # 1바이트 — 상위 바이트엔 다른 값이 섞인다 (사망 뒤 0x1C260001 실측)
+            flag = self.pm.read_uchar(pp + OFF_ANIM2 + 4)   # 1 byte — the upper bytes carry other values (measured 0x1C260001 after death)
         except pymem.exception.PymemError:
             return False
-        return flag == 1 and a is not None and 7700 <= a < 7800 and a % 10 == 1   # 7720 = 앉는 중(플래그 0), 77x1 = 앉음 (7701/7711/7721)
+        return flag == 1 and a is not None and 7700 <= a < 7800 and a % 10 == 1   # 7720 = sitting down (flag 0), 77x1 = seated (7701/7711/7721)
 
     def face(self, pad, heading: float, tries: int = 5, tol: float = 0.25) -> bool:
-        """캐릭터를 heading(+0x4 각도, 실측 월드 yaw = heading + π) 방향으로 돌린다 — 스틱을 짧게 쳐서 제자리 회전.
-        DS1 은 화톳불·문 상호작용 프롬프트가 정면 정렬을 요구한다 (사용자 실측)."""
+        """Turn the character to heading (+0x4 angle, measured world yaw = heading + π) — rotate in place with short stick taps.
+        DS1 bonfire/door interaction prompts require facing them head-on (user measured)."""
         import control, nav
         for _ in range(tries):
             s = self.snapshot(within=1.0)
@@ -311,19 +311,19 @@ class DSRTelemetry:
         s = self.snapshot(within=1.0)
         return bool(s) and abs((heading - s.player.heading + math.pi) % (2 * math.pi) - math.pi) < tol
 
-    # ── 진행 상태 ──
+    # ── progress state ──
     def menu_open(self) -> Optional[bool]:
-        """메뉴(START)가 열려 있나. 실측: 모듈 +0x1A294F0 바이트가 평소 1, 메뉴가 열리면 10 ms 안에 0 —
-        시스템·확인창 같은 하위 메뉴에서도 0 을 유지하고, 완전히 닫혀야 1 로 돌아온다 (정적 메모리 diff 로 찾음).
-        quit-out 에서 START 가 먹었는지 확인하는 데 쓴다 — 로드 직후엔 START 가 씹혀서 나머지 입력이 게임에 샜다."""
+        """Is the menu (START) open. Measured: the byte at module +0x1A294F0 is normally 1 and goes 0 within 10 ms of the menu opening —
+        stays 0 in submenus like system/confirm dialogs and returns to 1 only when fully closed (found by static memory diff).
+        Used to confirm START registered during quit-out — right after loading START got dropped and the remaining inputs leaked into the game."""
         try:
             return self.pm.read_uchar(self.base + OFF_MENU_FLAG) == 0
         except pymem.exception.PymemError:
             return None
 
     def weapon_durability(self, weapon_id: int | None = None) -> Optional[int]:
-        """오른손 무기(또는 weapon_id)의 내구도. 인벤토리 항목 (분류 0, ID, 개수, 핸들, ?, **내구도**, ?) 의 +0x14.
-        실측 2026-09-25: 클레이모어 188 → 수리 분말 뒤 200 (클레이모어 최대 200)."""
+        """Durability of the right-hand weapon (or weapon_id). +0x14 of the inventory entry (category 0, ID, count, handle, ?, **durability**, ?).
+        Measured 2026-09-25: Claymore 188 → 200 after repair powder (Claymore max 200)."""
         wid = weapon_id or self.right_weapon()
         cb = self.q(self.static["ChrClassBase"])
         pgd = self.q(cb + 0x10) if cb else None
@@ -340,18 +340,18 @@ class DSRTelemetry:
         return None
 
     def quick_items(self) -> list[int]:
-        """소모품 5칸의 아이템 ID (빈 칸은 -1). 에스트를 빼고 다크사인을 넣는 식으로 사용자가 바꾼다."""
+        """Item IDs of the 5 consumable slots (-1 for empty). The user changes them, e.g. removing Estus and adding Darksign."""
         cb = self.q(self.static["ChrClassBase"])
         pgd = self.q(cb + 0x10) if cb else None
         return [self.i32(pgd + 0x360 + 4 * k) for k in range(5)] if pgd else []
 
     def selected_item(self) -> Optional[int]:
-        """지금 선택된 소모품 칸의 아이템 ID (에스트 200~215, 파이어밤 292, 투척 나이프 290).
+        """Item ID of the currently selected consumable slot (Estus 200~215, Firebomb 292, Throwing Knife 290).
 
-        실측(PlayerGameData = [ChrClassBase]+0x10): +0x2E0 부터 소모품 5칸의 **인벤토리 인덱스**,
-        +0x360 부터 같은 5칸의 **아이템 ID**, +0x44C 가 지금 선택된 칸의 인벤토리 인덱스.
-        (D-패드 ↓ 를 누르며 76 → 78 → 132 → 76 으로 바뀌는 것을 diff 로 찾음. 빈 칸은 건너뛴다)
-        버튼만 누르고 믿으면 안 된다 — 초기화 직후 ↓ 가 씹혀서 폭탄 대신 에스트를 마신 적이 있다."""
+        Measured (PlayerGameData = [ChrClassBase]+0x10): from +0x2E0 the **inventory indices** of the 5 consumable slots,
+        from +0x360 the **item IDs** of the same 5 slots, +0x44C the inventory index of the currently selected slot.
+        (found by diff as it changed 76 → 78 → 132 → 76 while pressing D-pad ↓. Empty slots are skipped)
+        Don't just press the button and trust it — right after init ↓ got dropped and it drank Estus instead of a bomb."""
         cb = self.q(self.static["ChrClassBase"])
         pgd = self.q(cb + 0x10) if cb else None
         if not pgd:
@@ -363,21 +363,21 @@ class DSRTelemetry:
         return None
 
     def grip(self) -> Optional[int]:
-        """오른손 무기 잡기: 3 = 양손, 1 = 한손. PlayerGameData+0x308 — Y 로 풀었다 잡으며 비교해 찾음 (3→1→3, 2026-09-23).
-        (arm_style() 은 엘든링 인터페이스용이라 None 을 돌려준다 — 이걸 쓴다)"""
+        """Right-hand weapon grip: 3 = two-handed, 1 = one-handed. PlayerGameData+0x308 — found by comparing while releasing/regripping with Y (3→1→3, 2026-09-23).
+        (arm_style() is for the Elden Ring interface and returns None — use this)"""
         cb = self.q(self.static["ChrClassBase"])
         pgd = self.q(cb + 0x10) if cb else None
         return self.i32(pgd + 0x308) if pgd else None
 
     def right_weapon(self) -> Optional[int]:
-        """오른손 무기 ID (PlayerGameData+0x328, 츠바이헨더+5 = 350005)."""
+        """Right-hand weapon ID (PlayerGameData+0x328, Zweihander+5 = 350005)."""
         cb = self.q(self.static["ChrClassBase"])
         pgd = self.q(cb + 0x10) if cb else None
         return self.i32(pgd + 0x328) if pgd else None
 
     def event_flag(self, fid: int) -> Optional[bool]:
-        """게임 기록(이벤트 플래그) 한 칸 — 보물(ItemLotParam.ItemFlag)을 주웠나, 보스·문·NPC 상태 등.
-        EventPocket(DSR) 방식: static EventFlags → 포인터 → 포인터 = 기본 주소, id 를 그룹·지역·구역·번호로 나눠 비트 위치."""
+        """One entry of game records (event flags) — whether a treasure (ItemLotParam.ItemFlag) was picked up, boss/door/NPC state, etc.
+        EventPocket (DSR) method: static EventFlags → pointer → pointer = base address; split the id into group/area/block/number for the bit position."""
         sid = f"{fid:08d}"
         if len(sid) != 8 or sid[0] not in EVENT_GROUPS or sid[1:4] not in EVENT_AREAS:
             return None
@@ -396,7 +396,7 @@ class DSRTelemetry:
     STAT_OFF = {"VIT": 0x40, "ATN": 0x48, "END": 0x50, "STR": 0x58, "DEX": 0x60, "INT": 0x68, "FTH": 0x70, "RES": 0x88, "SL": 0x90}
 
     EQUIP_OFF = {"왼손1": 0x324, "오른손1": 0x328, "왼손2": 0x32C, "오른손2": 0x330, "화살": 0x344, "머리": 0x348, "몸": 0x34C, "팔": 0x350,
-                 "반지1": 0x358, "반지2": 0x35C}   # 2026-09-25 덤프: 오른손1 701000(도끼) 로 맞춤. 반지 ID 146·147 의 이름은 미확인 (사용자: 늑대의 반지 착용)
+                 "반지1": 0x358, "반지2": 0x35C}   # 2026-09-25 dump: aligned to right hand 1 = 701000 (axe). Names of ring IDs 146/147 unconfirmed (user: wearing Wolf Ring)
 
     def equipment(self) -> dict:
         cb = self.q(self.static["ChrClassBase"])
@@ -404,8 +404,8 @@ class DSRTelemetry:
         return {k: self.i32(pgd + o) for k, o in self.EQUIP_OFF.items()} if pgd else {}
 
     def char_stats(self) -> dict:
-        """스탯 (PlayerGameData — 이름이 stats 면 feed.Feed.stats(피드 통계)에 가려진다), 2026-09-25 덤프로 추정: 0x14 HP, 0x30 스태미나, 0x40 부터 8 바이트 간격 VIT·ATN·END·STR·DEX·INT·FTH,
-        0x88 RES, 0x90 SL, 0x94 소울, 0x98 누적 소울). VIT 20 ↔ HP 793, STR 16, SL 24 는 확인; 나머지 라벨은 상태 화면과 대조할 것."""
+        """Stats (PlayerGameData — if named stats it would be shadowed by feed.Feed.stats (feed statistics)), estimated from 2026-09-25 dump: 0x14 HP, 0x30 stamina, from 0x40 at 8-byte intervals VIT·ATN·END·STR·DEX·INT·FTH,
+        0x88 RES, 0x90 SL, 0x94 souls, 0x98 total souls). VIT 20 ↔ HP 793, STR 16, SL 24 confirmed; check the other labels against the status screen."""
         cb = self.q(self.static["ChrClassBase"])
         pgd = self.q(cb + 0x10) if cb else None
         if not pgd:
@@ -417,22 +417,22 @@ class DSRTelemetry:
         return out
 
     def humanity(self) -> Optional[int]:
-        """인간성 (화면 왼쪽 위 숫자) — PlayerGameData+0x84 (JKAnderson/DSR-Gadget DSROffsets.ChrData2.Humanity).
-        죽거나 다크사인을 쓰면 0 이 되고 핏자국에 남는다."""
+        """Humanity (number at top-left of the screen) — PlayerGameData+0x84 (JKAnderson/DSR-Gadget DSROffsets.ChrData2.Humanity).
+        Dying or using Darksign sets it to 0 and it stays in the bloodstain."""
         cb = self.q(self.static["ChrClassBase"])
         pgd = self.q(cb + 0x10) if cb else None
         return self.i32(pgd + 0x84) if pgd else None
 
     def souls(self) -> Optional[int]:
-        """가진 소울 — PlayerGameData+0x94 (DSR-Gadget ChrData2.Souls)."""
+        """Souls held — PlayerGameData+0x94 (DSR-Gadget ChrData2.Souls)."""
         cb = self.q(self.static["ChrClassBase"])
         pgd = self.q(cb + 0x10) if cb else None
         return self.i32(pgd + 0x94) if pgd else None
 
     def goods_count(self, item: int) -> Optional[int]:
-        """소모품(goods) 개수. PlayerGameData 안 인벤토리 항목 0x1C 바이트 = (분류 0x40000000, ID, 개수, ...).
-        실측 2026-09-23: +0xF08 파이어밤 292 x2, +0xED0 에스트 205 x10, 나이프 290 x57. 항목이 없으면 0.
-        (퀵슬롯 ID 만으로는 남은 개수를 모른다)"""
+        """Consumable (goods) count. Inventory entry in PlayerGameData, 0x1C bytes = (category 0x40000000, ID, count, ...).
+        Measured 2026-09-23: +0xF08 Firebomb 292 x2, +0xED0 Estus 205 x10, Knife 290 x57. 0 if no entry.
+        (the quick-slot ID alone doesn't tell the remaining count)"""
         cb = self.q(self.static["ChrClassBase"])
         pgd = self.q(cb + 0x10) if cb else None
         if not pgd:
@@ -448,7 +448,7 @@ class DSRTelemetry:
         return 0
 
     def set_last_bonfire(self, bonfire_id: int) -> bool:
-        """마지막 화톳불 ID 를 바꾼다 — 뼛조각·다크사인이 그 화톳불로 간다 (사망 부활 지점은 아님). 사용자 2026-09-24: 구역을 건너갈 때 워프 대신 이걸로."""
+        """Change the last bonfire ID — Homeward Bone/Darksign go to that bonfire (not the death respawn point). User 2026-09-24: use this instead of warping when crossing areas."""
         w = self.static.get("ChrClassWarp")
         w = self.q(w) if w else None
         if not w:
@@ -460,19 +460,19 @@ class DSRTelemetry:
         w = self.q(self.static["ChrClassWarp"])
         return self.i32(w + OFF_LASTBONFIRE) if w else None
 
-    # ── 쓰기 (리셋용) ──
-    # ChrDbg 바이트 플래그 (DSR-Gadget 순서 — +0x1 PlayerExterminate 는 kill_player 로 실측 확인)
+    # ── writes (for resets) ──
+    # ChrDbg byte flags (DSR-Gadget order — +0x1 PlayerExterminate confirmed by measurement with kill_player)
     DBG_PLAYER_NO_DEAD, DBG_PLAYER_HIDE, DBG_ALL_NO_DAMAGE = 0x0, 0x6, 0x9
 
     def set_dbg(self, off: int, on: bool) -> None:
-        """디버그 플래그 켜기/끄기 (오프라인 전용). 사용자: "캐릭터 무적 상태로 만들고 그 상태로 올라가게"."""
+        """Turn a debug flag on/off (offline only). User: "make the character invincible and have it climb up in that state"."""
         self.pm.write_uchar(self.static["ChrDbg"] + off, 1 if on else 0)
 
     def get_dbg(self, off: int) -> int:
         return self.pm.read_uchar(self.static["ChrDbg"] + off)
 
     def kill_player(self) -> None:
-        """ChrDbg.PlayerExterminate — 켰다가 사망 확인 후 끈다 (켜 둔 채면 리스폰하자마자 또 죽는다)."""
+        """ChrDbg.PlayerExterminate — turn on, then off after confirming death (if left on, it dies again right after respawning)."""
         a = self.static["ChrDbg"] + 0x1
         self.pm.write_uchar(a, 1)
         for _ in range(40):
@@ -483,11 +483,11 @@ class DSRTelemetry:
         self.pm.write_uchar(a, 0)
 
     def bonfire_warp(self, bonfire_id: int, timeout: float = 40.0, log=print, unlit_ok: bool = False) -> bool:
-        """**구역을 건너는 순간이동** — 게임의 화톳불 워프 함수를 직접 부른다 (화톳불 메뉴 워프와 같은 길, 로딩 화면 포함).
+        """**Teleport across areas** — calls the game's bonfire warp function directly (same path as the bonfire menu warp, including the loading screen).
 
-        pos_warp 는 좌표만 바꿔 먼 구역에선 땅을 뚫고 떨어진다 (2026-09-25 소울 3840 잃음). 이건 게임이 도착 구역을
-        불러온다. 방식은 DSR-Gadget(JKAnderson) DSRHook.BonfireWarp 그대로: 마지막 화톳불을 바꾸고
-        func(*ChrClassBase, 1) 을 부르는 기계어를 게임 안에 써서 스레드로 실행. 소울·인간성은 안 잃는다."""
+        pos_warp only changes coordinates, so in distant areas you fall through the ground (2026-09-25, lost 3840 souls). This makes the game load the destination
+        area. Method is exactly DSR-Gadget (JKAnderson) DSRHook.BonfireWarp: change the last bonfire, write machine code into the game that calls
+        func(*ChrClassBase, 1), and run it as a thread. Souls/humanity are not lost."""
         import bonfires
         if not unlit_ok and bonfire_id not in bonfires.load():
             log(f"   화톳불 워프 {bonfire_id}: 불 붙인 목록(bonfires.py)에 없음 — 안 감 (unlit_ok=True 로 강제)")
@@ -513,7 +513,7 @@ class DSRTelemetry:
             if s is None:
                 gone = True
             elif gone:
-                time.sleep(1.0)                          # 막 선 직후 — 좌표가 자리 잡게
+                time.sleep(1.0)                          # just landed — let the coordinates settle
                 s = self.snapshot(within=1.0)
                 if s:
                     log(f"   화톳불 워프 {bonfire_id}: {time.time() - t0:.1f} s → ({s.player.x:.1f},{s.player.y:.1f},{s.player.z:.1f})")
@@ -523,18 +523,18 @@ class DSRTelemetry:
         return False
 
     def quit_to_title(self, timeout: float = 10.0) -> bool:
-        """**메뉴를 안 거치는 퀵 종료** — ChrClassWarp+0x19 에 1 을 쓰면 게임이 곧장 타이틀 화면으로 나간다.
+        """**Quit-out without going through the menu** — writing 1 to ChrClassWarp+0x19 makes the game exit straight to the title screen.
 
-        역공학(2026-09-25, warp_re.py): 처음엔 다크사인 워프 요청으로 잘못 읽었다 — 사용자가 눌러 보니 타이틀 첫 화면
-        ("그걸 누르니 메뉴 첫 화면이 나와. 좋은데, 필요했었어"). 0.6 s 안에 로딩이 시작된다.
-        quitout.py 는 메뉴를 패드로 눌러 2~2.8 s 가 걸리고 떨어지는 중엔 메뉴가 안 열렸다 — 이건 메뉴가 필요 없다.
-        아직 모름: 떨어지는 중·맞는 중에도 되나, 타이틀에서 이어하기까지 자동으로 누를 수 있나 (quitout.py 의 뒷부분)."""
+        Reverse engineering (2026-09-25, warp_re.py): at first misread as a Darksign warp request — when the user pressed it, it was the title's first screen
+        ("pressing that brings up the menu's first screen. Nice, I needed that"). Loading starts within 0.6 s.
+        quitout.py presses through the menu with the pad, takes 2~2.8 s, and the menu wouldn't open while falling — this needs no menu.
+        Still unknown: does it work while falling/being hit, and can Continue at the title be pressed automatically (the latter part of quitout.py)."""
         w = self.q(self.static["ChrClassWarp"])
         if not w:
             return False
         self.pm.write_uchar(w + QUIT_REQ, 1)
-        # 한 프레임 안 보인 것으로 "나갔다" 하면 안 된다 — 타이틀로 넘어가는 도중 잠깐 사라졌다 다시 보여, 이어하기(quitout.reload)가
-        # "이미 월드 안"(0.0 s)으로 끝나 게임이 타이틀에 멈췄다. 봇은 캐릭터가 없으니 죽었다고 판을 끝냈다 (2026-09-25 두 판)
+        # don't call it "exited" after one invisible frame — during the transition to title it briefly vanished and reappeared, so Continue (quitout.reload)
+        # ended with "already in world" (0.0 s) and the game stalled at the title. With no character the bot thought it died and ended the run (2026-09-25, two runs)
         t0, gone = time.time(), None
         while time.time() - t0 < timeout:
             if self.snapshot(within=1.0) is None:
@@ -547,12 +547,12 @@ class DSRTelemetry:
         return False
 
     def safe_warp(self, x: float, y: float, z: float, angle: float = 0.0, hold_s: float = 8.0, log=print) -> bool:
-        """**순간이동은 이걸로** — pos_warp 는 좌표만 바꿔, 충돌이 안 올라온 먼 구역이면 땅을 뚫고 떨어진다.
+        """**Use this for teleporting** — pos_warp only changes coordinates, so in a distant area whose collision hasn't loaded you fall through the ground.
 
-        2026-09-25: 성벽 마을 방 → 불의 제전 화톳불(137 m)로 pos_warp → y −138 까지 추락사, 소울 3840 잃음.
-        1) 그동안 PlayerNoDead 를 켠다 (떨어져도 HP 1 에서 안 죽는다) — 끝나면 원래 값으로.
-        2) 목표 좌표를 계속 다시 써서 붙잡아 두고, 0.3 s 놓아 봐서 1 m 넘게 안 떨어지면 바닥이 올라온 것 → 성공.
-        3) hold_s 안에 바닥이 안 서면 출발 자리로 같은 방법으로 되돌아가고 False."""
+        2026-09-25: Undead Burg room → Firelink Shrine bonfire (137 m) via pos_warp → fell to y −138 and died, lost 3840 souls.
+        1) Turn on PlayerNoDead meanwhile (falling won't kill; stays at HP 1) — restore the original value when done.
+        2) Keep rewriting the target coordinates to hold it there; release for 0.3 s and if it doesn't drop more than 1 m, the floor has loaded → success.
+        3) If the floor doesn't settle within hold_s, go back to the start spot the same way and return False."""
         s = self.snapshot(within=1.0)
         if not s:
             return False
@@ -570,26 +570,26 @@ class DSRTelemetry:
                 log("   순간이동: 되돌아가기도 실패 — 사람이 봐야 함 (PlayerNoDead 는 켜 둔다)")
             return False
         finally:
-            if landed:                                # 발이 땅에 있을 때만 원래대로 — 떨어지는 중에 끄면 죽는다
+            if landed:                                # restore only when feet are on the ground — turning it off mid-fall kills
                 self.set_dbg(self.DBG_PLAYER_NO_DEAD, bool(nodead))
 
     def _hold_warp(self, x, y, z, angle, hold_s) -> bool:
         t0 = time.time()
         while time.time() - t0 < hold_s:
-            for _ in range(10):                       # 붙잡기 0.5 s — 그동안 구역이 올라온다
+            for _ in range(10):                       # hold 0.5 s — the area loads meanwhile
                 self.pos_warp(x, y, z, angle)
                 time.sleep(0.05)
-            time.sleep(0.3)                           # 놓아 보기
+            time.sleep(0.3)                           # release to test
             s = self.snapshot(within=1.0)
             if s and math.hypot(s.player.x - x, s.player.z - z) < 1.5 and y - s.player.y < 1.0:
-                time.sleep(0.5)                       # 한 번 더 — 막 올라온 바닥이 꺼지는지
+                time.sleep(0.5)                       # once more — check whether freshly loaded floor collapses
                 s = self.snapshot(within=1.0)
                 if s and y - s.player.y < 1.0:
                     return True
         return False
 
     def pos_warp(self, x: float, y: float, z: float, angle: float = 0.0) -> bool:
-        """좌표만 바꾸는 낮은 층 — 같은 구역 안 짧은 이동(지형 스캔)용. 먼 이동은 safe_warp."""
+        """Low layer that only changes coordinates — for short moves within the same area (terrain scan). For long moves, safe_warp."""
         pp = self.player_ptr()
         mapd = self.q(pp + OFF_MAPDATA) if pp else None
         if not mapd:
@@ -602,7 +602,7 @@ class DSRTelemetry:
         return True
 
     def set_hp(self, hp: int) -> bool:
-        """지형 스캔용 무적 — 매 프레임 호출해서 HP 를 고정한다 (스캔 중 추락사/즉사 함정 방지)."""
+        """Invincibility for terrain scan — call every frame to pin HP (prevents fall deaths/instant-death traps during a scan)."""
         pp = self.player_ptr()
         if not pp:
             return False

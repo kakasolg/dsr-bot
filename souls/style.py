@@ -1,9 +1,9 @@
-"""스타일 — 가로지르는 관심사를 한 객체에 (2026-09-25 층 설계 3단계). 각 층은 읽기만 한다.
+"""Style — cross-cutting concerns in one object (2026-09-25 layer design, step 3). Each layer only reads it.
 
-  guard    : 한손 + 방패. 반사는 정면 두기·막기, 휘청에 친다.                (기준선 10/10, 피해 중앙 282)
-  backstep : 양손, 방패 없음. 반사는 백스텝(+공격), 헛친 뒤 1.1 s·1.8 m 밖에서 친다. (피해 두 배 — 넓은 평지·망자 전용 실험)
-  rush     : 양손, 방패 없음, 반사(막기·피하기) 자체를 끈다 — 계속 공격, 에스트로 버틴다
-             (사용자 2026-09-25: "쏘는 놈한테 가는데 다른 다가오는 놈은 양잡으로 없애고 가. 방어도 하지 말고, 에스트 마시면서")
+  guard    : one-handed + shield. Reflex faces and blocks, hits on stagger.          (baseline 10/10, median damage 282)
+  backstep : two-handed, no shield. Reflex backsteps (+attack), punishes after a whiff at 1.1 s, beyond 1.8 m. (double damage — experiment for wide flat ground / hollows only)
+  rush     : two-handed, no shield, reflex (block/evade) turned off entirely — keep attacking, survive on Estus
+             (user 2026-09-25: "On the way to the shooter, kill the others coming at you two-handed. Don't defend either, just drink Estus")
 """
 from __future__ import annotations
 
@@ -13,13 +13,13 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class Style:
     name: str
-    shield: bool            # 방패를 드나 (False 면 moves.guard 가 무시된다)
-    grip: int               # 1 한손 | 3 양손 (싸움 전에 맞춘다)
-    evade: bool             # 반사가 막지 않고 피하나
-    bs_attack: bool         # 피할 때 백스텝 공격(B → R1)을 붙이나 (방패 든 놈 제외는 4층이 bs_ok 로)
-    punish_after: float     # 헛친 뒤 치기: 공격 시작 뒤 이만큼 지나야
-    punish_min_r: float     # 헛친 뒤 치기: 이보다 붙어 있으면 안 한다
-    reflex_on: bool = True  # 반사(막기·피하기)를 쓰나 — False 면 반사는 기록만 하고 움직이지 않는다, 공격 루프가 안 끊긴다
+    shield: bool            # raise the shield? (if False, moves.guard is ignored)
+    grip: int               # 1 one-handed | 3 two-handed (set before the fight)
+    evade: bool             # reflex evades instead of blocking?
+    bs_attack: bool         # add a backstep attack (B → R1) when evading? (layer 4 excludes shield users via bs_ok)
+    punish_after: float     # punish after whiff: only this long after the attack starts
+    punish_min_r: float     # punish after whiff: skip if closer than this
+    reflex_on: bool = True  # use reflex (block/evade)? — if False, reflex only logs and does not move, so the attack loop is not interrupted
 
 
 GUARD = Style("guard", shield=True, grip=1, evade=False, bs_attack=False, punish_after=1.1, punish_min_r=1.8)

@@ -1,10 +1,10 @@
-"""4층 — 필드 플레이북. 여러 마리·지형·길. 목표는 **살아서 목적지까지**, 잡은 적은 버리지 않는다.
-3층(duel)에 한 마리씩 맡기고, 그 결과를 보고 다음을 정한다:
-  · 잡으면 → HP 70 % 아래면 에스트 (안전할 때만)
-  · 내 HP 낮음·교착·놓침·막힘 → 퀵 종료로 적을 떼어내고(죽은 적은 그대로) 에스트 → 같은 놈 다시 (세 번까지)
-  · 에스트가 없으면 → 그만 (위층이 쉴지 정한다)
-  · 길을 걷다 쫓아오는 놈이 붙으면 → 그놈부터 (등 보이고 걷지 않는다 — 사용자: "적이 있는데 왜 대응 안해")
-쉬기(화톳불)는 **적이 전부 살아나므로** 이 층에서 함부로 하지 않는다. 핏자국 줍기(A)도 화톳불 6 m 안에선 안 한다 (앉아 버린다).
+"""Layer 4 — field playbook. Multiple foes, terrain, paths. Goal is **reach the destination alive**; foes already killed are not thrown away.
+Hands one foe at a time to layer 3 (duel) and decides the next step from the result:
+  · killed → estus if HP below 70 % (only when safe)
+  · my HP low / stalemate / lost / blocked → quit-out to shake foes off (dead foes stay dead), estus → same foe again (up to three times)
+  · no estus → stop (the layer above decides whether to rest)
+  · a chaser catches up while walking the path → that one first (don't walk with back turned — user: "there's an enemy, why aren't you reacting")
+Resting (bonfire) **revives every foe**, so this layer avoids it. Bloodstain pickup (A) is also skipped within 6 m of a bonfire (it would sit down).
 """
 from __future__ import annotations
 
@@ -22,59 +22,59 @@ from .reflex import Reflex
 from . import style as style_
 from .watch import Blood
 
-FOLLOW_R = 4.5           # 길을 걷다 이 안(수평)에 깨어 있는 놈이 붙으면 싸운다
-FOLLOW_DY = 2.5          # 계단에서 따라오는 놈 — 높이차 이만큼까지
-SAFE_R = 6.0             # 에스트: 이 안에 깨어 있는 적이 없고
-SAFE_ATTACK_R = 8.0      #          이 안에 휘두르는 놈이 없을 때
-RESYNC_BACK, RESYNC_AHEAD = 3, 15   # 걷다 싸운 뒤 경로점을 다시 고를 범위 (field.walk)
-REPAIR_FRAC = 0.4        # 무기 내구도가 최대의 이만큼 아래면 수리 분말 (field.repair)
-RANGED_R = 25.0          #          그리고 이 안에 깨어 움직이는 '던지는 놈'(foes.ranged)이 없을 때
+FOLLOW_R = 4.5           # while walking the path, fight any awake foe that closes within this (horizontal)
+FOLLOW_DY = 2.5          # foe following on stairs — up to this height difference
+SAFE_R = 6.0             # estus: no awake foe within this, and
+SAFE_ATTACK_R = 8.0      #          nobody swinging within this
+RESYNC_BACK, RESYNC_AHEAD = 3, 15   # range for re-picking the waypoint after a fight while walking (field.walk)
+REPAIR_FRAC = 0.4        # repair powder when weapon durability is below this fraction of max (field.repair)
+RANGED_R = 25.0          #          and no awake, moving 'thrower' (foes.ranged) within this
 BONFIRE_NO_A = 6.0
-FIGHT_HEAL = 0.5         # 싸우는 중: HP 가 이 아래면 틈(duel.opening)에 마신다
-WALK_HEAL = 0.6          # 걷는 중: 이 아래고 안전하면 70 % 까지
+FIGHT_HEAL = 0.5         # while fighting: drink at an opening (duel.opening) if HP is below this
+WALK_HEAL = 0.6          # while walking: if below this and safe, heal up to 70 %
 
 
 def awake(c) -> bool:
     return c.hp > 0 and not (9000 <= (c.anim or 0) < 9100)
 
 
-SEEK_R = 100.0           # 그놈을 찾는 반경 (duel.SEEK_R 과 같게)
-COMING_LIMIT = 12.0      # 끼어든 놈은 이 안에 못 죽이면 물러난다 — 나쁜 거래(17~22 s, 400+ 피해)로 끌고 가지 않는다
-                         # (사용자 2026-09-25: "한방에 방해하는 몹을 없애지 못하면 도망치는게 나아")
-LURE_R = 10.0            # 나이프를 던지는 거리 — 락온 상태로 11.9·11.4 m 는 빗나가고 10.8 m 에서 맞음 (2026-09-24, 던진 물건은 ~10 m 날아간다)
+SEEK_R = 100.0           # radius to look for that foe (same as duel.SEEK_R)
+COMING_LIMIT = 12.0      # an interloper not killed within this gets disengaged — no dragging into a bad trade (17~22 s, 400+ damage)
+                         # (user 2026-09-25: "if you can't kill the interfering mob in one go, better to run")
+LURE_R = 10.0            # knife throw distance — with lock-on, 11.9 and 11.4 m missed, 10.8 m hit (2026-09-24, thrown items fly ~10 m)
 LURE_TRIES = 3
-LURE_DY = 1.5            # 던질 자리와 목표·지금 자리의 높이차 상한 — 절벽 아래 놈에게 뛰어내리지 않게 (2026-09-24 8판)
-LURE_ABORT_R = 10.0              # 던지는 중 이 안에 깨어 움직이는 다른 놈이 있으면 중단
-LURE_MIN, LURE_MAX = 6.0, 13.0   # 평지에서 던지는 조건 — 이보다 가까우면 걸어가는 것만으로 깨고, 멀면 락온이 안 걸린다
-KNIFE_LOW = 5            # 이 아래면 경고 — 상인에게 사러 가는 건 나중 과제 (사용자 2026-09-24)
-HOLD_TRIES = 3           # 제자리 고수 대상(lure_at.hold): 끌어오기 시도 수, 그 사이 HOLD_WAIT 씩 제자리에서 기다린다
+LURE_DY = 1.5            # max height diff between throw spot and target / current spot — so we don't jump down to a foe below a cliff (2026-09-24 run 8)
+LURE_ABORT_R = 10.0              # abort throwing if another awake, moving foe is within this
+LURE_MIN, LURE_MAX = 6.0, 13.0   # throw conditions on flat ground — closer than this and just walking wakes it; farther and lock-on fails
+KNIFE_LOW = 5            # warn below this — going to buy from the merchant is a later task (user 2026-09-24)
+HOLD_TRIES = 3           # hold-the-spot targets (lure_at.hold): lure attempts; wait HOLD_WAIT in place between them
 HOLD_WAIT = 8.0
-MISSING_S = 5.0          # 묶어 둔 목표가 스냅샷에서 이만큼 계속 안 보이면 'unknown' (죽음으로 보지 않는다)
-MOVED_R, MOVED_DY = 3.0, 3.0   # 스폰에서 이만큼 벗어나 살아 있으면 'moved'
-BIND_EVERY = 1.0         # 안 묶인 목표를 스폰에서 다시 찾는 간격
-HOLD_SPOT_TOL = 0.5      # 던질 자리·평지 기다림 자리에 서는 허용 오차 (예전 1.5 m)
-HOLD_ZONE_R = 2.5        # 던질 자리 둘레 안전 구역 (자리는 RAMP_ARENA 에서 1.1 m, 그 평지의 가장 가까운 낙차 4.0 m)
-HOLD_CALM_R = 5.0        # 이 안에 적이 없으면 '조용' — 방패 내림
-HOLD_GUARD_R = 3.0       # 이 안이면 '접촉'
-HOLD_GUARD_SP = 0.25     # 최대 스태미나 대비 — 이 아래면 방패 대신 제자리 방어
+MISSING_S = 5.0          # if a bound target stays missing from snapshots this long → 'unknown' (not treated as death)
+MOVED_R, MOVED_DY = 3.0, 3.0   # alive and this far off its spawn → 'moved'
+BIND_EVERY = 1.0         # interval for re-finding unbound targets at their spawn
+HOLD_SPOT_TOL = 0.5      # tolerance for standing at the throw spot / arena wait spot (previously 1.5 m)
+HOLD_ZONE_R = 2.5        # safe zone around the throw spot (spot is 1.1 m from RAMP_ARENA; nearest drop on that flat ground is 4.0 m)
+HOLD_CALM_R = 5.0        # no foe within this → 'calm' — lower the shield
+HOLD_GUARD_R = 3.0       # within this → 'contact'
+HOLD_GUARD_SP = 0.25     # fraction of max stamina — below this, defend in place instead of shielding
 DEFEND_SLICE = 1.0
-APPROACH_DV = 0.3        # 0.5 s 에 이만큼 좁혀 오면 '다가옴'
-LURE_UNBLOCK_S = 0.5     # 끌어오기 막음은 5 m 안이 이만큼 **계속** 조용해야 풀린다 (경계를 스치는 놈에 흔들리지 않게)
-MOVED_WAIT_DY = 1.2      # 평지(arena)와 이만큼 넘게 높이가 다르면 '다른 높이' — 찾아가지 않고 평지에서 기다린다 (Patch E-1)
+APPROACH_DV = 0.3        # closing this much in 0.5 s → 'approaching'
+LURE_UNBLOCK_S = 0.5     # lure block releases only after within 5 m stays quiet this long **continuously** (so a foe grazing the edge doesn't flip it)
+MOVED_WAIT_DY = 1.2      # more than this height diff from the arena (flat ground) → 'different height' — don't go find it, wait on the flat ground (Patch E-1)
 MOVED_WAIT_S = 20.0
-HOLD_KEEP_R = 12.0       # E-1b: 움직인 목표가 아직 남은 제자리 고수 대상(방패병) 스폰에서 이 안이면 찾아가지 않는다 (사용자 #1·#3 처치 12.3~17.7 m)      # 한 번에 기다리는 시간. 두 번 기다려도 안 내려오면 'left #i~' (찾아가지 않음)
-RETURN_LEG_M = 2.0       # 제자리로 돌아가는 경로의 첫 구간 길이 — 이 방향이 깨어 있는 놈 쪽이면 걷지 않는다
-# 사용자가 F9 로 찍은 '그나마 나은 자리' (data/safe-zones.json, observe 161923) — 안전 보장이 아니라 물러날 목적지일 뿐.
-# 사용자: "완전 안전 구역은 아니야", "내가 말한 데도 가드는 해야 할 거야" → 가드 든 채 걸어가고, 거기서도 막으며 받는다
+HOLD_KEEP_R = 12.0       # E-1b: don't go find a moved target within this of the spawn of a remaining hold-the-spot target (shield soldier) (user kills #1·#3 at 12.3~17.7 m)      # wait time per round. If it doesn't come down after two waits → 'left #i~' (not approached)
+RETURN_LEG_M = 2.0       # length of the first leg of the path back to the spot — don't walk it if it heads toward an awake foe
+# 'least-bad spots' the user marked with F9 (data/safe-zones.json, observe 161923) — not a safety guarantee, just a retreat destination.
+# user: "it's not a fully safe zone", "you'll still need to guard even where I said" → walk there with guard up, and keep blocking there too
 ZONES = [tuple(z["pos"]) for z in json.loads((Path(__file__).resolve().parent.parent / "data" / "safe-zones.json")
                                               .read_text(encoding="utf-8"))["zones"]]
-ZONE_REACH = 15.0        # 따라온 놈과 싸우기 전, 이 안(수평·같은 층 1.5 m)에 찍힌 자리가 있으면 거기로 물러나 받는다
-UNSAFE_PAUSE = 5.0       # E-2 로 붙으러 가지 않은 오는 놈 — 이만큼 평지에서 기다림·방어 틱 뒤 다시 본다 (사용자: "2초도 짧아, 5초 기다려")
-CLOSE_MELEE_R = 3.0      # 접촉 싸움 중 다른 놈이 이 안이면 끝낸다 (duel.SWITCH_R 2.5 보다 넓게 — 목표 바꾸기 전에 끊긴다)
+ZONE_REACH = 15.0        # before fighting a chaser, if a marked spot is within this (horizontal, same floor 1.5 m), retreat there and receive it
+UNSAFE_PAUSE = 5.0       # incoming foe not engaged due to E-2 — wait/defend ticks on flat ground this long, then re-check (user: "even 2 seconds is short, wait 5 seconds")
+CLOSE_MELEE_R = 3.0      # end a contact fight if another foe is within this (wider than duel.SWITCH_R 2.5 — cut before switching targets)
 
 
 class LureBlock:
-    """끌어오기 막음 + 해제 히스테리시스 — set() 뒤, 적이 HOLD_CALM_R 안에 없음이 LURE_UNBLOCK_S 넘게 **계속**이어야 풀린다."""
+    """Lure block + release hysteresis — after set(), releases only once no foe within HOLD_CALM_R has held **continuously** for more than LURE_UNBLOCK_S."""
 
     def __init__(self):
         self.on, self.calm_since = False, None
@@ -83,7 +83,7 @@ class LureBlock:
         self.on, self.calm_since = True, None
 
     def update(self, near: bool, now: float) -> bool:
-        """→ 아직 막혀 있나."""
+        """→ still blocked?"""
         if not self.on:
             return False
         if near:
@@ -98,12 +98,12 @@ class LureBlock:
 class Field:
     def __init__(self, mv: M.Moves, weapon, escape, bonfires: list, log=print, events=None, style="guard"):
         self.mv, self.w, self.esc, self.log = mv, weapon, escape, log
-        self._detour = False                               # walk 의 "돌아서" 가 되부르지 않게
-        self.style = style_.of(style)                      # souls/style.py — 각 층은 이 객체를 읽기만 한다
-        self.bonfires = [tuple(b) for b in bonfires]      # 핏자국 줍기(A) 금지 구역
-        self.home = self.bonfires[0] if self.bonfires else None   # 마지막으로 쉰 화톳불 (물러날 곳, 다크사인 도착 확인)
+        self._detour = False                               # keeps walk's "detour" from recursing
+        self.style = style_.of(style)                      # souls/style.py — every layer only reads this object
+        self.bonfires = [tuple(b) for b in bonfires]      # bloodstain pickup (A) forbidden zones
+        self.home = self.bonfires[0] if self.bonfires else None   # last bonfire rested at (retreat target, Darksign arrival check)
         self.events = events or (lambda *a, **k: None)
-        # 반사 — 싸우든 걷든 매 틱 먼저 (발밑 확인용 내비메시는 쓸 때 넣는다). 막으면 안 되는 공격은 적 데이터(3층)에서
+        # reflex — first on every tick, fighting or walking (navmesh for the footing check is set when used). Unblockable attacks come from foe data (layer 3)
         self.reflex = Reflex(mv, unblockable=lambda c: (c.anim or -1) in foes_.of(c.npc_param).unblockable,
                              bs_ok=lambda c: foes_.of(c.npc_param).kind != "shield")
         self.reflex.evade = self.style.evade
@@ -112,10 +112,10 @@ class Field:
         mv.guard_ok = self.style.shield
         self.reflex.events = self.events
 
-    # ── 상태 ─────────────────────────────────────────────────
+    # ── State─────────────────────────────────────────────────
     def snap_settled(self, within: float = 5.0):
-        """퀵 종료(로딩) 중이면 끝날 때까지 기다렸다 스냅샷 — 위치를 읽는 곳은 이걸로. 로딩 중 None 을 그대로 읽다
-        마을 정리 직후 낙사 퀵 종료와 겹쳐 AttributeError 로 판이 멈췄다 (2026-09-25 195213)."""
+        """During quit-out (loading), wait until it ends, then snapshot — anywhere that reads position uses this. Reading None during loading
+        collided with a fall-death quit-out right after the Burg cleanup and stopped the run with AttributeError (2026-09-25 195213)."""
         t0 = time.time()
         while time.time() - t0 < 45.0:
             if not self.esc.escaping:
@@ -126,25 +126,25 @@ class Field:
         return None
 
     def estus_left(self) -> int:
-        """에스트 개수 — 퀵 종료(로딩) 중엔 0 으로 읽힌다. 그걸 믿고 한 번도 안 마신 판을 "no_estus" 로 끝냈다
-        (2026-09-25 202220: 경사로 둘러싸임 퀵 종료 직후). 끝날 때까지 기다렸다 읽는다"""
+        """Estus count — reads as 0 during quit-out (loading). Trusting that ended a run that never drank as "no_estus"
+        (2026-09-25 202220: right after a ramp-surrounded quit-out). Waits until it ends, then reads"""
         self.snap_settled(5.0)
         return self.mv.estus_left()
 
     def alive(self) -> bool:
-        # 퀵 종료 중(로딩)엔 캐릭터가 안 보인다 — 그걸 죽음으로 읽어 HP 343 인 판을 "died" 로 끝냈다 (2026-09-25 190651:
-        # 메뉴 없는 퀵 종료는 0.6 s 만에 로딩에 들어가 이 틈이 드러났다). 끝날 때까지 기다린 뒤 본다
+        # during quit-out (loading) the character isn't visible — reading that as death ended a run at HP 343 as "died" (2026-09-25 190651:
+        # the menu-less quit-out enters loading in just 0.6 s, exposing this gap). Wait until it ends, then look
         t0 = time.time()
         while self.esc.escaping and time.time() - t0 < 40.0:
             time.sleep(0.2)
         s = self.mv.snap(5.0)
-        if s is None:                                       # 로딩이 막 끝났거나 아직 — 잠깐 더
+        if s is None:                                       # loading just ended or not yet — a bit longer
             time.sleep(1.5)
             s = self.mv.snap(5.0)
         return bool(s and s.player.hp and s.player.hp > 0)
 
     def wait_respawn(self, timeout: float = 45.0) -> bool:
-        """죽었으면 화톳불에서 일어날 때까지 기다린다 (로딩 중엔 스냅샷이 없다)."""
+        """If dead, wait until standing up at the bonfire (no snapshot during loading)."""
         t0 = time.time()
         while time.time() - t0 < timeout:
             try:
@@ -158,8 +158,8 @@ class Field:
         return False
 
     def safe(self, s) -> bool:
-        """에스트를 마셔도 되나 — 가까운 적이 없고, 휘두르는 놈이 없고, **던지는 놈(화염병)이 RANGED_R 안에 깨어 있지 않을 때**.
-        8 m 만 봤더니 위 턱의 화염병 망자에게 마시는 도중 맞아 끊기고 죽었다 (2026-09-24)."""
+        """OK to drink estus? — no foe nearby, nobody swinging, and **no thrower (firebomb) awake within RANGED_R**.
+        Checking only 8 m, a firebomb hollow on the ledge above hit us mid-drink, interrupting it, and we died (2026-09-24)."""
         for c in s.hostile(RANGED_R):
             if not awake(c):
                 continue
@@ -169,7 +169,7 @@ class Field:
                 return False
         return True
 
-    # ── 회복 ─────────────────────────────────────────────────
+    # ── Healing─────────────────────────────────────────────────
     def heal(self, frac: float = 0.7, sips: int = 3) -> None:
         self.repair()
         for _ in range(sips):
@@ -189,8 +189,8 @@ class Field:
                 return
 
     def repair(self, frac: float = REPAIR_FRAC) -> None:
-        """무기 내구도가 최대의 frac 아래면 수리 분말 — 싸움 사이 안전할 때만 (heal 과 같은 자리).
-        클레이모어가 한 세트 안에 망가졌다 (사용자 2026-09-25: "유난히 약한 무기가 있어")."""
+        """Repair powder if weapon durability is below frac of max — only when safe between fights (same place as heal).
+        The Claymore broke within one set (user 2026-09-25: "some weapons are unusually weak")."""
         mx = self.w.max_dur
         d = self.mv.tm.weapon_durability() if mx else None
         if d is None or d >= mx * frac:
@@ -206,49 +206,49 @@ class Field:
         return Care(self)
 
     def wait_escape(self, timeout: float = 40.0) -> None:
-        """퀵 종료가 끝날 때까지 기다린다 — 안 기다렸더니 그 10 s 동안 남은 적 다섯을 0.5 s 만에 전부 '취소' 로 넘겼다."""
+        """Wait until the quit-out ends — without waiting, the five remaining foes were all passed as 'cancel' within 0.5 s of those 10 s."""
         t0 = time.time()
         while self.esc.escaping and time.time() - t0 < timeout:
             time.sleep(0.2)
 
     def shake_off(self, why: str) -> dict:
-        """퀵 종료로 적을 스폰으로 돌려보낸다 (경계 풀림, 죽은 적은 그대로)."""
+        """Quit-out sends foes back to spawn (aggro reset, dead foes stay dead)."""
         return self.esc.fire(why, "shake")
 
     def retreat(self, nm, home) -> str:
-        """화톳불 쪽으로 경로를 따라 물러난다 — 안전해지면 멈춘다 (적은 경계 범위를 벗어나면 돌아간다)."""
+        """Retreat along the path toward the bonfire — stop once safe (foes go back once out of their aggro range)."""
         s = self.mv.snap(5.0)
         if s is None or home is None:
             return "no_home"
         path = nm.find_path((s.player.x, s.player.y, s.player.z), tuple(home)) if nm is not None else None
         if not path:
-            return "no_path"                               # (헛돌기는 recover 가 False → 다음 싸움을 끝까지로 막는다)
+            return "no_path"                               # (spinning in place → recover returns False → next fight is to-the-end)
         t0 = time.time()
-        return self.mv.walk_path(nav.trim_path(path[1:], tuple(home)), nm, "walk",   # 달리기 안전은 NavMesh 추정뿐 (근거 등급 게이트, 2026-09-26)
+        return self.mv.walk_path(nav.trim_path(path[1:], tuple(home)), nm, "walk",   # running safety is only a NavMesh estimate (evidence-grade gate, 2026-09-26)
                                  stop=lambda sn: time.time() - t0 > 3.0 and self.safe(sn))
 
     def recover(self, why: str, nm=None) -> bool:
-        """싸움이 틀어졌을 때. → 계속 싸울 만한가
-          · 안전하면 에스트로 90 % 까지
-          · 적이 가까운데 HP 가 낮으면: 화톳불 쪽으로 물러나 안전해지면 마신다
-          · 퀵 종료로 떼어내지 않는다 — 같은 자리에서 다시 시작해 곧바로 다시 붙었다 (5 번 반복, HP 659 → 24, 사용자:
-            "지금 위치 강종하기 안 좋아")"""
+        """When a fight goes wrong. → is it worth continuing
+          · if safe, estus up to 90 %
+          · foe close and HP low: retreat toward the bonfire, drink once safe
+          · no quit-out to shake off — it restarted in the same place and re-engaged immediately (repeated 5 times, HP 659 → 24, user:
+            "this spot is bad for force-quitting")"""
         s = self.mv.snap(15.0)
         if s is None:
             return False
         low = s.player.hp < s.player.max_hp * 0.6
         if not self.safe(s) and low:
-            # 다크사인은 쓰지 않는다 — 쉬는 것처럼 잡은 적이 전부 살아나고(사용자 2026-09-24) 소울·인간성까지 잃는다.
-            # 죽는 것보다도 나쁘다 (죽으면 핏자국으로 되찾을 수 있다). 붙은 채 쓰면 쓰는 2~3 s 동안 맞아 죽기도 했다
+            # no Darksign — like resting it revives every killed foe (user 2026-09-24) and also loses souls and humanity.
+            # worse than dying (after death the bloodstain can recover them). Used while engaged, we sometimes died to hits during its 2~3 s
             r = self.retreat(nm, self.home)
             self.log(f"   {why}: 적이 가깝고 HP {s.player.hp} — 화톳불 쪽으로 물러남: {r}")
         self.heal(0.9, sips=4)
         s = self.mv.snap(5.0)
         return bool(s and s.player.hp >= s.player.max_hp * 0.6)
 
-    # ── 싸움 ─────────────────────────────────────────────────
+    # ── Fighting─────────────────────────────────────────────────
     def _near_zone(self, s, nm):
-        """지금 자리에서 ZONE_REACH 안, 같은 층, 이 내비메시 위의 찍힌 자리 중 가장 가까운 것 (이미 2.5 m 안이면 None)."""
+        """Nearest marked spot within ZONE_REACH of here, same floor, on this navmesh (None if already within 2.5 m)."""
         if s is None or nm is None:
             return None
         p = s.player
@@ -262,7 +262,7 @@ class Field:
         return best and best[1]
 
     def _retreat_to_zone(self, zone, nm) -> str:
-        """가드 든 채 걸어서 찍힌 자리로. 경로가 없으면 안 간다 (직선으로 걷지 않음)."""
+        """Walk to the marked spot with guard up. No path → don't go (no straight-line walking)."""
         s = self.mv.snap(5.0)
         if s is None:
             return "no_snapshot"
@@ -273,24 +273,24 @@ class Field:
 
     def fight(self, ptr, nm, tag: str, arena=None, desperate: bool = False, limit: float = 45.0, wait_far: bool = False,
               leash=None, may_approach=None) -> D.DuelResult:
-        """leash() 가 참이면 그 틱에 싸움을 끝낸다 (cancel) — 제자리 고수 중 접촉 싸움을 안전 구역 안에 묶는다 (Patch C)."""
+        """If leash() is true, end the fight on that tick (cancel) — keeps a contact fight during hold-the-spot inside the safe zone (Patch C)."""
         g0 = self.esc.gen
         e = self.mv.estus_id()
         if e is not None and self.mv.tm.selected_item() != e:
-            self.mv.select_item(e)                         # 미리 골라 둔다 — 틈이 났을 때 칸 돌리는 1~3 s 가 없게
+            self.mv.select_item(e)                         # pre-select — so there are no 1~3 s of cycling slots when an opening comes
         self.reflex.nm = nm
         want = self.style.grip
         if self.mv.tm.grip() not in (None, want):
-            # 첫 판(막 쉬고 난 뒤)엔 토글 한 번·0.5 s 로는 안 바뀐 채 싸운 적이 있다(2026-09-25, rush 스타일 1번째 표적이
-            # grip 1 그대로 싸움) — 실제로 바뀐 걸 확인할 때까지 다시 시도한다
+            # on the first run (right after resting) one toggle + 0.5 s sometimes didn't switch it (2026-09-25, rush style 1st target
+            # fought still at grip 1) — retry until the switch is actually confirmed
             for _ in range(3):
-                self.mv.pad.two_hand_right()               # Y 홀드 + RB 토글
+                self.mv.pad.two_hand_right()               # hold Y + RB toggle
                 time.sleep(0.5)
                 g = self.mv.tm.grip()
                 if g == want:
                     break
             self.log(f"   잡기: grip {self.mv.tm.grip()} (원함 {want})")
-        self.mv.cam_target = ptr                           # camera.CamFollow 가 이 놈 쪽으로 카메라를 돌린다
+        self.mv.cam_target = ptr                           # camera.CamFollow turns the camera toward this foe
         try:
             r = D.duel(self.mv, self.w, ptr, nm, log=self.log,
                        cancel=lambda: self.esc.escaping or self.esc.gen != g0 or (leash is not None and leash()),
@@ -305,8 +305,8 @@ class Field:
         return r
 
     def _asleep(self, ptr, hold: float = 0.4) -> bool:
-        """서 있는 채(애니 -1) hold 동안 안 움직였나. 지도 스폰 좌표와 비교하지 않는다 — 적이 스폰에서 6 m 떨어져 서 있어
-        '이미 깸' 으로 오판했다 (2026-09-24 3번)."""
+        """Stood (anim -1) without moving for hold? No comparison with map spawn coords — a foe standing 6 m from its spawn
+        was misjudged as 'already awake' (2026-09-24 #3)."""
         s0 = self.mv.snap(SEEK_R)
         c0 = self.mv.find(s0, ptr)
         if c0 is None or c0.anim not in (-1, None):
@@ -316,14 +316,14 @@ class Field:
         return c1 is not None and c1.anim in (-1, None) and math.dist((c0.x, c0.y, c0.z), (c1.x, c1.y, c1.z)) < 0.3
 
     def lure(self, ptr, spawn, nm, tag: str, arena=None, lure_at: dict | None = None) -> str:
-        """한 놈만 깨운다 (사용자 2026-09-24: "가장 좋은 건 하나씩 불러와서 때려야 함", "투척 나이프 있으니 멀리서 하나씩").
-        arena 가 그놈에서 LURE_R+3 안이면 거기서, 아니면 경로를 따라 LURE_R 까지만 다가가 나이프를 던진다.
-        lure_at = {"spot", "min", "max"} 이면 그 자리에서 그 거리로만 던지고 더 다가가지 않는다 (경사로 2번 방패병 —
-        사용자 2026-09-26: "내가 던진 거리 만큼 충분한 거리에서만 … 화염병이 닿지 않는 거리").
-        → 'lured' (움직였다) | 'awake' (이미 깨어 있어 안 던짐) | 'no_reaction' | 'no_knife' | 'no_path' | 'dead'
-          | 'too_far' / 'too_close' / 'no_lock' (lure_at 조건 밖 — 안 던짐)"""
+        """Wake just one foe (user 2026-09-24: "best is to pull them one at a time and hit", "you have throwing knives, one at a time from afar").
+        If arena is within LURE_R+3 of the foe, throw from there; otherwise approach along the path only up to LURE_R and throw a knife.
+        lure_at = {"spot", "min", "max"} → throw only from that spot at that range, never closer (ramp #2 shield soldier —
+        user 2026-09-26: "only from a far enough distance, like the distance I threw from … out of firebomb reach").
+        → 'lured' (it moved) | 'awake' (already awake, not thrown) | 'no_reaction' | 'no_knife' | 'no_path' | 'dead'
+          | 'too_far' / 'too_close' / 'no_lock' (outside lure_at conditions — not thrown)"""
         lo, hi = (lure_at.get("min", LURE_MIN), lure_at.get("max", LURE_MAX)) if lure_at else (LURE_MIN, LURE_MAX)
-        self.mv.cam_target = ptr                           # 던질 자리로 걷는 동안에도 그놈을 보여 준다
+        self.mv.cam_target = ptr                           # keep showing that foe while walking to the throw spot
         try:
             return self._lure(ptr, nm, tag, arena, lure_at, lo, hi)
         finally:
@@ -333,8 +333,8 @@ class Field:
         s = self.mv.snap(SEEK_R)
         c = self.mv.find(s, ptr)
         if c is None or c.hp <= 0:
-            return "dead"                                  # 152540: '오는 놈' 으로 이미 잡은 #4 시체에 나이프를 던지려 했다
-        want = int((lure_at or {}).get("knives") or 0)   # 맞힐 횟수 — 깨어 있어도(화염병 던지는 중) 던진다
+            return "dead"                                  # 152540: tried to throw a knife at the corpse of #4, already killed as an 'incoming foe'
+        want = int((lure_at or {}).get("knives") or 0)   # hits wanted — throw even if awake (while it throws firebombs)
         if not want and not self._asleep(ptr):
             return "awake"
         knives = self.mv.tm.goods_count(M.ITEM_KNIFE) or 0
@@ -350,13 +350,13 @@ class Field:
         elif d_arena is not None and LURE_MIN <= d_arena <= LURE_MAX:
             spot = tuple(arena)
         else:
-            # 평지가 너무 가깝거나(1번: 5 m — 걸어가면 그냥 깬다) 멀면 경로 위에서 LURE_R 안에 드는 첫 점
+            # flat ground too close (#1: 5 m — walking there just wakes it) or too far → first point on the path within LURE_R
             path = nm.find_path(here, goal)
             if not path:
                 return "no_path"
             spot = next((tuple(q) for q in path if math.dist(tuple(q), goal) <= LURE_R and abs(q[1] - goal[1]) <= LURE_DY), None)
             if spot is None:
-                return "no_spot"                              # 절벽 아래·위 놈은 던질 자리가 없다 — 평소 길로 (8판: 절벽 아래 2번에게 뛰어내림)
+                return "no_spot"                              # foes below/above a cliff have no throw spot — take the usual path (run 8: jumped down to #2 below the cliff)
         if math.dist(here, spot) > (HOLD_SPOT_TOL if lure_at else 1.5):
             r = self.walk_to(spot, nm, f"{tag} 던질 자리로", tol=HOLD_SPOT_TOL if lure_at else None) \
                 if math.dist(here, spot) > 1.5 else "arrived"
@@ -365,13 +365,13 @@ class Field:
             if r != "arrived":
                 self.log(f"   {tag}: 던질 자리까지 {r} — 지금 자리에서 던진다")
             if lure_at:
-                self._settle(spot)                         # 정해 둔 던질 자리는 0.5 m 안까지 (13 m 최소 거리와 부딪히지 않게)
+                self._settle(spot)                         # preset throw spot: get within 0.5 m (so it doesn't clash with the 13 m minimum distance)
         c = self.mv.find(self.mv.snap(SEEK_R), ptr)
         if c is None or c.hp <= 0:
-            # 155129: 던질 자리로 걷는 중 따라온 #4 를 walk 안에서 잡았는데, 여기선 None 만 봐서 시체에 록온을 10 s 시도했다
+            # 155129: #4, which followed while walking to the throw spot, was killed inside walk, but here only None was seen, so lock-on on the corpse was tried for 10 s
             return "dead"
         if c.dist > hi:
-            # 락온 범위 밖 — 6번(22 m, 위 턱)에 나이프 3 개를 허공에 던졌다 (2026-09-24)
+            # out of lock-on range — threw 3 knives into the air at #6 (22 m, ledge above) (2026-09-24)
             self.log(f"   {tag}: 던질 자리에서 {c.dist:.1f} m — 너무 멀어 안 던진다")
             return "too_far"
         if lure_at and c.dist < lo:
@@ -383,7 +383,7 @@ class Field:
             cn = self.mv.find(s, ptr)
             if cn is None or cn.hp <= 0:
                 return "dead"
-            # 던지는 동안 다른 깨어 있는 놈이 다가오면 그만둔다 — 던지기 루프엔 방어가 없어 742 → 154 (2026-09-24 1번)
+            # stop if another awake foe approaches while throwing — the throw loop has no defense, 742 → 154 (2026-09-24 #1)
             near = [x for x in s.hostile(LURE_ABORT_R) if x.ptr != ptr and awake(x) and x.anim not in (-1, None)]
             if near:
                 self.log(f"   {tag}: 다른 놈 {len(near)} 접근 ({near[0].dist:.1f} m) — 끌어오기 중단, 그놈부터")
@@ -394,7 +394,7 @@ class Field:
                 self.log(f"   {tag}: 락온 안 걸림 — 이 놈은 {lo:.0f} m 안으로 다가가지 않는다")
                 return "no_lock"
             if n > 1 and not locked_once:
-                # 락온이 안 걸렸다 = 가려졌거나 멀다 (사용자: "벽이 가리는데 던져서 안 맞음") — 허공에 던지지 말고 길 따라 4 m 더
+                # no lock-on = occluded or far (user: "a wall is blocking, you threw and missed") — don't throw into the air, go 4 m closer along the path
                 c = self.mv.find(self.mv.snap(SEEK_R), ptr)
                 if c is None:
                     return "dead"
@@ -411,7 +411,7 @@ class Field:
                     return "lured"
             r = self.mv.throw_knife(ptr, require_lock=True)
             if want and r.get("why") and not (self.mv.tm.goods_count(M.ITEM_KNIFE) or 0) and self._emergency():
-                r = self.mv.throw_firebomb(ptr)            # 나이프가 떨어졌고 죽을 위기일 때만 화염병
+                r = self.mv.throw_firebomb(ptr)            # firebomb only when out of knives and about to die
                 self.log(f"   {tag}: 나이프 없음 + 위기 — 화염병 → 피해 {r.get('hit')}")
             locked_once = locked_once or bool(r.get("locked"))
             s2 = self.mv.snap(25.0)
@@ -437,14 +437,14 @@ class Field:
         return "lured" if hits else "no_reaction"
 
     def _emergency(self) -> bool:
-        """죽을 위기 — HP 35 % 밑이고 에스트가 없다 (화염병 쓰는 조건, 사용자 '죽는 것보다는 폭탄')."""
+        """About to die — HP under 35 % and no estus (condition for firebombs, user: 'bombs are better than dying')."""
         s = self.mv.snap(5.0)
         return s is not None and s.player.hp < 0.35 * (s.player.max_hp or 1) and self.estus_left() <= 0
 
-    # ── 제자리 고수 (Patch C, 2026-09-26) ─────────────────────
-    # 예전엔 기다리는 내내 방패를 들어(B-1) 스태미나가 안 찼다 (R3 34/106). 이제 한 틱마다 상태만 판단해 돌려주고, 싸움은 하지
-    # 않는다. 방패는 다가오는 놈이 실제로 좁혀 올 때만. 가까이 붙은 놈은: 스태미나가 모자라면 제자리 방어만(_defend_in_place),
-    # 넉넉하고 그놈이 안전 구역 안이면 그 신원에 묶인 싸움(_zone_leash) — 구역을 벗어나거나 둘째 놈이 붙으면 끝낸다.
+    # ── Hold the spot (Patch C, 2026-09-26) ─────────────────────
+    # previously the shield was up the whole wait (B-1) so stamina never refilled (R3 34/106). Now each tick only judges and returns state; no fighting
+    # here. Shield only when an approaching foe is actually closing. A foe in contact: if stamina is short, defend in place only (_defend_in_place);
+    # if enough and it is inside the safe zone, a fight bound to its identity (_zone_leash) — ends if it leaves the zone or a second foe closes in.
 
     def _in_zone(self, spot, x: float, y: float, z: float, nm) -> bool:
         if math.hypot(x - spot[0], z - spot[2]) > HOLD_ZONE_R or abs(y - spot[1]) >= 1.2:
@@ -452,7 +452,7 @@ class Field:
         return nm is None or nm.on_mesh(x, y, z)
 
     def _closing(self, c, h: float) -> bool:
-        """그놈이 지난 0.5 s 동안 APPROACH_DV 넘게 좁혀 왔나 (수평 거리 기록으로 — 애니 번호 안 봄)."""
+        """Did that foe close by more than APPROACH_DV over the last 0.5 s (from horizontal distance history — anim IDs not used)."""
         hist = self.__dict__.setdefault("_hold_hist", {}).setdefault(c.ptr, [])
         now = time.time()
         hist.append((now, h))
@@ -462,7 +462,7 @@ class Field:
         return bool(old) and old[-1] - h >= APPROACH_DV
 
     def _return_leg_toward_foe(self, spot, s, nm, ignore=()):
-        """돌아가는 경로의 첫 구간(RETURN_LEG_M)이 깨어 있는 놈 쪽(cos > 0.5)이고 제자리 쪽이 아니면(cos < 0.5) 그놈, 아니면 None."""
+        """If the first leg of the return path (RETURN_LEG_M) points at an awake foe (cos > 0.5) and not toward the spot (cos < 0.5), that foe; else None."""
         if nm is None:
             return None
         p = s.player
@@ -486,8 +486,8 @@ class Field:
         return None
 
     def _hold_at(self, spot, nm, tag: str, s=None, ignore=()) -> tuple[str, object]:
-        """한 틱 판단 → (상태, 그놈). 상태: returning | coming | low_stamina_threat | contact_in_zone | contact_out_of_zone |
-        approach | calm. 싸움·다가가기는 하지 않는다 — 부르는 쪽(clear)이 상태를 보고 정한다."""
+        """Judge one tick → (state, foe). States: returning | coming | low_stamina_threat | contact_in_zone | contact_out_of_zone |
+        approach | calm. No fighting or approaching — the caller (clear) decides from the state."""
         s = s or self.mv.snap(SEEK_R)
         if s is None:
             time.sleep(0.05)
@@ -498,8 +498,8 @@ class Field:
             if d_spot > 1.5:
                 foe_c = self._return_leg_toward_foe(spot, s, nm, ignore)
                 if foe_c is not None:
-                    # 160200: 던질 자리(평지 17 m)에서 평지로 돌아가는 경로 첫 구간이 동쪽(#6 쪽)으로 꺾여, 내려오는 #6 에게
-                    # 0.96 m/s 로 다가갔다 (추적 감시가 멈춤). 첫 구간이 깨어 있는 놈 쪽이고 평지 쪽이 아니면 걷지 않고 제자리 방어
+                    # 160200: from the throw spot (17 m from the arena) the first leg back to the arena bent east (toward #6), approaching the descending #6
+                    # at 0.96 m/s (chase watchdog stopped). If the first leg heads at an awake foe and not toward the arena, don't walk — defend in place
                     self.mv.guard(True)
                     self.mv.face(s, foe_c, deg=20.0)
                     time.sleep(0.1)
@@ -510,11 +510,11 @@ class Field:
         coming = [c for c in s.hostile(FOLLOW_R + 2.0) if awake(c) and c.ptr not in ignore and c.anim not in (None, -1)
                   and M.horiz(p, c) < FOLLOW_R + 2.0 and abs(c.y - p.y) < FOLLOW_DY]
         if coming:
-            return "coming", min(coming, key=lambda x: M.horiz(p, x))   # 기존 '오는 놈' 가지가 받는다 — 여기선 아무것도 안 함
+            return "coming", min(coming, key=lambda x: M.horiz(p, x))   # the existing 'incoming foe' branch handles it — nothing done here
         near = [c for c in s.hostile(HOLD_CALM_R + 3.0) if abs(c.y - p.y) < 1.2 and M.horiz(p, c) <= HOLD_CALM_R]
         self.mv.pad.move(0.0, 0.0)
         if not near:
-            self.mv.guard(False)                           # 조용하면 방패를 내려 스태미나를 채운다
+            self.mv.guard(False)                           # when calm, lower the shield to refill stamina
             time.sleep(0.05)
             return "calm", None
         t = min(near, key=lambda x: M.horiz(p, x))
@@ -534,8 +534,8 @@ class Field:
         time.sleep(0.05)
         return "approach", t
 
-    # Patch E-1/E-1b: 움직인 평지 목표를 찾아가지 않고 기다릴 조건. E-1b(사용자 2026-09-26 "두번째 적을 공격할 때 위험 지역에서
-    # 공격했음"): 같은 높이여도 평지 구역 밖이거나 방패병 스폰 근처면 기다린다 — #3 을 쫓아 방패병 8.8 m 까지 가서 들켰다(133016)
+    # Patch E-1/E-1b: conditions to wait instead of going after a moved arena target. E-1b (user 2026-09-26 "attacked the second enemy in a
+    # dangerous area"): even at the same height, wait if outside the arena zone or near the shield soldier spawn — chased #3 to 8.8 m from the shield soldier and got spotted (133016)
     def _wait_reasons(self, c, arena, pending) -> list:
         out = []
         if abs(c.y - arena[1]) > MOVED_WAIT_DY:
@@ -551,10 +551,10 @@ class Field:
         return out
 
     def _approach_guard(self, arena, pending, binds: dict):
-        """E-2·E-3 가 duel 에 넘기는 '다가가도 되나' (cc, snapshot) → bool.
-        · 스폰 그대로인 목록 목표 → 된다 (위 턱 #4~#6 은 예전처럼 올라가 잡는다)
-        · 움직인 목록 목표 → E-1b 기다림 조건(다른 높이·평지 구역 밖·방패병 스폰 12 m 안)이면 안 된다 — 플레이어 위치와 상관없이
-        · 목록에 없는 놈 → 플레이어가 평지 근처(6 m, 같은 높이)일 때만 같은 조건으로 막는다 (위 턱 싸움은 예전 그대로)"""
+        """'may I approach' (cc, snapshot) → bool that E-2·E-3 pass to duel.
+        · listed target still at spawn → yes (ledge-above #4~#6 are climbed up to and killed as before)
+        · listed target that moved → no if an E-1b wait condition holds (different height / outside arena zone / within 12 m of shield soldier spawn) — regardless of player position
+        · unlisted foe → blocked by the same conditions only when the player is near the arena (6 m, same height) (ledge fights unchanged)"""
         if arena is None:
             return None
 
@@ -567,7 +567,7 @@ class Field:
 
         def may(cc, sn) -> bool:
             p = sn.player if sn is not None else None
-            # 원거리 예외(같은 높이 1.2 m·방패병 12 m 밖이면 붙기)는 뺐다 (근거 등급 게이트, 2026-09-26) — 두 값 다 code_constant_only 라 다가가기 근거가 못 된다
+            # removed the ranged exception (engage if same height 1.2 m and outside shield soldier 12 m) (evidence-grade gate, 2026-09-26) — both values are code_constant_only, not grounds for approaching
             sp = spawn_of(cc.ptr)
             if sp is not None:
                 moved = math.hypot(cc.x - sp[0], cc.z - sp[2]) > MOVED_R or abs(cc.y - sp[1]) > MOVED_DY
@@ -583,7 +583,7 @@ class Field:
         return ", ".join(self._wait_reasons(c, arena, pending))
 
     def _arena_wait(self, arena, nm, ignore, secs: float) -> str | None:
-        """평지(arena)에서 secs 동안 기다림·방어 틱만 — 다가가지 않는다. → 'died' | None"""
+        """Only wait/defend ticks on the arena (flat ground) for secs — no approaching. → 'died' | None"""
         lb, t0 = LureBlock(), time.time()
         while time.time() - t0 < secs:
             if not self.alive():
@@ -598,11 +598,11 @@ class Field:
         return None
 
     def _hold_tick(self, i, spot, s, nm, arena, ignore, lb, hold_until: dict):
-        """제자리(spot)에서 한 틱 — _hold_at 상태를 보고 제자리 방어 / 묶인 접촉 싸움. 제자리 고수(#2)와 평지 기다림(E-1)이 같이 쓴다.
+        """One tick at the spot — by _hold_at state: defend in place / leashed contact fight. Shared by hold-the-spot (#2) and arena wait (E-1).
         → 'died' | None"""
         st, thr = self._hold_at(spot, nm, f"#{i}", s, ignore)
         if st == "low_stamina_threat":
-            # 이번 기다림을 끝내고(새 끌어오기는 막음), 제자리 방어만 — 다가가지도, 계속 막지도 않는다
+            # end this wait (block new lures), defend in place only — neither approach nor keep blocking
             if not lb.on:
                 self.log(f"   #{i}: 스태미나 {s.player.sp}/{s.player.max_sp} 인데 {thr.npc_param} {M.horiz(s.player, thr):.1f} m"
                          " — 제자리 방어")
@@ -618,8 +618,8 @@ class Field:
         return None
 
     def _defend_in_place(self, threat_ptr, nm) -> str:
-        """스태미나가 모자란데 붙은 놈 — DEFEND_SLICE 동안 제자리 방어만. 스틱 중립(다가가지 않음), 방패는 반사가 공격이
-        실제로 시작될 때만(계속 들지 않음), 반사의 반격(백스텝 공격)은 끈다. HP 25 % 아래면 기존 recover()(물러나 마시기).
+        """Low stamina with a foe in contact — only defend in place for DEFEND_SLICE. Stick neutral (no approach), shield only when the reflex sees an attack
+        actually start (not held up), reflex counter (backstep attack) off. Below 25 % HP, the existing recover() (retreat and drink).
         → 'defended' | 'recovered' | 'cancel'"""
         saved = self.reflex.bs_attack
         self.reflex.bs_attack = False
@@ -647,8 +647,8 @@ class Field:
             self.mv.pad.move(0.0, 0.0)
 
     def _zone_leash(self, threat, spot, nm):
-        """접촉 싸움 끈 — 처음 묶은 신원(ptr·핸들·세대)에만. 신원이 바뀌거나, 그놈·내가 안전 구역을 벗어나거나, 다른 놈이
-        CLOSE_MELEE_R 안으로 붙으면 참 → fight 가 그 틱에 끝난다. 다른 놈으로 목표를 바꾸지 않는다."""
+        """Contact-fight leash — only for the identity first bound (ptr, handle, generation). True if the identity changes, that foe or I leave the safe zone, or another foe
+        closes within CLOSE_MELEE_R → fight ends that tick. Does not switch targets to another foe."""
         ptr, handle, gen = threat.ptr, self.mv.tm.handle(threat.ptr), self.esc.gen
 
         def leash() -> bool:
@@ -668,8 +668,8 @@ class Field:
         return leash
 
     def find_at(self, npc: int, pos, r: float = 3.0, dy_max: float = 3.0):
-        """스폰 pos 근처의 그 종류. 넓게(30 m) 찾을 때도 **높이차 dy_max 안**만 — 경사로 아래에서 위 턱의 6번을 1번으로 잡아
-        15 m 절벽을 향해 걷다 17 s 씩 세 번 막혔다 (2026-09-24 밤 3판, 5 분 낭비)."""
+        """That type near spawn pos. Even when searching wide (30 m), only **within dy_max height diff** — from below the ramp it took #6 on the ledge above as #1,
+        walked toward a 15 m cliff and got stuck three times for 17 s each (2026-09-24 night run 3, 5 min wasted)."""
         s = self.mv.snap(200.0)
         if s is None:
             return None
@@ -677,15 +677,15 @@ class Field:
                  and abs(c.y - pos[1]) <= dy_max]
         return min(cands, key=lambda c: math.dist((c.x, c.y, c.z), tuple(pos)), default=None)
 
-    # ── 목표 생존 (Patch A, 2026-09-26) ─────────────────────────
-    # find_at 은 스폰 근처·높이차 3 m 안만 봐서, 위 턱에서 평지로 내려온 #3(raw HP 75)을 "스폰 30 m 안에 없음 — 이미 죽음" 으로
-    # 빼 버렸다 (R1·R2·R3 observe 101202·101538·101913). 목표는 처음 한 번만 스폰에서 찾고 그 뒤로는 **런타임 신원**
-    # (ptr + 핸들 + esc.gen)으로 따라간다. 죽음 = 같은 세대에서 raw HP 0 이 **서로 다른 스냅샷 두 번 연속**. 원시 사망 플래그는
-    # 모른다(OBSERVE.md). 못 읽은 틱(read_chr 실패 → 목록에서 빠짐)은 'missing' 이지 죽음이 아니다.
-    # 퀵 종료·다시 불러오기(esc.gen 변화)는 새 생명 경계 — 옛 신원을 버리고 스폰에서 새로 묶는다 (R1: 0 이 된 #2 가 다시 85 로 섰다).
+    # ── Target liveness (Patch A, 2026-09-26) ─────────────────────────
+    # find_at only looks near spawn within 3 m height diff, so #3 (raw HP 75), which came down from the ledge to the arena, was dropped as "not within 30 m of spawn — already dead"
+    # (R1·R2·R3 observe 101202·101538·101913). A target is found at spawn only once, then tracked by **runtime identity**
+    # (ptr + handle + esc.gen). Death = raw HP 0 in **two consecutive distinct snapshots** within the same generation. The raw death flag is
+    # unknown (OBSERVE.md). An unreadable tick (read_chr failed → dropped from the list) is 'missing', not death.
+    # quit-out / reload (esc.gen change) is a new-life boundary — drop the old identity and re-bind from spawn (R1: #2 at 0 stood up again at 85).
 
     def _bind(self, b: dict, e: dict, s) -> None:
-        """안 묶인 목표를 스폰에서 찾아 묶는다 (find_at — 첫 해석만)."""
+        """Find an unbound target at its spawn and bind it (find_at — first resolution only)."""
         c = self.find_at(e["npc"], e["pos"], 3.0) or self.find_at(e["npc"], e["pos"], 12.0) or self.find_at(e["npc"], e["pos"], 30.0)
         if c is None:
             return
@@ -696,12 +696,12 @@ class Field:
         """→ (state, chr). state: 'dead' | 'moved' | 'alive' | 'missing' | 'unknown' | 'unbound'."""
         if b.get("ptr") is None:
             return "unbound", None
-        if b["gen"] != self.esc.gen:                       # 새 생명 경계 — 옛 신원은 버린다
+        if b["gen"] != self.esc.gen:                       # new-life boundary — drop the old identity
             b.clear()
             return "unknown", None
         c = self.mv.find(s, b["ptr"])
         if c is not None and self.mv.tm.handle(b["ptr"]) != b["handle"]:
-            c = None                                       # 같은 ptr 에 다른 놈 — 그놈이 아니다
+            c = None                                       # a different foe at the same ptr — not that one
         now = time.time()
         if c is None:
             if b.get("missing_since") is None:
@@ -717,31 +717,31 @@ class Field:
                 b["zero_t"] = s.t
             if b["zero_n"] >= 2:
                 return "dead", c
-            return "alive", c                              # 한 번 0 은 아직 모른다 — 다음 스냅샷을 본다
+            return "alive", c                              # a single 0 is not conclusive yet — check the next snapshot
         b["zero_n"], b["zero_t"], b["last_hp"] = 0, None, c.hp
         far = math.dist((c.x, c.z), (e["pos"][0], e["pos"][2])) > MOVED_R or abs(c.y - e["pos"][1]) > MOVED_DY
         return ("moved" if far else "alive"), c
 
     def clear(self, targets: list[dict], nm, tries: int = 3, arena=None, lure: bool = False) -> str:
-        """교전 큐 (2026-09-25 층 설계 2단계): **깨어서 오는 놈이 있으면 가까운 순으로 먼저**, 없을 때만 스폰 목록의 다음 놈을
-        끌어오거나 찾아간다. 실제 처치 대부분이 '가는 길에 쫓아온 놈' 이었는데 예전 코드는 그걸 walk 안의 예외로 다뤘다.
-        targets = [{"npc":…, "pos":[x,y,z], "label":n, "lure":bool}, …] 는 '다음에 깨울 놈' 의도.
-        → 'cleared' | 'left #2 #4' (세 번 해도 못 잡은 놈; '#3?' = 생존을 확인 못 함, 죽음으로 보지 않음) | 'died' | 'no_estus'
-          | 'partial deferred_unreachable #2' (제자리 고수 대상을 끝내 못 끌어옴 — 성공 아님, 찾아가지 않음)"""
+        """Engagement queue (2026-09-25 layer design step 2): **if awake foes are coming, handle them nearest first**; only when none, lure or go to
+        the next foe on the spawn list. Most actual kills were 'foes that chased us on the way', yet the old code treated that as an exception inside walk.
+        targets = [{"npc":…, "pos":[x,y,z], "label":n, "lure":bool}, …] is the 'who to wake next' intent.
+        → 'cleared' | 'left #2 #4' (not killed after three tries; '#3?' = liveness unconfirmed, not treated as dead) | 'died' | 'no_estus'
+          | 'partial deferred_unreachable #2' (hold-the-spot target never lured — not a success, not approached)"""
         pending = list(targets)
-        lure_n: dict = {}                                  # 제자리 고수 대상: 끌어오기 시도 수 / 기다림 끝 / 한 번 미뤘나
+        lure_n: dict = {}                                  # hold-the-spot targets: lure attempts / wait end / deferred once?
         hold_until: dict = {}
         deferred: dict = {}
-        unreachable: list[str] = []                        # 제자리 고수 대상 중 끝내 못 끌어온 놈 (Patch B)
-        blocks: dict = {}                                  # 제자리 고수 대상별 LureBlock (Patch C)
-        wait_since: dict = {}                              # 움직여 다른 높이인 목표를 평지에서 기다리기 시작한 때 (Patch E-1)
-        moved_n: dict = {}                                 # 그 기다림이 끝난 횟수
-        binds: dict = {}                                   # id(목표) → 런타임 신원 (Patch A)
-        unres: dict = {}                                   # 스폰에서 못 찾음·신원 끊김 횟수
+        unreachable: list[str] = []                        # hold-the-spot targets never lured in the end (Patch B)
+        blocks: dict = {}                                  # LureBlock per hold-the-spot target (Patch C)
+        wait_since: dict = {}                              # when we started waiting on flat ground for a moved target at a different height (Patch E-1)
+        moved_n: dict = {}                                 # number of times that wait ended
+        binds: dict = {}                                   # id(target) → runtime identity (Patch A)
+        unres: dict = {}                                   # count of not found at spawn / identity lost
         last_bind = 0.0
         left: list[str] = []
-        tried: dict = {}                                   # 스폰 번호 / ptr → 시도 수
-        ignore: set = set()                                # 세 번 못 잡은 오는 놈 (퀵 종료 감시에 맡긴다)
+        tried: dict = {}                                   # spawn label / ptr → attempt count
+        ignore: set = set()                                # incoming foes not killed in three tries (left to the quit-out watchdog)
         desperate = False
         while pending:
             if not self.alive():
@@ -756,16 +756,16 @@ class Field:
             if coming:
                 c = min(coming, key=lambda x: M.horiz(s.player, x))
                 tried[c.ptr] = tried.get(c.ptr, 0) + 1
-                # 아직 먼 놈에게 걸어가면 그 사이 다른 깨어있는 놈까지 붙어서 혼자 올 걸 여럿이 동시에 상대하게 된다
-                # (사용자 2026-09-25: "기다리면 올텐데 왜 뛰쳐 올라가 기회를 놓쳤잖아") — 닿는 거리 밖이면 기다린다
+                # walking to a foe still far lets other awake foes join meanwhile, so one that would come alone becomes several at once
+                # (user 2026-09-25: "it would come if you waited, why did you rush up and miss the chance") — wait if out of reach
                 r = self.fight(c.ptr, nm, f"오는 놈 {c.npc_param}" + (f" ({tried[c.ptr]}번째)" if tried[c.ptr] > 1 else ""),
                                arena=arena, desperate=desperate, limit=COMING_LIMIT, wait_far=True,
                                may_approach=self._approach_guard(arena, pending, binds))
                 if r.result == "me_dead":
                     return "died"
                 if r.result == "unsafe_approach":
-                    # E-2 루프 수정 (2026-09-26 134451): 곧바로 새 싸움을 열면 원거리 놈(wait_far 안 씀)에게 1 s 에 20 번 넘게
-                    # 싸움을 열고 닫으며 방어 없이 섰다. 평지에서 UNSAFE_PAUSE 동안 기다림·방어 틱을 돌린 뒤 다시 본다
+                    # E-2 loop fix (2026-09-26 134451): opening a new fight right away against a ranged foe (no wait_far) meant opening and closing
+                    # 20+ fights per second, standing with no defense. Run wait/defend ticks on the arena for UNSAFE_PAUSE, then re-check
                     if self._arena_wait(arena, nm, ignore, UNSAFE_PAUSE) == "died":
                         return "died"
                     continue
@@ -775,14 +775,14 @@ class Field:
                         return "no_estus"
                     desperate = not ok
                     if r.result == "timeout" or tried[c.ptr] >= tries:
-                        # timeout = 짧게 붙어 봤는데 못 죽였다 — 나쁜 거래로 끌고 가지 않고 바로 물러난다
-                        # (사용자 2026-09-25: "한방에 방해하는 몹을 없애지 못하면 도망치는게 나아"). stuck·lost 는 다르다 —
-                        # 그건 못 붙은 것뿐이라 tries 번은 다시 시도한다("Rush mode는 적을 끝까지 공격해야지").
+                        # timeout = engaged briefly but couldn't kill — don't drag into a bad trade, disengage right away
+                        # (user 2026-09-25: "if you can't kill the interfering mob in one go, better to run"). stuck/lost differ —
+                        # those just failed to reach it, so retry up to tries times ("Rush mode should attack the enemy to the end").
                         ignore.add(c.ptr)
                 else:
                     desperate = False
                 continue
-            if time.time() - last_bind >= BIND_EVERY:        # 안 묶인 목표는 스폰에서 (보통 첫 바퀴에 전부 묶인다)
+            if time.time() - last_bind >= BIND_EVERY:        # unbound targets from spawn (usually all bound on the first pass)
                 last_bind = time.time()
                 for pe in pending:
                     pb = binds.setdefault(id(pe), {})
@@ -796,7 +796,7 @@ class Field:
                 self.log(f"   #{i} {e['npc']}: 죽음 (raw HP 0 ×2, 핸들 {b.get('handle')}, 세대 {b.get('gen')})")
                 pending.pop(0)
                 continue
-            if st == "missing":                            # 잠깐 안 보임 — 죽음으로 보지 않는다
+            if st == "missing":                            # briefly not visible — not treated as death
                 if len(pending) > 1:
                     pending.append(pending.pop(0))
                 else:
@@ -819,9 +819,9 @@ class Field:
             k = tried.get(i, 0)
             la = e.get("lure_at") or {}
             if arena is not None and not la.get("hold") and st == "moved" and self._wait_moved(c, arena, pending):
-                # Patch E-1 (사용자 2026-09-26): 평지에서 잡을 목표(#1·#3 등)가 움직여 다른 높이에 있으면 찾아가지 않고 평지에서
-                # 기다린다 — 방패병 제자리 고수와 같은 방식, 내려오면 '오는 놈' 이 받는다. Patch A 뒤로 봇이 내려오는 #3 의 **예전
-                # 자리**(경사로 위)로 걸어 올라가 평지를 떠났다 (observe 131752·132053, 평지에서 5.95~6.0 m).
+                # Patch E-1 (user 2026-09-26): if an arena target (#1·#3 etc.) moved to a different height, don't go find it; wait on the arena
+                # — same as shield soldier hold-the-spot; if it comes down, the 'incoming foe' branch takes it. After Patch A the bot walked up to the descending #3's **old
+                # spot** (on the ramp) and left the arena (observe 131752·132053, 5.95~6.0 m from the arena).
                 w0 = wait_since.get(i)
                 if w0 is None:
                     w0 = wait_since[i] = time.time()
@@ -844,9 +844,9 @@ class Field:
                 continue
             wait_since.pop(i, None)
             if lure and la.get("hold"):
-                # 제자리 고수 (사용자 2026-09-26: "첫번째 적을 잡은 위치를 고수해야 돼 — 2번째 적이 그쪽으로 끌려와. 그 근처에서 하면
-                # 방패병이 인식을 못함"). 봇은 끌어오기가 안 되면 방패병에게 걸어갔고, 매번 (-28,-49.3,23.8) — 방패병 8.8~9.1 m —
-                # 에서 들켰다 (observe 090241·092141·092612·094231). 사용자는 방패병 12 m 안으로 들어가지 않고 13.7 m 에서 던졌다
+                # hold the spot (user 2026-09-26: "hold the position where you killed the first enemy — the 2nd enemy gets pulled there. Doing it near there,
+                # the shield soldier doesn't notice"). When luring failed the bot walked to the shield soldier and was spotted every time at (-28,-49.3,23.8) — 8.8~9.1 m from the shield soldier
+                # (observe 090241·092141·092612·094231). The user never entered within 12 m of the shield soldier and threw from 13.7 m
                 spot = tuple(la["spot"])
                 lb = blocks.setdefault(i, LureBlock())
                 near5 = any(abs(x.y - s.player.y) < 1.2 and M.horiz(s.player, x) <= HOLD_CALM_R
@@ -862,11 +862,11 @@ class Field:
                     if lr == "dead":
                         pending.pop(0)
                     elif lr != "lured":
-                        hold_until[i] = time.time() + HOLD_WAIT   # 제자리에서 기다린다 — 오는 놈은 위의 '오는 놈' 이 받는다
+                        hold_until[i] = time.time() + HOLD_WAIT   # wait in place — incoming foes are taken by the 'incoming foe' branch above
                         self.log(f"   #{i}: 다가가지 않고 던질 자리에서 {HOLD_WAIT:.0f} s 기다림")
                     continue
-                # Patch B: 미룬 뒤에도 절대 찾아가지 않는다 — 예전엔 두 번째 차례에 fight() 로 걸어가 0.85 m 까지 붙었다
-                # (R3 observe 101913). 미루고 한 바퀴 더 제자리에서 던져 보고, 그래도 안 되면 안전하게 끝낸다
+                # Patch B: never go after it even after deferring — previously on its second turn fight() walked up to within 0.85 m
+                # (R3 observe 101913). Defer, try throwing from the spot one more round, and if still no luck, end safely
                 if not deferred.get(i):
                     deferred[i] = True
                     lure_n[i] = 0
@@ -886,12 +886,12 @@ class Field:
                 tried[i] = 1
                 if lr == "dead":
                     pending.pop(0)
-                continue                                   # 깨어 오면 위의 '오는 놈' 이 받는다; 안 오면 다음 바퀴에 찾아간다
+                continue                                   # if it wakes and comes, the 'incoming foe' branch above takes it; if not, go find it next round
             tried[i] = k + 1
             r = self.fight(c.ptr, nm, f"#{i} {e['npc']}" + (f" ({tried[i]}번째)" if tried[i] > 1 else ""), arena=arena, desperate=desperate,
                            may_approach=self._approach_guard(arena, pending, binds))
             if r.result == "unsafe_approach":
-                tried[i] = k                               # E-2: 시도로 세지 않는다 — 다음 바퀴에 E-1 평지 기다림
+                tried[i] = k                               # E-2: don't count as an attempt — E-1 arena wait next round
                 continue
             if r.result == "killed":
                 pending.pop(0)
@@ -905,16 +905,16 @@ class Field:
             ok = self.recover(f"#{i} {r.result}", nm)
             if not ok and self.estus_left() <= 0:
                 return "no_estus"
-            desperate = not ok                             # 물러나지도 마시지도 못했으면 다음엔 끝까지
+            desperate = not ok                             # couldn't retreat or drink — go to the end next time
             if tried[i] >= tries + 1:
                 left.append(f"#{i}")
                 pending.pop(0)
-        if unreachable:                                    # 성공이 아니다 — 부르는 쪽은 길을 더 가지 않는다
+        if unreachable:                                    # not a success — the caller goes no further along the path
             return "partial deferred_unreachable " + " ".join(unreachable) + ("" if not left else " left " + " ".join(left))
         return "cleared" if not left else "left " + " ".join(left)
 
     def _deferred_unreachable(self, e: dict, i, b: dict, c, s) -> None:
-        """Patch B 끝내기 약속: 입력 중립·방패 내림, 그놈 쪽으로 자동 추적 없음, 마지막 신원·HP·위치를 남긴다."""
+        """Patch B ending contract: neutral input, shield down, no auto-tracking toward that foe, log last identity/HP/position."""
         self.mv.pad.neutral()
         self.mv.guard(False)
         p = s.player if s is not None else None
@@ -927,17 +927,17 @@ class Field:
                     hp=hp, pos=pos, dist=dist, lure_tries=2 * HOLD_TRIES)
 
     def _clear_old(self, targets: list[dict], nm, tries: int = 3, arena=None, lure: bool = False) -> str:
-        """(예전) 스폰 지도 순서대로 하나씩. targets = [{"npc":…, "pos":[x,y,z]}, …].
-        → 'cleared' | 'left #2 #4' (세 번 해도 못 잡은 놈) | 'died' | 'no_estus'
-        없는 놈은 건너뛴다 (이미 죽었다 — 퀵 종료로는 안 살아난다)."""
+        """(old) One at a time in spawn-map order. targets = [{"npc":…, "pos":[x,y,z]}, …].
+        → 'cleared' | 'left #2 #4' (not killed after three tries) | 'died' | 'no_estus'
+        Missing foes are skipped (already dead — quit-out doesn't revive them)."""
         left = []
         for n, e in enumerate(targets, 1):
-            i = e.get("label", n)                          # 지도 번호 (순서를 바꿔도 기록은 지도 번호로)
+            i = e.get("label", n)                          # map label (records keep the map label even if the order changes)
             killed, desperate = False, False
             for k in range(tries):
                 if not self.alive():
                     return "died"
-                # 쫓아오느라 스폰에서 멀어진 놈도 있다 — 12 m 만 봤더니 살아 있는 4번을 '이미 죽음' 으로 건너뛰고 등을 맞았다
+                # some foes moved away from spawn chasing us — checking only 12 m skipped a living #4 as 'already dead' and we got hit in the back
                 c = (self.find_at(e["npc"], e["pos"], 3.0) or self.find_at(e["npc"], e["pos"], 12.0)
                      or self.find_at(e["npc"], e["pos"], 30.0))
                 if c is None:
@@ -971,23 +971,23 @@ class Field:
                 ok = self.recover(f"#{i} {r.result}", nm)
                 if not ok and self.estus_left() <= 0:
                     return "no_estus"
-                # 물러나지도 마시지도 못했다 — 다음엔 HP 가 낮아도 빠지지 않고 끝까지 (0.1 s 마다 '낮음→못 물러남→못 마심' 을 되풀이하며
-                # 방패도 안 들고 서서 맞아 죽었다, 2026-09-24)
+                # couldn't retreat or drink — next time don't pull out even at low HP, go to the end (repeating 'low → can't retreat → can't drink' every 0.1 s,
+                # we stood without raising the shield and died, 2026-09-24)
                 desperate = not ok
             if not killed:
                 left.append(f"#{i}")
         return "cleared" if not left else "left " + " ".join(left)
 
-    # ── 길 ───────────────────────────────────────────────────
+    # ── Path───────────────────────────────────────────────────
     def walk(self, path: list, nm, tag: str, tol: float | None = None, tight: dict | None = None, mode: str = "walk",
              done=None) -> str:
-        """경로를 걷다가 쫓아와 붙는 놈은 먼저 잡는다. → 'arrived' | 'dead' | 'stuck' | 'no_estus'
-        점마다 바닥 확인은 목표와 지금 자리 둘 다 이 내비메시 위일 때만 (경계·다리 위는 내비메시가 비어 있다).
-        tight = {"center": [x,y,z], "r": m} 안(난간 없는 좁은 다리)은 0.45 m 로 좁게 밟는다."""
+        """Walk the path, killing first any foe that chases and closes in. → 'arrived' | 'dead' | 'stuck' | 'no_estus'
+        Per-point floor check only when both the target and current spot are on this navmesh (edges / bridges have navmesh gaps).
+        Inside tight = {"center": [x,y,z], "r": m} (narrow bridge without railings), step precisely at 0.45 m."""
         path = [tuple(q) for q in path]
-        # tol 이 없으면(내비메시 경로) 가파른 구간(계단·경사로)만 0.4 m 로 정확히 밟는다 (nav.path_tolerances) — 전부 1 m 로 밟았더니
-        # 경사로 위 턱에서 계단 꼭대기로 못 올라가 '통로 막힘' (2026-09-24). 사람이 녹화한 길은 부르는 쪽이 tol(0.8)을 준다
-        # — 녹화 점을 0.4 m 로 좁히면 계단 끝에서 0.6~0.7 m 넘게 못 다가가 막혔다 (hunt.walk_fight)
+        # without tol (navmesh path) only steep segments (stairs, ramps) are stepped precisely at 0.4 m (nav.path_tolerances) — stepping everything at 1 m
+        # couldn't get from the ramp ledge up to the stair top: 'passage blocked' (2026-09-24). Human-recorded paths get tol (0.8) from the caller
+        # — narrowing recorded points to 0.4 m got stuck unable to get within 0.6~0.7 m at stair ends (hunt.walk_fight)
         tols = nav.path_tolerances(path, 1.0) if tol is None else [tol] * len(path)
         self.reflex.nm = nm
         mover = nav.Mover(self.mv.pad)
@@ -1009,18 +1009,18 @@ class Field:
                     continue
                 if done is not None and done(s):
                     mover.stop()
-                    return "arrived"                       # 부르는 쪽이 정한 '더 갈 필요 없음'
+                    return "arrived"                       # caller-defined 'no need to go further'
                 if s.player.hp < s.player.max_hp * WALK_HEAL and self.safe(s) and self.estus_left() > 0:
-                    mover.stop()                           # 걷다 맞은 피해(화염병 등) — 다음 싸움까지 미루지 않는다
+                    mover.stop()                           # damage taken while walking (firebombs etc.) — don't defer until the next fight
                     self.heal(0.7)
                 f_q = nm.floor_at(q[0], q[2], q[1]) if len(q) > 2 else None
                 f_p = nm.floor_at(s.player.x, s.player.z, s.player.y)
                 terr = nm if (f_q is not None and abs(f_q[0] - q[1]) < 2.0 and f_p is not None and abs(f_p[0] - s.player.y) < 2.0) else None
 
                 def chaser(sn):
-                    # 방패병은 뒤로 미룬다 — 여럿이면 쉬운 놈부터(사용자 2026-09-25: "다른 적부터 해결 하고 가라니깐",
-                    # "방패병 둘한테 너무 빨리 가 잖아" — 성벽 마을 테라스의 방패병 둘을 연달아 만나 회복할 틈 없이
-                    # 220+ 피해씩 받고 둘러싸였다). 쉬운 놈이 하나도 없을 때만(방패병뿐일 때) 어쩔 수 없이 그놈부터.
+                    # shield soldiers are deferred — with several, easy ones first (user 2026-09-25: "deal with the other enemies first, I said",
+                    # "you go to the two shield soldiers too fast" — met the two shield soldiers on the Undead Burg terrace back to back with no time to heal,
+                    # took 220+ damage each and got surrounded). Only when there is no easy one (shield soldiers only) take that one first.
                     cands = [c for c in sn.hostile(FOLLOW_R + 1.0) if awake(c) and c.ptr not in ignore
                              and M.horiz(sn.player, c) < FOLLOW_R and abs(c.y - sn.player.y) < FOLLOW_DY
                              and (c.anim not in (None, -1) or c.dist < 2.0)]
@@ -1035,22 +1035,22 @@ class Field:
                                                               or self.esc.gen != g0) else mode)
                 if r == "dead":
                     return "dead"
-                if self.esc.gen != g0:                     # 퀵 종료로 나갔다 왔다 — 가장 가까운 점부터 다시
+                if self.esc.gen != g0:                     # left and returned via quit-out — restart from the nearest point
                     s2 = self.mv.snap(5.0)
                     if s2:
                         i = min(range(len(path)), key=lambda j: math.dist(path[j], (s2.player.x, s2.player.y, s2.player.z)))
                     continue
                 if r == "retreat":
                     mover.stop()
-                    self.reflex.hold()                     # 걷다 공격이 오면 먼저 정면으로 막고
+                    self.reflex.hold()                     # when an attack comes while walking, first block facing it
                     s2 = self.mv.snap(40.0)
                     c = chaser(s2) if s2 else None
                     if c is not None and fights >= 15:
-                        ignore.add(c.ptr)                  # 한 길에서 너무 많이 싸웠다 — 이놈은 퀵 종료 감시에 맡긴다
+                        ignore.add(c.ptr)                  # fought too much on one path — leave this one to the quit-out watchdog
                     elif c is not None:
                         fights += 1
                         mover.stop()
-                        # 오는 놈과 같은 원칙(wait_far) — 여기도 걸어가 붙으면 그 사이 다른 놈까지 붙는다 (사용자: "또 올라가네")
+                        # same principle as incoming foes (wait_far) — walking up here too lets others join meanwhile (user: "climbing up again")
                         zone = self._near_zone(s2, nm)
                         if zone is not None:
                             zr = self._retreat_to_zone(zone, nm)
@@ -1067,10 +1067,10 @@ class Field:
                                 return "no_estus"
                             desperate = not ok
                             if res.result in ("stuck", "lost"):
-                                ignore.add(c.ptr)          # 못 닿는 놈 — 이 길에선 무시 (쫓아오면 퀵 종료가 떼어낸다)
-                        # 싸우다 밀리거나 쫓아가 자리가 바뀌었다 — 싸우기 전 향하던 점(i)을 고집하면 그 점이 벽·턱 너머가 돼
-                        # 막혔다 (2026-09-25 귀환 통로 두 판 연속 "따라온 놈 처치 → 30~50 s 뒤 stuck"). 퀵 종료·안개벽 뒤처럼
-                        # 가장 가까운 점부터 — 단 크게 되돌아가지 않게 i 앞뒤 RESYNC_BACK·RESYNC_AHEAD 안에서만.
+                                ignore.add(c.ptr)          # unreachable foe — ignore on this path (if it chases, the quit-out shakes it off)
+                        # pushed back while fighting or moved by chasing — insisting on the pre-fight target point (i) left it behind a wall/ledge
+                        # and got stuck (2026-09-25 return passage, two runs in a row "chaser killed → stuck 30~50 s later"). Like after a quit-out / fog wall,
+                        # restart from the nearest point — but only within RESYNC_BACK·RESYNC_AHEAD around i so we don't go far back.
                         s2 = self.mv.snap(5.0)
                         if s2:
                             here = (s2.player.x, s2.player.y, s2.player.z)
@@ -1080,16 +1080,16 @@ class Field:
                 if r != "arrived":
                     fails += 1
                     s3 = self.mv.snap(5.0)
-                    if s3:                                  # 어디서 막히는지 (2026-09-25 귀환 통로 stuck 이 고쳐도 되풀이)
+                    if s3:                                  # where it gets stuck (2026-09-25 return passage stuck recurred even after fixes)
                         pp = (s3.player.x, s3.player.y, s3.player.z)
                         self.log(f"      {tag}: {i}/{len(path)}번 점 {tuple(round(v, 1) for v in q)} 못 감 ({r}, {fails}번째) — "
                                  f"나 {tuple(round(v, 1) for v in pp)}, {math.dist(pp, q):.1f} m")
                         self.events("walk_fail", tag=tag, i=i, n=len(path), q=[round(v, 2) for v in q],
                                     pos=[round(v, 2) for v in pp], r=r, fails=fails)
-                        # 직선으로 못 가면 한 번은 내비메시 길찾기로 돌아간다 — 싸우다 밀려 계단 옆 위쪽 통로(1.1~1.5 m 높음)에
-                        # 섰을 때 계단 점으로 곧장 가려다 난간에 막혀 세 점 연속 실패했다 (2026-09-25 191817 귀환 통로 28~30번)
-                        # 돌아서 가는 walk_to 도 안에서 walk 를 쓴다 — 거기서 또 돌아서 가면 끝없이 되부른다 ("돌아서 돌아서 …",
-                        # 경사로 #2 앞에서 15 분 시간 초과, 2026-09-25 194804). 한 겹만
+                        # if the straight line fails, detour once via navmesh pathfinding — pushed while fighting onto the upper passage beside the stairs (1.1~1.5 m higher),
+                        # heading straight for the stair point hit the railing, failing three points in a row (2026-09-25 191817 return passage points 28~30)
+                        # the detouring walk_to also uses walk internally — detouring again there recurses endlessly ("detour detour …",
+                        # 15 min timeout in front of ramp #2, 2026-09-25 194804). One level only
                         if fails == 1 and not self._detour and nm.find_path(pp, q):
                             self._detour = True
                             try:
@@ -1101,7 +1101,7 @@ class Field:
                                 i += 1
                                 continue
                     if fails >= 2 and self.fog_through(q):
-                        fails = 0                          # 안개벽을 지났다 — 가장 가까운 점부터 다시
+                        fails = 0                          # passed the fog wall — restart from the nearest point
                         s2 = self.mv.snap(5.0)
                         if s2:
                             i = min(range(len(path)), key=lambda j: math.dist(path[j], (s2.player.x, s2.player.y, s2.player.z)))
@@ -1116,10 +1116,10 @@ class Field:
             mover.stop()
 
     def fog_through(self, toward) -> bool:
-        """안개벽 앞에서 막혔으면: 다음 경로점 쪽으로 몸을 돌리고, 안내창이 뜨면 A (사용자: "안개벽 A 눌러", "방향 정렬").
-        안개 옆에 서서 벽을 보고 밀기만 해 '막힘' 이었다 (2026-09-24). 안내창은 몸이 안개를 봐야 뜬다.
-        → 지나갔나 (2 m 넘게 움직임)"""
-        import legacy.ladder_test as L                    # 안내창 판별(화면 아래 가운데 어두운 비율, 뜨면 ~900)
+        """If stuck before a fog wall: turn toward the next waypoint, and press A when the prompt appears (user: "press A at the fog wall", "align direction").
+        We stood beside the fog pushing into the wall → 'blocked' (2026-09-24). The prompt only appears when facing the fog.
+        → passed through? (moved more than 2 m)"""
+        import legacy.ladder_test as L                    # prompt detection (dark ratio at bottom center of screen, ~900 when shown)
         s = self.mv.snap(5.0)
         if s is None or s.cam_yaw is None:
             return False
@@ -1145,12 +1145,12 @@ class Field:
             return "no_snapshot"
         path = nm.find_path((s.player.x, s.player.y, s.player.z), tuple(goal))
         if not path:
-            return "no_path"                               # 경로가 없으면 직선으로 걷지 않는다 (낭떠러지)
+            return "no_path"                               # no path → don't walk straight (cliff)
         return self.walk(nav.trim_path(path[1:], tuple(goal)), nm, tag, mode=mode, tol=tol, done=done)
 
     def _settle(self, spot, tol: float = None, tries: int = 10) -> float:
-        """마지막 몇 걸음 — 스틱을 짧게 쳐서 spot 에서 tol 안으로 (수평). 던질 자리 허용 오차 1.5 m 가 끌어오기 최소 13 m 와
-        부딪혀 12.8~13.0 m 로 'too_close' 가 났다 (R3 101913, 134451 세 번) — 사용자 승인 2026-09-26 '0.5 m 로'. → 남은 거리"""
+        """Last few steps — short stick taps to get within tol of spot (horizontal). Throw-spot tolerance 1.5 m clashed with the 13 m lure minimum,
+        giving 12.8~13.0 m → 'too_close' (R3 101913, 134451 three times) — user-approved 2026-09-26 'to 0.5 m'. → remaining distance"""
         tol = HOLD_SPOT_TOL if tol is None else tol
         d = None
         for _ in range(tries):
@@ -1166,9 +1166,9 @@ class Field:
             time.sleep(0.12)
         return d if d is not None else 0.0
 
-    # ── 핏자국 ────────────────────────────────────────────────
+    # ── Bloodstain────────────────────────────────────────────────
     def pick_blood(self, nm, near: float = 20.0, bonfire_ok: bool = False) -> str | None:
-        """bonfire_ok: 어차피 이 화톳불에 앉을 거라 A 가 앉기로 잘못 들어가도 괜찮을 때 (성벽 마을 화톳불 옆 핏자국)."""
+        """bonfire_ok: we'll sit at this bonfire anyway, so A accidentally sitting is fine (bloodstain next to the Undead Burg bonfire)."""
         b = Blood.read()
         if not b:
             return None
@@ -1189,9 +1189,9 @@ class Field:
         self.log(f"   핏자국: {'회수' if got else '못 주움'} (소울 {souls0} → {self.mv.tm.souls()})")
         return "got" if got else "miss"
 
-    # ── 쉬기 ─────────────────────────────────────────────────
+    # ── Rest─────────────────────────────────────────────────
     def rest_at(self, nm, bonfire: dict) -> bool:
-        """화톳불까지 싸우며 걸어가서 쉰다. **적이 전부 살아난다** — 판을 새로 시작할 때만."""
+        """Walk to the bonfire fighting along the way and rest. **Every foe revives** — only when starting a fresh run."""
         if not self.alive() and not self.wait_respawn():
             return False
         s = self.mv.snap(5.0)
@@ -1205,8 +1205,8 @@ class Field:
 
 
 class Care:
-    """싸우는 중 회복 (duel 의 care). 마실지는 여기(4층), 틈인지는 duel.opening(3층).
-    에스트 개수는 매 틱 읽으면 무겁다(32 KB) — 마실 때만 다시 센다."""
+    """In-fight healing (duel's care). Whether to drink is decided here (layer 4), whether it's an opening by duel.opening (layer 3).
+    Reading estus count every tick is heavy (32 KB) — recount only when drinking."""
 
     def __init__(self, f: Field):
         self.f = f

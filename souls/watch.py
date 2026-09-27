@@ -1,7 +1,7 @@
-"""4층 보조 — 판단 루프와 따로 도는 감시: 긴급 탈출(퀵 종료)과 핏자국 기록.
+"""Layer 4 helper — watchers running separately from the decision loop: emergency escape (quit-out) and bloodstain tracking.
 
-퀵 종료(메뉴 → Quit Game → 이어하기)는 **적의 위치·경계만 리셋하고 죽은 적은 살리지 않는다** (사용자 확인 2026-09-24).
-쉬면(화톳불) 적이 전부 살아난다. 그래서 적을 떼어낼 땐 쉬지 말고 이걸 쓴다.
+Quit-out (menu → Quit Game → Continue) **resets only enemy positions/alertness; dead enemies stay dead** (user confirmed 2026-09-24).
+Resting (bonfire) revives every enemy. So to shake enemies off, use this instead of resting.
 """
 from __future__ import annotations
 
@@ -23,30 +23,30 @@ NO_GROUND = (1500, 1550, 121500, 1600, 6074, 6174)
 
 
 class Escape:
-    """긴급 탈출. 50 Hz 로 보고, 쏠 때는 패드를 얼려(Pad.freeze) 판단 루프의 입력이 메뉴 입력에 섞이지 않게 한다.
-      · 낙사: 떨어지는 중(모션 1550, 또는 0.4 s 에 2.5 m 넘게 내려감)이고 발밑 바닥이 8 m 넘게 아래
-        → 종료하면 떨어지기 전 가장자리에서 다시 선다
-      · 곧 죽음: 3.5 m 안에 둘 이상이고 **2.8 s 뒤 예상 HP**가 15 % 아래 (60 s 에 한 번 — 그 자리에서 다시 시작하므로)
-        — 종료 입력에 2.4~2.5 s 걸리는 동안에도 맞는다 (298 → 24 로 끝난 적이 있다). 그래서 들어오는 피해 속도를 본다
-    gen 은 나갔다 올 때마다 +1 — 적 포인터가 전부 바뀌니 위층은 gen 이 바뀌면 적을 다시 찾는다."""
-    LETHAL_DROP = 8.0         # 15 m 로 뒀더니 경사로 옆(약 10~12 m)에서 HP 413 인 채 떨어져 죽었다 (2026-09-24)
-    FALL_V = 2.5              # 0.4 s 에 이만큼 내려가면 떨어지는 중 — 애니 번호(1550)가 안 뜨는 추락(가드가 깨져 밀려남)도 잡는다
-    FALL_COOLDOWN = 4.0       # 예전 30 s: 가장자리에서 다시 서자마자 또 떨어지는 걸 못 막았다
-    LEDGE_DROP = 3.0          # 발밑 바닥이 이보다 아래인데 아직 안 떨어지는 중 = 낭떠러지 턱 위
-    LEDGE_SLIDE = 0.6         # (0.4~0.7 을 추락 2번·사람 녹화로 맞춤: 0.6·0.5 가 추락 1.1~1.2 s 전, 오경보 1) 마지막 안전 자리보다 이만큼 내려왔으면 미끄러지는 중 (다리 위는 높이가 그대로라 안 걸린다)
+    """Emergency escape. Polls at 50 Hz; when firing, freezes the pad (Pad.freeze) so decision-loop input doesn't mix with menu input.
+      · Fatal fall: falling (motion 1550, or dropped more than 2.5 m in 0.4 s) and the floor underfoot is more than 8 m below
+        → after quitting you stand again at the edge before the fall
+      · Imminent death: two or more within 3.5 m and **predicted HP 2.8 s ahead** below 15 % (once per 60 s — it restarts on the spot)
+        — you keep getting hit during the 2.4~2.5 s of quit input (once ended 298 → 24). Hence it watches incoming damage rate
+    gen is +1 on every quit-and-return — all enemy pointers change, so upper layers re-find enemies when gen changes."""
+    LETHAL_DROP = 8.0         # at 15 m, fell off the side of the ramp (~10~12 m) with HP 413 and died (2026-09-24)
+    FALL_V = 2.5              # dropping this much in 0.4 s = falling — also catches falls with no anim ID (1550) (pushed off by a guard break)
+    FALL_COOLDOWN = 4.0       # formerly 30 s: couldn't stop falling again right after respawning at the edge
+    LEDGE_DROP = 3.0          # floor underfoot lower than this but not yet falling = on a cliff ledge
+    LEDGE_SLIDE = 0.6         # (tuned 0.4~0.7 on 2 falls + a human recording: 0.6/0.5 fire 1.1~1.2 s before the fall, 1 false alarm) dropped this far below the last safe spot = sliding (bridges keep the same height, so they don't trigger)
     NUDGE_COOLDOWN = 0.6
-    LEDGE_CREEP = 0.5         # 1 s 에 이보다 덜 움직이며 내려가면 미끄러짐 (계단은 더 빨리 움직인다)
-    CROWD_COOLDOWN = 60.0     # 같은 자리에서 반복하지 않게
+    LEDGE_CREEP = 0.5         # descending while moving less than this in 1 s = sliding (stairs move faster)
+    CROWD_COOLDOWN = 60.0     # avoid repeating at the same spot
     QUIT_S = 2.8
 
     def __init__(self, pad, nms: list, log=print, events=None):
         self.pad, self.nms, self.log, self.events = pad, nms, log, events
         self.escaping = False
         self.gen = 0
-        self.quit_ok = True                                # False = 퀵 종료(메뉴로 나갔다 오기)를 절대 안 쓴다 (영상 촬영용, run.py --no-quit)
+        self.quit_ok = True                                # False = never use quit-out (exit to menu and back) (for video recording, run.py --no-quit)
         self.last_fall = self.last_crowd = 0.0
-        self.last_fall_pos = None     # 낙사 탈출 직후 위층이 가장자리에서 물러나게
-        self.safe_pos = None          # 마지막으로 발밑에 바로 바닥이 있던 자리 (_ledge)
+        self.last_fall_pos = None     # so upper layers back away from the edge right after a fatal-fall escape
+        self.safe_pos = None          # last spot with floor directly underfoot (_ledge)
         self.last_nudge = 0.0
         self.nudges = 0
         self._pos = collections.deque(maxlen=120)
@@ -56,11 +56,11 @@ class Escape:
         self._y = collections.deque(maxlen=40)
         self.th = threading.Thread(target=self._run, daemon=True)
 
-    FREEFALL = 4.0            # 바닥을 모르는 곳(내비메시 빈 곳: 계단 꼭대기·다리)에선 0.8 s 에 이만큼 떨어져야 낙사로 본다
-                              # — 2026-09-24 같은 자리에서 y 0.4 m 변화로 "99 m 아래" 오경보 2번, 매번 10 s 강종만 낭비
+    FREEFALL = 4.0            # where the floor is unknown (navmesh gaps: stair tops, bridges), must drop this much in 0.8 s to count as a fatal fall
+                              # — 2026-09-24: 2 false "99 m below" alarms from a 0.4 m y change at the same spot, each wasting a 10 s forced quit
 
     def floor_drop(self, p) -> float | None:
-        """발밑 바닥까지 거리. 내비메시가 없는 곳이면 None (모름) — 99 로 두면 계단 꼭대기에서 오경보."""
+        """Distance to the floor underfoot. None (unknown) where there is no navmesh — using 99 caused false alarms at stair tops."""
         below = [y for nm in self.nms for y, f, _i in nm.tris_at(p.x, p.z) if not (f & navmesh.BLOCKED) and y <= p.y + 0.3]
         return p.y - max(below) if below else None
 
@@ -100,8 +100,8 @@ class Escape:
             elif now - self.last_crowd > self.CROWD_COOLDOWN:
                 near = [c for c in s.hostile(3.5) if c.hp > 0 and not (9000 <= (c.anim or 0) < 9100)]
                 future = p.hp - self._dps(now) * self.QUIT_S
-                # 퀵 종료는 **그 자리에서** 다시 시작한다 — 적 스폰 옆이면 곧바로 다시 붙는다 (2026-09-24: 5 번 반복, 659 → 24,
-                # 사용자: "지금 위치 강종하기 안 좋아"). 그래서 '곧 죽는다' 일 때만 — 둘러싸임 자체는 4층이 물러나기·다크사인으로
+                # quit-out restarts **on the spot** — next to an enemy spawn they re-engage immediately (2026-09-24: repeated 5 times, 659 → 24,
+                # user: "this spot is bad for a forced quit"). So only on 'about to die' — being surrounded itself is handled by layer 4 via retreat/Darksign
                 if len(near) >= 2 and future < p.max_hp * 0.15:
                     why, kind = f"둘러싸임 {len(near)}명, HP {p.hp}/{p.max_hp}, 2.8 s 뒤 예상 {future:.0f}", "crowd"
             if why:
@@ -109,9 +109,9 @@ class Escape:
             time.sleep(0.02)
 
     def _back_to_mesh(self, secs: float = 2.5) -> str | None:
-        """낙사 퀵 종료 뒤: 게임은 떨어지기 직전 자리(턱 위)에서 다시 시작한다 — 그대로 두면 또 미끄러져
-        떨어짐 → 종료 → 턱 위 재시작을 세 번 되풀이했다 (2026-09-25 183328). 다른 층이 움직이기 전에(패드를 얼린 채)
-        가장 가까운 걸을 수 있는 바닥으로 걸어간다."""
+        """After a fatal-fall quit-out: the game restarts at the spot just before the fall (on the ledge) — left alone it slides again,
+        repeating fall → quit → restart on the ledge three times (2026-09-25 183328). Before other layers move (pad still frozen),
+        walk to the nearest walkable floor."""
         import control
         import nav
         tm = env.make_telemetry({})
@@ -133,22 +133,22 @@ class Escape:
                 self.pad.move(0.0, 0.0)
                 return f"{d:.1f} m"
             st = control.world_to_stick(goal[0] - p.x, goal[2] - p.z, s.cam_yaw, nav.YAW_OFFSET, nav.FLIP_X)
-            self.pad.move(st[0] * 0.6, st[1] * 0.6)          # fire() 안 — 패드를 얼린 이 스레드만 입력이 먹는다
+            self.pad.move(st[0] * 0.6, st[1] * 0.6)          # inside fire() — only this thread, which froze the pad, gets input through
             time.sleep(0.05)
         self.pad.move(0.0, 0.0)
         return "시간 초과"
 
     def _ledge(self, s, p, now: float) -> None:
-        """낭떠러지 턱 위에서 미끄러지면 떨어지기 전에 마지막 안전 자리로 한 걸음 되돌린다.
-        블랙박스(2026-09-25 152400): 봇이 경사로 위에서 메시 밖으로 걸어 나가 2.6 s 동안 턱 위에서 y −39.3 → −40.2 로
-        미끄러진 뒤 떨어져 죽었다 — 낙사 감시는 떨어지기 시작한 뒤에야 퀵 종료를 해서 늦었다."""
+        """If sliding on a cliff ledge, step back toward the last safe spot before falling.
+        Black box (2026-09-25 152400): the bot walked off the mesh on the ramp, slid on the ledge for 2.6 s from y −39.3 → −40.2,
+        then fell and died — the fatal-fall watcher only quit out after the fall began, too late."""
         self._pos.append((now, p.x, p.z))
         drop = self.floor_drop(p)
         if drop is not None and drop < 0.6:
             self.safe_pos = (p.x, p.y, p.z)
             return
-        # 발밑에 걸을 바닥이 없다(None — 그 턱 밑은 비활성 판뿐이었다) 또는 3 m 넘게 아래.
-        # 계단을 내려갈 때도 메시가 비고 y 가 준다 — 그땐 옆으로 빠르게 움직인다. 턱 위 미끄러짐은 1 s 에 0.8 m 도 안 움직였다
+        # no walkable floor underfoot (None — below that ledge were only inactive tiles) or more than 3 m below.
+        # descending stairs also leaves the mesh empty and y dropping — but then we move fast sideways. Ledge sliding moved under 0.8 m in 1 s
         sp = self.safe_pos
         if sp is None or s.cam_yaw is None or (drop is not None and drop < self.LEDGE_DROP):
             return
@@ -170,11 +170,11 @@ class Escape:
             self.events("ledge", drop=None if drop is None else round(drop, 1), slide=round(sp[1] - p.y, 2), pos=[round(p.x, 2), round(p.y, 2), round(p.z, 2)])
 
     def fire(self, why: str, kind: str, tm=None, p=None) -> dict:
-        """메뉴로 나갔다 온다. 위층이 적을 떼어낼 때도 이걸 부른다 (kind='shake'). → 결과"""
+        """Quit to menu and come back. Upper layers also call this to shake off enemies (kind='shake'). → result"""
         if not self.quit_ok:
-            # 사용자 2026-09-26: 영상에 퀵 종료가 나오면 유튜브에 올리기 부적합 — 끄면 기록만 남기고 그대로 싸운다
+            # user 2026-09-26: quit-outs in the video make it unfit for YouTube — when disabled, just log and keep fighting
             self.log(f"   (퀵 종료 꺼짐) {why} — 나가지 않고 계속")
-            self.last_crowd = self.last_fall = time.time()   # 쿨다운은 그대로 — 매 틱 같은 줄을 찍지 않게
+            self.last_crowd = self.last_fall = time.time()   # keep the cooldown — so the same line isn't printed every tick
             return {"why": why, "kind": kind, "skipped": True}
         with self._lock:
             tm = tm or env.make_telemetry({})
@@ -187,8 +187,8 @@ class Escape:
             self.pad.freeze()
             res: dict = {"why": why, "kind": kind, "pos0": pos0}
             try:
-                # 메뉴 없이 곧장 타이틀로 (ChrClassWarp+0x19, 0.58 s) — 메뉴 방식은 2~2.8 s 이고 떨어지는 중엔 메뉴가 안 열렸다.
-                # 안 되면 예전 메뉴 방식
+                # straight to title without the menu (ChrClassWarp+0x19, 0.58 s) — the menu route takes 2~2.8 s and the menu wouldn't open mid-fall.
+                # fall back to the old menu route if that fails
                 t_q = time.time()
                 q = time.time() - t_q if tm.quit_to_title(timeout=2.0) else None
                 res["how"] = "byte" if q is not None else "menu"
@@ -236,10 +236,10 @@ class Escape:
 
 
 class Blood:
-    """핏자국 — 죽으면 소울·인간성을 그 자리(떨어졌으면 떨어지기 직전 가장자리)에 남긴다.
-    예전엔 HP 가 0 으로 읽히는 순간 바로 기록해서, 퀵 종료·로딩 중 가짜 '죽음' 이 화톳불 자리 핏자국으로 남았고,
-    그걸 주우러 가서 A 를 누르면 화톳불에 앉아 잡은 적이 전부 살아났다 (2026-09-24 실측 두 번).
-    그래서 **부활한 뒤 소울이 실제로 줄었을 때만** 기록한다. 살아 있는 동안 소울이 핏자국만큼 한 번에 늘면 회수로 보고 지운다."""
+    """Bloodstain — on death, souls/humanity are left at that spot (if fell, at the edge just before the fall).
+    It used to record the moment HP read 0, so fake 'deaths' during quit-out/loading left bloodstains at the bonfire,
+    and going to pick one up and pressing A sat at the bonfire, reviving every killed enemy (measured twice, 2026-09-24).
+    So it records **only when souls actually dropped after respawn**. While alive, a one-shot soul gain equal to the bloodstain counts as recovery and clears it."""
 
     def __init__(self, log=print):
         self.log = log
@@ -273,7 +273,7 @@ class Blood:
             p = s.player
             if p.hp is not None and p.hp > 0:
                 souls = tm.souls() or 0
-                if pending is not None:                    # 살아 있다 — 진짜 죽었었나?
+                if pending is not None:                    # alive — did we really die?
                     if souls < pending["souls"] or (pending["souls"] == 0 and (tm.humanity() or 0) < pending["humanity"]):
                         rec = {**pending, "t": time.strftime("%Y-%m-%d %H:%M:%S")}
                         BLOODSTAIN.write_text(json.dumps(rec, ensure_ascii=False), encoding="utf-8")
@@ -281,7 +281,7 @@ class Blood:
                     pending = None
                     prev_souls = souls
                 rec = self.read()
-                # 적을 잡아도 소울이 는다 — 핏자국 3 m 안에서 그만큼 늘었을 때만 회수로 본다
+                # kills also add souls — count as recovery only when that much was gained within 3 m of the bloodstain
                 if (rec and prev_souls is not None and souls - prev_souls >= max(1, rec["souls"])
                         and ((p.x - rec["pos"][0]) ** 2 + (p.z - rec["pos"][2]) ** 2) ** 0.5 < 3.0):
                     BLOODSTAIN.unlink(missing_ok=True)

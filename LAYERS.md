@@ -1,384 +1,385 @@
-# DSR 봇 층 구조
+# DSR bot layer structure
 
-2026-09-24 사용자: "기본 동작법, 무기별 사용법, 필드에서 적 처치법, 아이템 파밍, 보스 전투법 — 한번에 섞여 있으니 관리가 힘들다."
-`hunt.py`(3,267줄)에 전부 섞여 있어서, 규칙 하나를 고치면 다른 경로에서 옛 동작이 계속 나왔다.
-예: 강공을 누르는 곳이 두 군데, 잡은 뒤 에스트가 계획마다 따로, 발차기가 강공 모드 안에만 있었다.
+Translated from Korean (2026-09). Log strings quoted in backticks are the literal (Korean) messages the bot prints.
 
-**아래 층은 위 층을 모른다.** 규칙은 한 층의 한 곳에만 둔다.
+2026-09-24 user: "Basic moves, per-weapon usage, how to kill enemies in the field, item farming, how to fight bosses — they're all mixed together, so it's hard to manage."
+Everything was mixed together in `hunt.py` (3,267 lines), so fixing one rule left the old behavior still coming out of another path.
+Examples: heavy attack was pressed in two places, estus after a kill was separate per plan, kick existed only inside heavy-attack mode.
 
-| 층 | 파일 | 아는 것 | 모르는 것 |
+**Lower layers do not know about upper layers.** Each rule lives in exactly one place in one layer.
+
+| Layer | Files | Knows | Does not know |
 |---|---|---|---|
-| 0 게임 연결 | `control.py` `dsr_telemetry.py` `feed.py` `env.py` `nav.py` `navmesh.py` `quitout.py` `farm.py` | 메모리 읽기(피드 스레드 하나가 읽고 모두 같은 프레임을 본다), 패드 보고서, 경로 한 점 가기, 메뉴, **길 복구**(메시 밖이면 같은 높이의 메시 점으로, 시작·끝 보정, 걸어서 못 오르는 단차는 길 없음) | 무기·적·목적 |
-| 1 기본 동작 | `souls/moves.py` | 약공·강공·발차기·백스텝·구르기, 에스트 마시기, 아이템 고르기, 경로 걷기, 퀵 종료, 쉬기 | 누구를 칠지, 언제 마실지 |
-| 2 무기 사용법 | `souls/weapons.py` | 무기 ID별 닿는 거리·연타 수·강공 사용·요구 근력 | 적, 버튼 |
-| 반사 (1층 위·3층 아래) | `souls/reflex.py` | 2.5 m 안 누구든 휘두르기 시작하면(1.3 s 동안) 정면에 두고 방패, 보이지 않게 맞으면 가장 가까운 놈 쪽으로 방패. 3·4층이 **매 틱 먼저** 부르고, 반사가 움직인 틱은 쉰다 | 무기, 목적 |
-| 3 적 상대법 | `souls/foes.py`(데이터) `souls/duel.py`(한 마리) | 적 종류별 대응, 한 틱의 선택(막기·붙기·발차기·치기) | 다른 적, 에스트, 길 |
-| 4 플레이북 | `souls/field.py` `souls/watch.py` · 보스는 `boss/` | **교전 큐**(깨어서 오는 놈 가까운 순 → 없을 때만 스폰 목록의 다음 놈), 회복, 적 떼어내기, 길 걷기, 핏자국, 쉬기 | 임무 목적지 |
-| 스타일 | `souls/style.py` | 방패 여부·잡기·회피 방식·백스텝 공격·헛친 뒤 치기 값을 한 객체에 (guard / backstep). 각 층은 읽기만 | — |
-| 5 임무 | `souls/missions.py` → `run.py` | 어느 플레이북을 어떤 순서로 | 조작 세부 |
+| 0 Game link | `control.py` `dsr_telemetry.py` `feed.py` `env.py` `nav.py` `navmesh.py` `quitout.py` `farm.py` | Memory reads (one feed thread reads, everyone sees the same frame), pad reports, going to one path point, menus, **path recovery** (if off the mesh, snap to a mesh point at the same height; start/end correction; a step too high to walk up = no path) | Weapon, enemies, goals |
+| 1 Basic moves | `souls/moves.py` | Light/heavy attack, kick, backstep, roll, drinking estus, choosing items, walking a path, quit-out, resting | Whom to hit, when to drink |
+| 2 Weapon usage | `souls/weapons.py` | Per weapon ID: reach, number of chained hits, heavy-attack use, required strength | Enemies, buttons |
+| Reflex (above layer 1, below layer 3) | `souls/reflex.py` | If anyone within 2.5 m starts swinging (for 1.3 s), keep it in front and shield; if hit by something unseen, shield toward the nearest one. Layers 3 and 4 call it **first every tick**, and skip any tick in which the reflex moved | Weapon, goals |
+| 3 Enemy handling | `souls/foes.py` (data) `souls/duel.py` (one enemy) | Response per enemy type, the choice for one tick (block, close in, kick, hit) | Other enemies, estus, path |
+| 4 Playbook | `souls/field.py` `souls/watch.py` · bosses in `boss/` | **Engagement queue** (awake, approaching enemies nearest first → only when none, the next one on the spawn list), recovery, peeling enemies off, walking paths, bloodstains, resting | Mission destination |
+| Style | `souls/style.py` | Shield or not, grip, evasion style, backstep attack, punish-after-whiff values in one object (guard / backstep). Every layer only reads it | — |
+| 5 Missions | `souls/missions.py` → `run.py` | Which playbooks in what order | Control details |
 
-## 규칙은 어디에 (한 곳에만)
+## Where each rule lives (one place only)
 
-| 규칙 (출처) | 어디 |
+| Rule (source) | Where |
 |---|---|
-| 공격 버튼은 스틱을 놓고 0.16 s 뒤 — 앞+R1 = 발차기, 앞+R2 = 점프 공격 (사용자·조작표) | `control.Pad.release_stick` — `tap(R1)`·`heavy()`가 강제. 예외는 `kick()`, `jump_attack()`, `tap(stick_ok=True)`(낙하 공격) |
-| 달리기 B 는 경로 내내 유지 — 점마다 떼면 짧은 B = 구르기·점프 (리뷰) | `nav.follow`가 Mover 하나를 경로 끝까지 |
-| 점프 금지 (사용자) | 1층에 점프 동작이 없다 |
-| 에스트는 칸을 고른 뒤 다시 안전 확인, 개수가 줄어야 성공 (리뷰) | `moves.drink` |
-| 에스트 번호는 강화 단계별, 새 캐릭터 201 | `moves.estus_id` |
-| 브로드소드: 약공 2연타, 강공 안 씀, 닿는 거리 1.4 m (사용자·위키·실측) | `weapons.BROADSWORD` |
-| 츠바이헨더: 강공 내려찍기, 양손이면 근력 16 (위키) | `weapons.ZWEIHANDER` |
-| 방패병은 가만히 서서 나를 보면 발차기 (사용자·위키) | `foes.SHIELD.kick_when_idle` → `duel` 5) |
-| 화염병 망자는 안 내려온다 — 달려 붙는다 | `foes.FIREBOMB_HOLLOW.ranged` → `duel._approach` |
-| 높은 턱 위 적에게도 경로로 붙는다 (4·5·6번 시간 초과) | `duel` 3) — 수평 거리 + 높이차 1 m |
-| 교착은 "15 s 피해 0" (예전: 6번 쳐도 → 판 버림) | `duel.STALEMATE_S` |
-| 묘지 해골은 지금 레벨로 안 감 (사용자) | `foes.SKELETON.avoid` |
-| 잡으면 HP 70 % 아래면 에스트 (사용자: "에스트 안 마심"), 싸우기 전 에스트 칸을 미리 골라 둔다 | `field.fight` |
-| 한 마리 실패해도 판을 버리지 않는다 — 회복하고 같은 놈 다시 (세 번) | `field.clear` |
-| 퀵 종료는 위치·경계만 리셋, 죽은 적은 안 살아남 (사용자 확인, 2026-09-24). **정정·주의(2026-09-26, observe R1 `101202`)**: 퀵 종료·다시 불러오기(Escape) 뒤 새 세대에 #2 스폰 자리에 raw HP 85/85 새 개체(`h:10008018#1`)가 섰다 — 그 전 세대의 #2 는 raw HP 0 이었고 판은 `cleared` 로 적혔다. **퀵 종료·다시 불러오기 = 새 생명 경계**, 전후 적을 합쳐 보지 않는다 (`field._liveness` 가 `esc.gen` 변화에 옛 신원을 버린다). **그 자리에서 다시 시작** — 적 스폰 옆이면 곧바로 다시 붙는다 (5 번 반복, 659 → 24, 사용자: "지금 위치 강종하기 안 좋아") → 적 떼어내기에 쓰지 않는다 | `watch.Escape` (낙사·곧 죽음만) |
-| 싸움이 틀어지고 적이 가까운데 HP 60 % 아래: 화톳불 쪽으로 물러나 안전해지면 마신다 | `field.recover` |
-| **다크사인 안 씀** — 쉬는 것처럼 잡은 적이 전부 살아나고(사용자) 소울·인간성까지 잃는다 = 죽는 것보다 나쁘다 (죽으면 핏자국). 붙은 채 쓰면 쓰는 2~3 s 에 맞아 죽는다. 퀵 종료·다크사인으로 다시 불러오면 살아 있던 놈은 HP 가 다시 찬다 | `moves.darksign` 은 남겨 두되 부르는 곳 없음 |
-| 방패병: 발차기 → 가드가 깨지는 순간(9600, 0.45~0.6 s) 곧장 약공 2연타를 한 동작으로 (사용자: "발차기 이후 공격이 너무 시간 간격이 커서 방패병이 다시 가드"). 방패 든 채 선 방패병엔 마무리도 발차기부터 (마무리 약공이 1 씩만) | `moves.kick_combo` · `duel` |
-| **둘이 같이 붙으면 떼어 놓는다** (사용자 2026-09-26 (a)) — 목표와 다른 놈이 둘 다 4 m 안(같은 높이)이고 **그 안에 휘두르는 놈이 없을 때만**(공격 사이 — 돌진 중에 돌아서 뛰다 등을 맞음 −281, observe 094231) 둘의 가운데에서 멀어지는 쪽으로 5 m 달린다(그쪽에 arena 가 있으면 arena). 내비메시 위·끊김 없는 직선(clear_line)인 자리만, 없으면 안 달림. 5 s 쿨다운·한 싸움 3번까지, 휘청·누움·한 대면 죽는 놈 앞에선 안 달림. 방패병 옆 망자에게 −161 → 스태미나 −5 → 3210 에 가드 깨짐 −103 (observe 092612) | `duel._pair_close`·`_separate`·`SEP_*` |
-| **방패병엔 한 템포 빨리 발차기 — 지금은 그림자(shadow)만** (Patch D, 2026-09-26: 원시 애니 3004·3500 의 뜻이 검증 전이라 자동 발차기를 끄고 `duel.ShadowKick` 이 (핸들, 세대, 애니, 시작)마다 후보 사건과 1.5 s 뒤 결과만 남긴다. 실제 발차기(`early_kick="act"`)는 따로 승인받은 실험에서만). 원래 근거 (사용자 2026-09-26) — 3004 는 다가오는 속도와 상관없이 시작 2.0~2.1 s 에 닿는다: 1.2 s 안이면 발차기로 끊고(0.4~0.7 s 에 친 2번 모두 0), 넘으면 막는다(1.6 s 넘어 '선 것'으로 보고 발차기 → −220·−323). 공격 뒤 휘청 3500 은 곧 물러나니(0.8~1.3 s, 1 m → 3~4.7 m) 곧장 발차기 — 반사·끌어오기보다 먼저 본다 (예전엔 3500 에 '끌어오기'로 평지로 뛰어감). 3005 돌진은 그대로 막기(1~2) | `foes.SHIELD.windup`·`windup_act_s`·`kick_on_stagger`·`early_kick` → `duel._early_kick_candidate`·`ShadowKick` |
-| 방패병은 휘청 반격 한 대만 (두 번째 사이에 100~115 되받아침) | `foes.SHIELD.punish_hits` |
-| 끌어오기: 그놈이 알아채면(움직이거나 8 m 안) 평평한 자리(arena)로 물러나 거기서 싸운다 (사용자: "원하는 지형까지 끌고 가기"; 2번 자리는 위 턱 화염병이 떨어져 1 s 에 275) | `duel` 0--) · `PULL_R` |
-| 에스트 안전: 25 m 안에 깨어 있는 던지는 놈(화염병)이 있으면 안전하지 않다 (8 m 만 보다 마시는 중 맞아 끊기고 사망) | `field.safe` · `RANGED_R` |
-| 반사는 한 공격 동안 막기 시작한 놈을 계속 정면에, 싸우는 상대 우선 (매 틱 가장 가까운 놈으로 바꿔 앞뒤 둘을 번갈아 보다 옆·뒤를 맞음) | `reflex._lock` · `prefer` |
-| 한 대면 죽고 안 휘두르는 상대는 반사보다 먼저 친다 (HP 18 앞에서 방패만 쥐다 사망) | `duel` 맨 앞 마무리 |
-| 브로드소드 닿는 거리 1.2 m — 먼저 치기·마무리는 이 안에서만 (1.3~1.6 m 에서 휘두른 약공 8 번 전부 헛침, 테라스) | `weapons.BROADSWORD.reach` |
-| 스태미나 회복·반사의 '물러나기'는 **정면을 본 채 제자리** — 락온 없이 반대쪽으로 스틱을 밀면 뒤돌아 걸어가 등을 맞는다 (사용자: "방향 정렬 못하고 엉뚱한 데로 공격") | `duel` 4) · `reflex.step_away` |
-| 물러나지도 마시지도 못하면 다음 싸움은 끝까지 (0.1 s 마다 '낮음→못 물러남→못 마심' 헛돌며 서서 맞아 죽음) | `field` desperate |
-| 물러날 곳은 그 구역 안 — 성벽 마을에선 입구(B0) (불의 제전으로는 경로가 없어 no_path) | `missions` → `field.home` |
-| **먼저 친다** — 닿는 거리의 망자가 공격을 막 시작했거나(0.35 s 안) 가만히 서 있으면 방패보다 약공이 먼저 (사용자: "한 대라도 휘두르면 그 적이 물러났을 텐데"; 약공 한 대에 경직 2000·2002). 방패병 제외, 옆에서 다른 놈이 휘두르면 막기부터 | `duel.INTERRUPT_S` |
-| 약공은 내 공격 애니가 끝나면 바로 다음 틱 (1.5 s 를 다 채우며 아무것도 못 보던 것) — 한 번에 한 가지만 하는 루프라 붙잡는 시간을 줄인다 | `moves.light` early_exit |
-| 공격 애니(3000번대)가 1.6 s 넘게 이어지면 휘두르는 중이 아니다 — 막기·먼저 치기·발차기 판단 모두 (창 방패병이 3001 에 머문 채 방패를 들어 15 s 막기만, 발차기 안 나감) | `duel.SWING_S` |
-| 목표 바꾸기는 0.8 m 넘게 더 가까울 때만, 바꾼 뒤 3 s 는 유지 (비슷한 거리 둘 사이에서 1~2 s 마다 바꾸며 등을 맞음) | `duel.SWITCH_MARGIN`·`SWITCH_HOLD` |
-| **끼어든 놈부터** — 목표보다 가까운 깨어 있는 놈이 2.5 m 안·같은 높이면 그놈을 치고, 잡으면 원래 목표로 (사용자: "가까운 적 공격 못해?"; 지도 목표만 보다 옆에서 13 s 에 387 맞고 사망). '평평한 자리로 떼어내기' 는 뺐다 — 끌어오기·자리옮김과 부딪혀 헛돌았다 | `duel.SWITCH_R` |
-| **원거리부터, 그다음 끼어든 놈** — 던지는 놈(foes.ranged)이 던지는 중이면 거리·높이 상관없이(25 m 안) 그놈부터: 안 그러면 눈앞 상대만 상대하다 위(또는 멀리)에서 계속 맞아 방어 위주가 된다 (사용자 2026-09-25: "위에 화살 쏘는 애가 공격하니 방어 위주로 세팅됨 — 그놈부터 처리해야 함") | `duel.RANGED_SWITCH_R` |
-| 안개벽: 길을 걷다 두 번 막히면 다음 점 쪽으로 몸을 돌려 안내창("Traverse the white light")이 뜨면 A (사용자: "안개벽 A 눌러", "방향 정렬"). 성벽 마을 안개는 한 번 지나면 다시 안 생긴다 (사용자) | `field.fog_through` |
-| 스폰 근처에 없으면 30 m 까지 찾는다 (쫓아온 4번을 '이미 죽음' 으로 건너뜀) | `field.clear` |
-| 끌어오기·자리옮김은 그놈이 따라올 수 있을 때만 — arena 와 높이가 3 m 넘게 다른 턱 위 놈엔 안 한다 (5번에게 오르내리기만 반복, 세 번 막힘) | `duel.LEDGE_DY` |
-| 그놈이 휘두르는 중이라도 닿는 거리 밖이면 방패 든 채 다가간다 (제자리 막기만으로는 멀리서 3008 을 반복하는 놈에게 못 닿는다) | `duel` 1) |
-| **나이프 락온은 카메라부터** — R3 는 카메라 가운데 놈을 잡는다(자동 락온). 누르기 전에 오른스틱으로 카메라를 그놈에게 5° 안으로, 옆 놈에 걸리면 풀고 다시 카메라 → R3, 최대 3번 (사용자: "릴리스하고, 원하는 적으로 카메라 잡고, 스틱을 누름"). 몸만 돌리고 R3 두 번은 옆의 3번에 두 번 다 걸렸다 (clear-ramp 2026-09-26 090241). 오른스틱 부호는 첫 펄스로 배운다 | `moves.look_at`·`look_pulse`·`throw_knife` |
-| **카메라는 상대하는 적을 향한다** — 봇 판단엔 필요 없지만 화면을 보는 사람이 뭘 하는지 알 수 있게 (사용자 2026-09-26). 싸우는·끌어오는 놈(`mv.cam_target`), 없으면 12 m 안 깨어 움직이는 가장 가까운 놈. 25° 넘게 벗어날 때만 돌린다. 락온 중(오른스틱이 대상을 바꿈)·나이프 락온 중·긴급 탈출 중엔 손대지 않는다. 걷기·공격 방향은 틱마다 그때 카메라로 다시 계산하므로 영향 없음 | `souls/camera.CamFollow` (run.py 가 켠다) · `field.fight`·`lure` 가 `cam_target` |
-| 경사로 순서 1 → 3 → **2** → 4 → 5 → 6 (2026-09-26 사용자 시범 두 판 순서). 2번 방패병은 **평지(-30.35,-49.43,27.91)에서 13~14.5 m 로만** 나이프를 던져 깨운다 — 그 안은 화염병 거리, 락온이 안 걸려도 더 다가가지 않는다 (사용자: "내가 던진 거리 만큼 충분한 거리에서만"). **끌어오기가 안 되면 방패병에게 걸어가지 않고 던질 자리를 고수**한다 — 8 s 기다리며 오는 놈(#3 등)을 거기서 받고 다시 던지기, 3번 안 되면 맨 뒤로 (사용자: "첫번째 적을 잡은 위치를 고수해야 돼, 그 근처에서 하면 방패병이 인식을 못함"; 봇은 매번 방패병 8.8~9.1 m 에서 들킴, 사용자는 12 m 안으로 안 들어감). 사거리 상한 15 m. **Patch B(2026-09-26)**: 미룬 뒤에도 찾아가지 않는다 — 한 바퀴 더 던져 보고 안 되면 입력 중립·`partial deferred_unreachable #2` 로 끝낸다(부르는 쪽은 길을 더 가지 않음). **Patch C**: 기다리는 동안 방패를 계속 들지 않는다(아래 절). 예전엔 2번이 맨 나중이었고 끌어오기는 평지가 13 m 넘게 멀면 길 따라 10 m 까지 다가가 던졌다 | `missions.RAMP_ORDER`·`RAMP_LURE_AT` → `field.lure(lure_at=)` |
-| (다음 후보) 화염병 던지는 몹부터, 위에서 아래로 (사용자, hunt.py 메모) | — |
-| 막힘은 3 m 밖에서만 / 그놈 HP 40 아래면 내 HP 12 % 까지 안 빠진다 | `duel` 3) · `FINISH_KEEP_HP` |
-| 쉬면 적 전부 부활 → 판을 새로 시작할 때만 | `field.rest_at`, `missions.start_fresh` |
-| 길에서 쫓아오는 놈은 먼저 잡는다 (사용자: "적이 있는데 왜 대응 안해") | `field.walk` chaser |
-| 곧 죽을 때만 퀵 종료 — 3.5 m 안 둘 이상이고 2.8 s 뒤 예상 HP 15 % 아래, 60 s 에 한 번 (2.4 s 사이 298 → 24) | `watch.Escape._dps` |
-| 핏자국은 부활 뒤 소울이 줄었을 때만 기록, 화톳불 6 m 안에선 A 안 누름 (가짜 죽음 → 앉아서 적 부활, 두 번 실측) | `watch.Blood`, `field.pick_blood` |
-| 공격하는 놈을 **정면**에 두고 막는다 — 옆·뒤로 막으면 74, 정면은 34 (기록 분석). 상대가 아닌 놈도 | `reflex.Reflex.tick` |
-| 위협은 공격 애니가 막 시작된 뒤 1.3 s 만 — 3000 번대가 몇 초 남아 옛 반사가 87 s 에 1 번만 공격했다 | `reflex.THREAT_S` |
-| 방패는 위협일 때만 — 들고 있으면 스태미나 회복 80 % 감소 (위키) | `reflex` · `duel` 1) 4) |
-| 막으면 안 되는 공격(방패병 가드 브레이크 3009)은 백스텝, 뒤가 낭떠러지면 옆으로 구르기 (막다 가드가 깨져 밀려나 낙사, 2026-09-24) | `foes.SHIELD.unblockable` → `reflex.dodge` (4층이 판정 함수를 넘김) |
-| 그놈 HP 가 약공 한 대 안쪽(25)이면 스태미나 15 만 있어도 마무리 (방패병 HP 10 으로 4 s 버팀) | `duel.FINISH_HP` |
-| 낭떠러지 옆에서 싸우지 않는다 — 발밑 안전도(nav.footing)가 나쁘면 그놈이 안 휘두를 때 평평한 자리(경사로: ARENA)로 물러나 맞이한다. 추락은 퀵 종료로 못 구한다 (떨어지는 중·경직 중엔 메뉴가 안 열림, 사용자: "강종 느림") | `duel` 0-) · `missions.RAMP_ARENA` |
-| 스태미나 25 아래면 반사가 막지 않고 물러난다, 싸움도 방패 대신 물러나 회복 (SP 12~22 로 막다 가드가 깨져 밀려나 낙사) | `reflex.GUARD_SP` · `duel` 4) |
-| 퀵 종료 중엔 4층·실행이 기다린다 (안 기다려 남은 적 다섯을 0.5 s 만에 '취소', 퀵 종료 도중 프로그램 종료) | `field.wait_escape` · `run.py` finally |
-| 낙사: 떨어지는 속도(0.4 s 에 2.5 m)로도 보고, 발밑 8 m 넘게 아래면 퀵 종료 (15 m 기준이라 경사로 옆 10~12 m 추락을 못 잡음) | `watch.Escape.LETHAL_DROP`·`FALL_V` |
-| 휘청(3500~3599)은 공격이 아니라 **틈** — 막기에 튕기면 곧장 약공 (3000~3599 를 공격으로 봐서 12 s 동안 막기만 했다) | `moves.ATTACK`/`STAGGER`, `duel` 1-) |
-| 싸우는 중 에스트: HP 50 % 아래, 틈(그놈 넘어짐 또는 휘두르지 않고 3 m 밖, 다른 놈 5 m 밖)일 때만. 붙어 있으면 백스텝 (사용자: "안전하면 마시게") | `duel.opening`(틈) · `field.Care`(마실지) |
-| 걷는 중 HP 60 % 아래면 안전할 때 70 % 까지 (사용자) | `field.walk` |
-| 락온 안 씀 (사용자·실측) | `moves.face` (heading 으로 몸 맞추기) |
-| **한 놈씩 깨운다** — 투척 나이프(290)로 13 m 밖에서 한 놈만 맞혀 평지(arena)로 오게 하고 거기서 싸운다 (사용자: "가장 좋은 건 하나씩 불러와서", "투척 나이프 있으니 멀리서"). 던질 때만 락온(옛 실측: 락온 없이는 1.2° 안·위의 놈은 안 맞음). 잠들었는지는 애니 -1 + 0.4 s 정지로 본다 (지도 스폰 좌표와 비교하면 6 m 떨어져 선 놈을 '깸' 으로 오판). 첫 판 2026-09-24: 6/6 처치, 강종 0, 방패병도 평지에서. 나이프 5 개 아래면 경고 — 상인에게 사는 건 나중. `--no-lure` 로 비교 | `moves.throw_knife`·`aim`·`lock_state` · `field.lure`·`_asleep` · `field.clear(lure=)` |
-| 나이프는 **10 m 안**에서 (락온 12 m 는 2/3 빗나감, 10.8 m 맞음). 락온 없이 던지면 **카메라 방향·기울기**대로 날아가므로 R3 로 카메라를 몸 뒤로 되돌린 뒤 던진다 (사용자: "던질 때 방향 정렬"). 근접 헛침은 방향이 아니라 사거리 — 각 5° 안·1.2 m 안 95 %, 1.2~1.6 m 70 % (110회 분석) | `field.LURE_R` · `moves.reset_camera`·`throw_knife` |
-| 화톳불은 워프 없이 자리(0.35 m)까지 걸어가 화톳불 쪽으로 몸 돌리고 A, 두 번 실패하면 워프 (사용자: "화톳불도 정확하게 못 가고 지정 위치로 감") | `farm.rest` |
-| 바닥을 모르는 곳(내비메시 빈 곳: 계단 꼭대기·다리)에선 0.8 s 에 4 m 넘게 떨어져야 낙사 — "99 m 아래" 오경보로 10 s 강종만 두 번 낭비 | `watch.Escape.FREEFALL`·`floor_drop` → None |
-| 강종은 게임 한계 2.5 s + 재접속 5.6 s — 메뉴 단계는 화면 확인 뒤 곧장(VERIFIED_GAP), 단 START 뒤엔 메뉴 글자가 보인 뒤 LEFT (0.02 s 만에 누르면 씹혀 1.3 s 손해). 재접속 A 는 0.5 s 마다. 단계별 시간은 escape 사건의 quit_steps | `quitout.quit_out`·`reload`·`LAST_STEPS` |
-| 구역을 건너갈 땐 좌표 워프 금지 — 지형이 안 로드돼 추락사 (성벽 마을→불의 제전). `set_last_bonfire` + 다크사인 (**소울 먼저 확인** — 680 잃음) | `dsr_telemetry.set_last_bonfire`·`moves.darksign` |
-| 게임 메모리는 **피드 스레드 하나**가 읽는다 — 층마다 따로 읽으면(duel 4·field 17·moves 6·watch 스레드) 한 틱에 읽기가 겹치고 층마다 다른 시점을 본다. 50 ms 안 프레임은 그대로, 낡았으면 다음 프레임을 기다림, 40 m 밖·스레드 죽음은 직접 읽기. `BOT_FEED=0` 으로 끔. 실측 `feed_bench.py` | `feed.Feed` · `env.make_telemetry` (프로세스당 하나) |
+| Attack buttons 0.16 s after releasing the stick — forward+R1 = kick, forward+R2 = jump attack (user, control chart) | `control.Pad.release_stick` — enforced by `tap(R1)`/`heavy()`. Exceptions: `kick()`, `jump_attack()`, `tap(stick_ok=True)` (plunging attack) |
+| Sprint B is held for the whole path — releasing at each point makes a short B = roll/jump (review) | `nav.follow` keeps one Mover to the end of the path |
+| No jumping (user) | Layer 1 has no jump move |
+| Estus: re-check safety after selecting the slot; success only if the count drops (review) | `moves.drink` |
+| Estus ID is per upgrade level; new character 201 | `moves.estus_id` |
+| Broadsword: 2-hit light chain, no heavy attack, reach 1.4 m (user, wiki, measured) | `weapons.BROADSWORD` |
+| Zweihander: heavy attack is an overhead slam; two-handed needs 16 strength (wiki) | `weapons.ZWEIHANDER` |
+| Kick a shield soldier standing still and facing me (user, wiki) | `foes.SHIELD.kick_when_idle` → `duel` 5) |
+| Firebomb hollows don't come down — run up to them | `foes.FIREBOMB_HOLLOW.ranged` → `duel._approach` |
+| Close in via path even on enemies atop a high ledge (#4, #5, #6 timed out) | `duel` 3) — horizontal distance + height difference 1 m |
+| Stalemate is "15 s with 0 damage" (previously: 6 hits → abandon the run) | `duel.STALEMATE_S` |
+| Don't go to the graveyard skeletons at the current level (user) | `foes.SKELETON.avoid` |
+| After a kill, drink estus if HP below 70 % (user: "doesn't drink estus"); pre-select the estus slot before fighting | `field.fight` |
+| One failed enemy doesn't abandon the run — recover and retry the same one (three times) | `field.clear` |
+| Quit-out resets only position/aggro; dead enemies don't come back (user confirmed, 2026-09-24). **Correction/caution (2026-09-26, observe R1 `101202`)**: after a quit-out/reload (Escape), in the new generation a fresh entity with raw HP 85/85 (`h:10008018#1`) stood at #2's spawn — the previous generation's #2 had raw HP 0 and the run was logged as `cleared`. **Quit-out/reload = new-life boundary**; don't merge enemies across it (`field._liveness` drops old identities on an `esc.gen` change). **You restart on the spot** — next to an enemy spawn, it engages again immediately (repeated 5 times, 659 → 24; user: "bad spot for a force-quit right now") → don't use it to peel enemies off | `watch.Escape` (lethal falls / imminent death only) |
+| Fight gone wrong, enemy close, HP below 60 %: back off toward the bonfire and drink once safe | `field.recover` |
+| **Never use the Darksign** — like resting, every killed enemy revives (user), and you also lose souls and humanity = worse than dying (dying leaves a bloodstain). Used while engaged, you get killed during its 2–3 s. After reloading via quit-out/Darksign, enemies that were alive have full HP again | `moves.darksign` kept but nothing calls it |
+| Shield soldier: kick → the moment the guard breaks (9600, 0.45–0.6 s) immediately a 2-hit light chain as one move (user: "the gap between the kick and the attack is so long the shield soldier guards again"). Against a shield soldier standing with shield up, the finisher also starts with a kick (finishing light attacks do only 1 each) | `moves.kick_combo` · `duel` |
+| **When two engage together, separate them** (user 2026-09-26 (a)) — only when the target and another enemy are both within 4 m (same height) **and none of them is swinging** (between attacks — turning to run mid-lunge got me hit in the back −281, observe 094231), sprint 5 m away from their midpoint (toward the arena if it lies that way). Only to a spot on the navmesh with an unbroken straight line (clear_line); if none, don't run. 5 s cooldown, up to 3 times per fight; don't run in front of a staggered / downed / one-hit-kill enemy. From the hollow next to a shield soldier −161 → stamina −5 → guard broken at 3210 −103 (observe 092612) | `duel._pair_close`·`_separate`·`SEP_*` |
+| **Kick shield soldiers one beat early — currently shadow only** (Patch D, 2026-09-26: the meaning of raw anims 3004/3500 is unverified, so auto-kick is off and `duel.ShadowKick` only logs a candidate event plus the outcome 1.5 s later per (handle, generation, anim, start). Real kicks (`early_kick="act"`) only in separately approved experiments). Original basis (user 2026-09-26) — 3004 lands 2.0–2.1 s after start regardless of approach speed: within 1.2 s, interrupt with a kick (both hits at 0.4–0.7 s took 0); past that, block (treating it as 'standing' past 1.6 s and kicking → −220, −323). The post-attack stagger 3500 soon retreats (0.8–1.3 s, 1 m → 3–4.7 m), so kick immediately — checked before reflex and lure (previously on 3500 it ran off to the arena via 'lure'). 3005 lunge: still block (1–2) | `foes.SHIELD.windup`·`windup_act_s`·`kick_on_stagger`·`early_kick` → `duel._early_kick_candidate`·`ShadowKick` |
+| Shield soldier: only one stagger punish hit (between the second, it counters for 100–115) | `foes.SHIELD.punish_hits` |
+| Lure: when it notices (moves or within 8 m), back off to flat ground (arena) and fight there (user: "drag them to the terrain you want"; at spot #2, firebombs from the ledge above landed for 275 in 1 s) | `duel` 0--) · `PULL_R` |
+| Estus safety: unsafe if an awake thrower (firebomb) is within 25 m (checking only 8 m got me interrupted mid-drink and killed) | `field.safe` · `RANGED_R` |
+| Reflex keeps whoever it started blocking in front for the duration of that attack, preferring the fight opponent (switching to the nearest every tick alternated between front and back ones and got me hit from the side/back) | `reflex._lock` · `prefer` |
+| A non-swinging opponent that dies in one hit gets hit before the reflex (died just holding a shield in front of HP 18) | `duel` finisher at the very top |
+| Broadsword reach 1.2 m — pre-emptive hits and finishers only within it (all 8 light attacks swung at 1.3–1.6 m whiffed, terrace) | `weapons.BROADSWORD.reach` |
+| Stamina recovery and the reflex's 'back off' are **in place, facing forward** — without lock-on, pushing the stick backward turns and walks away, taking hits in the back (user: "can't align direction, attacks in a weird direction") | `duel` 4) · `reflex.step_away` |
+| If it can neither back off nor drink, the next fight goes to the end (every 0.1 s it spun 'low → can't retreat → can't drink', standing there getting killed) | `field` desperate |
+| The retreat spot is inside that zone — in Undead Burg, the entrance (B0) (no path to Firelink Shrine → no_path) | `missions` → `field.home` |
+| **Hit first** — if a hollow in reach has just started an attack (within 0.35 s) or is standing still, light attack before shield (user: "if you'd swung even once that enemy would have backed off"; one light attack causes flinch 2000/2002). Not for shield soldiers; block first if another enemy beside is swinging | `duel.INTERRUPT_S` |
+| Light attack: next tick as soon as my attack anim ends (it used to sit through the full 1.5 s seeing nothing) — the loop does one thing at a time, so cut holding time | `moves.light` early_exit |
+| An attack anim (3000s) lasting over 1.6 s is not a swing — for block, hit-first, and kick decisions (a spear shield soldier stayed in 3001 with shield up; 15 s of blocking only, no kick) | `duel.SWING_S` |
+| Switch targets only if more than 0.8 m closer, hold for 3 s after switching (switching every 1–2 s between two at similar distance got me hit in the back) | `duel.SWITCH_MARGIN`·`SWITCH_HOLD` |
+| **Interlopers first** — if an awake enemy closer than the target is within 2.5 m at the same height, hit it, then back to the original target after the kill (user: "can't you attack the nearby enemy?"; watching only the map target, took 387 from the side in 13 s and died). 'Peel off to flat ground' was removed — it clashed with lure/reposition and spun | `duel.SWITCH_R` |
+| **Ranged first, then interlopers** — if a thrower (foes.ranged) is throwing, go for it regardless of distance/height (within 25 m): otherwise it handles only the opponent in front while being hit from above (or far away), ending up defensive (user 2026-09-25: "the one shooting arrows from above is attacking, so it's set to defense mode — deal with that one first") | `duel.RANGED_SWITCH_R` |
+| Fog wall: if blocked twice while walking a path, turn toward the next point and press A when the prompt ("Traverse the white light") appears (user: "press A at the fog wall", "align direction"). The Undead Burg fog doesn't reappear once passed (user) | `field.fog_through` |
+| If not near its spawn, search up to 30 m (skipped #4, which had followed, as 'already dead') | `field.clear` |
+| Lure/reposition only when the enemy can follow — not for enemies on a ledge more than 3 m in height from the arena (#5 just kept going up and down, blocked three times) | `duel.LEDGE_DY` |
+| Even while it's swinging, if it's out of reach, approach with shield up (blocking in place can't reach an enemy repeating 3008 from afar) | `duel` 1) |
+| **Knife lock-on starts with the camera** — R3 locks the enemy at camera center (auto lock-on). Before pressing, use the right stick to put the camera within 5° of it; if it catches the neighbor, release, re-aim camera → R3, up to 3 times (user: "release, point the camera at the enemy you want, press the stick"). Turning just the body and pressing R3 twice caught #3 beside it both times (clear-ramp 2026-09-26 090241). The right-stick sign is learned from the first pulse | `moves.look_at`·`look_pulse`·`throw_knife` |
+| **The camera faces the enemy being engaged** — not needed for bot decisions, but so a human watching the screen can tell what it's doing (user 2026-09-26). The fought/lured enemy (`mv.cam_target`); otherwise the nearest awake, moving enemy within 12 m. Only turns when off by more than 25°. Hands off during lock-on (right stick switches target), knife lock-on, and emergency escape. Walk/attack directions are recomputed from the current camera each tick, so no effect | `souls/camera.CamFollow` (enabled by run.py) · `field.fight`/`lure` set `cam_target` |
+| Ramp order 1 → 3 → **2** → 4 → 5 → 6 (order from the user's two demo runs, 2026-09-26). #2 shield soldier is woken with a knife **only from the flat ground (-30.35,-49.43,27.91) at 13–14.5 m** — closer is firebomb range; even if lock-on fails, don't move closer (user: "only from a distance as far as where I threw"). **If the lure fails, don't walk to the shield soldier; hold the throwing spot** — wait 8 s, take approaching enemies (#3 etc.) there, throw again; after 3 failures, move it to the end (user: "you have to hold the spot where you killed the first enemy; near there the shield soldier doesn't notice you"; the bot was spotted every time at 8.8–9.1 m from the shield soldier, the user never went within 12 m). Range cap 15 m. **Patch B (2026-09-26)**: don't go seek it even after deferring — try one more round of throws, and if that fails, neutral input and end with `partial deferred_unreachable #2` (the caller doesn't continue down the path). **Patch C**: don't keep the shield up while waiting (section below). Previously #2 was last, and if the flat ground was over 13 m away, the lure walked up to 10 m along the path to throw | `missions.RAMP_ORDER`·`RAMP_LURE_AT` → `field.lure(lure_at=)` |
+| (Next candidate) firebomb throwers first, top to bottom (user, hunt.py note) | — |
+| Blocked only counts beyond 3 m / if its HP is below 40, don't bail until my HP 12 % | `duel` 3) · `FINISH_KEEP_HP` |
+| Resting revives all enemies → only when starting a fresh run | `field.rest_at`, `missions.start_fresh` |
+| Kill enemies chasing on the path first (user: "there's an enemy, why don't you respond") | `field.walk` chaser |
+| Quit-out only when about to die — two or more within 3.5 m and projected HP below 15 % in 2.8 s, once per 60 s (298 → 24 in 2.4 s) | `watch.Escape._dps` |
+| Record a bloodstain only if souls dropped after respawn; don't press A within 6 m of a bonfire (fake death → sat down, enemies revived; measured twice) | `watch.Blood`, `field.pick_blood` |
+| Block with the attacker **in front** — blocking to the side/back took 74, in front 34 (log analysis). Also for enemies other than the opponent | `reflex.Reflex.tick` |
+| A threat is only the 1.3 s after an attack anim starts — 3000s linger for seconds, so the old reflex attacked just once in 87 s | `reflex.THREAT_S` |
+| Shield only on a threat — holding it cuts stamina regen by 80 % (wiki) | `reflex` · `duel` 1) 4) |
+| Unblockable attacks (shield soldier guard break 3009): backstep; if there's a drop behind, side roll (blocking got the guard broken, pushed off, fell to death, 2026-09-24) | `foes.SHIELD.unblockable` → `reflex.dodge` (layer 4 passes the check function) |
+| If its HP is within one light attack (25), finish with as little as 15 stamina (shield soldier survived 4 s on HP 10) | `duel.FINISH_HP` |
+| Don't fight next to a drop — if footing safety (nav.footing) is bad, back off to flat ground (ramp: ARENA) when it isn't swinging and meet it there. Quit-out can't save a fall (menu won't open while falling or flinching; user: "force-quit is slow") | `duel` 0-) · `missions.RAMP_ARENA` |
+| Below 25 stamina, the reflex backs off instead of blocking, and the fight also backs off to recover instead of shielding (blocking at SP 12–22 got the guard broken, pushed off, fell to death) | `reflex.GUARD_SP` · `duel` 4) |
+| During a quit-out, layer 4 and the runner wait (without waiting, it 'cancelled' the five remaining enemies in 0.5 s, and the program exited mid-quit-out) | `field.wait_escape` · `run.py` finally |
+| Falls: also judge by fall speed (2.5 m in 0.4 s); quit-out if the ground is more than 8 m below (the 15 m threshold missed 10–12 m falls beside the ramp) | `watch.Escape.LETHAL_DROP`·`FALL_V` |
+| Stagger (3500–3599) is not an attack but an **opening** — if it bounces off my block, light attack immediately (treating 3000–3599 as attacks, it blocked for 12 s straight) | `moves.ATTACK`/`STAGGER`, `duel` 1-) |
+| Estus mid-fight: HP below 50 %, only in an opening (enemy down, or not swinging and beyond 3 m, others beyond 5 m). If engaged, backstep (user: "drink when it's safe") | `duel.opening` (opening) · `field.Care` (whether to drink) |
+| While walking, if HP below 60 %, drink up to 70 % when safe (user) | `field.walk` |
+| No lock-on (user, measured) | `moves.face` (align body by heading) |
+| **Wake them one at a time** — hit a single enemy with a throwing knife (290) from beyond 13 m so it comes to the flat ground (arena), and fight there (user: "best is to pull them one at a time", "you have throwing knives, from afar"). Lock-on only when throwing (old measurement: without lock-on, enemies within 1.2° / above didn't get hit). Asleep is judged by anim -1 + 0.4 s stationary (comparing against map spawn coords misread one standing 6 m away as 'awake'). First run 2026-09-24: 6/6 killed, 0 force-quits, shield soldier also on flat ground. Warn below 5 knives — buying from the merchant later. Compare with `--no-lure` | `moves.throw_knife`·`aim`·`lock_state` · `field.lure`·`_asleep` · `field.clear(lure=)` |
+| Knives **within 10 m** (lock-on at 12 m missed 2/3, 10.8 m hit). Thrown without lock-on, it flies along **camera direction/pitch**, so reset the camera behind the body with R3 before throwing (user: "align direction when throwing"). Melee whiffs are about range, not direction — within 5° and within 1.2 m 95 %, 1.2–1.6 m 70 % (110-swing analysis) | `field.LURE_R` · `moves.reset_camera`·`throw_knife` |
+| Bonfire: walk to the spot (0.35 m) without warping, turn toward the bonfire and press A; warp after two failures (user: "can't even get to the bonfire precisely, it goes to the designated position") | `farm.rest` |
+| Where the floor is unknown (navmesh gaps: stair tops, bridges), a lethal fall needs more than 4 m drop in 0.8 s — a "99 m below" false alarm wasted two 10 s force-quits | `watch.Escape.FREEFALL`·`floor_drop` → None |
+| Force-quit takes game limit 2.5 s + reload 5.6 s — menu steps proceed immediately after screen confirmation (VERIFIED_GAP), except after START, press LEFT only once the menu text is visible (pressing after 0.02 s gets eaten, losing 1.3 s). Reload A every 0.5 s. Per-step times are in the escape event's quit_steps | `quitout.quit_out`·`reload`·`LAST_STEPS` |
+| No coordinate warps across zones — terrain doesn't load, fatal fall (Undead Burg → Firelink Shrine). `set_last_bonfire` + Darksign (**check souls first** — lost 680) | `dsr_telemetry.set_last_bonfire`·`moves.darksign` |
+| Game memory is read by **a single feed thread** — reading per layer (duel 4, field 17, moves 6, watch thread) overlapped reads in one tick and each layer saw a different moment. Frames within 50 ms are used as-is; if stale, wait for the next frame; beyond 40 m or dead thread, read directly. Disable with `BOT_FEED=0`. Measured with `feed_bench.py` | `feed.Feed` · `env.make_telemetry` (one per process) |
 
-## 근거 등급 게이트 (2026-09-26, 사용자) — 정책을 더하거나 바꾸기 전에
+## Evidence-grade gate (2026-09-26, user) — before adding or changing a policy
 
-이동·전투 정책을 더하거나 바꾸기 전에, 거기 쓰는 **모든 수치·물리 주장**을 아래 다섯 등급 중 하나로 정확히 분류한다.
+Before adding or changing a movement/combat policy, classify **every number and physical claim** it uses into exactly one of the five grades below.
 
-| 등급 | 허용 범위 |
+| Grade | Allowed scope |
 |---|---|
-| `human_verified` / `repeated_observer_evidence` | 범위를 적은 **좁은 맵 전용** 정책의 근거가 될 수 있다 |
-| `navmesh_or_data_derived` | 위험한 행동을 **막는 데만** 쓴다 — 이동·전투가 물리적으로 안전하다는 증명이 못 된다 |
-| `code_constant_only` | 타임아웃·재시도·보수적 대기 한도만. 다가가기·달리기·구르기·발차기·층 넘기의 근거가 못 된다 |
-| `unknown` | 자동 이동·공격·회피·가드·달리기·경로 선택을 **절대** 일으키지 않는다 |
+| `human_verified` / `repeated_observer_evidence` | May justify a **narrow, map-specific** policy with its scope stated |
+| `navmesh_or_data_derived` | Only for **blocking** dangerous actions — not proof that a movement/combat action is physically safe |
+| `code_constant_only` | Only timeouts, retries, conservative wait limits. Not a basis for approaching, sprinting, rolling, kicking, or crossing floors |
+| `unknown` | Must **never** trigger automatic movement, attack, evasion, guard, sprint, or path choice |
 
-- 주장마다 맵, 적 NPC 종류, 무기·장비, 플레이어 상태, 확신도를 적는다.
-- 날 애니 번호(3004·3500 등)는 그 적에 대해 영상·수동 보정으로 의미가 증명되기 전까지 **증거일 뿐**이다.
-- 플레이어 충돌, 경사 반응, 넉백, 투사체 포물선, 히트박스 타이밍, 카메라 충돌은 통제된 observer/영상 실험 전까지 `unknown`.
+- For each claim, record the map, enemy NPC type, weapon/equipment, player state, and confidence.
+- Raw anim numbers (3004, 3500, etc.) are **only evidence** until their meaning for that enemy is proven by video/manual calibration.
+- Player collision, slope response, knockback, projectile arcs, hitbox timing, and camera collision are `unknown` until controlled observer/video experiments.
 
-### 현재 코드와 어긋나던 곳 (2026-09-26 점검 → 같은 날 고침)
+### Places where the code disagreed (2026-09-26 audit → fixed the same day)
 
-고친 뒤: 3004·3500 발차기는 원래 `early_kick="shadow"` 라 기록만 하고 있었다(변경 없음) · 원거리 예외 삭제 · 원거리 달려 붙기 삭제
-· `sprint` 네 곳 → `walk` · 옆 구르기 삭제(백스텝 못 하면 정면 유지) · 가장자리에서 NavMesh 가 고른 방향으로 걷던 한 걸음 → 방패+정면.
-평지로 물러나는 NavMesh 경로 걷기는 남겼다 — 목적지(RAMP_ARENA)가 human_verified 이고 걷기다.
+After the fix: the 3004/3500 kicks were already `early_kick="shadow"`, log only (no change) · ranged exception removed · sprinting up to ranged enemies removed
+· four `sprint` → `walk` · side roll removed (if backstep impossible, stay facing forward) · the one step at an edge walked in the direction NavMesh chose → shield + face forward.
+The NavMesh path walk back to flat ground was kept — its destination (RAMP_ARENA) is human_verified and it's a walk.
 
-(점검 당시 표)
+(Table at audit time)
 
-| 곳 | 행동 | 근거 등급 | 어긋나는 규칙 |
+| Place | Action | Evidence grade | Rule violated |
 |---|---|---|---|
-| `foes.SHIELD` `windup=(3004,)`, `windup_act_s=1.2`, `kick_on_stagger` → `duel.py:152` | 발차기 | 날 애니 번호(관찰 4번, 의미 미보정) | 6 |
-| `field._approach_guard` 원거리 예외 (`abs(dy) < 1.2` + 방패병 12 m 밖이면 다가감) | 다가가기 | dy 1.2·12 m 는 `code_constant_only` | 3 |
-| `duel.py:297` 원거리 놈에게 `"sprint"` | 달리기로 붙기 | 투사체 포물선 `unknown`, 달리기 안전 NavMesh 추정 | 2·4·7 |
-| `duel.py:134`·`:563`, `field.py:219` `walk_path(..., "sprint")` | 달리기 | 경로는 걷기 녹화, 달리기는 NavMesh 추정 | 2 |
-| `reflex` 구르기 방향·`duel` 발밑 물러나기 (`nav.footing` 가 **고른** 방향으로 이동) | 회피·이동 | `navmesh_or_data_derived` | 2 (막기만 가능, 방향 선택 불가) |
-| `field.MOVED_WAIT_DY = 1.2` 로 '다른 층' 판정 | 기다림 (다가가지 않음) | `code_constant_only` | 규칙 3 안 — 대기 한도라 허용 |
+| `foes.SHIELD` `windup=(3004,)`, `windup_act_s=1.2`, `kick_on_stagger` → `duel.py:152` | Kick | Raw anim number (observed 4 times, meaning uncalibrated) | 6 |
+| `field._approach_guard` ranged exception (`abs(dy) < 1.2` + approach if shield soldier beyond 12 m) | Approach | dy 1.2 and 12 m are `code_constant_only` | 3 |
+| `duel.py:297` `"sprint"` toward ranged enemies | Sprinting to close in | Projectile arc `unknown`, sprint safety a NavMesh estimate | 2·4·7 |
+| `duel.py:134`/`:563`, `field.py:219` `walk_path(..., "sprint")` | Sprint | Paths were walk recordings; sprinting is a NavMesh estimate | 2 |
+| `reflex` roll direction, `duel` footing retreat (moving in the direction `nav.footing` **chose**) | Evasion/movement | `navmesh_or_data_derived` | 2 (may only block, not choose direction) |
+| `field.MOVED_WAIT_DY = 1.2` judging 'different floor' | Wait (don't approach) | `code_constant_only` | Within rule 3 — a wait limit, so allowed |
 
-## 목표 생존·미룸·제자리 고수·그림자 발차기 (Patch A–D, 2026-09-26)
+## Target liveness, deferral, hold the spot, shadow kick (Patch A–D, 2026-09-26)
 
-R1–R3(observe `101202`·`101538`·`101913`) V0-Lite 결과로 고친 것. 각 패치는 따로 커밋·오프라인 테스트:
+Fixes from the R1–R3 (observe `101202`, `101538`, `101913`) V0-Lite results. Each patch has its own commit and offline test:
 
-- **A 목표 생존** (`field._bind`·`_liveness`, `field_liveness_test.py`): 스폰 거리로 죽음을 추정하지 않는다. 첫 해석만 `find_at`, 그 뒤는
-  런타임 신원(ptr·핸들·`esc.gen`). 죽음 = 같은 세대 raw HP 0 이 서로 다른 스냅샷 두 번 연속. 목록에서 빠짐 = missing(죽음 아님),
-  5 s 넘거나 세대가 바뀌면 unknown → 스폰에서 새 생명으로 다시 묶음. 끝내 못 찾으면 결과에 `#i?`.
-- **B 미룬 뒤 추적 금지** (`field.clear`·`_deferred_unreachable`, `risk_report` partial 플래그, `field_defer_test.py`).
-- **C 제자리 고수 스태미나** (`field._hold_at`·`_defend_in_place`·`_zone_leash`·`LureBlock`, `field_hold_test.py`): 조용하면 방패 내림,
-  다가올 때(0.5 s 에 0.3 m)만 방패. 스태미나 25 % 아래 접촉은 제자리 방어만(스틱 중립, 반사 반격 끔, HP 25 % 아래면 recover) —
-  fight() 안 부름. 스태미나 충분한 구역 안 접촉만 처음 신원에 묶인 싸움(구역 이탈·신원/세대 변화·3 m 안 둘째 놈이면 끊음,
-  목표 안 바꿈). 끌어오기 막음은 5 m 안이 0.5 s **계속** 조용해야 풀림. '오는 놈' 가지는 그대로 먼저.
-- **E-1 움직인 목표는 평지에서 기다림** (사용자 2026-09-26, `field.clear`·`_hold_tick`, `field_moved_wait_test.py`): hold 가 아닌 목표(#1·#3 등)가
-  움직였고 평지(arena)와 높이차 1.2 m 넘게 다른 곳에 있으면 끌어오기·싸움으로 찾아가지 않고 평지에서 기다린다 (방패병 제자리 고수와
-  같은 _hold_tick). 내려와 휘두르면 '오는 놈' 이 받는다. 20 s 씩 두 번 기다려도 안 내려오면 `left #i~`. Patch A 뒤로 봇이 내려오는
-  #3 의 예전 자리(경사로 위)로 걸어 올라가 평지를 6 m 벗어났다 (observe 131752·132053). 같은 높이로 움직인 목표와 스폰 그대로인
-  위 턱 목표는 예전 그대로.
-- **E-2·E-3 붙으러 가기 안전 검사** (사용자 2026-09-26, `duel._approach`·`duel(may_approach=)`·`field._approach_guard`, `field_approach_guard_test.py`):
-  E-2 붙으러 가는 중 그놈이 경로를 짠 자리에서 3 m 넘게 움직이면 멈추고 지금 자리로 다시 판단(예전 자리로 끝까지 가지 않음), 다시 판단한
-  자리가 안전하지 않으면 `unsafe_approach` 로 끝내고 clear 는 물러나지 않고 평지 기다림으로. E-3 오는 놈 싸움의 `안옴→붙기` 도 안전하지
-  않으면 바꾸지 않고 계속 기다린다. 안전 = 스폰 그대로인 목록 목표이거나, 움직였어도 E-1b 기다림 조건(다른 높이·평지 구역 밖·방패병 스폰
-  12 m 안)에 안 걸림. 목록에 없는 놈은 플레이어가 평지 근처일 때만 검사(위 턱 싸움은 예전 그대로). 근거: 131752·132053·133827.
-- **D 그림자 발차기** (`duel._early_kick_candidate`·`ShadowKick`, `foes.Foe.early_kick`, `duel_shadow_test.py`).
+- **A Target liveness** (`field._bind`·`_liveness`, `field_liveness_test.py`): don't infer death from spawn distance. Only the first resolution uses `find_at`; after that,
+  runtime identity (ptr, handle, `esc.gen`). Death = raw HP 0 in the same generation on two consecutive distinct snapshots. Missing from the list = missing (not dead);
+  over 5 s or a generation change → unknown → rebind at the spawn as a new life. If never found, the result shows `#i?`.
+- **B No chasing after deferral** (`field.clear`·`_deferred_unreachable`, `risk_report` partial flag, `field_defer_test.py`).
+- **C Hold-the-spot stamina** (`field._hold_at`·`_defend_in_place`·`_zone_leash`·`LureBlock`, `field_hold_test.py`): shield down when quiet,
+  shield up only when something approaches (0.3 m in 0.5 s). Contact below 25 % stamina = defend in place only (stick neutral, reflex counterattack off, recover if HP below 25 %) —
+  fight() is not called. Only contact inside the zone with enough stamina gets a fight bound to the initial identity (broken off on leaving the zone, identity/generation change, or a second enemy within 3 m;
+  no target switching). The lure block lifts only after 0.5 s of **continuous** quiet within 5 m. The 'approaching enemy' branch still goes first.
+- **E-1 Moved targets are waited for on flat ground** (user 2026-09-26, `field.clear`·`_hold_tick`, `field_moved_wait_test.py`): if a non-hold target (#1, #3, etc.)
+  has moved and is somewhere more than 1.2 m in height from the flat ground (arena), don't go seek it via lure/fight; wait on flat ground (same _hold_tick as
+  the shield soldier hold-the-spot). If it comes down and swings, the 'approaching enemy' branch takes it. If it doesn't come down after two 20 s waits, `left #i~`. After Patch A, the bot walked up to
+  #3's old spot (up the ramp) while #3 was coming down, leaving the flat ground by 6 m (observe 131752, 132053). Targets that moved at the same height, and
+  ledge targets still at their spawn, are unchanged.
+- **E-2/E-3 Approach safety checks** (user 2026-09-26, `duel._approach`·`duel(may_approach=)`·`field._approach_guard`, `field_approach_guard_test.py`):
+  E-2: while closing in, if the enemy moves more than 3 m from where the path was planned, stop and re-evaluate from its current position (don't go all the way to the old spot); if the re-evaluated
+  spot is unsafe, end with `unsafe_approach`, and clear doesn't retreat but switches to waiting on flat ground. E-3: in the approaching-enemy fight, `안옴→붙기` (not coming → close in) is also not switched to
+  if unsafe; it keeps waiting. Safe = a listed target still at its spawn, or one that moved but doesn't meet the E-1b wait conditions (different height, outside the flat-ground zone, within 12 m of
+  the shield soldier spawn). Unlisted enemies are checked only when the player is near the flat ground (ledge fights unchanged). Evidence: 131752, 132053, 133827.
+- **D Shadow kick** (`duel._early_kick_candidate`·`ShadowKick`, `foes.Foe.early_kick`, `duel_shadow_test.py`).
 
-**알려진 검증 과제 (A–D 뒤, 아직 안 고침)**: 제자리 허용 오차 1.5 m 가 끌어오기 최소 13 m 와 부딪힌다 — 던질 자리는 #2 스폰에서
-13.66 m 인데 자리에서 1.5 m 안 어딘가에 서면 13 m 안이 될 수 있다. R3(`101913`)에서 12.8 m 로 두 번 `too_close` → 미룸 → (옛) 추적.
+**Known validation issue (after A–D, not fixed yet)**: the 1.5 m hold-spot tolerance conflicts with the 13 m lure minimum — the throwing spot is 13.66 m from
+#2's spawn, but standing somewhere within 1.5 m of the spot can put it inside 13 m. In R3 (`101913`), `too_close` twice at 12.8 m → deferral → (old) chase.
 
-## 적 AI(Lua)는 어디에
+## Where enemy AI (Lua) fits
 
-게임 파일의 Lua 는 **적 데이터를 뽑는 출처**다. 우리가 Lua 를 짜지 않는다. 적 하나당 한 번 `boss/luadump.py`·`boss/luatab.py` 로 뽑아
-`foes.py` 에 적는다 (단발·콤보 애니, 위험 거리). 실행 중엔 Lua 를 안 읽는다.
-지금 `duel` 은 "휘두르는 중이면 막는다"만 쓰고 단발·콤보 구분은 아직 안 쓴다 — 다음에 붙일 자리.
+The Lua in the game files is **a source for extracting enemy data**. We don't write Lua. Once per enemy, extract with `boss/luadump.py`/`boss/luatab.py` and
+record it in `foes.py` (single/combo anims, danger distance). Lua is not read at runtime.
+Currently `duel` only uses "block if it's swinging" and doesn't yet distinguish single vs. combo — that's where to hook it in next.
 
-## 실행
+## Running
 
 ```bash
-python run.py status          # 입력 없이 상태만
-python run.py quit-test       # 퀵 종료가 죽은 적을 살리나 (사용자는 '안 살아남' 확인 — 2026-09-26 R1 에서 새 세대에 가득 찬 #2 관찰, 위 정정 참고)
-python run.py clear-ramp      # 쉬고 경사로 6마리
-python run.py burg-bonfire    # 임무: 성벽 마을 화톳불 찍기
+python run.py status          # status only, no input
+python run.py quit-test       # does quit-out revive dead enemies? (user confirmed 'no' — 2026-09-26 R1 observed a full-HP #2 in a new generation, see correction above)
+python run.py clear-ramp      # rest, then the 6 on the ramp
+python run.py burg-bonfire    # mission: light the Undead Burg bonfire
 ```
-기록: `data/runs/<시각>_<명령>.log` · `.jsonl` · `.hits.jsonl`(블랙박스)
+Logs: `data/runs/<시각>_<명령>.log` (<time>_<command>) · `.jsonl` · `.hits.jsonl` (black box)
 
-워프·퀵 종료·무적·아이템 넣기 등 게임 메모리를 쓰는 도구는 `OFFLINE_TOOLS.md` 한 곳에.
+Tools that write game memory (warp, quit-out, invincibility, item insertion, etc.) are all in one place: `OFFLINE_TOOLS.md`.
 
-**판 평가는 최종 결과가 아니라 위험 판정으로** (사용자 2026-09-25: "실패가 숨겨진 거야"):
-- 판이 끝나면 `run.py` 가 `══ 위험 판정: 깨끗/주의/위험/사망` 한 줄을 남긴다. 기준은 `risk_report.py` docstring 한 곳에.
-- `python risk_report.py --since <시각> [--cmd burg-loop]` — 판별 표 + 같은 명령·스타일·캐릭터 묶음 요약. 묶음 비교는 이것으로.
-- 0층 `blackbox.py`: 피드 프레임 최근 8 s 를 쥐고, 80 HP 넘게(또는 25 % 아래로) 맞으면 앞뒤 프레임 전부를 `.hits.jsonl` 에,
-  `vital`(0.5 s HP)·`hit`(범인 추정) 사건을 `.jsonl` 에. `python risk_report.py --hits <판>` 으로 프레임 단위 복기.
-  범인 추정은 "직전 1.5 s 에 공격 애니, 날 보는, 가까운 놈" — 추정일 뿐, 프레임을 직접 본다.
+**Judge a run by its risk verdict, not the final result** (user 2026-09-25: "the failures are hidden"):
+- When a run ends, `run.py` prints one line `══ 위험 판정: 깨끗/주의/위험/사망` (risk verdict: clean/caution/danger/dead). The criteria live in one place, the `risk_report.py` docstring.
+- `python risk_report.py --since <시각> [--cmd burg-loop]` (<time>) — per-run table + summary grouped by same command/style/character. Use this for group comparisons.
+- Layer 0 `blackbox.py`: holds the last 8 s of feed frames; on a hit over 80 HP (or dropping below 25 %), writes all surrounding frames to `.hits.jsonl`,
+  and `vital` (0.5 s HP) / `hit` (culprit estimate) events to `.jsonl`. Replay frame by frame with `python risk_report.py --hits <판>` (<run>).
+  The culprit estimate is "a nearby enemy facing me with an attack anim in the preceding 1.5 s" — only an estimate; look at the frames directly.
 
-## 검증 상태 (2026-09-24)
+## Validation status (2026-09-24)
 
-- **목표 달성**: `burg-bonfire` 흐름으로 성벽 마을 화톳불에 불 붙이고 앉음 — 마지막 화톳불 1022960(불의 제전) → **1012962(성벽 마을)**.
-  (한 번에 끝까지 가지는 못했다: 경사로 → 5번 남아 `clear-ramp --no-rest` → `merchant` → 창 방패병에서 막혀 코드 수정 뒤 `light-burg`.)
-- 경사로 6마리는 매 판 정리된다 (망자 넷은 피해 0 인 판이 많다). 성벽 마을 망자·상자 앞 방패병·창 방패병 처치.
-- 비교 기준(옛 hunt.py, 경사로 23판): 피해 5,987, 방패 든 채 옆·뒤로 맞음 16건 1,560.
-- **이제 귀환 지점이 성벽 마을** — 불의 제전 전제 코드(`missions.start_fresh`·`RAMP`·`FIRELINK` home)는 그대로 돌리면 어긋난다. 다음 임무 전에 손볼 것.
-- 남은 약점: 둘 이상이 한꺼번에 붙을 때 → **나이프 끌어오기**로 첫 판 6/6 (2026-09-24, 배틀 액스). 턱 위에서 안 내려오는 놈, 발차기 빗나감, 헛돌기 방지(desperate)는 아직 실전 검증 적음. 나이프 재구매(상인) 미구현.
-- 옛 `hunt.py` 는 참고용 (`control.py`·`nav.py` 수정은 거기에도 적용된다).
+- **Goal reached**: via the `burg-bonfire` flow, lit and sat at the Undead Burg bonfire — last bonfire 1022960 (Firelink Shrine) → **1012962 (Undead Burg)**.
+  (Not in one go: ramp → #5 left, `clear-ramp --no-rest` → `merchant` → stuck at the spear shield soldier, code fix, then `light-burg`.)
+- The ramp's 6 are cleared every run (many runs take 0 damage from the four hollows). Undead Burg hollows, the shield soldier by the chest, and the spear shield soldier killed.
+- Baseline (old hunt.py, 23 ramp runs): 5,987 damage; 16 hits taken to the side/back while shielding, 1,560.
+- **The respawn point is now Undead Burg** — code assuming Firelink Shrine (`missions.start_fresh`, `RAMP`, `FIRELINK` home) will be wrong if run as-is. Fix before the next mission.
+- Remaining weaknesses: two or more engaging at once → **knife lure** gave 6/6 on the first run (2026-09-24, Battle Axe). Enemies that won't come down from ledges, missed kicks, and spin prevention (desperate) still have little live validation. Knife rebuying (merchant) not implemented.
+- Old `hunt.py` kept for reference (`control.py`/`nav.py` changes apply there too).
 
-## 공격 조합 (1층 `moves.COMBOS`)
+## Attack combos (layer 1 `moves.COMBOS`)
 
-사용자(2026-09-24): "공격 조합을 하나의 시퀀스로 — 구르기 약공, 점프 강공, 백스텝 약공 이런 식으로". 조합은 (시각, 동작) 줄의 표이고 한 번의 감시로 결과를 본다.
-새 조합은 표에 한 줄, 위 층은 `mv.combo("이름", s, c, nm)` 만 부른다. 지금 줄: `backstep_r1`(B → 0.45 s R1, 실전), `roll_r1`·`jump_r2`(값은 옛 조작표·추정, 미실측).
+User (2026-09-24): "Make attack combos a single sequence — roll light attack, jump heavy attack, backstep light attack, that kind of thing." A combo is a table of (time, action) rows, and the result is checked with a single watch.
+A new combo is one row in the table; upper layers only call `mv.combo("이름", s, c, nm)` ("name"). Current rows: `backstep_r1` (B → R1 at 0.45 s, used live), `roll_r1`/`jump_r2` (values from the old control chart / estimates, not measured).
 
-## 사용자 시범 기록 (2026-09-24, `demo_record.py` → `data/demo/20260924_162859.jsonl`)
+## User demo recording (2026-09-24, `demo_record.py` → `data/demo/20260924_162859.jsonl`)
 
-- 나이프: **같은 높이 평지에서만 맞았다** — (-28.5, -49.0, 28.2) 에서 2번 방패병 13.1 m·높이차 -0.7 → 34 피해·깸. 위 턱에서 7 m 아래로 던진 둘, 6 m 위로 던진 하나는 전부 0 (위로 던진 망자는 0 이어도 깼다). 방패병에게 두 번째부턴 방패에 막힘(1).
-  - **보탬(2026-09-26, observe 녹화)**: 사용자는 **락온하고** 위로도 맞혔다 — 높이차 +3.2~+3.4 m·9.6~9.8 m 에서 45·30, +5.6 m·12.3 m 에서 43. 방패병엔 평지에서 13.65·13.7 m 두 번 모두 34. 위 "같은 높이만" 은 봇이 던진 경우의 관찰이다.
-- 백스텝 공격의 정체: 사용자 백스텝 애니는 **695**(봇의 B 톡은 690), 그 뒤 **304500** 이 백스텝 공격(양손) — 봇이 R1 로 낸 304040(보통 약공)과 다른 동작. 간격 **0.95~0.97 s** 로 4/4 일정, 이어서 304000·304040 약공 연타. 나이프 던지기 애니 7540, 에스트 7585~7587.
-- 봇의 백스텝 공격 0/18 이유 후보: 690 뒤 R1 은 보통 약공이라 파고들지 않는다. 695→304500 을 내려면 뭐가 다른지(락온? 스틱? B 홀드 길이?) 다음에 실측.
-- **정정(2026-09-25, 사용자): 0.95~0.97 s 는 정한 간격이 아니다** — "몹이 타이밍 혹은 헛점을 보고 들어간거야." 매번 그 적의 특정 빈틈을 보고 반응한 것이고, 네 번이 비슷했던 건 같은 적·같은 패턴이었을 뿐. `reflex.dodge(attack=...)`(souls/reflex.py:120,149)는 이 판단이 없다 — `bs_ok`(방패 아님)·바닥만 통과하면 피할 때마다 무조건 반격한다. 즉 지금 백스텝 공격은 "빈틈을 읽고 침"이 아니라 "피하면 무조건 침" — 방패병 말고도 즉시 재공격·콤보형 적에서 역풀이 날 수 있다(아직 해당 사례 없음, 설계상 위험만 있음).
+- Knives: **hit only on flat ground at the same height** — from (-28.5, -49.0, 28.2) to the #2 shield soldier at 13.1 m, height diff -0.7 → 34 damage, woke it. Two thrown 7 m downward from a ledge and one thrown 6 m upward all did 0 (the hollow hit upward woke up despite 0). From the second throw on, the shield soldier blocked with its shield (1).
+  - **Addendum (2026-09-26, observe recording)**: the user **used lock-on** and also hit upward — height diff +3.2 to +3.4 m at 9.6–9.8 m for 45 and 30, +5.6 m at 12.3 m for 43. On the shield soldier from flat ground, 13.65 m and 13.7 m, 34 both times. The "same height only" above is an observation of the bot's throws.
+- What the backstep attack really is: the user's backstep anim is **695** (the bot's B tap is 690), followed by **304500** as the backstep attack (two-handed) — a different move from the 304040 (normal light attack) the bot produced with R1. Interval **0.95–0.97 s**, consistent 4/4, followed by a 304000/304040 light chain. Knife throw anim 7540, estus 7585–7587.
+- Candidate reasons for the bot's 0/18 backstep attacks: R1 after 690 is a normal light attack and doesn't lunge. What makes 695→304500 happen (lock-on? stick? B hold length?) to be measured next.
+- **Correction (2026-09-25, user): 0.95–0.97 s is not a fixed interval** — "I went in after seeing the mob's timing or opening." Each time it was a reaction to a specific opening of that enemy; the four being similar was just the same enemy with the same pattern. `reflex.dodge(attack=...)` (souls/reflex.py:120,149) has no such judgment — as long as `bs_ok` (not a shield) and the floor pass, it counterattacks unconditionally after every dodge. So the current backstep attack is not "read the opening and hit" but "always hit after dodging" — this can backfire against enemies that immediately re-attack or combo, not just shield soldiers (no such case yet; only a design risk).
 
 
-## 층 설계 개선 (2026-09-25, 사용자: "1번부터 전부 개선하고 다시 테스트")
+## Layer design improvements (2026-09-25, user: "improve everything starting from #1 and test again")
 
-1. **0층이 복구를 책임진다**: `navmesh.on_mesh`·`nearest_walkable`·`ledge_step`, `find_path` 가 메시 밖 시작·끝을 같은 높이 점으로 보정하고 단차 경로는 빈 목록. `nav.goto` 는 막히면 메시 밖 여부부터 보고 메시로 돌아온다. 4층의 임시 `reset_spot` 제거. 오프라인 검증: 주머니(-24.5,-48.3,26.0)→#4 경로가 (-27.1,-48.8,25.5)에서 시작, 불의 제전·평지·6마리·꼭대기 경로 전부 유지.
-2. **4층 교전 큐**: `field.clear` 가 "오는 놈 먼저, 스폰 목록은 의도" 로 바뀜 (`_clear_old` 는 참고용).
-3. **Style 객체**: `souls/style.py`. `--style` 문자열은 진입에서 한 번만 객체로.
-4. **1층 오프라인 테스트**: `moves_test.py` (가짜 패드) — 첫 실행에서 조합 표의 시각이 절대 시각이라 R1 간격이 0.29 s 였던 버그를 잡음 → B 이후 단계는 B 기준.
-5. **옛 코드 정리**: `legacy/` 로 이동 (hunt, merchantrun, reflex, 옛 시험 스크립트). `souls` 는 더 이상 `patrol` 을 가져오지 않는다 (`moves.rel_angle`). `vision_probe` 는 boss/ 가 써서 남김.
+1. **Layer 0 owns recovery**: `navmesh.on_mesh`/`nearest_walkable`/`ledge_step`; `find_path` snaps off-mesh start/end to points at the same height and returns an empty list for step-up paths. When blocked, `nav.goto` first checks whether it's off the mesh and returns to the mesh. Layer 4's temporary `reset_spot` removed. Offline check: the path from the pocket (-24.5,-48.3,26.0) → #4 starts at (-27.1,-48.8,25.5); Firelink Shrine, flat ground, all 6, and summit paths all preserved.
+2. **Layer 4 engagement queue**: `field.clear` changed to "approaching enemies first; the spawn list is the intent" (`_clear_old` kept for reference).
+3. **Style object**: `souls/style.py`. The `--style` string is turned into the object once at entry.
+4. **Layer 1 offline test**: `moves_test.py` (fake pad) — the first run caught a bug where combo-table times were absolute, making the R1 interval 0.29 s → steps after B are relative to B.
+5. **Old code cleanup**: moved to `legacy/` (hunt, merchantrun, reflex, old test scripts). `souls` no longer imports `patrol` (`moves.rel_angle`). `vision_probe` kept because boss/ uses it.
 
-## 왕복(성벽 마을 화톳불 → 걸어서 귀환, 2026-09-25)
+## Round trip (Undead Burg bonfire → walk back, 2026-09-25)
 
-사용자: "성벽 마을 화톳불 쉬지 말고 걸어서 불의 제사장으로 돌아 오게 해" — `light_burg_bonfire()`(앉기, 귀환 지점이 바뀜) 대신
-`missions.to_firelink()`(to_merchant 의 역순, 상자는 안 굴림) + `missions.burg_bonfire_round_trip()`(경사로→상인→화톳불 자리→안 앉고 귀환).
+User: "Don't rest at the Undead Burg bonfire; walk back to Firelink" — instead of `light_burg_bonfire()` (sits, changes the respawn point),
+`missions.to_firelink()` (reverse of to_merchant, doesn't roll the barrel) + `missions.burg_bonfire_round_trip()` (ramp → merchant → bonfire spot → return without sitting).
 CLI `python run.py burg-loop`, `loop_runs.py --mission burg-loop`.
-- **퀵 종료(quit+reload)는 다크사인이 아니다** — 자리를 안 바꾼다, 그 자리 그대로 이어한다(실측: 화톳불 옆에서 quit_out+reload 해도 좌표 그대로).
-  `set_last_bonfire` 로 화톳불 포인터만 바꾸는 건 다음 **죽음·다크사인**에만 영향 — 판 사이 순간이동에는 못 쓴다. (loop_runs.py 의 옛
-  "burg-bonfire 판 사이 퀵종료" 가지는 이 오해로 짠 것 — 죽여도 되는 죽은 코드, 쓰지 않는다.)
-- **legacy/ 정리 때 놓친 것**: `souls/field.py:fog_through()` 의 `import ladder_test` 가 `legacy/` 로 옮긴 뒤도 그대로였다 → clear_ramp
-  중 안개벽 막힘에서 크래시. `legacy/ladder_test.py`·`vision_probe.py` 도 서로 bare `import merchantrun` (같이 legacy/ 로 옮김) — 둘 다
-  실제 쓰는 함수(prompt_px, window_rect)엔 필요 없어 지연 임포트로 뺐다. **legacy/ 로 옮긴 모듈은 실행 경로에 남은 게 없는지 다시 확인할 것.**
-- 성벽 마을 화톳불 근처(-8,-10,-69 부근)에 방패병(npc 254013, HP150)이 서 있다 — 백스텝 스타일 약공 6번 0 피해(막힘), 174 받고 낙사로 사망.
-  경사로 방패병과 같은 문제([[ds1-player-mechanics-tips]] "봇의 백스텝 공격 0/18"). 이 구간은 guard 스타일로 재시도(사용자 선택, 2026-09-25).
-- 다크사인(`moves.darksign`, item 117)이 `select_item` 으로 15 s 돌려도 안 잡힘 — 퀵 아이템 순환 목록에 없는 듯(원인 미확인, 다음에 볼 것).
-- **다음 할 일(사용자 2026-09-25): guard 로 이 왕복이 클리어되는지 먼저 보고, 나중에 backstep 으로도 클리어되는지 재측정.**
-  지금 알고 있는 유일한 차이는 화톳불 옆 방패병(254013) 하나 — 백스텝 약공이 막혀 0 피해였다. guard 결과가 나온 뒤 비교.
-- **근본 원인(사용자 2026-09-25): 254013·254014 가 `foes.py` 에 없어 "모르는 적"(kind=other)으로 샜다** — 방패 제외 규칙("먼저 치기"는
-  `foe.kind != "shield"` 만)을 피해 약공을 18연속 0 피해로 맞고 515 를 받았다. SHIELD 로 등록해 고침.
-- **사용자 원칙: "가드+약공, 발차기+약공, 백스텝+약공, 뒤로 가서 약공 — 상황에 따라서 해야함. 가능하면 뒤에서 약공이 제일 효과적."**
-  `duel.py` 에 등 뒤 돌기 추가(`Foe.circle_behind`, SHIELD 전부): 가만히 선 방패병(애니 -1) 이 등 뒤 각(`CIRCLE_BEHIND_DEG`=130°) 안이면
-  발차기/약공 대신 등 뒤로 돈다.
-  - **1차 시도(`_circle_step`, 걸음마다 서는 식, 30°씩)는 실패** — 157°(거의 정후방)까지 갔는데도 16번 전부 0 피해(`backstab_probe.py` 실측).
-  - **사용자 시범으로 원인·해법 확인**(`record_play.py`, `data/trace/play_20260925_062345.jsonl`, 사건 4개 분석): 진짜 등 뒤 공격은
-    **멈추지 않고 이어지는 큰 원호**(3.5~3.8 s, 헤딩이 150~200° 정도 휘어짐, 거리 5 m→1 m, 오른스틱도 같이 계속 움직임)로 들어가야 한다 —
-    걸음마다 서면 그 사이 그놈이 몸을 돌려 따라잡는다. 애니는 **보통 약공과 같은 303000**(등 뒤 전용 애니 없음), 그런데 피해가 34~41 이
-    아니라 **54(HP 85의 63 %)** — 애니가 아니라 맞는 각도로 판정이 갈린다.
-  - `_circle_step` → **`_circle_sweep`** 로 교체: 매 틱(0.05 s) 목표점을 60° 앞서 다시 잡아 멈추지 않고 돈다, 최대 `CIRCLE_SWEEP_S`=4 s,
-    그놈이 움직이기 시작하면(더는 idle) 즉시 멈춘다. `CIRCLE_MAX_SWEEPS`(2) 넘으면 포기하고 발차기로.
-  - **실전 결과(2026-09-25, `circle_sweep_isolated.log`): 나쁨 — `SHIELD.circle_behind=False` 로 껐다.** 막 나이프로 끌어온 놈·난전 중
-    끼어든 놈은 진짜 idle(-1) 이 아니라 몇 틱 만에 애니가 바뀌어 `_circle_sweep` 이 거의 못 돌고(`등뒤돌기:0`·`등뒤돌기:3`) 즉시 끊겼다 —
-    그 시도(`CIRCLE_MAX_SWEEPS`)만 날리고 되레 나쁜 교환(40 주고 216 받음)으로 이어져 판이 죽음까지 갔다. 사용자: "도는게 너무 느려,
-    발차기 약공이 더 좋아 보여." 성벽 마을 화톳불 옆 고립된 표적(157°까지 각도는 잘 돎, `backstab_probe.py`)에서는 기술 자체는 됐지만
-    실전(난전 속 방패병)에선 발차기가 낫다 — 코드는 남겨두되(`Foe.circle_behind`, `_circle_sweep`) 기본은 꺼둠.
-  - **사용자: "방패병 패턴이 좋아서 어려운 거야."** — 순환 로직 자체의 결함이 아니라 이 적 AI(가드·회전 추적)가 원래 잘 짜여 있어서
-    포지셔닝 트릭으로 쉽게 뚫리지 않는다는 뜻. 발차기(kick_when_idle)가 이 패턴에 맞춰 이미 검증된 정공법이었다.
-- **사용자: "지역이 바뀌면 밖에 적들이 다시 살아나."** — 구역 경계(불의 제전 쪽 MAP_A ↔ 성벽 마을 쪽 MAP_B)를 넘으면 그 구역
-  적들이 리스폰한다. 갈 때 정리한 놈들이 돌아올 때 다시 있을 수 있다는 뜻 — `to_firelink()`(귀환)가 "이미 죽였으니 안 나온다"고
-  가정하면 안 된다. 왕복 설계·전투 예상 밀도에 반영할 것(아직 코드 반영 전).
+- **Quit-out (quit+reload) is not the Darksign** — it doesn't move you; you continue right where you were (measured: quit_out+reload next to a bonfire leaves coordinates unchanged).
+  Changing only the bonfire pointer via `set_last_bonfire` affects only the next **death/Darksign** — can't be used for teleporting between runs. (The old
+  "quit-out between burg-bonfire runs" branch in loop_runs.py was built on this misunderstanding — dead code that can be deleted; don't use it.)
+- **Missed in the legacy/ cleanup**: `import ladder_test` in `souls/field.py:fog_through()` was left as-is after the move to `legacy/` → crash during clear_ramp
+  when blocked at the fog wall. `legacy/ladder_test.py`/`vision_probe.py` also bare-`import merchantrun` from each other (moved to legacy/ together) — neither is
+  needed for the functions actually used (prompt_px, window_rect), so moved to lazy imports. **After moving modules to legacy/, re-check that nothing on the run path still uses them.**
+- A shield soldier (npc 254013, HP150) stands near the Undead Burg bonfire (around -8,-10,-69) — 6 backstep-style light attacks did 0 damage (blocked); took 174 and died from a fall.
+  Same problem as the ramp shield soldier ([[ds1-player-mechanics-tips]] "bot's backstep attacks 0/18"). This stretch retried with the guard style (user's choice, 2026-09-25).
+- The Darksign (`moves.darksign`, item 117) wasn't selected even after cycling `select_item` for 15 s — apparently not in the quick-item cycle list (cause unconfirmed, look next time).
+- **Next (user 2026-09-25): first see whether guard clears this round trip, later re-measure whether backstep also clears it.**
+  The only known difference right now is the one shield soldier by the bonfire (254013) — backstep light attacks were blocked for 0 damage. Compare after the guard result.
+- **Root cause (user 2026-09-25): 254013/254014 were not in `foes.py`, so they leaked through as "unknown enemies" (kind=other)** — escaping the shield exclusion (the "hit first" rule
+  only checks `foe.kind != "shield"`), it threw 18 light attacks in a row for 0 damage and took 515. Fixed by registering them as SHIELD.
+- **User principle: "Guard + light attack, kick + light attack, backstep + light attack, go behind + light attack — you have to choose by situation. If possible, a light attack from behind is the most effective."**
+  Added circling behind to `duel.py` (`Foe.circle_behind`, all SHIELD): if a still shield soldier (anim -1) is within the behind angle (`CIRCLE_BEHIND_DEG`=130°),
+  circle behind it instead of kick/light attack.
+  - **First attempt (`_circle_step`, stopping at each step, 30° at a time) failed** — reached 157° (nearly directly behind) yet all 16 hits did 0 damage (measured by `backstab_probe.py`).
+  - **Cause and fix confirmed from the user's demo** (`record_play.py`, `data/trace/play_20260925_062345.jsonl`, 4 events analyzed): a real backstab must go in along
+    **one large continuous arc without stopping** (3.5–3.8 s, heading curving about 150–200°, distance 5 m → 1 m, right stick moving continuously too) —
+    stopping at each step lets the enemy turn and keep up. The anim is **303000, same as a normal light attack** (no backstab-specific anim), but the damage is **54 (63 % of HP 85)**
+    rather than 34–41 — the hit angle, not the anim, decides it.
+  - Replaced `_circle_step` → **`_circle_sweep`**: every tick (0.05 s) re-target a point 60° ahead and circle without stopping, max `CIRCLE_SWEEP_S`=4 s,
+    stop immediately if the enemy starts moving (no longer idle). Past `CIRCLE_MAX_SWEEPS` (2), give up and kick.
+  - **Live result (2026-09-25, `circle_sweep_isolated.log`): bad — turned off with `SHIELD.circle_behind=False`.** An enemy just lured by knife or one cutting in during a melee
+    isn't truly idle (-1); its anim changes within a few ticks, so `_circle_sweep` barely circled (`등뒤돌기:0` (circle-behind: 0), `등뒤돌기:3`) before breaking off —
+    wasting those attempts (`CIRCLE_MAX_SWEEPS`) and leading to bad trades (dealt 40, took 216), taking the run all the way to death. User: "Circling is too slow;
+    kick + light attack looks better." Against the isolated target by the Undead Burg bonfire (circled to 157° fine, `backstab_probe.py`) the technique itself worked, but
+    live (shield soldier in a melee) the kick is better — code kept (`Foe.circle_behind`, `_circle_sweep`) but off by default.
+  - **User: "It's hard because the shield soldier's pattern is good."** — not a flaw in the circling logic itself; this enemy AI (guard, turn tracking) is well designed, so
+    positioning tricks don't easily break it. The kick (kick_when_idle) was already the proven standard answer for this pattern.
+- **User: "When you change areas, the enemies outside come back to life."** — crossing a zone boundary (MAP_A on the Firelink Shrine side ↔ MAP_B on the Undead Burg side) respawns that zone's
+  enemies. Enemies cleared on the way out may be there again on the way back — `to_firelink()` (return) must not assume "already killed, so they won't
+  appear". Reflect this in round-trip design and expected combat density (not in code yet).
 
-## 성벽 마을 진행 순서 (사용자 시범, 2026-09-25, `record_play.py` → `data/trace/play_20260925_091805.jsonl`)
+## Undead Burg progression order (user demo, 2026-09-25, `record_play.py` → `data/trace/play_20260925_091805.jsonl`)
 
-사용자가 직접 걸으며 "여기 이 위치에서 2명을 해결할 수 있어, 위로 올라가지 말고" / "3명 처치하고 방 안으로 들어와, 다음으로
-궁수 처리할게" / "궁수 처리했음, 마지막으로 방패병 둘" 순서로 시범. 테라스 방패병 둘을 **위(테라스)로 올라가지 않고 아래
-위치에서** 끌어내 상대하는 자리가 있다는 것, 순서는 **3마리 구간 → 방 안 → 궁수 → 마지막 방패병 둘**.
+The user walked it personally, demonstrating in the order "from right here you can handle 2, don't go up" / "killed 3, come into the room, next
+I'll deal with the archer" / "archer dealt with, finally the two shield soldiers". There is a spot where the two terrace shield soldiers can be drawn out and fought **from
+below without going up (to the terrace)**, and the order is **3-enemy stretch → inside the room → archer → the two shield soldiers last**.
 
-**녹화 1차 분석(자동 순회, 2026-09-25)**: `data/trace/play_20260925_091805.jsonl`(10598줄, 17 분)을 파싱해 적 등장 순서·
-플레이어 좌표를 뽑았다. 눈에 띄는 점: **254013/254014(오늘 낮에 SHIELD 로 등록한 그 번호)는 이 녹화에 한 번도 안
-나온다** — 사용자가 시범에서 실제로 상대한 "방패병 둘"은 다른 ptr(255000 계열로 추정, t≈294~296 s 에 254010/255000×2/254011/
-255002 가 한꺼번에 등장)일 가능성이 높다 — **아직 확정 못 함, 다음 라이브 세션에서 실제 화면과 대조해 정확한 npc 번호를
-확인해야 한다.** t≈316~332 s 구간은 전투 없이 곧장 화톳불(BURG_BONFIRE ≈ (3.2,-10,-61.2))로 걸어가는 것으로 보이는
-궤적(y 가 -13→-10 으로 수렴, 최종 위치 (-0.9,-10.0,-60.9)로 화톳불 4 m 앞)과 일치 — 방(창고 방) ≈ 화톳불 바로 근처로 보인다.
+**First recording analysis (autonomous pass, 2026-09-25)**: parsed `data/trace/play_20260925_091805.jsonl` (10598 lines, 17 min) to extract enemy appearance order and
+player coordinates. Notably: **254013/254014 (the numbers registered as SHIELD earlier today) never appear in this recording** — the "two shield soldiers"
+the user actually fought in the demo are likely different ptrs (presumably the 255000 family; around t≈294–296 s, 254010/255000×2/254011/
+255002 appear all at once) — **not confirmed yet; the exact npc numbers need to be checked against the actual screen in the next live session.** The t≈316–332 s stretch
+matches a trajectory walking straight to the bonfire (BURG_BONFIRE ≈ (3.2,-10,-61.2)) without combat
+(y converging -13 → -10, final position (-0.9,-10.0,-60.9), 4 m in front of the bonfire) — the room (storeroom) appears to be right next to the bonfire.
 
-**사용자, 이번 세션(자율 체크 중 도착) 2026-09-25: "왜 자꾸 테라스에 있는 방패병 둘한테 달려가는 거야? 그럴려면, 일단
-성안 화톳불로 차라리 달려가. 거기서부터 해결하는 것이 더 좋아 보여." "그 방 안에 있으면 최소한 궁수한테 화살은 맞지
-않지."** — 전략 전환: 지금 `to_merchant()`/`burg_bonfire_round_trip()`은 성벽 마을 구간(B)을 **걸으면서 만나는 적을 전부
-싸운다**(`walk()`의 `chaser()`가 깨어있는 근처 적을 계속 끌어들임) → 그 열린 구역에서 궁수(254012)·방패병들에게 둘러싸여
-반복적으로 큰 피해를 입는다(이번 세션 round 2b 사망도 이 패턴). **사용자 방향: 그 구역에서 싸우지 말고 먼저 화톳불/방까지
-러시해서(궁수 시야 차단되는 곳) 안전 기지로 삼고, 거기서부터 바깥으로 정리해 나간다.**
-- **다음에 할 일(아직 코드 미반영)**: `field.walk()`에 "따라온 놈과 싸우지 않고 지나간다" 모드(예: `no_chase=True` —
-  `chaser()` 발견해도 "retreat"로 안 바꾸고 그냥 `mode`(sprint 등) 유지) 를 추가하고, 성벽 마을 진입~화톳불 구간에
-  적용. 정확히 어디부터 어디까지 "러시"해야 하는지(성벽 마을 입구 R["b"][0] 부터? 궁수 조우 지점부터?)는 사용자가
-  화면 보면서 확인해야 한다 — 라이브 세션에서 같이 정할 것.
+**User, this session (arrived during an autonomous check) 2026-09-25: "Why do you keep running at the two shield soldiers on the terrace? If you're going to do that, just
+run to the bonfire inside the castle first. Handling it from there looks better." "If you're in that room, at least the archer's arrows can't
+hit you."** — strategy change: right now `to_merchant()`/`burg_bonfire_round_trip()` **fight every enemy met while walking** the Undead Burg stretch (B)
+(`walk()`'s `chaser()` keeps pulling in nearby awake enemies) → in that open area it gets surrounded by the archer (254012) and shield soldiers and
+repeatedly takes heavy damage (this session's round 2b death followed this pattern too). **User's direction: don't fight in that area; first rush to the bonfire/room
+(where the archer's line of sight is blocked), use it as a safe base, and clear outward from there.**
+- **Next (not in code yet)**: add a "pass by without fighting followers" mode to `field.walk()` (e.g. `no_chase=True` —
+  even if `chaser()` finds one, don't switch to "retreat"; just keep `mode` (sprint etc.)), and apply it to the stretch from the Undead Burg entrance to the bonfire. Exactly where to
+  "rush" from and to (from the Undead Burg entrance R["b"][0]? from where the archer is encountered?) must be confirmed by the user watching the screen — decide together in a live session.
 
-**두 번째 녹화·순서 고정 (같은 세션, `play_20260925_095925.jsonl`, 5.7 분)**: 사용자: **"다시 녹화해봐. 내가 죽이는
-순서대로 죽이도록 코딩해봐."** → **"좋은 방법은 아닌데, 일단은 너무 순서를 어겨서 어쩔 수가 없어"** (일반화된 판단
-대신 시범 순서를 그대로 스크립트로 박는 것에 대한 인정 — 완벽한 방법은 아니지만 지금 단계에선 필요).
-- 트레이스에서 각 적이 "마지막으로 관측된 뒤 사라짐"(= 죽음, `s.hostile()`이 hp>0만 돌려주므로 죽으면 그냥 목록에서
-  빠진다 — HP=0 이벤트 자체는 안 남는다)을 죽은 시점으로 보고 순서를 뽑았다: **254011 → 254012(화염병, 일찍) →
-  254010 → 254010(2번째) → 255002(방패병) → 255000(방패병, 마지막)**. 방패병 둘이 마지막이라는 기존 원칙과 일치.
-- **중요 정정**: 예전에 "테라스 방패병 둘 = 254013/254014"로 추정하고 그 둘을 SHIELD 로 등록했었는데, 이번 두
-  녹화(091805·095925) 어디에도 254013/254014 는 한 번도 안 나온다. 사용자가 실제로 상대한 방패병 둘은 **255000·
-  255002**(이미 SHIELD 로 등록되어 있었음, 우연히 맞음) — 254013/254014 등록 자체는 틀리진 않았겠지만 "테라스 그
-  둘"은 아닐 가능성이 높다. 확인 필요.
-- **화톳불 방의 안전 확인(실측)**: 대략 x∈[-8,+3], y≈-10.0, z∈[-58,-69] 권역(화톳불 (3.2,-10,-61.2) 근접)에 들어간
-  뒤로는 **7.5 초 넘게 전투 중에도 피해 0** — "그 방 안에 있으면 최소한 궁수한테 화살은 맞지 않지"가 데이터로도
-  확인됨. 이 구간 도달 전(열린 마당)에서 254011에게 근접 공격으로 97 피해를 한 번 받았을 뿐, 이번 녹화 전체에서
-  궁수(254012) 화살에 맞은 기록은 0건 — 사용자가 화살을 완전히 피해냈다는 뜻.
-- **코딩함**: `data/burg-town-map.json`(6마리, npc+최종 관측 좌표, 순서대로) + `missions.py`의
-  `BURG_TOWN`/`Missions.clear_burg_town()` + `run.py`의 새 명령 `clear-burg-town`(독립 실행/시험용).
+**Second recording, order fixed (same session, `play_20260925_095925.jsonl`, 5.7 min)**: user: **"Record again. Code it to kill in the order
+I kill them."** → **"It's not a good method, but for now it breaks the order too much, so there's no choice"** (acknowledging that hard-coding the demo order
+as a script instead of generalized judgment isn't perfect but is needed at this stage).
+- From the trace, the point where each enemy "was last observed and then disappeared" (= death; `s.hostile()` returns only hp>0, so a dead enemy just drops
+  from the list — no HP=0 event is recorded) was taken as its death time to extract the order: **254011 → 254012 (firebomb, early) →
+  254010 → 254010 (2nd) → 255002 (shield soldier) → 255000 (shield soldier, last)**. Consistent with the existing principle that the two shield soldiers come last.
+- **Important correction**: we previously guessed "the two terrace shield soldiers = 254013/254014" and registered both as SHIELD, but in these two
+  recordings (091805, 095925) 254013/254014 never appear. The two shield soldiers the user actually fought are **255000 and
+  255002** (already registered as SHIELD, correct by coincidence) — registering 254013/254014 probably wasn't wrong in itself, but they're likely not "those two on the
+  terrace". Needs confirmation.
+- **Bonfire room safety check (measured)**: after entering roughly the region x∈[-8,+3], y≈-10.0, z∈[-58,-69] (near the bonfire (3.2,-10,-61.2)),
+  **0 damage for over 7.5 s even while fighting** — "if you're in that room, at least the archer's arrows can't hit you" is confirmed by data too.
+  Before reaching this area (the open courtyard), only one melee hit of 97 from 254011; across the whole recording,
+  0 archer (254012) arrow hits recorded — meaning the user fully avoided the arrows.
+- **Coded**: `data/burg-town-map.json` (6 enemies, npc + last observed coords, in order) + `BURG_TOWN`/`Missions.clear_burg_town()` in `missions.py`
+  + a new `run.py` command `clear-burg-town` (standalone/testing).
 
-**실측 1차(2026-09-25, `to_merchant()`에 엮은 직후, burg-loop 101100, 사용자: "불의 제전으로 왔으니 처음부터
-시도해봐. 순서를 반드시 지켜줘.")**: `field.clear()` 그대로 재사용한 첫 버전은 **#1~3(254011·254012·254010, 가까움)은
-성공**했지만 **#4~6(254010 2번째·255002·255000, 화톳불 방 근처 — 멀고 벽 너머)은 전부 "stuck" 4번씩** 반복하며
-110 s+ 제자리서 허비 후 `left #4 #5 #6` → 그 직후(7 s 뒤) **캐릭터 사망**. 원인: `field.clear()`가 다음 목표를 찾을 때
-`duel()`의 로컬 접근(`_approach`, 실제 길찾기 없음)만 쓰는데, 경사로(6마리가 한 평지에 모여 있음)와 달리 성벽 마을은
-목표들이 훨씬 멀고 벽·구조물 너머라 로컬 접근으로 안 닿았다.
-- **고침**: `clear_burg_town()`을 `field.clear()` 대신 목표마다 **`walk_to()`(진짜 navmesh 길찾기)로 먼저 그 자리까지
-  걸어간 뒤(가는 길에 깨어있는 놈은 `walk()`의 chaser 가 알아서 처리 — 목표 자신을 가는 길에 이미 잡는 경우도 있음)
-  도착해서 살아 있으면 `fight()`** 하는 방식으로 재작성. **아직 이 새 버전으로 라이브 재검증 전** — 다음에 확인할 것.
+**First measurement (2026-09-25, right after wiring into `to_merchant()`, burg-loop 101100; user: "you're at Firelink Shrine, so try from the
+beginning. Be sure to keep the order.")**: the first version, reusing `field.clear()` as-is, **succeeded on #1–3 (254011, 254012, 254010, close)**
+but **#4–6 (254010 2nd, 255002, 255000 — near the bonfire room, far and behind walls) all repeated "stuck" 4 times each**,
+wasting 110 s+ in place, then `left #4 #5 #6` → right after (7 s later) **the character died**. Cause: when finding the next target, `field.clear()`
+only uses `duel()`'s local approach (`_approach`, no real pathfinding); unlike the ramp (6 enemies gathered on one flat area), in Undead Burg the
+targets are much farther and behind walls/structures, so the local approach couldn't reach them.
+- **Fix**: rewrote `clear_burg_town()` so that, instead of `field.clear()`, for each target it first **walks to that spot with `walk_to()` (real navmesh pathfinding)**
+  (awake enemies on the way are handled by `walk()`'s chaser — sometimes the target itself is killed on the way)
+  and, on arrival, **`fight()`s it if alive**. **Not yet re-verified live with this new version** — check next time.
 
-## 원거리 우선·둘러싸임 (2026-09-25, `duel.py`)
+## Ranged first, getting surrounded (2026-09-25, `duel.py`)
 
-- **원거리부터**: 던지는 놈(foes.ranged)이 던지는 중이면 거리·높이 상관없이(`RANGED_SWITCH_R`=25 m) 목표를 그놈으로 바꾼다 — 기존
-  `cut`(끼어든 놈)은 2.5 m·같은 높이만 봐서 위 턱의 던지는 놈은 절대 안 걸렸다(사용자: "위에 화살 쏘는 애가 공격하니 방어 위주로
-  세팅됨 — 그놈부터 처리해야 함").
-- **원거리 목표에 접근할 땐 주변이 조용할 때만 달린다.** 첫 버전은 `foe.ranged` 면 무조건 `sprint`(방패 못 듦) 였는데, 이미 난전
-  중이면 뛰는 동안 무방비로 맞다 `SWITCH_R`(2.5 m) 안에 들어올 때까지 다른 놈을 못 알아채 둘러싸였다 (사용자 2026-09-25: "쏘는 놈을
-  잡으려는데 대응이 느려서 다른 몹들에게 둘러싸여", "몹 배치 한 전술에 완전히 당한거야" — 의도된 적 배치 함정). 8 m 안(`OTHERS_ATTACK_R`)에
-  다른 깨어 있는 놈이 있으면 `sprint` 대신 `guard`(방패 들고 걷기)로 접근 — 빠르지만 무방비인 러시는 정말 혼자 있을 때만.
-- **망자 콤보의 3009 도 막으면 안 된다** — SHIELD 만 `unblockable=(3009,)` 였는데, 실측(254001, 화염병 망자)에서 3009 를 4 초 넘게
-  막다(반사×29 연속, 준 피해 0) 스태미나 46→6 까지 떨어지고 죽었다. 망자 콤보 주석(`_HOLLOW`)에 원래도 "3003→3004→3009" 로 적혀
-  있었는데 `unblockable` 필드엔 안 붙어 있었다 — `_HOLLOW`·성벽 마을 망자(250000) 전부에 추가. **아직 실전 재검증 전.**
-- **다음 할 일(사용자 2026-09-25, 다음 배치부터 — 판 중간엔 규칙 안 바꿈): "양잡하고, 한방에 방해하는 몹을 없애지 못하면 도망치는게
-  나아."** 끼어든 놈(cut)을 지금은 무조건 끝까지 싸운다(`fight()`) — 죽을 때까지 21 s·428 피해 받은 사례처럼 길어질 수 있다.
-  한 대(또는 정해진 시도)로 안 죽으면 계속 붙잡지 말고 원래 목표·도주 경로로 물러나는 조건을 넣을 것. 양잡(grip) 여부와 묶어 검토.
-    포지셔닝 트릭으로 쉽게 뚫리지 않는다는 뜻. 발차기(kick_when_idle)가 이 패턴에 맞춰 이미 검증된 정공법이었다.
-- **왕복 중 "돌아올 때도 몹이 있으면 전부 제거해야함"(사용자)** — `field.walk()` 는 이미 따라오는 적과 싸우려 하는데(라벨 "따라온 …"),
-  통로(귀환) 구간에서 그 싸움이 `_approach()` 의 `step`(경로 없음 폴백)만 반복하며 45 s 두 번을 그대로 흘려 `stuck` 이 됐다 —
-  가만한 적(anim -1, 공격 없음)에게 경로가 안 잡히는 걸로 보인다. 원인(내비메시 연결성?) 미확인 — 다음 배치에서 재현되면 그 자리 좌표부터 볼 것.
+- **Ranged first**: if a thrower (foes.ranged) is throwing, switch the target to it regardless of distance/height (`RANGED_SWITCH_R`=25 m) — the existing
+  `cut` (interloper) only looked at 2.5 m and the same height, so a thrower on a ledge above was never caught (user: "the one shooting arrows from above is attacking, so it's set to
+  defense mode — deal with that one first").
+- **When approaching a ranged target, sprint only when the surroundings are quiet.** The first version always used `sprint` (can't raise shield) if `foe.ranged`, but mid-melee
+  it got hit defenseless while running and didn't notice other enemies until they entered `SWITCH_R` (2.5 m), getting surrounded (user 2026-09-25: "trying to catch the shooter,
+  your response was slow and other mobs surrounded you", "you completely fell for the mob placement tactic" — an intentional enemy-placement trap). If another awake enemy is within 8 m (`OTHERS_ATTACK_R`),
+  approach with `guard` (walking with shield up) instead of `sprint` — the fast but defenseless rush only when truly alone.
+- **A hollow combo's 3009 must not be blocked either** — only SHIELD had `unblockable=(3009,)`, but in a measurement (254001, firebomb hollow) blocking 3009 for over 4 s
+  (reflex ×29 in a row, 0 damage dealt) drained stamina 46 → 6 and it died. The hollow combo comment (`_HOLLOW`) already said "3003→3004→3009",
+  but it wasn't in the `unblockable` field — added to `_HOLLOW` and all Undead Burg hollows (250000). **Not yet re-verified live.**
+- **Next (user 2026-09-25, from the next batch — rules don't change mid-run): "Two-hand it, and if you can't kill the interfering mob in one hit, it's better
+  to run."** Interlopers (cut) are currently always fought to the end (`fight()`) — it can drag on, as in the case of 21 s and 428 damage taken until death.
+  Add a condition: if it doesn't die in one hit (or a set number of attempts), stop holding on and back off to the original target / escape route. Review together with two-handing (grip).
+    positioning tricks don't easily break it. The kick (kick_when_idle) was already the proven standard answer for this pattern.
+- **During the round trip, "if there are mobs on the way back too, clear them all" (user)** — `field.walk()` already tries to fight followers (label `따라온 …` (followed …)),
+  but in the corridor (return) stretch that fight only repeated `_approach()`'s `step` (no-path fallback), letting two 45 s windows pass and becoming `stuck` —
+  it seems no path is found to a still enemy (anim -1, not attacking). Cause (navmesh connectivity?) unconfirmed — if it reproduces in the next batch, start with that spot's coordinates.
 
-## 캐릭터 성장 (사용자 원칙, 2026-09-25)
+## Character progression (user principle, 2026-09-25)
 
-"레벨업, 무기 선정·강화, 스탯 배분을 잘 하는 것이 중요함 — 지금 빌드는 체력·지구력·힘만 올림." 봇 규칙보다 성적을 더 크게 바꾼다.
-- 기사 초기치 대비 VIT +6·END +8·STR +5 (SL 24) — 다른 스탯은 초기치 그대로 (덤프 라벨 확정 근거). 무기 배틀 액스 +0, 늑대의 반지(강인도).
-- 판마다 `char` 사건(스탯·장비)이 남는다 (`run.py`). **묶음 비교는 같은 char 상태끼리만.**
-- 5층 위의 "진행 층"(레벨업·보충·강화)은 아직 사용자가 직접. 자동화하려면: 소울 ≥ 다음 레벨 비용이면 화톳불에서 VIT→END→STR 순환, 나이프 < 20 이면 상인, 티타나이트 있으면 안드레.
+"Leveling up, choosing/upgrading weapons, and allocating stats well matters — the current build only raises vitality, endurance, and strength." Changes results more than bot rules do.
+- Versus Knight starting stats: VIT +6, END +8, STR +5 (SL 24) — other stats unchanged from start (basis for confirming dump labels). Weapon Battle Axe +0, Wolf Ring (poise).
+- Each run leaves a `char` event (stats, equipment) (`run.py`). **Compare groups only within the same char state.**
+- The "progression layer" above layer 5 (leveling, restocking, upgrading) is still done by the user. To automate: if souls ≥ next level cost, cycle VIT→END→STR at the bonfire; if knives < 20, merchant; if titanite, Andre.
 
-## rush 스타일 (2026-09-25, `souls/style.py`)
+## rush style (2026-09-25, `souls/style.py`)
 
-양손, 반사(막기·피하기) 끔 — 계속 공격, 에스트로 버틴다. **사용자: "Rush mode는 다른 방법이 안 통할 때 쓰는 plan B 이지, 메인으로
-쓸 건 아니야."** guard 가 기본, rush 는 대안 — 여기 기록한 건 끄기 전에 고친 버그들, 앞으로 rush 를 더 다듬는 우선순위는 낮다.
-- 양잡 전환이 첫 판엔 안 먹힐 때가 있었다 → `fight()` 가 확인될 때까지 재시도(위 커밋).
-- `style.shield` 없는데도 "휘두르는 중 막는다" 분기를 타서 상대 콤보 내내(8 s+) 공격 0회로 얻어맞았다(방패병, 676 피해) → 그 분기에
-  `style.shield` 게이트 추가(위 커밋). 고친 뒤 같은 방패병 21 s→6 s.
-- **아직 안 고침(2026-09-25 실측, 20260925_074542_clear-ramp.log)**: 경사로 6번 근처, 높이차 4 m 인 상대에게 "붙기:stopped" 가
-  8초 넘게 반복되며(공격 0회) 624 를 받고 죽었다 — `_approach()` 의 `stop()` 이 계속 참을 반환하는데 `field.fight()` 가 그 새
-  끼어든 놈을 못 잡는 것으로 보임(원인 미확인). 방패병 문제와는 다른 버그.
+Two-handed, reflex (block/evade) off — keep attacking, survive on estus. **User: "Rush mode is plan B for when other methods don't work, not something to use as
+the main one."** guard is the default, rush the alternative — what's recorded here are bugs fixed before turning it off; further polishing of rush is low priority.
+- Switching to two-hand sometimes didn't take on the first try → `fight()` retries until confirmed (commit above).
+- Even without `style.shield` it took the "block while it's swinging" branch and got beaten for the opponent's whole combo (8 s+) with 0 attacks (shield soldier, 676 damage) → added
+  a `style.shield` gate to that branch (commit above). After the fix, the same shield soldier went 21 s → 6 s.
+- **Not fixed yet (measured 2026-09-25, 20260925_074542_clear-ramp.log)**: near ramp #6, against an opponent with 4 m height difference, `붙기:stopped` (close in: stopped)
+  repeated for over 8 s (0 attacks), took 624 and died — `_approach()`'s `stop()` keeps returning true, and `field.fight()` apparently fails to catch that new
+  interloper (cause unconfirmed). A different bug from the shield soldier issue.
 
-## 원거리 전환 높이 제한 (2026-09-25, `duel.py`)
+## Height limit on ranged switching (2026-09-25, `duel.py`)
 
-`RANGED_SWITCH_R`(원거리 우선·둘러싸임)에 거리 제한은 있어도 높이 제한이 없었다 — 254012(테라스 위 궁수, 높이차 +6~8.5 m)로
-목표가 바뀌면 `_approach()`가 걸어서 못 붙는 거리를 무한정 좁히려다 20~30 s 동안 화살만 맞았다(burg-loop 091110, HP 695→137,
-`low_hp`로 강제 후퇴했지만 그마저 `no_path`로 실패). 실측(여러 로그)상 성공적으로 붙은 원거리 전환은 전부 높이차 ≤ +3.0 m —
-`RANGED_REACHABLE_DY = 4.0` 추가해 그 위는 애초에 도달 불가로 보고 무시하게 고침.
+`RANGED_SWITCH_R` (ranged first, getting surrounded) had a distance limit but no height limit — when the target switched to 254012 (archer on the terrace, height diff +6 to +8.5 m),
+`_approach()` endlessly tried to close a distance it couldn't walk, taking arrows for 20–30 s (burg-loop 091110, HP 695 → 137;
+forced retreat via `low_hp`, but even that failed with `no_path`). Measured (several logs): every successful ranged switch that closed in had height diff ≤ +3.0 m —
+added `RANGED_REACHABLE_DY = 4.0` so anything above that is treated as unreachable and ignored.
 
-## 기다릴 때 / 행동할 때 (2026-09-25, `duel.py` `wait_far`)
+## When to wait / when to act (2026-09-25, `duel.py` `wait_far`)
 
-**사용자: "기다리면 올텐데 왜 뛰쳐 올라가 기회를 놓쳤잖아", "기다려야 할 때와 행동 할 때가 아주 않좋아."** — 이건 이 버그
-하나가 아니라 봇 전반에 걸친 판단 기준 문제로 남겨둔다(다른 데서도 비슷한 패턴 나오면 여기 추가).
+**User: "It would have come if you'd waited, why did you rush up and blow the chance", "Your sense of when to wait and when to act is really bad."** — kept as a
+bot-wide judgment problem, not just this one bug (add here if similar patterns appear elsewhere).
 
-- 실측(burg-loop 093619, 경사로): 나이프 끌어오기 중 다른 깨어있는 놈이 5.9 m 로 접근 → `field.clear()`의 "오는 놈" 분기가
-  곧장 `fight()`로 걸어가 붙임 → 그 사이 처음 놈도 마저 다가와 둘을 동시에 상대 → 8 s 동안 공격 0회, 493 피해, 결국
-  "둘러싸임 2명"으로 강제 퀵 종료(HP 793→164). 걸어가지 않고 그 자리서 기다렸으면 하나씩 왔을 상황.
-- 고침: `duel(..., wait_far=True)` — 닿는 거리 밖이면 `_approach()`로 다가가지 않고 그 자리서 막고 기다리다, 상대가
-  스스로 다가와 닿는 거리 안에 들어와야 반응한다. `field.clear()`의 "오는 놈"(끼어든 적) 교전에 적용(`field.py` `fight()`
-  호출부). 정해진 스폰 목표를 찾아가는 일반 교전에는 적용 안 함 — 그건 원래 다가가야 하는 상황이라 다름.
-- 15 s(`STALEMATE_S`) 동안 상대가 안 오면 그냥 "stalemate"로 빠진다 — 무한정 기다리진 않는다.
+- Measured (burg-loop 093619, ramp): during a knife lure another awake enemy approached to 5.9 m → `field.clear()`'s "approaching enemy" branch
+  walked straight in with `fight()` → meanwhile the first enemy also arrived, two at once → 0 attacks in 8 s, 493 damage, finally
+  a forced quit-out for "surrounded by 2" (HP 793 → 164). Had it waited in place instead of walking, they would have come one at a time.
+- Fix: `duel(..., wait_far=True)` — if out of reach, don't approach via `_approach()`; block and wait in place, reacting only once the opponent
+  comes into reach on its own. Applied to `field.clear()`'s "approaching enemy" (interloper) engagement (the `fight()`
+  call site in `field.py`). Not applied to normal engagements seeking out a fixed spawn target — those genuinely need to approach, a different situation.
+- If the opponent doesn't come within 15 s (`STALEMATE_S`), it just exits as "stalemate" — doesn't wait forever.
 
-**실전 회귀(2026-09-25, burg-loop 094803, 캐릭터 사망)**: `wait_far` 자체가 새 위험을 만들었다. 성벽 마을 255000(방패병)
-전투 중, 추적 중인 목표가 4.3~4.5 m 밖에서 **안 휘두르는 채(애니 -1) 안 다가옴** — 그런데 11 s 동안 "기다림"만 하면서
-HP 490 → 242 로 깎였다(다른 원인, 추적 중이 아닌 놈에게 맞는 중으로 보임 — cut/ranged_cut 둘 다 안 잡음). 이 손실이 바로
-뒤 `low_hp`(25 % 미만) → `no_path`로 못 물러남 → `desperate`(끝까지) 재교전 → 둘러싸임 2명 강종(HP 118→3, 겨우 생존) →
-바로 다음 재교전에서 **`me_dead`(실제 사망)** 로 이어졌다. **사용자: "적들이 너를 안심시키고, 위험을 가중시키는 거야.
-이 게임은 절대로 쉽지 않아. 모든 걸 설계했어." "리스크 쌓아 올리다 결국 죽잖아." "실패가 숨겨진 거야."** — 최종 결과
-문자열(`cleared`/`dead`)만 보면 이런 중간 과정의 대량 HP 손실·직전 사망 이력이 전혀 안 보인다.
-- 고침: `WAIT_HURT_HP = 120.0` — 기다리는 동안 이만큼(약 15 %) 깎이면 "안전하게 기다리는 중"이 아니라 다른 데서 맞는
-  중이란 뜻으로 보고 곧장 `low_hp`로 빠진다. 기존 25 % 전역 기준(최대 ~300+ HP 손실 허용)보다 훨씬 이르게 끊는다.
-- **아직 안 고침**: 정확히 무엇이 그 11 s 동안 때렸는지(추적 목표도 애니 -1, cut·ranged_cut·reflex 모두 안 반응) 원인
-  미확인 — 로그가 1 Hz 요약이라 프레임 단위로는 안 보인다. `WAIT_HURT_HP`는 증상 완화(빨리 빠져나옴)이지 근본 원인 수정은
-  아니다. 재발하면 다음엔 어떤 놈·어떤 애니인지 실시간 텔레메트리로 더 촘촘히 봐야 한다.
-- **평가 방법 교훈**: 판 하나의 최종 결과("cleared" 등)만 보고 "성공"으로 치면 안 된다 — 매 판마다 로그 전체에서
-  `⚠`(강종)·`low_hp`·`timeout`·`stuck`·`me_dead`를 훑어야 진짜 위험이 보인다(사용자: "실패가 숨겨진 거야").
+**Live regression (2026-09-25, burg-loop 094803, character died)**: `wait_far` itself created a new risk. While fighting 255000 (shield soldier) in Undead Burg,
+the tracked target stayed 4.3–4.5 m away, **not swinging (anim -1) and not approaching** — yet during 11 s of just "waiting",
+HP dropped 490 → 242 (another cause, apparently being hit by an untracked enemy — neither cut nor ranged_cut caught it). This loss led straight
+to `low_hp` (below 25 %) → `no_path`, couldn't retreat → `desperate` (to the end) re-engagement → force-quit for surrounded by 2 (HP 118 → 3, barely survived) →
+the very next re-engagement ended in **`me_dead` (actual death)**. **User: "The enemies lull you and pile on the danger.
+This game is never easy. Everything is designed." "You stack up risk and end up dying." "The failures are hidden."** — looking only at the final result
+string (`cleared`/`dead`) shows none of the large HP losses or near-death history along the way.
+- Fix: `WAIT_HURT_HP = 120.0` — losing this much (about 15 %) while waiting means it's being hit from elsewhere, not "safely waiting",
+  so it exits to `low_hp` immediately. Cuts off much earlier than the existing global 25 % threshold (which allowed ~300+ HP loss).
+- **Not fixed yet**: what exactly hit it during those 11 s (tracked target also anim -1; cut, ranged_cut, and reflex all didn't react) is
+  unconfirmed — the log is a 1 Hz summary, so not visible at frame level. `WAIT_HURT_HP` mitigates the symptom (exits fast), not a root-cause
+  fix. If it recurs, next time look more densely with real-time telemetry at which enemy and which anim.
+- **Lesson on evaluation**: don't count a run as "success" from its final result ("cleared" etc.) alone — for every run, scan the whole log for
+  `⚠` (force-quit), `low_hp`, `timeout`, `stuck`, `me_dead` to see the real risk (user: "the failures are hidden").
 
-## BIOS 층(watchdog) — 보류 (2026-09-25)
+## BIOS layer (watchdog) — on hold (2026-09-25)
 
-`watchdog.py`는 `run.py`(본체)와 별도 프로세스로 캐릭터가 멈춰 있으면(위치·애니 `STALL_S` 동안 안 바뀜) 다크사인/퀵 종료로
-구조하는 감시 층. 세 번 다시 설계했다(전부 `watchdog.py` 자체 docstring에 상세 기록):
-1. 타임스탬프 하트비트 파일 — 읽기 경합 오탐으로 폐기.
-2. `botlock.py`(OS 파일 락, fencing) + HP/근접 위협으로 위험 판단 — 판 사이 정상 대기를 위급으로 오판(다크사인 반복) / 반대로
-   한 번만 보고 안전하다 넘어간 뒤 계속 맞아 죽음("멈추고 처 맞네") 두 가지로 실패.
-3. **최종**: "3초 이상 멈춰 있으면"(사용자 직접 지정) — 게임 위험도 판단은 전투 AI 몫이지 watchdog 몫이 아니라는 원칙
-   ("이러면 watchdog 아니잖아")으로 캐릭터 정지 여부 하나만 본다.
+`watchdog.py` is a monitoring layer in a separate process from `run.py` (the main body) that rescues the character via Darksign/quit-out if it's stuck (position/anim unchanged for `STALL_S`).
+Redesigned three times (all detailed in `watchdog.py`'s own docstring):
+1. Timestamp heartbeat file — discarded due to false positives from read contention.
+2. `botlock.py` (OS file lock, fencing) + danger judged by HP/nearby threats — failed two ways: misjudged normal waiting between runs as an emergency (repeated Darksign) / conversely
+   saw it once, judged it safe, moved on, and then kept getting hit until death ("it stops and just gets beaten").
+3. **Final**: "if stopped for 3 s or more" (specified directly by the user) — on the principle that judging game danger is the combat AI's job, not the watchdog's
+   ("then it's not a watchdog"), it only checks whether the character is stopped.
 
-**사용자 2026-09-25: "watchdog는 포기하자. 너무 불안정해서, 나중에 평가할테니 문서만 남겨줘."** — 최종 설계도 실전에서
-불안정(오탐/누락 정황 있었음, 원인 미확정). 코드는 그대로 두되 **지금부터는 켜지 않는다** — `run.py` 단독 실행만으로
-세트를 돌리고, 봇 오류 시 자체 퀵 종료(`esc.fire`, `run.py`의 `except` 블록)에 의존한다. watchdog 재평가는 나중 과제.
+**User 2026-09-25: "Let's give up on the watchdog. It's too unstable; I'll evaluate it later, just leave the docs."** — the final design was also unstable live
+(signs of false positives/misses, cause undetermined). The code stays but **from now on it is not turned on** — sets run with `run.py` alone,
+relying on its own quit-out on bot errors (`esc.fire`, the `except` block in `run.py`). Re-evaluating the watchdog is a later task.

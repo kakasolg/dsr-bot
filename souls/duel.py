@@ -1,14 +1,14 @@
-"""3층 — 한 마리 상대. 무기 사용법(2층)과 적 종류(foes)를 보고 1층 동작을 고른다.
-결과만 돌려준다. 에스트를 마실지·퀵 종료할지·다음에 누구를 칠지는 4층(field)이 정한다.
+"""Layer 3 — one opponent. Picks layer-1 actions from weapon usage (layer 2) and the enemy type (foes).
+Returns only the result. Whether to drink Estus, quit out, or who to hit next is decided by layer 4 (field).
 
-한 틱의 순서:
-  1) 그놈이 휘두르는 중이고 4 m 안 → 방패 들고 그쪽을 본다 (맞바꾸지 않는다)
-  2) 넘어져 있으면 방패 들고 기다린다
-  3) 닿는 거리(무기 reach, 수평) 밖이거나 높이가 1 m 넘게 다르면 → 경로를 따라 붙는다 (높은 턱 위도 올라간다)
-  4) 스태미나가 모자라면 방패
-  5) 몸을 그놈에 맞추고: 방패 든 놈이 나를 보고 서 있으면 발차기, 아니면 무기대로 (브로드소드: 약공 2연타)
-  0) (맨 앞) 4층이 마시고 싶어 하면: 틈(opening)이면 마시고, 붙어 있으면 백스텝으로 벌린다
-끝나는 조건: 처치 · 내 죽음 · 내 HP 낮음 · 놓침 · 15 s 동안 피해를 못 줌(교착) · 시간 초과 · 취소(탈출 중)
+Order within one tick:
+  1) it is swinging and within 4 m → raise shield and face it (don't trade hits)
+  2) if it is knocked down, raise shield and wait
+  3) out of reach (weapon reach, horizontal) or height differs by more than 1 m → follow a path to close in (climbs high ledges too)
+  4) low stamina → shield
+  5) face it: if a shield user is standing and looking at me, kick; otherwise per weapon (broadsword: 2 light attacks)
+  0) (first) if layer 4 wants to drink: drink if there's an opening, if close, backstep to open distance
+End conditions: kill · my death · my HP low · lost · no damage dealt for 15 s (stalemate) · timeout · cancel (escaping)
 """
 from __future__ import annotations
 
@@ -21,45 +21,45 @@ import nav
 from . import foes as foes_
 from . import moves as M
 
-STALEMATE_S = 15.0       # 닿는 거리 안에서 이만큼 피해를 못 주면 교착 — 예전엔 '6번 쳐도 안 죽음'(발차기·막힌 약공도 셌다)으로 판을 버렸다
-NEAR = 4.0               # 이 안에서 그놈이 휘두르면 방패
+STALEMATE_S = 15.0       # no damage dealt this long within reach = stalemate — previously gave up on 'not dead after 6 hits' (kicks and blocked light attacks counted too)
+NEAR = 4.0               # shield if it swings within this
 KICK_COOLDOWN = 2.5
-SEP_R = 4.0              # 목표와 다른 깨어 있는 놈이 둘 다 이 안이면 떼어 놓는다 (_separate)
-SEP_RUN = 5.0            # 그만큼 달아난다 — 망자(느림)와 방패병 돌진(3~4.5 m/s)이 시차를 두고 온다
-SEP_COOLDOWN = 5.0       # 연달아 달리기만 하지 않게
-SEP_MAX = 3              # 한 싸움에 이만큼까지
-OPEN_R = 3.0             # 싸우는 중 에스트 '틈': 그놈이 넘어졌거나, 휘두르지 않고 이만큼 떨어져 있을 때
-OTHERS_R, OTHERS_ATTACK_R = 5.0, 8.0   # 그리고 다른 깨어 있는 놈이 5 m 안에 없고, 8 m 안에 휘두르는 놈이 없을 때
+SEP_R = 4.0              # if the target and another awake foe are both within this, split them (_separate)
+SEP_RUN = 5.0            # run this far — hollows (slow) and the shield soldier lunge (3–4.5 m/s) arrive staggered in time
+SEP_COOLDOWN = 5.0       # so we don't just keep running
+SEP_MAX = 3              # at most this many per fight
+OPEN_R = 3.0             # Estus 'opening' mid-fight: it is knocked down, or not swinging and at least this far away
+OTHERS_R, OTHERS_ATTACK_R = 5.0, 8.0   # and no other awake foe within 5 m, and none swinging within 8 m
 CARE_RETRY = 3.0
-FINISH_KEEP_HP = 40     # 그놈 HP 가 이 아래면 내 HP 가 낮아도(12 % 까지) 빠지지 않는다 (다크사인 뒤 방패병이 10 → 85)
-FINISH_HP, FINISH_SP = 25, 15   # 그놈 HP 가 약공 한 대(실측 34~41) 안쪽이면 스태미나 15 만 있어도 친다
-HEAVY_SP = 100           # 휘청 틈 강공은 스태미나가 이 이상일 때만 (가드 든 채 강공 한 번에 90)
-INTERRUPT_STARTUP_MAX = 0.45   # 선 딜레이가 이보다 긴 무기(클레이모어 0.68 s)는 휘두르기 시작한 놈을 끊지 못한다 — 가만히 선 놈만 먼저 친다.
-                               # 배틀 액스는 딜레이가 거의 없어 끊었지만, 클레이모어로 같은 규칙을 쓰니 큰 피격 범인이 망자(254010)였다 (2026-09-25)
-INTERRUPT_S = 0.35       # 그놈 공격이 시작된 지 이만큼 안이면 막지 말고 먼저 친다 (약공이 닿는 게 더 빠르다)
+FINISH_KEEP_HP = 40     # if its HP is below this, don't retreat even when my HP is low (down to 12 %) (after dark sign the shield soldier went 10 → 85)
+FINISH_HP, FINISH_SP = 25, 15   # if its HP is within one light attack (measured 34–41), hit with as little as 15 stamina
+HEAVY_SP = 100           # heavy attack in a stagger opening only at this stamina or more (one heavy while guarding costs 90)
+INTERRUPT_STARTUP_MAX = 0.45   # weapons with startup longer than this (claymore 0.68 s) can't interrupt a foe that started swinging — only hit idle foes first.
+                               # the battle axe had almost no delay and interrupted, but using the same rule with the claymore, the top damage source was hollow (254010) (2026-09-25)
+INTERRUPT_S = 0.35       # if its attack started within this, hit first instead of blocking (the light attack lands sooner)
 SWITCH_MARGIN, SWITCH_HOLD = 0.8, 3.0
-SWITCH_R = 2.5           # 이 안(수평·같은 높이)에 목표보다 가까운 깨어 있는 놈이 있으면 그놈부터
-RANGED_SWITCH_R = 25.0   # 던지는/쏘는 놈(foes.ranged)이 휘두르는 중(던지는 중)이면 거리 상관없이 이 안이면 그놈부터 (사용자: "위에 화살 쏘는 놈부터")
-RANGED_REACHABLE_DY = 3.0   # 이보다 높이차 나면 걸어서 못 붙는 자리로 보고 원거리 전환 대상에서 뺀다 (성공 전환은 전부 ≤ +3.0;
-                            # 4.0 일 땐 +3.6 턱 석궁병으로 갈아타 8 s 막히고 옆 망자에게 맞았다, 2026-09-25 164722)
-MELEE_BUSY_R = 2.0       # 이 안(같은 높이)에 칼 든 놈이 있으면 원거리 전환을 안 한다 — 0.9 m 앞 망자를 두고 15.8 m 석궁병으로 갔다
-WAIT_APPROACH_S = 3.0    # wait_far: 이 시간 동안 WAIT_CLOSE_M 도 안 다가오면 안 올 놈 — 기다림을 풀고 붙는다
+SWITCH_R = 2.5           # if an awake foe closer than the target is within this (horizontal, same height), take it first
+RANGED_SWITCH_R = 25.0   # if a thrower/shooter (foes.ranged) is swinging (throwing), take it first within this regardless of distance (user: "the one shooting arrows from above first")
+RANGED_REACHABLE_DY = 3.0   # height difference above this = spot unreachable on foot, excluded from ranged switching (successful switches were all ≤ +3.0;
+                            # at 4.0 it switched to a crossbowman on a +3.6 ledge, stuck 8 s and got hit by a nearby hollow, 2026-09-25 164722)
+MELEE_BUSY_R = 2.0       # no ranged switch if a sword foe is within this (same height) — it went for a 15.8 m crossbowman with a hollow 0.9 m ahead
+WAIT_APPROACH_S = 3.0    # wait_far: if it doesn't come WAIT_CLOSE_M closer in this time it won't come — stop waiting and close in
 WAIT_CLOSE_M = 0.5
-WAIT_HURT_HP = 120.0    # wait_far 로 기다리는 동안 이만큼 깎이면 — 추적 중인 목표(안 휘두름)가 아닌 다른 원인으로 맞는 중, 그만 기다린다
-LEDGE_DY = 3.0           # 그놈이 arena 보다 이만큼 높거나 낮으면 끌어오지 않는다 (따라오지 않는다)
-SWING_S = 1.6            # 공격 애니가 시작된 지 이만큼 넘으면 휘두르는 중으로 안 본다
-PULL_R = 8.0             # 끌어오기: 그놈이 이 안이면(움직이지 않아도) 물러나기 시작
-SEEK_R = 100.0           # 그놈을 이 반경 안에서 찾는다 — 40 m 로 뒀더니 화톳불에서 42 m 인 1번을 못 보고 전부 '놓침' 이었다
-CIRCLE_BEHIND_DEG = 130  # 그놈 정면 기준 이 각 넘게 벗어나면 '등 뒤' — 방패는 정면 부채꼴만 막는다 (사용자 2026-09-25: "방패병도 뒤를 공격 해야함")
-CIRCLE_LEAD_DEG = 60     # 매 틱 목표점을 이만큼 앞서 잡아 — 멈추지 않고 계속 돈다 (사용자 시범: 3.5~3.8 s 큰 원호, 걸음마다 서면 그놈이 회전을 따라잡았다)
-CIRCLE_SWEEP_S = 4.0     # 한 번에 도는 최대 시간 (실측 3.5~3.8 s + 여유)
-CIRCLE_MAX_SWEEPS = 2    # 이만큼 돌아도 등 뒤가 안 되면 포기(길 막힘 등) — 발차기로 대신 (무한 루프 방지)
+WAIT_HURT_HP = 120.0    # if this much HP is lost while waiting via wait_far — being hit by something other than the tracked (non-swinging) target, stop waiting
+LEDGE_DY = 3.0           # don't lure it if it is this much above or below arena (it won't follow)
+SWING_S = 1.6            # past this since the attack anim started, not considered swinging
+PULL_R = 8.0             # lure: start backing off if it is within this (even if not moving)
+SEEK_R = 100.0           # search for it within this radius — at 40 m it missed #1 at 42 m from the bonfire and everything was 'lost'
+CIRCLE_BEHIND_DEG = 130  # beyond this angle from its front = 'behind' — shield only blocks a frontal cone (user 2026-09-25: "you have to attack shield soldiers from behind too")
+CIRCLE_LEAD_DEG = 60     # lead the target point by this much every tick — keep circling without stopping (user demo: 3.5–3.8 s big arc; stopping each step let it turn and catch up)
+CIRCLE_SWEEP_S = 4.0     # max time of one sweep (measured 3.5–3.8 s + margin)
+CIRCLE_MAX_SWEEPS = 2    # give up if not behind after this many (path blocked etc.) — kick instead (prevents infinite loop)
 
 
 def _circle_sweep(mv, s, c, cancel) -> float:
-    """그놈 둘레를 멈추지 않고 계속 돈다 — 사용자 시범(2026-09-25, play_20260925_062345.jsonl): 3.5~3.8 s 이어지는 큰
-    원호로 등 뒤(150~180°)까지 붙어 약공 한 대(303000, 보통 약공과 같은 애니)로 54 피해(HP 85의 63 %) — 걸음마다 서던 예전
-    _circle_step 은 그 사이 그놈이 몸을 돌려 따라잡았다. → 마지막 등 뒤 각(절대값, deg)."""
+    """Keep circling around it without stopping — user demo (2026-09-25, play_20260925_062345.jsonl): a big arc lasting 3.5–3.8 s
+    reaching behind (150–180°), one light attack (303000, same anim as a normal light attack) did 54 damage (63 % of HP 85) — the old
+    _circle_step stopped each step and it turned to catch up meanwhile. → last behind angle (absolute, deg)."""
     ptr = c.ptr
     t0 = time.time()
     behind_deg = abs(math.degrees(M.rel_angle(c, s.player)))
@@ -68,7 +68,7 @@ def _circle_sweep(mv, s, c, cancel) -> float:
         if s is None or s.cam_yaw is None:
             break
         c = mv.find(s, ptr)
-        if c is None or (c.anim or -1) != -1:               # 그놈이 움직이기 시작하면(더는 idle) 멈춘다
+        if c is None or (c.anim or -1) != -1:               # stop if it starts moving (no longer idle)
             break
         p = s.player
         ang = M.rel_angle(c, p)
@@ -78,7 +78,7 @@ def _circle_sweep(mv, s, c, cancel) -> float:
         sign = 1.0 if ang >= 0 else -1.0
         th = math.radians(CIRCLE_LEAD_DEG) * sign
         dx, dz = p.x - c.x, p.z - c.z
-        rx = dx * math.cos(th) + dz * math.sin(th)          # atan2(x, z) 규약 — bearing 을 +th 만큼 돌리는 회전식
+        rx = dx * math.cos(th) + dz * math.sin(th)          # atan2(x, z) convention — rotation turning the bearing by +th
         rz = dz * math.cos(th) - dx * math.sin(th)
         mv.pad.move(*mv.stick_to(s, c.x + rx, c.z + rz, 0.7))
         time.sleep(0.05)
@@ -87,30 +87,30 @@ def _circle_sweep(mv, s, c, cancel) -> float:
 
 
 def _pair_close(s, p, ptr, h: float) -> list:
-    """목표 말고 SEP_R 안(같은 높이)에 깨어 움직이는 놈 — 목표도 SEP_R 안일 때만. 가만히 선(-1)·쓰러진 놈은 빼고."""
+    """Awake, moving foes other than the target within SEP_R (same height) — only when the target is also within SEP_R. Excludes idle (-1) and downed ones."""
     if h >= SEP_R:
         return []
     near = [x for x in s.hostile(SEP_R + 1.0) if x.hp > 0 and M.horiz(p, x) < SEP_R and abs(x.y - p.y) < 1.2
             and not (9000 <= (x.anim or 0) < 9100) and (x.anim or -1) not in M.DOWNED]
-    # 누가 휘두르는(돌진하는) 중이면 달리지 않는다 — 돌진(3005, 3~4.5 m/s)이 달리기보다 빨라 등을 맞았다:
-    # 2.7 m 에서 돌진 중인 방패병을 두고 돌아서 뛰다 +178° 로 −281 (observe 094231). 공격 사이에만 떼어 놓는다
+    # don't run if anyone is swinging (lunging) — the lunge (3005, 3–4.5 m/s) is faster than running, we got hit in the back:
+    # turned and ran from a lunging shield soldier at 2.7 m, took −281 at +178° (observe 094231). Split only between attacks
     if any((x.anim or -1) in M.ATTACK for x in near):
         return []
     return [x for x in near if x.ptr != ptr]
 
 
 def _separate(mv, s, ptr, others: list, nm, arena, cancel) -> str:
-    """둘이 붙어 오면 떼어 놓는다 (사용자 2026-09-26 (a)) — 둘의 가운데에서 멀어지는 쪽으로 SEP_RUN m 달려 한 놈씩 오게 한다.
-    방패병 옆에서 망자가 휘둘러 −161, 그동안 약공으로 스태미나 −5 → 방패병 3210 에 가드가 깨져 −103 (observe 092612).
-    갈 자리: 내비메시 위이고 직선으로 끊김 없이(clear_line) 가는 곳만. arena 가 그쪽이면 arena. 없으면 안 달린다.
-    → 'arrived' | 'stopped' | 'no_spot' | …(walk_path 값)"""
+    """Split two foes coming in together (user 2026-09-26 (a)) — run SEP_RUN m away from their midpoint so they come one at a time.
+    A hollow swung beside a shield soldier for −161, meanwhile light attacks cost stamina −5 → guard broken by shield soldier 3210 for −103 (observe 092612).
+    Destination: only on the navmesh and reachable in an unbroken straight line (clear_line). arena if it's that way. Otherwise don't run.
+    → 'arrived' | 'stopped' | 'no_spot' | …(walk_path values)"""
     p = s.player
     c = mv.find(s, ptr)
     group = [x for x in [c, *others] if x is not None]
     cx, cz = sum(x.x for x in group) / len(group), sum(x.z for x in group) / len(group)
     ax, az = p.x - cx, p.z - cz
     n = math.hypot(ax, az)
-    if n < 0.3:                                            # 둘 사이에 끼었다 — 목표 반대쪽으로
+    if n < 0.3:                                            # caught between the two — go away from the target
         ax, az = p.x - c.x, p.z - c.z
         n = math.hypot(ax, az) or 1.0
     ax, az = ax / n, az / n
@@ -131,7 +131,7 @@ def _separate(mv, s, ptr, others: list, nm, arena, cancel) -> str:
     goal = next((g for g in cands if nm is not None and nm.clear_line(here, g)), None)
     if goal is None:
         return "no_spot"
-    r = mv.walk_path([goal], nm, "walk", stop=lambda sn: cancel(), timeout_per=2.5)   # 달리기 → 걷기 (근거 등급 게이트, 2026-09-26)
+    r = mv.walk_path([goal], nm, "walk", stop=lambda sn: cancel(), timeout_per=2.5)   # run → walk (evidence-grade gate, 2026-09-26)
     mv.guard(True)
     s2 = mv.snap(10.0)
     c2 = mv.find(s2, ptr) if s2 else None
@@ -140,27 +140,27 @@ def _separate(mv, s, ptr, others: list, nm, arena, cancel) -> str:
     return r
 
 
-GOAL_STALE_M = 3.0       # Patch E-2: 붙으러 가는 중 그놈이 경로를 짠 자리에서 이만큼 움직이면 멈추고 다시 판단
-SHADOW_WINDOW = 1.5      # 그림자 발차기 후보 뒤 이만큼 지나 결과(내 HP·그놈 HP 변화)를 남긴다
+GOAL_STALE_M = 3.0       # Patch E-2: while closing in, if it moves this far from where the path was planned, stop and re-decide
+SHADOW_WINDOW = 1.5      # log the outcome (my HP·its HP change) this long after a shadow kick candidate
 
 
 def _early_kick_candidate(foe, a: int, age, h: float, dy: float, sp: float, weapon, others_attacking: bool) -> bool:
-    """빠른 발차기 후보인가 — 원시 애니(foe.windup 이 막 시작 / STAGGER)·거리·높이·스태미나·옆 공격자만 본다. 부작용 없음
-    (예전 조건 안의 mv.face() 는 몸을 움직였다 — 그건 'act' 일 때만 따로 부른다)."""
+    """Is this an early kick candidate — looks only at raw anim (foe.windup just started / STAGGER), distance, height, stamina, side attackers. No side effects
+    (the mv.face() inside the old condition moved the body — that is now called separately only for 'act')."""
     if not foe.kick_when_idle or h > weapon.reach + 0.3 or abs(dy) > 1.0 or sp < weapon.sp_min or others_attacking:
         return False
     return (a in foe.windup and age is not None and age < foe.windup_act_s) or (foe.kick_on_stagger and a in M.STAGGER)
 
 
 class ShadowKick:
-    """Patch D — 원시 애니 3004·3500 에 거는 빠른 발차기는 뜻이 검증 전이라 하지 않고 후보 사건만 남긴다.
-    사건 하나 = (핸들, 세대, 애니, 시작 시각) 하나. SHADOW_WINDOW 뒤 결과 사건을 한 번 더 남긴다."""
+    """Patch D — the early kick on raw anims 3004·3500 is unverified in meaning, so don't do it; only log candidate events.
+    One event = one (handle, generation, anim, start time). After SHADOW_WINDOW, log an outcome event once more."""
 
     def __init__(self, log=print, events=None, gen=None):
         self.log, self.events, self.gen = log, events or (lambda *a, **k: None), gen
         self.seen: set = set()
         self.pending: list = []
-        self._last: dict = {}                              # ptr → (anim, 시작 시각)
+        self._last: dict = {}                              # ptr → (anim, start time)
 
     def note_anim(self, ptr, anim: int, now: float) -> None:
         prev = self._last.get(ptr)
@@ -168,8 +168,8 @@ class ShadowKick:
             self._last[ptr] = (anim, now)
 
     def onset(self, ptr, anim: int, age, now: float) -> float:
-        """이 애니가 이 놈에게 **끊김 없이 보이기 시작한 때** — now − age 는 틱마다 흔들려(±0.05 s) 한 번의 3004 가 사건 둘이
-        됐다 (observe 133016). age 는 기록에만 남긴다."""
+        """When this anim **started being continuously seen** on this foe — now − age jitters per tick (±0.05 s), turning one 3004 into
+        two events (observe 133016). age is kept only for logging."""
         last = self._last.get(ptr)
         return last[1] if last and last[0] == anim else now
 
@@ -219,7 +219,7 @@ def _others_quiet(s, ptr) -> bool:
 
 
 def opening(s, ptr) -> bool:
-    """지금 마실 틈인가 — 그놈이 넘어져 있거나(일어나는 중 제외), 휘두르지 않고 OPEN_R 넘게 떨어져 있고, 다른 놈은 조용할 때."""
+    """Is now an opening to drink — it is knocked down (not getting up), or not swinging and more than OPEN_R away, and the others are quiet."""
     c = next((x for x in s.chars if x.ptr == ptr), None)
     if c is None:
         return _others_quiet(s, ptr)
@@ -243,8 +243,8 @@ class DuelResult:
 
 
 def _approach(mv: M.Moves, weapon, s, c, nm, foe, cancel, log=lambda *a: None, may_approach=None) -> str:
-    """경로를 따라 그놈에게 붙는다. 붙거나 / 그놈이 휘두르기 시작하거나 / 취소면 그 틱에 멈춘다.
-    경로는 **출발할 때 그놈 자리**로 짠다 — 그놈이 움직이면 도착한 뒤 다시 짠다 (1 s 마다 그놈 위치를 기록)."""
+    """Follow a path to close in on it. Stops that tick once close / it starts swinging / cancelled.
+    The path is planned to **its position at departure** — if it moves, re-plan after arriving (its position is logged every 1 s)."""
     p, ptr = s.player, c.ptr
     goal = (c.x, c.y, c.z)
     seen_t = [time.time()]
@@ -252,7 +252,7 @@ def _approach(mv: M.Moves, weapon, s, c, nm, foe, cancel, log=lambda *a: None, m
     if not path or len(path) < 2:
         if s.cam_yaw is None:
             return "no_cam"
-        mv.pad.move(*mv.stick_to(s, c.x, c.z, 0.8))        # 경로가 없으면 한 걸음만
+        mv.pad.move(*mv.stick_to(s, c.x, c.z, 0.8))        # no path — just one step
         time.sleep(0.15)
         mv.pad.move(0.0, 0.0)
         return "step"
@@ -267,55 +267,55 @@ def _approach(mv: M.Moves, weapon, s, c, nm, foe, cancel, log=lambda *a: None, m
             where = "30 m 밖(안 보임)" if cc is None else f"그놈 ({cc.x:.1f}, {cc.y:.1f}, {cc.z:.1f}) 애니 {cc.anim}, 거리 {M.horiz(sn.player, cc):.1f}"
             log(f"        붙는 중: 나 ({sn.player.x:.1f}, {sn.player.y:.1f}, {sn.player.z:.1f}) → 목표 {tuple(round(v, 1) for v in goal)} | {where}")
         if cc is None:
-            return False          # goto 의 스냅샷은 30 m 안만 담는다 — 멀리 있는 그놈이 안 보이는 건 사라진 게 아니다
+            return False          # goto's snapshot only holds 30 m — a far foe being invisible doesn't mean it's gone
         if cc.hp <= 0:
             return True
-        # Patch E-2 (2026-09-26): 그놈이 경로를 짠 자리에서 GOAL_STALE_M 넘게 움직였으면 멈추고 duel 이 지금 자리로 다시 판단한다.
-        # 예전엔 출발 때 자리로 끝까지 걸어, 내려오는 #3 을 지나쳐 경사로 위 예전 자리로 올라갔다 (observe 131752·132053·133827).
+        # Patch E-2 (2026-09-26): if it moved more than GOAL_STALE_M from where the path was planned, stop and let duel re-decide from its current spot.
+        # Previously it walked all the way to the departure spot, passing #3 coming down and climbing to its old spot up the ramp (observe 131752·132053·133827).
         if math.dist((cc.x, cc.y, cc.z), goal) > GOAL_STALE_M:
             return True
         if may_approach is not None and not may_approach(cc, sn):
-            return True           # 다가가면 안 되는 곳으로 가는 중 — duel 이 'unsafe_approach' 로 끝낸다
+            return True           # heading somewhere we must not approach — duel ends with 'unsafe_approach'
         d = M.horiz(sn.player, cc)
         if any(x.ptr != ptr and x.hp > 0 and not (9000 <= (x.anim or 0) < 9100) and M.horiz(sn.player, x) < SWITCH_R
                and abs(x.y - sn.player.y) < 1.2 for x in sn.hostile(SWITCH_R + 2.0)):
-            return True           # 걸어가는데 다른 놈이 붙었다 — 멈추고 그놈부터 (duel 이 목표를 바꾼다)
-        # 높이차가 크면(안 내려오는 놈, 못 오르는 턱) '휘두르는 중 + 가까움'만으로 멈추면 거기서 굳는다 — 높이차 안에서만
-        # 조기 정지, 아니면 경로를 끝까지 따라간다(있으면 돌아가는 길로) (사용자 2026-09-25: "전투 중에 멈춰 있으려면 돌아가야지",
-        # "위험 구역에 왜 머무르고 있어" — 실측: 높이차 1.7~1.9 m 에서 45 s+ "붙기:stopped" 무한 반복, 공격 0회)
-        # 쏘는 놈(foe.ranged)은 "휘두르는 중이면 멈춰 막기"를 안 한다 — 석궁병 255002 의 3000/3001 은 늘 조준·발사 자세라
-        # 2~3 m 앞에서 매번 멈춰 닿는 거리(1.8 m)에 못 들어갔다: 34 s 공격 0회·피해 653 (2026-09-25 164722, 사용자 "궁수만 보면 대응 못하네")
+            return True           # another foe closed in while walking — stop and take it first (duel switches target)
+        # with a large height difference (foe that won't come down, ledge we can't climb), stopping on just 'swinging + close' freezes us there — stop early
+        # only within the height limit, otherwise follow the path to the end (the detour if any) (user 2026-09-25: "if you're going to stop mid-fight, go around",
+        # "why are you staying in the danger zone" — measured: at 1.7–1.9 m height difference, 45 s+ of endless "붙기:stopped", 0 attacks)
+        # shooters (foe.ranged) don't get "stop and block while swinging" — crossbowman 255002's 3000/3001 is always an aim/fire stance, so
+        # it stopped every time 2–3 m away and never got into reach (1.8 m): 34 s, 0 attacks, 653 damage (2026-09-25 164722, user "you can't handle archers at all")
         return (d <= weapon.reach and abs(cc.y - sn.player.y) <= 1.0) or (
             not foe.ranged and (cc.anim or -1) in M.ATTACK and d < NEAR and abs(cc.y - sn.player.y) <= 1.2)
 
     def mode(sn) -> str:
-        cc = mv.find(sn, ptr)                               # 30 m 밖이면 None — 그땐 그냥 걷는다
+        cc = mv.find(sn, ptr)                               # None beyond 30 m — then just walk
         if cc is not None and M.horiz(sn.player, cc) < NEAR:
-            return "guard"                                  # 가까우면 방패 든 채 걷는다
-        # 원거리 놈에게 달려 붙기는 뺐다 (근거 등급 게이트, 2026-09-26) — 투사체 포물선 unknown, 달리기 안전은 NavMesh 추정뿐
-        # 다른 놈이 8 m 안에 있으면 뛰지 않는다 — 뛰는 동안은 못 막아 2.5 m(SWITCH_R) 안에 들어올 때까지 무방비로 맞는다
-        # (사용자 2026-09-25: "쏘는 놈을 잡으려는데 대응이 느려서 다른 몹들에게 둘러싸여") → 방패 들고 걷는다
+            return "guard"                                  # when close, walk with shield raised
+        # removed running at ranged foes (evidence-grade gate, 2026-09-26) — projectile arc unknown, running safety is only a NavMesh estimate
+        # don't run if another foe is within 8 m — while running we can't block and get hit defenseless until it enters 2.5 m (SWITCH_R)
+        # (user 2026-09-25: "trying to get the shooter, but you react slowly and get surrounded by other mobs") → walk with shield up
         return "guard" if foe.ranged else "walk"
     return mv.walk_path(path, nm, mode, stop, timeout_per=6.0)
 
 
-PUNISH_AFTER = 1.1       # 백스텝 스타일: 공격 시작 뒤 이만큼 지나야 칼이 지나갔다 (1.0 s 안에 들어간 11회 중 8회 맞음, 1.0~1.3 s 는 3/3 무피해)
-PUNISH_MIN_R = 1.8       # 이보다 붙어 있으면 헛친 뒤 치기 대신 반사에 맡긴다 (≤1.6 m 에서 들어간 7회 중 5회가 다음 타에 맞음)
-PUNISH_R = 1.6           # 닿는 거리 + 이만큼 안이면 걸어 들어가 친다 (0.9 로는 2.5 m 에서 6 s 동안 못 들어감)
+PUNISH_AFTER = 1.1       # backstep style: the blade has passed only this long after the attack starts (8 of 11 entries within 1.0 s got hit, 1.0–1.3 s were 3/3 unhurt)
+PUNISH_MIN_R = 1.8       # closer than this, leave it to reflex instead of punishing the whiff (5 of 7 entries at ≤1.6 m got hit by the next swing)
+PUNISH_R = 1.6           # within reach + this, walk in and hit (with 0.9 it couldn't get in from 2.5 m for 6 s)
 
 
 def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: float = 0.25,
          cancel=lambda: False, care=None, reflex=None, arena=None, style=None, wait_far: bool = False,
          gen=None, events=None, may_approach=None) -> DuelResult:
-    """care: 4층이 주는 회복 담당 — care.wants(s) (마시고 싶나), care.take(recheck) (마신다; recheck(s) 로 틈을 다시 본다).
-    틈인지는 여기(3층)가 본다: opening(). 붙어 있으면 백스텝으로 벌리고 다음 틱에 다시 본다.
-    reflex: 반사(souls/reflex.py) — 매 틱 가장 먼저. 움직였으면 이 틱은 쉰다 (상대가 아닌 놈의 공격도 정면으로 막는다).
-    arena: 이 근처 평평한 자리 — 발밑이 낭떠러지 쪽이면(nav.footing) 그놈이 안 휘두를 때 거기로 물러나 맞이한다.
-      사용자 원칙: "애초에 위험한 위치에 있으면 안 되는 게 먼저" — 추락은 퀵 종료로 못 구한다 (떨어지는 중엔 메뉴가 안 열림, 2026-09-24).
-    wait_far: 닿는 거리 밖이면 다가가지 않고 그 자리서 막고 기다린다 — 걸어오는 중인 놈에게 이걸 켠다.
-      사용자 2026-09-25: "기다리면 올텐데 왜 뛰쳐 올라가 기회를 놓쳤잖아" — 아직 먼 적에게 걸어가면 그 사이 다른 놈까지
-      함께 오게 만들어 혼자 올 걸 여럿이서 동시에 상대하게 됐다(경사로, 0 피해/8 s, 493 받음, 둘러싸임으로 강종).
-      "기다려야 할 때와 행동할 때"를 구분 — 먼 적은 오게 두고, 닿는 거리 안에 들어온 뒤에야 반응한다."""
+    """care: healing handler from layer 4 — care.wants(s) (wants to drink?), care.take(recheck) (drinks; recheck(s) rechecks the opening).
+    Whether there's an opening is judged here (layer 3): opening(). If close, backstep to open distance and recheck next tick.
+    reflex: reflex (souls/reflex.py) — first thing every tick. If it moved, this tick rests (it also blocks attacks from non-targets head-on).
+    arena: a flat spot nearby — if footing is toward a cliff (nav.footing), back off there to receive it when it isn't swinging.
+      User principle: "not being in a dangerous position in the first place comes first" — quit-out can't save a fall (the menu won't open while falling, 2026-09-24).
+    wait_far: if out of reach, don't approach; block in place and wait — turn this on for foes that are walking in.
+      User 2026-09-25: "it would come if you waited, why did you rush up and miss the chance" — walking toward a still-distant foe made others
+      come along too, so what would have come alone had to be fought as a group at once (ramp, 0 damage/8 s, 493 taken, force-quit for being surrounded).
+      Distinguish "when to wait and when to act" — let distant foes come, react only after they enter reach."""
     from . import style as style_
     style = style_.of(style or "guard")
     t0 = time.time()
@@ -326,17 +326,17 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
     sep_t, sep_n = 0.0, 0
     best_h, best_t = None, t0
     wait_t0, wait_hmin = 0.0, 0.0
-    wait_hp0 = None                                         # wait_far 로 기다리기 시작한 시점의 HP (다른 데서 맞는지 보려고)
+    wait_hp0 = None                                         # HP when wait_far waiting began (to see if we're hit from elsewhere)
     last_seen, foe = None, None
     care_t, backstep_t, move_t = 0.0, 0.0, 0.0
     pulled = arena is None
     orig_ptr, switch_t = None, 0.0
-    circle_n = 0                                            # 등 뒤로 도는 시도 횟수 (foe.circle_behind) — 무한 루프 방지
-    acts: dict = {}                                        # 1 s 동안 한 일 (기록용)
+    circle_n = 0                                            # attempts to circle behind (foe.circle_behind) — prevents infinite loop
+    acts: dict = {}                                        # what was done in 1 s (for logging)
     note_t = [t0]
 
     def note(act: str, s_, c_) -> None:
-        """틱마다 한 일을 세고, 1 s 마다 한 줄 — 어디서 막히는지 보이게 (2026-09-24: 4 m 앞에서 18 s 동안 못 친 원인을 몰랐다)."""
+        """Count what was done per tick, one line per 1 s — so we can see where it gets stuck (2026-09-24: didn't know why it couldn't hit for 18 s at 4 m)."""
         acts[act] = acts.get(act, 0) + 1
         if time.time() - note_t[0] < 1.0:
             return
@@ -351,7 +351,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
 
     hp_min = [hp_start]
 
-    shadow = ShadowKick(log=log, events=events, gen=gen)   # gen·events: Field.fight 가 넣는다 (그림자 발차기 사건용)
+    shadow = ShadowKick(log=log, events=events, gen=gen)   # gen·events: supplied by Field.fight (for shadow kick events)
 
     def done(result: str) -> DuelResult:
         mv.pad.guard(False)
@@ -361,7 +361,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
         if s_ and s_.player.hp is not None:
             hp_min[0] = min(hp_min[0], s_.player.hp)
         res.result, res.secs = result, time.time() - t0
-        res.taken = max(0, hp_start - hp_min[0])          # 가장 낮았던 HP 기준 (중간에 마신 에스트가 가리지 않게)
+        res.taken = max(0, hp_start - hp_min[0])          # based on lowest HP (so Estus drunk midway doesn't hide it)
         return res
 
     while True:
@@ -381,14 +381,14 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             return done("me_dead")
         c = mv.find(s, ptr)
         if c is None:
-            # 목록에서 빠졌다 — 죽은 시체가 빠진 것일 수도, 퀵 종료로 포인터가 바뀐 것일 수도. 같은 종류가 근처에 살아 있으면 그놈
+            # dropped from the list — could be a corpse removed, or the pointer changed after a quit-out. If the same type is alive nearby, it's that one
             if last_seen is not None:
                 again = [x for x in s.chars if x.npc_param == last_seen.npc_param and x.hp > 0
                          and math.dist((x.x, x.y, x.z), (last_seen.x, last_seen.y, last_seen.z)) < 3.0]
                 if again:
                     ptr = again[0].ptr
                     continue
-            if orig_ptr is not None and orig_ptr != ptr:   # 끼어든 놈이 사라졌다 (죽어서 빠짐) — 원래 목표로
+            if orig_ptr is not None and orig_ptr != ptr:   # the interloper vanished (died and removed) — back to the original target
                 ptr, orig_ptr, last_seen = orig_ptr, None, None
                 continue
             if last_seen is not None and res.hits and res.hits[-1]["dead"]:
@@ -406,19 +406,19 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             foe = foes_.of(c.npc_param)
             res.npc = c.npc_param
         if p.hp < p.max_hp * low_hp and not (c.hp <= FINISH_KEEP_HP and p.hp >= p.max_hp * 0.12):
-            return done("low_hp")                          # 거의 잡은 놈 앞에선 안 빠진다 — 빠졌다 오면 살아 있던 놈은 HP 가 다시 찬다
+            return done("low_hp")                          # don't retreat from an almost-dead foe — if we leave and return, a survivor's HP refills
         if now - last_dmg_t > STALEMATE_S:
             return done("stalemate")
         h, dy, a = M.horiz(p, c), c.y - p.y, (c.anim if c.anim is not None else -1)
         ranged_cut = [x for x in s.hostile(RANGED_SWITCH_R) if x.ptr != ptr and x.hp > 0
                       and foes_.of(x.npc_param).ranged and (x.anim or -1) in M.ATTACK
                       and abs(x.y - p.y) < RANGED_REACHABLE_DY]
-        # 위(또는 멀리)에서 쏘는 놈은 가까운 끼어든 놈(cut, 아래)과 달리 거리 제한이 없다 — 맞으면서 눈앞 상대만 방어 위주로
-        # 상대하게 됐다 (사용자 2026-09-25: "화살 쏘는 애가 공격하니 방어 위주로 세팅됨 — 그놈부터 처리해야 함").
-        # 단, 높이차는 제한한다 — 254012(테라스 궁수, 높이차 +6~8.5m)로 목표가 바뀌면 _approach()가 걸어서
-        # 못 붙는 거리를 무한정 좁히려다 30 s 동안 화살만 맞고 HP 695→137 (2026-09-25, burg-loop 091110).
-        # 실측: 성공적으로 붙은 원거리 전환은 전부 높이차 ≤ +3.0m — 그 위는 애초에 도달 불가로 보고 무시.
-        # 눈앞(MELEE_BUSY_R)에 칼 든 놈이 붙어 있으면 그놈부터 — 등을 보이고 멀리 쏘는 놈에게 가면 둘에게 다 맞는다
+        # shooters above (or far away), unlike close interlopers (cut, below), have no distance limit — we were getting hit while fighting only the
+        # foe in front defensively (user 2026-09-25: "the arrow guy is attacking so it's set to defense-heavy — deal with him first").
+        # But height difference is limited — switching to 254012 (terrace archer, height difference +6–8.5 m) made _approach() endlessly try to close
+        # a distance unreachable on foot, taking only arrows for 30 s, HP 695→137 (2026-09-25, burg-loop 091110).
+        # measured: successful ranged switches were all at height difference ≤ +3.0 m — above that, treat as unreachable and ignore.
+        # if a sword foe is right in front (MELEE_BUSY_R), take it first — turning your back to go for a distant shooter gets you hit by both
         busy = any(x.hp > 0 and not foes_.of(x.npc_param).ranged and M.horiz(p, x) < MELEE_BUSY_R and abs(x.y - p.y) < 1.2
                    and not (9000 <= (x.anim or 0) < 9100) for x in s.hostile(MELEE_BUSY_R + 1.0))
         if ranged_cut and not busy and now - switch_t > SWITCH_HOLD:
@@ -431,11 +431,11 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             h, dy, a = M.horiz(p, c), c.y - p.y, (c.anim if c.anim is not None else -1)
         cut = [x for x in s.hostile(SWITCH_R + 2.0) if x.ptr != ptr and x.hp > 0 and not (9000 <= (x.anim or 0) < 9100)
                and M.horiz(p, x) < min(SWITCH_R, h - SWITCH_MARGIN) and abs(x.y - p.y) < 1.2]
-        # 거리가 비슷한 둘 사이에서 1~2 s 마다 목표를 바꿔 몸을 돌리다 등을 맞았다 (±140~166°, 25 s 에 442) —
-        # 확실히 더 가까울 때만(SWITCH_MARGIN), 바꾼 뒤 SWITCH_HOLD 동안은 그대로
+        # between two at similar distances it switched targets every 1–2 s, turning and getting hit in the back (±140–166°, 442 in 25 s) —
+        # switch only when clearly closer (SWITCH_MARGIN), and keep it for SWITCH_HOLD after switching
         if cut and now - switch_t > SWITCH_HOLD:
-            # 끼어든 놈부터 (옛 hunt.py 규칙, 사용자: "가까운 적 공격 못해?") — 지도 목표만 보다 옆에서 치는 놈에게 13 s 에 387 맞고 죽었다.
-            # 그놈을 잡으면 원래 목표로 돌아간다
+            # interloper first (old hunt.py rule, user: "can't you attack the nearby enemy?") — watching only the map target, took 387 in 13 s from one hitting from the side and died.
+            # after killing it, return to the original target
             x = min(cut, key=lambda y: M.horiz(p, y))
             if orig_ptr is None:
                 orig_ptr = ptr
@@ -444,13 +444,13 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             last_seen, foe = x, foes_.of(x.npc_param)
             h, dy, a = M.horiz(p, c), c.y - p.y, (c.anim if c.anim is not None else -1)
 
-        if not (h > weapon.reach and wait_far):                 # 기다리는 중이 아니면 기다림 HP 기준점도 없앤다
+        if not (h > weapon.reach and wait_far):                 # if not waiting, also clear the waiting HP baseline
             wait_hp0 = None
 
         pair = _pair_close(s, p, ptr, h)
         if (pair and nm is not None and sep_n < SEP_MAX and now - sep_t > SEP_COOLDOWN and a not in M.STAGGER
                 and a not in M.DOWNED and c.hp > FINISH_HP):
-            # 둘이 같이 붙었다 — 떼어 놓고 한 놈씩 (사용자 2026-09-26 (a)). 휘청·누움(틈)과 한 대면 죽는 놈 앞에선 안 달린다
+            # two closed in together — split them and take one at a time (user 2026-09-26 (a)). Don't run during stagger/downed (openings) or from a one-hit kill
             sep_t, sep_n = now, sep_n + 1
             r = _separate(mv, s, ptr, pair, nm, arena, cancel)
             log(f"      떼어놓기 {sep_n}: {c.npc_param}({h:.1f} m) + " + ", ".join(f"{x.npc_param}({M.horiz(p, x):.1f} m, {x.anim})" for x in pair)
@@ -462,7 +462,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
         if (c.hp <= FINISH_HP and a not in M.ATTACK and h <= weapon.reach and abs(dy) <= 1.0
                 and not (foe is not None and foe.kick_when_idle and a == -1)
                 and (p.sp or 0) >= FINISH_SP and mv.face(s, c, deg=30.0)):
-            # 한 대면 죽고 지금 안 휘두른다 — 반사보다 먼저 친다 (HP 18 인 놈 앞에서 반사가 매 틱 방패만 쥐다 죽었다)
+            # dies in one hit and isn't swinging now — hit before reflex (in front of an HP 18 foe, reflex just held the shield every tick and died)
             hit = mv.light(s, c, n=1)
             d = hit.as_dict()
             res.hits.append({k: d[k] for k in ("kind", "presses", "dmg", "dead", "taken", "others")})
@@ -485,11 +485,11 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             foe, a, age, h, dy, p.sp or 0, weapon,
             any((x.anim or -1) in M.ATTACK and M.horiz(p, x) < 2.5 for x in near45))
         if cand and ek == "shadow":
-            # Patch D: 원시 애니만 보고 발차기하지 않는다 — 기록만 하고 아래 가지로 그대로 흘러간다 (B8 이 없던 것처럼)
+            # Patch D: don't kick on raw anim alone — only log and fall through to the branches below (as if B8 never existed)
             shadow.observe(now, ptr, mv.tm.handle(ptr), c.npc_param, a, age, h, dy, p.sp, p.max_sp, len(near45), p.hp, c.hp)
         if cand and ek == "act" and mv.face(s, c, deg=30.0):
-            # (실험 전용, 어떤 Foe 데이터도 켜지 않음) 한 템포 빨리 발차기 (사용자 2026-09-26) — 느리게 닿는 공격(3004)의 앞부분,
-            # 또는 공격 뒤 휘청(3500)이 막 시작됐을 때. 반사·끌어오기보다 먼저 본다
+            # (experiment only, no Foe data enables it) kick one beat earlier (user 2026-09-26) — at the start of a slow-landing attack (3004),
+            # or just as post-attack stagger (3500) begins. Checked before reflex and lure
             kick_t = now
             why = f"{a} {age:.2f}s" if a in foe.windup else f"휘청 {a}"
             hit = mv.kick_combo(s, c, n=foe.punish_hits or weapon.combo)
@@ -504,23 +504,23 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
                 return done("killed")
             continue
         if a in foe.windup and age is not None and age >= foe.windup_act_s and h < NEAR:
-            # 늦었다 — 곧 닿는다(시작 2.0~2.1 s). SWING_S 로 '선 것'으로 바꿔 발차기를 내면 그 순간 맞는다 (−220·−323) → 막는다
+            # too late — it lands soon (2.0–2.1 s after start). Treating it as 'standing' via SWING_S and kicking gets hit at that moment (−220·−323) → block
             mv.guard(True)
             mv.face(s, c)
             note("늦은windup막기", s, c)
             time.sleep(0.02)
             continue
         if a in M.ATTACK and age is not None and age > SWING_S:
-            # 3000 번대가 SWING_S 넘게 이어지면 휘두르는 중이 아니다 (공격이 끝나도 1.5~5.3 s 남는다 — 기록 분석).
-            # 창 방패병(255002)은 3001 에 머문 채 방패를 들고 있어, 15 s 내내 1.4 m 에서 막기만 했고 발차기도 안 나갔다
+            # if the 3000 series lasts beyond SWING_S it isn't swinging (it lingers 1.5–5.3 s after the attack ends — log analysis).
+            # the spear shield soldier (255002) stays in 3001 holding up its shield, so for 15 s we only blocked at 1.4 m and never kicked
             a = -1
         if (foe.kind != "shield" and h <= weapon.reach and abs(dy) <= 1.0 and (p.sp or 0) >= weapon.sp_min
                 and (a == -1 or (a in M.ATTACK and age is not None and age < INTERRUPT_S
                                  and (weapon.startup or 0.0) <= INTERRUPT_STARTUP_MAX))
                 and not any(x.ptr != ptr and (x.anim or -1) in M.ATTACK and M.horiz(p, x) < 2.5 for x in s.hostile(4.5))
                 and mv.face(s, c, deg=30.0)):
-            # 먼저 친다 (사용자: "한 대라도 휘두르면 그 적이 물러났을 텐데") — 망자는 약공 한 대에 경직(2000·2002)돼 물러난다.
-            # 공격을 막 시작했을 때(INTERRUPT_S 안)나 가만히 서 있을 때. 방패병은 방패에 막히니 제외, 옆에서 다른 놈이 휘두르면 막기부터
+            # hit first (user: "if you'd swung even once, that enemy would have backed off") — a hollow flinches (2000·2002) from one light attack and backs off.
+            # when it has just started attacking (within INTERRUPT_S) or is standing still. Shield soldiers excluded (blocked by shield); if another foe swings beside us, block first
             hit = mv.light(s, c, n=weapon.combo, sp_second=weapon.sp_min)
             d = hit.as_dict()
             res.hits.append({k: d[k] for k in ("kind", "presses", "dmg", "dead", "taken", "others")})
@@ -532,9 +532,9 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             if hit.dead and orig_ptr is None:
                 return done("killed")
             continue
-        if reflex is not None and reflex.tick(s):          # 반사: 2.5 m 안 누구든 휘두르기 시작하면 정면으로 막는다
+        if reflex is not None and reflex.tick(s):          # reflex: if anyone within 2.5 m starts swinging, block head-on
             bh = getattr(reflex, "last_hit", None)
-            if bh is not None:                             # 백스텝 공격(한 동작) 결과 — 기록
+            if bh is not None:                             # backstep attack (one move) result — record it
                 reflex.last_hit = None
                 d = bh.as_dict()
                 res.hits.append({k: d[k] for k in ("kind", "presses", "dmg", "dead", "taken", "others")})
@@ -550,11 +550,11 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             time.sleep(0.02)
             continue
         ledge = arena is not None and abs(c.y - arena[1]) > LEDGE_DY
-        # 턱 위에 선 놈(경사로 5번 y -39 vs 평지 -49)은 안 내려온다 — 평지로 끌어오거나 물러나면 오르내리기만 반복했다 (세 번 '막힘')
+        # a foe standing on a ledge (ramp #5 y -39 vs flat ground -49) won't come down — luring to flat ground or backing off just went up and down repeatedly (three 'stuck')
         if (not pulled and not ledge and nm is not None and a not in M.ATTACK and (a != -1 or h < PULL_R)
                 and math.dist((p.x, p.y, p.z), tuple(arena)) > 3.0):
-            # 0--) 끌어오기 (사용자: "원하는 지형까지 끌고 가기") — 그놈이 알아채면(움직이거나 가까우면) arena 로 물러난다.
-            # 경사로 2번 자리는 위 턱의 화염병이 떨어지는 곳이라, 거기서 붙었더니 1 s 에 275 를 맞았다 (2026-09-24)
+            # 0--) lure (user: "drag it to the terrain you want") — once it notices (moves or is close), back off to arena.
+            # ramp spot #2 is where firebombs from the ledge above land; engaging there took 275 in 1 s (2026-09-24)
             pulled = True
             path = nm.find_path((p.x, p.y, p.z), tuple(arena))
             if path:
@@ -565,7 +565,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
                 continue
         if (nm is not None and a not in M.ATTACK and now - move_t > 3.0 and p.gx is not None
                 and nav.footing(nm, p)[0] < nav.FOOTING_MIN):
-            # 0-) 낭떠러지 옆 — 평평한 자리로 (그놈은 따라온다). arena 가 없으면 바닥이 가장 넓은 쪽으로 한 걸음
+            # 0-) next to a cliff — go to a flat spot (it follows). Without arena, one step toward the widest ground
             move_t = now
             if arena is not None and not ledge and math.dist((p.x, p.y, p.z), tuple(arena)) > 1.5:
                 path = nm.find_path((p.x, p.y, p.z), tuple(arena))
@@ -575,12 +575,12 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
                                                                      for x in sn.hostile(NEAR + 1.0)))
                     note(f"자리옮김:{r}", s, c)
                     continue
-            # NavMesh 는 막기만 — '바닥이 넓은 쪽' 으로 걸음을 고르지 않는다 (근거 등급 게이트, 2026-09-26). 가장자리면 방패 들고 그놈을 본다
+            # NavMesh only blocks — it doesn't choose a step toward 'the wider ground' (evidence-grade gate, 2026-09-26). At an edge, raise shield and face it
             mv.guard(True)
             mv.face(s, c, deg=20.0)
             note("가장자리방어", s, c)
             continue
-        if care is not None and now - care_t > CARE_RETRY and care.wants(s):   # 0) 싸우는 중 에스트 (사용자: 안전하면 마셔)
+        if care is not None and now - care_t > CARE_RETRY and care.wants(s):   # 0) Estus mid-fight (user: drink if safe)
             if opening(s, ptr):
                 care_t = now
                 r = care.take(lambda sn: opening(sn, ptr))
@@ -589,16 +589,16 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
                 continue
             if (a not in M.ATTACK and h < OPEN_R and now - backstep_t > 2.0 and p.heading is not None and _others_quiet(s, ptr)
                     and nav.ground_ahead(nm, p, math.sin(p.heading), math.cos(p.heading), reach=2.2)):
-                backstep_t = now                           # 붙어 있다 — 뒤에 바닥이 있으면 백스텝으로 벌린다
+                backstep_t = now                           # close — if there's ground behind, backstep to open distance
                 mv.backstep()
                 note("백스텝", s, c)
                 continue
 
         if (a in M.STAGGER or a == M.GUARD_BROKEN) and h <= weapon.reach + 0.3 and abs(dy) <= 1.0 and (p.sp or 0) >= weapon.sp_min:
-            # 1-) 휘청 = 틈. 몸만 맞으면 곧장 친다 (막기에 튕긴 뒤 바로 — 옛 메모 "3500 휘청 — 붙어 있으면 바로 친다")
+            # 1-) stagger = opening. If facing is right, hit at once (right after bouncing off the guard — old note "3500 stagger — if close, hit immediately")
             if mv.face(s, c, deg=30.0):
-                # 방패병 휘청 틈엔 강공 (사용자 2026-09-25: "가드·강공·가드가 강한 적에게 더 유리") — 강공은 가드 든 채 스태미나 90 을
-                # 먹으니 가득(HEAVY_SP)일 때만. 약공과 피해를 비교하려고 kind 를 로그에 남긴다
+                # heavy attack in a shield soldier's stagger opening (user 2026-09-25: "guard·heavy·guard is better against strong-guard enemies") — heavy while guarding
+                # costs 90 stamina, so only when full (HEAVY_SP). kind is logged to compare damage with light attacks
                 if weapon.heavy_punish and foe.kind == "shield" and (p.sp or 0) >= HEAVY_SP:
                     hit = mv.heavy(s, c)
                 else:
@@ -616,13 +616,13 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
                 note("휘청돌기", s, c)
             continue
         if style.evade and a in M.ATTACK and h < NEAR:
-            # 1b) 백스텝 스타일 (사용자 2026-09-24: "고수들은 백스텝을 적절하게 사용, 백스텝 + 약공, 양손이면 더 강함, 가드 스태미나도 안 씀")
-            #     휘두르기 시작은 반사가 백스텝으로 피했다(뒤에 바닥 있을 때). 칼이 지나간 뒤(PUNISH_AFTER)면 한 걸음 들어가 약공.
+            # 1b) backstep style (user 2026-09-24: "experts use backsteps well, backstep + light attack, stronger two-handed, and no guard stamina used")
+            #     reflex dodged the swing start with a backstep (when there's ground behind). Once the blade has passed (PUNISH_AFTER), step in and light attack.
             if (age is not None and age >= style.punish_after and style.punish_min_r <= h <= weapon.reach + PUNISH_R and abs(dy) <= 1.0
                     and (p.sp or 0) >= weapon.sp_min and mv.face(s, c, deg=30.0)):
                 if h > weapon.reach and s.cam_yaw is not None:
                     mv.pad.move(*mv.stick_to(s, c.x, c.z, 0.8))
-                    time.sleep(min(0.45, 0.12 + (h - weapon.reach) * 0.22))   # 2.5 m/s 걷기 — 남은 거리만큼
+                    time.sleep(min(0.45, 0.12 + (h - weapon.reach) * 0.22))   # 2.5 m/s walk — for the remaining distance
                     mv.pad.move(0.0, 0.0)
                 hit = mv.light(s, c, n=weapon.combo, sp_second=weapon.sp_min)
                 d = hit.as_dict()
@@ -636,16 +636,16 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
                     return done("killed")
                 continue
             mv.guard(False)
-            mv.face(s, c, deg=25.0)                        # 정면에 둔 채 칼이 지나가길 기다린다 (방패 없이)
+            mv.face(s, c, deg=25.0)                        # keep it in front and wait for the blade to pass (no shield)
             note("피함대기", s, c)
             time.sleep(0.02)
             continue
-        if style.shield and a in M.ATTACK and h < NEAR:     # 1) 휘두르는 중 → 막는다 (방패 있는 스타일만 —
-            # rush(방패 없음·안 피함)는 여기서 서서 맞기만 하면 상대 콤보가 안 끊겨 8 s+ 0 공격으로 676 받았다, 2026-09-25)
+        if style.shield and a in M.ATTACK and h < NEAR:     # 1) swinging → block (only styles with a shield —
+            # rush (no shield, no evade) just stood here taking hits, the enemy combo never broke: 8 s+ 0 attacks, 676 taken, 2026-09-25)
             mv.guard(True)
             if h > weapon.reach + 0.3 and abs(dy) <= 1.0 and s.cam_yaw is not None and (
                     nm is None or nav.ground_ahead(nm, p, c.x - p.x, c.z - p.z, reach=0.8)):
-                # 닿는 거리 밖에서 제자리로 막기만 하면 멀리서 휘두르는 놈(3008 반복)에게 영영 못 닿는다 — 방패 든 채 다가간다
+                # just blocking in place out of reach never reaches a foe swinging from afar (3008 repeated) — approach with shield raised
                 mv.pad.move(*mv.stick_to(s, c.x, c.z, 0.6))
                 note("막으며다가감", s, c)
             else:
@@ -653,33 +653,33 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
                 note("막기", s, c)
             time.sleep(0.02)
             continue
-        if a in M.DOWNED and a != M.GETTING_UP:            # 2) 누워 있다
+        if a in M.DOWNED and a != M.GETTING_UP:            # 2) knocked down
             mv.guard(True)
             mv.face(s, c)
             note("누움대기", s, c)
             time.sleep(0.03)
             continue
-        if h > weapon.reach and wait_far and not (foe and foe.ranged):   # 3-wait) 쏘는 놈은 기다리면 계속 쏜다 — 안 기다림. 아직 멀다 — 다가가지 않고 그 자리서 막고 기다린다
+        if h > weapon.reach and wait_far and not (foe and foe.ranged):   # 3-wait) shooters keep shooting if we wait — don't wait. Still far — don't approach, block in place and wait
             if wait_hp0 is None:
                 wait_hp0 = p.hp
                 wait_t0, wait_hmin = now, h
             if h < wait_hmin - WAIT_CLOSE_M:
-                wait_t0, wait_hmin = now, h                  # 다가오는 중 — 계속 기다린다
+                wait_t0, wait_hmin = now, h                  # approaching — keep waiting
             elif now - wait_t0 > WAIT_APPROACH_S and may_approach is not None and not may_approach(c, s):
-                # Patch E-3 (2026-09-26): 다가가면 안전 구역을 벗어나거나 방패병 스폰에 가까워지는 놈이면 '안옴→붙기' 로 바꾸지 않고
-                # 계속 기다린다 — 평지 가장자리 6.4 m 에 선 #3 에게 붙으러 가다 방패병 스폰 6.6 m 에서 들켜 둘러싸였다 (133827)
+                # Patch E-3 (2026-09-26): if approaching would leave the safe zone or get near the shield soldier spawn, don't switch 'not coming→close in';
+                # keep waiting — going for #3 standing 6.4 m out at the edge of the flat ground, got spotted 6.6 m from the shield soldier spawn and surrounded (133827)
                 wait_t0 = now
                 note("안옴→기다림유지", s, c)
             elif now - wait_t0 > WAIT_APPROACH_S:
-                # 안 다가오는 놈을 기다리면 끝이 없다: 방패병 255002 가 4.6 m 에서 가드(3000/3001)로 버티고 봇도 막고만 서서
-                # 15 s 교착 → 같은 놈과 다시 교착 반복 (사용자 2026-09-25: "적이 앞에 있는데 가드만 하고 기다려")
+                # waiting for a foe that won't approach never ends: shield soldier 255002 held guard (3000/3001) at 4.6 m while the bot just blocked,
+                # 15 s stalemate → repeated stalemate with the same foe (user 2026-09-25: "the enemy is right in front and you just guard and wait")
                 wait_far = False
                 note("안옴→붙기", s, c)
                 continue
             elif p.hp is not None and wait_hp0 - p.hp > WAIT_HURT_HP:
-                # 추적 중인 놈은 안 휘두르는데(a not in M.ATTACK, 안 다가옴) HP 만 깎인다 — 다른 놈에게 맞는 중이란 뜻.
-                # "기다리면 안전하다"고 가만있으면 안 된다 (사용자 2026-09-25: "적들이 안심시키고 위험을 가중시키는 거야,
-                # 이 게임은 절대 쉽지 않아" — 실측: 4.3 m 밖 안 휘두르는 목표 앞에서 11 s 기다리다 490→242 로 깎였다).
+                # the tracked foe isn't swinging (a not in M.ATTACK, not approaching) but HP keeps dropping — means we're being hit by another.
+                # don't sit still thinking "waiting is safe" (user 2026-09-25: "the enemies lull you and raise the danger,
+                # this game is never easy" — measured: waiting 11 s in front of a non-swinging target 4.3 m away, dropped 490→242).
                 return done("low_hp")
             if style.shield:
                 mv.guard(True)
@@ -687,16 +687,16 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             note("기다림", s, c)
             time.sleep(0.03)
             continue
-        if h > weapon.reach:                                # 3) 붙는다 — 수평으로 닿는 거리 안이면 높이차만으로는 여기 안 들어간다
-            # (사용자 2026-09-25: "중간에 멈추려면, 약공이라도 휘두르면서 멈춰 있으라는 거지" — 높이차 때문에 못 붙는 상황도
-            # 아래(공격 시도)로 내려가 최소한 약공은 휘두른다. 예전엔 h<=reach 여도 dy>1.0 이면 여기서 계속 붙기만 시도해
-            # 8 s+ 공격 0회로 얻어맞았다.)
-            last_dmg_t = now                               # 교착은 닿는 거리 안에서만 센다 (42 m 걸어가는 동안 '교착' 이었다)
-            # 수평 거리만 보고 "3 m 안이면 막힌 게 아니다"로 두면, 안 내려오는 놈(높이차만 큰 경우)에서 h 가 계속 <3 이라
-            # best_t 가 매 틱 갱신돼 stuck 판정이 영영 안 났다 (실측 2026-09-25: 높이차 1.7~1.9 m 에서 45 s+ "붙기:stopped" 반복,
-            # 공격 0회 — 사용자: "전투 중에 멈춰 있으려면 돌아가야지", "위험 구역에 왜 머무르고 있어"). 높이차까지 좁아져야 진전으로 친다.
+        if h > weapon.reach:                                # 3) close in — if horizontally within reach, height difference alone doesn't enter here
+            # (user 2026-09-25: "if you're going to stop midway, at least swing light attacks while stopped" — even when height difference prevents closing,
+            # drop to below (attack attempt) and at least swing a light attack. Previously even with h<=reach, dy>1.0 kept trying to close in here,
+            # 8 s+ of 0 attacks while getting beaten.)
+            last_dmg_t = now                               # stalemate counts only within reach (walking 42 m counted as 'stalemate')
+            # treating "within 3 m horizontally = not stuck" meant for a foe that won't come down (large height difference only) h stayed <3,
+            # best_t refreshed every tick and stuck never triggered (measured 2026-09-25: 45 s+ of repeated "붙기:stopped" at 1.7–1.9 m height difference,
+            # 0 attacks — user: "if you're going to stop mid-fight, go around", "why are you staying in the danger zone"). Count progress only when height difference narrows too.
             if h < 3.0 and abs(dy) <= 1.2:
-                best_h, best_t = h, now                    # 진짜 닿는 거리 안(높이도)이면 막힌 게 아니다
+                best_h, best_t = h, now                    # truly within reach (height too) — not stuck
             elif best_h is None or h < best_h - 0.5:
                 best_h, best_t = h, now
             elif now - best_t > 8.0:
@@ -705,14 +705,14 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
                 log(f"      다가가지 않음 — {c.npc_param} ({c.x:.1f}, {c.y:.1f}, {c.z:.1f}) 는 안전 구역 밖 (Patch E-2)")
                 return done("unsafe_approach")
             r = _approach(mv, weapon, s, c, nm, foe, cancel, log, may_approach=may_approach)
-            last_dmg_t = time.time()                       # 붙는 데 걸린 시간은 교착이 아니다 (한 번에 17 s 걸었다)
+            last_dmg_t = time.time()                       # time spent closing in isn't stalemate (one walk took 17 s)
             note(f"붙기:{r}", s, c)
             if r == "dead":
                 return done("me_dead")
             continue
         if (c.hp <= FINISH_HP and (p.sp or 0) >= FINISH_SP and not (foe.kick_when_idle and a == -1)
-                and mv.face(s, c, deg=30.0)):   # 방패 든 채 서 있는 방패병은 마무리도 막힌다 (22 → 21 → 20, 되받아 114) — 발차기로
-            # 3+) 한 대면 죽는다 — 스태미나가 조금 모자라도 친다 (방패병이 HP 10 으로 4 s 버티는 동안 가드가 깨졌다)
+                and mv.face(s, c, deg=30.0)):   # a shield soldier standing with shield up blocks even the finisher (22 → 21 → 20, 114 counter) — kick instead
+            # 3+) dies in one hit — hit even if a bit short on stamina (guard broke while a shield soldier held out 4 s at HP 10)
             hit = mv.light(s, c, n=1)
             d = hit.as_dict()
             res.hits.append({k: d[k] for k in ("kind", "presses", "dmg", "dead", "taken", "others")})
@@ -723,14 +723,14 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             if hit.dead and orig_ptr is None:
                 return done("killed")
             continue
-        if (p.sp or 0) < weapon.sp_min:                    # 4) 스태미나 — 방패를 내리고(회복 80 % 감소, 위키) 그놈을 정면에 둔 채 선다
-            # 물러나게 했더니 락온 없이 반대쪽으로 스틱을 밀어 **뒤돌아 걸어가** 등을 맞았다 (몸-그놈 ±180°, 사용자: "방향 정렬 못하고")
+        if (p.sp or 0) < weapon.sp_min:                    # 4) stamina — lower shield (recovery −80 %, wiki) and stand keeping it in front
+            # backing off pushed the stick the other way without lock-on, **turning and walking away**, getting hit in the back (body-foe ±180°, user: "can't align direction")
             mv.guard(False)
             mv.face(s, c)
             note("SP회복", s, c)
             time.sleep(0.05)
             continue
-        if not mv.face(s, c):                              # 5) 몸 맞추기
+        if not mv.face(s, c):                              # 5) face it
             note("돌기", s, c)
             time.sleep(0.02)
             continue
@@ -740,12 +740,12 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             continue
         a = c.anim if c.anim is not None else -1
         if a in M.ATTACK and reflex is not None and (reflex.attack_age(ptr) or 0.0) > SWING_S:
-            a = -1                                         # 가드 자세로 머문 3000 번대 — 선 것으로 (발차기)
+            a = -1                                         # 3000 series lingering in guard stance — treat as standing (kick)
         behind_deg = abs(math.degrees(M.rel_angle(c, s.player))) if c.heading is not None else 0.0
         looks_at_me = behind_deg < 60
         if (foe.circle_behind and a == -1 and behind_deg < CIRCLE_BEHIND_DEG and circle_n < CIRCLE_MAX_SWEEPS
                 and h <= weapon.reach + 1.5 and (nm is None or nav.ground_ahead(nm, p, c.x - p.x, c.z - p.z, reach=1.0))):
-            # 방패는 정면 부채꼴만 막는다 — 도는 동안은 공격하지 않는다(무기대로 치면 또 막힌다). CIRCLE_MAX_SWEEPS 넘으면 포기하고 아래(발차기 등)로
+            # shield only blocks a frontal cone — no attacks while circling (hitting per weapon gets blocked again). Past CIRCLE_MAX_SWEEPS, give up and go below (kick etc.)
             circle_n += 1
             behind_deg = _circle_sweep(mv, s, c, cancel)
             note(f"등뒤돌기:{behind_deg:.0f}", s, c)
@@ -753,7 +753,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
         circle_n = 0
         if foe.kick_when_idle and a == -1 and looks_at_me and now - kick_t > KICK_COOLDOWN:
             kick_t = now
-            hit = mv.kick_combo(s, c, n=weapon.combo)       # 발차기 → 곧장 약공 (간격이 크면 방패병이 다시 가드, 사용자)
+            hit = mv.kick_combo(s, c, n=weapon.combo)       # kick → light attack right away (if the gap is large the shield soldier guards again, user)
         elif weapon.use_heavy:
             hit = mv.heavy(s, c)
         else:
