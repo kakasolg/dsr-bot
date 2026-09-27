@@ -241,7 +241,7 @@ def follow(tm, pad, path: list, terrain=None, mode_fn=None, on_tick=None, defaul
 def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float], tolerance: float = 1.5,
          timeout: float = 60.0, on_tick=None, log=print, sprint_always: bool = False, mode_fn=None,
          mover: "Mover | None" = None, engage_fn=None, abort_on_stuck: bool = False,
-         terrain=None) -> str:
+         terrain=None, on_stuck=None) -> str:
     """Returns: 'arrived' | 'timeout' | 'dead' | 'lost' | 'unreachable'.
     target is (x, z) or (x, y, z). With y given, 'unreachable' when close in 2D but the height difference exceeds UNREACHABLE_DY — pushing toward a point above from below a cliff
     (when going backwards through a drop section of an indoor path). mode_fn(snapshot) -> 'walk'|'sprint'|'guardjump'|'guard' is the movement mode each tick."""
@@ -295,6 +295,11 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
                 if abort_on_stuck:          # stuck while retreating: don't sidestep (guard down) and get hit — turn around and block immediately
                     pad.neutral()
                     return "stuck"
+                # the caller may clear the way itself (field: break a crate in front — ROADMAP 1-c: the escape moves and the
+                # per-point timeout took 16 s before the crate was even looked at). True = handled, measure progress afresh
+                if on_stuck is not None and on_stuck(p, target):
+                    last_progress_d, last_progress_t = None, time.time()
+                    continue
                 escapes += 1
                 # stuck with the target far above/below = cliff/floor difference, not stairs — stairs are climbed without getting stuck, so judge only after being stuck
                 if escapes >= 2 and ty is not None and p.gy is not None and abs(ty - p.gy) > UNREACHABLE_DY:

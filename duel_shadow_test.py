@@ -151,6 +151,69 @@ def test_non_shield_no_events() -> None:
     print("ok  non-shield foe → no shadow events, no kick")
 
 
+def test_interloper_skips_standing_foes() -> None:
+    from telemetry import Chr
+    p = Chr(ptr=1, npc_param=0, team=1, hp=500, max_hp=500, x=0.0, y=0.0, z=0.0)
+
+    def foe(anim, y=0.0, x=1.5, hp=100, ptr=9):
+        return Chr(ptr=ptr, npc_param=250000, team=6, hp=hp, max_hp=100, x=x, y=y, z=0.0, anim=anim)
+
+    far_target = 10.0
+    assert D._interloper(foe(3004), p, 2, far_target)                     # awake, close, same height → take it
+    assert D._interloper(foe(7000), p, 2, far_target)                     # moving (not attacking) also counts
+    assert not D._interloper(foe(-1), p, 2, far_target)                   # standing / asleep (P-6: 250000 asleep 1.2 m below)
+    assert not D._interloper(foe(None), p, 2, far_target)                 # anim unreadable
+    assert not D._interloper(foe(9010), p, 2, far_target)                 # downed
+    assert not D._interloper(foe(3004, y=-1.3), p, 2, far_target)         # other level
+    assert not D._interloper(foe(3004, hp=0), p, 2, far_target)
+    assert not D._interloper(foe(3004, ptr=2), p, 2, far_target)          # the target itself
+    assert not D._interloper(foe(3004, x=2.0), p, 2, 2.5)                 # not clearly closer (SWITCH_MARGIN)
+    print("ok  interloper switch: awake foes only (standing/asleep, downed, other level, not closer → no)")
+
+
+def test_result_line_names_actual_opponent() -> None:
+    r = D.DuelResult("stuck", npc=254011, vs=250000, secs=18.0)
+    assert "실제 상대 250000" in r.line(), r.line()
+    assert "실제 상대" not in D.DuelResult("killed", npc=254011).line()
+    assert "실제 상대" not in D.DuelResult("killed", npc=254011, vs=254011).line()
+    print("ok  result line names the foe actually fought when it switched")
+
+
+def test_shield_pair_rules() -> None:
+    from telemetry import Chr, Snapshot
+    p = Chr(ptr=1, npc_param=0, team=1, hp=262, max_hp=793, x=0.0, y=0.0, z=0.0)
+
+    def foe(ptr, x, anim=-1, hp=85, npc=255000, y=0.0):
+        return Chr(ptr=ptr, npc_param=npc, team=6, hp=hp, max_hp=85, x=x, y=y, z=0.0, anim=anim, dist=abs(x))
+
+    def snap(*cs):
+        return Snapshot(t=0.0, player=p, chars=sorted(cs, key=lambda c: c.dist))
+
+    # P-8 284.3 s: staggered shield soldier (target 2) + hollow 3003 at 1.2 m → don't punish, block
+    assert D._other_swinging(snap(foe(2, 1.1, anim=3500), foe(3, 1.2, anim=3003, npc=254010)), 2)
+    assert not D._other_swinging(snap(foe(2, 1.1, anim=3500), foe(3, 1.2, anim=-1)), 2)          # standing, not swinging
+    assert not D._other_swinging(snap(foe(2, 1.1, anim=3500), foe(3, 3.5, anim=3003)), 2)        # too far
+    assert not D._other_swinging(snap(foe(2, 1.1, anim=3003)), 2)                                 # the target itself
+    # retreat line: two shield soldiers standing within 4 m → 45 %, one → 25 %, desperate stays 0
+    two = snap(foe(2, 1.2), foe(3, 2.4))
+    assert D._low_hp_line(two, 0.25) == D.CROWD_LOW_HP
+    assert D._low_hp_line(snap(foe(2, 1.2), foe(3, 6.0)), 0.25) == 0.25
+    assert D._low_hp_line(snap(foe(2, 1.2), foe(3, 2.4, anim=9010)), 0.25) == 0.25             # downed doesn't count
+    assert D._low_hp_line(snap(foe(2, 1.2), foe(3, 2.4, hp=0)), 0.25) == 0.25
+    assert D._low_hp_line(snap(foe(2, 1.2), foe(3, 2.4, y=-4.0)), 0.25) == 0.25                # other level
+    assert D._low_hp_line(two, 0.0) == 0.0
+    print("ok  shield pair: no punish while another foe swings; retreat at 45 % with two foes within 4 m")
+
+
+def test_foe_follows_target_after_switch_back() -> None:
+    # P-8 291.3 s: after "interloper killed — back to the original target" the shield soldier got the hollow's moves.
+    # duel() now re-reads the foe data from the current target every tick — guard the line against regressions.
+    import inspect
+    src = inspect.getsource(D.duel)
+    assert "foe = foes_.of(c.npc_param)\n" in src and "if foe is None:\n            foe = foes_.of(c.npc_param)" not in src
+    print("ok  foe data re-read from the current target every tick")
+
+
 if __name__ == "__main__":
     test_candidate_truth_table()
     test_shadow_dedupe_and_outcome()
@@ -158,4 +221,8 @@ if __name__ == "__main__":
     test_duel_shadow_never_kicks()
     test_duel_act_is_test_only()
     test_non_shield_no_events()
+    test_interloper_skips_standing_foes()
+    test_result_line_names_actual_opponent()
+    test_shield_pair_rules()
+    test_foe_follows_target_after_switch_back()
     print("전부 통과")

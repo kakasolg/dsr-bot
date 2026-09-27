@@ -9,6 +9,8 @@
   python run.py merchant                 from here to the merchant (no rest)
   python run.py light-burg               from here (Undead Burg), just light the bonfire
   python run.py quit-test                kill #1 and compare ramp enemy survival before/after quit-out (does quit-out revive dead enemies?)
+
+  --radar                                send state + log lines to radar_server.py (http://127.0.0.1:47801)
 """
 from __future__ import annotations
 
@@ -38,6 +40,7 @@ class Log:
         self.ev = self.path.open("a", encoding="utf-8")
         self._lock = threading.Lock()          # the black box writer thread writes to the same file
         self.t0 = time.time()
+        self.on_line = None                    # radar hook (--radar): gets each log line, must not raise
 
     def __call__(self, msg: str) -> None:
         line = f"[{time.time() - self.t0:7.1f}] {msg}"
@@ -45,6 +48,8 @@ class Log:
             print(line, flush=True)
             self.txt.write(line + "\n")
             self.txt.flush()
+        if self.on_line:
+            self.on_line(msg)
 
     def event(self, _ev: str, **kw) -> None:
         # the arg used to be named kind; it collided with the quit-out result's kind and stopped the bot (2026-09-24)
@@ -73,6 +78,7 @@ def main() -> None:
     ap.add_argument("--no-rest", action="store_true")
     ap.add_argument("--no-quit", action="store_true", help="퀵 종료(메뉴로 나갔다 오기) 안 씀 — 영상 촬영용")
     ap.add_argument("--i", type=int, default=5, help="hunt-one: BURG_TOWN 몇 번째 (5 = 석궁병 255002)")
+    ap.add_argument("--radar", action="store_true", help="send state to the radar (view with radar_server.py / overlay.py)")
     ap.add_argument("--no-lure", action="store_true", help="나이프로 한 놈씩 깨우지 않고 예전처럼 걸어가 붙는다 (비교용)")
     ap.add_argument("--style", choices=["guard", "backstep", "rush"], default="guard",
                     help="guard: 방패로 받고 휘청에 친다 (기본) | backstep: 양손, 백스텝으로 피하고 헛친 뒤 약공 | "
@@ -101,10 +107,17 @@ def main() -> None:
         log("   ⚠ 이미 다른 본체가 실행 중 — 겹쳐 켜면 패드가 부딪힌다, 멈춤")
         return
     tm = env.make_telemetry({})
+    if a.radar:
+        import radar
+        radar_ = radar.Radar().attach(tm)
+        log.on_line = radar_.say
+        log("radar: sending — python radar_server.py -> http://127.0.0.1:47801, python overlay.py")
     control.focus_game()
     pad = control.Pad()
     nms = {missions.MAP_A: navmesh.Navmesh(missions.MAP_A), missions.MAP_B: navmesh.Navmesh(missions.MAP_B)}
     mv = moves.Moves(tm, pad)
+    if a.radar:
+        radar_.follow(mv)                                   # target · path · held spot on the radar
     w = weapons.of(tm.right_weapon())
     mv.weapon = w
     log(f"무기: {w.name} (약공 {w.combo}연타, 닿는 거리 {w.reach} m, 강공 {'씀' if w.use_heavy else '안 씀'})")

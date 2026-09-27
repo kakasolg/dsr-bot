@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import math
 import time
+import types
 from pathlib import Path
 
 import nav
@@ -18,6 +19,7 @@ import nav
 from . import duel as D
 from . import foes as foes_
 from . import moves as M
+from . import props as props_
 from .reflex import Reflex
 from . import style as style_
 from .watch import Blood
@@ -27,6 +29,12 @@ FOLLOW_DY = 2.5          # foe following on stairs — up to this height differe
 SAFE_R = 6.0             # estus: no awake foe within this, and
 SAFE_ATTACK_R = 8.0      #          nobody swinging within this
 RESYNC_BACK, RESYNC_AHEAD = 3, 15   # range for re-picking the waypoint after a fight while walking (field.walk)
+RETREAT_GUARD_R = 4.0    # retreat: shield up while an awake foe is within this (horizontal)
+SMASH_TRIES = 2          # swings (x2 attacks) per blocking prop per walk — a prop that won't break isn't hit forever
+SMASH_WALK_S = 2.0       # s to step up to it
+SMASH_R = 1.3            # m — light attack reach from the prop's origin
+SMASH_FACE_S = 1.2       # s to turn toward it
+SMASH_SWING_S = 0.7      # s per light attack
 REPAIR_FRAC = 0.4        # repair powder when weapon durability is below this fraction of max (field.repair)
 RANGED_R = 25.0          #          and no awake, moving 'thrower' (foes.ranged) within this
 BONFIRE_NO_A = 6.0
@@ -224,8 +232,26 @@ class Field:
         if not path:
             return "no_path"                               # (spinning in place → recover returns False → next fight is to-the-end)
         t0 = time.time()
-        return self.mv.walk_path(nav.trim_path(path[1:], tuple(home)), nm, "walk",   # running safety is only a NavMesh estimate (evidence-grade gate, 2026-09-26)
+        last = [None]
+
+        def mode(sn):
+            m = self._retreat_mode(sn)
+            if m != last[0]:                               # log each switch — whether the guard was up can be read off the log (1-c)
+                c = min(sn.hostile(RETREAT_GUARD_R + 1.0), key=lambda x: M.horiz(sn.player, x), default=None)
+                self.log(f"      후퇴 모드: {m}" + (f" (가장 가까운 {c.npc_param} {M.horiz(sn.player, c):.1f} m)" if c else ""))
+                last[0] = m
+            return m
+
+        return self.mv.walk_path(nav.trim_path(path[1:], tuple(home)), nm, mode,   # walk, not run: running safety is only a NavMesh estimate (evidence-grade gate, 2026-09-26)
                                  stop=lambda sn: time.time() - t0 > 3.0 and self.safe(sn))
+
+    @staticmethod
+    def _retreat_mode(sn) -> str:
+        """Shield up while an awake foe is still close — like _retreat_to_zone. Walking off with the guard down after a timed-out
+        duel took -109 from the shield soldier 1.85 m away (2026-09-27 burg-bonfire, ROADMAP P-7(c))."""
+        p = sn.player
+        near = any(awake(c) and M.horiz(p, c) < RETREAT_GUARD_R and abs(c.y - p.y) < FOLLOW_DY for c in sn.hostile(RETREAT_GUARD_R + 1.0))
+        return "guard" if near else "walk"
 
     def recover(self, why: str, nm=None) -> bool:
         """When a fight goes wrong. → is it worth continuing
@@ -488,6 +514,7 @@ class Field:
     def _hold_at(self, spot, nm, tag: str, s=None, ignore=()) -> tuple[str, object]:
         """Judge one tick → (state, foe). States: returning | coming | low_stamina_threat | contact_in_zone | contact_out_of_zone |
         approach | calm. No fighting or approaching — the caller (clear) decides from the state."""
+        self.mv.show_spot = (tag, tuple(spot), time.time())     # viewers only (radar)
         s = s or self.mv.snap(SEEK_R)
         if s is None:
             time.sleep(0.05)
@@ -981,10 +1008,19 @@ class Field:
     # ── Path───────────────────────────────────────────────────
     def walk(self, path: list, nm, tag: str, tol: float | None = None, tight: dict | None = None, mode: str = "walk",
              done=None) -> str:
+        prev, self.mv.show_path = self.mv.show_path, (tag, [tuple(q) for q in path])   # viewers only (radar)
+        try:
+            return self._walk(path, nm, tag, tol, tight, mode, done)
+        finally:
+            self.mv.show_path = prev                       # a detour (walk_to inside walk) hands the outer path back
+
+    def _walk(self, path: list, nm, tag: str, tol: float | None = None, tight: dict | None = None, mode: str = "walk",
+              done=None) -> str:
         """Walk the path, killing first any foe that chases and closes in. → 'arrived' | 'dead' | 'stuck' | 'no_estus'
         Per-point floor check only when both the target and current spot are on this navmesh (edges / bridges have navmesh gaps).
         Inside tight = {"center": [x,y,z], "r": m} (narrow bridge without railings), step precisely at 0.45 m."""
         path = [tuple(q) for q in path]
+        smashed: dict[str, int] = {}                       # prop name → swings this walk (props_.blocking)
         # without tol (navmesh path) only steep segments (stairs, ramps) are stepped precisely at 0.4 m (nav.path_tolerances) — stepping everything at 1 m
         # couldn't get from the ramp ledge up to the stair top: 'passage blocked' (2026-09-24). Human-recorded paths get tol (0.8) from the caller
         # — narrowing recorded points to 0.4 m got stuck unable to get within 0.6~0.7 m at stair ends (hunt.walk_fight)
@@ -1029,8 +1065,14 @@ class Field:
                     easy = [c for c in cands if foes_.of(c.npc_param).kind != "shield"]
                     return min(easy or cands, key=lambda c: c.dist if c.dist is not None else 999.0)
                 g0 = self.esc.gen
+
+                def on_stuck(p, target, q=q):
+                    # stuck on the way (nav.goto STUCK_WINDOW, 2 s) — a crate in front? break it now, not after the 15 s timeout
+                    return self._smash_blocking(nm, (p.x, p.y, p.z), q, smashed, tag, mover,
+                                                why=f"막힘 감지 ({nav.STUCK_WINDOW:.0f} s 동안 {nav.STUCK_MIN_PROGRESS} m 미만)")
+
                 r = nav.goto(self.mv.tm, self.mv.pad, q, tolerance=t if terr is not None else max(t, 0.8), timeout=15,
-                             log=lambda *a: None, terrain=terr, mover=mover,
+                             log=lambda *a: None, terrain=terr, mover=mover, on_stuck=on_stuck,
                              mode_fn=lambda sn: "retreat" if (self.reflex.threat_now(sn) or chaser(sn) or self.esc.escaping
                                                               or self.esc.gen != g0) else mode)
                 if r == "dead":
@@ -1086,6 +1128,11 @@ class Field:
                                  f"나 {tuple(round(v, 1) for v in pp)}, {math.dist(pp, q):.1f} m")
                         self.events("walk_fail", tag=tag, i=i, n=len(path), q=[round(v, 2) for v in q],
                                     pos=[round(v, 2) for v in pp], r=r, fails=fails)
+                        # a breakable prop on the way (the NavMesh doesn't know crates) — break it and try the same point again, before
+                        # detouring: the detour's navmesh path runs through the same crate (2026-09-27 burg-bonfire #6, ROADMAP P-6)
+                        if self._smash_blocking(nm, pp, q, smashed, tag, mover, why=f"점 못 감 ({r})"):
+                            fails = 0
+                            continue
                         # if the straight line fails, detour once via navmesh pathfinding — pushed while fighting onto the upper passage beside the stairs (1.1~1.5 m higher),
                         # heading straight for the stair point hit the railing, failing three points in a row (2026-09-25 191817 return passage points 28~30)
                         # the detouring walk_to also uses walk internally — detouring again there recurses endlessly ("detour detour …",
@@ -1114,6 +1161,51 @@ class Field:
             return "arrived"
         finally:
             mover.stop()
+
+    def _smash_blocking(self, nm, me, goal, smashed: dict, tag: str, mover=None, why: str = "") -> bool:
+        """A breakable prop between me and goal not yet swung at SMASH_TRIES times this walk → break it, True. Else False.
+        why = what noticed the block (logged, so the time from stuck to swing can be read off the log)."""
+        prop = next((o for o in props_.blocking(getattr(nm, "map_id", None), me, goal)
+                     if smashed.get(o["name"], 0) < SMASH_TRIES), None)
+        if prop is None:
+            return False
+        smashed[prop["name"]] = smashed.get(prop["name"], 0) + 1
+        self.log(f"      {tag}: {why or '막힘'} — 앞길에 {prop['model']} ({prop['name']}, {math.dist(me, prop['pos']):.1f} m)")
+        if mover is not None:
+            mover.stop()                                   # release run (B) before stepping up and swinging
+        self._smash(prop, tag)
+        self.mv.show_smash = (prop["name"], tuple(prop["pos"]), time.time())    # viewers only (radar)
+        return True
+
+    def _smash(self, prop: dict, tag: str) -> None:
+        """Step up to a breakable prop (to SMASH_R, or until it stops getting closer), turn to it and swing twice (light
+        attack). No lock-on — props can't be locked."""
+        q = prop["pos"]
+        spot = types.SimpleNamespace(ptr=None, x=q[0], y=q[1], z=q[2])
+        t, best = time.time(), None
+        while time.time() - t < SMASH_WALK_S:
+            s = self.mv.snap(5.0)
+            if s is None:
+                break
+            h = math.hypot(q[0] - s.player.x, q[2] - s.player.z)
+            if h <= SMASH_R or (best is not None and h > best - 0.02 and time.time() - t > 0.4):
+                break                                      # close enough, or pressed against it
+            best = h if best is None else min(best, h)
+            self.mv.pad.move(*self.mv.stick_to(s, q[0], q[2], 0.5))
+            time.sleep(0.1)
+        self.mv.pad.move(0.0, 0.0)
+        t = time.time()
+        while time.time() - t < SMASH_FACE_S:
+            s = self.mv.snap(5.0)
+            if s is None or self.mv.face(s, spot, deg=15.0):
+                break
+            time.sleep(0.05)
+        self.mv.pad.move(0.0, 0.0)
+        for _ in range(2):
+            self.mv.pad.attack()
+            time.sleep(SMASH_SWING_S)
+        self.log(f"      {tag}: 길 막은 {prop['model']} ({prop['name']}) 부숨 시도 — ({q[0]:.1f},{q[1]:.1f},{q[2]:.1f})")
+        self.events("smash", tag=tag, prop=prop["name"], model=prop["model"], pos=q)
 
     def fog_through(self, toward) -> bool:
         """If stuck before a fog wall: turn toward the next waypoint, and press A when the prompt appears (user: "press A at the fog wall", "align direction").

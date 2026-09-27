@@ -1,7 +1,23 @@
 .venv/
 .venv-llm/
 __pycache__/
-data/
+# data/: only the files the missions need are tracked (allow list, file by file) — the bot and experiments write many
+# other files here while running (diag.json, dmglog*.json, char-state.json, routes/asylum-*.json …; ROADMAP P-5).
+# A new file that must be shared: add a line below.
+data/*
+!data/burg-town-map.json
+!data/climb-goal.json
+!data/dsr-bonfires.txt
+!data/enemy-map.json
+!data/safe-zones.json
+!data/spots.json
+!data/routes/
+data/routes/*
+!data/routes/firelink-merchant-run.json
+!data/routes/passage-merchant.json
+!data/routes/user-climb.json
+!data/gamefiles/
+!data/samples/
 *.out
 *.err
 *.log

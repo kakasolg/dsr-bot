@@ -45,15 +45,21 @@ import json
 import math
 import os
 import struct
+import tempfile
 import time
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
 from typing import Optional
 
-import pymem
-import pymem.exception
+# pymem is Windows-only. Offline tests only need the data classes (Chr, Snapshot),
+# so a missing pymem must not break the import; attaching to the game still requires it.
+try:
+    import pymem
+    import pymem.exception
+except ImportError:
+    pymem = None
 
-SYMBOLS_FILE = Path(os.environ.get("CHAOS_BRIDGE_DIR") or Path(os.environ["TEMP"]) / "chzzk-souls-chaos") / "symbols.json"
+SYMBOLS_FILE = Path(os.environ.get("CHAOS_BRIDGE_DIR") or Path(os.environ.get("TEMP") or tempfile.gettempdir()) / "chzzk-souls-chaos") / "symbols.json"
 
 OFF_CHR_BEGIN = 0x1F1B8
 OFF_CHR_END = 0x1F1C0
@@ -111,6 +117,8 @@ class Snapshot:
 
 class Telemetry:
     def __init__(self, names: Optional[dict[int, str]] = None):
+        if pymem is None:
+            raise RuntimeError("pymem is not installed (Windows only) — cannot attach to the game")
         self.pm = pymem.Pymem("eldenring.exe")
         self.names = names or {}
         self.symbols = self._load_symbols()

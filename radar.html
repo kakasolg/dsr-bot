@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- served by radar_server.py on 127.0.0.1; talks only to the same origin -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DSR Bot Radar</title>
+<style>
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --ink: #1d2330; --muted: #6a7384; --line: #dde1e8; --ring: #e3e7ee;
+  --player: #2f6fde; --foe: #d23f3f; --friend: #2e9a5b; --other: #8a93a3; --cam: #d9a400; --hp: #2e9a5b; --hplow: #d23f3f; --path: #7a5cd6; --target: #d9a400; --prop: #a0785a; --smash: #e0662a; --soul: #2a9fd6; --hum: #7a7f8c; --tit: #6d6ad6; --item: #9aa0ab;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14171d; --panel: #1b1f27; --ink: #e3e7ee; --muted: #8b94a5; --line: #2c323d; --ring: #262b35;
+    --player: #6c9cf0; --foe: #f06a6a; --friend: #5cc98a; --other: #7d8697; --cam: #f0c33c; --hp: #5cc98a; --hplow: #f06a6a; --path: #a98cf5; --target: #f0c33c; --prop: #c79c78; --smash: #ff8a4c; --soul: #7fd3ff; --hum: #f4f4f4; --tit: #aaa8ff; --item: #7d8697;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #14171d; --panel: #1b1f27; --ink: #e3e7ee; --muted: #8b94a5; --line: #2c323d; --ring: #262b35;
+  --player: #6c9cf0; --foe: #f06a6a; --friend: #5cc98a; --other: #7d8697; --cam: #f0c33c; --hp: #5cc98a; --hplow: #f06a6a; --path: #a98cf5; --target: #f0c33c; --prop: #c79c78; --smash: #ff8a4c; --soul: #7fd3ff; --hum: #f4f4f4; --tit: #aaa8ff; --item: #7d8697;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.4 system-ui, "Segoe UI", sans-serif; }
+header { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; padding: 8px 16px; border-bottom: 1px solid var(--line); background: var(--panel); }
+header h1 { font-size: 15px; margin: 0; font-weight: 600; }
+#conn { font-size: 12px; color: var(--muted); }
+#conn.live::before { content: "● "; color: var(--friend); }
+#conn.stale::before { content: "● "; color: var(--hplow); }
+label { color: var(--muted); font-size: 12px; }
+select, button { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 5px; padding: 2px 6px; }
+main { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 12px; padding: 12px 16px; }
+@media (max-width: 760px) { main { grid-template-columns: 1fr; } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+#wrap { position: relative; width: 100%; aspect-ratio: 1 / 1; max-height: 78vh; }
+canvas { width: 100%; height: 100%; display: block; }
+h2 { font-size: 12px; font-weight: 600; color: var(--muted); margin: 0 0 6px; text-transform: uppercase; letter-spacing: .04em; }
+#vitals div { display: flex; justify-content: space-between; gap: 8px; }
+.bar { height: 6px; background: var(--ring); border-radius: 3px; margin: 2px 0 8px; overflow: hidden; }
+.bar > i { display: block; height: 100%; background: var(--hp); }
+#intent div { display: flex; justify-content: space-between; gap: 8px; }
+#intent span:first-child { color: var(--muted); }
+.key { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
+#says { list-style: none; margin: 0; padding: 0; }
+#says li { padding: 4px 0; border-bottom: 1px solid var(--line); color: var(--muted); overflow-wrap: anywhere; }
+#says li:first-child { color: var(--ink); font-weight: 600; }
+#foes { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+#foes td { padding: 3px 4px; border-bottom: 1px solid var(--line); }
+#foes td.n { text-align: right; }
+.side > .card + .card { margin-top: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>DSR Bot Radar</h1>
+  <span id="conn">waiting</span>
+  <label>Range <select id="range"><option>10</option><option selected>20</option><option>40</option></select> m</label>
+  <label>Up <select id="up"><option value="cam" selected>camera</option><option value="north">north</option></select></label>
+  <label><input type="checkbox" id="anim"> anim ID</label>
+  <label><input type="checkbox" id="allitems"> all items</label>
+  <button id="theme" type="button">Theme</button>
+</header>
+<main>
+  <div class="card"><div id="wrap"><canvas id="cv"></canvas></div></div>
+  <div class="side">
+    <div class="card"><h2>Bot</h2><div id="vitals">—</div></div>
+    <div class="card"><h2>Doing</h2><div id="intent">—</div></div>
+    <div class="card"><h2>Decisions</h2><ul id="says"><li>—</li></ul></div>
+    <div class="card"><h2>Nearest foes</h2><table id="foes"></table></div>
+  </div>
+</main>
+<script>
+const HOSTILE = new Set([6, 7, 24, 25, 27]), FRIEND = new Set([8, 12, 26, 47]);
+const $ = id => document.getElementById(id);
+const cv = $("cv"), ctx = cv.getContext("2d");
+let last = null;
+
+try { const t = localStorage.getItem("radar-theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+$("theme").onclick = () => {
+  const cur = document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  const next = cur === "dark" ? "light" : "dark";
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem("radar-theme", next); } catch (e) {}
+  draw();
+};
+for (const id of ["range", "up", "anim", "allitems"]) $(id).onchange = draw;
+
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+
+function color(c) {
+  if (HOSTILE.has(c.team)) return css("--foe");
+  if (FRIEND.has(c.team)) return css("--friend");
+  return css("--other");
+}
+
+function draw() {
+  const r = cv.getBoundingClientRect(), dpr = devicePixelRatio || 1;
+  cv.width = r.width * dpr; cv.height = r.height * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const W = r.width, H = r.height, cx = W / 2, cy = H / 2, R = Math.min(W, H) / 2 - 14;
+  const range = +$("range").value, k = R / range;
+  ctx.clearRect(0, 0, W, H);
+  ctx.font = "11px system-ui, sans-serif";
+  // rings
+  const step = range <= 10 ? 2.5 : range <= 20 ? 5 : 10;
+  for (let m = step; m <= range + 1e-6; m += step) {
+    ctx.beginPath(); ctx.arc(cx, cy, m * k, 0, 2 * Math.PI);
+    ctx.strokeStyle = css("--ring"); ctx.lineWidth = 1; ctx.stroke();
+    ctx.fillStyle = css("--muted"); ctx.fillText(m + " m", cx + 3, cy - m * k + 12);
+  }
+  const snap = last && last.snap;
+  if (!snap) { ctx.fillStyle = css("--muted"); ctx.fillText("no data — start the bot with --radar, or radar_server.py --demo", 12, 20); return; }
+  const p = snap.player, camUp = $("up").value === "cam" && snap.cam_yaw != null;
+  const base = camUp ? snap.cam_yaw : 0;
+  // world (dx, dz) → screen; angle convention matches control.world_to_stick (atan2(dx, dz), right = +sin)
+  const toScreen = (dx, dz) => {
+    const a = Math.atan2(dx, dz) - base, d = Math.hypot(dx, dz) * k;
+    return [cx + Math.sin(a) * d, cy - Math.cos(a) * d];
+  };
+  const arrow = (x, y, yaw, len, col, w) => {
+    const a = yaw - base;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + Math.sin(a) * len, y - Math.cos(a) * len);
+    ctx.strokeStyle = col; ctx.lineWidth = w; ctx.stroke();
+  };
+  // camera direction (north-up mode only; in camera-up it is always straight up)
+  if (!camUp && snap.cam_yaw != null) arrow(cx, cy, snap.cam_yaw, R, css("--cam"), 1);
+  if (!camUp) { ctx.fillStyle = css("--muted"); ctx.fillText("N", cx - 3, 12); }
+  // path (field.walk) and held spot (field._hold_at)
+  if (snap.path && snap.path.length) {
+    ctx.beginPath();
+    snap.path.forEach((q, i) => { const [x, y] = toScreen(q[0] - p.x, q[2] - p.z); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+    ctx.strokeStyle = css("--path"); ctx.lineWidth = 2; ctx.setLineDash([6, 4]); ctx.stroke(); ctx.setLineDash([]);
+    const g = snap.path[snap.path.length - 1], [gx, gy] = toScreen(g[0] - p.x, g[2] - p.z);
+    ctx.beginPath(); ctx.moveTo(gx - 5, gy - 5); ctx.lineTo(gx + 5, gy + 5); ctx.moveTo(gx + 5, gy - 5); ctx.lineTo(gx - 5, gy + 5);
+    ctx.strokeStyle = css("--path"); ctx.lineWidth = 2; ctx.stroke();
+  }
+  if (snap.spot) {
+    const [x, y] = toScreen(snap.spot[0] - p.x, snap.spot[2] - p.z);
+    ctx.beginPath(); ctx.arc(x, y, 9, 0, 2 * Math.PI); ctx.strokeStyle = css("--friend"); ctx.lineWidth = 2; ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, y, 2, 0, 2 * Math.PI); ctx.fillStyle = css("--friend"); ctx.fill();
+  }
+  // breakable props (data/gamefiles): filled square = light attack breaks it, outline = needs a strong attack
+  for (const o of (last.props || [])) {
+    const dx = o[0] - p.x, dz = o[2] - p.z;
+    if (Math.hypot(dx, dz) > range) continue;
+    const [x, y] = toScreen(dx, dz), hit = snap.smash === o[4];
+    ctx.strokeStyle = ctx.fillStyle = css("--prop"); ctx.lineWidth = 1.5;
+    o[3] ? ctx.strokeRect(x - 4, y - 4, 8, 8) : ctx.fillRect(x - 4, y - 4, 8, 8);
+    if (hit) { ctx.beginPath(); ctx.arc(x, y, 9, 0, 2 * Math.PI); ctx.strokeStyle = css("--smash"); ctx.lineWidth = 2; ctx.stroke(); }
+  }
+  // items lying in the map (msb_extract treasures), picked ones already removed by the server:
+  // souls / humanity / titanite as diamonds with a label; everything else only with "all items"
+  const ITEM_COL = {soul: "--soul", humanity: "--hum", titanite: "--tit", other: "--item"};
+  for (const o of (last.items || [])) {
+    if (o[3] === "other" && !$("allitems").checked) continue;
+    const dx = o[0] - p.x, dz = o[2] - p.z;
+    if (Math.hypot(dx, dz) > range) continue;
+    const [x, y] = toScreen(dx, dz), r = o[3] === "other" ? 4 : 6;
+    ctx.beginPath(); ctx.moveTo(x, y - r); ctx.lineTo(x + r, y); ctx.lineTo(x, y + r); ctx.lineTo(x - r, y); ctx.closePath();
+    ctx.fillStyle = css(ITEM_COL[o[3]] || "--item"); ctx.fill(); ctx.strokeStyle = css("--bg"); ctx.lineWidth = 1; ctx.stroke();
+    if (o[3] !== "other") { ctx.fillStyle = css("--muted"); ctx.fillText(o[4], x + 8, y + 4); }
+  }
+  const tgt = snap.target != null ? snap.chars.find(c => c.ptr === snap.target) : null;
+  if (tgt) {
+    const [x, y] = toScreen(tgt.x - p.x, tgt.z - p.z);
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(x, y); ctx.strokeStyle = css("--target"); ctx.lineWidth = 1; ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, y, 10, 0, 2 * Math.PI); ctx.lineWidth = 2; ctx.stroke();
+  }
+  const showAnim = $("anim").checked;
+  for (const c of snap.chars) {
+    const dx = c.x - p.x, dz = c.z - p.z;
+    if (Math.hypot(dx, dz) > range) continue;
+    const [x, y] = toScreen(dx, dz), dead = !(c.hp > 0), col = color(c);
+    ctx.globalAlpha = dead ? 0.3 : 1;
+    if (c.heading != null) arrow(x, y, c.heading + Math.PI, 10, col, 2);   // facing = heading + π (dsr_telemetry.face)
+    ctx.beginPath(); ctx.arc(x, y, 5, 0, 2 * Math.PI); ctx.fillStyle = col; ctx.fill();
+    if (c.max_hp > 0 && !dead) {
+      ctx.fillStyle = css("--ring"); ctx.fillRect(x - 10, y + 8, 20, 3);
+      ctx.fillStyle = c.hp / c.max_hp < 0.35 ? css("--hplow") : css("--hp"); ctx.fillRect(x - 10, y + 8, 20 * c.hp / c.max_hp, 3);
+    }
+    ctx.fillStyle = css("--ink");
+    const label = (c.name || c.npc || "") + (showAnim && c.anim != null ? " · " + c.anim : "");
+    if (label) ctx.fillText(label, x + 8, y - 6);
+    ctx.globalAlpha = 1;
+  }
+  // player
+  if (p.heading != null) arrow(cx, cy, p.heading + Math.PI, 16, css("--player"), 3);
+  ctx.beginPath(); ctx.arc(cx, cy, 7, 0, 2 * Math.PI); ctx.fillStyle = css("--player"); ctx.fill();
+}
+
+function side() {
+  const snap = last && last.snap;
+  const says = (last && last.says) || [];
+  $("says").innerHTML = says.length ? says.slice().reverse().map(s => `<li>${esc(s.line)}</li>`).join("") : "<li>—</li>";
+  if (!snap) return;
+  const p = snap.player, pct = (a, b) => b > 0 ? Math.max(0, Math.min(100, 100 * a / b)) : 0;
+  $("vitals").innerHTML =
+    `<div><span>HP</span><span>${p.hp} / ${p.max_hp}</span></div><div class="bar"><i style="width:${pct(p.hp, p.max_hp)}%"></i></div>` +
+    `<div><span>Stamina</span><span>${p.sp} / ${p.max_sp}</span></div><div class="bar"><i style="width:${pct(p.sp, p.max_sp)}%"></i></div>` +
+    `<div><span>Estus</span><span>${snap.flask_hp ?? "?"} / ${snap.max_flask_hp ?? "?"}</span></div>` +
+    `<div><span>Position</span><span>${p.x?.toFixed(1)}, ${p.y?.toFixed(1)}, ${p.z?.toFixed(1)}</span></div>`;
+  const tgt = snap.target != null ? snap.chars.find(c => c.ptr === snap.target) : null;
+  const row = (k, v) => `<div><span>${k}</span><span>${v}</span></div>`;
+  $("intent").innerHTML =
+    row(`<i class="key" style="background:var(--target)"></i>Target`, tgt ? `${esc(tgt.name || tgt.npc)} · ${tgt.dist?.toFixed(1)} m` : "none") +
+    row(`<i class="key" style="background:var(--path)"></i>Path`, snap.path ? `${esc(snap.path_tag || "")} · ${snap.path.length} pts` : "none") +
+    row(`<i class="key" style="background:var(--friend)"></i>Hold spot`, snap.spot ? esc(snap.spot_tag || "") + ` · ${Math.hypot(snap.spot[0] - p.x, snap.spot[2] - p.z).toFixed(1)} m` : "none") +
+    row(`<i class="key" style="background:var(--smash)"></i>Smash`, snap.smash ? esc(snap.smash) : "none") +
+    row(`<i class="key" style="background:var(--prop);border-radius:1px"></i>Breakables`, `${(last.props || []).length} within 40 m`) +
+    itemsRows(last.items || [], p, row);
+  const foes = snap.chars.filter(c => HOSTILE.has(c.team) && c.hp > 0).slice(0, 8);
+  $("foes").innerHTML = foes.map(c =>
+    `<tr><td>${esc(c.name || c.npc)}</td><td class="n">${c.dist?.toFixed(1)} m</td><td class="n">${c.hp}/${c.max_hp}</td></tr>`).join("")
+    || "<tr><td>none</td></tr>";
+}
+
+function itemsRows(items, p, row) {
+  const n = k => items.filter(o => o[3] === k).length;
+  const near = items.filter(o => o[3] !== "other").map(o => [Math.hypot(o[0] - p.x, o[2] - p.z), o[4]]).sort((a, b) => a[0] - b[0])[0];
+  return row(`<i class="key" style="background:var(--soul)"></i>Items`, `soul ${n("soul")} · humanity ${n("humanity")} · titanite ${n("titanite")}`) +
+    row(`<i class="key" style="background:var(--tit)"></i>Nearest item`, near ? `${esc(near[1])} · ${near[0].toFixed(1)} m` : "none");
+}
+
+async function poll() {
+  try {
+    const r = await fetch("/state", {cache: "no-store"});
+    last = await r.json();
+    const live = last.age != null && last.age < 2;
+    $("conn").textContent = live ? "live" : last.age == null ? "waiting" : `stale (${last.age.toFixed(0)} s)`;
+    $("conn").className = live ? "live" : "stale";
+  } catch (e) {
+    $("conn").textContent = "no server"; $("conn").className = "stale";
+  }
+  draw(); side();
+  setTimeout(poll, 100);
+}
+addEventListener("resize", draw);
+poll();
+</script>
+</body>
+</html>
