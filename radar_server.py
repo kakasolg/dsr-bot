@@ -4,7 +4,8 @@
   python radar_server.py --demo       fake world (no game, no bot) — to see or develop the page on any OS
   python run.py burg-bonfire --radar  the bot sends; start this server first or later, either order works
 
-Endpoints: /  (radar.html)   /state  (latest snapshot + last decision lines, JSON)
+Endpoints: /  (radar.html)   /state  (latest snapshot + last decision lines + breakable props near the player, JSON)
+Props come from data/gamefiles/*.json (msb_extract.py) — every extracted map is loaded; the ones near the player are sent.
 Standard library only.
 """
 from __future__ import annotations
@@ -27,12 +28,31 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
 PAGE = Path(__file__).parent / "radar.html"
+GAMEFILES = Path(__file__).parent / "data" / "gamefiles"
+PROP_R, PROP_DY = 40.0, 6.0     # props sent: within this (horizontal) of the player, and this height
+STRONG_MIN_ATTACK = 50         # same as msb_extract.py
 HTTP_PORT = radar.PORT + 1
 SAY_KEEP = 12
 
 
+def load_props(folder: Path = GAMEFILES) -> list[list]:
+    """[x, y, z, strong, name] for every breakable prop of every extracted map."""
+    out = []
+    for path in sorted(folder.glob("*.json")):
+        try:
+            objs = json.loads(path.read_text(encoding="utf-8"))["objects"]
+        except (OSError, ValueError, KeyError):
+            continue
+        for o in objs:
+            if o.get("breakable") is True:
+                x, y, z = o["pos"]
+                out.append([x, y, z, (o.get("min_attack") or 0) >= STRONG_MIN_ATTACK, o["name"]])
+    return out
+
+
 class State:
-    def __init__(self):
+    def __init__(self, props: list | None = None):
+        self.props = props if props is not None else load_props()
         self.lock = threading.Lock()
         self.snap: dict | None = None
         self.says: collections.deque = collections.deque(maxlen=SAY_KEEP)
@@ -48,7 +68,13 @@ class State:
 
     def get(self) -> dict:
         with self.lock:
-            return {"snap": self.snap, "says": list(self.says), "age": round(time.time() - self.t_recv, 2) if self.t_recv else None}
+            snap = self.snap
+            out = {"snap": snap, "says": list(self.says), "age": round(time.time() - self.t_recv, 2) if self.t_recv else None}
+        p = (snap or {}).get("player") or {}
+        if p.get("x") is not None:
+            out["props"] = [o for o in self.props if abs(o[0] - p["x"]) < PROP_R and abs(o[2] - p["z"]) < PROP_R
+                            and abs(o[1] - p["y"]) < PROP_DY and math.hypot(o[0] - p["x"], o[2] - p["z"]) < PROP_R]
+        return out
 
 
 def udp_loop(state: State, port: int) -> None:
@@ -98,7 +124,7 @@ def demo_loop(port: int) -> None:
                  spd=rng.uniform(-0.3, 0.3), hp=200) for i in range(6)]
     lines = ["이동: 경사로 아래 → 대기 지점", "끌어오기: 망자 #3 에 나이프", "교전: 망자 #3 (4.2 m)",
              "공격 모션 3004 → 구르기", "후퇴: 적 2명 접근", "휘청 → 약공 2연타"]
-    mv = _C(cam_target=None, show_path=None, show_spot=None)
+    mv = _C(cam_target=None, show_path=None, show_spot=None, show_smash=None)
     r.follow(mv)
     t0, k = time.time(), 0
     while True:
@@ -117,6 +143,8 @@ def demo_loop(port: int) -> None:
         if phase == 0:
             mv.cam_target, mv.show_spot = None, None
             mv.show_path = ("경사로 아래로", [(px + 1.5 * i, 0.0, pz + 3 * math.sin(i / 3)) for i in range(12)])
+            if t % 8 > 5:
+                mv.show_smash = ("o1130_d2", (6.0, 0.0, 1.0), time.time())
         elif phase == 1:
             mv.show_path, mv.cam_target = None, chars[0].ptr
         else:
@@ -137,7 +165,11 @@ def main() -> None:
     ap.add_argument("--udp", type=int, default=radar.PORT)
     ap.add_argument("--http", type=int, default=HTTP_PORT)
     a = ap.parse_args()
-    state = State()
+    demo_props = [[6.0, 0.0, 1.0, False, "o1130_d2"], [7.0, 0.0, -1.5, False, "o1132_d3"], [-3.0, 0.0, 6.0, True, "o1230_d4"],
+                  [2.0, 0.0, -7.0, False, "o1154_d5"]]
+    state = State(props=demo_props if a.demo else None)
+    if not a.demo:
+        print(f"부서지는 물건 {len(state.props)}개 (data/gamefiles)")
     threading.Thread(target=udp_loop, args=(state, a.udp), daemon=True).start()
     if a.demo:
         threading.Thread(target=demo_loop, args=(a.udp,), daemon=True).start()

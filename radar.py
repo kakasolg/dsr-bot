@@ -3,7 +3,8 @@
   from radar import Radar
   r = Radar()               # 127.0.0.1:47800 (RADAR_PORT)
   r.attach(tm)              # follows the feed's frames (at most RATE_HZ per second)
-  r.follow(mv)              # + what layer 4 is doing: target (mv.cam_target), path (mv.show_path), held spot (mv.show_spot)
+  r.follow(mv)              # + what layer 4 is doing: target (mv.cam_target), path (mv.show_path), held spot (mv.show_spot),
+                            #   prop just swung at (mv.show_smash)
   r.say("후퇴: 적 2명 접근")  # one decision line (run.py's Log does this for every log line)
 
 Fire-and-forget: UDP to localhost, nothing waits for an answer, every error is swallowed. With no server
@@ -22,6 +23,7 @@ RATE_HZ = 10.0
 POLL_WITHIN = 40.0     # radius for the fallback poll (no feed)
 MAX_PATH = 200          # path points sent (evenly thinned)
 SPOT_FRESH = 2.0       # s — a held spot older than this is no longer shown
+SMASH_FRESH = 10.0     # s — a prop swung at stays highlighted this long
 MAX_CHARS = 40          # nearest first; keeps one packet well under the UDP size limit
 
 
@@ -61,6 +63,9 @@ def intent_dict(mv) -> dict:
     sp = getattr(mv, "show_spot", None)
     if sp and time.time() - sp[2] < SPOT_FRESH:
         out["spot_tag"], out["spot"] = sp[0], [_r(v) for v in sp[1]]
+    sm = getattr(mv, "show_smash", None)
+    if sm and time.time() - sm[2] < SMASH_FRESH:
+        out["smash"] = sm[0]
     return out
 
 

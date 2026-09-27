@@ -9,17 +9,17 @@
 <style>
 :root {
   --bg: #f6f7f9; --panel: #ffffff; --ink: #1d2330; --muted: #6a7384; --line: #dde1e8; --ring: #e3e7ee;
-  --player: #2f6fde; --foe: #d23f3f; --friend: #2e9a5b; --other: #8a93a3; --cam: #d9a400; --hp: #2e9a5b; --hplow: #d23f3f; --path: #7a5cd6; --target: #d9a400;
+  --player: #2f6fde; --foe: #d23f3f; --friend: #2e9a5b; --other: #8a93a3; --cam: #d9a400; --hp: #2e9a5b; --hplow: #d23f3f; --path: #7a5cd6; --target: #d9a400; --prop: #a0785a; --smash: #e0662a;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #14171d; --panel: #1b1f27; --ink: #e3e7ee; --muted: #8b94a5; --line: #2c323d; --ring: #262b35;
-    --player: #6c9cf0; --foe: #f06a6a; --friend: #5cc98a; --other: #7d8697; --cam: #f0c33c; --hp: #5cc98a; --hplow: #f06a6a; --path: #a98cf5; --target: #f0c33c;
+    --player: #6c9cf0; --foe: #f06a6a; --friend: #5cc98a; --other: #7d8697; --cam: #f0c33c; --hp: #5cc98a; --hplow: #f06a6a; --path: #a98cf5; --target: #f0c33c; --prop: #c79c78; --smash: #ff8a4c;
   }
 }
 :root[data-theme="dark"] {
   --bg: #14171d; --panel: #1b1f27; --ink: #e3e7ee; --muted: #8b94a5; --line: #2c323d; --ring: #262b35;
-  --player: #6c9cf0; --foe: #f06a6a; --friend: #5cc98a; --other: #7d8697; --cam: #f0c33c; --hp: #5cc98a; --hplow: #f06a6a; --path: #a98cf5; --target: #f0c33c;
+  --player: #6c9cf0; --foe: #f06a6a; --friend: #5cc98a; --other: #7d8697; --cam: #f0c33c; --hp: #5cc98a; --hplow: #f06a6a; --path: #a98cf5; --target: #f0c33c; --prop: #c79c78; --smash: #ff8a4c;
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.4 system-ui, "Segoe UI", "Malgun Gothic", sans-serif; }
@@ -140,6 +140,15 @@ function draw() {
     ctx.beginPath(); ctx.arc(x, y, 9, 0, 2 * Math.PI); ctx.strokeStyle = css("--friend"); ctx.lineWidth = 2; ctx.stroke();
     ctx.beginPath(); ctx.arc(x, y, 2, 0, 2 * Math.PI); ctx.fillStyle = css("--friend"); ctx.fill();
   }
+  // breakable props (data/gamefiles): filled square = light attack breaks it, outline = needs a strong attack
+  for (const o of (last.props || [])) {
+    const dx = o[0] - p.x, dz = o[2] - p.z;
+    if (Math.hypot(dx, dz) > range) continue;
+    const [x, y] = toScreen(dx, dz), hit = snap.smash === o[4];
+    ctx.strokeStyle = ctx.fillStyle = css("--prop"); ctx.lineWidth = 1.5;
+    o[3] ? ctx.strokeRect(x - 4, y - 4, 8, 8) : ctx.fillRect(x - 4, y - 4, 8, 8);
+    if (hit) { ctx.beginPath(); ctx.arc(x, y, 9, 0, 2 * Math.PI); ctx.strokeStyle = css("--smash"); ctx.lineWidth = 2; ctx.stroke(); }
+  }
   const tgt = snap.target != null ? snap.chars.find(c => c.ptr === snap.target) : null;
   if (tgt) {
     const [x, y] = toScreen(tgt.x - p.x, tgt.z - p.z);
@@ -184,7 +193,9 @@ function side() {
   $("intent").innerHTML =
     row(`<i class="key" style="background:var(--target)"></i>목표`, tgt ? `${esc(tgt.name || tgt.npc)} · ${tgt.dist?.toFixed(1)} m` : "없음") +
     row(`<i class="key" style="background:var(--path)"></i>경로`, snap.path ? `${esc(snap.path_tag || "")} · ${snap.path.length}점` : "없음") +
-    row(`<i class="key" style="background:var(--friend)"></i>지킬 자리`, snap.spot ? esc(snap.spot_tag || "") + ` · ${Math.hypot(snap.spot[0] - p.x, snap.spot[2] - p.z).toFixed(1)} m` : "없음");
+    row(`<i class="key" style="background:var(--friend)"></i>지킬 자리`, snap.spot ? esc(snap.spot_tag || "") + ` · ${Math.hypot(snap.spot[0] - p.x, snap.spot[2] - p.z).toFixed(1)} m` : "없음") +
+    row(`<i class="key" style="background:var(--smash)"></i>부숨 시도`, snap.smash ? esc(snap.smash) : "없음") +
+    row(`<i class="key" style="background:var(--prop);border-radius:1px"></i>부서지는 물건`, `${(last.props || []).length}개 (40 m 안)`);
   const foes = snap.chars.filter(c => HOSTILE.has(c.team) && c.hp > 0).slice(0, 8);
   $("foes").innerHTML = foes.map(c =>
     `<tr><td>${esc(c.name || c.npc)}</td><td class="n">${c.dist?.toFixed(1)} m</td><td class="n">${c.hp}/${c.max_hp}</td></tr>`).join("")

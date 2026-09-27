@@ -96,6 +96,19 @@ mv.cam_target, mv.show_path = None, None
 check("오래된 자리·빈 목표·빈 경로는 안 보냄", radar.intent_dict(mv) == {})
 check("속성 없는 mv 도 괜찮음", radar.intent_dict(object()) == {})
 
+mv.show_smash = ("o1130_12", (1.0, 0.0, 1.0), time.time())
+check("부숨 시도한 물건 이름", radar.intent_dict(mv).get("smash") == "o1130_12")
+mv.show_smash = ("o1130_12", (1.0, 0.0, 1.0), time.time() - 60)
+check("오래된 부숨은 안 보냄", "smash" not in radar.intent_dict(mv))
+
+print("부서지는 물건 (서버)")
+ps = S.State(props=[[1.0, 0.0, 2.0, False, "near"], [100.0, 0.0, 0.0, False, "far"], [1.0, -20.0, 2.0, False, "below"]])
+check("스냅샷 없으면 props 없음", "props" not in ps.get())
+ps.put({"type": "snap", "player": {"x": 0.0, "y": 0.0, "z": 0.0}, "chars": []})
+check("플레이어 근처·같은 높이만", [o[4] for o in ps.get()["props"]] == ["near"])
+allp = S.load_props()
+check(f"data/gamefiles 에서 읽음 ({len(allp)}개, 강공 {sum(1 for o in allp if o[3])})", len(allp) >= 400 and any(o[4] == "o1130_12" for o in allp))
+
 print("field.walk 가 경로를 걸고 푼다 (돌아가기 중첩 포함)")
 from souls import field as F
 
