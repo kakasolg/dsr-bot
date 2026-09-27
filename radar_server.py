@@ -5,7 +5,8 @@
   python run.py burg-bonfire --radar  the bot sends; start this server first or later, either order works
 
 Endpoints: /  (radar.html)   /state  (latest snapshot + last decision lines + breakable props near the player, JSON)
-Props come from data/gamefiles/*.json (msb_extract.py) — every extracted map is loaded; the ones near the player are sent.
+Props and items come from data/gamefiles/*.json (msb_extract.py) — every extracted map is loaded; the ones near the
+player are sent. Items already picked up (pickup flags radar.py reports) are left out.
 Standard library only.
 """
 from __future__ import annotations
@@ -32,6 +33,7 @@ PAGE = Path(__file__).parent / "radar.html"
 GAMEFILES = Path(__file__).parent / "data" / "gamefiles"
 PROP_R, PROP_DY = 40.0, 6.0     # props sent: within this (horizontal) of the player, and this height
 STRONG_MIN_ATTACK = 50         # same as msb_extract.py
+ITEM_DY = 12.0                 # items: a bit more height than props — they matter from a ledge above too
 HTTP_PORT = radar.PORT + 1
 SAY_KEEP = 12
 
@@ -51,10 +53,30 @@ def load_props(folder: Path = GAMEFILES) -> list[list]:
     return out
 
 
+ITEM_KINDS = ("soul", "humanity", "titanite", "other")
+
+
+def load_items(folder: Path = GAMEFILES) -> list[list]:
+    """[x, y, z, kind, label, flags] for every extracted treasure (msb_extract.py treasures)."""
+    out = []
+    for path in sorted(folder.glob("*.json")):
+        try:
+            ts = json.loads(path.read_text(encoding="utf-8")).get("treasures") or []
+        except (OSError, ValueError):
+            continue
+        for t in ts:
+            if t.get("kind"):
+                x, y, z = t["pos"]
+                out.append([x, y, z, t["kind"], t.get("label") or "", list(t.get("flags") or [])])
+    return out
+
+
 class State:
-    def __init__(self, props: list | None = None, english: bool = True):
+    def __init__(self, props: list | None = None, english: bool = True, items: list | None = None):
         self.english = english                 # translate the bot's Korean log lines / tags for display (translate.py)
         self.props = props if props is not None else load_props()
+        self.items = items if items is not None else load_items()
+        self.picked: set[int] = set()        # pickup flags radar.py found set
         self.lock = threading.Lock()
         self.snap: dict | None = None
         self.says: collections.deque = collections.deque(maxlen=SAY_KEEP)
@@ -65,12 +87,14 @@ class State:
             self.t_recv = time.time()
             if msg.get("type") == "snap":
                 self.snap = msg
+            elif msg.get("type") == "picked":
+                self.picked.update(int(f) for f in msg.get("flags") or [])
             elif msg.get("type") == "say":
                 self.says.append({"t": msg.get("t"), "line": msg.get("line", "")})
 
     def get(self) -> dict:
         with self.lock:
-            snap, says = self.snap, list(self.says)
+            snap, says, picked = self.snap, list(self.says), set(self.picked)
             age = round(time.time() - self.t_recv, 2) if self.t_recv else None
         if self.english:
             says = [{**x, "line": translate.line(x.get("line"))} for x in says]
@@ -81,6 +105,9 @@ class State:
         if p.get("x") is not None:
             out["props"] = [o for o in self.props if abs(o[0] - p["x"]) < PROP_R and abs(o[2] - p["z"]) < PROP_R
                             and abs(o[1] - p["y"]) < PROP_DY and math.hypot(o[0] - p["x"], o[2] - p["z"]) < PROP_R]
+            # items: [x, y, z, kind, label] not yet picked up (any of its flags set = taken)
+            out["items"] = [o[:5] for o in self.items if math.hypot(o[0] - p["x"], o[2] - p["z"]) < PROP_R
+                            and abs(o[1] - p["y"]) < ITEM_DY and not (set(o[5]) & picked)]
         return out
 
 
@@ -175,9 +202,11 @@ def main() -> None:
     a = ap.parse_args()
     demo_props = [[6.0, 0.0, 1.0, False, "o1130_d2"], [7.0, 0.0, -1.5, False, "o1132_d3"], [-3.0, 0.0, 6.0, True, "o1230_d4"],
                   [2.0, 0.0, -7.0, False, "o1154_d5"]]
-    state = State(props=demo_props if a.demo else None, english=not a.korean)
+    demo_items = [[3.0, 0.0, 5.0, "soul", "Soul of a Lost Undead", [1]], [-6.0, 0.0, -2.0, "humanity", "Humanity", [2]],
+                  [8.0, 0.0, 6.0, "titanite", "Titanite Shard x2", [3]], [-2.0, 0.0, -9.0, "other", "Firebomb x3", [4]]]
+    state = State(props=demo_props if a.demo else None, english=not a.korean, items=demo_items if a.demo else None)
     if not a.demo:
-        print(f"breakable props: {len(state.props)} (data/gamefiles)")
+        print(f"breakable props: {len(state.props)}, items: {len(state.items)} (data/gamefiles)")
     threading.Thread(target=udp_loop, args=(state, a.udp), daemon=True).start()
     if a.demo:
         threading.Thread(target=demo_loop, args=(a.udp,), daemon=True).start()

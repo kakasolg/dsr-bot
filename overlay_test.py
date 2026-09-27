@@ -26,7 +26,8 @@ def foe(ptr, x, z, hp=100, anim=3000, team=6, name="Hollow"):
             "dist": (x * x + z * z) ** 0.5, "anim": anim}
 
 
-state = {"age": 0.1, "says": [{"line": "fight: Hollow"}, {"line": "retreat mode: guard"}],
+state = {"age": 0.1, "items": [[0.0, 0.0, 2.0, "titanite", "Titanite Shard", []], [5.0, 0.0, 0.0, "soul", "Soul of a Lost Undead", []],
+                               [1.0, 0.0, 0.0, "other", "Firebomb", []]], "says": [{"line": "fight: Hollow"}, {"line": "retreat mode: guard"}],
          "props": [[0.0, 0.0, 3.0, False, "o1130_12"], [50.0, 0.0, 0.0, False, "far"]],
          "snap": {"player": {"x": 0.0, "y": 0.0, "z": 0.0, "hp": 200, "max_hp": 800, "sp": 50, "max_sp": 100},
                   "cam_yaw": 0.0, "flask_hp": 2, "target": 5, "path_tag": "ramp", "path": [[0, 0, 0], [0, 0, 5]],
@@ -43,6 +44,8 @@ check("8 m 안 적 수 (죽은 적·우호 제외)", any(t.startswith("foes with
 check("판단 최신이 먼저", L[-2] == "› retreat mode: guard" and L[-1] == "› fight: Hollow")
 check("끊김 표시", O.lines({**state, "age": 5.0})[0][0].startswith("stale"))
 
+check("가장 가까운 아이템 (기타 제외)", any(t.startswith("item: Titanite Shard  2.0 m  (+1 more)") for t in L))
+
 print("미니 레이더 (카메라 위)")
 pts = O.radar_points(state, size=200, range_m=10.0)
 kinds = [p[0] for p in pts]
@@ -54,6 +57,7 @@ check("목표(앞 4 m)는 위쪽", abs(tgt[1] - c) < 0.01 and tgt[2] < c)
 check("오른쪽 적은 오른쪽", right[1] > c and abs(right[2] - c) < 0.01)
 check("죽은 적·우호·범위 밖 물건", "foe_dead" in kinds and kinds.count("foe") == 1 and "smash" in kinds and "prop" not in kinds)
 check("경로 선", pts[0][0] == "path" and len(pts[0][1]) == 2)
+check("아이템 표시 (기타는 안 그림)", "item_titanite" in kinds and "item_soul" in kinds and not any(k == "item_other" for k in kinds))
 turned = O.radar_points({**state, "snap": {**state["snap"], "cam_yaw": 3.14159265}}, size=200, range_m=10.0)
 t2 = next(p for p in turned if p[0] == "target")
 check("카메라가 반대로 보면 목표는 아래쪽", t2[2] > c)

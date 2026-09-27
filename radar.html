@@ -9,17 +9,17 @@
 <style>
 :root {
   --bg: #f6f7f9; --panel: #ffffff; --ink: #1d2330; --muted: #6a7384; --line: #dde1e8; --ring: #e3e7ee;
-  --player: #2f6fde; --foe: #d23f3f; --friend: #2e9a5b; --other: #8a93a3; --cam: #d9a400; --hp: #2e9a5b; --hplow: #d23f3f; --path: #7a5cd6; --target: #d9a400; --prop: #a0785a; --smash: #e0662a;
+  --player: #2f6fde; --foe: #d23f3f; --friend: #2e9a5b; --other: #8a93a3; --cam: #d9a400; --hp: #2e9a5b; --hplow: #d23f3f; --path: #7a5cd6; --target: #d9a400; --prop: #a0785a; --smash: #e0662a; --soul: #2a9fd6; --hum: #7a7f8c; --tit: #6d6ad6; --item: #9aa0ab;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #14171d; --panel: #1b1f27; --ink: #e3e7ee; --muted: #8b94a5; --line: #2c323d; --ring: #262b35;
-    --player: #6c9cf0; --foe: #f06a6a; --friend: #5cc98a; --other: #7d8697; --cam: #f0c33c; --hp: #5cc98a; --hplow: #f06a6a; --path: #a98cf5; --target: #f0c33c; --prop: #c79c78; --smash: #ff8a4c;
+    --player: #6c9cf0; --foe: #f06a6a; --friend: #5cc98a; --other: #7d8697; --cam: #f0c33c; --hp: #5cc98a; --hplow: #f06a6a; --path: #a98cf5; --target: #f0c33c; --prop: #c79c78; --smash: #ff8a4c; --soul: #7fd3ff; --hum: #f4f4f4; --tit: #aaa8ff; --item: #7d8697;
   }
 }
 :root[data-theme="dark"] {
   --bg: #14171d; --panel: #1b1f27; --ink: #e3e7ee; --muted: #8b94a5; --line: #2c323d; --ring: #262b35;
-  --player: #6c9cf0; --foe: #f06a6a; --friend: #5cc98a; --other: #7d8697; --cam: #f0c33c; --hp: #5cc98a; --hplow: #f06a6a; --path: #a98cf5; --target: #f0c33c; --prop: #c79c78; --smash: #ff8a4c;
+  --player: #6c9cf0; --foe: #f06a6a; --friend: #5cc98a; --other: #7d8697; --cam: #f0c33c; --hp: #5cc98a; --hplow: #f06a6a; --path: #a98cf5; --target: #f0c33c; --prop: #c79c78; --smash: #ff8a4c; --soul: #7fd3ff; --hum: #f4f4f4; --tit: #aaa8ff; --item: #7d8697;
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.4 system-ui, "Segoe UI", sans-serif; }
@@ -58,6 +58,7 @@ h2 { font-size: 12px; font-weight: 600; color: var(--muted); margin: 0 0 6px; te
   <label>Range <select id="range"><option>10</option><option selected>20</option><option>40</option></select> m</label>
   <label>Up <select id="up"><option value="cam" selected>camera</option><option value="north">north</option></select></label>
   <label><input type="checkbox" id="anim"> anim ID</label>
+  <label><input type="checkbox" id="allitems"> all items</label>
   <button id="theme" type="button">Theme</button>
 </header>
 <main>
@@ -83,7 +84,7 @@ $("theme").onclick = () => {
   try { localStorage.setItem("radar-theme", next); } catch (e) {}
   draw();
 };
-for (const id of ["range", "up", "anim"]) $(id).onchange = draw;
+for (const id of ["range", "up", "anim", "allitems"]) $(id).onchange = draw;
 
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
@@ -149,6 +150,18 @@ function draw() {
     o[3] ? ctx.strokeRect(x - 4, y - 4, 8, 8) : ctx.fillRect(x - 4, y - 4, 8, 8);
     if (hit) { ctx.beginPath(); ctx.arc(x, y, 9, 0, 2 * Math.PI); ctx.strokeStyle = css("--smash"); ctx.lineWidth = 2; ctx.stroke(); }
   }
+  // items lying in the map (msb_extract treasures), picked ones already removed by the server:
+  // souls / humanity / titanite as diamonds with a label; everything else only with "all items"
+  const ITEM_COL = {soul: "--soul", humanity: "--hum", titanite: "--tit", other: "--item"};
+  for (const o of (last.items || [])) {
+    if (o[3] === "other" && !$("allitems").checked) continue;
+    const dx = o[0] - p.x, dz = o[2] - p.z;
+    if (Math.hypot(dx, dz) > range) continue;
+    const [x, y] = toScreen(dx, dz), r = o[3] === "other" ? 4 : 6;
+    ctx.beginPath(); ctx.moveTo(x, y - r); ctx.lineTo(x + r, y); ctx.lineTo(x, y + r); ctx.lineTo(x - r, y); ctx.closePath();
+    ctx.fillStyle = css(ITEM_COL[o[3]] || "--item"); ctx.fill(); ctx.strokeStyle = css("--bg"); ctx.lineWidth = 1; ctx.stroke();
+    if (o[3] !== "other") { ctx.fillStyle = css("--muted"); ctx.fillText(o[4], x + 8, y + 4); }
+  }
   const tgt = snap.target != null ? snap.chars.find(c => c.ptr === snap.target) : null;
   if (tgt) {
     const [x, y] = toScreen(tgt.x - p.x, tgt.z - p.z);
@@ -195,11 +208,19 @@ function side() {
     row(`<i class="key" style="background:var(--path)"></i>Path`, snap.path ? `${esc(snap.path_tag || "")} · ${snap.path.length} pts` : "none") +
     row(`<i class="key" style="background:var(--friend)"></i>Hold spot`, snap.spot ? esc(snap.spot_tag || "") + ` · ${Math.hypot(snap.spot[0] - p.x, snap.spot[2] - p.z).toFixed(1)} m` : "none") +
     row(`<i class="key" style="background:var(--smash)"></i>Smash`, snap.smash ? esc(snap.smash) : "none") +
-    row(`<i class="key" style="background:var(--prop);border-radius:1px"></i>Breakables`, `${(last.props || []).length} within 40 m`);
+    row(`<i class="key" style="background:var(--prop);border-radius:1px"></i>Breakables`, `${(last.props || []).length} within 40 m`) +
+    itemsRows(last.items || [], p, row);
   const foes = snap.chars.filter(c => HOSTILE.has(c.team) && c.hp > 0).slice(0, 8);
   $("foes").innerHTML = foes.map(c =>
     `<tr><td>${esc(c.name || c.npc)}</td><td class="n">${c.dist?.toFixed(1)} m</td><td class="n">${c.hp}/${c.max_hp}</td></tr>`).join("")
     || "<tr><td>none</td></tr>";
+}
+
+function itemsRows(items, p, row) {
+  const n = k => items.filter(o => o[3] === k).length;
+  const near = items.filter(o => o[3] !== "other").map(o => [Math.hypot(o[0] - p.x, o[2] - p.z), o[4]]).sort((a, b) => a[0] - b[0])[0];
+  return row(`<i class="key" style="background:var(--soul)"></i>Items`, `soul ${n("soul")} · humanity ${n("humanity")} · titanite ${n("titanite")}`) +
+    row(`<i class="key" style="background:var(--tit)"></i>Nearest item`, near ? `${esc(near[1])} · ${near[0].toFixed(1)} m` : "none");
 }
 
 async function poll() {

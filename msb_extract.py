@@ -5,7 +5,10 @@
 
 Reads (DSR install folder, DSR_GAME_DIR like navmesh.py):
   map/MapStudio/<mapID>.msb                     objects · enemies · patrol regions
-  param/GameParam/GameParam.parambnd.dcx        ObjectParam (HP, breakable) · NpcThinkParam (sight, hearing, retreat)
+  param/GameParam/GameParam.parambnd.dcx        ObjectParam (HP, breakable) · NpcThinkParam (sight, hearing, retreat) · ItemLotParam
+  msg/ENGLISH/item.msgbnd.dcx                   item names (English, as the game shows them)
+  treasures: items lying in the map (on corpses / in chests) — position, items, kind (soul | humanity | titanite | other),
+    and ItemLotParam.ItemFlag = the event flag that turns on when it's picked up (dsr_telemetry.event_flag reads it)
 
 Evidence grade of everything written here: "file" — it is what the game data says, not yet seen in play (LAYERS.md).
 Units are raw param values; which ones are metres is still to be checked in play (ROADMAP.md 2).
@@ -80,6 +83,88 @@ def load_params(game_dir: Path):
     return gp.Objects, gp.AI
 
 
+# ItemLotParam lotItemCategory (soulstruct ITEMLOT_ITEMCATEGORY)
+CATEGORY = {0: "weapon", 2 ** 28: "armor", 2 ** 29: "ring", 2 ** 30: "good"}
+KINDS = ("soul", "humanity", "titanite")      # what the radar shows by default; everything else is "other"
+
+
+def load_itemlots(game_dir: Path):
+    """ItemLotParam, or None."""
+    path = game_dir / "param" / "GameParam" / "GameParam.parambnd.dcx"
+    if not path.exists():
+        return None
+    from soulstruct.darksouls1r.params import GameParamBND
+    return GameParamBND.from_path(path).ItemLots
+
+
+def load_item_names(game_dir: Path) -> dict:
+    """{(category, id): English name} from msg/ENGLISH (item.msgbnd), patch FMGs over the base ones. {} if missing."""
+    folder = game_dir / "msg" / "ENGLISH"
+    try:
+        from soulstruct.darksouls1r.text import MSGDirectory
+        msg = MSGDirectory.from_path(folder)
+    except Exception as ex:
+        print(f"경고: 아이템 이름 없음 — {folder} ({ex!r})")
+        return {}
+    out = {}
+    for cat, base, patch in (("weapon", "WeaponNames", None), ("armor", "ArmorNames", "ArmorNamesPatch"),
+                             ("ring", "RingNames", "RingNamesPatch"), ("good", "GoodNames", "GoodNamesPatch")):
+        for attr in (base, patch):
+            try:
+                fmg = getattr(msg, attr) if attr else None
+            except Exception:
+                fmg = None
+            for i, text in (fmg.items() if fmg is not None else ()):
+                if text:
+                    out[(cat, int(i))] = str(text)
+    return out
+
+
+def item_kind(category: str, item_id: int, name: str | None) -> str:
+    """soul | humanity | titanite | other. By English name when known, else by the usual DS1 goods IDs."""
+    if category != "good":
+        return "other"
+    if name:
+        n = name.lower()
+        if "humanit" in n:
+            return "humanity"
+        if "titanite" in n:
+            return "titanite"
+        if n.startswith(("soul of", "large soul of")):
+            return "soul"
+        return "other"
+    if item_id in (500, 501):
+        return "humanity"
+    if 400 <= item_id <= 409:
+        return "soul"
+    if 1000 <= item_id <= 1070:
+        return "titanite"
+    return "other"
+
+
+def treasure_items(lots, lot_ids: list[int], names: dict) -> tuple[list[dict], list[int]]:
+    """Items and pickup flags (ItemLotParam.ItemFlag) of a treasure's item lots."""
+    items, flags = [], []
+    for lot_id in lot_ids:
+        try:
+            row = lots[lot_id] if lots is not None else None
+        except (KeyError, IndexError):
+            row = None
+        if row is None:
+            continue
+        if getattr(row, "ItemFlag", 0) and row.ItemFlag > 0:
+            flags.append(int(row.ItemFlag))
+        for k in range(1, 9):
+            iid = getattr(row, f"Item{k}ID", 0)
+            if not iid or iid <= 0:
+                continue
+            cat = CATEGORY.get(getattr(row, f"Item{k}Category", 0), "?")
+            name = names.get((cat, iid))
+            items.append({"id": iid, "category": cat, "count": getattr(row, f"Item{k}Count", 1) or 1, "name": name,
+                          "kind": item_kind(cat, iid, name)})
+    return items, flags
+
+
 def is_breakable(p: dict | None) -> bool:
     if p is None:               # params loaded but no row for this model
         return False
@@ -134,6 +219,24 @@ def extract(map_id: str, game_dir: Path = GAME_DIR, with_params: bool = True, ms
             "think": _row(think_param, c.ai_id, THINK_FIELDS),
         })
 
+    lots = load_itemlots(game_dir) if with_params else None
+    names = load_item_names(game_dir) if with_params else {}
+    treasures = []
+    for t in getattr(msb, "treasures", []):
+        part = t.treasure_part
+        if part is None or getattr(part, "translate", None) is None:
+            continue
+        lot_ids = [v for v in (t.item_lot_1, t.item_lot_2, t.item_lot_3, t.item_lot_4, t.item_lot_5) if v is not None and v > 0]
+        items, flags = treasure_items(lots, lot_ids, names)
+        kinds = [i["kind"] for i in items]
+        treasures.append({
+            "name": t.name, "part": part.name, "pos": _vec(part.translate), "item_lots": lot_ids,
+            "in_chest": bool(getattr(t, "is_in_chest", False)), "hidden": bool(getattr(t, "is_hidden", False)),
+            "flags": flags, "items": items,
+            "kind": next((k for k in KINDS if k in kinds), "other" if items else None),
+            "label": ", ".join(f"{i['name'] or i['id']}" + (f" x{i['count']}" if i["count"] > 1 else "") for i in items),
+        })
+
     return {
         "map_id": map_id,
         "evidence": "file",
@@ -145,8 +248,11 @@ def extract(map_id: str, game_dir: Path = GAME_DIR, with_params: bool = True, ms
                    "characters": len(enemies),
                    "enemies": sum(1 for e in enemies if e["kind"] == "enemy"),
                    "humans": sum(1 for e in enemies if e["kind"] == "human"),
-                   "with_patrol": sum(1 for e in enemies if e["patrol"])},
+                   "with_patrol": sum(1 for e in enemies if e["patrol"]),
+                   "treasures": len(treasures),
+                   **{f"treasures_{k}": sum(1 for t in treasures if t["kind"] == k) for k in KINDS}},
         "objects": objects,
+        "treasures": treasures,
         "enemies": enemies,
     }
 
@@ -164,7 +270,8 @@ def main() -> None:
         path.write_text(json.dumps(data, ensure_ascii=False, indent=1, default=str), encoding="utf-8")
         c = data["counts"]
         print(f"{map_id}: 오브젝트 {c['objects']} (부서짐 {c['breakable']}, 강공 필요 {c['breakable_strong']}), "
-              f"캐릭터 {c['characters']} = 적 {c['enemies']} + 사람형 {c['humans']} (순찰 {c['with_patrol']}) → {path}")
+              f"캐릭터 {c['characters']} = 적 {c['enemies']} + 사람형 {c['humans']} (순찰 {c['with_patrol']}), "
+              f"아이템 {c['treasures']} (소울 {c['treasures_soul']}, 인간성 {c['treasures_humanity']}, 쐐기석 {c['treasures_titanite']}) → {path}")
 
 
 if __name__ == "__main__":

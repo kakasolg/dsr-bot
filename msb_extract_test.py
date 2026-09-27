@@ -15,6 +15,7 @@ import msb_extract as X
 from soulstruct.darksouls1r.maps import MSB
 from soulstruct.darksouls1r.maps.models import MSBCharacterModel, MSBObjectModel
 from soulstruct.darksouls1r.maps.parts import MSBCharacter, MSBObject
+from soulstruct.darksouls1r.maps.events import MSBTreasureEvent
 from soulstruct.darksouls1r.maps.regions import MSBRegion
 from soulstruct.utilities.maths import EulerDeg, Vector3
 
@@ -36,6 +37,12 @@ def fake_msb():
     msb.characters.append(MSBCharacter(name="c0000_0001", model=human, translate=V(0, 0, 0), ai_id=-1))
     msb.objects.append(MSBObject(name="o1200_0000", model=box, translate=V(4, 0, 4)))
     msb.objects.append(MSBObject(name="o9999_0000", model=door, translate=V(8, 0, 8)))
+    corpse_m = MSBObjectModel(name="o0500")
+    msb.object_models.append(corpse_m)
+    corpse = MSBObject(name="o0500_corpse", model=corpse_m, translate=V(12, 1, -3))
+    msb.objects.append(corpse)
+    msb.treasures.append(MSBTreasureEvent(name="t_soul", treasure_part=corpse, item_lot_1=1000, item_lot_2=1100))
+    msb.treasures.append(MSBTreasureEvent(name="t_none", treasure_part=None, item_lot_1=1200))
     return msb
 
 
@@ -63,10 +70,33 @@ check("순찰 경로 (빈 칸 건너뜀)", [p["name"] for p in e0["patrol"]] == 
 check("params 없으면 breakable/think 는 None", d["objects"][0]["breakable"] is None and e0["think"] is None)
 check("증거 등급 file", d["evidence"] == "file")
 
+print("아이템 (보물)")
+lots = {1000: SimpleNamespace(ItemFlag=51010000, Item1ID=401, Item1Category=2 ** 30, Item1Count=1),
+        1100: SimpleNamespace(ItemFlag=51010010, Item1ID=1000, Item1Category=2 ** 30, Item1Count=2,
+                              Item2ID=500, Item2Category=2 ** 30, Item2Count=1)}
+names = {("good", 401): "Large Soul of a Lost Undead", ("good", 1000): "Titanite Shard", ("good", 500): "Humanity"}
+X.load_itemlots, X.load_item_names = (lambda gd: lots), (lambda gd: names)
+X_load_params = X.load_params
+X.load_params = lambda gd: (None, None)
+d = X.extract("m_test", msb=fake_msb())
+t = d["treasures"]
+check("위치 없는 보물은 빼고 1개", len(t) == 1 and t[0]["pos"] == [12.0, 1.0, -3.0] and t[0]["part"] == "o0500_corpse")
+check("획득 플래그 두 개", t[0]["flags"] == [51010000, 51010010])
+check("아이템 3개·이름·개수", [(i["name"], i["count"]) for i in t[0]["items"]] ==
+      [("Large Soul of a Lost Undead", 1), ("Titanite Shard", 2), ("Humanity", 1)])
+check("대표 종류는 soul (소울 > 인간성 > 쐐기석 순)", t[0]["kind"] == "soul" and d["counts"]["treasures_soul"] == 1)
+check("표시 글", t[0]["label"] == "Large Soul of a Lost Undead, Titanite Shard x2, Humanity")
+check("종류 판정 (이름 없을 때 ID)", X.item_kind("good", 500, None) == "humanity" and X.item_kind("good", 1000, None) == "titanite"
+      and X.item_kind("good", 400, None) == "soul" and X.item_kind("weapon", 500, None) == "other")
+check("종류 판정 (이름)", X.item_kind("good", 9, "Twin Humanities") == "humanity" and X.item_kind("good", 9, "Green Titanite Shard") == "titanite"
+      and X.item_kind("good", 9, "Soul of a Nameless Soldier") == "soul" and X.item_kind("good", 9, "Firebomb") == "other")
+X.load_params = X_load_params
+X.load_itemlots, X.load_item_names = (lambda gd: None), (lambda gd: {})
+
 print("params 포함")
 X.load_params = lambda game_dir: fake_params()
 d = X.extract("m_test", msb=fake_msb())
-box, door = d["objects"]
+box, door = d["objects"][:2]
 check("박스: 행 있음, 부서짐", box["param_row_found"] is True and box["breakable"] is True)
 check("문: 행 없음 → 부서지지 않음", door["param_row_found"] is False and door["breakable"] is False)
 check("강공 필요 표시", box["min_attack"] == 90 and d["counts"]["breakable_strong"] == 1)

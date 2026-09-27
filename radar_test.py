@@ -109,6 +109,38 @@ check("플레이어 근처·같은 높이만", [o[4] for o in ps.get()["props"]]
 allp = S.load_props()
 check(f"data/gamefiles 에서 읽음 ({len(allp)}개, 강공 {sum(1 for o in allp if o[3])})", len(allp) >= 400 and any(o[4] == "o1130_12" for o in allp))
 
+print("아이템 (소울·인간성·쐐기석)")
+it = S.State(props=[], items=[[1.0, 0.0, 2.0, "soul", "Soul of a Lost Undead", [11]], [2.0, 0.0, 1.0, "humanity", "Humanity", [12, 13]],
+                              [90.0, 0.0, 0.0, "titanite", "far", [14]], [1.0, 30.0, 1.0, "soul", "high above", [15]]])
+it.put({"type": "snap", "player": {"x": 0.0, "y": 0.0, "z": 0.0}, "chars": []})
+check("근처·높이 안의 것만", [o[4] for o in it.get()["items"]] == ["Soul of a Lost Undead", "Humanity"])
+it.put({"type": "picked", "flags": [13]})
+check("주운 것(플래그 하나라도)은 뺌", [o[4] for o in it.get()["items"]] == ["Soul of a Lost Undead"])
+
+
+class FlagTm:
+    def __init__(self, on):
+        self.on, self.reads = set(on), []
+
+    def event_flag(self, f):
+        self.reads.append(f)
+        return f in self.on
+
+
+rr = radar.Radar(port=udp)
+tr = [(1.0, 0.0, 2.0, (11,)), (2.0, 0.0, 1.0, (12, 13)), (90.0, 0.0, 0.0, (14,))]
+ftm = FlagTm({13})
+check("플레이어 위치 모르면 안 읽음", rr.check_items(ftm, tr) == [] and ftm.reads == [])
+rr.player = (0.0, 0.0, 0.0)
+check("근처 것만 읽고 켜진 플래그 보냄", rr.check_items(ftm, tr) == [13] and 14 not in ftm.reads)
+n = len(ftm.reads)
+rr.check_items(ftm, tr)
+check("이미 주운 플래그는 다시 안 읽음", 13 not in ftm.reads[n:])
+time.sleep(0.3)
+st.put({"type": "snap", "player": {"x": 0.0, "y": 0.0, "z": 0.0}, "chars": []})
+check("서버가 picked 받음", 13 in st.picked)
+check(f"data/gamefiles 에서 읽음 (아이템 {len(S.load_items())}, 플래그 있는 것 {len(radar.load_treasures())})", True)
+
 print("field.walk 가 경로를 걸고 푼다 (돌아가기 중첩 포함)")
 from souls import field as F
 

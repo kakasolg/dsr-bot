@@ -7,6 +7,9 @@
                             #   prop just swung at (mv.show_smash)
   r.say("retreat: 2 foes closing")  # one decision line (run.py's Log does this for every log line)
 
+Pickups: attach() also starts a thread that, once a second, reads the pickup event flags (tm.event_flag) of the treasures
+in data/gamefiles/*.json within ITEM_R of the player and sends the ones already taken, so the radar hides them.
+
 Fire-and-forget: UDP to localhost, nothing waits for an answer, every error is swallowed. With no server
 running the packets are simply dropped. Only reads — nothing here touches the game or the pad.
 """
@@ -24,6 +27,9 @@ POLL_WITHIN = 40.0     # radius for the fallback poll (no feed)
 MAX_PATH = 200          # path points sent (evenly thinned)
 SPOT_FRESH = 2.0       # s — a held spot older than this is no longer shown
 SMASH_FRESH = 10.0     # s — a prop swung at stays highlighted this long
+ITEM_CHECK_S = 1.0     # s between pickup-flag reads
+ITEM_R = 40.0          # m — only treasures this close to the player are checked
+GAMEFILES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "gamefiles")
 MAX_CHARS = 40          # nearest first; keeps one packet well under the UDP size limit
 
 
@@ -69,10 +75,26 @@ def intent_dict(mv) -> dict:
     return out
 
 
+def load_treasures(folder: str = GAMEFILES) -> list[tuple]:
+    """[(x, y, z, flags)] for every extracted treasure that has pickup flags."""
+    import glob
+    out = []
+    for path in sorted(glob.glob(os.path.join(folder, "*.json"))):
+        try:
+            with open(path, encoding="utf-8") as f:
+                ts = json.load(f).get("treasures") or []
+        except (OSError, ValueError):
+            continue
+        out += [(*t["pos"], tuple(t["flags"])) for t in ts if t.get("flags")]
+    return out
+
+
 class Radar:
     def __init__(self, host: str = "127.0.0.1", port: int = PORT):
         self.addr = (host, port)
         self.mv = None
+        self.player = None           # (x, y, z) of the last frame sent — where to look for pickups
+        self.picked: set[int] = set()
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setblocking(False)
         self._last = 0.0
@@ -89,6 +111,7 @@ class Radar:
             return
         self._last = now
         try:
+            self.player = (s.player.x, s.player.y, s.player.z)
             msg = {"type": "snap", **snapshot_dict(s)}
             if self.mv is not None:
                 msg.update(intent_dict(self.mv))
@@ -103,9 +126,49 @@ class Radar:
         self.mv = mv
         return self
 
+    def check_items(self, tm, treasures: list[tuple]) -> list[int]:
+        """Read the pickup flags of treasures near the player; send newly seen ones. → flags newly found set."""
+        if self.player is None:
+            return []
+        px, py, pz = self.player
+        new = []
+        for x, y, z, flags in treasures:
+            if abs(x - px) > ITEM_R or abs(z - pz) > ITEM_R:
+                continue
+            for fl in flags:
+                if fl in self.picked:
+                    continue
+                try:
+                    if tm.event_flag(fl):
+                        self.picked.add(fl)
+                        new.append(fl)
+                except Exception:
+                    pass
+        if new:
+            self._send({"type": "picked", "flags": new})
+        return new
+
+    def watch_items(self, tm) -> None:
+        treasures = load_treasures()
+        if not treasures:
+            return
+
+        def loop():
+            n = 0
+            while True:
+                if n % 30 == 0 and self.picked:     # the server may have restarted — resend what is known now and then
+                    self._send({"type": "picked", "flags": sorted(self.picked)})
+                self.check_items(tm, treasures)
+                n += 1
+                time.sleep(ITEM_CHECK_S)
+
+        threading.Thread(target=loop, daemon=True, name="radar-items").start()
+
     def attach(self, tm) -> "Radar":
         """Follow what the bot reads. With feed.Feed (the default telemetry) subscribe to its frames like blackbox.py;
-        otherwise poll tm.snapshot on a daemon thread. The bot's own reads are untouched."""
+        otherwise poll tm.snapshot on a daemon thread. The bot's own reads are untouched. Also watches item pickups."""
+        if hasattr(tm, "event_flag"):
+            self.watch_items(tm)
         if hasattr(tm, "listeners"):
             tm.listeners.append(self.snapshot)
             return self

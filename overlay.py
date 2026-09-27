@@ -30,6 +30,7 @@ HOSTILE = {6, 7, 24, 25, 27}
 KEY = "#010203"                 # transparent colour key (drawn pixels of exactly this colour are see-through)
 FG, MUTED, WARN, GOOD = "#f2f2f2", "#b8bcc6", "#ff6a6a", "#6ee29a"
 C_PLAYER, C_FOE, C_TARGET, C_PATH, C_SPOT, C_PROP, C_SMASH = "#6c9cf0", "#ff6a6a", "#f0c33c", "#b69cff", "#6ee29a", "#c79c78", "#ff8a4c"
+C_ITEM = {"soul": "#7fd3ff", "humanity": "#f4f4f4", "titanite": "#aaa8ff"}
 POLL_S = 0.1
 RADAR_PX, RADAR_M = 200, 15.0   # mini radar size (px) and range (m)
 SAYS = 3
@@ -62,6 +63,10 @@ def lines(state: dict | None, now: float | None = None) -> list[tuple[str, str]]
         out.append((f"hold: {snap['spot_tag']}", C_SPOT))
     if snap.get("smash"):
         out.append((f"smash: {snap['smash']}", C_SMASH))
+    items = [o for o in (state.get("items") or []) if o[3] in C_ITEM]
+    if items:
+        d, o = min((math.hypot(o[0] - p["x"], o[2] - p["z"]), o) for o in items)
+        out.append((f"item: {o[4]}  {d:.1f} m" + (f"  (+{len(items) - 1} more)" if len(items) > 1 else ""), C_ITEM[o[3]]))
     near = [c for c in chars if c.get("team") in HOSTILE and (c.get("hp") or 0) > 0 and (c.get("dist") or 99) < 8]
     if near:
         awake = sum(1 for c in near if c.get("anim") not in (-1, None))
@@ -73,7 +78,7 @@ def lines(state: dict | None, now: float | None = None) -> list[tuple[str, str]]
 
 def radar_points(state: dict | None, size: int = RADAR_PX, range_m: float = RADAR_M) -> list[tuple]:
     """Mini radar marks, camera-up like the radar page: [(kind, x, y)] in pixels, centre = player.
-    kind: player | foe | foe_dead | target | prop | smash | path (path: x, y are lists)."""
+    kind: player | foe | foe_dead | target | prop | smash | item_soul | item_humanity | item_titanite | path (x, y lists)."""
     snap = (state or {}).get("snap")
     if not snap:
         return []
@@ -99,6 +104,11 @@ def radar_points(state: dict | None, size: int = RADAR_PX, range_m: float = RADA
         q = xy(o[0], o[2])
         if q:
             out.append(("smash" if o[4] == snap.get("smash") else "prop", *q))
+    for o in (state.get("items") or []):
+        if o[3] in C_ITEM:
+            q = xy(o[0], o[2])
+            if q:
+                out.append(("item_" + o[3], *q))
     for c in snap.get("chars") or []:
         if c.get("team") not in HOSTILE:
             continue
@@ -197,6 +207,9 @@ class Overlay:
             x, y2 = ox + a, oy + b
             if kind == "player":
                 cv.create_oval(x - 5, y2 - 5, x + 5, y2 + 5, fill=C_PLAYER, outline="#000000")
+            elif kind.startswith("item_"):
+                r = 5
+                cv.create_polygon(x, y2 - r, x + r, y2, x, y2 + r, x - r, y2, fill=C_ITEM[kind[5:]], outline="#000000")
             elif kind in ("prop", "smash"):
                 cv.create_rectangle(x - 3, y2 - 3, x + 3, y2 + 3, fill=C_PROP, outline="#000000")
                 if kind == "smash":
