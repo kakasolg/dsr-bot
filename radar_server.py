@@ -89,6 +89,8 @@ class State:
                 self.snap = msg
             elif msg.get("type") == "picked":
                 self.picked.update(int(f) for f in msg.get("flags") or [])
+            elif msg.get("type") == "unpicked":            # flag off again (older save loaded) — show the item again
+                self.picked.difference_update(int(f) for f in msg.get("flags") or [])
             elif msg.get("type") == "say":
                 self.says.append({"t": msg.get("t"), "line": msg.get("line", "")})
 

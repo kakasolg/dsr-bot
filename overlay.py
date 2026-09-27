@@ -31,6 +31,7 @@ KEY = "#010203"                 # transparent colour key (drawn pixels of exactl
 FG, MUTED, WARN, GOOD = "#f2f2f2", "#b8bcc6", "#ff6a6a", "#6ee29a"
 C_PLAYER, C_FOE, C_TARGET, C_PATH, C_SPOT, C_PROP, C_SMASH = "#6c9cf0", "#ff6a6a", "#f0c33c", "#b69cff", "#6ee29a", "#c79c78", "#ff8a4c"
 C_ITEM = {"soul": "#7fd3ff", "humanity": "#f4f4f4", "titanite": "#aaa8ff"}
+ITEM_LETTER = {"soul": "S", "humanity": "H", "titanite": "T"}
 POLL_S = 0.1
 RADAR_PX, RADAR_M = 200, 15.0   # mini radar size (px) and range (m)
 SAYS = 3
@@ -209,8 +210,10 @@ class Overlay:
             if kind == "player":
                 cv.create_oval(x - 5, y2 - 5, x + 5, y2 + 5, fill=C_PLAYER, outline="#000000")
             elif kind.startswith("item_"):
-                r = 5
-                cv.create_polygon(x, y2 - r, x + r, y2, x, y2 + r, x - r, y2, fill=C_ITEM[kind[5:]], outline="#000000")
+                # bigger, with a letter — 5 px dots couldn't be told apart over the game (ROADMAP P-9)
+                r = 9
+                cv.create_polygon(x, y2 - r, x + r, y2, x, y2 + r, x - r, y2, fill=C_ITEM[kind[5:]], outline="#000000", width=2)
+                cv.create_text(x, y2, text=ITEM_LETTER[kind[5:]], fill="#000000", font=("Segoe UI", 8, "bold"))
             elif kind in ("prop", "smash"):
                 cv.create_rectangle(x - 3, y2 - 3, x + 3, y2 + 3, fill=C_PROP, outline="#000000")
                 if kind == "smash":

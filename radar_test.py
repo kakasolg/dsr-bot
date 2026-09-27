@@ -130,15 +130,22 @@ class FlagTm:
 rr = radar.Radar(port=udp)
 tr = [(1.0, 0.0, 2.0, (11,)), (2.0, 0.0, 1.0, (12, 13)), (90.0, 0.0, 0.0, (14,))]
 ftm = FlagTm({13})
-check("플레이어 위치 모르면 안 읽음", rr.check_items(ftm, tr) == [] and ftm.reads == [])
+check("플레이어 위치 모르면 안 읽음", rr.check_items(ftm, tr) == ([], []) and ftm.reads == [])
 rr.player = (0.0, 0.0, 0.0)
-check("근처 것만 읽고 켜진 플래그 보냄", rr.check_items(ftm, tr) == [13] and 14 not in ftm.reads)
-n = len(ftm.reads)
+check("근처 것만 읽고 켜진 플래그 보냄", rr.check_items(ftm, tr) == ([13], []) and 14 not in ftm.reads)
+check("바뀐 것 없으면 안 보냄", rr.check_items(ftm, tr) == ([], []))
+ftm.on = set()
+check("세이브를 되돌려 플래그가 꺼지면 unpicked (P-9)", rr.check_items(ftm, tr) == ([], [13]) and 13 not in rr.picked)
+ftm.on = {13}
+ftm.event_flag = lambda f: None
+check("못 읽으면(로딩) 아는 것 유지", rr.check_items(ftm, tr) == ([], []))
+del ftm.event_flag
 rr.check_items(ftm, tr)
-check("이미 주운 플래그는 다시 안 읽음", 13 not in ftm.reads[n:])
 time.sleep(0.3)
 st.put({"type": "snap", "player": {"x": 0.0, "y": 0.0, "z": 0.0}, "chars": []})
 check("서버가 picked 받음", 13 in st.picked)
+it.put({"type": "unpicked", "flags": [13]})
+check("서버가 unpicked 받으면 다시 보임", [o[4] for o in it.get()["items"]] == ["Soul of a Lost Undead", "Humanity"])
 check(f"data/gamefiles 에서 읽음 (아이템 {len(S.load_items())}, 플래그 있는 것 {len(radar.load_treasures())})", True)
 
 print("field.walk 가 경로를 걸고 푼다 (돌아가기 중첩 포함)")

@@ -126,27 +126,34 @@ class Radar:
         self.mv = mv
         return self
 
-    def check_items(self, tm, treasures: list[tuple]) -> list[int]:
-        """Read the pickup flags of treasures near the player; send newly seen ones. → flags newly found set."""
+    def check_items(self, tm, treasures: list[tuple]) -> tuple[list[int], list[int]]:
+        """Read the pickup flags of treasures near the player — picked ones too, since loading an older save turns a flag
+        back off (ROADMAP P-9: a restored item stayed hidden). Send what changed. → (newly on, newly off)."""
         if self.player is None:
-            return []
+            return [], []
         px, py, pz = self.player
-        new = []
+        on, off = [], []
         for x, y, z, flags in treasures:
             if abs(x - px) > ITEM_R or abs(z - pz) > ITEM_R:
                 continue
             for fl in flags:
-                if fl in self.picked:
-                    continue
                 try:
-                    if tm.event_flag(fl):
-                        self.picked.add(fl)
-                        new.append(fl)
+                    v = tm.event_flag(fl)
                 except Exception:
-                    pass
-        if new:
-            self._send({"type": "picked", "flags": new})
-        return new
+                    continue
+                if v is None:
+                    continue                    # unreadable (loading screen) — keep what we knew
+                if v and fl not in self.picked:
+                    self.picked.add(fl)
+                    on.append(fl)
+                elif not v and fl in self.picked:
+                    self.picked.discard(fl)
+                    off.append(fl)
+        if on:
+            self._send({"type": "picked", "flags": on})
+        if off:
+            self._send({"type": "unpicked", "flags": off})
+        return on, off
 
     def watch_items(self, tm) -> None:
         treasures = load_treasures()
