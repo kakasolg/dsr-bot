@@ -228,10 +228,20 @@ def opening(s, ptr) -> bool:
     return (down or (a not in M.ATTACK and M.horiz(s.player, c) >= OPEN_R)) and _others_quiet(s, ptr)
 
 
+def _interloper(x, p, ptr, h: float) -> bool:
+    """Is x an awake foe clearly closer than the target (at horizontal distance h), at our height — take it first?
+    Standing foes (anim -1 / None) are asleep or idle and don't count: switching to one asleep on a ledge 1.2 m below
+    left the edge guard blocking every step for 18 s, then 'stuck' (2026-09-27 burg-bonfire, ROADMAP P-6).
+    If it wakes and closes in, it qualifies on a later tick."""
+    return (x.ptr != ptr and x.hp > 0 and x.anim not in (-1, None) and not (9000 <= x.anim < 9100)
+            and M.horiz(p, x) < min(SWITCH_R, h - SWITCH_MARGIN) and abs(x.y - p.y) < 1.2)
+
+
 @dataclass
 class DuelResult:
     result: str                      # killed | me_dead | low_hp | lost | stalemate | stuck | timeout | cancel
     npc: int | None = None
+    vs: int | None = None            # npc actually fought last, when it switched away from the target (interloper / ranged first)
     secs: float = 0.0
     dealt: int = 0
     taken: int = 0
@@ -239,7 +249,8 @@ class DuelResult:
 
     def line(self) -> str:
         kinds = [h["kind"] + ("" if h["dmg"] else "×") for h in self.hits]
-        return f"{self.result} — {self.secs:.0f} s, 준 피해 {self.dealt}, 받은 피해 {self.taken}, 공격 {' '.join(kinds) or '없음'}"
+        vs = f" (실제 상대 {self.vs})" if self.vs is not None and self.vs != self.npc else ""
+        return f"{self.result}{vs} — {self.secs:.0f} s, 준 피해 {self.dealt}, 받은 피해 {self.taken}, 공격 {' '.join(kinds) or '없음'}"
 
 
 def _approach(mv: M.Moves, weapon, s, c, nm, foe, cancel, log=lambda *a: None, may_approach=None) -> str:
@@ -361,6 +372,8 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
         if s_ and s_.player.hp is not None:
             hp_min[0] = min(hp_min[0], s_.player.hp)
         res.result, res.secs = result, time.time() - t0
+        if orig_ptr is not None and last_seen is not None:
+            res.vs = last_seen.npc_param
         res.taken = max(0, hp_start - hp_min[0])          # based on lowest HP (so Estus drunk midway doesn't hide it)
         return res
 
@@ -429,8 +442,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             ptr, c, switch_t = x.ptr, x, now
             last_seen, foe = x, foes_.of(x.npc_param)
             h, dy, a = M.horiz(p, c), c.y - p.y, (c.anim if c.anim is not None else -1)
-        cut = [x for x in s.hostile(SWITCH_R + 2.0) if x.ptr != ptr and x.hp > 0 and not (9000 <= (x.anim or 0) < 9100)
-               and M.horiz(p, x) < min(SWITCH_R, h - SWITCH_MARGIN) and abs(x.y - p.y) < 1.2]
+        cut = [x for x in s.hostile(SWITCH_R + 2.0) if _interloper(x, p, ptr, h)]
         # between two at similar distances it switched targets every 1–2 s, turning and getting hit in the back (±140–166°, 442 in 25 s) —
         # switch only when clearly closer (SWITCH_MARGIN), and keep it for SWITCH_HOLD after switching
         if cut and now - switch_t > SWITCH_HOLD:

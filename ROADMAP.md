@@ -57,7 +57,7 @@
 
 ## 1-b. 윈도우 1차 결과로 나온 할 일 (2026-09-27 [cloud] 분석)
 
-- [ ] [cloud] P-6 상세 1: `souls/duel.py`의 "목표 바꿈"(끼어든 적 먼저)이 **잠든 적(애니 -1)**도 고름. 주석은 "awake foe"인데 코드는 9000번대만 뺌 → 잠든 적 제외 + 높이차 경계(-1.2 m) 조정, 결과 로그를 실제 상대 기준으로. 가짜 월드 테스트 추가
+- [x] [cloud] P-6 상세 1: `souls/duel.py`의 "목표 바꿈"이 잠든 적(애니 -1)도 고르던 문제 — 조건을 `_interloper()`로 빼고 서 있는 적(애니 -1/None) 제외. 결과 줄에 실제 상대 표시(`stuck (실제 상대 250000)`). 높이 경계(1.2 m)는 그대로 둠(서 있는 적 제외만으로 이번 장면은 막힘). `duel_shadow_test.py`에 9개 경우 추가, 전체 오프라인 테스트 통과. → [win] 확인: 깨어 있는데 잠깐 서 있는(애니 -1) 옆 적에게 늦게 반응하지 않는지
 - [ ] [cloud] P-6 상세 2: 경로 점 (-36.0,-13.5,-70.1)에서 0.7 m·1.3 m 거리에 부서지는 상자 `o1132_06`·`o1130_12` 확인 → 막힌 경로 점 근처에 `breakable` 오브젝트가 있으면 **한 대 쳐서 부수고 다시 걷기**. `data/gamefiles/`를 읽는 작은 모듈 + `field.walk` 실패 처리에 연결
 - [x] [cloud] P-4: counts에 `characters`(전체)·`enemies`(사람형 제외)·`humans`를 나눠 표시. 오브젝트에 `min_attack`(MinAttackForDamage) 추가, 50 이상은 `breakable_strong`으로 셈 (Burg 12, Firelink 0). 커밋된 JSON 2개도 같은 규칙으로 갱신(추가만, 기존 값 불변). `msb_extract_test.py` 통과
 - [x] [cloud] P-5: `.gitignore`를 파일 단위 허용 목록으로 좁힘 (윈도우 실행 산출물이 안 뜨게) — `data/*`·`data/routes/*`는 무시하고 필요한 파일만 이름으로 허용. 가짜 파일로 확인: `diag.json`·`dmglog*.json`·`routes/asylum-*.json` 숨김, `gamefiles/`·`samples/`는 보임, 추적 중인 12개 영향 없음

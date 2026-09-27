@@ -151,6 +151,34 @@ def test_non_shield_no_events() -> None:
     print("ok  non-shield foe → no shadow events, no kick")
 
 
+def test_interloper_skips_standing_foes() -> None:
+    from telemetry import Chr
+    p = Chr(ptr=1, npc_param=0, team=1, hp=500, max_hp=500, x=0.0, y=0.0, z=0.0)
+
+    def foe(anim, y=0.0, x=1.5, hp=100, ptr=9):
+        return Chr(ptr=ptr, npc_param=250000, team=6, hp=hp, max_hp=100, x=x, y=y, z=0.0, anim=anim)
+
+    far_target = 10.0
+    assert D._interloper(foe(3004), p, 2, far_target)                     # awake, close, same height → take it
+    assert D._interloper(foe(7000), p, 2, far_target)                     # moving (not attacking) also counts
+    assert not D._interloper(foe(-1), p, 2, far_target)                   # standing / asleep (P-6: 250000 asleep 1.2 m below)
+    assert not D._interloper(foe(None), p, 2, far_target)                 # anim unreadable
+    assert not D._interloper(foe(9010), p, 2, far_target)                 # downed
+    assert not D._interloper(foe(3004, y=-1.3), p, 2, far_target)         # other level
+    assert not D._interloper(foe(3004, hp=0), p, 2, far_target)
+    assert not D._interloper(foe(3004, ptr=2), p, 2, far_target)          # the target itself
+    assert not D._interloper(foe(3004, x=2.0), p, 2, 2.5)                 # not clearly closer (SWITCH_MARGIN)
+    print("ok  interloper switch: awake foes only (standing/asleep, downed, other level, not closer → no)")
+
+
+def test_result_line_names_actual_opponent() -> None:
+    r = D.DuelResult("stuck", npc=254011, vs=250000, secs=18.0)
+    assert "실제 상대 250000" in r.line(), r.line()
+    assert "실제 상대" not in D.DuelResult("killed", npc=254011).line()
+    assert "실제 상대" not in D.DuelResult("killed", npc=254011, vs=254011).line()
+    print("ok  result line names the foe actually fought when it switched")
+
+
 if __name__ == "__main__":
     test_candidate_truth_table()
     test_shadow_dedupe_and_outcome()
@@ -158,4 +186,6 @@ if __name__ == "__main__":
     test_duel_shadow_never_kicks()
     test_duel_act_is_test_only()
     test_non_shield_no_events()
+    test_interloper_skips_standing_foes()
+    test_result_line_names_actual_opponent()
     print("전부 통과")
