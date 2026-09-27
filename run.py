@@ -78,7 +78,7 @@ def main() -> None:
     ap.add_argument("--no-rest", action="store_true")
     ap.add_argument("--no-quit", action="store_true", help="퀵 종료(메뉴로 나갔다 오기) 안 씀 — 영상 촬영용")
     ap.add_argument("--i", type=int, default=5, help="hunt-one: BURG_TOWN 몇 번째 (5 = 석궁병 255002)")
-    ap.add_argument("--radar", action="store_true", help="레이더로 상태 보내기 (radar_server.py 로 본다)")
+    ap.add_argument("--radar", action="store_true", help="send state to the radar (view with radar_server.py / overlay.py)")
     ap.add_argument("--no-lure", action="store_true", help="나이프로 한 놈씩 깨우지 않고 예전처럼 걸어가 붙는다 (비교용)")
     ap.add_argument("--style", choices=["guard", "backstep", "rush"], default="guard",
                     help="guard: 방패로 받고 휘청에 친다 (기본) | backstep: 양손, 백스텝으로 피하고 헛친 뒤 약공 | "
@@ -111,7 +111,7 @@ def main() -> None:
         import radar
         radar_ = radar.Radar().attach(tm)
         log.on_line = radar_.say
-        log("레이더: 보내는 중 — python radar_server.py → http://127.0.0.1:47801")
+        log("radar: sending — python radar_server.py -> http://127.0.0.1:47801, python overlay.py")
     control.focus_game()
     pad = control.Pad()
     nms = {missions.MAP_A: navmesh.Navmesh(missions.MAP_A), missions.MAP_B: navmesh.Navmesh(missions.MAP_B)}

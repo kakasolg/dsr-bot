@@ -5,7 +5,7 @@
   r.attach(tm)              # follows the feed's frames (at most RATE_HZ per second)
   r.follow(mv)              # + what layer 4 is doing: target (mv.cam_target), path (mv.show_path), held spot (mv.show_spot),
                             #   prop just swung at (mv.show_smash)
-  r.say("후퇴: 적 2명 접근")  # one decision line (run.py's Log does this for every log line)
+  r.say("retreat: 2 foes closing")  # one decision line (run.py's Log does this for every log line)
 
 Fire-and-forget: UDP to localhost, nothing waits for an answer, every error is swallowed. With no server
 running the packets are simply dropped. Only reads — nothing here touches the game or the pad.

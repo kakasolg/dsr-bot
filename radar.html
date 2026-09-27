@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <!-- served by radar_server.py on 127.0.0.1; talks only to the same origin -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>DSR 봇 레이더</title>
+<title>DSR Bot Radar</title>
 <style>
 :root {
   --bg: #f6f7f9; --panel: #ffffff; --ink: #1d2330; --muted: #6a7384; --line: #dde1e8; --ring: #e3e7ee;
@@ -22,7 +22,7 @@
   --player: #6c9cf0; --foe: #f06a6a; --friend: #5cc98a; --other: #7d8697; --cam: #f0c33c; --hp: #5cc98a; --hplow: #f06a6a; --path: #a98cf5; --target: #f0c33c; --prop: #c79c78; --smash: #ff8a4c;
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.4 system-ui, "Segoe UI", "Malgun Gothic", sans-serif; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.4 system-ui, "Segoe UI", sans-serif; }
 header { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; padding: 8px 16px; border-bottom: 1px solid var(--line); background: var(--panel); }
 header h1 { font-size: 15px; margin: 0; font-weight: 600; }
 #conn { font-size: 12px; color: var(--muted); }
@@ -53,20 +53,20 @@ h2 { font-size: 12px; font-weight: 600; color: var(--muted); margin: 0 0 6px; te
 </head>
 <body>
 <header>
-  <h1>DSR 봇 레이더</h1>
-  <span id="conn">연결 대기</span>
-  <label>범위 <select id="range"><option>10</option><option selected>20</option><option>40</option></select> m</label>
-  <label>기준 <select id="up"><option value="cam" selected>카메라 위</option><option value="north">북쪽 위</option></select></label>
-  <label><input type="checkbox" id="anim"> 애니 ID</label>
-  <button id="theme" type="button">테마</button>
+  <h1>DSR Bot Radar</h1>
+  <span id="conn">waiting</span>
+  <label>Range <select id="range"><option>10</option><option selected>20</option><option>40</option></select> m</label>
+  <label>Up <select id="up"><option value="cam" selected>camera</option><option value="north">north</option></select></label>
+  <label><input type="checkbox" id="anim"> anim ID</label>
+  <button id="theme" type="button">Theme</button>
 </header>
 <main>
   <div class="card"><div id="wrap"><canvas id="cv"></canvas></div></div>
   <div class="side">
-    <div class="card"><h2>봇</h2><div id="vitals">—</div></div>
-    <div class="card"><h2>하는 일</h2><div id="intent">—</div></div>
-    <div class="card"><h2>판단</h2><ul id="says"><li>—</li></ul></div>
-    <div class="card"><h2>가까운 적</h2><table id="foes"></table></div>
+    <div class="card"><h2>Bot</h2><div id="vitals">—</div></div>
+    <div class="card"><h2>Doing</h2><div id="intent">—</div></div>
+    <div class="card"><h2>Decisions</h2><ul id="says"><li>—</li></ul></div>
+    <div class="card"><h2>Nearest foes</h2><table id="foes"></table></div>
   </div>
 </main>
 <script>
@@ -110,7 +110,7 @@ function draw() {
     ctx.fillStyle = css("--muted"); ctx.fillText(m + " m", cx + 3, cy - m * k + 12);
   }
   const snap = last && last.snap;
-  if (!snap) { ctx.fillStyle = css("--muted"); ctx.fillText("데이터 없음 — 봇(--radar) 또는 --demo 를 켜세요", 12, 20); return; }
+  if (!snap) { ctx.fillStyle = css("--muted"); ctx.fillText("no data — start the bot with --radar, or radar_server.py --demo", 12, 20); return; }
   const p = snap.player, camUp = $("up").value === "cam" && snap.cam_yaw != null;
   const base = camUp ? snap.cam_yaw : 0;
   // world (dx, dz) → screen; angle convention matches control.world_to_stick (atan2(dx, dz), right = +sin)
@@ -185,21 +185,21 @@ function side() {
   const p = snap.player, pct = (a, b) => b > 0 ? Math.max(0, Math.min(100, 100 * a / b)) : 0;
   $("vitals").innerHTML =
     `<div><span>HP</span><span>${p.hp} / ${p.max_hp}</span></div><div class="bar"><i style="width:${pct(p.hp, p.max_hp)}%"></i></div>` +
-    `<div><span>스태미나</span><span>${p.sp} / ${p.max_sp}</span></div><div class="bar"><i style="width:${pct(p.sp, p.max_sp)}%"></i></div>` +
-    `<div><span>에스트</span><span>${snap.flask_hp ?? "?"} / ${snap.max_flask_hp ?? "?"}</span></div>` +
-    `<div><span>위치</span><span>${p.x?.toFixed(1)}, ${p.y?.toFixed(1)}, ${p.z?.toFixed(1)}</span></div>`;
+    `<div><span>Stamina</span><span>${p.sp} / ${p.max_sp}</span></div><div class="bar"><i style="width:${pct(p.sp, p.max_sp)}%"></i></div>` +
+    `<div><span>Estus</span><span>${snap.flask_hp ?? "?"} / ${snap.max_flask_hp ?? "?"}</span></div>` +
+    `<div><span>Position</span><span>${p.x?.toFixed(1)}, ${p.y?.toFixed(1)}, ${p.z?.toFixed(1)}</span></div>`;
   const tgt = snap.target != null ? snap.chars.find(c => c.ptr === snap.target) : null;
   const row = (k, v) => `<div><span>${k}</span><span>${v}</span></div>`;
   $("intent").innerHTML =
-    row(`<i class="key" style="background:var(--target)"></i>목표`, tgt ? `${esc(tgt.name || tgt.npc)} · ${tgt.dist?.toFixed(1)} m` : "없음") +
-    row(`<i class="key" style="background:var(--path)"></i>경로`, snap.path ? `${esc(snap.path_tag || "")} · ${snap.path.length}점` : "없음") +
-    row(`<i class="key" style="background:var(--friend)"></i>지킬 자리`, snap.spot ? esc(snap.spot_tag || "") + ` · ${Math.hypot(snap.spot[0] - p.x, snap.spot[2] - p.z).toFixed(1)} m` : "없음") +
-    row(`<i class="key" style="background:var(--smash)"></i>부숨 시도`, snap.smash ? esc(snap.smash) : "없음") +
-    row(`<i class="key" style="background:var(--prop);border-radius:1px"></i>부서지는 물건`, `${(last.props || []).length}개 (40 m 안)`);
+    row(`<i class="key" style="background:var(--target)"></i>Target`, tgt ? `${esc(tgt.name || tgt.npc)} · ${tgt.dist?.toFixed(1)} m` : "none") +
+    row(`<i class="key" style="background:var(--path)"></i>Path`, snap.path ? `${esc(snap.path_tag || "")} · ${snap.path.length} pts` : "none") +
+    row(`<i class="key" style="background:var(--friend)"></i>Hold spot`, snap.spot ? esc(snap.spot_tag || "") + ` · ${Math.hypot(snap.spot[0] - p.x, snap.spot[2] - p.z).toFixed(1)} m` : "none") +
+    row(`<i class="key" style="background:var(--smash)"></i>Smash`, snap.smash ? esc(snap.smash) : "none") +
+    row(`<i class="key" style="background:var(--prop);border-radius:1px"></i>Breakables`, `${(last.props || []).length} within 40 m`);
   const foes = snap.chars.filter(c => HOSTILE.has(c.team) && c.hp > 0).slice(0, 8);
   $("foes").innerHTML = foes.map(c =>
     `<tr><td>${esc(c.name || c.npc)}</td><td class="n">${c.dist?.toFixed(1)} m</td><td class="n">${c.hp}/${c.max_hp}</td></tr>`).join("")
-    || "<tr><td>없음</td></tr>";
+    || "<tr><td>none</td></tr>";
 }
 
 async function poll() {
@@ -207,10 +207,10 @@ async function poll() {
     const r = await fetch("/state", {cache: "no-store"});
     last = await r.json();
     const live = last.age != null && last.age < 2;
-    $("conn").textContent = live ? "수신 중" : last.age == null ? "연결 대기" : `끊김 (${last.age.toFixed(0)} s)`;
+    $("conn").textContent = live ? "live" : last.age == null ? "waiting" : `stale (${last.age.toFixed(0)} s)`;
     $("conn").className = live ? "live" : "stale";
   } catch (e) {
-    $("conn").textContent = "서버 없음"; $("conn").className = "stale";
+    $("conn").textContent = "no server"; $("conn").className = "stale";
   }
   draw(); side();
   setTimeout(poll, 100);

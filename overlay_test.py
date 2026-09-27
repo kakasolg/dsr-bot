@@ -21,27 +21,27 @@ def check(name, cond):
     fails += 0 if cond else 1
 
 
-def foe(ptr, x, z, hp=100, anim=3000, team=6, name="망자"):
+def foe(ptr, x, z, hp=100, anim=3000, team=6, name="Hollow"):
     return {"ptr": ptr, "name": name, "npc": 250000, "team": team, "hp": hp, "max_hp": 100, "x": x, "y": 0.0, "z": z,
             "dist": (x * x + z * z) ** 0.5, "anim": anim}
 
 
-state = {"age": 0.1, "says": [{"line": "교전: 망자"}, {"line": "후퇴 모드: guard"}],
+state = {"age": 0.1, "says": [{"line": "fight: Hollow"}, {"line": "retreat mode: guard"}],
          "props": [[0.0, 0.0, 3.0, False, "o1130_12"], [50.0, 0.0, 0.0, False, "far"]],
          "snap": {"player": {"x": 0.0, "y": 0.0, "z": 0.0, "hp": 200, "max_hp": 800, "sp": 50, "max_sp": 100},
-                  "cam_yaw": 0.0, "flask_hp": 2, "target": 5, "path_tag": "경사로", "path": [[0, 0, 0], [0, 0, 5]],
+                  "cam_yaw": 0.0, "flask_hp": 2, "target": 5, "path_tag": "ramp", "path": [[0, 0, 0], [0, 0, 5]],
                   "smash": "o1130_12",
-                  "chars": [foe(5, 0.0, 4.0, name="방패병"), foe(6, 4.0, 0.0), foe(7, -3.0, 0.0, hp=0), foe(8, 1.0, 1.0, team=26)]}}
+                  "chars": [foe(5, 0.0, 4.0, name="Shield"), foe(6, 4.0, 0.0), foe(7, -3.0, 0.0, hp=0), foe(8, 1.0, 1.0, team=26)]}}
 
 print("글 (lines)")
 L = [t for t, _ in O.lines(state)]
-check("서버 없음", "연결 없음" in O.lines(None)[0][0])
-check("봇 데이터 없음", "봇 데이터 없음" in O.lines({"snap": None})[0][0])
+check("서버 없음", "no radar server" in O.lines(None)[0][0])
+check("봇 데이터 없음", "no bot data" in O.lines({"snap": None})[0][0])
 check("HP 25% → 경고색", L[0].startswith("HP 200/800 (25%)") and O.lines(state)[0][1] == O.WARN)
-check("목표·경로·부숨", any(t.startswith("목표: 방패병") for t in L) and any("경로: 경사로" in t for t in L) and any("부숨: o1130_12" in t for t in L))
-check("8 m 안 적 수 (죽은 적·우호 제외)", any(t.startswith("8 m 안 적 2 (움직임 2)") for t in L))
-check("판단 최신이 먼저", L[-2] == "› 후퇴 모드: guard" and L[-1] == "› 교전: 망자")
-check("끊김 표시", O.lines({**state, "age": 5.0})[0][0].startswith("끊김"))
+check("목표·경로·부숨", any(t.startswith("target: Shield") for t in L) and any("path: ramp" in t for t in L) and any("smash: o1130_12" in t for t in L))
+check("8 m 안 적 수 (죽은 적·우호 제외)", any(t.startswith("foes within 8 m: 2 (2 moving)") for t in L))
+check("판단 최신이 먼저", L[-2] == "› retreat mode: guard" and L[-1] == "› fight: Hollow")
+check("끊김 표시", O.lines({**state, "age": 5.0})[0][0].startswith("stale"))
 
 print("미니 레이더 (카메라 위)")
 pts = O.radar_points(state, size=200, range_m=10.0)

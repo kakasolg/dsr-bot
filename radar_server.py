@@ -120,10 +120,10 @@ class _C:
 def demo_loop(port: int) -> None:
     r = radar.Radar(port=port)
     rng = random.Random(1)
-    foes = [dict(ptr=100 + i, name=f"망자 #{i + 1}", npc=225000, ang=rng.uniform(0, 6.28), rad=rng.uniform(6, 25),
+    foes = [dict(ptr=100 + i, name=f"Hollow #{i + 1}", npc=225000, ang=rng.uniform(0, 6.28), rad=rng.uniform(6, 25),
                  spd=rng.uniform(-0.3, 0.3), hp=200) for i in range(6)]
-    lines = ["이동: 경사로 아래 → 대기 지점", "끌어오기: 망자 #3 에 나이프", "교전: 망자 #3 (4.2 m)",
-             "공격 모션 3004 → 구르기", "후퇴: 적 2명 접근", "휘청 → 약공 2연타"]
+    lines = ["walk: ramp bottom -> waiting spot", "lure: knife at Hollow #3", "fight: Hollow #3 (4.2 m)",
+             "attack anim 3004 -> roll", "retreat: 2 foes closing", "stagger -> light x2"]
     mv = _C(cam_target=None, show_path=None, show_spot=None, show_smash=None)
     r.follow(mv)
     t0, k = time.time(), 0
@@ -142,14 +142,14 @@ def demo_loop(port: int) -> None:
         phase = int(t / 8) % 3                     # cycle: walk a path → fight the nearest → hold a spot
         if phase == 0:
             mv.cam_target, mv.show_spot = None, None
-            mv.show_path = ("경사로 아래로", [(px + 1.5 * i, 0.0, pz + 3 * math.sin(i / 3)) for i in range(12)])
+            mv.show_path = ("down the ramp", [(px + 1.5 * i, 0.0, pz + 3 * math.sin(i / 3)) for i in range(12)])
             if t % 8 > 5:
                 mv.show_smash = ("o1130_d2", (6.0, 0.0, 1.0), time.time())
         elif phase == 1:
             mv.show_path, mv.cam_target = None, chars[0].ptr
         else:
             mv.cam_target, mv.show_path = None, None
-            mv.show_spot = ("대기 지점", (px - 4.0, 0.0, pz + 2.0), time.time())
+            mv.show_spot = ("waiting spot", (px - 4.0, 0.0, pz + 2.0), time.time())
         player = _C(ptr=1, name="", npc_param=0, team=1, hp=int(420 + 150 * math.sin(t / 5)), max_hp=600, sp=90, max_sp=120,
                     x=px, y=0.0, z=pz, dist=0.0, heading=t / 4 % (2 * math.pi), anim=None)
         r.snapshot(_C(t=time.time(), player=player, chars=chars, cam_yaw=t / 6 % (2 * math.pi), flask_hp=3, max_flask_hp=5))
@@ -169,12 +169,12 @@ def main() -> None:
                   [2.0, 0.0, -7.0, False, "o1154_d5"]]
     state = State(props=demo_props if a.demo else None)
     if not a.demo:
-        print(f"부서지는 물건 {len(state.props)}개 (data/gamefiles)")
+        print(f"breakable props: {len(state.props)} (data/gamefiles)")
     threading.Thread(target=udp_loop, args=(state, a.udp), daemon=True).start()
     if a.demo:
         threading.Thread(target=demo_loop, args=(a.udp,), daemon=True).start()
     srv = ThreadingHTTPServer(("127.0.0.1", a.http), make_handler(state))
-    print(f"레이더: http://127.0.0.1:{a.http}  (UDP {a.udp}{', 데모' if a.demo else ''})")
+    print(f"radar: http://127.0.0.1:{a.http}  (UDP {a.udp}{', demo' if a.demo else ''})")
     try:
         srv.serve_forever()
     except KeyboardInterrupt:

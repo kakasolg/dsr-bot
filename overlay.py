@@ -10,7 +10,7 @@ The game must run in **windowed or borderless windowed** mode — an exclusive-f
 Never takes focus (control.game_in_front() only sends pad input while the game is the foreground window, so an overlay
 that grabbed focus would stop the bot): the window is WS_EX_NOACTIVATE | WS_EX_TRANSPARENT (clicks go through) |
 WS_EX_LAYERED | WS_EX_TOOLWINDOW (no taskbar entry), always on top, and never calls focus. Reads /state from
-radar_server.py over localhost; if the server is gone it just shows "연결 없음". Standard library only (tkinter).
+radar_server.py over localhost; if the server is gone it just shows "no radar server". Standard library only (tkinter).
 On other OSes it opens as a normal window (development).
 """
 from __future__ import annotations
@@ -39,33 +39,33 @@ SAYS = 3
 def lines(state: dict | None, now: float | None = None) -> list[tuple[str, str]]:
     """[(text, colour)] for the text panel."""
     if not state:
-        return [("레이더 서버 연결 없음 — python radar_server.py", WARN)]
+        return [("no radar server — python radar_server.py", WARN)]
     snap = state.get("snap")
     age = state.get("age")
     if not snap:
-        return [("봇 데이터 없음 — run.py … --radar", WARN)]
+        return [("no bot data — run.py … --radar", WARN)]
     out = []
     if age is not None and age > 2:
-        out.append((f"끊김 {age:.0f} s", WARN))
+        out.append((f"stale {age:.0f} s", WARN))
     p = snap["player"]
     hp, mhp = p.get("hp") or 0, p.get("max_hp") or 0
     frac = hp / mhp if mhp else 0
-    out.append((f"HP {hp}/{mhp} ({frac:.0%})  SP {p.get('sp')}/{p.get('max_sp')}  에스트 {snap.get('flask_hp', '?')}",
+    out.append((f"HP {hp}/{mhp} ({frac:.0%})  SP {p.get('sp')}/{p.get('max_sp')}  Estus {snap.get('flask_hp', '?')}",
                 WARN if frac < 0.35 else FG))
     chars = snap.get("chars") or []
     tgt = next((c for c in chars if c.get("ptr") == snap.get("target")), None) if snap.get("target") is not None else None
     if tgt:
-        out.append((f"목표: {tgt.get('name') or tgt.get('npc')}  {tgt.get('dist', 0):.1f} m  HP {tgt.get('hp')}  애니 {tgt.get('anim')}", C_TARGET))
+        out.append((f"target: {tgt.get('name') or tgt.get('npc')}  {tgt.get('dist', 0):.1f} m  HP {tgt.get('hp')}  anim {tgt.get('anim')}", C_TARGET))
     if snap.get("path_tag"):
-        out.append((f"경로: {snap['path_tag']} ({len(snap.get('path') or [])}점)", C_PATH))
+        out.append((f"path: {snap['path_tag']} ({len(snap.get('path') or [])} pts)", C_PATH))
     if snap.get("spot_tag"):
-        out.append((f"지킬 자리: {snap['spot_tag']}", C_SPOT))
+        out.append((f"hold: {snap['spot_tag']}", C_SPOT))
     if snap.get("smash"):
-        out.append((f"부숨: {snap['smash']}", C_SMASH))
+        out.append((f"smash: {snap['smash']}", C_SMASH))
     near = [c for c in chars if c.get("team") in HOSTILE and (c.get("hp") or 0) > 0 and (c.get("dist") or 99) < 8]
     if near:
         awake = sum(1 for c in near if c.get("anim") not in (-1, None))
-        out.append((f"8 m 안 적 {len(near)} (움직임 {awake})", WARN if awake >= 2 else MUTED))
+        out.append((f"foes within 8 m: {len(near)} ({awake} moving)", WARN if awake >= 2 else MUTED))
     for i, s in enumerate((state.get("says") or [])[-SAYS:][::-1]):
         out.append(("› " + s.get("line", "").strip()[:80], FG if i == 0 else MUTED))    # newest first
     return out
@@ -221,7 +221,7 @@ def main() -> None:
         import subprocess
         subprocess.Popen([sys.executable, "radar_server.py", "--demo"])
         time.sleep(1.0)
-    print("오버레이: 게임은 창 모드/테두리 없는 창 모드여야 보임. 끄기: 이 창에서 Ctrl+C")
+    print("overlay: the game must be windowed or borderless windowed. Stop: Ctrl+C here")
     Overlay(a.url).run()
 
 
