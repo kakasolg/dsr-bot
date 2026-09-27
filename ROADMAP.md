@@ -29,6 +29,7 @@
 - [ ] [win] 위 수정 후 실제 게임에서 `run.py burg-bonfire` 한 번 정상 동작 확인
 - [ ] [cloud] 테스트를 `tests/`로 옮기고 pytest로 실행 (`axe_heavy_test.py`는 게임 측정 스크립트라 제외)
 - [x] [cloud] GitHub Actions CI: Python 3.12, Windows 전용 패키지 뺀 의존성, 오프라인 테스트 실행 — `.github/workflows/test.yml`, 로컬 3.12에서 같은 명령 통과
+- [x] [cloud] 클라우드 세션 시작 훅 (`.claude/hooks/session-start.sh`): Python 3.12 venv + 오프라인 테스트 의존성 자동 설치 — 훅 실행·재실행 OK, `moves_test.py` 통과
 - [ ] [cloud] `.gitignore`의 `data/` 규칙 정리 (필요한 파일이 무시되지 않게)
 - [ ] [cloud] 루트 정리: 실험 스크립트는 `experiments/`로, `telemetry`/`dsr_telemetry`와 `nav`/`navmesh`의 관계를 문서화
 
