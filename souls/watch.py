@@ -43,6 +43,7 @@ class Escape:
         self.pad, self.nms, self.log, self.events = pad, nms, log, events
         self.escaping = False
         self.gen = 0
+        self.quit_ok = True                                # False = 퀵 종료(메뉴로 나갔다 오기)를 절대 안 쓴다 (영상 촬영용, run.py --no-quit)
         self.last_fall = self.last_crowd = 0.0
         self.last_fall_pos = None     # 낙사 탈출 직후 위층이 가장자리에서 물러나게
         self.safe_pos = None          # 마지막으로 발밑에 바로 바닥이 있던 자리 (_ledge)
@@ -170,6 +171,11 @@ class Escape:
 
     def fire(self, why: str, kind: str, tm=None, p=None) -> dict:
         """메뉴로 나갔다 온다. 위층이 적을 떼어낼 때도 이걸 부른다 (kind='shake'). → 결과"""
+        if not self.quit_ok:
+            # 사용자 2026-09-26: 영상에 퀵 종료가 나오면 유튜브에 올리기 부적합 — 끄면 기록만 남기고 그대로 싸운다
+            self.log(f"   (퀵 종료 꺼짐) {why} — 나가지 않고 계속")
+            self.last_crowd = self.last_fall = time.time()   # 쿨다운은 그대로 — 매 틱 같은 줄을 찍지 않게
+            return {"why": why, "kind": kind, "skipped": True}
         with self._lock:
             tm = tm or env.make_telemetry({})
             if p is None:

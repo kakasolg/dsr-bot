@@ -71,6 +71,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("cmd", choices=["status", "burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt-one", "merchant", "light-burg", "quit-test"])
     ap.add_argument("--no-rest", action="store_true")
+    ap.add_argument("--no-quit", action="store_true", help="퀵 종료(메뉴로 나갔다 오기) 안 씀 — 영상 촬영용")
     ap.add_argument("--i", type=int, default=5, help="hunt-one: BURG_TOWN 몇 번째 (5 = 석궁병 255002)")
     ap.add_argument("--no-lure", action="store_true", help="나이프로 한 놈씩 깨우지 않고 예전처럼 걸어가 붙는다 (비교용)")
     ap.add_argument("--style", choices=["guard", "backstep", "rush"], default="guard",
@@ -107,7 +108,12 @@ def main() -> None:
     w = weapons.of(tm.right_weapon())
     mv.weapon = w
     log(f"무기: {w.name} (약공 {w.combo}연타, 닿는 거리 {w.reach} m, 강공 {'씀' if w.use_heavy else '안 씀'})")
-    esc = Escape(pad, list(nms.values()), log=log, events=log.event).start()
+    esc = Escape(pad, list(nms.values()), log=log, events=log.event)
+    esc.quit_ok = not a.no_quit
+    if a.no_quit:
+        import os
+        os.environ["BOT_NO_WARP"] = "1"                   # farm.rest 의 화톳불 자리 순간이동도 끈다
+    esc.start()
     blood = Blood(log=log).start()
     from blackbox import BlackBox
     bbox = BlackBox(tm, log.path, events=log.event, log=log).start()

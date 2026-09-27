@@ -21,6 +21,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import statistics
 import sys
 import time
@@ -107,6 +108,9 @@ def rest(tm, pad, nm, bonfire, mode: str = "walk") -> bool:
             if s and math.dist((s.player.x, s.player.y, s.player.z), stand) > WARP_NEAR_M:
                 # 좌표 순간이동은 같은 구역 안에서만 — 142 m 떨어진 성벽 마을에서 불의 제전으로 하려다 땅을 뚫고 떨어졌다 (2026-09-25)
                 print(f"   화톳불에서 {WARP_NEAR_M:.0f} m 넘게 떨어짐 — 순간이동 안 함 (구역 간은 bonfire_warp)", flush=True)
+                break
+            if os.environ.get("BOT_NO_WARP"):
+                print("   (순간이동 꺼짐) 화톳불 자리 워프 안 함", flush=True)   # run.py --no-quit: 영상에 비정상 동작이 없게
                 break
             tm.safe_warp(*bonfire["stand"], bonfire["heading"])
         control.focus_game()                # 창이 포커스를 잃으면 패드 입력을 무시한다 (옆에서 띄운 기록 프로세스가 포커스를 가져간 적 있음)

@@ -3,6 +3,9 @@
 **오프라인 전용.** 다크소울 리마스터(PC, Steam)를 게임 메모리 읽기 + NavMesh A\* 길찾기 + 규칙 기반 전투로 진행하는 파이썬 봇입니다.
 지금은 **불의 제전 → 성벽 마을 경사로 6마리 → 성벽 마을 → 상인 → 성벽 마을 화톳불**까지 혼자 갑니다.
 
+**영상 (7:43, 자막 CC 로 봇의 판단 표시):** https://youtu.be/_ihMBcxvG5w
+— 퀵 종료·순간이동 없이 패드 입력만으로 돈 한 판 (`run.py burg-bonfire --no-quit`).
+
 > 온라인에 접속한 상태로 쓰지 마세요. 메모리를 일부 쓰는 기능(화톳불 워프, 타이틀로 나가기)이 있어 온라인에선 제재 위험이 있고,
 > 다른 플레이어에게 피해가 갑니다. 이 저장소는 연구·학습용입니다.
 
@@ -43,6 +46,7 @@ uv pip install --python .venv/Scripts/python.exe -r requirements-lock.txt
 # DSR 설치 경로가 다르면: set DSR_GAME_DIR=...\DARK SOULS REMASTERED
 BOT_GAME=dsr .venv/Scripts/python run.py clear-ramp      # 경사로만
 BOT_GAME=dsr .venv/Scripts/python run.py burg-bonfire    # 불의 제전 → 성벽 마을 화톳불
+BOT_GAME=dsr .venv/Scripts/python run.py burg-bonfire --no-quit   # 퀵 종료·화톳불 자리 순간이동 없이 (영상 촬영용)
 .venv/Scripts/python observe_record.py --minutes 15      # 읽기 전용 녹화 (F9 = 마커)
 ```
 
