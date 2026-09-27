@@ -59,6 +59,7 @@
   - 적: 위치, 방향, 순찰 경로, ThinkParam ID
 - [x] [cloud] NpcThinkParam 추출: 시야 거리·각도, 청각 범위, 귀환 거리 → 적 데이터에 붙이기 — 같은 스크립트의 `think` 필드. 단위(미터 여부)는 게임에서 확인 필요
 - [~] [win] `python msb_extract.py m10_02_00_00 m10_01_00_00` 실행하고 `data/gamefiles/*.json` 커밋. 확인할 것: 오류 없이 도는지, 오브젝트·적 수가 그럴듯한지, 박스(`breakable: true`)가 실제로 부서지는지 몇 개. ObjectParam 행 번호 = 모델 번호 가정이 맞는지(`param_row_found`가 대부분 true인지)
+  - 2026-09-27 [win] 실행 결과: 오류 없음(soulstruct의 중복 param 행 경고만). m10_02(Firelink) 오브젝트 82(부서짐 25)·적 41(표시 27), m10_01(Burg) 오브젝트 529(부서짐 407)·적 174(표시 166). `param_row_found` true: Burg 507/529(96%), Firelink 52/82(63%, 없는 30개 중 28개가 `o0020`) → 가정은 대체로 맞음. 박스 실제 파괴는 [사람] 확인 대기: Burg `o1175_05` (21.6, 9.6, -18.6), `o1130_39` (26.4, 9.8, -26.4), `o1130_44` (2.0, -10.0, -58.8). P-4 참고
 - [ ] [사람] 결과가 실제 게임과 맞는지 몇 개 확인 (박스 위치, 적 대기 위치)
 - [ ] [cloud] 증거 등급 추가: "파일 근거" (LAYERS.md에 반영)
 
@@ -126,6 +127,16 @@
 - 증상: `from soulstruct.darksouls1r.maps import MSB`가 `ds1-common.emedf.json` 없음으로 실패
 - 원인 (확인): PyPI 휠에 JSON 데이터 파일이 빠져 있음 (윈도우도 같음)
 - 해결: `navmesh.py`가 이미 쓰는 우회(events/ai/ezstate 모듈을 빈 모듈로 대체)를 재사용 — `msb_extract.py`는 `import navmesh`를 먼저 함
+
+### P-4 msb_extract 요약 수치·미발견 행 (2026-09-27, [win], 2번)
+- 증상: 콘솔 요약의 적 수가 JSON `enemies` 길이와 다름 (Firelink 27 vs 41, Burg 166 vs 174). 차이 = `kind: human`(모델 `c0000`) 수. Firelink 오브젝트 30개가 `param_row_found: false`, 그중 28개가 `o0020`. Burg는 `o1111`(7), `o1301`/`o1302`(각 4) 등 22개
+- 원인 (추정): `counts.enemies`가 human을 뺀 수로 보임 (의도라면 이름을 분명히). `o0020` 등은 ObjectParam 행이 없는 장식/특수 모델이거나 행 번호가 모델 번호와 다른 경우. Burg 부서짐 407/529는 통·상자가 많은 구역이라 그럴듯하나, `o1230`처럼 `MinAttackForDamage: 90`인 것도 breakable로 잡힘
+- 해결: 미해결 ([cloud] 판단)
+
+### P-5 .gitignore 변경 후 로컬 실행 파일이 추적 후보로 뜸 (2026-09-27, [win], 1번)
+- 증상: `data/*.json` 예외 때문에 윈도우 로컬의 `data/diag.json`, `data/dmglog*.json`, `data/char-state.json`, `data/routes/asylum-*.json` 등 20여 개가 `git status`에 untracked로 나옴
+- 원인 (확인): `.gitignore`가 `data/*.json`, `data/routes/`를 모두 허용함. 봇·실험 스크립트가 실행 중 쓰는 파일이 섞임
+- 해결: 미해결. [win]은 커밋하지 않음. 실행 산출물 이름을 따로 무시하거나 허용 목록을 파일 단위로 좁힐 것 ([cloud])
 
 ---
 
