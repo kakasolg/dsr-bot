@@ -111,8 +111,8 @@
 - [x] [win] `python radar_server.py` 켜고 `python run.py clear-ramp --radar`로 실제 확인. 확인할 것: 적 위치·방향이 게임 화면과 맞는지(특히 "카메라 위" 모드의 좌우), 봇이 느려지지 않는지, 서버를 안 켜도 봇이 정상인지, 목표 적 노란 원·경로 보라 점선·지킬 자리 초록 원이 실제 행동과 맞는지
   - 2026-09-27 [win] `clear-ramp --radar` + 서버: 6/6 cleared, 121 s, 최저 HP 75%, read_ms 5.1 (레이더 없이 3.7). [사람] 확인: 적 위치·방향, "카메라 위" 좌우, 목표 노란 원·경로 보라 점선·지킬 자리 초록 원 모두 실제와 맞음, 느려짐 없음. 서버 끄고 `--radar`: 6/6 cleared, 129 s, 예외 없음
 - [x] [cloud] 레이더에 목표 적·경로·지킬 자리 표시 (Field/Missions에서 보내기) — 목표 = 기존 `mv.cam_target`, 경로 = `field.walk`가 `mv.show_path`에 걸고 끝나면 풂(돌아가기 중첩은 바깥 경로로 복귀), 지킬 자리 = `field._hold_at`이 `mv.show_spot`에 기록(2초 지나면 안 보임). 봇은 이 값을 읽지 않음. `radar_test.py` 통과, 데모로 세 상황 캡처 확인
-- [ ] [cloud] 오버레이 창 코드 (투명, 클릭 통과, **포커스 안 가져감** — `control.game_in_front()` 때문에 필수)
-- [ ] [win] 테두리 없는 창 모드에서 오버레이가 보이고 봇 입력이 멈추지 않는지 확인
+- [x] [cloud] 오버레이 창 코드 (투명, 클릭 통과, **포커스 안 가져감** — `control.game_in_front()` 때문에 필수) — `overlay.py`: tkinter 창, 투명색 키 + `WS_EX_LAYERED|TRANSPARENT|NOACTIVATE|TOOLWINDOW|TOPMOST`, 게임 창 위치를 따라감, `radar_server.py`의 `/state`를 10 Hz로 읽음. 왼쪽 위 글(HP·SP·에스트, 목표·경로·지킬 자리·부숨, 8 m 안 적 수, 판단 3줄), 오른쪽 위 미니 레이더(15 m, 카메라 위). `overlay_test.py`(표시 내용·레이더 좌표) 통과, Linux 가상 화면에서 그려지는 것 캡처 확인(투명은 윈도우에서만)
+- [ ] [win] 테두리 없는 창 모드에서 오버레이가 보이고 봇 입력이 멈추지 않는지 확인 — 순서: `python radar_server.py` → `python overlay.py` → `python run.py burg-bonfire --radar`. 확인: 글·미니 레이더가 게임 위에 보이는지, 배경이 투명한지, 마우스 클릭이 게임으로 가는지, **봇이 멈추지 않는지**(`game_in_front`), 게임 창을 옮기면 따라오는지, 글이 읽히는지(크기·위치). 먼저 `python overlay.py --demo`로 봇 없이 보이는지부터
 - [ ] [cloud] 표시 추가: 경로선, 안전 구역, 적 시야 부채꼴·귀환 거리 원 (2번 완료 후)
 
 ## 5. 기록 재생

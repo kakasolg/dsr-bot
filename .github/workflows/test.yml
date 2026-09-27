@@ -19,7 +19,7 @@ jobs:
       - name: Run offline tests (fake world, no game)
         run: |
           set -e
-          for t in duel_shadow_test.py feed_test.py field_*_test.py moves_test.py observe_record_test.py msb_extract_test.py radar_test.py props_test.py; do
+          for t in duel_shadow_test.py feed_test.py field_*_test.py moves_test.py observe_record_test.py msb_extract_test.py radar_test.py props_test.py overlay_test.py; do
             echo "::group::$t"
             python "$t"
             echo "::endgroup::"

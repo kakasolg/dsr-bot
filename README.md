@@ -64,6 +64,7 @@ BOT_GAME=dsr .venv/Scripts/python run.py burg-bonfire               # Firelink â
 BOT_GAME=dsr .venv/Scripts/python run.py burg-bonfire --no-quit     # no quit-outs, no bonfire teleport (for recording)
 .venv/Scripts/python observe_record.py --minutes 15                 # read-only recording (F9 = marker)
 .venv/Scripts/python radar_server.py                                # radar at http://127.0.0.1:47801 (add --radar to run.py; --demo = fake world)
+.venv/Scripts/python overlay.py                                     # same info drawn over the game (windowed/borderless only; --demo)
 ```
 
 Offline tests (fake world, no game needed): `python field_*_test.py`, `duel_shadow_test.py`, `moves_test.py`, etc.
