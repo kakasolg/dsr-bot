@@ -53,7 +53,8 @@
 - [x] [cloud] GitHub Actions CI: Python 3.12, Windows 전용 패키지 뺀 의존성, 오프라인 테스트 실행 — `.github/workflows/test.yml`, 로컬 3.12에서 같은 명령 통과
 - [x] [cloud] 클라우드 세션 시작 훅 (`.claude/hooks/session-start.sh`): Python 3.12 venv + 오프라인 테스트 의존성 자동 설치 — 훅 실행·재실행 OK, `moves_test.py` 통과
 - [x] [cloud] `.gitignore`의 `data/` 규칙 정리 (필요한 파일이 무시되지 않게) — `data/*` + 예외(`*.json`, `*.txt`, `routes/`, `gamefiles/`, `samples/`), 새 파일로 추적·무시 확인
-- [ ] [cloud] 루트 정리: 실험 스크립트는 `experiments/`로, `telemetry`/`dsr_telemetry`와 `nav`/`navmesh`의 관계를 문서화
+- [~] [cloud] 루트 정리: 실험 스크립트는 `experiments/`로, `telemetry`/`dsr_telemetry`와 `nav`/`navmesh`의 관계를 문서화
+  - 2026-09-28 [cloud] 관계 문서화 끝 (README "The two similar-looking pairs", `telemetry.py` 머리말). 쓰이지 않는 `sit_before.pkl`·`sit_seated.pkl` 삭제(읽는 코드 없음, git 기록엔 남음). 폴더 옮기기는 남음 — 윈도우 실행 명령이 바뀌므로 테스트 이동(pytest)과 한 번에
 
 ## 1-b. 윈도우 1차 결과로 나온 할 일 (2026-09-27 [cloud] 분석)
 

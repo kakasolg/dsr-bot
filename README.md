@@ -31,8 +31,10 @@ lock-on target, item counts — and makes every decision from those numbers plus
 ## Layout
 
 ```
-dsr_telemetry.py / telemetry.py   game memory reads (pymem) — position, HP, animation, enemies, camera
-navmesh.py / nav.py               game NavMesh (via soulstruct) → triangle graph, A* pathfinding, footing checks
+dsr_telemetry.py                  game memory reads for DSR (pymem) — position, HP, animation, enemies, camera, event flags
+telemetry.py                      the shared data shapes (Chr, Snapshot) + the older Elden Ring reader (see below)
+navmesh.py                        map data: the game's NavMesh (via soulstruct) → triangles, floor height, A* find_path
+nav.py                            movement: walk/steer to a point or along a path (goto, follow, Mover), stuck escape, footing checks
 souls/                            layered — lower layers never know about upper ones (LAYERS.md)
   moves.py     layer 1: controls (virtual pad via vgamepad)
   duel.py      layer 2: one-on-one combat rules
@@ -43,6 +45,17 @@ run.py                            entry point
 observe_record.py                 read-only observation recorder (human demos and bot runs in the same format)
 risk_report.py, blackbox.py       run evaluation — big hits, lowest HP, getting stuck
 ```
+
+**The two similar-looking pairs** (a common first question):
+
+- `telemetry.py` vs `dsr_telemetry.py` — the bot began on Elden Ring. `telemetry.py` is that reader, and it also defines
+  `Chr` / `Snapshot`, the data shapes every layer uses. `dsr_telemetry.py` is the Dark Souls Remastered reader and returns
+  the same shapes, so nothing above it knows which game it is. `env.make_telemetry()` picks one from `BOT_GAME`
+  (`dsr` → `DSRTelemetry`, wrapped by `feed.py` so one background thread does the memory reads).
+- `navmesh.py` vs `nav.py` — `navmesh.py` answers *where can I walk* (terrain data, floor at a point, a path from A to B);
+  it never touches the pad. `nav.py` answers *how do I get there* (turns a path into stick input relative to the camera,
+  notices getting stuck, checks there is floor ahead using a `navmesh.Navmesh` passed in as `terrain`).
+  Call chain: `souls/field.py` → `navmesh.find_path` → `nav.follow` / `nav.goto` → `control.Pad`.
 
 The rules and their justification live in one place, [LAYERS.md](LAYERS.md). In particular the
 **evidence-grade gate**: every number is tagged with what backs it — human demo / repeated observation / NavMesh estimate /
