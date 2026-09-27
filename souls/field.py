@@ -1093,7 +1093,7 @@ class Field:
                         if fails == 1 and not self._detour and nm.find_path(pp, q):
                             self._detour = True
                             try:
-                                r2 = self.walk_to(q, nm, f"{tag} 돌아서")
+                                r2 = self.walk_to(q, nm, f"{tag} 돌아서", done=done)
                             finally:
                                 self._detour = False
                             if r2 == "arrived":
