@@ -29,6 +29,7 @@ FOLLOW_DY = 2.5          # foe following on stairs — up to this height differe
 SAFE_R = 6.0             # estus: no awake foe within this, and
 SAFE_ATTACK_R = 8.0      #          nobody swinging within this
 RESYNC_BACK, RESYNC_AHEAD = 3, 15   # range for re-picking the waypoint after a fight while walking (field.walk)
+RETREAT_GUARD_R = 4.0    # retreat: shield up while an awake foe is within this (horizontal)
 SMASH_TRIES = 2          # swings (x2 attacks) per blocking prop per walk — a prop that won't break isn't hit forever
 SMASH_WALK_S = 2.0       # s to step up to it
 SMASH_R = 1.3            # m — light attack reach from the prop's origin
@@ -231,8 +232,16 @@ class Field:
         if not path:
             return "no_path"                               # (spinning in place → recover returns False → next fight is to-the-end)
         t0 = time.time()
-        return self.mv.walk_path(nav.trim_path(path[1:], tuple(home)), nm, "walk",   # running safety is only a NavMesh estimate (evidence-grade gate, 2026-09-26)
+        return self.mv.walk_path(nav.trim_path(path[1:], tuple(home)), nm, self._retreat_mode,   # walk, not run: running safety is only a NavMesh estimate (evidence-grade gate, 2026-09-26)
                                  stop=lambda sn: time.time() - t0 > 3.0 and self.safe(sn))
+
+    @staticmethod
+    def _retreat_mode(sn) -> str:
+        """Shield up while an awake foe is still close — like _retreat_to_zone. Walking off with the guard down after a timed-out
+        duel took -109 from the shield soldier 1.85 m away (2026-09-27 burg-bonfire, ROADMAP P-7(c))."""
+        p = sn.player
+        near = any(awake(c) and M.horiz(p, c) < RETREAT_GUARD_R and abs(c.y - p.y) < FOLLOW_DY for c in sn.hostile(RETREAT_GUARD_R + 1.0))
+        return "guard" if near else "walk"
 
     def recover(self, why: str, nm=None) -> bool:
         """When a fight goes wrong. → is it worth continuing
