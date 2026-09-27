@@ -30,16 +30,16 @@
 - [ ] [cloud] 테스트를 `tests/`로 옮기고 pytest로 실행 (`axe_heavy_test.py`는 게임 측정 스크립트라 제외)
 - [x] [cloud] GitHub Actions CI: Python 3.12, Windows 전용 패키지 뺀 의존성, 오프라인 테스트 실행 — `.github/workflows/test.yml`, 로컬 3.12에서 같은 명령 통과
 - [x] [cloud] 클라우드 세션 시작 훅 (`.claude/hooks/session-start.sh`): Python 3.12 venv + 오프라인 테스트 의존성 자동 설치 — 훅 실행·재실행 OK, `moves_test.py` 통과
-- [ ] [cloud] `.gitignore`의 `data/` 규칙 정리 (필요한 파일이 무시되지 않게)
+- [x] [cloud] `.gitignore`의 `data/` 규칙 정리 (필요한 파일이 무시되지 않게) — `data/*` + 예외(`*.json`, `*.txt`, `routes/`, `gamefiles/`, `samples/`), 새 파일로 추적·무시 확인
 - [ ] [cloud] 루트 정리: 실험 스크립트는 `experiments/`로, `telemetry`/`dsr_telemetry`와 `nav`/`navmesh`의 관계를 문서화
 
 ## 2. 게임 파일에서 지형·적 정보 추출
 
-- [ ] [cloud] `msb_extract.py <mapID>` 작성 — `.msb`에서 추출해 `data/maps/<mapID>.json`으로 저장
+- [x] [cloud] `msb_extract.py <mapID>` 작성 — `.msb`에서 추출해 `data/gamefiles/<mapID>.json`으로 저장 (`data/maps/`는 mapmem·navmesh 캐시가 쓰므로 분리) — 가짜 MSB로 `msb_extract_test.py` 통과, CI 포함. 실제 게임 파일로는 미확인 → [win] 확인 필요
   - 오브젝트: 위치, 모델명, 부서짐 여부 (ObjectParam)
   - 적: 위치, 방향, 순찰 경로, ThinkParam ID
-- [ ] [cloud] NpcThinkParam 추출: 시야 거리·각도, 청각 범위, 귀환 거리 → 적 데이터에 붙이기
-- [ ] [win] Firelink Shrine(`m10_02_00_00`), Undead Burg(`m10_01_00_00`)에서 실행하고 결과 JSON 커밋
+- [x] [cloud] NpcThinkParam 추출: 시야 거리·각도, 청각 범위, 귀환 거리 → 적 데이터에 붙이기 — 같은 스크립트의 `think` 필드. 단위(미터 여부)는 게임에서 확인 필요
+- [ ] [win] `python msb_extract.py m10_02_00_00 m10_01_00_00` 실행하고 `data/gamefiles/*.json` 커밋. 확인할 것: 오류 없이 도는지, 오브젝트·적 수가 그럴듯한지, 박스(`breakable: true`)가 실제로 부서지는지 몇 개. ObjectParam 행 번호 = 모델 번호 가정이 맞는지(`param_row_found`가 대부분 true인지)
 - [ ] [사람] 결과가 실제 게임과 맞는지 몇 개 확인 (박스 위치, 적 대기 위치)
 - [ ] [cloud] 증거 등급 추가: "파일 근거" (LAYERS.md에 반영)
 
@@ -100,6 +100,11 @@
 - 증상: `SyntaxError: f-string: expecting '}'`
 - 원인 (확인): 코드가 Python 3.12 문법(f-string 안의 같은 따옴표)을 씀
 - 해결: 3.12로 실행 (README 요구사항과 같음). CI도 3.12로 고정할 것
+
+### P-3 soulstruct를 Linux에서 불러오면 오류 (2026-09-27, [cloud], 2번)
+- 증상: `from soulstruct.darksouls1r.maps import MSB`가 `ds1-common.emedf.json` 없음으로 실패
+- 원인 (확인): PyPI 휠에 JSON 데이터 파일이 빠져 있음 (윈도우도 같음)
+- 해결: `navmesh.py`가 이미 쓰는 우회(events/ai/ezstate 모듈을 빈 모듈로 대체)를 재사용 — `msb_extract.py`는 `import navmesh`를 먼저 함
 
 ---
 

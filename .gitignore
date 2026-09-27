@@ -1,7 +1,13 @@
 .venv/
 .venv-llm/
 __pycache__/
-data/
+# data/: only the small files the missions need are tracked; runs, traces and caches stay local.
+data/*
+!data/*.json
+!data/*.txt
+!data/routes/
+!data/gamefiles/
+!data/samples/
 *.out
 *.err
 *.log
