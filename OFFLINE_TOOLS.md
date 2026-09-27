@@ -55,4 +55,4 @@
 ## 못 찾은 것
 
 - **불 붙인 화톳불 목록**: 이벤트 플래그(`RegisterBonfire` 의 bonfire_flag +0..7)는 전부 0, 불 붙이기 전후 ID 검색 차이 없음. → `bonfires.py` 가 쉴 때마다 마지막 화톳불을 쌓아 대신한다.
-- 메모리 칸 뜻은 사용자가 화면을 확인하기 전엔 단정하지 않는다 — ChrClassWarp+0x19 를 처음엔 워프로 잘못 읽었다 (`warp_re.py` 로 찾음).
+- 메모리 칸 뜻은 사용자가 화면을 확인하기 전엔 단정하지 않는다 — ChrClassWarp+0x19 를 처음엔 워프로 잘못 읽었다 (`experiments/warp_re.py` 로 찾음).

@@ -10,6 +10,7 @@ import ah
 from ah import tm, pad, L, nav, control
 import env, patrol
 from PIL import ImageGrab
+sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent.parent / "experiments"))   # vision_probe moved there
 import vision_probe as vp
 
 DEMON = 223200

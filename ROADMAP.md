@@ -49,12 +49,15 @@
   - 2026-09-27 [win] `clear-ramp`(사용자 지시, `--radar` 없음)로 대신 확인: 1회차는 캐릭터가 Burg 화톳불에 있어 `no_path`·적 못 찾음(시작 위치 문제, 코드 문제 아님). 불의 제전으로 bonfire_warp 후 2회차: 휴식 됨 → 6/6 `cleared`, 108 s, 최저 HP 61%, 큰 피격 2번, 예외 없음. clear-ramp는 정상. `burg-bonfire` 전 구간은 아직 미확인이라 [~] 유지
   - 2026-09-27 [win] `burg-bonfire`(레이더 없음) 실행: 휴식 됨 → 경사로 cleared(125 s) → 성벽 마을 끝(320 s) → 상인 도착(331 s), 예외 없음. 사용자 요청으로 상인 앞에서 중단 — 버그 화톳불 구간 미확인. 다음 실행은 `--radar`로
   - 2026-09-27 [win] `burg-bonfire --radar` 전 구간: 휴식 → 경사로 cleared(116 s) → 성벽 마을 끝(373 s) → 상인(386 s) → 버그 화톳불 앉음(418 s, 결과 `lit`), 예외 없음 → 동작 정상. 단 위험 판정 "위험"(최저 HP 2%, 퀵 종료 2번) — P-6
-- [ ] [cloud] 테스트를 `tests/`로 옮기고 pytest로 실행 (`axe_heavy_test.py`는 게임 측정 스크립트라 제외)
+- [x] [cloud] 테스트를 `tests/`로 옮기고 pytest로 실행 — 오프라인 테스트 17개 + `field_fakes.py`를 `tests/`로. `tests/test_offline.py`가 각 스크립트를 따로 실행하는 pytest 케이스(스크립트 단독 실행도 그대로), `pytest.ini`는 그 파일만 모음. `python -m pytest` 17 passed. CI·시작 훅도 pytest로
 - [x] [cloud] GitHub Actions CI: Python 3.12, Windows 전용 패키지 뺀 의존성, 오프라인 테스트 실행 — `.github/workflows/test.yml`, 로컬 3.12에서 같은 명령 통과
 - [x] [cloud] 클라우드 세션 시작 훅 (`.claude/hooks/session-start.sh`): Python 3.12 venv + 오프라인 테스트 의존성 자동 설치 — 훅 실행·재실행 OK, `moves_test.py` 통과
 - [x] [cloud] `.gitignore`의 `data/` 규칙 정리 (필요한 파일이 무시되지 않게) — `data/*` + 예외(`*.json`, `*.txt`, `routes/`, `gamefiles/`, `samples/`), 새 파일로 추적·무시 확인
-- [~] [cloud] 루트 정리: 실험 스크립트는 `experiments/`로, `telemetry`/`dsr_telemetry`와 `nav`/`navmesh`의 관계를 문서화
+- [x] [cloud] 루트 정리: 실험 스크립트는 `experiments/`로, `telemetry`/`dsr_telemetry`와 `nav`/`navmesh`의 관계를 문서화
   - 2026-09-28 [cloud] 관계 문서화 끝 (README "The two similar-looking pairs", `telemetry.py` 머리말). 쓰이지 않는 `sit_before.pkl`·`sit_seated.pkl` 삭제(읽는 코드 없음, git 기록엔 남음). 폴더 옮기기는 남음 — 윈도우 실행 명령이 바뀌므로 테스트 이동(pytest)과 한 번에
+  - 2026-09-28 [cloud] 폴더 정리: 봇·도구 어디에서도 import 안 되는 26개 + 게임 측정 `axe_heavy_test.py`를 `experiments/`로 (import 관계를 코드로 분석해 고름). 옮긴 파일은 머리에 저장소 루트를 import 경로에 넣고, 파일 기준 `data/` 경로를 한 단계 위로 고침. `boss/boss.py`의 `vision_probe` import 경로 추가. 문서의 스크립트 경로도 바꿈. 루트 파일 90 → 44개(py 74 → 29). 봇 실행 모듈·도구(레이더·오버레이·추출)는 `run.py`가 import하므로 루트에 둠. 실험 스크립트는 문법·import 경로만 확인(게임 필요)
+
+- [ ] [win] 폴더 정리 뒤 확인: `python run.py burg-bonfire --radar` 가 전처럼 도는지, `python -m pytest` (pytest 설치: `uv pip install pytest`), 자주 쓰던 실험 스크립트가 있으면 `python experiments/<이름>.py`로 도는지. 테스트 명령은 `python tests/<이름>_test.py`로 바뀜
 
 ## 1-b. 윈도우 1차 결과로 나온 할 일 (2026-09-27 [cloud] 분석)
 

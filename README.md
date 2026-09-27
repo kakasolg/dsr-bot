@@ -19,7 +19,7 @@ lock-on target, item counts — and makes every decision from those numbers plus
 
 ## Status (2026-09)
 
-- No LLM or machine-learning model runs during play — it is all rules and numbers. (`tactic_llm.py`, `bandit.py`, `learn.py`
+- No LLM or machine-learning model runs during play — it is all rules and numbers. (`experiments/tactic_llm.py`, `experiments/bandit.py`, `experiments/learn.py`
   etc. are old experiments.)
 - Development: most of the code was written by an AI coding assistant (Claude); a human did the play demonstrations, decisions
   and verification. See the `Co-Authored-By` lines in the commits.
@@ -44,6 +44,11 @@ souls/                            layered — lower layers never know about uppe
 run.py                            entry point
 observe_record.py                 read-only observation recorder (human demos and bot runs in the same format)
 risk_report.py, blackbox.py       run evaluation — big hits, lowest HP, getting stuck
+msb_extract.py                    game files → data/gamefiles/ (breakable props, enemies + AI params, items)
+radar.py, radar_server.py         live radar page (run.py --radar); overlay.py draws it over the game; translate.py = English
+tests/                            offline tests (python -m pytest)
+experiments/                      older experiments and probes the bot doesn't use (run from the repo root: python experiments/x.py)
+boss/, legacy/                    boss experiments, old code
 ```
 
 **The two similar-looking pairs** (a common first question):
@@ -80,9 +85,10 @@ BOT_GAME=dsr .venv/Scripts/python run.py burg-bonfire --no-quit     # no quit-ou
 .venv/Scripts/python overlay.py                                     # same info drawn over the game (windowed/borderless only; --demo)
 ```
 
-Offline tests (fake world, no game needed): `python field_*_test.py`, `duel_shadow_test.py`, `moves_test.py`, etc.
+Offline tests (fake world, no game needed): `python -m pytest` runs everything in `tests/` (`-k radar` for one), or run a
+single script directly, e.g. `python tests/radar_test.py`. CI runs the same on every push.
 They also run on Linux/macOS without the Windows-only packages (`pymem`, `vgamepad`) — install the rest of
-`requirements-lock.txt`. (`axe_heavy_test.py` is an in-game measurement, not an offline test.)
+`requirements-lock.txt`. (`experiments/axe_heavy_test.py` is an in-game measurement, not an offline test.)
 
 `data/` only contains the small files the missions need — routes a human walked and recorded (`data/routes/`), enemy spawn
 maps, and user-marked safe zones (`safe-zones.json`). Observation recordings and run logs (1 GB+) are not included; open an
