@@ -76,7 +76,8 @@ def lines(state: dict | None, now: float | None = None) -> list[tuple[str, str]]
     return out
 
 
-def radar_points(state: dict | None, size: int = RADAR_PX, range_m: float = RADAR_M, marks: bool = True) -> list[tuple]:
+def radar_points(state: dict | None, size: int = RADAR_PX, range_m: float = RADAR_M, marks: bool = True,
+                 items: bool | None = None) -> list[tuple]:
     """Mini radar marks, camera-up like the radar page: [(kind, x, y)] in pixels, centre = player.
     kind: player | foe | foe_dead | target | prop | smash | item_soul | item_humanity | item_titanite | path (x, y lists)."""
     snap = (state or {}).get("snap")
@@ -104,7 +105,7 @@ def radar_points(state: dict | None, size: int = RADAR_PX, range_m: float = RADA
         q = xy(o[0], o[2])
         if q and (marks or o[4] == snap.get("smash")):
             out.append(("smash" if o[4] == snap.get("smash") else "prop", *q))
-    for o in (state.get("items") or []) if marks else []:
+    for o in (state.get("items") or []) if (marks if items is None else items) else []:
         if o[3] in C_ITEM:
             q = xy(o[0], o[2])
             if q:
@@ -150,9 +151,9 @@ def _game_rect():
 
 
 class Overlay:
-    def __init__(self, url: str, marks: bool = False):
+    def __init__(self, url: str, marks: bool = False, items: bool = False):
         import tkinter as tk
-        self.url, self.state, self.tk, self.marks = url, None, tk, marks
+        self.url, self.state, self.tk, self.marks, self.items = url, None, tk, marks, marks or items
         self.root = tk.Tk()
         self.root.title("dsr-bot overlay")
         self.root.overrideredirect(True)
@@ -199,7 +200,7 @@ class Overlay:
         ox, oy, R = w - RADAR_PX - 16, 38, RADAR_PX
         cv.create_oval(ox, oy, ox + R, oy + R, outline="#000000", width=3)
         cv.create_oval(ox, oy, ox + R, oy + R, outline=MUTED, width=1)
-        for kind, a, b in radar_points(self.state, marks=self.marks):
+        for kind, a, b in radar_points(self.state, marks=self.marks, items=self.items):
             if kind == "path":
                 pts = [v for xy in zip(a, b) for v in (ox + xy[0], oy + xy[1])]
                 cv.create_line(*pts, fill=C_PATH, width=2, dash=(4, 3))
@@ -230,13 +231,14 @@ def main() -> None:
     ap.add_argument("--url", default="http://127.0.0.1:47801/state")
     ap.add_argument("--demo", action="store_true", help="start a demo radar server too (no game)")
     ap.add_argument("--marks", action="store_true", help="also draw breakable props and items on the mini radar (off: too small to tell apart in game)")
+    ap.add_argument("--items", action="store_true", help="draw souls/humanity/titanite on the mini radar, without the props")
     a = ap.parse_args()
     if a.demo:
         import subprocess
         subprocess.Popen([sys.executable, "radar_server.py", "--demo"])
         time.sleep(1.0)
     print("overlay: the game must be windowed or borderless windowed. Stop: Ctrl+C here")
-    Overlay(a.url, marks=a.marks).run()
+    Overlay(a.url, marks=a.marks, items=a.items).run()
 
 
 if __name__ == "__main__":
