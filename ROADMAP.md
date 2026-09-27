@@ -61,7 +61,7 @@
 - [x] [cloud] P-6 상세 2: 걷다가 경로 점을 못 가면, 돌아가기 전에 `souls/props.py`가 `data/gamefiles/<맵>.json`에서 앞길(3.5 m 안, 진행선 1.3 m 안, 같은 높이)의 부서지는 물건을 찾고 → `field._smash`가 1.3 m까지 다가가 돌아서 약공 2번 → 같은 점 다시 시도. 같은 물건은 걷기 한 번에 2회까지. 강공 필요(`min_attack` ≥ 50)는 제외. `props_test.py`: 실제 P-6 좌표로 `o1130_12`·`o1132_06` 찾음, CI 포함. → [win] 확인: 그 장면에서 상자를 부수고 지나가는지, 상자가 아닌 이유로 막힌 곳에서 엉뚱한 물건을 치며 시간을 쓰지 않는지(로그 `부숨 시도`, 이벤트 `smash`)
 - [x] [cloud] P-4: counts에 `characters`(전체)·`enemies`(사람형 제외)·`humans`를 나눠 표시. 오브젝트에 `min_attack`(MinAttackForDamage) 추가, 50 이상은 `breakable_strong`으로 셈 (Burg 12, Firelink 0). 커밋된 JSON 2개도 같은 규칙으로 갱신(추가만, 기존 값 불변). `msb_extract_test.py` 통과
 - [x] [cloud] P-5: `.gitignore`를 파일 단위 허용 목록으로 좁힘 (윈도우 실행 산출물이 안 뜨게) — `data/*`·`data/routes/*`는 무시하고 필요한 파일만 이름으로 허용. 가짜 파일로 확인: `diag.json`·`dmglog*.json`·`routes/asylum-*.json` 숨김, `gamefiles/`·`samples/`는 보임, 추적 중인 12개 영향 없음
-- [ ] [win] 위 수정 후 `burg-bonfire --radar` 재실행, P-6 두 장면 비교
+- [~] [win] 위 수정 후 `burg-bonfire --radar` 재실행, P-6 두 장면 비교
 
 ## 2. 게임 파일에서 지형·적 정보 추출
 
