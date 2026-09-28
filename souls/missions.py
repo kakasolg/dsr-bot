@@ -110,7 +110,7 @@ class Missions:
         self.mv: M.Moves = fld.mv
 
     # ── Pieces ───────────────────────────────────────────────
-    def passage_drill(self, rounds: int = 5) -> str:
+    def passage_drill(self, rounds: int = 5, warp_back: bool = True) -> str:
         """Walk Firelink bonfire ↔ just inside the passage entrance, rounds times, no resting (ramp stays cleared) — to watch the entrance
         turn repeatedly (user 2026-09-28). Same way in as to_merchant: top of the stairs, then the recorded route with the entry corner."""
         na = self.nms[MAP_A]
@@ -120,7 +120,12 @@ class Missions:
         path_in = path_in[:i0 + 4]                         # a0 + 3 points into the passage
         for n in range(1, rounds + 1):
             t0 = time.time()
-            r = self.f.walk_to(tuple(FIRELINK["stand"]), na, f"드릴{n} 화톳불로")
+            if warp_back:                                  # the way out stalls/fell (P-17) — warp back, to repeat only the way in
+                ok = self.mv.tm.bonfire_warp(FIRELINK_ID, log=self.log)
+                r = "warped" if ok else "warp_failed"
+                time.sleep(2.0)
+            else:
+                r = self.f.walk_to(tuple(FIRELINK["stand"]), na, f"드릴{n} 화톳불로")
             self.log(f"   드릴 {n}: 화톳불까지 {r} {time.time() - t0:.1f} s")
             t1 = time.time()
             r = self.f.walk_to(top, na, f"드릴{n} 꼭대기로")
