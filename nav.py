@@ -266,7 +266,9 @@ def follow(tm, pad, path: list, terrain=None, mode_fn=None, on_tick=None, defaul
 
 TURN_SLOW_DEG = (45.0, 90.0)   # facing this far off the way to go → stick TURN_SLOW_K (turn first, then run)
 TURN_SLOW_K = (0.5, 0.3)
-TURN_RELEASE_S = 0.15          # stick released this long before a sharp turn (stops the run's momentum)
+TURN_RELEASE_S = 0.0           # stick released this long before a sharp turn — off: the user turns the stick smoothly instead (0.15 tried)
+STICK_TURN_DPS = 700.0         # stick direction changes at most this fast (user demo 20260927_224715: peaks 670–840°/s; the bot jumped
+                               # up to 39° a tick ≈ 2270°/s — user: "where it fails, it swings the stick far too fast")
 TURN_RELEASE_GAP = 0.6         # not again within this (one release per corner)       # user 2026-09-28: "it turns too fast and the character slides" — a full stick swung round at a corner
                                # carried it sideways into the passage-entrance wall (radar: 15/15 runs, 1.8–4.4 s rubbing)
 
@@ -284,6 +286,24 @@ def turn_scale(heading, wx: float, wz: float) -> float:
     return 1.0
 
 
+
+def limit_stick_turn(prev: list, sx: float, sy: float, now: float) -> tuple[float, float]:
+    """Turn the stick toward (sx, sy) at most STICK_TURN_DPS; keeps its magnitude. prev = [angle rad | None, time] (updated)."""
+    mag = math.hypot(sx, sy)
+    if mag < 1e-6:
+        prev[0] = None
+        return sx, sy
+    want = math.atan2(sx, sy)
+    if prev[0] is None:
+        prev[0], prev[1] = want, now
+        return sx, sy
+    step = math.radians(STICK_TURN_DPS) * max(0.0, min(0.2, now - prev[1]))
+    d = (want - prev[0] + math.pi) % (2 * math.pi) - math.pi
+    a = prev[0] + max(-step, min(step, d))
+    prev[0], prev[1] = a, now
+    return math.sin(a) * mag, math.cos(a) * mag
+
+
 def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float], tolerance: float = 1.5,
          timeout: float = 60.0, on_tick=None, log=print, sprint_always: bool = False, mode_fn=None,
          mover: "Mover | None" = None, engage_fn=None, abort_on_stuck: bool = False,
@@ -292,6 +312,7 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
     target is (x, z) or (x, y, z). With y given, 'unreachable' when close in 2D but the height difference exceeds UNREACHABLE_DY — pushing toward a point above from below a cliff
     (when going backwards through a drop section of an indoor path). mode_fn(snapshot) -> 'walk'|'sprint'|'guardjump'|'guard' is the movement mode each tick."""
     turn_release = [0.0]                   # when the stick was last released for a sharp turn
+    stick_prev = [None, 0.0]               # last stick angle/time for limit_stick_turn
     if len(target) == 3:
         tx, ty, tz = target
     else:
@@ -511,7 +532,8 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
                 else:
                     sx, sy = control.world_to_stick(h[0], h[1], s.cam_yaw, YAW_OFFSET, FLIP_X)
                     k = turn_scale(p.heading, h[0], h[1])
-                    if k < 1.0 and now - turn_release[0] > TURN_RELEASE_GAP:
+                    sx, sy = limit_stick_turn(stick_prev, sx, sy, now)
+                    if TURN_RELEASE_S > 0 and k < 1.0 and now - turn_release[0] > TURN_RELEASE_GAP:
                         # a sharp turn coming: let go of the stick first so the run stops, then turn (user 2026-09-28 —
                         # "release everything and then turn", like the backstab). Once per TURN_RELEASE_GAP
                         pad.move(0.0, 0.0)
