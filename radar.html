@@ -40,7 +40,8 @@ h2 { font-size: 12px; font-weight: 600; color: var(--muted); margin: 0 0 6px; te
 .bar { height: 6px; background: var(--ring); border-radius: 3px; margin: 2px 0 8px; overflow: hidden; }
 .bar > i { display: block; height: 100%; background: var(--hp); }
 #intent div { display: flex; justify-content: space-between; gap: 8px; }
-#intent span:first-child { color: var(--muted); }
+#intent span:first-child { color: var(--muted); white-space: nowrap; }
+#intent span:last-child { text-align: right; }
 .key { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
 #says { list-style: none; margin: 0; padding: 0; }
 #says li { padding: 4px 0; border-bottom: 1px solid var(--line); color: var(--muted); overflow-wrap: anywhere; }
@@ -59,6 +60,7 @@ h2 { font-size: 12px; font-weight: 600; color: var(--muted); margin: 0 0 6px; te
   <label>Up <select id="up"><option value="cam" selected>camera</option><option value="north">north</option></select></label>
   <label><input type="checkbox" id="anim"> anim ID</label>
   <label><input type="checkbox" id="allitems"> all items</label>
+  <label><input type="checkbox" id="ai" checked> AI ranges</label>
   <button id="theme" type="button">Theme</button>
 </header>
 <main>
@@ -84,7 +86,7 @@ $("theme").onclick = () => {
   try { localStorage.setItem("radar-theme", next); } catch (e) {}
   draw();
 };
-for (const id of ["range", "up", "anim", "allitems"]) $(id).onchange = draw;
+for (const id of ["range", "up", "anim", "allitems", "ai"]) $(id).onchange = draw;
 
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
@@ -168,6 +170,38 @@ function draw() {
     ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(x, y); ctx.strokeStyle = css("--target"); ctx.lineWidth = 1; ctx.stroke();
     ctx.beginPath(); ctx.arc(x, y, 10, 0, 2 * Math.PI); ctx.lineWidth = 2; ctx.stroke();
   }
+  // AI ranges from the game files (NpcThinkParam, matched by the server to the nearest spawn of that kind):
+  // sight cone (distance, width) facing where the foe faces, hearing circle; for the target also its leash —
+  // how far from its spawn it chases before giving up (MaxRetreatDistance). Evidence "file": metres assumed.
+  const ai = last.ai || {};
+  if ($("ai").checked) {
+    ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * Math.PI); ctx.clip();       // keep the 30 m cones inside the radar
+    for (const c of snap.chars) {
+      const r = ai[c.ptr];
+      if (!r || !(c.hp > 0) || !HOSTILE.has(c.team)) continue;
+      const [sight, width, hearing, leash, sx, sz] = r, isT = c.ptr === snap.target;
+      if (Math.hypot(c.x - p.x, c.z - p.z) > range + sight) continue;
+      const [x, y] = toScreen(c.x - p.x, c.z - p.z);
+      if (c.heading != null) {                                                         // the target filled, others outline only
+        const th = c.heading + Math.PI - base - Math.PI / 2, half = width * Math.PI / 360;
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.arc(x, y, sight * k, th - half, th + half); ctx.closePath();
+        if (isT) { ctx.globalAlpha = 0.10; ctx.fillStyle = css("--foe"); ctx.fill(); }
+        ctx.globalAlpha = isT ? 0.45 : 0.16; ctx.strokeStyle = css("--foe"); ctx.lineWidth = 1; ctx.stroke(); ctx.globalAlpha = 1;
+      }
+      if (!isT) continue;
+      if (hearing) {
+        ctx.beginPath(); ctx.arc(x, y, hearing * k, 0, 2 * Math.PI); ctx.setLineDash([2, 4]);
+        ctx.globalAlpha = 0.5; ctx.strokeStyle = css("--foe"); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+      }
+      if (leash) {
+        const [lx, ly] = toScreen(sx - p.x, sz - p.z);
+        ctx.beginPath(); ctx.arc(lx, ly, leash * k, 0, 2 * Math.PI); ctx.setLineDash([8, 5]);
+        ctx.strokeStyle = css("--target"); ctx.lineWidth = 1.5; ctx.stroke(); ctx.setLineDash([]);
+        ctx.beginPath(); ctx.moveTo(lx - 4, ly - 4); ctx.lineTo(lx + 4, ly + 4); ctx.moveTo(lx + 4, ly - 4); ctx.lineTo(lx - 4, ly + 4); ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
   const showAnim = $("anim").checked;
   for (const c of snap.chars) {
     const dx = c.x - p.x, dz = c.z - p.z;
@@ -205,6 +239,7 @@ function side() {
   const row = (k, v) => `<div><span>${k}</span><span>${v}</span></div>`;
   $("intent").innerHTML =
     row(`<i class="key" style="background:var(--target)"></i>Target`, tgt ? `${esc(tgt.name || tgt.npc)} · ${tgt.dist?.toFixed(1)} m` : "none") +
+    (tgt && (last.ai || {})[tgt.ptr] ? row(`<i class="key" style="background:var(--foe);opacity:.4"></i>AI`, aiText((last.ai || {})[tgt.ptr], tgt)) : "") +
     row(`<i class="key" style="background:var(--path)"></i>Path`, snap.path ? `${esc(snap.path_tag || "")} · ${snap.path.length} pts` : "none") +
     row(`<i class="key" style="background:var(--friend)"></i>Hold spot`, snap.spot ? esc(snap.spot_tag || "") + ` · ${Math.hypot(snap.spot[0] - p.x, snap.spot[2] - p.z).toFixed(1)} m` : "none") +
     row(`<i class="key" style="background:var(--smash)"></i>Smash`, snap.smash ? esc(snap.smash) : "none") +
@@ -214,6 +249,12 @@ function side() {
   $("foes").innerHTML = foes.map(c =>
     `<tr><td>${esc(c.name || c.npc)}</td><td class="n">${c.dist?.toFixed(1)} m</td><td class="n">${c.hp}/${c.max_hp}</td></tr>`).join("")
     || "<tr><td>none</td></tr>";
+}
+
+function aiText(r, c) {
+  const [sight, width, hearing, leash, sx, sz] = r;
+  const out = leash ? ` · leash ${leash} m (${Math.hypot(c.x - sx, c.z - sz).toFixed(0)} m from spawn)` : " · no leash";
+  return `sight ${sight} m / ${width}° · hear ${hearing} m${out}`;
 }
 
 function itemsRows(items, p, row) {

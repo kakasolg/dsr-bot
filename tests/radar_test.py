@@ -150,6 +150,20 @@ it.put({"type": "unpicked", "flags": [13]})
 check("서버가 unpicked 받으면 다시 보임", [o[4] for o in it.get()["items"]] == ["Soul of a Lost Undead", "Humanity"])
 check(f"data/gamefiles 에서 읽음 (아이템 {len(S.load_items())}, 플래그 있는 것 {len(radar.load_treasures())})", True)
 
+print("적 AI 범위 (시야·청각·귀환)")
+en = {250000: [(0.0, 0.0, 0.0, 30, 120, 10, 75), (50.0, 0.0, 0.0, 20, 120, 10, None)], 255000: [(5.0, 0.0, 5.0, 40, 120, 10, 20)]}
+live = [{"ptr": 7, "npc": 250000, "x": 45.0, "z": 1.0}, {"ptr": 8, "npc": 250000, "x": 2.0, "z": 0.0},
+        {"ptr": 9, "npc": 999999, "x": 0.0, "z": 0.0}, {"ptr": 10, "npc": 255000, "x": 200.0, "z": 0.0}]
+m = S.match_ai(live, en)
+check("같은 종류의 가장 가까운 스폰과 짝", m.get("7") == [20, 120, 10, None, 50.0, 0.0] and m.get("8") == [30, 120, 10, 75, 0.0, 0.0])
+check("모르는 종류·너무 먼 적은 없음", "9" not in m and "10" not in m)
+real = S.load_enemies()
+check(f"data/gamefiles 에서 읽음 ({sum(len(v) for v in real.values())}마리, 귀환 없음 9999 는 None)",
+      real and all(e[6] is None or e[6] < S.NO_LEASH for v in real.values() for e in v))
+ai_st = S.State(props=[], items=[], enemies=en)
+ai_st.put({"type": "snap", "player": {"x": 0.0, "y": 0.0, "z": 0.0}, "chars": live})
+check("/state 에 ai 포함", ai_st.get()["ai"] == m)
+
 print("field.walk 가 경로를 걸고 푼다 (돌아가기 중첩 포함)")
 from souls import field as F
 

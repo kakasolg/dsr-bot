@@ -54,6 +54,41 @@ def load_props(folder: Path = GAMEFILES) -> list[list]:
 
 
 ITEM_KINDS = ("soul", "humanity", "titanite", "other")
+AI_MATCH_R = 80.0              # m — a live foe is matched to the nearest extracted spawn of its kind within this
+NO_LEASH = 1000                # MaxRetreatDistance at or above this = never gives up (9999 in the data)
+
+
+def load_enemies(folder: Path = GAMEFILES) -> dict[int, list]:
+    """{npc param id: [(spawn x, y, z, sight m, sight width deg, hearing m, leash m | None), ...]} from the extracted
+    enemies' NpcThinkParam (msb_extract.py). Evidence grade "file" — metres assumed, not yet checked in play."""
+    out: dict[int, list] = {}
+    for path in sorted(folder.glob("*.json")):
+        try:
+            es = json.loads(path.read_text(encoding="utf-8")).get("enemies") or []
+        except (OSError, ValueError):
+            continue
+        for e in es:
+            t = e.get("think") or {}
+            if e.get("kind") != "enemy" or not t.get("SightDistance"):
+                continue
+            leash = t.get("MaxRetreatDistance")
+            out.setdefault(e["npc_param_id"], []).append(
+                (*e["pos"], t["SightDistance"], t.get("SightRangeWidth") or 120, t.get("HearingDistance") or 0,
+                 leash if leash and leash < NO_LEASH else None))
+    return out
+
+
+def match_ai(chars: list[dict], enemies: dict[int, list]) -> dict[str, list]:
+    """{ptr: [sight, width, hearing, leash, spawn x, spawn z]} for live foes, by kind + nearest spawn."""
+    out = {}
+    for c in chars:
+        cands = enemies.get(c.get("npc"))
+        if not cands or c.get("x") is None:
+            continue
+        d, e = min((math.hypot(e[0] - c["x"], e[2] - c["z"]), e) for e in cands)
+        if d <= AI_MATCH_R:
+            out[str(c["ptr"])] = [e[3], e[4], e[5], e[6], e[0], e[2]]
+    return out
 
 
 def load_items(folder: Path = GAMEFILES) -> list[list]:
@@ -72,10 +107,12 @@ def load_items(folder: Path = GAMEFILES) -> list[list]:
 
 
 class State:
-    def __init__(self, props: list | None = None, english: bool = True, items: list | None = None):
+    def __init__(self, props: list | None = None, english: bool = True, items: list | None = None,
+                 enemies: dict | None = None):
         self.english = english                 # translate the bot's Korean log lines / tags for display (translate.py)
         self.props = props if props is not None else load_props()
         self.items = items if items is not None else load_items()
+        self.enemies = enemies if enemies is not None else load_enemies()
         self.picked: set[int] = set()        # pickup flags radar.py found set
         self.lock = threading.Lock()
         self.snap: dict | None = None
@@ -107,6 +144,7 @@ class State:
         if p.get("x") is not None:
             out["props"] = [o for o in self.props if abs(o[0] - p["x"]) < PROP_R and abs(o[2] - p["z"]) < PROP_R
                             and abs(o[1] - p["y"]) < PROP_DY and math.hypot(o[0] - p["x"], o[2] - p["z"]) < PROP_R]
+            out["ai"] = match_ai(snap.get("chars") or [], self.enemies)
             # items: [x, y, z, kind, label] not yet picked up (any of its flags set = taken)
             out["items"] = [o[:5] for o in self.items if math.hypot(o[0] - p["x"], o[2] - p["z"]) < PROP_R
                             and abs(o[1] - p["y"]) < ITEM_DY and not (set(o[5]) & picked)]
@@ -206,7 +244,9 @@ def main() -> None:
                   [2.0, 0.0, -7.0, False, "o1154_d5"]]
     demo_items = [[3.0, 0.0, 5.0, "soul", "Soul of a Lost Undead", [1]], [-6.0, 0.0, -2.0, "humanity", "Humanity", [2]],
                   [8.0, 0.0, 6.0, "titanite", "Titanite Shard x2", [3]], [-2.0, 0.0, -9.0, "other", "Firebomb x3", [4]]]
-    state = State(props=demo_props if a.demo else None, english=not a.korean, items=demo_items if a.demo else None)
+    demo_enemies = {225000: [(10.0 * math.cos(k), 0.0, 10.0 * math.sin(k), 30, 120, 10, 20) for k in range(6)]}
+    state = State(props=demo_props if a.demo else None, english=not a.korean, items=demo_items if a.demo else None,
+                  enemies=demo_enemies if a.demo else None)
     if not a.demo:
         print(f"breakable props: {len(state.props)}, items: {len(state.items)} (data/gamefiles)")
     threading.Thread(target=udp_loop, args=(state, a.udp), daemon=True).start()
