@@ -59,8 +59,23 @@ def test_log_translates() -> None:
     print("ok  log line translates")
 
 
+def test_walkplan_resync() -> None:
+    here = (5.0, -9.8, -65.2)
+    new = [here, (6.0, -9.8, -66.0), (10.0, -11.3, -70.0), (11.0, -11.3, -71.0)]
+    plan = F.WalkPlan(PATH, "#4 이동")
+    plan.i = 4
+    dy = plan.resync(here, FakeNm(new), window=True)
+    assert dy and plan.i == 0 and plan.path[0] == new[1] and len(plan.tols) == len(plan.path)
+    plan2 = F.WalkPlan(PATH, "#4 이동", tol=0.8)
+    plan2.resync((5.2, -11.2, -65.0), FakeNm(new), window=False)
+    assert plan2.path is not None and plan2.i == 5 and plan2.tols[0] == 0.8
+    print("ok  WalkPlan.resync: re-plan swaps path and tolerances, same level keeps them")
+
+
 if __name__ == "__main__":
     test_same_level_keeps_path()
     test_other_level_replans()
     test_other_level_no_path_falls_back()
     test_log_translates()
+    test_walkplan_resync()
+
