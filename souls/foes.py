@@ -64,7 +64,7 @@ BY_NPC: dict[int, Foe] = {
     # 0.3–0.7 s later an impact hits my shield (my anim 140, SP −7) every 2.7 s (2026-09-25 measured, user "I'm getting hit by arrows, it's right in front").
     # As SHIELD, wait_far said "not approaching" and just blocked for 8 minutes. The fire motion number doesn't change, so anim changes don't reveal it.
     255002: Foe("석궁 병사", kind="shield", ranged=True, kick_when_idle=True, unblockable=(3009,), punish_hits=1,
-                note="3000/3001 = 석궁 발사 (방패 들고 쏜다). 기다리지 말고 붙어 발차기 → 약공"),
+                note="3000/3001 = 석궁 발사 (방패 들고 쏜다). 기다리지 말고 붙어 발차기 → 약공. 뒤잡기 안 됨 — 벽에 붙어 서 있음 (사용자 2026-09-28)"),
     # 254013·254014 (next to the Undead Burg bonfire, HP150): not shield soldiers but bodiless phantoms — user "there's nothing there, why is it swinging"
     # (2026-09-25). 254013 is filtered at layer 0 by its inactive flag, 254014 by body overlap (dsr_telemetry.PHANTOM_R). The entries below are kept.
     254013: SHIELD, 254014: SHIELD,
