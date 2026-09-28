@@ -265,7 +265,9 @@ def follow(tm, pad, path: list, terrain=None, mode_fn=None, on_tick=None, defaul
 
 
 TURN_SLOW_DEG = (45.0, 90.0)   # facing this far off the way to go → stick TURN_SLOW_K (turn first, then run)
-TURN_SLOW_K = (0.5, 0.3)       # user 2026-09-28: "it turns too fast and the character slides" — a full stick swung round at a corner
+TURN_SLOW_K = (0.5, 0.3)
+TURN_RELEASE_S = 0.15          # stick released this long before a sharp turn (stops the run's momentum)
+TURN_RELEASE_GAP = 0.6         # not again within this (one release per corner)       # user 2026-09-28: "it turns too fast and the character slides" — a full stick swung round at a corner
                                # carried it sideways into the passage-entrance wall (radar: 15/15 runs, 1.8–4.4 s rubbing)
 
 
@@ -289,6 +291,7 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
     """Returns: 'arrived' | 'timeout' | 'dead' | 'lost' | 'unreachable'.
     target is (x, z) or (x, y, z). With y given, 'unreachable' when close in 2D but the height difference exceeds UNREACHABLE_DY — pushing toward a point above from below a cliff
     (when going backwards through a drop section of an indoor path). mode_fn(snapshot) -> 'walk'|'sprint'|'guardjump'|'guard' is the movement mode each tick."""
+    turn_release = [0.0]                   # when the stick was last released for a sharp turn
     if len(target) == 3:
         tx, ty, tz = target
     else:
@@ -508,6 +511,12 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
                 else:
                     sx, sy = control.world_to_stick(h[0], h[1], s.cam_yaw, YAW_OFFSET, FLIP_X)
                     k = turn_scale(p.heading, h[0], h[1])
+                    if k < 1.0 and now - turn_release[0] > TURN_RELEASE_GAP:
+                        # a sharp turn coming: let go of the stick first so the run stops, then turn (user 2026-09-28 —
+                        # "release everything and then turn", like the backstab). Once per TURN_RELEASE_GAP
+                        pad.move(0.0, 0.0)
+                        time.sleep(TURN_RELEASE_S)
+                        turn_release[0] = time.time()
                     pad.move(sx * k, sy * k)
                     if k < 1.0 and mode == "sprint":
                         mode = "walk"           # don't sprint through a sharp turn
