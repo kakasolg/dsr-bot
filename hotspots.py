@@ -88,6 +88,20 @@ def report(places: list[dict], n_runs: int, min_runs: int = 2) -> str:
     return "\n".join(lines)
 
 
+def dedupe(runs: dict[str, list[dict]]) -> dict[str, list[dict]]:
+    """Drop logs that are copies of another one (a run's log copied into data/samples/ was counted twice, ROADMAP P-12):
+    same problems at the same times and places = same run. Logs with no problems are kept (they still count as runs)."""
+    seen: dict[tuple, str] = {}
+    out = {}
+    for path, evs in runs.items():
+        key = tuple((e["t"], e["kind"], e["pos"]) for e in evs)
+        if evs and key in seen:
+            continue
+        seen.setdefault(key, path)
+        out[path] = evs
+    return out
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("logs", nargs="*")
@@ -95,8 +109,9 @@ def main() -> None:
     ap.add_argument("--radius", type=float, default=3.0)
     a = ap.parse_args()
     logs = a.logs or sorted(glob.glob(str(ROOT / "data" / "samples" / "*.txt")) + glob.glob(str(ROOT / "data" / "runs" / "*.log")))
-    events = [e for p in logs for e in parse(p)]
-    print(report(group(events, a.radius), len(logs), a.min_runs))
+    runs = dedupe({p: parse(p) for p in logs})
+    events = [e for evs in runs.values() for e in evs]
+    print(report(group(events, a.radius), len(runs), a.min_runs))
 
 
 if __name__ == "__main__":

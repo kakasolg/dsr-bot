@@ -43,6 +43,10 @@ check("같은 자리 두 실행이 한 곳으로", len(places[0]["runs"]) == 2 a
 rep = H.report(places, 2)
 check("리포트: 2번 이상 실행된 곳만", "1 places in ≥2 runs" in rep and "(-9.8, -11.3, -68.6)  2/2 runs" in rep and "40.0" not in rep)
 
+(d / "a_copy.log").write_text(LOG1, encoding="utf-8")
+runs = H.dedupe({str(d / n): H.parse(str(d / n)) for n in ("a.log", "b.log", "a_copy.log")})
+check("같은 실행의 복사본은 한 번만 셈 (P-12)", len(runs) == 2 and str(d / "a_copy.log") not in runs)
+
 samples = sorted(glob.glob("data/samples/burg-bonfire-radar-*.txt"))
 if samples:
     real = H.group([e for p in samples for e in H.parse(p)])
