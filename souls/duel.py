@@ -767,8 +767,10 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
         foe_still = foe_still or back_to_me                   # showing its back = not walking at us (27m: just out of a stagger, 145° behind)
         backstab_chance = (foe is not None and foe.circle_behind and a == -1 and foe_still and circle_n < CIRCLE_MAX_SWEEPS
                            and bs_near and abs(dy) <= 1.0)
+        if backstab_chance and not (not _other_swinging(s, ptr) and (nm is None or nav.ground_ahead(nm, p, c.x - p.x, c.z - p.z, reach=1.0))):
+            note("뒤잡기안함:" + ("옆공격" if _other_swinging(s, ptr) else "바닥"), s, c)   # passes the chance test but not the trigger below
         if not backstab_chance and foe is not None and foe.circle_behind and a == -1 and h <= BACKSTAB_REACH + 0.5:
-            why = ("안멈춤" if not foe_still else "횟수" if circle_n >= CIRCLE_MAX_SWEEPS else "멀다" if h > BACKSTAB_REACH
+            why = (f"안멈춤({now - still[3]:.1f}s)" if not foe_still else "횟수" if circle_n >= CIRCLE_MAX_SWEEPS else "멀다" if h > BACKSTAB_REACH
                    else "높이" if abs(dy) > 1.0 else "?")
             note(f"뒤잡기안함:{why}", s, c)                   # why an idle hollow close by was not backstabbed (27i: 1 try in a whole run)
         if h > weapon.reach and wait_far and not (foe and foe.ranged) and not backstab_chance:   # 3-wait) shooters keep shooting if we wait — don't wait. Still far — don't approach, block in place and wait
