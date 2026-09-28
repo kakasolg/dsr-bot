@@ -30,7 +30,9 @@
 **지금 할 것 (작고 확인 가능한 것)** — 2026-09-28 [사람] 두 번째 정리 반영
 - [x] [cloud] Bandit's Knife(103000)를 `souls/weapons.py`에 추가 — 첫 값(위키 기준): 닿는 거리 1.0 m, 2연타, sp_min 30. 실측 전
 - [ ] [win] Bandit's Knife 실측: `reach.py`로 헛손질 거리, 허공 휘두르기로 startup·active·recovery → `weapons.py` 값 고침
-- [ ] [cloud] 계획 경로 vs 실제 궤적 로그 + 실행 후 비교 리포트 (1-e 마지막 항목, 아직 안 됨)
+- [x] [cloud] 계획 경로 vs 실제 궤적: 봇이 실행마다 `data/runs/<시각>_<이름>.track.jsonl`(2 Hz 위치·HP·근처 적, 계획 경로는 바뀔 때만, 로그 줄) 기록 — 레이더 서버 없이도. `track_report.py`: 걷기마다 걸린 시간·계획/실제 거리·경로에서 벗어난 거리·끝 도착 여부·**멈칫**(6 m 안 적 없이 1 s 넘게 0.3 m/s 미만), 여러 실행이면 멈칫 자리별 실행마다 초. 레이더 녹화(`data/radar/*.jsonl`)도 읽음. `tests/track_report_test.py`
+- [x] [cloud] `hotspots.py` 기본을 "이번 실행 vs 이전"으로: NEW·AGAIN·GONE만 (옛 전체 목록은 `--all`)
+- [ ] [win] 봇 1번 실행 → `python track_report.py`·`python hotspots.py` 결과와 track 파일을 `data/samples/`에 올림. 오늘 레이더 녹화(`data/radar/20260927_191338.jsonl` 등)에도 `python track_report.py --quiet <파일>` 돌려 결과 첨부 — 통로 입구 멈칫이 숫자로 나오는지 (P-17 기록용)
 - [ ] [cloud]+[사람] 레이더·오버레이 고도화 / 모드(배포 가능한 도구)로 만들기 검토 — 오늘의 큰 성과([사람])
 - [ ] [win] 남은 작은 확인들: 4번 레이더·오버레이 [win] 확인, `msb_extract` treasures 재실행
 - `hotspots.py` 결과가 오늘은 너무 많아 읽기 어려움([사람]) → 오늘 날짜 실행만 보는 옵션 등은 [cloud]가 필요할 때
@@ -129,7 +131,7 @@
 - [x] [cloud] 위 1위 지점 수정안: 싸움 뒤·귀환 뒤 재동기화에서 가장 가까운 점이 **다른 층**(높이차 > `RESYNC_DY` 1.0 m)이면 현재 위치에서 목표까지 `nm.find_path`로 다시 찾음 (`field.resync`, 경로 못 찾으면 예전대로). 로그 `경로 재탐색 — 이어갈 점이 다른 층 (Δy …)`, 레이더 경로도 바뀜. 확인: `tests/walk_resync_test.py` (턱 위 y −9.8, 경로 y −11.3 → 재탐색)
 - [x] [win] 재탐색 확인: 봇 실행 → 로그에 `경로 재탐색`이 나오는지, `python hotspots.py`에서 (−9.8, −11.3, −68.6) 지점이 줄었는지
   - 2026-09-28 [win] 27g (`data/samples/burg-bonfire-radar-2026-09-28g.txt`, 무기 Bandit's Knife): 368.4 s `#4 이동: 경로 재탐색 — 이어갈 점이 다른 층 (Δy +1.6 m), 5점` — 석궁병 `255002`를 발판에서 잡은 직후. 이번 실행엔 (−9.8, −11.3, −68.6) `못 감` **없음** (27a~f는 매번 나오던 자리). `hotspots.py`는 이제 옛 로그까지 349개 실행을 세서 그 지점이 21개로 나오지만 이번 실행은 0
-- [ ] [cloud] 계획 경로(걷기 시작·끝 이벤트)와 실제 궤적(초당 2번 위치, `<실행>.track.jsonl`)을 로그에 남기고, 실행 후 비교 리포트 — "못 감"까지 가지 않은 헤맴도 잡기 위해
+- [x] [cloud] 계획 경로(걷기 시작·끝 이벤트)와 실제 궤적(초당 2번 위치, `<실행>.track.jsonl`)을 로그에 남기고, 실행 후 비교 리포트 → 0-b 참고 (`track.py`, `track_report.py`) — "못 감"까지 가지 않은 헤맴도 잡기 위해
 
 ## 1-g. 방향 — 봇이 스스로 배우게 (2026-09-28 [사람])
 

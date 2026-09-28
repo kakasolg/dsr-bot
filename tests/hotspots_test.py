@@ -47,12 +47,20 @@ check("리포트: 2번 이상 실행된 곳만", "1 places in ≥2 runs" in rep 
 runs = H.dedupe({str(d / n): H.parse(str(d / n)) for n in ("a.log", "b.log", "a_copy.log")})
 check("같은 실행의 복사본은 한 번만 셈 (P-12)", len(runs) == 2 and str(d / "a_copy.log") not in runs)
 
+def ev(run, x):
+    return {"run": run, "t": 1.0, "kind": "point-fail", "tag": "#4 이동", "why": "stuck", "pos": (x, 0.0, 0.0)}
+
+
 samples = sorted(glob.glob("data/samples/burg-bonfire-radar-*.txt"))
 if samples:
     real = H.group([e for p in samples for e in H.parse(p)])
     top = next((r for r in real if r["pos"] == (-9.8, -11.3, -68.6)), None)   # not pinned to 1st: new sample runs reorder the list
     check(f"실제 로그 {len(samples)}개: (-9.8, -11.3, -68.6) {len(top['runs']) if top else 0}번 (4번 이상)",
           top is not None and len(top["runs"]) >= 4)
+
+runs = {"a": [ev("a", 0.0), ev("a", 50.0)], "b": [ev("b", 0.0), ev("b", 50.0)], "c": [ev("c", 0.0), ev("c", 100.0)]}
+out = H.compare(runs, 1)
+check("compare: 새 실행 vs 이전 — NEW / AGAIN / GONE", "NEW   (100.0" in out and "AGAIN (0.0" in out and "GONE  (50.0" in out)
 
 print("전부 통과" if not fails else f"실패 {fails}")
 sys.exit(1 if fails else 0)

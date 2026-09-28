@@ -6,6 +6,6 @@
 - 작업 브랜치: `claude/dsr-bot-project-review-r3hh9f`. 시작 전 `git pull`.
 - Python 3.12. 오프라인 테스트 (게임 불필요): `python -m pytest` (전부) · `python -m pytest -k radar` (하나) · `python tests/radar_test.py` (스크립트 직접). 테스트는 `tests/`, 새 테스트는 `tests/<이름>_test.py`로 만들면 자동 포함.
 - 폴더: 루트 = 봇 실행에 쓰이는 모듈과 도구(레이더·오버레이·추출), `souls/` = 층, `tests/` = 오프라인 테스트, `experiments/` = 봇이 쓰지 않는 옛 실험·측정 스크립트(`python experiments/x.py`로 실행), `boss/` = 보스 실험, `legacy/` = 옛 코드.
-- [win] 봇을 실행한 뒤에는 매번 `python hotspots.py`를 돌린다. 2번 이상 실행에서 같은 곳이 나오면, 봇이 스스로 회복했더라도 ROADMAP "8. 문제 기록"에 올린다 (죽지 않은 실수도 결함).
+- [win] 봇을 실행한 뒤에는 매번 `python hotspots.py`(이번 실행 vs 이전: NEW·AGAIN·GONE)와 `python track_report.py`(계획 경로 vs 실제, 멈칫 자리)를 돌리고, 그 실행의 `data/runs/<시각>_<이름>.track.jsonl`과 로그를 `data/samples/`에 복사해 커밋한다. AGAIN이나 2번 이상 실행에서 같은 멈칫 자리는, 봇이 스스로 회복했더라도 ROADMAP "8. 문제 기록"에 올린다 (죽지 않은 실수도 결함).
 - 게임 메모리 쓰기 기능(무적·투명·워프)은 오프라인에서만 쓴다.
 - 규칙과 수치 근거는 LAYERS.md, 기록 형식은 OBSERVE.md.

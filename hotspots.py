@@ -3,6 +3,11 @@
   python hotspots.py                               data/samples/*.txt and data/runs/*.log
   python hotspots.py data/runs/2026*_burg-bonfire.log ...
   python hotspots.py --min-runs 2 --radius 3
+  python hotspots.py --all                         the old full list (every place in ≥ --min-runs runs)
+
+By default only the newest run (--last 1) is compared with the ones before it: NEW places (first time), AGAIN places
+(this run and earlier ones too), and places that went wrong in ≥ 2 earlier runs but not this time (GONE) —
+so a fix's effect shows up without scrolling through every old run.
 
 Reads the text logs run.py writes (data/runs/<stamp>_<mission>.log) and pulls every walking problem with a position:
   point-fail  "<tag>: i/n번 점 (x, y, z) 못 감 (reason, k번째) — 나 (x, y, z), d m"
@@ -102,14 +107,48 @@ def dedupe(runs: dict[str, list[dict]]) -> dict[str, list[dict]]:
     return out
 
 
+def compare(runs: dict[str, list[dict]], last: int = 1, radius: float = 3.0) -> str:
+    """The newest `last` runs (in the given order) vs the rest: NEW / AGAIN / GONE places."""
+    names = list(runs)
+    now, before = names[-last:], names[:-last]
+    ps = group([e for evs in runs.values() for e in evs], radius)
+    new, again, gone = [], [], []
+    for p in ps:
+        n_now = [r for r in p["runs"] if r in now]
+        n_before = [r for r in p["runs"] if r in before]
+        if n_now and not n_before:
+            new.append(p)
+        elif n_now:
+            again.append(p)
+        elif len(n_before) >= 2:
+            gone.append(p)
+    lines = [f"this time: {', '.join(Path(r).name for r in now)}  vs {len(before)} earlier runs"]
+
+    def row(p, label):
+        x, y, z = p["pos"]
+        mine = [e for e in p["events"] if e["run"] in now]
+        what = ", ".join(sorted({f"{e['kind']}:{e['why']} {e['tag']}" for e in mine or p["events"]}))
+        b = len([r for r in p["runs"] if r in before])
+        return f"  {label:5} ({x:.1f}, {y:.1f}, {z:.1f})  earlier {b}/{len(before)} runs  {what}"
+    lines += [row(p, "NEW") for p in new] + [row(p, "AGAIN") for p in again] + [row(p, "GONE") for p in gone[:10]]
+    if not new and not again:
+        lines.append("  no walking problems this time")
+    return "\n".join(lines)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("logs", nargs="*")
     ap.add_argument("--min-runs", type=int, default=2)
     ap.add_argument("--radius", type=float, default=3.0)
+    ap.add_argument("--last", type=int, default=1, help="how many newest runs count as 'this time'")
+    ap.add_argument("--all", action="store_true", help="old full report")
     a = ap.parse_args()
     logs = a.logs or sorted(glob.glob(str(ROOT / "data" / "samples" / "*.txt")) + glob.glob(str(ROOT / "data" / "runs" / "*.log")))
     runs = dedupe({p: parse(p) for p in logs})
+    if not a.all:
+        print(compare(runs, a.last, a.radius))
+        return
     events = [e for evs in runs.values() for e in evs]
     print(report(group(events, a.radius), len(runs), a.min_runs))
 

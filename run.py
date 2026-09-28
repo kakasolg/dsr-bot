@@ -107,15 +107,19 @@ def main() -> None:
         log("   ⚠ 이미 다른 본체가 실행 중 — 겹쳐 켜면 패드가 부딪힌다, 멈춤")
         return
     tm = env.make_telemetry({})
+    import track
+    track_ = track.Track(str(log.path).replace(".jsonl", ".track.jsonl")).attach(tm)   # planned vs actual path (track_report.py)
+    log.on_line = track_.say
     if a.radar:
         import radar
         radar_ = radar.Radar().attach(tm)
-        log.on_line = radar_.say
+        log.on_line = lambda m: (track_.say(m), radar_.say(m))
         log("radar: sending — python radar_server.py -> http://127.0.0.1:47801, python overlay.py")
     control.focus_game()
     pad = control.Pad()
     nms = {missions.MAP_A: navmesh.Navmesh(missions.MAP_A), missions.MAP_B: navmesh.Navmesh(missions.MAP_B)}
     mv = moves.Moves(tm, pad)
+    track_.follow(mv)
     if a.radar:
         radar_.follow(mv)                                   # target · path · held spot on the radar
     w = weapons.of(tm.right_weapon())
