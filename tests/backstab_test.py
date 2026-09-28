@@ -141,3 +141,20 @@ if __name__ == "__main__":
     test_aborts_when_it_moves()
     test_no_lock()
     test_stick_direction()
+
+
+def test_room_behind() -> None:
+    """A wall/drop behind the foe (no NavMesh floor there) → no backstab (user 2026-09-28)."""
+    import types
+    class NM:
+        def __init__(self, ok): self.ok = ok
+        def floor_at(self, x, z, y): return (y, 0) if self.ok(x, z) else None
+    p = types.SimpleNamespace(x=0.0, y=0.0, z=-2.0, gx=0.0, gy=0.0, gz=-2.0)
+    c = types.SimpleNamespace(x=0.0, y=0.0, z=0.0, heading=0.0)       # faces world yaw π → its back points toward +z
+    assert D._room_behind(NM(lambda x, z: True), p, c)
+    assert not D._room_behind(NM(lambda x, z: z < 0.5), p, c)          # nothing behind it (z > 0.5) — back against a wall
+    assert D._room_behind(None, p, c)                                   # no NavMesh → don't block
+    print("ok  wall/drop behind the foe → no backstab")
+
+
+test_room_behind()

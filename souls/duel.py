@@ -153,6 +153,24 @@ def _backstab(mv, s, c, cancel) -> str:
         mv.cam_busy = busy0
 
 
+
+def _room_behind(nm, p, c, r: float = 1.0) -> bool:
+    """Floor behind the foe and at least one side (r m out, NavMesh, same level)? A hollow with its back to a wall or a drop can't be
+    got behind — circling there walks into the wall or off the edge (user 2026-09-28: "except foes against a wall or a cliff").
+    True when there's no NavMesh / no global coords to check with."""
+    if nm is None or c.heading is None or getattr(p, "gx", None) is None:
+        return True
+    ox, oy, oz = p.gx - p.x, p.gy - p.y, p.gz - p.z         # foes only have tile-local coords — same tile offset as the player
+    fwd = c.heading + math.pi                              # world yaw = heading + π (moves.rel_angle)
+
+    def floor(turn: float) -> bool:
+        a = fwd + turn
+        hit = nm.floor_at(c.x + ox + math.sin(a) * r, c.z + oz + math.cos(a) * r, c.y + oy)
+        return hit is not None and abs(hit[0] - (c.y + oy)) <= 1.0
+
+    return floor(math.pi) and (floor(math.pi / 2) or floor(-math.pi / 2))
+
+
 def _pair_close(s, p, ptr, h: float) -> list:
     """Awake, moving foes other than the target within SEP_R (same height) — only when the target is also within SEP_R. Excludes idle (-1) and downed ones."""
     if h >= SEP_R:
@@ -620,7 +638,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             # if the 3000 series lasts beyond SWING_S it isn't swinging (it lingers 1.5–5.3 s after the attack ends — log analysis).
             # the spear shield soldier (255002) stays in 3001 holding up its shield, so for 15 s we only blocked at 1.4 m and never kicked
             a = -1
-        if (foe.kind != "shield" and h <= weapon.reach and not (BACKSTAB_ONLY and foe.circle_behind)
+        if (foe.kind != "shield" and h <= weapon.reach and not (BACKSTAB_ONLY and room)
                 and not (foe.circle_behind and res.dealt > 0 and a == -1 and circle_n < CIRCLE_MAX_SWEEPS) and abs(dy) <= 1.0 and (p.sp or 0) >= weapon.sp_min
                 and (a == -1 or (a in M.ATTACK and age is not None and age < INTERRUPT_S
                                  and (weapon.startup or 0.0) <= INTERRUPT_STARTUP_MAX))
@@ -641,7 +659,8 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             continue
         # a hollow (circle_behind) swinging at us up close, nobody else swinging = the backstab moment (drill: 4 kills, all mid-swing).
         # The reflex below blocked every such swing first, so the backstab check further down was never reached (27q: 3 hollows)
-        bs_early = (foe is not None and foe.circle_behind and a in M.ATTACK and circle_n < CIRCLE_MAX_SWEEPS
+        room = foe is not None and foe.circle_behind and _room_behind(nm, p, c)   # wall / drop at its back → no backstab, normal rules
+        bs_early = (room and a in M.ATTACK and circle_n < CIRCLE_MAX_SWEEPS
                     and h <= BACKSTAB_REACH and abs(dy) <= 1.0 and not _other_swinging(s, ptr))
         if bs_early:
             circle_n += 1
@@ -713,7 +732,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
                 note("백스텝", s, c)
                 continue
 
-        if (a in M.STAGGER or a == M.GUARD_BROKEN) and not (BACKSTAB_ONLY and foe.circle_behind) and h <= weapon.reach + 0.3 and abs(dy) <= 1.0 and (p.sp or 0) >= weapon.sp_min \
+        if (a in M.STAGGER or a == M.GUARD_BROKEN) and not (BACKSTAB_ONLY and room) and h <= weapon.reach + 0.3 and abs(dy) <= 1.0 and (p.sp or 0) >= weapon.sp_min \
                 and not _other_swinging(s, ptr):
             # not while another foe is swinging next to us — punishing the staggered shield soldier took -115 from a hollow's 3003
             # 1.2 m away (dealt 4, 2026-09-27 27c P-8); the reflex blocks that swing instead and the stagger is taken next time
@@ -762,7 +781,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             note("피함대기", s, c)
             time.sleep(0.02)
             continue
-        bs_swing = (foe is not None and foe.circle_behind and a in M.ATTACK and circle_n < CIRCLE_MAX_SWEEPS
+        bs_swing = (room and a in M.ATTACK and circle_n < CIRCLE_MAX_SWEEPS
                     and h <= BACKSTAB_REACH and abs(dy) <= 1.0)          # a hollow swinging at us up close = the backstab moment (drill)
         if style.shield and a in M.ATTACK and h < NEAR and not bs_swing:     # 1) swinging → block (only styles with a shield —
             # rush (no shield, no evade) just stood here taking hits, the enemy combo never broke: 8 s+ 0 attacks, 676 taken, 2026-09-25)
@@ -793,7 +812,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
         back_to_me = c.heading is not None and abs(math.degrees(M.rel_angle(c, p))) >= SNEAK_DEG
         bs_near = h <= BACKSTAB_REACH or (back_to_me and h <= SNEAK_R)
         foe_still = True                                      # user 2026-09-28: hollows never stand still for a backstab — not a condition
-        backstab_chance = (foe is not None and foe.circle_behind and (a == -1 or a in M.ATTACK or a in M.STAGGER) and foe_still and circle_n < CIRCLE_MAX_SWEEPS
+        backstab_chance = (room and (a == -1 or a in M.ATTACK or a in M.STAGGER) and foe_still and circle_n < CIRCLE_MAX_SWEEPS
                            and bs_near and abs(dy) <= 1.0)
         if backstab_chance and not (not _other_swinging(s, ptr) and (nm is None or nav.ground_ahead(nm, p, c.x - p.x, c.z - p.z, reach=1.0))):
             note("뒤잡기안함:" + ("옆공격" if _other_swinging(s, ptr) else "바닥"), s, c)   # passes the chance test but not the trigger below
@@ -885,7 +904,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             a = -1                                         # 3000 series lingering in guard stance — treat as standing (kick)
         behind_deg = abs(math.degrees(M.rel_angle(c, s.player))) if c.heading is not None else 0.0
         looks_at_me = behind_deg < 60
-        if (foe.circle_behind and (a == -1 or a in M.ATTACK or a in M.STAGGER) and foe_still and circle_n < CIRCLE_MAX_SWEEPS and bs_near and abs(dy) <= 1.0
+        if (room and (a == -1 or a in M.ATTACK or a in M.STAGGER) and foe_still and circle_n < CIRCLE_MAX_SWEEPS and bs_near and abs(dy) <= 1.0
                 and not _other_swinging(s, ptr)
                 and (nm is None or nav.ground_ahead(nm, p, c.x - p.x, c.z - p.z, reach=1.0))):
             # idle → circle behind with lock-on and backstab (human demos, see BACKSTAB_*). Past CIRCLE_MAX_SWEEPS tries, normal attacks
