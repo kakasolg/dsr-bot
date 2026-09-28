@@ -94,13 +94,9 @@ def main() -> None:
     mv.cam_busy = True
     try:
         pad.guard(False)
-        for _ in range(2):                                 # the first R3 sometimes misses (27 drill: "lock-on: none")
-            if mv.lock_state(ptr) == "target":
-                break
+        if mv.lock_state(ptr) == "other":
             mv.unlock()
-            pad.lock_on()
-            wait(0.3)
-        locked = mv.lock_state(ptr) == "target"
+        locked = mv.lock_target(ptr)                       # body + camera toward it, R3, check (user locked by hand before)
         print(f"lock-on: {mv.lock_state(ptr)}")
         t0, last_print, side = time.time(), 0.0, None
         while time.time() - t0 < TIMEOUT_S:

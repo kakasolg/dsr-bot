@@ -117,10 +117,9 @@ def _backstab(mv, s, c, cancel) -> str:
         if at_back(s, c):                                  # already at its back (e.g. it staggered while we stood) — R1 now; locking on
             return stab()                                  # first cost 0.25 s and then 'no_lock' threw the chance away (27m: 145° at 1.4 m)
         if mv.lock_state(ptr) != "target":
-            mv.unlock()
-            mv.pad.lock_on()
-            wait(0.25)
-            if mv.lock_state(ptr) != "target":
+            if mv.lock_state(ptr) == "other":
+                mv.unlock()
+            if not mv.lock_target(ptr, tries=2, aim=False):   # camera onto it first — a bare R3 grabs whatever is at camera center
                 s = mv.snap(8.0) or s
                 c = mv.find(s, ptr) or c
                 return stab() if at_back(s, c) else "no_lock"

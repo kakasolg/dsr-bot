@@ -78,6 +78,11 @@ class Mv:
     def lock_state(self, ptr):
         return "none" if self.w.lock == -1 else ("target" if self.w.lock == self.w.handles[ptr] else "other")
 
+    def lock_target(self, ptr, tries=3, aim=True):       # the real one also turns the camera; here R3 either grabs it or not
+        if self.lock_state(ptr) != "target":
+            self.pad.lock_on()
+        return self.lock_state(ptr) == "target"
+
     def unlock(self):
         if self.w.lock != -1:
             self.pad.lock_on()

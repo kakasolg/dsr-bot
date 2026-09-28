@@ -599,10 +599,14 @@ class Moves:
         finally:
             self.cam_busy = False
 
-    def _throw_knife(self, ptr, c, watch: float, require_lock: bool, item: int = ITEM_KNIFE) -> dict:
-        self.aim(ptr, deg=8.0, timeout=1.5)       # turn the body toward it so lock-on grabs the target
-        locked = False
-        for _ in range(3):
+    def lock_target(self, ptr, tries: int = 3, aim: bool = True) -> bool:
+        """Lock on to ptr the way the user does: body toward it, camera on it (R3 grabs the enemy nearest camera center), R3, check;
+        a neighbour grabbed → release and retry. → True when locked on ptr."""
+        if self.lock_state(ptr) == "target":
+            return True
+        if aim:
+            self.aim(ptr, deg=8.0, timeout=1.5)   # turn the body toward it so lock-on grabs the target
+        for _ in range(tries):
             if self.lock_state(ptr) == "none":
                 self.look_at(ptr, tol=5.0, timeout=2.5)   # R3 grabs the enemy at camera center — point the camera at the target first (user's method)
             self.pad.lock_on()
@@ -612,11 +616,17 @@ class Moves:
                 time.sleep(0.02)
             st = self.lock_state(ptr)
             if st == "target":
-                locked = True
-                break
+                return True
             if st == "other":
                 self.pad.lock_on()                # locked the neighbor → release and retry
-                time.sleep(0.15)
+                t = time.time()
+                while time.time() - t < 0.15:
+                    self.pad.release_due()
+                    time.sleep(0.02)
+        return False
+
+    def _throw_knife(self, ptr, c, watch: float, require_lock: bool, item: int = ITEM_KNIFE) -> dict:
+        locked = self.lock_target(ptr)
         off = None
         if not locked and require_lock:
             return {"ok": False, "locked": False, "why": "락온 안 걸림 — 안 던짐 (락온 없는 나이프는 오늘 0/5)", "dist": round(c.dist, 1)}
