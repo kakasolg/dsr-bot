@@ -161,18 +161,25 @@ def main():
             print(f"     (주의: {min(miss):.2f} m 에서도 빗나간 기록이 있다 — 각도·적 이동 탓, 경계가 흐리다)")
 
 
-def direct(n_swings: int = 28):
+def direct(n_swings: int = 28, targets: list[float] | None = None, no_dead: bool = False):
     """Guard 없이 직접 거리를 맞춰 가며 휘두른다 — 순수 측정용.
 
     Guard 를 쓰면 HP 가 낮을 때 후퇴하고 성배병을 마시느라 스윙이 거의 안 나온다 (실측: 10 분에 4 회).
     여기서는 목표 거리 목록을 돌며 그 거리에 서서 한 대씩 휘두르고, 휘두른 순간의 실제 거리와
-    적 HP 변화를 짝지어 기록한다. 맞는 동안에도 가드를 들고 버틴다."""
+    적 HP 변화를 짝지어 기록한다. 맞는 동안에도 가드를 들고 버틴다.
+    targets: 설 거리 목록 (단검처럼 짧은 무기는 기본 3.6~1.2 m 가 거의 다 빗나감).
+    no_dead: 측정 동안 ChrDbg PlayerNoDead (오프라인에서만) — 적에게 둘러싸여도 죽지 않고, 적은 그대로 피해를 입는다."""
     import vgamepad
     tm = env.make_telemetry({})
     control.focus_game()
     pad = control.Pad()
     B = vgamepad.XUSB_BUTTON
-    targets = [3.6, 3.2, 2.8, 2.4, 2.0, 1.6, 1.2]
+    targets = targets or [3.6, 3.2, 2.8, 2.4, 2.0, 1.6, 1.2]
+    nodead0 = None
+    if no_dead:
+        nodead0 = tm.get_dbg(tm.DBG_PLAYER_NO_DEAD)
+        tm.set_dbg(tm.DBG_PLAYER_NO_DEAD, True)
+        print(f"PlayerNoDead 켬 (원래 {nodead0})")
     state_lock = {"ptr": None, "on": False}
     rec = []
     t0 = time.time()
@@ -227,6 +234,9 @@ def direct(n_swings: int = 28):
             pad.lock_on()
         pad.guard(False)
         pad.neutral()
+        if nodead0 is not None:
+            tm.set_dbg(tm.DBG_PLAYER_NO_DEAD, bool(nodead0))
+            print(f"PlayerNoDead 되돌림 → {tm.get_dbg(tm.DBG_PLAYER_NO_DEAD)}")
     report(rec)
 
 
@@ -258,7 +268,10 @@ def report(rec):
 
 
 if __name__ == "__main__":
+    # python experiments/reach.py direct [횟수] [거리,거리,…] [nodead]
     if len(sys.argv) > 1 and sys.argv[1] == "direct":
-        direct(int(sys.argv[2]) if len(sys.argv) > 2 else 28)
+        direct(int(sys.argv[2]) if len(sys.argv) > 2 else 28,
+               [float(v) for v in sys.argv[3].split(",")] if len(sys.argv) > 3 else None,
+               no_dead="nodead" in sys.argv[4:])
     else:
         main()

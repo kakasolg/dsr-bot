@@ -30,7 +30,8 @@
 
 **지금 할 것 (작고 확인 가능한 것)** — 2026-09-28 [사람] 두 번째 정리 반영
 - [x] [cloud] Bandit's Knife(103000)를 `souls/weapons.py`에 추가 — 첫 값(위키 기준): 닿는 거리 1.0 m, 2연타, sp_min 30. 실측 전
-- [ ] [win] Bandit's Knife 실측: `reach.py`로 헛손질 거리, 허공 휘두르기로 startup·active·recovery → `weapons.py` 값 고침
+- [x] [win] Bandit's Knife 실측: `reach.py`로 헛손질 거리, 허공 휘두르기로 startup·active·recovery → `weapons.py` 값 고침
+  - 2026-09-28 [win] (+3 강화, [MoKa]: "거의 패링·뒤잡 전용") **허공 휘두르기** (새 `experiments/swing_probe.py`, 6/6 같음): 애니 203000, 스태미나 −14 at **0.34 s**, +0xA0 0x100 비트 0.34~0.46 s, idle 복귀 1.36 s → startup 0.34 · active 0.12 · recovery 0.90. LB 들고 휘두르면 startup 같고 0.76 s에 끝남(회복 캔슬). 2타: 두 번째 R1 0.25 s는 무시, 0.35~0.95 s는 항상 이어짐 → 공식 `chain_at` 0.42 s가 창 안. **닿는 거리**: `reach.py direct`는 NavMesh 없이 직선으로 다가가다 성벽 마을 화톳불 난간에서 떨어져 맵 밖으로(y −767, PlayerNoDead라 안 죽음, [MoKa]가 게임 강종·재시작) → 표본 0 (P-19). 대신 블랙박스(knife 실행 13개, 새 `experiments/knife_hits.py`): 칼날 나간 순간 거리별 명중 0.8 m 28/41 · 1.0 m 19/22 · 1.4 m 3/3 · 1.6 m 12/19 · 1.8 m 1/6 · ≥2.2 m 0/16 → 경계 ≈1.6 m, **reach 1.0 → 1.3**. `weapons.py` 고침, pytest 28 통과. 로그: `data/samples/swing-bandits-knife-2026-09-28a.txt`·`…-guard-2026-09-28b.txt`·`reach-bandits-knife-2026-09-28a.txt`. 참고: 09-28 실행의 약공 애니는 425000(스태미나 −14) — LB 든 허공 휘두르기는 203000이라 425000은 다른 조건(락온?)으로 보임, 확인 안 함
 - [x] [cloud] 계획 경로 vs 실제 궤적: 봇이 실행마다 `data/runs/<시각>_<이름>.track.jsonl`(2 Hz 위치·HP·근처 적, 계획 경로는 바뀔 때만, 로그 줄) 기록 — 레이더 서버 없이도. `track_report.py`: 걷기마다 걸린 시간·계획/실제 거리·경로에서 벗어난 거리·끝 도착 여부·**멈칫**(6 m 안 적 없이 1 s 넘게 0.3 m/s 미만), 여러 실행이면 멈칫 자리별 실행마다 초. 레이더 녹화(`data/radar/*.jsonl`)도 읽음. `tests/track_report_test.py`
 - [x] [cloud] `hotspots.py` 기본을 "이번 실행 vs 이전"으로: NEW·AGAIN·GONE만 (옛 전체 목록은 `--all`)
 - [ ] [win] 봇 1번 실행 → `python track_report.py`·`python hotspots.py` 결과와 track 파일을 `data/samples/`에 올림. 오늘 레이더 녹화(`data/radar/20260927_191338.jsonl` 등)에도 `python track_report.py --quiet <파일>` 돌려 결과 첨부 — 통로 입구 멈칫이 숫자로 나오는지 (P-17 기록용)
@@ -411,6 +412,11 @@
 - 증상: `data/samples/burg-bonfire-radar-2026-09-28y.txt` — 43 s 둘러싸임 퀵 종료(crowd, 254000 둘) → 다시 들어온 뒤 60 s 여섯 놈 모두 `신원 끊김(세대 변화·오래 안 보임)` → #3 254000 `스폰에서 못 찾음` 2번째 → 173 s `결과: 경사로 left #3?`. 경사로는 `cleared`가 아니면 거기서 미션을 끝내서 마을·화톳불까지 안 감. 나누기 전에도 같은 흐름: `data/runs/20260924_093735_burg-bonfire.log` (퀵 종료 2번 뒤 `경사로 left #5`), `20260925_180844_burg-loop.log` (낙사 퀵 종료 4번 뒤 `경사로 left #6`)
 - 원인 (추정): 퀵 종료로 적 포인터가 새로 잡히는데, 이미 죽인 놈(#3 254000은 퀵 종료 전후로 같은 이름 254000이 여럿 죽음)은 스폰에 다시 안 나타나 `unbound`로 남음 → 2번이면 `#3?`로 넘기고, 경사로 결과가 `left`라 미션 중단. 싸움 나누기(duel) 쪽이 아니라 `field.clear`의 신원 다시 잡기
 - 해결: 2026-09-28 [cloud] `Missions.ramp_passed` — 경사로 결과가 `cleared`이거나 남은 게 **전부 `#N?`**(신원 끊김, 살았는지 모름)면 다음 구간으로 (로그 `살았는지 모름(신원 끊김)만 남음 … 계속`). `#N`(3번 싸워도 삶)·`#N~`(다른 높이로 감, 살아 있음)이 하나라도 있으면 전처럼 멈춤. `burg-bonfire`·왕복 둘 다. 확인: `tests/ramp_passed_test.py` (고치기 전 코드에선 실패), pytest 28 통과 → [win] 퀵 종료 뒤 마을까지 가는지 실제 확인 필요 (#3 2번째 실행에서 같이 볼 수 있음)
+
+### P-19 `reach.py direct`가 직선으로 다가가다 난간에서 떨어짐 (2026-09-28, [win])
+- 증상: `python experiments/reach.py direct 24 2.0,…,0.6 nodead` (성벽 마을 화톳불, 가장 가까운 적 254010 19.8 m, 높이 −1.5 m). `nav.goto`로 설 자리까지 직선으로 가다 난간 밖으로 떨어져 y −363 → −767까지 계속 낙하(PlayerNoDead 켜 둠 → 죽지 않고 맵 밖). 스윙 2번은 10 m·21 m에서 헛손질, 그 뒤 `주변에 살아 있는 적 없음`으로 끝남. [MoKa]가 게임 강종 후 재시작. 로그: `data/samples/reach-bandits-knife-2026-09-28a.txt`. PlayerNoDead는 끝에 0으로 되돌림
+- 원인: `direct()`는 30 m 안 아무 적이나 골라 NavMesh 없이 직선 `goto` — 높이가 다른 적에게 가려면 난간을 넘음. 게다가 NoDead라 낙사 판정이 안 나서 맵 밖으로 계속 떨어짐
+- 해결: 미해결. 이번엔 블랙박스 분석으로 대신함. 다시 쓰려면: 평지·혼자 있는 적만(높이차 ≤ 0.5 m, 거리 ≤ 8 m), 다가갈 땐 NavMesh 경로, NoDead 켤 땐 낙하(y가 1 s에 3 m 넘게 떨어짐) 감지 시 즉시 중단 [cloud]
 
 ---
 

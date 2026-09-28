@@ -94,10 +94,18 @@ CLAYMORE = Weapon("클레이모어", 301000, reach=1.8, combo=2, use_heavy=False
 
 # Bandit's Knife 103000 (dagger). user (2026-09-28): switched to it for backstabs/ripostes (big critical damage).
 # Wiki: STR 6 / DEX 12 required, light is a quick short slash, cheap on stamina, critical 110 (highest among daggers besides Priscilla's).
-# **not yet measured** — first values: shorter than the Broadsword (1.2 m measured) → 1.0, fast so 2 hits chain, low sp_min.
-# 27g~v ran it with Broadsword values (warning "모르는 무기 103000"). Re-measure reach with reach.py and the swing with an air swing.
-BANDITS_KNIFE = Weapon("밴딧 나이프", 103000, reach=1.0, combo=2, use_heavy=False, two_hand=False, str_req=6, sp_min=30,
-                       note="단검 — 뒤잡기·패링 치명타용. reach·동작 시간은 실측 전")
+# user (2026-09-28): "think of it as almost parry/backstab only" — light attacks are the fallback, not the plan.
+# air-swing measurement (2026-09-28, +3, experiments/swing_probe.py, 6/6 alike, anim 203000): stamina −14 at 0.34 s,
+# +0xA0 0x100 bit (261→257) 0.34~0.46 s, back to idle 1.36 s. Holding LB: same startup, back to idle at 0.76 s (LB cancels recovery).
+# Second R1 at 0.25 s is ignored; 0.35~0.95 s always chains (second stamina drop at 0.84 s, or press +0.24 s when later).
+# reach (2026-09-28): experiments/reach.py direct walked straight off the Burg bonfire ledge (no NavMesh) — no usable swings.
+# Instead: black-box frames of 13 knife runs (data/runs 20260927_191346~213020 *.hits.jsonl, experiments/knife_hits.py),
+# foe distance at blade-out → HP drop within 0.25 s:
+# 0.8 m 28/41 · 1.0 m 19/22 · 1.2 m 0/2 · 1.4 m 3/3 · 1.6 m 12/19 · 1.8 m 1/6 · 2.0 m 2/8 · ≥2.2 m 0/16 (HP drops seen up to 1.4~1.7 m).
+# Edge ≈ 1.6 m → reach 1.3 (edge − 0.3, reach.py guidance). Misses at 0.85 m are mostly a side foe, not the one swung at.
+BANDITS_KNIFE = Weapon("밴딧 나이프", 103000, reach=1.3, combo=2, use_heavy=False, two_hand=False, str_req=6, sp_min=30,
+                       startup=0.34, active=0.12, recovery=0.90,
+                       note="단검 — 거의 뒤잡기·패링 전용 (사용자). 약공은 보조. 스태미나 14/회")
 
 KNOWN = {w.base_id: w for w in (BROADSWORD, ZWEIHANDER, BATTLE_AXE, CLAYMORE, BANDITS_KNIFE)}
 
