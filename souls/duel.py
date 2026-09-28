@@ -132,8 +132,9 @@ def _backstab(mv, s, c, cancel) -> str:
             c = mv.find(s, ptr) if s else None
             if c is None:
                 return "lost"
-            if (c.anim if c.anim is not None else -1) != -1:
-                return "moved"
+            if (c.anim if c.anim is not None else -1) in M.DOWNED:
+                return "moved"                             # knocked down — nothing to get behind. A swing is NOT a reason to stop: it can't
+                                                           # turn while it swings, that is when we get round (drill: 4 kills, all mid-swing)
             x, y, behind = backstab_stick(c, s.player, side)
             if side is None and x != 0.0:
                 side = x
@@ -747,7 +748,9 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             note("피함대기", s, c)
             time.sleep(0.02)
             continue
-        if style.shield and a in M.ATTACK and h < NEAR:     # 1) swinging → block (only styles with a shield —
+        bs_swing = (foe is not None and foe.circle_behind and a in M.ATTACK and circle_n < CIRCLE_MAX_SWEEPS
+                    and h <= BACKSTAB_REACH and abs(dy) <= 1.0)          # a hollow swinging at us up close = the backstab moment (drill)
+        if style.shield and a in M.ATTACK and h < NEAR and not bs_swing:     # 1) swinging → block (only styles with a shield —
             # rush (no shield, no evade) just stood here taking hits, the enemy combo never broke: 8 s+ 0 attacks, 676 taken, 2026-09-25)
             mv.guard(True)
             if h > weapon.reach + 0.3 and abs(dy) <= 1.0 and s.cam_yaw is not None and (
@@ -776,7 +779,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
         back_to_me = c.heading is not None and abs(math.degrees(M.rel_angle(c, p))) >= SNEAK_DEG
         bs_near = h <= BACKSTAB_REACH or (back_to_me and h <= SNEAK_R)
         foe_still = True                                      # user 2026-09-28: hollows never stand still for a backstab — not a condition
-        backstab_chance = (foe is not None and foe.circle_behind and a == -1 and foe_still and circle_n < CIRCLE_MAX_SWEEPS
+        backstab_chance = (foe is not None and foe.circle_behind and (a == -1 or a in M.ATTACK) and foe_still and circle_n < CIRCLE_MAX_SWEEPS
                            and bs_near and abs(dy) <= 1.0)
         if backstab_chance and not (not _other_swinging(s, ptr) and (nm is None or nav.ground_ahead(nm, p, c.x - p.x, c.z - p.z, reach=1.0))):
             note("뒤잡기안함:" + ("옆공격" if _other_swinging(s, ptr) else "바닥"), s, c)   # passes the chance test but not the trigger below
@@ -868,7 +871,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             a = -1                                         # 3000 series lingering in guard stance — treat as standing (kick)
         behind_deg = abs(math.degrees(M.rel_angle(c, s.player))) if c.heading is not None else 0.0
         looks_at_me = behind_deg < 60
-        if (foe.circle_behind and a == -1 and foe_still and circle_n < CIRCLE_MAX_SWEEPS and bs_near and abs(dy) <= 1.0
+        if (foe.circle_behind and (a == -1 or a in M.ATTACK) and foe_still and circle_n < CIRCLE_MAX_SWEEPS and bs_near and abs(dy) <= 1.0
                 and not _other_swinging(s, ptr)
                 and (nm is None or nav.ground_ahead(nm, p, c.x - p.x, c.z - p.z, reach=1.0))):
             # idle → circle behind with lock-on and backstab (human demos, see BACKSTAB_*). Past CIRCLE_MAX_SWEEPS tries, normal attacks

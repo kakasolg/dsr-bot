@@ -115,10 +115,10 @@ def test_circles_either_way_and_stabs() -> None:
 
 def test_aborts_when_it_moves() -> None:
     w, c, mv = setup(1.0)
-    c.anim = 3003
+    c.anim = sorted(M.DOWNED)[0]                              # knocked down → stop (a swing no longer stops it: drill kills were mid-swing)
     assert D._backstab(mv, w.snapshot(), c, lambda: False) == "moved"
     assert w.r1 == 0 and w.lock == -1 and w.stick == (0.0, 0.0)
-    print("ok  foe attacking → no R1, stick centered, unlocked")
+    print("ok  foe knocked down → no R1, stick centered, unlocked")
 
 
 def test_no_lock() -> None:
