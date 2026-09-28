@@ -329,6 +329,11 @@
 - 원인 (확인): 0474f5c에서 `vision_probe.py`를 `experiments/`로 옮겼는데 `legacy/`의 세 파일은 경로를 안 고침(`boss/boss.py`만 고침). 오프라인 테스트는 이 경로(안개벽 통과)를 안 거침
 - 해결 ([win]): 세 파일에 `experiments/`를 `sys.path`에 넣는 줄 추가, `import legacy.ladder_test` 확인. 봇 코어(`souls/`, 루트)에서 `experiments/`·`legacy/` 모듈을 부르는 곳은 `field.fog_through`(legacy.ladder_test)와 `farm.py`(legacy.reflex)뿐. [cloud]: 이 import 경로를 테스트에 넣을 것
 
+### P-16 뒤잡기로 도는 중 틈새로 떨어짐 (2026-09-28, [win], 1-f)
+- 증상 ([사람] 관찰): 27u 성벽 마을에서 뒤잡기하려고 돌다가 틈새로 떨어짐 — 로그상 304 s 봇 높이 −29.1, 가려던 점 −22.8 (6 m 아래) → `unreachable` 두 번 → P-15 오류
+- 원인 (추정): 바닥 확인이 뒤잡기 시작 전(적 등 뒤)·끝난 뒤(발밑)만 있고 도는 중엔 없음
+- 해결 ([win]): `_circle_floor` — 도는 틱마다 원 둘레 양쪽·바깥 0.8 m에 같은 높이 바닥, 없으면 `edge`로 멈추고 그 적은 5 s 동안 뒤잡기 안 함. `tests/backstab_test.py` 추가. 실제 확인 전
+
 ---
 
 ## 9. 변경 이력

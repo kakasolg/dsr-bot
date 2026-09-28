@@ -50,10 +50,10 @@ LEDGE_DY = 3.0           # don't lure it if it is this much above or below arena
 SWING_S = 1.6            # past this since the attack anim started, not considered swinging
 PULL_R = 8.0             # lure: start backing off if it is within this (even if not moving)
 SEEK_R = 100.0           # search for it within this radius — at 40 m it missed #1 at 42 m from the bonfire and everything was 'lost'
-CIRCLE_MAX_SWEEPS = 99   # tries per foe before normal attacks. user 2026-09-28: "hollows — backstab, no matter what" (was 2)
+CIRCLE_MAX_SWEEPS = 2    # tries per foe before normal attacks (99 during the 2026-09-28 "backstab no matter what" runs)
 BACK_CHECK_M = (0.5, 1.0, 1.5, 2.0)   # floor checked this far behind the foe (_room_behind)
 FOOT_R = 1.0            # after a backstab: floor this far round us, or step back to where we started it
-BACKSTAB_ONLY = True     # against circle_behind foes (hollows): no hit-first, no stagger punish — only the backstab (user 2026-09-28)
+BACKSTAB_ONLY = False    # True: against hollows only the backstab (no hit-first, no stagger punish). Off: backstab when the checks allow it, else the usual rules (user 2026-09-28)
 # backstab — from 3 human demos (backstab_report.py, observe_backstab_*.jsonl, 2026-09-28): lock-on stays ON while circling (aim ≤ 6°),
 # circling at body contact 0.85–0.96 m with the stick full (≥ 1.0, 2.5–3.9 m/s), behind within 0.6–1.1 s; R1 at 130–180° behind with the
 # foe idle (anim −1) → the game snaps us behind (0.59 m) and the kill lands 0.8–0.9 s later. R1 while it's staggered/attacking = a normal hit.
@@ -85,7 +85,7 @@ def backstab_stick(c, p, side: float | None = None) -> tuple[float, float, float
     return (side if side is not None else (-1.0 if ang >= 0 else 1.0)), fwd, behind
 
 
-def _backstab(mv, s, c, cancel) -> str:
+def _backstab(mv, s, c, cancel, nm=None) -> str:
     """Lock on, strafe round at body contact, R1 once behind. → 'stabbed' | 'hit' (R1 landed but no kill) | 'moved' (it stopped
     being idle) | 'not_behind' (time out) | 'no_lock' | 'lost'. Always leaves the stick centered and lock-on off."""
     ptr, hp0 = c.ptr, c.hp
@@ -139,6 +139,8 @@ def _backstab(mv, s, c, cancel) -> str:
             if (c.anim if c.anim is not None else -1) in M.DOWNED:
                 return "moved"                             # knocked down — nothing to get behind. A swing is NOT a reason to stop: it can't
                                                            # turn while it swings, that is when we get round (drill: 4 kills, all mid-swing)
+            if not _circle_floor(nm, s.player, c):
+                return "edge"                              # no floor where the circle goes — stop before stepping off (27u: fell 6 m into a gap)
             x, y, behind = backstab_stick(c, s.player, side)
             if side is None and x != 0.0:
                 side = x
@@ -175,6 +177,22 @@ def _room_behind(nm, p, c, r: float = 1.0) -> bool:
     behind_ok = all(floor(math.pi, d) for d in BACK_CHECK_M)
     return behind_ok and (floor(math.pi / 2) or floor(-math.pi / 2))
 
+
+
+
+def _circle_floor(nm, p, c, step: float = 0.8) -> bool:
+    """Floor (same level) round us where circling the foe can take us: both ways along the circle and straight out from it, step m.
+    True without NavMesh / global coords."""
+    if nm is None or getattr(p, "gx", None) is None:
+        return True
+    vx, vz = p.x - c.x, p.z - c.z
+    n = math.hypot(vx, vz) or 1.0
+    vx, vz = vx / n, vz / n
+    for dx, dz in ((vz, -vx), (-vz, vx), (vx, vz)):          # tangent both ways, outward
+        hit = nm.floor_at(p.gx + dx * step, p.gz + dz * step, p.gy)
+        if hit is None or abs(hit[0] - p.gy) > 1.0:
+            return False
+    return True
 
 
 def _footing_ok(nm, p, r: float = FOOT_R) -> bool:
@@ -496,6 +514,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
     pulled = arena is None
     orig_ptr, switch_t = None, 0.0
     circle_n = 0                                            # attempts to circle behind (foe.circle_behind) — prevents infinite loop
+    edge_until = 0.0                                       # after an 'edge' stop: no backstab for a while (it'd circle into the same gap)
     still = [None, 0.0, 0.0, 0.0]                          # [ptr, x, z, since] — where the foe last moved, for BACKSTAB_STILL_S
     acts: dict = {}                                        # what was done in 1 s (for logging)
     note_t = [t0]
@@ -683,7 +702,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             # if the 3000 series lasts beyond SWING_S it isn't swinging (it lingers 1.5–5.3 s after the attack ends — log analysis).
             # the spear shield soldier (255002) stays in 3001 holding up its shield, so for 15 s we only blocked at 1.4 m and never kicked
             a = -1
-        room = foe is not None and foe.circle_behind and _room_behind(nm, p, c)   # wall / drop at its back → no backstab, normal rules
+        room = foe is not None and foe.circle_behind and now >= edge_until and _room_behind(nm, p, c)   # wall / drop at its back → no backstab, normal rules
         if (foe.kind != "shield" and h <= weapon.reach and not (BACKSTAB_ONLY and room)
                 and not (foe.circle_behind and res.dealt > 0 and a == -1 and circle_n < CIRCLE_MAX_SWEEPS) and abs(dy) <= 1.0 and (p.sp or 0) >= weapon.sp_min
                 and (a == -1 or (a in M.ATTACK and age is not None and age < INTERRUPT_S
@@ -710,8 +729,10 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
         if bs_early:
             circle_n += 1
             start = (s.player.x, s.player.y, s.player.z)
-            r = _backstab(mv, s, c, cancel)
+            r = _backstab(mv, s, c, cancel, nm)
             _back_to_safe(mv, nm, start, log, arena)
+            if r == "edge":
+                edge_until = time.time() + 5.0
             note(f"뒤잡기:{r}", s, c)
             log(f"      뒤잡기(휘두를 때) → {r}")
             if r == "stabbed" and orig_ptr is None:
@@ -957,8 +978,10 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             # idle → circle behind with lock-on and backstab (human demos, see BACKSTAB_*). Past CIRCLE_MAX_SWEEPS tries, normal attacks
             circle_n += 1
             start = (s.player.x, s.player.y, s.player.z)
-            r = _backstab(mv, s, c, cancel)
+            r = _backstab(mv, s, c, cancel, nm)
             _back_to_safe(mv, nm, start, log, arena)
+            if r == "edge":
+                edge_until = time.time() + 5.0
             note(f"뒤잡기:{r}", s, c)
             log(f"      뒤잡기 → {r}")
             if r == "stabbed" and orig_ptr is None:

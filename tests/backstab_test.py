@@ -175,3 +175,19 @@ def test_footing() -> None:
 
 
 test_footing()
+
+
+def test_circle_floor() -> None:
+    """While circling: floor along the circle both ways and outward, else stop (27u: fell 6 m into a gap mid-circle)."""
+    import types
+    class NM:
+        def __init__(self, ok): self.ok = ok
+        def floor_at(self, x, z, y): return (y, 0) if self.ok(x, z) else None
+    p = types.SimpleNamespace(x=0.0, y=0.0, z=-1.0, gx=0.0, gy=0.0, gz=-1.0)
+    c = types.SimpleNamespace(x=0.0, y=0.0, z=0.0)
+    assert D._circle_floor(NM(lambda x, z: True), p, c)
+    assert not D._circle_floor(NM(lambda x, z: x < 0.5), p, c)          # gap on one side of the circle
+    print("ok  gap along the circle → stop circling")
+
+
+test_circle_floor()
