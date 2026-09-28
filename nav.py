@@ -267,6 +267,8 @@ def follow(tm, pad, path: list, terrain=None, mode_fn=None, on_tick=None, defaul
 TURN_SLOW_DEG = (45.0, 90.0)   # facing this far off the way to go → stick TURN_SLOW_K (turn first, then run)
 TURN_SLOW_K = (0.5, 0.3)
 TURN_RELEASE_S = 0.0           # stick released this long before a sharp turn — off: the user turns the stick smoothly instead (0.15 tried)
+CALM_R = 12.0                  # no live foe within this → calm walking
+CALM_STICK = 0.7               # stick cap when calm (user walked the passage entrance at ~1.6 m/s; the bot ran 2.5–3.5)
 STICK_TURN_DPS = 700.0         # stick direction changes at most this fast (user demo 20260927_224715: peaks 670–840°/s; the bot jumped
                                # up to 39° a tick ≈ 2270°/s — user: "where it fails, it swings the stick far too fast")
 TURN_RELEASE_GAP = 0.6         # not again within this (one release per corner)       # user 2026-09-28: "it turns too fast and the character slides" — a full stick swung round at a corner
@@ -285,6 +287,15 @@ def turn_scale(heading, wx: float, wz: float) -> float:
         return TURN_SLOW_K[0]
     return 1.0
 
+
+
+
+def calm(s) -> bool:
+    """No live hostile within CALM_R of us."""
+    try:
+        return not any((c.hp or 0) > 0 for c in s.hostile(CALM_R))
+    except Exception:
+        return False
 
 
 def limit_stick_turn(prev: list, sx: float, sy: float, now: float) -> tuple[float, float]:
@@ -532,6 +543,10 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
                 else:
                     sx, sy = control.world_to_stick(h[0], h[1], s.cam_yaw, YAW_OFFSET, FLIP_X)
                     k = turn_scale(p.heading, h[0], h[1])
+                    if calm(s):
+                        k = min(k, CALM_STICK)          # nobody around — no hurry (user 2026-09-28: "no enemy, no need to go fast")
+                        if mode == "sprint":
+                            mode = "walk"
                     sx, sy = limit_stick_turn(stick_prev, sx, sy, now)
                     if TURN_RELEASE_S > 0 and k < 1.0 and now - turn_release[0] > TURN_RELEASE_GAP:
                         # a sharp turn coming: let go of the stick first so the run stops, then turn (user 2026-09-28 —
