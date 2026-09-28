@@ -729,7 +729,11 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             note("누움대기", s, c)
             time.sleep(0.03)
             continue
-        if h > weapon.reach and wait_far and not (foe and foe.ranged):   # 3-wait) shooters keep shooting if we wait — don't wait. Still far — don't approach, block in place and wait
+        # an idle hollow within backstab range is a backstab chance, not a reason to wait (user 2026-09-28: "never even tries" —
+        # 27g: idle foe at 1.7–2.2 m, the bot just blocked and waited, so the backstab check below was never reached)
+        backstab_chance = (foe is not None and foe.circle_behind and a == -1 and circle_n < CIRCLE_MAX_SWEEPS
+                           and h <= BACKSTAB_REACH and abs(dy) <= 1.0)
+        if h > weapon.reach and wait_far and not (foe and foe.ranged) and not backstab_chance:   # 3-wait) shooters keep shooting if we wait — don't wait. Still far — don't approach, block in place and wait
             if wait_hp0 is None:
                 wait_hp0 = p.hp
                 wait_t0, wait_hmin = now, h
@@ -757,7 +761,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             note("기다림", s, c)
             time.sleep(0.03)
             continue
-        if h > weapon.reach:                                # 3) close in — if horizontally within reach, height difference alone doesn't enter here
+        if h > weapon.reach and not backstab_chance:        # 3) close in — if horizontally within reach, height difference alone doesn't enter here (a backstab chance circles in itself)
             # (user 2026-09-25: "if you're going to stop midway, at least swing light attacks while stopped" — even when height difference prevents closing,
             # drop to below (attack attempt) and at least swing a light attack. Previously even with h<=reach, dy>1.0 kept trying to close in here,
             # 8 s+ of 0 attacks while getting beaten.)
