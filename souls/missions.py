@@ -150,6 +150,18 @@ class Missions:
         self.log(f"── 불의 제전 휴식: {'됨' if ok else '실패'}")
         return ok
 
+    def ramp_passed(self, r: str) -> bool:
+        """Go on past the ramp? 'cleared', or 'left' with only '#N?' (identity lost, e.g. after a quit-out — the foe may well be
+        dead: already-killed ones never show at their spawn again). If one is alive it follows us and the walk fights it.
+        '#N' (tried and lived) and '#N~' (moved away, seen alive) still stop the mission. (ROADMAP P-18, #7)"""
+        if r == "cleared":
+            return True
+        tags = r.split()[1:] if r.startswith("left ") else []
+        if tags and all(t.endswith("?") for t in tags):
+            self.log(f"   경사로 {r} — 살았는지 모름(신원 끊김)만 남음, 다 잡은 것으로 보고 계속 (살아 있으면 따라와서 싸움)")
+            return True
+        return False
+
     def clear_ramp(self, lure: bool = True) -> str:
         targets = [dict(RAMP[i - 1], label=i, lure=(i not in NO_LURE), lure_at=RAMP_LURE_AT.get(i)) for i in RAMP_ORDER]
         r = self.f.clear(targets, self.nms[MAP_A], arena=RAMP_ARENA, lure=lure)
@@ -411,7 +423,7 @@ class Missions:
         if not self.start_fresh():
             return "휴식 실패"
         r = self.clear_ramp()
-        if r != "cleared":
+        if not self.ramp_passed(r):
             return f"경사로 {r}"
         r = self.to_merchant()
         if r != "도착":
@@ -426,7 +438,7 @@ class Missions:
         if not self.start_fresh():
             return "휴식 실패"
         r = self.clear_ramp()
-        if r != "cleared":
+        if not self.ramp_passed(r):
             return f"경사로 {r}"
         r = self.to_merchant()
         if r != "도착":
