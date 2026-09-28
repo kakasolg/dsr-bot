@@ -91,6 +91,9 @@ def _no_void(pts: list) -> list:
 # run (radar records 2026-09-27, 15/15 passes at (−25.1, −33.7, 8.8), worst 4.4 s + two escapes; user: "turns early at the secret passage").
 # Put it back on the way in only — the way back avoided it on purpose (_no_void note).
 ENTRY_CORNER = (-23.97, -33.82, 10.57)
+# where the user actually walks in (observe 20260927_224715, F9 at the entrance): ~1.2 m further west than 70 → a0 — the opening
+# is west of the recorded points, 70 → a0 still brushed its east side (27w: down to 1.0 m/s there). Normal corners match within 0.13 m.
+ENTRY_WALK = [(-25.18, -33.8, 9.56), (-26.09, -33.72, 8.99), (-26.38, -33.8, 7.87)]
 ENTRY_AFTER = (-23.05, -34.26, 10.42)                      # run point 69
 PASSAGE_A0 = (-25.32, -33.86, 6.68)
 
@@ -99,7 +102,7 @@ def _with_entry_corner(pts: list) -> list:
     out = list(pts)
     for i in range(len(out) - 1):
         if math.dist(out[i], ENTRY_AFTER) < 0.3 and math.dist(out[i + 1], PASSAGE_A0) < 0.3:
-            out.insert(i + 1, ENTRY_CORNER)
+            out[i + 1:i + 1] = [ENTRY_CORNER] + ENTRY_WALK
             break
     return out
 

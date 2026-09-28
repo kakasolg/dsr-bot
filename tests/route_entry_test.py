@@ -9,6 +9,6 @@ from souls import missions as MS
 
 pts = [(-22.1, -34.88, 10.79), MS.ENTRY_AFTER, MS.PASSAGE_A0, (-26.64, -33.94, 5.44)]
 out = MS._with_entry_corner(pts)
-assert out[2] == MS.ENTRY_CORNER and out[1] == MS.ENTRY_AFTER and out[3] == MS.PASSAGE_A0, out
+assert out[1] == MS.ENTRY_AFTER and out[2] == MS.ENTRY_CORNER and out[3:6] == MS.ENTRY_WALK and out[6] == MS.PASSAGE_A0, out
 assert MS._with_entry_corner(pts[2:]) == pts[2:]                     # already past the entrance — nothing added
-print("ok  entry corner inserted between run 69 and a0; not when starting at a0")
+print("ok  entry corner + the user's walk-in points between run 69 and a0; not when starting at a0")
