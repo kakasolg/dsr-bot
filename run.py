@@ -74,7 +74,7 @@ def status() -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["status", "burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt-one", "merchant", "light-burg", "quit-test"])
+    ap.add_argument("cmd", choices=["status", "burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt-one", "merchant", "light-burg", "quit-test", "passage-drill"])
     ap.add_argument("--no-rest", action="store_true")
     ap.add_argument("--no-quit", action="store_true", help="퀵 종료(메뉴로 나갔다 오기) 안 씀 — 영상 촬영용")
     ap.add_argument("--i", type=int, default=5, help="hunt-one: BURG_TOWN 몇 번째 (5 = 석궁병 255002)")
@@ -107,15 +107,19 @@ def main() -> None:
         log("   ⚠ 이미 다른 본체가 실행 중 — 겹쳐 켜면 패드가 부딪힌다, 멈춤")
         return
     tm = env.make_telemetry({})
+    import track
+    track_ = track.Track(str(log.path).replace(".jsonl", ".track.jsonl")).attach(tm)   # planned vs actual path (track_report.py)
+    log.on_line = track_.say
     if a.radar:
         import radar
         radar_ = radar.Radar().attach(tm)
-        log.on_line = radar_.say
+        log.on_line = lambda m: (track_.say(m), radar_.say(m))
         log("radar: sending — python radar_server.py -> http://127.0.0.1:47801, python overlay.py")
     control.focus_game()
     pad = control.Pad()
     nms = {missions.MAP_A: navmesh.Navmesh(missions.MAP_A), missions.MAP_B: navmesh.Navmesh(missions.MAP_B)}
     mv = moves.Moves(tm, pad)
+    track_.follow(mv)
     if a.radar:
         radar_.follow(mv)                                   # target · path · held spot on the radar
     w = weapons.of(tm.right_weapon())
@@ -147,6 +151,8 @@ def main() -> None:
             r = ms.burg_bonfire()
         elif a.cmd == "burg-loop":
             r = ms.burg_bonfire_round_trip()
+        elif a.cmd == "passage-drill":
+            r = ms.passage_drill(rounds=5)
         elif a.cmd == "clear-ramp":
             if not a.no_rest:
                 ms.start_fresh()

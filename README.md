@@ -19,7 +19,7 @@ lock-on target, item counts — and makes every decision from those numbers plus
 
 ## Status (2026-09)
 
-- No LLM or machine-learning model runs during play — it is all rules and numbers. (`tactic_llm.py`, `bandit.py`, `learn.py`
+- No LLM or machine-learning model runs during play — it is all rules and numbers. (`experiments/tactic_llm.py`, `experiments/bandit.py`, `experiments/learn.py`
   etc. are old experiments.)
 - Development: most of the code was written by an AI coding assistant (Claude); a human did the play demonstrations, decisions
   and verification. See the `Co-Authored-By` lines in the commits.
@@ -31,8 +31,10 @@ lock-on target, item counts — and makes every decision from those numbers plus
 ## Layout
 
 ```
-dsr_telemetry.py / telemetry.py   game memory reads (pymem) — position, HP, animation, enemies, camera
-navmesh.py / nav.py               game NavMesh (via soulstruct) → triangle graph, A* pathfinding, footing checks
+dsr_telemetry.py                  game memory reads for DSR (pymem) — position, HP, animation, enemies, camera, event flags
+telemetry.py                      the shared data shapes (Chr, Snapshot) + the older Elden Ring reader (see below)
+navmesh.py                        map data: the game's NavMesh (via soulstruct) → triangles, floor height, A* find_path
+nav.py                            movement: walk/steer to a point or along a path (goto, follow, Mover), stuck escape, footing checks
 souls/                            layered — lower layers never know about upper ones (LAYERS.md)
   moves.py     layer 1: controls (virtual pad via vgamepad)
   duel.py      layer 2: one-on-one combat rules
@@ -42,7 +44,24 @@ souls/                            layered — lower layers never know about uppe
 run.py                            entry point
 observe_record.py                 read-only observation recorder (human demos and bot runs in the same format)
 risk_report.py, blackbox.py       run evaluation — big hits, lowest HP, getting stuck
+msb_extract.py                    game files → data/gamefiles/ (breakable props, enemies + AI params, items)
+radar.py, radar_server.py         live radar page (run.py --radar): floor (NavMesh), controller, record + replay (radar_record/_pad/_mesh.py);
+                                  overlay.py draws it over the game; translate.py = English; hotspots.py = repeated walking problems
+tests/                            offline tests (python -m pytest)
+experiments/                      older experiments and probes the bot doesn't use (run from the repo root: python experiments/x.py)
+boss/, legacy/                    boss experiments, old code
 ```
+
+**The two similar-looking pairs** (a common first question):
+
+- `telemetry.py` vs `dsr_telemetry.py` — the bot began on Elden Ring. `telemetry.py` is that reader, and it also defines
+  `Chr` / `Snapshot`, the data shapes every layer uses. `dsr_telemetry.py` is the Dark Souls Remastered reader and returns
+  the same shapes, so nothing above it knows which game it is. `env.make_telemetry()` picks one from `BOT_GAME`
+  (`dsr` → `DSRTelemetry`, wrapped by `feed.py` so one background thread does the memory reads).
+- `navmesh.py` vs `nav.py` — `navmesh.py` answers *where can I walk* (terrain data, floor at a point, a path from A to B);
+  it never touches the pad. `nav.py` answers *how do I get there* (turns a path into stick input relative to the camera,
+  notices getting stuck, checks there is floor ahead using a `navmesh.Navmesh` passed in as `terrain`).
+  Call chain: `souls/field.py` → `navmesh.find_path` → `nav.follow` / `nav.goto` → `control.Pad`.
 
 The rules and their justification live in one place, [LAYERS.md](LAYERS.md). In particular the
 **evidence-grade gate**: every number is tagged with what backs it — human demo / repeated observation / NavMesh estimate /
@@ -65,11 +84,13 @@ BOT_GAME=dsr .venv/Scripts/python run.py burg-bonfire --no-quit     # no quit-ou
 .venv/Scripts/python observe_record.py --minutes 15                 # read-only recording (F9 = marker)
 .venv/Scripts/python radar_server.py                                # radar at http://127.0.0.1:47801 (add --radar to run.py; --demo = fake world)
 .venv/Scripts/python overlay.py                                     # same info drawn over the game (windowed/borderless only; --demo)
+.venv/Scripts/python radar_server.py --replay data/radar/<file>.jsonl  # replay a recorded session (or an observe_record.py demo) with a timeline
 ```
 
-Offline tests (fake world, no game needed): `python field_*_test.py`, `duel_shadow_test.py`, `moves_test.py`, etc.
+Offline tests (fake world, no game needed): `python -m pytest` runs everything in `tests/` (`-k radar` for one), or run a
+single script directly, e.g. `python tests/radar_test.py`. CI runs the same on every push.
 They also run on Linux/macOS without the Windows-only packages (`pymem`, `vgamepad`) — install the rest of
-`requirements-lock.txt`. (`axe_heavy_test.py` is an in-game measurement, not an offline test.)
+`requirements-lock.txt`. (`experiments/axe_heavy_test.py` is an in-game measurement, not an offline test.)
 
 `data/` only contains the small files the missions need — routes a human walked and recorded (`data/routes/`), enemy spawn
 maps, and user-marked safe zones (`safe-zones.json`). Observation recordings and run logs (1 GB+) are not included; open an

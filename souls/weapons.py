@@ -92,7 +92,14 @@ CLAYMORE = Weapon("클레이모어", 301000, reach=1.8, combo=2, use_heavy=False
                   # the stagger seems to wear off during the 0.76 s startup
                   note="한손 약공 가로 베기 2연타(옆 적도 맞는다 — 사용자). 강공(찌르기)은 아직 안 씀. reach 는 실측 전")
 
-KNOWN = {w.base_id: w for w in (BROADSWORD, ZWEIHANDER, BATTLE_AXE, CLAYMORE)}
+# Bandit's Knife 103000 (dagger). user (2026-09-28): switched to it for backstabs/ripostes (big critical damage).
+# Wiki: STR 6 / DEX 12 required, light is a quick short slash, cheap on stamina, critical 110 (highest among daggers besides Priscilla's).
+# **not yet measured** — first values: shorter than the Broadsword (1.2 m measured) → 1.0, fast so 2 hits chain, low sp_min.
+# 27g~v ran it with Broadsword values (warning "모르는 무기 103000"). Re-measure reach with reach.py and the swing with an air swing.
+BANDITS_KNIFE = Weapon("밴딧 나이프", 103000, reach=1.0, combo=2, use_heavy=False, two_hand=False, str_req=6, sp_min=30,
+                       note="단검 — 뒤잡기·패링 치명타용. reach·동작 시간은 실측 전")
+
+KNOWN = {w.base_id: w for w in (BROADSWORD, ZWEIHANDER, BATTLE_AXE, CLAYMORE, BANDITS_KNIFE)}
 
 
 def of(weapon_id: int | None) -> Weapon:

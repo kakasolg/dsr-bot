@@ -86,12 +86,61 @@ def _no_void(pts: list) -> list:
     return out
 
 
+# The corner the user turned at the passage entrance (firelink-merchant-run point 70, on the bridge arch). _no_void drops it — the NavMesh
+# only has floor 16 m below there — and 69 → a0 then runs diagonally into the entrance's side: the bot rubbed the wall 2–4 s on every
+# run (radar records 2026-09-27, 15/15 passes at (−25.1, −33.7, 8.8), worst 4.4 s + two escapes; user: "turns early at the secret passage").
+# Put it back on the way in only — the way back avoided it on purpose (_no_void note).
+ENTRY_CORNER = (-23.97, -33.82, 10.57)
+# where the user actually walks in (observe 20260927_224715, F9 at the entrance): ~1.2 m further west than 70 → a0 — the opening
+# is west of the recorded points, 70 → a0 still brushed its east side (27w: down to 1.0 m/s there). Normal corners match within 0.13 m.
+ENTRY_WALK = [(-25.18, -33.8, 9.56), (-26.09, -33.72, 8.99), (-26.38, -33.8, 7.87)]
+ENTRY_AFTER = (-23.05, -34.26, 10.42)                      # run point 69
+PASSAGE_A0 = (-25.32, -33.86, 6.68)
+
+
+def _with_entry_corner(pts: list) -> list:
+    out = list(pts)
+    for i in range(len(out) - 1):
+        if math.dist(out[i], ENTRY_AFTER) < 0.3 and math.dist(out[i + 1], PASSAGE_A0) < 0.3:
+            out[i + 1:i + 1] = [ENTRY_CORNER] + ENTRY_WALK
+            break
+    return out
+
+
 class Missions:
     def __init__(self, fld: Field, nms: dict, log=print):
         self.f, self.nms, self.log = fld, nms, log
         self.mv: M.Moves = fld.mv
 
     # ── Pieces ───────────────────────────────────────────────
+    def passage_drill(self, rounds: int = 5, warp_back: bool = True) -> str:
+        """Walk Firelink bonfire ↔ just inside the passage entrance, rounds times, no resting (ramp stays cleared) — to watch the entrance
+        turn repeatedly (user 2026-09-28). Same way in as to_merchant: top of the stairs, then the recorded route with the entry corner."""
+        na = self.nms[MAP_A]
+        top, route, _R = _route()
+        path_in = _with_entry_corner(route)
+        i0 = next(i for i, q in enumerate(path_in) if math.dist(q, PASSAGE_A0) < 0.3)
+        path_in = path_in[:i0 + 4]                         # a0 + 3 points into the passage
+        for n in range(1, rounds + 1):
+            t0 = time.time()
+            if warp_back:                                  # the way out stalls/fell (P-17) — warp back, to repeat only the way in
+                ok = self.mv.tm.bonfire_warp(FIRELINK_ID, log=self.log)
+                r = "warped" if ok else "warp_failed"
+                time.sleep(2.0)
+            else:
+                r = self.f.walk_to(tuple(FIRELINK["stand"]), na, f"드릴{n} 화톳불로")
+            self.log(f"   드릴 {n}: 화톳불까지 {r} {time.time() - t0:.1f} s")
+            t1 = time.time()
+            r = self.f.walk_to(top, na, f"드릴{n} 꼭대기로")
+            if r != "arrived":
+                return f"드릴 {n} 꼭대기 {r}"
+            t2 = time.time()
+            r = self.f.walk(path_in, na, f"드릴{n} 통로", tol=0.8)
+            self.log(f"   드릴 {n}: 꼭대기 {t2 - t1:.1f} s → 통로 입구 {r} {time.time() - t2:.1f} s")
+            if r != "arrived":
+                return f"드릴 {n} 통로 {r}"
+        return "done"
+
     def start_fresh(self) -> bool:
         """Rest at Firelink Shrine and start (all enemies revived, full HP·Estus)."""
         last = self.mv.tm.last_bonfire()
@@ -197,7 +246,7 @@ class Missions:
                 if r != "arrived":
                     return f"길까지 {r}"
         if seg == "A":
-            r = self.f.walk(route[k:], na, "통로", tol=0.8)
+            r = self.f.walk(_with_entry_corner(route[k:]), na, "통로", tol=0.8)
             if r != "arrived":
                 return f"통로 {r}"
             self.log(f"   경계 {time.time() - t0:.0f} s")

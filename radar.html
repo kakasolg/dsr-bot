@@ -9,17 +9,17 @@
 <style>
 :root {
   --bg: #f6f7f9; --panel: #ffffff; --ink: #1d2330; --muted: #6a7384; --line: #dde1e8; --ring: #e3e7ee;
-  --player: #2f6fde; --foe: #d23f3f; --friend: #2e9a5b; --other: #8a93a3; --cam: #d9a400; --hp: #2e9a5b; --hplow: #d23f3f; --path: #7a5cd6; --target: #d9a400; --prop: #a0785a; --smash: #e0662a; --soul: #2a9fd6; --hum: #7a7f8c; --tit: #6d6ad6; --item: #9aa0ab;
+  --player: #2f6fde; --foe: #d23f3f; --friend: #2e9a5b; --other: #8a93a3; --cam: #d9a400; --hp: #2e9a5b; --hplow: #d23f3f; --path: #7a5cd6; --target: #d9a400; --prop: #a0785a; --smash: #e0662a; --soul: #2a9fd6; --hum: #7a7f8c; --tit: #6d6ad6; --item: #9aa0ab; --floor: #dfe6ee; --floorup: #c9d6e6; --floordn: #eef0f3; --edge: #8a93a3;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #14171d; --panel: #1b1f27; --ink: #e3e7ee; --muted: #8b94a5; --line: #2c323d; --ring: #262b35;
-    --player: #6c9cf0; --foe: #f06a6a; --friend: #5cc98a; --other: #7d8697; --cam: #f0c33c; --hp: #5cc98a; --hplow: #f06a6a; --path: #a98cf5; --target: #f0c33c; --prop: #c79c78; --smash: #ff8a4c; --soul: #7fd3ff; --hum: #f4f4f4; --tit: #aaa8ff; --item: #7d8697;
+    --player: #6c9cf0; --foe: #f06a6a; --friend: #5cc98a; --other: #7d8697; --cam: #f0c33c; --hp: #5cc98a; --hplow: #f06a6a; --path: #a98cf5; --target: #f0c33c; --prop: #c79c78; --smash: #ff8a4c; --soul: #7fd3ff; --hum: #f4f4f4; --tit: #aaa8ff; --item: #7d8697; --floor: #253040; --floorup: #2f3d52; --floordn: #1c222c; --edge: #6b7890;
   }
 }
 :root[data-theme="dark"] {
   --bg: #14171d; --panel: #1b1f27; --ink: #e3e7ee; --muted: #8b94a5; --line: #2c323d; --ring: #262b35;
-  --player: #6c9cf0; --foe: #f06a6a; --friend: #5cc98a; --other: #7d8697; --cam: #f0c33c; --hp: #5cc98a; --hplow: #f06a6a; --path: #a98cf5; --target: #f0c33c; --prop: #c79c78; --smash: #ff8a4c; --soul: #7fd3ff; --hum: #f4f4f4; --tit: #aaa8ff; --item: #7d8697;
+  --player: #6c9cf0; --foe: #f06a6a; --friend: #5cc98a; --other: #7d8697; --cam: #f0c33c; --hp: #5cc98a; --hplow: #f06a6a; --path: #a98cf5; --target: #f0c33c; --prop: #c79c78; --smash: #ff8a4c; --soul: #7fd3ff; --hum: #f4f4f4; --tit: #aaa8ff; --item: #7d8697; --floor: #253040; --floorup: #2f3d52; --floordn: #1c222c; --edge: #6b7890;
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.4 system-ui, "Segoe UI", sans-serif; }
@@ -40,7 +40,8 @@ h2 { font-size: 12px; font-weight: 600; color: var(--muted); margin: 0 0 6px; te
 .bar { height: 6px; background: var(--ring); border-radius: 3px; margin: 2px 0 8px; overflow: hidden; }
 .bar > i { display: block; height: 100%; background: var(--hp); }
 #intent div { display: flex; justify-content: space-between; gap: 8px; }
-#intent span:first-child { color: var(--muted); }
+#intent span:first-child { color: var(--muted); white-space: nowrap; }
+#intent span:last-child { text-align: right; }
 .key { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
 #says { list-style: none; margin: 0; padding: 0; }
 #says li { padding: 4px 0; border-bottom: 1px solid var(--line); color: var(--muted); overflow-wrap: anywhere; }
@@ -49,6 +50,12 @@ h2 { font-size: 12px; font-weight: 600; color: var(--muted); margin: 0 0 6px; te
 #foes td { padding: 3px 4px; border-bottom: 1px solid var(--line); }
 #foes td.n { text-align: right; }
 .side > .card + .card { margin-top: 12px; }
+.muted { color: var(--muted); font-size: 12px; }
+#timeline { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px 16px; border-bottom: 1px solid var(--line); background: var(--panel); }
+#timeline[hidden] { display: none; }
+#tl_pos { flex: 1 1 240px; min-width: 160px; }
+#tl_time { font-variant-numeric: tabular-nums; min-width: 110px; }
+#pad { width: 100%; height: auto; display: block; }
 </style>
 </head>
 <body>
@@ -59,11 +66,23 @@ h2 { font-size: 12px; font-weight: 600; color: var(--muted); margin: 0 0 6px; te
   <label>Up <select id="up"><option value="cam" selected>camera</option><option value="north">north</option></select></label>
   <label><input type="checkbox" id="anim"> anim ID</label>
   <label><input type="checkbox" id="allitems"> all items</label>
+  <label><input type="checkbox" id="ai" checked> AI ranges</label>
+  <label><input type="checkbox" id="mesh" checked> floor</label>
   <button id="theme" type="button">Theme</button>
 </header>
+<div id="timeline" hidden>
+  <button id="tl_play" type="button">❚❚</button>
+  <button id="tl_back" type="button" title="one frame back">◀︎</button>
+  <button id="tl_fwd" type="button" title="one frame forward">▶︎</button>
+  <input id="tl_pos" type="range" min="0" max="100" step="0.1" value="0">
+  <span id="tl_time">0.0 / 0.0 s</span>
+  <select id="tl_speed"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select>
+  <span id="tl_name" class="muted"></span>
+</div>
 <main>
   <div class="card"><div id="wrap"><canvas id="cv"></canvas></div></div>
   <div class="side">
+    <div class="card"><h2>Controller</h2><canvas id="pad" width="300" height="120"></canvas><div id="padinfo" class="muted">no controller</div></div>
     <div class="card"><h2>Bot</h2><div id="vitals">—</div></div>
     <div class="card"><h2>Doing</h2><div id="intent">—</div></div>
     <div class="card"><h2>Decisions</h2><ul id="says"><li>—</li></ul></div>
@@ -84,7 +103,7 @@ $("theme").onclick = () => {
   try { localStorage.setItem("radar-theme", next); } catch (e) {}
   draw();
 };
-for (const id of ["range", "up", "anim", "allitems"]) $(id).onchange = draw;
+for (const id of ["range", "up", "anim", "allitems", "ai", "mesh"]) $(id).onchange = draw;
 
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
@@ -124,6 +143,27 @@ function draw() {
     ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + Math.sin(a) * len, y - Math.cos(a) * len);
     ctx.strokeStyle = col; ctx.lineWidth = w; ctx.stroke();
   };
+  // floor (NavMesh faces from the game files, drawn by the server on the game PC): shade by height vs me, floor ends as lines
+  if ($("mesh").checked && last.mesh) {
+    ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * Math.PI); ctx.clip();
+    for (const f of last.mesh) {
+      const P = [toScreen(f[0] - p.x, f[1] - p.z), toScreen(f[2] - p.x, f[3] - p.z), toScreen(f[4] - p.x, f[5] - p.z)];
+      ctx.beginPath(); ctx.moveTo(...P[0]); ctx.lineTo(...P[1]); ctx.lineTo(...P[2]); ctx.closePath();
+      ctx.fillStyle = css(Math.abs(f[6]) <= 1 ? "--floor" : f[6] > 1 ? "--floorup" : "--floordn");
+      ctx.globalAlpha = Math.abs(f[6]) <= 1 ? 0.9 : 0.5; ctx.fill(); ctx.globalAlpha = 1;
+      if (f[8] & 1024) { ctx.strokeStyle = css("--cam"); ctx.lineWidth = 1; ctx.stroke(); }          // ladder
+    }
+    ctx.strokeStyle = css("--edge"); ctx.lineWidth = 1.5;
+    for (const f of last.mesh) {
+      if (!f[7] || Math.abs(f[6]) > 1) continue;
+      const P = [toScreen(f[0] - p.x, f[1] - p.z), toScreen(f[2] - p.x, f[3] - p.z), toScreen(f[4] - p.x, f[5] - p.z)];
+      for (const [bit, i, j] of [[1, 0, 1], [2, 1, 2], [4, 0, 2]]) {
+        if (!(f[7] & bit)) continue;
+        ctx.beginPath(); ctx.moveTo(...P[i]); ctx.lineTo(...P[j]); ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
   // camera direction (north-up mode only; in camera-up it is always straight up)
   if (!camUp && snap.cam_yaw != null) arrow(cx, cy, snap.cam_yaw, R, css("--cam"), 1);
   if (!camUp) { ctx.fillStyle = css("--muted"); ctx.fillText("N", cx - 3, 12); }
@@ -168,6 +208,38 @@ function draw() {
     ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(x, y); ctx.strokeStyle = css("--target"); ctx.lineWidth = 1; ctx.stroke();
     ctx.beginPath(); ctx.arc(x, y, 10, 0, 2 * Math.PI); ctx.lineWidth = 2; ctx.stroke();
   }
+  // AI ranges from the game files (NpcThinkParam, matched by the server to the nearest spawn of that kind):
+  // sight cone (distance, width) facing where the foe faces, hearing circle; for the target also its leash —
+  // how far from its spawn it chases before giving up (MaxRetreatDistance). Evidence "file": metres assumed.
+  const ai = last.ai || {};
+  if ($("ai").checked) {
+    ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * Math.PI); ctx.clip();       // keep the 30 m cones inside the radar
+    for (const c of snap.chars) {
+      const r = ai[c.ptr];
+      if (!r || !(c.hp > 0) || !HOSTILE.has(c.team)) continue;
+      const [sight, width, hearing, leash, sx, sz] = r, isT = c.ptr === snap.target;
+      if (Math.hypot(c.x - p.x, c.z - p.z) > range + sight) continue;
+      const [x, y] = toScreen(c.x - p.x, c.z - p.z);
+      if (c.heading != null) {                                                         // the target filled, others outline only
+        const th = c.heading + Math.PI - base - Math.PI / 2, half = width * Math.PI / 360;
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.arc(x, y, sight * k, th - half, th + half); ctx.closePath();
+        if (isT) { ctx.globalAlpha = 0.10; ctx.fillStyle = css("--foe"); ctx.fill(); }
+        ctx.globalAlpha = isT ? 0.45 : 0.16; ctx.strokeStyle = css("--foe"); ctx.lineWidth = 1; ctx.stroke(); ctx.globalAlpha = 1;
+      }
+      if (!isT) continue;
+      if (hearing) {
+        ctx.beginPath(); ctx.arc(x, y, hearing * k, 0, 2 * Math.PI); ctx.setLineDash([2, 4]);
+        ctx.globalAlpha = 0.5; ctx.strokeStyle = css("--foe"); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+      }
+      if (leash) {
+        const [lx, ly] = toScreen(sx - p.x, sz - p.z);
+        ctx.beginPath(); ctx.arc(lx, ly, leash * k, 0, 2 * Math.PI); ctx.setLineDash([8, 5]);
+        ctx.strokeStyle = css("--target"); ctx.lineWidth = 1.5; ctx.stroke(); ctx.setLineDash([]);
+        ctx.beginPath(); ctx.moveTo(lx - 4, ly - 4); ctx.lineTo(lx + 4, ly + 4); ctx.moveTo(lx + 4, ly - 4); ctx.lineTo(lx - 4, ly + 4); ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
   const showAnim = $("anim").checked;
   for (const c of snap.chars) {
     const dx = c.x - p.x, dz = c.z - p.z;
@@ -205,6 +277,7 @@ function side() {
   const row = (k, v) => `<div><span>${k}</span><span>${v}</span></div>`;
   $("intent").innerHTML =
     row(`<i class="key" style="background:var(--target)"></i>Target`, tgt ? `${esc(tgt.name || tgt.npc)} · ${tgt.dist?.toFixed(1)} m` : "none") +
+    (tgt && (last.ai || {})[tgt.ptr] ? row(`<i class="key" style="background:var(--foe);opacity:.4"></i>AI`, aiText((last.ai || {})[tgt.ptr], tgt)) : "") +
     row(`<i class="key" style="background:var(--path)"></i>Path`, snap.path ? `${esc(snap.path_tag || "")} · ${snap.path.length} pts` : "none") +
     row(`<i class="key" style="background:var(--friend)"></i>Hold spot`, snap.spot ? esc(snap.spot_tag || "") + ` · ${Math.hypot(snap.spot[0] - p.x, snap.spot[2] - p.z).toFixed(1)} m` : "none") +
     row(`<i class="key" style="background:var(--smash)"></i>Smash`, snap.smash ? esc(snap.smash) : "none") +
@@ -216,6 +289,12 @@ function side() {
     || "<tr><td>none</td></tr>";
 }
 
+function aiText(r, c) {
+  const [sight, width, hearing, leash, sx, sz] = r;
+  const out = leash ? ` · leash ${leash} m (${Math.hypot(c.x - sx, c.z - sz).toFixed(0)} m from spawn)` : " · no leash";
+  return `sight ${sight} m / ${width}° · hear ${hearing} m${out}`;
+}
+
 function itemsRows(items, p, row) {
   const n = k => items.filter(o => o[3] === k).length;
   const near = items.filter(o => o[3] !== "other").map(o => [Math.hypot(o[0] - p.x, o[2] - p.z), o[4]]).sort((a, b) => a[0] - b[0])[0];
@@ -223,17 +302,81 @@ function itemsRows(items, p, row) {
     row(`<i class="key" style="background:var(--tit)"></i>Nearest item`, near ? `${esc(near[1])} · ${near[0].toFixed(1)} m` : "none");
 }
 
+// ── controller (XInput, raw values) ──────────────────────────────
+const BTN = {a: 0x1000, b: 0x2000, x: 0x4000, y: 0x8000, lb: 0x100, rb: 0x200, up: 0x1, down: 0x2, left: 0x4, right: 0x8, start: 0x10, back: 0x20};
+function drawPad() {
+  const pads = (last && last.pads) || {}, keys = Object.keys(pads);
+  const pc = $("pad"), g = pc.getContext("2d");
+  const W = pc.width, H = pc.height; g.clearRect(0, 0, W, H);
+  if (!keys.length) { $("padinfo").textContent = "no controller"; return; }
+  const slot = keys.includes("1") && keys.length > 1 ? "1" : keys[keys.length - 1];     // latest slot
+  const d = pads[slot];
+  const stick = (ox, oy, sx, sy, label) => {
+    g.beginPath(); g.arc(ox, oy, 26, 0, 2 * Math.PI); g.strokeStyle = css("--line"); g.lineWidth = 2; g.stroke();
+    const x = ox + (sx / 32768) * 26, y = oy - (sy / 32768) * 26;
+    g.beginPath(); g.moveTo(ox, oy); g.lineTo(x, y); g.strokeStyle = css("--accent"); g.stroke();
+    g.beginPath(); g.arc(x, y, 6, 0, 2 * Math.PI); g.fillStyle = css("--accent"); g.fill();
+    g.fillStyle = css("--muted"); g.font = "10px system-ui"; g.fillText(label, ox - 6, oy + 40);
+  };
+  stick(40, 60, d.lx || 0, d.ly || 0, "L"); stick(260, 60, d.rx || 0, d.ry || 0, "R");
+  const btn = (x, y, on, label, col) => {
+    g.beginPath(); g.arc(x, y, 10, 0, 2 * Math.PI); g.fillStyle = on ? css(col) : css("--ring"); g.fill();
+    g.fillStyle = on ? css("--bg") : css("--muted"); g.font = "bold 10px system-ui"; g.textAlign = "center"; g.fillText(label, x, y + 3.5); g.textAlign = "start";
+  };
+  const b = d.btn || 0;
+  btn(190, 72, b & BTN.a, "A", "--friend"); btn(212, 50, b & BTN.b, "B", "--foe"); btn(168, 50, b & BTN.x, "X", "--accent"); btn(190, 28, b & BTN.y, "Y", "--cam");
+  const bar = (x, label, v, on) => {
+    g.fillStyle = css("--ring"); g.fillRect(x, 8, 34, 12);
+    g.fillStyle = css(on ? "--accent" : "--muted"); g.fillRect(x, 8, 34 * Math.min(1, v), 12);
+    g.fillStyle = css("--ink"); g.font = "10px system-ui"; g.fillText(label, x + 2, 18);
+  };
+  bar(80, "LB", b & BTN.lb ? 1 : 0, true); bar(116, "LT", (d.lt || 0) / 255, true);
+  g.save(); g.translate(0, 18); bar(80, "RB", b & BTN.rb ? 1 : 0, true); bar(116, "RT", (d.rtr || 0) / 255, true); g.restore();
+  const dp = [["up", 110, 70], ["down", 110, 100], ["left", 95, 85], ["right", 125, 85]];
+  for (const [k, x, y] of dp) { g.fillStyle = b & BTN[k] ? css("--accent") : css("--ring"); g.fillRect(x - 6, y - 6, 12, 12); }
+  const held = Object.entries(BTN).filter(([, v]) => b & v).map(([k]) => k.toUpperCase());
+  $("padinfo").textContent = `slot ${slot}` + (held.length ? ` · ${held.join(" ")}` : "") + (keys.length > 1 ? ` · ${keys.length} pads` : "");
+}
+
+// ── replay timeline (radar_server.py --replay) ───────────────────
+let dragging = false;
+async function replayCmd(cmd, v) {
+  try { await fetch(`/replay?cmd=${cmd}` + (v != null ? `&v=${v}` : ""), {cache: "no-store"}); } catch (e) {}
+}
+$("tl_play").onclick = () => replayCmd(last && last.replay && last.replay.playing ? "pause" : "play");
+$("tl_back").onclick = () => replayCmd("step", -1);
+$("tl_fwd").onclick = () => replayCmd("step", 1);
+$("tl_speed").onchange = () => replayCmd("speed", $("tl_speed").value);
+$("tl_pos").oninput = () => { dragging = true; };
+$("tl_pos").onchange = () => { replayCmd("seek", $("tl_pos").value); dragging = false; };
+addEventListener("keydown", e => {
+  if (!(last && last.replay) || e.target.tagName === "SELECT") return;
+  if (e.key === " ") { e.preventDefault(); $("tl_play").click(); }
+  if (e.key === "ArrowLeft") replayCmd("step", -1);
+  if (e.key === "ArrowRight") replayCmd("step", 1);
+});
+function timeline() {
+  const r = last && last.replay;
+  $("timeline").hidden = !r;
+  if (!r) return;
+  $("tl_play").textContent = r.playing ? "❚❚" : "▶";
+  $("tl_pos").max = r.len;
+  if (!dragging) $("tl_pos").value = r.t;
+  $("tl_time").textContent = `${r.t.toFixed(1)} / ${r.len.toFixed(1)} s`;
+  $("tl_name").textContent = r.name + (r.markers.length ? ` · F9 at ${r.markers.map(m => m.toFixed(1)).join(", ")} s` : "");
+}
+
 async function poll() {
   try {
     const r = await fetch("/state", {cache: "no-store"});
     last = await r.json();
-    const live = last.age != null && last.age < 2;
-    $("conn").textContent = live ? "live" : last.age == null ? "waiting" : `stale (${last.age.toFixed(0)} s)`;
+    const live = last.age != null && (last.age < 2 || (last.replay && !last.replay.playing));
+    $("conn").textContent = last.replay ? "replay" : live ? "live" : last.age == null ? "waiting" : `stale (${last.age.toFixed(0)} s)`;
     $("conn").className = live ? "live" : "stale";
   } catch (e) {
     $("conn").textContent = "no server"; $("conn").className = "stale";
   }
-  draw(); side();
+  draw(); side(); drawPad(); timeline();
   setTimeout(poll, 100);
 }
 addEventListener("resize", draw);

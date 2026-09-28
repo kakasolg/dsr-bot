@@ -24,6 +24,7 @@ import control
 import env
 import nav
 import navmesh
+sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent.parent / "experiments"))   # vision_probe moved there (0474f5c)
 import vision_probe as vp
 
 ROOT = Path(__file__).resolve().parent

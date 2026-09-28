@@ -1,0 +1,232 @@
+"""Patch D 오프라인 테스트 — 방패병 빠른 발차기(원시 애니 3004·3500)는 기본 'shadow': 발차기 안 하고 후보 사건만.
+
+  python duel_shadow_test.py
+"""
+from __future__ import annotations
+import sys as _sys, pathlib as _pl  # repo root first (the bot's modules), then this folder
+_sys.path[:0] = [str(_pl.Path(__file__).resolve().parent.parent), str(_pl.Path(__file__).resolve().parent)]
+
+import sys
+from dataclasses import replace
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+
+from field_fakes import FakeMv, World
+from souls import duel as D
+D.CIRCLE_MAX_SWEEPS = 0      # these cases check the other duel rules; the backstab (hollows, 2026-09-28 backstab-only) has tests/backstab_test.py
+D.BACKSTAB_ONLY = False
+from souls import foes
+from souls import moves as M
+from souls import weapons
+
+AXE = weapons.BATTLE_AXE
+
+
+def test_candidate_truth_table() -> None:
+    S = foes.SHIELD
+    cand = lambda a, age, h, sp=90, oth=False, dy=0.0, foe=S: D._early_kick_candidate(foe, a, age, h, dy, sp, AXE, oth)
+    assert cand(3004, 0.5, 1.2) is True
+    assert cand(3004, 1.3, 1.2) is False                      # windup_act_s 넘음
+    assert cand(3500, None, 1.5) is True                      # STAGGER
+    assert cand(3500, None, 1.5, oth=True) is False           # 옆에서 다른 놈이 휘두름
+    assert cand(3500, None, 1.5, sp=AXE.sp_min - 1) is False  # 스태미나 모자람
+    assert cand(3500, None, AXE.reach + 0.5) is False         # 닿는 거리 밖
+    assert cand(3500, None, 1.5, dy=1.5) is False             # 높이차
+    assert cand(3500, None, 1.5, foe=foes.HOLLOW) is False    # 방패병 아님
+    print("ok  _early_kick_candidate truth table (windup age, STAGGER, other attacker, SP, reach, dy, foe)")
+
+
+def test_shadow_dedupe_and_outcome() -> None:
+    evs = []
+    sk = D.ShadowKick(log=lambda *a: None, events=lambda k, **kw: evs.append((k, kw)), gen=0)
+    w = World()
+    w.add(2, 0x1018, 255010, (1.0, -49.4, 0.0), hp=85, max_hp=85)
+    t = 100.0
+    for k in range(10):                                        # 같은 시작의 3500 을 10 틱 동안 봄
+        sk.note_anim(2, 3500, t + 0.05 * k)
+        sk.observe(t + 0.05 * k, 2, 0x1018, 255010, 3500, None, 1.2, 0.0, 90, 106, 0, 793, 85)
+    assert [k for k, _ in evs] == ["shadow_kick"], evs
+    e = evs[0][1]
+    for f in ("key", "handle", "gen", "ptr", "anim", "age", "h", "dy", "sp", "max_sp", "hostiles_4_5m"):
+        assert f in e, f
+    assert e["gen"] == 0 and e["key"].startswith(f"{0x1018}|g0|3500|"), e
+    w.chars[2].hp = 51
+    w.player.hp = 790
+    sk.tick(t + 0.5, w.snapshot())
+    assert len(evs) == 1                                       # 아직 1.5 s 전
+    sk.tick(t + 1.6, w.snapshot())
+    out = [kw for k, kw in evs if k == "shadow_kick_outcome"]
+    assert len(out) == 1 and out[0]["player_hp_delta"] == -3 and out[0]["target_hp_delta"] == -34 and out[0]["key"] == e["key"], out
+    # 애니가 바뀌었다 돌아오면 새 시작 → 새 사건
+    sk.note_anim(2, -1, t + 2.0)
+    sk.note_anim(2, 3500, t + 2.5)
+    sk.observe(t + 2.5, 2, 0x1018, 255010, 3500, None, 1.2, 0.0, 90, 106, 0, 790, 51)
+    # 세대가 바뀌면 같은 핸들·애니·시작이라도 새 사건
+    sk.gen = 1
+    sk.observe(t + 2.5, 2, 0x1018, 255010, 3500, None, 1.2, 0.0, 90, 106, 0, 790, 51)
+    keys = [kw["key"] for k, kw in evs if k == "shadow_kick"]
+    assert len(keys) == 3 and len(set(keys)) == 3 and "|g1|" in keys[2], keys
+    print(f"ok  one shadow event per handle+gen+anim+onset (10 ticks → 1), outcome after 1.5 s, new onset/gen → new key")
+
+
+def test_jittering_age_one_event() -> None:
+    """한 번의 3004 시작 — age 가 틱마다 조금씩 흔들려도(now − age 가 ±0.05 s) 사건은 하나 (observe 133016 에서 둘이 됐다)."""
+    evs = []
+    sk = D.ShadowKick(log=lambda *a: None, events=lambda k, **kw: evs.append((k, kw)), gen=0)
+    t0 = 200.0
+    for k, jitter in enumerate((0.0, 0.03, -0.04, 0.05, -0.02, 0.06)):
+        now = t0 + 0.05 * k
+        sk.note_anim(2, 3004, now)
+        sk.observe(now, 2, 0x1018, 255010, 3004, 0.05 * k + jitter, 1.7, 0.0, 97, 106, 0, 793, 85)
+    keys = [kw["key"] for k, kw in evs if k == "shadow_kick"]
+    assert len(keys) == 1, keys
+    print("ok  jittering age on one 3004 onset → exactly one shadow event")
+
+
+class DuelMv(FakeMv):
+    """duel() 이 부르는 것만 — 모르는 걸 부르면 바로 실패한다."""
+
+    def __init__(self, world, target_ptr):
+        super().__init__(world)
+        self.kicks, self.lights = [], []
+        self.target = target_ptr
+
+    def __getattr__(self, name):
+        raise AssertionError(f"duel 이 가짜 Moves 에 없는 '{name}' 을 불렀다")
+
+    def light(self, s, c, n=2, sp_second=None):
+        self.lights.append(c.ptr)
+        return M.Hit("light", presses=n)
+
+    def heavy(self, s, c):
+        return M.Hit("heavy", presses=1)
+
+    def kick_combo(self, s, c, n=2):
+        self.kicks.append(c.ptr)
+        self.w.chars[c.ptr].hp = 0
+        return M.Hit("kick+light", presses=1 + n, dmg=85, dead=True)
+
+
+def run_duel(foe_obj, ticks=12):
+    w = World(player=(0.0, -49.4, 0.0), sp=90)
+    w.add(2, 0x1018, 255010, (1.2, -49.4, 0.0), hp=85, max_hp=85, anim=3500)
+    mv = DuelMv(w, 2)
+    evs, logs = [], []
+    old = foes.of
+    foes.of = lambda npc: foe_obj
+    n = {"k": 0}
+
+    def cancel():
+        n["k"] += 1
+        return n["k"] > ticks
+    try:
+        r = D.duel(mv, AXE, 2, None, log=logs.append, cancel=cancel, reflex=None, gen=3,
+                   events=lambda k, **kw: evs.append((k, kw)))
+    finally:
+        foes.of = old
+    return r, mv, evs, logs
+
+
+def test_duel_shadow_never_kicks() -> None:
+    r, mv, evs, logs = run_duel(foes.SHIELD)
+    assert foes.SHIELD.early_kick == "shadow"
+    assert mv.kicks == [], mv.kicks                            # 발차기 안 함
+    sk = [kw for k, kw in evs if k == "shadow_kick"]
+    assert len(sk) == 1 and sk[0]["gen"] == 3 and sk[0]["anim"] == 3500 and "|g3|3500|" in sk[0]["key"], sk
+    assert any(k == "shadow_kick_outcome" for k, _ in evs), evs   # 끝날 때(취소) 남은 결과를 잘린 채 남김
+    assert mv.lights, "shadow 뒤엔 예전 가지(휘청 반격)로 흘러가야 한다"
+    print(f"ok  duel with SHIELD (shadow): kick_combo never called, 1 shadow event (gen 3), falls through to old branch "
+          f"(light ×{len(mv.lights)}), result {r.result}")
+
+
+def test_duel_act_is_test_only() -> None:
+    assert all(getattr(f, "early_kick", "off") != "act" for f in foes.BY_NPC.values()) if hasattr(foes, "BY_NPC") else True
+    act = replace(foes.SHIELD, early_kick="act")
+    r, mv, evs, logs = run_duel(act)
+    assert mv.kicks == [2] and r.result == "killed", (mv.kicks, r.result)
+    assert not any(k == "shadow_kick" for k, _ in evs)
+    print("ok  'act' (test-only Foe) → kick_combo once → killed; no shipped Foe uses 'act'")
+
+
+def test_non_shield_no_events() -> None:
+    r, mv, evs, logs = run_duel(foes.HOLLOW)
+    assert not any(k.startswith("shadow_kick") for k, _ in evs) and mv.kicks == []
+    print("ok  non-shield foe → no shadow events, no kick")
+
+
+def test_interloper_skips_standing_foes() -> None:
+    from telemetry import Chr
+    p = Chr(ptr=1, npc_param=0, team=1, hp=500, max_hp=500, x=0.0, y=0.0, z=0.0)
+
+    def foe(anim, y=0.0, x=1.5, hp=100, ptr=9):
+        return Chr(ptr=ptr, npc_param=250000, team=6, hp=hp, max_hp=100, x=x, y=y, z=0.0, anim=anim)
+
+    far_target = 10.0
+    assert D._interloper(foe(3004), p, 2, far_target)                     # awake, close, same height → take it
+    assert D._interloper(foe(7000), p, 2, far_target)                     # moving (not attacking) also counts
+    assert not D._interloper(foe(-1), p, 2, far_target)                   # standing / asleep (P-6: 250000 asleep 1.2 m below)
+    assert not D._interloper(foe(None), p, 2, far_target)                 # anim unreadable
+    assert not D._interloper(foe(9010), p, 2, far_target)                 # downed
+    assert not D._interloper(foe(3004, y=-1.3), p, 2, far_target)         # other level
+    assert not D._interloper(foe(3004, hp=0), p, 2, far_target)
+    assert not D._interloper(foe(3004, ptr=2), p, 2, far_target)          # the target itself
+    assert not D._interloper(foe(3004, x=2.0), p, 2, 2.5)                 # not clearly closer (SWITCH_MARGIN)
+    print("ok  interloper switch: awake foes only (standing/asleep, downed, other level, not closer → no)")
+
+
+def test_result_line_names_actual_opponent() -> None:
+    r = D.DuelResult("stuck", npc=254011, vs=250000, secs=18.0)
+    assert "실제 상대 250000" in r.line(), r.line()
+    assert "실제 상대" not in D.DuelResult("killed", npc=254011).line()
+    assert "실제 상대" not in D.DuelResult("killed", npc=254011, vs=254011).line()
+    print("ok  result line names the foe actually fought when it switched")
+
+
+def test_shield_pair_rules() -> None:
+    from telemetry import Chr, Snapshot
+    p = Chr(ptr=1, npc_param=0, team=1, hp=262, max_hp=793, x=0.0, y=0.0, z=0.0)
+
+    def foe(ptr, x, anim=-1, hp=85, npc=255000, y=0.0):
+        return Chr(ptr=ptr, npc_param=npc, team=6, hp=hp, max_hp=85, x=x, y=y, z=0.0, anim=anim, dist=abs(x))
+
+    def snap(*cs):
+        return Snapshot(t=0.0, player=p, chars=sorted(cs, key=lambda c: c.dist))
+
+    # P-8 284.3 s: staggered shield soldier (target 2) + hollow 3003 at 1.2 m → don't punish, block
+    assert D._other_swinging(snap(foe(2, 1.1, anim=3500), foe(3, 1.2, anim=3003, npc=254010)), 2)
+    assert not D._other_swinging(snap(foe(2, 1.1, anim=3500), foe(3, 1.2, anim=-1)), 2)          # standing, not swinging
+    assert not D._other_swinging(snap(foe(2, 1.1, anim=3500), foe(3, 3.5, anim=3003)), 2)        # too far
+    assert not D._other_swinging(snap(foe(2, 1.1, anim=3003)), 2)                                 # the target itself
+    # retreat line: two shield soldiers standing within 4 m → 45 %, one → 25 %, desperate stays 0
+    two = snap(foe(2, 1.2), foe(3, 2.4))
+    assert D._low_hp_line(two, 0.25) == D.CROWD_LOW_HP
+    assert D._low_hp_line(snap(foe(2, 1.2), foe(3, 6.0)), 0.25) == 0.25
+    assert D._low_hp_line(snap(foe(2, 1.2), foe(3, 2.4, anim=9010)), 0.25) == 0.25             # downed doesn't count
+    assert D._low_hp_line(snap(foe(2, 1.2), foe(3, 2.4, hp=0)), 0.25) == 0.25
+    assert D._low_hp_line(snap(foe(2, 1.2), foe(3, 2.4, y=-4.0)), 0.25) == 0.25                # other level
+    assert D._low_hp_line(two, 0.0) == 0.0
+    print("ok  shield pair: no punish while another foe swings; retreat at 45 % with two foes within 4 m")
+
+
+def test_foe_follows_target_after_switch_back() -> None:
+    # P-8 291.3 s: after "interloper killed — back to the original target" the shield soldier got the hollow's moves.
+    # duel() now re-reads the foe data from the current target every tick (in _sense) — guard the line against regressions.
+    import inspect
+    src = inspect.getsource(D._sense)
+    assert "F.foe = foes_.of(c.npc_param)\n" in src and "if F.foe is None" not in src
+    print("ok  foe data re-read from the current target every tick")
+
+
+if __name__ == "__main__":
+    test_candidate_truth_table()
+    test_shadow_dedupe_and_outcome()
+    test_jittering_age_one_event()
+    test_duel_shadow_never_kicks()
+    test_duel_act_is_test_only()
+    test_non_shield_no_events()
+    test_interloper_skips_standing_foes()
+    test_result_line_names_actual_opponent()
+    test_shield_pair_rules()
+    test_foe_follows_target_after_switch_back()
+    print("전부 통과")

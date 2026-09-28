@@ -29,6 +29,69 @@ FOLLOW_DY = 2.5          # foe following on stairs — up to this height differe
 SAFE_R = 6.0             # estus: no awake foe within this, and
 SAFE_ATTACK_R = 8.0      #          nobody swinging within this
 RESYNC_BACK, RESYNC_AHEAD = 3, 15   # range for re-picking the waypoint after a fight while walking (field.walk)
+RESYNC_DY = 1.0                      # nearest waypoint this far above/below → different level: re-plan from here (hotspot #4, 2026-09-28)
+
+
+def resync(path: list, here, nm, lo: int = 0, hi: int | None = None) -> tuple[list, int, float]:
+    """Where to carry on walking from `here` after a fight / quit-out. → (path, i, dy).
+    Nearest waypoint in path[lo:hi]; if it's on a different level (|dy| > RESYNC_DY — fought the crossbowman on the ledge, the nearest
+    point is 1.5 m below: unreachable, 6~8 s stuck in 5 of 6 runs) re-plan from here to the end on the navmesh (i = 0, dy returned ≠ 0).
+    If there's no navmesh / no path, keep the old path and the nearest point."""
+    hi = len(path) if hi is None else hi
+    i = min(range(lo, hi), key=lambda j: math.dist(path[j], here))
+    dy = here[1] - path[i][1]
+    if abs(dy) <= RESYNC_DY or nm is None:
+        return path, i, 0.0
+    try:
+        newp = nm.find_path(tuple(here), tuple(path[-1]))
+    except Exception:
+        newp = None
+    if not newp:
+        return path, i, 0.0
+    newp = [tuple(q) for q in nav.trim_path(list(newp[1:]) or list(newp), path[-1])]
+    return newp, 0, dy
+
+
+class WalkPlan:
+    """Where the walk is on its path: points, current index, arrival tolerance per point. No game — Field._walk drives it.
+    Without tol (navmesh path) only steep segments (stairs, ramps) are stepped precisely at 0.4 m (nav.path_tolerances) — stepping everything at 1 m
+    couldn't get from the ramp ledge up to the stair top: 'passage blocked' (2026-09-24). Human-recorded paths get tol (0.8) from the caller
+    — narrowing recorded points to 0.4 m got stuck unable to get within 0.6~0.7 m at stair ends (hunt.walk_fight). Corners tighten either way."""
+
+    def __init__(self, path: list, tag: str, tol: float | None = None):
+        self.tag, self.tol, self.i = tag, tol, 0
+        self.set_path([tuple(q) for q in path])
+
+    def set_path(self, path: list) -> None:
+        self.path = path
+        self.tols = nav.path_tolerances(path, 1.0) if self.tol is None else nav.path_tolerances(path, self.tol, steep=False)
+
+    @property
+    def done(self) -> bool:
+        return self.i >= len(self.path)
+
+    def point(self):
+        return self.path[self.i]
+
+    def tolerance(self, tight: dict | None = None) -> float:
+        """Inside tight = {"center", "r"} (narrow bridge without railings) step precisely at 0.45 m."""
+        q = self.path[self.i]
+        if tight and math.dist((q[0], q[2]), (tight["center"][0], tight["center"][2])) < tight["r"]:
+            return 0.45
+        return self.tols[self.i]
+
+    def nearest(self, here) -> None:
+        self.i = min(range(len(self.path)), key=lambda j: math.dist(self.path[j], here))
+
+    def resync(self, here, nm, window: bool) -> float:
+        """Carry on from `here`: nearest point (within RESYNC_BACK·RESYNC_AHEAD of i if window), re-planned on another level.
+        → dy of the re-plan, 0.0 if the old path was kept."""
+        lo, hi = (max(0, self.i - RESYNC_BACK), min(len(self.path), self.i + RESYNC_AHEAD)) if window else (0, len(self.path))
+        newp, j, dy = resync(self.path, here, nm, lo, hi)
+        if newp is not self.path:
+            self.set_path(newp)
+        self.i = j
+        return dy
 RETREAT_GUARD_R = 4.0    # retreat: shield up while an awake foe is within this (horizontal)
 SMASH_TRIES = 2          # swings (x2 attacks) per blocking prop per walk — a prop that won't break isn't hit forever
 SMASH_WALK_S = 2.0       # s to step up to it
@@ -1014,31 +1077,129 @@ class Field:
         finally:
             self.mv.show_path = prev                       # a detour (walk_to inside walk) hands the outer path back
 
+    # ── walking, in four pieces (ROADMAP 0-c): WalkPlan = where we are on the path (pure) · _follow = stick toward one point
+    # (nav.goto — swap this to change how the bot steers) · _walk_chaser = a foe interrupts · _walk_missed = a point wasn't reached
+
+    def _follow(self, q, tolerance: float, terrain, mover, on_stuck, mode_fn) -> str:
+        """Follower: walk to one point. → 'arrived' | 'retreat' | 'dead' | 'timeout' | 'stuck' | 'unreachable' …"""
+        return nav.goto(self.mv.tm, self.mv.pad, q, tolerance=tolerance if terrain is not None else max(tolerance, 0.8), timeout=15,
+                        log=lambda *a: None, terrain=terrain, mover=mover, on_stuck=on_stuck, mode_fn=mode_fn)
+
+    def _chaser(self, sn, ignore: set):
+        """The awake foe closing in that the walk should stop for, or None.
+        Shield soldiers are deferred — with several, easy ones first (user 2026-09-25: "deal with the other enemies first, I said",
+        "you go to the two shield soldiers too fast" — met the two shield soldiers on the Undead Burg terrace back to back with no time to heal,
+        took 220+ damage each and got surrounded). Only when there is no easy one (shield soldiers only) take that one first."""
+        cands = [c for c in sn.hostile(FOLLOW_R + 1.0) if awake(c) and c.ptr not in ignore
+                 and M.horiz(sn.player, c) < FOLLOW_R and abs(c.y - sn.player.y) < FOLLOW_DY
+                 and (c.anim not in (None, -1) or c.dist < 2.0)]
+        if not cands:
+            return None
+        easy = [c for c in cands if foes_.of(c.npc_param).kind != "shield"]
+        return min(easy or cands, key=lambda c: c.dist if c.dist is not None else 999.0)
+
+    def _resync_plan(self, plan: "WalkPlan", nm, window: bool) -> None:
+        """Pick up the path again from where we stand (after a fight / quit-out); re-plan if that point is on another level."""
+        s2 = self.mv.snap(5.0)
+        if not s2:
+            return
+        dy = plan.resync((s2.player.x, s2.player.y, s2.player.z), nm, window)
+        if dy:
+            self.log(f"   {plan.tag}: 경로 재탐색 — 이어갈 점이 다른 층 (Δy {dy:+.1f} m), {len(plan.path)}점")
+            self.mv.show_path = (plan.tag, list(plan.path))
+
+    def _walk_chaser(self, plan: "WalkPlan", st, nm, mover) -> str | None:
+        """goto said 'retreat': block, fight the chaser if there is one, carry on from where the fight left us. → 'dead' | 'no_estus' | None"""
+        tag = plan.tag
+        mover.stop()
+        self.reflex.hold()                     # when an attack comes while walking, first block facing it
+        s2 = self.mv.snap(40.0)
+        c = self._chaser(s2, st.ignore) if s2 else None
+        if c is not None and st.fights >= 15:
+            st.ignore.add(c.ptr)               # fought too much on one path — leave this one to the quit-out watchdog
+        elif c is not None:
+            st.fights += 1
+            mover.stop()
+            # same principle as incoming foes (wait_far) — walking up here too lets others join meanwhile (user: "climbing up again")
+            zone = self._near_zone(s2, nm)
+            if zone is not None:
+                zr = self._retreat_to_zone(zone, nm)
+                self.log(f"   {tag}: 따라온 {c.npc_param} — 찍어 둔 자리 ({zone[0]:.1f},{zone[1]:.1f},{zone[2]:.1f})로 가드 든 채 물러남: {zr}")
+                if zr == "dead":
+                    return "dead"
+            res = self.fight(c.ptr, nm, f"{tag}: 따라온 {c.npc_param}", arena=zone, desperate=st.desperate, wait_far=True)
+            if res.result == "me_dead":
+                return "dead"
+            st.desperate = False
+            if res.result != "killed":
+                ok = self.recover(f"{tag} {res.result}", nm)
+                if not ok and self.estus_left() <= 0:
+                    return "no_estus"
+                st.desperate = not ok
+                if res.result in ("stuck", "lost"):
+                    st.ignore.add(c.ptr)       # unreachable foe — ignore on this path (if it chases, the quit-out shakes it off)
+            # pushed back while fighting or moved by chasing — insisting on the pre-fight target point (i) left it behind a wall/ledge
+            # and got stuck (2026-09-25 return passage, two runs in a row "chaser killed → stuck 30~50 s later"). Like after a quit-out / fog wall,
+            # restart from the nearest point — but only within RESYNC_BACK·RESYNC_AHEAD around i so we don't go far back.
+            self._resync_plan(plan, nm, window=True)
+        return None
+
+    def _walk_missed(self, plan: "WalkPlan", st, q, r: str, nm, mover, done) -> str:
+        """goto didn't reach q. → 'retry' (same point again) | 'next' | 'stuck'"""
+        tag, path, i = plan.tag, plan.path, plan.i
+        st.fails += 1
+        s3 = self.mv.snap(5.0)
+        if s3:                                  # where it gets stuck (2026-09-25 return passage stuck recurred even after fixes)
+            pp = (s3.player.x, s3.player.y, s3.player.z)
+            self.log(f"      {tag}: {i}/{len(path)}번 점 {tuple(round(v, 1) for v in q)} 못 감 ({r}, {st.fails}번째) — "
+                     f"나 {tuple(round(v, 1) for v in pp)}, {math.dist(pp, q):.1f} m")
+            self.events("walk_fail", tag=tag, i=i, n=len(path), q=[round(v, 2) for v in q],
+                        pos=[round(v, 2) for v in pp], r=r, fails=st.fails)
+            # a breakable prop on the way (the NavMesh doesn't know crates) — break it and try the same point again, before
+            # detouring: the detour's navmesh path runs through the same crate (2026-09-27 burg-bonfire #6, ROADMAP P-6)
+            if self._smash_blocking(nm, pp, q, st.smashed, tag, mover, why=f"점 못 감 ({r})"):
+                st.fails = 0
+                return "retry"
+            # if the straight line fails, detour once via navmesh pathfinding — pushed while fighting onto the upper passage beside the stairs (1.1~1.5 m higher),
+            # heading straight for the stair point hit the railing, failing three points in a row (2026-09-25 191817 return passage points 28~30)
+            # the detouring walk_to also uses walk internally — detouring again there recurses endlessly ("detour detour …",
+            # 15 min timeout in front of ramp #2, 2026-09-25 194804). One level only
+            if st.fails == 1 and not self._detour and nm.find_path(pp, q):
+                self._detour = True
+                try:
+                    r2 = self.walk_to(q, nm, f"{tag} 돌아서", done=done)
+                finally:
+                    self._detour = False
+                if r2 == "arrived":
+                    st.fails = 0
+                    return "next"
+        if st.fails >= 2 and self.fog_through(q):
+            st.fails = 0                        # passed the fog wall — restart from the nearest point
+            s2 = self.mv.snap(5.0)
+            if s2:
+                plan.nearest((s2.player.x, s2.player.y, s2.player.z))
+            return "retry"
+        if st.fails >= 3:
+            return "stuck"
+        return "next"
+
     def _walk(self, path: list, nm, tag: str, tol: float | None = None, tight: dict | None = None, mode: str = "walk",
               done=None) -> str:
         """Walk the path, killing first any foe that chases and closes in. → 'arrived' | 'dead' | 'stuck' | 'no_estus'
         Per-point floor check only when both the target and current spot are on this navmesh (edges / bridges have navmesh gaps).
         Inside tight = {"center": [x,y,z], "r": m} (narrow bridge without railings), step precisely at 0.45 m."""
-        path = [tuple(q) for q in path]
-        smashed: dict[str, int] = {}                       # prop name → swings this walk (props_.blocking)
-        # without tol (navmesh path) only steep segments (stairs, ramps) are stepped precisely at 0.4 m (nav.path_tolerances) — stepping everything at 1 m
-        # couldn't get from the ramp ledge up to the stair top: 'passage blocked' (2026-09-24). Human-recorded paths get tol (0.8) from the caller
-        # — narrowing recorded points to 0.4 m got stuck unable to get within 0.6~0.7 m at stair ends (hunt.walk_fight)
-        tols = nav.path_tolerances(path, 1.0) if tol is None else [tol] * len(path)
+        plan = WalkPlan(path, tag, tol)
+        st = types.SimpleNamespace(fails=0, fights=0, ignore=set(), desperate=False,
+                                   smashed={})         # smashed: prop name → swings this walk (props_.blocking)
         self.reflex.nm = nm
         mover = nav.Mover(self.mv.pad)
-        i, fails, fights = 0, 0, 0
-        ignore: set = set()
-        desperate = False
         try:
-            while i < len(path):
+            while not plan.done:
                 if self.esc.escaping:
                     time.sleep(0.2)
                     continue
-                q = path[i]
-                t = tols[i]
-                if tight and math.dist((q[0], q[2]), (tight["center"][0], tight["center"][2])) < tight["r"]:
-                    t = 0.45
+                q = plan.point()
+                t = plan.tolerance(tight)
                 s = self.mv.snap(40.0)
                 if s is None:
                     time.sleep(0.1)
@@ -1052,112 +1213,35 @@ class Field:
                 f_q = nm.floor_at(q[0], q[2], q[1]) if len(q) > 2 else None
                 f_p = nm.floor_at(s.player.x, s.player.z, s.player.y)
                 terr = nm if (f_q is not None and abs(f_q[0] - q[1]) < 2.0 and f_p is not None and abs(f_p[0] - s.player.y) < 2.0) else None
-
-                def chaser(sn):
-                    # shield soldiers are deferred — with several, easy ones first (user 2026-09-25: "deal with the other enemies first, I said",
-                    # "you go to the two shield soldiers too fast" — met the two shield soldiers on the Undead Burg terrace back to back with no time to heal,
-                    # took 220+ damage each and got surrounded). Only when there is no easy one (shield soldiers only) take that one first.
-                    cands = [c for c in sn.hostile(FOLLOW_R + 1.0) if awake(c) and c.ptr not in ignore
-                             and M.horiz(sn.player, c) < FOLLOW_R and abs(c.y - sn.player.y) < FOLLOW_DY
-                             and (c.anim not in (None, -1) or c.dist < 2.0)]
-                    if not cands:
-                        return None
-                    easy = [c for c in cands if foes_.of(c.npc_param).kind != "shield"]
-                    return min(easy or cands, key=lambda c: c.dist if c.dist is not None else 999.0)
                 g0 = self.esc.gen
 
                 def on_stuck(p, target, q=q):
                     # stuck on the way (nav.goto STUCK_WINDOW, 2 s) — a crate in front? break it now, not after the 15 s timeout
-                    return self._smash_blocking(nm, (p.x, p.y, p.z), q, smashed, tag, mover,
+                    return self._smash_blocking(nm, (p.x, p.y, p.z), q, st.smashed, tag, mover,
                                                 why=f"막힘 감지 ({nav.STUCK_WINDOW:.0f} s 동안 {nav.STUCK_MIN_PROGRESS} m 미만)")
 
-                r = nav.goto(self.mv.tm, self.mv.pad, q, tolerance=t if terr is not None else max(t, 0.8), timeout=15,
-                             log=lambda *a: None, terrain=terr, mover=mover, on_stuck=on_stuck,
-                             mode_fn=lambda sn: "retreat" if (self.reflex.threat_now(sn) or chaser(sn) or self.esc.escaping
-                                                              or self.esc.gen != g0) else mode)
+                r = self._follow(q, t, terr, mover, on_stuck,
+                                 mode_fn=lambda sn: "retreat" if (self.reflex.threat_now(sn) or self._chaser(sn, st.ignore)
+                                                                  or self.esc.escaping or self.esc.gen != g0) else mode)
                 if r == "dead":
                     return "dead"
                 if self.esc.gen != g0:                     # left and returned via quit-out — restart from the nearest point
-                    s2 = self.mv.snap(5.0)
-                    if s2:
-                        i = min(range(len(path)), key=lambda j: math.dist(path[j], (s2.player.x, s2.player.y, s2.player.z)))
+                    self._resync_plan(plan, nm, window=False)
                     continue
                 if r == "retreat":
-                    mover.stop()
-                    self.reflex.hold()                     # when an attack comes while walking, first block facing it
-                    s2 = self.mv.snap(40.0)
-                    c = chaser(s2) if s2 else None
-                    if c is not None and fights >= 15:
-                        ignore.add(c.ptr)                  # fought too much on one path — leave this one to the quit-out watchdog
-                    elif c is not None:
-                        fights += 1
-                        mover.stop()
-                        # same principle as incoming foes (wait_far) — walking up here too lets others join meanwhile (user: "climbing up again")
-                        zone = self._near_zone(s2, nm)
-                        if zone is not None:
-                            zr = self._retreat_to_zone(zone, nm)
-                            self.log(f"   {tag}: 따라온 {c.npc_param} — 찍어 둔 자리 ({zone[0]:.1f},{zone[1]:.1f},{zone[2]:.1f})로 가드 든 채 물러남: {zr}")
-                            if zr == "dead":
-                                return "dead"
-                        res = self.fight(c.ptr, nm, f"{tag}: 따라온 {c.npc_param}", arena=zone, desperate=desperate, wait_far=True)
-                        if res.result == "me_dead":
-                            return "dead"
-                        desperate = False
-                        if res.result != "killed":
-                            ok = self.recover(f"{tag} {res.result}", nm)
-                            if not ok and self.estus_left() <= 0:
-                                return "no_estus"
-                            desperate = not ok
-                            if res.result in ("stuck", "lost"):
-                                ignore.add(c.ptr)          # unreachable foe — ignore on this path (if it chases, the quit-out shakes it off)
-                        # pushed back while fighting or moved by chasing — insisting on the pre-fight target point (i) left it behind a wall/ledge
-                        # and got stuck (2026-09-25 return passage, two runs in a row "chaser killed → stuck 30~50 s later"). Like after a quit-out / fog wall,
-                        # restart from the nearest point — but only within RESYNC_BACK·RESYNC_AHEAD around i so we don't go far back.
-                        s2 = self.mv.snap(5.0)
-                        if s2:
-                            here = (s2.player.x, s2.player.y, s2.player.z)
-                            lo, hi = max(0, i - RESYNC_BACK), min(len(path), i + RESYNC_AHEAD)
-                            i = min(range(lo, hi), key=lambda j: math.dist(path[j], here))
+                    out = self._walk_chaser(plan, st, nm, mover)
+                    if out:
+                        return out
                     continue
                 if r != "arrived":
-                    fails += 1
-                    s3 = self.mv.snap(5.0)
-                    if s3:                                  # where it gets stuck (2026-09-25 return passage stuck recurred even after fixes)
-                        pp = (s3.player.x, s3.player.y, s3.player.z)
-                        self.log(f"      {tag}: {i}/{len(path)}번 점 {tuple(round(v, 1) for v in q)} 못 감 ({r}, {fails}번째) — "
-                                 f"나 {tuple(round(v, 1) for v in pp)}, {math.dist(pp, q):.1f} m")
-                        self.events("walk_fail", tag=tag, i=i, n=len(path), q=[round(v, 2) for v in q],
-                                    pos=[round(v, 2) for v in pp], r=r, fails=fails)
-                        # a breakable prop on the way (the NavMesh doesn't know crates) — break it and try the same point again, before
-                        # detouring: the detour's navmesh path runs through the same crate (2026-09-27 burg-bonfire #6, ROADMAP P-6)
-                        if self._smash_blocking(nm, pp, q, smashed, tag, mover, why=f"점 못 감 ({r})"):
-                            fails = 0
-                            continue
-                        # if the straight line fails, detour once via navmesh pathfinding — pushed while fighting onto the upper passage beside the stairs (1.1~1.5 m higher),
-                        # heading straight for the stair point hit the railing, failing three points in a row (2026-09-25 191817 return passage points 28~30)
-                        # the detouring walk_to also uses walk internally — detouring again there recurses endlessly ("detour detour …",
-                        # 15 min timeout in front of ramp #2, 2026-09-25 194804). One level only
-                        if fails == 1 and not self._detour and nm.find_path(pp, q):
-                            self._detour = True
-                            try:
-                                r2 = self.walk_to(q, nm, f"{tag} 돌아서", done=done)
-                            finally:
-                                self._detour = False
-                            if r2 == "arrived":
-                                fails = 0
-                                i += 1
-                                continue
-                    if fails >= 2 and self.fog_through(q):
-                        fails = 0                          # passed the fog wall — restart from the nearest point
-                        s2 = self.mv.snap(5.0)
-                        if s2:
-                            i = min(range(len(path)), key=lambda j: math.dist(path[j], (s2.player.x, s2.player.y, s2.player.z)))
-                        continue
-                    if fails >= 3:
+                    step = self._walk_missed(plan, st, q, r, nm, mover, done)
+                    if step == "stuck":
                         return "stuck"
+                    if step == "retry":
+                        continue
                 else:
-                    fails = 0
-                i += 1
+                    st.fails = 0
+                plan.i += 1
             return "arrived"
         finally:
             mover.stop()

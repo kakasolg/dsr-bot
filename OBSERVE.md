@@ -10,7 +10,7 @@ Viewer v0 (Phase 2, `observe_view.html` — see the "Viewer" section below) also
 python observe_record.py                 # data/observe/<YYYYmmdd_HHMMSS>.jsonl, stop with Ctrl+C
 python observe_record.py --minutes 1.5   # stops by itself after 90 s
 python observe_record.py --radius 20
-python observe_record_test.py            # offline test (no game, no pad)
+python tests/observe_record_test.py            # offline test (no game, no pad)
 ```
 
 On exit it prints a summary: world line count, pad line count, marker count, enemy read failures, lock-on not found, read_ms p50/p95, file path.
@@ -110,7 +110,7 @@ Pad is normally 10–30 lines/s (~90 B), worst case (stick constantly moving) 12
 ## Manual checklist (real game, after user approval)
 
 Code (no game, verified by the test):
-- [ ] `python observe_record_test.py` all pass
+- [ ] `python tests/observe_record_test.py` all pass
 
 Real game:
 - [ ] No extra virtual pad appears in Device Manager or the `vgamepad` list during recording (compare before/during)
@@ -174,6 +174,6 @@ Always follow these when analyzing observation recordings, bot logs, and the bla
 
 ## Rollback
 
-Phase 1 is only 3 new files — delete `observe_record.py`, `observe_record_test.py`, `OBSERVE.md`, and
+Phase 1 is only 3 new files — delete `observe_record.py`, `tests/observe_record_test.py`, `OBSERVE.md`, and
 optionally `data/observe/`. Phase 2 is just `observe_view.html` — delete it and you're done.
 No existing code or data was changed, so there is nothing else to revert.

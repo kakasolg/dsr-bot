@@ -34,7 +34,7 @@ class Foe:
 # Hollow c2540 (Lua 2026-09-24): when close, half are single 3008, the rest 2–3 hit combos (3003→3004→3009, 3005~3007)
 # 2026-09-25 measured (254001): blocked 3009 for several seconds, stamina fell to 6 and died (reflex×29 in a row, 0 dealt, 376 taken) —
 # not just SHIELD, the hollow combo's 3009 must not be blocked either (same anim number, same danger). Added to unblockable.
-_HOLLOW = dict(kind="hollow", singles=(3008,), combos=(3003, 3005), unblockable=(3009,))
+_HOLLOW = dict(kind="hollow", circle_behind=True, singles=(3008,), combos=(3003, 3005), unblockable=(3009,))
 HOLLOW = Foe("망자(칼)", **_HOLLOW)
 FIREBOMB_HOLLOW = Foe("망자(화염병)", ranged=True, **_HOLLOW,
                       note="위 턱에서 안 내려오고 화염병만 — 방패로 받아도 56~224. 경사로에선 #5(254002)가 던진다 — 시범 140708: 스폰 자리에서 3.5 s 마다 3008, 나이프 두 번(75→31→0)으로 죽음")
@@ -64,7 +64,7 @@ BY_NPC: dict[int, Foe] = {
     # 0.3–0.7 s later an impact hits my shield (my anim 140, SP −7) every 2.7 s (2026-09-25 measured, user "I'm getting hit by arrows, it's right in front").
     # As SHIELD, wait_far said "not approaching" and just blocked for 8 minutes. The fire motion number doesn't change, so anim changes don't reveal it.
     255002: Foe("석궁 병사", kind="shield", ranged=True, kick_when_idle=True, unblockable=(3009,), punish_hits=1,
-                note="3000/3001 = 석궁 발사 (방패 들고 쏜다). 기다리지 말고 붙어 발차기 → 약공"),
+                note="3000/3001 = 석궁 발사 (방패 들고 쏜다). 기다리지 말고 붙어 발차기 → 약공. 뒤잡기 안 됨 — 벽에 붙어 서 있음 (사용자 2026-09-28)"),
     # 254013·254014 (next to the Undead Burg bonfire, HP150): not shield soldiers but bodiless phantoms — user "there's nothing there, why is it swinging"
     # (2026-09-25). 254013 is filtered at layer 0 by its inactive flag, 254014 by body overlap (dsr_telemetry.PHANTOM_R). The entries below are kept.
     254013: SHIELD, 254014: SHIELD,

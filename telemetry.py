@@ -1,6 +1,9 @@
 """
 Elden Ring telemetry reader (pymem).
 
+For DSR the reader is dsr_telemetry.py; this file still matters there because Chr / Snapshot below are the data shapes
+every layer uses (README "The two similar-looking pairs").
+
 Reuses symbols.json exported by the Cheat Engine bridge (the table's AOB scan results) to
 read player and nearby character state dozens of times per second. Writes nothing (read-only).
 

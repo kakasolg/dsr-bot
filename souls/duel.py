@@ -50,40 +50,188 @@ LEDGE_DY = 3.0           # don't lure it if it is this much above or below arena
 SWING_S = 1.6            # past this since the attack anim started, not considered swinging
 PULL_R = 8.0             # lure: start backing off if it is within this (even if not moving)
 SEEK_R = 100.0           # search for it within this radius — at 40 m it missed #1 at 42 m from the bonfire and everything was 'lost'
-CIRCLE_BEHIND_DEG = 130  # beyond this angle from its front = 'behind' — shield only blocks a frontal cone (user 2026-09-25: "you have to attack shield soldiers from behind too")
-CIRCLE_LEAD_DEG = 60     # lead the target point by this much every tick — keep circling without stopping (user demo: 3.5–3.8 s big arc; stopping each step let it turn and catch up)
-CIRCLE_SWEEP_S = 4.0     # max time of one sweep (measured 3.5–3.8 s + margin)
-CIRCLE_MAX_SWEEPS = 2    # give up if not behind after this many (path blocked etc.) — kick instead (prevents infinite loop)
+CIRCLE_MAX_SWEEPS = 2    # tries per foe before normal attacks (99 during the 2026-09-28 "backstab no matter what" runs)
+BACK_CHECK_M = (0.5, 1.0, 1.5, 2.0)   # floor checked this far behind the foe (_room_behind)
+FOOT_R = 1.0            # after a backstab: floor this far round us, or step back to where we started it
+BACKSTAB_ONLY = False    # True: against hollows only the backstab (no hit-first, no stagger punish). Off: backstab when the checks allow it, else the usual rules (user 2026-09-28)
+# backstab — from 3 human demos (backstab_report.py, observe_backstab_*.jsonl, 2026-09-28): lock-on stays ON while circling (aim ≤ 6°),
+# circling at body contact 0.85–0.96 m with the stick full (≥ 1.0, 2.5–3.9 m/s), behind within 0.6–1.1 s; R1 at 130–180° behind with the
+# foe idle (anim −1) → the game snaps us behind (0.59 m) and the kill lands 0.8–0.9 s later. R1 while it's staggered/attacking = a normal hit.
+# (the old _circle_sweep did a 3.5 s wide arc without lock-on — too slow, it turned to face us)
+BACKSTAB_DEG = 140       # behind at least this much (deg from its front) → R1 — drill: kills at 151°·153° (1.12 m), 133° at 1.50 m was a normal hit
+BACKSTAB_R = 0.9         # circle at this distance (human 0.85–0.96 m)
+BACKSTAB_MAX_R = 1.3     # R1 only within this — drill: 1.12 m killed, 1.50 m was a normal hit (human 0.85 m)
+BACKSTAB_REACH = 3.5     # start only within this (walk the rest while circling) — 2.5 → 3.5 (27j: idle hollows stood at 2.4–3 m, the bot waited, walked in head-on and woke them)
+BACKSTAB_S = 2.5         # give up circling after this (human 0.6–1.1 s from contact; + walking in from BACKSTAB_REACH)
+BACKSTAB_WATCH_S = 1.0   # after R1, watch this long for the kill (human 0.8–0.9 s)
+BACKSTAB_TICK = 0.05
+BACKSTAB_RELEASE_S = 0.1  # all input released this long before R1 (see stab())
+SNEAK_R = 6.0            # a still hollow showing its back (≥ SNEAK_DEG) within this: walk straight in to its back, no circling
+SNEAK_DEG = 110          # (radar 27k: circling never got past 6° — the hollow turns with us — but twice one stood 6 m off facing away 160–175°)
+BACKSTAB_STILL_S = 0.3   # foe must have stood (moved < BACKSTAB_STILL_M) this long — a hollow walking in is also anim −1 and swings on arrival
+BACKSTAB_STILL_M = 0.3   # distance to us dropped less than this (walking in ≈ 0.45 m per 0.3 s; 27h: 8/8 tries on walking-in hollows ended 'moved')
 
 
-def _circle_sweep(mv, s, c, cancel) -> float:
-    """Keep circling around it without stopping — user demo (2026-09-25, play_20260925_062345.jsonl): a big arc lasting 3.5–3.8 s
-    reaching behind (150–180°), one light attack (303000, same anim as a normal light attack) did 54 damage (63 % of HP 85) — the old
-    _circle_step stopped each step and it turned to catch up meanwhile. → last behind angle (absolute, deg)."""
-    ptr = c.ptr
+def backstab_stick(c, p, side: float | None = None) -> tuple[float, float, float]:
+    """Stick (x, y) while locked on (x = strafe right +, y = forward) that circles p toward c's back. → (x, y, behind_deg).
+    Player on the foe's right (rel_angle + ) → strafe left; distance corrected toward BACKSTAB_R."""
+    ang = M.rel_angle(c, p)
+    h = M.horiz(p, c)
+    behind = abs(math.degrees(ang))
+    if behind >= BACKSTAB_DEG:                             # already at its back — walk straight in (strafing would carry us off it)
+        return 0.0, max(0.0, min(0.8, (h - BACKSTAB_R) * 1.5)), behind
+    fwd = max(-0.5, min(0.8, (h - BACKSTAB_R) * 1.5))
+    # side: keep the strafe direction chosen at the start — right in front (≈0°) the sign flipped every tick (drill 4: 2.5 s lost)
+    return (side if side is not None else (-1.0 if ang >= 0 else 1.0)), fwd, behind
+
+
+def _backstab(mv, s, c, cancel, nm=None) -> str:
+    """Lock on, strafe round at body contact, R1 once behind. → 'stabbed' | 'hit' (R1 landed but no kill) | 'moved' (it stopped
+    being idle) | 'not_behind' (time out) | 'no_lock' | 'lost'. Always leaves the stick centered and lock-on off."""
+    ptr, hp0 = c.ptr, c.hp
+
+    def wait(t: float) -> None:                            # sleep but let Pad release the tapped buttons (R3/R1 are only scheduled to lift —
+        t1 = time.time() + t                               # 27j: R3 left held after a no_lock try broke every later lock-on, 10 knife lures 'no_lock')
+        while time.time() < t1:
+            getattr(mv.pad, "release_due", lambda: None)()
+            time.sleep(0.01)
+    busy0 = vars(mv).get("cam_busy", False)           # vars(): test fakes raise on unknown attributes
+    mv.cam_busy = True                                     # lock-on drives the camera — CamFollow hands off
+    def stab() -> str:
+        # let go of everything first — guard (LB) up or the stick held turns R1 into a normal attack. Human demos press R1 alone
+        # (buttons 0x200, no LB); the bot held LB through the whole duel (0x100 → 0x180 at R1). user 2026-09-28: "behind it, all input
+        # released for an instant — that is when the backstab registers"
+        getattr(mv.pad, "guard", lambda on: None)(False)
+        mv.pad.move(0.0, 0.0)
+        wait(BACKSTAB_RELEASE_S)
+        mv.pad.attack()
+        c2 = None
+        for _ in range(max(1, int(BACKSTAB_WATCH_S / max(BACKSTAB_TICK, 1e-3)))):
+            wait(BACKSTAB_TICK)
+            s2 = mv.snap(8.0)
+            c2 = mv.find(s2, ptr) if s2 else None
+            if c2 is None or c2.hp <= 0:
+                return "stabbed"
+        return "hit" if c2.hp < hp0 else "not_behind"
+
+    def at_back(s_, c_) -> bool:
+        return abs(math.degrees(M.rel_angle(c_, s_.player))) >= BACKSTAB_DEG and M.horiz(s_.player, c_) <= BACKSTAB_MAX_R
+
+    try:
+        if at_back(s, c):                                  # already at its back (e.g. it staggered while we stood) — R1 now; locking on
+            return stab()                                  # first cost 0.25 s and then 'no_lock' threw the chance away (27m: 145° at 1.4 m)
+        if mv.lock_state(ptr) != "target":
+            if mv.lock_state(ptr) == "other":
+                mv.unlock()
+            if not mv.lock_target(ptr, tries=2, aim=False):   # camera onto it first — a bare R3 grabs whatever is at camera center
+                s = mv.snap(8.0) or s
+                c = mv.find(s, ptr) or c
+                return stab() if at_back(s, c) else "no_lock"
+        side = None
+        budget = max(BACKSTAB_S, M.horiz(s.player, c) / 1.5 + 1.0)   # walking in from SNEAK_R takes longer than a circle at contact
+        for _ in range(max(1, int(budget / max(BACKSTAB_TICK, 1e-3)))):
+            if cancel():
+                return "lost"
+            s = mv.snap(8.0)
+            c = mv.find(s, ptr) if s else None
+            if c is None:
+                return "lost"
+            if (c.anim if c.anim is not None else -1) in M.DOWNED:
+                return "moved"                             # knocked down — nothing to get behind. A swing is NOT a reason to stop: it can't
+                                                           # turn while it swings, that is when we get round (drill: 4 kills, all mid-swing)
+            if not _circle_floor(nm, s.player, c):
+                return "edge"                              # no floor where the circle goes — stop before stepping off (27u: fell 6 m into a gap)
+            x, y, behind = backstab_stick(c, s.player, side)
+            if side is None and x != 0.0:
+                side = x
+            if behind >= BACKSTAB_DEG and M.horiz(s.player, c) <= BACKSTAB_MAX_R:
+                return stab()
+            mv.pad.move(x, y)
+            wait(BACKSTAB_TICK)
+        return "not_behind"
+    finally:
+        mv.pad.move(0.0, 0.0)
+        wait(0.1)
+        mv.unlock()
+        wait(0.1)
+        mv.cam_busy = busy0
+
+
+
+def _room_behind(nm, p, c, r: float = 1.0) -> bool:
+    """Floor behind the foe and at least one side (r m out, NavMesh, same level)? A hollow with its back to a wall or a drop can't be
+    got behind — circling there walks into the wall or off the edge (user 2026-09-28: "except foes against a wall or a cliff").
+    True when there's no NavMesh / no global coords to check with."""
+    if nm is None or c.heading is None or getattr(p, "gx", None) is None:
+        return True
+    ox, oy, oz = p.gx - p.x, p.gy - p.y, p.gz - p.z         # foes only have tile-local coords — same tile offset as the player
+    fwd = c.heading + math.pi                              # world yaw = heading + π (moves.rel_angle)
+
+    def floor(turn: float, dist: float = r) -> bool:
+        a = fwd + turn
+        hit = nm.floor_at(c.x + ox + math.sin(a) * dist, c.z + oz + math.cos(a) * dist, c.y + oy)
+        return hit is not None and abs(hit[0] - (c.y + oy)) <= 1.0
+
+    # the backstab pulls us in right behind it (≈0.6 m) and we circle out to ~1.3 m — floor all along 0.5–2 m behind, not just at 1 m
+    # (27t: backstabbed a hollow near the ramp edge, then fell 25 m on the first step)
+    behind_ok = all(floor(math.pi, d) for d in BACK_CHECK_M)
+    return behind_ok and (floor(math.pi / 2) or floor(-math.pi / 2))
+
+
+
+
+def _circle_floor(nm, p, c, step: float = 0.8) -> bool:
+    """Floor (same level) round us where circling the foe can take us: both ways along the circle and straight out from it, step m.
+    True without NavMesh / global coords."""
+    if nm is None or getattr(p, "gx", None) is None:
+        return True
+    vx, vz = p.x - c.x, p.z - c.z
+    n = math.hypot(vx, vz) or 1.0
+    vx, vz = vx / n, vz / n
+    for dx, dz in ((vz, -vx), (-vz, vx), (vx, vz)):          # tangent both ways, outward
+        hit = nm.floor_at(p.gx + dx * step, p.gz + dz * step, p.gy)
+        if hit is None or abs(hit[0] - p.gy) > 1.0:
+            return False
+    return True
+
+
+def _footing_ok(nm, p, r: float = FOOT_R) -> bool:
+    """Floor under us and FOOT_R m round us at our level (NavMesh). True without NavMesh / global coords."""
+    if nm is None or getattr(p, "gx", None) is None:
+        return True
+    for k in range(8):
+        a = k * math.pi / 4
+        for d in (0.0, r) if k == 0 else (r,):
+            hit = nm.floor_at(p.gx + math.sin(a) * d, p.gz + math.cos(a) * d, p.gy)
+            if hit is None or abs(hit[0] - p.gy) > 1.0:
+                return False
+    return True
+
+
+def _back_to_safe(mv, nm, start, log, arena=None, secs: float = 2.5) -> None:
+    """The backstab pulled us somewhere with no floor close by — walk back toward where it started (that was on floor) before
+    anything else moves the stick (27t: the next lure step walked off the ramp edge, 25 m fall)."""
+    s = mv.snap(8.0)
+    if s is None or _footing_ok(nm, s.player):
+        return
+    p = s.player
+    # the fight spot (arena — the flat ground where we drink estus) when it's close and on our level (user 2026-09-28), else where the backstab started
+    if arena is not None and math.hypot(arena[0] - p.x, arena[2] - p.z) < 10.0 and abs(arena[1] - p.y) < 1.5:
+        start, where = tuple(arena), "싸움 자리"
+    else:
+        where = "시작 자리"
+    log(f"      뒤잡기 뒤 발밑 가장자리 — {where} ({start[0]:.1f},{start[2]:.1f})로 물러남")
     t0 = time.time()
-    behind_deg = abs(math.degrees(M.rel_angle(c, s.player)))
-    while time.time() - t0 < CIRCLE_SWEEP_S and not cancel():
+    while time.time() - t0 < secs:
         s = mv.snap(8.0)
-        if s is None or s.cam_yaw is None:
+        if s is None:
             break
-        c = mv.find(s, ptr)
-        if c is None or (c.anim or -1) != -1:               # stop if it starts moving (no longer idle)
+        if math.hypot(s.player.x - start[0], s.player.z - start[2]) < 0.4 or _footing_ok(nm, s.player):
             break
-        p = s.player
-        ang = M.rel_angle(c, p)
-        behind_deg = abs(math.degrees(ang))
-        if behind_deg >= CIRCLE_BEHIND_DEG:
-            break
-        sign = 1.0 if ang >= 0 else -1.0
-        th = math.radians(CIRCLE_LEAD_DEG) * sign
-        dx, dz = p.x - c.x, p.z - c.z
-        rx = dx * math.cos(th) + dz * math.sin(th)          # atan2(x, z) convention — rotation turning the bearing by +th
-        rz = dz * math.cos(th) - dx * math.sin(th)
-        mv.pad.move(*mv.stick_to(s, c.x + rx, c.z + rz, 0.7))
-        time.sleep(0.05)
+        mv.pad.move(*mv.stick_to(s, start[0], start[2], 0.5))    # walk, not run
+        getattr(mv.pad, "release_due", lambda: None)()
+        time.sleep(0.03)
     mv.pad.move(0.0, 0.0)
-    return behind_deg
 
 
 def _pair_close(s, p, ptr, h: float) -> list:
@@ -269,6 +417,7 @@ class DuelResult:
     dealt: int = 0
     taken: int = 0
     hits: list = field(default_factory=list)
+    rules: dict = field(default_factory=dict)   # rule name → ticks it acted (RULES) — which rules drove this fight
 
     def line(self) -> str:
         kinds = [h["kind"] + ("" if h["dmg"] else "×") for h in self.hits]
@@ -338,6 +487,609 @@ PUNISH_MIN_R = 1.8       # closer than this, leave it to reflex instead of punis
 PUNISH_R = 1.6           # within reach + this, walk in and hit (with 0.9 it couldn't get in from 2.5 m for 6 s)
 
 
+CONT = "continue"      # a rule acted this tick — start the next tick
+
+
+class Fight:
+    """What one duel remembers across ticks (the old duel() locals). Rules read and change it."""
+
+    def __init__(self, mv, weapon, ptr, nm, log, limit, low_hp, cancel, care, reflex, arena, style, wait_far, gen, events,
+                 may_approach):
+        self.mv, self.weapon, self.ptr, self.nm, self.log, self.limit, self.low_hp = mv, weapon, ptr, nm, log, limit, low_hp
+        self.cancel, self.care, self.reflex, self.arena, self.style = cancel, care, reflex, arena, style
+        self.wait_far, self.may_approach = wait_far, may_approach
+        self.t0 = time.time()
+        s0 = mv.snap()
+        self.hp_start = s0.player.hp if s0 else 0
+        self.hp_min = self.hp_start
+        self.res = DuelResult("timeout")
+        self.last_dmg_t, self.kick_t = self.t0, 0.0
+        self.sep_t, self.sep_n = 0.0, 0
+        self.best_h, self.best_t = None, self.t0
+        self.wait_t0, self.wait_hmin = 0.0, 0.0
+        self.wait_hp0 = None                               # HP when wait_far waiting began (to see if we're hit from elsewhere)
+        self.last_seen, self.foe = None, None
+        self.care_t, self.backstep_t, self.move_t = 0.0, 0.0, 0.0
+        self.pulled = arena is None
+        self.orig_ptr, self.switch_t = None, 0.0
+        self.circle_n = 0                                  # attempts to circle behind (foe.circle_behind) — prevents infinite loop
+        self.edge_until = 0.0                              # after an 'edge' stop: no backstab for a while (it'd circle into the same gap)
+        self.still = [None, 0.0, 0.0, 0.0]                 # [ptr, x, z, since] — where the foe last moved, for BACKSTAB_STILL_S
+        self.acts: dict = {}                               # what was done in 1 s (for logging)
+        self.note_t = self.t0
+        self.shadow = ShadowKick(log=log, events=events, gen=gen)   # gen·events: supplied by Field.fight (for shadow kick events)
+
+    def note(self, act: str, s_, c_) -> None:
+        """Count what was done per tick, one line per 1 s — so we can see where it gets stuck (2026-09-24: didn't know why it couldn't hit for 18 s at 4 m)."""
+        self.acts[act] = self.acts.get(act, 0) + 1
+        if time.time() - self.note_t < 1.0:
+            return
+        self.note_t = time.time()
+        p_ = s_.player
+        a_ = c_.anim if c_.anim is not None else -1
+        line = (f"      [{time.time() - self.t0:4.1f}s] 거리 {M.horiz(p_, c_):.1f} 높이 {c_.y - p_.y:+.1f} 그놈 애니 {a_} HP {c_.hp} | "
+                f"나 HP {p_.hp} SP {p_.sp} 애니 {p_.anim} 각 {math.degrees(M.rel_angle(p_, c_)) if p_.heading is not None else 0:+.0f}° | "
+                + " ".join(f"{k}×{v}" for k, v in self.acts.items()))
+        self.log(line)
+        self.acts.clear()
+
+    def record(self, hit) -> None:
+        d = hit.as_dict()
+        self.res.hits.append({k: d[k] for k in ("kind", "presses", "dmg", "dead", "taken", "others")})
+        if hit.dmg > 0:
+            self.last_dmg_t = time.time()
+            self.res.dealt += hit.dmg
+
+    def done(self, result: str) -> DuelResult:
+        mv, res = self.mv, self.res
+        getattr(mv.pad, "guard", lambda on: None)(False)
+        mv.pad.move(0.0, 0.0)
+        s_ = mv.snap(5.0)
+        self.shadow.flush(time.time(), s_, cancelled=(result == "cancel"))
+        if s_ and s_.player.hp is not None:
+            self.hp_min = min(self.hp_min, s_.player.hp)
+        res.result, res.secs = result, time.time() - self.t0
+        if self.orig_ptr is not None and self.last_seen is not None:
+            res.vs = self.last_seen.npc_param
+        res.taken = max(0, self.hp_start - self.hp_min)    # based on lowest HP (so Estus drunk midway doesn't hide it)
+        return res
+
+    def killed_if(self, dead: bool):
+        """A hit killed the target (not an interloper) → the duel's result, else CONT."""
+        return self.done("killed") if dead and self.orig_ptr is None else CONT
+
+
+class Tick:
+    """What this tick sees: s, p (player), c (target), h (horizontal distance), dy, a (its anim), now — plus what rules work out."""
+
+    def __init__(self, **kw):
+        self.__dict__.update(kw)
+
+
+def _sense(F: Fight):
+    """Read the game, follow the target (re-found after a quit-out, interlopers / shooters first), end conditions.
+    → DuelResult (over) | CONT (nothing to act on this tick) | Tick"""
+    mv, res = F.mv, F.res
+    if F.cancel():
+        return F.done("cancel")
+    now = time.time()
+    if now - F.t0 > F.limit:
+        return F.done("timeout")
+    s = mv.snap(SEEK_R)
+    if s is None:
+        time.sleep(0.05)
+        return CONT
+    p = s.player
+    if p.hp is not None:
+        F.hp_min = min(F.hp_min, p.hp)
+    if p.hp is not None and p.hp <= 0:
+        return F.done("me_dead")
+    c = mv.find(s, F.ptr)
+    if c is None:
+        # dropped from the list — could be a corpse removed, or the pointer changed after a quit-out. If the same type is alive nearby, it's that one
+        ls = F.last_seen
+        if ls is not None:
+            again = [x for x in s.chars if x.npc_param == ls.npc_param and x.hp > 0
+                     and math.dist((x.x, x.y, x.z), (ls.x, ls.y, ls.z)) < 3.0]
+            if again:
+                F.ptr = again[0].ptr
+                return CONT
+        if F.orig_ptr is not None and F.orig_ptr != F.ptr:   # the interloper vanished (died and removed) — back to the original target
+            F.ptr, F.orig_ptr, F.last_seen = F.orig_ptr, None, None
+            return CONT
+        if F.last_seen is not None and res.hits and res.hits[-1]["dead"]:
+            return F.done("killed")
+        return F.done("lost")
+    if c.hp <= 0:
+        if F.orig_ptr is not None and F.orig_ptr != F.ptr:
+            F.log(f"      끼어든 {c.npc_param} 처치 — 원래 목표로")
+            F.ptr, F.orig_ptr = F.orig_ptr, None
+            F.last_seen = None
+            return CONT
+        return F.done("killed")
+    F.last_seen = c
+    if res.npc is None:
+        res.npc = c.npc_param
+    # the foe data must follow whoever ptr is now. It used to be set once, so after "interloper killed — back to the
+    # original target" a shield soldier kept the hollow's data and got hollow moves (먼저 치기 into the shield: dealt 4,
+    # took 240, then died — 2026-09-27 burg-bonfire 27c, ROADMAP P-8)
+    F.foe = foes_.of(c.npc_param)
+    if p.hp < p.max_hp * _low_hp_line(s, F.low_hp) and not (c.hp <= FINISH_KEEP_HP and p.hp >= p.max_hp * 0.12):
+        return F.done("low_hp")                            # don't retreat from an almost-dead foe — if we leave and return, a survivor's HP refills
+    if now - F.last_dmg_t > STALEMATE_S:
+        return F.done("stalemate")
+    h, dy, a = M.horiz(p, c), c.y - p.y, (c.anim if c.anim is not None else -1)
+    ranged_cut = [x for x in s.hostile(RANGED_SWITCH_R) if x.ptr != F.ptr and x.hp > 0
+                  and foes_.of(x.npc_param).ranged and (x.anim or -1) in M.ATTACK
+                  and abs(x.y - p.y) < RANGED_REACHABLE_DY]
+    # shooters above (or far away), unlike close interlopers (cut, below), have no distance limit — we were getting hit while fighting only the
+    # foe in front defensively (user 2026-09-25: "the arrow guy is attacking so it's set to defense-heavy — deal with him first").
+    # But height difference is limited — switching to 254012 (terrace archer, height difference +6–8.5 m) made _approach() endlessly try to close
+    # a distance unreachable on foot, taking only arrows for 30 s, HP 695→137 (2026-09-25, burg-loop 091110).
+    # measured: successful ranged switches were all at height difference ≤ +3.0 m — above that, treat as unreachable and ignore.
+    # if a sword foe is right in front (MELEE_BUSY_R), take it first — turning your back to go for a distant shooter gets you hit by both
+    busy = any(x.hp > 0 and not foes_.of(x.npc_param).ranged and M.horiz(p, x) < MELEE_BUSY_R and abs(x.y - p.y) < 1.2
+               and not (9000 <= (x.anim or 0) < 9100) for x in s.hostile(MELEE_BUSY_R + 1.0))
+    if ranged_cut and not busy and now - F.switch_t > SWITCH_HOLD:
+        x = min(ranged_cut, key=lambda y: M.horiz(p, y))
+        if F.orig_ptr is None:
+            F.orig_ptr = F.ptr
+        F.log(f"      원거리부터: {x.npc_param} ({M.horiz(p, x):.1f} m, 높이차 {x.y - p.y:+.1f}) — 원래 목표 {h:.1f} m")
+        F.ptr, c, F.switch_t = x.ptr, x, now
+        F.last_seen, F.foe = x, foes_.of(x.npc_param)
+        h, dy, a = M.horiz(p, c), c.y - p.y, (c.anim if c.anim is not None else -1)
+    cut = [x for x in s.hostile(SWITCH_R + 2.0) if _interloper(x, p, F.ptr, h)]
+    # between two at similar distances it switched targets every 1–2 s, turning and getting hit in the back (±140–166°, 442 in 25 s) —
+    # switch only when clearly closer (SWITCH_MARGIN), and keep it for SWITCH_HOLD after switching
+    if cut and now - F.switch_t > SWITCH_HOLD:
+        # interloper first (old hunt.py rule, user: "can't you attack the nearby enemy?") — watching only the map target, took 387 in 13 s from one hitting from the side and died.
+        # after killing it, return to the original target
+        x = min(cut, key=lambda y: M.horiz(p, y))
+        if F.orig_ptr is None:
+            F.orig_ptr = F.ptr
+        F.log(f"      목표 바꿈: {x.npc_param} ({M.horiz(p, x):.1f} m, 애니 {x.anim}) — 원래 목표 {h:.1f} m")
+        F.ptr, c, F.switch_t = x.ptr, x, now
+        F.last_seen, F.foe = x, foes_.of(x.npc_param)
+        h, dy, a = M.horiz(p, c), c.y - p.y, (c.anim if c.anim is not None else -1)
+    if not (h > F.weapon.reach and F.wait_far):            # if not waiting, also clear the waiting HP baseline
+        F.wait_hp0 = None
+    return Tick(s=s, p=p, c=c, h=h, dy=dy, a=a, now=now)
+
+
+# ── rules, in priority order (RULES below). Each gets (Fight, Tick) and returns None (not mine — next rule), CONT (acted),
+# or a DuelResult (duel over). "prep" steps only work something out for the rules after them. The order is the old duel()'s
+# if-chain order exactly (tests/duel_golden_test.py) — to change a priority, move the rule in RULES and re-record on purpose.
+
+def rule_separate(F, T):
+    """Two closed in together — split them and take one at a time (user 2026-09-26 (a)). Don't run during stagger/downed (openings) or from a one-hit kill."""
+    pair = _pair_close(T.s, T.p, F.ptr, T.h)
+    if (pair and F.nm is not None and F.sep_n < SEP_MAX and T.now - F.sep_t > SEP_COOLDOWN and T.a not in M.STAGGER
+            and T.a not in M.DOWNED and T.c.hp > FINISH_HP):
+        F.sep_t, F.sep_n = T.now, F.sep_n + 1
+        r = _separate(F.mv, T.s, F.ptr, pair, F.nm, F.arena, F.cancel)
+        F.log(f"      떼어놓기 {F.sep_n}: {T.c.npc_param}({T.h:.1f} m) + " + ", ".join(f"{x.npc_param}({M.horiz(T.p, x):.1f} m, {x.anim})" for x in pair)
+              + f" → {r}")
+        F.note(f"떼어놓기:{r}", T.s, T.c)
+        if r != "no_spot":
+            return CONT
+    return None
+
+
+def rule_finish_first(F, T):
+    """Dies in one hit and isn't swinging now — hit before reflex (in front of an HP 18 foe, reflex just held the shield every tick and died)."""
+    foe, a = F.foe, T.a
+    if (T.c.hp <= FINISH_HP and a not in M.ATTACK and T.h <= F.weapon.reach and abs(T.dy) <= 1.0
+            and not (foe is not None and foe.kick_when_idle and a == -1)
+            and (T.p.sp or 0) >= FINISH_SP and F.mv.face(T.s, T.c, deg=30.0)):
+        hit = F.mv.light(T.s, T.c, n=1)
+        F.record(hit)
+        F.note("마무리", T.s, T.c)
+        return F.killed_if(hit.dead)
+    return None
+
+
+def prep_reflex(F, T):
+    """Feed the reflex and the shadow-kick logger; how long the target has been swinging (age)."""
+    if F.reflex is not None:
+        F.reflex.prefer = F.ptr
+        F.reflex.update(T.s)
+    T.age = F.reflex.attack_age(F.ptr) if F.reflex is not None else None
+    F.shadow.note_anim(F.ptr, T.a, T.now)
+    F.shadow.tick(T.now, T.s)
+    T.near45 = [x for x in T.s.hostile(4.5) if x.ptr != F.ptr]
+    return None
+
+
+def rule_early_kick(F, T):
+    """Shield soldier early kick: 'shadow' only logs the candidate; 'act' (experiment only, no Foe data enables it) kicks one beat earlier
+    (user 2026-09-26) — at the start of a slow-landing attack (3004), or just as post-attack stagger (3500) begins. Checked before reflex and lure."""
+    foe, a, age, p = F.foe, T.a, T.age, T.p
+    ek = getattr(foe, "early_kick", "off")
+    cand = ek != "off" and _early_kick_candidate(
+        foe, a, age, T.h, T.dy, p.sp or 0, F.weapon,
+        any((x.anim or -1) in M.ATTACK and M.horiz(p, x) < 2.5 for x in T.near45))
+    if cand and ek == "shadow":
+        # Patch D: don't kick on raw anim alone — only log and fall through to the branches below (as if B8 never existed)
+        F.shadow.observe(T.now, F.ptr, F.mv.tm.handle(F.ptr), T.c.npc_param, a, age, T.h, T.dy, p.sp, p.max_sp, len(T.near45), p.hp, T.c.hp)
+    if cand and ek == "act" and F.mv.face(T.s, T.c, deg=30.0):
+        F.kick_t = T.now
+        why = f"{a} {age:.2f}s" if a in foe.windup else f"휘청 {a}"
+        hit = F.mv.kick_combo(T.s, T.c, n=foe.punish_hits or F.weapon.combo)
+        F.record(hit)
+        F.note("빠른발차기", T.s, T.c)
+        F.log(f"      빠른 발차기({why}) → {hit.kind}×{hit.presses} 피해 {hit.dmg}, 내 피해 {hit.taken}, 그놈 애니 {hit.e_anims[:4]}")
+        return F.killed_if(hit.dead)
+    return None
+
+
+def rule_late_windup_block(F, T):
+    """Too late — it lands soon (2.0–2.1 s after start). Treating it as 'standing' via SWING_S and kicking gets hit at that moment (−220·−323) → block."""
+    if T.a in F.foe.windup and T.age is not None and T.age >= F.foe.windup_act_s and T.h < NEAR:
+        F.mv.guard(True)
+        F.mv.face(T.s, T.c)
+        F.note("늦은windup막기", T.s, T.c)
+        time.sleep(0.02)
+        return CONT
+    return None
+
+
+def prep_linger(F, T):
+    """If the 3000 series lasts beyond SWING_S it isn't swinging (it lingers 1.5–5.3 s after the attack ends — log analysis).
+    The spear shield soldier (255002) stays in 3001 holding up its shield, so for 15 s we only blocked at 1.4 m and never kicked.
+    Also: room for a backstab (wall / drop at its back → no backstab, normal rules)."""
+    if T.a in M.ATTACK and T.age is not None and T.age > SWING_S:
+        T.a = -1
+    foe = F.foe
+    T.room = foe is not None and foe.circle_behind and T.now >= F.edge_until and _room_behind(F.nm, T.p, T.c)
+    return None
+
+
+def rule_hit_first(F, T):
+    """Hit first (user: "if you'd swung even once, that enemy would have backed off") — a hollow flinches (2000·2002) from one light attack and backs off.
+    When it has just started attacking (within INTERRUPT_S) or is standing still. Shield soldiers excluded (blocked by shield); if another foe swings beside us, block first."""
+    foe, a, age, w = F.foe, T.a, T.age, F.weapon
+    if (foe.kind != "shield" and T.h <= w.reach and not (BACKSTAB_ONLY and T.room)
+            and not (foe.circle_behind and F.res.dealt > 0 and a == -1 and F.circle_n < CIRCLE_MAX_SWEEPS) and abs(T.dy) <= 1.0 and (T.p.sp or 0) >= w.sp_min
+            and (a == -1 or (a in M.ATTACK and age is not None and age < INTERRUPT_S
+                             and (w.startup or 0.0) <= INTERRUPT_STARTUP_MAX))
+            and not _other_swinging(T.s, F.ptr)
+            and F.mv.face(T.s, T.c, deg=30.0)):
+        hit = F.mv.light(T.s, T.c, n=w.combo, sp_second=w.sp_min)
+        F.record(hit)
+        F.note("먼저치기", T.s, T.c)
+        F.log(f"      먼저 치기 → {hit.kind}×{hit.presses} 피해 {hit.dmg}, 옆 {hit.others}, 내 피해 {hit.taken}")
+        return F.killed_if(hit.dead)
+    return None
+
+
+def _do_backstab(F, T, s, c, label: str):
+    F.circle_n += 1
+    start = (s.player.x, s.player.y, s.player.z)
+    r = _backstab(F.mv, s, c, F.cancel, F.nm)
+    _back_to_safe(F.mv, F.nm, start, F.log, F.arena)
+    if r == "edge":
+        F.edge_until = time.time() + 5.0
+    F.note(f"뒤잡기:{r}", s, c)
+    F.log(f"      {label} → {r}")
+    return F.done("killed") if r == "stabbed" and F.orig_ptr is None else CONT
+
+
+def rule_backstab_swing(F, T):
+    """A hollow (circle_behind) swinging at us up close, nobody else swinging = the backstab moment (drill: 4 kills, all mid-swing).
+    The reflex below blocked every such swing first, so the backstab check further down was never reached (27q: 3 hollows)."""
+    if (T.room and T.a in M.ATTACK and F.circle_n < CIRCLE_MAX_SWEEPS
+            and T.h <= BACKSTAB_REACH and abs(T.dy) <= 1.0 and not _other_swinging(T.s, F.ptr)):
+        return _do_backstab(F, T, T.s, T.c, "뒤잡기(휘두를 때)")
+    return None
+
+
+def rule_reflex(F, T):
+    """Reflex: if anyone within 2.5 m starts swinging, block head-on (or the backstep style's backstep attack)."""
+    reflex = F.reflex
+    if reflex is not None and reflex.tick(T.s):
+        bh = getattr(reflex, "last_hit", None)
+        if bh is not None:                                 # backstep attack (one move) result — record it
+            reflex.last_hit = None
+            F.record(bh)
+            F.log(f"      백스텝 공격 → 피해 {bh.dmg}, 내 피해 {bh.taken} ({T.h:.1f} m) 내 애니 {bh.my_anims[:6]} 그놈 {bh.e_anims[:5]}")
+            F.note("백스텝공격", T.s, T.c)
+            return F.killed_if(bh.dead)
+        F.note("반사", T.s, T.c)
+        time.sleep(0.02)
+        return CONT
+    return None
+
+
+def _walk_to_arena(F, T, label: str):
+    p = T.p
+    path = F.nm.find_path((p.x, p.y, p.z), tuple(F.arena))
+    if not path:
+        return None
+    cancel = F.cancel
+    r = F.mv.walk_path(nav.trim_path(path[1:], tuple(F.arena), within=0.8), F.nm, "walk",
+                       stop=lambda sn: cancel() or any((x.anim or -1) in M.ATTACK and M.horiz(sn.player, x) < NEAR
+                                                       for x in sn.hostile(NEAR + 1.0)))
+    F.note(f"{label}:{r}", T.s, T.c)
+    return CONT
+
+
+def rule_lure(F, T):
+    """Lure (user: "drag it to the terrain you want") — once it notices (moves or is close), back off to arena.
+    Ramp spot #2 is where firebombs from the ledge above land; engaging there took 275 in 1 s (2026-09-24).
+    A foe standing on a ledge (ramp #5 y -39 vs flat ground -49) won't come down — luring to flat ground or backing off just went up and down repeatedly (three 'stuck')."""
+    T.ledge = F.arena is not None and abs(T.c.y - F.arena[1]) > LEDGE_DY
+    p, a = T.p, T.a
+    if (not F.pulled and not T.ledge and F.nm is not None and a not in M.ATTACK and (a != -1 or T.h < PULL_R)
+            and math.dist((p.x, p.y, p.z), tuple(F.arena)) > 3.0):
+        F.pulled = True
+        return _walk_to_arena(F, T, "끌어오기")
+    return None
+
+
+def rule_edge(F, T):
+    """Next to a cliff — go to a flat spot (it follows). Without arena, raise shield and face it:
+    the NavMesh only blocks — it doesn't choose a step toward 'the wider ground' (evidence-grade gate, 2026-09-26)."""
+    p, nm = T.p, F.nm
+    if (nm is not None and T.a not in M.ATTACK and T.now - F.move_t > 3.0 and p.gx is not None
+            and nav.footing(nm, p)[0] < nav.FOOTING_MIN):
+        F.move_t = T.now
+        if F.arena is not None and not T.ledge and math.dist((p.x, p.y, p.z), tuple(F.arena)) > 1.5:
+            if _walk_to_arena(F, T, "자리옮김"):
+                return CONT
+        F.mv.guard(True)
+        F.mv.face(T.s, T.c, deg=20.0)
+        F.note("가장자리방어", T.s, T.c)
+        return CONT
+    return None
+
+
+def rule_estus(F, T):
+    """Estus mid-fight (user: drink if safe). If close, backstep to open distance (when there's ground behind) and recheck next tick."""
+    care, p, ptr = F.care, T.p, F.ptr
+    if care is not None and T.now - F.care_t > CARE_RETRY and care.wants(T.s):
+        if opening(T.s, ptr):
+            F.care_t = T.now
+            r = care.take(lambda sn: opening(sn, ptr))
+            F.log(f"      싸우는 중 에스트: {r}")
+            F.note("에스트", T.s, T.c)
+            return CONT
+        if (T.a not in M.ATTACK and T.h < OPEN_R and T.now - F.backstep_t > 2.0 and p.heading is not None and _others_quiet(T.s, ptr)
+                and nav.ground_ahead(F.nm, p, math.sin(p.heading), math.cos(p.heading), reach=2.2)):
+            F.backstep_t = T.now
+            F.mv.backstep()
+            F.note("백스텝", T.s, T.c)
+            return CONT
+    return None
+
+
+def rule_stagger_punish(F, T):
+    """Stagger = opening. If facing is right, hit at once. Not while another foe is swinging next to us — punishing the staggered shield soldier
+    took -115 from a hollow's 3003 1.2 m away (dealt 4, 2026-09-27 27c P-8); the reflex blocks that swing instead and the stagger is taken next time.
+    Heavy in a shield soldier's stagger opening (user 2026-09-25: "guard·heavy·guard") costs 90 stamina, so only when full (HEAVY_SP)."""
+    a, w, p, foe = T.a, F.weapon, T.p, F.foe
+    if (a in M.STAGGER or a == M.GUARD_BROKEN) and not (BACKSTAB_ONLY and T.room) and T.h <= w.reach + 0.3 and abs(T.dy) <= 1.0 \
+            and (p.sp or 0) >= w.sp_min and not _other_swinging(T.s, F.ptr):
+        if F.mv.face(T.s, T.c, deg=30.0):
+            if w.heavy_punish and foe.kind == "shield" and (p.sp or 0) >= HEAVY_SP:
+                hit = F.mv.heavy(T.s, T.c)
+            else:
+                hit = F.mv.light(T.s, T.c, n=foe.punish_hits or w.combo, sp_second=w.sp_min)
+            F.record(hit)
+            F.note("휘청반격", T.s, T.c)
+            F.log(f"      휘청 → {hit.kind}×{hit.presses} 피해 {hit.dmg}, 옆 {hit.others}, 내 피해 {hit.taken}")
+            if hit.dead and F.orig_ptr is None:
+                return F.done("killed")
+        else:
+            F.note("휘청돌기", T.s, T.c)
+        return CONT
+    return None
+
+
+def rule_evade(F, T):
+    """Backstep style (user 2026-09-24: "experts use backsteps well, backstep + light attack"): reflex dodged the swing start with a backstep.
+    Once the blade has passed (punish_after), step in and light attack; until then keep it in front, no shield."""
+    style, a, age, w, p, h, s, c = F.style, T.a, T.age, F.weapon, T.p, T.h, T.s, T.c
+    if style.evade and a in M.ATTACK and h < NEAR:
+        if (age is not None and age >= style.punish_after and style.punish_min_r <= h <= w.reach + PUNISH_R and abs(T.dy) <= 1.0
+                and (p.sp or 0) >= w.sp_min and F.mv.face(s, c, deg=30.0)):
+            if h > w.reach and s.cam_yaw is not None:
+                F.mv.pad.move(*F.mv.stick_to(s, c.x, c.z, 0.8))
+                time.sleep(min(0.45, 0.12 + (h - w.reach) * 0.22))   # 2.5 m/s walk — for the remaining distance
+                F.mv.pad.move(0.0, 0.0)
+            hit = F.mv.light(s, c, n=w.combo, sp_second=w.sp_min)
+            F.record(hit)
+            F.note("뒤치기", s, c)
+            F.log(f"      헛친 뒤 → {hit.kind}×{hit.presses} 피해 {hit.dmg}, 내 피해 {hit.taken} ({h:.1f} m, {age:.2f} s)")
+            return F.killed_if(hit.dead)
+        F.mv.guard(False)
+        F.mv.face(s, c, deg=25.0)
+        F.note("피함대기", s, c)
+        time.sleep(0.02)
+        return CONT
+    return None
+
+
+def rule_block(F, T):
+    """Swinging → block (only styles with a shield — rush just stood there taking hits: 8 s+ 0 attacks, 676 taken, 2026-09-25).
+    Out of reach, approach with the shield up (blocking in place never reaches a foe swinging from afar, 3008 repeated).
+    Not when a hollow swinging up close is a backstab moment (drill)."""
+    s, c, p, h, a, w, nm = T.s, T.c, T.p, T.h, T.a, F.weapon, F.nm
+    bs_swing = (T.room and a in M.ATTACK and F.circle_n < CIRCLE_MAX_SWEEPS
+                and h <= BACKSTAB_REACH and abs(T.dy) <= 1.0)
+    if F.style.shield and a in M.ATTACK and h < NEAR and not bs_swing:
+        F.mv.guard(True)
+        if h > w.reach + 0.3 and abs(T.dy) <= 1.0 and s.cam_yaw is not None and (
+                nm is None or nav.ground_ahead(nm, p, c.x - p.x, c.z - p.z, reach=0.8)):
+            F.mv.pad.move(*F.mv.stick_to(s, c.x, c.z, 0.6))
+            F.note("막으며다가감", s, c)
+        else:
+            F.mv.face(s, c)
+            F.note("막기", s, c)
+        time.sleep(0.02)
+        return CONT
+    return None
+
+
+def rule_downed(F, T):
+    """Knocked down — shield up, face it, wait."""
+    if T.a in M.DOWNED and T.a != M.GETTING_UP:
+        F.mv.guard(True)
+        F.mv.face(T.s, T.c)
+        F.note("누움대기", T.s, T.c)
+        time.sleep(0.03)
+        return CONT
+    return None
+
+
+def prep_backstab_chance(F, T):
+    """An idle hollow within backstab range is a backstab chance, not a reason to wait (user 2026-09-28: "never even tries" — 27g).
+    "still" = not closing in (position-based anchors jittered, 27o) — user 2026-09-28: hollows never stand still, so not a condition any more.
+    Logs why a close hollow was not taken."""
+    s, c, p, h, a, now, still = T.s, T.c, T.p, T.h, T.a, T.now, F.still
+    if still[0] != c.ptr or a != -1 or still[1] - h > BACKSTAB_STILL_M:
+        still[:] = [c.ptr, h, 0.0, now]
+    T.foe_still = now - still[3] >= BACKSTAB_STILL_S
+    back_to_me = c.heading is not None and abs(math.degrees(M.rel_angle(c, p))) >= SNEAK_DEG
+    T.bs_near = h <= BACKSTAB_REACH or (back_to_me and h <= SNEAK_R)
+    T.foe_still = True
+    T.backstab_chance = (T.room and (a == -1 or a in M.ATTACK or a in M.STAGGER) and T.foe_still and F.circle_n < CIRCLE_MAX_SWEEPS
+                         and T.bs_near and abs(T.dy) <= 1.0)
+    if T.backstab_chance and not (not _other_swinging(s, F.ptr) and (F.nm is None or nav.ground_ahead(F.nm, p, c.x - p.x, c.z - p.z, reach=1.0))):
+        F.note("뒤잡기안함:" + ("옆공격" if _other_swinging(s, F.ptr) else "바닥"), s, c)
+    if not T.backstab_chance and F.foe is not None and F.foe.circle_behind and a == -1 and h <= BACKSTAB_REACH + 0.5:
+        why = (f"안멈춤({now - still[3]:.1f}s)" if not T.foe_still else "횟수" if F.circle_n >= CIRCLE_MAX_SWEEPS else "멀다" if h > BACKSTAB_REACH
+               else "높이" if abs(T.dy) > 1.0 else "?")
+        F.note(f"뒤잡기안함:{why}", s, c)
+    return None
+
+
+def rule_wait_far(F, T):
+    """Still far — don't approach, block in place and wait (wait_far). Shooters keep shooting if we wait — don't wait for them.
+    Ends when it won't come (WAIT_APPROACH_S → close in, unless may_approach says the approach would leave the safe zone — Patch E-3),
+    or when HP keeps dropping while the target isn't swinging (hit from elsewhere: 490→242 waiting 11 s, user 2026-09-25)."""
+    s, c, p, h, now, foe = T.s, T.c, T.p, T.h, T.now, F.foe
+    if h > F.weapon.reach and F.wait_far and not (foe and foe.ranged) and not T.backstab_chance:
+        if F.wait_hp0 is None:
+            F.wait_hp0 = p.hp
+            F.wait_t0, F.wait_hmin = now, h
+        if h < F.wait_hmin - WAIT_CLOSE_M:
+            F.wait_t0, F.wait_hmin = now, h                  # approaching — keep waiting
+        elif now - F.wait_t0 > WAIT_APPROACH_S and F.may_approach is not None and not F.may_approach(c, s):
+            F.wait_t0 = now
+            F.note("안옴→기다림유지", s, c)
+        elif now - F.wait_t0 > WAIT_APPROACH_S:
+            F.wait_far = False
+            F.note("안옴→붙기", s, c)
+            return CONT
+        elif p.hp is not None and F.wait_hp0 - p.hp > WAIT_HURT_HP:
+            return F.done("low_hp")
+        if F.style.shield:
+            F.mv.guard(True)
+        F.mv.face(s, c)
+        F.note("기다림", s, c)
+        time.sleep(0.03)
+        return CONT
+    return None
+
+
+def rule_approach(F, T):
+    """Close in (a backstab chance circles in itself). Stuck when neither distance nor height difference improves for 8 s
+    (45 s of "붙기:stopped" at 1.7–1.9 m height difference, 2026-09-25). Refuses an approach that leaves the safe zone (Patch E-2)."""
+    s, c, h, now = T.s, T.c, T.h, T.now
+    if h > F.weapon.reach and not T.backstab_chance:
+        F.last_dmg_t = now                                 # stalemate counts only within reach (walking 42 m counted as 'stalemate')
+        if h < 3.0 and abs(T.dy) <= 1.2:
+            F.best_h, F.best_t = h, now                    # truly within reach (height too) — not stuck
+        elif F.best_h is None or h < F.best_h - 0.5:
+            F.best_h, F.best_t = h, now
+        elif now - F.best_t > 8.0:
+            return F.done("stuck")
+        if F.may_approach is not None and not F.may_approach(c, s):
+            F.log(f"      다가가지 않음 — {c.npc_param} ({c.x:.1f}, {c.y:.1f}, {c.z:.1f}) 는 안전 구역 밖 (Patch E-2)")
+            return F.done("unsafe_approach")
+        r = _approach(F.mv, F.weapon, s, c, F.nm, F.foe, F.cancel, F.log, may_approach=F.may_approach)
+        F.last_dmg_t = time.time()                         # time spent closing in isn't stalemate (one walk took 17 s)
+        F.note(f"붙기:{r}", s, c)
+        if r == "dead":
+            return F.done("me_dead")
+        return CONT
+    return None
+
+
+def rule_finish(F, T):
+    """Dies in one hit — hit even if a bit short on stamina (guard broke while a shield soldier held out 4 s at HP 10).
+    A shield soldier standing with shield up blocks even the finisher (22 → 21 → 20, 114 counter) — kick instead."""
+    if (T.c.hp <= FINISH_HP and (T.p.sp or 0) >= FINISH_SP and not (F.foe.kick_when_idle and T.a == -1)
+            and F.mv.face(T.s, T.c, deg=30.0)):
+        hit = F.mv.light(T.s, T.c, n=1)
+        F.record(hit)
+        F.note("마무리", T.s, T.c)
+        return F.killed_if(hit.dead)
+    return None
+
+
+def rule_stamina(F, T):
+    """Low stamina — lower shield (recovery −80 %, wiki) and stand keeping it in front (backing off without lock-on turned our back to it)."""
+    if (T.p.sp or 0) < F.weapon.sp_min:
+        F.mv.guard(False)
+        F.mv.face(T.s, T.c)
+        F.note("SP회복", T.s, T.c)
+        time.sleep(0.05)
+        return CONT
+    return None
+
+
+def prep_face(F, T):
+    """Face it (CONT while turning), then read it again for the attack rules below. (p, h, dy stay from the start of the tick.)"""
+    if not F.mv.face(T.s, T.c):
+        F.note("돌기", T.s, T.c)
+        time.sleep(0.02)
+        return CONT
+    s = F.mv.snap(SEEK_R)
+    c = F.mv.find(s, F.ptr) if s else None
+    if c is None:
+        return CONT
+    a = c.anim if c.anim is not None else -1
+    if a in M.ATTACK and F.reflex is not None and (F.reflex.attack_age(F.ptr) or 0.0) > SWING_S:
+        a = -1                                             # 3000 series lingering in guard stance — treat as standing (kick)
+    T.s, T.c, T.a = s, c, a
+    T.behind_deg = abs(math.degrees(M.rel_angle(c, s.player))) if c.heading is not None else 0.0
+    return None
+
+
+def rule_backstab(F, T):
+    """Circle behind with lock-on and backstab (human demos, see BACKSTAB_*). Past CIRCLE_MAX_SWEEPS tries, normal attacks."""
+    s, c, p, a = T.s, T.c, T.p, T.a
+    if (T.room and (a == -1 or a in M.ATTACK or a in M.STAGGER) and T.foe_still and F.circle_n < CIRCLE_MAX_SWEEPS and T.bs_near
+            and abs(T.dy) <= 1.0 and not _other_swinging(s, F.ptr)
+            and (F.nm is None or nav.ground_ahead(F.nm, p, c.x - p.x, c.z - p.z, reach=1.0))):
+        return _do_backstab(F, T, s, c, "뒤잡기")
+    F.circle_n = 0
+    return None
+
+
+def rule_attack(F, T):
+    """Default: kick an idle shield soldier looking at us (kick → light right away), else heavy or light per weapon."""
+    s, c, a, w = T.s, T.c, T.a, F.weapon
+    if F.foe.kick_when_idle and a == -1 and T.behind_deg < 60 and T.now - F.kick_t > KICK_COOLDOWN:
+        F.kick_t = T.now
+        hit = F.mv.kick_combo(s, c, n=w.combo)
+    elif w.use_heavy:
+        hit = F.mv.heavy(s, c)
+    else:
+        hit = F.mv.light(s, c, n=w.combo, sp_second=w.sp_min)
+    F.record(hit)
+    F.note(hit.kind, s, c)
+    F.log(f"      {hit.kind}×{hit.presses} → 피해 {hit.dmg}, 내 피해 {hit.taken}, 그놈 애니 {hit.e_anims[:4]}")
+    return F.killed_if(hit.dead)
+
+
+RULES = [rule_separate, rule_finish_first, prep_reflex, rule_early_kick, rule_late_windup_block, prep_linger, rule_hit_first,
+         rule_backstab_swing, rule_reflex, rule_lure, rule_edge, rule_estus, rule_stagger_punish, rule_evade, rule_block,
+         rule_downed, prep_backstab_chance, rule_wait_far, rule_approach, rule_finish, rule_stamina, prep_face, rule_backstab,
+         rule_attack]
+
+
 def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: float = 0.25,
          cancel=lambda: False, care=None, reflex=None, arena=None, style=None, wait_far: bool = False,
          gen=None, events=None, may_approach=None) -> DuelResult:
@@ -351,460 +1103,20 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
       come along too, so what would have come alone had to be fought as a group at once (ramp, 0 damage/8 s, 493 taken, force-quit for being surrounded).
       Distinguish "when to wait and when to act" — let distant foes come, react only after they enter reach."""
     from . import style as style_
-    style = style_.of(style or "guard")
-    t0 = time.time()
-    s0 = mv.snap()
-    hp_start = s0.player.hp if s0 else 0
-    res = DuelResult("timeout")
-    last_dmg_t, kick_t = t0, 0.0
-    sep_t, sep_n = 0.0, 0
-    best_h, best_t = None, t0
-    wait_t0, wait_hmin = 0.0, 0.0
-    wait_hp0 = None                                         # HP when wait_far waiting began (to see if we're hit from elsewhere)
-    last_seen, foe = None, None
-    care_t, backstep_t, move_t = 0.0, 0.0, 0.0
-    pulled = arena is None
-    orig_ptr, switch_t = None, 0.0
-    circle_n = 0                                            # attempts to circle behind (foe.circle_behind) — prevents infinite loop
-    acts: dict = {}                                        # what was done in 1 s (for logging)
-    note_t = [t0]
-
-    def note(act: str, s_, c_) -> None:
-        """Count what was done per tick, one line per 1 s — so we can see where it gets stuck (2026-09-24: didn't know why it couldn't hit for 18 s at 4 m)."""
-        acts[act] = acts.get(act, 0) + 1
-        if time.time() - note_t[0] < 1.0:
-            return
-        note_t[0] = time.time()
-        p_ = s_.player
-        a_ = c_.anim if c_.anim is not None else -1
-        line = (f"      [{time.time() - t0:4.1f}s] 거리 {M.horiz(p_, c_):.1f} 높이 {c_.y - p_.y:+.1f} 그놈 애니 {a_} HP {c_.hp} | "
-                f"나 HP {p_.hp} SP {p_.sp} 애니 {p_.anim} 각 {math.degrees(M.rel_angle(p_, c_)) if p_.heading is not None else 0:+.0f}° | "
-                + " ".join(f"{k}×{v}" for k, v in acts.items()))
-        log(line)
-        acts.clear()
-
-    hp_min = [hp_start]
-
-    shadow = ShadowKick(log=log, events=events, gen=gen)   # gen·events: supplied by Field.fight (for shadow kick events)
-
-    def done(result: str) -> DuelResult:
-        mv.pad.guard(False)
-        mv.pad.move(0.0, 0.0)
-        s_ = mv.snap(5.0)
-        shadow.flush(time.time(), s_, cancelled=(result == "cancel"))
-        if s_ and s_.player.hp is not None:
-            hp_min[0] = min(hp_min[0], s_.player.hp)
-        res.result, res.secs = result, time.time() - t0
-        if orig_ptr is not None and last_seen is not None:
-            res.vs = last_seen.npc_param
-        res.taken = max(0, hp_start - hp_min[0])          # based on lowest HP (so Estus drunk midway doesn't hide it)
-        return res
-
+    F = Fight(mv, weapon, ptr, nm, log, limit, low_hp, cancel, care, reflex, arena, style_.of(style or "guard"), wait_far, gen, events,
+              may_approach)
     while True:
-        if cancel():
-            return done("cancel")
-        now = time.time()
-        if now - t0 > limit:
-            return done("timeout")
-        s = mv.snap(SEEK_R)
-        if s is None:
-            time.sleep(0.05)
+        T = _sense(F)
+        if isinstance(T, DuelResult):
+            return T
+        if T is CONT:
             continue
-        p = s.player
-        if p.hp is not None:
-            hp_min[0] = min(hp_min[0], p.hp)
-        if p.hp is not None and p.hp <= 0:
-            return done("me_dead")
-        c = mv.find(s, ptr)
-        if c is None:
-            # dropped from the list — could be a corpse removed, or the pointer changed after a quit-out. If the same type is alive nearby, it's that one
-            if last_seen is not None:
-                again = [x for x in s.chars if x.npc_param == last_seen.npc_param and x.hp > 0
-                         and math.dist((x.x, x.y, x.z), (last_seen.x, last_seen.y, last_seen.z)) < 3.0]
-                if again:
-                    ptr = again[0].ptr
-                    continue
-            if orig_ptr is not None and orig_ptr != ptr:   # the interloper vanished (died and removed) — back to the original target
-                ptr, orig_ptr, last_seen = orig_ptr, None, None
+        for rule in RULES:
+            out = rule(F, T)
+            if out is None:
                 continue
-            if last_seen is not None and res.hits and res.hits[-1]["dead"]:
-                return done("killed")
-            return done("lost")
-        if c.hp <= 0:
-            if orig_ptr is not None and orig_ptr != ptr:
-                log(f"      끼어든 {c.npc_param} 처치 — 원래 목표로")
-                ptr, orig_ptr = orig_ptr, None
-                last_seen = None
-                continue
-            return done("killed")
-        last_seen = c
-        if res.npc is None:
-            res.npc = c.npc_param
-        # the foe data must follow whoever ptr is now. It used to be set once, so after "interloper killed — back to the
-        # original target" a shield soldier kept the hollow's data and got hollow moves (먼저 치기 into the shield: dealt 4,
-        # took 240, then died — 2026-09-27 burg-bonfire 27c, ROADMAP P-8)
-        foe = foes_.of(c.npc_param)
-        if p.hp < p.max_hp * _low_hp_line(s, low_hp) and not (c.hp <= FINISH_KEEP_HP and p.hp >= p.max_hp * 0.12):
-            return done("low_hp")                          # don't retreat from an almost-dead foe — if we leave and return, a survivor's HP refills
-        if now - last_dmg_t > STALEMATE_S:
-            return done("stalemate")
-        h, dy, a = M.horiz(p, c), c.y - p.y, (c.anim if c.anim is not None else -1)
-        ranged_cut = [x for x in s.hostile(RANGED_SWITCH_R) if x.ptr != ptr and x.hp > 0
-                      and foes_.of(x.npc_param).ranged and (x.anim or -1) in M.ATTACK
-                      and abs(x.y - p.y) < RANGED_REACHABLE_DY]
-        # shooters above (or far away), unlike close interlopers (cut, below), have no distance limit — we were getting hit while fighting only the
-        # foe in front defensively (user 2026-09-25: "the arrow guy is attacking so it's set to defense-heavy — deal with him first").
-        # But height difference is limited — switching to 254012 (terrace archer, height difference +6–8.5 m) made _approach() endlessly try to close
-        # a distance unreachable on foot, taking only arrows for 30 s, HP 695→137 (2026-09-25, burg-loop 091110).
-        # measured: successful ranged switches were all at height difference ≤ +3.0 m — above that, treat as unreachable and ignore.
-        # if a sword foe is right in front (MELEE_BUSY_R), take it first — turning your back to go for a distant shooter gets you hit by both
-        busy = any(x.hp > 0 and not foes_.of(x.npc_param).ranged and M.horiz(p, x) < MELEE_BUSY_R and abs(x.y - p.y) < 1.2
-                   and not (9000 <= (x.anim or 0) < 9100) for x in s.hostile(MELEE_BUSY_R + 1.0))
-        if ranged_cut and not busy and now - switch_t > SWITCH_HOLD:
-            x = min(ranged_cut, key=lambda y: M.horiz(p, y))
-            if orig_ptr is None:
-                orig_ptr = ptr
-            log(f"      원거리부터: {x.npc_param} ({M.horiz(p, x):.1f} m, 높이차 {x.y - p.y:+.1f}) — 원래 목표 {h:.1f} m")
-            ptr, c, switch_t = x.ptr, x, now
-            last_seen, foe = x, foes_.of(x.npc_param)
-            h, dy, a = M.horiz(p, c), c.y - p.y, (c.anim if c.anim is not None else -1)
-        cut = [x for x in s.hostile(SWITCH_R + 2.0) if _interloper(x, p, ptr, h)]
-        # between two at similar distances it switched targets every 1–2 s, turning and getting hit in the back (±140–166°, 442 in 25 s) —
-        # switch only when clearly closer (SWITCH_MARGIN), and keep it for SWITCH_HOLD after switching
-        if cut and now - switch_t > SWITCH_HOLD:
-            # interloper first (old hunt.py rule, user: "can't you attack the nearby enemy?") — watching only the map target, took 387 in 13 s from one hitting from the side and died.
-            # after killing it, return to the original target
-            x = min(cut, key=lambda y: M.horiz(p, y))
-            if orig_ptr is None:
-                orig_ptr = ptr
-            log(f"      목표 바꿈: {x.npc_param} ({M.horiz(p, x):.1f} m, 애니 {x.anim}) — 원래 목표 {h:.1f} m")
-            ptr, c, switch_t = x.ptr, x, now
-            last_seen, foe = x, foes_.of(x.npc_param)
-            h, dy, a = M.horiz(p, c), c.y - p.y, (c.anim if c.anim is not None else -1)
-
-        if not (h > weapon.reach and wait_far):                 # if not waiting, also clear the waiting HP baseline
-            wait_hp0 = None
-
-        pair = _pair_close(s, p, ptr, h)
-        if (pair and nm is not None and sep_n < SEP_MAX and now - sep_t > SEP_COOLDOWN and a not in M.STAGGER
-                and a not in M.DOWNED and c.hp > FINISH_HP):
-            # two closed in together — split them and take one at a time (user 2026-09-26 (a)). Don't run during stagger/downed (openings) or from a one-hit kill
-            sep_t, sep_n = now, sep_n + 1
-            r = _separate(mv, s, ptr, pair, nm, arena, cancel)
-            log(f"      떼어놓기 {sep_n}: {c.npc_param}({h:.1f} m) + " + ", ".join(f"{x.npc_param}({M.horiz(p, x):.1f} m, {x.anim})" for x in pair)
-                + f" → {r}")
-            note(f"떼어놓기:{r}", s, c)
-            if r != "no_spot":
-                continue
-
-        if (c.hp <= FINISH_HP and a not in M.ATTACK and h <= weapon.reach and abs(dy) <= 1.0
-                and not (foe is not None and foe.kick_when_idle and a == -1)
-                and (p.sp or 0) >= FINISH_SP and mv.face(s, c, deg=30.0)):
-            # dies in one hit and isn't swinging now — hit before reflex (in front of an HP 18 foe, reflex just held the shield every tick and died)
-            hit = mv.light(s, c, n=1)
-            d = hit.as_dict()
-            res.hits.append({k: d[k] for k in ("kind", "presses", "dmg", "dead", "taken", "others")})
-            if hit.dmg > 0:
-                last_dmg_t = time.time()
-                res.dealt += hit.dmg
-            note("마무리", s, c)
-            if hit.dead and orig_ptr is None:
-                return done("killed")
-            continue
-        if reflex is not None:
-            reflex.prefer = ptr
-            reflex.update(s)
-        age = reflex.attack_age(ptr) if reflex is not None else None
-        shadow.note_anim(ptr, a, now)
-        shadow.tick(now, s)
-        near45 = [x for x in s.hostile(4.5) if x.ptr != ptr]
-        ek = getattr(foe, "early_kick", "off")
-        cand = ek != "off" and _early_kick_candidate(
-            foe, a, age, h, dy, p.sp or 0, weapon,
-            any((x.anim or -1) in M.ATTACK and M.horiz(p, x) < 2.5 for x in near45))
-        if cand and ek == "shadow":
-            # Patch D: don't kick on raw anim alone — only log and fall through to the branches below (as if B8 never existed)
-            shadow.observe(now, ptr, mv.tm.handle(ptr), c.npc_param, a, age, h, dy, p.sp, p.max_sp, len(near45), p.hp, c.hp)
-        if cand and ek == "act" and mv.face(s, c, deg=30.0):
-            # (experiment only, no Foe data enables it) kick one beat earlier (user 2026-09-26) — at the start of a slow-landing attack (3004),
-            # or just as post-attack stagger (3500) begins. Checked before reflex and lure
-            kick_t = now
-            why = f"{a} {age:.2f}s" if a in foe.windup else f"휘청 {a}"
-            hit = mv.kick_combo(s, c, n=foe.punish_hits or weapon.combo)
-            d = hit.as_dict()
-            res.hits.append({k: d[k] for k in ("kind", "presses", "dmg", "dead", "taken", "others")})
-            if hit.dmg > 0:
-                last_dmg_t = time.time()
-                res.dealt += hit.dmg
-            note("빠른발차기", s, c)
-            log(f"      빠른 발차기({why}) → {hit.kind}×{hit.presses} 피해 {hit.dmg}, 내 피해 {hit.taken}, 그놈 애니 {hit.e_anims[:4]}")
-            if hit.dead and orig_ptr is None:
-                return done("killed")
-            continue
-        if a in foe.windup and age is not None and age >= foe.windup_act_s and h < NEAR:
-            # too late — it lands soon (2.0–2.1 s after start). Treating it as 'standing' via SWING_S and kicking gets hit at that moment (−220·−323) → block
-            mv.guard(True)
-            mv.face(s, c)
-            note("늦은windup막기", s, c)
-            time.sleep(0.02)
-            continue
-        if a in M.ATTACK and age is not None and age > SWING_S:
-            # if the 3000 series lasts beyond SWING_S it isn't swinging (it lingers 1.5–5.3 s after the attack ends — log analysis).
-            # the spear shield soldier (255002) stays in 3001 holding up its shield, so for 15 s we only blocked at 1.4 m and never kicked
-            a = -1
-        if (foe.kind != "shield" and h <= weapon.reach and abs(dy) <= 1.0 and (p.sp or 0) >= weapon.sp_min
-                and (a == -1 or (a in M.ATTACK and age is not None and age < INTERRUPT_S
-                                 and (weapon.startup or 0.0) <= INTERRUPT_STARTUP_MAX))
-                and not _other_swinging(s, ptr)
-                and mv.face(s, c, deg=30.0)):
-            # hit first (user: "if you'd swung even once, that enemy would have backed off") — a hollow flinches (2000·2002) from one light attack and backs off.
-            # when it has just started attacking (within INTERRUPT_S) or is standing still. Shield soldiers excluded (blocked by shield); if another foe swings beside us, block first
-            hit = mv.light(s, c, n=weapon.combo, sp_second=weapon.sp_min)
-            d = hit.as_dict()
-            res.hits.append({k: d[k] for k in ("kind", "presses", "dmg", "dead", "taken", "others")})
-            if hit.dmg > 0:
-                last_dmg_t = time.time()
-                res.dealt += hit.dmg
-            note("먼저치기", s, c)
-            log(f"      먼저 치기 → {hit.kind}×{hit.presses} 피해 {hit.dmg}, 옆 {hit.others}, 내 피해 {hit.taken}")
-            if hit.dead and orig_ptr is None:
-                return done("killed")
-            continue
-        if reflex is not None and reflex.tick(s):          # reflex: if anyone within 2.5 m starts swinging, block head-on
-            bh = getattr(reflex, "last_hit", None)
-            if bh is not None:                             # backstep attack (one move) result — record it
-                reflex.last_hit = None
-                d = bh.as_dict()
-                res.hits.append({k: d[k] for k in ("kind", "presses", "dmg", "dead", "taken", "others")})
-                if bh.dmg > 0:
-                    last_dmg_t = time.time()
-                    res.dealt += bh.dmg
-                log(f"      백스텝 공격 → 피해 {bh.dmg}, 내 피해 {bh.taken} ({h:.1f} m) 내 애니 {bh.my_anims[:6]} 그놈 {bh.e_anims[:5]}")
-                note("백스텝공격", s, c)
-                if bh.dead and orig_ptr is None:
-                    return done("killed")
-                continue
-            note("반사", s, c)
-            time.sleep(0.02)
-            continue
-        ledge = arena is not None and abs(c.y - arena[1]) > LEDGE_DY
-        # a foe standing on a ledge (ramp #5 y -39 vs flat ground -49) won't come down — luring to flat ground or backing off just went up and down repeatedly (three 'stuck')
-        if (not pulled and not ledge and nm is not None and a not in M.ATTACK and (a != -1 or h < PULL_R)
-                and math.dist((p.x, p.y, p.z), tuple(arena)) > 3.0):
-            # 0--) lure (user: "drag it to the terrain you want") — once it notices (moves or is close), back off to arena.
-            # ramp spot #2 is where firebombs from the ledge above land; engaging there took 275 in 1 s (2026-09-24)
-            pulled = True
-            path = nm.find_path((p.x, p.y, p.z), tuple(arena))
-            if path:
-                r = mv.walk_path(nav.trim_path(path[1:], tuple(arena), within=0.8), nm, "walk",
-                                 stop=lambda sn: cancel() or any((x.anim or -1) in M.ATTACK and M.horiz(sn.player, x) < NEAR
-                                                                 for x in sn.hostile(NEAR + 1.0)))
-                note(f"끌어오기:{r}", s, c)
-                continue
-        if (nm is not None and a not in M.ATTACK and now - move_t > 3.0 and p.gx is not None
-                and nav.footing(nm, p)[0] < nav.FOOTING_MIN):
-            # 0-) next to a cliff — go to a flat spot (it follows). Without arena, one step toward the widest ground
-            move_t = now
-            if arena is not None and not ledge and math.dist((p.x, p.y, p.z), tuple(arena)) > 1.5:
-                path = nm.find_path((p.x, p.y, p.z), tuple(arena))
-                if path:
-                    r = mv.walk_path(nav.trim_path(path[1:], tuple(arena), within=0.8), nm, "walk",
-                                     stop=lambda sn: cancel() or any((x.anim or -1) in M.ATTACK and M.horiz(sn.player, x) < NEAR
-                                                                     for x in sn.hostile(NEAR + 1.0)))
-                    note(f"자리옮김:{r}", s, c)
-                    continue
-            # NavMesh only blocks — it doesn't choose a step toward 'the wider ground' (evidence-grade gate, 2026-09-26). At an edge, raise shield and face it
-            mv.guard(True)
-            mv.face(s, c, deg=20.0)
-            note("가장자리방어", s, c)
-            continue
-        if care is not None and now - care_t > CARE_RETRY and care.wants(s):   # 0) Estus mid-fight (user: drink if safe)
-            if opening(s, ptr):
-                care_t = now
-                r = care.take(lambda sn: opening(sn, ptr))
-                log(f"      싸우는 중 에스트: {r}")
-                note("에스트", s, c)
-                continue
-            if (a not in M.ATTACK and h < OPEN_R and now - backstep_t > 2.0 and p.heading is not None and _others_quiet(s, ptr)
-                    and nav.ground_ahead(nm, p, math.sin(p.heading), math.cos(p.heading), reach=2.2)):
-                backstep_t = now                           # close — if there's ground behind, backstep to open distance
-                mv.backstep()
-                note("백스텝", s, c)
-                continue
-
-        if (a in M.STAGGER or a == M.GUARD_BROKEN) and h <= weapon.reach + 0.3 and abs(dy) <= 1.0 and (p.sp or 0) >= weapon.sp_min \
-                and not _other_swinging(s, ptr):
-            # not while another foe is swinging next to us — punishing the staggered shield soldier took -115 from a hollow's 3003
-            # 1.2 m away (dealt 4, 2026-09-27 27c P-8); the reflex blocks that swing instead and the stagger is taken next time
-            # 1-) stagger = opening. If facing is right, hit at once (right after bouncing off the guard — old note "3500 stagger — if close, hit immediately")
-            if mv.face(s, c, deg=30.0):
-                # heavy attack in a shield soldier's stagger opening (user 2026-09-25: "guard·heavy·guard is better against strong-guard enemies") — heavy while guarding
-                # costs 90 stamina, so only when full (HEAVY_SP). kind is logged to compare damage with light attacks
-                if weapon.heavy_punish and foe.kind == "shield" and (p.sp or 0) >= HEAVY_SP:
-                    hit = mv.heavy(s, c)
-                else:
-                    hit = mv.light(s, c, n=foe.punish_hits or weapon.combo, sp_second=weapon.sp_min)
-                d = hit.as_dict()
-                res.hits.append({k: d[k] for k in ("kind", "presses", "dmg", "dead", "taken", "others")})
-                if hit.dmg > 0:
-                    last_dmg_t = time.time()
-                    res.dealt += hit.dmg
-                note("휘청반격", s, c)
-                log(f"      휘청 → {hit.kind}×{hit.presses} 피해 {hit.dmg}, 옆 {hit.others}, 내 피해 {hit.taken}")
-                if hit.dead and orig_ptr is None:
-                    return done("killed")
-            else:
-                note("휘청돌기", s, c)
-            continue
-        if style.evade and a in M.ATTACK and h < NEAR:
-            # 1b) backstep style (user 2026-09-24: "experts use backsteps well, backstep + light attack, stronger two-handed, and no guard stamina used")
-            #     reflex dodged the swing start with a backstep (when there's ground behind). Once the blade has passed (PUNISH_AFTER), step in and light attack.
-            if (age is not None and age >= style.punish_after and style.punish_min_r <= h <= weapon.reach + PUNISH_R and abs(dy) <= 1.0
-                    and (p.sp or 0) >= weapon.sp_min and mv.face(s, c, deg=30.0)):
-                if h > weapon.reach and s.cam_yaw is not None:
-                    mv.pad.move(*mv.stick_to(s, c.x, c.z, 0.8))
-                    time.sleep(min(0.45, 0.12 + (h - weapon.reach) * 0.22))   # 2.5 m/s walk — for the remaining distance
-                    mv.pad.move(0.0, 0.0)
-                hit = mv.light(s, c, n=weapon.combo, sp_second=weapon.sp_min)
-                d = hit.as_dict()
-                res.hits.append({k: d[k] for k in ("kind", "presses", "dmg", "dead", "taken", "others")})
-                if hit.dmg > 0:
-                    last_dmg_t = time.time()
-                    res.dealt += hit.dmg
-                note("뒤치기", s, c)
-                log(f"      헛친 뒤 → {hit.kind}×{hit.presses} 피해 {hit.dmg}, 내 피해 {hit.taken} ({h:.1f} m, {age:.2f} s)")
-                if hit.dead and orig_ptr is None:
-                    return done("killed")
-                continue
-            mv.guard(False)
-            mv.face(s, c, deg=25.0)                        # keep it in front and wait for the blade to pass (no shield)
-            note("피함대기", s, c)
-            time.sleep(0.02)
-            continue
-        if style.shield and a in M.ATTACK and h < NEAR:     # 1) swinging → block (only styles with a shield —
-            # rush (no shield, no evade) just stood here taking hits, the enemy combo never broke: 8 s+ 0 attacks, 676 taken, 2026-09-25)
-            mv.guard(True)
-            if h > weapon.reach + 0.3 and abs(dy) <= 1.0 and s.cam_yaw is not None and (
-                    nm is None or nav.ground_ahead(nm, p, c.x - p.x, c.z - p.z, reach=0.8)):
-                # just blocking in place out of reach never reaches a foe swinging from afar (3008 repeated) — approach with shield raised
-                mv.pad.move(*mv.stick_to(s, c.x, c.z, 0.6))
-                note("막으며다가감", s, c)
-            else:
-                mv.face(s, c)
-                note("막기", s, c)
-            time.sleep(0.02)
-            continue
-        if a in M.DOWNED and a != M.GETTING_UP:            # 2) knocked down
-            mv.guard(True)
-            mv.face(s, c)
-            note("누움대기", s, c)
-            time.sleep(0.03)
-            continue
-        if h > weapon.reach and wait_far and not (foe and foe.ranged):   # 3-wait) shooters keep shooting if we wait — don't wait. Still far — don't approach, block in place and wait
-            if wait_hp0 is None:
-                wait_hp0 = p.hp
-                wait_t0, wait_hmin = now, h
-            if h < wait_hmin - WAIT_CLOSE_M:
-                wait_t0, wait_hmin = now, h                  # approaching — keep waiting
-            elif now - wait_t0 > WAIT_APPROACH_S and may_approach is not None and not may_approach(c, s):
-                # Patch E-3 (2026-09-26): if approaching would leave the safe zone or get near the shield soldier spawn, don't switch 'not coming→close in';
-                # keep waiting — going for #3 standing 6.4 m out at the edge of the flat ground, got spotted 6.6 m from the shield soldier spawn and surrounded (133827)
-                wait_t0 = now
-                note("안옴→기다림유지", s, c)
-            elif now - wait_t0 > WAIT_APPROACH_S:
-                # waiting for a foe that won't approach never ends: shield soldier 255002 held guard (3000/3001) at 4.6 m while the bot just blocked,
-                # 15 s stalemate → repeated stalemate with the same foe (user 2026-09-25: "the enemy is right in front and you just guard and wait")
-                wait_far = False
-                note("안옴→붙기", s, c)
-                continue
-            elif p.hp is not None and wait_hp0 - p.hp > WAIT_HURT_HP:
-                # the tracked foe isn't swinging (a not in M.ATTACK, not approaching) but HP keeps dropping — means we're being hit by another.
-                # don't sit still thinking "waiting is safe" (user 2026-09-25: "the enemies lull you and raise the danger,
-                # this game is never easy" — measured: waiting 11 s in front of a non-swinging target 4.3 m away, dropped 490→242).
-                return done("low_hp")
-            if style.shield:
-                mv.guard(True)
-            mv.face(s, c)
-            note("기다림", s, c)
-            time.sleep(0.03)
-            continue
-        if h > weapon.reach:                                # 3) close in — if horizontally within reach, height difference alone doesn't enter here
-            # (user 2026-09-25: "if you're going to stop midway, at least swing light attacks while stopped" — even when height difference prevents closing,
-            # drop to below (attack attempt) and at least swing a light attack. Previously even with h<=reach, dy>1.0 kept trying to close in here,
-            # 8 s+ of 0 attacks while getting beaten.)
-            last_dmg_t = now                               # stalemate counts only within reach (walking 42 m counted as 'stalemate')
-            # treating "within 3 m horizontally = not stuck" meant for a foe that won't come down (large height difference only) h stayed <3,
-            # best_t refreshed every tick and stuck never triggered (measured 2026-09-25: 45 s+ of repeated "붙기:stopped" at 1.7–1.9 m height difference,
-            # 0 attacks — user: "if you're going to stop mid-fight, go around", "why are you staying in the danger zone"). Count progress only when height difference narrows too.
-            if h < 3.0 and abs(dy) <= 1.2:
-                best_h, best_t = h, now                    # truly within reach (height too) — not stuck
-            elif best_h is None or h < best_h - 0.5:
-                best_h, best_t = h, now
-            elif now - best_t > 8.0:
-                return done("stuck")
-            if may_approach is not None and not may_approach(c, s):
-                log(f"      다가가지 않음 — {c.npc_param} ({c.x:.1f}, {c.y:.1f}, {c.z:.1f}) 는 안전 구역 밖 (Patch E-2)")
-                return done("unsafe_approach")
-            r = _approach(mv, weapon, s, c, nm, foe, cancel, log, may_approach=may_approach)
-            last_dmg_t = time.time()                       # time spent closing in isn't stalemate (one walk took 17 s)
-            note(f"붙기:{r}", s, c)
-            if r == "dead":
-                return done("me_dead")
-            continue
-        if (c.hp <= FINISH_HP and (p.sp or 0) >= FINISH_SP and not (foe.kick_when_idle and a == -1)
-                and mv.face(s, c, deg=30.0)):   # a shield soldier standing with shield up blocks even the finisher (22 → 21 → 20, 114 counter) — kick instead
-            # 3+) dies in one hit — hit even if a bit short on stamina (guard broke while a shield soldier held out 4 s at HP 10)
-            hit = mv.light(s, c, n=1)
-            d = hit.as_dict()
-            res.hits.append({k: d[k] for k in ("kind", "presses", "dmg", "dead", "taken", "others")})
-            if hit.dmg > 0:
-                last_dmg_t = time.time()
-                res.dealt += hit.dmg
-            note("마무리", s, c)
-            if hit.dead and orig_ptr is None:
-                return done("killed")
-            continue
-        if (p.sp or 0) < weapon.sp_min:                    # 4) stamina — lower shield (recovery −80 %, wiki) and stand keeping it in front
-            # backing off pushed the stick the other way without lock-on, **turning and walking away**, getting hit in the back (body-foe ±180°, user: "can't align direction")
-            mv.guard(False)
-            mv.face(s, c)
-            note("SP회복", s, c)
-            time.sleep(0.05)
-            continue
-        if not mv.face(s, c):                              # 5) face it
-            note("돌기", s, c)
-            time.sleep(0.02)
-            continue
-        s = mv.snap(SEEK_R)
-        c = mv.find(s, ptr) if s else None
-        if c is None:
-            continue
-        a = c.anim if c.anim is not None else -1
-        if a in M.ATTACK and reflex is not None and (reflex.attack_age(ptr) or 0.0) > SWING_S:
-            a = -1                                         # 3000 series lingering in guard stance — treat as standing (kick)
-        behind_deg = abs(math.degrees(M.rel_angle(c, s.player))) if c.heading is not None else 0.0
-        looks_at_me = behind_deg < 60
-        if (foe.circle_behind and a == -1 and behind_deg < CIRCLE_BEHIND_DEG and circle_n < CIRCLE_MAX_SWEEPS
-                and h <= weapon.reach + 1.5 and (nm is None or nav.ground_ahead(nm, p, c.x - p.x, c.z - p.z, reach=1.0))):
-            # shield only blocks a frontal cone — no attacks while circling (hitting per weapon gets blocked again). Past CIRCLE_MAX_SWEEPS, give up and go below (kick etc.)
-            circle_n += 1
-            behind_deg = _circle_sweep(mv, s, c, cancel)
-            note(f"등뒤돌기:{behind_deg:.0f}", s, c)
-            continue
-        circle_n = 0
-        if foe.kick_when_idle and a == -1 and looks_at_me and now - kick_t > KICK_COOLDOWN:
-            kick_t = now
-            hit = mv.kick_combo(s, c, n=weapon.combo)       # kick → light attack right away (if the gap is large the shield soldier guards again, user)
-        elif weapon.use_heavy:
-            hit = mv.heavy(s, c)
-        else:
-            hit = mv.light(s, c, n=weapon.combo, sp_second=weapon.sp_min)
-        d = hit.as_dict()
-        res.hits.append({k: d[k] for k in ("kind", "presses", "dmg", "dead", "taken", "others")})
-        if hit.dmg > 0:
-            last_dmg_t = time.time()
-            res.dealt += hit.dmg
-        note(hit.kind, s, c)
-        log(f"      {hit.kind}×{hit.presses} → 피해 {hit.dmg}, 내 피해 {hit.taken}, 그놈 애니 {hit.e_anims[:4]}")
-        if hit.dead and orig_ptr is None:
-            return done("killed")
+            name = rule.__name__.removeprefix("rule_").removeprefix("prep_")
+            F.res.rules[name] = F.res.rules.get(name, 0) + 1
+            if isinstance(out, DuelResult):
+                return out
+            break

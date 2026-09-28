@@ -14,7 +14,7 @@ if [ ! -x "$VENV/bin/python" ]; then
   uv venv "$VENV" --python 3.12 -q
 fi
 grep -viE '^(pymem|vgamepad)==' requirements-lock.txt > /tmp/dsr-bot-req.txt
-uv pip install -q --python "$VENV/bin/python" -r /tmp/dsr-bot-req.txt
+uv pip install -q --python "$VENV/bin/python" -r /tmp/dsr-bot-req.txt pytest
 
 echo "export VIRTUAL_ENV=\"$VENV\"" >> "$CLAUDE_ENV_FILE"
 echo "export PATH=\"$VENV/bin:\$PATH\"" >> "$CLAUDE_ENV_FILE"

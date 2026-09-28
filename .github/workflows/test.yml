@@ -8,8 +8,8 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Install dependencies (without Windows-only pymem/vgamepad)
@@ -18,9 +18,5 @@ jobs:
           pip install -r /tmp/req.txt
       - name: Run offline tests (fake world, no game)
         run: |
-          set -e
-          for t in duel_shadow_test.py feed_test.py field_*_test.py moves_test.py observe_record_test.py msb_extract_test.py radar_test.py props_test.py overlay_test.py translate_test.py; do
-            echo "::group::$t"
-            python "$t"
-            echo "::endgroup::"
-          done
+          pip install pytest
+          python -m pytest -v

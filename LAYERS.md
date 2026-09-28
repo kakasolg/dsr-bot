@@ -90,7 +90,7 @@ Examples: heavy attack was pressed in two places, estus after a kill was separat
 | Where the floor is unknown (navmesh gaps: stair tops, bridges), a lethal fall needs more than 4 m drop in 0.8 s — a "99 m below" false alarm wasted two 10 s force-quits | `watch.Escape.FREEFALL`·`floor_drop` → None |
 | Force-quit takes game limit 2.5 s + reload 5.6 s — menu steps proceed immediately after screen confirmation (VERIFIED_GAP), except after START, press LEFT only once the menu text is visible (pressing after 0.02 s gets eaten, losing 1.3 s). Reload A every 0.5 s. Per-step times are in the escape event's quit_steps | `quitout.quit_out`·`reload`·`LAST_STEPS` |
 | No coordinate warps across zones — terrain doesn't load, fatal fall (Undead Burg → Firelink Shrine). `set_last_bonfire` + Darksign (**check souls first** — lost 680) | `dsr_telemetry.set_last_bonfire`·`moves.darksign` |
-| Game memory is read by **a single feed thread** — reading per layer (duel 4, field 17, moves 6, watch thread) overlapped reads in one tick and each layer saw a different moment. Frames within 50 ms are used as-is; if stale, wait for the next frame; beyond 40 m or dead thread, read directly. Disable with `BOT_FEED=0`. Measured with `feed_bench.py` | `feed.Feed` · `env.make_telemetry` (one per process) |
+| Game memory is read by **a single feed thread** — reading per layer (duel 4, field 17, moves 6, watch thread) overlapped reads in one tick and each layer saw a different moment. Frames within 50 ms are used as-is; if stale, wait for the next frame; beyond 40 m or dead thread, read directly. Disable with `BOT_FEED=0`. Measured with `experiments/feed_bench.py` | `feed.Feed` · `env.make_telemetry` (one per process) |
 
 ## Evidence-grade gate (2026-09-26, user) — before adding or changing a policy
 
@@ -128,25 +128,25 @@ The NavMesh path walk back to flat ground was kept — its destination (RAMP_ARE
 
 Fixes from the R1–R3 (observe `101202`, `101538`, `101913`) V0-Lite results. Each patch has its own commit and offline test:
 
-- **A Target liveness** (`field._bind`·`_liveness`, `field_liveness_test.py`): don't infer death from spawn distance. Only the first resolution uses `find_at`; after that,
+- **A Target liveness** (`field._bind`·`_liveness`, `tests/field_liveness_test.py`): don't infer death from spawn distance. Only the first resolution uses `find_at`; after that,
   runtime identity (ptr, handle, `esc.gen`). Death = raw HP 0 in the same generation on two consecutive distinct snapshots. Missing from the list = missing (not dead);
   over 5 s or a generation change → unknown → rebind at the spawn as a new life. If never found, the result shows `#i?`.
-- **B No chasing after deferral** (`field.clear`·`_deferred_unreachable`, `risk_report` partial flag, `field_defer_test.py`).
-- **C Hold-the-spot stamina** (`field._hold_at`·`_defend_in_place`·`_zone_leash`·`LureBlock`, `field_hold_test.py`): shield down when quiet,
+- **B No chasing after deferral** (`field.clear`·`_deferred_unreachable`, `risk_report` partial flag, `tests/field_defer_test.py`).
+- **C Hold-the-spot stamina** (`field._hold_at`·`_defend_in_place`·`_zone_leash`·`LureBlock`, `tests/field_hold_test.py`): shield down when quiet,
   shield up only when something approaches (0.3 m in 0.5 s). Contact below 25 % stamina = defend in place only (stick neutral, reflex counterattack off, recover if HP below 25 %) —
   fight() is not called. Only contact inside the zone with enough stamina gets a fight bound to the initial identity (broken off on leaving the zone, identity/generation change, or a second enemy within 3 m;
   no target switching). The lure block lifts only after 0.5 s of **continuous** quiet within 5 m. The 'approaching enemy' branch still goes first.
-- **E-1 Moved targets are waited for on flat ground** (user 2026-09-26, `field.clear`·`_hold_tick`, `field_moved_wait_test.py`): if a non-hold target (#1, #3, etc.)
+- **E-1 Moved targets are waited for on flat ground** (user 2026-09-26, `field.clear`·`_hold_tick`, `tests/field_moved_wait_test.py`): if a non-hold target (#1, #3, etc.)
   has moved and is somewhere more than 1.2 m in height from the flat ground (arena), don't go seek it via lure/fight; wait on flat ground (same _hold_tick as
   the shield soldier hold-the-spot). If it comes down and swings, the 'approaching enemy' branch takes it. If it doesn't come down after two 20 s waits, `left #i~`. After Patch A, the bot walked up to
   #3's old spot (up the ramp) while #3 was coming down, leaving the flat ground by 6 m (observe 131752, 132053). Targets that moved at the same height, and
   ledge targets still at their spawn, are unchanged.
-- **E-2/E-3 Approach safety checks** (user 2026-09-26, `duel._approach`·`duel(may_approach=)`·`field._approach_guard`, `field_approach_guard_test.py`):
+- **E-2/E-3 Approach safety checks** (user 2026-09-26, `duel._approach`·`duel(may_approach=)`·`field._approach_guard`, `tests/field_approach_guard_test.py`):
   E-2: while closing in, if the enemy moves more than 3 m from where the path was planned, stop and re-evaluate from its current position (don't go all the way to the old spot); if the re-evaluated
   spot is unsafe, end with `unsafe_approach`, and clear doesn't retreat but switches to waiting on flat ground. E-3: in the approaching-enemy fight, `안옴→붙기` (not coming → close in) is also not switched to
   if unsafe; it keeps waiting. Safe = a listed target still at its spawn, or one that moved but doesn't meet the E-1b wait conditions (different height, outside the flat-ground zone, within 12 m of
   the shield soldier spawn). Unlisted enemies are checked only when the player is near the flat ground (ledge fights unchanged). Evidence: 131752, 132053, 133827.
-- **D Shadow kick** (`duel._early_kick_candidate`·`ShadowKick`, `foes.Foe.early_kick`, `duel_shadow_test.py`).
+- **D Shadow kick** (`duel._early_kick_candidate`·`ShadowKick`, `foes.Foe.early_kick`, `tests/duel_shadow_test.py`).
 
 **Known validation issue (after A–D, not fixed yet)**: the 1.5 m hold-spot tolerance conflicts with the 13 m lure minimum — the throwing spot is 13.66 m from
 #2's spawn, but standing somewhere within 1.5 m of the spot can put it inside 13 m. In R3 (`101913`), `too_close` twice at 12.8 m → deferral → (old) chase.
@@ -191,7 +191,7 @@ Tools that write game memory (warp, quit-out, invincibility, item insertion, etc
 User (2026-09-24): "Make attack combos a single sequence — roll light attack, jump heavy attack, backstep light attack, that kind of thing." A combo is a table of (time, action) rows, and the result is checked with a single watch.
 A new combo is one row in the table; upper layers only call `mv.combo("이름", s, c, nm)` ("name"). Current rows: `backstep_r1` (B → R1 at 0.45 s, used live), `roll_r1`/`jump_r2` (values from the old control chart / estimates, not measured).
 
-## User demo recording (2026-09-24, `demo_record.py` → `data/demo/20260924_162859.jsonl`)
+## User demo recording (2026-09-24, `experiments/demo_record.py` → `data/demo/20260924_162859.jsonl`)
 
 - Knives: **hit only on flat ground at the same height** — from (-28.5, -49.0, 28.2) to the #2 shield soldier at 13.1 m, height diff -0.7 → 34 damage, woke it. Two thrown 7 m downward from a ledge and one thrown 6 m upward all did 0 (the hollow hit upward woke up despite 0). From the second throw on, the shield soldier blocked with its shield (1).
   - **Addendum (2026-09-26, observe recording)**: the user **used lock-on** and also hit upward — height diff +3.2 to +3.4 m at 9.6–9.8 m for 45 and 30, +5.6 m at 12.3 m for 43. On the shield soldier from flat ground, 13.65 m and 13.7 m, 34 both times. The "same height only" above is an observation of the bot's throws.
@@ -205,19 +205,19 @@ A new combo is one row in the table; upper layers only call `mv.combo("이름", 
 1. **Layer 0 owns recovery**: `navmesh.on_mesh`/`nearest_walkable`/`ledge_step`; `find_path` snaps off-mesh start/end to points at the same height and returns an empty list for step-up paths. When blocked, `nav.goto` first checks whether it's off the mesh and returns to the mesh. Layer 4's temporary `reset_spot` removed. Offline check: the path from the pocket (-24.5,-48.3,26.0) → #4 starts at (-27.1,-48.8,25.5); Firelink Shrine, flat ground, all 6, and summit paths all preserved.
 2. **Layer 4 engagement queue**: `field.clear` changed to "approaching enemies first; the spawn list is the intent" (`_clear_old` kept for reference).
 3. **Style object**: `souls/style.py`. The `--style` string is turned into the object once at entry.
-4. **Layer 1 offline test**: `moves_test.py` (fake pad) — the first run caught a bug where combo-table times were absolute, making the R1 interval 0.29 s → steps after B are relative to B.
+4. **Layer 1 offline test**: `tests/moves_test.py` (fake pad) — the first run caught a bug where combo-table times were absolute, making the R1 interval 0.29 s → steps after B are relative to B.
 5. **Old code cleanup**: moved to `legacy/` (hunt, merchantrun, reflex, old test scripts). `souls` no longer imports `patrol` (`moves.rel_angle`). `vision_probe` kept because boss/ uses it.
 
 ## Round trip (Undead Burg bonfire → walk back, 2026-09-25)
 
 User: "Don't rest at the Undead Burg bonfire; walk back to Firelink" — instead of `light_burg_bonfire()` (sits, changes the respawn point),
 `missions.to_firelink()` (reverse of to_merchant, doesn't roll the barrel) + `missions.burg_bonfire_round_trip()` (ramp → merchant → bonfire spot → return without sitting).
-CLI `python run.py burg-loop`, `loop_runs.py --mission burg-loop`.
+CLI `python run.py burg-loop`, `experiments/loop_runs.py --mission burg-loop`.
 - **Quit-out (quit+reload) is not the Darksign** — it doesn't move you; you continue right where you were (measured: quit_out+reload next to a bonfire leaves coordinates unchanged).
   Changing only the bonfire pointer via `set_last_bonfire` affects only the next **death/Darksign** — can't be used for teleporting between runs. (The old
-  "quit-out between burg-bonfire runs" branch in loop_runs.py was built on this misunderstanding — dead code that can be deleted; don't use it.)
+  "quit-out between burg-bonfire runs" branch in experiments/loop_runs.py was built on this misunderstanding — dead code that can be deleted; don't use it.)
 - **Missed in the legacy/ cleanup**: `import ladder_test` in `souls/field.py:fog_through()` was left as-is after the move to `legacy/` → crash during clear_ramp
-  when blocked at the fog wall. `legacy/ladder_test.py`/`vision_probe.py` also bare-`import merchantrun` from each other (moved to legacy/ together) — neither is
+  when blocked at the fog wall. `legacy/ladder_test.py`/`experiments/vision_probe.py` also bare-`import merchantrun` from each other (moved to legacy/ together) — neither is
   needed for the functions actually used (prompt_px, window_rect), so moved to lazy imports. **After moving modules to legacy/, re-check that nothing on the run path still uses them.**
 - A shield soldier (npc 254013, HP150) stands near the Undead Burg bonfire (around -8,-10,-69) — 6 backstep-style light attacks did 0 damage (blocked); took 174 and died from a fall.
   Same problem as the ramp shield soldier ([[ds1-player-mechanics-tips]] "bot's backstep attacks 0/18"). This stretch retried with the guard style (user's choice, 2026-09-25).
@@ -229,8 +229,8 @@ CLI `python run.py burg-loop`, `loop_runs.py --mission burg-loop`.
 - **User principle: "Guard + light attack, kick + light attack, backstep + light attack, go behind + light attack — you have to choose by situation. If possible, a light attack from behind is the most effective."**
   Added circling behind to `duel.py` (`Foe.circle_behind`, all SHIELD): if a still shield soldier (anim -1) is within the behind angle (`CIRCLE_BEHIND_DEG`=130°),
   circle behind it instead of kick/light attack.
-  - **First attempt (`_circle_step`, stopping at each step, 30° at a time) failed** — reached 157° (nearly directly behind) yet all 16 hits did 0 damage (measured by `backstab_probe.py`).
-  - **Cause and fix confirmed from the user's demo** (`record_play.py`, `data/trace/play_20260925_062345.jsonl`, 4 events analyzed): a real backstab must go in along
+  - **First attempt (`_circle_step`, stopping at each step, 30° at a time) failed** — reached 157° (nearly directly behind) yet all 16 hits did 0 damage (measured by `experiments/backstab_probe.py`).
+  - **Cause and fix confirmed from the user's demo** (`experiments/record_play.py`, `data/trace/play_20260925_062345.jsonl`, 4 events analyzed): a real backstab must go in along
     **one large continuous arc without stopping** (3.5–3.8 s, heading curving about 150–200°, distance 5 m → 1 m, right stick moving continuously too) —
     stopping at each step lets the enemy turn and keep up. The anim is **303000, same as a normal light attack** (no backstab-specific anim), but the damage is **54 (63 % of HP 85)**
     rather than 34–41 — the hit angle, not the anim, decides it.
@@ -239,7 +239,7 @@ CLI `python run.py burg-loop`, `loop_runs.py --mission burg-loop`.
   - **Live result (2026-09-25, `circle_sweep_isolated.log`): bad — turned off with `SHIELD.circle_behind=False`.** An enemy just lured by knife or one cutting in during a melee
     isn't truly idle (-1); its anim changes within a few ticks, so `_circle_sweep` barely circled (`등뒤돌기:0` (circle-behind: 0), `등뒤돌기:3`) before breaking off —
     wasting those attempts (`CIRCLE_MAX_SWEEPS`) and leading to bad trades (dealt 40, took 216), taking the run all the way to death. User: "Circling is too slow;
-    kick + light attack looks better." Against the isolated target by the Undead Burg bonfire (circled to 157° fine, `backstab_probe.py`) the technique itself worked, but
+    kick + light attack looks better." Against the isolated target by the Undead Burg bonfire (circled to 157° fine, `experiments/backstab_probe.py`) the technique itself worked, but
     live (shield soldier in a melee) the kick is better — code kept (`Foe.circle_behind`, `_circle_sweep`) but off by default.
   - **User: "It's hard because the shield soldier's pattern is good."** — not a flaw in the circling logic itself; this enemy AI (guard, turn tracking) is well designed, so
     positioning tricks don't easily break it. The kick (kick_when_idle) was already the proven standard answer for this pattern.
@@ -247,7 +247,7 @@ CLI `python run.py burg-loop`, `loop_runs.py --mission burg-loop`.
   enemies. Enemies cleared on the way out may be there again on the way back — `to_firelink()` (return) must not assume "already killed, so they won't
   appear". Reflect this in round-trip design and expected combat density (not in code yet).
 
-## Undead Burg progression order (user demo, 2026-09-25, `record_play.py` → `data/trace/play_20260925_091805.jsonl`)
+## Undead Burg progression order (user demo, 2026-09-25, `experiments/record_play.py` → `data/trace/play_20260925_091805.jsonl`)
 
 The user walked it personally, demonstrating in the order "from right here you can handle 2, don't go up" / "killed 3, come into the room, next
 I'll deal with the archer" / "archer dealt with, finally the two shield soldiers". There is a spot where the two terrace shield soldiers can be drawn out and fought **from
