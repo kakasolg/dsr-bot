@@ -211,10 +211,10 @@ def test_shield_pair_rules() -> None:
 
 def test_foe_follows_target_after_switch_back() -> None:
     # P-8 291.3 s: after "interloper killed — back to the original target" the shield soldier got the hollow's moves.
-    # duel() now re-reads the foe data from the current target every tick — guard the line against regressions.
+    # duel() now re-reads the foe data from the current target every tick (in _sense) — guard the line against regressions.
     import inspect
-    src = inspect.getsource(D.duel)
-    assert "foe = foes_.of(c.npc_param)\n" in src and "if foe is None:\n            foe = foes_.of(c.npc_param)" not in src
+    src = inspect.getsource(D._sense)
+    assert "F.foe = foes_.of(c.npc_param)\n" in src and "if F.foe is None" not in src
     print("ok  foe data re-read from the current target every tick")
 
 
