@@ -62,6 +62,7 @@ BACKSTAB_REACH = 3.5     # start only within this (walk the rest while circling)
 BACKSTAB_S = 2.5         # give up circling after this (human 0.6–1.1 s from contact; + walking in from BACKSTAB_REACH)
 BACKSTAB_WATCH_S = 1.0   # after R1, watch this long for the kill (human 0.8–0.9 s)
 BACKSTAB_TICK = 0.05
+BACKSTAB_RELEASE_S = 0.1  # all input released this long before R1 (see stab())
 SNEAK_R = 6.0            # a still hollow showing its back (≥ SNEAK_DEG) within this: walk straight in to its back, no circling
 SNEAK_DEG = 110          # (radar 27k: circling never got past 6° — the hollow turns with us — but twice one stood 6 m off facing away 160–175°)
 BACKSTAB_STILL_S = 0.3   # foe must have stood (moved < BACKSTAB_STILL_M) this long — a hollow walking in is also anim −1 and swings on arrival
@@ -92,7 +93,12 @@ def _backstab(mv, s, c, cancel) -> str:
             time.sleep(0.01)
     busy0, mv.cam_busy = getattr(mv, "cam_busy", False), True   # lock-on drives the camera — CamFollow hands off
     def stab() -> str:
+        # let go of everything first — guard (LB) up or the stick held turns R1 into a normal attack. Human demos press R1 alone
+        # (buttons 0x200, no LB); the bot held LB through the whole duel (0x100 → 0x180 at R1). user 2026-09-28: "behind it, all input
+        # released for an instant — that is when the backstab registers"
+        getattr(mv.pad, "guard", lambda on: None)(False)
         mv.pad.move(0.0, 0.0)
+        wait(BACKSTAB_RELEASE_S)
         mv.pad.attack()
         c2 = None
         for _ in range(max(1, int(BACKSTAB_WATCH_S / max(BACKSTAB_TICK, 1e-3)))):
@@ -444,7 +450,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
     shadow = ShadowKick(log=log, events=events, gen=gen)   # gen·events: supplied by Field.fight (for shadow kick events)
 
     def done(result: str) -> DuelResult:
-        mv.pad.guard(False)
+        getattr(mv.pad, "guard", lambda on: None)(False)
         mv.pad.move(0.0, 0.0)
         s_ = mv.snap(5.0)
         shadow.flush(time.time(), s_, cancelled=(result == "cancel"))
@@ -766,7 +772,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
         foe_still = now - still[3] >= BACKSTAB_STILL_S
         back_to_me = c.heading is not None and abs(math.degrees(M.rel_angle(c, p))) >= SNEAK_DEG
         bs_near = h <= BACKSTAB_REACH or (back_to_me and h <= SNEAK_R)
-        foe_still = foe_still or back_to_me                   # showing its back = not walking at us (27m: just out of a stagger, 145° behind)
+        foe_still = True                                      # user 2026-09-28: hollows never stand still for a backstab — not a condition
         backstab_chance = (foe is not None and foe.circle_behind and a == -1 and foe_still and circle_n < CIRCLE_MAX_SWEEPS
                            and bs_near and abs(dy) <= 1.0)
         if backstab_chance and not (not _other_swinging(s, ptr) and (nm is None or nav.ground_ahead(nm, p, c.x - p.x, c.z - p.z, reach=1.0))):
