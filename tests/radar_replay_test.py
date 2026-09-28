@@ -77,7 +77,8 @@ check("오른쪽 트리거는 rtr (rt 는 시간)", "rtr" in p0 and isinstance(p
 print("컨트롤러")
 dp = radar_pad.demo_pad(0.05)
 check("데모 입력: RB 눌림, 왼스틱 움직임", dp["btn"] & radar_pad.BUTTONS["rb"] and dp["lx"] != 0)
-check("윈도우가 아니면 읽을 것 없음", radar_pad.start(lambda m: None) is False)
+if sys.platform != "win32":                    # on Windows start() really opens XInput (the pad reader thread)
+    check("윈도우가 아니면 읽을 것 없음", radar_pad.start(lambda m: None) is False)
 
 print("바닥 (NavMesh)")
 mv = radar_mesh.MeshView([radar_mesh.rect_mesh([(0, 0, 7, 3, 0.0), (7, 0, 10, 3, 0.0), (7, 3, 10, 10, 0.0), (20, 0, 22, 2, 9.0)])])
