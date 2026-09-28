@@ -102,7 +102,7 @@ def main() -> None:
             wait(0.3)
         locked = mv.lock_state(ptr) == "target"
         print(f"lock-on: {mv.lock_state(ptr)}")
-        t0, last_print = time.time(), 0.0
+        t0, last_print, side = time.time(), 0.0, None
         while time.time() - t0 < TIMEOUT_S:
             s = mv.snap(8.0)
             c = mv.find(s, ptr) if s else None
@@ -111,7 +111,9 @@ def main() -> None:
                 break
             h, deg = M.horiz(s.player, c), behind_deg(c, s.player)
             if locked:
-                x, y, _ = D.backstab_stick(c, s.player)
+                x, y, _ = D.backstab_stick(c, s.player, side)
+                if side is None and x != 0.0:
+                    side = x
             else:                                          # no lock: the stick is camera-relative — steer to a world point on the circle
                 x, y = circle_point_stick(mv, s, c)
             if time.time() - last_print >= 0.2:

@@ -55,9 +55,9 @@ CIRCLE_MAX_SWEEPS = 2    # give up if not behind after this many (path blocked e
 # circling at body contact 0.85–0.96 m with the stick full (≥ 1.0, 2.5–3.9 m/s), behind within 0.6–1.1 s; R1 at 130–180° behind with the
 # foe idle (anim −1) → the game snaps us behind (0.59 m) and the kill lands 0.8–0.9 s later. R1 while it's staggered/attacking = a normal hit.
 # (the old _circle_sweep did a 3.5 s wide arc without lock-on — too slow, it turned to face us)
-BACKSTAB_DEG = 130       # behind at least this much (deg from its front) → R1 (human R1s at 130–180°)
+BACKSTAB_DEG = 140       # behind at least this much (deg from its front) → R1 — drill: kills at 151°·153° (1.12 m), 133° at 1.50 m was a normal hit
 BACKSTAB_R = 0.9         # circle at this distance (human 0.85–0.96 m)
-BACKSTAB_MAX_R = 1.7     # R1 only within this — 1.3 → 1.7 (27l: stood 139° behind an idle hollow at 1.6 m for 1.3 s without pressing R1)
+BACKSTAB_MAX_R = 1.3     # R1 only within this — drill: 1.12 m killed, 1.50 m was a normal hit (human 0.85 m)
 BACKSTAB_REACH = 3.5     # start only within this (walk the rest while circling) — 2.5 → 3.5 (27j: idle hollows stood at 2.4–3 m, the bot waited, walked in head-on and woke them)
 BACKSTAB_S = 2.5         # give up circling after this (human 0.6–1.1 s from contact; + walking in from BACKSTAB_REACH)
 BACKSTAB_WATCH_S = 1.0   # after R1, watch this long for the kill (human 0.8–0.9 s)
@@ -69,7 +69,7 @@ BACKSTAB_STILL_S = 0.3   # foe must have stood (moved < BACKSTAB_STILL_M) this l
 BACKSTAB_STILL_M = 0.3   # distance to us dropped less than this (walking in ≈ 0.45 m per 0.3 s; 27h: 8/8 tries on walking-in hollows ended 'moved')
 
 
-def backstab_stick(c, p) -> tuple[float, float, float]:
+def backstab_stick(c, p, side: float | None = None) -> tuple[float, float, float]:
     """Stick (x, y) while locked on (x = strafe right +, y = forward) that circles p toward c's back. → (x, y, behind_deg).
     Player on the foe's right (rel_angle + ) → strafe left; distance corrected toward BACKSTAB_R."""
     ang = M.rel_angle(c, p)
@@ -78,7 +78,8 @@ def backstab_stick(c, p) -> tuple[float, float, float]:
     if behind >= BACKSTAB_DEG:                             # already at its back — walk straight in (strafing would carry us off it)
         return 0.0, max(0.0, min(0.8, (h - BACKSTAB_R) * 1.5)), behind
     fwd = max(-0.5, min(0.8, (h - BACKSTAB_R) * 1.5))
-    return (-1.0 if ang >= 0 else 1.0), fwd, behind
+    # side: keep the strafe direction chosen at the start — right in front (≈0°) the sign flipped every tick (drill 4: 2.5 s lost)
+    return (side if side is not None else (-1.0 if ang >= 0 else 1.0)), fwd, behind
 
 
 def _backstab(mv, s, c, cancel) -> str:
@@ -123,6 +124,7 @@ def _backstab(mv, s, c, cancel) -> str:
                 s = mv.snap(8.0) or s
                 c = mv.find(s, ptr) or c
                 return stab() if at_back(s, c) else "no_lock"
+        side = None
         budget = max(BACKSTAB_S, M.horiz(s.player, c) / 1.5 + 1.0)   # walking in from SNEAK_R takes longer than a circle at contact
         for _ in range(max(1, int(budget / max(BACKSTAB_TICK, 1e-3)))):
             if cancel():
@@ -133,7 +135,9 @@ def _backstab(mv, s, c, cancel) -> str:
                 return "lost"
             if (c.anim if c.anim is not None else -1) != -1:
                 return "moved"
-            x, y, behind = backstab_stick(c, s.player)
+            x, y, behind = backstab_stick(c, s.player, side)
+            if side is None and x != 0.0:
+                side = x
             if behind >= BACKSTAB_DEG and M.horiz(s.player, c) <= BACKSTAB_MAX_R:
                 return stab()
             mv.pad.move(x, y)
