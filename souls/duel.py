@@ -62,6 +62,8 @@ BACKSTAB_REACH = 2.5     # start only within this (walk the rest while circling)
 BACKSTAB_S = 1.8         # give up circling after this (human 0.6–1.1 s + margin)
 BACKSTAB_WATCH_S = 1.0   # after R1, watch this long for the kill (human 0.8–0.9 s)
 BACKSTAB_TICK = 0.05
+BACKSTAB_STILL_S = 0.3   # foe must have stood (moved < BACKSTAB_STILL_M) this long — a hollow walking in is also anim −1 and swings on arrival
+BACKSTAB_STILL_M = 0.15  # (27h: 8/8 tries on walking-in hollows ended 'moved' within 0.3–1 s)
 
 
 def backstab_stick(c, p) -> tuple[float, float, float]:
@@ -394,6 +396,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
     pulled = arena is None
     orig_ptr, switch_t = None, 0.0
     circle_n = 0                                            # attempts to circle behind (foe.circle_behind) — prevents infinite loop
+    still = [None, 0.0, 0.0, 0.0]                          # [ptr, x, z, since] — where the foe last moved, for BACKSTAB_STILL_S
     acts: dict = {}                                        # what was done in 1 s (for logging)
     note_t = [t0]
 
@@ -731,7 +734,10 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             continue
         # an idle hollow within backstab range is a backstab chance, not a reason to wait (user 2026-09-28: "never even tries" —
         # 27g: idle foe at 1.7–2.2 m, the bot just blocked and waited, so the backstab check below was never reached)
-        backstab_chance = (foe is not None and foe.circle_behind and a == -1 and circle_n < CIRCLE_MAX_SWEEPS
+        if still[0] != c.ptr or math.hypot(c.x - still[1], c.z - still[2]) > BACKSTAB_STILL_M:
+            still[:] = [c.ptr, c.x, c.z, now]
+        foe_still = now - still[3] >= BACKSTAB_STILL_S
+        backstab_chance = (foe is not None and foe.circle_behind and a == -1 and foe_still and circle_n < CIRCLE_MAX_SWEEPS
                            and h <= BACKSTAB_REACH and abs(dy) <= 1.0)
         if h > weapon.reach and wait_far and not (foe and foe.ranged) and not backstab_chance:   # 3-wait) shooters keep shooting if we wait — don't wait. Still far — don't approach, block in place and wait
             if wait_hp0 is None:
@@ -817,7 +823,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             a = -1                                         # 3000 series lingering in guard stance — treat as standing (kick)
         behind_deg = abs(math.degrees(M.rel_angle(c, s.player))) if c.heading is not None else 0.0
         looks_at_me = behind_deg < 60
-        if (foe.circle_behind and a == -1 and circle_n < CIRCLE_MAX_SWEEPS and h <= BACKSTAB_REACH and abs(dy) <= 1.0
+        if (foe.circle_behind and a == -1 and foe_still and circle_n < CIRCLE_MAX_SWEEPS and h <= BACKSTAB_REACH and abs(dy) <= 1.0
                 and not _other_swinging(s, ptr)
                 and (nm is None or nav.ground_ahead(nm, p, c.x - p.x, c.z - p.z, reach=1.0))):
             # idle → circle behind with lock-on and backstab (human demos, see BACKSTAB_*). Past CIRCLE_MAX_SWEEPS tries, normal attacks
