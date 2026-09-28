@@ -62,6 +62,8 @@ BACKSTAB_REACH = 3.5     # start only within this (walk the rest while circling)
 BACKSTAB_S = 2.5         # give up circling after this (human 0.6–1.1 s from contact; + walking in from BACKSTAB_REACH)
 BACKSTAB_WATCH_S = 1.0   # after R1, watch this long for the kill (human 0.8–0.9 s)
 BACKSTAB_TICK = 0.05
+SNEAK_R = 6.0            # a still hollow showing its back (≥ SNEAK_DEG) within this: walk straight in to its back, no circling
+SNEAK_DEG = 110          # (radar 27k: circling never got past 6° — the hollow turns with us — but twice one stood 6 m off facing away 160–175°)
 BACKSTAB_STILL_S = 0.3   # foe must have stood (moved < BACKSTAB_STILL_M) this long — a hollow walking in is also anim −1 and swings on arrival
 BACKSTAB_STILL_M = 0.15  # (27h: 8/8 tries on walking-in hollows ended 'moved' within 0.3–1 s)
 
@@ -71,8 +73,11 @@ def backstab_stick(c, p) -> tuple[float, float, float]:
     Player on the foe's right (rel_angle + ) → strafe left; distance corrected toward BACKSTAB_R."""
     ang = M.rel_angle(c, p)
     h = M.horiz(p, c)
+    behind = abs(math.degrees(ang))
+    if behind >= BACKSTAB_DEG:                             # already at its back — walk straight in (strafing would carry us off it)
+        return 0.0, max(0.0, min(0.8, (h - BACKSTAB_R) * 1.5)), behind
     fwd = max(-0.5, min(0.8, (h - BACKSTAB_R) * 1.5))
-    return (-1.0 if ang >= 0 else 1.0), fwd, abs(math.degrees(ang))
+    return (-1.0 if ang >= 0 else 1.0), fwd, behind
 
 
 def _backstab(mv, s, c, cancel) -> str:
@@ -93,7 +98,8 @@ def _backstab(mv, s, c, cancel) -> str:
             wait(0.25)
             if mv.lock_state(ptr) != "target":
                 return "no_lock"
-        for _ in range(max(1, int(BACKSTAB_S / max(BACKSTAB_TICK, 1e-3)))):
+        budget = max(BACKSTAB_S, M.horiz(s.player, c) / 1.5 + 1.0)   # walking in from SNEAK_R takes longer than a circle at contact
+        for _ in range(max(1, int(budget / max(BACKSTAB_TICK, 1e-3)))):
             if cancel():
                 return "lost"
             s = mv.snap(8.0)
@@ -745,8 +751,10 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
         if still[0] != c.ptr or math.hypot(c.x - still[1], c.z - still[2]) > BACKSTAB_STILL_M:
             still[:] = [c.ptr, c.x, c.z, now]
         foe_still = now - still[3] >= BACKSTAB_STILL_S
+        back_to_me = c.heading is not None and abs(math.degrees(M.rel_angle(c, p))) >= SNEAK_DEG
+        bs_near = h <= BACKSTAB_REACH or (back_to_me and h <= SNEAK_R)
         backstab_chance = (foe is not None and foe.circle_behind and a == -1 and foe_still and circle_n < CIRCLE_MAX_SWEEPS
-                           and h <= BACKSTAB_REACH and abs(dy) <= 1.0)
+                           and bs_near and abs(dy) <= 1.0)
         if not backstab_chance and foe is not None and foe.circle_behind and a == -1 and h <= BACKSTAB_REACH + 0.5:
             why = ("안멈춤" if not foe_still else "횟수" if circle_n >= CIRCLE_MAX_SWEEPS else "멀다" if h > BACKSTAB_REACH
                    else "높이" if abs(dy) > 1.0 else "?")
@@ -835,7 +843,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             a = -1                                         # 3000 series lingering in guard stance — treat as standing (kick)
         behind_deg = abs(math.degrees(M.rel_angle(c, s.player))) if c.heading is not None else 0.0
         looks_at_me = behind_deg < 60
-        if (foe.circle_behind and a == -1 and foe_still and circle_n < CIRCLE_MAX_SWEEPS and h <= BACKSTAB_REACH and abs(dy) <= 1.0
+        if (foe.circle_behind and a == -1 and foe_still and circle_n < CIRCLE_MAX_SWEEPS and bs_near and abs(dy) <= 1.0
                 and not _other_swinging(s, ptr)
                 and (nm is None or nav.ground_ahead(nm, p, c.x - p.x, c.z - p.z, reach=1.0))):
             # idle → circle behind with lock-on and backstab (human demos, see BACKSTAB_*). Past CIRCLE_MAX_SWEEPS tries, normal attacks
