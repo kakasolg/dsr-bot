@@ -54,7 +54,7 @@ def main() -> None:
         return
     c = min(foes, key=lambda x: M.horiz(s.player, x))
     ptr = c.ptr
-    print(f"target npc {c.npc} ptr {ptr}: {M.horiz(s.player, c):.1f} m, behind {behind_deg(c, s.player):.0f}°, anim {c.anim}")
+    print(f"target {getattr(c, 'name', '') or '?'} HP {c.hp} ptr {ptr}: {M.horiz(s.player, c):.1f} m, behind {behind_deg(c, s.player):.0f}°, anim {c.anim}")
 
     def wait(t: float) -> None:
         t1 = time.time() + t
