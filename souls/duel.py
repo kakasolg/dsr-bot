@@ -50,40 +50,68 @@ LEDGE_DY = 3.0           # don't lure it if it is this much above or below arena
 SWING_S = 1.6            # past this since the attack anim started, not considered swinging
 PULL_R = 8.0             # lure: start backing off if it is within this (even if not moving)
 SEEK_R = 100.0           # search for it within this radius — at 40 m it missed #1 at 42 m from the bonfire and everything was 'lost'
-CIRCLE_BEHIND_DEG = 130  # beyond this angle from its front = 'behind' — shield only blocks a frontal cone (user 2026-09-25: "you have to attack shield soldiers from behind too")
-CIRCLE_LEAD_DEG = 60     # lead the target point by this much every tick — keep circling without stopping (user demo: 3.5–3.8 s big arc; stopping each step let it turn and catch up)
-CIRCLE_SWEEP_S = 4.0     # max time of one sweep (measured 3.5–3.8 s + margin)
-CIRCLE_MAX_SWEEPS = 2    # give up if not behind after this many (path blocked etc.) — kick instead (prevents infinite loop)
+CIRCLE_MAX_SWEEPS = 2    # give up if not behind after this many (path blocked etc.) — normal attacks instead (prevents infinite loop)
+# backstab — from 3 human demos (backstab_report.py, observe_backstab_*.jsonl, 2026-09-28): lock-on stays ON while circling (aim ≤ 6°),
+# circling at body contact 0.85–0.96 m with the stick full (≥ 1.0, 2.5–3.9 m/s), behind within 0.6–1.1 s; R1 at 130–180° behind with the
+# foe idle (anim −1) → the game snaps us behind (0.59 m) and the kill lands 0.8–0.9 s later. R1 while it's staggered/attacking = a normal hit.
+# (the old _circle_sweep did a 3.5 s wide arc without lock-on — too slow, it turned to face us)
+BACKSTAB_DEG = 135       # behind at least this much (deg from its front) → R1
+BACKSTAB_R = 0.9         # circle at this distance (human 0.85–0.96 m)
+BACKSTAB_MAX_R = 1.3     # R1 only within this
+BACKSTAB_REACH = 2.5     # start only within this (walk the rest while circling)
+BACKSTAB_S = 1.8         # give up circling after this (human 0.6–1.1 s + margin)
+BACKSTAB_WATCH_S = 1.0   # after R1, watch this long for the kill (human 0.8–0.9 s)
+BACKSTAB_TICK = 0.05
 
 
-def _circle_sweep(mv, s, c, cancel) -> float:
-    """Keep circling around it without stopping — user demo (2026-09-25, play_20260925_062345.jsonl): a big arc lasting 3.5–3.8 s
-    reaching behind (150–180°), one light attack (303000, same anim as a normal light attack) did 54 damage (63 % of HP 85) — the old
-    _circle_step stopped each step and it turned to catch up meanwhile. → last behind angle (absolute, deg)."""
-    ptr = c.ptr
-    t0 = time.time()
-    behind_deg = abs(math.degrees(M.rel_angle(c, s.player)))
-    while time.time() - t0 < CIRCLE_SWEEP_S and not cancel():
-        s = mv.snap(8.0)
-        if s is None or s.cam_yaw is None:
-            break
-        c = mv.find(s, ptr)
-        if c is None or (c.anim or -1) != -1:               # stop if it starts moving (no longer idle)
-            break
-        p = s.player
-        ang = M.rel_angle(c, p)
-        behind_deg = abs(math.degrees(ang))
-        if behind_deg >= CIRCLE_BEHIND_DEG:
-            break
-        sign = 1.0 if ang >= 0 else -1.0
-        th = math.radians(CIRCLE_LEAD_DEG) * sign
-        dx, dz = p.x - c.x, p.z - c.z
-        rx = dx * math.cos(th) + dz * math.sin(th)          # atan2(x, z) convention — rotation turning the bearing by +th
-        rz = dz * math.cos(th) - dx * math.sin(th)
-        mv.pad.move(*mv.stick_to(s, c.x + rx, c.z + rz, 0.7))
-        time.sleep(0.05)
-    mv.pad.move(0.0, 0.0)
-    return behind_deg
+def backstab_stick(c, p) -> tuple[float, float, float]:
+    """Stick (x, y) while locked on (x = strafe right +, y = forward) that circles p toward c's back. → (x, y, behind_deg).
+    Player on the foe's right (rel_angle + ) → strafe left; distance corrected toward BACKSTAB_R."""
+    ang = M.rel_angle(c, p)
+    h = M.horiz(p, c)
+    fwd = max(-0.5, min(0.8, (h - BACKSTAB_R) * 1.5))
+    return (-1.0 if ang >= 0 else 1.0), fwd, abs(math.degrees(ang))
+
+
+def _backstab(mv, s, c, cancel) -> str:
+    """Lock on, strafe round at body contact, R1 once behind. → 'stabbed' | 'hit' (R1 landed but no kill) | 'moved' (it stopped
+    being idle) | 'not_behind' (time out) | 'no_lock' | 'lost'. Always leaves the stick centered and lock-on off."""
+    ptr, hp0 = c.ptr, c.hp
+    busy0, mv.cam_busy = getattr(mv, "cam_busy", False), True   # lock-on drives the camera — CamFollow hands off
+    try:
+        if mv.lock_state(ptr) != "target":
+            mv.unlock()
+            mv.pad.lock_on()
+            time.sleep(0.15)
+            if mv.lock_state(ptr) != "target":
+                return "no_lock"
+        for _ in range(max(1, int(BACKSTAB_S / max(BACKSTAB_TICK, 1e-3)))):
+            if cancel():
+                return "lost"
+            s = mv.snap(8.0)
+            c = mv.find(s, ptr) if s else None
+            if c is None:
+                return "lost"
+            if (c.anim if c.anim is not None else -1) != -1:
+                return "moved"
+            x, y, behind = backstab_stick(c, s.player)
+            if behind >= BACKSTAB_DEG and M.horiz(s.player, c) <= BACKSTAB_MAX_R:
+                mv.pad.move(0.0, 0.0)
+                mv.pad.attack()
+                for _ in range(max(1, int(BACKSTAB_WATCH_S / max(BACKSTAB_TICK, 1e-3)))):
+                    time.sleep(BACKSTAB_TICK)
+                    s = mv.snap(8.0)
+                    c2 = mv.find(s, ptr) if s else None
+                    if c2 is None or c2.hp <= 0:
+                        return "stabbed"
+                return "hit" if c2.hp < hp0 else "not_behind"
+            mv.pad.move(x, y)
+            time.sleep(BACKSTAB_TICK)
+        return "not_behind"
+    finally:
+        mv.pad.move(0.0, 0.0)
+        mv.unlock()
+        mv.cam_busy = busy0
 
 
 def _pair_close(s, p, ptr, h: float) -> list:
@@ -552,7 +580,8 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             # if the 3000 series lasts beyond SWING_S it isn't swinging (it lingers 1.5–5.3 s after the attack ends — log analysis).
             # the spear shield soldier (255002) stays in 3001 holding up its shield, so for 15 s we only blocked at 1.4 m and never kicked
             a = -1
-        if (foe.kind != "shield" and h <= weapon.reach and abs(dy) <= 1.0 and (p.sp or 0) >= weapon.sp_min
+        if (foe.kind != "shield" and h <= weapon.reach
+                and not (foe.circle_behind and res.dealt > 0 and a == -1 and circle_n < CIRCLE_MAX_SWEEPS) and abs(dy) <= 1.0 and (p.sp or 0) >= weapon.sp_min
                 and (a == -1 or (a in M.ATTACK and age is not None and age < INTERRUPT_S
                                  and (weapon.startup or 0.0) <= INTERRUPT_STARTUP_MAX))
                 and not _other_swinging(s, ptr)
@@ -784,12 +813,16 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             a = -1                                         # 3000 series lingering in guard stance — treat as standing (kick)
         behind_deg = abs(math.degrees(M.rel_angle(c, s.player))) if c.heading is not None else 0.0
         looks_at_me = behind_deg < 60
-        if (foe.circle_behind and a == -1 and behind_deg < CIRCLE_BEHIND_DEG and circle_n < CIRCLE_MAX_SWEEPS
-                and h <= weapon.reach + 1.5 and (nm is None or nav.ground_ahead(nm, p, c.x - p.x, c.z - p.z, reach=1.0))):
-            # shield only blocks a frontal cone — no attacks while circling (hitting per weapon gets blocked again). Past CIRCLE_MAX_SWEEPS, give up and go below (kick etc.)
+        if (foe.circle_behind and a == -1 and circle_n < CIRCLE_MAX_SWEEPS and h <= BACKSTAB_REACH and abs(dy) <= 1.0
+                and not _other_swinging(s, ptr)
+                and (nm is None or nav.ground_ahead(nm, p, c.x - p.x, c.z - p.z, reach=1.0))):
+            # idle → circle behind with lock-on and backstab (human demos, see BACKSTAB_*). Past CIRCLE_MAX_SWEEPS tries, normal attacks
             circle_n += 1
-            behind_deg = _circle_sweep(mv, s, c, cancel)
-            note(f"등뒤돌기:{behind_deg:.0f}", s, c)
+            r = _backstab(mv, s, c, cancel)
+            note(f"뒤잡기:{r}", s, c)
+            log(f"      뒤잡기 → {r}")
+            if r == "stabbed" and orig_ptr is None:
+                return done("killed")
             continue
         circle_n = 0
         if foe.kick_when_idle and a == -1 and looks_at_me and now - kick_t > KICK_COOLDOWN:

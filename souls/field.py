@@ -29,6 +29,27 @@ FOLLOW_DY = 2.5          # foe following on stairs — up to this height differe
 SAFE_R = 6.0             # estus: no awake foe within this, and
 SAFE_ATTACK_R = 8.0      #          nobody swinging within this
 RESYNC_BACK, RESYNC_AHEAD = 3, 15   # range for re-picking the waypoint after a fight while walking (field.walk)
+RESYNC_DY = 1.0                      # nearest waypoint this far above/below → different level: re-plan from here (hotspot #4, 2026-09-28)
+
+
+def resync(path: list, here, nm, lo: int = 0, hi: int | None = None) -> tuple[list, int, float]:
+    """Where to carry on walking from `here` after a fight / quit-out. → (path, i, dy).
+    Nearest waypoint in path[lo:hi]; if it's on a different level (|dy| > RESYNC_DY — fought the crossbowman on the ledge, the nearest
+    point is 1.5 m below: unreachable, 6~8 s stuck in 5 of 6 runs) re-plan from here to the end on the navmesh (i = 0, dy returned ≠ 0).
+    If there's no navmesh / no path, keep the old path and the nearest point."""
+    hi = len(path) if hi is None else hi
+    i = min(range(lo, hi), key=lambda j: math.dist(path[j], here))
+    dy = here[1] - path[i][1]
+    if abs(dy) <= RESYNC_DY or nm is None:
+        return path, i, 0.0
+    try:
+        newp = nm.find_path(tuple(here), tuple(path[-1]))
+    except Exception:
+        newp = None
+    if not newp:
+        return path, i, 0.0
+    newp = [tuple(q) for q in nav.trim_path(list(newp[1:]) or list(newp), path[-1])]
+    return newp, 0, dy
 RETREAT_GUARD_R = 4.0    # retreat: shield up while an awake foe is within this (horizontal)
 SMASH_TRIES = 2          # swings (x2 attacks) per blocking prop per walk — a prop that won't break isn't hit forever
 SMASH_WALK_S = 2.0       # s to step up to it
@@ -1014,6 +1035,16 @@ class Field:
         finally:
             self.mv.show_path = prev                       # a detour (walk_to inside walk) hands the outer path back
 
+    def _resync(self, path, i, tols, here, nm, tag, tol, lo, hi):
+        """resync() + tolerances for a re-planned path + radar path + log. → (path, i, tols)"""
+        newp, j, dy = resync(path, here, nm, lo, hi)
+        if newp is path:
+            return path, j, tols
+        self.log(f"   {tag}: 경로 재탐색 — 이어갈 점이 다른 층 (Δy {dy:+.1f} m), {len(newp)}점")
+        self.mv.show_path = (tag, list(newp))
+        tols = nav.path_tolerances(newp, 1.0) if tol is None else nav.path_tolerances(newp, tol, steep=False)
+        return newp, j, tols
+
     def _walk(self, path: list, nm, tag: str, tol: float | None = None, tight: dict | None = None, mode: str = "walk",
               done=None) -> str:
         """Walk the path, killing first any foe that chases and closes in. → 'arrived' | 'dead' | 'stuck' | 'no_estus'
@@ -1080,7 +1111,7 @@ class Field:
                 if self.esc.gen != g0:                     # left and returned via quit-out — restart from the nearest point
                     s2 = self.mv.snap(5.0)
                     if s2:
-                        i = min(range(len(path)), key=lambda j: math.dist(path[j], (s2.player.x, s2.player.y, s2.player.z)))
+                        path, i, tols = self._resync(path, i, tols, (s2.player.x, s2.player.y, s2.player.z), nm, tag, tol, 0, len(path))
                     continue
                 if r == "retreat":
                     mover.stop()
@@ -1117,7 +1148,7 @@ class Field:
                         if s2:
                             here = (s2.player.x, s2.player.y, s2.player.z)
                             lo, hi = max(0, i - RESYNC_BACK), min(len(path), i + RESYNC_AHEAD)
-                            i = min(range(lo, hi), key=lambda j: math.dist(path[j], here))
+                            path, i, tols = self._resync(path, i, tols, here, nm, tag, tol, lo, hi)
                     continue
                 if r != "arrived":
                     fails += 1
