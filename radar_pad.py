@@ -76,6 +76,9 @@ def start(post, demo: bool = False) -> bool:
                 if last.get(i) != v:
                     last[i] = v
                     post({"type": "pad", "i": i, **v})
+            for i in [i for i in last if i not in now]:        # disconnected (e.g. the bot's virtual pad after a run)
+                del last[i]
+                post({"type": "pad", "i": i, "gone": True})
             time.sleep(1.0 / POLL_HZ)
 
     threading.Thread(target=loop, daemon=True, name="radar-pad").start()

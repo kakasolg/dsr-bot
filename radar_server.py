@@ -140,6 +140,8 @@ class State:
                 self.picked.update(int(f) for f in msg.get("flags") or [])
             elif msg.get("type") == "unpicked":            # flag off again (older save loaded) — show the item again
                 self.picked.difference_update(int(f) for f in msg.get("flags") or [])
+            elif msg.get("type") == "pad" and msg.get("gone"):
+                self.pads.pop(int(msg.get("i") or 0), None)     # a pad that went away must not hide the one still in use
             elif msg.get("type") == "pad":
                 self.pads[int(msg.get("i") or 0)] = {k: msg.get(k) for k in ("btn", "lt", "rtr", "lx", "ly", "rx", "ry")}
             elif msg.get("type") == "say":

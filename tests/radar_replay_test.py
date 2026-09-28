@@ -80,6 +80,13 @@ check("데모 입력: RB 눌림, 왼스틱 움직임", dp["btn"] & radar_pad.BUT
 if sys.platform != "win32":                    # on Windows start() really opens XInput (the pad reader thread)
     check("윈도우가 아니면 읽을 것 없음", radar_pad.start(lambda m: None) is False)
 
+import radar_server as _RS
+_st = _RS.State(props=[], items=[], enemies={})
+_st.put({"type": "pad", "i": 0, "btn": 0, "lt": 0, "rtr": 0, "lx": 0, "ly": 0, "rx": 0, "ry": 0})
+_st.put({"type": "pad", "i": 1, "btn": 0, "lt": 0, "rtr": 0, "lx": 0, "ly": 0, "rx": 0, "ry": 0})
+_st.put({"type": "pad", "i": 1, "gone": True})
+check("끊긴 패드(봇 가상 패드)는 지워져 남은 패드가 보임", list(_st.pads) == [0])
+
 print("바닥 (NavMesh)")
 mv = radar_mesh.MeshView([radar_mesh.rect_mesh([(0, 0, 7, 3, 0.0), (7, 0, 10, 3, 0.0), (7, 3, 10, 10, 0.0), (20, 0, 22, 2, 9.0)])])
 faces = mv.near(5.0, 0.0, 1.0)

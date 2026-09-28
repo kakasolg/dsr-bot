@@ -270,6 +270,11 @@
 - 참고: `hotspots.py`가 `data/samples/*.txt`와 원래 로그를 따로 세어 같은 실행이 두 번 잡힘(27b·27e) — 실행 수가 부풀려짐
 - 해결: 미해결 ([cloud])
 
+### P-13 봇 실행 뒤 웹 레이더에 사람 컨트롤러가 안 보임 (2026-09-27, [win], 레이더 고도화)
+- 증상: 봇이 끝난 뒤 [사람] 패드 입력이 웹 레이더 컨트롤러 그림에 안 나옴. 서버 `pads`에 봇 가상 패드 slot 1이 값 0으로 계속 남고, 페이지는 패드가 둘이면 slot 1을 그림 → 사람 slot 0이 가려짐
+- 원인 (확인): `radar_pad.py`는 바뀐 값만 보내고 연결이 끊긴 슬롯은 알리지 않음, 서버는 슬롯을 지우지 않음
+- 해결 ([win] 작은 수정): `radar_pad.py`가 끊긴 슬롯에 `{"type": "pad", "i": n, "gone": true}`를 보내고, `radar_server.State.put`이 그 슬롯을 지움. `tests/radar_replay_test.py`에 확인 추가, `pytest -k radar` 통과. 페이지(`radar.html`)는 그대로
+
 ---
 
 ## 9. 변경 이력
