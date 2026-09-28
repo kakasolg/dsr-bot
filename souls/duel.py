@@ -91,13 +91,32 @@ def _backstab(mv, s, c, cancel) -> str:
             getattr(mv.pad, "release_due", lambda: None)()
             time.sleep(0.01)
     busy0, mv.cam_busy = getattr(mv, "cam_busy", False), True   # lock-on drives the camera — CamFollow hands off
+    def stab() -> str:
+        mv.pad.move(0.0, 0.0)
+        mv.pad.attack()
+        c2 = None
+        for _ in range(max(1, int(BACKSTAB_WATCH_S / max(BACKSTAB_TICK, 1e-3)))):
+            wait(BACKSTAB_TICK)
+            s2 = mv.snap(8.0)
+            c2 = mv.find(s2, ptr) if s2 else None
+            if c2 is None or c2.hp <= 0:
+                return "stabbed"
+        return "hit" if c2.hp < hp0 else "not_behind"
+
+    def at_back(s_, c_) -> bool:
+        return abs(math.degrees(M.rel_angle(c_, s_.player))) >= BACKSTAB_DEG and M.horiz(s_.player, c_) <= BACKSTAB_MAX_R
+
     try:
+        if at_back(s, c):                                  # already at its back (e.g. it staggered while we stood) — R1 now; locking on
+            return stab()                                  # first cost 0.25 s and then 'no_lock' threw the chance away (27m: 145° at 1.4 m)
         if mv.lock_state(ptr) != "target":
             mv.unlock()
             mv.pad.lock_on()
             wait(0.25)
             if mv.lock_state(ptr) != "target":
-                return "no_lock"
+                s = mv.snap(8.0) or s
+                c = mv.find(s, ptr) or c
+                return stab() if at_back(s, c) else "no_lock"
         budget = max(BACKSTAB_S, M.horiz(s.player, c) / 1.5 + 1.0)   # walking in from SNEAK_R takes longer than a circle at contact
         for _ in range(max(1, int(budget / max(BACKSTAB_TICK, 1e-3)))):
             if cancel():
@@ -110,15 +129,7 @@ def _backstab(mv, s, c, cancel) -> str:
                 return "moved"
             x, y, behind = backstab_stick(c, s.player)
             if behind >= BACKSTAB_DEG and M.horiz(s.player, c) <= BACKSTAB_MAX_R:
-                mv.pad.move(0.0, 0.0)
-                mv.pad.attack()
-                for _ in range(max(1, int(BACKSTAB_WATCH_S / max(BACKSTAB_TICK, 1e-3)))):
-                    wait(BACKSTAB_TICK)
-                    s = mv.snap(8.0)
-                    c2 = mv.find(s, ptr) if s else None
-                    if c2 is None or c2.hp <= 0:
-                        return "stabbed"
-                return "hit" if c2.hp < hp0 else "not_behind"
+                return stab()
             mv.pad.move(x, y)
             wait(BACKSTAB_TICK)
         return "not_behind"
@@ -753,6 +764,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
         foe_still = now - still[3] >= BACKSTAB_STILL_S
         back_to_me = c.heading is not None and abs(math.degrees(M.rel_angle(c, p))) >= SNEAK_DEG
         bs_near = h <= BACKSTAB_REACH or (back_to_me and h <= SNEAK_R)
+        foe_still = foe_still or back_to_me                   # showing its back = not walking at us (27m: just out of a stagger, 145° behind)
         backstab_chance = (foe is not None and foe.circle_behind and a == -1 and foe_still and circle_n < CIRCLE_MAX_SWEEPS
                            and bs_near and abs(dy) <= 1.0)
         if not backstab_chance and foe is not None and foe.circle_behind and a == -1 and h <= BACKSTAB_REACH + 0.5:
