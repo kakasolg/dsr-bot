@@ -167,6 +167,7 @@
   - 2026-09-27 [win] (4) [사람]이 버그 화톳불 근처에서 뒤잡기 시범(마지막 한 마리 성공)하는 동안 `observe_record.py` 녹화 → `data/observe/20260927_183723.jsonl` (448 s, 33 MB, w 4479·pad 21767·sys 46, 깨진 줄 0, F9 마커 없음). `radar_server.py --replay`로 열림: 26246 메시지, 재생 중, 플레이어·적 16·바닥 288면·패드 표시 확인. 파일이 커서 커밋 안 함(로컬). 레이더 서버 패드 읽기·observe_record가 같이 읽어도 문제 없음. 남은 것: 비밀 통로 모퉁이 바닥 [사람] 확인
   - 2026-09-27 [win] 재녹화 (뒤잡기 성공이 적어서): `data/observe/20260927_184707.jsonl` (326 s, 19 MB, 성공 1번에 F9 → `mk` 173.3 s). `--replay`로 열림. **F9 마커가 재생 타임라인에 안 나오던 문제** — `radar_record._observe_to_radar`가 `k == "marker"`만 보고 observe_record는 `"mk"`를 씀 → 둘 다 받게 고침([win] 작은 수정), 재생 `markers`에 나옴 확인. 파일은 로컬(커밋 안 함)
   - 2026-09-27 [win] 3차 녹화 `data/observe/20260927_185353.jsonl` (178 s, 14 MB, F9 2번: 37.0 s·142.6 s) — `--replay`로 열림, 타임라인 마커 2개. 로컬
+  - 샘플: F9 마커 ±20 s만 잘라 `data/samples/observe_backstab_20260927_184707_m1.jsonl`(3.4 MB), `…185353_m1.jsonl`(3.0 MB), `…185353_m2.jsonl`(3.2 MB) — 원본 헤더 유지, 각 40 s, `radar_record.load`로 열리고 마커 포함. 뒤잡기 성공 시범 3번 ([cloud] 뒤잡기 학습용)
 
 ## 6. 2D 시뮬레이터
 
