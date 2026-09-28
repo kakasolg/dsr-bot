@@ -86,6 +86,24 @@ def _no_void(pts: list) -> list:
     return out
 
 
+# The corner the user turned at the passage entrance (firelink-merchant-run point 70, on the bridge arch). _no_void drops it — the NavMesh
+# only has floor 16 m below there — and 69 → a0 then runs diagonally into the entrance's side: the bot rubbed the wall 2–4 s on every
+# run (radar records 2026-09-27, 15/15 passes at (−25.1, −33.7, 8.8), worst 4.4 s + two escapes; user: "turns early at the secret passage").
+# Put it back on the way in only — the way back avoided it on purpose (_no_void note).
+ENTRY_CORNER = (-23.97, -33.82, 10.57)
+ENTRY_AFTER = (-23.05, -34.26, 10.42)                      # run point 69
+PASSAGE_A0 = (-25.32, -33.86, 6.68)
+
+
+def _with_entry_corner(pts: list) -> list:
+    out = list(pts)
+    for i in range(len(out) - 1):
+        if math.dist(out[i], ENTRY_AFTER) < 0.3 and math.dist(out[i + 1], PASSAGE_A0) < 0.3:
+            out.insert(i + 1, ENTRY_CORNER)
+            break
+    return out
+
+
 class Missions:
     def __init__(self, fld: Field, nms: dict, log=print):
         self.f, self.nms, self.log = fld, nms, log
@@ -197,7 +215,7 @@ class Missions:
                 if r != "arrived":
                     return f"길까지 {r}"
         if seg == "A":
-            r = self.f.walk(route[k:], na, "통로", tol=0.8)
+            r = self.f.walk(_with_entry_corner(route[k:]), na, "통로", tol=0.8)
             if r != "arrived":
                 return f"통로 {r}"
             self.log(f"   경계 {time.time() - t0:.0f} s")
