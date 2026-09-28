@@ -156,6 +156,7 @@
   - [사람]: "망자는 무조건 타이밍이 나오는 적 — 1·2·3번 무조건 뒤잡기", "뒤잡기 판정 동안은 무적이라 다른 적 공격이 안 됨" → **`BACKSTAB_ONLY`**: 망자(`circle_behind`)에겐 먼저 치기·휘청 반격 안 함, 휘청(3500) 중에도 뒤잡기, 포기 횟수 2 → 99. `tests/duel_shadow_test.py`는 다른 결투 규칙을 보는 테스트라 뒤잡기를 끄고 돌림. pytest 23 통과
   - 27r (`…-28r.txt`, 반사보다 뒤잡기 먼저 — `BACKSTAB_ONLY` 전 코드): lit·주의(최저 45%). **뒤잡기 13번: stabbed 8**, not_behind 3, moved 1, hit 1 — 경사로 망자 1·2·3번 모두 뒤잡기 처치
   - [사람]: "벽·낭떠러지에 붙은 적은 예외" → `_room_behind`: 적 등 뒤 1 m와 양옆 중 한쪽에 NavMesh 바닥(높이차 ≤ 1 m)이 있어야 뒤잡기, 없으면 원래 규칙(먼저 치기·휘청 반격). `tests/backstab_test.py`에 벽 경우 추가
+  - 27s (`…-28s.txt`): **123.9 s `UnboundLocalError: room`로 멈춤** — `room`을 계산하는 줄보다 앞선 "먼저 치기" 조건에서 씀. 테스트는 `duel_shadow_test`가 `BACKSTAB_ONLY`를 꺼서 단락 평가로 못 잡음 → 계산을 앞으로 옮김. 그 전까지 뒤잡기 stabbed 2·hit 1
 
 ## 2. 게임 파일에서 지형·적 정보 추출
 

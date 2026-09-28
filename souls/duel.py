@@ -638,6 +638,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             # if the 3000 series lasts beyond SWING_S it isn't swinging (it lingers 1.5–5.3 s after the attack ends — log analysis).
             # the spear shield soldier (255002) stays in 3001 holding up its shield, so for 15 s we only blocked at 1.4 m and never kicked
             a = -1
+        room = foe is not None and foe.circle_behind and _room_behind(nm, p, c)   # wall / drop at its back → no backstab, normal rules
         if (foe.kind != "shield" and h <= weapon.reach and not (BACKSTAB_ONLY and room)
                 and not (foe.circle_behind and res.dealt > 0 and a == -1 and circle_n < CIRCLE_MAX_SWEEPS) and abs(dy) <= 1.0 and (p.sp or 0) >= weapon.sp_min
                 and (a == -1 or (a in M.ATTACK and age is not None and age < INTERRUPT_S
@@ -659,7 +660,6 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             continue
         # a hollow (circle_behind) swinging at us up close, nobody else swinging = the backstab moment (drill: 4 kills, all mid-swing).
         # The reflex below blocked every such swing first, so the backstab check further down was never reached (27q: 3 hollows)
-        room = foe is not None and foe.circle_behind and _room_behind(nm, p, c)   # wall / drop at its back → no backstab, normal rules
         bs_early = (room and a in M.ATTACK and circle_n < CIRCLE_MAX_SWEEPS
                     and h <= BACKSTAB_REACH and abs(dy) <= 1.0 and not _other_swinging(s, ptr))
         if bs_early:
