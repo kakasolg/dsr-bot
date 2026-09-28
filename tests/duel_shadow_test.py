@@ -14,6 +14,8 @@ if hasattr(sys.stdout, "reconfigure"):
 
 from field_fakes import FakeMv, World
 from souls import duel as D
+D.CIRCLE_MAX_SWEEPS = 0      # these cases check the other duel rules; the backstab (hollows, 2026-09-28 backstab-only) has tests/backstab_test.py
+D.BACKSTAB_ONLY = False
 from souls import foes
 from souls import moves as M
 from souls import weapons

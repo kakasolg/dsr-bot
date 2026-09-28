@@ -50,7 +50,8 @@ LEDGE_DY = 3.0           # don't lure it if it is this much above or below arena
 SWING_S = 1.6            # past this since the attack anim started, not considered swinging
 PULL_R = 8.0             # lure: start backing off if it is within this (even if not moving)
 SEEK_R = 100.0           # search for it within this radius — at 40 m it missed #1 at 42 m from the bonfire and everything was 'lost'
-CIRCLE_MAX_SWEEPS = 2    # give up if not behind after this many (path blocked etc.) — normal attacks instead (prevents infinite loop)
+CIRCLE_MAX_SWEEPS = 99   # tries per foe before normal attacks. user 2026-09-28: "hollows — backstab, no matter what" (was 2)
+BACKSTAB_ONLY = True     # against circle_behind foes (hollows): no hit-first, no stagger punish — only the backstab (user 2026-09-28)
 # backstab — from 3 human demos (backstab_report.py, observe_backstab_*.jsonl, 2026-09-28): lock-on stays ON while circling (aim ≤ 6°),
 # circling at body contact 0.85–0.96 m with the stick full (≥ 1.0, 2.5–3.9 m/s), behind within 0.6–1.1 s; R1 at 130–180° behind with the
 # foe idle (anim −1) → the game snaps us behind (0.59 m) and the kill lands 0.8–0.9 s later. R1 while it's staggered/attacking = a normal hit.
@@ -92,7 +93,8 @@ def _backstab(mv, s, c, cancel) -> str:
         while time.time() < t1:
             getattr(mv.pad, "release_due", lambda: None)()
             time.sleep(0.01)
-    busy0, mv.cam_busy = getattr(mv, "cam_busy", False), True   # lock-on drives the camera — CamFollow hands off
+    busy0 = vars(mv).get("cam_busy", False)           # vars(): test fakes raise on unknown attributes
+    mv.cam_busy = True                                     # lock-on drives the camera — CamFollow hands off
     def stab() -> str:
         # let go of everything first — guard (LB) up or the stick held turns R1 into a normal attack. Human demos press R1 alone
         # (buttons 0x200, no LB); the bot held LB through the whole duel (0x100 → 0x180 at R1). user 2026-09-28: "behind it, all input
@@ -618,7 +620,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             # if the 3000 series lasts beyond SWING_S it isn't swinging (it lingers 1.5–5.3 s after the attack ends — log analysis).
             # the spear shield soldier (255002) stays in 3001 holding up its shield, so for 15 s we only blocked at 1.4 m and never kicked
             a = -1
-        if (foe.kind != "shield" and h <= weapon.reach
+        if (foe.kind != "shield" and h <= weapon.reach and not (BACKSTAB_ONLY and foe.circle_behind)
                 and not (foe.circle_behind and res.dealt > 0 and a == -1 and circle_n < CIRCLE_MAX_SWEEPS) and abs(dy) <= 1.0 and (p.sp or 0) >= weapon.sp_min
                 and (a == -1 or (a in M.ATTACK and age is not None and age < INTERRUPT_S
                                  and (weapon.startup or 0.0) <= INTERRUPT_STARTUP_MAX))
@@ -711,7 +713,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
                 note("백스텝", s, c)
                 continue
 
-        if (a in M.STAGGER or a == M.GUARD_BROKEN) and h <= weapon.reach + 0.3 and abs(dy) <= 1.0 and (p.sp or 0) >= weapon.sp_min \
+        if (a in M.STAGGER or a == M.GUARD_BROKEN) and not (BACKSTAB_ONLY and foe.circle_behind) and h <= weapon.reach + 0.3 and abs(dy) <= 1.0 and (p.sp or 0) >= weapon.sp_min \
                 and not _other_swinging(s, ptr):
             # not while another foe is swinging next to us — punishing the staggered shield soldier took -115 from a hollow's 3003
             # 1.2 m away (dealt 4, 2026-09-27 27c P-8); the reflex blocks that swing instead and the stagger is taken next time
@@ -791,7 +793,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
         back_to_me = c.heading is not None and abs(math.degrees(M.rel_angle(c, p))) >= SNEAK_DEG
         bs_near = h <= BACKSTAB_REACH or (back_to_me and h <= SNEAK_R)
         foe_still = True                                      # user 2026-09-28: hollows never stand still for a backstab — not a condition
-        backstab_chance = (foe is not None and foe.circle_behind and (a == -1 or a in M.ATTACK) and foe_still and circle_n < CIRCLE_MAX_SWEEPS
+        backstab_chance = (foe is not None and foe.circle_behind and (a == -1 or a in M.ATTACK or a in M.STAGGER) and foe_still and circle_n < CIRCLE_MAX_SWEEPS
                            and bs_near and abs(dy) <= 1.0)
         if backstab_chance and not (not _other_swinging(s, ptr) and (nm is None or nav.ground_ahead(nm, p, c.x - p.x, c.z - p.z, reach=1.0))):
             note("뒤잡기안함:" + ("옆공격" if _other_swinging(s, ptr) else "바닥"), s, c)   # passes the chance test but not the trigger below
@@ -883,7 +885,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             a = -1                                         # 3000 series lingering in guard stance — treat as standing (kick)
         behind_deg = abs(math.degrees(M.rel_angle(c, s.player))) if c.heading is not None else 0.0
         looks_at_me = behind_deg < 60
-        if (foe.circle_behind and (a == -1 or a in M.ATTACK) and foe_still and circle_n < CIRCLE_MAX_SWEEPS and bs_near and abs(dy) <= 1.0
+        if (foe.circle_behind and (a == -1 or a in M.ATTACK or a in M.STAGGER) and foe_still and circle_n < CIRCLE_MAX_SWEEPS and bs_near and abs(dy) <= 1.0
                 and not _other_swinging(s, ptr)
                 and (nm is None or nav.ground_ahead(nm, p, c.x - p.x, c.z - p.z, reach=1.0))):
             # idle → circle behind with lock-on and backstab (human demos, see BACKSTAB_*). Past CIRCLE_MAX_SWEEPS tries, normal attacks
