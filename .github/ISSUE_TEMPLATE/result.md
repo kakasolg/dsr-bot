@@ -26,4 +26,4 @@ python run.py burg-bonfire --radar
 
 **전과 비교 / 이상한 점**:
 
-**다음에 할 것 / 누구에게**: <!-- [cloud] … / [사람] … -->
+**다음에 할 것 / 누구에게**: <!-- [cloud] … / [MoKa] … -->
