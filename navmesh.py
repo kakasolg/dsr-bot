@@ -280,6 +280,25 @@ class Navmesh:
         f = self.floor_at(x, z, y)
         return f is not None and abs(f[0] - y) <= dy and (int(f[1]) & (BLOCKED | 8 | 2048)) == 0
 
+    def border_dist(self, x: float, y: float, z: float, dy: float = 2.0) -> float:
+        """Horizontal distance to the nearest NavMesh border edge (a face edge with no neighbor = wall or drop) on this level
+        (edge within dy in height). inf if none. props.steer_around keeps its detour points off walls with it."""
+        if getattr(self, "_bedges", None) is None:
+            ti, ei = np.nonzero(self.adj < 0)
+            pairs = np.array([(0, 1), (1, 2), (0, 2)])[ei]
+            vi = self.t[ti]
+            self._bedges = (self.v[vi[np.arange(len(ti)), pairs[:, 0]]], self.v[vi[np.arange(len(ti)), pairs[:, 1]]])
+        p0, p1 = self._bedges
+        if len(p0) == 0:
+            return float("inf")
+        seg = p1 - p0
+        L2 = seg[:, 0] ** 2 + seg[:, 2] ** 2
+        t = np.clip(((x - p0[:, 0]) * seg[:, 0] + (z - p0[:, 2]) * seg[:, 2]) / np.where(L2 < 1e-9, 1.0, L2), 0.0, 1.0)
+        near = p0 + seg * t[:, None]
+        d = np.hypot(near[:, 0] - x, near[:, 2] - z)
+        d[np.abs(near[:, 1] - y) > dy] = np.inf
+        return float(d.min())
+
     def nearest_walkable(self, x: float, y: float, z: float, r: float = 8.0, dy: float = 2.5):
         """Centroid of the nearest walkable triangle within height difference dy and radius r → (x, y, z) or None.
         Where to return when standing off the mesh. Why height difference: a triangle on a ledge 2.3 m above looked closer in 3D."""
@@ -358,6 +377,12 @@ class Navmesh:
         seq.reverse()
         pts = [tuple(float(c) for c in self.centroid[i]) for i in seq]
         out = self.simplify(self.keep_inside([start] + pts + [goal]))
+        from souls import props as props_
+        try:
+            out = props_.steer_around(out, self)              # the NavMesh doesn't know crates — bend around learned props (P-12 e)
+        except Exception as e:                                # never lose a path over it — keep the unbent one
+            if props_.LOG:
+                props_.LOG(f"      물건 비켜 가기 실패 ({e!r}) — 원래 경로로")
         if self.ledge_step(out) is not None:                  # height step that can't be climbed on foot — treat as no path (so upper layers find another move)
             return []
         return out

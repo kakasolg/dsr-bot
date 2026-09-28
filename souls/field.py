@@ -169,6 +169,14 @@ class LureBlock:
 class Field:
     def __init__(self, mv: M.Moves, weapon, escape, bonfires: list, log=print, events=None, style="guard"):
         self.mv, self.w, self.esc, self.log = mv, weapon, escape, log
+        props_.LOG = log                                   # steer_around (called inside navmesh.find_path) logs its detours here
+        try:
+            props_.STEER = props_.learned()                # props earlier runs had to smash twice or more — paths bend around them
+        except Exception as e:
+            props_.STEER = set()
+            log(f"   물건 비켜 가기: 기록 못 읽음 ({e})")
+        if props_.STEER:
+            log(f"   물건 비켜 가기 (지난 실행에서 {props_.LEARN_MIN_RUNS}번 이상 부숨): {' '.join(sorted(props_.STEER))}")
         self._detour = False                               # keeps walk's "detour" from recursing
         self.style = style_.of(style)                      # souls/style.py — every layer only reads this object
         self.bonfires = [tuple(b) for b in bonfires]      # bloodstain pickup (A) forbidden zones
