@@ -72,7 +72,7 @@ def _observe_to_radar(rec: dict, t0_ms: float) -> dict | None:
     if k == "pad":                                          # observe's "rt" is the right trigger — ours is "rtr" ("rt" = time)
         return {"rt": rt, "type": "pad", "i": rec.get("i"), "btn": rec.get("btn"), "lt": rec.get("lt"), "rtr": rec.get("rt"),
                 "lx": rec.get("lx"), "ly": rec.get("ly"), "rx": rec.get("rx"), "ry": rec.get("ry")}
-    if k == "marker":
+    if k in ("mk", "marker"):                              # observe_record.py writes "mk" (F9)
         return {"rt": rt, "type": "say", "t": rt, "line": f"F9 marker #{rec.get('n', '')}".strip()}
     return None
 
