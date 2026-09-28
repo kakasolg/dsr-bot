@@ -65,7 +65,7 @@ BACKSTAB_TICK = 0.05
 SNEAK_R = 6.0            # a still hollow showing its back (≥ SNEAK_DEG) within this: walk straight in to its back, no circling
 SNEAK_DEG = 110          # (radar 27k: circling never got past 6° — the hollow turns with us — but twice one stood 6 m off facing away 160–175°)
 BACKSTAB_STILL_S = 0.3   # foe must have stood (moved < BACKSTAB_STILL_M) this long — a hollow walking in is also anim −1 and swings on arrival
-BACKSTAB_STILL_M = 0.15  # (27h: 8/8 tries on walking-in hollows ended 'moved' within 0.3–1 s)
+BACKSTAB_STILL_M = 0.3   # distance to us dropped less than this (walking in ≈ 0.45 m per 0.3 s; 27h: 8/8 tries on walking-in hollows ended 'moved')
 
 
 def backstab_stick(c, p) -> tuple[float, float, float]:
@@ -759,8 +759,10 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             continue
         # an idle hollow within backstab range is a backstab chance, not a reason to wait (user 2026-09-28: "never even tries" —
         # 27g: idle foe at 1.7–2.2 m, the bot just blocked and waited, so the backstab check below was never reached)
-        if still[0] != c.ptr or math.hypot(c.x - still[1], c.z - still[2]) > BACKSTAB_STILL_M:
-            still[:] = [c.ptr, c.x, c.z, now]
+        # "still" = not closing in: the distance hasn't dropped by BACKSTAB_STILL_M since the anchor. Position-based, the anchor reset
+        # every tick (27o: never past 0.2 s) though recordings show idle hollows not moving — the positions the duel reads jitter
+        if still[0] != c.ptr or a != -1 or still[1] - h > BACKSTAB_STILL_M:
+            still[:] = [c.ptr, h, 0.0, now]
         foe_still = now - still[3] >= BACKSTAB_STILL_S
         back_to_me = c.heading is not None and abs(math.degrees(M.rel_angle(c, p))) >= SNEAK_DEG
         bs_near = h <= BACKSTAB_REACH or (back_to_me and h <= SNEAK_R)
