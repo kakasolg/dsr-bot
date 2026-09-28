@@ -158,3 +158,20 @@ def test_room_behind() -> None:
 
 
 test_room_behind()
+
+
+def test_footing() -> None:
+    """After a backstab: floor all round us, else step back (27t: fell 25 m off the ramp edge right after one)."""
+    import types
+    class NM:
+        def __init__(self, ok): self.ok = ok
+        def floor_at(self, x, z, y): return (y, 0) if self.ok(x, z) else None
+    p = types.SimpleNamespace(x=0.0, y=0.0, z=0.0, gx=0.0, gy=0.0, gz=0.0)
+    assert D._footing_ok(NM(lambda x, z: True), p)
+    assert not D._footing_ok(NM(lambda x, z: x < 0.5), p)                # drop 1 m to one side
+    c = types.SimpleNamespace(x=0.0, y=0.0, z=0.0, heading=0.0)          # back toward +z
+    assert not D._room_behind(NM(lambda x, z: z < 1.2), p, c)            # floor at 1 m behind, not at 1.5·2 m → no backstab now
+    print("ok  footing after a backstab; floor checked 0.5–2 m behind the foe")
+
+
+test_footing()

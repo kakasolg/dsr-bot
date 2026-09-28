@@ -51,6 +51,8 @@ SWING_S = 1.6            # past this since the attack anim started, not consider
 PULL_R = 8.0             # lure: start backing off if it is within this (even if not moving)
 SEEK_R = 100.0           # search for it within this radius — at 40 m it missed #1 at 42 m from the bonfire and everything was 'lost'
 CIRCLE_MAX_SWEEPS = 99   # tries per foe before normal attacks. user 2026-09-28: "hollows — backstab, no matter what" (was 2)
+BACK_CHECK_M = (0.5, 1.0, 1.5, 2.0)   # floor checked this far behind the foe (_room_behind)
+FOOT_R = 1.0            # after a backstab: floor this far round us, or step back to where we started it
 BACKSTAB_ONLY = True     # against circle_behind foes (hollows): no hit-first, no stagger punish — only the backstab (user 2026-09-28)
 # backstab — from 3 human demos (backstab_report.py, observe_backstab_*.jsonl, 2026-09-28): lock-on stays ON while circling (aim ≤ 6°),
 # circling at body contact 0.85–0.96 m with the stick full (≥ 1.0, 2.5–3.9 m/s), behind within 0.6–1.1 s; R1 at 130–180° behind with the
@@ -163,12 +165,55 @@ def _room_behind(nm, p, c, r: float = 1.0) -> bool:
     ox, oy, oz = p.gx - p.x, p.gy - p.y, p.gz - p.z         # foes only have tile-local coords — same tile offset as the player
     fwd = c.heading + math.pi                              # world yaw = heading + π (moves.rel_angle)
 
-    def floor(turn: float) -> bool:
+    def floor(turn: float, dist: float = r) -> bool:
         a = fwd + turn
-        hit = nm.floor_at(c.x + ox + math.sin(a) * r, c.z + oz + math.cos(a) * r, c.y + oy)
+        hit = nm.floor_at(c.x + ox + math.sin(a) * dist, c.z + oz + math.cos(a) * dist, c.y + oy)
         return hit is not None and abs(hit[0] - (c.y + oy)) <= 1.0
 
-    return floor(math.pi) and (floor(math.pi / 2) or floor(-math.pi / 2))
+    # the backstab pulls us in right behind it (≈0.6 m) and we circle out to ~1.3 m — floor all along 0.5–2 m behind, not just at 1 m
+    # (27t: backstabbed a hollow near the ramp edge, then fell 25 m on the first step)
+    behind_ok = all(floor(math.pi, d) for d in BACK_CHECK_M)
+    return behind_ok and (floor(math.pi / 2) or floor(-math.pi / 2))
+
+
+
+def _footing_ok(nm, p, r: float = FOOT_R) -> bool:
+    """Floor under us and FOOT_R m round us at our level (NavMesh). True without NavMesh / global coords."""
+    if nm is None or getattr(p, "gx", None) is None:
+        return True
+    for k in range(8):
+        a = k * math.pi / 4
+        for d in (0.0, r) if k == 0 else (r,):
+            hit = nm.floor_at(p.gx + math.sin(a) * d, p.gz + math.cos(a) * d, p.gy)
+            if hit is None or abs(hit[0] - p.gy) > 1.0:
+                return False
+    return True
+
+
+def _back_to_safe(mv, nm, start, log, arena=None, secs: float = 2.5) -> None:
+    """The backstab pulled us somewhere with no floor close by — walk back toward where it started (that was on floor) before
+    anything else moves the stick (27t: the next lure step walked off the ramp edge, 25 m fall)."""
+    s = mv.snap(8.0)
+    if s is None or _footing_ok(nm, s.player):
+        return
+    p = s.player
+    # the fight spot (arena — the flat ground where we drink estus) when it's close and on our level (user 2026-09-28), else where the backstab started
+    if arena is not None and math.hypot(arena[0] - p.x, arena[2] - p.z) < 10.0 and abs(arena[1] - p.y) < 1.5:
+        start, where = tuple(arena), "싸움 자리"
+    else:
+        where = "시작 자리"
+    log(f"      뒤잡기 뒤 발밑 가장자리 — {where} ({start[0]:.1f},{start[2]:.1f})로 물러남")
+    t0 = time.time()
+    while time.time() - t0 < secs:
+        s = mv.snap(8.0)
+        if s is None:
+            break
+        if math.hypot(s.player.x - start[0], s.player.z - start[2]) < 0.4 or _footing_ok(nm, s.player):
+            break
+        mv.pad.move(*mv.stick_to(s, start[0], start[2], 0.5))    # walk, not run
+        getattr(mv.pad, "release_due", lambda: None)()
+        time.sleep(0.03)
+    mv.pad.move(0.0, 0.0)
 
 
 def _pair_close(s, p, ptr, h: float) -> list:
@@ -664,7 +709,9 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
                     and h <= BACKSTAB_REACH and abs(dy) <= 1.0 and not _other_swinging(s, ptr))
         if bs_early:
             circle_n += 1
+            start = (s.player.x, s.player.y, s.player.z)
             r = _backstab(mv, s, c, cancel)
+            _back_to_safe(mv, nm, start, log, arena)
             note(f"뒤잡기:{r}", s, c)
             log(f"      뒤잡기(휘두를 때) → {r}")
             if r == "stabbed" and orig_ptr is None:
@@ -909,7 +956,9 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
                 and (nm is None or nav.ground_ahead(nm, p, c.x - p.x, c.z - p.z, reach=1.0))):
             # idle → circle behind with lock-on and backstab (human demos, see BACKSTAB_*). Past CIRCLE_MAX_SWEEPS tries, normal attacks
             circle_n += 1
+            start = (s.player.x, s.player.y, s.player.z)
             r = _backstab(mv, s, c, cancel)
+            _back_to_safe(mv, nm, start, log, arena)
             note(f"뒤잡기:{r}", s, c)
             log(f"      뒤잡기 → {r}")
             if r == "stabbed" and orig_ptr is None:
