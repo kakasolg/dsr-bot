@@ -128,7 +128,8 @@ def compare(runs: dict[str, list[dict]], last: int = 1, radius: float = 3.0) -> 
     def row(p, label):
         x, y, z = p["pos"]
         mine = [e for e in p["events"] if e["run"] in now]
-        what = ", ".join(sorted({f"{e['kind']}:{e['why']} {e['tag']}" for e in mine or p["events"]}))
+        items = sorted({f"{e['kind']}:{e['why']} {re.sub(r'( 돌아서)+', ' 돌아서', e['tag'])}" for e in mine or p["events"]})
+        what = ", ".join(items[:4]) + (f" (+{len(items) - 4} more)" if len(items) > 4 else "")
         b = len([r for r in p["runs"] if r in before])
         return f"  {label:5} ({x:.1f}, {y:.1f}, {z:.1f})  earlier {b}/{len(before)} runs  {what}"
     lines += [row(p, "NEW") for p in new] + [row(p, "AGAIN") for p in again] + [row(p, "GONE") for p in gone[:10]]
