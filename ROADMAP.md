@@ -158,6 +158,7 @@
   - [사람]: "벽·낭떠러지에 붙은 적은 예외" → `_room_behind`: 적 등 뒤 1 m와 양옆 중 한쪽에 NavMesh 바닥(높이차 ≤ 1 m)이 있어야 뒤잡기, 없으면 원래 규칙(먼저 치기·휘청 반격). `tests/backstab_test.py`에 벽 경우 추가
   - 27s (`…-28s.txt`): **123.9 s `UnboundLocalError: room`로 멈춤** — `room`을 계산하는 줄보다 앞선 "먼저 치기" 조건에서 씀. 테스트는 `duel_shadow_test`가 `BACKSTAB_ONLY`를 꺼서 단락 평가로 못 잡음 → 계산을 앞으로 옮김. 그 전까지 뒤잡기 stabbed 2·hit 1
   - 27t (`…-28t.txt`): 뒤잡기 stabbed 2(경사로 #1·다가온 망자), **48.5 s 경사로에서 낙사** — 두 번째 뒤잡기 뒤 (−34.9, −50.7, 27.1)에 4 s 서 있다가 #2 끌어오기로 움직이는 첫 순간 25 m 추락(−693). 뒤잡기가 적 등 뒤로 끌어당겨 가장자리에 세운 것으로 추정. [사람] 결정 1+2: (1) `_room_behind`가 적 등 뒤 0.5·1·1.5·2 m 모두 바닥 확인(`BACK_CHECK_M`) (2) 뒤잡기 직후 `_footing_ok`(발밑·1 m 둘레 8방향)가 아니면 `_back_to_safe`로 **10 m 안 같은 층의 싸움 자리(arena, 에스트 마시는 평지 — [사람] 제안)** 또는 뒤잡기 시작 자리로 먼저 걸어감. 쫓아오는 적을 표시된 안전 구역에서 받는 건 이미 있음(`ZONE_REACH` 15 m). `tests/backstab_test.py`에 추가, pytest 23 통과
+  - 27u (`…-28u.txt`): 뒤잡기 **stabbed 7**, not_behind 4, hit 1, no_lock 1. `뒤잡기 뒤 발밑 가장자리 — …로 물러남` 7번(낙사 없음), `뒤잡기안함:높이` 4. **310.5 s `ModuleNotFoundError: vision_probe`로 멈춤** — 성벽 마을 경로 점 2번 못 가면 `field.fog_through`가 `legacy.ladder_test`를 불러오는데 [cloud] 정리(0474f5c)로 `vision_probe`가 `experiments/`로 옮겨짐 → `legacy/ladder_test.py`·`hunt.py`·`stall_watch.py`에 `boss/boss.py`와 같은 `experiments/` 경로 추가 ([win] 작은 수정). P-15
 
 ## 2. 게임 파일에서 지형·적 정보 추출
 
@@ -322,6 +323,11 @@
 - 증상: 27t 43.7 s 망자 뒤잡기 처치 → 봇 (−34.9, −50.7, 27.1)에 4 s 정지 → 47.3 s 다음 행동(#2 끌어오기) 시작과 동시에 1.4 s 동안 25 m 낙하, 사망
 - 원인 (추정): 뒤잡기는 게임이 캐릭터를 적 등 뒤로 끌어당김 → 적이 가장자리 근처면 봇이 가장자리에 서게 됨. `_room_behind`는 등 뒤 1 m 한 점만 봤음
 - 해결 (2026-09-28 [win], [사람] 결정): 등 뒤 0.5~2 m 여러 점 확인 + 뒤잡기 직후 발밑 확인·싸움 자리로 물러나기. 실제 확인 전
+
+### P-15 옮긴 실험 모듈을 봇이 실행 중에 불러 멈춤 (2026-09-28, [win])
+- 증상: 27u 310.5 s `ModuleNotFoundError: No module named 'vision_probe'` — `souls/field.py` `fog_through` → `legacy/ladder_test.py` → `import vision_probe`
+- 원인 (확인): 0474f5c에서 `vision_probe.py`를 `experiments/`로 옮겼는데 `legacy/`의 세 파일은 경로를 안 고침(`boss/boss.py`만 고침). 오프라인 테스트는 이 경로(안개벽 통과)를 안 거침
+- 해결 ([win]): 세 파일에 `experiments/`를 `sys.path`에 넣는 줄 추가, `import legacy.ladder_test` 확인. 봇 코어(`souls/`, 루트)에서 `experiments/`·`legacy/` 모듈을 부르는 곳은 `field.fog_through`(legacy.ladder_test)와 `farm.py`(legacy.reflex)뿐. [cloud]: 이 import 경로를 테스트에 넣을 것
 
 ---
 

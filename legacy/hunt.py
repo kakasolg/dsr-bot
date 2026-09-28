@@ -31,6 +31,7 @@ import navmesh
 import patrol
 import quitout
 import tactic_llm
+sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent.parent / "experiments"))   # vision_probe moved there (0474f5c)
 import vision_probe as vp
 
 ROOT = Path(__file__).resolve().parent
