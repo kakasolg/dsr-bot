@@ -263,6 +263,25 @@ def follow(tm, pad, path: list, terrain=None, mode_fn=None, on_tick=None, defaul
         mover.stop()
 
 
+
+TURN_SLOW_DEG = (45.0, 90.0)   # facing this far off the way to go → stick TURN_SLOW_K (turn first, then run)
+TURN_SLOW_K = (0.5, 0.3)       # user 2026-09-28: "it turns too fast and the character slides" — a full stick swung round at a corner
+                               # carried it sideways into the passage-entrance wall (radar: 15/15 runs, 1.8–4.4 s rubbing)
+
+
+def turn_scale(heading, wx: float, wz: float) -> float:
+    """Stick magnitude for a turn from the facing (player heading) to world direction (wx, wz). 1.0 when heading is unknown."""
+    if heading is None or (wx == 0.0 and wz == 0.0):
+        return 1.0
+    off = abs((math.atan2(wx, wz) - (heading + math.pi) + math.pi) % (2 * math.pi) - math.pi)   # world yaw = heading + π
+    off = math.degrees(off)
+    if off > TURN_SLOW_DEG[1]:
+        return TURN_SLOW_K[1]
+    if off > TURN_SLOW_DEG[0]:
+        return TURN_SLOW_K[0]
+    return 1.0
+
+
 def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float], tolerance: float = 1.5,
          timeout: float = 60.0, on_tick=None, log=print, sprint_always: bool = False, mode_fn=None,
          mover: "Mover | None" = None, engage_fn=None, abort_on_stuck: bool = False,
@@ -488,7 +507,10 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
                     pad.move(0.0, 0.0)          # no floor in any direction — stand and leave it to stuck handling
                 else:
                     sx, sy = control.world_to_stick(h[0], h[1], s.cam_yaw, YAW_OFFSET, FLIP_X)
-                    pad.move(sx, sy)
+                    k = turn_scale(p.heading, h[0], h[1])
+                    pad.move(sx * k, sy * k)
+                    if k < 1.0 and mode == "sprint":
+                        mode = "walk"           # don't sprint through a sharp turn
                 mover.set(mode)
             pad.release_due()        # release scheduled buttons (tap doesn't sleep, so handle it here)
             time.sleep(0.02)         # snapshot dropped to 4 ms, so the tick can run tighter
