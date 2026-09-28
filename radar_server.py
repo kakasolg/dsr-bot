@@ -24,6 +24,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 import radar
+import radar_record
 import translate
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -113,13 +114,24 @@ class State:
         self.props = props if props is not None else load_props()
         self.items = items if items is not None else load_items()
         self.enemies = enemies if enemies is not None else load_enemies()
-        self.picked: set[int] = set()        # pickup flags radar.py found set
         self.lock = threading.Lock()
-        self.snap: dict | None = None
-        self.says: collections.deque = collections.deque(maxlen=SAY_KEEP)
-        self.t_recv = 0.0
+        self.recorder = None                  # radar_record.Recorder — every message received is also saved
+        self.replay = None                    # radar_record.Replay — when playing a recording back
+        self.mesh = None                      # radar_mesh.MeshView — NavMesh faces near the player (Windows, game files)
+        self.reset()
+
+    def reset(self) -> None:
+        """Forget everything received (a replay seeks by resetting and feeding again)."""
+        with self.lock:
+            self.picked: set[int] = set()     # pickup flags radar.py found set
+            self.snap: dict | None = None
+            self.says: collections.deque = collections.deque(maxlen=SAY_KEEP)
+            self.pads: dict[int, dict] = {}   # XInput slot → last pad state (radar_pad.py, or a replayed recording)
+            self.t_recv = 0.0
 
     def put(self, msg: dict) -> None:
+        if self.recorder is not None:
+            self.recorder.write(msg)
         with self.lock:
             self.t_recv = time.time()
             if msg.get("type") == "snap":
@@ -128,18 +140,22 @@ class State:
                 self.picked.update(int(f) for f in msg.get("flags") or [])
             elif msg.get("type") == "unpicked":            # flag off again (older save loaded) — show the item again
                 self.picked.difference_update(int(f) for f in msg.get("flags") or [])
+            elif msg.get("type") == "pad":
+                self.pads[int(msg.get("i") or 0)] = {k: msg.get(k) for k in ("btn", "lt", "rtr", "lx", "ly", "rx", "ry")}
             elif msg.get("type") == "say":
                 self.says.append({"t": msg.get("t"), "line": msg.get("line", "")})
 
     def get(self) -> dict:
         with self.lock:
-            snap, says, picked = self.snap, list(self.says), set(self.picked)
+            snap, says, picked, pads = self.snap, list(self.says), set(self.picked), dict(self.pads)
             age = round(time.time() - self.t_recv, 2) if self.t_recv else None
         if self.english:
             says = [{**x, "line": translate.line(x.get("line"))} for x in says]
             if snap:
                 snap = {**snap, **{k: translate.line(snap[k]) for k in ("path_tag", "spot_tag") if snap.get(k)}}
-        out = {"snap": snap, "says": says, "age": age}
+        out = {"snap": snap, "says": says, "age": age, "pads": {str(k): v for k, v in pads.items()}}
+        if self.replay is not None:
+            out["replay"] = self.replay.status()
         p = (snap or {}).get("player") or {}
         if p.get("x") is not None:
             out["props"] = [o for o in self.props if abs(o[0] - p["x"]) < PROP_R and abs(o[2] - p["z"]) < PROP_R
@@ -148,6 +164,8 @@ class State:
             # items: [x, y, z, kind, label] not yet picked up (any of its flags set = taken)
             out["items"] = [o[:5] for o in self.items if math.hypot(o[0] - p["x"], o[2] - p["z"]) < PROP_R
                             and abs(o[1] - p["y"]) < ITEM_DY and not (set(o[5]) & picked)]
+            if self.mesh is not None:
+                out["mesh"] = self.mesh.near(p["x"], p["y"], p["z"])
         return out
 
 
@@ -172,7 +190,13 @@ def make_handler(state: State):
             self.wfile.write(body)
 
         def do_GET(self):
-            if self.path.split("?")[0] == "/state":
+            if self.path.split("?")[0] == "/replay" and state.replay is not None:
+                from urllib.parse import parse_qs, urlparse
+                q = parse_qs(urlparse(self.path).query)
+                v = q.get("v", [None])[0]
+                state.replay.command(q.get("cmd", [""])[0], float(v) if v not in (None, "") else None)
+                self._send(200, json.dumps(state.replay.status()).encode("utf-8"), "application/json")
+            elif self.path.split("?")[0] == "/state":
                 self._send(200, json.dumps(state.get(), ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8")
             elif self.path.split("?")[0] in ("/", "/radar.html"):
                 self._send(200, PAGE.read_bytes(), "text/html; charset=utf-8")
@@ -239,6 +263,11 @@ def main() -> None:
     ap.add_argument("--udp", type=int, default=radar.PORT)
     ap.add_argument("--http", type=int, default=HTTP_PORT)
     ap.add_argument("--korean", action="store_true", help="show the bot's log lines untranslated (default: English)")
+    ap.add_argument("--replay", metavar="FILE", help="play back a radar recording (data/radar/*.jsonl) or an observe_record.py file")
+    ap.add_argument("--no-record", action="store_true", help="don't save this session to data/radar/")
+    ap.add_argument("--no-pad", action="store_true", help="don't read the controller (XInput)")
+    ap.add_argument("--maps", default="m10_02_00_00,m10_01_00_00", help="NavMesh maps to draw (read from the game install)")
+    ap.add_argument("--no-mesh", action="store_true", help="don't draw the NavMesh")
     a = ap.parse_args()
     demo_props = [[6.0, 0.0, 1.0, False, "o1130_d2"], [7.0, 0.0, -1.5, False, "o1132_d3"], [-3.0, 0.0, 6.0, True, "o1230_d4"],
                   [2.0, 0.0, -7.0, False, "o1154_d5"]]
@@ -249,7 +278,27 @@ def main() -> None:
                   enemies=demo_enemies if a.demo else None)
     if not a.demo:
         print(f"breakable props: {len(state.props)}, items: {len(state.items)} (data/gamefiles)")
-    threading.Thread(target=udp_loop, args=(state, a.udp), daemon=True).start()
+    if not a.no_mesh:
+        import radar_mesh
+        if a.demo:      # an L-shaped floor around the demo world, a step up in one corner
+            state.mesh = radar_mesh.MeshView([radar_mesh.rect_mesh([(-14, -4, 6, 4, 0.0), (6, -4, 14, 4, 0.0), (6, 4, 14, 16, 0.0),
+                                                                    (6, -16, 14, -4, 0.0), (-14, -16, -6, -4, 1.5)])])
+        else:
+            state.mesh = radar_mesh.load(a.maps.split(","))
+            print(f"navmesh: {'drawn (' + a.maps + ')' if state.mesh else 'not found (game install / soulstruct) — radar without floor'}")
+    if a.replay:
+        msgs = radar_record.load(a.replay)
+        state.replay = radar_record.Replay(state, msgs, Path(a.replay).name).start()
+        print(f"replay: {a.replay} — {len(msgs)} messages, {state.replay.status()['len']:.0f} s")
+    else:
+        threading.Thread(target=udp_loop, args=(state, a.udp), daemon=True).start()
+        if not a.no_record and not a.demo:
+            state.recorder = radar_record.Recorder()
+            print(f"recording: {state.recorder.path}")
+        if not a.no_pad:
+            import radar_pad
+            if radar_pad.start(state.put, demo=a.demo):
+                print("controller: reading XInput" if not a.demo else "controller: demo input")
     if a.demo:
         threading.Thread(target=demo_loop, args=(a.udp,), daemon=True).start()
     srv = ThreadingHTTPServer(("127.0.0.1", a.http), make_handler(state))

@@ -45,7 +45,8 @@ run.py                            entry point
 observe_record.py                 read-only observation recorder (human demos and bot runs in the same format)
 risk_report.py, blackbox.py       run evaluation — big hits, lowest HP, getting stuck
 msb_extract.py                    game files → data/gamefiles/ (breakable props, enemies + AI params, items)
-radar.py, radar_server.py         live radar page (run.py --radar); overlay.py draws it over the game; translate.py = English
+radar.py, radar_server.py         live radar page (run.py --radar): floor (NavMesh), controller, record + replay (radar_record/_pad/_mesh.py);
+                                  overlay.py draws it over the game; translate.py = English; hotspots.py = repeated walking problems
 tests/                            offline tests (python -m pytest)
 experiments/                      older experiments and probes the bot doesn't use (run from the repo root: python experiments/x.py)
 boss/, legacy/                    boss experiments, old code
@@ -83,6 +84,7 @@ BOT_GAME=dsr .venv/Scripts/python run.py burg-bonfire --no-quit     # no quit-ou
 .venv/Scripts/python observe_record.py --minutes 15                 # read-only recording (F9 = marker)
 .venv/Scripts/python radar_server.py                                # radar at http://127.0.0.1:47801 (add --radar to run.py; --demo = fake world)
 .venv/Scripts/python overlay.py                                     # same info drawn over the game (windowed/borderless only; --demo)
+.venv/Scripts/python radar_server.py --replay data/radar/<file>.jsonl  # replay a recorded session (or an observe_record.py demo) with a timeline
 ```
 
 Offline tests (fake world, no game needed): `python -m pytest` runs everything in `tests/` (`-k radar` for one), or run a
