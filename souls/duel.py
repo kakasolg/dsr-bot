@@ -79,12 +79,18 @@ def _backstab(mv, s, c, cancel) -> str:
     """Lock on, strafe round at body contact, R1 once behind. → 'stabbed' | 'hit' (R1 landed but no kill) | 'moved' (it stopped
     being idle) | 'not_behind' (time out) | 'no_lock' | 'lost'. Always leaves the stick centered and lock-on off."""
     ptr, hp0 = c.ptr, c.hp
+
+    def wait(t: float) -> None:                            # sleep but let Pad release the tapped buttons (R3/R1 are only scheduled to lift —
+        t1 = time.time() + t                               # 27j: R3 left held after a no_lock try broke every later lock-on, 10 knife lures 'no_lock')
+        while time.time() < t1:
+            getattr(mv.pad, "release_due", lambda: None)()
+            time.sleep(0.01)
     busy0, mv.cam_busy = getattr(mv, "cam_busy", False), True   # lock-on drives the camera — CamFollow hands off
     try:
         if mv.lock_state(ptr) != "target":
             mv.unlock()
             mv.pad.lock_on()
-            time.sleep(0.15)
+            wait(0.25)
             if mv.lock_state(ptr) != "target":
                 return "no_lock"
         for _ in range(max(1, int(BACKSTAB_S / max(BACKSTAB_TICK, 1e-3)))):
@@ -101,18 +107,20 @@ def _backstab(mv, s, c, cancel) -> str:
                 mv.pad.move(0.0, 0.0)
                 mv.pad.attack()
                 for _ in range(max(1, int(BACKSTAB_WATCH_S / max(BACKSTAB_TICK, 1e-3)))):
-                    time.sleep(BACKSTAB_TICK)
+                    wait(BACKSTAB_TICK)
                     s = mv.snap(8.0)
                     c2 = mv.find(s, ptr) if s else None
                     if c2 is None or c2.hp <= 0:
                         return "stabbed"
                 return "hit" if c2.hp < hp0 else "not_behind"
             mv.pad.move(x, y)
-            time.sleep(BACKSTAB_TICK)
+            wait(BACKSTAB_TICK)
         return "not_behind"
     finally:
         mv.pad.move(0.0, 0.0)
+        wait(0.1)
         mv.unlock()
+        wait(0.1)
         mv.cam_busy = busy0
 
 

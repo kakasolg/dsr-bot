@@ -50,9 +50,9 @@ check("같은 실행의 복사본은 한 번만 셈 (P-12)", len(runs) == 2 and 
 samples = sorted(glob.glob("data/samples/burg-bonfire-radar-*.txt"))
 if samples:
     real = H.group([e for p in samples for e in H.parse(p)])
-    top = real[0]
-    check(f"실제 로그 {len(samples)}개: 가장 잦은 곳 (-9.8, -11.3, -68.6) {len(top['runs'])}번",
-          top["pos"] == (-9.8, -11.3, -68.6) and len(top["runs"]) >= 4)
+    top = next((r for r in real if r["pos"] == (-9.8, -11.3, -68.6)), None)   # not pinned to 1st: new sample runs reorder the list
+    check(f"실제 로그 {len(samples)}개: (-9.8, -11.3, -68.6) {len(top['runs']) if top else 0}번 (4번 이상)",
+          top is not None and len(top["runs"]) >= 4)
 
 print("전부 통과" if not fails else f"실패 {fails}")
 sys.exit(1 if fails else 0)
