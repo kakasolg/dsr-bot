@@ -192,10 +192,31 @@ def trim_path(path: list, goal, within: float = 2.5) -> list:
     return out
 
 
-def path_tolerances(path: list, default: float = 1.0) -> list[float]:
+CORNER_DEG = 35.0   # the path turns more than this at a point (measured over CORNER_SPAN m either side) = a corner
+CORNER_SPAN = 1.5
+CORNER_TOL = 0.5    # arrival radius at a corner — at 1 m (0.8 on recorded routes) the bot turned for the next point a metre early
+                    # and walked into the inside wall (user 2026-09-28: "it always turns left too early into the secret passage")
+
+
+def turn_deg(path: list, i: int, span: float = CORNER_SPAN) -> float:
+    """How sharply the path turns at point i — between the direction arriving from ~span m back and leaving to ~span m ahead
+    (recorded routes have points every few tens of cm, so neighbours alone would show no corner)."""
+    q = path[i]
+    a = next((path[j] for j in range(i - 1, -1, -1) if math.dist((q[0], q[2]), (path[j][0], path[j][2])) >= span), path[0])
+    b = next((path[j] for j in range(i + 1, len(path)) if math.dist((q[0], q[2]), (path[j][0], path[j][2])) >= span), path[-1])
+    v1, v2 = (q[0] - a[0], q[2] - a[2]), (b[0] - q[0], b[2] - q[2])
+    n1, n2 = math.hypot(*v1), math.hypot(*v2)
+    if n1 < 1e-6 or n2 < 1e-6:
+        return 0.0
+    c = max(-1.0, min(1.0, (v1[0] * v2[0] + v1[1] * v2[1]) / (n1 * n2)))
+    return math.degrees(math.acos(c))
+
+
+def path_tolerances(path: list, default: float = 1.0, steep: bool = True) -> list[float]:
     """Arrival check per waypoint. If the next segment is steep (stairs/ramp), step on that point precisely with TIGHT_TOL — calling 'arrived' at 1 m
     and cutting diagonally overshot the stairs entrance, went to the lower level beside it and got blocked by the side (2/2); with 0.4 m: entrance 0.31 m, top 0.45 m.
-    The last point also uses TIGHT_TOL."""
+    At a corner (turn_deg > CORNER_DEG) CORNER_TOL, so the turn starts at the corner and not a metre before it.
+    The last point also uses TIGHT_TOL. steep=False (human-recorded routes): no steep rule — 0.4 m on recorded stair ends got stuck at 0.6–0.7 m."""
     tols = []
     for i, q in enumerate(path):
         if i + 1 >= len(path):
@@ -203,8 +224,12 @@ def path_tolerances(path: list, default: float = 1.0) -> list[float]:
             continue
         r = path[i + 1]
         h = math.dist((q[0], q[2]), (r[0], r[2]))
-        steep = len(q) > 2 and h > 0.3 and abs(r[1] - q[1]) / h > STEEP
-        tols.append(TIGHT_TOL if steep else default)
+        if steep and len(q) > 2 and h > 0.3 and abs(r[1] - q[1]) / h > STEEP:
+            tols.append(TIGHT_TOL)
+        elif i > 0 and turn_deg(path, i) > CORNER_DEG:
+            tols.append(min(default, CORNER_TOL))
+        else:
+            tols.append(default)
     return tols
 
 

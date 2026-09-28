@@ -1024,7 +1024,7 @@ class Field:
         # without tol (navmesh path) only steep segments (stairs, ramps) are stepped precisely at 0.4 m (nav.path_tolerances) — stepping everything at 1 m
         # couldn't get from the ramp ledge up to the stair top: 'passage blocked' (2026-09-24). Human-recorded paths get tol (0.8) from the caller
         # — narrowing recorded points to 0.4 m got stuck unable to get within 0.6~0.7 m at stair ends (hunt.walk_fight)
-        tols = nav.path_tolerances(path, 1.0) if tol is None else [tol] * len(path)
+        tols = nav.path_tolerances(path, 1.0) if tol is None else nav.path_tolerances(path, tol, steep=False)   # corners tighten either way
         self.reflex.nm = nm
         mover = nav.Mover(self.mv.pad)
         i, fails, fights = 0, 0, 0
