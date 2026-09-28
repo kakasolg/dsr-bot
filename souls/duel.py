@@ -637,6 +637,18 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             if hit.dead and orig_ptr is None:
                 return done("killed")
             continue
+        # a hollow (circle_behind) swinging at us up close, nobody else swinging = the backstab moment (drill: 4 kills, all mid-swing).
+        # The reflex below blocked every such swing first, so the backstab check further down was never reached (27q: 3 hollows)
+        bs_early = (foe is not None and foe.circle_behind and a in M.ATTACK and circle_n < CIRCLE_MAX_SWEEPS
+                    and h <= BACKSTAB_REACH and abs(dy) <= 1.0 and not _other_swinging(s, ptr))
+        if bs_early:
+            circle_n += 1
+            r = _backstab(mv, s, c, cancel)
+            note(f"뒤잡기:{r}", s, c)
+            log(f"      뒤잡기(휘두를 때) → {r}")
+            if r == "stabbed" and orig_ptr is None:
+                return done("killed")
+            continue
         if reflex is not None and reflex.tick(s):          # reflex: if anyone within 2.5 m starts swinging, block head-on
             bh = getattr(reflex, "last_hit", None)
             if bh is not None:                             # backstep attack (one move) result — record it
