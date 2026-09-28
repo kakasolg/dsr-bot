@@ -24,7 +24,8 @@ from souls import duel as D
 from souls import moves as M
 from souls import weapons
 
-FIND_R = 8.0
+FIND_R = 20.0
+APPROACH_R = 3.5          # farther than this: walk the NavMesh path to about this far first
 TIMEOUT_S = 6.0
 
 
@@ -32,10 +33,23 @@ def behind_deg(c, p) -> float:
     return abs(math.degrees(M.rel_angle(c, p))) if c.heading is not None else 0.0
 
 
+def circle_point_stick(mv, s, c, r: float = 0.9, step_deg: float = 60.0) -> tuple[float, float]:
+    """Stick toward the point on a circle of radius r round c, step_deg further toward its back than we are now (world space)."""
+    p = s.player
+    fwd = (c.heading or 0.0) + math.pi                     # measured: world yaw = heading + π (moves.rel_angle)
+    ang = math.atan2(p.x - c.x, p.z - c.z) - fwd          # where we stand, measured from its front
+    ang = (ang + math.pi) % (2 * math.pi) - math.pi
+    back = math.copysign(math.pi, ang) if ang != 0 else math.pi
+    nxt = ang + math.copysign(min(math.radians(step_deg), abs(back - ang)), back - ang)
+    tx, tz = c.x + r * math.sin(fwd + nxt), c.z + r * math.cos(fwd + nxt)
+    return mv.stick_to(s, tx, tz, 1.0)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--stab", action="store_true", help="once behind, release everything and press R1")
     ap.add_argument("--radar", action="store_true")
+    ap.add_argument("--map", default="m10_01_00_00", help="NavMesh for the walk-up (default Undead Burg)")
     a = ap.parse_args()
 
     tm = env.make_telemetry({})
@@ -48,13 +62,27 @@ def main() -> None:
         radar.Radar().attach(tm).follow(mv)
 
     s = mv.snap(FIND_R)
-    foes = [c for c in (s.hostile(FIND_R) if s else []) if c.hp > 0]
+    foes = [c for c in (s.hostile(FIND_R) if s else []) if c.hp > 0 and c.hp < 80]    # hollows (75 HP); shield soldiers are 85
     if not foes:
         print(f"no live foe within {FIND_R} m")
         return
     c = min(foes, key=lambda x: M.horiz(s.player, x))
     ptr = c.ptr
     print(f"target {getattr(c, 'name', '') or '?'} HP {c.hp} ptr {ptr}: {M.horiz(s.player, c):.1f} m, behind {behind_deg(c, s.player):.0f}°, anim {c.anim}")
+
+    if M.horiz(s.player, c) > APPROACH_R:
+        import navmesh
+        nm = navmesh.Navmesh(a.map)
+        p = s.player
+        d = M.horiz(p, c)
+        goal = (c.x + (p.x - c.x) / d * APPROACH_R, c.y, c.z + (p.z - c.z) / d * APPROACH_R)
+        path = nm.find_path((p.x, p.y, p.z), goal)
+        print(f"walking up: {len(path)} points → {APPROACH_R} m from it")
+        print("walk:", mv.walk_path(path, nm, stop=lambda sn: (lambda cc: cc is not None and M.horiz(sn.player, cc) <= APPROACH_R)(mv.find(sn, ptr))))
+        pad.move(0.0, 0.0)
+        s = mv.snap(FIND_R)
+        c = mv.find(s, ptr) if s else c
+        print(f"at start: {M.horiz(s.player, c):.1f} m, behind {behind_deg(c, s.player):.0f}°, anim {c.anim}")
 
     def wait(t: float) -> None:
         t1 = time.time() + t
@@ -66,10 +94,13 @@ def main() -> None:
     mv.cam_busy = True
     try:
         pad.guard(False)
-        if mv.lock_state(ptr) != "target":
+        for _ in range(2):                                 # the first R3 sometimes misses (27 drill: "lock-on: none")
+            if mv.lock_state(ptr) == "target":
+                break
             mv.unlock()
             pad.lock_on()
-            wait(0.25)
+            wait(0.3)
+        locked = mv.lock_state(ptr) == "target"
         print(f"lock-on: {mv.lock_state(ptr)}")
         t0, last_print = time.time(), 0.0
         while time.time() - t0 < TIMEOUT_S:
@@ -79,7 +110,10 @@ def main() -> None:
                 result = "lost"
                 break
             h, deg = M.horiz(s.player, c), behind_deg(c, s.player)
-            x, y, _ = D.backstab_stick(c, s.player)
+            if locked:
+                x, y, _ = D.backstab_stick(c, s.player)
+            else:                                          # no lock: the stick is camera-relative — steer to a world point on the circle
+                x, y = circle_point_stick(mv, s, c)
             if time.time() - last_print >= 0.2:
                 last_print = time.time()
                 print(f"  {time.time() - t0:4.1f}s  d {h:.2f} m  behind {deg:3.0f}°  foe anim {c.anim}  stick ({x:+.2f},{y:+.2f})")
