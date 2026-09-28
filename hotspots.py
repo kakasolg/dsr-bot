@@ -21,6 +21,7 @@ from __future__ import annotations
 import argparse
 import glob
 import math
+import os
 import re
 import sys
 from pathlib import Path
@@ -144,7 +145,8 @@ def main() -> None:
     ap.add_argument("--last", type=int, default=1, help="how many newest runs count as 'this time'")
     ap.add_argument("--all", action="store_true", help="old full report")
     a = ap.parse_args()
-    logs = a.logs or sorted(glob.glob(str(ROOT / "data" / "samples" / "*.txt")) + glob.glob(str(ROOT / "data" / "runs" / "*.log")))
+    logs = a.logs or sorted(glob.glob(str(ROOT / "data" / "samples" / "*.txt")) + glob.glob(str(ROOT / "data" / "runs" / "*.log")),
+                            key=os.path.getmtime)   # newest run last — by name, data/samples/ sorted after data/runs/ and a copy became "this time"
     runs = dedupe({p: parse(p) for p in logs})
     if not a.all:
         print(compare(runs, a.last, a.radius))
