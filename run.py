@@ -74,7 +74,7 @@ def status() -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["status", "burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt-one", "merchant", "light-burg", "quit-test"])
+    ap.add_argument("cmd", choices=["status", "burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt-one", "merchant", "light-burg", "quit-test", "passage-drill"])
     ap.add_argument("--no-rest", action="store_true")
     ap.add_argument("--no-quit", action="store_true", help="퀵 종료(메뉴로 나갔다 오기) 안 씀 — 영상 촬영용")
     ap.add_argument("--i", type=int, default=5, help="hunt-one: BURG_TOWN 몇 번째 (5 = 석궁병 255002)")
@@ -147,6 +147,8 @@ def main() -> None:
             r = ms.burg_bonfire()
         elif a.cmd == "burg-loop":
             r = ms.burg_bonfire_round_trip()
+        elif a.cmd == "passage-drill":
+            r = ms.passage_drill(rounds=5)
         elif a.cmd == "clear-ramp":
             if not a.no_rest:
                 ms.start_fresh()

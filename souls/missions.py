@@ -110,6 +110,29 @@ class Missions:
         self.mv: M.Moves = fld.mv
 
     # ── Pieces ───────────────────────────────────────────────
+    def passage_drill(self, rounds: int = 5) -> str:
+        """Walk Firelink bonfire ↔ just inside the passage entrance, rounds times, no resting (ramp stays cleared) — to watch the entrance
+        turn repeatedly (user 2026-09-28). Same way in as to_merchant: top of the stairs, then the recorded route with the entry corner."""
+        na = self.nms[MAP_A]
+        top, route, _R = _route()
+        path_in = _with_entry_corner(route)
+        i0 = next(i for i, q in enumerate(path_in) if math.dist(q, PASSAGE_A0) < 0.3)
+        path_in = path_in[:i0 + 4]                         # a0 + 3 points into the passage
+        for n in range(1, rounds + 1):
+            t0 = time.time()
+            r = self.f.walk_to(tuple(FIRELINK["stand"]), na, f"드릴{n} 화톳불로")
+            self.log(f"   드릴 {n}: 화톳불까지 {r} {time.time() - t0:.1f} s")
+            t1 = time.time()
+            r = self.f.walk_to(top, na, f"드릴{n} 꼭대기로")
+            if r != "arrived":
+                return f"드릴 {n} 꼭대기 {r}"
+            t2 = time.time()
+            r = self.f.walk(path_in, na, f"드릴{n} 통로", tol=0.8)
+            self.log(f"   드릴 {n}: 꼭대기 {t2 - t1:.1f} s → 통로 입구 {r} {time.time() - t2:.1f} s")
+            if r != "arrived":
+                return f"드릴 {n} 통로 {r}"
+        return "done"
+
     def start_fresh(self) -> bool:
         """Rest at Firelink Shrine and start (all enemies revived, full HP·Estus)."""
         last = self.mv.tm.last_bonfire()
