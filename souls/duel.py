@@ -55,9 +55,9 @@ CIRCLE_MAX_SWEEPS = 2    # give up if not behind after this many (path blocked e
 # circling at body contact 0.85–0.96 m with the stick full (≥ 1.0, 2.5–3.9 m/s), behind within 0.6–1.1 s; R1 at 130–180° behind with the
 # foe idle (anim −1) → the game snaps us behind (0.59 m) and the kill lands 0.8–0.9 s later. R1 while it's staggered/attacking = a normal hit.
 # (the old _circle_sweep did a 3.5 s wide arc without lock-on — too slow, it turned to face us)
-BACKSTAB_DEG = 135       # behind at least this much (deg from its front) → R1
+BACKSTAB_DEG = 130       # behind at least this much (deg from its front) → R1 (human R1s at 130–180°)
 BACKSTAB_R = 0.9         # circle at this distance (human 0.85–0.96 m)
-BACKSTAB_MAX_R = 1.3     # R1 only within this
+BACKSTAB_MAX_R = 1.7     # R1 only within this — 1.3 → 1.7 (27l: stood 139° behind an idle hollow at 1.6 m for 1.3 s without pressing R1)
 BACKSTAB_REACH = 3.5     # start only within this (walk the rest while circling) — 2.5 → 3.5 (27j: idle hollows stood at 2.4–3 m, the bot waited, walked in head-on and woke them)
 BACKSTAB_S = 2.5         # give up circling after this (human 0.6–1.1 s from contact; + walking in from BACKSTAB_REACH)
 BACKSTAB_WATCH_S = 1.0   # after R1, watch this long for the kill (human 0.8–0.9 s)
