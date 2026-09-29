@@ -40,6 +40,10 @@ def test_segment() -> None:
     assert real[-1]["label"].startswith("첫 화톳불") and not any(x["type"] == "menu" for x in real), real
     assert any(x["type"] == "climb" for x in real), "segment 1 climbs the ladder"
     print(f"ok  segment 1 = cell → ladder → first bonfire ({len(real)} steps), intro menu dropped")
+    s2 = A.segment(A.load(), 2)
+    assert s2[1]["label"].startswith("큰 방 문") and s2[-1]["type"] == "menu" and "배틀 액스" in s2[-1]["label"], (s2[0], s2[-1])
+    assert sum(1 for x in s2 if x["type"] == "menu") == 2, "shield and Battle Axe menus"
+    print(f"ok  segment 2 = big door → flee → second bonfire → shield → Battle Axe menu ({len(s2)} steps)")
 
 
 def test_heading() -> None:
@@ -60,6 +64,31 @@ def test_run_order_and_stop() -> None:
     r = a.run([{"type": "walk"}, {"type": "press"}, {"type": "climb", "x": 1, "label": "사다리"}, {"type": "walk"}])
     assert done == ["walk", "press", "climb"] and r.startswith("fail at 3 climb 사다리"), (done, r)
     print(f"ok  steps run in order, stops at the first failure → '{r}'")
+
+
+def test_flee_and_gear() -> None:
+    f = make_field(World(player=(0.0, -49.4, 0.0)))
+    f.alive = lambda: True
+    a = A.Asylum(f, nm=None, log=f.log)
+    seen = []
+    a._walk = lambda st, tag: seen.append((st.get("run"), set(f.ignore_npcs))) or "ok"
+    a._press = lambda st, tag: seen.append(("press", set(f.ignore_npcs))) or "ok"
+    a.run([{"type": "walk"}, {"type": "press", "label": "큰 방 문 x"}, {"type": "walk"},
+           {"type": "press", "label": "도망친 방 화톳불 x"}, {"type": "walk"}])
+    assert seen == [(None, set()), ("press", {A.DEMON}), (True, {A.DEMON}), ("press", {A.DEMON}), (None, set())], seen
+    eq = {"왼손1": 900000}
+    a.tm = type("T", (), {"equipment": lambda self: dict(eq)})()
+    a.mv = type("M", (), {"press": lambda self, b, hold=0.1, gap=0.1: eq.update({"왼손1": 1462000})})()
+    sleep = A.time.sleep
+    A.time.sleep = lambda s: None
+    try:
+        assert a._menu({"keys": ["START", "A"], "label": "시작 장비 줍기 1: 방패 + 메뉴 장착"}, "t") == "ok"
+        eq["오른손1"] = 212000
+        a.mv = type("M", (), {"press": lambda self, b, hold=0.1, gap=0.1: None})()
+        assert a._menu({"keys": ["START"], "label": "시작 장비 줍기 2: 배틀 액스"}, "t") == "fail"
+    finally:
+        A.time.sleep = sleep
+    print("ok  fleeing: sprint + demon ignored from the big door to the second bonfire; gear menus checked (shield ok, axe not equipped → fail)")
 
 
 class ClimbMv:
@@ -112,5 +141,6 @@ if __name__ == "__main__":
     test_segment()
     test_heading()
     test_run_order_and_stop()
+    test_flee_and_gear()
     test_climb()
     print("전부 통과")

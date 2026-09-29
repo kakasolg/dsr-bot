@@ -1156,6 +1156,7 @@ class Field:
         "you go to the two shield soldiers too fast" — met the two shield soldiers on the Undead Burg terrace back to back with no time to heal,
         took 220+ damage each and got surrounded). Only when there is no easy one (shield soldiers only) take that one first."""
         cands = [c for c in sn.hostile(FOLLOW_R + 1.0) if awake(c) and c.ptr not in ignore
+                 and c.npc_param not in getattr(self, "ignore_npcs", ())   # e.g. the Asylum Demon while fleeing (souls/asylum)
                  and M.horiz(sn.player, c) < FOLLOW_R and abs(c.y - sn.player.y) < FOLLOW_DY
                  and (c.anim not in (None, -1) or c.dist < 2.0)]
         if not cands:

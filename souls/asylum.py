@@ -22,7 +22,12 @@ from . import moves as M
 ROUTE = Path(__file__).resolve().parent.parent / "data" / "routes" / "asylum-fresh.json"
 MAP = "m18_01_00_00"
 # segment n = steps after the end of segment n-1 up to and including the first step whose label starts with END[n]
-SEG_END = {1: "첫 화톳불"}
+SEG_END = {1: "첫 화톳불", 2: "시작 장비 줍기 2"}
+# 데몬 처음 만남: 큰 방 문을 연 뒤부터 도망친 방 화톳불까지는 달리고, 데몬과 싸우지 않는다 (사람도 도망침)
+FLEE = ("큰 방 문", "도망친 방 화톳불")
+DEMON = 223200
+# 시작 장비 (산적): 첫 번째로 줍는 게 방패, 두 번째가 배틀 액스 — [MoKa] 항상 같음. 메뉴 장착 뒤 확인
+GEAR = {"방패": ("왼손1", 1462000), "배틀 액스": ("오른손1", 701000)}
 PRESS_TOL = 0.35         # stand this close to where the human pressed A
 FACE_DEG = 20.0          # …and face within this of their heading
 PRESS_GAP = 0.3          # between repeated A presses (item messages, dialogue)
@@ -47,6 +52,13 @@ def segment(steps: list[dict], n: int) -> list[dict]:
         end = next((i for i in range(start, len(steps)) if steps[i].get("label", "").startswith(SEG_END[k])), None)
         if end is None:
             raise ValueError(f"segment {k}: no step labelled '{SEG_END[k]}…'")
+        # the end is the whole run of steps with that label (mark → press → menu), one-point walks in between included
+        j = end + 1
+        while j < len(steps) and (steps[j].get("label", "").startswith(SEG_END[k])
+                                  or (steps[j]["type"] == "walk" and len(steps[j]["pts"]) <= 1)):
+            if steps[j].get("label", "").startswith(SEG_END[k]):
+                end = j
+            j += 1
         if k == n:
             out = steps[start:end + 1]
             first = next((i for i, x in enumerate(out) if x["type"] == "press"), len(out))
@@ -75,7 +87,16 @@ class Asylum:
 
     # ── steps ────────────────────────────────────────────────
     def run(self, steps: list[dict], tag: str = "수용소") -> str:
+        fleeing = False
         for i, st in enumerate(steps):
+            lab = st.get("label", "")
+            if st["type"] == "press" and lab.startswith(FLEE[0]):
+                fleeing = True
+            if fleeing:
+                st = dict(st, run=True) if st["type"] == "walk" else st
+            self.f.ignore_npcs = {DEMON} if fleeing else set()
+            if st["type"] == "press" and lab.startswith(FLEE[1]):
+                fleeing = False
             what = st.get("label") or st["type"]
             r = getattr(self, "_" + st["type"])(st, f"{tag} {i + 1}/{len(steps)}")
             self.events("asylum_step", i=i, type=st["type"], label=st.get("label"), result=r)
@@ -183,12 +204,21 @@ class Asylum:
         return "ok" if ok else "fail"
 
     def _menu(self, st, tag) -> str:
+        want = next((v for k, v in GEAR.items() if k in st.get("label", "")), None)
+        before = self.tm.equipment() if want else {}
         control.focus_game()
         for k in st["keys"]:
             if k in BTN:
                 self.mv.press(BTN[k], gap=MENU_GAP)
+        time.sleep(0.5)
         self.log(f"   {tag} 메뉴 {' '.join(st['keys'])} ({st.get('label') or '?'})")
-        return "ok"
+        if want is None:
+            return "ok"
+        slot, item = want
+        now = self.tm.equipment().get(slot)
+        ok = now is not None and now // 100 * 100 == item               # +n upgrades keep the base id's hundreds
+        self.log(f"      장착 확인 {slot}: {before.get(slot)} → {now} ({'맞음' if ok else f'원함 {item}'})")
+        return "ok" if ok else "fail"
 
     def _fight(self, st, tag) -> str:
         s = self.mv.snap(15.0)
