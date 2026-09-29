@@ -273,6 +273,7 @@
 - [x] [cloud] 레이더 ③ 화톳불 워프: 레이더 "Bonfire warp" 카드(불 붙인 화톳불 목록 `GET /bonfires`, 확인 창) → `POST /warp` → `radar_warp.Warper` → `dsr_telemetry.bonfire_warp`. 거절 조건(이유를 카드에 표시): replay·demo / 다른 워프 중 / 불 안 붙인 화톳불 / Steam 오프라인 확인 안 됨 / 봇 실행 중(`bot.lock` — 워프 동안 쥐고 있어 봇도 못 켬) / 게임 없음 / 타이틀·로딩 / 사망 / 메뉴 열림. 다른 웹페이지의 요청은 막음(Host·Origin·`X-Radar` 헤더). 결과는 Decisions 줄(기록에도 남음). 마지막 화톳불이 목적지로 바뀜(게임 메뉴 워프와 같음). `tests/radar_warp_test.py`(거절 10가지, 허용 1, 403·409). 데모에서 페이지·브라우저 POST 확인. **실제 워프는 안 해 봄**
 - [~] [win] 확인 (게임에서): `python radar_server.py` + `python radar.py watch` → (1) 머리 칩이 인게임 / 메뉴 열면 `· menu` / 퀵 종료하면 `title / loading` → 이어하기 뒤 다시 `in game`(watch가 타이틀 뒤에도 계속 따라오는지, 콘솔에 `attached again`이 나오는지) / 게임 끄면 `game off` → 다시 켜면 돌아오는지 (2) Steam 칩 `Steam offline`, 마우스 올린 이유 (3) 워프 카드에서 불 붙인 화톳불 하나로 워프 → 도착, Decisions에 `arrived`. 봇 실행 중에는 버튼이 거절하는지. 타이틀과 로딩을 나눌 메모리 값이 필요하면 [cloud]에 이슈로
   - 2026-09-28 [MoKa] (2) `Steam offline` 칩, (1) `in game` 칩 확인. (3) 워프: Undead Burg 화톳불 → **Firelink Shrine 도착**, 카드에 `arrived at Firelink Shrine (Bonfire)`, 레이더가 새 위치(−47.3, −59.9, 53.2)를 따라옴. 남은 것: 메뉴 `· menu`, 퀵 종료 → `title / loading` → 복귀, 게임 끄기·다시 켜기, 봇 실행 중 워프 거절. 처음 켰을 때 예전 서버가 겹쳐 떠서 칩이 안 나옴 → P-20 (#9)
+  - 2026-09-28 [MoKa] 서버를 포트 독점 코드(3af958e)로 다시 켬 — 두 번째 서버·예전 방식 bind 모두 거절 확인. 워프 한 번 더: **Undead Parish (Sunlight Altar) 도착**. 타이틀로 나감 → 칩 `title / loading (N s)`(`/state` `game: title`, away 68.8 s), **워프 버튼 꺼짐** 확인. 남은 것: 이어하기 뒤 `in game` 복귀(watch가 따라오는지), 메뉴 `· menu`, 게임 끄기·다시 켜기, 봇 실행 중 거절
 
 ## 6. 2D 시뮬레이터
 
