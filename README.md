@@ -78,10 +78,14 @@ You need: Windows, DSR (Steam), [ViGEmBus](https://github.com/nefarius/ViGEmBus)
 uv venv .venv --python 3.12
 uv pip install --python .venv/Scripts/python.exe -r requirements-lock.txt
 # if DSR is installed elsewhere: set DSR_GAME_DIR=...\DARK SOULS REMASTERED
+BOT_GAME=dsr .venv/Scripts/python run.py asylum --seg 1-5 --radar  # fresh character: Asylum cell → demon → crow to Firelink
+                                                                    # (replays data/routes/asylum-fresh.json; --seg 3 = one segment,
+                                                                    #  starts from the nearest step after dying)
 BOT_GAME=dsr .venv/Scripts/python run.py clear-ramp                 # ramp only
 BOT_GAME=dsr .venv/Scripts/python run.py burg-bonfire               # Firelink → Undead Burg bonfire
 BOT_GAME=dsr .venv/Scripts/python run.py burg-bonfire --no-quit     # no quit-outs, no bonfire teleport (for recording)
 .venv/Scripts/python observe_record.py --minutes 15                 # read-only recording (F9 = marker)
+.venv/Scripts/python asylum_steps.py data/observe/<file>.jsonl      # a human Asylum run → data/routes/asylum-fresh.json
 .venv/Scripts/python radar_server.py                                # radar at http://127.0.0.1:47801 (add --radar to run.py; --demo = fake world)
 .venv/Scripts/python overlay.py                                     # same info drawn over the game (windowed/borderless only; --demo)
 .venv/Scripts/python radar_server.py --replay data/radar/<file>.jsonl  # replay a recorded session (or an observe_record.py demo) with a timeline
