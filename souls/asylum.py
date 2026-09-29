@@ -27,6 +27,10 @@ SEG_END = {1: "첫 화톳불", 2: "시작 장비 줍기 2", 3: "오스카 대화
 # (boss/boss.py 9번째 죽음, 2026-09-29 구간 ④를 안개벽 뒤에서 끝냈다가 죽음) → 구간 ④는 안개벽 앞에서 끝
 PLUNGE_AT = "데몬 위 안개벽"
 TWO_HAND = 3             # tm.grip(): 3 = two-handed, 1 = one-handed
+# 안개벽은 문 가운데에 서야 통과된다 ([MoKa]: "문 한쪽에 치우치면 안개벽 통과 못해"). 데몬 위 안개벽: 사람이 누른 자리 x 3.33·3.82
+# (둘 다 통과), 봇 x 4.18 은 못 지나감 (2026-09-29) → 가운데 x 3.55, 0.15 m 안으로 맞추고 안내가 뜨면 A (Field.fog_through)
+FOG_CENTER = {PLUNGE_AT: (3.55, 210.11, -34.72)}
+FOG_TOL = 0.15
 DEMON_LIMIT = 240.0
 RESUME_NEAR = 5.0        # farther than this from the first step → start from the nearest step (after dying / a restart)
 # 데몬 처음 만남: 큰 방 문을 연 뒤부터 도망친 방 화톳불까지는 달리고, 데몬과 싸우지 않는다 (사람도 도망침)
@@ -145,7 +149,12 @@ class Asylum:
             if st["type"] == "press" and lab.startswith(FLEE[1]):
                 fleeing = False
             what = st.get("label") or st["type"]
-            r = getattr(self, "_" + st["type"])(st, f"{tag} {i + 1}/{len(steps)}")
+            fog = next((c for k, c in FOG_CENTER.items() if st["type"] == "press" and lab.startswith(k)), None)
+            if fog is not None:
+                beyond = next((w["pts"][-1] for w in steps[i + 1:] if w["type"] == "walk"), None)
+                r = self._fog(fog, beyond, f"{tag} {i + 1}/{len(steps)}")
+            else:
+                r = getattr(self, "_" + st["type"])(st, f"{tag} {i + 1}/{len(steps)}")
             if r == "ok" and st["type"] == "press" and lab.startswith(PLUNGE_AT):
                 # the recording's plunge + fight (circling walks, the drop, fight rows) → our own plunge, then the duel
                 r = self._plunge(f"{tag} {i + 1}/{len(steps)}")
@@ -244,6 +253,19 @@ class Asylum:
                 self.log(f"   {tag} 화톳불에서 못 일어남")
                 return "fail"
         return "ok"
+
+    def _fog(self, center, beyond, tag) -> str:
+        """Fog wall: stand at the door's center (FOG_TOL), face the far side, A when the prompt shows (Field.fog_through)."""
+        for k in range(3):
+            nav.goto(self.tm, self.pad, tuple(center), tolerance=0.3, timeout=8, log=lambda *a: None, terrain=self.nm,
+                     mode_fn=lambda _s: "walk")
+            self.pad.neutral()
+            left = self.f._settle(tuple(center), tol=FOG_TOL)
+            if self.f.fog_through(tuple(beyond)):
+                self.log(f"   {tag} 안개벽 통과 ({k + 1}번째, 가운데에서 {left:.2f} m)")
+                return "ok"
+            self.log(f"   {tag} 안개벽 못 지나감 ({k + 1}번째, 가운데에서 {left:.2f} m)")
+        return "fail"
 
     def _climb(self, st, tag) -> str:
         y0, y1 = st["from"][1], st["to"][1]
