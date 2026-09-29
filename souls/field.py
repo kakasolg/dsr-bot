@@ -105,6 +105,11 @@ FIGHT_HEAL = 0.5         # while fighting: drink at an opening (duel.opening) if
 WALK_HEAL = 0.6          # while walking: if below this and safe, heal up to 70 %
 
 
+FALL_BACK_R = 6.0        # fall_back stops once at most one moving foe is within this
+FALL_BACK_MAX_S = 15.0   # …or after this long
+FALL_BACK_OFF_S = 10.0   # no path back → fight in place this long before trying to fall back again
+
+
 def awake(c) -> bool:
     return c.hp > 0 and not (9000 <= (c.anim or 0) < 9100)
 
@@ -178,6 +183,7 @@ class Field:
         if props_.STEER:
             log(f"   물건 비켜 가기 (지난 실행에서 {props_.LEARN_MIN_RUNS}번 이상 부숨): {' '.join(sorted(props_.STEER))}")
         self._detour = False                               # keeps walk's "detour" from recursing
+        self._crowd_off_until = 0.0                        # fall_back 이 길이 없어 못 물러났으면 잠깐 둘러싸여도 싸운다 (같은 자리에서 무한 반복 방지)
         self.style = style_.of(style)                      # souls/style.py — every layer only reads this object
         self.bonfires = [tuple(b) for b in bonfires]      # bloodstain pickup (A) forbidden zones
         self.home = self.bonfires[0] if self.bonfires else None   # last bonfire rested at (retreat target, Darksign arrival check)
@@ -316,6 +322,32 @@ class Field:
         return self.mv.walk_path(nav.trim_path(path[1:], tuple(home)), nm, mode,   # walk, not run: running safety is only a NavMesh estimate (evidence-grade gate, 2026-09-26)
                                  stop=lambda sn: time.time() - t0 > 3.0 and self.safe(sn))
 
+    def fall_back(self, nm) -> str:
+        """Surrounded (duel 'crowd') — walk back toward home (the way we came: Firelink / the Burg entrance) with the guard up
+        until at most one foe is still with us, then stop so the caller fights that one. Foes chase at different speeds and give up at
+        different distances, so backing off splits them. No quit-out (it restarts on the spot, next to the same foes)."""
+        t0 = time.time()
+
+        def split(sn) -> bool:
+            p = sn.player
+            n = sum(1 for c in sn.hostile(FALL_BACK_R + 1.0)
+                    if awake(c) and c.anim not in (-1, None) and M.horiz(p, c) < FALL_BACK_R and abs(c.y - p.y) < FOLLOW_DY)
+            return time.time() - t0 > 1.0 and n <= 1 or time.time() - t0 > FALL_BACK_MAX_S
+
+        s = self.mv.snap(5.0)
+        path = nm.find_path((s.player.x, s.player.y, s.player.z), tuple(self.home)) if (s and nm is not None and self.home) else None
+        if not path:
+            self._crowd_off_until = time.time() + FALL_BACK_OFF_S
+            self.log(f"   둘러싸임 — 물러날 길 없음 ({'home 없음' if not self.home else 'no_path'}), {FALL_BACK_OFF_S:.0f} s 동안은 그 자리에서 싸움")
+            self.events("fall_back", result="no_path")
+            return "no_path"
+        r = self.mv.walk_path(nav.trim_path(path[1:], tuple(self.home)), nm, "guard", stop=split)
+        s = self.mv.snap(FALL_BACK_R + 1.0)
+        n = 0 if s is None else sum(1 for c in s.hostile(FALL_BACK_R) if awake(c) and c.anim not in (-1, None))
+        self.log(f"   둘러싸임 — 가드 든 채 지나온 길로 물러남 {time.time() - t0:.1f} s: {r}, 따라온 적 {n}")
+        self.events("fall_back", result=r, secs=round(time.time() - t0, 1), near=n)
+        return r
+
     @staticmethod
     def _retreat_mode(sn) -> str:
         """Shield up while an awake foe is still close — like _retreat_to_zone. Walking off with the guard down after a timed-out
@@ -334,7 +366,7 @@ class Field:
         if s is None:
             return False
         low = s.player.hp < s.player.max_hp * 0.6
-        if not self.safe(s) and low:
+        if not self.safe(s) and low and not why.endswith("crowd"):   # crowd: fall_back already split them — fight the one that followed
             # no Darksign — like resting it revives every killed foe (user 2026-09-24) and also loses souls and humanity.
             # worse than dying (after death the bloodstain can recover them). Used while engaged, we sometimes died to hits during its 2~3 s
             r = self.retreat(nm, self.home)
@@ -392,11 +424,14 @@ class Field:
             r = D.duel(self.mv, self.w, ptr, nm, log=self.log,
                        cancel=lambda: self.esc.escaping or self.esc.gen != g0 or (leash is not None and leash()),
                        care=Care(self), reflex=self.reflex, arena=arena, low_hp=0.0 if desperate else 0.25, style=self.style,
-                       limit=limit, wait_far=wait_far, gen=self.esc.gen, events=self.events, may_approach=may_approach)
+                       limit=limit, wait_far=wait_far, gen=self.esc.gen, events=self.events, may_approach=may_approach,
+                       crowd_ok=time.time() >= self._crowd_off_until)
         finally:
             self.mv.cam_target = None
         self.log(f"   {tag}{' (끝까지)' if desperate else ''}: {r.line()}")
         self.events("duel", tag=tag, npc=r.npc, result=r.result, secs=round(r.secs, 1), dealt=r.dealt, taken=r.taken)
+        if r.result == "crowd":
+            self.fall_back(nm)
         if r.result == "killed":
             self.heal(0.7)
         return r
@@ -870,6 +905,8 @@ class Field:
                     if self._arena_wait(arena, nm, ignore, UNSAFE_PAUSE) == "died":
                         return "died"
                     continue
+                if r.result == "crowd":
+                    tried[c.ptr] -= 1                      # fell back to split them — not a failed try against this one
                 if r.result != "killed":
                     ok = self.recover(f"오는 놈 {r.result}", nm)
                     if not ok and self.estus_left() <= 0:
@@ -997,8 +1034,8 @@ class Field:
             tried[i] = k + 1
             r = self.fight(c.ptr, nm, f"#{i} {e['npc']}" + (f" ({tried[i]}번째)" if tried[i] > 1 else ""), arena=arena, desperate=desperate,
                            may_approach=self._approach_guard(arena, pending, binds))
-            if r.result == "unsafe_approach":
-                tried[i] = k                               # E-2: don't count as an attempt — E-1 arena wait next round
+            if r.result in ("unsafe_approach", "crowd"):
+                tried[i] = k                               # E-2: don't count as an attempt — E-1 arena wait next round (crowd: fell back, go again)
                 continue
             if r.result == "killed":
                 pending.pop(0)

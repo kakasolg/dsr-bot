@@ -97,13 +97,9 @@ class Escape:
                         why, kind = f"낙사 (바닥 모름, 0.8 s 에 {max(ys8) - p.y:.1f} m)", "fall"
                 elif drop > self.LETHAL_DROP:
                     why, kind = f"낙사 (발밑 바닥 {drop:.0f} m 아래)", "fall"
-            elif now - self.last_crowd > self.CROWD_COOLDOWN:
-                near = [c for c in s.hostile(3.5) if c.hp > 0 and not (9000 <= (c.anim or 0) < 9100)]
-                future = p.hp - self._dps(now) * self.QUIT_S
-                # quit-out restarts **on the spot** — next to an enemy spawn they re-engage immediately (2026-09-24: repeated 5 times, 659 → 24,
-                # user: "this spot is bad for a forced quit"). So only on 'about to die' — being surrounded itself is handled by layer 4 via retreat/Darksign
-                if len(near) >= 2 and future < p.max_hp * 0.15:
-                    why, kind = f"둘러싸임 {len(near)}명, HP {p.hp}/{p.max_hp}, 2.8 s 뒤 예상 {future:.0f}", "crowd"
+            # 둘러싸였을 때 퀵 종료는 없앰 ([MoKa] 2026-09-28: "둘러싸였을 때는 퀵 종료하면 안 되고 후퇴해야 해") — 그 자리에서 다시
+            # 시작해 같은 적 옆에서 이어 싸움 (Bandit Bot: 동시 피격 한 번에 피해 속도가 튀어 HP 65 %에서 걸림 → HP 441로 이어 싸우다 사망).
+            # 둘러싸임은 duel 'crowd' → Field.fall_back 이 맡는다
             if why:
                 self.fire(why, kind, tm, p)
             time.sleep(0.02)

@@ -380,6 +380,15 @@ def _low_hp_line(s, low_hp: float) -> float:
     return max(low_hp, CROWD_LOW_HP) if n >= 2 else low_hp
 
 
+def _crowd(s, ptr) -> int:
+    """Foes around us that count as "surrounded": the target, plus others that are moving/swinging (anim ≠ -1), within CROWD_R at our level.
+    Others standing still (anim -1) don't count — asleep hollows next to the fight would end every duel."""
+    p = s.player
+    return sum(1 for x in s.hostile(CROWD_R + 1.0)
+               if x.hp > 0 and M.horiz(p, x) < CROWD_R and abs(x.y - p.y) < 2.0 and not (9000 <= (x.anim or 0) < 9100)
+               and (x.ptr == ptr or x.anim not in (-1, None)))
+
+
 def _others_quiet(s, ptr) -> bool:
     for x in s.hostile(OTHERS_ATTACK_R):
         if x.ptr == ptr or 9000 <= (x.anim or 0) < 9100:
@@ -410,7 +419,7 @@ def _interloper(x, p, ptr, h: float) -> bool:
 
 @dataclass
 class DuelResult:
-    result: str                      # killed | me_dead | low_hp | lost | stalemate | stuck | timeout | cancel
+    result: str                      # killed | me_dead | low_hp | crowd | lost | stalemate | stuck | timeout | cancel
     npc: int | None = None
     vs: int | None = None            # npc actually fought last, when it switched away from the target (interloper / ranged first)
     secs: float = 0.0
@@ -494,10 +503,11 @@ class Fight:
     """What one duel remembers across ticks (the old duel() locals). Rules read and change it."""
 
     def __init__(self, mv, weapon, ptr, nm, log, limit, low_hp, cancel, care, reflex, arena, style, wait_far, gen, events,
-                 may_approach):
+                 may_approach, crowd_ok: bool = False):
         self.mv, self.weapon, self.ptr, self.nm, self.log, self.limit, self.low_hp = mv, weapon, ptr, nm, log, limit, low_hp
         self.cancel, self.care, self.reflex, self.arena, self.style = cancel, care, reflex, arena, style
         self.wait_far, self.may_approach = wait_far, may_approach
+        self.crowd_ok = crowd_ok                           # True: 둘 이상에게 둘러싸이면 HP와 상관없이 싸움을 끝낸다 ('crowd') — Field 가 물러남
         self.t0 = time.time()
         s0 = mv.snap()
         self.hp_start = s0.player.hp if s0 else 0
@@ -616,6 +626,10 @@ def _sense(F: Fight):
     F.foe = foes_.of(c.npc_param)
     if p.hp < p.max_hp * _low_hp_line(s, F.low_hp) and not (c.hp <= FINISH_KEEP_HP and p.hp >= p.max_hp * 0.12):
         return F.done("low_hp")                            # don't retreat from an almost-dead foe — if we leave and return, a survivor's HP refills
+    # 둘러싸이면 HP와 상관없이 물러난다 ([MoKa] 2026-09-28: "둘러싸였을 때는 퀵 종료하면 안 되고 후퇴해야 해"). 레벨 낮은 Bandit Bot 은
+    # 둘이 같이 치면 0.16 s 에 −237 — HP를 보고 정하면 이미 늦다. 퀵 종료는 그 자리에서 다시 시작해 HP 65 % 로 이어 싸우다 사망
+    if F.crowd_ok and _crowd(s, F.ptr) >= 2:
+        return F.done("crowd")
     if now - F.last_dmg_t > STALEMATE_S:
         return F.done("stalemate")
     h, dy, a = M.horiz(p, c), c.y - p.y, (c.anim if c.anim is not None else -1)
@@ -1092,7 +1106,7 @@ RULES = [rule_separate, rule_finish_first, prep_reflex, rule_early_kick, rule_la
 
 def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: float = 0.25,
          cancel=lambda: False, care=None, reflex=None, arena=None, style=None, wait_far: bool = False,
-         gen=None, events=None, may_approach=None) -> DuelResult:
+         gen=None, events=None, may_approach=None, crowd_ok: bool = False) -> DuelResult:
     """care: healing handler from layer 4 — care.wants(s) (wants to drink?), care.take(recheck) (drinks; recheck(s) rechecks the opening).
     Whether there's an opening is judged here (layer 3): opening(). If close, backstep to open distance and recheck next tick.
     reflex: reflex (souls/reflex.py) — first thing every tick. If it moved, this tick rests (it also blocks attacks from non-targets head-on).
@@ -1104,7 +1118,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
       Distinguish "when to wait and when to act" — let distant foes come, react only after they enter reach."""
     from . import style as style_
     F = Fight(mv, weapon, ptr, nm, log, limit, low_hp, cancel, care, reflex, arena, style_.of(style or "guard"), wait_far, gen, events,
-              may_approach)
+              may_approach, crowd_ok)
     while True:
         T = _sense(F)
         if isinstance(T, DuelResult):
