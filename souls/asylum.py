@@ -22,7 +22,7 @@ from . import moves as M
 ROUTE = Path(__file__).resolve().parent.parent / "data" / "routes" / "asylum-fresh.json"
 MAP = "m18_01_00_00"
 # segment n = steps after the end of segment n-1 up to and including the first step whose label starts with END[n]
-SEG_END = {1: "첫 화톳불", 2: "시작 장비 줍기 2", 3: "오스카 대화"}
+SEG_END = {1: "첫 화톳불", 2: "시작 장비 줍기 2", 3: "오스카 대화", 4: "데몬 위 발판"}
 # 데몬 처음 만남: 큰 방 문을 연 뒤부터 도망친 방 화톳불까지는 달리고, 데몬과 싸우지 않는다 (사람도 도망침)
 FLEE = ("큰 방 문", "도망친 방 화톳불")
 DEMON = 223200
