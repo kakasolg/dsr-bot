@@ -271,7 +271,8 @@
 - [x] [cloud] 레이더 상태창 ① 게임 상태: 발신기(`radar.py`)가 0.5 s마다 `status` 패킷 — 플레이어 없을 때도 보냄. `game` = off(프로세스 없음, `GetExitCodeProcess`) / title(플레이어 없음 — **타이틀과 로딩은 아직 못 나눔**, 몇 초째인지 `away`) / world / dead, `menu` = `tm.menu_open()`. 서버 `/state`의 `game`(2 s 넘게 안 오면 `none` = 보내는 쪽 없음), 레이더 머리 칩·오버레이 줄. `radar.py watch`는 게임이 꺼지면 5 s마다 다시 붙고, 게임은 도는데 30 s 넘게 플레이어가 없으면 한 번 다시 붙음(타이틀 뒤 포인터 대비). 실제 게임에서 읽기만 해 봄: `world`, 메뉴 닫힘, 위치 (87.0, 15.0, 105.1). `tests/radar_watch_test.py`
 - [x] [cloud] 레이더 상태창 ② Steam 오프라인: `steam_state.py` — `loginusers.vdf`의 WantsOfflineMode(MostRecent → AutoLoginUser → 하나뿐인 사용자) **그리고** steam.exe·게임의 외부 TCP 연결 0 (iphlpapi, IPv4+6). 하나라도 온라인 증거면 `ONLINE`, 못 읽으면 `?`(= 오프라인 아님). steamwebhelper는 오프라인에서도 외부 연결 1개가 있어 안 셈. 연결 수는 `Get-NetTCPConnection`과 같음(chrome 9, python 4) 확인, 이 PC 지금 `OFFLINE`. 서버가 5 s마다 → `/state`의 `steam`, 머리 칩(마우스 올리면 이유)·오버레이 `Steam ONLINE` 경고. `python steam_state.py`로 따로 확인. `tests/steam_state_test.py`
 - [x] [cloud] 레이더 ③ 화톳불 워프: 레이더 "Bonfire warp" 카드(불 붙인 화톳불 목록 `GET /bonfires`, 확인 창) → `POST /warp` → `radar_warp.Warper` → `dsr_telemetry.bonfire_warp`. 거절 조건(이유를 카드에 표시): replay·demo / 다른 워프 중 / 불 안 붙인 화톳불 / Steam 오프라인 확인 안 됨 / 봇 실행 중(`bot.lock` — 워프 동안 쥐고 있어 봇도 못 켬) / 게임 없음 / 타이틀·로딩 / 사망 / 메뉴 열림. 다른 웹페이지의 요청은 막음(Host·Origin·`X-Radar` 헤더). 결과는 Decisions 줄(기록에도 남음). 마지막 화톳불이 목적지로 바뀜(게임 메뉴 워프와 같음). `tests/radar_warp_test.py`(거절 10가지, 허용 1, 403·409). 데모에서 페이지·브라우저 POST 확인. **실제 워프는 안 해 봄**
-- [ ] [win] 확인 (게임에서): `python radar_server.py` + `python radar.py watch` → (1) 머리 칩이 인게임 / 메뉴 열면 `· menu` / 퀵 종료하면 `title / loading` → 이어하기 뒤 다시 `in game`(watch가 타이틀 뒤에도 계속 따라오는지, 콘솔에 `attached again`이 나오는지) / 게임 끄면 `game off` → 다시 켜면 돌아오는지 (2) Steam 칩 `Steam offline`, 마우스 올린 이유 (3) 워프 카드에서 불 붙인 화톳불 하나로 워프 → 도착, Decisions에 `arrived`. 봇 실행 중에는 버튼이 거절하는지. 타이틀과 로딩을 나눌 메모리 값이 필요하면 [cloud]에 이슈로
+- [~] [win] 확인 (게임에서): `python radar_server.py` + `python radar.py watch` → (1) 머리 칩이 인게임 / 메뉴 열면 `· menu` / 퀵 종료하면 `title / loading` → 이어하기 뒤 다시 `in game`(watch가 타이틀 뒤에도 계속 따라오는지, 콘솔에 `attached again`이 나오는지) / 게임 끄면 `game off` → 다시 켜면 돌아오는지 (2) Steam 칩 `Steam offline`, 마우스 올린 이유 (3) 워프 카드에서 불 붙인 화톳불 하나로 워프 → 도착, Decisions에 `arrived`. 봇 실행 중에는 버튼이 거절하는지. 타이틀과 로딩을 나눌 메모리 값이 필요하면 [cloud]에 이슈로
+  - 2026-09-28 [MoKa] (2) `Steam offline` 칩, (1) `in game` 칩 확인. (3) 워프: Undead Burg 화톳불 → **Firelink Shrine 도착**, 카드에 `arrived at Firelink Shrine (Bonfire)`, 레이더가 새 위치(−47.3, −59.9, 53.2)를 따라옴. 남은 것: 메뉴 `· menu`, 퀵 종료 → `title / loading` → 복귀, 게임 끄기·다시 켜기, 봇 실행 중 워프 거절. 처음 켰을 때 예전 서버가 겹쳐 떠서 칩이 안 나옴 → P-20 (#9)
 
 ## 6. 2D 시뮬레이터
 
@@ -424,6 +425,12 @@
 - 증상: `python experiments/reach.py direct 24 2.0,…,0.6 nodead` (성벽 마을 화톳불, 가장 가까운 적 254010 19.8 m, 높이 −1.5 m). `nav.goto`로 설 자리까지 직선으로 가다 난간 밖으로 떨어져 y −363 → −767까지 계속 낙하(PlayerNoDead 켜 둠 → 죽지 않고 맵 밖). 스윙 2번은 10 m·21 m에서 헛손질, 그 뒤 `주변에 살아 있는 적 없음`으로 끝남. [MoKa]가 게임 강종 후 재시작. 로그: `data/samples/reach-bandits-knife-2026-09-28a.txt`. PlayerNoDead는 끝에 0으로 되돌림
 - 원인: `direct()`는 30 m 안 아무 적이나 골라 NavMesh 없이 직선 `goto` — 높이가 다른 적에게 가려면 난간을 넘음. 게다가 NoDead라 낙사 판정이 안 나서 맵 밖으로 계속 떨어짐
 - 해결: 미해결. 이번엔 블랙박스 분석으로 대신함. 다시 쓰려면: 평지·혼자 있는 적만(높이차 ≤ 0.5 m, 거리 ≤ 8 m), 다가갈 땐 NavMesh 경로, NoDead 켤 땐 낙하(y가 1 s에 3 m 넘게 떨어짐) 감지 시 즉시 중단 [cloud]
+
+### P-20 레이더 서버가 두 개 겹쳐 떠서 예전 서버가 데이터를 가로챔 (2026-09-28, [MoKa]/[cloud]) → #9
+- 증상: 새 코드로 `radar_server.py`를 켰는데 페이지에 게임 상태·Steam 칩이 `—`, 워프 카드 "off here". 예전 서버를 끈 직후 **다른 Claude Code 세션이 예전 서버(`-u radar_server.py`)와 예전 임시 발신기를 다시 띄웠고**, 둘 다 떠 있었음
+- 원인: 윈도우는 한쪽이 SO_REUSEADDR를 켜면(`HTTPServer` 기본) 같은 포트에 두 번째 bind가 **조용히 성공**함. 예전 서버가 UDP 47800(모든 스냅샷)을, 새 서버가 페이지를 줘서 옛 데이터가 새 페이지에 보임. 새 서버의 UDP 오류는 스레드 안이라 안 보였음
+- 해결 ([cloud]): `radar_server.py`가 **시작하자마자** HTTP·UDP를 `SO_EXCLUSIVEADDRUSE`로 잡고(`RadarHTTPServer`, `bind_udp`), 이미 쓰이면 바로 종료 코드 1 + 찾는 PowerShell 명령·다른 포트 안내. 새 서버가 먼저 떠 있으면 예전 코드 서버도 못 끼어듦. 지금 떠 있는 서버(예전 bind)를 상대로 두 번째 서버가 바로 멈추는 것 확인. `tests/radar_port_test.py`
+- 남은 것: 다른 세션이 레이더를 다시 띄우지 않게 — 레이더 서버·`radar.py watch`는 MoKa가 켜고 끔
 
 ---
 

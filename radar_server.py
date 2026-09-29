@@ -200,9 +200,32 @@ class State:
         return out
 
 
-def udp_loop(state: State, port: int) -> None:
+def _exclusive(sock: socket.socket) -> None:
+    """Windows lets a second socket bind a port already in use when either side sets SO_REUSEADDR (HTTPServer does), and
+    then the two servers split the traffic silently — 2026-09-28 an old radar_server.py kept UDP 47800 (every snapshot)
+    while the new one served the page, so the page showed old data. SO_EXCLUSIVEADDRUSE makes the second bind fail."""
+    if sys.platform == "win32":
+        sock.setsockopt(socket.SOL_SOCKET, getattr(socket, "SO_EXCLUSIVEADDRUSE", -5), 1)
+
+
+def bind_udp(port: int) -> socket.socket:
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    _exclusive(sock)
     sock.bind(("127.0.0.1", port))
+    return sock
+
+
+class RadarHTTPServer(ThreadingHTTPServer):
+    allow_reuse_address = sys.platform != "win32"      # elsewhere SO_REUSEADDR only skips TIME_WAIT; on Windows it shares
+
+    def server_bind(self):
+        _exclusive(self.socket)
+        super().server_bind()
+
+
+def udp_loop(state: State, port) -> None:
+    """port: a UDP port number, or a socket already bound with bind_udp (main binds first so a clash stops the server)."""
+    sock = port if isinstance(port, socket.socket) else bind_udp(port)
     while True:
         data, _ = sock.recvfrom(65535)
         try:
@@ -335,6 +358,14 @@ def main() -> None:
     ap.add_argument("--maps", default="m10_02_00_00,m10_01_00_00", help="NavMesh maps to draw (read from the game install)")
     ap.add_argument("--no-mesh", action="store_true", help="don't draw the NavMesh")
     a = ap.parse_args()
+    try:                                  # bind before anything else: a second server must stop here, not share the ports
+        srv = RadarHTTPServer(("127.0.0.1", a.http), None)
+        udp_sock = bind_udp(a.udp) if not a.replay else None
+    except OSError as e:
+        sys.exit(f"radar: port {a.http} (HTTP) or {a.udp} (UDP) already in use - another radar_server.py is running? ({e})\n"
+                 "  find it (PowerShell): Get-CimInstance Win32_Process -Filter \"Name='python.exe'\" | "
+                 "Where-Object CommandLine -match 'radar' | Select-Object ProcessId, CommandLine\n"
+                 "  or use other ports: --http 47802 --udp 47810")
     demo_props = [[6.0, 0.0, 1.0, False, "o1130_d2"], [7.0, 0.0, -1.5, False, "o1132_d3"], [-3.0, 0.0, 6.0, True, "o1230_d4"],
                   [2.0, 0.0, -7.0, False, "o1154_d5"]]
     demo_items = [[3.0, 0.0, 5.0, "soul", "Soul of a Lost Undead", [1]], [-6.0, 0.0, -2.0, "humanity", "Humanity", [2]],
@@ -357,7 +388,7 @@ def main() -> None:
         state.replay = radar_record.Replay(state, msgs, Path(a.replay).name).start()
         print(f"replay: {a.replay} — {len(msgs)} messages, {state.replay.status()['len']:.0f} s")
     else:
-        threading.Thread(target=udp_loop, args=(state, a.udp), daemon=True).start()
+        threading.Thread(target=udp_loop, args=(state, udp_sock), daemon=True).start()
         if not a.no_record and not a.demo:
             state.recorder = radar_record.Recorder()
             print(f"recording: {state.recorder.path}")
@@ -372,7 +403,7 @@ def main() -> None:
         threading.Thread(target=steam_loop, args=(state,), daemon=True).start()
     state.warp = radar_warp.Warper(lambda line: state.put({"type": "say", "t": time.time(), "line": line}),
                                    enabled=not (a.demo or a.replay))
-    srv = ThreadingHTTPServer(("127.0.0.1", a.http), make_handler(state))
+    srv.RequestHandlerClass = make_handler(state)
     print(f"radar: http://127.0.0.1:{a.http}  (UDP {a.udp}{', demo' if a.demo else ''})")
     try:
         srv.serve_forever()
