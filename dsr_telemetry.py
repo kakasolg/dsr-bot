@@ -429,10 +429,18 @@ class DSRTelemetry:
         return self.i32(pgd + 0x308) if pgd else None
 
     def right_weapon(self) -> Optional[int]:
-        """Right-hand weapon ID (PlayerGameData+0x328, Zweihander+5 = 350005)."""
+        """Right-hand weapon ID **in hand** (Zweihander+5 = 350005). Right slot k's ID is at PlayerGameData+0x328 + 8k,
+        the slot in hand is +0x310 (0 or 1).
+
+        2026-09-28: this used to read only slot 1 (+0x328). With the Bandit's Knife in slot 1 and the Battle Axe in slot 2
+        in hand, runs logged "무기: 밴딧 나이프" and fought with the knife's reach 1.3 m while swinging the axe (black-box
+        anims 303000 in 28 07:46 / 08:02). Found by D-pad → : +0x310 went 1 → 0 and the HUD showed the knife."""
         cb = self.q(self.static["ChrClassBase"])
         pgd = self.q(cb + 0x10) if cb else None
-        return self.i32(pgd + 0x328) if pgd else None
+        if not pgd:
+            return None
+        k = self.i32(pgd + 0x310)
+        return self.i32(pgd + 0x328 + 8 * (k if k in (0, 1) else 0))
 
     def event_flag(self, fid: int) -> Optional[bool]:
         """One entry of game records (event flags) — whether a treasure (ItemLotParam.ItemFlag) was picked up, boss/door/NPC state, etc.

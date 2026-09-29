@@ -26,6 +26,7 @@ class Weapon:
     startup: float | None = None
     active: float | None = None
     recovery: float | None = None
+    chain_gap: float = 0.2       # chained second swing starts this long after the first active window ends (Battle Axe measured 0.54)
     heavy_punish: bool = False   # heavy attack in a shield soldier's stagger window (when at or above duel.HEAVY_SP)
     max_dur: int | None = None   # max durability — below this ratio use repair powder (moves.repair). None = not checked
     note: str = ""
@@ -35,14 +36,15 @@ class Weapon:
         return None if self.startup is None else self.startup + self.active + self.recovery
 
     # the times below are used by moves.light (relative to the first R1). Derived from the three phases — formula checked against Claymore measurements:
-    # second R1 just before the active window ends (pressed at 0.45 s it's ignored, at 0.8 s it chains); the chained second swing starts at active end +0.2 s.
+    # second R1 just before the active window ends (pressed at 0.45 s it's ignored, at 0.8 s it chains); the chained second swing starts at
+    # active end + chain_gap (0.2 s for the Claymore; the Battle Axe waits 0.54 s — measured 2026-09-28).
     @property
     def chain_at(self) -> float:
         return 0.45 if self.startup is None else self.startup + self.active - 0.04
 
     @property
     def second_start(self) -> float:
-        return self.startup + self.active + 0.2
+        return self.startup + self.active + self.chain_gap
 
     @property
     def guard1(self) -> float:
@@ -76,9 +78,17 @@ ZWEIHANDER = Weapon("츠바이헨더", 350000, reach=2.3, combo=1, use_heavy=Tru
 
 # Battle Axe 701000 (Bandit starting weapon). user (2026-09-24): "the axe performs better than the broadsword — similar motion but more effective".
 # Wiki: STR 14 / DEX 8 required; light is a vertical chop (big stagger on humanoids), chains. Old notes (playbook-notes, reach.py): reach 1.8 m, Undead Asylum hollows in 2~3 hits.
-# reach set longer than the measured Broadsword (1.2), but the old 1.8 is optimistic — start at 1.5 and re-measure with reach.py on whiffs.
-BATTLE_AXE = Weapon("배틀 액스", 701000, reach=1.5, combo=2, use_heavy=False, two_hand=False, str_req=14, sp_min=55,
-                    note="약공 세로 찍기 2연타. 강공(R2 큰 내려찍기)은 아직 안 시험함 — 넘어뜨리면 방패병에 쓸 후보")
+# measured 2026-09-28 (+5, Knight bot, Firelink, experiments/swing_probe.py, 20+ air swings alike, anim 303000 → 303040):
+#   R1 → stamina −25 at 0.64 s (0.636~0.651), +0xA0 5/261/257 0.64~0.81 s → startup 0.64, active 0.17.
+#   holding LB: back to idle anim at 1.42 s. Without LB the anim stays 303040; +0xA0 turns 0x100021 at ~1.49 s and stamina
+#   refills from 1.6 s → recovery 0.68 (to 1.49 s, the longer of the two).
+#   2-hit chain: second R1 at 0.25~0.55 s ignored, 0.65~0.95 s chains, second blade always at ~1.99 s → chain_gap 0.54.
+# reach: black box of 40 runs 09-25~28 (experiments/knife_hits.py 303000 303999), foe distance at blade-out → HP drop:
+#   0.8 m 21/76 · 1.2 m 3/32 · 1.4 m 2/9 · 1.6 m 4/6 · 1.8 m 1/8 · 2.0 m 1/10 · ≥2.2 m 0/14, hits up to 1.9 m
+#   (low rates up close = shield blocks and side foes, see the tool's notes). Edge ≈ 1.9 m → reach 1.6 (edge − 0.3, as for the knife).
+BATTLE_AXE = Weapon("배틀 액스", 701000, reach=1.6, combo=2, use_heavy=False, two_hand=False, str_req=14, sp_min=55,
+                    startup=0.64, active=0.17, recovery=0.68, chain_gap=0.54,
+                    note="약공 세로 찍기 2연타, 스태미나 25/회. 강공(R2 큰 내려찍기)은 아직 안 시험함 — 넘어뜨리면 방패병에 쓸 후보")
 
 # Claymore 301000 (greatsword). user (2026-09-25): obtained in Undead Parish, "it's a better weapon than the battle axe, so use this from now on".
 # Wiki: STR 16 / DEX 10 required — STR is 16 now so it's one-handed (left-hand shield kept). One-handed light is a wide horizontal slash, so
