@@ -386,8 +386,11 @@ async function loadBonfires() {
   try {
     bonfireList = await (await fetch("/bonfires", {cache: "no-store"})).json();
     const sel = $("wbf"), keep = sel.value;
-    sel.replaceChildren(...bonfireList.map(b => { const o = document.createElement("option"); o.value = b.id; o.textContent = b.name; return o; }));
-    if (keep) sel.value = keep;
+    // no bonfire picked by default — the first one (by ID) got warped to when the list was left alone (2026-09-28)
+    const none = document.createElement("option");
+    none.value = ""; none.textContent = "choose a bonfire…"; none.disabled = true;
+    sel.replaceChildren(none, ...bonfireList.map(b => { const o = document.createElement("option"); o.value = b.id; o.textContent = b.name; return o; }));
+    sel.value = bonfireList.some(b => String(b.id) === keep) ? keep : "";
   } catch (e) {}
   setTimeout(loadBonfires, 30000);
 }
@@ -398,6 +401,7 @@ function warpBlock(g, st, w) {       // why the button is off — the server che
   if (!g || g.game !== "world") return "needs the player in the game";
   if (g.menu) return "close the in-game menu";
   if (!bonfireList.length) return "no lit bonfires";
+  if (!$("wbf").value) return "choose a bonfire";
   return "";
 }
 function gameStatus() {
