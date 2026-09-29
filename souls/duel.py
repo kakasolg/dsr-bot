@@ -34,6 +34,8 @@ CARE_RETRY = 3.0
 FINISH_KEEP_HP = 40     # if its HP is below this, don't retreat even when my HP is low (down to 12 %) (after dark sign the shield soldier went 10 → 85)
 FINISH_HP, FINISH_SP = 25, 15   # if its HP is within one light attack (measured 34–41), hit with as little as 15 stamina
 HEAVY_SP = 100           # heavy attack in a stagger opening only at this stamina or more (one heavy while guarding costs 90)
+WALL_R = 1.2             # a NavMesh border (wall or drop) this close to us or the foe → heavy_vertical weapons slam instead of the light
+WALL_HEAVY_SP = 60       # …when stamina is at least this (Battle Axe heavy −50, −20 more if it hits the ground)
 INTERRUPT_STARTUP_MAX = 0.45   # weapons with startup longer than this (claymore 0.68 s) can't interrupt a foe that started swinging — only hit idle foes first.
                                # the battle axe had almost no delay and interrupted, but using the same rule with the claymore, the top damage source was hollow (254010) (2026-09-25)
 INTERRUPT_S = 0.35       # if its attack started within this, hit first instead of blocking (the light attack lands sooner)
@@ -695,7 +697,7 @@ def rule_finish_first(F, T):
     if (T.c.hp <= FINISH_HP and a not in M.ATTACK and T.h <= F.weapon.reach and abs(T.dy) <= 1.0
             and not (foe is not None and foe.kick_when_idle and a == -1)
             and (T.p.sp or 0) >= FINISH_SP and F.mv.face(T.s, T.c, deg=30.0)):
-        hit = F.mv.light(T.s, T.c, n=1)
+        hit = _strike(F, T.s, T.c, n=1)
         F.record(hit)
         F.note("마무리", T.s, T.c)
         return F.killed_if(hit.dead)
@@ -755,6 +757,11 @@ def prep_linger(F, T):
         T.a = -1
     foe = F.foe
     T.room = foe is not None and foe.circle_behind and T.now >= F.edge_until and _room_behind(F.nm, T.p, T.c)
+    # 벽·좁은 통로가 우선 — 배틀 액스(heavy_vertical)면 뒤잡기로 돌지 않고 강공 ([MoKa] 2026-09-28: "벽, 좁은 통로가 우선 순위를 높여줘",
+    # 배틀 액스만 가능한 플레이, 다른 무기는 약공이 나음)
+    T.wall = _walled(F.nm, T.p, T.c) if F.weapon.heavy_vertical else None
+    if T.wall is not None:
+        T.room = False
     return None
 
 
@@ -768,7 +775,7 @@ def rule_hit_first(F, T):
                              and (w.startup or 0.0) <= INTERRUPT_STARTUP_MAX))
             and not _other_swinging(T.s, F.ptr)
             and F.mv.face(T.s, T.c, deg=30.0)):
-        hit = F.mv.light(T.s, T.c, n=w.combo, sp_second=w.sp_min)
+        hit = _strike(F, T.s, T.c, n=w.combo, sp_second=w.sp_min, swinging=a != -1)
         F.record(hit)
         F.note("먼저치기", T.s, T.c)
         F.log(f"      먼저 치기 → {hit.kind}×{hit.presses} 피해 {hit.dmg}, 옆 {hit.others}, 내 피해 {hit.taken}")
@@ -887,7 +894,7 @@ def rule_stagger_punish(F, T):
             if w.heavy_punish and foe.kind == "shield" and (p.sp or 0) >= HEAVY_SP:
                 hit = F.mv.heavy(T.s, T.c)
             else:
-                hit = F.mv.light(T.s, T.c, n=foe.punish_hits or w.combo, sp_second=w.sp_min)
+                hit = _strike(F, T.s, T.c, n=foe.punish_hits or w.combo, sp_second=w.sp_min)
             F.record(hit)
             F.note("휘청반격", T.s, T.c)
             F.log(f"      휘청 → {hit.kind}×{hit.presses} 피해 {hit.dmg}, 옆 {hit.others}, 내 피해 {hit.taken}")
@@ -910,7 +917,7 @@ def rule_evade(F, T):
                 F.mv.pad.move(*F.mv.stick_to(s, c.x, c.z, 0.8))
                 time.sleep(min(0.45, 0.12 + (h - w.reach) * 0.22))   # 2.5 m/s walk — for the remaining distance
                 F.mv.pad.move(0.0, 0.0)
-            hit = F.mv.light(s, c, n=w.combo, sp_second=w.sp_min)
+            hit = _strike(F, s, c, n=w.combo, sp_second=w.sp_min)
             F.record(hit)
             F.note("뒤치기", s, c)
             F.log(f"      헛친 뒤 → {hit.kind}×{hit.presses} 피해 {hit.dmg}, 내 피해 {hit.taken} ({h:.1f} m, {age:.2f} s)")
@@ -1035,7 +1042,7 @@ def rule_finish(F, T):
     A shield soldier standing with shield up blocks even the finisher (22 → 21 → 20, 114 counter) — kick instead."""
     if (T.c.hp <= FINISH_HP and (T.p.sp or 0) >= FINISH_SP and not (F.foe.kick_when_idle and T.a == -1)
             and F.mv.face(T.s, T.c, deg=30.0)):
-        hit = F.mv.light(T.s, T.c, n=1)
+        hit = _strike(F, T.s, T.c, n=1)
         F.record(hit)
         F.note("마무리", T.s, T.c)
         return F.killed_if(hit.dead)
@@ -1082,16 +1089,42 @@ def rule_backstab(F, T):
     return None
 
 
+def _walled(nm, p, c) -> float | None:
+    """Distance from us or the foe (whichever is closer) to a NavMesh border, if within WALL_R — else None."""
+    bd = getattr(nm, "border_dist", None)
+    if bd is None:
+        return None
+    try:
+        d = min(bd(p.x, p.y, p.z), bd(c.x, c.y, c.z))
+    except Exception:
+        return None
+    return d if d < WALL_R else None
+
+
+def _strike(F, s, c, n: int, sp_second=None, swinging: bool = False) -> "M.Hit":
+    """Our attack: the light (n swings), or for heavy_vertical weapons with a wall close to us or the foe, the vertical heavy —
+    a horizontal swing catches on the wall. Not while cutting into a foe's swing (heavy startup 0.86 s is too slow to interrupt)."""
+    w = F.weapon
+    wall = (_walled(F.nm, s.player, c) if w.heavy_vertical and not swinging and (s.player.sp or 0) >= WALL_HEAVY_SP else None)
+    if wall is not None:
+        # 좁은 통로·벽에 붙은 적: 가로 휘두르기는 벽에 걸린다 — 배틀 액스 강공은 수직이라 안 걸림 ([MoKa] 2026-09-28)
+        F.log(f"      벽 {wall:.1f} m — 강공(수직)")
+        return F.mv.heavy(s, c)
+    return F.mv.light(s, c, n=n, sp_second=sp_second)
+
+
 def rule_attack(F, T):
     """Default: kick an idle shield soldier looking at us (kick → light right away), else heavy or light per weapon."""
     s, c, a, w = T.s, T.c, T.a, F.weapon
-    if F.foe.kick_when_idle and a == -1 and T.behind_deg < 60 and T.now - F.kick_t > KICK_COOLDOWN:
+    if getattr(T, "wall", None) is not None and (s.player.sp or 0) >= WALL_HEAVY_SP:
+        hit = _strike(F, s, c, n=w.combo, sp_second=w.sp_min)          # before the shield soldier kick too
+    elif F.foe.kick_when_idle and a == -1 and T.behind_deg < 60 and T.now - F.kick_t > KICK_COOLDOWN:
         F.kick_t = T.now
         hit = F.mv.kick_combo(s, c, n=w.combo)
     elif w.use_heavy:
         hit = F.mv.heavy(s, c)
     else:
-        hit = F.mv.light(s, c, n=w.combo, sp_second=w.sp_min)
+        hit = _strike(F, s, c, n=w.combo, sp_second=w.sp_min)
     F.record(hit)
     F.note(hit.kind, s, c)
     F.log(f"      {hit.kind}×{hit.presses} → 피해 {hit.dmg}, 내 피해 {hit.taken}, 그놈 애니 {hit.e_anims[:4]}")

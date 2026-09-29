@@ -28,6 +28,7 @@ class Weapon:
     recovery: float | None = None
     chain_gap: float = 0.2       # chained second swing starts this long after the first active window ends (Battle Axe measured 0.54)
     heavy_punish: bool = False   # heavy attack in a shield soldier's stagger window (when at or above duel.HEAVY_SP)
+    heavy_vertical: bool = False # heavy is a vertical slam — use it instead of the light when a wall is close to us or the foe (duel.rule_attack)
     max_dur: int | None = None   # max durability — below this ratio use repair powder (moves.repair). None = not checked
     note: str = ""
 
@@ -93,10 +94,11 @@ ZWEIHANDER = Weapon("츠바이헨더", 350000, reach=2.3, combo=1, use_heavy=Tru
 #   no ground  → 303340, hitbox to ~1.0 s, can move ~1.93 s, idle 2.86 s
 #   second R2 at 0.4~0.8 s ignored, 1.0~1.4 s chains → second blade ~2.68 s. Samples: data/samples/swing-battle-axe-heavy-*.
 # [MoKa] 2026-09-28: 배틀 액스 강공은 **수직 내려찍기**라 좁은 통로·벽에 붙은 적에게 더 유리할 수 있음 (가로로 휘두르면 벽에 걸림).
-#   배틀 액스만의 특징 — 리치가 긴 다른 무기는 상황이 다름. 강공 규칙을 만들 때 무기마다 휘두르는 방향을 따로 둘 것 (아직 안 씀)
+#   배틀 액스만의 특징 — 리치가 긴 다른 무기는 상황이 다름 → heavy_vertical 로 무기마다 따로 둠. 산적은 강인도가 약해
+#   전에 몰랐던 상황이 나옴 — 좁은 통로·벽에 붙은 적에게 강공부터 적용 ([MoKa] 같은 날)
 BATTLE_AXE = Weapon("배틀 액스", 701000, reach=1.6, combo=2, use_heavy=False, two_hand=False, str_req=14, sp_min=55,
-                    startup=0.64, active=0.17, recovery=0.68, chain_gap=0.54,
-                    note="약공 세로 찍기 2연타, 스태미나 25/회. 강공(R2 큰 내려찍기)은 아직 안 시험함 — 넘어뜨리면 방패병에 쓸 후보")
+                    startup=0.64, active=0.17, recovery=0.68, chain_gap=0.54, heavy_vertical=True,
+                    note="약공 2연타, 스태미나 25/회. 강공(R2)은 수직 내려찍기 — 좁은 통로·벽에 붙은 적에게만 씀")
 
 # Claymore 301000 (greatsword). user (2026-09-25): obtained in Undead Parish, "it's a better weapon than the battle axe, so use this from now on".
 # Wiki: STR 16 / DEX 10 required — STR is 16 now so it's one-handed (left-hand shield kept). One-handed light is a wide horizontal slash, so
