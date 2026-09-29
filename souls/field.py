@@ -413,7 +413,7 @@ class Field:
         if e is not None and self.mv.tm.selected_item() != e:
             self.mv.select_item(e)                         # pre-select — so there are no 1~3 s of cycling slots when an opening comes
         self.reflex.nm = nm
-        want = self.style.grip
+        want = getattr(self, "grip_want", None) or self.style.grip   # grip_want: a caller's override (souls/asylum: two hands for the demon)
         if self.mv.tm.grip() not in (None, want):
             # on the first run (right after resting) one toggle + 0.5 s sometimes didn't switch it (2026-09-25, rush style 1st target
             # fought still at grip 1) — retry until the switch is actually confirmed

@@ -143,6 +143,22 @@ def test_resume_and_segments() -> None:
     print("ok  segment 4 ends before the upper fog, 5 runs to the crow; resume from the second bonfire / mid-walk")
 
 
+def test_two_hand() -> None:
+    f = make_field(World(player=(0.0, -49.4, 0.0)))
+    a = A.Asylum(f, nm=None, log=f.log)
+    g = {"v": 1, "toggles": 0}
+    a.tm = type("T", (), {"grip": lambda self: g["v"]})()
+    a.pad = type("P", (), {"two_hand_right": lambda self: g.update(v=3, toggles=g["toggles"] + 1)})()
+    sleep = A.time.sleep
+    A.time.sleep = lambda s: None
+    try:
+        assert a._two_hand("t") and g["toggles"] == 1 and f.grip_want == A.TWO_HAND
+        assert a._two_hand("t") and g["toggles"] == 1                     # already two-handed: no toggle (it would go back to one hand)
+    finally:
+        A.time.sleep = sleep
+    print("ok  two hands before the plunge (one toggle, none when already two-handed), kept for the duel via grip_want")
+
+
 class ClimbMv:
     """Snapshots whose y rises while the stick is pushed up."""
     def __init__(self, world, rate):
@@ -197,5 +213,6 @@ if __name__ == "__main__":
     test_keeps_human_pause()
     test_ready_and_last_stand()
     test_resume_and_segments()
+    test_two_hand()
     test_climb()
     print("전부 통과")

@@ -26,6 +26,7 @@ SEG_END = {1: "첫 화톳불", 2: "시작 장비 줍기 2", 3: "오스카 대화
 # 데몬: 위 안개벽을 지나면 곧바로 뛰어내리며 친다 — 발판에서 기다리면 ~8.5 s 뒤 데몬이 도약해 발판까지 친다
 # (boss/boss.py 9번째 죽음, 2026-09-29 구간 ④를 안개벽 뒤에서 끝냈다가 죽음) → 구간 ④는 안개벽 앞에서 끝
 PLUNGE_AT = "데몬 위 안개벽"
+TWO_HAND = 3             # tm.grip(): 3 = two-handed, 1 = one-handed
 DEMON_LIMIT = 240.0
 RESUME_NEAR = 5.0        # farther than this from the first step → start from the nearest step (after dying / a restart)
 # 데몬 처음 만남: 큰 방 문을 연 뒤부터 도망친 방 화톳불까지는 달리고, 데몬과 싸우지 않는다 (사람도 도망침)
@@ -364,6 +365,19 @@ class Asylum:
     def _demon_c(s):
         return None if s is None else next((c for c in s.chars if c.npc_param == DEMON and c.hp > 0), None)
 
+    def _two_hand(self, tag) -> bool:
+        """Two hands for the demon — plunge and light hit harder (boss/README.md; MoKa pressed Y right before jumping, recording
+        20260929_061447 at 423.9 s). Field.fight keeps it through grip_want (it resets the grip to the style's at every fight start)."""
+        self.f.grip_want = TWO_HAND
+        for _ in range(3):
+            if self.tm.grip() == TWO_HAND:
+                break
+            self.pad.two_hand_right()
+            time.sleep(0.5)
+        g = self.tm.grip()
+        self.log(f"   {tag} 양손 잡기: grip {g}{'' if g == TWO_HAND else ' — 안 바뀜'}")
+        return g == TWO_HAND
+
     def _plunge(self, tag) -> str:
         """After the upper fog: go as soon as the demon faces us (or starts its leap 3023), stick toward it, R1 every 0.15 s
         while actually falling (R1 before the drop is eaten — boss.py 10th try). The fall quit-out is off meanwhile (~10 m drop)."""
@@ -381,6 +395,7 @@ class Asylum:
             self.log(f"   {tag} 떨어지며 치기: 데몬 안 보임")
             return "fail"
         y0, hp0 = s.player.y, d.hp
+        self._two_hand(tag)
         quit_ok, self.f.esc.quit_ok = self.f.esc.quit_ok, False
         pressed_t, last_rb, t1 = None, 0.0, time.time()
         try:
@@ -420,9 +435,12 @@ class Asylum:
         for k in range(4):
             d = self._demon_c(self.mv.snap(40.0))
             if d is None:
+                self.f.grip_want = None
                 self.log(f"   {tag} 데몬 처치")
                 return "ok"
             r = self.f.fight(d.ptr, self.nm, f"{tag} 데몬 ({k + 1})", desperate=True, limit=DEMON_LIMIT)
             if r.result == "me_dead" or not self.f.alive():
+                self.f.grip_want = None
                 return "dead"
+        self.f.grip_want = None                            # the next fights go back to the style's grip
         return "ok" if self._demon_c(self.mv.snap(40.0)) is None else "fail"
