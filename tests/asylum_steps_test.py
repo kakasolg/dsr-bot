@@ -38,7 +38,7 @@ def test_build() -> None:
         ws.append(w(8000 + i * 200, (8.0 + i * 0.3, 5.0, 0.0), enemies=[(1, 250000, 75 - min(i, 2) * 40)]))
     ws.append(w(10400, (60.0, 5.0, 0.0)))
     on_mesh = lambda x, y, z: not (x == 8.0 and 0.0 < y < 5.0)
-    steps = A.build(ws, pads, on_mesh)
+    steps = A.build(ws, pads, on_mesh, mks=[{"k": "mk", "ms": 4200}])
     kinds = [s["type"] for s in steps]
     assert kinds[0] == "walk" and steps[0]["run"] and steps[0]["pts"][-1][0] >= 6.0, steps[0]
     pr = next(s for s in steps if s["type"] == "press")
@@ -50,6 +50,8 @@ def test_build() -> None:
     fi = [s for s in steps if s["type"] == "fight"]
     assert len(fi) == 1 and fi[0]["npc"] == 250000 and fi[0]["killed"], fi
     assert kinds[-1] == "jump" and steps[-1]["to"][0] == 60.0, steps[-1]
+    mk = [s for s in steps if s["type"] == "mark"]
+    assert len(mk) == 1 and mk[0]["n"] == 1 and mk[0]["pos"][0] == 8.0, mk
     assert not any(k.startswith("_") for s in steps for k in s), steps
     print(f"ok  {kinds}")
 

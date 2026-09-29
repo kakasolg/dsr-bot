@@ -14,6 +14,7 @@ retry" doesn't apply, so the human run is the template. Steps, in order:
   climb     {"from", "to"}                        off-mesh vertical move (ladder) — A at the bottom, then up
   fight     {"pos", "npc", "secs"}                an enemy fought here (its HP dropped) — the bot uses its own duel
   jump      {"from", "to"}                        position jump > 15 m without walking (crow / warp) — ends the recording's useful part
+  mark      {"pos", "n"}                          F9 pressed by the human (n = 1, 2, … in the recording) — what it was is written in MARKS
 
 Labels are guesses from where they happen; MoKa checks them (ROADMAP 수용소). Raw values only, no game memory writes.
 """
@@ -68,7 +69,7 @@ def label_at(pos) -> str:
 
 
 def load(path: Path):
-    ws, pads = [], []
+    ws, pads, mks = [], [], []
     for ln in path.open(encoding="utf-8"):
         try:
             d = json.loads(ln)
@@ -78,9 +79,12 @@ def load(path: Path):
             ws.append(d)
         elif d.get("k") == "pad":
             pads.append(d)
+        elif d.get("k") in ("mk", "marker"):
+            mks.append(d)
     ws.sort(key=lambda d: d["ms"])
     pads.sort(key=lambda d: d["ms"])
-    return ws, pads
+    mks.sort(key=lambda d: d["ms"])
+    return ws, pads, mks
 
 
 def presses(pads) -> list[tuple[float, str]]:
@@ -92,10 +96,11 @@ def presses(pads) -> list[tuple[float, str]]:
     return out
 
 
-def build(ws, pads, on_mesh, until_s: float | None = None) -> list[dict]:
-    if until_s is not None:
-        ws = [d for d in ws if d["ms"] <= until_s * 1000]
-        pads = [d for d in pads if d["ms"] <= until_s * 1000]
+def build(ws, pads, on_mesh, until_s: float | None = None, mks=(), from_s: float | None = None) -> list[dict]:
+    lo = -1.0 if from_s is None else from_s * 1000
+    hi = float("inf") if until_s is None else until_s * 1000
+    ws = [d for d in ws if lo <= d["ms"] <= hi]
+    pads = [d for d in pads if lo <= d["ms"] <= hi]
     wt = [d["ms"] for d in ws]
     pt = [d["ms"] for d in pads]
 
@@ -145,6 +150,9 @@ def build(ws, pads, on_mesh, until_s: float | None = None) -> list[dict]:
                     ev.append((d["ms"], {"type": "fight", "pos": pos_at(d["ms"]), "npc": e["npc"], "_id": k, "_t": d["ms"],
                                          "_t0": d["ms"], "secs": 0.0, "killed": e["hp_raw"] <= 0, "t": round(d["ms"] / 1000, 1)}))
             hp[k] = e["hp_raw"]
+    for i, m in enumerate(mks, 1):
+        if lo <= m["ms"] <= hi:
+            ev.append((m["ms"], {"type": "mark", "n": i, "pos": pos_at(m["ms"]), "t": round(m["ms"] / 1000, 1)}))
     for a, b in zip(ws, ws[1:]):
         if math.dist(a["p"]["pos"], b["p"]["pos"]) > JUMP_M:
             ev.append((b["ms"], {"type": "jump", "from": pos_at(a["ms"]), "to": pos_at(b["ms"]), "t": round(b["ms"] / 1000, 1)}))
@@ -189,7 +197,7 @@ def build(ws, pads, on_mesh, until_s: float | None = None) -> list[dict]:
     for s in steps:
         for k in [k for k in s if k.startswith("_")]:
             del s[k]
-        if s["type"] in ("press", "menu", "climb", "fight"):
+        if s["type"] in ("press", "menu", "climb", "fight", "mark"):
             s["label"] = label_at(s.get("pos") or s.get("from"))
     return steps
 
@@ -199,11 +207,15 @@ def main() -> None:
     ap.add_argument("recording")
     ap.add_argument("--out", default=str(ROOT / "data" / "routes" / "asylum-fresh.json"))
     ap.add_argument("--until", type=float, default=None, help="seconds — ignore the recording after this")
+    ap.add_argument("--from", dest="from_s", type=float, default=None, help="seconds — ignore the recording before this (character creation)")
     a = ap.parse_args()
     import navmesh
     nm = navmesh.Navmesh(MAP)
-    ws, pads = load(Path(a.recording))
-    steps = build(ws, pads, nm.on_mesh, a.until)
+    ws, pads, mks = load(Path(a.recording))
+    if a.from_s is None:                                   # skip character creation / title — start at the first frame inside the Asylum
+        first = next((d for d in ws if nm.on_mesh(*d["p"]["pos"])), None)
+        a.from_s = first["ms"] / 1000 if first else None
+    steps = build(ws, pads, nm.on_mesh, a.until, mks=mks, from_s=a.from_s)
     out = {"name": "asylum-fresh", "map": MAP, "source": Path(a.recording).name,
            "note": "asylum_steps.py — 사람 첫 통과 녹화에서 뽑음. label 은 추정 ([MoKa] 확인 전)", "steps": steps}
     Path(a.out).write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
@@ -222,6 +234,8 @@ def main() -> None:
             print(f"  climb  {s['t']:6.1f}s {s['from']} → {s['to']}  {s['label']}")
         elif s["type"] == "fight":
             print(f"  fight  {s['t']:6.1f}s npc {s['npc']} {s['secs']} s {'killed' if s['killed'] else ''}  {s['label']}")
+        elif s["type"] == "mark":
+            print(f"  F9 #{s['n']:<2} {s['t']:6.1f}s {s['pos']}  {s['label']}")
         else:
             print(f"  {s['type']:6s} {s.get('t')}s {s.get('from')} → {s.get('to')}")
 
