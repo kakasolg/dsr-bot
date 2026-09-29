@@ -220,28 +220,35 @@ def test_demon_fight() -> None:
     sleep = A.time.sleep
     A.time.sleep = lambda s: None
     try:
-        # behind it (demon faces −z at heading 0; we are at +z), 2.5 m → keep hitting, no guard, until it dies
+        # behind it (demon faces −z at heading 0; we are at +z), 2.5 m → hit and run, no guard, until it dies
         w = _demon_world((0.0, 198.0, -2.5), 0.0)
         f = make_field(w); f.alive = lambda: True
         a = A.Asylum(f, nm=None, log=f.log)
-        a.mv = DemonMv(w); a.pad = a.mv
-        assert a._demon("t") == "ok" and len(a.mv.lights) == 3 and not any(g for _, g in a.mv.lights), a.mv.lights
+        a.mv = DemonMv(w, lethal=1); a.pad = a.mv
+        assert a._demon("t") == "ok" and len(a.mv.lights) == 1 and not a.mv.lights[0][1], a.mv.lights
         assert a.mv.guard_ok is True                                         # guard setting restored afterwards
-        # in front of it (it faces us) → no swing, circle at DEMON_ORBIT_R instead
+        # right in front of it (it faces us, we're at −z): circle wide toward its back, 45° per tick, at DEMON_WIDE_R
         w = _demon_world((0.0, 198.0, 2.5), 0.0)
-        f = make_field(w); f.alive = lambda: True
+        f = make_field(w)
         a = A.Asylum(f, nm=None, log=f.log)
         a.mv = DemonMv(w); a.pad = a.mv
-        a._demon_move(w.snapshot(), w.chars[9], away=False, front=True)
+        a._demon_move(w.snapshot(), w.chars[9], "in", A.DEMON_IN_R)
         tx, tz = a.mv.moves[-1]
-        assert abs(math.hypot(tx - 0.0, tz - 2.5) - A.DEMON_ORBIT_R) < 0.05, (tx, tz)
-        # butt slam → run straight out beyond DEMON_SLAM_R
-        a._demon_move(w.snapshot(), w.chars[9], away=True)
+        assert abs(math.hypot(tx, tz - 2.5) - A.DEMON_WIDE_R) < 0.05, (tx, tz)
+        assert abs(abs(math.degrees(math.atan2(tx, tz - 2.5))) - 135.0) < 1.0, (tx, tz)   # from −z (180°) 45° round
+        # already behind (we at +z of a demon facing −z... i.e. demon at −2.5 facing −z): go in right behind at DEMON_IN_R
+        w = _demon_world((0.0, 198.0, -2.5), 0.0, me=(0.5, 198.0, 3.0))
+        a.mv = DemonMv(w); a.pad = a.mv
+        a._demon_move(w.snapshot(), w.chars[9], "in", A.DEMON_IN_R)
         tx, tz = a.mv.moves[-1]
-        assert math.hypot(tx, tz - 2.5) > A.DEMON_SLAM_R and tz < 2.5, (tx, tz)
+        assert abs(tx) < 0.05 and abs(tz - (-2.5 + A.DEMON_IN_R)) < 0.05, (tx, tz)
+        # butt slam / after a swing → straight out
+        a._demon_move(w.snapshot(), w.chars[9], "out", A.DEMON_SLAM_R + 1.0)
+        tx, tz = a.mv.moves[-1]
+        assert math.hypot(tx, tz + 2.5) > A.DEMON_SLAM_R, (tx, tz)
     finally:
         A.time.sleep = sleep
-    print("ok  demon: hits from behind with no guard until it dies; in front → circles at 3.8 m; butt slam → runs out past 8.4 m")
+    print("ok  demon: hit and run from behind with no guard; in front → circles wide (5.5 m, 45°/tick) toward its back; behind → in to 2.6 m")
 
 
 class ClimbMv:

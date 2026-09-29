@@ -32,16 +32,21 @@ TWO_HAND = 3             # tm.grip(): 3 = two-handed, 1 = one-handed
 FOG_CENTER = {PLUNGE_AT: (3.55, 210.11, -34.72)}
 FOG_TOL = 0.15
 DEMON_LIMIT = 240.0
-# 데몬 싸움 — 가드·구르기 안 함 ([MoKa]: "가드 무조건 밀리지", boss/README.md 이긴 대본). 등 뒤·옆에서 붙어 계속 치고, 앞이면 크게 돌아 등 쪽으로
-# (뒤잡기처럼), 점프 엉덩방아(3008, 4.05 s 범위)는 밖으로 달림. 녹화: 사람은 2.0~3.5 m 에서 침 (데몬 몸이 커서 더 못 붙음)
-DEMON_HIT_R = 3.2        # swing when the demon is within this (horizontal, center) and we're off its front
-DEMON_BEHIND_DEG = 100.0 # "off its front" = more than this from the demon's facing
-DEMON_BACK_R = 2.6       # where to stand behind it
-DEMON_ORBIT_R = 3.8      # circle at this radius when in front — never cut through its front
-DEMON_SLAM = 3008        # jump butt slam — run out of DEMON_SLAM_R until it lands
+# 데몬 싸움 — 가드·구르기 안 함 ([MoKa]: "가드 무조건 밀리지"; "계속 때리던가, 뒤잡 하듯이 보스 뒤로 돌던가").
+# 사람 두 녹화의 약공 9번: 거리 2.0~3.5 m, 데몬 정면에서 9~158°(대부분 옆 60~100°), 거의 매번 한 대 치고 6~7 m 밖으로 빠졌다가 옆으로
+# 다시 들어감. 첫 봇 판은 "100° 넘게 뒤일 때만" 치게 해서 한 대도 못 치고 3.8 m 로 돌기만 하다 정면(0~12°)에서 회전 공격에 맞아 죽음
+DEMON_HIT_R = 3.5        # swing within this (horizontal, to its center — its body is big, 2 m is about as close as it gets)
+DEMON_SIDE_DEG = 45.0    # …when we're at least this far off its facing, or it's standing still (anim -1)
+DEMON_BACK_DEG = 110.0   # "behind" = at least this far off its facing — only then step in close
+DEMON_WIDE_R = 5.5       # not behind yet: circle at this radius toward its back ([MoKa]: "뒤로 크게 돌았어야 했어" — 3.8 m was too
+DEMON_ORBIT_STEP = 45.0  #   tight, it kept turning to face us), aiming this many degrees further round each tick
+DEMON_IN_R = 2.6         # behind it: go in to this and swing
+DEMON_OUT_R = 6.5        # after each swing run out to this, then come back in (hit and run)
+DEMON_OUT_S = 2.5        # …for at most this long
+DEMON_SLAM = 3008        # jump butt slam — run out of DEMON_SLAM_R when it starts
 DEMON_SLAM_R = 8.4
 DEMON_SLAM_S = 4.3
-DEMON_ESTUS_HP = 0.35    # drink below this when the demon is DEMON_ESTUS_R away and not swinging
+DEMON_ESTUS_HP = 0.4     # drink below this when the demon is DEMON_ESTUS_R away and not swinging
 DEMON_ESTUS_R = 6.0
 RESUME_NEAR = 5.0        # farther than this from the first step → start from the nearest step (after dying / a restart)
 # 데몬 처음 만남: 큰 방 문을 연 뒤부터 도망친 방 화톳불까지는 달리고, 데몬과 싸우지 않는다 (사람도 도망침)
@@ -466,11 +471,12 @@ class Asylum:
         return "ok" if landed else "fail"
 
     def _demon(self, tag) -> str:
-        """The Asylum Demon without the field duel (its guard gets pushed through): stay off its front, keep hitting from
-        behind/side, circle wide when in front, run from the butt slam. Two hands (grip_want) and no guard meanwhile."""
+        """The Asylum Demon without the field duel (its hits push through the guard): hit and run like MoKa — one light from its
+        side (or when it stands still) within DEMON_HIT_R, then out to DEMON_OUT_R, back in at its side. Run from the butt slam.
+        Two hands (grip_want) and no guard meanwhile."""
         guard_ok, self.mv.guard_ok = getattr(self.mv, "guard_ok", True), False
-        t0, hits, dealt0 = time.time(), 0, None
-        slam_until = 0.0
+        t0, hits = time.time(), 0
+        slam_until, out_until, prev_anim = 0.0, 0.0, None
         try:
             while time.time() - t0 < DEMON_LIMIT:
                 if not self.f.alive():
@@ -483,31 +489,35 @@ class Asylum:
                 if d is None:
                     self.log(f"   {tag} 데몬 처치 — {time.time() - t0:.0f} s, 약공 {hits}번")
                     return "ok"
-                dealt0 = dealt0 if dealt0 is not None else d.hp
                 p = s.player
                 h = M.horiz(p, d)
                 off = abs(math.degrees(M.rel_angle(d, p))) if d.heading is not None else 180.0   # 0 = right in front of it
                 a = d.anim if d.anim is not None else -1
                 now = time.time()
-                if a == DEMON_SLAM and now >= slam_until:
+                if a == DEMON_SLAM and prev_anim != DEMON_SLAM:  # the anim id lingers after the move — only its start counts
                     slam_until = now + DEMON_SLAM_S
+                prev_anim = a
                 if now < slam_until and h < DEMON_SLAM_R:
-                    self._demon_move(s, d, away=True)
+                    self._demon_move(s, d, "out", DEMON_SLAM_R + 1.0)
+                    continue
+                if now < out_until and h < DEMON_OUT_R:
+                    self._demon_move(s, d, "out", DEMON_OUT_R + 0.5)
                     continue
                 if p.hp < p.max_hp * DEMON_ESTUS_HP and h > DEMON_ESTUS_R and a not in M.ATTACK:
                     self.pad.sprint(False)
                     self.pad.neutral()
-                    r = self.mv.drink(lambda sn: (self._demon_c(sn) is None or M.horiz(sn.player, self._demon_c(sn)) > DEMON_ESTUS_R - 1.0))
+                    r = self.mv.drink(lambda sn: self._demon_c(sn) is None or M.horiz(sn.player, self._demon_c(sn)) > DEMON_ESTUS_R - 1.5)
                     self.log(f"   {tag} 데몬 싸움 중 에스트: {r}")
                     continue
-                if h <= DEMON_HIT_R and off >= DEMON_BEHIND_DEG:
+                if h <= DEMON_HIT_R and (off >= DEMON_SIDE_DEG or a == -1):
                     self.pad.sprint(False)
                     if self.mv.face(s, d, deg=35.0):
                         hit = self.mv.light(s, d, n=1, sp_second=999)
                         hits += 1
-                        self.events("demon_hit", dmg=hit.dmg, taken=hit.taken, h=round(h, 2), off=round(off))
+                        out_until = time.time() + DEMON_OUT_S
+                        self.events("demon_hit", dmg=hit.dmg, taken=hit.taken, h=round(h, 2), off=round(off), anim=a)
                     continue
-                self._demon_move(s, d, away=False, front=off < DEMON_BEHIND_DEG)
+                self._demon_move(s, d, "in", DEMON_IN_R)
             return "fail"
         finally:
             self.pad.sprint(False)
@@ -515,23 +525,26 @@ class Asylum:
             self.mv.guard_ok = guard_ok
             self.f.grip_want = None
 
-    def _demon_move(self, s, d, away: bool, front: bool = False) -> None:
-        """One stick tick: away = straight out (butt slam); front = circle at DEMON_ORBIT_R toward its back (the shorter way);
-        else run to the spot DEMON_BACK_R behind it."""
+    def _demon_move(self, s, d, how: str, r_to: float) -> None:
+        """One stick tick. out = straight away from it to r_to. in = behind it (DEMON_BACK_DEG off its facing) → step in to r_to
+        right behind; not behind yet → circle wide (DEMON_WIDE_R) toward its back the shorter way round."""
         p = s.player
         dx, dz = p.x - d.x, p.z - d.z
         r = math.hypot(dx, dz) or 1e-6
-        if away:
-            tx, tz = d.x + dx / r * (DEMON_SLAM_R + 1.0), d.z + dz / r * (DEMON_SLAM_R + 1.0)
-        elif front:
-            fx, fz = heading_vec(d.heading)                # the demon's facing; its back is −(fx, fz)
-            side = 1.0 if (fx * dz - fz * dx) > 0 else -1.0  # turn the way that reaches its back sooner
-            ang = math.atan2(dx, dz) + side * math.radians(50)
-            tx, tz = d.x + math.sin(ang) * DEMON_ORBIT_R, d.z + math.cos(ang) * DEMON_ORBIT_R
+        if how == "out":
+            tx, tz = d.x + dx / r * r_to, d.z + dz / r * r_to
         else:
             fx, fz = heading_vec(d.heading) if d.heading is not None else (0.0, 1.0)
-            tx, tz = d.x - fx * DEMON_BACK_R, d.z - fz * DEMON_BACK_R
+            back = math.atan2(-fx, -fz)                    # direction from its center to right behind it
+            cur = math.atan2(dx, dz)
+            diff = (back - cur + math.pi) % (2 * math.pi) - math.pi
+            if abs(math.degrees(diff)) <= 180.0 - DEMON_BACK_DEG:
+                ang, rr = back, r_to
+            else:
+                ang = cur + math.copysign(min(abs(diff), math.radians(DEMON_ORBIT_STEP)), diff)
+                rr = DEMON_WIDE_R
+            tx, tz = d.x + math.sin(ang) * rr, d.z + math.cos(ang) * rr
         if s.cam_yaw is not None:
-            self.pad.sprint(away or front or math.hypot(tx - p.x, tz - p.z) > 3.0)
+            self.pad.sprint(how == "out" or math.hypot(tx - p.x, tz - p.z) > 3.0)
             self.pad.move(*self.mv.stick_to(s, tx, tz, 1.0))
         time.sleep(0.05)
