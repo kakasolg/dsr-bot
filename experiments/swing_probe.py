@@ -1,7 +1,8 @@
 """Air-swing timing of the equipped right-hand weapon — startup · active · recovery for souls/weapons.py.
 
-  python experiments/swing_probe.py [trials] [guard]   (BOT_GAME=dsr, stand somewhere with no enemy within 12 m)
+  python experiments/swing_probe.py [trials] [guard] [heavy]   (BOT_GAME=dsr, stand somewhere with no enemy within 12 m)
   guard: hold LB (shield) through the swing — how moves.light attacks with a shield (anim 425000 for the knife, not 203000)
+  heavy: R2 (pad.heavy, stick released) instead of R1 — longer window, chain test with a second R2
 
 Per trial: wait for full stamina, R1 once into the air, then read my anim, stamina and anim-struct +0xA0 as fast as
 pymem allows for 2.5 s. Then the chain test: R1, second R1 after a delay, does a second swing come out (second stamina drop)?
@@ -32,13 +33,22 @@ from dsr_telemetry import OFF_SP
 ACTIVE_VALS = (5, 257)
 WINDOW = 2.5
 CHAIN_DELAYS = [0.25, 0.35, 0.45, 0.55, 0.65, 0.75, 0.85, 0.95]
+HEAVY_WINDOW = 3.5
+HEAVY_CHAIN_DELAYS = [0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6]
 
 
 class Probe:
-    def __init__(self, guard: bool = False):
+    def __init__(self, guard: bool = False, heavy: bool = False):
         self.tm = dsr_telemetry.DSRTelemetry({})
         self.pad = control.Pad()
         self.guard = guard
+        self.heavy = heavy
+
+    def press(self):
+        if self.heavy:
+            self.pad.heavy()                    # blocks for the trigger hold (0.12 s) — startups are far longer
+        else:
+            self.pad.tap(control.B.XUSB_GAMEPAD_RIGHT_SHOULDER, 0.06, stick_ok=True)
 
     def read(self):
         tm = self.tm
@@ -67,12 +77,12 @@ class Probe:
         idle = self.read()
         rows = [(0.0,) + idle]
         t0 = time.perf_counter()
-        self.pad.tap(control.B.XUSB_GAMEPAD_RIGHT_SHOULDER, 0.06, stick_ok=True)
+        self.press()
         sent2 = second_at is None
         last = idle
-        while (t := time.perf_counter() - t0) < WINDOW + (second_at or 0):
+        while (t := time.perf_counter() - t0) < (HEAVY_WINDOW if self.heavy else WINDOW) + (second_at or 0):
             if not sent2 and t >= second_at:
-                self.pad.tap(control.B.XUSB_GAMEPAD_RIGHT_SHOULDER, 0.06, stick_ok=True)
+                self.press()
                 sent2 = True
             self.pad.release_due()
             cur = self.read()
@@ -104,7 +114,7 @@ def summarize(idle, rows):
 
 def main():
     n = int(sys.argv[1]) if len(sys.argv) > 1 else 6
-    pr = Probe(guard="guard" in sys.argv[2:])
+    pr = Probe(guard="guard" in sys.argv[2:], heavy="heavy" in sys.argv[2:])
     control.focus_game()
     s = pr.tm.snapshot(within=1.0)
     print(f"무기 {pr.tm.right_weapon()}  SP {s.player.sp}/{s.player.max_sp}  위치 ({s.player.x:.1f},{s.player.y:.1f},{s.player.z:.1f})")
@@ -125,7 +135,7 @@ def main():
             if end: ends.append(end)
             time.sleep(0.5)
         print("\n── 2타 연결 (두 번째 R1 시각 → 두 번째 스태미나 떨어짐)")
-        for d in CHAIN_DELAYS:
+        for d in (HEAVY_CHAIN_DELAYS if pr.heavy else CHAIN_DELAYS):
             if not pr.safe():
                 print("적 접근 — 중단"); break
             idle, rows = pr.trial(second_at=d)

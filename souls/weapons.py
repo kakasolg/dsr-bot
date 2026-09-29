@@ -86,6 +86,12 @@ ZWEIHANDER = Weapon("츠바이헨더", 350000, reach=2.3, combo=1, use_heavy=Tru
 # reach: black box of 40 runs 09-25~28 (experiments/knife_hits.py 303000 303999), foe distance at blade-out → HP drop:
 #   0.8 m 21/76 · 1.2 m 3/32 · 1.4 m 2/9 · 1.6 m 4/6 · 1.8 m 1/8 · 2.0 m 1/10 · ≥2.2 m 0/14, hits up to 1.9 m
 #   (low rates up close = shield blocks and side foes, see the tool's notes). Edge ≈ 1.9 m → reach 1.6 (edge − 0.3, as for the knife).
+# heavy (R2, not used yet — use_heavy False), measured 2026-09-28 same way (swing_probe.py heavy; MoKa: heavy hits harder and
+# staggers more often; the overhead slam hitting the ground is normal use). anim 303300, blade out at 0.86 s (0.852~0.868),
+# stamina −50. Two endings even on flat ground (heading 0.79 at the Firelink bonfire, NavMesh |dy| ≤ 0.15 m within 4 m):
+#   ground hit → 303150, another −20 stamina, can move ~1.44 s, idle 1.61 s (on the slope up to the ramp nearly every slam)
+#   no ground  → 303340, hitbox to ~1.0 s, can move ~1.93 s, idle 2.86 s
+#   second R2 at 0.4~0.8 s ignored, 1.0~1.4 s chains → second blade ~2.68 s. Samples: data/samples/swing-battle-axe-heavy-*.
 BATTLE_AXE = Weapon("배틀 액스", 701000, reach=1.6, combo=2, use_heavy=False, two_hand=False, str_req=14, sp_min=55,
                     startup=0.64, active=0.17, recovery=0.68, chain_gap=0.54,
                     note="약공 세로 찍기 2연타, 스태미나 25/회. 강공(R2 큰 내려찍기)은 아직 안 시험함 — 넘어뜨리면 방패병에 쓸 후보")
