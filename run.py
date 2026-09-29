@@ -172,7 +172,7 @@ def main() -> None:
         log.event("char", stats=st, equip=eq)
     except Exception as ex:
         log(f"캐릭터 상태 읽기 실패: {ex!r}")
-    ms = missions.Missions(fld, nms, log=log)
+    ms = missions.Missions(fld, nms, log=log, lure=not a.no_lure)
     try:
         if a.cmd == "burg-bonfire":
             r = ms.burg_bonfire()

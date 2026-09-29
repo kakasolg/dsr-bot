@@ -960,6 +960,9 @@ class Field:
                     lr = self.lure(c.ptr, e["pos"], nm, f"#{i}", arena=arena, lure_at=la)
                     lure_n[i] = lure_n.get(i, 0) + 1
                     self.log(f"   #{i} 끌어오기 {lure_n[i]}/{HOLD_TRIES}: {lr}")
+                    if lr == "no_knife":
+                        lure = self._no_knife()
+                        continue
                     if lr == "dead":
                         pending.pop(0)
                     elif lr != "lured":
@@ -984,6 +987,9 @@ class Field:
             if lure and k == 0 and e.get("lure", True) and not la.get("hold"):
                 lr = self.lure(c.ptr, e["pos"], nm, f"#{i}", arena=arena, lure_at=e.get("lure_at"))
                 self.log(f"   #{i} 끌어오기: {lr}")
+                if lr == "no_knife":
+                    lure = self._no_knife()
+                    continue
                 tried[i] = 1
                 if lr == "dead":
                     pending.pop(0)
@@ -1026,6 +1032,12 @@ class Field:
                  f"raw HP {hp}, 위치 {pos}, 거리 {dist} m). 찾아가지 않는다")
         self.events("deferred_unreachable", label=i, npc=e["npc"], handle=b.get("handle"), gen=b.get("gen"),
                     hp=hp, pos=pos, dist=dist, lure_tries=2 * HOLD_TRIES)
+
+    def _no_knife(self) -> bool:
+        # 나이프가 없거나 퀵 슬롯에 없으면 다음 번에도 없다 — 예전엔 '이번엔 안 됨'으로 세서 8 s 기다리기를 3번 반복하고
+        # 방패병을 맨 뒤로 미뤘다 (2026-09-28 Bandit Bot, 나이프 0개: 25 s 버리고 셋이 한꺼번에 붙어 사망)
+        self.log("   나이프 없음 — 이번 정리는 끌어오기 없이 걸어가 붙는다")
+        return False
 
     def _clear_old(self, targets: list[dict], nm, tries: int = 3, arena=None, lure: bool = False) -> str:
         """(old) One at a time in spawn-map order. targets = [{"npc":…, "pos":[x,y,z]}, …].

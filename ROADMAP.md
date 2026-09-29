@@ -35,6 +35,7 @@
 - [x] [cloud] 계획 경로 vs 실제 궤적: 봇이 실행마다 `data/runs/<시각>_<이름>.track.jsonl`(2 Hz 위치·HP·근처 적, 계획 경로는 바뀔 때만, 로그 줄) 기록 — 레이더 서버 없이도. `track_report.py`: 걷기마다 걸린 시간·계획/실제 거리·경로에서 벗어난 거리·끝 도착 여부·**멈칫**(6 m 안 적 없이 1 s 넘게 0.3 m/s 미만), 여러 실행이면 멈칫 자리별 실행마다 초. 레이더 녹화(`data/radar/*.jsonl`)도 읽음. `tests/track_report_test.py`
 - [x] [cloud] `hotspots.py` 기본을 "이번 실행 vs 이전"으로: NEW·AGAIN·GONE만 (옛 전체 목록은 `--all`)
 - [ ] [win] 봇 1번 실행 → `python track_report.py`·`python hotspots.py` 결과와 track 파일을 `data/samples/`에 올림. 오늘 레이더 녹화(`data/radar/20260927_191338.jsonl` 등)에도 `python track_report.py --quiet <파일>` 돌려 결과 첨부 — 통로 입구 멈칫이 숫자로 나오는지 (P-17 기록용)
+- [x] [win] **새 캐릭터로 지금까지 만든 것 확인** ([MoKa] 2026-09-28): 산적 `Bandit Bot` (SL 7 VIT 15, 배틀 액스 701000, 거미 방패, 투척 나이프 0). 수용소는 [MoKa]가 직접 플레이하며 `observe_record.py` 녹화(`data/observe/20260928_221908.jsonl`, 393 s, 20 MB 로컬) — 감방 → 불의 제전 328 s, **수용소 데몬 피해 0**(낙공 −417 + 배틀 액스 한손 약공 ~−100 × 4, 23 s; 옛 양손 브로드소드 102 s). 게임에서 읽기: 이름 `Bandit Bot`, 무기 배틀 액스(닿는 거리 1.6 m), 퀵 슬롯 `[201,-1,-1,-1,-1]`, 캐릭터별 화톳불 목록 따로 → **정상**. `burg-bonfire --radar`: 나이프 0개라 게임 입력 없이 멈춤 **정상** → `--no-lure` 1번째(a) 경사로 110 s 사망 — P-24 → 고친 뒤 2번째(b) **lit, 497 s**, 경사로 cleared 109 s 받은 피해 0, 위험 판정 위험(최저 HP 39%, 큰 피격 10번, 퀵 종료 1번, 에스트 5번; Knight bot 28z는 396 s·최저 41%·큰 피격 7번). `hotspots.py` NEW (−49.6,−21.8,−33.2) `#4 이동` stuck 8 s(1번뿐), AGAIN 상자 `o1321_0021`(P-12). 로그·track: `data/samples/*-2026-09-28-bandit-a/b*` → #13
 - [ ] [cloud]+[사람] 레이더·오버레이 고도화 / 모드(배포 가능한 도구)로 만들기 검토 — 오늘의 큰 성과([사람])
 - [ ] [win] 남은 작은 확인들: 4번 레이더·오버레이 [win] 확인, `msb_extract` treasures 재실행
 - `hotspots.py` 결과가 오늘은 너무 많아 읽기 어려움([사람]) → 오늘 날짜 실행만 보는 옵션 등은 [cloud]가 필요할 때
@@ -452,6 +453,13 @@
 - 증상: 오른손 1번 칸 밴딧 나이프, 2번 칸 배틀 액스(들고 있음)일 때 `run.py` 로그 `무기: 밴딧 나이프` — 나이프 닿는 거리 1.3 m·타이밍으로 싸우며 실제로는 도끼를 휘두름. 블랙박스: 09-28 07:46·08:02 실행에 배틀 액스 약공 애니 303000. 언제부터 도끼를 들었는지는 그 사이 실행마다 다름 — 09-28 나이프 실측·판단 기록은 애니 203000(단검)으로 걸렀으니 영향 없음
 - 원인: `dsr_telemetry.right_weapon()`이 `+0x328`(1번 칸)만 읽음. 들고 있는 칸은 `+0x310`(0/1), k번 칸 ID는 `+0x328 + 8k` — D-pad →로 `+0x310` 1 → 0, HUD가 나이프로 바뀜 확인
 - 해결: `right_weapon()`이 들고 있는 칸의 ID를 돌려줌. 게임에서 701005(배틀 액스 +5) 확인. 봇은 시작할 때 한 번만 읽으니, 실행 중 무기를 바꾸면 여전히 틀림
+
+
+### P-24 나이프 없는 캐릭터: `--no-lure`가 `burg-bonfire`에서 무시되고 `no_knife`를 매번 다시 시도 (2026-09-28, [win]) → #13
+- 증상: 새 캐릭터 `Bandit Bot`(나이프 0개)으로 `burg-bonfire --radar --no-lure` — 경사로 #2에게 `끌어오기 n/3: no_knife` → 8 s 기다림 × 3 → 맨 뒤로 미룸(25 s), #5도 `no_knife` → #5에게 걸어가 망자 셋이 한꺼번에 붙어 0.16 s −237 → 퀵 종료 → HP 441로 이어 싸우다 110 s 사망 (`data/samples/burg-bonfire-radar-2026-09-28-bandit-a.txt`)
+- 원인: (1) `--no-lure`가 `clear-ramp` 명령에만 전달됨 — `burg_bonfire`는 `clear_ramp()` 기본값(lure=True) (2) `field.clear`가 `no_knife`를 "이번엔 안 됨"으로 셈
+- 해결: `Missions(lure=…)`로 모든 경사로 미션에 적용, `field.clear`는 `no_knife`면 그 정리 동안 끌어오기 끔. `tests/field_no_knife_test.py`. 다시 실행 → lit 497 s, 경사로 받은 피해 0 (`…-bandit-b.txt`)
+- 남은 것: 낮은 레벨에서 둘러싸일 때(퀵 종료 뒤 HP 65 %로 이어 싸움, 옆에 적이 있어 에스트 안 마심)는 싸움 규칙 쪽 — 따로
 
 ---
 

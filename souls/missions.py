@@ -108,8 +108,9 @@ def _with_entry_corner(pts: list) -> list:
 
 
 class Missions:
-    def __init__(self, fld: Field, nms: dict, log=print):
+    def __init__(self, fld: Field, nms: dict, log=print, lure: bool = True):
         self.f, self.nms, self.log = fld, nms, log
+        self.lure = lure                                  # False = --no-lure (every mission that clears the ramp, not just clear-ramp)
         self.mv: M.Moves = fld.mv
 
     # ── Pieces ───────────────────────────────────────────────
@@ -162,7 +163,8 @@ class Missions:
             return True
         return False
 
-    def clear_ramp(self, lure: bool = True) -> str:
+    def clear_ramp(self, lure: bool | None = None) -> str:
+        lure = self.lure if lure is None else lure
         targets = [dict(RAMP[i - 1], label=i, lure=(i not in NO_LURE), lure_at=RAMP_LURE_AT.get(i)) for i in RAMP_ORDER]
         r = self.f.clear(targets, self.nms[MAP_A], arena=RAMP_ARENA, lure=lure)
         self.log(f"── 경사로: {r}")
