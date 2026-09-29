@@ -44,6 +44,7 @@ class Escape:
         self.escaping = False
         self.gen = 0
         self.quit_ok = True                                # False = never use quit-out (exit to menu and back) (for video recording, run.py --no-quit)
+        self.nudge_ok = True                               # False = no ledge nudge-back (a deliberate drop — souls/asylum plunge onto the demon)
         self.last_fall = self.last_crowd = 0.0
         self.last_fall_pos = None     # so upper layers back away from the edge right after a fatal-fall escape
         self.safe_pos = None          # last spot with floor directly underfoot (_ledge)
@@ -87,7 +88,7 @@ class Escape:
             why = None
             ys = [y for t, y in self._y if now - t <= 0.4]
             falling = p.anim in FALL_ANIMS or (len(ys) >= 3 and max(ys) - p.y > self.FALL_V)
-            if not falling and now - self.last_nudge > self.NUDGE_COOLDOWN:
+            if not falling and self.nudge_ok and now - self.last_nudge > self.NUDGE_COOLDOWN:
                 self._ledge(s, p, now)
             if falling and now - self.last_fall > self.FALL_COOLDOWN:
                 drop = self.floor_drop(p)

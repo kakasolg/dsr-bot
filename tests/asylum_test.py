@@ -174,6 +174,76 @@ def test_fog_center_used() -> None:
     print("ok  the demon's upper fog goes through _fog at the door's center (not the recorded press spot), facing the next walk's end")
 
 
+class DemonMv:
+    """Moves for the demon fight: records light swings and stick targets; the demon dies after `lethal` swings."""
+    def __init__(self, world, lethal=3):
+        self.w, self.lethal, self.lights, self.moves = world, lethal, [], []
+        self.guard_ok = True
+        self.pad = self
+        self.drinks = 0
+
+    def snap(self, within=40.0):
+        return self.w.snapshot(within)
+
+    def face(self, s, c, deg=20.0):
+        return True
+
+    def light(self, s, c, n=1, sp_second=40):
+        from souls import moves as M
+        self.lights.append((round(M.horiz(s.player, c), 2), self.guard_ok))
+        if len(self.lights) >= self.lethal:
+            self.w.chars[c.ptr].hp = 0
+        return M.Hit("light", presses=1, dmg=101)
+
+    def stick_to(self, s, x, z, scale=1.0):
+        self.moves.append((round(x, 2), round(z, 2)))
+        return (0.0, 0.0)
+
+    def move(self, x, y): pass
+    def sprint(self, on): pass
+    def neutral(self): pass
+
+    def drink(self, safe):
+        self.drinks += 1
+        return {"ok": True}
+
+
+def _demon_world(pos, heading, anim=-1, me=(0.0, 198.0, 0.0), hp=616):
+    w = World(player=me, hp=hp)
+    w.player.max_hp = 616
+    w.add(9, 0x2000, A.DEMON, pos, hp=194, max_hp=813, anim=anim)
+    w.chars[9].heading = heading
+    return w
+
+
+def test_demon_fight() -> None:
+    sleep = A.time.sleep
+    A.time.sleep = lambda s: None
+    try:
+        # behind it (demon faces −z at heading 0; we are at +z), 2.5 m → keep hitting, no guard, until it dies
+        w = _demon_world((0.0, 198.0, -2.5), 0.0)
+        f = make_field(w); f.alive = lambda: True
+        a = A.Asylum(f, nm=None, log=f.log)
+        a.mv = DemonMv(w); a.pad = a.mv
+        assert a._demon("t") == "ok" and len(a.mv.lights) == 3 and not any(g for _, g in a.mv.lights), a.mv.lights
+        assert a.mv.guard_ok is True                                         # guard setting restored afterwards
+        # in front of it (it faces us) → no swing, circle at DEMON_ORBIT_R instead
+        w = _demon_world((0.0, 198.0, 2.5), 0.0)
+        f = make_field(w); f.alive = lambda: True
+        a = A.Asylum(f, nm=None, log=f.log)
+        a.mv = DemonMv(w); a.pad = a.mv
+        a._demon_move(w.snapshot(), w.chars[9], away=False, front=True)
+        tx, tz = a.mv.moves[-1]
+        assert abs(math.hypot(tx - 0.0, tz - 2.5) - A.DEMON_ORBIT_R) < 0.05, (tx, tz)
+        # butt slam → run straight out beyond DEMON_SLAM_R
+        a._demon_move(w.snapshot(), w.chars[9], away=True)
+        tx, tz = a.mv.moves[-1]
+        assert math.hypot(tx, tz - 2.5) > A.DEMON_SLAM_R and tz < 2.5, (tx, tz)
+    finally:
+        A.time.sleep = sleep
+    print("ok  demon: hits from behind with no guard until it dies; in front → circles at 3.8 m; butt slam → runs out past 8.4 m")
+
+
 class ClimbMv:
     """Snapshots whose y rises while the stick is pushed up."""
     def __init__(self, world, rate):
@@ -230,5 +300,6 @@ if __name__ == "__main__":
     test_resume_and_segments()
     test_two_hand()
     test_fog_center_used()
+    test_demon_fight()
     test_climb()
     print("전부 통과")
