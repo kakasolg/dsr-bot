@@ -204,8 +204,20 @@ def main() -> None:
             if why:
                 r = f"시작 안 함 — {why}"
             else:
-                for n in segs:                             # back to back — standing idle between segments got us beaten to 152/616
-                    steps = asylum.segment(asylum.load(), n)
+                all_steps = asylum.load()
+                plan = [(n, asylum.segment(all_steps, n)) for n in segs]
+                s0 = tm.snapshot(within=5.0)
+                here = (s0.player.x, s0.player.y, s0.player.z) if s0 else None
+                first = asylum.step_pos(plan[0][1][0], here) if here else None
+                if here and first and math.dist(first, here) > asylum.RESUME_NEAR:
+                    # after dying / a restart we stand somewhere inside the range — start from the nearest step
+                    flat = [(si, j, st) for si, (_, steps) in enumerate(plan) for j, st in enumerate(steps)]
+                    si, j0, _ = min(flat, key=lambda x: math.dist(asylum.step_pos(x[2], here) or (1e9, 1e9, 1e9), here))
+                    n0 = plan[si][0]
+                    _, cut = asylum.resume(plan[si][1][j0:], here)
+                    plan = [(n0, cut)] + plan[si + 1:]
+                    log(f"수용소: 첫 단계에서 {math.dist(first, here):.0f} m — 가장 가까운 구간 {n0}의 {j0 + 1}번째 단계부터 이어감")
+                for n, steps in plan:                      # back to back — standing idle between segments got us beaten to 152/616
                     log(f"수용소 구간 {n}: {len(steps)}단계 ({steps[0].get('label') or steps[0]['type']} → {steps[-1].get('label') or steps[-1]['type']})")
                     r = run_.run(steps, f"수용소{n}")
                     if r != "done":

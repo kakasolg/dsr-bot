@@ -129,6 +129,20 @@ def test_ready_and_last_stand() -> None:
     print("ok  won't start at 152/616 without Estus; a failing step fights the awake foe next to us before stopping")
 
 
+def test_resume_and_segments() -> None:
+    allst = A.load()
+    assert A.segment(allst, 4)[-1]["label"].startswith("위층 기사 뒤"), "segment 4 stops before the upper fog"
+    s5 = A.segment(allst, 5)
+    assert s5[-1]["type"] == "jump" and any(x.get("label", "").startswith(A.PLUNGE_AT) for x in s5), s5[-1]
+    here = (33.76, 193.15, -25.27)                                        # respawned at the second bonfire
+    j, cut = A.resume(A.segment(allst, 2), here)
+    assert cut[0]["type"] == "press" and cut[0]["label"].startswith("도망친 방 화톳불"), cut[0]
+    steps = [{"type": "walk", "pts": [[0, 0, 0], [5, 0, 0], [10, 0, 0]]}, {"type": "press", "pos": [20, 0, 0]}]
+    j, cut = A.resume(steps, (6.0, 0.0, 0.0))
+    assert j == 0 and cut[0]["pts"] == [[5, 0, 0], [10, 0, 0]], cut
+    print("ok  segment 4 ends before the upper fog, 5 runs to the crow; resume from the second bonfire / mid-walk")
+
+
 class ClimbMv:
     """Snapshots whose y rises while the stick is pushed up."""
     def __init__(self, world, rate):
@@ -182,5 +196,6 @@ if __name__ == "__main__":
     test_flee_and_gear()
     test_keeps_human_pause()
     test_ready_and_last_stand()
+    test_resume_and_segments()
     test_climb()
     print("전부 통과")

@@ -22,7 +22,12 @@ from . import moves as M
 ROUTE = Path(__file__).resolve().parent.parent / "data" / "routes" / "asylum-fresh.json"
 MAP = "m18_01_00_00"
 # segment n = steps after the end of segment n-1 up to and including the first step whose label starts with END[n]
-SEG_END = {1: "첫 화톳불", 2: "시작 장비 줍기 2", 3: "오스카 대화", 4: "데몬 위 발판"}
+SEG_END = {1: "첫 화톳불", 2: "시작 장비 줍기 2", 3: "오스카 대화", 4: "위층 기사 뒤", 5: ""}   # "" = to the end (the crow)
+# 데몬: 위 안개벽을 지나면 곧바로 뛰어내리며 친다 — 발판에서 기다리면 ~8.5 s 뒤 데몬이 도약해 발판까지 친다
+# (boss/boss.py 9번째 죽음, 2026-09-29 구간 ④를 안개벽 뒤에서 끝냈다가 죽음) → 구간 ④는 안개벽 앞에서 끝
+PLUNGE_AT = "데몬 위 안개벽"
+DEMON_LIMIT = 240.0
+RESUME_NEAR = 5.0        # farther than this from the first step → start from the nearest step (after dying / a restart)
 # 데몬 처음 만남: 큰 방 문을 연 뒤부터 도망친 방 화톳불까지는 달리고, 데몬과 싸우지 않는다 (사람도 도망침)
 FLEE = ("큰 방 문", "도망친 방 화톳불")
 DEMON = 223200
@@ -54,6 +59,8 @@ def segment(steps: list[dict], n: int) -> list[dict]:
     skipping the intro / character creation (START START), and pressed in game they would open the menu."""
     start = 0
     for k in range(1, n + 1):
+        if SEG_END[k] == "":
+            return steps[start:] if k == n else []
         end = next((i for i in range(start, len(steps)) if steps[i].get("label", "").startswith(SEG_END[k])), None)
         if end is None:
             raise ValueError(f"segment {k}: no step labelled '{SEG_END[k]}…'")
@@ -70,6 +77,28 @@ def segment(steps: list[dict], n: int) -> list[dict]:
             return [x for i, x in enumerate(out) if not (x["type"] == "menu" and i < first)]
         start = end + 1
     return []
+
+
+def step_pos(st: dict, near=None):
+    """A representative position of a step (for resuming): walk → its point nearest to near, others → pos / from."""
+    if st["type"] == "walk":
+        pts = st["pts"]
+        return min(pts, key=lambda q: math.dist(q, near)) if near is not None else pts[0]
+    return st.get("pos") or st.get("from")
+
+
+def resume(steps: list[dict], here) -> tuple[int, list[dict]]:
+    """Index of the step nearest to here, and the steps from there (a walk is cut to start at its nearest point)."""
+    def d(i):
+        q = step_pos(steps[i], here)
+        return math.dist(q, here) if q else 1e9
+    best = min(range(len(steps)), key=d)
+    out = [dict(x) for x in steps[best:]]
+    if out and out[0]["type"] == "walk":
+        pts = out[0]["pts"]
+        k = min(range(len(pts)), key=lambda j: math.dist(pts[j], here))
+        out[0]["pts"] = pts[k:]
+    return best, out
 
 
 def heading_vec(hd: float) -> tuple[float, float]:
@@ -95,8 +124,12 @@ class Asylum:
     def run(self, steps: list[dict], tag: str = "수용소") -> str:
         fleeing = False
         last = None                                        # (recorded t, pos, wall time) of the last press / menu
+        skip_to = -1                                       # steps the plunge + demon fight replaced
         for i, st in enumerate(steps):
-            if st["type"] in ("press", "menu") and last is not None and st.get("t") is not None and st.get("pos")                     and math.dist(st["pos"], last[1]) <= KEEP_GAP_M:
+            if i < skip_to:
+                continue
+            if (st["type"] in ("press", "menu") and last is not None and st.get("t") is not None and st.get("pos")
+                    and math.dist(st["pos"], last[1]) <= KEEP_GAP_M):
                 # 줍기 A → (아이템 획득 창) → 닫기 A 사이를 사람처럼 기다린다. 0.6 s 만에 누르니 창이 안 닫힌 채 메뉴 입력이
                 # 한 칸씩 밀려 검 자루가 왼손으로 감 (2026-09-29 구간 2, 사람은 3.5 s 기다림)
                 wait = min(KEEP_GAP_MAX, st["t"] - last[0]) - (time.time() - last[2])
@@ -112,6 +145,13 @@ class Asylum:
                 fleeing = False
             what = st.get("label") or st["type"]
             r = getattr(self, "_" + st["type"])(st, f"{tag} {i + 1}/{len(steps)}")
+            if r == "ok" and st["type"] == "press" and lab.startswith(PLUNGE_AT):
+                # the recording's plunge + fight (circling walks, the drop, fight rows) → our own plunge, then the duel
+                r = self._plunge(f"{tag} {i + 1}/{len(steps)}")
+                if r == "ok":
+                    r = self._demon(f"{tag} {i + 1}/{len(steps)}")
+                skip_to = 1 + max((j for j in range(i, len(steps)) if steps[j]["type"] == "fight" and steps[j].get("npc") == DEMON),
+                                  default=i)
             self.events("asylum_step", i=i, type=st["type"], label=st.get("label"), result=r)
             if r in ("dead", "fail"):
                 self.log(f"   {tag} {i + 1}/{len(steps)} {st['type']} ({what}): {r} — 멈춤")
@@ -192,6 +232,16 @@ class Asylum:
         for k in range(st.get("n", 1)):
             self.mv.press(BTN["A"], gap=PRESS_GAP)
         self.log(f"   {tag} A ×{st.get('n', 1)} ({st.get('label') or '?'}){'' if faced else ' — 방향 못 맞춤'}")
+        if "화톳불" in st.get("label", ""):
+            # 이미 불 붙은 화톳불(죽은 뒤 이어갈 때)이면 A = 앉기 → 메뉴가 열린 채 다음 걷기가 막힌다. 앉았으면 B 로 일어남 (farm.rest)
+            time.sleep(2.5)
+            for _ in range(6):
+                if not (self.tm.sitting() or self.tm.menu_open() is True):
+                    break
+                self.mv.press(BTN["B"], gap=1.0)
+            else:
+                self.log(f"   {tag} 화톳불에서 못 일어남")
+                return "fail"
         return "ok"
 
     def _climb(self, st, tag) -> str:
@@ -249,6 +299,13 @@ class Asylum:
     def _menu(self, st, tag) -> str:
         want = next((v for k, v in GEAR.items() if k in st.get("label", "")), None)
         before = self.tm.equipment() if want else {}
+        if want and (before.get(want[0]) or 0) // 100 * 100 == want[1]:
+            self.log(f"   {tag} 메뉴 건너뜀 — {want[0]} 이미 {before.get(want[0])}")    # resumed after dying: already equipped
+            return "ok"
+        if not want and st.get("label", "").startswith("까마귀"):
+            # 사람은 까마귀 장면을 START 로 넘김 — 장면 밖에서 누르면 메뉴가 열린다
+            self.log(f"   {tag} 메뉴 건너뜀 (까마귀 장면 넘기기)")
+            return "ok"
         control.focus_game()
         dts = st.get("dt") or []
         for j, k in enumerate(st["keys"]):
@@ -281,4 +338,91 @@ class Asylum:
         return "ok"
 
     def _jump(self, st, tag) -> str:
-        return "ok"
+        """The crow: stand where the human was grabbed and wait for the position to jump (cutscene → Firelink Shrine)."""
+        s0 = self.mv.snap(5.0)
+        if s0 is None:
+            return "fail"
+        here0 = (s0.player.x, s0.player.y, s0.player.z)
+        t0 = time.time()
+        while time.time() - t0 < 45.0:
+            s = self.mv.snap(5.0)
+            if s is not None and math.dist((s.player.x, s.player.y, s.player.z), here0) > 15.0:
+                self.pad.neutral()
+                self.log(f"   {tag} 까마귀 → ({s.player.x:.1f}, {s.player.y:.1f}, {s.player.z:.1f})")
+                return "ok"
+            if s is not None and s.cam_yaw is not None and math.dist((s.player.x, s.player.z), (st["from"][0], st["from"][2])) > 0.8:
+                self.pad.move(*self.mv.stick_to(s, st["from"][0], st["from"][2], 0.5))
+            else:
+                self.pad.neutral()
+            time.sleep(0.1)
+        self.pad.neutral()
+        self.log(f"   {tag} 까마귀: 45 s 안에 안 옮겨짐")
+        return "fail"
+
+    # ── the Asylum Demon (boss/boss.py plunge, adapted) ─────────────────────────
+    @staticmethod
+    def _demon_c(s):
+        return None if s is None else next((c for c in s.chars if c.npc_param == DEMON and c.hp > 0), None)
+
+    def _plunge(self, tag) -> str:
+        """After the upper fog: go as soon as the demon faces us (or starts its leap 3023), stick toward it, R1 every 0.15 s
+        while actually falling (R1 before the drop is eaten — boss.py 10th try). The fall quit-out is off meanwhile (~10 m drop)."""
+        t_w = time.time()
+        while time.time() - t_w < 4.0:
+            s = self.mv.snap(40.0)
+            d = self._demon_c(s)
+            if d is not None and (d.anim == 3023 or (d.heading is not None and d.anim in (3020, 3021, -1)
+                                                        and abs(math.degrees(M.rel_angle(d, s.player))) < 25)):
+                break
+            time.sleep(0.05)
+        s = self.mv.snap(40.0)
+        d = self._demon_c(s)
+        if s is None or d is None:
+            self.log(f"   {tag} 떨어지며 치기: 데몬 안 보임")
+            return "fail"
+        y0, hp0 = s.player.y, d.hp
+        quit_ok, self.f.esc.quit_ok = self.f.esc.quit_ok, False
+        pressed_t, last_rb, t1 = None, 0.0, time.time()
+        try:
+            self.pad.sprint(True)
+            while time.time() - t1 < 6.0:
+                s = self.mv.snap(40.0)
+                if s is None:
+                    time.sleep(0.03)
+                    continue
+                d = self._demon_c(s) or d
+                if s.cam_yaw is not None:
+                    self.pad.move(*self.mv.stick_to(s, d.x, d.z, 1.0))
+                falling = s.player.anim == 1500 or s.player.y < y0 - 1.0
+                if falling and s.player.y > y0 - 11.0 and time.time() - last_rb > 0.15:
+                    self.pad.sprint(False)
+                    self.mv.press(control.B.XUSB_GAMEPAD_RIGHT_SHOULDER, hold=0.06, gap=0.0)
+                    last_rb = time.time()
+                    pressed_t = pressed_t or time.time()
+                    continue
+                if pressed_t and time.time() - pressed_t > 1.5 and s.player.y < y0 - 8.0:
+                    break
+                time.sleep(0.02)
+        finally:
+            self.pad.sprint(False)
+            self.pad.neutral()
+            self.f.esc.quit_ok = quit_ok
+        s = self.mv.snap(40.0)
+        d2 = self._demon_c(s)
+        landed = s is not None and s.player.y < y0 - 8.0
+        self.log(f"   {tag} 떨어지며 치기: 데몬 HP {hp0} → {d2.hp if d2 else 0}, 내 HP {None if s is None else s.player.hp}"
+                 f"{'' if landed else ' — 안 떨어짐'}")
+        self.events("plunge", demon_hp=[hp0, d2.hp if d2 else 0], landed=landed)
+        return "ok" if landed else "fail"
+
+    def _demon(self, tag) -> str:
+        """Fight the demon with the usual duel to the end (no retreat in the boss room); Estus at openings as usual."""
+        for k in range(4):
+            d = self._demon_c(self.mv.snap(40.0))
+            if d is None:
+                self.log(f"   {tag} 데몬 처치")
+                return "ok"
+            r = self.f.fight(d.ptr, self.nm, f"{tag} 데몬 ({k + 1})", desperate=True, limit=DEMON_LIMIT)
+            if r.result == "me_dead" or not self.f.alive():
+                return "dead"
+        return "ok" if self._demon_c(self.mv.snap(40.0)) is None else "fail"
