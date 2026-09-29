@@ -80,10 +80,11 @@ LURE_CMDS = {"burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["status", "watch", "burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt-one", "merchant", "light-burg", "quit-test", "passage-drill"])
+    ap.add_argument("cmd", choices=["status", "watch", "burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt-one", "merchant", "light-burg", "quit-test", "passage-drill", "asylum"])
     ap.add_argument("--no-rest", action="store_true")
     ap.add_argument("--no-quit", action="store_true", help="퀵 종료(메뉴로 나갔다 오기) 안 씀 — 영상 촬영용")
     ap.add_argument("--i", type=int, default=5, help="hunt-one: BURG_TOWN 몇 번째 (5 = 석궁병 255002)")
+    ap.add_argument("--seg", type=int, default=1, help="asylum: 구간 번호 (1 = 감방 → 사다리 → 첫 화톳불, ROADMAP 1-h)")
     ap.add_argument("--radar", action="store_true", help="send state to the radar (view with radar_server.py / overlay.py)")
     ap.add_argument("--no-lure", action="store_true", help="나이프로 한 놈씩 깨우지 않고 예전처럼 걸어가 붙는다 (비교용)")
     ap.add_argument("--style", choices=["guard", "backstep", "rush"], default="guard",
@@ -144,7 +145,11 @@ def main() -> None:
             log(f"   투척 나이프(290)가 퀵 슬롯에 없어서 {slot + 1}번째 빈 칸에 넣음 (가진 수 {have}) → 슬롯 {tm.quick_items()}")
     control.focus_game()
     pad = control.Pad()
-    nms = {missions.MAP_A: navmesh.Navmesh(missions.MAP_A), missions.MAP_B: navmesh.Navmesh(missions.MAP_B)}
+    if a.cmd == "asylum":
+        from souls import asylum
+        nms = {asylum.MAP: navmesh.Navmesh(asylum.MAP)}
+    else:
+        nms = {missions.MAP_A: navmesh.Navmesh(missions.MAP_A), missions.MAP_B: navmesh.Navmesh(missions.MAP_B)}
     mv = moves.Moves(tm, pad)
     track_.follow(mv)
     if a.radar:
@@ -161,7 +166,8 @@ def main() -> None:
     blood = Blood(log=log).start()
     from blackbox import BlackBox
     bbox = BlackBox(tm, log.path, events=log.event, log=log).start()
-    fld = Field(mv, w, esc, bonfires=[missions.FIRELINK["stand"], missions.BURG_BONFIRE], log=log, events=log.event, style=a.style)
+    fld = Field(mv, w, esc, bonfires=[] if a.cmd == "asylum" else [missions.FIRELINK["stand"], missions.BURG_BONFIRE],
+                log=log, events=log.event, style=a.style)
     from souls.camera import CamFollow
     cam = CamFollow(mv, esc, log=log).start()          # so a viewer can see what the bot is doing (user 2026-09-26)
     log(f"스타일: {a.style}")
@@ -190,6 +196,10 @@ def main() -> None:
             r = ms.hunt_one(a.i)
         elif a.cmd == "merchant":
             r = ms.to_merchant()
+        elif a.cmd == "asylum":
+            steps = asylum.segment(asylum.load(), a.seg)
+            log(f"수용소 구간 {a.seg}: {len(steps)}단계 ({steps[0].get('label') or steps[0]['type']} → {steps[-1].get('label') or steps[-1]['type']})")
+            r = asylum.Asylum(fld, nms[asylum.MAP], log=log, events=log.event).run(steps, f"수용소{a.seg}")
         elif a.cmd == "light-burg":
             r = ms.light_burg_bonfire()
         else:

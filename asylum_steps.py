@@ -9,7 +9,7 @@ retry" doesn't apply, so the human run is the template. Steps, in order:
 
   walk      {"pts": [[x,y,z], …], "run"}          NavMesh walking between the other steps (points every ~2 m, on the mesh);
                                                  run = B held most of the way (fleeing the demon)
-  press     {"pos", "n", "label"}                 A pressed n times standing here (door, pickup, bonfire, lever, talk)
+  press     {"pos", "hd", "n", "label"}           A pressed n times standing here facing hd (door, pickup, bonfire, ladder, talk)
   menu      {"pos", "keys": ["START", …]}          menu inputs (equipping the picked-up gear) — replayed as-is
   climb     {"from", "to"}                        off-mesh vertical move (ladder) — A at the bottom, then up
   fight     {"pos", "npc", "secs"}                an enemy fought here (its HP dropped) — the bot uses its own duel
@@ -112,6 +112,11 @@ def build(ws, pads, on_mesh, until_s: float | None = None, mks=(), from_s: float
         i = min(bisect.bisect_left(wt, ms), len(ws) - 1)
         return [round(v, 2) for v in ws[i]["p"]["pos"]]
 
+    def hd_at(ms):
+        i = min(bisect.bisect_left(wt, ms), len(ws) - 1)
+        h = ws[i]["p"].get("hd")
+        return None if h is None else round(h, 3)
+
     # events on the timeline: presses/menu (from the pad), jumps, fights (enemy HP drops)
     ev: list[tuple[float, dict]] = []
     menu: dict | None = None
@@ -132,7 +137,7 @@ def build(ws, pads, on_mesh, until_s: float | None = None, mks=(), from_s: float
             last["n"] += 1
             last["_t"] = ms
             continue
-        ev.append((ms, {"type": "press", "pos": p, "n": 1, "_t": ms, "t": round(ms / 1000, 1)}))
+        ev.append((ms, {"type": "press", "pos": p, "hd": hd_at(ms), "n": 1, "_t": ms, "t": round(ms / 1000, 1)}))
     hp: dict = {}
     for d in ws:
         for e in d.get("e", []):
