@@ -355,6 +355,19 @@ class DSRTelemetry:
         pgd = self.q(cb + 0x10) if cb else None
         return [self.i32(pgd + 0x360 + 4 * k) for k in range(5)] if pgd else []
 
+    def char_name(self) -> Optional[str]:
+        """Character name — PlayerGameData+0xA8, UTF-16, up to 16 characters (DSR-Gadget ChrData2 name; read 2026-09-28:
+        "Knight bot"). Which character is loaded — bonfires.py keeps the lit list per name. None if not in the world."""
+        cb = self.q(self.static["ChrClassBase"])
+        pgd = self.q(cb + 0x10) if cb else None
+        if not pgd:
+            return None
+        try:
+            name = self.pm.read_bytes(pgd + 0xA8, 32).decode("utf-16-le", "replace").split("\x00")[0].strip()
+        except pymem.exception.PymemError:
+            return None
+        return name or None
+
     def equip_quick_item(self, item: int) -> Optional[int]:
         """**Write** a goods item into the first empty consumable quick slot (offline only). → slot 0~4, or None (not owned,
         no empty slot, or the layout doesn't check out). Already in a slot → that slot, nothing written.
@@ -535,8 +548,8 @@ class DSRTelemetry:
         area. Method is exactly DSR-Gadget (JKAnderson) DSRHook.BonfireWarp: change the last bonfire, write machine code into the game that calls
         func(*ChrClassBase, 1), and run it as a thread. Souls/humanity are not lost."""
         import bonfires
-        if not unlit_ok and bonfire_id not in bonfires.load():
-            log(f"   화톳불 워프 {bonfire_id}: 불 붙인 목록(bonfires.py)에 없음 — 안 감 (unlit_ok=True 로 강제)")
+        if not unlit_ok and bonfire_id not in bonfires.load(self.char_name()):
+            log(f"   화톳불 워프 {bonfire_id}: {self.char_name()!r} 의 불 붙인 목록(bonfires.py)에 없음 — 안 감 (unlit_ok=True 로 강제)")
             return False
         if not self.set_last_bonfire(bonfire_id):
             return False

@@ -182,7 +182,7 @@ class State:
         if self.replay is not None:
             out["replay"] = self.replay.status()
         fresh = status is not None and (st_age < STATUS_FRESH or (self.replay is not None and not self.replay.playing))
-        out["game"] = ({k: status.get(k) for k in ("game", "menu", "away")} if fresh else {"game": "none"})
+        out["game"] = ({k: status.get(k) for k in ("game", "menu", "away", "char")} if fresh else {"game": "none"})
         if self.steam is not None:
             out["steam"] = self.steam
         if self.warp is not None:
@@ -280,7 +280,8 @@ def make_handler(state: State):
                 state.replay.command(q.get("cmd", [""])[0], float(v) if v not in (None, "") else None)
                 self._send(200, json.dumps(state.replay.status()).encode("utf-8"), "application/json")
             elif self.path.split("?")[0] == "/bonfires":
-                body = state.warp.bonfires() if state.warp is not None else []
+                char = (state.get().get("game") or {}).get("char")
+                body = state.warp.bonfires(char) if state.warp is not None else []
                 self._send(200, json.dumps(body, ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8")
             elif self.path.split("?")[0] == "/state":
                 self._send(200, json.dumps(state.get(), ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8")

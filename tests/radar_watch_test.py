@@ -47,6 +47,12 @@ class FakeTm:
     def menu_open(self):
         return False
 
+    def char_name(self):
+        return None                          # unknown → no lit-bonfire note (and no file written by this test)
+
+    def last_bonfire(self):
+        return 1022960
+
     def __getattr__(self, name):
         if name not in ("listeners", "pm"):  # hasattr probes: a feed? a process handle (game_alive)?
             self.writes.append(name)
@@ -83,8 +89,9 @@ check(f"게임 상태 패킷 ({len(st_msgs)}개) — 인게임, 메뉴 닫힘", 
 print("게임 상태 판정 (status_dict)")
 now = 1000.0
 check("게임 꺼짐", radar.status_dict(False, now, 500, None, now)["game"] == "off")
-check("플레이어 방금 봄 → world", radar.status_dict(True, now - 0.2, 500, True, now) == {
-    "type": "status", "t": now, "game": "world", "menu": True, "away": None})
+check("플레이어 방금 봄 → world", radar.status_dict(True, now - 0.2, 500, True, now, "Knight bot") == {
+    "type": "status", "t": now, "game": "world", "menu": True, "away": None, "char": "Knight bot"})
+check("타이틀이면 캐릭터 이름 안 보냄", radar.status_dict(True, now - 12.0, 500, None, now, "Knight bot")["char"] is None)
 check("HP 0 → dead", radar.status_dict(True, now - 0.2, 0, False, now)["game"] == "dead")
 t = radar.status_dict(True, now - 12.0, 500, True, now)
 check("플레이어 안 보임 → title (타이틀·로딩), 몇 초째인지, 메뉴 값은 버림", t["game"] == "title" and t["away"] == 12.0 and t["menu"] is None)

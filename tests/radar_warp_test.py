@@ -45,8 +45,8 @@ class Lock:
 
 
 class Game:
-    def __init__(self, hp=500, in_world=True, menu=False, warp_ok=True):
-        self.hp, self.in_world, self.menu, self.warp_ok = hp, in_world, menu, warp_ok
+    def __init__(self, hp=500, in_world=True, menu=False, warp_ok=True, char="Knight bot"):
+        self.hp, self.in_world, self.menu, self.warp_ok, self.char = hp, in_world, menu, warp_ok, char
         self.warps = []
         self.lock_held_during_warp = None
 
@@ -58,6 +58,9 @@ class Game:
     def menu_open(self):
         return self.menu
 
+    def char_name(self):
+        return self.char
+
     def bonfire_warp(self, bid, log=print):
         self.lock_held_during_warp = lock.held
         self.warps.append(bid)
@@ -66,7 +69,7 @@ class Game:
 
 
 OFF = {"offline": True, "why": ["Steam set offline"]}
-LIT = {1012962: "2026-09-25"}
+LIT = {"Knight bot": {1012962: "2026-09-25"}}          # per character (bonfires.load(char))
 NAMES = {1012962: "Undead Burg"}
 lock = Lock()
 says: list[str] = []
@@ -77,7 +80,7 @@ def warper(steam=OFF, game=None, lk=None, enabled=True, connect=None):
     lock = lk or Lock()
     g = game or Game()
     w = W.Warper(says.append, enabled=enabled, steam_check=lambda: steam, connect=connect or (lambda: g), lock=lambda: lock,
-                 lit=lambda: LIT, names=lambda: NAMES, run_async=False)
+                 lit=lambda char: LIT.get(char, {}), names=lambda: NAMES, run_async=False)
     return w, g
 
 
@@ -95,6 +98,8 @@ cases = [
     ("타이틀·로딩", dict(game=Game(in_world=False)), 1012962, "not in the world"),
     ("사망", dict(game=Game(hp=0)), 1012962, "dead"),
     ("메뉴 열림", dict(game=Game(menu=True)), 1012962, "menu"),
+    ("다른 캐릭터(새 캐릭터)는 이 화톳불을 안 붙임", dict(game=Game(char="NewGuy")), 1012962, "not a lit bonfire of 'NewGuy'"),
+    ("캐릭터 이름 못 읽음", dict(game=Game(char=None)), 1012962, "not a lit bonfire of None"),
 ]
 for name, kw, bid, want in cases:
     w, g = warper(**kw)
@@ -117,14 +122,15 @@ check("상태: 끝남", w.status() == {"busy": False, "last": "arrived at Undead
 w, g = warper(game=Game(warp_ok=False))
 w.request(1012962)
 check("워프 실패도 기록하고 lock 놓음", "failed" in w.last and not lock.held and not w.busy)
-check("화톳불 목록", warper()[0].bonfires() == [{"id": 1012962, "name": "Undead Burg"}])
+check("화톳불 목록은 캐릭터별", warper()[0].bonfires("Knight bot") == [{"id": 1012962, "name": "Undead Burg"}]
+      and warper()[0].bonfires("NewGuy") == [] and warper()[0].bonfires(None) == [])
 
 
 print("/state 게임 상태")
 st = S.State(props=[], items=[], enemies={})
 check("보내는 쪽 없음 → none", st.get()["game"] == {"game": "none"})
 st.put({"type": "status", "t": time.time(), "game": "title", "menu": None, "away": 4.0})
-check("status 패킷 → title", st.get()["game"] == {"game": "title", "menu": None, "away": 4.0})
+check("status 패킷 → title", st.get()["game"] == {"game": "title", "menu": None, "away": 4.0, "char": None})
 st.t_status -= 5
 check("2 s 넘게 끊기면 다시 none", st.get()["game"] == {"game": "none"})
 check("steam·warp 없으면 키 없음", "steam" not in st.get() and "warp" not in st.get())
@@ -173,7 +179,13 @@ c.request("GET", "/state")
 s = json.loads(c.getresponse().read())
 check("/state 에 steam·warp", s["steam"]["offline"] is True and s["warp"]["last"] == "arrived at Undead Burg")
 c.request("GET", "/bonfires")
-check("/bonfires", json.loads(c.getresponse().read()) == [{"id": 1012962, "name": "Undead Burg"}])
+check("/bonfires — 보내는 쪽이 없으면(캐릭터 모름) 빈 목록", json.loads(c.getresponse().read()) == [])
+st.put({"type": "status", "t": time.time(), "game": "world", "menu": False, "away": None, "char": "Knight bot"})
+c.request("GET", "/bonfires")
+check("/bonfires — 지금 캐릭터의 목록", json.loads(c.getresponse().read()) == [{"id": 1012962, "name": "Undead Burg"}])
+st.put({"type": "status", "t": time.time(), "game": "world", "menu": False, "away": None, "char": "NewGuy"})
+c.request("GET", "/bonfires")
+check("/bonfires — 새 캐릭터는 빈 목록", json.loads(c.getresponse().read()) == [])
 srv.shutdown()
 
 print("실패 0" if not fails else f"실패 {fails}")

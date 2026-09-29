@@ -2,7 +2,8 @@
 
 Uses dsr_telemetry.bonfire_warp (the game's own bonfire-menu warp: loading screen, souls kept). Refused unless all hold:
   · not a replay / demo            · no other warp running
-  · the bonfire is in the lit list (bonfires.load — the same rule bonfire_warp itself applies)
+  · the bonfire is in the lit list of the character now loaded (bonfires.load(tm.char_name()) — the rule bonfire_warp
+    itself applies; a new character doesn't get another character's bonfires)
   · Steam is confirmed offline (steam_state.check() is True — unknown counts as no; CLAUDE.md: memory writes offline only)
   · no bot is running (botlock.BotLock — held for the whole warp, so a bot can't start in the middle either)
   · the game is running, the player is in the world, alive, and the in-game menu is closed
@@ -45,9 +46,9 @@ class Warper:
         self.last = ""
         self._mx = threading.Lock()
 
-    def bonfires(self) -> list[dict]:
+    def bonfires(self, char: str | None) -> list[dict]:
         nm = self.names()
-        return [{"id": b, "name": nm.get(b, "") or str(b)} for b in sorted(self.lit())]
+        return [{"id": b, "name": nm.get(b, "") or str(b)} for b in sorted(self.lit(char))]
 
     def status(self) -> dict:
         return {"busy": self.busy, "last": self.last, "enabled": self.enabled}
@@ -84,8 +85,6 @@ class Warper:
             bid = int(bid)
         except (TypeError, ValueError):
             return False, "bad bonfire id", None, None
-        if bid not in self.lit():
-            return False, f"{bid} is not a lit bonfire (bonfires.py)", None, None
         st = self.steam_check()
         if st.get("offline") is not True:
             return False, "Steam not confirmed offline — " + ", ".join(st.get("why") or []), None, None
@@ -107,6 +106,9 @@ class Warper:
                 return False, "the player is dead", lock, None
             if tm.menu_open():
                 return False, "close the in-game menu first", lock, None
+            char = tm.char_name()
+            if bid not in self.lit(char):
+                return False, f"{bid} is not a lit bonfire of {char!r} (bonfires.py)", lock, None
         except Exception as e:
             return False, f"game read failed: {type(e).__name__}", lock, None
         return True, "", lock, tm

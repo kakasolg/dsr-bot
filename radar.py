@@ -41,6 +41,7 @@ MAX_CHARS = 40          # nearest first; keeps one packet well under the UDP siz
 STATUS_S = 0.5         # s between game-state packets
 SEEN_S = 1.0           # s — a player seen this recently counts as "in the world"
 RECONNECT_S = 5.0      # watch: s between checks that the game is still there
+NOTE_EVERY = 10        # status packets between lit-bonfire notes (≈ 5 s)
 REATTACH_S = 30.0      # watch: no player this long while the game runs → attach again (pointers may move after the title)
 
 
@@ -117,7 +118,7 @@ def game_alive(tm) -> bool:
         return True
 
 
-def status_dict(alive: bool, seen: float, hp, menu, now: float) -> dict:
+def status_dict(alive: bool, seen: float, hp, menu, now: float, char: str | None = None) -> dict:
     """Game state for the radar: off / title (title screen or loading — memory can't tell them apart yet) / world / dead.
     away = s since the player was last seen (None if never, since this sender started)."""
     if not alive:
@@ -127,7 +128,8 @@ def status_dict(alive: bool, seen: float, hp, menu, now: float) -> dict:
     else:
         game = "title"
     return {"type": "status", "t": now, "game": game, "menu": menu if game in ("world", "dead") else None,
-            "away": round(now - seen, 1) if seen and game == "title" else None}
+            "away": round(now - seen, 1) if seen and game == "title" else None,
+            "char": char if game in ("world", "dead") else None}
 
 
 class Radar:
@@ -144,6 +146,7 @@ class Radar:
         self._hp = None
         self._attached = 0.0
         self._started = False
+        self._n_status = 0
 
     def _send(self, msg: dict) -> None:
         try:
@@ -210,13 +213,21 @@ class Radar:
         now = time.time() if now is None else now
         tm = self.tm
         alive = game_alive(tm)
-        menu = None
+        menu = char = None
         if alive and self._seen and now - self._seen < SEEN_S and hasattr(tm, "menu_open"):
             try:
                 menu = tm.menu_open()
+                char = tm.char_name() if hasattr(tm, "char_name") else None
             except Exception:
-                menu = None
-        msg = status_dict(alive, self._seen, self._hp, menu, now)
+                pass
+            self._n_status += 1
+            if char and self._n_status % NOTE_EVERY == 0 and hasattr(tm, "last_bonfire"):
+                try:                                    # rested at a bonfire while a person plays → it's lit for this character
+                    import bonfires
+                    bonfires.note_id(char, tm.last_bonfire(), log=lambda m: self.say(m.strip()))
+                except Exception:
+                    pass
+        msg = status_dict(alive, self._seen, self._hp, menu, now, char)
         self._send(msg)
         return msg
 
