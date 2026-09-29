@@ -393,6 +393,16 @@ class Asylum:
             return "fail"
         here0 = (s0.player.x, s0.player.y, s0.player.z)
         t0 = time.time()
+        # 까마귀가 옮기면 위치가 270 m 바뀜 → 낙사 감시가 "0.8 s 에 271 m 떨어짐" 으로 퀵 종료 (2026-09-29, 불의 제전에서) — 그동안 끔
+        esc = self.f.esc
+        saved, esc.quit_ok = esc.quit_ok, False
+        try:
+            return self._wait_crow(st, tag, here0, t0)
+        finally:
+            time.sleep(3.0)                                # let the watcher's fall window pass the jump before re-arming
+            esc.quit_ok = saved
+
+    def _wait_crow(self, st, tag, here0, t0) -> str:
         while time.time() - t0 < 45.0:
             s = self.mv.snap(5.0)
             if s is not None and math.dist((s.player.x, s.player.y, s.player.z), here0) > 15.0:
