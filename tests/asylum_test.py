@@ -162,6 +162,8 @@ def test_two_hand() -> None:
 def test_fog_center_used() -> None:
     f = make_field(World(player=(0.0, -49.4, 0.0)))
     f.alive = lambda: True
+    heals = []
+    f.heal = lambda frac=0.7, sips=3: heals.append(frac)                  # topped up before the boss room
     a = A.Asylum(f, nm=None, log=f.log)
     got = []
     a._fog = lambda center, beyond, tag: got.append((center, beyond)) or "ok"
@@ -171,6 +173,7 @@ def test_fog_center_used() -> None:
     r = a.run([{"type": "press", "label": A.PLUNGE_AT + " x", "pos": [4.18, 210.1, -34.8]},
                {"type": "walk", "pts": [[3.6, 210.1, -33.0], [3.64, 210.11, -32.68]]}])
     assert got == [(A.FOG_CENTER[A.PLUNGE_AT], [3.64, 210.11, -32.68])], got
+    assert heals == [0.9], heals
     print("ok  the demon's upper fog goes through _fog at the door's center (not the recorded press spot), facing the next walk's end")
 
 
