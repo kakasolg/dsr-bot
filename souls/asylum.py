@@ -167,6 +167,8 @@ class Asylum:
             what = st.get("label") or st["type"]
             fog = next((c for k, c in FOG_CENTER.items() if st["type"] == "press" and lab.startswith(k)), None)
             if fog is not None:
+                if lab.startswith(PLUNGE_AT):
+                    self.f.heal(0.9, sips=3)                   # boss room next — went in at 487/616 after the knight (2026-09-29)
                 beyond = next((w["pts"][-1] for w in steps[i + 1:] if w["type"] == "walk"), None)
                 r = self._fog(fog, beyond, f"{tag} {i + 1}/{len(steps)}")
             else:
