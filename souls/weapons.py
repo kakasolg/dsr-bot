@@ -92,6 +92,8 @@ ZWEIHANDER = Weapon("츠바이헨더", 350000, reach=2.3, combo=1, use_heavy=Tru
 #   ground hit → 303150, another −20 stamina, can move ~1.44 s, idle 1.61 s (on the slope up to the ramp nearly every slam)
 #   no ground  → 303340, hitbox to ~1.0 s, can move ~1.93 s, idle 2.86 s
 #   second R2 at 0.4~0.8 s ignored, 1.0~1.4 s chains → second blade ~2.68 s. Samples: data/samples/swing-battle-axe-heavy-*.
+# [MoKa] 2026-09-28: 배틀 액스 강공은 **수직 내려찍기**라 좁은 통로·벽에 붙은 적에게 더 유리할 수 있음 (가로로 휘두르면 벽에 걸림).
+#   배틀 액스만의 특징 — 리치가 긴 다른 무기는 상황이 다름. 강공 규칙을 만들 때 무기마다 휘두르는 방향을 따로 둘 것 (아직 안 씀)
 BATTLE_AXE = Weapon("배틀 액스", 701000, reach=1.6, combo=2, use_heavy=False, two_hand=False, str_req=14, sp_min=55,
                     startup=0.64, active=0.17, recovery=0.68, chain_gap=0.54,
                     note="약공 세로 찍기 2연타, 스태미나 25/회. 강공(R2 큰 내려찍기)은 아직 안 시험함 — 넘어뜨리면 방패병에 쓸 후보")
