@@ -1,4 +1,5 @@
-"""radar watch offline test — the read-only sender for hand play sends snapshots, never touches pad or game memory;
+"""radar watch offline test — the read-only sender for hand play sends snapshots and the game state (off / title / world /
+dead), reconnects after the title or a game restart, never touches pad or game memory;
 the server's "age" follows snapshots only (pad packets alone must not make a frozen map look live). No game.
 
   python tests/radar_watch_test.py
@@ -43,8 +44,11 @@ class FakeTm:
     def event_flag(self, fl):
         return False
 
+    def menu_open(self):
+        return False
+
     def __getattr__(self, name):
-        if name != "listeners":              # radar.attach probes for a feed with hasattr
+        if name not in ("listeners", "pm"):  # hasattr probes: a feed? a process handle (game_alive)?
             self.writes.append(name)
         raise AttributeError(name)
 
@@ -73,6 +77,32 @@ check("플레이어 위치 그대로", any(m.get("type") == "snap" and m["player
 check(f"게임 쓰기·입력 호출 없음 {tm.writes}", tm.writes == [])
 check("패드(control) 안 불러옴", "control" not in sys.modules)
 check("Moves 안 따라감 (의도 없음)", r.mv is None)
+st_msgs = [m for m in got if m.get("type") == "status"]
+check(f"게임 상태 패킷 ({len(st_msgs)}개) — 인게임, 메뉴 닫힘", st_msgs and st_msgs[-1]["game"] == "world" and st_msgs[-1]["menu"] is False)
+
+print("게임 상태 판정 (status_dict)")
+now = 1000.0
+check("게임 꺼짐", radar.status_dict(False, now, 500, None, now)["game"] == "off")
+check("플레이어 방금 봄 → world", radar.status_dict(True, now - 0.2, 500, True, now) == {
+    "type": "status", "t": now, "game": "world", "menu": True, "away": None})
+check("HP 0 → dead", radar.status_dict(True, now - 0.2, 0, False, now)["game"] == "dead")
+t = radar.status_dict(True, now - 12.0, 500, True, now)
+check("플레이어 안 보임 → title (타이틀·로딩), 몇 초째인지, 메뉴 값은 버림", t["game"] == "title" and t["away"] == 12.0 and t["menu"] is None)
+check("처음부터 안 보임 → title, away None", radar.status_dict(True, 0.0, None, None, now)["away"] is None)
+check("tm 없음 = 게임 꺼짐", radar.game_alive(None) is False)
+
+print("다시 붙기 (watch)")
+rc = radar.Radar()
+calls = []
+rc.tm, rc._attached, rc._seen = tm, now, now
+check("플레이어 보이면 그대로", rc.reconnect(lambda: calls.append(1), now=now + 5) is False and calls == [])
+check("게임은 도는데 30 s 넘게 플레이어 없음 → 다시 붙음", rc.reconnect(lambda: FakeTm(), now=now + radar.REATTACH_S + 1) is True
+      and rc.tm is not tm)
+rc.tm = None
+check("게임 꺼짐 + 못 붙음 → tm None 유지", rc.reconnect(lambda: None, now=now + 100) is False and rc.tm is None)
+new = FakeTm()
+check("게임 다시 켜짐 → 붙음", rc.reconnect(lambda: new, now=now + 105) is True and rc.tm is new)
+check(f"다시 붙는 동안에도 쓰기 없음 {new.writes}", new.writes == [])
 
 print("서버 age = 마지막 스냅샷 기준")
 st = S.State(props=[], items=[], enemies={})

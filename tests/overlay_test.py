@@ -45,6 +45,10 @@ check("목표·경로·부숨", any(t.startswith("target: Shield") for t in L) a
 check("8 m 안 적 수 (죽은 적·우호 제외)", any(t.startswith("foes within 8 m: 2 (2 moving)") for t in L))
 check("판단 최신이 먼저", L[-2] == "› retreat mode: guard" and L[-1] == "› fight: Hollow")
 check("끊김 표시", O.lines({**state, "age": 5.0})[0][0].startswith("stale"))
+check("타이틀·로딩 표시", O.lines({**state, "game": {"game": "title"}})[0][0] == "title / loading")
+check("Steam 온라인 경고", O.lines({**state, "steam": {"offline": False}})[0] == ("Steam ONLINE", O.WARN))
+check("인게임·오프라인이면 추가 줄 없음", O.lines({**state, "game": {"game": "world"}, "steam": {"offline": True}}) == O.lines(state))
+check("봇 데이터 없어도 게임 상태", O.lines({"game": {"game": "off"}})[0][0] == "game off")
 
 check("가장 가까운 아이템 (기타 제외)", any(t.startswith("item: Titanite Shard  2.0 m  (+1 more)") for t in L))
 

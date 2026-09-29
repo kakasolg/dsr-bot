@@ -8,7 +8,7 @@
 
 | 하는 일 | 함수 | 방식 | 실측 |
 |---|---|---|---|
-| 화톳불로 워프 (구역 간) | `bonfire_warp(id)` | 마지막 화톳불 쓰기 + 게임 워프 함수 호출 (`BONFIRE_WARP_AOB`, `func(*ChrClassBase, 1)`) | 성벽 마을 ↔ 불의 제전 2.5~2.8 s. `bonfires.py` 목록(불 붙인 곳)만 간다 |
+| 화톳불로 워프 (구역 간) | `bonfire_warp(id)` | 마지막 화톳불 쓰기 + 게임 워프 함수 호출 (`BONFIRE_WARP_AOB`, `func(*ChrClassBase, 1)`) | 성벽 마을 ↔ 불의 제전 2.5~2.8 s. `bonfires.py` 목록(불 붙인 곳)만 간다. 레이더 페이지 버튼으로도 (`radar_warp.py` — Steam 오프라인 확인·봇 안 돔·인게임·메뉴 닫힘일 때만) |
 | 같은 구역 짧은 이동 | `safe_warp(x,y,z)` | NoDead 켜고 좌표를 붙잡아 바닥이 서는지 확인, 실패면 제자리로 | 불의 제전 안 8 m 1.4 s |
 | 좌표만 바꾸기 | `pos_warp` | ChrMapData +0x108/+0x110.. | **먼 구역 금지** — 땅을 뚫고 떨어져 죽었다 (소울 3840) |
 | 퀵 종료 (메뉴 없이) | `quit_to_title()` | ChrClassWarp **+0x19 = 1** → 곧장 타이틀 | 0.58 s (메뉴 방식 2~2.8 s). `Moves.quit_reload` 가 먼저 쓴다 |

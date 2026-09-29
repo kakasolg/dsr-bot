@@ -10,6 +10,10 @@
   python radar.py watch      read-only watch — no bot: the radar follows the game while a person plays by hand
                              (same as `python run.py watch --radar`). Sends no pad input, writes no game memory.
 
+Game state: attach() also starts a thread that sends a small "status" packet every STATUS_S, even when there is no player
+(title screen, loading) — so the radar can tell "at the title" from "nobody is sending": game off / title (or loading) /
+world / dead, plus whether the in-game menu is open.
+
 Pickups: attach() also starts a thread that, once a second, reads the pickup event flags (tm.event_flag) of the treasures
 in data/gamefiles/*.json within ITEM_R of the player and sends the ones already taken, so the radar hides them.
 
@@ -34,6 +38,10 @@ ITEM_CHECK_S = 1.0     # s between pickup-flag reads
 ITEM_R = 40.0          # m — only treasures this close to the player are checked
 GAMEFILES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "gamefiles")
 MAX_CHARS = 40          # nearest first; keeps one packet well under the UDP size limit
+STATUS_S = 0.5         # s between game-state packets
+SEEN_S = 1.0           # s — a player seen this recently counts as "in the world"
+RECONNECT_S = 5.0      # watch: s between checks that the game is still there
+REATTACH_S = 30.0      # watch: no player this long while the game runs → attach again (pointers may move after the title)
 
 
 def _r(v, n=2):
@@ -92,6 +100,36 @@ def load_treasures(folder: str = GAMEFILES) -> list[tuple]:
     return out
 
 
+def game_alive(tm) -> bool:
+    """Is the game process behind tm still running. Telemetry without a process handle (fakes) counts as running."""
+    if tm is None:
+        return False
+    pm = getattr(tm, "pm", None)
+    if pm is None:
+        return True
+    try:
+        import ctypes
+        code = ctypes.c_ulong()
+        if not ctypes.windll.kernel32.GetExitCodeProcess(pm.process_handle, ctypes.byref(code)):
+            return False
+        return code.value == 259            # STILL_ACTIVE
+    except Exception:
+        return True
+
+
+def status_dict(alive: bool, seen: float, hp, menu, now: float) -> dict:
+    """Game state for the radar: off / title (title screen or loading — memory can't tell them apart yet) / world / dead.
+    away = s since the player was last seen (None if never, since this sender started)."""
+    if not alive:
+        game = "off"
+    elif seen and now - seen < SEEN_S:
+        game = "dead" if not hp or hp <= 0 else "world"
+    else:
+        game = "title"
+    return {"type": "status", "t": now, "game": game, "menu": menu if game in ("world", "dead") else None,
+            "away": round(now - seen, 1) if seen and game == "title" else None}
+
+
 class Radar:
     def __init__(self, host: str = "127.0.0.1", port: int = PORT):
         self.addr = (host, port)
@@ -101,6 +139,11 @@ class Radar:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setblocking(False)
         self._last = 0.0
+        self.tm = None
+        self._seen = 0.0             # when a player was last in a frame
+        self._hp = None
+        self._attached = 0.0
+        self._started = False
 
     def _send(self, msg: dict) -> None:
         try:
@@ -110,6 +153,11 @@ class Radar:
 
     def snapshot(self, s) -> None:
         now = time.time()
+        if s is not None:
+            try:
+                self._seen, self._hp = now, s.player.hp
+            except Exception:
+                pass
         if s is None or now - self._last < 1.0 / RATE_HZ:
             return
         self._last = now
@@ -158,59 +206,118 @@ class Radar:
             self._send({"type": "unpicked", "flags": off})
         return on, off
 
-    def watch_items(self, tm) -> None:
-        treasures = load_treasures()
-        if not treasures:
-            return
+    def status(self, now: float | None = None) -> dict:
+        now = time.time() if now is None else now
+        tm = self.tm
+        alive = game_alive(tm)
+        menu = None
+        if alive and self._seen and now - self._seen < SEEN_S and hasattr(tm, "menu_open"):
+            try:
+                menu = tm.menu_open()
+            except Exception:
+                menu = None
+        msg = status_dict(alive, self._seen, self._hp, menu, now)
+        self._send(msg)
+        return msg
 
-        def loop():
+    def _threads(self) -> None:
+        treasures = load_treasures()
+
+        def items():
             n = 0
             while True:
-                if n % 30 == 0 and self.picked:     # the server may have restarted — resend what is known now and then
-                    self._send({"type": "picked", "flags": sorted(self.picked)})
-                self.check_items(tm, treasures)
-                n += 1
+                tm = self.tm
+                if treasures and tm is not None and hasattr(tm, "event_flag"):
+                    if n % 30 == 0 and self.picked:     # the server may have restarted — resend what is known now and then
+                        self._send({"type": "picked", "flags": sorted(self.picked)})
+                    self.check_items(tm, treasures)
+                    n += 1
                 time.sleep(ITEM_CHECK_S)
 
-        threading.Thread(target=loop, daemon=True, name="radar-items").start()
+        def poll():                                     # telemetry without a feed: read it ourselves
+            while True:
+                tm = self.tm
+                if tm is not None and not hasattr(tm, "listeners"):
+                    try:
+                        self.snapshot(tm.snapshot(within=POLL_WITHIN))
+                    except Exception:
+                        pass
+                time.sleep(1.0 / RATE_HZ)
+
+        def status():
+            while True:
+                try:
+                    self.status()
+                except Exception:
+                    pass
+                time.sleep(STATUS_S)
+
+        for fn, name in ((items, "radar-items"), (poll, "radar"), (status, "radar-status")):
+            threading.Thread(target=fn, daemon=True, name=name).start()
 
     def attach(self, tm) -> "Radar":
         """Follow what the bot reads. With feed.Feed (the default telemetry) subscribe to its frames like blackbox.py;
-        otherwise poll tm.snapshot on a daemon thread. The bot's own reads are untouched. Also watches item pickups."""
-        if hasattr(tm, "event_flag"):
-            self.watch_items(tm)
-        if hasattr(tm, "listeners"):
+        otherwise poll tm.snapshot on a daemon thread. The bot's own reads are untouched. Also watches item pickups and
+        sends the game state. Can be called again with new telemetry (watch reconnects); tm None = game not found yet."""
+        self.tm, self._attached = tm, time.time()
+        if not self._started:
+            self._started = True
+            self._threads()
+        if tm is not None and hasattr(tm, "listeners"):
             tm.listeners.append(self.snapshot)
-            return self
-
-        def poll():
-            while True:
-                try:
-                    self.snapshot(tm.snapshot(within=POLL_WITHIN))
-                except Exception:
-                    pass
-                time.sleep(1.0 / RATE_HZ)
-
-        threading.Thread(target=poll, daemon=True, name="radar").start()
         return self
 
+    def reconnect(self, connect, now: float | None = None) -> bool:
+        """watch only: if the game went away, or no player for REATTACH_S while it runs, drop the telemetry and connect
+        again. → True if it attached new telemetry."""
+        now = time.time() if now is None else now
+        tm = self.tm
+        lost = not game_alive(tm)
+        stuck = not lost and now - max(self._seen, self._attached) > REATTACH_S
+        if not (lost or stuck):
+            return False
+        if tm is not None and hasattr(tm, "stop"):
+            try:
+                tm.stop()                               # feed thread — env.make_telemetry then builds a new one
+            except Exception:
+                pass
+        new = connect()
+        if new is not None:
+            self.attach(new)
+            return True
+        if lost:
+            self.tm = None
+        else:
+            self._attached = now                        # try again in REATTACH_S, not every check
+        return False
 
-def watch(tm=None, forever: bool = True) -> Radar:
+
+
+def connect_game():
+    """DSR telemetry, or None if the game isn't running (yet)."""
+    os.environ["BOT_GAME"] = "dsr"             # env reads this on import; the radar is DSR only
+    try:
+        import env
+        return env.make_telemetry({})
+    except Exception:
+        return None
+
+
+def watch(tm=None, forever: bool = True, connect=connect_game) -> Radar:
     """Read-only watch: the radar follows the game while a person plays (no bot running, so nothing else sends
     snapshots and the page would freeze on the last bot frame). Only telemetry reads — no control.Pad, no memory writes.
-    Don't run it next to a bot started with --radar: both would send snapshots."""
-    if tm is None:
-        os.environ["BOT_GAME"] = "dsr"         # env reads this on import; the radar is DSR only
-        import env
-        tm = env.make_telemetry({})
-    r = Radar().attach(tm)
+    Survives the title screen and a game restart (connects again). Don't run it next to a bot started with --radar:
+    both would send snapshots."""
+    r = Radar().attach(tm if tm is not None else connect())
     line = "radar watch: read-only"
-    print(f"{line} — python radar_server.py -> http://127.0.0.1:47801  (Ctrl+C to stop)", flush=True)
+    print(f"{line} — python radar_server.py -> http://127.0.0.1:47801  (Ctrl+C to stop)"
+          + ("" if r.tm is not None else "  [game not found — waiting]"), flush=True)
     r.say(line)
     while forever:
-        time.sleep(3600)
+        time.sleep(RECONNECT_S)
+        if r.reconnect(connect):
+            print(f"radar watch: game attached again ({time.strftime('%H:%M:%S')})", flush=True)
     return r
-
 
 if __name__ == "__main__":
     import sys

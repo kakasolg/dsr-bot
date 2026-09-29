@@ -56,12 +56,22 @@ h2 { font-size: 12px; font-weight: 600; color: var(--muted); margin: 0 0 6px; te
 #tl_pos { flex: 1 1 240px; min-width: 160px; }
 #tl_time { font-variant-numeric: tabular-nums; min-width: 110px; }
 #pad { width: 100%; height: auto; display: block; }
+.chip { font-size: 12px; padding: 1px 8px; border-radius: 10px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.chip.ok { color: var(--friend); border-color: var(--friend); }
+.chip.bad { color: var(--hplow); border-color: var(--hplow); }
+.chip[hidden] { display: none; }
+#warpform { display: flex; gap: 6px; }
+#wbf { flex: 1 1 auto; min-width: 0; }
+#wgo:disabled { opacity: .5; }
+#wmsg { margin-top: 6px; overflow-wrap: anywhere; }
 </style>
 </head>
 <body>
 <header>
   <h1>DSR Bot Radar</h1>
   <span id="conn">waiting</span>
+  <span id="game" class="chip" title="game state from the sender (run.py --radar or radar.py watch)">—</span>
+  <span id="steam" class="chip" hidden>Steam ?</span>
   <label>Range <select id="range"><option>10</option><option selected>20</option><option>40</option></select> m</label>
   <label>Up <select id="up"><option value="cam" selected>camera</option><option value="north">north</option></select></label>
   <label><input type="checkbox" id="anim"> anim ID</label>
@@ -85,6 +95,9 @@ h2 { font-size: 12px; font-weight: 600; color: var(--muted); margin: 0 0 6px; te
     <div class="card"><h2>Controller</h2><canvas id="pad" width="300" height="120"></canvas><div id="padinfo" class="muted">no controller</div></div>
     <div class="card"><h2>Bot</h2><div id="vitals">—</div></div>
     <div class="card"><h2>Doing</h2><div id="intent">—</div></div>
+    <div class="card"><h2>Bonfire warp</h2>
+      <div id="warpform"><select id="wbf" aria-label="bonfire"></select><button id="wgo" type="button" disabled>Warp</button></div>
+      <div id="wmsg" class="muted">—</div></div>
     <div class="card"><h2>Decisions</h2><ul id="says"><li>—</li></ul></div>
     <div class="card"><h2>Nearest foes</h2><table id="foes"></table></div>
   </div>
@@ -366,6 +379,60 @@ function timeline() {
   $("tl_name").textContent = r.name + (r.markers.length ? ` · F9 at ${r.markers.map(m => m.toFixed(1)).join(", ")} s` : "");
 }
 
+// ── game state · Steam offline · bonfire warp (radar_warp.py) ─────────────
+const GAME = {world: "in game", dead: "dead", title: "title / loading", off: "game off", none: "no sender"};
+let bonfireList = [], warpNote = "";
+async function loadBonfires() {
+  try {
+    bonfireList = await (await fetch("/bonfires", {cache: "no-store"})).json();
+    const sel = $("wbf"), keep = sel.value;
+    sel.replaceChildren(...bonfireList.map(b => { const o = document.createElement("option"); o.value = b.id; o.textContent = b.name; return o; }));
+    if (keep) sel.value = keep;
+  } catch (e) {}
+  setTimeout(loadBonfires, 30000);
+}
+function warpBlock(g, st, w) {       // why the button is off — the server checks all of this again
+  if (!w || !w.enabled) return "off here (replay / demo)";
+  if (w.busy) return "warping…";
+  if (!st || st.offline !== true) return "needs Steam offline";
+  if (!g || g.game !== "world") return "needs the player in the game";
+  if (g.menu) return "close the in-game menu";
+  if (!bonfireList.length) return "no lit bonfires";
+  return "";
+}
+function gameStatus() {
+  const g = last && last.game, st = last && last.steam, w = last && last.warp;
+  let t = g ? (GAME[g.game] || g.game) : "—";
+  if (g && g.game === "world" && g.menu) t += " · menu";
+  if (g && g.game === "title" && g.away != null) t += ` (${g.away.toFixed(0)} s)`;
+  $("game").textContent = t;
+  $("game").className = "chip" + (g && g.game === "world" ? " ok" : g && (g.game === "dead" || g.game === "off") ? " bad" : "");
+  $("steam").hidden = !st;
+  if (st) {
+    $("steam").textContent = st.offline === true ? "Steam offline" : st.offline === false ? "Steam ONLINE" : "Steam ?";
+    $("steam").className = "chip" + (st.offline === true ? " ok" : " bad");
+    $("steam").title = (st.why || []).join(" · ");
+  }
+  const why = warpBlock(g, st, w);
+  $("wgo").disabled = !!why;
+  $("wgo").title = why;
+  $("wmsg").textContent = warpNote || (w && w.last) || why || "ready";
+}
+$("wgo").onclick = async () => {
+  const b = bonfireList.find(x => String(x.id) === $("wbf").value);
+  if (!b || !confirm(`Warp to ${b.name}?\nThe game loads that area (like the bonfire menu). Souls are kept.`)) return;
+  warpNote = "";
+  try {
+    const r = await fetch("/warp", {method: "POST", cache: "no-store", headers: {"Content-Type": "application/json", "X-Radar": "1"},
+                                    body: JSON.stringify({id: b.id})});
+    const j = await r.json();
+    warpNote = j.ok ? "" : "refused: " + j.msg;
+  } catch (e) { warpNote = "no server"; }
+  setTimeout(() => { warpNote = ""; }, 8000);
+  gameStatus();
+};
+loadBonfires();
+
 async function poll() {
   try {
     const r = await fetch("/state", {cache: "no-store"});
@@ -377,7 +444,7 @@ async function poll() {
   } catch (e) {
     $("conn").textContent = "no server"; $("conn").className = "stale";
   }
-  draw(); side(); drawPad(); timeline();
+  draw(); side(); drawPad(); timeline(); gameStatus();
   setTimeout(poll, 100);
 }
 addEventListener("resize", draw);

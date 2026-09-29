@@ -44,9 +44,15 @@ def lines(state: dict | None, now: float | None = None) -> list[tuple[str, str]]
         return [("no radar server — python radar_server.py", WARN)]
     snap = state.get("snap")
     age = state.get("age")
+    head = []                                       # game state / Steam — only when not the normal "in game, offline"
+    game = (state.get("game") or {}).get("game")
+    if (state.get("steam") or {}).get("offline") is False:
+        head.append(("Steam ONLINE", WARN))
+    if game in ("off", "title", "dead"):
+        head.append(({"off": "game off", "title": "title / loading", "dead": "dead"}[game], MUTED if game == "title" else WARN))
     if not snap:
-        return [("no bot data — run.py … --radar", WARN)]
-    out = []
+        return head + [("no bot data — run.py … --radar, or python radar.py watch", WARN)]
+    out = head
     if age is not None and age > 2:
         out.append((f"stale {age:.0f} s", WARN))
     p = snap["player"]

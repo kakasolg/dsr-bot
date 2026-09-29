@@ -7,6 +7,10 @@
                                       (= python run.py watch --radar). Without a sender the map stays on the last snapshot
 
 Endpoints: /  (radar.html)   /state  (latest snapshot + last decision lines + breakable props near the player, JSON)
+/state also: "game" (off / title / world / dead + menu, from the sender's status packets; "none" if no sender for 2 s),
+"steam" (steam_state.check() every STEAM_S: offline True/False/None + why), "warp" (radar_warp: busy / last result).
+POST /warp {"id": <bonfire>}  bonfire warp — refused unless Steam is offline, no bot runs, the player is in the world
+(radar_warp.py). GET /bonfires  the lit bonfires to offer.
 /state "age" = seconds since the last *snapshot* (not since any packet: radar_pad.py's pad packets alone must not make a
 frozen map look live); "age_any" = since any packet.
 Props and items come from data/gamefiles/*.json (msb_extract.py) — every extracted map is loaded; the ones near the
@@ -29,6 +33,8 @@ from pathlib import Path
 
 import radar
 import radar_record
+import radar_warp
+import steam_state
 import translate
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -41,6 +47,8 @@ STRONG_MIN_ATTACK = 50         # same as msb_extract.py
 ITEM_DY = 5.0                  # items: ±5 m — a ledge or stairs above still matters (user 2026-09-27; props stay ±1 m)
 HTTP_PORT = radar.PORT + 1
 SAY_KEEP = 12
+STEAM_S = 5.0                  # s between Steam offline checks
+STATUS_FRESH = 2.0             # s — game state older than this = no sender
 
 
 def load_props(folder: Path = GAMEFILES) -> list[list]:
@@ -122,6 +130,8 @@ class State:
         self.recorder = None                  # radar_record.Recorder — every message received is also saved
         self.replay = None                    # radar_record.Replay — when playing a recording back
         self.mesh = None                      # radar_mesh.MeshView — NavMesh faces near the player (Windows, game files)
+        self.steam: dict | None = None        # steam_state.check() — set by steam_loop (live server only)
+        self.warp = None                      # radar_warp.Warper — POST /warp
         self.reset()
 
     def reset(self) -> None:
@@ -133,6 +143,8 @@ class State:
             self.pads: dict[int, dict] = {}   # XInput slot → last pad state (radar_pad.py, or a replayed recording)
             self.t_recv = 0.0                 # last packet of any kind
             self.t_snap = 0.0                 # last snapshot — what "age" reports
+            self.status: dict | None = None   # last game-state packet (radar.py status_dict)
+            self.t_status = 0.0
 
     def put(self, msg: dict) -> None:
         if self.recorder is not None:
@@ -150,6 +162,8 @@ class State:
                 self.pads.pop(int(msg.get("i") or 0), None)     # a pad that went away must not hide the one still in use
             elif msg.get("type") == "pad":
                 self.pads[int(msg.get("i") or 0)] = {k: msg.get(k) for k in ("btn", "lt", "rtr", "lx", "ly", "rx", "ry")}
+            elif msg.get("type") == "status":
+                self.status, self.t_status = msg, self.t_recv
             elif msg.get("type") == "say":
                 self.says.append({"t": msg.get("t"), "line": msg.get("line", "")})
 
@@ -157,6 +171,7 @@ class State:
         with self.lock:
             snap, says, picked, pads = self.snap, list(self.says), set(self.picked), dict(self.pads)
             now = time.time()
+            status, st_age = self.status, now - self.t_status
             age = round(now - self.t_snap, 2) if self.t_snap else None
             age_any = round(now - self.t_recv, 2) if self.t_recv else None
         if self.english:
@@ -166,6 +181,12 @@ class State:
         out = {"snap": snap, "says": says, "age": age, "age_any": age_any, "pads": {str(k): v for k, v in pads.items()}}
         if self.replay is not None:
             out["replay"] = self.replay.status()
+        fresh = status is not None and (st_age < STATUS_FRESH or (self.replay is not None and not self.replay.playing))
+        out["game"] = ({k: status.get(k) for k in ("game", "menu", "away")} if fresh else {"game": "none"})
+        if self.steam is not None:
+            out["steam"] = self.steam
+        if self.warp is not None:
+            out["warp"] = self.warp.status()
         p = (snap or {}).get("player") or {}
         if p.get("x") is not None:
             out["props"] = [o for o in self.props if abs(o[0] - p["x"]) < PROP_R and abs(o[2] - p["z"]) < PROP_R
@@ -190,6 +211,24 @@ def udp_loop(state: State, port: int) -> None:
             pass
 
 
+def steam_loop(state: State) -> None:
+    while True:
+        state.steam = steam_state.check()
+        time.sleep(STEAM_S)
+
+
+def same_origin(headers, port: int) -> bool:
+    """Only the radar page itself may POST: Host must be this server (no DNS rebinding), Origin (if sent) the same,
+    and X-Radar must be set — a foreign page can't add that header without a CORS preflight, which this server never answers."""
+    hosts = {f"127.0.0.1:{port}", f"localhost:{port}"}
+    if (headers.get("Host") or "") not in hosts:
+        return False
+    origin = headers.get("Origin")
+    if origin is not None and origin not in {f"http://{h}" for h in hosts}:
+        return False
+    return headers.get("X-Radar") == "1"
+
+
 def make_handler(state: State):
     class H(BaseHTTPRequestHandler):
         def _send(self, code: int, body: bytes, ctype: str) -> None:
@@ -206,12 +245,28 @@ def make_handler(state: State):
                 v = q.get("v", [None])[0]
                 state.replay.command(q.get("cmd", [""])[0], float(v) if v not in (None, "") else None)
                 self._send(200, json.dumps(state.replay.status()).encode("utf-8"), "application/json")
+            elif self.path.split("?")[0] == "/bonfires":
+                body = state.warp.bonfires() if state.warp is not None else []
+                self._send(200, json.dumps(body, ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8")
             elif self.path.split("?")[0] == "/state":
                 self._send(200, json.dumps(state.get(), ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8")
             elif self.path.split("?")[0] in ("/", "/radar.html"):
                 self._send(200, PAGE.read_bytes(), "text/html; charset=utf-8")
             else:
                 self._send(404, b"not found", "text/plain")
+
+        def do_POST(self):
+            if self.path.split("?")[0] != "/warp" or state.warp is None:
+                return self._send(404, b"not found", "text/plain")
+            if not same_origin(self.headers, self.server.server_address[1]):
+                return self._send(403, b"forbidden", "text/plain")
+            try:
+                n = int(self.headers.get("Content-Length") or 0)
+                body = json.loads(self.rfile.read(min(n, 1000)) or b"{}")
+                ok, msg = state.warp.request(body.get("id"))
+            except Exception as e:
+                ok, msg = False, f"bad request: {type(e).__name__}"
+            self._send(200 if ok else 409, json.dumps({"ok": ok, "msg": msg}).encode("utf-8"), "application/json")
 
         def log_message(self, *a):
             pass
@@ -236,6 +291,7 @@ def demo_loop(port: int) -> None:
     r.follow(mv)
     t0, k = time.time(), 0
     while True:
+        r._send(radar.status_dict(True, time.time(), 1, False, time.time()))
         t = time.time() - t0
         px, pz = 5 * math.sin(t / 9), 5 * math.cos(t / 11)
         chars = []
@@ -311,6 +367,11 @@ def main() -> None:
                 print("controller: reading XInput" if not a.demo else "controller: demo input")
     if a.demo:
         threading.Thread(target=demo_loop, args=(a.udp,), daemon=True).start()
+        state.steam = {"offline": True, "why": ["demo"]}
+    elif not a.replay:
+        threading.Thread(target=steam_loop, args=(state,), daemon=True).start()
+    state.warp = radar_warp.Warper(lambda line: state.put({"type": "say", "t": time.time(), "line": line}),
+                                   enabled=not (a.demo or a.replay))
     srv = ThreadingHTTPServer(("127.0.0.1", a.http), make_handler(state))
     print(f"radar: http://127.0.0.1:{a.http}  (UDP {a.udp}{', demo' if a.demo else ''})")
     try:
