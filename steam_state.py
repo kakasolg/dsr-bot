@@ -19,6 +19,7 @@ if hasattr(sys.stdout, "reconfigure"):
 GAME_EXE = "DarkSoulsRemastered.exe"
 STEAM_EXE = "steam.exe"
 _STATES = (3, 4, 5)       # MIB_TCP_STATE: SYN_SENT, SYN_RCVD, ESTABLISHED — a connection being made or in use
+_STATE_NAMES = {3: "SYN_SENT", 4: "SYN_RCVD", 5: "ESTABLISHED"}
 
 
 # ── pure (tested in tests/steam_state_test.py) ─────────────────────────────
@@ -117,9 +118,16 @@ def pids(exe: str) -> list[int]:
 
 def outside_conns(pid_set: set[int]) -> int | None:
     """Outside TCP connections (IPv4 + IPv6) owned by these processes."""
+    conns = outside_conn_list(pid_set)
+    return None if conns is None else len(conns)
+
+
+def outside_conn_list(pid_set: set[int]) -> list[str] | None:
+    """The same connections as "address:port STATE" — so an ONLINE verdict says where Steam was talking to."""
     import ctypes
+    import ipaddress
     ip = ctypes.windll.iphlpapi
-    n = 0
+    out = []
     for family, row_size, addr_at, pid_at, state_at, alen in ((2, 24, 12, 20, 0, 4), (23, 56, 24, 52, 48, 16)):
         size = ctypes.c_ulong(0)
         ip.GetExtendedTcpTable(None, ctypes.byref(size), False, family, 5, 0)     # TCP_TABLE_OWNER_PID_ALL
@@ -134,8 +142,10 @@ def outside_conns(pid_set: set[int]) -> int | None:
             pid = int.from_bytes(r[pid_at:pid_at + 4], "little")
             state = int.from_bytes(r[state_at:state_at + 4], "little")
             if pid in pid_set and state in _STATES and _outside(r[addr_at:addr_at + alen]):
-                n += 1
-    return n
+                port_at = addr_at + (4 if alen == 4 else 20)                          # dwRemotePort, network order
+                port = int.from_bytes(r[port_at:port_at + 2], "big")
+                out.append(f"{ipaddress.ip_address(r[addr_at:addr_at + alen])}:{port} {_STATE_NAMES.get(state, state)}")
+    return out
 
 
 def check() -> dict:
@@ -146,10 +156,11 @@ def check() -> dict:
         steam = set(pids(STEAM_EXE))
         game = set(pids(GAME_EXE))
         pref = offline_setting()
-        sc = outside_conns(steam) if steam else None
-        gc = outside_conns(game) if game else 0          # game not running: nothing of its own to leak
-        out = judge(pref, bool(steam), sc, gc)
+        sl = outside_conn_list(steam) if steam else None
+        gl = outside_conn_list(game) if game else []     # game not running: nothing of its own to leak
+        out = judge(pref, bool(steam), None if sl is None else len(sl), None if gl is None else len(gl))
         out["game_running"] = bool(game)
+        out["conns"] = [f"steam.exe {c}" for c in (sl or [])[:3]] + [f"game {c}" for c in (gl or [])[:3]]
         return out
     except Exception as e:
         return {"offline": None, "why": [f"check failed: {type(e).__name__}"]}

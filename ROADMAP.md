@@ -273,7 +273,7 @@
 - [x] [cloud] 레이더 ③ 화톳불 워프: 레이더 "Bonfire warp" 카드(불 붙인 화톳불 목록 `GET /bonfires`, 확인 창) → `POST /warp` → `radar_warp.Warper` → `dsr_telemetry.bonfire_warp`. 거절 조건(이유를 카드에 표시): replay·demo / 다른 워프 중 / 불 안 붙인 화톳불 / Steam 오프라인 확인 안 됨 / 봇 실행 중(`bot.lock` — 워프 동안 쥐고 있어 봇도 못 켬) / 게임 없음 / 타이틀·로딩 / 사망 / 메뉴 열림. 다른 웹페이지의 요청은 막음(Host·Origin·`X-Radar` 헤더). 결과는 Decisions 줄(기록에도 남음). 마지막 화톳불이 목적지로 바뀜(게임 메뉴 워프와 같음). `tests/radar_warp_test.py`(거절 10가지, 허용 1, 403·409). 데모에서 페이지·브라우저 POST 확인. **실제 워프는 안 해 봄**
 - [~] [win] 확인 (게임에서): `python radar_server.py` + `python radar.py watch` → (1) 머리 칩이 인게임 / 메뉴 열면 `· menu` / 퀵 종료하면 `title / loading` → 이어하기 뒤 다시 `in game`(watch가 타이틀 뒤에도 계속 따라오는지, 콘솔에 `attached again`이 나오는지) / 게임 끄면 `game off` → 다시 켜면 돌아오는지 (2) Steam 칩 `Steam offline`, 마우스 올린 이유 (3) 워프 카드에서 불 붙인 화톳불 하나로 워프 → 도착, Decisions에 `arrived`. 봇 실행 중에는 버튼이 거절하는지. 타이틀과 로딩을 나눌 메모리 값이 필요하면 [cloud]에 이슈로
   - 2026-09-28 [MoKa] (2) `Steam offline` 칩, (1) `in game` 칩 확인. (3) 워프: Undead Burg 화톳불 → **Firelink Shrine 도착**, 카드에 `arrived at Firelink Shrine (Bonfire)`, 레이더가 새 위치(−47.3, −59.9, 53.2)를 따라옴. 남은 것: 메뉴 `· menu`, 퀵 종료 → `title / loading` → 복귀, 게임 끄기·다시 켜기, 봇 실행 중 워프 거절. 처음 켰을 때 예전 서버가 겹쳐 떠서 칩이 안 나옴 → P-20 (#9)
-  - 2026-09-28 [MoKa] 서버를 포트 독점 코드(3af958e)로 다시 켬 — 두 번째 서버·예전 방식 bind 모두 거절 확인. 워프 한 번 더: **Undead Parish (Sunlight Altar) 도착**. 타이틀로 나감 → 칩 `title / loading (N s)`(`/state` `game: title`, away 68.8 s), **워프 버튼 꺼짐** 확인. 이어하기 → **`in game` 복귀**, `age` 0.01 s, 새 위치 (22.0, 9.5, −25.0) 따라옴 — watch를 다시 켜지 않고 타이틀을 지나도 계속 따라옴. 워프 버튼 다시 켜짐. 메뉴 열기 → `/state` `menu: true`, 칩 `in game · menu`, **워프 버튼 바로 꺼짐**. 남은 것: 게임 끄기·다시 켜기, 봇 실행 중 거절
+  - 2026-09-28 [MoKa] 서버를 포트 독점 코드(3af958e)로 다시 켬 — 두 번째 서버·예전 방식 bind 모두 거절 확인. 워프 한 번 더: **Undead Parish (Sunlight Altar) 도착**. 타이틀로 나감 → 칩 `title / loading (N s)`(`/state` `game: title`, away 68.8 s), **워프 버튼 꺼짐** 확인. 이어하기 → **`in game` 복귀**, `age` 0.01 s, 새 위치 (22.0, 9.5, −25.0) 따라옴 — watch를 다시 켜지 않고 타이틀을 지나도 계속 따라옴. 워프 버튼 다시 켜짐. 메뉴 열기 → `/state` `menu: true`, 칩 `in game · menu`, **워프 버튼 바로 꺼짐**. 게임 끄고 다시 켬(21:00:31) → 타이틀에서 `title / loading`(새 프로세스에 붙음 — 옛 핸들이면 `game off`) → 이어하기 뒤 **`in game`, `age` 0.1 s, 위치 따라옴** — watch 다시 켤 필요 없음. 이때 Steam 칩이 잠깐 `ONLINE`(steam.exe 외부 연결 1개) → P-21 (#10). 남은 것: 봇 실행 중 거절
 
 ## 6. 2D 시뮬레이터
 
@@ -432,6 +432,12 @@
 - 원인: 윈도우는 한쪽이 SO_REUSEADDR를 켜면(`HTTPServer` 기본) 같은 포트에 두 번째 bind가 **조용히 성공**함. 예전 서버가 UDP 47800(모든 스냅샷)을, 새 서버가 페이지를 줘서 옛 데이터가 새 페이지에 보임. 새 서버의 UDP 오류는 스레드 안이라 안 보였음
 - 해결 ([cloud]): `radar_server.py`가 **시작하자마자** HTTP·UDP를 `SO_EXCLUSIVEADDRUSE`로 잡고(`RadarHTTPServer`, `bind_udp`), 이미 쓰이면 바로 종료 코드 1 + 찾는 PowerShell 명령·다른 포트 안내. 새 서버가 먼저 떠 있으면 예전 코드 서버도 못 끼어듦. 지금 떠 있는 서버(예전 bind)를 상대로 두 번째 서버가 바로 멈추는 것 확인. `tests/radar_port_test.py`
 - 남은 것: 다른 세션이 레이더를 다시 띄우지 않게 — 레이더 서버·`radar.py watch`는 MoKa가 켜고 끔
+
+### P-21 게임을 다시 켠 직후 오프라인 모드인데 steam.exe에 외부 연결 1개 (2026-09-28, [MoKa]/[cloud]) → #10
+- 증상: 게임 재시작(21:00:31) 뒤 타이틀에서 레이더 Steam 칩이 `Steam ONLINE` — `steam_state` 이유: `Steam set offline, steam.exe 1 outside conn, game 0 outside conn`. 1~2분 뒤 다시 읽으니 연결 0, `offline`. 게임 자체의 연결은 계속 0
+- 판단: 판정은 보수적으로 맞게 동작(그동안 워프는 거절됨). 다만 오프라인 모드의 steam.exe가 게임 실행 때 어디에 연결하는지는 모름 — 연결 주소를 못 남김. 연결이 SYN_SENT(시도만)였을 수도 있음
+- 조치 ([cloud]): `steam_state.check()`가 외부 연결을 `주소:포트 상태`로 돌려주고(`conns`), `radar_server.py`가 판정이 바뀔 때마다 콘솔과 Decisions(녹화에도 남음)에 `steam: ONLINE — … [steam.exe 1.2.3.4:443 ESTABLISHED]` 한 줄. 다음에 재현되면 그 줄로 원인 판단
+- 재현: 오프라인 모드에서 게임을 끄고 다시 켜며 서버 콘솔의 `steam:` 줄 확인
 
 ---
 

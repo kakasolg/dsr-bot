@@ -235,8 +235,19 @@ def udp_loop(state: State, port) -> None:
 
 
 def steam_loop(state: State) -> None:
+    """Every STEAM_S. A change of verdict is printed and put in Decisions (so the recording has it) with the outside
+    connections — 2026-09-28 steam.exe had one for a short while right after the game was restarted, in offline mode."""
+    prev = "unset"
     while True:
-        state.steam = steam_state.check()
+        v = steam_state.check()
+        state.steam = v
+        if v.get("offline") != prev:
+            if prev != "unset" or v.get("offline") is not True:
+                word = {True: "offline", False: "ONLINE", None: "unknown"}[v.get("offline")]
+                line = f"steam: {word} — " + ", ".join(v.get("why") or []) + (f" [{'; '.join(v['conns'])}]" if v.get("conns") else "")
+                print(time.strftime("%H:%M:%S"), line, flush=True)
+                state.put({"type": "say", "t": time.time(), "line": line})
+            prev = v.get("offline")
         time.sleep(STEAM_S)
 
 
