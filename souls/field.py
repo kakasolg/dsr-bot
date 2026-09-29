@@ -101,8 +101,10 @@ SMASH_SWING_S = 0.7      # s per light attack
 REPAIR_FRAC = 0.4        # repair powder when weapon durability is below this fraction of max (field.repair)
 RANGED_R = 25.0          #          and no awake, moving 'thrower' (foes.ranged) within this
 BONFIRE_NO_A = 6.0
-FIGHT_HEAL = 0.5         # while fighting: drink at an opening (duel.opening) if HP is below this
-WALK_HEAL = 0.6          # while walking: if below this and safe, heal up to 70 %
+# 에스트는 아끼지 말고 자주 ([MoKa] 2026-09-28: "열심히 에스트 마시면서 플레이하는 것이 최선" — 규칙을 더할수록 문제가 생김).
+# Bandit Bot e 실행: 최저 HP 10 %까지 떨어지고도 에스트 5개가 남음 → 0.5 / 0.6 에서 올림
+FIGHT_HEAL = 0.6         # while fighting: drink at an opening (duel.opening) if HP is below this
+WALK_HEAL = 0.7          # while walking: if below this and safe, heal up to 70 %
 
 
 # 둘러싸임 후퇴(duel 'crowd' → fall_back)는 지금 꺼 둠 — 1~2 s 물러나고 다시 둘러싸이기를 반복해 두 번 사망 (P-26). [MoKa] 2026-09-28:

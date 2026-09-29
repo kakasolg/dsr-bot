@@ -6,6 +6,7 @@ here every one of them runs as its own pytest case from the repo root and must e
 """
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -18,6 +19,8 @@ SCRIPTS = sorted(p.name for p in Path(__file__).resolve().parent.glob("*_test.py
 
 @pytest.mark.parametrize("script", SCRIPTS)
 def test_script(script: str) -> None:
+    # piped stdout on Windows is cp1252/cp949 — a module printing '→' before the script reconfigures stdout failed at random (props_steer)
+    env = dict(os.environ, PYTHONIOENCODING="utf-8")
     r = subprocess.run([sys.executable, str(Path("tests") / script)], cwd=ROOT, capture_output=True, text=True,
-                       encoding="utf-8", errors="replace", timeout=300)
+                       encoding="utf-8", errors="replace", timeout=300, env=env)
     assert r.returncode == 0, f"{script} exited {r.returncode}\n--- stdout ---\n{r.stdout[-4000:]}\n--- stderr ---\n{r.stderr[-4000:]}"
