@@ -105,6 +105,9 @@ FIGHT_HEAL = 0.5         # while fighting: drink at an opening (duel.opening) if
 WALK_HEAL = 0.6          # while walking: if below this and safe, heal up to 70 %
 
 
+# 둘러싸임 후퇴(duel 'crowd' → fall_back)는 지금 꺼 둠 — 1~2 s 물러나고 다시 둘러싸이기를 반복해 두 번 사망 (P-26). [MoKa] 2026-09-28:
+# 일단 끄고 테스트, 달려서 떼어놓는 방식으로 따로 고칠 것. 꺼져 있어도 둘러싸임 퀵 종료는 없음 — HP 45 % 후퇴(recover)만
+CROWD_FALL_BACK = False
 FALL_BACK_R = 6.0        # fall_back stops once at most one moving foe is within this
 FALL_BACK_MAX_S = 15.0   # …or after this long
 FALL_BACK_OFF_S = 10.0   # no path back → fight in place this long before trying to fall back again
@@ -425,7 +428,7 @@ class Field:
                        cancel=lambda: self.esc.escaping or self.esc.gen != g0 or (leash is not None and leash()),
                        care=Care(self), reflex=self.reflex, arena=arena, low_hp=0.0 if desperate else 0.25, style=self.style,
                        limit=limit, wait_far=wait_far, gen=self.esc.gen, events=self.events, may_approach=may_approach,
-                       crowd_ok=time.time() >= self._crowd_off_until)
+                       crowd_ok=CROWD_FALL_BACK and time.time() >= self._crowd_off_until)
         finally:
             self.mv.cam_target = None
         self.log(f"   {tag}{' (끝까지)' if desperate else ''}: {r.line()}")
