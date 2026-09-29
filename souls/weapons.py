@@ -110,12 +110,15 @@ BANDITS_KNIFE = Weapon("밴딧 나이프", 103000, reach=1.3, combo=2, use_heavy
 KNOWN = {w.base_id: w for w in (BROADSWORD, ZWEIHANDER, BATTLE_AXE, CLAYMORE, BANDITS_KNIFE)}
 
 
+DEFAULT = BATTLE_AXE     # MoKa 2026-09-28: 앞으로는 주로 산적(시작 무기 배틀 액스)으로 도전 — 모르는 무기도 배틀 액스로 본다 (예전: 브로드소드)
+
+
 def of(weapon_id: int | None) -> Weapon:
-    """Right-hand weapon ID → usage. Unknown weapons use Broadsword values (short, light-attack focused = most conservative), with a warning."""
+    """Right-hand weapon ID → usage. Unknown weapons use DEFAULT (Battle Axe, the Bandit's starting weapon), with a warning."""
     if weapon_id is not None and weapon_id - weapon_id % 100 in KNOWN:
         return KNOWN[weapon_id - weapon_id % 100]
-    print(f"   ⚠ 모르는 무기 {weapon_id} — 브로드소드 사용법으로 (souls/weapons.py 에 추가할 것)", flush=True)
-    return BROADSWORD
+    print(f"   ⚠ 모르는 무기 {weapon_id} — {DEFAULT.name} 사용법으로 (souls/weapons.py 에 추가할 것)", flush=True)
+    return DEFAULT
 
 
 def can_two_hand(w: Weapon, strength: int | None) -> bool | None:
