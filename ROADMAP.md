@@ -454,6 +454,7 @@
 - 판단: 판정은 보수적으로 맞게 동작(그동안 워프는 거절됨). 다만 오프라인 모드의 steam.exe가 게임 실행 때 어디에 연결하는지는 모름 — 연결 주소를 못 남김. 연결이 SYN_SENT(시도만)였을 수도 있음
 - 조치 ([cloud]): `steam_state.check()`가 외부 연결을 `주소:포트 상태`로 돌려주고(`conns`), `radar_server.py`가 판정이 바뀔 때마다 콘솔과 Decisions(녹화에도 남음)에 `steam: ONLINE — … [steam.exe 1.2.3.4:443 ESTABLISHED]` 한 줄. 다음에 재현되면 그 줄로 원인 판단
 - 재현: 오프라인 모드에서 게임을 끄고 다시 켜며 서버 콘솔의 `steam:` 줄 확인
+- 2026-09-29 [cloud] 서버 콘솔 `steam:` 줄 3번 잡힘 (09-28 23:47 ~ 09-29 06:11): steam.exe → `23.62.46.181:443`(30 s), `199.232.215.82:443`(약 1분), `23.62.46.175:443`(30 s, rDNS `…deploy.static.akamaitechnologies.com`) 모두 ESTABLISHED, 게임 연결은 늘 0. **게임 재시작과 상관없이 몇 시간마다** 생기는 HTTPS CDN 받기(Akamai·Fastly)로 보임 — Steam 로그인 서버(Valve 주소, 27015~27050)는 아님. 판정은 안전 쪽으로 틀림(그동안 워프 거절). 고칠지는 결정 필요: (a) 그대로 (b) steam.exe의 443 CDN 연결은 빼고 Valve 주소·Steam 포트만 셈 (c) `ONLINE`이 1분 넘게 이어질 때만 ONLINE
 
 ### P-22 투척 나이프가 퀵 슬롯에 없으면 끌어오기가 매번 실패하고 경사로가 partial로 끝남 (2026-09-28, [MoKa]/[cloud]) → #11
 - 증상: `burg-bonfire --radar` (`data/samples/burg-bonfire-radar-2026-09-28ab.txt`, 195.6 s) — `#2: 나이프 1 (None m, …) | 290 칸을 못 고름` → `끌어오기 n/3: no_lock` 6번 → `#2 255010: 끝내 못 끌어옴 — deferred_unreachable` → **경사로 partial**, 위험 판정 위험(최저 HP 43%, 큰 피격 5번). #5도 같은 이유로 못 끌어와 low_hp
