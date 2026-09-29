@@ -437,6 +437,9 @@ class Field:
         knives = self.mv.tm.goods_count(M.ITEM_KNIFE) or 0
         if not knives:
             return "no_knife"
+        quick = getattr(self.mv.tm, "quick_items", None)
+        if callable(quick) and quick() and M.ITEM_KNIFE not in quick():
+            return "no_knife"                              # 가지고는 있어도 퀵 슬롯에 없으면 못 고른다 (2026-09-28)
         if knives <= KNIFE_LOW:
             self.log(f"   ⚠ 투척 나이프 {knives} 개 — 상인에게 사야 한다")
         here = (s.player.x, s.player.y, s.player.z)

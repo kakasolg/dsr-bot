@@ -75,6 +75,9 @@ def status() -> None:
     print(f"무기 {wid} → {weapons.of(wid).name}  양손 {tm.arm_style() == 3}  마지막 화톳불 {tm.last_bonfire()}  핏자국 {Blood.read()}")
 
 
+LURE_CMDS = {"burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt-one"}   # knife lures (souls/field.py lure)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("cmd", choices=["status", "watch", "burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt-one", "merchant", "light-burg", "quit-test", "passage-drill"])
@@ -125,6 +128,13 @@ def main() -> None:
         radar_ = radar.Radar().attach(tm)
         log.on_line = lambda m: (track_.say(m), radar_.say(m))
         log("radar: sending — python radar_server.py -> http://127.0.0.1:47801, python overlay.py")
+    if a.cmd in LURE_CMDS and not a.no_lure:
+        quick = tm.quick_items()
+        if moves.ITEM_KNIFE not in quick:
+            # 퀵 슬롯에서 나이프를 빼면 가진 개수는 그대로라 매번 '290 칸을 못 고름' → 락온 실패 3번 → 경사로 partial 로 끝났다 (2026-09-28, 86개 소지)
+            log(f"   ⚠ 투척 나이프(290)가 퀵 슬롯에 없음 (슬롯 {quick}, 가진 수 {tm.goods_count(moves.ITEM_KNIFE)}) — "
+                f"넣고 다시 켜거나 --no-lure. 멈춤 (게임 입력 없음)")
+            return
     control.focus_game()
     pad = control.Pad()
     nms = {missions.MAP_A: navmesh.Navmesh(missions.MAP_A), missions.MAP_B: navmesh.Navmesh(missions.MAP_B)}
