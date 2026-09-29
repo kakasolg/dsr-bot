@@ -268,6 +268,9 @@
   - 샘플: F9 마커 ±20 s만 잘라 `data/samples/observe_backstab_20260927_184707_m1.jsonl`(3.4 MB), `…185353_m1.jsonl`(3.0 MB), `…185353_m2.jsonl`(3.2 MB) — 원본 헤더 유지, 각 40 s, `radar_record.load`로 열리고 마커 포함. 뒤잡기 성공 시범 3번 ([cloud] 뒤잡기 학습용)
 - [x] [cloud] 레이더 읽기 전용 감시 (손으로 플레이할 때): 스냅샷을 보내는 건 `run.py --radar`·`backstab_drill.py`뿐이라, 봇 없이 하면 레이더가 마지막 봇 화면에 멈춤 — 그런데 `radar_pad.py` 패드 패킷이 `age`를 새로 고쳐 멈춘 게 안 보였음. `python radar.py watch` (= `python run.py watch --radar`): `BOT_GAME=dsr` 텔레메트리 + `Radar().attach(tm)` + say 한 줄 `radar watch: read-only`, 그 뒤 잠만 잠 — 패드·BotLock·메모리 쓰기 없음. 봇 `--radar`와 같이 켜지 말 것(스냅샷 둘). 서버 `/state`의 `age`는 이제 **마지막 스냅샷** 기준(패드만 오면 `waiting`/`stale`), 모든 패킷 기준은 `age_any`. 레이더 페이지 stale 표시에 툴팁 안내. `tests/radar_watch_test.py` 통과(스냅샷 계속 감, 쓰기 속성 요청 0, `control` 안 불러옴, 패드만 올 때 age 증가). 전체 pytest 29/30 — 실패 1은 이 변경과 무관한 `props_steer_test.py` 콘솔 인코딩(cp949, `→`)
 - [ ] [win] 확인: `python radar_server.py` → 게임 켜고 손으로 플레이하며 `python radar.py watch` → 레이더가 움직임을 따라오는지, 감시를 끄면 2 s 뒤 `stale`로 바뀌는지(패드는 계속 움직여도)
+- [~] [cloud] 레이더 상태창 ① 게임 상태 (게임 꺼짐 / 타이틀·로딩 / 인게임 / 메뉴 / 사망) — 발신기가 플레이어 없을 때도 `status` 패킷
+- [~] [cloud] 레이더 상태창 ② Steam 오프라인 표시 (`loginusers.vdf` WantsOfflineMode + 게임·steam.exe 외부 연결 수)
+- [~] [cloud] 레이더 ③ 화톳불 워프 버튼 — ①②를 조건으로 (오프라인·인게임·봇 안 돔·불 붙인 화톳불만)
 
 ## 6. 2D 시뮬레이터
 
