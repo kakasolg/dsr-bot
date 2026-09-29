@@ -168,12 +168,15 @@ def test_fog_center_used() -> None:
     got = []
     a._fog = lambda center, beyond, tag: got.append((center, beyond)) or "ok"
     a._press = lambda st, tag: got.append("press") or "ok"
-    a._plunge = lambda tag: "fail"                                        # stop right after the fog
+    flags = []
+    a._plunge = lambda tag: flags.append((f.esc.quit_ok, f.esc.nudge_ok)) or "ok"
+    a._demon = lambda tag: flags.append((f.esc.quit_ok, f.esc.nudge_ok)) or "fail"   # stop after the boss
     a._walk = lambda st, tag: "ok"
     r = a.run([{"type": "press", "label": A.PLUNGE_AT + " x", "pos": [4.18, 210.1, -34.8]},
                {"type": "walk", "pts": [[3.6, 210.1, -33.0], [3.64, 210.11, -32.68]]}])
     assert got == [(A.FOG_CENTER[A.PLUNGE_AT], [3.64, 210.11, -32.68])], got
     assert heals == [0.9], heals
+    assert flags == [(False, False), (False, False)] and f.esc.quit_ok is True and f.esc.nudge_ok is True, (flags, f.esc.quit_ok)
     print("ok  the demon's upper fog goes through _fog at the door's center (not the recorded press spot), facing the next walk's end")
 
 

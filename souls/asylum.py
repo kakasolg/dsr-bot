@@ -174,10 +174,18 @@ class Asylum:
             else:
                 r = getattr(self, "_" + st["type"])(st, f"{tag} {i + 1}/{len(steps)}")
             if r == "ok" and st["type"] == "press" and lab.startswith(PLUNGE_AT):
-                # the recording's plunge + fight (circling walks, the drop, fight rows) → our own plunge, then the duel
-                r = self._plunge(f"{tag} {i + 1}/{len(steps)}")
-                if r == "ok":
-                    r = self._demon(f"{tag} {i + 1}/{len(steps)}")
+                # the recording's plunge + fight (circling walks, the drop, fight rows) → our own plunge, then the demon fight.
+                # 낙사 퀵 종료·턱 보정은 데몬을 잡을 때까지 끔: 떨어지는 동안 턱 보정이 3번 끌어당겼고, 착지 0.1 s 뒤 "바닥 16 m 아래"
+                # (데몬 방 바닥 NavMesh 빈 곳) 로 퀵 종료 → 안개벽 앞에서 되살아난 망자 둘에게 죽음 (2026-09-29, P-25). 데몬 방엔 떨어질 곳 없음
+                esc = self.f.esc
+                saved = (esc.quit_ok, getattr(esc, "nudge_ok", True))
+                esc.quit_ok, esc.nudge_ok = False, False
+                try:
+                    r = self._plunge(f"{tag} {i + 1}/{len(steps)}")
+                    if r == "ok":
+                        r = self._demon(f"{tag} {i + 1}/{len(steps)}")
+                finally:
+                    esc.quit_ok, esc.nudge_ok = saved
                 skip_to = 1 + max((j for j in range(i, len(steps)) if steps[j]["type"] == "fight" and steps[j].get("npc") == DEMON),
                                   default=i)
             self.events("asylum_step", i=i, type=st["type"], label=st.get("label"), result=r)
@@ -436,8 +444,6 @@ class Asylum:
             return "fail"
         y0, hp0 = s.player.y, d.hp
         self._two_hand(tag)
-        quit_ok, self.f.esc.quit_ok = self.f.esc.quit_ok, False
-        nudge_ok, self.f.esc.nudge_ok = getattr(self.f.esc, "nudge_ok", True), False   # it pulled us back from the edge 3 times
         pressed_t, last_rb, t1 = None, 0.0, time.time()
         try:
             self.pad.sprint(True)
@@ -462,8 +468,6 @@ class Asylum:
         finally:
             self.pad.sprint(False)
             self.pad.neutral()
-            self.f.esc.quit_ok = quit_ok
-            self.f.esc.nudge_ok = nudge_ok
         s = self.mv.snap(40.0)
         d2 = self._demon_c(s)
         landed = s is not None and s.player.y < y0 - 8.0

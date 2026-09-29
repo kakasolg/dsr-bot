@@ -116,6 +116,8 @@ class FakeMv:
 class FakeEsc:
     escaping = False
     gen = 0
+    quit_ok = True
+    nudge_ok = True
 
 
 class FakeReflex:
