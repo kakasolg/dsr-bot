@@ -112,6 +112,23 @@ def test_keeps_human_pause() -> None:
     print(f"ok  presses/menu at the same spot keep the human's pauses {waits}; not after a real walk")
 
 
+def test_ready_and_last_stand() -> None:
+    w = World(player=(0.0, -49.4, 0.0), hp=152)
+    w.player.max_hp = 616
+    f = make_field(w)
+    f.estus_left = lambda: 0
+    a = A.Asylum(f, nm=None, log=f.log)
+    assert a.ready() == "HP 152/616, 에스트 없음", a.ready()
+    f.estus_left = lambda: 3
+    assert a.ready() is None
+    w.add(2, 0x1018, 250022, (1.5, -49.4, 0.0), anim=3000)                # awake, swinging, close
+    w.add(3, 0x1019, 250021, (3.0, -49.4, 0.0), anim=-1)                  # standing still — not engaged
+    a._walk = lambda st, tag: "fail"
+    r = a.run([{"type": "walk", "pts": [[0, 0, 0], [5, 0, 0]]}])
+    assert r.startswith("fail") and [x["ptr"] for x in f.fights] == [2], (r, f.fights)
+    print("ok  won't start at 152/616 without Estus; a failing step fights the awake foe next to us before stopping")
+
+
 class ClimbMv:
     """Snapshots whose y rises while the stick is pushed up."""
     def __init__(self, world, rate):
@@ -164,5 +181,6 @@ if __name__ == "__main__":
     test_run_order_and_stop()
     test_flee_and_gear()
     test_keeps_human_pause()
+    test_ready_and_last_stand()
     test_climb()
     print("전부 통과")

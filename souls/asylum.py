@@ -28,6 +28,8 @@ FLEE = ("큰 방 문", "도망친 방 화톳불")
 DEMON = 223200
 # 시작 장비 (산적): 첫 번째로 줍는 게 방패, 두 번째가 배틀 액스 — [MoKa] 항상 같음. 메뉴 장착 뒤 확인
 GEAR = {"방패": ("왼손1", 1462000), "배틀 액스": ("오른손1", 701000)}
+START_HP = 0.5          # don't start a segment below this HP with no Estus (the gap between segment 2 and 3 left us at 152/616)
+LAST_STAND_R = 6.0       # failing with an awake foe this close: fight it out instead of standing there (died idle, 2026-09-29 seg 3)
 PRESS_TOL = 0.35         # stand this close to where the human pressed A
 FACE_DEG = 20.0          # …and face within this of their heading
 PRESS_GAP = 0.3          # between repeated A presses (item messages, dialogue)
@@ -84,6 +86,7 @@ def heading_off(cur: float, want: float) -> float:
 class Asylum:
     def __init__(self, fld, nm, log=print, events=None):
         self.f, self.nm, self.log = fld, nm, log
+        fld.ignore_npcs = set()
         self.mv: M.Moves = fld.mv
         self.tm, self.pad = self.mv.tm, self.mv.pad
         self.events = events or (lambda *a, **k: None)
@@ -112,6 +115,8 @@ class Asylum:
             self.events("asylum_step", i=i, type=st["type"], label=st.get("label"), result=r)
             if r in ("dead", "fail"):
                 self.log(f"   {tag} {i + 1}/{len(steps)} {st['type']} ({what}): {r} — 멈춤")
+                if r == "fail":
+                    self._last_stand(tag)
                 return f"{r} at {i + 1} {st['type']} {what}"
             if st["type"] in ("press", "menu") and st.get("t") is not None and st.get("pos"):
                 last = (st["t"] + (sum(st.get("dt", [])) if st["type"] == "menu" else 0.0), st["pos"], time.time())
@@ -120,6 +125,30 @@ class Asylum:
             if not self.f.alive():
                 return f"dead at {i + 1} {st['type']} {what}"
         return "done"
+
+    def ready(self) -> str | None:
+        """Why this segment shouldn't start now (low HP and no Estus), or None."""
+        s = self.mv.snap(10.0)
+        if s is None:
+            return "no snapshot"
+        p = s.player
+        if p.hp < p.max_hp * START_HP and self.f.estus_left() <= 0:
+            return f"HP {p.hp}/{p.max_hp}, 에스트 없음"
+        return None
+
+    def _last_stand(self, tag) -> None:
+        """Stopping next to an awake foe = dying idle once the bot exits — fight it to the end first."""
+        from .field import awake
+        for _ in range(3):
+            s = self.mv.snap(LAST_STAND_R + 2.0)
+            near = [] if s is None else [c for c in s.hostile(LAST_STAND_R + 1.0) if awake(c) and c.anim not in (None, -1)
+                                         and M.horiz(s.player, c) < LAST_STAND_R and c.npc_param not in self.f.ignore_npcs]
+            if not near:
+                return
+            c = min(near, key=lambda x: M.horiz(s.player, x))
+            r = self.f.fight(c.ptr, self.nm, f"{tag} 멈추기 전 {c.npc_param}", desperate=True)
+            if r.result == "me_dead":
+                return
 
     def _walk(self, st, tag) -> str:
         pts = [tuple(p) for p in st["pts"]]

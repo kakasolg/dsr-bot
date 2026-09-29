@@ -84,7 +84,7 @@ def main() -> None:
     ap.add_argument("--no-rest", action="store_true")
     ap.add_argument("--no-quit", action="store_true", help="퀵 종료(메뉴로 나갔다 오기) 안 씀 — 영상 촬영용")
     ap.add_argument("--i", type=int, default=5, help="hunt-one: BURG_TOWN 몇 번째 (5 = 석궁병 255002)")
-    ap.add_argument("--seg", type=int, default=1, help="asylum: 구간 번호 (1 = 감방 → 사다리 → 첫 화톳불, ROADMAP 1-h)")
+    ap.add_argument("--seg", default="1", help="asylum: 구간 번호 또는 범위 (1 = 감방 → 사다리 → 첫 화톳불, 2-3 = 이어서, ROADMAP 1-h)")
     ap.add_argument("--radar", action="store_true", help="send state to the radar (view with radar_server.py / overlay.py)")
     ap.add_argument("--no-lure", action="store_true", help="나이프로 한 놈씩 깨우지 않고 예전처럼 걸어가 붙는다 (비교용)")
     ap.add_argument("--style", choices=["guard", "backstep", "rush"], default="guard",
@@ -197,9 +197,20 @@ def main() -> None:
         elif a.cmd == "merchant":
             r = ms.to_merchant()
         elif a.cmd == "asylum":
-            steps = asylum.segment(asylum.load(), a.seg)
-            log(f"수용소 구간 {a.seg}: {len(steps)}단계 ({steps[0].get('label') or steps[0]['type']} → {steps[-1].get('label') or steps[-1]['type']})")
-            r = asylum.Asylum(fld, nms[asylum.MAP], log=log, events=log.event).run(steps, f"수용소{a.seg}")
+            lo, _, hi = a.seg.partition("-")
+            segs = list(range(int(lo), int(hi or lo) + 1))
+            run_ = asylum.Asylum(fld, nms[asylum.MAP], log=log, events=log.event)
+            why = run_.ready()
+            if why:
+                r = f"시작 안 함 — {why}"
+            else:
+                for n in segs:                             # back to back — standing idle between segments got us beaten to 152/616
+                    steps = asylum.segment(asylum.load(), n)
+                    log(f"수용소 구간 {n}: {len(steps)}단계 ({steps[0].get('label') or steps[0]['type']} → {steps[-1].get('label') or steps[-1]['type']})")
+                    r = run_.run(steps, f"수용소{n}")
+                    if r != "done":
+                        r = f"구간 {n} {r}"
+                        break
         elif a.cmd == "light-burg":
             r = ms.light_burg_bonfire()
         else:
