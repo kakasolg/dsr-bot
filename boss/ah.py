@@ -3,6 +3,7 @@ import math, sys, time
 sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent.parent))
 sys.stdout.reconfigure(encoding="utf-8")
 import control, env, nav, navmesh, patrol, quitout
+sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent.parent / "legacy"))   # ladder_test moved to legacy/
 import ladder_test as L
 
 tm = env.make_telemetry({})

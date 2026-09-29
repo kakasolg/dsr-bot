@@ -16,6 +16,7 @@ data/routes/*
 !data/routes/firelink-merchant-run.json
 !data/routes/passage-merchant.json
 !data/routes/user-climb.json
+!data/routes/asylum-fresh.json
 !data/gamefiles/
 !data/samples/
 *.out
