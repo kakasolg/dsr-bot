@@ -12,6 +12,13 @@ import re
 
 # (pattern, replacement) — applied in order to the whole line
 RULES: list[tuple[str, str]] = [
+    (r"^(.*): 락온 안 걸림 — 이 놈은 (\d+) m 안으로 다가가지 않는다", r"\1: no lock-on — won't go within \2 m of this one"),
+    (r"^(.*): 끌어오기 (\d+)번 안 됨 — 맨 뒤로 미룬다", r"\1: lure failed \2× — moved to the back of the queue"),
+    (r"^(.*): 끌어오기 (\d+)번 안 됨, 남은 게 이놈뿐 — 제자리에서 한 바퀴 더", r"\1: lure failed \2×, only one left — one more round from the spot"),
+    (r"^물건 비켜 가기 \(지난 실행에서 (\d+)번 이상 부숨\): (.*)", r"steering around props (smashed \1+ times in earlier runs): \2"),
+    (r"^⚠ 투척 나이프\(290\)가 퀵 슬롯에 없음 (.*)", r"⚠ throwing knife (290) not in a quick slot \1"),
+    (r"^투척 나이프\(290\)가 퀵 슬롯에 없어서 (\d+)번째 빈 칸에 넣음 \(가진 수 (\d+)\) → 슬롯 (.*)",
+     r"throwing knife (290) wasn't in a quick slot — put it in empty slot \1 (have \2) → slots \3"),
     (r"^붙는 중: 나 (\(.*?\)) → 목표 (\(.*?\)) \| 그놈 (\(.*?\)) 애니 (-?\d+), 거리 ([\d.]+)",
      r"closing in: me \1 → goal \2 | foe \3 anim \4, dist \5"),
     (r"^붙는 중: 나 (\(.*?\)) → 목표 (\(.*?\)) \| ([\d.]+) m 밖\(안 보임\)", r"closing in: me \1 → goal \2 | out of sight beyond \3 m"),
@@ -79,6 +86,9 @@ GLOSSARY: dict[str, str] = {
     "내 HP": "my HP", "길로": "to the path", "길까지": "up to the path", "배틀 액스": "Battle Axe", "던질 자리로": "to the throwing spot",
     "제자리로": "back to the spot", "끊김": "lost", "개수 그대로": "count unchanged", "돌아서": "detour", "죽기직전": "near death",
     "강종": "force quit", "는 안전 구역 밖": "is outside the safe zone", "로": "to", "는": "", "에": "",
+    "칸을 못 고름": "slot not selectable", "밴딧 나이프": "Bandit's Knife", "휘두를 때": "while it swings",
+    "발밑 가장자리": "edge underfoot", "싸움 자리": "fight spot", "시작 자리": "start spot", "찍어 둔 자리": "marked spot",
+    "가드 든 채": "guard up,", "맨 뒤로 미룬다": "moved to the back of the queue", "뒤잡기안함": "no-backstab",
     "소울": "souls", "인간성": "humanity", "반지": "rings", "왼손": "left hand", "양손": "two-handed", "잡기": "grip", "원함": "want",
 }
 # short entries (≤ 2 syllables) only as whole words, so "나" doesn't eat the start of "나가지"

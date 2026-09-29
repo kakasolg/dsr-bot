@@ -131,10 +131,17 @@ def main() -> None:
     if a.cmd in LURE_CMDS and not a.no_lure:
         quick = tm.quick_items()
         if moves.ITEM_KNIFE not in quick:
-            # 퀵 슬롯에서 나이프를 빼면 가진 개수는 그대로라 매번 '290 칸을 못 고름' → 락온 실패 3번 → 경사로 partial 로 끝났다 (2026-09-28, 86개 소지)
-            log(f"   ⚠ 투척 나이프(290)가 퀵 슬롯에 없음 (슬롯 {quick}, 가진 수 {tm.goods_count(moves.ITEM_KNIFE)}) — "
-                f"넣고 다시 켜거나 --no-lure. 멈춤 (게임 입력 없음)")
-            return
+            # 퀵 슬롯에서 나이프를 빼면 가진 개수는 그대로라 매번 '290 칸을 못 고름' → 락온 실패 3번 → 경사로 partial 로 끝났다 (P-22)
+            import steam_state
+            have = tm.goods_count(moves.ITEM_KNIFE) or 0
+            slot = tm.equip_quick_item(moves.ITEM_KNIFE) if have and steam_state.check().get("offline") is True else None
+            if slot is None:
+                why = ("나이프 없음" if not have else "빈 칸 없음" if -1 not in quick else
+                       "Steam 오프라인 확인 안 됨" if steam_state.check().get("offline") is not True else "메모리 모양이 다름")
+                log(f"   ⚠ 투척 나이프(290)가 퀵 슬롯에 없음 (슬롯 {quick}, 가진 수 {have}) — 못 넣음: {why}. "
+                    f"넣고 다시 켜거나 --no-lure. 멈춤 (게임 입력 없음)")
+                return
+            log(f"   투척 나이프(290)가 퀵 슬롯에 없어서 {slot + 1}번째 빈 칸에 넣음 (가진 수 {have}) → 슬롯 {tm.quick_items()}")
     control.focus_game()
     pad = control.Pad()
     nms = {missions.MAP_A: navmesh.Navmesh(missions.MAP_A), missions.MAP_B: navmesh.Navmesh(missions.MAP_B)}

@@ -77,6 +77,9 @@ OFF_MAPDATA, OFF_MODEL, OFF_NPC = 0x68, 0x88, 0xC8
 OFF_LASTBONFIRE = 0xB34
 BONFIRE_WARP_AOB = "48 89 5C 24 08 57 48 83 EC 20 48 8B D9 8B FA 48 8B 49 08 48 85 C9 0F 84 ? ? ? ? E8 ? ? ? ? 48 8B 4B 08"  # DSR-Gadget DSROffsets
 QUIT_GONE_S = 0.5          # quit-out: the character must be invisible this long in a row to count as having exited to title
+# consumable quick slots in PlayerGameData (5 ints each): inventory index, item ID, index copy (equip_quick_item)
+QS_IDX, QS_ID, QS_IDX2 = 0x2E0, 0x360, 0x438
+INV_BASE, INV_ENTRY = 0x680, 0x1C   # goods inventory entry i at INV_BASE + i * INV_ENTRY: (0x40000000, ID, count, …)
 QUIT_REQ = 0x19            # ChrClassWarp — writing 1 exits to the title screen (quit-out, found with warp_re.py)
 CHR_LIST_OFFSETS = (0xA8, 0xB0, 0xB8, 0xC0, 0xC8)   # per-area character lists inside WorldChrMan (measured: Firelink Shrine is 0xB0)
 OFF_ANIM2 = 0xA44
@@ -351,6 +354,42 @@ class DSRTelemetry:
         cb = self.q(self.static["ChrClassBase"])
         pgd = self.q(cb + 0x10) if cb else None
         return [self.i32(pgd + 0x360 + 4 * k) for k in range(5)] if pgd else []
+
+    def equip_quick_item(self, item: int) -> Optional[int]:
+        """**Write** a goods item into the first empty consumable quick slot (offline only). → slot 0~4, or None (not owned,
+        no empty slot, or the layout doesn't check out). Already in a slot → that slot, nothing written.
+
+        Measured 2026-09-28 (backup-20260928-212855-before-quickslot-knife): the inventory index of a goods entry is
+        (entry offset − 0x680) / 0x1C (Estus 76, Firebomb 85, … all matched). A slot is three ints: index at +0x2E0,
+        item ID at +0x360 and a second index copy at +0x438 — with only the first two written D-pad ↓ skipped the knife;
+        with all three it was selected, thrown (86 → 85), and after quit-out + Continue all three were still there."""
+        cb = self.q(self.static["ChrClassBase"])
+        pgd = self.q(cb + 0x10) if cb else None
+        if not pgd:
+            return None
+        ids = [self.i32(pgd + QS_ID + 4 * k) for k in range(5)]
+        if item in ids:
+            return ids.index(item)
+        try:
+            raw = self.pm.read_bytes(pgd, 0x8000)
+        except pymem.exception.PymemError:
+            return None
+        def entry(i):
+            o = INV_BASE + i * INV_ENTRY
+            return struct.unpack_from("<Iii", raw, o) if 0 <= i and o + 12 <= len(raw) else (0, 0, 0)
+        for k in range(5):                                  # the layout must match every filled slot before writing anything
+            i = self.i32(pgd + QS_IDX + 4 * k)
+            if ids[k] not in (-1, None) and (entry(i)[1] != ids[k] or self.i32(pgd + QS_IDX2 + 4 * k) != i):
+                return None
+        idx = next((i for i in range(0, (len(raw) - INV_BASE) // INV_ENTRY)
+                    if entry(i)[0] == 0x40000000 and entry(i)[1] == item and 0 < entry(i)[2] < 10000), None)
+        if idx is None or -1 not in ids:
+            return None
+        k = ids.index(-1)
+        self.pm.write_int(pgd + QS_IDX + 4 * k, idx)
+        self.pm.write_int(pgd + QS_ID + 4 * k, item)
+        self.pm.write_int(pgd + QS_IDX2 + 4 * k, idx)
+        return k if self.quick_items()[k] == item else None
 
     def selected_item(self) -> Optional[int]:
         """Item ID of the currently selected consumable slot (Estus 200~215, Firebomb 292, Throwing Knife 290).
