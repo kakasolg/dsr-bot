@@ -10,6 +10,9 @@
   python run.py light-burg               from here (Undead Burg), just light the bonfire
   python run.py quit-test                kill #1 and compare ramp enemy survival before/after quit-out (does quit-out revive dead enemies?)
 
+  python run.py watch --radar            no bot: read-only radar while you play by hand (no pad input, no memory writes;
+                                         same as `python radar.py watch`). Not together with a bot run using --radar.
+
   --radar                                send state + log lines to radar_server.py (http://127.0.0.1:47801)
 """
 from __future__ import annotations
@@ -74,7 +77,7 @@ def status() -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["status", "burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt-one", "merchant", "light-burg", "quit-test", "passage-drill"])
+    ap.add_argument("cmd", choices=["status", "watch", "burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt-one", "merchant", "light-burg", "quit-test", "passage-drill"])
     ap.add_argument("--no-rest", action="store_true")
     ap.add_argument("--no-quit", action="store_true", help="퀵 종료(메뉴로 나갔다 오기) 안 씀 — 영상 촬영용")
     ap.add_argument("--i", type=int, default=5, help="hunt-one: BURG_TOWN 몇 번째 (5 = 석궁병 255002)")
@@ -86,6 +89,13 @@ def main() -> None:
     a = ap.parse_args()
     if a.cmd == "status":
         return status()
+    if a.cmd == "watch":                                    # read-only: no lock, no pad, no Log file — --radar implied
+        import radar
+        try:
+            radar.watch()
+        except KeyboardInterrupt:
+            pass
+        return
 
     import control
     import env

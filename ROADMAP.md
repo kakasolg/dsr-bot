@@ -266,6 +266,8 @@
   - 2026-09-27 [win] 재녹화 (뒤잡기 성공이 적어서): `data/observe/20260927_184707.jsonl` (326 s, 19 MB, 성공 1번에 F9 → `mk` 173.3 s). `--replay`로 열림. **F9 마커가 재생 타임라인에 안 나오던 문제** — `radar_record._observe_to_radar`가 `k == "marker"`만 보고 observe_record는 `"mk"`를 씀 → 둘 다 받게 고침([win] 작은 수정), 재생 `markers`에 나옴 확인. 파일은 로컬(커밋 안 함)
   - 2026-09-27 [win] 3차 녹화 `data/observe/20260927_185353.jsonl` (178 s, 14 MB, F9 2번: 37.0 s·142.6 s) — `--replay`로 열림, 타임라인 마커 2개. 로컬
   - 샘플: F9 마커 ±20 s만 잘라 `data/samples/observe_backstab_20260927_184707_m1.jsonl`(3.4 MB), `…185353_m1.jsonl`(3.0 MB), `…185353_m2.jsonl`(3.2 MB) — 원본 헤더 유지, 각 40 s, `radar_record.load`로 열리고 마커 포함. 뒤잡기 성공 시범 3번 ([cloud] 뒤잡기 학습용)
+- [x] [cloud] 레이더 읽기 전용 감시 (손으로 플레이할 때): 스냅샷을 보내는 건 `run.py --radar`·`backstab_drill.py`뿐이라, 봇 없이 하면 레이더가 마지막 봇 화면에 멈춤 — 그런데 `radar_pad.py` 패드 패킷이 `age`를 새로 고쳐 멈춘 게 안 보였음. `python radar.py watch` (= `python run.py watch --radar`): `BOT_GAME=dsr` 텔레메트리 + `Radar().attach(tm)` + say 한 줄 `radar watch: read-only`, 그 뒤 잠만 잠 — 패드·BotLock·메모리 쓰기 없음. 봇 `--radar`와 같이 켜지 말 것(스냅샷 둘). 서버 `/state`의 `age`는 이제 **마지막 스냅샷** 기준(패드만 오면 `waiting`/`stale`), 모든 패킷 기준은 `age_any`. 레이더 페이지 stale 표시에 툴팁 안내. `tests/radar_watch_test.py` 통과(스냅샷 계속 감, 쓰기 속성 요청 0, `control` 안 불러옴, 패드만 올 때 age 증가). 전체 pytest 29/30 — 실패 1은 이 변경과 무관한 `props_steer_test.py` 콘솔 인코딩(cp949, `→`)
+- [ ] [win] 확인: `python radar_server.py` → 게임 켜고 손으로 플레이하며 `python radar.py watch` → 레이더가 움직임을 따라오는지, 감시를 끄면 2 s 뒤 `stale`로 바뀌는지(패드는 계속 움직여도)
 
 ## 6. 2D 시뮬레이터
 

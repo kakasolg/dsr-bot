@@ -372,6 +372,7 @@ async function poll() {
     last = await r.json();
     const live = last.age != null && (last.age < 2 || (last.replay && !last.replay.playing));
     $("conn").textContent = last.replay ? "replay" : live ? "live" : last.age == null ? "waiting" : `stale (${last.age.toFixed(0)} s)`;
+    $("conn").title = live || last.replay ? "" : "no snapshots — bot not running with --radar? Playing by hand: python radar.py watch";
     $("conn").className = live ? "live" : "stale";
   } catch (e) {
     $("conn").textContent = "no server"; $("conn").className = "stale";

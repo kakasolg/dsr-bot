@@ -3,8 +3,12 @@
   python radar_server.py              → open http://127.0.0.1:47801 in a browser (second monitor or OBS browser source)
   python radar_server.py --demo       fake world (no game, no bot) — to see or develop the page on any OS
   python run.py burg-bonfire --radar  the bot sends; start this server first or later, either order works
+  python radar.py watch               no bot (playing by hand): read-only sender so the map keeps following the game
+                                      (= python run.py watch --radar). Without a sender the map stays on the last snapshot
 
 Endpoints: /  (radar.html)   /state  (latest snapshot + last decision lines + breakable props near the player, JSON)
+/state "age" = seconds since the last *snapshot* (not since any packet: radar_pad.py's pad packets alone must not make a
+frozen map look live); "age_any" = since any packet.
 Props and items come from data/gamefiles/*.json (msb_extract.py) — every extracted map is loaded; the ones near the
 player are sent. Items already picked up (pickup flags radar.py reports) are left out.
 Standard library only.
@@ -127,7 +131,8 @@ class State:
             self.snap: dict | None = None
             self.says: collections.deque = collections.deque(maxlen=SAY_KEEP)
             self.pads: dict[int, dict] = {}   # XInput slot → last pad state (radar_pad.py, or a replayed recording)
-            self.t_recv = 0.0
+            self.t_recv = 0.0                 # last packet of any kind
+            self.t_snap = 0.0                 # last snapshot — what "age" reports
 
     def put(self, msg: dict) -> None:
         if self.recorder is not None:
@@ -136,6 +141,7 @@ class State:
             self.t_recv = time.time()
             if msg.get("type") == "snap":
                 self.snap = msg
+                self.t_snap = self.t_recv
             elif msg.get("type") == "picked":
                 self.picked.update(int(f) for f in msg.get("flags") or [])
             elif msg.get("type") == "unpicked":            # flag off again (older save loaded) — show the item again
@@ -150,12 +156,14 @@ class State:
     def get(self) -> dict:
         with self.lock:
             snap, says, picked, pads = self.snap, list(self.says), set(self.picked), dict(self.pads)
-            age = round(time.time() - self.t_recv, 2) if self.t_recv else None
+            now = time.time()
+            age = round(now - self.t_snap, 2) if self.t_snap else None
+            age_any = round(now - self.t_recv, 2) if self.t_recv else None
         if self.english:
             says = [{**x, "line": translate.line(x.get("line"))} for x in says]
             if snap:
                 snap = {**snap, **{k: translate.line(snap[k]) for k in ("path_tag", "spot_tag") if snap.get(k)}}
-        out = {"snap": snap, "says": says, "age": age, "pads": {str(k): v for k, v in pads.items()}}
+        out = {"snap": snap, "says": says, "age": age, "age_any": age_any, "pads": {str(k): v for k, v in pads.items()}}
         if self.replay is not None:
             out["replay"] = self.replay.status()
         p = (snap or {}).get("player") or {}

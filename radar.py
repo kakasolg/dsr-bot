@@ -7,6 +7,9 @@
                             #   prop just swung at (mv.show_smash)
   r.say("retreat: 2 foes closing")  # one decision line (run.py's Log does this for every log line)
 
+  python radar.py watch      read-only watch — no bot: the radar follows the game while a person plays by hand
+                             (same as `python run.py watch --radar`). Sends no pad input, writes no game memory.
+
 Pickups: attach() also starts a thread that, once a second, reads the pickup event flags (tm.event_flag) of the treasures
 in data/gamefiles/*.json within ITEM_R of the player and sends the ones already taken, so the radar hides them.
 
@@ -190,3 +193,30 @@ class Radar:
 
         threading.Thread(target=poll, daemon=True, name="radar").start()
         return self
+
+
+def watch(tm=None, forever: bool = True) -> Radar:
+    """Read-only watch: the radar follows the game while a person plays (no bot running, so nothing else sends
+    snapshots and the page would freeze on the last bot frame). Only telemetry reads — no control.Pad, no memory writes.
+    Don't run it next to a bot started with --radar: both would send snapshots."""
+    if tm is None:
+        os.environ["BOT_GAME"] = "dsr"         # env reads this on import; the radar is DSR only
+        import env
+        tm = env.make_telemetry({})
+    r = Radar().attach(tm)
+    line = "radar watch: read-only"
+    print(f"{line} — python radar_server.py -> http://127.0.0.1:47801  (Ctrl+C to stop)", flush=True)
+    r.say(line)
+    while forever:
+        time.sleep(3600)
+    return r
+
+
+if __name__ == "__main__":
+    import sys
+    if sys.argv[1:] != ["watch"]:
+        sys.exit("usage: python radar.py watch")
+    try:
+        watch()
+    except KeyboardInterrupt:
+        pass
