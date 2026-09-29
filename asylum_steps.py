@@ -9,8 +9,9 @@ retry" doesn't apply, so the human run is the template. Steps, in order:
 
   walk      {"pts": [[x,y,z], …], "run"}          NavMesh walking between the other steps (points every ~2 m, on the mesh);
                                                  run = B held most of the way (fleeing the demon)
-  press     {"pos", "hd", "n", "label"}           A pressed n times standing here facing hd (door, pickup, bonfire, ladder, talk)
-  menu      {"pos", "keys": ["START", …]}          menu inputs (equipping the picked-up gear) — replayed as-is
+  press     {"pos", "hd", "n", "label", "t"}      A pressed n times standing here facing hd (door, pickup, bonfire, ladder, talk);
+                                                 t (recording seconds) lets the bot keep the human's pause before the next press/menu
+  menu      {"pos", "keys": ["START", …], "dt"}    menu inputs (equipping the picked-up gear) — replayed as-is, dt = the human's gaps
   climb     {"from", "to"}                        off-mesh vertical move (ladder) — A at the bottom, then up
   fight     {"pos", "npc", "secs"}                an enemy fought here (its HP dropped) — the bot uses its own duel
   jump      {"from", "to"}                        position jump > 15 m without walking (crow / warp) — ends the recording's useful part
@@ -123,8 +124,9 @@ def build(ws, pads, on_mesh, until_s: float | None = None, mks=(), from_s: float
     for ms, n in presses(pads):
         if n == "START" or (menu is not None and n in MENU_KEYS | {"A", "B"} and ms - menu["_t"] < 3000):
             if menu is None:
-                menu = {"type": "menu", "pos": pos_at(ms), "keys": [], "_t": ms, "t": round(ms / 1000, 1)}
+                menu = {"type": "menu", "pos": pos_at(ms), "keys": [], "dt": [], "_t": ms, "t": round(ms / 1000, 1)}
                 ev.append((ms, menu))
+            menu["dt"].append(round((ms - menu["_t"]) / 1000, 2))   # seconds since the previous key (0 for the first)
             menu["keys"].append(n)
             menu["_t"] = ms
             continue

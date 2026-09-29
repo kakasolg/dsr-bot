@@ -91,6 +91,27 @@ def test_flee_and_gear() -> None:
     print("ok  fleeing: sprint + demon ignored from the big door to the second bonfire; gear menus checked (shield ok, axe not equipped → fail)")
 
 
+def test_keeps_human_pause() -> None:
+    f = make_field(World(player=(0.0, -49.4, 0.0)))
+    f.alive = lambda: True
+    a = A.Asylum(f, nm=None, log=f.log)
+    a._press = a._menu = a._walk = lambda st, tag: "ok"
+    waits = []
+    sleep = A.time.sleep
+    A.time.sleep = lambda s: waits.append(round(s, 1))
+    try:
+        a.run([{"type": "press", "pos": [0, 0, 0], "t": 212.3}, {"type": "walk", "pts": [[0, 0, 0]]},
+               {"type": "press", "pos": [0, 0, 0], "t": 215.8},                      # pickup → dismiss: human waited 3.5 s
+               {"type": "menu", "pos": [0, 0, 0], "t": 219.2, "keys": ["START"], "dt": [0.0]},
+               {"type": "walk", "pts": [[0, 0, 0], [9, 0, 0]]},
+               {"type": "press", "pos": [9, 0, 0], "t": 230.0}])                     # after a real walk: no wait
+    finally:
+        A.time.sleep = sleep
+    assert waits[:2] == [3.5, 3.4], waits
+    assert len(waits) == 2, waits
+    print(f"ok  presses/menu at the same spot keep the human's pauses {waits}; not after a real walk")
+
+
 class ClimbMv:
     """Snapshots whose y rises while the stick is pushed up."""
     def __init__(self, world, rate):
@@ -142,5 +163,6 @@ if __name__ == "__main__":
     test_heading()
     test_run_order_and_stop()
     test_flee_and_gear()
+    test_keeps_human_pause()
     test_climb()
     print("전부 통과")

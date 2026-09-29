@@ -33,7 +33,10 @@ FACE_DEG = 20.0          # …and face within this of their heading
 PRESS_GAP = 0.3          # between repeated A presses (item messages, dialogue)
 CLIMB_S = 15.0           # give up a ladder after this
 DROP_S = 4.0
-MENU_GAP = 0.35          # menu inputs (control buffer tangles when faster — user)
+MENU_GAP = 0.35          # menu inputs when the recording has no gaps (control buffer tangles when faster — user)
+MENU_GAP_MIN = 0.25
+KEEP_GAP_M = 1.5         # a press/menu right after another one within this distance keeps the human's pause between them
+KEEP_GAP_MAX = 6.0
 BTN = {"A": control.B.XUSB_GAMEPAD_A, "B": control.B.XUSB_GAMEPAD_B, "START": control.B.XUSB_GAMEPAD_START,
        "UP": control.B.XUSB_GAMEPAD_DPAD_UP, "DOWN": control.B.XUSB_GAMEPAD_DPAD_DOWN,
        "LEFT": control.B.XUSB_GAMEPAD_DPAD_LEFT, "RIGHT": control.B.XUSB_GAMEPAD_DPAD_RIGHT,
@@ -88,7 +91,14 @@ class Asylum:
     # ── steps ────────────────────────────────────────────────
     def run(self, steps: list[dict], tag: str = "수용소") -> str:
         fleeing = False
+        last = None                                        # (recorded t, pos, wall time) of the last press / menu
         for i, st in enumerate(steps):
+            if st["type"] in ("press", "menu") and last is not None and st.get("t") is not None and st.get("pos")                     and math.dist(st["pos"], last[1]) <= KEEP_GAP_M:
+                # 줍기 A → (아이템 획득 창) → 닫기 A 사이를 사람처럼 기다린다. 0.6 s 만에 누르니 창이 안 닫힌 채 메뉴 입력이
+                # 한 칸씩 밀려 검 자루가 왼손으로 감 (2026-09-29 구간 2, 사람은 3.5 s 기다림)
+                wait = min(KEEP_GAP_MAX, st["t"] - last[0]) - (time.time() - last[2])
+                if wait > 0:
+                    time.sleep(wait)
             lab = st.get("label", "")
             if st["type"] == "press" and lab.startswith(FLEE[0]):
                 fleeing = True
@@ -103,6 +113,10 @@ class Asylum:
             if r in ("dead", "fail"):
                 self.log(f"   {tag} {i + 1}/{len(steps)} {st['type']} ({what}): {r} — 멈춤")
                 return f"{r} at {i + 1} {st['type']} {what}"
+            if st["type"] in ("press", "menu") and st.get("t") is not None and st.get("pos"):
+                last = (st["t"] + (sum(st.get("dt", [])) if st["type"] == "menu" else 0.0), st["pos"], time.time())
+            elif st["type"] not in ("walk", "mark") or len(st.get("pts", [])) > 1:
+                last = None
             if not self.f.alive():
                 return f"dead at {i + 1} {st['type']} {what}"
         return "done"
@@ -207,9 +221,14 @@ class Asylum:
         want = next((v for k, v in GEAR.items() if k in st.get("label", "")), None)
         before = self.tm.equipment() if want else {}
         control.focus_game()
-        for k in st["keys"]:
+        dts = st.get("dt") or []
+        for j, k in enumerate(st["keys"]):
+            if j + 1 < len(dts):                           # wait the human's gap before the next key (menu open ~0.7 s)
+                gap = max(MENU_GAP_MIN, min(3.0, dts[j + 1]))
+            else:
+                gap = MENU_GAP
             if k in BTN:
-                self.mv.press(BTN[k], gap=MENU_GAP)
+                self.mv.press(BTN[k], gap=gap)
         time.sleep(0.5)
         self.log(f"   {tag} 메뉴 {' '.join(st['keys'])} ({st.get('label') or '?'})")
         if want is None:
