@@ -105,9 +105,16 @@ def situations():
 
 
 class Nm:
-    """Just enough navmesh for the arena / cliff / split rules; footing and ground are set per situation."""
+    """Just enough navmesh for the arena / cliff / split rules; footing and ground are set per situation.
+    wall = distance to the nearest NavMesh border for everyone (None: no border) — the Battle Axe's wall heavy reads it."""
+    def __init__(self, wall=None):
+        self.wall = wall
+
     def find_path(self, a, b):
         return [a, b]
+
+    def border_dist(self, x, y, z, dy=2.0):
+        return float("inf") if self.wall is None else self.wall
 
 
 class Care:
@@ -130,6 +137,16 @@ def situations_terrain():
         yield dict(zip(keys, v), sp=90, low=False, back=False, room=False, other=False, wait=False, style="guard", reflex=False)
 
 
+def situations_axe():
+    """Third set, the Battle Axe (the default weapon for unknown IDs, reach 1.6, heavy_vertical): the same foes and anims, SP either side of
+    WALL_HEAVY_SP, with and without a wall close to us / the foe (wall 0.5 m: slam; 1.5 m: farther than WALL_R, light as usual)."""
+    keys = ("foe", "anim", "h", "sp", "low", "back", "room", "other", "wall")
+    for v in itertools.product(FOES, ANIMS, (0.9, 1.4, 2.2, 4.0), (90, 10), (False, True), (False, True), (False, True),
+                               (False, True), (None, 0.5, 1.5)):
+        yield dict(zip(keys, v), weapon="axe", wait=False, style="guard", reflex=False, edge=False, arena=None, care=False,
+                   ground=True)
+
+
 def run(sc) -> list:
     trace = []
     w = World(player=(0.0, -49.4, 0.0), sp=sc["sp"])
@@ -143,7 +160,7 @@ def run(sc) -> list:
         w.add(4, 0x1004, 254000, (0.8, -49.4, sc["h"] + 0.5), hp=75, anim=2000)   # awake, moving, close to the target
     nm = care = arena = None
     if "edge" in sc:
-        nm, w.player.gx = Nm(), 0.0
+        nm, w.player.gx = Nm(sc.get("wall")), 0.0
         care = Care(trace) if sc["care"] else None
         arena = {None: None, "near": [0.5, -49.4, 0.5], "far": [0.0, -49.4, -8.0], "ledge": [0.0, -45.0, -8.0]}[sc["arena"]]
     mv = Mv(w, trace)
@@ -164,7 +181,7 @@ def run(sc) -> list:
     D._room_behind = lambda nm, p, c_, r=1.0: sc["room"]
     D.time.sleep = lambda s: None
     try:
-        r = D.duel(mv, weapons.BROADSWORD, 2, nm, log=lambda line: trace.append(("log", _CLOCK.sub("T", line))), cancel=cancel,
+        r = D.duel(mv, weapons.BATTLE_AXE if sc.get("weapon") == "axe" else weapons.BROADSWORD, 2, nm, log=lambda line: trace.append(("log", _CLOCK.sub("T", line))), cancel=cancel,
                    reflex=Reflex(sc["reflex"], trace), style=sc["style"], wait_far=sc["wait"], care=care, arena=arena)
         trace.append(("result", r.result))
     except Exception as e:                                        # a crash is a decision too — it must stay the same
@@ -178,7 +195,7 @@ def run(sc) -> list:
 
 
 def main() -> None:
-    got = {json.dumps(sc, sort_keys=True): run(sc) for sc in itertools.chain(situations(), situations_terrain())}
+    got = {json.dumps(sc, sort_keys=True): run(sc) for sc in itertools.chain(situations(), situations_terrain(), situations_axe())}
     if "--record" in sys.argv:
         GOLDEN.write_bytes(gzip.compress(json.dumps(got, ensure_ascii=False, separators=(",", ":")).encode("utf-8"), mtime=0))
         print(f"recorded {len(got)} situations → {GOLDEN.name}")
