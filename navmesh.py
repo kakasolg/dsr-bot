@@ -381,8 +381,8 @@ class Navmesh:
         try:
             out = props_.steer_around(out, self)              # the NavMesh doesn't know crates — bend around learned props (P-12 e)
         except Exception as e:                                # never lose a path over it — keep the unbent one
-            if props_.LOG:
-                props_.LOG(f"      물건 비켜 가기 실패 ({e!r}) — 원래 경로로")
+            if getattr(self, "steer_log", None):
+                self.steer_log(f"      물건 비켜 가기 실패 ({e!r}) — 원래 경로로")
         if self.ledge_step(out) is not None:                  # height step that can't be climbed on foot — treat as no path (so upper layers find another move)
             return []
         return out

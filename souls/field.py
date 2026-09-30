@@ -182,14 +182,6 @@ class LureBlock:
 class Field:
     def __init__(self, mv: M.Moves, weapon, escape, bonfires: list, log=print, events=None, style="guard"):
         self.mv, self.w, self.esc, self.log = mv, weapon, escape, log
-        props_.LOG = log                                   # steer_around (called inside navmesh.find_path) logs its detours here
-        try:
-            props_.STEER = props_.learned()                # props earlier runs had to smash twice or more — paths bend around them
-        except Exception as e:
-            props_.STEER = set()
-            log(f"   물건 비켜 가기: 기록 못 읽음 ({e})")
-        if props_.STEER:
-            log(f"   물건 비켜 가기 (지난 실행에서 {props_.LEARN_MIN_RUNS}번 이상 부숨): {' '.join(sorted(props_.STEER))}")
         self._detour = False                               # keeps walk's "detour" from recursing
         self._crowd_hits: list[float] = []                 # times of recent 'crowd' fall-backs (CROWD_MAX per CROWD_WINDOW_S)
         self._crowd_off_until = 0.0                        # fall_back 이 길이 없어 못 물러났으면 잠깐 둘러싸여도 싸운다 (같은 자리에서 무한 반복 방지)

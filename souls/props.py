@@ -5,8 +5,9 @@ Data: data/gamefiles/<mapID>.json from msb_extract.py (evidence grade "file"; po
 burg-bonfire got stuck 2.6 m short of a path point with breakable crates 0.7 m and 1.3 m from it (ROADMAP P-6).
 
   blocking(map_id, me, goal)   → breakable props between me and the next path point, nearest first
-  steer_around(path, nm)       → the same path, bent around the props in STEER it runs through (navmesh.find_path calls it)
-  learned(min_runs)            → props earlier runs had to smash in ≥ min_runs runs (Field fills STEER with it at start)
+  steer_around(path, nm)       → the same path, bent around the props in nm.steer it runs through (navmesh.find_path calls it)
+  learned(min_runs)            → props earlier runs had to smash in ≥ min_runs runs
+  attach(nms, log)             → put learned() and the log on each Navmesh (nm.steer, nm.steer_log) — run.py at start; no module state
 
 A prop broken now respawns after resting, so nothing here remembers what was broken — field.walk keeps a per-walk
 tally of swings instead. Strong props (min_attack ≥ msb_extract.STRONG_MIN_ATTACK) are left out: light attacks may not break them.
@@ -26,10 +27,9 @@ DY = 1.5                    # m — same level
 CLEAR = 1.2                 # m — a path passing a prop closer than this is bent around it. 28x·28z: the #6 walk's point sat 0.36 m
                             #     from crate o1321_0021, the bot stopped 1.2 m from its centre and smashed it (2.5~3 s stall each run, P-12 e)
 DETOUR_R = 1.6              # m — the two detour points sit this far from the prop's centre, beside it
-LOG = None                  # Field sets its log here — find_path has none to pass
-STEER: set[str] = set()     # names of props to steer around — Field sets learned() at start. Only props past runs really had to
-                            # smash: all breakables look alike in the files (ObjectHP 1, CharacterCollision 1), and steering around every one
-                            # would have bent 12 more places in 28z alone where nothing stalled (MoKa: rule changes that spread break other places)
+# Which props to steer around lives on the Navmesh (nm.steer: names, nm.steer_log: a log function), set by attach(). Only props past runs
+# really had to smash: all breakables look alike in the files (ObjectHP 1, CharacterCollision 1), and steering around every one would have
+# bent 12 more places in 28z alone where nothing stalled (MoKa: rule changes that spread break other places)
 LEARN_MIN_RUNS = 2
 ROOM = 0.6                  # m — and at least this far from the NavMesh border (wall or drop); otherwise keep the path and smash as before
 
@@ -89,6 +89,22 @@ def learned(min_runs: int = LEARN_MIN_RUNS, logs: list[str] | None = None) -> se
     return {name for name, ps in seen.items() if len(ps) >= min_runs}
 
 
+def attach(nms, log=None, min_runs: int = LEARN_MIN_RUNS, learn=None) -> set[str]:
+    """Give every Navmesh in nms the props to steer around (learned from earlier runs) and a log function. → the names.
+    The state is on the Navmesh objects, not in this module — two bots / tests in one process can't see each other's."""
+    try:
+        names = set((learn or learned)(min_runs))
+    except Exception as e:
+        names = set()
+        if log:
+            log(f"   물건 비켜 가기: 기록 못 읽음 ({e})")
+    for nm in (nms.values() if isinstance(nms, dict) else nms):
+        nm.steer, nm.steer_log = names, log
+    if names and log:
+        log(f"   물건 비켜 가기 (지난 실행에서 {min_runs}번 이상 부숨): {' '.join(sorted(names))}")
+    return names
+
+
 def _detour(a, b, q, side: int, y: float):
     """Two points beside prop q, DETOUR_R off the a→b line on `side`, spread along it — a lane past the prop."""
     dx, dz = b[0] - a[0], b[2] - a[2]
@@ -112,7 +128,7 @@ def _ok(pts: list, nm, props: list, dy: float) -> bool:
 
 def steer_around(path: list, nm, props: list[dict] | None = None, log=None) -> list:
     """Bend a NavMesh path around breakable props it runs through (the NavMesh doesn't know props, so a path can cross a crate).
-    props: default = this map's props named in STEER (learned from earlier runs); tests pass their own.
+    props: default = this map's props named in nm.steer (learned from earlier runs, see attach); tests pass their own.
 
     For each prop within CLEAR of the path on the same level: the points a (before) and b (after) the close stretch, both
     outside CLEAR, are joined through two points DETOUR_R beside the prop — first on the side away from the prop (shorter), then
@@ -120,8 +136,9 @@ def steer_around(path: list, nm, props: list[dict] | None = None, log=None) -> l
     pass a prop. Otherwise the path stays as it was (field.walk still smashes what blocks it). Stairs (a→b climbing > DY/2) are left alone."""
     if props is None:
         mid = getattr(nm, "map_id", None)
-        props = [o for o in load(mid) if o["name"] in STEER] if mid and STEER else []
-    log = log or LOG
+        names = getattr(nm, "steer", None)
+        props = [o for o in load(mid) if o["name"] in names] if mid and names else []
+    log = log or getattr(nm, "steer_log", None)
     if len(path) < 2 or not props:
         return path
     out = [tuple(q) for q in path]

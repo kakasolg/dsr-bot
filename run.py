@@ -105,7 +105,7 @@ def main() -> None:
     import env
     import navmesh
     from botlock import BotLock
-    from souls import missions, moves, weapons
+    from souls import missions, moves, props, weapons
     from souls.field import Field
     from souls.watch import Blood, Escape
 
@@ -150,6 +150,7 @@ def main() -> None:
         nms = {asylum.MAP: navmesh.Navmesh(asylum.MAP)}
     else:
         nms = {missions.MAP_A: navmesh.Navmesh(missions.MAP_A), missions.MAP_B: navmesh.Navmesh(missions.MAP_B)}
+    props.attach(nms, log)                                  # crates earlier runs had to smash twice: paths bend around them (on each Navmesh)
     mv = moves.Moves(tm, pad)
     track_.follow(mv)
     if a.radar:

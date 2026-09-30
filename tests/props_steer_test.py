@@ -108,15 +108,34 @@ assert P.learned(2, paths) == {"o1321_0021"}, P.learned(2, paths)      # o1150_0
 assert P.learned(2, paths[:2]) == set()
 print("ok  learned: o1321_0021 smashed in 2 runs → steered; o1150_01 in 1 run (+ a copy) → not yet")
 
-# default props = this map's props named in STEER only
+# default props = this map's props named in nm.steer only (state lives on the Navmesh, not in the props module)
 class MapFloor(Floor):
     map_id = "m10_01_00_00"
-P.STEER = set()
-assert P.steer_around(PATH, MapFloor([(-35, -5, -75, -55)])) == PATH
-P.STEER = {"o1321_0021"}
-assert min_pass(P.steer_around(PATH, MapFloor([(-35, -5, -75, -55)]))) >= P.CLEAR * 0.9
-P.STEER = set()
-print("ok  default: nothing steered until a prop is in STEER; with it, the map file's crate is steered around")
+assert not hasattr(P, "STEER") and not hasattr(P, "LOG"), "no module-level steering state"
+nm = MapFloor([(-35, -5, -75, -55)])
+assert P.steer_around(PATH, nm) == PATH                                # nm.steer not set → nothing steered
+nm.steer = set()
+assert P.steer_around(PATH, nm) == PATH
+nm.steer = {"o1321_0021"}
+assert min_pass(P.steer_around(PATH, nm)) >= P.CLEAR * 0.9
+other = MapFloor([(-35, -5, -75, -55)])                                # a second Navmesh in the same process is unaffected
+assert P.steer_around(PATH, other) == PATH
+print("ok  default: nothing steered until nm.steer names a prop; with it, the map file's crate is steered around; other Navmesh unaffected")
+
+# attach(): learned names + log go on every Navmesh (list or dict); a failing learn() leaves them empty and says so
+a, b = MapFloor([]), MapFloor([])
+lines = []
+assert P.attach([a, b], lines.append, learn=lambda n: {"o1321_0021"}) == {"o1321_0021"}
+assert a.steer == b.steer == {"o1321_0021"} and a.steer_log == lines.append
+assert any("o1321_0021" in x for x in lines), lines
+c = MapFloor([])
+lines.clear()
+
+
+def boom(n):
+    raise OSError("no logs")
+assert P.attach({"m": c}, lines.append, learn=boom) == set() and c.steer == set() and any("기록 못 읽음" in x for x in lines), lines
+print("ok  attach: names and log set on each Navmesh (list or dict); a failing learn() → empty set + a log line")
 
 # a path that passes the crate, goes 10 m away and comes back past it: the points in between are not dropped
 loop = [(-19.0, -13.37, -64.3), (-21.5, -13.37, -64.0), (-21.5, -13.37, -58.0), (-15.0, -13.37, -58.0), (-15.0, -13.37, -70.0),
