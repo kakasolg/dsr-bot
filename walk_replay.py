@@ -4,6 +4,7 @@
   python walk_replay.py data/runs/x.track.jsonl -n 500   other files / more variants
   python walk_replay.py --window 1.5 2 3                 compare settings (one row each)
   python walk_replay.py --walks                          per-walk progress / lateral error / corners (no perturbation)
+  python walk_replay.py --gate 0.8 0.9 0.95 -n 20        the 0.95 switching rule (walkgeom.Gate) on the recorded walks
 
 What it can and can't tell (ROADMAP 6-a): the recording is what the *old* controller did, so this layer evaluates the
 **checks** (progress, lateral error, no-progress stop, bad observation, stun) — not a new way of steering. A new
@@ -223,6 +224,108 @@ def evaluate(walks: list[dict], prm: Params, n: int = 200, seed: int = 0) -> dic
             "off_line_per_min": tot["off_line"] / m}
 
 
+# ── the 0.95 switching rule (walkgeom.Gate) on recorded walks ─────────────────────────────────────────────────
+
+GATE_HELD_M = 2.0        # Gate's target this far behind where the bot really is (along the path) = 'held'
+
+
+def gate_replay(w: dict, switch_s: float = G.SWITCH_S, fr: list[dict] | None = None,
+                release_lat: float | None = None) -> dict:
+    """Run Gate beside the recorded (old, radius-switching) walk. Open loop: the bot didn't steer by Gate, so this says
+    where the old walk **did not reach s ≥ switch_s** before moving on — the places Gate would have held the target
+    back and a Gate controller would have had to walk further (or would stall, if it can't get there).
+      points     path points Gate has to switch at (1 … n−2) that the walk went past
+      short      … of those, passed with max s < switch_s on the segment before (Gate holds there)
+      short_sharp  … at a sharp corner (turn > walkgeom.SHARP_DEG)
+      reach      max s reached on the segment before each passed point (list)
+      held_s     seconds with Gate's target ≥ GATE_HELD_M behind the measured position
+      lag_max    m, largest such gap
+      stuck      the walk got onto the last segment but Gate never did
+      held_at    [(point i, x, y, z)] where Gate is held (first frame of each held stretch)"""
+    path = w["path"]
+    fr = w["fr"] if fr is None else fr
+    free = [f for f in fr if not f["foe"] and not busy(f.get("anim"))]
+    out = {"points": 0, "short": 0, "short_sharp": 0, "sharp": 0, "reach": [], "held_s": 0.0, "lag_max": 0.0,
+           "stuck": False, "held_at": []}
+    if len(path) < 3 or len(free) < 2:
+        return out
+    lens = G.seg_lengths(path)
+    gate = G.Gate(path, switch_s, k=None, release_lat=release_lat)
+    k, along = 0, None
+    reach: dict[int, float] = {}                         # segment → max s while measured on it or the next
+    passed: set[int] = set()                             # point indices the measured position went past
+    held_since = None
+    prev_t = None
+    for f in free:
+        m = G.locate(path, f["p"], k, lens=lens, along_hint=along)
+        if along is not None and m.seg > k:
+            passed.update(range(k + 1, m.seg + 1))
+        k, along = m.seg, m.along
+        for j in (m.seg - 1, m.seg):
+            if 0 <= j < len(lens):
+                reach[j] = max(reach.get(j, -9.0), G.project(path, f["p"], j, lens).s)
+        g = gate.update(f["p"])
+        lag = m.along - g.along
+        held = lag >= GATE_HELD_M
+        if held and prev_t is not None:
+            out["held_s"] += f["t"] - prev_t
+        if held and held_since is None:
+            q = path[gate.k + 1]
+            out["held_at"].append((gate.k + 1, round(q[0], 1), round(q[1], 1) if len(q) > 2 else None,
+                                   round(q[-1], 1)))
+        held_since = f["t"] if held else None
+        out["lag_max"] = max(out["lag_max"], lag)
+        prev_t = f["t"]
+    for i in sorted(passed):
+        if not 1 <= i <= len(path) - 2:
+            continue
+        r = reach.get(i - 1, -9.0)
+        sharp = G.turn_deg(path, i) > G.SHARP_DEG
+        out["points"] += 1
+        out["sharp"] += sharp
+        out["reach"].append(round(r, 3))
+        if r < switch_s:
+            out["short"] += 1
+            out["short_sharp"] += sharp
+    out["stuck"] = k == len(path) - 2 and gate.k < len(path) - 2
+    out["lag_max"] = round(out["lag_max"], 2)
+    return out
+
+
+def gate_eval(walks: list[dict], switch_s: float, n: int = 0, seed: int = 0, release_lat: float | None = None) -> dict:
+    """gate_replay over all walks, unperturbed plus n seeded variants (noise, drops, …; jumps off — they aren't the
+    question here). → totals."""
+    rng = random.Random(seed)
+    tot = {"walks": 0, "points": 0, "short": 0, "sharp": 0, "short_sharp": 0, "held_s": 0.0, "stuck": 0,
+           "minutes": 0.0, "lags": []}
+    for it in range(n + 1):
+        v = Variant() if it == 0 else replace(random_variant(rng), jumps=0)
+        for w in walks:
+            fr = w["fr"] if it == 0 else perturb(w["fr"], v, rng)[0]
+            r = gate_replay(w, switch_s, fr, release_lat)
+            if not r["points"]:
+                continue
+            tot["walks"] += 1
+            for key in ("points", "short", "sharp", "short_sharp", "held_s"):
+                tot[key] += r[key]
+            tot["stuck"] += r["stuck"]
+            tot["minutes"] += free_minutes(fr)
+            tot["lags"].append(r["lag_max"])
+    lags = sorted(tot.pop("lags")) or [0.0]
+    return {**tot, "lag_p50": lags[len(lags) // 2], "lag_p90": lags[int(0.9 * (len(lags) - 1))]}
+
+
+def gate_places(walks: list[dict], switch_s: float, release_lat: float | None = None) -> list[tuple]:
+    """Where Gate is held, over all unperturbed walks: [(count, tag, point i, x, y, z)] most first."""
+    seen: dict = {}
+    for w in walks:
+        for i, x, y, z in gate_replay(w, switch_s, release_lat=release_lat)["held_at"]:
+            key = (w["tag"], x, y, z)
+            seen[key] = seen.get(key, (0, w["tag"], i, x, y, z))
+            seen[key] = (seen[key][0] + 1,) + seen[key][1:]
+    return sorted(seen.values(), key=lambda r: -r[0])
+
+
 def walk_table(walks: list[dict]) -> str:
     """Unperturbed: per walk, lateral error (no foe near), corners passed on the inside, check events."""
     lines = []
@@ -256,6 +359,10 @@ def main() -> None:
     ap.add_argument("--window", type=float, nargs="+", default=[Params.window])
     ap.add_argument("--min-gain", type=float, nargs="+", default=[Params.min_gain])
     ap.add_argument("--walks", action="store_true", help="per-walk table of the unperturbed recording")
+    ap.add_argument("--gate", type=float, nargs="+", metavar="S",
+                    help="evaluate the switching rule (walkgeom.Gate) at these switch_s values instead, e.g. --gate 0.8 0.9 0.95")
+    ap.add_argument("--release", type=float, nargs="+", default=[-1.0], metavar="M",
+                    help="with --gate: Gate release_lat values in m (-1 = no release), e.g. --release -1 0.5 1.0")
     a = ap.parse_args()
     files = a.files or sorted(glob.glob(str(ROOT / "data" / "samples" / "*.track.jsonl")))
     walks = load_walks(files)
@@ -265,6 +372,26 @@ def main() -> None:
     print(f"{len(files)} files, {len(walks)} walks, {sum(len(truth(w)) for w in walks)} real stalls")
     if a.walks:
         print(walk_table(walks))
+        return
+    if a.gate:
+        print(f"Gate: open loop — where the recorded walk moved on before s reached switch_s (unperturbed + {a.n} variants)")
+        print(f"{'switch_s':>8} {'release':>7} | {'points short':>18} {'sharp short':>16} | {'held s/min':>10} "
+              f"{'stuck walks':>12} | {'lag p50':>7} {'p90':>6}")
+        for rel in a.release:
+            rl = None if rel < 0 else rel
+            for sw in a.gate:
+                r = gate_eval(walks, sw, a.n, a.seed, rl)
+                pt = f"{r['short']}/{r['points']} {r['short'] / max(1, r['points']):.2f}"
+                sh = f"{r['short_sharp']}/{r['sharp']} {r['short_sharp'] / max(1, r['sharp']):.2f}"
+                print(f"{sw:8.2f} {('—' if rl is None else f'{rl:.1f} m'):>7} | {pt:>18} {sh:>16} | "
+                      f"{r['held_s'] / max(r['minutes'], 1e-9):10.1f} {r['stuck']:>5}/{r['walks']:<6} | "
+                      f"{r['lag_p50']:7.1f} {r['lag_p90']:6.1f}")
+        sw = min(a.gate, key=lambda v: abs(v - G.SWITCH_S))
+        places = gate_places(walks, sw)
+        if places:
+            print(f"\nwhere Gate {sw} (no release) is first held (unperturbed), most first:")
+            for c, tag, i, x, y, z in places[:15]:
+                print(f"  {c}x  {tag} point {i}  ({x}, {y}, {z})")
         return
     print(f"{'window':>6} {'gain':>5} | {'stall recall':>14} {'false/min':>9} | {'jump recall':>13} {'bad/min':>8} | {'off/min':>7}")
     for win in a.window:

@@ -104,6 +104,34 @@ b = R.evaluate([w], R.Params(), n=30, seed=7)
 check("evaluate is reproducible with a seed", a == b)
 check("synthetic 4 s stall: recall ≥ 0.9 over 30 variants", a["recall"] is not None and a["recall"] >= 0.9)
 
+print("Gate on recorded walks (open loop)")
+LL = [(0.0, 0.0, 0.0), (5.0, 0.0, 0.0), (10.0, 0.0, 0.0), (10.0, 0.0, 5.0), (10.0, 0.0, 10.0)]   # L with mid points
+
+
+def lwalk(pts) -> dict:
+    return {"tag": "g", "path": LL, "fr": [{"t": 0.5 * i, "p": p, "foe": False, "anim": -1} for i, p in enumerate(pts)]}
+
+
+exact = lwalk([(x, 0.0, 0.0) for x in range(0, 11)] + [(10.0, 0.0, z) for z in range(1, 11)])
+r = R.gate_replay(exact, 0.95)
+check("walk through the corner → no point short, not held, not stuck",
+      r["points"] == 3 and r["short"] == 0 and r["held_s"] == 0 and not r["stuck"])
+cut = lwalk([(x, 0.0, 0.0) for x in range(0, 9)] + [(9.0, 0.0, z) for z in range(1, 11)])   # turns at x 9, walks leg 2 1 m inside
+back = lwalk([(x, 0.0, 0.0) for x in range(0, 9)] + [(9.0, 0.0, 1.5), (9.5, 0.0, 3.0)] + [(10.0, 0.0, z) for z in range(4, 11)])
+r = R.gate_replay(back, 0.95)
+check("cut then back on leg 2's line → Gate lets go by itself (points on that line project to s 1.0)",
+      not r["stuck"] and r["held_s"] <= 1.0)
+r = R.gate_replay(cut, 0.95)
+check("cut the corner at x 9 → the corner point is short (reach < 0.95), sharp", r["short"] == 1 and r["short_sharp"] == 1)
+check("… Gate held ≥ 2 m behind, and stuck at the end (never lets go)", r["held_s"] > 0 and r["stuck"] and r["lag_max"] > 5)
+check("… held at the corner point (10, 0, 0)", r["held_at"][0][0] == 2 and r["held_at"][0][1] == 10.0)
+r = R.gate_replay(cut, 0.95, release_lat=1.0)
+check("… with release_lat 1.0 → not stuck, same 'short' (that's the recording)", not r["stuck"] and r["short"] == 1)
+check("switch_s 0.75 → the cut (reach 0.8 on the 5 m segment) is enough", R.gate_replay(cut, 0.75)["short"] == 0)
+e = R.gate_eval([exact, cut], 0.95, n=3, seed=1)
+check("gate_eval counts walks × (1 + n) and is reproducible", e["walks"] == 8 and e == R.gate_eval([exact, cut], 0.95, n=3, seed=1))
+check("gate_places lists the cut corner", R.gate_places([cut], 0.95)[0][2] == 2)
+
 print("committed sample (data/samples/*.track.jsonl)")
 files = sorted(str(p) for p in (Path(__file__).resolve().parent.parent / "data" / "samples").glob("*.track.jsonl"))
 ws = R.load_walks(files)

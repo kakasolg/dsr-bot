@@ -117,10 +117,11 @@ def _nearest(path: list, p, ks, lens: list[float]) -> tuple[Progress, float]:
 
 class Gate:
     """The switching rule: target segment k moves to k+1 only once progress on k reaches switch_s.
-    update(p) → Progress on the current target segment."""
+    update(p) → Progress on the current target segment. release_lat: see _on_next. With k=None the first update starts at the segment p is on
+    (locate over the whole path) — a walk may start mid-path (after a fight, a re-plan)."""
 
-    def __init__(self, path: list, switch_s: float = SWITCH_S):
-        self.path, self.switch_s, self.k = path, switch_s, 0
+    def __init__(self, path: list, switch_s: float = SWITCH_S, k: int | None = 0, release_lat: float | None = None):
+        self.path, self.switch_s, self.k, self.release_lat = path, switch_s, k, release_lat
         self.lens = seg_lengths(path)
 
     @property
@@ -128,11 +129,22 @@ class Gate:
         return max(0, len(self.path) - 2)
 
     def update(self, p) -> Progress:
+        if self.k is None:
+            self.k = locate(self.path, p, 0, self.lens).seg
         pr = project(self.path, p, self.k, self.lens)
-        while pr.s >= self.switch_s and self.k < self.last:
+        while self.k < self.last and (pr.s >= self.switch_s or self._on_next(p)):
             self.k += 1
             pr = project(self.path, p, self.k, self.lens)
         return pr
+
+    def _on_next(self, p) -> bool:
+        """Release (off unless release_lat is set): already inside the next segment (0 < s < 1) and within
+        release_lat of its line — the corner was cut, but walking back to s ≥ switch_s would only lose ground.
+        Without it the replay shows Gate never letting go once a recorded walk cut a corner (ROADMAP 6-a)."""
+        if self.release_lat is None:
+            return False
+        nx = project(self.path, p, self.k + 1, self.lens)
+        return 0.0 < nx.s < 1.0 and abs(nx.lat) <= self.release_lat
 
 
 def turn_deg(path: list, i: int, span: float = CORNER_SPAN) -> float:
