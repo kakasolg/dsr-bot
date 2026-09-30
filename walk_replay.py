@@ -65,7 +65,7 @@ class Checks:
 
     def __post_init__(self):
         self.lens = G.seg_lengths(self.path)
-        self.k = 0
+        self.k, self.along = 0, None
         self.prev = None
         self.hist: list[tuple[float, float]] = []     # (t, along) while progress is expected
         self.off = False
@@ -92,8 +92,8 @@ class Checks:
                 # two frames agreeing on the new place = we really are somewhere else (quit-out, warp): accept
         self.cand = None
         self.prev = f
-        pr = G.locate(self.path, p, self.k, lens=self.lens)
-        self.k = pr.seg
+        pr = G.locate(self.path, p, self.k, lens=self.lens, along_hint=self.along)
+        self.k, self.along = pr.seg, pr.along
         st = stunned(f.get("anim"))
         if st and not self.stun:
             ev.append({"t": t, "kind": "stun", "p": p, "anim": f.get("anim")})
@@ -228,10 +228,10 @@ def walk_table(walks: list[dict]) -> str:
     lines = []
     for w in walks:
         lens = G.seg_lengths(w["path"])
-        k, lats = 0, []
+        k, along, lats = 0, None, []
         for f in w["fr"]:
-            pr = G.locate(w["path"], f["p"], k, lens=lens)
-            k = pr.seg
+            pr = G.locate(w["path"], f["p"], k, lens=lens, along_hint=along)
+            k, along = pr.seg, pr.along
             if not f["foe"]:
                 lats.append(abs(pr.lat))
         lats.sort()

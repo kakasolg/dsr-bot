@@ -23,6 +23,9 @@ LOOKAHEAD_M = 1.5        # look-ahead distance on straight stretches
 LOOKAHEAD_MIN_M = 0.5    # … shrunk to this at a sharp corner
 SHARP_DEG = 35.0         # same threshold as nav.CORNER_DEG
 CORNER_SPAN = 1.5        # same as nav.CORNER_SPAN
+LOCATE_AHEAD_M = 4.0     # locate() window ahead: one 2 Hz frame at a run is ~1.85 m (3.7 m/s), doubled for a dropped frame
+LOCATE_BACK_M = 1.5      # … and behind: pushed back a little by a hit / knock-back
+LOCATE_LOST_M = 3.0      # nearest segment in the window farther than this = lost track → search the whole path
 
 
 @dataclass
@@ -68,23 +71,48 @@ def project(path: list, p, k: int, lens: list[float] | None = None) -> Progress:
     return Progress(k, s, lat, sum(lens[:k]) + max(0.0, min(L, t)), total)
 
 
-def locate(path: list, p, k_hint: int = 0, back: int = 1, ahead: int = 3, lens: list[float] | None = None) -> Progress:
-    """Measurement: the segment within [k_hint - back, k_hint + ahead] that p is nearest to (inside the segment, ties go
-    to the later one). Bounded so a path crossing itself (stairs, switchbacks) doesn't jump to the wrong pass."""
+def locate(path: list, p, k_hint: int = 0, lens: list[float] | None = None, along_hint: float | None = None,
+           back_m: float = LOCATE_BACK_M, ahead_m: float = LOCATE_AHEAD_M, relocate_m: float = LOCATE_LOST_M) -> Progress:
+    """Measurement: the segment p is nearest to (inside the segment, ties go to the later one), among the segments
+    overlapping [along_hint − back_m, along_hint + ahead_m] along the path, plus k_hint itself. along_hint is the last
+    measured `along`; without it (first frame) the whole path is searched.
+    Bounded so a path crossing itself (stairs, switchbacks) doesn't jump to the wrong pass; bounded in **metres**, not
+    segments, because recorded routes have points every few tens of cm and NavMesh paths every few metres — a count
+    of 3 segments fell behind on dense routes (31 of 5043 recorded frames, 2026-09-30).
+    Lost track: if even the nearest segment in the window is farther than relocate_m (walk started mid-path, pushed
+    far by a fight), search the whole path and take the global nearest when it is at least 1 m nearer. Switchback legs
+    lie ~1 m apart, so they never trigger this."""
     lens = seg_lengths(path) if lens is None else lens
     if len(path) < 2:
         return project(path, p, 0, lens)
-    lo, hi = max(0, k_hint - back), min(len(path) - 2, k_hint + ahead)
+    k_hint = max(0, min(len(path) - 2, k_hint))
+    cum = [0.0]
+    for L in lens:
+        cum.append(cum[-1] + L)
+    if along_hint is None:
+        ks = range(len(lens))                  # first frame, no history: the whole path (a walk may start mid-path)
+    else:
+        lo_a, hi_a = along_hint - back_m, along_hint + ahead_m
+        ks = [k for k in range(len(lens)) if (cum[k] <= hi_a and cum[k + 1] >= lo_a) or k == k_hint]
+    best, best_d = _nearest(path, p, ks, lens)
+    if best_d > relocate_m:
+        g, g_d = _nearest(path, p, range(len(lens)), lens)
+        if g_d < best_d - 1.0:
+            return g
+    return best
+
+
+def _nearest(path: list, p, ks, lens: list[float]) -> tuple[Progress, float]:
     best, best_d = None, math.inf
-    for k in range(lo, hi + 1):
+    px, pz = _xz(p)
+    for k in ks:
         pr = project(path, p, k, lens)
         s = max(0.0, min(1.0, pr.s))
         (ax, az), (bx, bz) = _xz(path[k]), _xz(path[k + 1])
-        qx, qz = ax + (bx - ax) * s, az + (bz - az) * s
-        d = math.hypot(_xz(p)[0] - qx, _xz(p)[1] - qz)
+        d = math.hypot(px - (ax + (bx - ax) * s), pz - (az + (bz - az) * s))
         if d <= best_d + 1e-9:
             best, best_d = pr, d
-    return best
+    return best, best_d
 
 
 class Gate:

@@ -39,7 +39,38 @@ print("locate (measurement)")
 check("cut inside the corner at (9, 1) → already on leg 2", G.locate(L, (9.0, 0.0, 1.5), 0).seg == 1)
 check("mid first leg → leg 1", G.locate(L, (4.0, 0.0, 0.5), 0).seg == 0)
 S = [(0.0, 0.0, 0.0), (10.0, 0.0, 0.0), (10.0, 0.0, 1.0), (0.0, 0.0, 1.0)]   # switchback: leg 3 runs back 1 m beside leg 1
-check("switchback: bounded window keeps us on leg 1 from hint 0", G.locate(S, (3.0, 0.0, 0.6), 0, ahead=1).seg == 0)
+check("switchback: point nearer leg 3 (z 0.6) but walking leg 1 → leg 1", G.locate(S, (3.0, 0.0, 0.6), 0, along_hint=2.5).seg == 0)
+check("… unbounded it would be leg 3 (why the window exists)",
+      G.locate(S, (3.0, 0.0, 0.6), 0, back_m=99, ahead_m=99).seg == 2)
+check("… and coming back along leg 3 it is leg 3", G.locate(S, (3.0, 0.0, 0.6), 2, along_hint=18.0).seg == 2)
+
+print("locate window in metres")
+dense = [(0.3 * i, 0.0, 0.0) for i in range(101)]            # recorded route: a point every 0.3 m (30 m)
+k, a, lag = 0, None, 0
+for step in range(1, 17):                                    # a run at 2 Hz: 1.85 m per frame (> 6 segments)
+    x = 1.85 * step
+    pr = G.locate(dense, (x, 0.0, 0.1), k, along_hint=a)
+    lag += abs(pr.along - x) > 0.05
+    k, a = pr.seg, pr.along
+check("dense route, 1.85 m per frame → never falls behind (old 3-segment window did)", lag == 0)
+k, a = 0, None
+for x in (3.7, 7.4, 11.1):                                   # a dropped frame: 3.7 m per frame
+    pr = G.locate(dense, (x, 0.0, 0.1), k, along_hint=a)
+    k, a = pr.seg, pr.along
+check("one dropped frame (3.7 m) still followed", abs(a - 11.1) < 0.05)
+sparse = [(0.0, 0.0, 0.0), (6.0, 0.0, 0.0), (6.0, 0.0, 6.0)]  # NavMesh path: long segments
+check("long segment: next segment reachable from mid-segment", G.locate(sparse, (6.3, 0.0, 1.0), 0, along_hint=4.5).seg == 1)
+check("knocked back 1 m onto the previous segment → found",
+      G.locate(dense, (5.0, 0.0, 0.0), 20, along_hint=6.0).seg in (16, 17))
+far = G.locate(dense, (20.0, 0.0, 0.0), 0, along_hint=0.0, relocate_m=99)
+check("10+ m ahead, relocation off → held at the window front (≤ 4 m + one segment)", far.along <= G.LOCATE_AHEAD_M + 0.3 + 1e-9)
+check("walk starting 6 m into the path → relocated on the first frame",
+      abs(G.locate(dense, (6.0, 0.0, 0.2), 0).along - 6.0) < 0.05)
+check("pushed 8 m ahead by a fight → relocated", abs(G.locate(dense, (14.0, 0.0, 0.5), 20, along_hint=6.0).along - 14.0) < 0.05)
+check("switchback legs 1 m apart never relocate (walking leg 1, beside leg 3)",
+      G.locate(S, (5.0, 0.0, 0.9), 0, along_hint=4.5).seg == 0)
+check("k_hint is always a candidate (even far outside the metre window)",
+      G.locate(dense, (29.0, 0.0, 0.0), 95, along_hint=0.0, relocate_m=99).seg >= 95)
 
 print("Gate (switch only at s ≥ 0.95)")
 g = G.Gate(L)
