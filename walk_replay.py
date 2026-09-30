@@ -7,6 +7,7 @@
   python walk_replay.py --gate 0.8 0.9 0.95 -n 20        the 0.95 switching rule (walkgeom.Gate, release 1.0 m) on the
                                                          recorded walks; --release -1 0.5 1.0 compares release values
   python walk_replay.py --lookahead 0.5 1.5 1.5/0.5      look-ahead at sharp corners: fixed vs shrunk (walkgeom.lookahead_dist)
+  python walk_replay.py --hits                           stop on hit / stun: hits while walking and which rule sees them
 
 What it can and can't tell (ROADMAP 6-a): the recording is what the *old* controller did, so this layer evaluates the
 **checks** (progress, lateral error, no-progress stop, bad observation, stun) — not a new way of steering. A new
@@ -427,6 +428,61 @@ def lookahead_eval(walks: list[dict], base: float, short: float, n: int = 0, see
             "pass_cut90": sum(c > LA_CUT_M for d, c in passes if d >= 90) / max(1, sum(d >= 90 for d, _ in passes))}
 
 
+# ── stop on hit / stun (the 'hit, stagger, roll' stop condition) ──────────────────────────────────────────────
+
+HIT_MIN = 10             # HP lost between two frames to count as a hit (patrol.CHIP_DMG: blocked chip is ≤ 10)
+HIT_R = 3.0              # souls/reflex.HIT_R: today the walk stops on an HP drop only with an awake foe this close
+HIT_REPEAT_S = 3.0       # another hit within this after the first = the walk kept taking damage
+HIT_WALKING_S = 1.0      # 'hit while walking': the second before, plain anim (-1) and moving
+HIT_WALK_V = 0.5         # m/s
+
+
+def hit_events(w: dict) -> list[dict]:
+    """Hits taken while walking, from a recorded walk. → [{t, p, dmg, foe_d, stun_seen, repeat}]
+      stun_seen  my stun anim (stunned()) in a frame from 0.5 s before to 1.0 s after — what an anim-only stop sees
+                 (2 Hz track: a 0.4~0.9 s stun is easily missed between frames; the bot reads at ~200 Hz)
+      repeat     another hit within HIT_REPEAT_S"""
+    fr = w["fr"]
+    out = []
+    for i in range(1, len(fr)):
+        a, b = fr[i - 1], fr[i]
+        if a.get("hp") is None or b.get("hp") is None or a["hp"] - b["hp"] < HIT_MIN:
+            continue
+        before = [f for f in fr[:i] if b["t"] - HIT_WALKING_S - 1e-9 <= f["t"] <= a["t"]]
+        if not before or any(busy(f.get("anim")) for f in before):
+            continue                                     # already fighting / acting: not a walking hit
+        d = math.hypot(before[-1]["p"][0] - before[0]["p"][0], before[-1]["p"][2] - before[0]["p"][2])
+        dt = before[-1]["t"] - before[0]["t"]
+        if len(before) >= 2 and (dt <= 0 or d / dt < HIT_WALK_V):
+            continue                                     # standing (holding a spot, waiting): not walking
+        ds = [x for x in (a.get("foe_d"), b.get("foe_d")) if x is not None]
+        win = [f for f in fr if b["t"] - 0.5 <= f["t"] <= b["t"] + 1.0]
+        later = [f for j, f in enumerate(fr[i + 1:], i + 1)
+                 if f["t"] - b["t"] <= HIT_REPEAT_S and fr[j - 1].get("hp") is not None and f.get("hp") is not None
+                 and fr[j - 1]["hp"] - f["hp"] >= HIT_MIN]
+        out.append({"t": b["t"], "p": b["p"], "dmg": a["hp"] - b["hp"], "foe_d": min(ds) if ds else None,
+                    "stun_seen": any(stunned(f.get("anim")) for f in win), "repeat": bool(later)})
+    return out
+
+
+def hit_eval(walks: list[dict]) -> dict:
+    """Walking hits over all walks, split by the nearest awake foe at the hit, with what each stop rule would catch:
+      anim   stunned() seen (the stop condition as written: hit-stun / stagger)
+      hp     any HP drop ≥ HIT_MIN (the direct signal — catches every hit by definition)
+      now    HP drop + awake foe ≤ HIT_R (today's reflex.threat_now → the walk stops and fights)"""
+    ev = [dict(e, tag=w["tag"]) for w in walks for e in hit_events(w)]
+    bands = [("≤3 m", lambda d: d is not None and d <= HIT_R), ("3–6 m", lambda d: d is not None and HIT_R < d <= 6.0),
+             ("6–12 m", lambda d: d is not None and d > 6.0), ("none ≤12 m", lambda d: d is None)]
+    rows = []
+    for name, ok in bands:
+        es = [e for e in ev if ok(e["foe_d"])]
+        rows.append({"band": name, "hits": len(es), "dmg": sum(e["dmg"] for e in es),
+                     "anim": sum(e["stun_seen"] for e in es), "now": sum(e["foe_d"] is not None and e["foe_d"] <= HIT_R for e in es),
+                     "repeat": sum(e["repeat"] for e in es)})
+    return {"events": ev, "rows": rows, "hits": len(ev), "anim": sum(e["stun_seen"] for e in ev),
+            "now": sum(e["foe_d"] is not None and e["foe_d"] <= HIT_R for e in ev), "repeat": sum(e["repeat"] for e in ev)}
+
+
 def walk_table(walks: list[dict]) -> str:
     """Unperturbed: per walk, lateral error (no foe near), corners passed on the inside, check events."""
     lines = []
@@ -462,6 +518,8 @@ def main() -> None:
     ap.add_argument("--walks", action="store_true", help="per-walk table of the unperturbed recording")
     ap.add_argument("--gate", type=float, nargs="+", metavar="S",
                     help="evaluate the switching rule (walkgeom.Gate) at these switch_s values instead, e.g. --gate 0.8 0.9 0.95")
+    ap.add_argument("--hits", action="store_true",
+                    help="evaluate the stop-on-hit/stun condition instead: hits taken while walking and which rule sees them")
     ap.add_argument("--lookahead", nargs="+", metavar="L",
                     help="evaluate look-ahead settings instead: '1.5' fixed, '1.5/0.5' shrunk at sharp corners, "
                          "e.g. --lookahead 0.5 1.0 1.5 2.5 1.5/0.5 2.5/0.5")
@@ -477,6 +535,25 @@ def main() -> None:
     print(f"{len(files)} files, {len(walks)} walks, {sum(len(truth(w)) for w in walks)} real stalls")
     if a.walks:
         print(walk_table(walks))
+        return
+    if a.hits:
+        r = hit_eval(walks)
+        n = max(1, r["hits"])
+        print(f"hits taken while walking (HP −{HIT_MIN}+ between frames, plain anim and moving the second before): {r['hits']}")
+        print(f"  stop rule sees it:  anim (stun) {r['anim']} ({r['anim'] / n:.0%})   HP drop {r['hits']} (100 %)   "
+              f"today (HP drop + foe ≤ {HIT_R:.0f} m) {r['now']} ({r['now'] / n:.0%})")
+        print(f"  {'nearest awake foe':>18} | {'hits':>4} {'HP lost':>7} | {'anim sees':>9} {'today stops':>11} | "
+              f"{'hit again ≤' + str(int(HIT_REPEAT_S)) + ' s':>14}")
+        for row in r["rows"]:
+            h = max(1, row["hits"])
+            print(f"  {row['band']:>18} | {row['hits']:4d} {row['dmg']:7d} | {row['anim'] / h:9.0%} {row['now'] / h:11.0%} | "
+                  f"{row['repeat']:5d} ({row['repeat'] / h:.0%})")
+        missed = [e for e in r["events"] if not (e["foe_d"] is not None and e["foe_d"] <= HIT_R) and e["repeat"]]
+        if missed:
+            print(f"\nwalking hits today's rule doesn't stop for, then hit again within {HIT_REPEAT_S:.0f} s:")
+            for e in missed[:15]:
+                fd = "—" if e["foe_d"] is None else f"{e['foe_d']:.1f} m"
+                print(f"  {e['t']:7.1f} s  {e['tag']}  −{e['dmg']}  foe {fd}  at ({e['p'][0]:.1f}, {e['p'][1]:.1f}, {e['p'][2]:.1f})")
         return
     if a.lookahead:
         print(f"look-ahead: open loop — aim from the recorded positions at sharp corners (unperturbed + {a.n} variants)")

@@ -149,6 +149,36 @@ check("a walk off to the side isn't a 'cut' by itself (own offset subtracted)",
 e = R.lookahead_eval([lw], 2.5, 2.5, n=2, seed=3)
 check("lookahead_eval: passes from 1 + n runs, reproducible", e["passes"] == 3 and e == R.lookahead_eval([lw], 2.5, 2.5, n=2, seed=3))
 
+print("stop on hit / stun")
+
+
+def hwalk(hits, foe_d=None, anim_at=None, v=2.0, stand=False) -> dict:
+    """Walk 10 s at v m/s (2 Hz), 600 HP; hits = {t: dmg}; foe_d at every frame; anim_at = {t: anim}."""
+    fr, hp = [], 600
+    for i in range(21):
+        t = 0.5 * i
+        hp -= hits.get(t, 0)
+        fr.append({"t": t, "p": (0.0 if stand else v * t, 0.0, 0.0), "foe": False, "hp": hp, "foe_d": foe_d,
+                   "anim": (anim_at or {}).get(t, -1)})
+    return {"tag": "h", "path": [(0.0, 0.0, 0.0), (30.0, 0.0, 0.0)], "fr": fr}
+
+
+e = R.hit_events(hwalk({3.0: 80}, foe_d=2.0, anim_at={3.0: 2002}))
+check("one hit while walking: −80, foe 2 m, stun seen, no repeat",
+      len(e) == 1 and e[0]["dmg"] == 80 and e[0]["foe_d"] == 2.0 and e[0]["stun_seen"] and not e[0]["repeat"])
+check("chip ≤ 9 isn't a hit", R.hit_events(hwalk({3.0: 9})) == [])
+check("hit while standing (holding a spot) isn't a walking hit", R.hit_events(hwalk({3.0: 80}, stand=True)) == [])
+check("hit while attacking (anim 303000 the second before) isn't a walking hit",
+      R.hit_events(hwalk({3.0: 80}, anim_at={2.5: 303000})) == [])
+e = R.hit_events(hwalk({3.0: 50, 5.0: 50}, foe_d=5.0))
+check("two hits 2 s apart while walking on → both counted, the first marked repeat",
+      e[0]["repeat"] and len(e) == 2)
+check("no stun anim in the window → stun_seen False", not R.hit_events(hwalk({3.0: 80}))[0]["stun_seen"])
+r = R.hit_eval([hwalk({3.0: 80}, foe_d=2.0, anim_at={3.0: 2002}), hwalk({3.0: 40}, foe_d=8.0), hwalk({3.0: 40})])
+check("hit_eval: 3 hits, anim sees 1, today's rule (foe ≤ 3 m) stops 1",
+      r["hits"] == 3 and r["anim"] == 1 and r["now"] == 1)
+check("… bands: ≤3 m 1, 6–12 m 1, none 1", [row["hits"] for row in r["rows"]] == [1, 0, 1, 1])
+
 print("committed sample (data/samples/*.track.jsonl)")
 files = sorted(str(p) for p in (Path(__file__).resolve().parent.parent / "data" / "samples").glob("*.track.jsonl"))
 ws = R.load_walks(files)
