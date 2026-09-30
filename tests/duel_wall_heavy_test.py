@@ -1,5 +1,6 @@
 """벽·좁은 통로 강공 오프라인 테스트 — 배틀 액스(heavy_vertical)는 나나 적이 NavMesh 경계(벽)에서 WALL_R 안이면 약공 대신 강공.
 [MoKa] 2026-09-28: 강공이 수직이라 가로 휘두르기처럼 벽에 안 걸림, 배틀 액스만의 특징. 산적은 강인도가 약해 새로 보인 상황.
+[MoKa] 2026-09-30: 양손 잡기일 때만 (duel._slam). 방패를 든 적에게도 양손 강공 — 가드를 깸, 한손이면 발차기.
 
   python tests/duel_wall_heavy_test.py
 """
@@ -40,10 +41,11 @@ class Nm:
         return lambda *a, **k: None
 
 
-def run(weapon, wall, sp=90, ticks=8, npc=254000, hp=75):
+def run(weapon, wall, sp=90, ticks=8, npc=254000, hp=75, grip=3, anim=-1):
     w = World(player=(0.0, -49.4, 0.0), sp=sp, max_sp=98, hp=698)
-    w.add(2, 0x1018, npc, (0.0, -49.4, 1.2), anim=-1, hp=hp, max_hp=hp)
+    w.add(2, 0x1018, npc, (0.0, -49.4, 1.2), anim=anim, hp=hp, max_hp=hp)
     mv = Mv(w, 2)
+    mv.tm.grip = lambda: grip                    # 3 = two hands
     n = {"k": 0}
 
     def cancel():
@@ -81,9 +83,23 @@ def test_wall_before_backstab_and_kick() -> None:
         assert mv.heavies and not any("뒤잡기" in l and "→" in l for l in logs), logs[-5:]
     finally:
         D.CIRCLE_MAX_SWEEPS = old
-    mv, logs = run(weapons.BATTLE_AXE, wall=0.6, npc=255010, hp=85)      # idle shield soldier: kick normally, heavy by a wall
-    assert mv.heavies and not mv.kicks, (mv.heavies, mv.kicks)
-    print("ok  by a wall the heavy comes before the backstab and the shield-soldier kick")
+    print("ok  by a wall the heavy comes before the backstab")
+
+
+def test_shield_up() -> None:
+    mv, logs = run(weapons.BATTLE_AXE, wall=0.6, npc=255010, hp=85)      # idle shield soldier, two hands: heavy breaks the guard
+    assert mv.heavies and not mv.kicks, (mv.heavies, mv.kicks, logs[-5:])
+    mv, logs = run(weapons.BATTLE_AXE, wall=0.6, npc=255010, hp=85, grip=1)   # one hand: the heavy is blocked → kick as usual
+    assert mv.kicks and not mv.heavies, (mv.heavies, mv.kicks, logs[-5:])
+    print("ok  idle shield soldier by a wall: two hands → heavy, one hand → kick")
+
+
+def test_one_handed_light() -> None:
+    mv, logs = run(weapons.BATTLE_AXE, wall=0.6, grip=1)
+    assert mv.lights and not mv.heavies, (mv.heavies, mv.lights, logs[-5:])
+    mv, logs = run(weapons.BATTLE_AXE, wall=0.6, grip=None)              # grip unreadable → treated as one hand
+    assert not mv.heavies, (mv.heavies, logs[-5:])
+    print("ok  one-handed (or unknown grip) by a wall → light, no heavy")
 
 
 def test_other_weapon_unchanged() -> None:
@@ -97,5 +113,7 @@ if __name__ == "__main__":
     test_open_ground_light()
     test_low_sp_light()
     test_wall_before_backstab_and_kick()
+    test_shield_up()
+    test_one_handed_light()
     test_other_weapon_unchanged()
     print("전부 통과")

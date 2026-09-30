@@ -139,10 +139,11 @@ def situations_terrain():
 
 def situations_axe():
     """Third set, the Battle Axe (the default weapon for unknown IDs, reach 1.6, heavy_vertical): the same foes and anims, SP either side of
-    WALL_HEAVY_SP, with and without a wall close to us / the foe (wall 0.5 m: slam; 1.5 m: farther than WALL_R, light as usual)."""
-    keys = ("foe", "anim", "h", "sp", "low", "back", "room", "other", "wall")
+    WALL_HEAVY_SP, with and without a wall close to us / the foe (wall 0.5 m: slam; 1.5 m: farther than WALL_R, light as usual),
+    one- and two-handed (grip 1 / 3 — the slam needs two hands, MoKa 2026-09-30)."""
+    keys = ("foe", "anim", "h", "sp", "low", "back", "room", "other", "wall", "grip")
     for v in itertools.product(FOES, ANIMS, (0.9, 1.4, 2.2, 4.0), (90, 10), (False, True), (False, True), (False, True),
-                               (False, True), (None, 0.5, 1.5)):
+                               (False, True), (None, 0.5, 1.5), (1, 3)):
         yield dict(zip(keys, v), weapon="axe", wait=False, style="guard", reflex=False, edge=False, arena=None, care=False,
                    ground=True)
 
@@ -164,6 +165,7 @@ def run(sc) -> list:
         care = Care(trace) if sc["care"] else None
         arena = {None: None, "near": [0.5, -49.4, 0.5], "far": [0.0, -49.4, -8.0], "ledge": [0.0, -45.0, -8.0]}[sc["arena"]]
     mv = Mv(w, trace)
+    mv.tm.grip = lambda: sc.get("grip")
     ticks = {"n": 0}
 
     def cancel():

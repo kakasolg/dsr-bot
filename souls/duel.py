@@ -759,7 +759,7 @@ def prep_linger(F, T):
     T.room = foe is not None and foe.circle_behind and T.now >= F.edge_until and _room_behind(F.nm, T.p, T.c)
     # 벽·좁은 통로가 우선 — 배틀 액스(heavy_vertical)면 뒤잡기로 돌지 않고 강공 ([MoKa] 2026-09-28: "벽, 좁은 통로가 우선 순위를 높여줘",
     # 배틀 액스만 가능한 플레이, 다른 무기는 약공이 나음)
-    T.wall = _walled(F.nm, T.p, T.c) if F.weapon.heavy_vertical else None
+    T.wall = _walled(F.nm, T.p, T.c) if F.weapon.heavy_vertical and _two_handed(F) else None
     if T.wall is not None:
         T.room = False
     return None
@@ -1101,11 +1101,31 @@ def _walled(nm, p, c) -> float | None:
     return d if d < WALL_R else None
 
 
-def _strike(F, s, c, n: int, sp_second=None, swinging: bool = False) -> "M.Hit":
-    """Our attack: the light (n swings), or for heavy_vertical weapons with a wall close to us or the foe, the vertical heavy —
-    a horizontal swing catches on the wall. Not while cutting into a foe's swing (heavy startup 0.86 s is too slow to interrupt)."""
+def _two_handed(F) -> bool:
+    """Right weapon held in two hands (grip 3). Unreadable → False."""
+    try:
+        return F.mv.tm.grip() == 3
+    except Exception:
+        return False
+
+
+def _slam(F, s, c, swinging: bool = False) -> float | None:
+    """Wall distance if the vertical heavy is the move now (heavy_vertical weapon, wall within WALL_R, SP ≥ WALL_HEAVY_SP), else None.
+
+    ── 벽 강공 조건 ([MoKa] 2026-09-30) ──────────────────────────────
+     · 양손 잡기일 때만 — 강공은 준비가 0.86 s라 맞을 위험을 지는 만큼 보상이 커야 한다. 한손이면 약공(방패병이면 발차기)
+     · 방패를 든 적에게도 양손 강공은 씀 — 양손 강공은 가드를 깨서 무력화, 이어서 약공이 잘 들어감 ([MoKa] 경험).
+       09-30 벽 자리 시험의 피해 15·준비 중 −145는 한손 강공이 방패에 막힌 것 (wall-heavy-2026-09-30a, guard 스타일 = 한손)
+     · 적이 휘두르는 중에 끊어 치기로는 안 씀 (강공은 느림)"""
     w = F.weapon
-    wall = (_walled(F.nm, s.player, c) if w.heavy_vertical and not swinging and (s.player.sp or 0) >= WALL_HEAVY_SP else None)
+    if not w.heavy_vertical or swinging or (s.player.sp or 0) < WALL_HEAVY_SP or not _two_handed(F):
+        return None
+    return _walled(F.nm, s.player, c)
+
+
+def _strike(F, s, c, n: int, sp_second=None, swinging: bool = False) -> "M.Hit":
+    """Our attack: the light (n swings), or the vertical heavy when _slam says so — a horizontal swing catches on the wall."""
+    wall = _slam(F, s, c, swinging)
     if wall is not None:
         # 좁은 통로·벽에 붙은 적: 가로 휘두르기는 벽에 걸린다 — 배틀 액스 강공은 수직이라 안 걸림 ([MoKa] 2026-09-28)
         F.log(f"      벽 {wall:.1f} m — 강공(수직)")
@@ -1116,8 +1136,8 @@ def _strike(F, s, c, n: int, sp_second=None, swinging: bool = False) -> "M.Hit":
 def rule_attack(F, T):
     """Default: kick an idle shield soldier looking at us (kick → light right away), else heavy or light per weapon."""
     s, c, a, w = T.s, T.c, T.a, F.weapon
-    if getattr(T, "wall", None) is not None and (s.player.sp or 0) >= WALL_HEAVY_SP:
-        hit = _strike(F, s, c, n=w.combo, sp_second=w.sp_min)          # before the shield soldier kick too
+    if getattr(T, "wall", None) is not None and _slam(F, s, c) is not None:
+        hit = _strike(F, s, c, n=w.combo, sp_second=w.sp_min)          # before the shield soldier kick too (two hands break the guard)
     elif F.foe.kick_when_idle and a == -1 and T.behind_deg < 60 and T.now - F.kick_t > KICK_COOLDOWN:
         F.kick_t = T.now
         hit = F.mv.kick_combo(s, c, n=w.combo)
