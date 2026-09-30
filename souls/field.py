@@ -113,6 +113,9 @@ CROWD_FALL_BACK = False
 FALL_BACK_R = 6.0        # fall_back stops once at most one moving foe is within this
 FALL_BACK_MAX_S = 15.0   # …or after this long
 FALL_BACK_OFF_S = 10.0   # no path back → fight in place this long before trying to fall back again
+CROWD_MAX = 3            # 'crowd' fall-backs within CROWD_WINDOW_S before we stop falling back — the callers don't count a 'crowd' as a try, so without
+CROWD_WINDOW_S = 90.0    # this cap 'crowd → fall_back → crowd' repeats forever (P-26: 16 times, 0 damage dealt, dead)
+CROWD_OFF_S = 60.0       # …then fight in place this long (the old 45 % HP retreat still applies) before trying again
 
 
 def awake(c) -> bool:
@@ -188,6 +191,7 @@ class Field:
         if props_.STEER:
             log(f"   물건 비켜 가기 (지난 실행에서 {props_.LEARN_MIN_RUNS}번 이상 부숨): {' '.join(sorted(props_.STEER))}")
         self._detour = False                               # keeps walk's "detour" from recursing
+        self._crowd_hits: list[float] = []                 # times of recent 'crowd' fall-backs (CROWD_MAX per CROWD_WINDOW_S)
         self._crowd_off_until = 0.0                        # fall_back 이 길이 없어 못 물러났으면 잠깐 둘러싸여도 싸운다 (같은 자리에서 무한 반복 방지)
         self.style = style_.of(style)                      # souls/style.py — every layer only reads this object
         self.bonfires = [tuple(b) for b in bonfires]      # bloodstain pickup (A) forbidden zones
@@ -353,6 +357,20 @@ class Field:
         self.events("fall_back", result=r, secs=round(time.time() - t0, 1), near=n)
         return r
 
+    def _crowd_capped(self) -> bool:
+        """Count this 'crowd' end; the CROWD_MAX-th within CROWD_WINDOW_S switches fall-back off for CROWD_OFF_S. → True when it did."""
+        now = time.time()
+        hits = getattr(self, "_crowd_hits", [])
+        hits = [t for t in hits if now - t < CROWD_WINDOW_S] + [now]
+        if len(hits) >= CROWD_MAX:
+            self._crowd_hits = []
+            self._crowd_off_until = now + CROWD_OFF_S
+            self.log(f"   둘러싸임 후퇴 {len(hits)}번 연속 ({CROWD_WINDOW_S:.0f} s 안) — 이번엔 물러나지 않고 {CROWD_OFF_S:.0f} s 동안 그 자리에서 싸움 (P-26 반복 방지)")
+            self.events("fall_back", result="capped", n=len(hits))
+            return True
+        self._crowd_hits = hits
+        return False
+
     @staticmethod
     def _retreat_mode(sn) -> str:
         """Shield up while an awake foe is still close — like _retreat_to_zone. Walking off with the guard down after a timed-out
@@ -435,7 +453,9 @@ class Field:
             self.mv.cam_target = None
         self.log(f"   {tag}{' (끝까지)' if desperate else ''}: {r.line()}")
         self.events("duel", tag=tag, npc=r.npc, result=r.result, secs=round(r.secs, 1), dealt=r.dealt, taken=r.taken)
-        if r.result == "crowd":
+        if r.result == "crowd" and self._crowd_capped():
+            pass                                           # too many in a row — fight in place (crowd_ok stays off for CROWD_OFF_S)
+        elif r.result == "crowd":
             self.fall_back(nm)
         if r.result == "killed":
             self.heal(0.7)

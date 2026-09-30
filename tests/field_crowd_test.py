@@ -94,6 +94,51 @@ def test_fall_back_no_path() -> None:
     print("ok  no path back → fight in place for FALL_BACK_OFF_S (no endless crowd → fall_back loop)")
 
 
+def test_crowd_cap() -> None:
+    """P-26: 'crowd' → fall_back → 'crowd' 16 times, none counted as a try by the callers. CROWD_MAX in CROWD_WINDOW_S ends it."""
+    f = field_with(World(player=(0.0, -49.4, 0.0), hp=682))
+    f.events = lambda *a, **k: None
+    seen = []
+    for k in range(F.CROWD_MAX - 1):
+        assert f._crowd_capped() is False, k
+        seen.append(f._crowd_off_until)
+    assert all(t == 0.0 for t in seen), "no cap before CROWD_MAX"
+    assert f._crowd_capped() is True
+    assert f._crowd_off_until > time.time() + F.CROWD_OFF_S - 1.0 and f._crowd_hits == []
+    assert any("P-26" in l for l in f.logs), f.logs
+    # old ones age out: CROWD_MAX - 1 hits, then a long pause → the next one is counted alone
+    f._crowd_off_until = 0.0
+    f._crowd_hits = [time.time() - F.CROWD_WINDOW_S - 1.0] * (F.CROWD_MAX - 1)
+    assert f._crowd_capped() is False and len(f._crowd_hits) == 1
+    print("ok  crowd fall-back capped: CROWD_MAX within CROWD_WINDOW_S → fight in place for CROWD_OFF_S; old hits age out")
+
+
+def test_fight_loop_bounded() -> None:
+    """The real Field.fight with CROWD_FALL_BACK on and a duel that keeps ending 'crowd' (P-26): fall_back runs CROWD_MAX - 1 times,
+    then the duel is asked with crowd_ok False."""
+    from types import SimpleNamespace
+    f = field_with(World(player=(0.0, -49.4, 0.0), hp=682))
+    f.events = lambda *a, **k: None
+    f.w, f.esc = None, SimpleNamespace(gen=0, escaping=False)
+    f.reflex = SimpleNamespace(nm=None)
+    f.style = SimpleNamespace(grip=None)
+    f.mv = SimpleNamespace(estus_id=lambda: None, tm=SimpleNamespace(grip=lambda: None), cam_target=None)
+    f.heal = lambda *a, **k: None
+    asked, falls = [], []
+    f.fall_back = lambda nm: falls.append(1) or "stopped"
+    duel, cw = D.duel, F.CROWD_FALL_BACK
+    D.duel = lambda *a, **k: (asked.append(k["crowd_ok"]), D.DuelResult("crowd" if k["crowd_ok"] else "timeout"))[1]
+    F.CROWD_FALL_BACK = True
+    try:
+        for _ in range(8):
+            F.Field.fight(f, 2, None, "t")
+    finally:
+        D.duel, F.CROWD_FALL_BACK = duel, cw
+    assert len(falls) == F.CROWD_MAX - 1, falls
+    assert asked[:F.CROWD_MAX] == [True] * F.CROWD_MAX and not any(asked[F.CROWD_MAX:]), asked
+    print(f"ok  Field.fight: crowd → fall_back {len(falls)}× then capped, later duels run with crowd_ok=False ({asked})")
+
+
 def test_no_crowd_quit_out() -> None:
     src = inspect.getsource(watch.Escape)
     assert '"crowd"' not in src.split("def _back_to_mesh", 1)[0], "crowd quit-out still in the Escape watch loop"
@@ -104,5 +149,7 @@ if __name__ == "__main__":
     test_duel_crowd()
     test_fall_back_stops_when_split()
     test_fall_back_no_path()
+    test_crowd_cap()
+    test_fight_loop_bounded()
     test_no_crowd_quit_out()
     print("전부 통과")

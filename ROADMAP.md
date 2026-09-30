@@ -518,6 +518,7 @@
 - 2026-09-30 [cloud→게시판] 3번(MCP 직접 연결) 전제 확인: 이 클라우드 환경은 `mcp-maswarm.moko.fyi`를 프록시가 403으로 막음(허용 도메인 추가 필요), 환경변수는 환경 설정에서 넣을 수 있음, 저장소 `.mcp.json`을 읽는지는 미확인. [MoKa]가 원할 때 진행 (서비스 토큰은 클라우드 전용으로 따로 발급)
 - 2026-09-30 [cloud→게시판] 골든 테스트에 Battle Axe(기본 무기) 6,912 상황 추가 — 벽 0.5 m/1.5 m/없음 × SP 90/10 × 적·애니·거리 등. 기존 Broadsword 26,496개 결정은 그대로 같음. 벽 0.5 m + SP 90이면 강공 336건, 벽 없거나 1.5 m면 약공 → 벽 강공 규칙이 스냅샷으로 고정됨. 규칙을 고치면 `python tests/duel_golden_test.py`가 알려 줌 → 처리
 - 2026-09-30 [cloud→게시판] P-18 `ramp_passed`와 P-25 충돌 수정: `left #N?`를 "이미 죽였다"로 믿지 않음. `Missions.pass_ramp` — `#N?`뿐이면 `ramp_survivors`(같은 종류가 자기 스폰 15 m·같은 층에 살아 있음)를 확인, 있으면 경사로를 다시 (최대 `RAMP_RETRIES` 2번), 그래도 남으면 `경사로 left #N? (살아 있는 적 남음)`으로 멈춤. 없으면 P-18대로 통과. `#N`·`#N~`·`cleared` 동작 그대로. 확인: `tests/ramp_passed_test.py`(재시도·상한·survivor 판정), pytest 40. **게임 확인 필요**: 퀵 종료 뒤 `left #N?`가 나오는 실행에서 `되살아났을 수 있음(P-25)` 줄과 재시도가 실제로 동작하는지. 한계: 되살아난 적을 "처음부터 물러나서" 상대하는 건 아직 아님(재시도는 기존 clear_ramp) → 처리(부분)
+- 2026-09-30 [cloud→게시판] `CROWD_FALL_BACK` 반복 상한 (P-26 원인 중 하나): 호출부가 `crowd`를 시도로 안 세서(`tried -= 1`) `crowd → fall_back → crowd`가 끝없이 이어질 수 있었음. `Field._crowd_capped` — 90 s 안에 3번(`CROWD_MAX`)째 `crowd`면 물러나지 않고 60 s(`CROWD_OFF_S`) 동안 그 자리에서 싸움(`crowd_ok` 꺼짐), 로그 `P-26 반복 방지`·이벤트 `fall_back capped`. **기능은 여전히 꺼져 있음**(`CROWD_FALL_BACK=False`) — 다시 켤 때의 안전장치. 확인: `tests/field_crowd_test.py`(상한·시간 만료·진짜 `Field.fight`로 8번 돌려 후퇴 2번 뒤 `crowd_ok=False`), pytest 40. 게임 확인은 켤 때 → 처리
 
 ---
 
