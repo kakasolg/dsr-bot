@@ -30,6 +30,10 @@ SAFE_R = 6.0             # estus: no awake foe within this, and
 SAFE_ATTACK_R = 8.0      #          nobody swinging within this
 RESYNC_BACK, RESYNC_AHEAD = 3, 15   # range for re-picking the waypoint after a fight while walking (field.walk)
 RESYNC_DY = 1.0                      # nearest waypoint this far above/below → different level: re-plan from here (hotspot #4, 2026-09-28)
+ALMOST_M, ALMOST_DY = 1.7, 0.8       # a point missed ('stuck'/'timeout') from this close = almost there: go on to the next point
+                                     # (MoKa 2026-09-30, ROADMAP 6-a: 40 % of the logged misses were ≤ 1.7 m / |dy| ≤ 0.8 — the
+                                     # arrival radius, not a blockage — and the detour after them failed again 43 % of the time).
+                                     # Not for the last point: that is where the walk has to end up (throw spot, arena).
 
 
 def resync(path: list, here, nm, lo: int = 0, hi: int | None = None) -> tuple[list, int, float]:
@@ -1238,6 +1242,12 @@ class Field:
             if self._smash_blocking(nm, pp, q, st.smashed, tag, mover, why=f"점 못 감 ({r})"):
                 st.fails = 0
                 return "retry"
+            d, dy = math.dist(pp, q), pp[1] - q[1]
+            if r in ("stuck", "timeout") and i + 1 < len(path) and d <= ALMOST_M and abs(dy) <= ALMOST_DY:
+                self.log(f"      {tag}: {i}번 점 거의 도착 ({d:.1f} m, Δy {dy:+.1f}) — 다음 점으로")
+                self.events("walk_almost", tag=tag, i=i, n=len(path), d=round(d, 2), dy=round(dy, 2), r=r)
+                st.fails = 0
+                return "next"
             # if the straight line fails, detour once via navmesh pathfinding — pushed while fighting onto the upper passage beside the stairs (1.1~1.5 m higher),
             # heading straight for the stair point hit the railing, failing three points in a row (2026-09-25 191817 return passage points 28~30)
             # the detouring walk_to also uses walk internally — detouring again there recurses endlessly ("detour detour …",

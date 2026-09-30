@@ -55,6 +55,8 @@ def run(script, nm=None, chase=None, gen_bump_at=None):
             w.add(9, 0x109, 254000, (w.player.x + 1.0, 0.0, 0.0), anim=3000)
             return "retreat"
         r = script.pop(0) if script else "arrived"
+        if isinstance(r, tuple):                   # (result, where the player ends up) — e.g. stuck 1 m short
+            r, (w.player.x, w.player.y, w.player.z) = r
         if r == "arrived":
             w.player.x, w.player.z = q[0], q[2]
         return r
@@ -92,6 +94,26 @@ def test_detour_once() -> None:
     print("ok  first miss with a navmesh path: detour walk_to, then next point")
 
 
+def test_almost_there_moves_on() -> None:
+    res, xs, f = run(["arrived", ("stuck", (1.0, 0.3, 0.2))], nm=Nm(detour=True))   # point 1 (x 2), stuck ~1 m short
+    assert res == "arrived" and xs == [0, 2, 4, 6, 8, 10], xs
+    assert f.walks == [], f.walks                                                    # no detour
+    assert any("1번 점 거의 도착 (1.1 m, Δy +0.3)" in l for l in f.logs), f.logs
+    res, xs, f = run(["arrived", ("stuck", (1.0, 0.0, 0.0)), ("stuck", (3.0, 0.0, 0.0)), ("stuck", (5.0, 0.0, 0.0))])
+    assert res == "arrived", (res, xs)                                               # almost-there misses don't add up to 'stuck'
+    res, xs, f = run(["arrived", ("stuck", (0.4, 0.0, 0.0))], nm=Nm(detour=True))    # 1.6 m short: still almost there
+    assert any("거의 도착" in l for l in f.logs) and f.walks == []
+    res, xs, f = run(["arrived", ("stuck", (0.2, 0.0, 0.0))], nm=Nm(detour=True))    # 1.8 m short: the usual chain
+    assert not any("거의 도착" in l for l in f.logs) and f.walks
+    res, xs, f = run(["arrived", ("stuck", (1.0, 1.2, 0.0))], nm=Nm(detour=True))    # 1.2 m higher: not almost there
+    assert f.walks == [((2.0, 0.0, 0.0), "#t 이동 돌아서")] and not any("거의 도착" in l for l in f.logs), f.walks
+    res, xs, f = run(["arrived", ("unreachable", (1.5, 0.0, 0.0))], nm=Nm(detour=True))
+    assert not any("거의 도착" in l for l in f.logs)                                 # unreachable: not this rule
+    res, xs, f = run(["arrived"] * 5 + [("stuck", (9.0, 0.0, 0.0))], nm=Nm(detour=True))
+    assert not any("거의 도착" in l for l in f.logs) and f.walks, f.walks            # last point: the usual chain
+    print("ok  almost there (≤ 1.7 m, |dy| ≤ 0.8, not the last point): next point, no detour")
+
+
 def test_chaser_fight_then_resync() -> None:
     res, xs, f = run([], chase=2)
     assert res == "arrived" and len(f.fights) == 1 and f.fights[0]["wait_far"]
@@ -127,5 +149,5 @@ def test_corner_tolerance() -> None:
 
 if __name__ == "__main__":
     for fn in (test_all_arrive, test_fail_once_moves_on, test_three_fails_stuck, test_detour_once,
-               test_chaser_fight_then_resync, test_quit_out_resync, test_corner_tolerance):
+               test_almost_there_moves_on, test_chaser_fight_then_resync, test_quit_out_resync, test_corner_tolerance):
         fn()
