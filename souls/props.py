@@ -32,6 +32,8 @@ DETOUR_R = 1.6              # m — the two detour points sit this far from the 
 # bent 12 more places in 28z alone where nothing stalled (MoKa: rule changes that spread break other places)
 LEARN_MIN_RUNS = 2
 ROOM = 0.6                  # m — and at least this far from the NavMesh border (wall or drop); otherwise keep the path and smash as before
+LINE_STEP = 0.1             # m — sample spacing for clear_line on detour legs. P-12 (e): at the default 0.5 m the sample skipped small
+                            #     triangles, landed on a non-neighbour face and read it as a wall — o1321_0021's free side failed; 0.1 passes
 
 _cache: dict[str, list] = {}
 
@@ -119,7 +121,7 @@ def _ok(pts: list, nm, props: list, dy: float) -> bool:
         if not nm.on_mesh(*c) or nm.border_dist(*c) < ROOM:
             return False
     for a, b in zip(pts, pts[1:]):
-        if not nm.clear_line(a, b):
+        if not nm.clear_line(a, b, step=LINE_STEP):
             return False
         if any(abs(o["pos"][1] - a[1]) <= dy and _seg_dist(o["pos"], a, b) < CLEAR * 0.9 for o in props):
             return False

@@ -53,6 +53,6 @@ for path, (tag, rt) in paths.items():
                     print(f"   side {side:+d} pt {tuple(round(v,2) for v in c)} on_mesh={nm.on_mesh(*c)} border={nm.border_dist(*c):.2f}")
                 for u, v in zip(new, new[1:]):
                     bad = [o2['name'] for o2 in props[mid] if o2['name'] in steer and abs(o2['pos'][1]-u[1]) <= P.DY and P._seg_dist(o2['pos'], u, v) < P.CLEAR*0.9]
-                    print(f"      leg clear_line={nm.clear_line(u, v)} props={bad}")
+                    print(f"      leg clear_line={nm.clear_line(u, v, step=P.LINE_STEP)} props={bad}")
                 print(f"   side {side:+d} ok={P._ok(new, nm, [x for x in props[mid] if x['name'] in steer], P.DY)}")
 
