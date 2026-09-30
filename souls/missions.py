@@ -50,6 +50,8 @@ RAMP_LURE_AT.update({
 })
 # Measured 2026-09-25: [3,1,…] (luring #3 first from the upper ledge at the same height) died 2 in 8 runs — #3's throw spot is the ledge beside #4·#5, so it got surrounded by three,
 # and on the way the shield soldier chased it for 790. Starting from the flat ground below, [1,3,…] (10/10, median damage 282) is better — safer to let the upper-ledge ones come down one at a time
+RAMP_SURVIVOR_R = 15.0   # a live ramp foe this close to a spawn of its type counts as a survivor (pass_ramp)
+RAMP_RETRIES = 2         # …and the ramp is cleared again at most this many times before the mission stops
 NO_LURE = {1}            # #1 is on a high spot: from afar it's blocked by rocks, up close it's already coming down (user 2026-09-24) — walk to the flat ground and it comes on its own
 # Undead Burg 6 — exactly the order the user killed them (recording analysis, 2026-09-25): "Code it to kill in the order I kill"
 # ("Not a good method, but for now it breaks the order too much, no choice" — script the demo order as-is instead of generalized judgment).
@@ -152,16 +154,49 @@ class Missions:
         return ok
 
     def ramp_passed(self, r: str) -> bool:
-        """Go on past the ramp? 'cleared', or 'left' with only '#N?' (identity lost, e.g. after a quit-out — the foe may well be
-        dead: already-killed ones never show at their spawn again). If one is alive it follows us and the walk fights it.
-        '#N' (tried and lived) and '#N~' (moved away, seen alive) still stop the mission. (ROADMAP P-18, #7)"""
+        """Go on past the ramp? 'cleared', or 'left' with only '#N?' (identity lost, e.g. after a quit-out — dead or wandering,
+        unknown). '#N' (tried and lived) and '#N~' (moved away, seen alive) still stop the mission. (ROADMAP P-18, #7)
+        '#N?' is NOT proof of death: a quit-out can bring killed foes back (P-25, #14) — pass_ramp checks for survivors first."""
         if r == "cleared":
             return True
         tags = r.split()[1:] if r.startswith("left ") else []
         if tags and all(t.endswith("?") for t in tags):
-            self.log(f"   경사로 {r} — 살았는지 모름(신원 끊김)만 남음, 다 잡은 것으로 보고 계속 (살아 있으면 따라와서 싸움)")
+            self.log(f"   경사로 {r} — 살았는지 모름(신원 끊김)만 남음, 살아 있는 적이 근처에 없어 계속 (있으면 따라와서 싸움)")
             return True
         return False
+
+    @staticmethod
+    def _only_unknown(r: str) -> bool:
+        tags = r.split()[1:] if r.startswith("left ") else []
+        return bool(tags) and all(t.endswith("?") for t in tags)
+
+    def ramp_survivors(self) -> list | None:
+        """Live ramp foes near a ramp spawn (same type, RAMP_SURVIVOR_R, same level) — what P-25 leaves behind after a quit-out revives
+        killed ones. None if the world can't be read (then nothing is known)."""
+        s = self.mv.snap(200.0)
+        if s is None:
+            return None
+        spawns = [(e["npc"], e["pos"]) for e in RAMP]
+        return [c for c in s.chars if c.hp > 0 and any(
+            c.npc_param == n and math.dist((c.x, c.z), (p[0], p[2])) < RAMP_SURVIVOR_R and abs(c.y - p[1]) <= 3.0 for n, p in spawns)]
+
+    def pass_ramp(self, lure: bool | None = None) -> tuple[bool, str]:
+        """Clear the ramp and decide whether to go on. → (passed, result line).
+        'left #N?' only → look for live ramp foes: none → pass (P-18); some → clear again, at most RAMP_RETRIES times, then stop
+        (P-25: a quit-out revived killed foes — walking on with them alive behind us is how 28-bandit-c died)."""
+        r = self.clear_ramp(lure)
+        for k in range(RAMP_RETRIES):
+            if not self._only_unknown(r):
+                break
+            alive = self.ramp_survivors()
+            if not alive:
+                break
+            self.log(f"   경사로 {r} — 그런데 살아 있는 적 {len(alive)}마리 ({' '.join(str(c.npc_param) for c in alive[:6])}): "
+                     f"퀵 종료로 되살아났을 수 있음(P-25) — 경사로를 다시 ({k + 1}/{RAMP_RETRIES})")
+            r = self.clear_ramp(lure)
+        if self._only_unknown(r) and self.ramp_survivors():
+            return False, f"{r} (살아 있는 적 남음)"
+        return self.ramp_passed(r), r
 
     def clear_ramp(self, lure: bool | None = None) -> str:
         lure = self.lure if lure is None else lure
@@ -424,8 +459,8 @@ class Missions:
             self.f.wait_respawn()
         if not self.start_fresh():
             return "휴식 실패"
-        r = self.clear_ramp()
-        if not self.ramp_passed(r):
+        ok, r = self.pass_ramp()
+        if not ok:
             return f"경사로 {r}"
         r = self.to_merchant()
         if r != "도착":
@@ -439,8 +474,8 @@ class Missions:
             self.f.wait_respawn()
         if not self.start_fresh():
             return "휴식 실패"
-        r = self.clear_ramp()
-        if not self.ramp_passed(r):
+        ok, r = self.pass_ramp()
+        if not ok:
             return f"경사로 {r}"
         r = self.to_merchant()
         if r != "도착":
