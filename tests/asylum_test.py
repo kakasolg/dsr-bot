@@ -15,6 +15,8 @@ if hasattr(sys.stdout, "reconfigure"):
 from field_fakes import World, make_field
 from souls import asylum as A
 
+A.control.focus_game = lambda: True      # ctypes.windll (Windows only) — steps call it before pressing / menu keys
+
 STEPS = [
     {"type": "walk", "pts": [[0, 0, 0]]},
     {"type": "menu", "keys": ["START", "START"], "label": "감방"},          # intro skip — must be dropped
