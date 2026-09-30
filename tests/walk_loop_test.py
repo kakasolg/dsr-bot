@@ -31,13 +31,13 @@ class Nm:
         return [a, b] if self.detour else []
 
 
-def run(script, nm=None, chase=None, gen_bump_at=None):
+def run(script, nm=None, chase=None, gen_bump_at=None, fog=None):
     """script: results nav.goto returns in order (then 'arrived'). 'arrived' moves the player onto the point.
     chase: at the call with this index a hollow stands next to us and goto says 'retreat'."""
     w = World(player=(0.0, 0.0, 0.0))
     f = make_field(w)
     f._detour = False
-    f.fog_through = lambda q: False
+    f.fog_through = fog or (lambda q: False)
     f._near_zone = lambda s, nm: None
     f.reflex.hold = lambda: None
     f.reflex.threat_now = lambda s: False
@@ -111,7 +111,10 @@ def test_almost_there_moves_on() -> None:
     assert not any("거의 도착" in l for l in f.logs)                                 # unreachable: not this rule
     res, xs, f = run(["arrived"] * 5 + [("stuck", (9.0, 0.0, 0.0))], nm=Nm(detour=True))
     assert not any("거의 도착" in l for l in f.logs) and f.walks, f.walks            # last point: the usual chain
-    print("ok  almost there (≤ 1.7 m, |dy| ≤ 0.8, not the last point): next point, no detour")
+    fogs = []
+    res, xs, f = run(["arrived", ("stuck", (1.0, 0.0, 0.0)), "stuck"], fog=lambda q: (fogs.append(q), True)[1])
+    assert fogs == [(4.0, 0.0, 0.0)], fogs          # fog wall: almost there at point 1, a real miss at point 2 → fog at once
+    print("ok  almost there (≤ 1.7 m, |dy| ≤ 0.8, not the last point): next point, no detour; fog wall right after")
 
 
 def test_chaser_fight_then_resync() -> None:

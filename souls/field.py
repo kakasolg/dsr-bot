@@ -34,6 +34,7 @@ ALMOST_M, ALMOST_DY = 1.7, 0.8       # a point missed ('stuck'/'timeout') from t
                                      # (MoKa 2026-09-30, ROADMAP 6-a: 40 % of the logged misses were ≤ 1.7 m / |dy| ≤ 0.8 — the
                                      # arrival radius, not a blockage — and the detour after them failed again 43 % of the time).
                                      # Not for the last point: that is where the walk has to end up (throw spot, arena).
+                                     # Doesn't reset the fail count (fog walls, see _walk_missed).
 
 
 def resync(path: list, here, nm, lo: int = 0, hi: int | None = None) -> tuple[list, int, float]:
@@ -1246,7 +1247,10 @@ class Field:
             if r in ("stuck", "timeout") and i + 1 < len(path) and d <= ALMOST_M and abs(dy) <= ALMOST_DY:
                 self.log(f"      {tag}: {i}번 점 거의 도착 ({d:.1f} m, Δy {dy:+.1f}) — 다음 점으로")
                 self.events("walk_almost", tag=tag, i=i, n=len(path), d=round(d, 2), dy=round(dy, 2), r=r)
-                st.fails = 0
+                # fails is NOT reset: in front of a fog wall the first point is almost there but the rest lie beyond it —
+                # the next real miss makes fails 2 and fog_through runs at once (resetting it here cost one more point,
+                # asylum 수용소4 (−7.8, 208.4, −8.2)). This return skips the 3-in-a-row 'stuck', so almost-there misses
+                # never end the walk; any arrival resets fails as before.
                 return "next"
             # if the straight line fails, detour once via navmesh pathfinding — pushed while fighting onto the upper passage beside the stairs (1.1~1.5 m higher),
             # heading straight for the stair point hit the railing, failing three points in a row (2026-09-25 191817 return passage points 28~30)

@@ -226,6 +226,23 @@ check("logs: 3 misses, 2 base, detour after the first failed too, retry depth co
       len(L["fails"]) == 3 and L["base"] == 2 and L["detour_failed"] == 1 and L["k"] == {1: 2, 2: 1, 3: 0})
 check("… almost-there = the two 1.3–1.4 m misses (not the 3.9 m / 3 m-high one)", L["near"] == 2 and L["detour_near"] == 1)
 
+print("why the bot stood at a walk's start")
+fr0 = [{"t": 10.0 + 0.5 * i, "p": (0.0, 0.0, 0.0), "foe": False, "foe_d": None, "anim": -1} for i in range(6)]
+E = {"t": 10.0, "tag": "수용소2 3/20 걷기"}
+cause = lambda says, fr=fr0: R.start_cause({"fr": fr, "says": says}, E, 2.0)
+check("quit-out 5 s before → loading", cause([(5.0, "⚠ 퀵 종료: 둘러싸임 2명")]) == "quit-out load")
+check("an awake foe within 12 m in the frames → a duel waiting",
+      cause([], [dict(f, foe_d=9.0) for f in fr0]) == "fight (foe ≤ 12 m, waiting)")
+check("'killed —' just before → right after a fight", cause([(9.5, "#3 이동: 따라온 254010: killed — 12 s")]) == "right after a fight")
+check("fog wall passed a few s later → fog wall ahead", cause([(15.0, "안개벽: A → 1.0 m 이동")]) == "fog wall ahead")
+check("point 0 missed right after → almost there at point 0",
+      cause([(13.0, "   수용소2 3/20 걷기: 0/8번 점 (1.0, 0.0, 1.0) 못 감 (stuck, 1번째) — 나 (0.0, 0.0, 0.0), 1.1 m")])
+      == "almost there at point 0")
+check("A at a bonfire 1 s before → bonfire", cause([(9.0, "수용소2 6/20 A ×1 (도망친 방 화톳불 (1812961))")]) == "bonfire (A)")
+check("A at a big door 6 s before (door still opening) → door",
+      cause([(4.0, "수용소2 2/20 A ×1 (큰 방 문 (데몬 처음 나옴 → 도망))")]) == "door / pick-up (A)")
+check("nothing around → unknown", cause([(1.0, "수용소2 2/20 A ×1 (문)")]) == "unknown")
+
 print("committed sample (data/samples/*.track.jsonl)")
 files = sorted(str(p) for p in (Path(__file__).resolve().parent.parent / "data" / "samples").glob("*.track.jsonl"))
 ws = R.load_walks(files)

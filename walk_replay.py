@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import argparse
 import glob
+import json
 import math
 import random
 import re
@@ -498,15 +499,53 @@ ANCHOR_S = 1.0           # … for this long = a safe anchor (the last one befor
 
 
 def load_runs(files: list[str]) -> list[dict]:
-    """[{file, fr, walks}] — whole-run frames too, since recovery can run through later walks (detours)."""
+    """[{file, fr, walks, says}] — whole-run frames too, since recovery can run through later walks (detours);
+    says = the bot's log lines the track file carries [(t, line)]."""
     out = []
     for fn in files:
         fr = TR.frames(fn)
         ws = TR.walks(fr)
         for w in ws:
             w["file"] = Path(fn).name
-        out.append({"file": Path(fn).name, "fr": fr, "walks": ws})
+        says = []
+        for line in open(fn, encoding="utf-8", errors="replace"):
+            if '"say"' not in line:
+                continue
+            try:
+                m = json.loads(line)
+            except ValueError:
+                continue
+            if m.get("type") == "say":
+                says.append((float(m["rt"]), m.get("line", "")))
+        out.append({"file": Path(fn).name, "fr": fr, "walks": ws, "says": says})
     return out
+
+
+START_CAUSES = ("quit-out load", "fight (foe ≤ 12 m, waiting)", "right after a fight", "fog wall ahead",
+                "almost there at point 0", "bonfire (A)", "door / pick-up (A)", "unknown")
+START_A_S = 8.0          # a big door takes ~6 s to push open (asylum 수용소2: 0.25 m/s creep for 6 s after A, anim -1)
+
+
+def start_cause(run: dict, e: dict, stall_s: float) -> str:
+    """Why the bot stood at a walk's start, from the log lines around it and the foes in the frames.
+    First match wins, in START_CAUSES order."""
+    t0, t1 = e["t"], e["t"] + stall_s
+    near = lambda a, b: [x for t, x in run.get("says", []) if t0 - a <= t <= t1 + b]
+    if any("퀵 종료" in x for x in near(10.0, 0.0)):
+        return START_CAUSES[0]                           # loading after a quit-out: the position is frozen
+    fr = [f for f in run["fr"] if t0 <= f["t"] <= t1]
+    if any(f.get("foe_d") is not None for f in fr) or any("기다림" in x for x in near(0.5, 0.5)):
+        return START_CAUSES[1]                           # a duel waiting on a foe beyond FOE_R (6 m) — not walking
+    if any("killed —" in x or ": stuck —" in x for x in near(2.0, 0.0)):
+        return START_CAUSES[2]
+    if any("안개벽" in x for x in near(0.0, 8.0)):
+        return START_CAUSES[3]                           # the walk's points lie beyond a fog wall (fog_through after 2 misses)
+    if any("0/" in x and "못 감" in x and e["tag"] in x for x in near(0.0, 3.0)):
+        return START_CAUSES[4]                           # stuck ≤ 1.7 m from point 0 (field.ALMOST_M handles it now)
+    a = [x for x in near(START_A_S, 0.0) if " A ×" in x]
+    if a:
+        return START_CAUSES[5] if "화톳불" in a[-1] else START_CAUSES[6]
+    return START_CAUSES[7]
 
 
 def _along_on(path: list, lens: list[float], frames: list[dict]) -> list[tuple[float, float, dict]]:
@@ -560,7 +599,10 @@ def recovery_events(run: dict) -> list[dict]:
                         anchor = max(0.0, a0 - prev[j][1])
                         break
             out.append({"t": t0, "p": st["p"], "tag": w["tag"], "kind": kind, "along": a0, "back": back, "away": away,
-                        "anchor": anchor, "ok": ok_t is not None, "ok_s": None if ok_t is None else ok_t - t0})
+                        "anchor": anchor, "ok": ok_t is not None, "ok_s": None if ok_t is None else ok_t - t0,
+                        "s": st["s"]})
+            if kind == "start":
+                out[-1]["cause"] = start_cause(run, out[-1], st["s"])
     return out
 
 
@@ -627,7 +669,8 @@ def recovery_eval(runs: list[dict], limits=(1, 2, 3)) -> dict:
         hit = [p for p in places if len(p["tries"]) > N]
         right = [p for p in hit if not p["ok"]]
         lim.append({"N": N, "stops": len(hit), "premature": len(hit) - len(right), "right": len(right)})
-    return {"kinds": {k: len(v) for k, v in kinds.items()}, "start_s": sorted(e["ok_s"] or 0 for e in kinds["start"]),
+    causes = {c: [e for e in kinds["start"] if e.get("cause") == c] for c in START_CAUSES}
+    return {"kinds": {k: len(v) for k, v in kinds.items()}, "start_causes": causes,
             "mid": mid, "mid_ok": sum(e["ok"] for e in mid), "ok_s": sorted(e["ok_s"] for e in mid if e["ok"]),
             "by_back": by_back, "anchors": sorted(e["anchor"] for e in mid if e["anchor"] is not None),
             "no_anchor": sum(e["anchor"] is None for e in mid), "places": places, "limits": lim}
@@ -694,6 +737,10 @@ def main() -> None:
         k = r["kinds"]
         print(f"walking stalls (≥ {TR.STALL_S:.0f} s, no foe, plain anim): start {k['start']} (standing before setting off), "
               f"end {k['end']} (arriving), mid-walk {k['mid']} — open loop: the old nav.goto escape / detours recovered")
+        print(f"  why it stood at a walk's start (log lines around it, foes in the frames):")
+        for c, es in r["start_causes"].items():
+            if es:
+                print(f"    {c:>28}: {len(es):2d}  ({sum(e['s'] for e in es):.1f} s)  e.g. {es[0]['run'][:30]} {es[0]['t']:.1f} s {es[0]['tag']}")
         mid = r["mid"]
         if mid:
             print(f"  mid-walk: got {REC_OK_M:.0f} m past within {REC_GIVE_S:.0f} s {r['mid_ok']}/{len(mid)} "
