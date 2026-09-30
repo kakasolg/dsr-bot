@@ -45,7 +45,9 @@ def run(weapon, wall, sp=90, ticks=8, npc=254000, hp=75, grip=3, anim=-1):
     w = World(player=(0.0, -49.4, 0.0), sp=sp, max_sp=98, hp=698)
     w.add(2, 0x1018, npc, (0.0, -49.4, 1.2), anim=anim, hp=hp, max_hp=hp)
     mv = Mv(w, 2)
-    mv.tm.grip = lambda: grip                    # 3 = two hands
+    g = {"now": grip}
+    mv.tm.grip = lambda: g["now"]                # 3 = two hands, 1 = one
+    mv.pad.two_hand_right = lambda: (mv.pad.calls.append(("two_hand",)), g.update(now={1: 3, 3: 1}.get(g["now"], g["now"])))
     n = {"k": 0}
 
     def cancel():
@@ -86,12 +88,18 @@ def test_wall_before_backstab_and_kick() -> None:
     print("ok  by a wall the heavy comes before the backstab")
 
 
-def test_shield_up() -> None:
-    mv, logs = run(weapons.BATTLE_AXE, wall=0.6, npc=255010, hp=85)      # idle shield soldier, two hands: heavy breaks the guard
-    assert mv.heavies and not mv.kicks, (mv.heavies, mv.kicks, logs[-5:])
-    mv, logs = run(weapons.BATTLE_AXE, wall=0.6, npc=255010, hp=85, grip=1)   # one hand: the heavy is blocked → kick as usual
-    assert mv.kicks and not mv.heavies, (mv.heavies, mv.kicks, logs[-5:])
-    print("ok  idle shield soldier by a wall: two hands → heavy, one hand → kick")
+def test_shield_combo() -> None:
+    mv, logs = run(weapons.BATTLE_AXE, wall=0.6, npc=255010, hp=85, ticks=1)   # two hands already: heavy → light, no toggle
+    assert mv.heavies == [2] and mv.lights == [2] and not mv.kicks, (mv.heavies, mv.lights, mv.kicks, logs[-5:])
+    assert ("two_hand",) not in mv.pad.calls
+    mv, logs = run(weapons.BATTLE_AXE, wall=0.6, npc=255010, hp=85, grip=1, ticks=1)   # one hand: switch to two, then heavy → light
+    assert mv.pad.calls.count(("two_hand",)) == 1 and mv.heavies == [2] and mv.lights == [2], (mv.pad.calls, mv.heavies, mv.lights)
+    assert mv.tm.grip() == 3 and any("양손으로" in l for l in logs), logs[-5:]
+    mv, logs = run(weapons.BATTLE_AXE, wall=0.6, npc=255010, hp=85, grip=None, ticks=1)   # grip unreadable: no blind toggle, light
+    assert ("two_hand",) not in mv.pad.calls and not mv.heavies, (mv.pad.calls, mv.heavies)
+    mv, logs = run(weapons.BATTLE_AXE, wall=3.0, npc=255010, hp=85, grip=1, ticks=1)   # no wall: kick as before
+    assert mv.kicks and not mv.heavies and ("two_hand",) not in mv.pad.calls, (mv.kicks, mv.heavies)
+    print("ok  shield soldier by a wall: two hands (switch if one-handed) → heavy → light; unknown grip or no wall → no heavy")
 
 
 def test_one_handed_light() -> None:
@@ -113,7 +121,7 @@ if __name__ == "__main__":
     test_open_ground_light()
     test_low_sp_light()
     test_wall_before_backstab_and_kick()
-    test_shield_up()
+    test_shield_combo()
     test_one_handed_light()
     test_other_weapon_unchanged()
     print("전부 통과")

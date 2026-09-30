@@ -165,7 +165,9 @@ def run(sc) -> list:
         care = Care(trace) if sc["care"] else None
         arena = {None: None, "near": [0.5, -49.4, 0.5], "far": [0.0, -49.4, -8.0], "ledge": [0.0, -45.0, -8.0]}[sc["arena"]]
     mv = Mv(w, trace)
-    mv.tm.grip = lambda: sc.get("grip")
+    g = {"now": sc.get("grip")}
+    mv.tm.grip = lambda: g["now"]
+    mv.pad.two_hand_right = lambda: (trace.append(("two_hand",)), g.update(now={1: 3, 3: 1}.get(g["now"], g["now"])))
     ticks = {"n": 0}
 
     def cancel():

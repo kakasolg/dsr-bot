@@ -759,7 +759,7 @@ def prep_linger(F, T):
     T.room = foe is not None and foe.circle_behind and T.now >= F.edge_until and _room_behind(F.nm, T.p, T.c)
     # 벽·좁은 통로가 우선 — 배틀 액스(heavy_vertical)면 뒤잡기로 돌지 않고 강공 ([MoKa] 2026-09-28: "벽, 좁은 통로가 우선 순위를 높여줘",
     # 배틀 액스만 가능한 플레이, 다른 무기는 약공이 나음)
-    T.wall = _walled(F.nm, T.p, T.c) if F.weapon.heavy_vertical and _two_handed(F) else None
+    T.wall = _walled(F.nm, T.p, T.c) if F.weapon.heavy_vertical and (_two_handed(F) or _shield_foe(F)) else None
     if T.wall is not None:
         T.room = False
     return None
@@ -1109,18 +1109,58 @@ def _two_handed(F) -> bool:
         return False
 
 
+def _shield_foe(F) -> bool:
+    return F.foe is not None and F.foe.kind == "shield"
+
+
 def _slam(F, s, c, swinging: bool = False) -> float | None:
     """Wall distance if the vertical heavy is the move now (heavy_vertical weapon, wall within WALL_R, SP ≥ WALL_HEAVY_SP), else None.
 
     ── 벽 강공 조건 ([MoKa] 2026-09-30) ──────────────────────────────
-     · 양손 잡기일 때만 — 강공은 준비가 0.86 s라 맞을 위험을 지는 만큼 보상이 커야 한다. 한손이면 약공(방패병이면 발차기)
-     · 방패를 든 적에게도 양손 강공은 씀 — 양손 강공은 가드를 깨서 무력화, 이어서 약공이 잘 들어감 ([MoKa] 경험).
+     · 강공은 양손으로 — 준비가 0.86 s라 맞을 위험을 지는 만큼 보상이 커야 한다
+     · 방패병: 한손이면 먼저 양손으로 바꾸고 강공 → 약공 (_shield_combo). 양손 강공이 가드를 깨고 약공이 이어 들어감 ([MoKa] 경험).
        09-30 벽 자리 시험의 피해 15·준비 중 −145는 한손 강공이 방패에 막힌 것 (wall-heavy-2026-09-30a, guard 스타일 = 한손)
+     · 다른 적: 이미 양손일 때만 강공, 한손이면 약공
      · 적이 휘두르는 중에 끊어 치기로는 안 씀 (강공은 느림)"""
     w = F.weapon
-    if not w.heavy_vertical or swinging or (s.player.sp or 0) < WALL_HEAVY_SP or not _two_handed(F):
+    if not w.heavy_vertical or swinging or (s.player.sp or 0) < WALL_HEAVY_SP or not (_two_handed(F) or _shield_foe(F)):
         return None
     return _walled(F.nm, s.player, c)
+
+
+GRIP_WAIT_S = 0.6        # two_hand_right: the grip changes ~0.4 s after the toggle (control.Pad.two_hand_right)
+
+
+def _shield_combo(F, s, c) -> "M.Hit":
+    """Shield soldier by a wall: two hands (toggle if one-handed), heavy, then one light right away — one Hit for the pair.
+    Stays two-handed for the rest of this fight; Field.fight sets the style's grip again at the next fight."""
+    mv = F.mv
+    if not _two_handed(F):
+        try:
+            g = mv.tm.grip()
+        except Exception:
+            g = None
+        if g != 1:                                     # unreadable: a blind toggle could turn two hands into one
+            return mv.light(s, c, n=1)
+        mv.pad.two_hand_right()
+        for _ in range(int(GRIP_WAIT_S / 0.05)):
+            if _two_handed(F):
+                break
+            time.sleep(0.05)
+        if not _two_handed(F):
+            F.log("      양손 전환 안 됨 — 약공")
+            return mv.light(s, c, n=1)
+        F.log("      방패병: 양손으로")
+    hit = mv.heavy(s, c)
+    if hit.dead:
+        return hit
+    s2 = mv.snap(10.0)
+    c2 = mv.find(s2, c.ptr) if s2 is not None else None
+    if c2 is None or c2.hp <= 0 or M.horiz(s2.player, c2) > F.weapon.reach + 0.3:
+        return hit
+    li = mv.light(s2, c2, n=1)
+    return M.Hit("heavy+light", presses=hit.presses + li.presses, dmg=hit.dmg + li.dmg, dead=li.dead, taken=hit.taken + li.taken,
+                 e_anims=hit.e_anims + li.e_anims, my_anims=hit.my_anims + li.my_anims, others=hit.others + li.others)
 
 
 def _strike(F, s, c, n: int, sp_second=None, swinging: bool = False) -> "M.Hit":
@@ -1129,7 +1169,7 @@ def _strike(F, s, c, n: int, sp_second=None, swinging: bool = False) -> "M.Hit":
     if wall is not None:
         # 좁은 통로·벽에 붙은 적: 가로 휘두르기는 벽에 걸린다 — 배틀 액스 강공은 수직이라 안 걸림 ([MoKa] 2026-09-28)
         F.log(f"      벽 {wall:.1f} m — 강공(수직)")
-        return F.mv.heavy(s, c)
+        return _shield_combo(F, s, c) if _shield_foe(F) else F.mv.heavy(s, c)
     return F.mv.light(s, c, n=n, sp_second=sp_second)
 
 
