@@ -179,6 +179,53 @@ check("hit_eval: 3 hits, anim sees 1, today's rule (foe ≤ 3 m) stops 1",
       r["hits"] == 3 and r["anim"] == 1 and r["now"] == 1)
 check("… bands: ≤3 m 1, 6–12 m 1, none 1", [row["hits"] for row in r["rows"]] == [1, 0, 1, 1])
 
+print("recovery after a stall")
+import json
+import tempfile
+
+tmp = Path(tempfile.mkdtemp())
+
+
+def snap(t, x, z=0.0, path=None, tag="r", anim=-1):
+    m = {"rt": t, "type": "snap", "player": {"ptr": 1, "x": x, "y": 0.0, "z": z, "hp": 600, "anim": anim}, "chars": []}
+    if path is not None:
+        m.update(path=path, path_tag=tag)
+    return json.dumps(m)
+
+
+RP = [[0.0, 0.0, 0.0], [20.0, 0.0, 0.0]]
+rows = [snap(0.0, 0.0, path=RP)] + [snap(0.5 * i, min(0.5 * i * 2, 6.0)) for i in range(1, 12)]   # walks to 6 m, stalls 2.5 s
+rows += [snap(6.0, 5.5), snap(6.5, 5.0), snap(7.0, 5.4), snap(7.5, 5.8)]                           # backs off 1 m, turns
+rows += [snap(8.0, 5.5, path=[[5.5, 0.0, 0.0], [5.5, 0.0, 2.0], [9.0, 0.0, 2.0]], tag="r 돌아서")]  # detour walk…
+rows += [snap(8.0 + 0.5 * i, 5.5 + i) for i in range(1, 8)]                                          # … gets past
+fn = tmp / "r.track.jsonl"
+fn.write_text("\n".join(rows), encoding="utf-8")
+ev = R.recovery_events(R.load_runs([str(fn)])[0])
+mid = [e for e in ev if e["kind"] == "mid"]
+check("stall 6 m into a 20 m path → one 'mid' stall", len(mid) == 1 and abs(mid[0]["along"] - 6.0) < 0.3)
+check("… backed off ~1 m along the path within 3 s", 0.7 < mid[0]["back"] < 1.3)
+check("… got through via the later detour walk (along the stalled path 1 m past)", mid[0]["ok"] and mid[0]["ok_s"] < 12)
+check("… anchor: moving 2 m/s right up to the stall → the last such frame, 1 m back (one 2 Hz frame)",
+      mid[0]["anchor"] is not None and mid[0]["anchor"] <= 1.0 + 1e-9)
+rows2 = [snap(0.0, 0.0, path=RP)] + [snap(0.5 * i, 0.0) for i in range(1, 6)] + [snap(3.0 + 0.5 * i, i * 1.0) for i in range(1, 20)]
+fn2 = tmp / "s.track.jsonl"
+fn2.write_text("\n".join(rows2), encoding="utf-8")
+check("standing 2.5 s at the path start → 'start', not a blockage",
+      [e["kind"] for e in R.recovery_events(R.load_runs([str(fn2)])[0])] == ["start"])
+r = R.recovery_eval(R.load_runs([str(fn), str(fn2)]))
+check("recovery_eval: kinds counted, retry limit N=1 never triggered (one try)",
+      r["kinds"] == {"start": 1, "mid": 1, "end": 0} and r["limits"][0]["stops"] == 0)
+log = tmp / "x.txt"
+log.write_text("\n".join([
+    "[   10.0]       #3 이동: 2/9번 점 (1.0, 0.0, 1.0) 못 감 (stuck, 1번째) — 나 (0.0, 0.0, 0.0), 1.4 m",
+    "[   12.0]       #3 이동 돌아서: 1/2번 점 (1.0, 0.0, 1.0) 못 감 (stuck, 1번째) — 나 (0.1, 0.0, 0.0), 1.3 m",
+    "[   30.0]       #3 이동: 5/9번 점 (9.0, 3.0, 9.0) 못 감 (unreachable, 2번째) — 나 (7.0, 0.0, 8.0), 3.9 m",
+]), encoding="utf-8")
+L = R.recovery_from_logs([str(log)])
+check("logs: 3 misses, 2 base, detour after the first failed too, retry depth counted",
+      len(L["fails"]) == 3 and L["base"] == 2 and L["detour_failed"] == 1 and L["k"] == {1: 2, 2: 1, 3: 0})
+check("… almost-there = the two 1.3–1.4 m misses (not the 3.9 m / 3 m-high one)", L["near"] == 2 and L["detour_near"] == 1)
+
 print("committed sample (data/samples/*.track.jsonl)")
 files = sorted(str(p) for p in (Path(__file__).resolve().parent.parent / "data" / "samples").glob("*.track.jsonl"))
 ws = R.load_walks(files)

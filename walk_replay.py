@@ -8,6 +8,7 @@
                                                          recorded walks; --release -1 0.5 1.0 compares release values
   python walk_replay.py --lookahead 0.5 1.5 1.5/0.5      look-ahead at sharp corners: fixed vs shrunk (walkgeom.lookahead_dist)
   python walk_replay.py --hits                           stop on hit / stun: hits while walking and which rule sees them
+  python walk_replay.py --recovery                       recovery after a stall: back-off vs success, anchor, retry limit
 
 What it can and can't tell (ROADMAP 6-a): the recording is what the *old* controller did, so this layer evaluates the
 **checks** (progress, lateral error, no-progress stop, bad observation, stun) — not a new way of steering. A new
@@ -26,6 +27,7 @@ import argparse
 import glob
 import math
 import random
+import re
 import sys
 from dataclasses import dataclass, field, replace
 from pathlib import Path
@@ -483,6 +485,154 @@ def hit_eval(walks: list[dict]) -> dict:
             "now": sum(e["foe_d"] is not None and e["foe_d"] <= HIT_R for e in ev), "repeat": sum(e["repeat"] for e in ev)}
 
 
+# ── recovery after a stall (neutral → short back-off or back to the last safe anchor → retry limit → safe stop) ──
+
+REC_PLACE_R = 3.0        # stalls this close (horizontal) = retries at the same place
+REC_BACK_S = 3.0         # how long after a stall ends to look for the back-off
+REC_OK_M = 1.0           # got through = along the stalled walk's path this far past the stall (any later walk counts —
+REC_GIVE_S = 60.0        #   a detour "… 돌아서" is part of the recovery) within this
+REC_START_M = 0.5        # stall within this of the path start = a slow start, not a blockage
+REC_END_M = 1.5          # … within this of the path end = arriving
+ANCHOR_V = 1.0           # m/s — 'moving normally' …
+ANCHOR_S = 1.0           # … for this long = a safe anchor (the last one before the stall)
+
+
+def load_runs(files: list[str]) -> list[dict]:
+    """[{file, fr, walks}] — whole-run frames too, since recovery can run through later walks (detours)."""
+    out = []
+    for fn in files:
+        fr = TR.frames(fn)
+        ws = TR.walks(fr)
+        for w in ws:
+            w["file"] = Path(fn).name
+        out.append({"file": Path(fn).name, "fr": fr, "walks": ws})
+    return out
+
+
+def _along_on(path: list, lens: list[float], frames: list[dict]) -> list[tuple[float, float, dict]]:
+    """[(t, along on `path`, frame)] for free frames (no foe, plain anim), tracked with locate."""
+    out, k, a = [], 0, None
+    for f in frames:
+        if f["foe"] or busy(f.get("anim")):
+            continue
+        pr = G.locate(path, f["p"], k, lens=lens, along_hint=a)
+        k, a = pr.seg, pr.along
+        out.append((f["t"], pr.along, f))
+    return out
+
+
+def recovery_events(run: dict) -> list[dict]:
+    """Walking stalls (truth()) of one run and what came after — open loop, the old nav.goto escape / detours did it.
+    → [{t, p, tag, kind, along, back, away, anchor, ok, ok_s}]
+      kind    'start' (≤ REC_START_M into the path: standing before setting off), 'end' (≤ REC_END_M from the end),
+              'mid' (a real blockage)
+      back    m back along the stalled path within REC_BACK_S after the stall;  away = m from the stall spot
+      anchor  m along the path back to the last stretch moving ≥ ANCHOR_V for ANCHOR_S (None if none in the walk)
+      ok      got REC_OK_M past the stall along that path within REC_GIVE_S (through any later walk);  ok_s = when"""
+    out = []
+    for w in run["walks"]:
+        path = w["path"]
+        if len(path) < 2:
+            continue
+        lens = G.seg_lengths(path)
+        total = sum(lens)
+        mine = _along_on(path, lens, w["fr"])
+        for st in truth(w):
+            t0, t1 = st["t"], st["t"] + st["s"]
+            here = [a for t, a, _ in mine if t0 <= t <= t1]
+            if not here:
+                continue
+            a0 = max(here)
+            kind = "start" if a0 <= REC_START_M else "end" if total - a0 <= REC_END_M else "mid"
+            later = _along_on(path, lens, [f for f in run["fr"] if t1 < f["t"] <= t1 + REC_GIVE_S])
+            back = max(0.0, a0 - min((a for t, a, _ in later if t <= t1 + REC_BACK_S), default=a0))
+            away = max((math.hypot(f["p"][0] - st["p"][0], f["p"][2] - st["p"][2])
+                        for t, _, f in later if t <= t1 + REC_BACK_S), default=0.0)
+            ok_t = next((t for t, a, _ in later if a >= a0 + REC_OK_M), None)
+            anchor = None
+            prev = [(t, a, f) for t, a, f in mine if t < t0]
+            for j in range(len(prev) - 1, 0, -1):
+                span = [f for t, _, f in prev[:j + 1] if prev[j][0] - ANCHOR_S - 1e-9 <= t]
+                if len(span) >= 2 and span[-1]["t"] > span[0]["t"]:
+                    v = math.hypot(span[-1]["p"][0] - span[0]["p"][0], span[-1]["p"][2] - span[0]["p"][2]) / \
+                        (span[-1]["t"] - span[0]["t"])
+                    if v >= ANCHOR_V:
+                        anchor = max(0.0, a0 - prev[j][1])
+                        break
+            out.append({"t": t0, "p": st["p"], "tag": w["tag"], "kind": kind, "along": a0, "back": back, "away": away,
+                        "anchor": anchor, "ok": ok_t is not None, "ok_s": None if ok_t is None else ok_t - t0})
+    return out
+
+
+REC_NEAR_M = 1.7         # a point missed from this close (and |dy| ≤ REC_NEAR_DY) = 'almost there'
+REC_NEAR_DY = 0.8
+_FAIL_ME = re.compile(r"— 나 \(([^)]*)\), ([\d.]+) m")
+
+
+def recovery_from_logs(files: list[str]) -> dict:
+    """What the current recovery chain did, from bot logs (field._walk_missed: a point not reached → smash a prop /
+    NavMesh detour "… 돌아서" → next point; 3 failures in a row → 'stuck'). The 2 Hz tracks hold few mid-walk stalls,
+    the logs every "못 감" line. → {fails: [{t, tag, detour, why, k, dist, dy}], …}"""
+    import hotspots as H
+    fails = []
+    for fn in files:
+        for line in open(fn, encoding="utf-8", errors="replace"):
+            m = H._T.match(line.rstrip())
+            if not m:
+                continue
+            f = H._FAIL.search(m.group(2))
+            d = _FAIL_ME.search(m.group(2))
+            if not f or not d:
+                continue
+            q = [float(v) for v in f.group("q").split(",")]
+            me = [float(v) for v in d.group(1).split(",")]
+            tag = f.group("tag").strip()
+            fails.append({"file": Path(fn).name, "t": float(m.group(1)), "tag": tag, "detour": tag.endswith("돌아서"),
+                          "i": int(f.group("i")), "why": f.group("why"), "k": int(f.group("k")),
+                          "dist": float(d.group(2)), "dy": q[1] - me[1]})
+    base = [x for x in fails if not x["detour"]]
+    followed = [x for x in base if any(y["detour"] and y["file"] == x["file"] and 0 < y["t"] - x["t"] <= 10.0
+                                       and y["tag"].startswith(x["tag"]) for y in fails)]
+    near = [x for x in fails if x["dist"] <= REC_NEAR_M and abs(x["dy"]) <= REC_NEAR_DY]
+    dt = [x for x in fails if x["detour"]]
+    return {"fails": fails, "files": len(files), "base": len(base), "detour_failed": len(followed),
+            "detour_lines": len(dt), "detour_near": sum(x["dist"] <= REC_NEAR_M and abs(x["dy"]) <= REC_NEAR_DY for x in dt),
+            "near": len(near), "near_stuck": sum(x["why"] == "stuck" for x in near),
+            "k": {k: sum(x["k"] == k for x in fails) for k in (1, 2, 3)},
+            "why": {w: sum(x["why"] == w for x in fails) for w in ("stuck", "timeout", "unreachable")}}
+
+
+def recovery_eval(runs: list[dict], limits=(1, 2, 3)) -> dict:
+    """Over all runs: stalls by kind; for the mid-walk ones, recovery rate by how far the old escape backed off,
+    distance to the last safe anchor, and for each retry limit N (safe stop at the (N+1)-th stall at one place before
+    getting through): premature stops (it did get through later) vs right ones (never did, seconds saved)."""
+    ev = [dict(e, run=r["file"]) for r in runs for e in recovery_events(r)]
+    kinds = {k: [e for e in ev if e["kind"] == k] for k in ("start", "mid", "end")}
+    mid = kinds["mid"]
+    bins = [("< 0.3 m", 0.0, 0.3), ("0.3–1 m", 0.3, 1.0), ("≥ 1 m", 1.0, math.inf)]
+    by_back = [{"bin": n, "tries": sum(lo <= e["back"] < hi for e in mid),
+                "ok": sum(lo <= e["back"] < hi and e["ok"] for e in mid)} for n, lo, hi in bins]
+    places: list[dict] = []                              # mid stalls grouped by run + place, in time order
+    for e in sorted(mid, key=lambda e: (e["run"], e["t"])):
+        for pl in places:
+            if pl["run"] == e["run"] and math.hypot(pl["p"][0] - e["p"][0], pl["p"][2] - e["p"][2]) <= REC_PLACE_R:
+                pl["tries"].append(e)
+                break
+        else:
+            places.append({"run": e["run"], "p": e["p"], "tries": [e]})
+    for pl in places:
+        pl["ok"] = pl["tries"][-1]["ok"]
+    lim = []
+    for N in limits:
+        hit = [p for p in places if len(p["tries"]) > N]
+        right = [p for p in hit if not p["ok"]]
+        lim.append({"N": N, "stops": len(hit), "premature": len(hit) - len(right), "right": len(right)})
+    return {"kinds": {k: len(v) for k, v in kinds.items()}, "start_s": sorted(e["ok_s"] or 0 for e in kinds["start"]),
+            "mid": mid, "mid_ok": sum(e["ok"] for e in mid), "ok_s": sorted(e["ok_s"] for e in mid if e["ok"]),
+            "by_back": by_back, "anchors": sorted(e["anchor"] for e in mid if e["anchor"] is not None),
+            "no_anchor": sum(e["anchor"] is None for e in mid), "places": places, "limits": lim}
+
+
 def walk_table(walks: list[dict]) -> str:
     """Unperturbed: per walk, lateral error (no foe near), corners passed on the inside, check events."""
     lines = []
@@ -518,6 +668,8 @@ def main() -> None:
     ap.add_argument("--walks", action="store_true", help="per-walk table of the unperturbed recording")
     ap.add_argument("--gate", type=float, nargs="+", metavar="S",
                     help="evaluate the switching rule (walkgeom.Gate) at these switch_s values instead, e.g. --gate 0.8 0.9 0.95")
+    ap.add_argument("--recovery", action="store_true",
+                    help="evaluate recovery after a stall instead: back-off size vs success, anchor distance, retry limit")
     ap.add_argument("--hits", action="store_true",
                     help="evaluate the stop-on-hit/stun condition instead: hits taken while walking and which rule sees them")
     ap.add_argument("--lookahead", nargs="+", metavar="L",
@@ -535,6 +687,43 @@ def main() -> None:
     print(f"{len(files)} files, {len(walks)} walks, {sum(len(truth(w)) for w in walks)} real stalls")
     if a.walks:
         print(walk_table(walks))
+        return
+    if a.recovery:
+        r = recovery_eval(load_runs(files))
+        q = lambda xs, f: xs[int(f * (len(xs) - 1))] if xs else 0.0
+        k = r["kinds"]
+        print(f"walking stalls (≥ {TR.STALL_S:.0f} s, no foe, plain anim): start {k['start']} (standing before setting off), "
+              f"end {k['end']} (arriving), mid-walk {k['mid']} — open loop: the old nav.goto escape / detours recovered")
+        mid = r["mid"]
+        if mid:
+            print(f"  mid-walk: got {REC_OK_M:.0f} m past within {REC_GIVE_S:.0f} s {r['mid_ok']}/{len(mid)} "
+                  f"(time to it p50 {q(r['ok_s'], .5):.1f} s, max {q(r['ok_s'], 1):.1f} s) at {len(r['places'])} places")
+            print(f"  by how far it backed off along the path within {REC_BACK_S:.0f} s:")
+            for b in r["by_back"]:
+                print(f"    {b['bin']:>8}: {b['ok']}/{b['tries']} got through" + (f" ({b['ok'] / b['tries']:.0%})" if b["tries"] else ""))
+            an = r["anchors"]
+            print(f"  last safe anchor (moving ≥ {ANCHOR_V:.0f} m/s for {ANCHOR_S:.0f} s) behind: "
+                  + (f"p50 {q(an, .5):.1f} m, max {q(an, 1):.1f} m; " if an else "") + f"none in the walk {r['no_anchor']}")
+            for l in r["limits"]:
+                print(f"  retry limit N={l['N']}: safe stops {l['stops']} — premature (got through later) {l['premature']}, "
+                      f"right (never did) {l['right']}")
+            for e in mid:
+                anc = "—" if e["anchor"] is None else f"{e['anchor']:.1f} m"
+                res = f"through in {e['ok_s']:.1f} s" if e["ok"] else "NOT through"
+                print(f"    {e['run'][:28]:28} {e['t']:6.1f} s {e['tag'][:14]:14} ({e['p'][0]:.1f}, {e['p'][1]:.1f}, {e['p'][2]:.1f}) "
+                      f"back {e['back']:.1f} m away {e['away']:.1f} m anchor {anc} {res}")
+        logs = sorted(glob.glob(str(ROOT / "data" / "samples" / "*.txt")))
+        L = recovery_from_logs(logs)
+        n = max(1, len(L["fails"]))
+        print(f"\nbot logs ({L['files']} in data/samples): {len(L['fails'])} '못 감' (point not reached) — "
+              f"stuck {L['why']['stuck']}, timeout {L['why']['timeout']}, unreachable {L['why']['unreachable']}")
+        print(f"  retries at one walk (the 'N번째' count): 1st {L['k'][1]}, 2nd {L['k'][2]}, 3rd {L['k'][3]} "
+              f"— today's limit (3 in a row → 'stuck') never reached")
+        print(f"  almost there (≤ {REC_NEAR_M} m from the point, |dy| ≤ {REC_NEAR_DY} m): {L['near']} ({L['near'] / n:.0%}), "
+              f"all 'stuck' {L['near_stuck']} — the arrival radius (1 m / corner 0.5 / stairs 0.4) not met, not a blockage")
+        print(f"  NavMesh detour ('… 돌아서') after a first miss that failed too: {L['detour_failed']}/{L['base']} "
+              f"({L['detour_failed'] / max(1, L['base']):.0%}); of the detours' own misses {L['detour_near']}/{L['detour_lines']} "
+              f"are almost there too")
         return
     if a.hits:
         r = hit_eval(walks)
