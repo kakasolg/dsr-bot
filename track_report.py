@@ -31,7 +31,7 @@ PLACE_R = 3.0
 
 
 def frames(path: str) -> list[dict]:
-    """[{t, p, tag, path, foe}] — path carried forward when a line leaves it out (track files write it only on change)."""
+    """[{t, p, tag, path, foe, anim, hp, heading}] — path carried forward when a line leaves it out (track files write it only on change)."""
     out, cur_tag, cur_path = [], None, None
     for line in open(path, encoding="utf-8", errors="replace"):
         try:
@@ -49,7 +49,8 @@ def frames(path: str) -> list[dict]:
         p = (pl["x"], pl["y"], pl["z"])
         foe = any(c.get("team") in HOSTILE and (c.get("hp") or 0) > 0 and math.hypot(c["x"] - p[0], c["z"] - p[2]) < FOE_R
                   and abs(c["y"] - p[1]) < 3.0 for c in m.get("chars") or [] if c.get("ptr") != pl.get("ptr"))
-        out.append({"t": float(m["rt"]), "p": p, "tag": cur_tag, "path": cur_path, "foe": foe})
+        out.append({"t": float(m["rt"]), "p": p, "tag": cur_tag, "path": cur_path, "foe": foe,
+                    "anim": pl.get("anim"), "hp": pl.get("hp"), "heading": pl.get("heading")})   # walk_replay uses these
     return out
 
 
