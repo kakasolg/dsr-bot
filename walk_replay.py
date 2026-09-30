@@ -6,6 +6,7 @@
   python walk_replay.py --walks                          per-walk progress / lateral error / corners (no perturbation)
   python walk_replay.py --gate 0.8 0.9 0.95 -n 20        the 0.95 switching rule (walkgeom.Gate, release 1.0 m) on the
                                                          recorded walks; --release -1 0.5 1.0 compares release values
+  python walk_replay.py --lookahead 0.5 1.5 1.5/0.5      look-ahead at sharp corners: fixed vs shrunk (walkgeom.lookahead_dist)
 
 What it can and can't tell (ROADMAP 6-a): the recording is what the *old* controller did, so this layer evaluates the
 **checks** (progress, lateral error, no-progress stop, bad observation, stun) — not a new way of steering. A new
@@ -328,6 +329,104 @@ def gate_places(walks: list[dict], switch_s: float, release_lat: float | None = 
     return sorted(seen.values(), key=lambda r: -r[0])
 
 
+# ── look-ahead (walkgeom.lookahead_dist) on recorded walks ─────────────────────────────────────────────────────
+
+LA_NEAR_M = 3.0          # frames this close (horizontal) to a sharp corner point are 'at a corner'
+LA_CUT_M = 0.25          # chord this far inside the path (beyond the bot's own offset) = a cut — about half the body
+                         # (a 1.5 m aim at a 90° corner cuts ≤ ~0.5 m by geometry, so 0.5 m would count nothing)
+
+
+def parse_la(spec: str) -> tuple[float, float]:
+    """'1.5' = fixed 1.5 m, '1.5/0.5' = 1.5 m shrunk to 0.5 m at sharp corners (walkgeom.lookahead_dist)."""
+    a, _, b = spec.partition("/")
+    return float(a), float(b or a)
+
+
+def _near_path(path: list, lens: list[float], p, lo: float, hi: float) -> float:
+    """Horizontal distance from p to the part of the path between along lo and hi."""
+    acc, best = 0.0, math.inf
+    for k, L in enumerate(lens):
+        if acc + L >= lo and acc <= hi:
+            best = min(best, TR.seg_dist(p, path[k], path[k + 1]))
+        acc += L
+    return best
+
+
+def lookahead_replay(w: dict, base: float, short: float, fr: list[dict] | None = None) -> dict:
+    """Aim at the path point `lookahead_dist` ahead of where the bot really was, frame by frame. Open loop — the bot
+    didn't steer by it; this is the geometry of the aim from the recorded positions, at sharp corners only.
+      frames   free frames within LA_NEAR_M of a sharp corner
+      cut      m, how far the straight line bot → aim point runs inside the path, beyond the bot's own offset
+               (the chord cutting the corner = what walks into the inside wall, P-17 / 1-f), one value per frame
+      turn     deg/m, change of aim bearing per metre walked between consecutive corner frames (how hard the
+               stick has to swing), one value per step
+      passes   [(turn deg of the corner, worst cut while near it)] — one per corner passed"""
+    path = w["path"]
+    fr = w["fr"] if fr is None else fr
+    out = {"frames": 0, "cut": [], "turn": [], "passes": []}
+    if len(path) < 3:
+        return out
+    lens = G.seg_lengths(path)
+    corners = [(G._xz(path[i]), G.turn_deg(path, i)) for i in range(1, len(path) - 1)]
+    corners = [(c, d) for c, d in corners if d > G.SHARP_DEG]
+    if not corners:
+        return out
+    k, along, prev = 0, None, None
+    worst: dict[int, float] = {}                        # corner index → worst cut near it
+    for f in fr:
+        if f["foe"] or busy(f.get("anim")):
+            prev = None
+            continue
+        pr = G.locate(path, f["p"], k, lens=lens, along_hint=along)
+        k, along = pr.seg, pr.along
+        px, pz = f["p"][0], f["p"][2]
+        ci, dc = min(((j, math.hypot(px - c[0], pz - c[1])) for j, (c, _) in enumerate(corners)), key=lambda t: t[1])
+        if dc > LA_NEAR_M:
+            prev = None
+            continue
+        L = G.lookahead_dist(path, pr, base, short, lens=lens)
+        aim = G.point_at(path, pr.along + L, lens)
+        ax, az = G._xz(aim)
+        own = _near_path(path, lens, f["p"], pr.along - 2.0, pr.along + L + 2.0)
+        n = max(2, int(math.hypot(ax - px, az - pz) / 0.1))
+        dev = max(_near_path(path, lens, (px + (ax - px) * t / n, 0.0, pz + (az - pz) * t / n),
+                             pr.along - 2.0, pr.along + L + 2.0) for t in range(n + 1))
+        out["frames"] += 1
+        cut = max(0.0, dev - own)
+        out["cut"].append(cut)
+        worst[ci] = max(worst.get(ci, 0.0), cut)
+        bearing = math.atan2(ax - px, az - pz)
+        if prev is not None:
+            moved = math.hypot(px - prev[0], pz - prev[1])
+            if moved > 0.2:
+                d = (bearing - prev[2] + math.pi) % (2 * math.pi) - math.pi
+                out["turn"].append(abs(math.degrees(d)) / moved)
+        prev = (px, pz, bearing)
+    out["passes"] = [(corners[j][1], c) for j, c in sorted(worst.items())]
+    return out
+
+
+def lookahead_eval(walks: list[dict], base: float, short: float, n: int = 0, seed: int = 0) -> dict:
+    """lookahead_replay over all walks, unperturbed plus n seeded variants (jumps off). → quantiles."""
+    rng = random.Random(seed)
+    cut, turn, frames, passes = [], [], 0, []
+    for it in range(n + 1):
+        v = Variant() if it == 0 else replace(random_variant(rng), jumps=0)
+        for w in walks:
+            fr = w["fr"] if it == 0 else perturb(w["fr"], v, rng)[0]
+            r = lookahead_replay(w, base, short, fr)
+            frames += r["frames"]
+            cut += r["cut"]
+            turn += r["turn"]
+            passes += r["passes"]
+    q = lambda xs, a: sorted(xs)[int(a * (len(xs) - 1))] if xs else 0.0
+    return {"frames": frames, "cut_frac": sum(c > LA_CUT_M for c in cut) / max(1, len(cut)),
+            "cut_p50": q(cut, 0.5), "cut_p90": q(cut, 0.9), "turn_p50": q(turn, 0.5), "turn_p90": q(turn, 0.9),
+            "passes": len(passes), "pass_cut": sum(c > LA_CUT_M for _, c in passes) / max(1, len(passes)),
+            "sharp90": sum(d >= 90 for d, _ in passes),
+            "pass_cut90": sum(c > LA_CUT_M for d, c in passes if d >= 90) / max(1, sum(d >= 90 for d, _ in passes))}
+
+
 def walk_table(walks: list[dict]) -> str:
     """Unperturbed: per walk, lateral error (no foe near), corners passed on the inside, check events."""
     lines = []
@@ -363,6 +462,9 @@ def main() -> None:
     ap.add_argument("--walks", action="store_true", help="per-walk table of the unperturbed recording")
     ap.add_argument("--gate", type=float, nargs="+", metavar="S",
                     help="evaluate the switching rule (walkgeom.Gate) at these switch_s values instead, e.g. --gate 0.8 0.9 0.95")
+    ap.add_argument("--lookahead", nargs="+", metavar="L",
+                    help="evaluate look-ahead settings instead: '1.5' fixed, '1.5/0.5' shrunk at sharp corners, "
+                         "e.g. --lookahead 0.5 1.0 1.5 2.5 1.5/0.5 2.5/0.5")
     ap.add_argument("--release", type=float, nargs="+", default=[G.RELEASE_LAT], metavar="M",
                     help="with --gate: Gate release_lat values in m (-1 = no release; default walkgeom.RELEASE_LAT), "
                          "e.g. --release -1 0.5 1.0")
@@ -375,6 +477,16 @@ def main() -> None:
     print(f"{len(files)} files, {len(walks)} walks, {sum(len(truth(w)) for w in walks)} real stalls")
     if a.walks:
         print(walk_table(walks))
+        return
+    if a.lookahead:
+        print(f"look-ahead: open loop — aim from the recorded positions at sharp corners (unperturbed + {a.n} variants)")
+        print(f"{'setting':>9} | {'corner passes cut >' + str(LA_CUT_M) + ' m':>24} {'≥90° only':>10} | {'frame cut p90':>13} | "
+              f"{'aim turn deg/m p50':>18} {'p90':>6}")
+        for spec in a.lookahead:
+            b, sh = parse_la(spec)
+            r = lookahead_eval(walks, b, sh, a.n, a.seed)
+            print(f"{spec:>9} | {r['pass_cut']:17.2f} of {r['passes']:<4} {r['pass_cut90']:10.2f} | {r['cut_p90']:11.2f} m | "
+                  f"{r['turn_p50']:18.1f} {r['turn_p90']:6.1f}")
         return
     if a.gate:
         print(f"Gate: open loop — where the recorded walk moved on before s reached switch_s (unperturbed + {a.n} variants)")

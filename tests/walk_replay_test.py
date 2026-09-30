@@ -133,6 +133,22 @@ check("gate_eval counts walks × (1 + n) and is reproducible", e["walks"] == 8 a
 check("gate_places lists the cut corner (plain rule)", R.gate_places([cut], 0.95, None)[0][2] == 2)
 check("default gate_replay uses release 1.0 m → the cut walk is not stuck", not R.gate_replay(cut, 0.95)["stuck"])
 
+print("look-ahead on recorded walks (open loop)")
+check("parse_la: '1.5' fixed, '1.5/0.5' shrunk", R.parse_la("1.5") == (1.5, 1.5) and R.parse_la("2.5/0.5") == (2.5, 0.5))
+steps = [(x / 4, 0.0, 0.0) for x in range(0, 41)] + [(10.0, 0.0, z / 4) for z in range(1, 41)]   # 0.25 m steps round the L
+lw = lwalk(steps)
+fix25 = R.lookahead_replay(lw, 2.5, 2.5)
+shr = R.lookahead_replay(lw, 1.5, 0.5)
+check("only frames within 3 m of the sharp corner count (13 on leg 1 + 12 on leg 2)", fix25["frames"] == 25 and len(fix25["passes"]) == 1)
+check("fixed 2.5 m at a 90° corner: the aim chord cuts > 0.25 m inside (geometry: up to ~0.9 m)",
+      0.25 < fix25["passes"][0][1] < 1.0)
+check("shrunk 1.5/0.5: worst cut ≤ 0.2 m", shr["passes"][0][1] <= 0.2)
+check("… but the aim swings harder: max turn rate higher than fixed 2.5", max(shr["turn"]) > max(fix25["turn"]))
+check("a walk off to the side isn't a 'cut' by itself (own offset subtracted)",
+      max(R.lookahead_replay(lwalk([(x / 4, 0.0, 0.8) for x in range(0, 36)]), 1.5, 1.5)["cut"]) < 0.3)
+e = R.lookahead_eval([lw], 2.5, 2.5, n=2, seed=3)
+check("lookahead_eval: passes from 1 + n runs, reproducible", e["passes"] == 3 and e == R.lookahead_eval([lw], 2.5, 2.5, n=2, seed=3))
+
 print("committed sample (data/samples/*.track.jsonl)")
 files = sorted(str(p) for p in (Path(__file__).resolve().parent.parent / "data" / "samples").glob("*.track.jsonl"))
 ws = R.load_walks(files)
