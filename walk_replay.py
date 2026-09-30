@@ -4,7 +4,8 @@
   python walk_replay.py data/runs/x.track.jsonl -n 500   other files / more variants
   python walk_replay.py --window 1.5 2 3                 compare settings (one row each)
   python walk_replay.py --walks                          per-walk progress / lateral error / corners (no perturbation)
-  python walk_replay.py --gate 0.8 0.9 0.95 -n 20        the 0.95 switching rule (walkgeom.Gate) on the recorded walks
+  python walk_replay.py --gate 0.8 0.9 0.95 -n 20        the 0.95 switching rule (walkgeom.Gate, release 1.0 m) on the
+                                                         recorded walks; --release -1 0.5 1.0 compares release values
 
 What it can and can't tell (ROADMAP 6-a): the recording is what the *old* controller did, so this layer evaluates the
 **checks** (progress, lateral error, no-progress stop, bad observation, stun) — not a new way of steering. A new
@@ -230,7 +231,7 @@ GATE_HELD_M = 2.0        # Gate's target this far behind where the bot really is
 
 
 def gate_replay(w: dict, switch_s: float = G.SWITCH_S, fr: list[dict] | None = None,
-                release_lat: float | None = None) -> dict:
+                release_lat: float | None = G.RELEASE_LAT) -> dict:
     """Run Gate beside the recorded (old, radius-switching) walk. Open loop: the bot didn't steer by Gate, so this says
     where the old walk **did not reach s ≥ switch_s** before moving on — the places Gate would have held the target
     back and a Gate controller would have had to walk further (or would stall, if it can't get there).
@@ -292,7 +293,8 @@ def gate_replay(w: dict, switch_s: float = G.SWITCH_S, fr: list[dict] | None = N
     return out
 
 
-def gate_eval(walks: list[dict], switch_s: float, n: int = 0, seed: int = 0, release_lat: float | None = None) -> dict:
+def gate_eval(walks: list[dict], switch_s: float, n: int = 0, seed: int = 0,
+              release_lat: float | None = G.RELEASE_LAT) -> dict:
     """gate_replay over all walks, unperturbed plus n seeded variants (noise, drops, …; jumps off — they aren't the
     question here). → totals."""
     rng = random.Random(seed)
@@ -315,7 +317,7 @@ def gate_eval(walks: list[dict], switch_s: float, n: int = 0, seed: int = 0, rel
     return {**tot, "lag_p50": lags[len(lags) // 2], "lag_p90": lags[int(0.9 * (len(lags) - 1))]}
 
 
-def gate_places(walks: list[dict], switch_s: float, release_lat: float | None = None) -> list[tuple]:
+def gate_places(walks: list[dict], switch_s: float, release_lat: float | None = G.RELEASE_LAT) -> list[tuple]:
     """Where Gate is held, over all unperturbed walks: [(count, tag, point i, x, y, z)] most first."""
     seen: dict = {}
     for w in walks:
@@ -361,8 +363,9 @@ def main() -> None:
     ap.add_argument("--walks", action="store_true", help="per-walk table of the unperturbed recording")
     ap.add_argument("--gate", type=float, nargs="+", metavar="S",
                     help="evaluate the switching rule (walkgeom.Gate) at these switch_s values instead, e.g. --gate 0.8 0.9 0.95")
-    ap.add_argument("--release", type=float, nargs="+", default=[-1.0], metavar="M",
-                    help="with --gate: Gate release_lat values in m (-1 = no release), e.g. --release -1 0.5 1.0")
+    ap.add_argument("--release", type=float, nargs="+", default=[G.RELEASE_LAT], metavar="M",
+                    help="with --gate: Gate release_lat values in m (-1 = no release; default walkgeom.RELEASE_LAT), "
+                         "e.g. --release -1 0.5 1.0")
     a = ap.parse_args()
     files = a.files or sorted(glob.glob(str(ROOT / "data" / "samples" / "*.track.jsonl")))
     walks = load_walks(files)
@@ -387,9 +390,9 @@ def main() -> None:
                       f"{r['held_s'] / max(r['minutes'], 1e-9):10.1f} {r['stuck']:>5}/{r['walks']:<6} | "
                       f"{r['lag_p50']:7.1f} {r['lag_p90']:6.1f}")
         sw = min(a.gate, key=lambda v: abs(v - G.SWITCH_S))
-        places = gate_places(walks, sw)
+        places = gate_places(walks, sw, None)
         if places:
-            print(f"\nwhere Gate {sw} (no release) is first held (unperturbed), most first:")
+            print(f"\nwhere plain Gate {sw} (no release) is first held (unperturbed), most first:")
             for c, tag, i, x, y, z in places[:15]:
                 print(f"  {c}x  {tag} point {i}  ({x}, {y}, {z})")
         return

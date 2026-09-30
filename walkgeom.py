@@ -19,6 +19,8 @@ import math
 from dataclasses import dataclass
 
 SWITCH_S = 0.95          # A→B progress needed before the target may move on to B→C
+RELEASE_LAT = 1.0        # … or: already inside B→C and within this of its line (Gate._on_next). MoKa 2026-09-30:
+                         # "0.95 + release 1.0 m" — replay: walks held to the end 33 → 4 of 201 (ROADMAP 6-a)
 LOOKAHEAD_M = 1.5        # look-ahead distance on straight stretches
 LOOKAHEAD_MIN_M = 0.5    # … shrunk to this at a sharp corner
 SHARP_DEG = 35.0         # same threshold as nav.CORNER_DEG
@@ -120,7 +122,8 @@ class Gate:
     update(p) → Progress on the current target segment. release_lat: see _on_next. With k=None the first update starts at the segment p is on
     (locate over the whole path) — a walk may start mid-path (after a fight, a re-plan)."""
 
-    def __init__(self, path: list, switch_s: float = SWITCH_S, k: int | None = 0, release_lat: float | None = None):
+    def __init__(self, path: list, switch_s: float = SWITCH_S, k: int | None = 0,
+                 release_lat: float | None = RELEASE_LAT):
         self.path, self.switch_s, self.k, self.release_lat = path, switch_s, k, release_lat
         self.lens = seg_lengths(path)
 
@@ -138,7 +141,7 @@ class Gate:
         return pr
 
     def _on_next(self, p) -> bool:
-        """Release (off unless release_lat is set): already inside the next segment (0 < s < 1) and within
+        """Release (release_lat=None turns it off — the plain rule): already inside the next segment (0 < s < 1) and within
         release_lat of its line — the corner was cut, but walking back to s ≥ switch_s would only lose ground.
         Without it the replay shows Gate never letting go once a recorded walk cut a corner (ROADMAP 6-a)."""
         if self.release_lat is None:
