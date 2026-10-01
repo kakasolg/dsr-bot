@@ -56,7 +56,7 @@ RULES: list[tuple[str, str]] = [
     (r"^(.*): (\d+) 끌어오기 (\d+)번째 — (\w+)", r"\1: lure \2 (try \3) — \4"),
     (r"락온 안 걸림 — (\d+) m 까지 다가감", r"no lock-on — closing to \1 m"),
     (r"^카메라 정렬: 싸움 중 목표에서 중앙 (\d+)° · 90 % (\d+)° · (\d+)° 안 (\S+) \((\d+)번\)",
-     r"camera alignment: off the fight target median ° · 90 % ° · within °  ( samples)"),
+     r"camera alignment: off the fight target median \1° · 90 % \2° · within \3° \4 (\5 samples)"),
     (r"^기본 플레이: 방패 \+ 약공만 \(뒤잡기·강공 끔\)", r"basic play: shield + light only (backstab and heavy off)"),
     (r"^══ 구역 (\d+) \((\w+)\) 끝: (.*)", r"══ zone \1 (\2) done: \3"),
     (r"^(.*): 나이프 (\d+) \((.*?)\) → 피해 (\S+), 반응 없음 \| 락온 안 걸림 — 안 던짐 \(락온 없는 나이프는 오늘 (\S+)\)",
