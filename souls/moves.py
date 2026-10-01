@@ -110,7 +110,7 @@ class Moves:
                 if abs(d) > math.radians(0.5):
                     Moves.LOOK_SIGN = 1 if d > 0 else -1
             return
-        mag = min(1.0, max(0.35, abs(err) / 60.0))
+        mag = min(1.0, max(0.35, abs(err) / 45.0))         # was /60 — full stick from 45° (camera follow, MoKa 2026-10-01)
         self.pad.look(Moves.LOOK_SIGN * (1 if err > 0 else -1) * mag, 0.0)
         time.sleep(dur)
         self.pad.look(0.0, 0.0)

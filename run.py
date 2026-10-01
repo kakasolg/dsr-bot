@@ -267,6 +267,7 @@ def main() -> None:
         except Exception:
             pass
         cam.stop()
+        log(cam.stats())
         esc.stop()
         blood.stop()
         bbox.stop()
