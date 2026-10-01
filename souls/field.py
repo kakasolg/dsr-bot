@@ -120,6 +120,10 @@ FALL_BACK_MAX_S = 15.0   # …or after this long
 FALL_BACK_OFF_S = 10.0   # no path back → fight in place this long before trying to fall back again
 CROWD_MAX = 3            # 'crowd' fall-backs within CROWD_WINDOW_S before we stop falling back — the callers don't count a 'crowd' as a try, so without
 CROWD_WINDOW_S = 90.0    # this cap 'crowd → fall_back → crowd' repeats forever (P-26: 16 times, 0 damage dealt, dead)
+WALL_BACK = True         # three or more on us away from a wall → back to a wall and take them one at a time (P-29, duel.WALL_BACK_N)
+WALL_BACK_R = 10.0       # look for a wall spot this far (horizontal) from us
+WALL_SPOT_DROP = 2.5     # …with no drop edge (Navmesh.drop_dist) closer than this — backing into a fight next to a drop is P-14/P-16
+WALL_OFF_S = 20.0        # after backing to a wall (or finding none), fight where we stand this long before trying again
 CROWD_OFF_S = 60.0       # …then fight in place this long (the old 45 % HP retreat still applies) before trying again
 
 
@@ -189,6 +193,7 @@ class Field:
         self.mv, self.w, self.esc, self.log = mv, weapon, escape, log
         self._detour = False                               # keeps walk's "detour" from recursing
         self._crowd_hits: list[float] = []                 # times of recent 'crowd' fall-backs (CROWD_MAX per CROWD_WINDOW_S)
+        self._wall_off_until = 0.0
         self._crowd_off_until = 0.0                        # fall_back 이 길이 없어 못 물러났으면 잠깐 둘러싸여도 싸운다 (같은 자리에서 무한 반복 방지)
         self.style = style_.of(style)                      # souls/style.py — every layer only reads this object
         self.bonfires = [tuple(b) for b in bonfires]      # bloodstain pickup (A) forbidden zones
@@ -354,6 +359,43 @@ class Field:
         self.events("fall_back", result=r, secs=round(time.time() - t0, 1), near=n)
         return r
 
+    def back_to_wall(self, nm) -> str:
+        """Three or more on us (duel wall_back) — walk with the guard up to the nearest wall spot that isn't toward them and has no drop
+        close, so they can only come from the front, one or two at a time. Corners first. Then the caller fights the nearest.
+        No spot / no path → fight where we stand (WALL_OFF_S)."""
+        t0 = time.time()
+        self._wall_off_until = t0 + WALL_OFF_S
+        s = self.mv.snap(WALL_BACK_R + 2.0)
+        if s is None or nm is None or not hasattr(nm, "wall_spots"):
+            return "no_nav"
+        p = s.player
+        foes = [c for c in s.hostile(8.0) if awake(c) and abs(c.y - p.y) < FOLLOW_DY]
+        fx = sum(c.x for c in foes) / len(foes) if foes else p.x
+        fz = sum(c.z for c in foes) / len(foes) if foes else p.z
+        ux, uz = fx - p.x, fz - p.z                        # toward the foes
+        L = math.hypot(ux, uz)
+        cands = []
+        for q, n in nm.wall_spots(p.x, p.y, p.z, r=WALL_BACK_R):
+            d = math.hypot(q[0] - p.x, q[2] - p.z)
+            back = -((q[0] - p.x) * ux + (q[2] - p.z) * uz) / L if L > 0.3 else 0.0   # how far it lies away from them (≥ 0 = not their side)
+            if back < 0 or nm.drop_dist(*q) < WALL_SPOT_DROP:
+                continue                                   # on their side (the path would cross them), or a drop close by
+            cands.append((d - 1.5 * (n >= 2) - 0.3 * back, q, d))
+        for _, q, d in sorted(cands)[:5]:
+            path = nm.find_path((p.x, p.y, p.z), q)
+            if not path or sum(math.dist(a, b) for a, b in zip(path, path[1:])) > d * 1.6 + 2.0:
+                continue
+            r = self.mv.walk_path(path[1:], nm, "guard", stop=lambda sn, q=q: M.horiz(sn.player, types.SimpleNamespace(x=q[0], z=q[2])) < 0.6)
+            sn = self.mv.snap(5.0)
+            wd = nm.wall_dist(sn.player.x, sn.player.y, sn.player.z) if sn else None
+            self.log(f"   셋 이상 붙음 — 벽으로 ({q[0]:.1f},{q[1]:.1f},{q[2]:.1f}) {time.time() - t0:.1f} s: {r}, "
+                     f"벽까지 {wd if wd is None else round(wd, 1)} m, 그 자리에서 하나씩")
+            self.events("wall_back", result=r, spot=q, secs=round(time.time() - t0, 1), foes=len(foes))
+            return r
+        self.log(f"   셋 이상 붙음 — 갈 벽 자리 없음 (후보 {len(cands)}), {WALL_OFF_S:.0f} s 동안 그 자리에서 싸움")
+        self.events("wall_back", result="no_spot", foes=len(foes))
+        return "no_spot"
+
     def _crowd_capped(self) -> bool:
         """Count this 'crowd' end; the CROWD_MAX-th within CROWD_WINDOW_S switches fall-back off for CROWD_OFF_S. → True when it did."""
         now = time.time()
@@ -445,12 +487,15 @@ class Field:
                        cancel=lambda: self.esc.escaping or self.esc.gen != g0 or (leash is not None and leash()),
                        care=Care(self), reflex=self.reflex, arena=arena, low_hp=0.0 if desperate else 0.25, style=self.style,
                        limit=limit, wait_far=wait_far, gen=self.esc.gen, events=self.events, may_approach=may_approach,
-                       crowd_ok=CROWD_FALL_BACK and time.time() >= self._crowd_off_until)
+                       crowd_ok=CROWD_FALL_BACK and time.time() >= self._crowd_off_until,
+                       wall_ok=WALL_BACK and time.time() >= getattr(self, "_wall_off_until", 0.0))
         finally:
             self.mv.cam_target = None
         self.log(f"   {tag}{' (끝까지)' if desperate else ''}: {r.line()}")
         self.events("duel", tag=tag, npc=r.npc, result=r.result, secs=round(r.secs, 1), dealt=r.dealt, taken=r.taken)
-        if r.result == "crowd" and self._crowd_capped():
+        if r.result == "crowd" and r.wall_back:
+            self.back_to_wall(nm)
+        elif r.result == "crowd" and self._crowd_capped():
             pass                                           # too many in a row — fight in place (crowd_ok stays off for CROWD_OFF_S)
         elif r.result == "crowd":
             self.fall_back(nm)

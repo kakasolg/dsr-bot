@@ -321,6 +321,69 @@ class Navmesh:
         d[np.abs(near[:, 1] - y) > dy] = np.inf
         return float(d.min())
 
+    def edge_kinds(self, out: float = 0.8, seam_dy: float = 0.5, drop: float = 1.5) -> dict:
+        """Open (neighborless) edges by what lies out m beyond them → {"seam"|"drop"|"wall": (p0, p1, tri)}.
+          seam = floor at the same height (≤ seam_dy) — a join between pieces, not an edge at all
+          drop = floor more than drop m below — falling off lands there
+          wall = no floor at all, or only floor above — a wall, a building side (or a bottomless void — can't tell those apart here)
+        cliffs() calls "no floor" a cliff too, so in the Undead Burg almost every edge was a cliff, even the wall MoKa picked as wall
+        terrain (−18.5,−13.4,−63.6, 2026-09-30). border_dist counts seams as borders."""
+        if getattr(self, "_ekinds", None) is None:
+            ti, ei = np.nonzero(self.adj < 0)
+            pairs = np.array([(0, 1), (1, 2), (0, 2)])[ei]
+            vi = self.t[ti]
+            p0, p1 = self.v[vi[np.arange(len(ti)), pairs[:, 0]]], self.v[vi[np.arange(len(ti)), pairs[:, 1]]]
+            kind = []
+            for k in range(len(ti)):
+                mid = (p0[k] + p1[k]) / 2.0
+                d = mid - self.centroid[ti[k]]
+                n = float(np.hypot(d[0], d[2]))
+                if n < 1e-6:
+                    kind.append("wall")
+                    continue
+                q = mid + np.array([d[0] / n * out, 0.0, d[2] / n * out])
+                ys = [y for y, f, _ in self.tris_at(float(q[0]), float(q[2])) if not (f & BLOCKED)]
+                if any(abs(y - mid[1]) <= seam_dy for y in ys):
+                    kind.append("seam")
+                elif any(y < mid[1] - drop for y in ys):
+                    kind.append("drop")
+                else:
+                    kind.append("wall")
+            kind = np.array(kind)
+            self._ekinds = {kd: (p0[kind == kd], p1[kind == kd], ti[kind == kd]) for kd in ("seam", "drop", "wall")}
+        return self._ekinds
+
+    def _edge_dist(self, edges, x: float, y: float, z: float, dy: float) -> float:
+        p0, p1, _ = edges
+        if len(p0) == 0:
+            return float("inf")
+        seg = p1 - p0
+        L2 = seg[:, 0] ** 2 + seg[:, 2] ** 2
+        t = np.clip(((x - p0[:, 0]) * seg[:, 0] + (z - p0[:, 2]) * seg[:, 2]) / np.where(L2 < 1e-9, 1.0, L2), 0.0, 1.0)
+        near = p0 + seg * t[:, None]
+        d = np.hypot(near[:, 0] - x, near[:, 2] - z)
+        d[np.abs(near[:, 1] - y) > dy] = np.inf
+        return float(d.min())
+
+    def wall_dist(self, x: float, y: float, z: float, dy: float = 2.0) -> float:
+        """Horizontal distance to the nearest 'wall' edge (edge_kinds) on this level — a wall to put our back to."""
+        return self._edge_dist(self.edge_kinds()["wall"], x, y, z, dy)
+
+    def drop_dist(self, x: float, y: float, z: float, dy: float = 2.0) -> float:
+        """Horizontal distance to the nearest 'drop' edge (floor more than 1.5 m below beyond it)."""
+        return self._edge_dist(self.edge_kinds()["drop"], x, y, z, dy)
+
+    def wall_spots(self, x: float, y: float, z: float, r: float = 10.0, dy: float = 1.0) -> list[tuple[tuple, int]]:
+        """Walkable faces with a 'wall' edge near (x, y, z): [(centroid, wall edges)] — 2 edges = a corner."""
+        _, _, ti = self.edge_kinds()["wall"]
+        out = []
+        for i, n in zip(*np.unique(ti, return_counts=True)):
+            c = self.centroid[i]
+            if (self.flags[i] & BLOCKED) or abs(c[1] - y) > dy or math.hypot(c[0] - x, c[2] - z) > r:
+                continue
+            out.append(((float(c[0]), float(c[1]), float(c[2])), int(n)))
+        return out
+
     def nearest_walkable(self, x: float, y: float, z: float, r: float = 8.0, dy: float = 2.5):
         """Centroid of the nearest walkable triangle within height difference dy and radius r → (x, y, z) or None.
         Where to return when standing off the mesh. Why height difference: a triangle on a ledge 2.3 m above looked closer in 3D."""
