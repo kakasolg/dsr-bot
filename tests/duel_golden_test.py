@@ -148,7 +148,8 @@ def situations_axe():
                    ground=True)
 
 
-def run(sc) -> list:
+def run(sc, advisor=None) -> list:
+    """advisor: a laya_shadow.Advisor riding along (tests/laya_shadow_test.py, laya_eval.py cases golden) — the trace must not change."""
     trace = []
     w = World(player=(0.0, -49.4, 0.0), sp=sc["sp"])
     w.player.heading = -math.pi                                   # facing +z (facing = heading + π)
@@ -186,7 +187,8 @@ def run(sc) -> list:
     D.time.sleep = lambda s: None
     try:
         r = D.duel(mv, weapons.BATTLE_AXE if sc.get("weapon") == "axe" else weapons.BROADSWORD, 2, nm, log=lambda line: trace.append(("log", _CLOCK.sub("T", line))), cancel=cancel,
-                   reflex=Reflex(sc["reflex"], trace), style=sc["style"], wait_far=sc["wait"], care=care, arena=arena)
+                   reflex=Reflex(sc["reflex"], trace), style=sc["style"], wait_far=sc["wait"], care=care, arena=arena,
+                   advisor=advisor)
         trace.append(("result", r.result))
     except Exception as e:                                        # a crash is a decision too — it must stay the same
         trace.append(("error", type(e).__name__, str(e)))

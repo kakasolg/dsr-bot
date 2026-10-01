@@ -198,6 +198,12 @@
   - **자율 주행과 비교**: 인지(메모리라 쉬움)·지도(NavMesh)·경로 계획·**제어**(오늘 문제) 네 단계. 자율 주행 제어의 표준 — 곡률 보고 커브 전 감속, 앞을 보고 조향(pure pursuit), **움직임 모델을 실측으로 맞춤**(스틱 → 회전·미끄러짐, 레이더 기록에 스틱·위치가 0.1 s로 있음) — 한 번 배우면 새 스테이지 모퉁이도 NavMesh 모양만으로 계산 가능
   - **드론 비유**: 3D·불안정한 몸이라 완전 자율이 어렵고 실제론 '사람 + 자동 보조'. 봇 이동은 자동차 쪽(땅·NavMesh·정확한 위치)이라 자동 학습 가능, 운영은 드론식 — 봇이 기본을 하고 막히는 곳만 사람이 시범, **그 시범이 학습 데이터가 되어 같은 종류는 다시 안 부름** → 사람 일이 "매번 고치기"에서 "가끔 보여 주기"로
 
+## 1-i. Laya 섀도 모드 — 로컬 판단 모델 검증 (2026-10-01 [MoKa] 요청)
+
+Laya가 싸움 상태를 보고 이미 있는 전술 후보 중 하나를 고르게 하되 **기록만** (패드·규칙 반영 없음). 설계·숫자는 LAYA.md.
+- [~] [win] 섀도 경계·오프라인 평가 — `laya_shadow.py`(특징·마스크·Advisor·WorkerChannel), `laya_worker.py`(별도 프로세스, WSL), `laya_eval.py`(cases golden/logs → score → report), `duel(advisor=None)`·`Field.fight`·`run.py --laya-shadow`. 확인: duel_golden 40,320 그대로, `tests/laya_shadow_test.py`(advisor 3가지로 10,080 상황 trace 같음, Moves 접근 0, 느린·없는 워커에 offer ≤0.1 ms), pytest 52 통과, WSL 전달 시험 200/200. **남은 것**: WSL에 torch·laya 설치와 체크포인트 받기([MoKa] 승인 대기, LAYA.md 6) → 실제 Laya로 score·report
+- [ ] [win] (허락 뒤) `run.py burg-bonfire --basic --laya-shadow` — 섀도 켠 실행과 끈 실행의 `blind_report.py`·틱 수 비교, `.laya.jsonl` report
+
 ## 1-f. 모퉁이에서 일찍 꺾기 · 제자리 비비기 · 뒤돌기 (2026-09-28 [사람] 관찰)
 
 [사람]: 비밀 통로 좌회전 등 모퉁이마다 항상 일찍 꺾어 벽에 걸리고, 막히면 10 cm씩 빙글빙글 제자리 — "1 m 더 가서 꺾으면" 될 것을. 뒤잡기도 부자연스럽게 돌다가 역공.
@@ -599,6 +605,10 @@
 - 2026-09-30 [MoKa] 결정: **벽으로 물러나서 하나씩**. [win] 반영: `duel` — 움직이는 적이 셋 이상(`WALL_BACK_N`, 목표 포함 4 m 안) 붙었는데 벽(`Navmesh.wall_dist` < 1.2 m) 옆이 아니면 `crowd` + `wall_back`으로 끝냄, 셋 이상 붙어 있으면 뒤잡기로 돌지 않음(T.room 끔). `Field.back_to_wall` — 적 반대쪽(적 쪽 반평면 제외)·낭떠러지(drop) 2.5 m 밖 벽 자리, 모서리 먼저, 10 m 안, 가드 든 채 걸어감, 그 뒤 20 s(`WALL_OFF_S`)는 그 자리에서 싸움. `Navmesh.edge_kinds`: 열린 경계를 seam(같은 높이 바닥 = 조각 이음, 경계 아님)·drop(1.5 m 넘게 아래 바닥)·wall(바닥 없음)로 — 옛 `cliffs()`는 바닥 없음도 낭떠러지로 봐서 성벽 마을 경계 거의 전부가 낭떠러지였음. 성벽 마을: seam 644·drop 760·wall 3,833. 09-30b 자리로 재생: 230 s(벽 2.6 m)엔 7.7 m 떨어진 벽 자리(벽 0.9 m, drop 4.9 m)로 감, 252·277 s는 이미 벽 1.0 m 안이라 그대로 싸움(대신 뒤잡기 안 돎 — 그 실행의 뒤잡기 4번 모두 edge·not_behind). `tests/field_wall_back_test.py`, duel_golden 그대로, pytest 44. **한계**: 바닥 없는 허공 경계도 wall로 보임(충돌 메시 없이 구분 불가) — 성벽 마을 바깥 성벽 위 등에서 확인 필요. **게임 확인 필요**: burg-bonfire `#4 이동`
 - 덧: 벽 강공(`duel._walled`)은 `border_dist`(seam 포함)를 씀 — 09-30 MoKa 벽 자리 (−18.5,−13.4,−63.6)의 '벽 0.08 m'는 seam이었고 진짜 벽은 1.76 m. 오늘 '벽 0.1 m — 강공'의 일부는 seam일 수 있음 → `wall_dist`로 바꿀지 [MoKa] 결정 → 2026-09-30 [MoKa] 결정: `wall_dist`로. [win] 반영 (`wall_dist`가 없는 NavMesh·가짜는 `border_dist`), 테스트·golden 그대로
 
+### P-31 `rule_finish`가 닿는 거리 밖(2.2~4.0 m)에서 침 (2026-10-01, [win], 1-i)
+- Laya 섀도 마스크를 duel_golden 상황에 맞춰 보다 발견: 목표 HP가 한 방(`FINISH_HP`) 안이고 뒤잡기 기회(`T.room` → `backstab_chance`)면 `rule_approach`가 건너뛰어지고, `rule_finish`에는 거리 검사가 없어 2.2·4.0 m에서 약공 1번 (배틀 액스·브로드소드, 망자·화염병 망자). `--basic`(BACKSTAB 꺼짐)에선 안 생김. 게임 로그로는 아직 확인 안 함. 고칠 방향(결정 대기): `rule_finish`에 `h <= reach + 0.3` 추가 — 골든 다시 찍기 필요
+- 덧: golden의 가짜 반사는 안 터지므로 옆 적이 휘두를 때 `rule_attack`이 치는 상황(golden만의 것)도 Laya 마스크 밖으로 셈 — 게임에선 `rule_reflex`가 먼저
+
 ## 10. 게시판 중계 ([cloud]는 비공개 게시판에 못 닿음)
 
 형식: `- 날짜 [cloud→게시판] 내용` / `- 날짜 [게시판→cloud] 내용`. 옮겼거나 처리했으면 끝에 `→ 옮김`·`→ 처리`. 지워지지 않게 위에서 아래로 쌓는다.
@@ -648,6 +658,8 @@
 ---
 
 ## 9. 변경 이력
+
+- 2026-10-01: 1-i Laya 섀도 모드 추가 ([MoKa] 요청) — 기록만, 모델은 WSL Ubuntu의 별도 프로세스, 설치는 승인 뒤
 
 - 2026-10-01: [MoKa]와 구역별로 한 바퀴 (`run.py burg-bonfire --seg N --basic`) — 방패 + 약공만으로 경사로 → 화톳불 428 s, 사망 0 (P-30). 그 과정에서: 후퇴 더 많이(HP 50 %, 지는 싸움 일찍, 10 m 비울 때까지, 붙은 적이면 구르기), 성벽 마을 천천히 걷기·하나씩 끌어오기, 셋 이상이면 벽으로·2:1이면 뒤잡기 안 함, 타겟 방향 정렬이 최우선(`rule_face_first`), 락온 전 몸·카메라 정렬, **카메라 오른스틱 실측(0.35 = 데드존)으로 탭 고침**(카메라 오차 중앙 17° → 5°), 높이 제한은 되돌림. 오버레이: 구역·적 이름, 500 px 레이더, `SCRIPTED BOT · autoplay` 배지, 포커스 뺏던 버그 수정. 뒤잡기·강공 다시 켤지는 [MoKa] 결정 대기
 - 2026-10-01: [win] 실행 뒤 점검에 `blind_report.py` 추가 ([MoKa])

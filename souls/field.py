@@ -533,7 +533,8 @@ class Field:
                        care=Care(self), reflex=self.reflex, arena=arena, low_hp=0.0 if desperate else RETREAT_HP, style=self.style,
                        limit=limit, wait_far=wait_far, gen=self.esc.gen, events=self.events, may_approach=may_approach,
                        crowd_ok=CROWD_FALL_BACK and time.time() >= self._crowd_off_until,
-                       wall_ok=WALL_BACK and time.time() >= getattr(self, "_wall_off_until", 0.0))
+                       wall_ok=WALL_BACK and time.time() >= getattr(self, "_wall_off_until", 0.0),
+                       advisor=getattr(self, "advisor", None))   # run.py --laya-shadow: record-only (LAYA.md)
         finally:
             self.mv.cam_target = None
         self.log(f"   {tag}{' (끝까지)' if desperate else ''}: {r.line()}")
