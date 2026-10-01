@@ -136,6 +136,8 @@ class Replay:
             self.t = t
 
     def command(self, cmd: str, v: float | None = None) -> None:
+        if cmd == "play" and self.rewind_at_end and self.t >= self.t1:
+            self.seek(0.0)   # label page opens a scene at its end (the decision point) — play starts the clip over
         with self.lock:
             if cmd == "play":
                 self.playing = True
