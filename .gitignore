@@ -23,3 +23,8 @@ data/routes/*
 *.err
 *.log
 .env
+# labeling pilot (LAYA.md 11): scene manifest + labels are tracked, clips are rebuilt from the recordings (label_pilot.py build)
+!data/labels/
+data/labels/*
+!data/labels/pilot_scenes.jsonl
+!data/labels/pilot_labels.jsonl

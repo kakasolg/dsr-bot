@@ -204,7 +204,9 @@ Laya가 싸움 상태를 보고 이미 있는 전술 후보 중 하나를 고르
 - [x] [win] 섀도 경계·오프라인 평가 — `laya_shadow.py`(특징·마스크·Advisor·WorkerChannel), `laya_worker.py`(별도 프로세스, WSL), `laya_eval.py`(cases golden/logs → score → report), `duel(advisor=None)`·`Field.fight`·`run.py --laya-shadow`. 확인: duel_golden 40,320 그대로, `tests/laya_shadow_test.py`(advisor 3가지로 10,080 상황 trace 같음, Moves 접근 0, 느린·없는 워커에 offer ≤0.1 ms), pytest 52 통과
 - [x] [win] WSL 설치([MoKa] 승인)·실제 Laya 평가 (LAYA.md 9): 421 M·804 MB 체크포인트, CUDA 추론 p50 ~19~20 ms·p95 ~21 ms, 실제 경로 요청→답 p50 23.7·p95 44 ms, CPU p50 ~330 ms. 금지 제안 0. **하지만 보류 99.9 %, 보류 없이 일치 golden 45.9 %·logs 38.4 %(기준선 수준), approach 0번, 후보 순서만 바꿔도 43 % 답이 바뀜** → 이대로는 판단에 못 씀. 다음 (a) 멈춤 (b) noul 질문으로 다시 평가 (c) 미세조정 — [MoKa] 결정 대기
 - [x] [win] 라벨 출처 조사·분할안·소규모 미세조정 계획 ([MoKa] 2026-10-01: "제로샷 결과로 미세조정 가능성을 기각하지 말 것", LAYA.md 10). golden·logs 라벨은 전부 규칙 출력, **사람이 확인한 결정 단위 정답 0개**. 사람 시범(로컬 `data/observe` 21파일) 가까운 싸움 1,019 s·153번. 실제 싸움 2,576번 중 72 %가 경사로. noul 진단: 숫자만으로 정해지는 "거리 밖인가?"도 AUC 0.16~0.41 → 제로샷은 상태의 숫자를 못 읽음 (진단일 뿐). 학습은 안 함
-- [ ] [MoKa]+[win] 평가용 사람 확인 라벨 300개 (레이더 재생에 라벨 화면) — 미세조정 결정 전에 먼저
+- [x] [win] 라벨링 파일럿 도구 ([MoKa] 2026-10-01: 30~50장면 최소 파일럿, LAYA.md 11) — 명세 먼저(`0e52b54`), `label_pilot.py build/serve/report` + `label.html`(레이더 재생 재사용). 40장면·싸움 40·실행 16, test 후보 13. 확인: `tests/label_pilot_test.py`, pytest 53 통과, 화면에서 허용/금지·이후 보기·저장 거부(ID 없음 400, 헤더 없음 403) 확인. 사람 라벨 0
+- [ ] [MoKa] 파일럿 40장면 라벨: `python label_pilot.py serve` → http://127.0.0.1:47811, 끝나면 `python label_pilot.py report` → 장면당 시간·판단 불가 비율·정의 메모로 test 300·학습 라벨 규모 확정
+- [ ] [MoKa]+[win] 평가용 사람 확인 라벨 300개 — 파일럿 결과 보고 규모 확정 뒤
 - [ ] [win] 실행 로그·섀도 행에 `code_commit`·구역·싸움 id
 - [ ] [win] (허락 뒤) `run.py burg-bonfire --basic --laya-shadow` — 섀도 켠 실행과 끈 실행의 `blind_report.py`·틱 수 비교, `.laya.jsonl` report
 

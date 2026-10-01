@@ -134,8 +134,10 @@ def allowed(f: dict) -> list:
     (souls/duel.py). Laya is only ever asked to choose among these. Unknown (None) inputs from old logs count as permitted,
     except where noted."""
     h, dy, reach = f.get("distance_m"), f.get("height_diff_m"), f.get("weapon_reach_m")
+    # weapon unknown (human demos): attack up to the longest reach we know, approach beyond the shortest (label_pilot sets these)
+    reach_hi, reach_lo = reach or f.get("_reach_max"), reach or f.get("_reach_min")
     out = []
-    near = h is not None and reach is not None and h <= reach + 0.3 and (dy is None or abs(dy) <= 1.0)
+    near = h is not None and reach_hi is not None and h <= reach_hi + 0.3 and (dy is None or abs(dy) <= 1.0)
     # hit_first / stagger_punish: reach, height, SP, nobody else swinging. finish_first ignores the other swing (one-hit kill);
     # rule_attack has no swing check of its own — the reflex (always on in the bot) takes those ticks first
     calm = f.get("other_swinging_near") is not True or f.get("target_one_hit") or f.get("_reflex_on") is False
@@ -145,7 +147,7 @@ def allowed(f: dict) -> list:
         out.append("guard")                                    # block / reflex: shield styles only
     if f.get("_evade"):
         out.append("evade")                                    # reflex of the backstep style
-    if h is not None and reach is not None and h > reach:
+    if h is not None and reach_lo is not None and h > reach_lo:
         out.append("approach")
     out.append("hold_position")                                # wait_far / stamina: always possible
     if f.get("estus_wanted"):

@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "label-pilot",
+      "runtimeExecutable": ".venv/Scripts/python.exe",
+      "runtimeArgs": ["label_pilot.py", "serve"],
+      "port": 47811
+    }
+  ]
+}

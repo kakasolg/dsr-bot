@@ -84,7 +84,7 @@ NOTE_TACTIC = [("막으며다가감", "guard"), ("막기", "guard"), ("반사", 
                ("먼저치기", "attack"), ("마무리", "attack"), ("휘청반격", "attack"), ("휘청돌기", "attack"), ("빠른발차기", "attack"),
                ("백스텝공격", "attack"), ("뒤치기", "attack"), ("light", "attack"), ("heavy", "attack"), ("kick", "attack"),
                ("붙기:", "approach"), ("기다림", "hold_position"), ("안옴→", "hold_position"), ("SP회복", "hold_position"),
-               ("끌어오기:", "reposition"), ("자리옮김:", "reposition"), ("가장자리방어", "reposition"),
+               ("끌어오기:", "reposition"), ("자리옮김:", "reposition"), ("가장자리방어", "guard"),   # edge without arena: shield up in place
                ("에스트", "heal"), ("백스텝", "heal"), ("뒤잡기:", "backstab"),
                ("뒤잡기안함", None), ("방향", None), ("돌기", None), ("떼어놓기:", None), ("피함대기", None)]
 
