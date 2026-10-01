@@ -57,6 +57,8 @@ NO_LURE = {1}            # #1 is on a high spot: from afar it's blocked by rocks
 # ("Not a good method, but for now it breaks the order too much, no choice" — script the demo order as-is instead of generalized judgment).
 # The firebomb one (254012) early, the two shield soldiers (255000·255002) last — also consistent with the existing "ranged first"·"shield soldiers later" principles.
 BURG_TOWN = json.loads((DATA / "burg-town-map.json").read_text(encoding="utf-8"))["enemies"]
+BURG_CAREFUL = {4}       # BURG_TOWN walks done slowly, stopping to pull one at a time (Field.careful_walk_to) — #4 이동 died to three twice
+                         # (09-30b, 10-01a), MoKa 2026-10-01: "그쪽으로 가게 되면 천천히 가고, 대기하면서 한 명씩 끌어당겨야 함"
 
 
 def _route():
@@ -226,7 +228,10 @@ class Missions:
             # If that enemy chased us while walking and got killed, don't go to an unstandable spawn (163921·next run: 17~35 s 2.2 m in front of #6 spawn)
             gone = (lambda sn, e=e: math.dist((sn.player.x, sn.player.y, sn.player.z), tuple(e["pos"])) < 8.0
                     and self.f.find_at(e["npc"], e["pos"], 15.0) is None)
-            r = self.f.walk_to(tuple(e["pos"]), nb, f"#{i} 이동", done=gone)
+            if i in BURG_CAREFUL:
+                r = self.f.careful_walk_to(tuple(e["pos"]), nb, f"#{i} 이동", done=gone)
+            else:
+                r = self.f.walk_to(tuple(e["pos"]), nb, f"#{i} 이동", done=gone)
             if r == "dead":
                 return "died"
             if r != "arrived":

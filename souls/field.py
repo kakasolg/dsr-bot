@@ -138,6 +138,10 @@ LURE_R = 10.0            # knife throw distance — with lock-on, 11.9 and 11.4 
 LURE_TRIES = 3
 LURE_DY = 1.5            # max height diff between throw spot and target / current spot — so we don't jump down to a foe below a cliff (2026-09-24 run 8)
 LURE_ABORT_R = 10.0              # abort throwing if another awake, moving foe is within this
+CAREFUL_LEG = 4.0        # careful_walk_to: walk this far, then stop and look
+CAREFUL_LOOK_S = 1.5     # …stand this long (guard up) watching who comes
+CAREFUL_COME_R = 12.0    # an awake, moving foe this close (same level) → wait for it here and fight it alone
+CAREFUL_MAX_S = 240.0
 LURE_MIN, LURE_MAX = 6.0, 13.0   # throw conditions on flat ground — closer than this and just walking wakes it; farther and lock-on fails
 KNIFE_LOW = 5            # warn below this — going to buy from the merchant is a later task (user 2026-09-24)
 HOLD_TRIES = 3           # hold-the-spot targets (lure_at.hold): lure attempts; wait HOLD_WAIT in place between them
@@ -1460,6 +1464,75 @@ class Field:
         if not path:
             return "no_path"                               # no path → don't walk straight (cliff)
         return self.walk(nav.trim_path(path[1:], tuple(goal)), nm, tag, mode=mode, tol=tol, done=done)
+
+    def careful_walk_to(self, goal, nm, tag: str, done=None) -> str:
+        """── 천천히, 기다리며, 하나씩 ([MoKa] 2026-10-01) ──────────────────────────────
+         성벽 마을 `#4 이동`에서 두 번 죽음(09-30b 셋, 10-01a 셋) — "너무 성급하게 진행해서 다수에게 둘러싸임. 그쪽으로 가게 되면 천천히 가고,
+         대기하면서 한 명씩 끌어당겨야 함". 그래서: CAREFUL_LEG만 걷고 멈춰 CAREFUL_LOOK_S 가드 든 채 지켜봄 →
+          · 깨어 움직이는 적이 CAREFUL_COME_R 안이면 그 자리에서 기다려(wait_far) 그놈만 싸움
+          · 아니면 던질 거리(LURE_MAX) 안·같은 층·길 있는 적 하나를 나이프로 깨워 기다려 싸움 (한 놈에 2번까지)
+          · 아무도 없으면 다음 CAREFUL_LEG
+        → 'arrived' | 'done' | 'dead' | 'no_path' | 'timeout'"""
+        t0, lured = time.time(), {}
+        while time.time() - t0 < CAREFUL_MAX_S:
+            if not self.alive():
+                return "dead"
+            self.wait_escape()
+            s = self.mv.snap(SEEK_R)
+            if s is None:
+                time.sleep(0.1)
+                continue
+            p = s.player
+            if done is not None and done(s):
+                return "done"
+            if math.hypot(p.x - goal[0], p.z - goal[2]) < 1.5 and abs(p.y - goal[1]) < FOLLOW_DY:
+                return "arrived"
+            same = lambda c: abs(c.y - p.y) < FOLLOW_DY
+            coming = [c for c in s.hostile(CAREFUL_COME_R) if awake(c) and same(c) and c.anim not in (None, -1)]
+            if coming:
+                c = min(coming, key=lambda x: M.horiz(p, x))
+                r = self.fight(c.ptr, nm, f"{tag}: 오는 놈 {c.npc_param}", wait_far=True, limit=COMING_LIMIT)
+                if r.result == "me_dead":
+                    return "dead"
+                if r.result != "killed" and not self.recover(f"{tag} {r.result}", nm) and self.estus_left() <= 0:
+                    return "dead"
+                continue
+            idle = [c for c in s.hostile(LURE_MAX) if c.hp > 0 and same(c) and lured.get(c.ptr, 0) < 2
+                    and nm.find_path((p.x, p.y, p.z), (c.x, c.y, c.z))]
+            if idle:
+                c = min(idle, key=lambda x: M.horiz(p, x))
+                lured[c.ptr] = lured.get(c.ptr, 0) + 1
+                here = (p.x, p.y, p.z)
+                lr = self.lure(c.ptr, (c.x, c.y, c.z), nm, f"{tag}: {c.npc_param}", arena=here)
+                self.log(f"   {tag}: {c.npc_param} 끌어오기 {lured[c.ptr]}번째 — {lr}")
+                if lr == "dead":
+                    continue
+                if lr in ("lured", "awake"):
+                    r = self.fight(c.ptr, nm, f"{tag}: 끌어온 {c.npc_param}", wait_far=True, limit=COMING_LIMIT)
+                    if r.result == "me_dead":
+                        return "dead"
+                    if r.result != "killed":
+                        self.recover(f"{tag} {r.result}", nm)
+                    continue
+                if lr == "no_knife":
+                    lured[c.ptr] = 2                       # can't pull it — walk on, it comes when it sees us (then 'coming' above)
+            path = nm.find_path((p.x, p.y, p.z), tuple(goal))
+            if not path:
+                return "no_path"
+            leg, acc = [], 0.0
+            for a, b in zip(path, path[1:]):
+                leg.append(b)
+                acc += math.dist(a, b)
+                if acc >= CAREFUL_LEG:
+                    break
+            r = self.walk(leg, nm, tag, mode="walk")
+            if r == "dead":
+                return "dead"
+            self.mv.pad.move(0.0, 0.0)
+            getattr(self.mv.pad, "guard", lambda on: None)(True)
+            time.sleep(CAREFUL_LOOK_S)
+            getattr(self.mv.pad, "guard", lambda on: None)(False)
+        return "timeout"
 
     def _settle(self, spot, tol: float = None, tries: int = 10) -> float:
         """Last few steps — short stick taps to get within tol of spot (horizontal). Throw-spot tolerance 1.5 m clashed with the 13 m lure minimum,

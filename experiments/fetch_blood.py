@@ -32,6 +32,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--from", dest="src", type=int, default=missions.BURG_BONFIRE_ID, help="워프해 갈 화톳불 ID")
     ap.add_argument("--radar", action="store_true")
+    ap.add_argument("--careful", action="store_true", help="핏자국까지 Field.careful_walk_to로 (천천히, 하나씩 끌어와)")
     a = ap.parse_args()
 
     log = Log("fetch-blood")
@@ -77,6 +78,10 @@ def main() -> None:
         s = mv.snap(5.0)
         log(f"   도착 ({s.player.x:.1f}, {s.player.y:.1f}, {s.player.z:.1f}), 핏자국까지 "
             f"{math.dist((s.player.x, s.player.y, s.player.z), tuple(b['pos'])):.1f} m")
+        r = fld.careful_walk_to(tuple(b["pos"]), nb, "핏자국") if a.careful else "skip"
+        if r == "dead":
+            res = "dead"
+            return
         res = fld.pick_blood(nb, near=200.0) or "없음"
         for k in range(3):                                 # 09-30: 0.15 m 위에서 멈추자마자 누른 A 한 번이 안 먹음 — 서서 기다렸다 다시
             if res != "miss":
