@@ -218,6 +218,48 @@ README 권고대로 criteria + 중립 라벨(A/B). 3문항을 한 번의 forward
 5. 지연: 게임 켠 채 CUDA p95 ≤ 45 ms (게임 실행은 허락받고)
 6. 구역·적·전술별 표와 실패 사례 목록. 정확도 하나로 성공을 말하지 않음
 
+## 11. 라벨링 파일럿 명세 (2026-10-01, [MoKa] 승인: 30~50장면, 학습·행동 연결 없음)
+
+### 11.1 라벨링 단위 = 장면 (`dsr-scene/0.1`, `data/labels/pilot_scenes.jsonl` 한 줄)
+한 장면 = 한 싸움 안의 **결정 시점 하나** `t_d`. 레이더 재생으로 `t_d − 6 s ~ t_d`(앞)와 `t_d ~ t_d + 4 s`(뒤)를 봄.
+| 묶음 | 필드 | 모델 입력? |
+|---|---|---|
+| 신원 | `scene_id`, `schema`, `source` (`bot` \| `human_demo`), `source_file`, `run_id`, `fight_id`, `t_d`, `segment` (`places.zone`), `enemy` {`npc`, `kind`}, `event`(왜 골랐나: swing·opening·close_idle·far·before_big_hit·before_retreat·before_death), `code_commit` (봇: 실행 시각 이전 마지막 커밋, `code_commit_approx: true` — 작업 트리 수정분은 모름 · 사람 시범: null) | 아니오 (분할·분석용) |
+| 결정 시점 관측 `obs` | `laya_shadow.features`와 같은 키 중 스냅샷에서 계산되는 것: 내 HP·SP 비율, 목표 종류·상태(애니 범주)·HP 비율, 거리·높이 차·무기 거리·닿음, 정면 각도, 목표가 나를 보는 각도, 4.5 m 안 다른 적 수·휘두르는 적, 에스트 남은 수 | **예** |
+| 직전 맥락 `context` (`t_d − 3 s ~ t_d`) | 목표 애니 범주 변화(시각), 내 HP 변화, **행동 주체가 그동안 한 것**(봇: 상태 줄의 행동, 사람: 누른 버튼) | **예** (과거) |
+| 후보 `allowed` | `laya_shadow.allowed(obs)` — 그 시점 규칙상 가능했던 전술. 모르는 관측은 허용으로 보고 `allowed_basis`에 적음 | 예 (질문의 선택지) |
+| 이후 `after` (참고만) | 행동 주체가 실제로 한 것: 봇 `bot_action`(다음 1 s 상태 줄) · 사람 `human_pressed`(다음 1.5 s 버튼), 결과: 내 HP 변화 1.5 s·3 s, 목표 HP 변화, 싸움 결과(봇: 종료 줄 · 사람: 목표 HP 0), 뒤 4 s 안 큰 피격 | **아니오 — 모델 입력에 절대 안 섞음** |
+| 누락 `missing` | 계산 못 한 `obs` 키와 이유 (예: 사람 시범은 무기 거리 없음, 10 Hz라 휘두른 시간 부정확) | — |
+| 분할 | `test_candidate` (라벨 전에 규칙으로 고정: 구역 '마을 #4 길'·'석궁병 자리', 적 255002, 수용소 사람 시범), `selection` (뽑힌 층) | — |
+
+### 11.2 라벨러가 남기는 값 (`dsr-label/0.1`, `data/labels/pilot_labels.jsonl` 한 줄, 고칠 때도 새 줄 — 마지막 줄이 유효)
+`scene_id`, `schema`, `label_source: "human_verified"`(이 화면에서 사람이 고른 것만), `labeler_id`, `labeled_at`(ISO), `duration_s`(장면 연 뒤 저장까지), `saw_after`(저장 전에 '이후 보기'를 열었나),
+`acceptable`[전술] · `forbidden`[전술] (둘 다 아니면 '중립') · `best`(선택, acceptable 중 하나) · `unsure`(판단 불가) + `unsure_reason`(정보 부족·화면으로 안 보임·전술 정의가 애매·기타) · `rationale`(짧은 근거) · `evidence`[근거가 된 `obs`/`context` 키] · `definition_note`(전술 정의가 모호했으면).
+**지키는 것**: 봇 행동·규칙 출력·사람이 실제 누른 버튼은 `after`에만 있고 라벨 필드로 복사되지 않음 (`human_pressed` ≠ `acceptable`). 화면에 Laya·규칙의 제안은 안 보여 줌. 봇 로그 줄은 '이후 보기' 전에는 재생에서 뺌(규칙 판단에 끌리지 않게). `test_candidate`도 화면에 안 보임.
+
+### 11.3 장면 고르기 (파일럿 40개 목표)
+- 원본: 봇 레이더 녹화 `data/radar/*.jsonl`(10 Hz, 09-27~10-01) · 사람 시범 `data/observe/` 사람 패드만인 21파일
+- 후보: 봇은 싸움 상태 줄마다 `t_d = 줄 시각 − 1 s`(그 줄의 행동이 `t_d` 뒤 1 s), 사람은 싸움 구간에서 목표 애니 범주가 바뀐 때·맞은 때·싸움 시작
+- **싸움당 1장면**(긴 싸움만 사건이 다르고 5 s 이상 떨어지면 2), 실행당 4 이하, 경사로 8 이하, 사건·결과·구역·적·출처를 골고루 (씨앗 고정, 고른 이유를 `selection`에)
+- 연속 프레임은 독립 표본이 아님 → 통계는 `fight_id` 단위로
+
+### 11.4 화면 (기존 레이더 재생 재사용)
+`python label_pilot.py serve` → `radar_server`의 `State`·`make_handler`·`radar_record.Replay`를 그대로 쓰고, 장면을 바꿀 때 재생 내용만 갈아 끼움. 왼쪽은 `radar.html` 그대로(타임라인·패드·바닥), 결정 시점은 타임라인 표시(F9 마커 자리). 오른쪽은 관측·맥락·후보별 [허용/금지] 단추·판단 불가·근거·저장, '이후 보기' 단추.
+
+## 12. 학습·평가에서 '허용 전술 집합'을 표현하는 법 (설계만, 학습 안 함)
+
+**공식 미세조정 코드에서 확인한 것** (`notebooks/laya_finetune_typed_decisions_mps.py`·Kaggle 노트북, GitHub main `4aa6761`, 2026-10-01 읽음):
+- 데이터 한 행 = `state`(JSON) · `questions`(qid → choice/noul/score 정의) · `gold`(qid → `{"probabilities": {...}}`). choice는 선택지 키별 확률, noul은 `{"false": p, "true": p}`. 합이 1이 되게 정규화 → **목표는 분포(soft target)**, label = 최댓값
+- 손실 = 그 분포에 대한 교차 엔트로피 + proper scoring rule 보상의 RL 항(RLCD). 학습 뒤 질문 종류별 온도 맞춤(보정 표본은 학습 표본에서 떼어 냄 — README도 따로 둔 평가 데이터로 확인하라고 함)
+- **학습 코드는 `option_order`를 안 씀** — 선택지는 criteria 순서대로 놓임. 패키지의 `build_sequence(..., option_order=)`·`unpermute_probs`는 추론 때 회전 평균용
+
+**설계**:
+1. choice 질문 (후보 = 그 장면의 `allowed`): gold = `acceptable`에 균등(+ `best`가 있으면 best 0.5, 나머지 acceptable이 0.5를 나눔), `forbidden`과 중립은 0. 위치 편향 대응으로 **장면마다 선택지 순서를 2~3가지로 섞은 행**을 만들고(같은 `fight_id`라 분할은 함께), 평가 때는 k개 회전(`option_order`)의 확률을 `unpermute_probs`로 되돌려 평균
+2. 전술별 noul ("지금 X는 받아들일 만한가") — acceptable = true, forbidden = false, **중립은 질문을 안 만듦**. 그래야 '허용'·'금지'·'모름'의 세 가지가 섞이지 않음. #156(라벨 따라가기) 때문에 criteria를 주고 라벨을 중립(A/B)으로, A/B 순서도 섞음
+3. `unsure` 장면은 학습에서 뺌 (평가에선 '보류해야 맞는 장면'으로 따로 셈)
+4. `label_source`가 `human_verified`인 행만 정답. `bot_action`·`human_pressed`는 따로 둔 보조 세트(`label_source: rule` / `human_demo`)로만, 섞지 않음
+5. 평가 지표: **집합 적중**(argmax ∈ acceptable), **금지 적중**(argmax ∈ forbidden — 낮을수록 좋음, 안전 지표), 보류 범위별 두 지표, 전술별 noul AUC(acceptable vs forbidden), 회전 불변성(순서만 바꿔 답이 바뀌는 비율), 보정(ECE: confidence vs 집합 적중). 같은 지표를 규칙(`bot_action`)에도 계산해 나란히
+
 ### 10.8 다음에 할 일 (학습 전, 결정 대기)
 1. 평가 세트부터: 레이더 재생에 '결정 지점 라벨 달기' 화면 → [MoKa]가 test 300개 표시
 2. 실행 로그·섀도 행에 `code_commit`·구역·싸움 id 남기기 (작은 코드 변경)
