@@ -84,6 +84,8 @@ BOT_GAME=dsr .venv/Scripts/python run.py asylum --seg 1-5 --radar  # fresh chara
 BOT_GAME=dsr .venv/Scripts/python run.py clear-ramp                 # ramp only
 BOT_GAME=dsr .venv/Scripts/python run.py burg-bonfire               # Firelink → Undead Burg bonfire
 BOT_GAME=dsr .venv/Scripts/python run.py burg-bonfire --no-quit     # no quit-outs, no bonfire teleport (for recording)
+BOT_GAME=dsr .venv/Scripts/python run.py burg-bonfire --seg 3 --basic --radar  # one zone then stop (1 ramp · 2 passage · 3 town #1-#3 ·
+                                                                    #  4 town #4-#6 · 5 merchant · 6 bonfire); --basic = shield + light only
 .venv/Scripts/python observe_record.py --minutes 15                 # read-only recording (F9 = marker)
 .venv/Scripts/python asylum_steps.py data/observe/<file>.jsonl      # a human Asylum run → data/routes/asylum-fresh.json
 .venv/Scripts/python radar_server.py                                # radar at http://127.0.0.1:47801 (add --radar to run.py; --demo = fake world)
