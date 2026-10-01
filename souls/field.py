@@ -123,6 +123,8 @@ CROWD_WINDOW_S = 90.0    # this cap 'crowd → fall_back → crowd' repeats fore
 IGNORE_CLOSE_R = 2.5     # a foe the walk gave up on ('stuck'/'lost') still counts as a chaser when it is this close and swinging or
                          # staggered — 10-01c: an ignored 254010 hit us 4 times from 0.8 m over 10 s (staggered 3 times) with no counter,
                          # we walked on being hit and fell 5 m into the gap by town#3 ([MoKa]: "판단이 느려서 적에게 밀려서 틈에 빠졌음")
+CHASER_ROLL_R = 1.8      # a foe this close when we start backing off → roll away from it first (floor 2.5 m that way), else stay and fight
+CHASER_STOP_R = 1.3      # while backing off, a foe swinging this close → stop walking, turn back to the fight
 RETREAT_CLEAR_R = 10.0   # a retreat goes on until no awake foe is within this (same level) — stopping at safe() (6 m) left the chaser 6–7 m
                          # behind and the Estus check then said 'foes nearby' (20 times in 09-30a…10-01b)
 RETREAT_HP = 0.5         # leave a fight below this share of max HP (was 0.25 — MoKa 2026-10-01: retreat more; low_hp fights took 335 each)
@@ -346,8 +348,13 @@ class Field:
             p = sn.player
             return self.safe(sn) and not any(awake(c) and M.horiz(p, c) < RETREAT_CLEAR_R and abs(c.y - p.y) < FOLLOW_DY
                                              for c in sn.hostile(RETREAT_CLEAR_R + 1.0))
+
+        def chased(sn) -> bool:                            # being hit from behind while walking off — stop and face it
+            p = sn.player
+            return time.time() - t0 > 1.0 and any(awake(c) and (c.anim or -1) in M.ATTACK and M.horiz(p, c) < CHASER_STOP_R
+                                                  for c in sn.hostile(CHASER_STOP_R + 1.0))
         return self.mv.walk_path(nav.trim_path(path[1:], tuple(home)), nm, mode,   # walk, not run: running safety is only a NavMesh estimate (evidence-grade gate, 2026-09-26)
-                                 stop=lambda sn: time.time() - t0 > 3.0 and clear(sn))
+                                 stop=lambda sn: (time.time() - t0 > 3.0 and clear(sn)) or chased(sn))
 
     def fall_back(self, nm) -> str:
         """Surrounded (duel 'crowd') — walk back toward home (the way we came: Firelink / the Burg entrance) with the guard up
@@ -444,6 +451,21 @@ class Field:
         if s is None:
             return False
         low = s.player.hp < s.player.max_hp * 0.6
+        # ── 붙어 있는 적에게서 걸어서 물러나지 않는다 ([MoKa] 2026-10-01 진행) ──────────────
+        #  구역 1 `--basic`: low_hp로 가드 든 채 물러나는 동안 화염병 망자가 0.95 m로 따라붙어 4번 더 침(3009 가드 깨기 포함), HP 388 → 0.
+        #  붙은 적이 있으면 그 반대로 한 번 구르고 나서 물러남. 뒤가 낭떠러지면 구르지 않고 그 자리에서 싸움(→ False)
+        p = s.player
+        stuck_on = [c for c in s.hostile(CHASER_ROLL_R + 1.0) if awake(c) and M.horiz(p, c) < CHASER_ROLL_R and abs(c.y - p.y) < FOLLOW_DY]
+        if not self.safe(s) and low and stuck_on and not why.endswith("crowd"):
+            c = min(stuck_on, key=lambda x: M.horiz(p, x))
+            d = M.horiz(p, c) or 1.0
+            dx, dz = (p.x - c.x) / d, (p.z - c.z) / d
+            if nm is not None and not nav.ground_ahead(nm, p, dx, dz, reach=2.5):
+                self.log(f"   {why}: {c.npc_param} {d:.1f} m 붙어 있고 뒤에 바닥 없음 — 구르지 않고 그 자리에서 싸움")
+                return False
+            self.log(f"   {why}: {c.npc_param} {d:.1f} m 붙어 있음 — 반대로 구른 뒤 물러남")
+            self.mv.roll_toward(s, p.x + dx * 3.0, p.z + dz * 3.0)
+            s = self.mv.snap(15.0) or s
         if not self.safe(s) and low and not why.endswith("crowd"):   # crowd: fall_back already split them — fight the one that followed
             # no Darksign — like resting it revives every killed foe (user 2026-09-24) and also loses souls and humanity.
             # worse than dying (after death the bloodstain can recover them). Used while engaged, we sometimes died to hits during its 2~3 s

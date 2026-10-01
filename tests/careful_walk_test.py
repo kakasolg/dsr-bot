@@ -131,9 +131,35 @@ def test_no_throw_from_another_height() -> None:
     print("ok  a foe 1.5 m higher is not thrown at from below — walk on up first")
 
 
+
+def test_recover_rolls_off_a_close_chaser() -> None:
+    """Zone 1 --basic death: backing off on foot with a hollow 0.95 m behind took four more hits. Roll away first; drop behind → stay."""
+    import nav as nav_
+    w = World(player=(0.0, -49.4, 0.0), hp=300)
+    w.add(2, 0x1018, 254001, (0.0, -49.4, 0.9), anim=3003)
+    f = make_field(w)
+    rolls = []
+    f.mv.roll_toward = lambda s, x, z: rolls.append((round(x, 1), round(z, 1)))
+    f.retreat = lambda nm, home: "stopped"
+    f.heal = lambda *a, **k: None
+    f.home = (0.0, -49.4, -20.0)
+    old = nav_.ground_ahead
+    try:
+        nav_.ground_ahead = lambda *a, **k: True
+        F.Field.recover(f, "t low_hp", nm=object())
+        assert rolls and rolls[0][1] < 0, rolls                            # away from the foe (it is at +z)
+        rolls.clear()
+        nav_.ground_ahead = lambda *a, **k: False
+        assert F.Field.recover(f, "t low_hp", nm=object()) is False and not rolls, rolls
+    finally:
+        nav_.ground_ahead = old
+    print("ok  recover: hollow 0.9 m away → roll away first; drop behind → no roll, fight on (False)")
+
+
 if __name__ == "__main__":
     test_order()
     test_no_knife_walks_on()
     test_ignored_foe_on_us_is_a_chaser()
     test_no_throw_from_another_height()
+    test_recover_rolls_off_a_close_chaser()
     print("전부 통과")

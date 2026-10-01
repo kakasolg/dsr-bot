@@ -32,6 +32,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--from", dest="src", type=int, default=missions.BURG_BONFIRE_ID, help="워프해 갈 화톳불 ID")
     ap.add_argument("--radar", action="store_true")
+    ap.add_argument("--no-warp", action="store_true", help="워프하지 않고 지금 자리에서 걸어감 (경사로 등 불의 제전 쪽)")
     ap.add_argument("--careful", action="store_true", help="핏자국까지 Field.careful_walk_to로 (천천히, 하나씩 끌어와)")
     a = ap.parse_args()
 
@@ -71,10 +72,14 @@ def main() -> None:
     res = "?"
     try:
         log(f"핏자국 {b['pos']} 소울 {b['souls']} 인간성 {b['humanity']} — 지금 소울 {tm.souls()}")
-        if not tm.bonfire_warp(a.src, log=log):
-            res = "워프 실패"
-            return
-        time.sleep(2.0)
+        if not a.no_warp:
+            if not tm.bonfire_warp(a.src, log=log):
+                res = "워프 실패"
+                return
+            time.sleep(2.0)
+        na = nms[missions.MAP_A]
+        if na.on_mesh(*b["pos"]):
+            nb = na                                        # bloodstain on the Firelink side (ramp) — that NavMesh
         s = mv.snap(5.0)
         log(f"   도착 ({s.player.x:.1f}, {s.player.y:.1f}, {s.player.z:.1f}), 핏자국까지 "
             f"{math.dist((s.player.x, s.player.y, s.player.z), tuple(b['pos'])):.1f} m")
