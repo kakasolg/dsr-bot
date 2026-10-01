@@ -36,9 +36,17 @@ ITEM_LETTER = {"soul": "S", "humanity": "H", "titanite": "T"}
 POLL_S = 0.1
 RADAR_PX, RADAR_M = 500, 15.0   # mini radar size (px) and range (m) — 200 → 500 ([MoKa] 2026-10-01: "2배", then "500px도 괜찮음")
 SAYS = 3
+BANNER = "SCRIPTED BOT · autoplay"   # top badge while the bot is sending ([MoKa] 2026-10-01: YouTube — make it clear it's scripted play)
+C_BANNER = "#ffcc33"
+TEXT_PT, HEAD_PT, LABEL_PT, BANNER_PT = 17, 20, 13, 26   # was 12 / 14 / 10 ([MoKa] 2026-10-01: "글자도 더 커져도 좋을 것 같아")
 
 
 # ── What to show (pure — tested in overlay_test.py) ─────────────────────────
+def bot_live(state: dict | None) -> bool:
+    """The bot is sending right now (fresh snapshot) — the banner only shows then, not while a human plays."""
+    return bool(state and state.get("snap") and (state.get("age") is not None and state["age"] <= 2))
+
+
 def lines(state: dict | None, now: float | None = None) -> list[tuple[str, str]]:
     """[(text, colour)] for the text panel."""
     if not state:
@@ -181,9 +189,10 @@ def _game_rect():
 
 
 class Overlay:
-    def __init__(self, url: str, marks: bool = False, items: bool = False):
+    def __init__(self, url: str, marks: bool = False, items: bool = False, banner: str = BANNER):
         import tkinter as tk
         self.url, self.state, self.tk, self.marks, self.items = url, None, tk, marks, marks or items
+        self.banner = banner
         self.root = tk.Tk()
         self.root.title("dsr-bot overlay")
         self.root.overrideredirect(True)
@@ -224,9 +233,12 @@ class Overlay:
         cv.delete("all")
         w = cv.winfo_width()
         y = 38
+        if self.banner and bot_live(self.state):
+            self._text(16, y, self.banner, C_BANNER, BANNER_PT, bold=True)
+            y += BANNER_PT + 20
         for i, (s, col) in enumerate(lines(self.state)):
-            self._text(16, y, s, col, 14 if i == 0 else 12, bold=(i == 0))
-            y += 22 if i == 0 else 19
+            self._text(16, y, s, col, HEAD_PT if i == 0 else TEXT_PT, bold=(i == 0))
+            y += HEAD_PT + 12 if i == 0 else TEXT_PT + 10
         ox, oy, R = w - RADAR_PX - 16, 38, RADAR_PX
         cv.create_oval(ox, oy, ox + R, oy + R, outline="#000000", width=3)
         cv.create_oval(ox, oy, ox + R, oy + R, outline=MUTED, width=1)
@@ -253,7 +265,7 @@ class Overlay:
                 if kind == "target":
                     cv.create_oval(x - 8, y2 - 8, x + 8, y2 + 8, outline=C_TARGET, width=2)
         for a, b, name in radar_labels(self.state):
-            self._text(ox + a + 7, oy + b - 14, name, FG, 10)
+            self._text(ox + a + 7, oy + b - 18, name, FG, LABEL_PT)
         self.root.after(int(POLL_S * 1000), self._tick)
 
     def run(self) -> None:
@@ -266,13 +278,14 @@ def main() -> None:
     ap.add_argument("--demo", action="store_true", help="start a demo radar server too (no game)")
     ap.add_argument("--marks", action="store_true", help="also draw breakable props and items on the mini radar (off: too small to tell apart in game)")
     ap.add_argument("--items", action="store_true", help="draw souls/humanity/titanite on the mini radar, without the props")
+    ap.add_argument("--banner", default=BANNER, help=f"top badge while the bot plays (default {BANNER!r}; '' = none)")
     a = ap.parse_args()
     if a.demo:
         import subprocess
         subprocess.Popen([sys.executable, "radar_server.py", "--demo"])
         time.sleep(1.0)
     print("overlay: the game must be windowed or borderless windowed. Stop: Ctrl+C here")
-    Overlay(a.url, marks=a.marks, items=a.items).run()
+    Overlay(a.url, marks=a.marks, items=a.items, banner=a.banner).run()
 
 
 if __name__ == "__main__":

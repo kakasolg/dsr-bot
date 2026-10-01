@@ -42,6 +42,23 @@ RULES: list[tuple[str, str]] = [
     (r"^(.*): 다가가지 않고 던질 자리에서 (\d+) s 기다림", r"\1: waiting \2 s at the throwing spot instead of approaching"),
     (r"^(.*) (\d+): 스폰 ([\d.]+) m 안인데 안 보임 — 이미 잡음, 걸어가지 않음", r"\1 \2: not visible within \3 m of its spawn — already killed, not walking there"),
     (r"^─+ (.*): (\S+)$", r"── \1: \2"),
+    # 2026-10-01 — new lines (backstab R1 timing, wall retreat, two-hand combo, careful walk, crate detour, bloodstain)
+    (r"^뒤잡기 R1: 판정 (\S+)·(\S+) m → 누른 직후 (\S+)·(\S+) m \(([\d.]+) s, 적 애니 (.*)\)",
+     r"backstab R1: decided at \1·\2 m → just after \3·\4 m (\5 s, foe anim \6)"),
+    (r"^벽 ([\d.]+) m — 강공\(수직\)", r"wall \1 m — vertical heavy"),
+    (r"^방패병: 양손으로", r"shield soldier: switching to two hands"),
+    (r"^양손 전환 안 됨 — 약공", r"two-hand switch failed — light attack"),
+    (r"^셋 이상 붙음 — 벽으로 (\(.*?\)) ([\d.]+) s: (\w+), 벽까지 (\S+) m, 그 자리에서 하나씩",
+     r"three or more on us — back to the wall \1 \2 s: \3, wall \4 m, one at a time here"),
+    (r"^셋 이상 붙음 — 갈 벽 자리 없음 \(후보 (\d+)\), (\d+) s 동안 그 자리에서 싸움",
+     r"three or more on us — no wall spot (\1 candidates), fighting here for \2 s"),
+    (r"^경로가 (\w+) \((\w+)\) 위를 지나감 — 옆 ([\d.]+) m로 비켜 감", r"path crosses \1 (\2) — detouring \3 m to the side"),
+    (r"^(.*): (\d+) 끌어오기 (\d+)번째 — (\w+)", r"\1: lure \2 (try \3) — \4"),
+    (r"락온 안 걸림 — (\d+) m 까지 다가감", r"no lock-on — closing to \1 m"),
+    (r"^(.*): 나이프 (\d+) \((.*?)\) → 피해 (\S+), 반응 없음 \| 락온 안 걸림 — 안 던짐 \(락온 없는 나이프는 오늘 (\S+)\)",
+     r"\1: knife \2 (\3) → damage \4, no reaction | no lock-on — not thrown (knives without lock-on today \5)"),
+    (r"^핏자국: (회수|못 주움) \(소울 (\d+) → (\S+)\)",
+     lambda m: f"bloodstain: {'recovered' if m[1] == '회수' else 'not picked up'} (souls {m[2]} → {m[3]})"),
 ]
 
 # word / phrase → English, longest first (built at import)
@@ -50,6 +67,9 @@ GLOSSARY: dict[str, str] = {
     "성벽 마을(순서 고정)": "Undead Burg (fixed order)", "성벽 마을(귀환)": "Undead Burg (return)", "성벽 마을": "Undead Burg",
     "불의 제전": "Firelink Shrine", "경사로": "ramp", "상인 길": "merchant path", "상인": "merchant", "창고 방(귀환)": "storeroom (return)",
     "창고 방": "storeroom", "통로(귀환)": "passage (return)", "통로": "passage", "화톳불": "bonfire", "귀환 길": "return path",
+    "공격 애니 중인 적 없음": "no foe mid-attack", "투사체·낙하·범위 밖?": "projectile / fall / out of range?",
+    "칸 고르는 사이 적이 옴": "a foe came while picking the slot", "그놈부터": "that one first", "중단": "stopped", "접근": "approaching",
+    "끌어온": "lured", "더 가까이": "closer", "순서": "order", "벽까지": "to wall", "벽으로": "to the wall",
     "마을 정리": "town cleanup", "안개벽": "fog wall", "평지 구역": "flat zone", "평지": "flat ground", "꼭대기": "top",
     # actions
     "교전": "fight", "끌어오기": "lure", "이동": "move", "따라온": "chasing", "오는 놈": "incoming", "끼어든": "interloper", "처치": "killed",
@@ -102,11 +122,14 @@ def line(s: str | None) -> str | None:
     """Translate one display line (or tag). Non-Korean text passes through unchanged."""
     if not s or not _HANGUL.search(s):
         return s
+    lead = s[:len(s) - len(s.lstrip())]                # the bot indents its lines — '^' rules never matched an indented one
+    s = s[len(lead):]
     for rx, rep in _RULES:
         m = rx.search(s)
         if m:
             s = rx.sub(rep, s, count=1)
             break
+    s = lead + s
     if _HANGUL.search(s):
         for ko, en, rx in _GLOSS:
             if ko in s:
