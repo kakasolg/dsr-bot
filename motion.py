@@ -2,6 +2,7 @@
 
   python motion.py fit                         fit on data/samples/observe_*.jsonl (human demos), leave-one-file-out check
   python motion.py fit data/samples/radar_walk_*.jsonl   the bot's own walks ([win] cuts: each walk carries its bot_slot)
+  python motion.py walls                       the bot's walks with / without the world (NavMesh floor, walls, drops)
   python motion.py fit data/radar/x.jsonl --slot 1    a whole radar recording (bot pad slot 1 if a human pad was plugged in)
 
 The walk harness's layer 2 runs nav.goto against this instead of the game. Model (measured on the human demos first:
@@ -10,7 +11,7 @@ the character moves in the stick's world direction — median 0.7° off — and 
   target speed      stick < dead → 0 · < walk_hi → v_walk · else v_jog · B held → v_run
   facing            turns toward the target direction at ≤ turn rad/s
   speed             first-order toward the target speed (tau_up / tau_down), moving along the facing
-Walls and floors aren't here — the NavMesh comes with layer 2's world (data from [win]).
+Walls and floors: World (NavMesh from [win]'s .npz export + recorded positions where the NavMesh has none).
 Only frames with no lock-on, plain anim (-1) and no gap are used: locked-on movement strafes, attacks/rolls move by
 animation.
 """
@@ -53,6 +54,7 @@ class State:
     z: float
     face: float              # facing = movement direction, world angle atan2(dx, dz) (= game heading + π)
     v: float
+    y: float = 0.0           # height — only the world (World.move) changes it
 
 
 def wrap(a: float) -> float:
@@ -78,7 +80,7 @@ def step(p: Params, s: State, lx: float, ly: float, cam_yaw: float, btn: int, dt
         face = wrap(face + max(-p.turn * dt, min(p.turn * dt, e)))
     tau = p.tau_up if vt > s.v else p.tau_down
     v = vt + (s.v - vt) * math.exp(-dt / max(tau, 1e-3))
-    return State(s.x + math.sin(face) * v * dt, s.z + math.cos(face) * v * dt, face, v)
+    return State(s.x + math.sin(face) * v * dt, s.z + math.cos(face) * v * dt, face, v, s.y)
 
 
 # ── data: segments of free movement from radar / observe recordings ────────────────────────────────────────────
@@ -103,7 +105,7 @@ def segments(msgs: list[dict], slot: int | None = None) -> list[dict]:
             if dt <= 0 or dt > SEG_GAP_S or math.hypot(pl["x"] - x0, pl["z"] - z0) / dt > SEG_JUMP_MPS:
                 out.append(cur)                        # gap / teleport: this frame starts a new segment
                 cur = []
-        cur.append((m["rt"], pl["x"], pl["z"], wrap(pl["heading"] + math.pi), m["cam_yaw"]))
+        cur.append((m["rt"], pl["x"], pl["z"], wrap(pl["heading"] + math.pi), m["cam_yaw"], pl.get("y", 0.0)))
     if cur:
         out.append(cur)
     res = []
@@ -134,8 +136,14 @@ def load_walk_cuts(path: str) -> list[dict]:
             walks.append(cur)
         elif cur is not None:
             cur["msgs"].append(m)
-    return [{"tag": w["tag"], "src": w["src"], "slot": w["slot"],
-             "segs": segments(sorted(w["msgs"], key=lambda m: m.get("rt", 0.0)), w["slot"])} for w in walks]
+    out = []
+    for k, w in enumerate(walks):
+        wid = f"{Path(path).name}#{k}"
+        segs = segments(sorted(w["msgs"], key=lambda m: m.get("rt", 0.0)), w["slot"])
+        for sg in segs:
+            sg["walk"] = wid                             # World leaves this walk's own positions out of its off-mesh fill
+        out.append({"tag": w["tag"], "src": w["src"], "slot": w["slot"], "id": wid, "segs": segs})
+    return out
 
 
 def load(files: list[str], slot: int | None = None) -> dict[str, list[dict]]:
@@ -159,9 +167,10 @@ def _pad_at(pad: list, t: float, j: int) -> tuple[int, tuple]:
     return j, pad[j]
 
 
-def rollout(p: Params, seg: dict, i: int, horizon: float) -> tuple[float, float] | None:
+def rollout(p: Params, seg: dict, i: int, horizon: float, world: "World | None" = None) -> tuple[float, float] | None:
     """Start at frame i (position, facing, speed from the frame before), play the recorded pad for `horizon` s
-    → predicted (x, z) at the frame nearest t_i + horizon, or None if the segment ends first."""
+    → predicted (x, z) at the frame nearest t_i + horizon, or None if the segment ends first.
+    With a world, every step goes through World.move (floor, walls, drops)."""
     fr, pad = seg["frames"], seg["pad"]
     if i < 1:
         return None
@@ -171,21 +180,22 @@ def rollout(p: Params, seg: dict, i: int, horizon: float) -> tuple[float, float]
         return None
     a, b = fr[i - 1], fr[i]
     v0 = math.hypot(b[1] - a[1], b[2] - a[2]) / max(1e-3, b[0] - a[0])
-    s = State(b[1], b[2], b[3], v0)
+    s = State(b[1], b[2], b[3], v0, b[5] if len(b) > 5 else 0.0)
     t, j, f = b[0], 0, i
     while t < fr[k][0] - 1e-9:
         j, (_, lx, ly, btn) = _pad_at(pad, t, j)
         while f + 1 <= k and fr[f + 1][0] <= t:
             f += 1
         dt = min(DT, fr[k][0] - t)
-        s = step(p, s, lx, ly, fr[f][4], btn, dt)
+        s2 = step(p, s, lx, ly, fr[f][4], btn, dt)
+        s = world.move(s, s2, seg.get("walk")) if world is not None else s2
         t += dt
     return s.x, s.z
 
 
-def errors(p: Params | None, segs: list[dict], horizon: float, every: int = 2) -> list[float]:
+def errors(p: Params | None, segs: list[dict], horizon: float, every: int = 2, world=None) -> list[float]:
     """Position error (m) at `horizon` s, from every `every`-th frame. p=None → baseline 'keeps its velocity';
-    p='stay' → baseline 'stands still'."""
+    p='stay' → baseline 'stands still'. world: None = each segment's own seg["world"] (attach_worlds), False = none."""
     out = []
     for seg in segs:
         fr = seg["frames"]
@@ -201,11 +211,110 @@ def errors(p: Params | None, segs: list[dict], horizon: float, every: int = 2) -
             elif p == "stay":
                 q = (fr[i][1], fr[i][2])
             else:
-                q = rollout(p, seg, i, horizon)
+                q = rollout(p, seg, i, horizon, seg.get("world") if world is None else (world or None))
                 if q is None:
                     continue
             out.append(math.hypot(q[0] - fr[k][1], q[1] - fr[k][2]))
     return out
+
+
+# ── the world: floor, walls, drops (NavMesh + recorded positions where the NavMesh has none) ──────────────────────
+
+STEP_DY = 0.6            # floor within this up/down of the current height = walk on (stairs, slopes)
+FALL_DY = 1.5            # only floor more than this below = walked off an edge: fall (edge_kinds 'drop')
+CELL_M = 0.5             # off-mesh fill: recorded positions binned on this grid …
+FILL_DY = 1.0            # … walkable at that height ± this
+SLIDE_DEGS = (20, 40, 60, 80)   # blocked: try the move turned ± this much (and shortened by cos) — slide along a wall
+                                # when only one side is open; both open at the same angle = pushing square into it: stay
+
+
+class World:
+    """Where the character can stand. move(old, new, walk_id) → the state actually reached:
+      floor at the same level (± STEP_DY)  → go, height follows the floor
+      only floor far below (> FALL_DY)     → go and fall (falls += 1)
+      a recorded position nearby (off-mesh fill, other walks only) → go — the secret passage has no NavMesh (1-f)
+      nothing                              → a wall: slide (SLIDE_DEG), else stay put (pushing against it)"""
+
+    def __init__(self, nm, fill: list[tuple] | None = None):
+        self.nm = nm
+        self.falls = 0
+        self.blocked = 0
+        self.fill: dict[tuple[int, int], list[tuple[float, str]]] = {}
+        for x, y, z, wid in fill or []:
+            self.fill.setdefault((int(math.floor(x / CELL_M)), int(math.floor(z / CELL_M))), []).append((y, wid))
+
+    def _filled(self, x: float, z: float, y: float, wid) -> float | None:
+        cx, cz = int(math.floor(x / CELL_M)), int(math.floor(z / CELL_M))
+        best = None
+        for dx in (-1, 0, 1):
+            for dz in (-1, 0, 1):
+                for yy, w in self.fill.get((cx + dx, cz + dz), ()):
+                    if w != wid and abs(yy - y) <= FILL_DY and (best is None or abs(yy - y) < abs(best - y)):
+                        best = yy
+        return best
+
+    def _floor(self, x: float, z: float, y: float, wid) -> tuple[str, float] | None:
+        hit = self.nm.floor_tri_at(x, z, y)
+        if hit is not None and abs(hit[0] - y) <= STEP_DY:
+            return "floor", hit[0]
+        f = self._filled(x, z, y, wid)
+        if f is not None:
+            return "fill", f
+        if hit is not None and hit[0] < y - FALL_DY:
+            return "fall", hit[0]
+        return None
+
+    def move(self, old: State, new: State, wid=None) -> State:
+        dx, dz = new.x - old.x, new.z - old.z
+        if dx * dx + dz * dz < 1e-12:
+            return new
+        here = self._floor(new.x, new.z, old.y, wid)
+        if here is None:
+            for deg in SLIDE_DEGS:
+                c = math.cos(math.radians(deg))
+                opts = []
+                for a in (math.radians(deg), -math.radians(deg)):
+                    sx = (dx * math.cos(a) + dz * math.sin(a)) * c
+                    sz = (-dx * math.sin(a) + dz * math.cos(a)) * c
+                    h = self._floor(old.x + sx, old.z + sz, old.y, wid)
+                    if h is not None and h[0] != "fall":
+                        opts.append((sx, sz, h))
+                if len(opts) == 1:                       # the wall lies on one side: slide that way
+                    sx, sz, here = opts[0]
+                    new = replace(new, x=old.x + sx, z=old.z + sz)
+                    break
+                if len(opts) == 2:                       # both sides open at the same angle = pushing square into it
+                    break
+        if here is None:
+            self.blocked += 1
+            return replace(new, x=old.x, z=old.z, y=old.y)
+        if here[0] == "fall":
+            self.falls += 1
+        return replace(new, y=here[1])
+
+
+def world_for(nms: dict, segs: list[dict], fill_segs: list[dict] | None = None) -> "World":
+    """The map whose NavMesh holds most of these segments' frames, with an off-mesh fill from fill_segs' positions."""
+    pts = [(fr[1], fr[5], fr[2]) for sg in segs for fr in sg["frames"] if len(fr) > 5]
+    nm = max(nms.values(), key=lambda m: sum(m.on_mesh(x, y, z) for x, y, z in pts[::5]))
+    fill = [(fr[1], fr[5], fr[2], sg.get("walk")) for sg in (fill_segs or []) for fr in sg["frames"] if len(fr) > 5]
+    return World(nm, fill)
+
+
+def attach_worlds(data: dict[str, list[dict]], nms: dict) -> None:
+    """Give every segment seg["world"]: its map's NavMesh, filled off-mesh from all files' positions (minus its own
+    walk — World leaves those out by walk id)."""
+    allsegs = [s for v in data.values() for s in v]
+    for segs in data.values():
+        if segs:
+            w = world_for(nms, segs, allsegs)
+            for sg in segs:
+                sg["world"] = w
+
+
+def load_navmeshes(folder: Path = ROOT / "data" / "samples") -> dict:
+    import navmesh
+    return {p.stem.replace("navmesh_", ""): navmesh.Navmesh.from_npz(p) for p in sorted(folder.glob("navmesh_*.npz"))}
 
 
 def _mean(xs: list[float]) -> float:
@@ -219,11 +328,11 @@ FIT_KEYS = {"v_jog": (2.5, 4.0), "v_run": (3.0, 5.5), "turn": (2.0, 30.0), "tau_
 
 
 def fit(segs: list[dict], p0: Params | None = None, horizon: float = 0.5, rounds: int = 3,
-        keys: tuple[str, ...] | None = None) -> Params:
+        keys: tuple[str, ...] | None = None, every: int = 2) -> Params:
     """Coordinate search over FIT_KEYS (or `keys`) minimising the mean position error at `horizon`. dead / walk band
     stay at the measured values — the demos hold few half-stick samples."""
     p = p0 or Params()
-    best = _mean(errors(p, segs, horizon))
+    best = _mean(errors(p, segs, horizon, every))
     for _ in range(rounds):
         for key, (lo, hi) in FIT_KEYS.items():
             if keys is not None and key not in keys:
@@ -234,7 +343,7 @@ def fit(segs: list[dict], p0: Params | None = None, horizon: float = 0.5, rounds
                 for v in (cur - span, cur + span):
                     v = min(hi, max(lo, v))
                     q = replace(p, **{key: v})
-                    e = _mean(errors(q, segs, horizon))
+                    e = _mean(errors(q, segs, horizon, every))
                     if e < best - 1e-6:
                         p, best = q, e
     return p
@@ -260,11 +369,29 @@ def cross_check(data: dict[str, list[dict]], horizons=(0.5, 1.0), keys: tuple[st
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("cmd", choices=["fit"])
+    ap.add_argument("cmd", choices=["fit", "walls"])
     ap.add_argument("files", nargs="*")
     ap.add_argument("--slot", type=int, default=None, help="XInput slot of the pad to use (bot = 1 in radar recordings)")
     a = ap.parse_args()
     files = a.files or sorted(glob.glob(str(ROOT / "data" / "samples" / "observe_*.jsonl")))
+    if a.cmd == "walls":
+        files = a.files or sorted(glob.glob(str(ROOT / "data" / "samples" / "radar_walk_*.jsonl")))
+        data = load(files, a.slot)
+        attach_worlds(data, load_navmeshes())
+        p = Params()
+        print(f"1 s position error (m) p50 / p90 with the default params {[round(v, 2) for v in asdict(p).values()]}")
+        print(f"  {'file':<32} {'map':<13} | {'walls':>11} | {'no walls':>11} | {'keep velocity':>13} | falls  blocked steps")
+        for n, segs in data.items():
+            if not segs:
+                continue
+            w = segs[0]["world"]
+            w.falls = w.blocked = 0
+            e_w = errors(p, segs, 1.0)
+            fl, bl = w.falls, w.blocked
+            f = lambda xs: f"{_q(xs, .5):5.2f}/{_q(xs, .9):5.2f}"
+            print(f"  {n[:32]:<32} {w.nm.map_id:<13} | {f(e_w):>11} | {f(errors(p, segs, 1.0, world=False)):>11} | "
+                  f"{f(errors(None, segs, 1.0)):>13} | {fl:5d}  {bl}")
+        return
     data = load(files, a.slot)
     n_seg = sum(len(s) for s in data.values())
     n_fr = sum(len(x["frames"]) for s in data.values() for x in s)

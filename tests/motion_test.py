@@ -137,5 +137,47 @@ check("load() spots a walk-cut file and uses the cuts", len(segs_b) == sum(len(w
 check("on the bot's walks the default model beats 'keep velocity' at 1 s (median)",
       M._q(M.errors(P, segs_b, 1.0), 0.5) < M._q(M.errors(None, segs_b, 1.0), 0.5))
 
+print("world: floor, walls, drops, off-mesh fill")
+
+
+class FakeMesh:
+    """Corridor floor y 0 for x 0~10, z 0~2; a floor 5 m lower beside it (z < 0); nothing for z > 2 (a wall) or x > 10
+    (no NavMesh — like the secret passage)."""
+    map_id = "fake"
+
+    def floor_tri_at(self, x, z, y):
+        if 0 <= x <= 10 and 0 <= z <= 2:
+            return (0.0, 0, 1)
+        if 0 <= x <= 10 and -6 <= z < 0:
+            return (-5.0, 0, 2)
+        return None
+
+    def on_mesh(self, x, y, z):
+        return self.floor_tri_at(x, z, y) is not None
+
+
+W = M.World(FakeMesh())
+s0 = M.State(5.0, 1.0, 0.0, 3.0, 0.0)
+moved = W.move(s0, M.State(5.3, 1.0, 0.0, 3.0, 0.0))
+check("along the corridor: goes, height stays", (moved.x, moved.z, moved.y) == (5.3, 1.0, 0.0))
+nearwall = M.State(5.0, 1.95, 0.0, 3.0, 0.0)
+slid = W.move(nearwall, M.State(5.2, 2.15, 0.0, 3.0, 0.0))                 # diagonal into the z = 2 wall
+check("diagonal into a wall: slides along it (x grows, stays inside)", slid.x > 5.0 and slid.z <= 2.0)
+stuck = W.move(nearwall, M.State(5.0, 2.25, 0.0, 3.0, 0.0))                # straight into it
+check("straight into a wall: stays put, counted as blocked", (stuck.x, stuck.z) == (5.0, 1.95) and W.blocked == 1)
+fell = W.move(M.State(5.0, 0.05, 0.0, 3.0, 0.0), M.State(5.0, -0.25, 0.0, 3.0, 0.0))
+check("off the low edge: falls to the floor 5 m below, counted", fell.y == -5.0 and W.falls == 1)
+Wf = M.World(FakeMesh(), fill=[(10.0 + 0.25 * k, 0.1, 1.0, "other walk") for k in range(9)])
+s1 = M.State(9.9, 1.0, 0.0, 3.0, 0.0)
+check("off the mesh where another walk went (fill): goes, at the recorded height",
+      Wf.move(s1, M.State(10.2, 1.0, 0.0, 3.0, 0.0)).x == 10.2 and Wf.move(s1, M.State(10.2, 1.0, 0.0, 3.0, 0.0)).y == 0.1)
+check("… but not on the walk's own recorded positions (no peeking)",
+      Wf.move(s1, M.State(10.2, 1.0, 0.0, 3.0, 0.0), "other walk").x == 9.9)
+seg = {"frames": [(0.1 * k, 5.0, 1.0 + 0.0 * k, math.pi / 2, 0.0, 0.0) for k in range(12)],
+       "pad": [(0.0, 0.0, 1.0, 0)]}                                          # stick toward +z from x 5: into the wall
+free = M.rollout(P, seg, 1, 1.0, None)
+walled = M.rollout(P, seg, 1, 1.0, M.World(FakeMesh()))
+check("rollout with a world stops at the wall (z ≤ 2); without one it walks through", walled[1] <= 2.0 < free[1])
+
 print(f"\n{'all ok' if not fails else f'{fails} FAILED'}")
 sys.exit(1 if fails else 0)
