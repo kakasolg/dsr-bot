@@ -41,10 +41,11 @@ class Params:
     dead: float = 0.4        # stick below this doesn't move (nav.CREEP_STICK note: guard up, < 0.4 = stop)
     walk_hi: float = 0.7     # 0.4 ~ 0.7 = walk (same note)
     v_walk: float = 1.64     # m/s (same note, measured)
-    v_jog: float = 3.27      # m/s full stick — fitted below
-    v_run: float = 3.98      # m/s B held
+    v_jog: float = 3.42      # m/s full stick — fitted on the bot's walks with walls (2026-10-01; demos alone: 3.27~3.42)
+    v_run: float = 3.98      # m/s B held — from the demos (the bot's B frames are stuck-escape pushes, not runs)
     turn: float = 10.0       # rad/s max facing turn rate
-    tau_up: float = 0.15     # s speed-up time constant
+    tau_up: float = 0.8      # s speed-up — sits on the fit bound: stands in for the turn the 10 Hz data can't see (turning
+                             # before moving off); without the passage-exit walks it fits 0.27 — see ROADMAP 6-a
     tau_down: float = 0.10   # s slow-down time constant
 
 

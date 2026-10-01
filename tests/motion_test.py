@@ -45,6 +45,7 @@ check("full stick + B → run", M.target(P, 0.0, 1.0, 0.0, M.BTN_B)[1] == P.v_ru
 check("B with half stick → still walk (can't run slowly)", M.target(P, 0.0, 0.55, 0.0, M.BTN_B)[1] == P.v_walk)
 
 print("step")
+P = replace(M.Params(), tau_up=0.15)                   # the step checks below assume a quick speed-up
 s = M.State(0.0, 0.0, 0.0, 0.0)
 for _ in range(120):                                   # 2 s full stick straight ahead (+z, cam 0)
     s = M.step(P, s, 0.0, 1.0, 0.0, 0)
@@ -113,7 +114,7 @@ e_true = M.errors(TRUE, segs, 1.0)
 check("rollout with the true params ≈ exact (p90 < 0.25 m at 1 s — start speed comes from 10 Hz frames)",
       M._q(e_true, 0.9) < 0.25)
 e_def = M.errors(P, segs, 1.0)
-fit = M.fit(segs, horizon=1.0, rounds=2)
+fit = M.fit(segs, p0=replace(M.Params(), tau_up=0.15), horizon=1.0, rounds=2)
 e_fit = M.errors(fit, segs, 1.0)
 check("fit brings the 1 s error down from the defaults", M._mean(e_fit) < M._mean(e_def) * 0.7)
 check("fit recovers v_jog / v_run within 0.25 m/s", abs(fit.v_jog - TRUE.v_jog) < 0.25 and abs(fit.v_run - TRUE.v_run) < 0.25)
