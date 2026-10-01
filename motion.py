@@ -1,7 +1,8 @@
 """Movement model — how the character moves for a stick input (ROADMAP 6-a layer 2). No game.
 
   python motion.py fit                         fit on data/samples/observe_*.jsonl (human demos), leave-one-file-out check
-  python motion.py fit data/radar/x.jsonl --slot 1    the bot's own pad in a radar recording (the bot is slot 1)
+  python motion.py fit data/samples/radar_walk_*.jsonl   the bot's own walks ([win] cuts: each walk carries its bot_slot)
+  python motion.py fit data/radar/x.jsonl --slot 1    a whole radar recording (bot pad slot 1 if a human pad was plugged in)
 
 The walk harness's layer 2 runs nav.goto against this instead of the game. Model (measured on the human demos first:
 the character moves in the stick's world direction — median 0.7° off — and faces the same way, heading + π):
@@ -17,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import glob
+import json
 import math
 import sys
 from dataclasses import asdict, dataclass, replace
@@ -116,9 +118,39 @@ def segments(msgs: list[dict], slot: int | None = None) -> list[dict]:
     return res
 
 
+def load_walk_cuts(path: str) -> list[dict]:
+    """[win]'s bot walk cuts (data/samples/radar_walk_*.jsonl, experiments/radar_walk_export.py): each walk is a
+    {"type": "walk", src, tag, t0, t1, bot_slot} line followed by its snap / pad / say lines. Times are per source
+    recording, and the bot's pad slot differs by recording (1 with a human pad plugged in, else 0) — so every walk is
+    cut apart and read with its own bot_slot. → [{tag, src, slot, segs}]"""
+    walks, cur = [], None
+    for line in open(path, encoding="utf-8"):
+        try:
+            m = json.loads(line)
+        except ValueError:
+            continue
+        if m.get("type") == "walk":
+            cur = {"tag": m.get("tag"), "src": m.get("src"), "slot": m.get("bot_slot"), "msgs": []}
+            walks.append(cur)
+        elif cur is not None:
+            cur["msgs"].append(m)
+    return [{"tag": w["tag"], "src": w["src"], "slot": w["slot"],
+             "segs": segments(sorted(w["msgs"], key=lambda m: m.get("rt", 0.0)), w["slot"])} for w in walks]
+
+
 def load(files: list[str], slot: int | None = None) -> dict[str, list[dict]]:
+    """{file name: segments}. Walk-cut files (radar_walk_*) use each walk's bot_slot; others go through
+    radar_record.load (radar recordings and observe_record.py demos) with `slot`."""
     import radar_record
-    return {Path(f).name: segments(radar_record.load(f), slot) for f in files}
+    out = {}
+    for f in files:
+        with open(f, encoding="utf-8") as fh:
+            first = fh.readline()
+        if '"type": "walk"' in first or '"type":"walk"' in first:
+            out[Path(f).name] = [s for w in load_walk_cuts(f) for s in w["segs"]]
+        else:
+            out[Path(f).name] = segments(radar_record.load(f), slot)
+    return out
 
 
 def _pad_at(pad: list, t: float, j: int) -> tuple[int, tuple]:
@@ -186,13 +218,16 @@ FIT_KEYS = {"v_jog": (2.5, 4.0), "v_run": (3.0, 5.5), "turn": (2.0, 30.0), "tau_
 # is the only slow-turn measurement so far.
 
 
-def fit(segs: list[dict], p0: Params | None = None, horizon: float = 0.5, rounds: int = 3) -> Params:
-    """Coordinate search over FIT_KEYS minimising the mean position error at `horizon`. dead / walk band stay at the
-    measured values — the demos hold few half-stick samples."""
+def fit(segs: list[dict], p0: Params | None = None, horizon: float = 0.5, rounds: int = 3,
+        keys: tuple[str, ...] | None = None) -> Params:
+    """Coordinate search over FIT_KEYS (or `keys`) minimising the mean position error at `horizon`. dead / walk band
+    stay at the measured values — the demos hold few half-stick samples."""
     p = p0 or Params()
     best = _mean(errors(p, segs, horizon))
     for _ in range(rounds):
         for key, (lo, hi) in FIT_KEYS.items():
+            if keys is not None and key not in keys:
+                continue
             for frac in (0.5, 0.25, 0.1):
                 cur = getattr(p, key)
                 span = (hi - lo) * frac
@@ -210,13 +245,13 @@ def _q(xs: list[float], f: float) -> float:
     return xs[int(f * (len(xs) - 1))] if xs else math.nan
 
 
-def cross_check(data: dict[str, list[dict]], horizons=(0.5, 1.0)) -> list[dict]:
+def cross_check(data: dict[str, list[dict]], horizons=(0.5, 1.0), keys: tuple[str, ...] | None = None) -> list[dict]:
     """Leave one file out: fit on the rest, error on it. → rows per (file, horizon) for model / keep velocity / stand."""
     rows = []
     names = [n for n, s in data.items() if s]
     for n in names:
         train = [s for m in names if m != n for s in data[m]]
-        p = fit(train) if train else Params()
+        p = fit(train, keys=keys) if train else Params()
         for h in horizons:
             rows.append({"file": n, "h": h, "model": errors(p, data[n], h), "keep_v": errors(None, data[n], h),
                          "stay": errors("stay", data[n], h), "params": p})
@@ -235,11 +270,17 @@ def main() -> None:
     n_fr = sum(len(x["frames"]) for s in data.values() for x in s)
     print(f"{len(files)} files, {n_seg} free-movement segments, {n_fr} frames ({n_fr / 10:.0f} s at 10 Hz)")
     allsegs = [s for v in data.values() for s in v]
-    p = fit(allsegs)
+    keys = None
+    if any(n.startswith("radar_walk_") for n in data):
+        # the bot holds B mostly right after a stuck escape ('re-approach running', nav.goto boost_until) — still
+        # pressed against the wall, so B frames move 0.7 m/s (median): v_run can't be fitted without walls. Keep it.
+        keys = tuple(k for k in FIT_KEYS if k != "v_run")
+        print(f"bot walks: v_run kept at {Params().v_run} (B frames are stuck-escape re-approaches against walls)")
+    p = fit(allsegs, keys=keys)
     print("fitted on all:", {k: round(v, 3) for k, v in asdict(p).items()})
     print(f"\nleave one file out — position error (m) p50 / p90:")
     print(f"  {'held-out file':<44} {'h':>4} | {'model':>11} | {'keep velocity':>13} | {'stand still':>11}")
-    for r in cross_check(data):
+    for r in cross_check(data, keys=keys):
         f = lambda xs: f"{_q(xs, .5):5.2f}/{_q(xs, .9):5.2f}"
         print(f"  {r['file'][:44]:<44} {r['h']:4.1f} | {f(r['model']):>11} | {f(r['keep_v']):>13} | {f(r['stay']):>11}"
               f"  (n {len(r['model'])})")

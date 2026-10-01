@@ -107,6 +107,28 @@ class Navmesh:
         self._gates: list[list[int]] | None = None
         self.a, self.b, self.c = self.v[self.t[:, 0]], self.v[self.t[:, 1]], self.v[self.t[:, 2]]
 
+    @classmethod
+    def from_npz(cls, path: Path | str) -> "Navmesh":
+        """Load a NavMesh exported by experiments/navmesh_export.py (data/samples/navmesh_<map>.npz) — no game folder,
+        no soulstruct (the cloud worker and the walk harness's layer 2, ROADMAP 6-a). Same v/t/flags/piece/adj and MCG
+        gates as reading the game files."""
+        d = np.load(path)
+        nm = cls.__new__(cls)
+        nm.map_id = str(d["map_id"])
+        nm.model_tri_offset = {}
+        nm.v = d["v"].astype(np.float64)
+        nm.t = d["t"].astype(np.int64)
+        nm.flags = d["flags"].astype(np.int64)
+        nm.piece = d["piece"].astype(np.int64)
+        nm.adj = d["adj"].astype(np.int64)
+        nm.centroid = (nm.v[nm.t[:, 0]] + nm.v[nm.t[:, 1]] + nm.v[nm.t[:, 2]]) / 3.0
+        nm.a, nm.b, nm.c = nm.v[nm.t[:, 0]], nm.v[nm.t[:, 1]], nm.v[nm.t[:, 2]]
+        groups: dict[int, list[int]] = {}
+        for ti, gi in zip(d["gate_tri"].tolist(), d["gate_id"].tolist()):
+            groups.setdefault(int(gi), []).append(int(ti))
+        nm._gates = [sorted(g) for _, g in sorted(groups.items())]
+        return nm
+
     def __len__(self) -> int:
         return len(self.t)
 

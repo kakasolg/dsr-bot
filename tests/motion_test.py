@@ -127,5 +127,15 @@ check("demos give free-movement segments", len(segs) >= 5 and sum(len(s["frames"
 e_m, e_v = M.errors(P, segs, 1.0), M.errors(None, segs, 1.0)
 check("default params already beat 'keep velocity' at 1 s on the demos (median)", M._q(e_m, 0.5) < M._q(e_v, 0.5))
 
+print("bot walk cuts from [win] (data/samples/radar_walk_*.jsonl)")
+cuts = M.load_walk_cuts(str(Path(__file__).resolve().parent.parent / "data" / "samples" / "radar_walk_storeroom.jsonl"))
+check("6 walks, each read with its own bot_slot, all give segments", len(cuts) == 6 and all(w["segs"] for w in cuts)
+      and {w["slot"] for w in cuts} <= {0, 1})
+bot = M.load([str(Path(__file__).resolve().parent.parent / "data" / "samples" / "radar_walk_storeroom.jsonl")])
+segs_b = next(iter(bot.values()))
+check("load() spots a walk-cut file and uses the cuts", len(segs_b) == sum(len(w["segs"]) for w in cuts))
+check("on the bot's walks the default model beats 'keep velocity' at 1 s (median)",
+      M._q(M.errors(P, segs_b, 1.0), 0.5) < M._q(M.errors(None, segs_b, 1.0), 0.5))
+
 print(f"\n{'all ok' if not fails else f'{fails} FAILED'}")
 sys.exit(1 if fails else 0)
