@@ -179,7 +179,11 @@ def read_answer(out, allowed_: list, min_conf: float = MIN_CONF) -> dict:
         return {"choice": None, "conf": None, "probs": None, "status": "invalid", "why": f"malformed: {e!r}"[:160]}
     if choice not in allowed_ or not (0.0 <= conf <= 1.0):
         return {"choice": None, "conf": conf, "probs": probs, "status": "invalid", "why": f"not permitted: {choice!r}"}
-    return {"choice": choice, "conf": round(conf, 4), "probs": probs, "status": "ok" if conf >= min_conf else "abstain"}
+    # laya 0.3.23: `confidence` is its calibrated sureness (median 0.05 on our states), `answer_confidence` the chosen
+    # option's probability (e.g. 0.40 among 4) — both kept; the gate stays on `confidence` (LAYA.md 9)
+    top = a.get("answer_confidence", probs.get(choice))
+    return {"choice": choice, "conf": round(conf, 4), "top_p": None if top is None else round(float(top), 4), "probs": probs,
+            "status": "ok" if conf >= min_conf else "abstain"}
 
 
 def answer(req: dict, backend, min_conf: float = MIN_CONF) -> dict:

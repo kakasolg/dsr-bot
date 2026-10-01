@@ -167,7 +167,8 @@ def score(cases_path, backend_spec, device=None, limit=None, min_conf=LS.MIN_CON
     backend = LS.make_backend(backend_spec, revision=LS.PINNED_REVISION, device=device) if backend_spec == "laya" \
         else LS.make_backend(backend_spec)
     load_ms = (time.perf_counter() - t0) * 1000
-    out = OUT / f"results_{Path(cases_path).stem.removeprefix('cases_')}_{backend_spec.replace(':', '-')}.jsonl"
+    out = OUT / (f"results_{Path(cases_path).stem.removeprefix('cases_')}_{backend_spec.replace(':', '-')}"
+                 + (f"_{device}" if device else "") + ".jsonl")
     print(f"{len(rows)} cases (deduplicated) · backend {backend.info} · load {load_ms:.0f} ms")
     res = []
     warm = rows[:3]
@@ -254,6 +255,13 @@ def _report_one(title, rs, min_conf, examples) -> None:
         ans = [r for r in comp if r.get("conf") is not None and r.get("status") in ("ok", "abstain") and r["conf"] >= th]
         ag = sum(1 for r in ans if r.get("choice") == r["policy"])
         print(f"    ≥{th:.1f}: 범위 {pct(len(ans), len(comp))} · 일치 {pct(ag, len(ans))}")
+    tops = [r for r in comp if r.get("top_p") is not None or r.get("probs")]
+    if tops:
+        top = lambda r: r["top_p"] if r.get("top_p") is not None else max((r.get("probs") or {0: 0}).values())
+        print("  같은 것을 선택지 확률(top_p) 기준으로:")
+        for th in (0.3, 0.4, 0.5, 0.7):
+            ans = [r for r in tops if r.get("choice") and top(r) >= th]
+            print(f"    top_p ≥{th:.1f}: 범위 {pct(len(ans), len(comp))} · 일치 {pct(sum(1 for r in ans if r['choice'] == r['policy']), len(ans))}")
     labels = sorted({r["policy"] for r in comp} | {r.get("choice") for r in ok if r.get("choice")})
     print("  혼동표 (행 = 규칙, 열 = Laya, 답한 것만):")
     print("    " + " " * 14 + "".join(f"{l[:9]:>10}" for l in labels) + "      합계  일치율")

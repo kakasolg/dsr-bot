@@ -201,7 +201,8 @@
 ## 1-i. Laya 섀도 모드 — 로컬 판단 모델 검증 (2026-10-01 [MoKa] 요청)
 
 Laya가 싸움 상태를 보고 이미 있는 전술 후보 중 하나를 고르게 하되 **기록만** (패드·규칙 반영 없음). 설계·숫자는 LAYA.md.
-- [~] [win] 섀도 경계·오프라인 평가 — `laya_shadow.py`(특징·마스크·Advisor·WorkerChannel), `laya_worker.py`(별도 프로세스, WSL), `laya_eval.py`(cases golden/logs → score → report), `duel(advisor=None)`·`Field.fight`·`run.py --laya-shadow`. 확인: duel_golden 40,320 그대로, `tests/laya_shadow_test.py`(advisor 3가지로 10,080 상황 trace 같음, Moves 접근 0, 느린·없는 워커에 offer ≤0.1 ms), pytest 52 통과, WSL 전달 시험 200/200. **남은 것**: WSL에 torch·laya 설치와 체크포인트 받기([MoKa] 승인 대기, LAYA.md 6) → 실제 Laya로 score·report
+- [x] [win] 섀도 경계·오프라인 평가 — `laya_shadow.py`(특징·마스크·Advisor·WorkerChannel), `laya_worker.py`(별도 프로세스, WSL), `laya_eval.py`(cases golden/logs → score → report), `duel(advisor=None)`·`Field.fight`·`run.py --laya-shadow`. 확인: duel_golden 40,320 그대로, `tests/laya_shadow_test.py`(advisor 3가지로 10,080 상황 trace 같음, Moves 접근 0, 느린·없는 워커에 offer ≤0.1 ms), pytest 52 통과
+- [x] [win] WSL 설치([MoKa] 승인)·실제 Laya 평가 (LAYA.md 9): 421 M·804 MB 체크포인트, CUDA 추론 p50 ~19~20 ms·p95 ~21 ms, 실제 경로 요청→답 p50 23.7·p95 44 ms, CPU p50 ~330 ms. 금지 제안 0. **하지만 보류 99.9 %, 보류 없이 일치 golden 45.9 %·logs 38.4 %(기준선 수준), approach 0번, 후보 순서만 바꿔도 43 % 답이 바뀜** → 이대로는 판단에 못 씀. 다음 (a) 멈춤 (b) noul 질문으로 다시 평가 (c) 미세조정 — [MoKa] 결정 대기
 - [ ] [win] (허락 뒤) `run.py burg-bonfire --basic --laya-shadow` — 섀도 켠 실행과 끈 실행의 `blind_report.py`·틱 수 비교, `.laya.jsonl` report
 
 ## 1-f. 모퉁이에서 일찍 꺾기 · 제자리 비비기 · 뒤돌기 (2026-09-28 [사람] 관찰)
