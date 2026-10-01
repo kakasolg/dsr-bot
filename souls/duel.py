@@ -1112,15 +1112,22 @@ def _at_wall(nm, p) -> bool:
 
 
 def _walled(nm, p, c) -> float | None:
-    """Distance from us or the foe (whichever is closer) to a NavMesh border, if within WALL_R — else None."""
-    bd = getattr(nm, "border_dist", None)
-    if bd is None:
-        return None
-    try:
-        d = min(bd(p.x, p.y, p.z), bd(c.x, c.y, c.z))
-    except Exception:
-        return None
-    return d if d < WALL_R else None
+    """Distance from us or the foe (whichever is closer) to a wall, if within WALL_R — else None.
+    Navmesh.wall_dist (real walls only); border_dist counted seams between NavMesh pieces too — MoKa's wall spot read 'wall 0.08 m'
+    at a seam with the real wall 1.76 m off (2026-09-30, [MoKa]: use wall_dist). A NavMesh without wall_dist → border_dist."""
+    for name in ("wall_dist", "border_dist"):
+        fn = getattr(nm, name, None)
+        if fn is None:
+            continue
+        try:
+            a, b = fn(p.x, p.y, p.z), fn(c.x, c.y, c.z)
+        except Exception:
+            return None
+        if a is None or b is None:
+            continue
+        d = min(a, b)
+        return d if d < WALL_R else None
+    return None
 
 
 def _two_handed(F) -> bool:
