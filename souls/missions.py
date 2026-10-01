@@ -57,6 +57,7 @@ NO_LURE = {1}            # #1 is on a high spot: from afar it's blocked by rocks
 # ("Not a good method, but for now it breaks the order too much, no choice" — script the demo order as-is instead of generalized judgment).
 # The firebomb one (254012) early, the two shield soldiers (255000·255002) last — also consistent with the existing "ranged first"·"shield soldiers later" principles.
 BURG_TOWN = json.loads((DATA / "burg-town-map.json").read_text(encoding="utf-8"))["enemies"]
+STAIRS_TOP_K = 22       # route b (passage-merchant.json) point at the top of the town entrance stairs (−64.3, −23.3, −21.4)
 BURG_CAREFUL = {1, 2, 3, 4, 5, 6}   # BURG_TOWN walks done slowly, stopping to pull one at a time (Field.careful_walk_to) — #4 이동 died to three
                          # twice (09-30b, 10-01a). MoKa 2026-10-01: "그쪽으로 가게 되면 천천히 가고, 대기하면서 한 명씩 끌어당겨야 함", then "행동이 아니라
                          # 천천히 움직이며 하나씩 끌어당기려는 전술적 플레이가 부족" → all six, not just #4
@@ -208,6 +209,21 @@ class Missions:
         self.log(f"── 경사로: {r}")
         return r
 
+    def _climb_entry_stairs(self, nb) -> None:
+        """Town entrance → top of the stairs (route b point STAIRS_TOP_K) as a normal walk — [MoKa] 2026-10-01: "계단까지는 안전 구역이니
+        쭉 올라가도 돼". The slow pull-one-at-a-time walk (BURG_CAREFUL) starts at the top. Only when we stand on those stairs now."""
+        _, _, R = _route()
+        stairs = [tuple(q) for q in R["b"][:STAIRS_TOP_K + 1]]
+        s = self.f.snap_settled(5.0)
+        if s is None:
+            return
+        here = (s.player.x, s.player.y, s.player.z)
+        k = min(range(len(stairs)), key=lambda j: math.dist(stairs[j], here))
+        if math.dist(stairs[k], here) > 4.0 or k >= STAIRS_TOP_K:
+            return
+        r = self.f.walk(stairs[k:], nb, "계단 위로", tol=0.8)
+        self.log(f"   계단 위로 (안전 구역): {r}")
+
     def clear_burg_town(self, only: set | None = None) -> str:
         """Kill the 6 in Undead Burg in exactly the order the user killed them (BURG_TOWN).
         **Uses walk_to() instead of field.clear()** — initially used clear() and it failed when measured (2026-09-25, burg-loop 101100):
@@ -216,6 +232,7 @@ class Missions:
         So for each target, first walk_to() along a real path to its coordinates (awake enemies on the way are engaged by walk()'s
         chaser automatically — sometimes the target itself is already killed on the way), and after arriving, fight() it if alive."""
         nb = self.nms[MAP_B]
+        self._climb_entry_stairs(nb)
         for i, e in enumerate(BURG_TOWN, 1):
             if only is not None and i not in only:
                 continue
