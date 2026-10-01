@@ -184,10 +184,38 @@ def test_losing_fight_ends() -> None:
     print("ok  losing fight (35 % taken, < half dealt) ends 'losing'; a nearly dead foe is finished")
 
 
+
+def test_basic_mode_no_backstab_no_heavy() -> None:
+    """run.py --basic ([MoKa] 2026-10-01): shield + light only."""
+    old = D.CIRCLE_MAX_SWEEPS, D.BACKSTAB, D.HEAVY, D._room_behind, D._backstab
+    tried = []
+    D.CIRCLE_MAX_SWEEPS, D.BACKSTAB, D.HEAVY = 3, False, False
+    D._room_behind = lambda *a, **k: True
+    D._backstab = lambda *a, **k: (tried.append(1), "not_behind")[1]
+    try:
+        w = World(player=(0.0, -49.4, 0.0), sp=90, hp=682)
+        w.add(2, 0x1018, 254010, (1.0, -49.4, 0.0), anim=3000)
+        mv = DuelMv(w, 2)
+        mv.tm.grip = lambda: 3
+        heavies = []
+        mv.heavy = lambda s, c: (heavies.append(1), D.M.Hit("heavy", presses=1))[1]
+        n = {"k": 0}
+
+        def cancel():
+            n["k"] += 1
+            return n["k"] > 6
+        D.duel(mv, AXE, 2, Nm(wall_x=0.3), log=lambda *a: None, cancel=cancel, reflex=None, gen=0, events=lambda *a, **k: None)
+        assert not tried and not heavies, (tried, heavies)
+    finally:
+        D.CIRCLE_MAX_SWEEPS, D.BACKSTAB, D.HEAVY, D._room_behind, D._backstab = old
+    print("ok  --basic: one swinging hollow by a wall, two hands → no backstab, no heavy")
+
+
 if __name__ == "__main__":
     test_duel_wall_back()
     test_no_backstab_in_crowd()
     test_back_to_wall_picks_spot()
     test_edge_kinds()
     test_losing_fight_ends()
+    test_basic_mode_no_backstab_no_heavy()
     print("전부 통과")

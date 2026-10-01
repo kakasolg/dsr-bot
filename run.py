@@ -86,6 +86,7 @@ def main() -> None:
     ap.add_argument("--i", type=int, default=5, help="hunt-one: BURG_TOWN 몇 번째 (5 = 석궁병 255002)")
     ap.add_argument("--seg", default=None, help="asylum: 구간 번호 또는 범위 (기본 1; 1 = 감방 → 사다리 → 첫 화톳불, 2-3 = 이어서, ROADMAP 1-h). "
                     "burg-bonfire: 구역 하나 또는 범위만 하고 멈춤 — 1 경사로 · 2 비밀 통로 · 3 마을 #1~#3 · 4 마을 #4~#6 · 5 상인 · 6 화톳불 (기본: 전부)")
+    ap.add_argument("--basic", action="store_true", help="방패 + 약공만 — 뒤잡기·벽 강공·양손 전환 끔 ([MoKa] 2026-10-01, duel.BACKSTAB/HEAVY)")
     ap.add_argument("--radar", action="store_true", help="send state to the radar (view with radar_server.py / overlay.py)")
     ap.add_argument("--no-lure", action="store_true", help="나이프로 한 놈씩 깨우지 않고 예전처럼 걸어가 붙는다 (비교용)")
     ap.add_argument("--style", choices=["guard", "backstep", "rush"], default="guard",
@@ -175,6 +176,10 @@ def main() -> None:
     from souls.camera import CamFollow
     cam = CamFollow(mv, esc, log=log).start()          # so a viewer can see what the bot is doing (user 2026-09-26)
     log(f"스타일: {a.style}")
+    if a.basic:
+        from souls import duel as duel_
+        duel_.BACKSTAB, duel_.HEAVY = False, False
+        log("기본 플레이: 방패 + 약공만 (뒤잡기·강공 끔)")
     log.event("style", style=a.style)
     try:   # log character state each run — level-ups, rings (poise) and weapon change results, and without records batch comparisons got muddy (user 2026-09-25)
         st, eq = tm.char_stats(), tm.equipment()

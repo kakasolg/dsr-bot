@@ -55,6 +55,8 @@ RULES: list[tuple[str, str]] = [
     (r"^경로가 (\w+) \((\w+)\) 위를 지나감 — 옆 ([\d.]+) m로 비켜 감", r"path crosses \1 (\2) — detouring \3 m to the side"),
     (r"^(.*): (\d+) 끌어오기 (\d+)번째 — (\w+)", r"\1: lure \2 (try \3) — \4"),
     (r"락온 안 걸림 — (\d+) m 까지 다가감", r"no lock-on — closing to \1 m"),
+    (r"^기본 플레이: 방패 \+ 약공만 \(뒤잡기·강공 끔\)", r"basic play: shield + light only (backstab and heavy off)"),
+    (r"^══ 구역 (\d+) \((\w+)\) 끝: (.*)", r"══ zone \1 (\2) done: \3"),
     (r"^(.*): 나이프 (\d+) \((.*?)\) → 피해 (\S+), 반응 없음 \| 락온 안 걸림 — 안 던짐 \(락온 없는 나이프는 오늘 (\S+)\)",
      r"\1: knife \2 (\3) → damage \4, no reaction | no lock-on — not thrown (knives without lock-on today \5)"),
     (r"^핏자국: (회수|못 주움) \(소울 (\d+) → (\S+)\)",

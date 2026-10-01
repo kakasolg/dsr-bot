@@ -60,6 +60,10 @@ SEEK_R = 100.0           # search for it within this radius — at 40 m it misse
 CIRCLE_MAX_SWEEPS = 2    # tries per foe before normal attacks (99 during the 2026-09-28 "backstab no matter what" runs)
 BACK_CHECK_M = (0.5, 1.0, 1.5, 2.0)   # floor checked this far behind the foe (_room_behind)
 FOOT_R = 1.0            # after a backstab: floor this far round us, or step back to where we started it
+BACKSTAB = True          # False (run.py --basic): no backstab tries at all — shield + light only ([MoKa] 2026-10-01: "뒤잡기를 임시로 하지 말고,
+                         # 방패, 약공 플레이로 새로 시작해봐" — the backstab rules took over guarding: no guard while closing in on an idle foe,
+                         # no block when it swung within 2 m; with the Battle Axe 8/8 swing-backstabs were normal hits)
+HEAVY = True             # False (run.py --basic): no wall heavy / two-hand switch either
 BACKSTAB_ONLY = False    # True: against hollows only the backstab (no hit-first, no stagger punish). Off: backstab when the checks allow it, else the usual rules (user 2026-09-28)
 # backstab — from 3 human demos (backstab_report.py, observe_backstab_*.jsonl, 2026-09-28): lock-on stays ON while circling (aim ≤ 6°),
 # circling at body contact 0.85–0.96 m with the stick full (≥ 1.0, 2.5–3.9 m/s), behind within 0.6–1.1 s; R1 at 130–180° behind with the
@@ -787,7 +791,7 @@ def prep_linger(F, T):
     if T.a in M.ATTACK and T.age is not None and T.age > SWING_S:
         T.a = -1
     foe = F.foe
-    T.room = foe is not None and foe.circle_behind and T.now >= F.edge_until and _room_behind(F.nm, T.p, T.c)
+    T.room = BACKSTAB and foe is not None and foe.circle_behind and T.now >= F.edge_until and _room_behind(F.nm, T.p, T.c)
     if T.room and _crowd(T.s, F.ptr) >= NO_BACKSTAB_N:
         # 둘 이상 붙었으면 뒤잡기로 돌지 않고 약공·방패 ([MoKa] 2026-10-01: 비밀 통로 지나 만나는 둘은 구조적으로 동시에 2:1 —
         # 약공·방패 플레이가 맞음). 도는 동안 다른 놈에게 맞음 (P-29: 셋에게 뒤잡기 4번 모두 실패, 사망)
@@ -1196,7 +1200,7 @@ def _slam(F, s, c, swinging: bool = False) -> float | None:
      · 양손 전환은 확실한 1:1에서만(ALONE_R 6 m 안 다른 적 없음), 3.5 m 안 다른 적이 있으면 벽 강공 안 함 ([MoKa] 2026-10-01, _heavy_ok)
      · 적이 휘두르는 중에 끊어 치기로는 안 씀 (강공은 느림)"""
     w = F.weapon
-    if not w.heavy_vertical or swinging or (s.player.sp or 0) < WALL_HEAVY_SP or not _heavy_ok(F, s):
+    if not HEAVY or not w.heavy_vertical or swinging or (s.player.sp or 0) < WALL_HEAVY_SP or not _heavy_ok(F, s):
         return None
     return _walled(F.nm, s.player, c)
 
