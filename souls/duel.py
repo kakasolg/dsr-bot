@@ -35,6 +35,8 @@ FINISH_KEEP_HP = 40     # if its HP is below this, don't retreat even when my HP
 FINISH_HP, FINISH_SP = 25, 15   # if its HP is within one light attack (measured 34–41), hit with as little as 15 stamina
 HEAVY_SP = 100           # heavy attack in a stagger opening only at this stamina or more (one heavy while guarding costs 90)
 WALL_R = 1.2             # a NavMesh border (wall or drop) this close to us or the foe → heavy_vertical weapons slam instead of the light
+LOSING_TAKEN = 0.35       # taken this share of max HP in this fight …
+LOSING_DEALT = 0.5        # … while dealing less than this share of the foe's max HP → end 'losing' (Field backs off, heals, comes back)
 NO_BACKSTAB_N = 2        # this many on us (target + moving others within CROWD_R) → no backstab circling, light + shield (2:1, MoKa 2026-10-01)
 WALL_BACK_N = 3          # this many on us (target + moving others within CROWD_R) → back to a wall, one at a time (P-29)
 WALL_AT = 1.2            # already this close to a wall (Navmesh.wall_dist) → stay and fight
@@ -437,7 +439,7 @@ def _interloper(x, p, ptr, h: float) -> bool:
 
 @dataclass
 class DuelResult:
-    result: str                      # killed | me_dead | low_hp | crowd | lost | stalemate | stuck | timeout | cancel
+    result: str                      # killed | me_dead | low_hp | losing | crowd | lost | stalemate | stuck | timeout | cancel
     npc: int | None = None
     vs: int | None = None            # npc actually fought last, when it switched away from the target (interloper / ranged first)
     secs: float = 0.0
@@ -646,6 +648,12 @@ def _sense(F: Fight):
     F.foe = foes_.of(c.npc_param)
     if p.hp < p.max_hp * _low_hp_line(s, F.low_hp) and not (c.hp <= FINISH_KEEP_HP and p.hp >= p.max_hp * 0.12):
         return F.done("low_hp")                            # don't retreat from an almost-dead foe — if we leave and return, a survivor's HP refills
+    # ── 지는 싸움은 일찍 나온다 ([MoKa] 2026-10-01: "전술적인 문제와 후퇴를 더 많이 할 필요") ──
+    #  09-30a~10-01b: 큰 피격의 절반(4779/9824)이 옆에 아무도 없는 1:1에서 망자 연타(3003·3000)를 계속 받은 것, low_hp로 끝난 7번이 2347을 받음
+    #  (25 %까지 버티다 나옴). 이 싸움에서 최대 HP의 LOSING_TAKEN을 받았는데 그놈 HP의 LOSING_DEALT도 못 깎았으면 → 물러나 마시고 다시
+    if (F.low_hp > 0 and p.max_hp and (F.hp_start or 0) - min(F.hp_min or p.hp, p.hp) >= p.max_hp * LOSING_TAKEN
+            and F.res.dealt < (c.max_hp or c.hp or 1) * LOSING_DEALT and c.hp > FINISH_KEEP_HP):
+        return F.done("losing")
     # 둘러싸이면 HP와 상관없이 물러난다 ([MoKa] 2026-09-28: "둘러싸였을 때는 퀵 종료하면 안 되고 후퇴해야 해"). 레벨 낮은 Bandit Bot 은
     # 둘이 같이 치면 0.16 s 에 −237 — HP를 보고 정하면 이미 늦다. 퀵 종료는 그 자리에서 다시 시작해 HP 65 % 로 이어 싸우다 사망
     if F.crowd_ok and _crowd(s, F.ptr) >= 2:

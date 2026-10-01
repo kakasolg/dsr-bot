@@ -159,9 +159,35 @@ def test_edge_kinds() -> None:
     print(f"ok  edge_kinds: seam / drop / wall ({ {a: len(b[0]) for a, b in k.items()} })")
 
 
+
+def test_losing_fight_ends() -> None:
+    """Retreat more ([MoKa] 2026-10-01): a fight that already cost LOSING_TAKEN of max HP while dealing < LOSING_DEALT ends 'losing'."""
+    w = World(player=(0.0, -49.4, 0.0), sp=90, hp=793)
+    w.add(2, 0x1018, 254010, (1.0, -49.4, 0.0), anim=3003, hp=75, max_hp=75)
+    mv = DuelMv(w, 2)
+    mv.tm.grip = lambda: 1
+    n = {"k": 0}
+
+    def cancel():
+        n["k"] += 1
+        if n["k"] == 2:
+            w.player.hp = 793 - int(793 * D.LOSING_TAKEN) - 5               # took a big combo, dealt nothing
+        return n["k"] > 6
+    r = D.duel(mv, AXE, 2, Nm(wall_x=0.5), log=lambda *a: None, cancel=cancel, reflex=None, gen=0, events=lambda *a, **k: None,
+               low_hp=0.25)
+    assert r.result == "losing", r.result
+    w.player.hp, n["k"] = 793, 0
+    w.chars[2].hp = 20                                                       # nearly dead → stay and finish it
+    r = D.duel(mv, AXE, 2, Nm(wall_x=0.5), log=lambda *a: None, cancel=cancel, reflex=None, gen=0, events=lambda *a, **k: None,
+               low_hp=0.25)
+    assert r.result != "losing", r.result
+    print("ok  losing fight (35 % taken, < half dealt) ends 'losing'; a nearly dead foe is finished")
+
+
 if __name__ == "__main__":
     test_duel_wall_back()
     test_no_backstab_in_crowd()
     test_back_to_wall_picks_spot()
     test_edge_kinds()
+    test_losing_fight_ends()
     print("전부 통과")

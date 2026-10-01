@@ -120,6 +120,9 @@ FALL_BACK_MAX_S = 15.0   # …or after this long
 FALL_BACK_OFF_S = 10.0   # no path back → fight in place this long before trying to fall back again
 CROWD_MAX = 3            # 'crowd' fall-backs within CROWD_WINDOW_S before we stop falling back — the callers don't count a 'crowd' as a try, so without
 CROWD_WINDOW_S = 90.0    # this cap 'crowd → fall_back → crowd' repeats forever (P-26: 16 times, 0 damage dealt, dead)
+RETREAT_CLEAR_R = 10.0   # a retreat goes on until no awake foe is within this (same level) — stopping at safe() (6 m) left the chaser 6–7 m
+                         # behind and the Estus check then said 'foes nearby' (20 times in 09-30a…10-01b)
+RETREAT_HP = 0.5         # leave a fight below this share of max HP (was 0.25 — MoKa 2026-10-01: retreat more; low_hp fights took 335 each)
 WALL_BACK = True         # three or more on us away from a wall → back to a wall and take them one at a time (P-29, duel.WALL_BACK_N)
 WALL_BACK_R = 10.0       # look for a wall spot this far (horizontal) from us
 WALL_SPOT_DROP = 2.5     # …with no drop edge (Navmesh.drop_dist) closer than this — backing into a fight next to a drop is P-14/P-16
@@ -335,8 +338,12 @@ class Field:
                 last[0] = m
             return m
 
+        def clear(sn) -> bool:
+            p = sn.player
+            return self.safe(sn) and not any(awake(c) and M.horiz(p, c) < RETREAT_CLEAR_R and abs(c.y - p.y) < FOLLOW_DY
+                                             for c in sn.hostile(RETREAT_CLEAR_R + 1.0))
         return self.mv.walk_path(nav.trim_path(path[1:], tuple(home)), nm, mode,   # walk, not run: running safety is only a NavMesh estimate (evidence-grade gate, 2026-09-26)
-                                 stop=lambda sn: time.time() - t0 > 3.0 and self.safe(sn))
+                                 stop=lambda sn: time.time() - t0 > 3.0 and clear(sn))
 
     def fall_back(self, nm) -> str:
         """Surrounded (duel 'crowd') — walk back toward home (the way we came: Firelink / the Burg entrance) with the guard up
@@ -490,7 +497,7 @@ class Field:
         try:
             r = D.duel(self.mv, self.w, ptr, nm, log=self.log,
                        cancel=lambda: self.esc.escaping or self.esc.gen != g0 or (leash is not None and leash()),
-                       care=Care(self), reflex=self.reflex, arena=arena, low_hp=0.0 if desperate else 0.25, style=self.style,
+                       care=Care(self), reflex=self.reflex, arena=arena, low_hp=0.0 if desperate else RETREAT_HP, style=self.style,
                        limit=limit, wait_far=wait_far, gen=self.esc.gen, events=self.events, may_approach=may_approach,
                        crowd_ok=CROWD_FALL_BACK and time.time() >= self._crowd_off_until,
                        wall_ok=WALL_BACK and time.time() >= getattr(self, "_wall_off_until", 0.0))
