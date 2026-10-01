@@ -1,6 +1,6 @@
 """락온 정렬 오프라인 테스트 — Moves.lock_target ([MoKa] 2026-10-01: "캐릭터 앞이 어느 정도 적을 향하고 있어야 함").
 
-  R3 전에 몸이 LOCK_BODY_DEG·카메라가 LOCK_CAM_DEG 안이 될 때까지 돌림 · 높이 LOCK_DY 넘게 다른 적은 시도 안 함 · 정렬 값을 last_lock에
+  R3 전에 몸이 LOCK_BODY_DEG·카메라가 LOCK_CAM_DEG 안이 될 때까지 돌림 · 높이가 달라도 시도함(경사로 #5 화염병은 4 m 위 — 높이 제한은 되돌림, [MoKa]: 높이 차는 문제가 아니었음) · 정렬 값을 last_lock에
 
   python tests/lock_align_test.py
 """
@@ -48,14 +48,14 @@ def test_aligns_before_r3() -> None:
     print(f"ok  body 60° / camera 50° off → turned first, R3 pressed at {st['presses'][0]} → locked; last_lock {mv.last_lock}")
 
 
-def test_other_level_skipped() -> None:
-    mv, st = make(dy=5.0)
-    assert mv.lock_target(2) is False and not st["presses"], st
-    assert mv.last_lock.get("why") == "other level", mv.last_lock
-    print("ok  foe 5 m above → no R3 at all")
+def test_other_level_still_tried() -> None:
+    mv, st = make(dy=4.1)                                                # ramp #5 firebomb hollow on its ledge
+    assert mv.lock_target(2) is True and st["presses"], st
+    assert mv.last_lock.get("dy") == 4.1 and abs(mv.last_lock["body"]) <= M.LOCK_BODY_DEG, mv.last_lock
+    print("ok  foe 4.1 m above (ramp #5) → still aligned and R3 pressed")
 
 
 if __name__ == "__main__":
     test_aligns_before_r3()
-    test_other_level_skipped()
+    test_other_level_still_tried()
     print("전부 통과")

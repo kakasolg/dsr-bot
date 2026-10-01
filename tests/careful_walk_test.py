@@ -117,7 +117,7 @@ def test_ignored_foe_on_us_is_a_chaser() -> None:
 
 
 
-def test_no_throw_from_another_height() -> None:
+def test_throw_at_another_height() -> None:
     old = F.CAREFUL_LOOK_S
     F.CAREFUL_LOOK_S = 0.0
     try:
@@ -125,10 +125,10 @@ def test_no_throw_from_another_height() -> None:
         w.add(3, 0x1019, 250000, (4.0, -11.9, 10.0), anim=-1)            # 1.5 m higher (top of the stairs)
         f, seen = setup(w)
         f.careful_walk_to((0.0, -13.4, 3.0), Nm(), "#2 이동")
-        assert ("lure", 3) not in seen, seen
+        assert ("lure", 3) in seen, seen                                  # height was not the problem (MoKa) — alignment was
     finally:
         F.CAREFUL_LOOK_S = old
-    print("ok  a foe 1.5 m higher is not thrown at from below — walk on up first")
+    print("ok  a foe 1.5 m higher is still pulled (the height limit is reverted)")
 
 
 
@@ -160,6 +160,6 @@ if __name__ == "__main__":
     test_order()
     test_no_knife_walks_on()
     test_ignored_foe_on_us_is_a_chaser()
-    test_no_throw_from_another_height()
+    test_throw_at_another_height()
     test_recover_rolls_off_a_close_chaser()
     print("전부 통과")

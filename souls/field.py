@@ -151,7 +151,6 @@ CAREFUL_LEG = 4.0        # careful_walk_to: walk this far, then stop and look
 CAREFUL_LOOK_S = 1.5     # …stand this long (guard up) watching who comes
 CAREFUL_COME_R = 12.0    # an awake, moving foe this close (same level) → wait for it here and fight it alone
 CAREFUL_MAX_S = 240.0
-CAREFUL_LURE_DY = 0.8    # only throw at a foe within this height of us — on stairs / a half level lock-on fails (MoKa 2026-10-01)
 LURE_MIN, LURE_MAX = 6.0, 13.0   # throw conditions on flat ground — closer than this and just walking wakes it; farther and lock-on fails
 KNIFE_LOW = 5            # warn below this — going to buy from the merchant is a later task (user 2026-09-24)
 HOLD_TRIES = 3           # hold-the-spot targets (lure_at.hold): lure attempts; wait HOLD_WAIT in place between them
@@ -1533,9 +1532,7 @@ class Field:
                 if r.result != "killed" and not self.recover(f"{tag} {r.result}", nm) and self.estus_left() <= 0:
                     return "dead"
                 continue
-            # 같은 높이에서만 던진다 ([MoKa] 2026-10-01: "타운에서 위치가 애매한 데서 나이프 던지려는데 락온이 안 돼서 꼬였음 —
-            # 계단에 확실히 올라온 이후에만 락온이 될 것 같음"). 높이가 다르면 던지지 않고 다음 CAREFUL_LEG를 걸어 올라간다
-            idle = [c for c in s.hostile(LURE_MAX) if c.hp > 0 and abs(c.y - p.y) <= CAREFUL_LURE_DY and lured.get(c.ptr, 0) < 2
+            idle = [c for c in s.hostile(LURE_MAX) if c.hp > 0 and same(c) and lured.get(c.ptr, 0) < 2
                     and nm.find_path((p.x, p.y, p.z), (c.x, c.y, c.z))]
             if idle:
                 c = min(idle, key=lambda x: M.horiz(p, x))

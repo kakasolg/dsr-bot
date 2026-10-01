@@ -66,7 +66,6 @@ def rel_angle(p, c) -> float:
 LOCK_BODY_DEG = 20.0     # before R3: body within this of the target …
 LOCK_CAM_DEG = 6.0       # … and camera within this (R3 grabs whatever is nearest camera centre)
 LOCK_ALIGN_S = 1.2       # time allowed to line both up
-LOCK_DY = 2.0            # no lock-on try at a foe more than this above / below (another level)
 
 
 class Moves:
@@ -635,11 +634,6 @@ class Moves:
         self.last_lock = {}
         if self.lock_state(ptr) == "target":
             return True
-        s = self.snap(40.0)
-        c = self.find(s, ptr)
-        if c is not None and abs(c.y - s.player.y) > LOCK_DY:
-            self.last_lock = {"why": "other level", "dy": round(c.y - s.player.y, 1)}
-            return False                          # 10-01d: three tries at a foe 5 m up the stairs — R3 never grabs it from below
         for _ in range(tries):
             if self.lock_state(ptr) == "none":
                 self.last_lock = self._lock_align(ptr, aim)
