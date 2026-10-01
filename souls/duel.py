@@ -35,6 +35,8 @@ FINISH_KEEP_HP = 40     # if its HP is below this, don't retreat even when my HP
 FINISH_HP, FINISH_SP = 25, 15   # if its HP is within one light attack (measured 34–41), hit with as little as 15 stamina
 HEAVY_SP = 100           # heavy attack in a stagger opening only at this stamina or more (one heavy while guarding costs 90)
 WALL_R = 1.2             # a NavMesh border (wall or drop) this close to us or the foe → heavy_vertical weapons slam instead of the light
+WALL_BACK_N = 3          # this many on us (target + moving others within CROWD_R) → back to a wall, one at a time (P-29)
+WALL_AT = 1.2            # already this close to a wall (Navmesh.wall_dist) → stay and fight
 WALL_HEAVY_SP = 60       # …when stamina is at least this (Battle Axe heavy −50, −20 more if it hits the ground)
 INTERRUPT_STARTUP_MAX = 0.45   # weapons with startup longer than this (claymore 0.68 s) can't interrupt a foe that started swinging — only hit idle foes first.
                                # the battle axe had almost no delay and interrupted, but using the same rule with the claymore, the top damage source was hollow (254010) (2026-09-25)
@@ -429,6 +431,7 @@ class DuelResult:
     taken: int = 0
     hits: list = field(default_factory=list)
     rules: dict = field(default_factory=dict)   # rule name → ticks it acted (RULES) — which rules drove this fight
+    wall_back: bool = False          # 'crowd' because WALL_BACK_N were on us away from a wall — Field backs to a wall (not the way home)
 
     def line(self) -> str:
         kinds = [h["kind"] + ("" if h["dmg"] else "×") for h in self.hits]
@@ -505,11 +508,12 @@ class Fight:
     """What one duel remembers across ticks (the old duel() locals). Rules read and change it."""
 
     def __init__(self, mv, weapon, ptr, nm, log, limit, low_hp, cancel, care, reflex, arena, style, wait_far, gen, events,
-                 may_approach, crowd_ok: bool = False):
+                 may_approach, crowd_ok: bool = False, wall_ok: bool = False):
         self.mv, self.weapon, self.ptr, self.nm, self.log, self.limit, self.low_hp = mv, weapon, ptr, nm, log, limit, low_hp
         self.cancel, self.care, self.reflex, self.arena, self.style = cancel, care, reflex, arena, style
         self.wait_far, self.may_approach = wait_far, may_approach
         self.crowd_ok = crowd_ok                           # True: 둘 이상에게 둘러싸이면 HP와 상관없이 싸움을 끝낸다 ('crowd') — Field 가 물러남
+        self.wall_ok = wall_ok                             # True: WALL_BACK_N 이상이 붙었는데 벽 옆이 아니면 끝낸다 ('crowd', wall_back) — Field 가 벽으로
         self.t0 = time.time()
         s0 = mv.snap()
         self.hp_start = s0.player.hp if s0 else 0
@@ -631,6 +635,11 @@ def _sense(F: Fight):
     # 둘러싸이면 HP와 상관없이 물러난다 ([MoKa] 2026-09-28: "둘러싸였을 때는 퀵 종료하면 안 되고 후퇴해야 해"). 레벨 낮은 Bandit Bot 은
     # 둘이 같이 치면 0.16 s 에 −237 — HP를 보고 정하면 이미 늦다. 퀵 종료는 그 자리에서 다시 시작해 HP 65 % 로 이어 싸우다 사망
     if F.crowd_ok and _crowd(s, F.ptr) >= 2:
+        return F.done("crowd")
+    # ── 셋 이상이면 벽으로 (P-29, [MoKa] 2026-09-30: "벽으로 물러나서 하나씩") ──
+    #  09-30b: 망자 254010 셋이 0.85 m로 붙어 싸움 4번에 준 피해 0, 뒤잡기 시도 → edge 반복, 사망. 등을 벽에 대면 뒤로 못 돌아 들어온다
+    if F.wall_ok and _crowd(s, F.ptr) >= WALL_BACK_N and not _at_wall(F.nm, p):
+        F.res.wall_back = True
         return F.done("crowd")
     if now - F.last_dmg_t > STALEMATE_S:
         return F.done("stalemate")
@@ -757,6 +766,8 @@ def prep_linger(F, T):
         T.a = -1
     foe = F.foe
     T.room = foe is not None and foe.circle_behind and T.now >= F.edge_until and _room_behind(F.nm, T.p, T.c)
+    if T.room and _crowd(T.s, F.ptr) >= WALL_BACK_N:
+        T.room = False                                     # 셋 이상 붙었으면 뒤잡기로 돌지 않는다 — 도는 동안 다른 놈들에게 맞음 (P-29)
     # 벽·좁은 통로가 우선 — 배틀 액스(heavy_vertical)면 뒤잡기로 돌지 않고 강공 ([MoKa] 2026-09-28: "벽, 좁은 통로가 우선 순위를 높여줘",
     # 배틀 액스만 가능한 플레이, 다른 무기는 약공이 나음)
     T.wall = _walled(F.nm, T.p, T.c) if F.weapon.heavy_vertical and (_two_handed(F) or _shield_foe(F)) else None
@@ -1089,6 +1100,17 @@ def rule_backstab(F, T):
     return None
 
 
+def _at_wall(nm, p) -> bool:
+    """Our back is within WALL_AT of a wall (Navmesh.wall_dist). No NavMesh / can't tell → True (don't leave the fight for it)."""
+    wd = getattr(nm, "wall_dist", None)
+    if wd is None:
+        return True
+    try:
+        return wd(p.x, p.y, p.z) < WALL_AT
+    except Exception:
+        return True
+
+
 def _walled(nm, p, c) -> float | None:
     """Distance from us or the foe (whichever is closer) to a NavMesh border, if within WALL_R — else None."""
     bd = getattr(nm, "border_dist", None)
@@ -1199,7 +1221,7 @@ RULES = [rule_separate, rule_finish_first, prep_reflex, rule_early_kick, rule_la
 
 def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: float = 0.25,
          cancel=lambda: False, care=None, reflex=None, arena=None, style=None, wait_far: bool = False,
-         gen=None, events=None, may_approach=None, crowd_ok: bool = False) -> DuelResult:
+         gen=None, events=None, may_approach=None, crowd_ok: bool = False, wall_ok: bool = False) -> DuelResult:
     """care: healing handler from layer 4 — care.wants(s) (wants to drink?), care.take(recheck) (drinks; recheck(s) rechecks the opening).
     Whether there's an opening is judged here (layer 3): opening(). If close, backstep to open distance and recheck next tick.
     reflex: reflex (souls/reflex.py) — first thing every tick. If it moved, this tick rests (it also blocks attacks from non-targets head-on).
@@ -1211,7 +1233,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
       Distinguish "when to wait and when to act" — let distant foes come, react only after they enter reach."""
     from . import style as style_
     F = Fight(mv, weapon, ptr, nm, log, limit, low_hp, cancel, care, reflex, arena, style_.of(style or "guard"), wait_far, gen, events,
-              may_approach, crowd_ok)
+              may_approach, crowd_ok, wall_ok)
     while True:
         T = _sense(F)
         if isinstance(T, DuelResult):
