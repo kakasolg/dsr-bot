@@ -33,6 +33,8 @@ ENGAGE_STICK = 0.5        # engagement approach also walks
 ARRIVE_DY = 2.0         # arrival check also looks at height — with horizontal distance only, a path point 10 m above counts as "arrived", so
                         # on a spiral ramp it skipped the whole path and stood below the target getting hit (measured)
 UNREACHABLE_DY = 1.5      # m — within 5 m in 2D but height difference larger than this = cliff/floor-level difference
+OFFMESH_GIVE_UP = False   # stuck off the NavMesh: if walking back to the nearest mesh point moved us < OFFMESH_MIN_GAIN, stop trying it
+OFFMESH_MIN_GAIN = 0.2    # m (this goto) and use the back/side escape. Off = the old way (default until [win] checks it in game)
 
 
 JUMP_PERIOD = 1.2       # guardjump mode: jump at this period
@@ -283,6 +285,7 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
     mover = mover or Mover(pad)
     probe_t0 = time.time()
     probe_off = [False]      # if probe makes no progress, use normal walking for the rest of this goto
+    offmesh_futile = [False]  # the off-mesh return didn't move us — use the back/side escape for the rest of this goto
     try:
         while True:
             now = time.time()
@@ -334,7 +337,8 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
                 log(f"  stuck at {dist:.1f} m — escape #{escapes}")
                 mover.set("walk")
                 # layer-0 recovery: if standing off the NavMesh (pocket), return to a mesh point at the same height before back/side escapes
-                if terrain is not None and hasattr(terrain, "on_mesh") and not terrain.on_mesh(p.gx, p.gy, p.gz):
+                if (terrain is not None and hasattr(terrain, "on_mesh") and not offmesh_futile[0]
+                        and not terrain.on_mesh(p.gx, p.gy, p.gz)):
                     nw = terrain.nearest_walkable(p.gx, p.gy, p.gz)
                     if nw is not None and math.hypot(nw[0] - p.gx, nw[2] - p.gz) > 0.4:
                         log(f"  메시 밖 — {nw[0]:.1f},{nw[2]:.1f} 로 복귀")
@@ -347,6 +351,14 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
                                 break
                             time.sleep(0.05)
                         pad.move(0.0, 0.0)
+                        s3 = tm.snapshot(within=5.0)
+                        if (OFFMESH_GIVE_UP and s3 and s3.player.gx is not None
+                                and math.hypot(s3.player.gx - p.gx, s3.player.gz - p.gz) < OFFMESH_MIN_GAIN):
+                            # the walk back to the mesh didn't move us — next time do the back/side escape instead. Without this
+                            # it repeated until the point's timeout and the escape budget never applied (walk harness 2026-10-01:
+                            # passage entrance pre-fix route, 6 'off the mesh' returns in a row, frozen 13.7 s)
+                            offmesh_futile[0] = True
+                            log(f"  메시 복귀가 안 움직임 — 다음부터는 옆걸음 탈출")
                         last_progress_d, last_progress_t = None, time.time()
                         continue
                 if env.GAME != "dsr":   # in DS1, A is interact, not jump (stops if an NPC dialog opens)
