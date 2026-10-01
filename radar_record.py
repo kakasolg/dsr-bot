@@ -111,6 +111,7 @@ class Replay:
         self.t = self.t0
         self.i = 0
         self.playing, self.speed = True, 1.0
+        self.rewind_at_end = False   # label page: a short clip jumps back to its start when it ends
         self.lock = threading.Lock()
         self.markers = [m["rt"] for m in msgs if m.get("type") == "say" and str(m.get("line", "")).startswith("F9 marker")]
 
@@ -165,6 +166,11 @@ class Replay:
                 self._feed_until(self.t)
                 if self.t >= self.t1:
                     self.playing = False
+                    if self.rewind_at_end:
+                        self.state.reset()
+                        self.i = 0
+                        self.t = self.t0
+                        self._feed_until(self.t0)
 
     def start(self) -> "Replay":
         self.seek(0.0)

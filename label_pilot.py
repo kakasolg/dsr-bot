@@ -794,6 +794,7 @@ def serve(port: int = HTTP_PORT) -> None:
         print(f"navmesh not drawn: {e!r}")
     first = clip_msgs(scenes[0], "pre")
     rp = radar_record.Replay(state, first, scenes[0]["scene_id"]).start()
+    rp.rewind_at_end = True
     state.replay = rp
     lock = threading.Lock()
 
