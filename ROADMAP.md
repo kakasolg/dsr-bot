@@ -643,6 +643,7 @@
   4. `_careful_lured`(끌어오기 실패 기억)를 Field에 실행 내내 둠 — 휴식·사망으로 적이 되살아나면 포인터가 같을 수 있어 그 적을 영영 안 끌어옴. 휴식·리스폰 때 비우기
   5. 카메라 고침(`065a738`) 뒤 숫자는 구역 4 한 번뿐(470번 중 90 % 10° 안) — 한 번에 도는 `--basic` 실행에서 다시 확인. `카메라 정렬` 줄은 실행 a~e 로그엔 없음(그 뒤에 추가)
   6. 작은 것: `LOCK_ALIGN_S`는 코드 1.5 s, ROADMAP 1.2 s · `look_pulse(err, dur)`의 `dur`는 이제 안 씀
+  - [MoKa] "2~4번 고쳐줘" → 반영 (`tests/review_1001_test.py`, 고치기 전 코드에선 3개 다 실패 확인): (2) `Field.recover` — `why`가 `losing`이면 HP와 상관없이 `low`(물러남 → 마심) (3) `rule_face_first`를 `prep_reflex` 바로 뒤로 옮김(`rule_separate`·`rule_finish_first` 다음) + 4.5 m 안 다른 적(`T.near45`)이 휘두르면 목표가 4 m 밖이어도 방패 들고 돎. duel_golden 그대로(첫 판단 같음 — 가드·돌기는 골든이 안 셈) (4) `Field.forget_foes()` — `rest_at`의 휴식 뒤·`wait_respawn`의 리스폰 뒤 `_careful_lured` 비움. 게임 확인 전: 다음 실행에서 `losing` 줄 뒤 `화톳불 쪽으로 물러남`이 나오는지
 ---
 
 ## 9. 변경 이력

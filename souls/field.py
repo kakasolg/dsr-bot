@@ -261,10 +261,16 @@ class Field:
             except Exception:
                 s = None
             if s and s.player.hp and s.player.hp > 0 and s.player.hp >= s.player.max_hp * 0.99:
+                self.forget_foes()
                 time.sleep(1.0)
                 return True
             time.sleep(0.5)
         return False
+
+    def forget_foes(self) -> None:
+        """After a rest or a respawn every foe is back — drop what we remembered about them by pointer (careful_walk_to's failed
+        pulls): a revived foe can get the same pointer and would then never be pulled again."""
+        self.__dict__.pop("_careful_lured", None)
 
     def safe(self, s) -> bool:
         """OK to drink estus? — no foe nearby, nobody swinging, and **no thrower (firebomb) awake within RANGED_R**.
@@ -449,7 +455,9 @@ class Field:
         s = self.mv.snap(15.0)
         if s is None:
             return False
-        low = s.player.hp < s.player.max_hp * 0.6
+        # 'losing' (duel: took 35 % of max HP, dealt under half the foe's) counts as low whatever the HP — it ends at ~65 % from a full
+        # start, and with only the 60 % line we stood there, didn't drink (foe near) and opened a new fight at once (0 'losing' acted, 10-01)
+        low = s.player.hp < s.player.max_hp * 0.6 or why.endswith("losing")
         # ── 붙어 있는 적에게서 걸어서 물러나지 않는다 ([MoKa] 2026-10-01 진행) ──────────────
         #  구역 1 `--basic`: low_hp로 가드 든 채 물러나는 동안 화염병 망자가 0.95 m로 따라붙어 4번 더 침(3009 가드 깨기 포함), HP 388 → 0.
         #  붙은 적이 있으면 그 반대로 한 번 구르고 나서 물러남. 뒤가 낭떠러지면 구르지 않고 그 자리에서 싸움(→ False)
@@ -1628,7 +1636,9 @@ class Field:
             self.log(f"   화톳불로: {r}")
             if r == "dead":
                 self.wait_respawn()
-        return self.mv.rest(nm, bonfire)
+        ok = self.mv.rest(nm, bonfire)
+        self.forget_foes()
+        return ok
 
 
 class Care:

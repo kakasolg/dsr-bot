@@ -748,7 +748,9 @@ def rule_face_first(F, T):
     """── 타겟이 정해지면 방향 정렬이 최우선 ([MoKa] 2026-10-01) ──────────────────
      · 몸이 타겟에서 FACE_FIRST_DEG 넘게 벗어나 있으면 이 틱은 돌기만 한다 (가까운 깨어 있는 적이면 방패 든 채로)
      · 10-01 구역 1: 다가오는 망자를 옆에 두고 다른 걸 하다 정면이 아닌 채로 맞음. 몸 방향은 가드 들 때만 맞추고 있었음
-     · 내가 공격 동작 중이면 건너뜀 (그때 스틱은 안 먹음)"""
+     · 내가 공격 동작 중이면 건너뜀 (그때 스틱은 안 먹음)
+     · prep_reflex 뒤 (10-01 [cloud] 검토): 맨 앞이면 도는 틱마다 반사에 스냅이 안 들어감. 목표는 4 m 밖인데 옆 4.5 m 안 다른 적이
+       휘두르면 그때도 방패 듦 (T.near45 — prep_reflex가 채움)"""
     s, c, p = T.s, T.c, T.p
     if c is None or p.heading is None or s.cam_yaw is None or T.h > FACE_FIRST_R:
         return None
@@ -756,7 +758,8 @@ def rule_face_first(F, T):
         return None
     if abs(math.degrees(M.rel_angle(p, c))) <= FACE_FIRST_DEG:
         return None
-    if F.style.shield and T.h < FACE_GUARD_R and not (9000 <= (c.anim or 0) < 9100):
+    other_swing = any((x.anim or -1) in M.ATTACK for x in getattr(T, "near45", ()))
+    if F.style.shield and ((T.h < FACE_GUARD_R and not (9000 <= (c.anim or 0) < 9100)) or other_swing):
         F.mv.guard(True)
     F.mv.face(s, c, deg=FACE_FIRST_DEG / 2)
     F.note("방향", s, c)
@@ -1295,7 +1298,7 @@ def rule_attack(F, T):
     return F.killed_if(hit.dead)
 
 
-RULES = [rule_face_first, rule_separate, rule_finish_first, prep_reflex, rule_early_kick, rule_late_windup_block, prep_linger, rule_hit_first,
+RULES = [rule_separate, rule_finish_first, prep_reflex, rule_face_first, rule_early_kick, rule_late_windup_block, prep_linger, rule_hit_first,
          rule_backstab_swing, rule_reflex, rule_lure, rule_edge, rule_estus, rule_stagger_punish, rule_evade, rule_block,
          rule_downed, prep_backstab_chance, rule_wait_far, rule_approach, rule_finish, rule_stamina, prep_face, rule_backstab,
          rule_attack]
