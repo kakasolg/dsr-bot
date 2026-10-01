@@ -223,8 +223,12 @@ def errors(p: Params | None, segs: list[dict], horizon: float, every: int = 2, w
 
 STEP_DY = 0.6            # floor within this up/down of the current height = walk on (stairs, slopes)
 FALL_DY = 1.5            # only floor more than this below = walked off an edge: fall (edge_kinds 'drop')
-CELL_M = 0.5             # off-mesh fill: recorded positions binned on this grid …
-FILL_DY = 1.0            # … walkable at that height ± this
+CELL_M = 0.5             # off-mesh fill: recorded positions binned on this grid (lookup only) …
+FILL_R = 0.35            # … walkable within this of a recorded position (was the whole 3×3 cell block, up to ~1 m:
+                         #     it widened the secret passage — 2026-10-01) …
+FILL_DY = 1.0            # … at that height ± this
+FALL_GUARD_R = 2.0       # no fall where another walk went at this height within this — the bot never fell there in any
+                         # record; the NavMesh only has the floor far below (passage entrance over the bridge arch, 16 m)
 SLIDE_DEGS = (20, 40, 60, 80)   # blocked: try the move turned ± this much (and shortened by cos) — slide along a wall
                                 # when only one side is open; both open at the same angle = pushing square into it: stay
 
@@ -232,27 +236,36 @@ SLIDE_DEGS = (20, 40, 60, 80)   # blocked: try the move turned ± this much (and
 class World:
     """Where the character can stand. move(old, new, walk_id) → the state actually reached:
       floor at the same level (± STEP_DY)  → go, height follows the floor
-      only floor far below (> FALL_DY)     → go and fall (falls += 1)
-      a recorded position nearby (off-mesh fill, other walks only) → go — the secret passage has no NavMesh (1-f)
+      a recorded position within FILL_R (off-mesh fill, other walks only) → go — the secret passage has no NavMesh (1-f)
+      only floor far below (> FALL_DY), no walk within FALL_GUARD_R at this height → go and fall (falls += 1)
       nothing                              → a wall: slide (SLIDE_DEG), else stay put (pushing against it)"""
 
-    def __init__(self, nm, fill: list[tuple] | None = None):
+    def __init__(self, nm, fill: list[tuple] | None = None, fill_r: float = FILL_R, fall_guard_r: float = FALL_GUARD_R):
         self.nm = nm
+        self.fill_r, self.fall_guard_r = fill_r, fall_guard_r
         self.falls = 0
         self.blocked = 0
-        self.fill: dict[tuple[int, int], list[tuple[float, str]]] = {}
+        self.fill: dict[tuple[int, int], list[tuple[float, float, float, str]]] = {}
         for x, y, z, wid in fill or []:
-            self.fill.setdefault((int(math.floor(x / CELL_M)), int(math.floor(z / CELL_M))), []).append((y, wid))
+            self.fill.setdefault((int(math.floor(x / CELL_M)), int(math.floor(z / CELL_M))), []).append((x, y, z, wid))
+
+    def _near(self, x: float, z: float, y: float, wid, r: float) -> float | None:
+        """Height of the nearest recorded position (another walk's) within r horizontally and FILL_DY in height."""
+        cx, cz = int(math.floor(x / CELL_M)), int(math.floor(z / CELL_M))
+        n = int(math.ceil(r / CELL_M))
+        best, best_d = None, r
+        for dx in range(-n, n + 1):
+            for dz in range(-n, n + 1):
+                for px, yy, pz, w in self.fill.get((cx + dx, cz + dz), ()):
+                    if w == wid or abs(yy - y) > FILL_DY:
+                        continue
+                    d = math.hypot(px - x, pz - z)
+                    if d <= best_d:
+                        best, best_d = yy, d
+        return best
 
     def _filled(self, x: float, z: float, y: float, wid) -> float | None:
-        cx, cz = int(math.floor(x / CELL_M)), int(math.floor(z / CELL_M))
-        best = None
-        for dx in (-1, 0, 1):
-            for dz in (-1, 0, 1):
-                for yy, w in self.fill.get((cx + dx, cz + dz), ()):
-                    if w != wid and abs(yy - y) <= FILL_DY and (best is None or abs(yy - y) < abs(best - y)):
-                        best = yy
-        return best
+        return self._near(x, z, y, wid, self.fill_r)
 
     def _floor(self, x: float, z: float, y: float, wid) -> tuple[str, float] | None:
         hit = self.nm.floor_tri_at(x, z, y)
@@ -261,7 +274,7 @@ class World:
         f = self._filled(x, z, y, wid)
         if f is not None:
             return "fill", f
-        if hit is not None and hit[0] < y - FALL_DY:
+        if hit is not None and hit[0] < y - FALL_DY and self._near(x, z, y, wid, self.fall_guard_r) is None:
             return "fall", hit[0]
         return None
 

@@ -174,6 +174,16 @@ check("off the mesh where another walk went (fill): goes, at the recorded height
       Wf.move(s1, M.State(10.2, 1.0, 0.0, 3.0, 0.0)).x == 10.2 and Wf.move(s1, M.State(10.2, 1.0, 0.0, 3.0, 0.0)).y == 0.1)
 check("… but not on the walk's own recorded positions (no peeking)",
       Wf.move(s1, M.State(10.2, 1.0, 0.0, 3.0, 0.0), "other walk").x == 9.9)
+Wr = M.World(FakeMesh(), fill=[(10.5, 0.0, 1.0, "other walk")])
+check("fill only within FILL_R (0.35 m) of a recorded position: 0.3 m off → walkable, 0.6 m off → not",
+      Wr._filled(10.5, 1.3, 0.0, None) == 0.0 and Wr._filled(10.5, 1.6, 0.0, None) is None)
+Wg = M.World(FakeMesh(), fill=[(5.0, 0.0, 0.5, "other walk")])               # another walk went along the low edge
+held = Wg.move(M.State(5.0, 0.05, 0.0, 3.0, 0.0), M.State(5.0, -0.25, 0.0, 3.0, 0.0))
+check("no fall where another walk went within 2 m at this height (never fell there) → a wall instead",
+      held.y == 0.0 and Wg.falls == 0 and held.z == 0.05)
+Wfar = M.World(FakeMesh(), fill=[(5.0, 0.0, 3.5, "other walk")])            # a walk 3.5 m away: too far to guard
+check("… a walk farther than 2 m doesn't stop the fall",
+      Wfar.move(M.State(5.0, 0.05, 0.0, 3.0, 0.0), M.State(5.0, -0.25, 0.0, 3.0, 0.0)).y == -5.0)
 seg = {"frames": [(0.1 * k, 5.0, 1.0 + 0.0 * k, math.pi / 2, 0.0, 0.0) for k in range(12)],
        "pad": [(0.0, 0.0, 1.0, 0)]}                                          # stick toward +z from x 5: into the wall
 free = M.rollout(P, seg, 1, 1.0, None)
