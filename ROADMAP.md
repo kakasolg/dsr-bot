@@ -561,7 +561,7 @@
 ---
 - 2026-09-30 핏자국 회수 (`experiments/fetch_blood.py`: 성벽 마을 화톳불로 워프 → 걸어가 줍기 → 불의 제전으로 워프): 1번째는 핏자국 0.15 m 위에서 A 1번이 안 먹어 못 주움, 2번째에 A 4번째로 **회수**(소울 472 → 2785, 인간성 1). 가는 길에 망자 셋·석궁병 잡음 — 석궁병(kind shield)에게 양손 전환 강공이 처음 게임에서 걸려 한 방 85. **`Field.pick_blood`의 A 1번은 안 먹을 때가 있음** → 고칠 거리
 - 2026-09-30 [MoKa] 결정: **벽으로 물러나서 하나씩**. [win] 반영: `duel` — 움직이는 적이 셋 이상(`WALL_BACK_N`, 목표 포함 4 m 안) 붙었는데 벽(`Navmesh.wall_dist` < 1.2 m) 옆이 아니면 `crowd` + `wall_back`으로 끝냄, 셋 이상 붙어 있으면 뒤잡기로 돌지 않음(T.room 끔). `Field.back_to_wall` — 적 반대쪽(적 쪽 반평면 제외)·낭떠러지(drop) 2.5 m 밖 벽 자리, 모서리 먼저, 10 m 안, 가드 든 채 걸어감, 그 뒤 20 s(`WALL_OFF_S`)는 그 자리에서 싸움. `Navmesh.edge_kinds`: 열린 경계를 seam(같은 높이 바닥 = 조각 이음, 경계 아님)·drop(1.5 m 넘게 아래 바닥)·wall(바닥 없음)로 — 옛 `cliffs()`는 바닥 없음도 낭떠러지로 봐서 성벽 마을 경계 거의 전부가 낭떠러지였음. 성벽 마을: seam 644·drop 760·wall 3,833. 09-30b 자리로 재생: 230 s(벽 2.6 m)엔 7.7 m 떨어진 벽 자리(벽 0.9 m, drop 4.9 m)로 감, 252·277 s는 이미 벽 1.0 m 안이라 그대로 싸움(대신 뒤잡기 안 돎 — 그 실행의 뒤잡기 4번 모두 edge·not_behind). `tests/field_wall_back_test.py`, duel_golden 그대로, pytest 44. **한계**: 바닥 없는 허공 경계도 wall로 보임(충돌 메시 없이 구분 불가) — 성벽 마을 바깥 성벽 위 등에서 확인 필요. **게임 확인 필요**: burg-bonfire `#4 이동`
-- 덧: 벽 강공(`duel._walled`)은 `border_dist`(seam 포함)를 씀 — 09-30 MoKa 벽 자리 (−18.5,−13.4,−63.6)의 '벽 0.08 m'는 seam이었고 진짜 벽은 1.76 m. 오늘 '벽 0.1 m — 강공'의 일부는 seam일 수 있음 → `wall_dist`로 바꿀지 [MoKa] 결정
+- 덧: 벽 강공(`duel._walled`)은 `border_dist`(seam 포함)를 씀 — 09-30 MoKa 벽 자리 (−18.5,−13.4,−63.6)의 '벽 0.08 m'는 seam이었고 진짜 벽은 1.76 m. 오늘 '벽 0.1 m — 강공'의 일부는 seam일 수 있음 → `wall_dist`로 바꿀지 [MoKa] 결정 → 2026-09-30 [MoKa] 결정: `wall_dist`로. [win] 반영 (`wall_dist`가 없는 NavMesh·가짜는 `border_dist`), 테스트·golden 그대로
 
 ## 10. 게시판 중계 ([cloud]는 비공개 게시판에 못 닿음)
 
