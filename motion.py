@@ -44,8 +44,8 @@ class Params:
     v_jog: float = 3.42      # m/s full stick — fitted on the bot's walks with walls (2026-10-01; demos alone: 3.27~3.42)
     v_run: float = 3.98      # m/s B held — from the demos (the bot's B frames are stuck-escape pushes, not runs)
     turn: float = 10.0       # rad/s max facing turn rate
-    tau_up: float = 0.8      # s speed-up — sits on the fit bound: stands in for the turn the 10 Hz data can't see (turning
-                             # before moving off); without the passage-exit walks it fits 0.27 — see ROADMAP 6-a
+    tau_up: float = 0.215    # s speed-up — refit with the world (fill 0.35 m), 2026-10-01; the demos gave 0.23. (0.8 earlier
+                             # was the fit making up for a passage the 1 m fill had widened)
     tau_down: float = 0.10   # s slow-down time constant
 
 
