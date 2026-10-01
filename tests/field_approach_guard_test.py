@@ -6,6 +6,7 @@ from __future__ import annotations
 import sys as _sys, pathlib as _pl  # repo root first (the bot's modules), then this folder
 _sys.path[:0] = [str(_pl.Path(__file__).resolve().parent.parent), str(_pl.Path(__file__).resolve().parent)]
 
+import math
 import sys
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -75,6 +76,8 @@ class DuelMv:
         pass
 
     def face(self, s, c, deg=20.0):
+        p = s.player                                        # turn at once (duel.rule_face_first waits for the body to face it)
+        p.heading = math.atan2(c.x - p.x, c.z - p.z) - math.pi
         return True
 
     def stick_to(self, s, x, z, scale=1.0):

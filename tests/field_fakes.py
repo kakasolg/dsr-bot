@@ -23,7 +23,7 @@ class World:
     def __init__(self, player=(0.0, -49.4, 0.0), sp=106, max_sp=106, hp=793):
         self.t = 0.0
         self.player = Chr(ptr=1, npc_param=0, team=1, hp=hp, max_hp=793, x=player[0], y=player[1], z=player[2],
-                          sp=sp, max_sp=max_sp, anim=-1, heading=0.0)
+                          sp=sp, max_sp=max_sp, anim=-1, heading=-math.pi)   # facing +z (facing = heading + π) — tests put foes at +z
         self.chars: dict[int, Chr] = {}
         self.handles: dict[int, int] = {}
         self.hidden: set[int] = set()              # read_chr 실패 흉내 — 목록에서 빠진다
@@ -110,6 +110,8 @@ class FakeMv:
 
     def face(self, s, c, deg: float = 20.0) -> bool:
         self.faced.append(c.ptr)
+        p = self.w.player                                   # turn at once, like a finished real turn (duel.rule_face_first waits for it)
+        p.heading = math.atan2(c.x - p.x, c.z - p.z) - math.pi
         return True
 
 
