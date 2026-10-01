@@ -151,6 +151,8 @@ def main() -> None:
     else:
         nms = {missions.MAP_A: navmesh.Navmesh(missions.MAP_A), missions.MAP_B: navmesh.Navmesh(missions.MAP_B)}
     props.attach(nms, log)                                  # crates earlier runs had to smash twice: paths bend around them (on each Navmesh)
+    for nm_ in nms.values():
+        nm_.edge_kinds()                                    # sort wall/drop/seam edges now — the first wall check mid-fight took ~1 s (2026-09-30)
     mv = moves.Moves(tm, pad)
     track_.follow(mv)
     if a.radar:
