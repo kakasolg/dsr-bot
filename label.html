@@ -8,32 +8,36 @@
   :root { --bg:#14161a; --panel:#1d2026; --line:#2e333b; --fg:#e6e8eb; --dim:#9aa3ad; --ok:#3fb950; --no:#f0605a; --warn:#d29922; --accent:#58a6ff; }
   * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.45 system-ui, "Malgun Gothic", sans-serif; }
-  .wrap { display:grid; grid-template-columns:minmax(0,1fr) 440px; height:100vh; }
+  .wrap { display:grid; grid-template-columns:minmax(0,1fr) 460px; height:100vh; }
   iframe { width:100%; height:100%; border:0; border-right:1px solid var(--line); background:#000; }
   .side { overflow:auto; padding:12px 14px 40px; background:var(--panel); }
   .bar { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }
   button, select, input[type=text], textarea { background:#262a31; color:var(--fg); border:1px solid var(--line); border-radius:6px; padding:5px 9px; font:inherit; }
-  button { cursor:pointer; } button:hover { border-color:var(--accent); }
+  button { cursor:pointer; } button:hover:not(:disabled) { border-color:var(--accent); }
+  button:disabled { opacity:.45; cursor:not-allowed; }
   button.primary { background:#1f6feb; border-color:#1f6feb; }
-  h2 { font-size:13px; color:var(--dim); margin:14px 0 6px; font-weight:600; letter-spacing:.02em; }
+  h2 { font-size:13px; color:var(--dim); margin:14px 0 6px; font-weight:600; }
   table { width:100%; border-collapse:collapse; font-size:13px; }
   td { padding:2px 4px; border-bottom:1px solid var(--line); vertical-align:top; }
-  td:first-child { color:var(--dim); width:46%; }
+  td:first-child { color:var(--dim); width:44%; }
   .miss { color:var(--warn); }
-  .chip { display:inline-block; padding:1px 7px; border-radius:10px; background:#262a31; border:1px solid var(--line); font-size:12px; margin:1px 2px 1px 0; }
-  .tac { display:grid; grid-template-columns:1fr auto auto; gap:4px 6px; align-items:center; margin:2px 0; }
-  .tac .name small { color:var(--dim); }
+  .tag { display:inline-block; padding:0 6px; border-radius:8px; font-size:11px; margin-left:4px; border:1px solid var(--line); color:var(--dim); }
+  .tag.estimated, .tag.assumed { color:var(--warn); border-color:var(--warn); }
+  .tac { display:grid; grid-template-columns:1fr auto auto; gap:2px 6px; align-items:center; margin:3px 0; }
+  .tac .why { grid-column:1 / -1; font-size:11px; color:var(--dim); margin:-2px 0 2px; }
   .tac.masked .name { color:var(--dim); }
   .tog { min-width:52px; }
   .tog.on.acc { background:var(--ok); border-color:var(--ok); color:#000; }
   .tog.on.forb { background:var(--no); border-color:var(--no); color:#000; }
+  .box { border:1px solid var(--line); border-radius:8px; padding:8px; margin-top:6px; }
   .after { border:1px dashed var(--warn); border-radius:8px; padding:8px; margin-top:8px; }
   .note { color:var(--dim); font-size:12px; }
-  .ev label { display:inline-block; margin:1px 8px 1px 0; font-size:12px; }
-  textarea { width:100%; min-height:48px; }
-  .msg { margin-top:8px; min-height:1.4em; }
-  .msg.err { color:var(--no); } .msg.ok { color:var(--ok); }
-  .prog { color:var(--dim); font-size:12px; }
+  .chk label { display:inline-block; margin:1px 8px 1px 0; font-size:12px; }
+  textarea { width:100%; min-height:44px; }
+  .msg { margin-top:8px; min-height:1.4em; } .msg.err { color:var(--no); } .msg.ok { color:var(--ok); }
+  details { margin-top:6px; } summary { cursor:pointer; color:var(--accent); font-size:13px; }
+  details ul { margin:4px 0; padding-left:18px; font-size:12px; color:var(--dim); }
+  .stage { font-size:12px; padding:1px 8px; border-radius:8px; border:1px solid var(--line); }
   @media (max-width: 1000px) { .wrap { grid-template-columns:1fr; height:auto; } iframe { height:75vh; border-right:0; border-bottom:1px solid var(--line); } }
 </style>
 </head>
@@ -46,47 +50,64 @@
       <button id="prev">◀ 이전</button>
       <select id="pick"></select>
       <button id="next">다음 ▶</button>
-      <span class="prog" id="prog"></span>
+      <span class="note" id="prog"></span>
     </div>
     <div class="bar">
       <button id="toD">결정 시점으로</button>
-      <span class="note">타임라인의 마커 = 결정 시점. 왼쪽 재생은 결정 시점까지만 (봇 로그 줄 없음)</span>
+      <span class="stage" id="stage"></span>
     </div>
+    <div class="note">왼쪽 재생은 결정 시점까지만 — 그 뒤 프레임, 봇 로그 줄, 봇의 계획(경로·목표)은 1차 라벨을 저장하고 '이후 보기'를 열 때까지 안 보임.</div>
+
+    <details><summary>라벨링 지침 (헷갈리는 경우)</summary><ul>
+      <li><b>세 가지를 섞지 않기</b>: ① 실제로 한 행동(아래 '관측된 행동', 이후 상자) ② 봇이 그때 할 수 있던 전술(회색이 아닌 줄) ③ 내 판단(허용/금지). ①을 ③에 옮겨 적지 않음.</li>
+      <li><b>사람이 구른 장면</b>: 구르기는 봇에 없는 행동 — 회피(백스텝)로 바꿔 적지 않음. 지금 전술 중 받아들일 만한 게 있으면 그것을 허용, 없으면 '지금 전술 중 맞는 것 없음' + 원하는 행동에 '구르기'.</li>
+      <li><b>방패 들고 기다리기</b>: guard 스타일 봇의 '기다림'은 방패를 든 채 서 있음. 그 자리에서 받는 게 맞으면 막기와 거리 유지 둘 다 허용해도 됨.</li>
+      <li><b>후퇴 vs 회복</b>: 후퇴 = 이 싸움을 끝내고 떠남(나중에 마시는 것 포함). 회복 = 싸움 중 그 자리나 한 걸음 물러나 마심.</li>
+      <li><b>접근하며 막기 / 치기</b>: 방패 들고 다가가는 것은 접근(+막기). 닿는 거리 안에서 들어가며 치는 것은 공격.</li>
+      <li><b>판단 불가 vs 맞는 것 없음 vs 모델 입력 부족</b>: 정보가 없어 모르겠다 → 판단 불가. 알겠는데 지금 전술 중에 맞는 게 없다 → 맞는 것 없음. 화면(지형·내 동작·락온…)을 봐야만 판단된다 → '모델 입력만으로는 판정 불가'에 그 정보를 표시 (허용/금지는 그대로 적음).</li>
+    </ul></details>
 
     <h2>장면</h2>
     <table id="meta"></table>
 
-    <h2>결정 시점 관측 (모델 입력)</h2>
+    <h2>결정 시점 관측 (모델 입력) <span class="note">— 태그: 로그·유도·추정·가정, 태그 없음 = 기록을 그대로 읽은 값</span></h2>
     <table id="obs"></table>
 
-    <h2>직전 3초 맥락</h2>
+    <h2>직전 3초 (모델 입력)</h2>
     <div id="ctx" class="note"></div>
 
     <h2>관측 누락</h2>
     <div id="missing" class="note"></div>
 
     <h2>전술 — 허용 / 금지 (둘 다 아니면 중립)</h2>
-    <div class="note">회색 = 그 시점 규칙상 후보가 아님. 그래도 고를 수 있음(규칙과 다른 판단으로 기록됨).</div>
+    <div class="note">회색 = 그때 봇이 할 수 없던 전술, 아래 줄에 이유(봇에 없음 / 규칙상 지금 불가 / 관측 부족). 그래도 고를 수 있음.</div>
     <div id="tactics"></div>
-    <div class="bar" style="margin-top:6px">
-      <span class="note">가장 좋은 것(선택):</span><select id="best"><option value="">—</option></select>
-    </div>
+    <div class="bar" style="margin-top:6px"><span class="note">가장 좋은 것(선택):</span><select id="best"></select></div>
 
-    <h2>판단 불가</h2>
-    <label><input type="checkbox" id="unsure"> 판단할 수 없음</label>
-    <select id="unsureWhy">
-      <option value="">이유…</option><option>정보 부족</option><option>화면으로 안 보임</option><option>전술 정의가 애매</option><option>기타</option>
-    </select>
+    <div class="box">
+      <label><input type="checkbox" id="nogood"> 지금 봇의 전술 중 맞는 것 없음</label>
+      <div class="chk" style="margin-top:4px"><span class="note">원하는 행동(봇에 없는 것):</span>
+        <label><input type="checkbox" id="wantRoll"> 구르기</label>
+        <input id="wantOther" type="text" placeholder="기타 (짧게)" size="14"></div>
+    </div>
+    <div class="box">
+      <label><input type="checkbox" id="unsure"> 판단 불가 (정보 부족)</label>
+      <select id="unsureWhy"></select>
+    </div>
+    <div class="box">
+      <label><input type="checkbox" id="insufficient"> 모델 입력만으로는 판정 불가 — 화면에서만 본 정보가 필요</label>
+      <div class="chk" id="outside" style="margin-top:4px"></div>
+    </div>
 
     <h2>근거</h2>
     <textarea id="why" maxlength="400" placeholder="짧은 근거 (예: 방패병이 3000을 0.7초째 휘두르는 중, 정면 1 m)"></textarea>
-    <div class="note">근거가 된 관측값:</div>
-    <div id="evidence" class="ev"></div>
-    <textarea id="defnote" maxlength="400" placeholder="(선택) 전술 정의가 모호했다면 무엇이 — 예: '거리 유지'와 '막기'를 같이 하는 경우"></textarea>
+    <div class="note">근거가 된 관측값 (모델 입력 중):</div>
+    <div id="evidence" class="chk"></div>
+    <textarea id="defnote" maxlength="400" placeholder="(선택) 전술 정의가 모호했다면 무엇이"></textarea>
 
     <div class="bar" style="margin-top:10px">
       <button class="primary" id="save">저장</button>
-      <button id="showAfter">이후 행동·결과 보기</button>
+      <button id="showAfter" disabled>이후 행동·결과 보기</button>
     </div>
     <div class="msg" id="msg"></div>
     <div id="after"></div>
@@ -94,101 +115,135 @@
 </div>
 <script>
 const $ = id => document.getElementById(id);
-let scenes = [], idx = 0, cur = null, t_open = 0, sawAfter = false, state = {};
+let scenes = [], idx = 0, cur = null, t_open = 0, state = {};
 try { $("who").value = localStorage.getItem("labeler") || ""; } catch (e) {}
-$("who").onchange = () => { try { localStorage.setItem("labeler", $("who").value.trim()); } catch (e) {} listScenes(); };
+$("who").onchange = () => { try { localStorage.setItem("labeler", $("who").value.trim()); } catch (e) {} listScenes().then(() => openScene(idx)); };
 
 const OBS_KO = {my_hp_pct:"내 HP", my_stamina_pct:"내 SP", target_kind:"목표 종류", target_npc:"목표 npc", target_state:"목표 상태",
   target_anim:"목표 애니", target_swing_age_s:"휘두른 지 (s)", target_hp_pct:"목표 HP", distance_m:"거리 (m)", height_diff_m:"높이 차 (m)",
   weapon_reach_m:"무기 거리 (m)", in_reach:"닿음", facing_error_deg:"내 정면과 목표 각 (°)", target_facing_me_deg:"목표 정면과 나 각 (°)",
   others_within_4_5m:"4.5 m 안 다른 적", other_swinging_near:"2.5 m 안 다른 적 휘두름", estus_left:"에스트 남음", fighting_style:"스타일",
-  estus_wanted:"에스트 원함(HP 60 % 아래)"};
+  estus_wanted:"에스트 원함 (HP 60 % 아래)", "context.target_states":"직전 목표 상태", "context.my_hp_change":"직전 내 HP 변화", "context.actor_did":"직전에 한 행동"};
+const KIND_KO = {logged:"로그", derived:"유도", estimated:"추정", assumed:"가정"};
+const WHY_KO = {not_in_bot:"봇에 없음", rule_blocked:"규칙상 지금 불가", unobserved:"관측 부족"};
 const PCT = new Set(["my_hp_pct", "my_stamina_pct", "target_hp_pct"]);
 const fmt = (v, k) => v === null || v === undefined ? "—" : typeof v === "boolean" ? (v ? "예" : "아니오") : PCT.has(k) ? (v*100).toFixed(0) + " %" : String(v);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const who = () => encodeURIComponent($("who").value.trim());
+const act = x => x.logged !== undefined ? `${x.dt}s [봇 기록] ${esc(x.logged)}`
+  : `${x.dt}s [버튼] ${esc(x.button)}${x.guess ? ` (${x.hold_s ?? "?"} s 누름, 직후 내 애니 ${x.my_anim_after ?? "—"} → ${esc(x.guess)})` : ""}`;
 
 async function listScenes() {
-  const who = encodeURIComponent($("who").value.trim());
-  scenes = await (await fetch(`/scenes?labeler=${who}`, {cache:"no-store"})).json();
-  $("pick").innerHTML = scenes.map((s, i) => `<option value="${i}">${s.labeled ? "✓ " : ""}${i+1}. ${esc(s.scene_id)}</option>`).join("");
+  scenes = await (await fetch(`/scenes?labeler=${who()}`, {cache:"no-store"})).json();
+  $("pick").innerHTML = scenes.map((s, i) => `<option value="${i}">${s.labeled ? "✓ " : ""}${i+1}. ${esc(s.scene_id)} ${s.source === "bot" ? "봇" : "사람"}</option>`).join("");
   $("pick").value = idx;
   $("prog").textContent = `${scenes.filter(s => s.labeled).length}/${scenes.length} 저장됨`;
 }
 
-async function openScene(i, phase = "pre") {
+async function openScene(i) {
   idx = Math.max(0, Math.min(scenes.length - 1, i));
   $("pick").value = idx;
-  const who = encodeURIComponent($("who").value.trim());
-  const r = await (await fetch(`/scene?id=${scenes[idx].scene_id}&phase=${phase}&labeler=${who}`, {cache:"no-store"})).json();
-  cur = r;
-  if (phase === "pre") { t_open = performance.now(); sawAfter = false; $("after").innerHTML = ""; render(r); }
-  else showAfter(r.scene.after);
+  const r = await (await fetch(`/scene?id=${scenes[idx].scene_id}&phase=pre&labeler=${who()}`, {cache:"no-store"})).json();
+  cur = r; t_open = performance.now(); $("after").innerHTML = "";
+  render(r);
+  if (r.revealed) await reveal(false);
+}
+
+function setStage(r) {
+  const p = r.primary, l = r.label;
+  $("stage").textContent = !p ? "1차 라벨 전" : r.revealed ? `1차 저장됨 · 결과 봄 · 이후 수정 ${l && l.stage === "post_reveal" ? "있음" : "없음"}` : "1차 저장됨 (결과 아직 안 봄)";
+  $("showAfter").disabled = !p;
+  $("showAfter").title = p ? "" : "1차 라벨을 먼저 저장해야 결과를 볼 수 있음";
+  $("save").textContent = r.revealed ? "결과 본 뒤 수정으로 저장 (1차는 그대로)" : (p ? "1차 라벨 고쳐 저장" : "1차 라벨 저장");
 }
 
 function render(r) {
   const s = r.scene;
   $("meta").innerHTML = [["출처", s.source === "bot" ? "봇 실행" : "사람 시범"], ["실행", s.run_id], ["싸움", s.fight_id],
-    ["구역", s.segment || "구역 미정"], ["적", `${s.enemy.kind} (${s.enemy.npc})`], ["장면을 고른 사건", s.event],
+    ["구역", s.segment || "구역 미정"], ["적", `${s.enemy.kind} (${s.enemy.npc})`],
     ["코드 커밋", s.code_commit ? s.code_commit + (s.code_commit_approx ? " (실행 시각 기준 추정)" : "") : "—"]]
     .map(([k, v]) => `<tr><td>${k}</td><td>${esc(v)}</td></tr>`).join("");
-  $("obs").innerHTML = Object.entries(s.obs).map(([k, v]) =>
-    `<tr><td>${OBS_KO[k] || k}</td><td class="${v === null ? "miss" : ""}">${esc(fmt(v, k))}${s.obs_notes && s.obs_notes[k] ? ` <span class="note">(${esc(s.obs_notes[k])})</span>` : ""}</td></tr>`).join("");
+  const pv = s.obs_provenance || {};
+  $("obs").innerHTML = Object.entries(s.obs).map(([k, v]) => {
+    const p = pv[k];
+    return `<tr><td>${OBS_KO[k] || k}</td><td class="${v === null ? "miss" : ""}">${esc(fmt(v, k))}${p ? `<span class="tag ${p.kind}" title="${esc(p.how)}">${KIND_KO[p.kind] || p.kind}</span>` : ""}</td></tr>`;
+  }).join("");
   const c = s.context;
-  const did = (c.actor_did || []).map(x => typeof x[1] === "string" ? `${x[0]}s ${x[1]}` : `${x[0]}s ${Object.entries(x[1]).map(([k, n]) => (r.tactics_ko[k] || k) + "×" + n).join(" ")}`);
   $("ctx").innerHTML = `목표 상태: ${(c.target_states || []).map(x => `${x[0]}s ${esc(x[1])}`).join(" → ") || "—"}<br>` +
-    `내 HP 변화: ${c.my_hp_change ?? "—"}<br>${s.source === "bot" ? "봇이 한 것" : "사람이 누른 버튼"}: ${did.map(esc).join(" · ") || "없음"}`;
-  $("missing").innerHTML = Object.entries(s.missing).map(([k, v]) => `<div><span class="miss">${OBS_KO[k] || k}</span>: ${esc(v)}</div>`).join("");
+    `내 HP 변화: ${c.my_hp_change ?? "—"}<br>관측된 행동 (원래 기록 그대로): ${(c.actor_did || []).map(act).join(" · ") || "없음"}`;
+  const mk = Object.entries(pv).filter(([k]) => k.startsWith("mask."));
+  $("missing").innerHTML = Object.entries(s.missing).map(([k, v]) => `<div><span class="miss">${OBS_KO[k] || k}</span>: ${esc(v)}</div>`).join("")
+    + (mk.length ? `<div style="margin-top:4px">후보 계산에 쓴 가정·추정: ${mk.map(([k, p]) => `<span class="tag ${p.kind}" title="${esc(p.how)}">${esc(k.slice(5))}: ${KIND_KO[p.kind]}</span>`).join(" ")}</div>` : "");
   const prev = r.label || {};
   state = {};
   (prev.acceptable || []).forEach(t => state[t] = "acc");
   (prev.forbidden || []).forEach(t => state[t] = "forb");
   $("tactics").innerHTML = Object.keys(r.tactics).map(t => {
-    const masked = !s.allowed.includes(t);
-    return `<div class="tac ${masked ? "masked" : ""}" title="${esc(r.tactics[t])}"><span class="name">${esc(r.tactics_ko[t] || t)} <small>${t}${masked ? " · 후보 아님" : ""}</small></span>
-      <button class="tog acc" data-t="${t}" data-v="acc">허용</button><button class="tog forb" data-t="${t}" data-v="forb">금지</button></div>`;
+    const u = s.unavailable[t];
+    return `<div class="tac ${u ? "masked" : ""}" title="${esc(r.tactics[t])}"><span class="name">${esc(r.tactics_ko[t] || t)} <small class="note">${t}</small></span>
+      <button class="tog acc" data-t="${t}" data-v="acc">허용</button><button class="tog forb" data-t="${t}" data-v="forb">금지</button>
+      ${u ? `<div class="why">후보 아님 — ${WHY_KO[u.why] || u.why}: ${esc(u.detail)}</div>` : ""}</div>`;
   }).join("");
   document.querySelectorAll(".tog").forEach(b => b.onclick = () => { const t = b.dataset.t; state[t] = state[t] === b.dataset.v ? undefined : b.dataset.v; paint(); });
   $("best").innerHTML = `<option value="">—</option>` + Object.keys(r.tactics).map(t => `<option value="${t}">${esc(r.tactics_ko[t] || t)}</option>`).join("");
   $("best").value = prev.best || "";
+  $("nogood").checked = !!prev.no_good_action;
+  $("wantRoll").checked = (prev.outside_set || []).includes("구르기");
+  $("wantOther").value = (prev.outside_set || []).filter(x => x !== "구르기").join(", ");
+  $("unsureWhy").innerHTML = `<option value="">이유…</option>` + r.unsure_reasons.map(x => `<option>${esc(x)}</option>`).join("");
   $("unsure").checked = !!prev.unsure; $("unsureWhy").value = prev.unsure_reason || "";
+  $("insufficient").checked = prev.model_input_sufficient === false;
+  $("outside").innerHTML = Object.entries(r.outside_input).map(([k, v]) => `<label><input type="checkbox" value="${k}" ${(prev.outside_input || []).includes(k) ? "checked" : ""}> ${esc(v)}</label>`).join("");
   $("why").value = prev.rationale || ""; $("defnote").value = prev.definition_note || "";
   const evKeys = Object.keys(s.obs).concat(Object.keys(s.context).map(k => "context." + k));
   $("evidence").innerHTML = evKeys.map(k => `<label><input type="checkbox" value="${k}" ${(prev.evidence || []).includes(k) ? "checked" : ""}> ${esc(OBS_KO[k] || k)}</label>`).join("");
-  $("msg").textContent = prev.scene_id ? `이전 저장 있음 (${prev.labeled_at}) — 다시 저장하면 새 줄로 덮어씀` : "";
-  $("msg").className = "msg";
-  paint();
+  $("msg").textContent = ""; $("msg").className = "msg";
+  setStage(r); paint();
 }
 
-function paint() {
-  document.querySelectorAll(".tog").forEach(b => b.classList.toggle("on", state[b.dataset.t] === b.dataset.v));
-}
+function paint() { document.querySelectorAll(".tog").forEach(b => b.classList.toggle("on", state[b.dataset.t] === b.dataset.v)); }
 
-function showAfter(a) {
-  const ko = cur.tactics_ko;
-  const act = a.bot_action ? `봇이 한 것 (다음 1 s): ${Object.entries(a.bot_action).map(([k, n]) => (ko[k] || k) + "×" + n).join(" ") || "—"} <span class="note">(${esc(a.bot_acts_raw || "")})</span>`
-    : `사람이 누른 버튼 (다음 1.5 s): ${(a.human_pressed || []).map(x => `${x[0]}s ${x[1]}`).join(" · ") || "없음"}`;
-  $("after").innerHTML = `<div class="after"><b>이후 (참고 — 모델 입력 아님, 이 장면 라벨에 '봤음'으로 기록)</b><br>${act}<br>
+async function reveal(mark = true) {
+  const res = await fetch(`/scene?id=${cur.scene.scene_id}&phase=full&labeler=${who()}`, {cache:"no-store"});
+  const j = await res.json();
+  if (!res.ok) { $("msg").textContent = j.error || "결과를 열 수 없음"; $("msg").className = "msg err"; return; }
+  cur = {...cur, ...j, scene: {...cur.scene, ...j.scene}};
+  setStage(cur);
+  const a = j.scene.after, ko = j.tactics_ko;
+  const did = a.bot_logged !== undefined
+    ? `봇이 한 것 (다음 1 s, 봇 기록 그대로): ${esc(a.bot_logged)}<br><span class="note">전술 이름으로 옮기면(규칙 기준선용, 정답 아님): ${Object.entries(a.bot_action_as_tactic || {}).map(([k, n]) => (ko[k] || k) + "×" + n).join(" ") || "—"}</span>`
+    : `사람이 누른 버튼 (다음 1.5 s, 사실 그대로 — 정답 아님): ${(a.human_pressed || []).map(act).join(" · ") || "없음"}`;
+  $("after").innerHTML = `<div class="after"><b>이후 (참고 — 모델 입력 아님. 이제부터 저장은 '결과 본 뒤 수정'으로 따로 남음)</b><br>
+    장면을 고른 사건: ${esc(j.scene.event)}<br>${did}<br>
     내 HP 변화 1.5 s / 3 s: ${a.my_hp_change_1_5s ?? "—"} / ${a.my_hp_change_3s ?? "—"} · 목표 HP 변화 3 s: ${a.target_hp_change_3s ?? "—"}<br>
-    싸움 결과: ${esc(a.fight_result)}<br><span class="note">왼쪽 재생이 결정 시점 뒤 4초까지(봇 로그 줄 포함)로 바뀜</span></div>`;
+    싸움 결과: ${esc(a.fight_result)}<br><span class="note">왼쪽 재생이 결정 시점 뒤 4초까지(봇 로그·계획 포함)로 바뀜</span></div>`;
 }
 
 async function save() {
-  const who = $("who").value.trim();
-  if (!who) { $("msg").textContent = "라벨러 ID를 넣어 주세요"; $("msg").className = "msg err"; return; }
-  const body = {scene_id: cur.scene.scene_id, labeler_id: who, duration_s: (performance.now() - t_open) / 1000, saw_after: sawAfter,
+  const w = $("who").value.trim();
+  if (!w) { $("msg").textContent = "라벨러 ID를 넣어 주세요"; $("msg").className = "msg err"; return; }
+  const want = ($("wantRoll").checked ? ["구르기"] : []).concat($("wantOther").value.split(",").map(x => x.trim()).filter(Boolean));
+  const body = {scene_id: cur.scene.scene_id, labeler_id: w, duration_s: (performance.now() - t_open) / 1000,
     acceptable: Object.keys(state).filter(t => state[t] === "acc"), forbidden: Object.keys(state).filter(t => state[t] === "forb"),
     best: $("best").value || null, unsure: $("unsure").checked, unsure_reason: $("unsure").checked ? $("unsureWhy").value : null,
+    no_good_action: $("nogood").checked, outside_set: want,
+    model_input_sufficient: !$("insufficient").checked, outside_input: [...document.querySelectorAll("#outside input:checked")].map(x => x.value),
     rationale: $("why").value.trim(), evidence: [...document.querySelectorAll("#evidence input:checked")].map(x => x.value),
     definition_note: $("defnote").value.trim()};
   const r = await fetch("/label", {method:"POST", headers:{"Content-Type":"application/json", "X-Radar":"1"}, body: JSON.stringify(body)});
   const j = await r.json().catch(() => ({ok:false, errors:["응답 없음"]}));
-  $("msg").textContent = j.ok ? `저장됨 (${body.duration_s.toFixed(0)} s)` : "저장 안 됨: " + (j.errors || []).join(", ");
+  $("msg").textContent = j.ok ? `저장됨 — ${j.stage === "post_reveal" ? "결과 본 뒤 수정 (1차는 그대로)" : "1차 라벨"} (${body.duration_s.toFixed(0)} s)` : "저장 안 됨: " + (j.errors || []).join(", ");
   $("msg").className = "msg " + (j.ok ? "ok" : "err");
-  if (j.ok) { await listScenes(); }
+  if (j.ok) {
+    await listScenes();
+    const s2 = await (await fetch(`/scene?id=${cur.scene.scene_id}&phase=pre&labeler=${who()}`, {cache:"no-store"})).json();
+    cur.label = s2.label; cur.primary = s2.primary; cur.revealed = s2.revealed; setStage(cur);
+    if (s2.revealed) await reveal(false);
+  }
 }
 
 $("save").onclick = save;
-$("showAfter").onclick = async () => { sawAfter = true; await openScene(idx, "full"); };
+$("showAfter").onclick = () => reveal(true);
 $("prev").onclick = () => openScene(idx - 1);
 $("next").onclick = () => openScene(idx + 1);
 $("pick").onchange = () => openScene(+$("pick").value);

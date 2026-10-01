@@ -161,6 +161,51 @@ def allowed(f: dict) -> list:
     return out
 
 
+NOT_IN_BOT, RULE_BLOCKED, UNOBSERVED = "not_in_bot", "rule_blocked", "unobserved"
+
+
+def why_not(f: dict) -> dict:
+    """For every tactic allowed() leaves out, why: not_in_bot (the bot has no such move in this style/setting),
+    rule_blocked (the rules' own conditions say no in this state), unobserved (an input the condition needs is missing).
+    Walks the same conditions as allowed() — keep the two together. Moves the bot doesn't have at all (rolling) are not
+    tactics and never appear here."""
+    al = set(allowed(f))
+    h, dy, reach = f.get("distance_m"), f.get("height_diff_m"), f.get("weapon_reach_m")
+    reach_hi, reach_lo = reach or f.get("_reach_max"), reach or f.get("_reach_min")
+    out = {}
+    if "attack" not in al:
+        if h is None or reach_hi is None:
+            out["attack"] = (UNOBSERVED, "거리 또는 무기 거리 모름")
+        elif h > reach_hi + 0.3:
+            out["attack"] = (RULE_BLOCKED, f"닿는 거리 밖 ({h} m > {reach_hi} + 0.3)")
+        elif dy is not None and abs(dy) > 1.0:
+            out["attack"] = (RULE_BLOCKED, f"높이 차 {dy} m (1 m 넘음)")
+        elif f.get("_sp_ok") is False:
+            out["attack"] = (RULE_BLOCKED, "SP가 무기 sp_min보다 적음")
+        else:
+            out["attack"] = (RULE_BLOCKED, "2.5 m 안 다른 적이 휘두르는 중")
+    if "guard" not in al:
+        out["guard"] = (NOT_IN_BOT, "이 스타일은 방패를 안 씀")
+    if "evade" not in al:
+        out["evade"] = (NOT_IN_BOT, "백스텝 회피는 backstep 스타일에만 있음") if f.get("_evade") is False else (UNOBSERVED, "스타일 모름")
+    if "approach" not in al:
+        out["approach"] = (UNOBSERVED, "거리 또는 무기 거리 모름") if h is None or reach_lo is None else (RULE_BLOCKED, "이미 닿는 거리 안")
+    if "heal" not in al:
+        out["heal"] = (UNOBSERVED, "에스트 수 모름") if f.get("estus_wanted") is None else (RULE_BLOCKED, "에스트 없음 또는 HP 60 % 이상")
+    if "reposition" not in al:
+        out["reposition"] = (UNOBSERVED, "끌어올 자리(arena) 기록 없음") if f.get("_arena") is None else (RULE_BLOCKED, "이 싸움엔 정해 둔 자리 없음")
+    if "retreat" not in al:
+        out["retreat"] = (RULE_BLOCKED, "끝까지 싸우기(desperate) — 후퇴 없음")
+    if "backstab" not in al:
+        if f.get("_backstab_on") is False:
+            out["backstab"] = (NOT_IN_BOT, "이 실행에서 뒤잡기 꺼짐 (--basic)")
+        elif f.get("_room") is None:
+            out["backstab"] = (UNOBSERVED, "뒤 공간·1:1 여부 모름")
+        else:
+            out["backstab"] = (RULE_BLOCKED, "뒤잡기 조건 아님 (망자·3.5 m 안·혼자·뒤 공간)")
+    return {k: {"why": w, "detail": d} for k, (w, d) in out.items()}
+
+
 def state_for(f: dict) -> dict:
     """The state Laya reads: the observed fields only (no mask inputs, nothing unknown)."""
     return {k: v for k, v in f.items() if not k.startswith("_") and v is not None}

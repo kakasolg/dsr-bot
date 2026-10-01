@@ -35,7 +35,13 @@ LABELS = ROOT / "data" / "labels"
 SCENES = LABELS / "pilot_scenes.jsonl"
 LABEL_FILE = LABELS / "pilot_labels.jsonl"
 CLIPS = LABELS / "clips"
-SCENE_SCHEMA, LABEL_SCHEMA = "dsr-scene/0.1", "dsr-label/0.1"
+SCENE_SCHEMA, LABEL_SCHEMA = "dsr-scene/0.2", "dsr-label/0.2"
+REVEALS = LABELS / "pilot_reveals.jsonl"   # who opened 'after' for which scene, when — decides a label's stage
+OUTSIDE_INPUT = {"terrain": "지형 (가장자리·벽·좁은 곳)", "my_anim": "내 동작 (구르는 중·경직·공격 중)", "lock_on": "락온",
+                 "weapon_reach": "무기 거리", "far_enemies": "4.5 m 밖 적", "enemy_identity": "적 이름·스폰 번호",
+                 "ai_range": "적 인식 범위 (AI ranges)", "replay_motion": "재생으로 본 움직임 (속도·방향)", "other": "기타"}
+UNSURE_REASONS = ("정보 부족", "화면으로 안 보임", "전술 정의가 애매", "기타")
+LABEL_SOURCE = "human_verified"   # serve --labels-dir (trying the page out) writes "ui_trial" instead — never counted
 PRE_S, POST_S, CONTEXT_S = 6.0, 4.0, 3.0
 HTTP_PORT = 47811
 SEED = 20261001
@@ -372,10 +378,11 @@ def _obs(snap: dict, tgt: dict, reach, style, basic, estus_left, swing_age) -> t
          "others_within_4_5m": len(others),
          "other_swinging_near": any(_anim_cat(c.get("anim")) == "swinging" and _horiz(p, c) < 2.5 for c in others),
          "estus_left": estus_left, "fighting_style": style,
-         "_shield": None if style is None else style == "guard", "_evade": None if style is None else style == "backstep",
-         "_sp_ok": None, "_arena": None, "_may_retreat": True,
-         "_room": (not basic and foe.circle_behind and h <= 3.5 and not others) if style is not None else
-                  (foe.circle_behind and h <= 3.5 and not others)}
+         # mask inputs. Human demos: the question is what *the current bot* could do there, so its default setup is assumed
+         # (guard style, backstab on) — obs_provenance says so. Rolling is never a tactic.
+         "_shield": (style or "guard") == "guard", "_evade": (style or "guard") == "backstep",
+         "_sp_ok": None, "_arena": None, "_may_retreat": True, "_backstab_on": not basic,
+         "_room": not basic and foe.circle_behind and h <= 3.5 and not others}
     if reach is None:                                       # unknown weapon: mask bounds from the weapon table (laya_shadow.allowed)
         from souls import weapons as W
         rs = [w.reach for w in vars(W).values() if isinstance(w, W.Weapon)]
@@ -395,6 +402,58 @@ def _obs(snap: dict, tgt: dict, reach, style, basic, estus_left, swing_age) -> t
     if f["estus_wanted"] is None:
         missing["estus_wanted"] = "에스트 수를 몰라 회복 후보는 HP만 보고 넣지 않음"
     return f, missing
+
+
+PROV_COMMON = {
+    "target_state": ("derived", "애니 번호 범위 → 범주 (souls/moves.py)"),
+    "target_kind": ("derived", "npc 번호 → souls/foes.py 표"),
+    "target_swing_age_s": ("derived", "10 Hz 스냅샷에서 휘두르기 시작부터 잼, ±0.1 s"),
+    "in_reach": ("derived", "distance_m ≤ weapon_reach_m"),
+    "other_swinging_near": ("derived", "2.5 m 안 다른 적의 애니 범주"),
+}
+PROV_BOT = {
+    "weapon_reach_m": ("logged", "실행 로그 '무기:' 줄 (souls/weapons.py 값)"),
+    "fighting_style": ("logged", "실행 로그 '스타일:' 줄"),
+    "estus_left": ("estimated", "실행 로그의 마지막 음용 'left' — 그 뒤 휴식·사망했으면 다름"),
+    "estus_wanted": ("estimated", "estus_left 추정값 > 0 이고 HP < 60 %"),
+    "mask._backstab_on": ("logged", "'기본 플레이' 줄(--basic) 유무"),
+    "mask._room": ("estimated", "--basic 아님 + 망자 + 3.5 m 안 + 4.5 m 안 다른 적 없음 — 뒤 공간(NavMesh)은 안 봄"),
+}
+PROV_HUMAN = {
+    "mask._shield": ("assumed", "사람 시범: 지금 봇의 기본 설정(guard 스타일)으로 후보를 계산"),
+    "mask._evade": ("assumed", "사람 시범: 기본 guard 스타일엔 백스텝 회피 없음 — 사람이 구른 것과 무관"),
+    "mask._backstab_on": ("assumed", "사람 시범: 봇 기본값(뒤잡기 켜짐)"),
+    "mask._room": ("estimated", "망자 + 3.5 m 안 + 4.5 m 안 다른 적 없음 — 뒤 공간(NavMesh)은 안 봄"),
+    "mask._reach_max": ("assumed", "무기 모름 → souls/weapons.py 표의 가장 긴 거리로 공격 후보"),
+    "mask._reach_min": ("assumed", "무기 모름 → 표의 가장 짧은 거리로 접근 후보"),
+}
+
+
+def _provenance(obs: dict, bot: bool) -> dict:
+    """Values that are not plain readings of the recording: where they came from. Anything not listed = read directly."""
+    p = {**PROV_COMMON, **(PROV_BOT if bot else PROV_HUMAN)}
+    return {k: {"kind": kind, "how": how} for k, (kind, how) in p.items()
+            if (k.startswith("mask.") and k[5:] in obs) or obs.get(k) is not None}
+
+
+def _b_detail(msgs: list, t_press: float) -> dict:
+    """A B press in a human demo: how long it was held and the player's first anim after it. B is roll, backstep or sprint
+    in DSR — the anim tells them apart only partly (690 = backstep: the bot's backstep logs it; 710 is the usual tap result
+    and looks like a roll, not confirmed). Kept as an observed fact; never turned into a tactic."""
+    release = next((m["rt"] for m in msgs if m.get("type") == "pad" and m.get("i") == 0 and m["rt"] > t_press
+                    and not (m.get("btn") or 0) & 0x2000), None)
+    hold = round(release - t_press, 2) if release is not None else None
+    anim = next((m["player"].get("anim") for m in msgs if m.get("type") == "snap" and t_press < m["rt"] <= t_press + 0.6
+                 and m["player"].get("anim") not in (-1, None)), None)
+    if anim == 690:
+        guess = "백스텝 (애니 690 — 봇 백스텝 기록과 같음)"
+    elif anim is not None and 600 <= anim < 800:
+        guess = f"구르기로 보임 (애니 {anim}, 번호 미확인)"
+    elif hold is not None and hold >= 0.3:
+        guess = "달리기로 보임 (길게 누름, 애니 변화 없음)"
+    else:
+        guess = "모름"
+    return {"hold_s": hold, "my_anim_after": anim, "guess": guess}
 
 
 def _swing_age(msgs: list, t_d: float, ptr) -> float | None:
@@ -429,7 +488,8 @@ def _context(msgs: list, t_d: float, ptr, actor_lines: list) -> dict:
     return {"target_states": cats, "my_hp_change": (hp[-1] - hp[0]) if hp else None, "actor_did": actor_lines}
 
 
-def _buttons(msgs: list, t0: float, t1: float, slot: int = 0) -> list:
+def _buttons(msgs: list, t0: float, t1: float, origin: float, slot: int = 0) -> list:
+    """Presses in (t0, t1] as raw buttons, time relative to origin (t_d). B presses carry _b_detail."""
     out, prev, rt_held = [], None, False
     for m in msgs:
         if m.get("type") != "pad" or m.get("i") != slot:
@@ -438,9 +498,12 @@ def _buttons(msgs: list, t0: float, t1: float, slot: int = 0) -> list:
         if t0 < m["rt"] <= t1 and prev is not None:
             for bit, name in BTN.items():
                 if b & bit and not prev & bit:
-                    out.append([round(m["rt"] - t0, 2), name])
+                    e = {"dt": round(m["rt"] - origin, 2), "button": name}
+                    if name == "B":
+                        e.update(_b_detail(msgs, m["rt"]))
+                    out.append(e)
             if rt_now and not rt_held:
-                out.append([round(m["rt"] - t0, 2), "R2"])
+                out.append({"dt": round(m["rt"] - origin, 2), "button": "R2"})
         prev, rt_held = b, rt_now
     return out
 
@@ -484,17 +547,20 @@ def build_scene(c: dict, msgs: list) -> dict:
     estus_left = line["estus"] if bot else None
     obs, missing = _obs(snap, tgt, reach, style, line["basic"] if bot else False, estus_left, _swing_age(msgs, t_d, tgt.get("ptr")))
     allowed = LS.allowed(obs)
+    # observed actions stay in the recording's own words: the bot's log names (Fight.note), the human's raw buttons —
+    # not tactic names, so they can't be read as candidates or answers
     if bot:
         fg = c["_fight"]
         prior = [l for l in fg["lines"] if t_d - CONTEXT_S < l["rt"] <= t_d]
-        actor = [[round(l["rt"] - t_d, 1), _acts_tactics(l["acts"])] for l in prior]
+        actor = [{"dt": round(l["rt"] - t_d, 1), "logged": l["acts"]} for l in prior]
         nxt = c["_next"]
-        after_actor = {"bot_action": _acts_tactics(nxt["acts"]), "bot_acts_raw": nxt["acts"]}
+        after_actor = {"bot_logged": nxt["acts"],
+                       "bot_action_as_tactic": _acts_tactics(nxt["acts"]),
+                       "bot_action_as_tactic_note": "규칙 기록 이름을 전술 이름으로 옮긴 것 — 규칙 기준선 비교용, 정답 아님"}
         result = fg["result"] or "unknown"
     else:
-        actor = _buttons(msgs, t_d - CONTEXT_S, t_d)
-        actor = [[round(dt - CONTEXT_S, 2), b] for dt, b in actor]
-        after_actor = {"human_pressed": _buttons(msgs, t_d, t_d + 1.5)}
+        actor = _buttons(msgs, t_d - CONTEXT_S, t_d, t_d)
+        after_actor = {"human_pressed": _buttons(msgs, t_d, t_d + 1.5, t_d)}
         result = c["result"]
     hp0 = _hp_at(msgs, t_d)
     e0 = _hp_at(msgs, t_d, tgt.get("ptr"))
@@ -511,11 +577,9 @@ def build_scene(c: dict, msgs: list) -> dict:
             "segment": zone, "enemy": {"npc": tgt.get("npc"), "kind": _kind(tgt.get("npc"))}, "event": c["event"],
             "code_commit": _commit_before(_file_epoch(c["run_id"]) + t_d) if bot else None, "code_commit_approx": bot,
             "obs": {k: v for k, v in obs.items() if not k.startswith("_")}, "mask_inputs": {k: v for k, v in obs.items() if k.startswith("_")},
+            "obs_provenance": _provenance(obs, bot),
             "context": _context(msgs, t_d, tgt.get("ptr"), actor),
-            "obs_notes": {"target_swing_age_s": "10 Hz 스냅샷 기준, ±0.1 s", "target_state": "애니 번호 범위로 나눈 범주 (souls/moves.py)",
-                          **({"estus_left": "봇 로그의 마지막 음용 때 남은 수 — 그 뒤 휴식했으면 다를 수 있음"} if estus_left is not None else {}),
-                          **({"weapon_reach_m": "무기를 몰라 후보 계산은 무기표의 가장 짧은·긴 거리로"} if reach is None else {})},
-            "allowed": allowed, "allowed_basis": "laya_shadow.allowed — 모르는 관측은 허용으로 봄(SP·옆 적), arena 없음 → 자리 옮김 제외",
+            "allowed": allowed, "unavailable": LS.why_not(obs),
             "after": after, "missing": missing, "test_candidate": bool(test),
             "test_rule": "zone in town#4/crossbow spot, enemy 255002, or human asylum (fixed before labeling)",
             "selection": {"event": c["event"], "zone": zone, "kind": _kind(c.get("npc")), "result": result, "source": c["source"]}}
@@ -576,6 +640,9 @@ def summary(scenes: list) -> None:
 # ── labels ──
 
 def validate_label(d: dict, scene: dict) -> list:
+    """Three different 'no answer' cases stay apart: unsure (the labeler lacks information), no_good_action (nothing in the
+    bot's current tactic set fits — e.g. only a roll would do), model_input_sufficient = False (the labeler can judge, but
+    only from things the model input doesn't have)."""
     errs = []
     tac = set(LS.TACTICS)
     acc, forb = set(d.get("acceptable") or []), set(d.get("forbidden") or [])
@@ -587,10 +654,22 @@ def validate_label(d: dict, scene: dict) -> list:
         errs.append("a tactic is both acceptable and forbidden")
     if d.get("best") not in (None, "") and d["best"] not in acc:
         errs.append("best must be one of acceptable")
-    if not d.get("unsure") and not acc and not forb:
-        errs.append("choose at least one tactic, or mark unsure")
-    if d.get("unsure") and d.get("unsure_reason") not in ("정보 부족", "화면으로 안 보임", "전술 정의가 애매", "기타"):
+    if d.get("unsure") and d.get("no_good_action"):
+        errs.append("unsure (missing information) and no_good_action (nothing fits) are different — pick one")
+    if d.get("no_good_action") and (acc or d.get("best")):
+        errs.append("no_good_action means no acceptable tactic")
+    if not (acc or forb or d.get("unsure") or d.get("no_good_action")):
+        errs.append("choose at least one tactic, or mark unsure / no_good_action")
+    if d.get("unsure") and d.get("unsure_reason") not in UNSURE_REASONS:
         errs.append("unsure_reason")
+    outside = d.get("outside_set") or []
+    if len(outside) > 5 or any(not isinstance(x, str) or not x.strip() or len(x) > 40 or x.strip() in tac for x in outside):
+        errs.append("outside_set: up to 5 short names of moves the bot does not have (not tactic names)")
+    oi = set(d.get("outside_input") or [])
+    if not oi <= set(OUTSIDE_INPUT):
+        errs.append("outside_input")
+    if d.get("model_input_sufficient") is False and not oi:
+        errs.append("model input not sufficient: name what the judgment needed (outside_input)")
     keys = set(scene["obs"]) | {"context." + k for k in scene["context"]}
     if not set(d.get("evidence") or []) <= keys:
         errs.append("evidence must name obs/context keys")
@@ -600,13 +679,18 @@ def validate_label(d: dict, scene: dict) -> list:
     return errs
 
 
-def make_label(d: dict, scene: dict) -> dict:
-    """Only the fields a person chose — nothing from scene['after'] is copied."""
-    return {"scene_id": scene["scene_id"], "schema": LABEL_SCHEMA, "label_source": "human_verified",
+def make_label(d: dict, scene: dict, stage: str = "pre_reveal", revision_of: str | None = None) -> dict:
+    """Only the fields a person chose — nothing from scene['after'] is copied. stage/revision_of come from the server
+    (label_rows + revealed), never from the page."""
+    return {"scene_id": scene["scene_id"], "schema": LABEL_SCHEMA, "label_source": LABEL_SOURCE,
             "labeler_id": str(d["labeler_id"]), "labeled_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
-            "duration_s": round(float(d.get("duration_s") or 0), 1), "saw_after": bool(d.get("saw_after")),
+            "stage": stage, "revision_of": revision_of,
+            "duration_s": round(float(d.get("duration_s") or 0), 1),
             "acceptable": sorted(set(d.get("acceptable") or [])), "forbidden": sorted(set(d.get("forbidden") or [])),
             "best": d.get("best") or None, "unsure": bool(d.get("unsure")), "unsure_reason": d.get("unsure_reason") if d.get("unsure") else None,
+            "no_good_action": bool(d.get("no_good_action")), "outside_set": [x.strip() for x in d.get("outside_set") or []],
+            "model_input_sufficient": d.get("model_input_sufficient") is not False,
+            "outside_input": sorted(set(d.get("outside_input") or [])),
             "rationale": str(d.get("rationale") or ""), "evidence": sorted(set(d.get("evidence") or [])),
             "definition_note": str(d.get("definition_note") or "")}
 
@@ -615,20 +699,73 @@ def load_scenes() -> list:
     return [json.loads(l) for l in SCENES.read_text(encoding="utf-8").splitlines() if l.strip()]
 
 
+def _rows(path: Path) -> list:
+    return [json.loads(l) for l in path.read_text(encoding="utf-8").splitlines() if l.strip()] if path.exists() else []
+
+
+def label_rows(scene_id: str, labeler: str) -> list:
+    return [r for r in _rows(LABEL_FILE) if r["scene_id"] == scene_id and r["labeler_id"] == labeler]
+
+
+def revealed(scene_id: str, labeler: str) -> bool:
+    return any(r["scene_id"] == scene_id and r["labeler_id"] == labeler for r in _rows(REVEALS))
+
+
+def label_views(rows: list) -> dict:
+    """primary = the last label saved before 'after' was opened (the first judgment), final = the last row,
+    revisions = rows saved after 'after' — appended, never replacing the primary."""
+    pre = [r for r in rows if r.get("stage") == "pre_reveal"]
+    post = [r for r in rows if r.get("stage") == "post_reveal"]
+    return {"primary": pre[-1] if pre else None, "final": rows[-1] if rows else None, "revisions": post}
+
+
+_WRITE = threading.Lock()
+
+
+def request_reveal(scene_id: str, labeler: str) -> tuple[bool, str]:
+    """'after' opens only once this labeler has a first-pass label for the scene; the opening is logged (REVEALS),
+    so every later save is a post_reveal revision."""
+    if not labeler:
+        return False, "라벨러 ID가 없음"
+    if label_views(label_rows(scene_id, labeler))["primary"] is None:
+        return False, "1차 라벨(결과 보기 전)을 먼저 저장해야 결과를 볼 수 있음"
+    if not revealed(scene_id, labeler):
+        with _WRITE, REVEALS.open("a", encoding="utf-8") as f:
+            f.write(json.dumps({"scene_id": scene_id, "labeler_id": labeler, "revealed_at": time.strftime("%Y-%m-%dT%H:%M:%S%z")},
+                               ensure_ascii=False) + "\n")
+    return True, ""
+
+
+def save_label(d: dict, scene: dict) -> tuple[bool, object]:
+    """Validate, decide the stage from the reveal log (not from the page), append. Nothing is overwritten."""
+    errs = validate_label(d, scene)
+    if errs:
+        return False, errs
+    who = str(d["labeler_id"])
+    rows = label_rows(scene["scene_id"], who)
+    views = label_views(rows)
+    if revealed(scene["scene_id"], who):
+        stage, prev = "post_reveal", views["primary"]
+    else:
+        stage, prev = "pre_reveal", views["primary"]          # a correction before opening 'after' — still first-pass
+    row = make_label(d, scene, stage, prev["labeled_at"] if prev else None)
+    with _WRITE, LABEL_FILE.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(row, ensure_ascii=False) + "\n")
+    return True, row
+
+
 def latest_labels() -> dict:
     out = {}
-    if LABEL_FILE.exists():
-        for l in LABEL_FILE.read_text(encoding="utf-8").splitlines():
-            if l.strip():
-                r = json.loads(l)
-                out[(r["scene_id"], r["labeler_id"])] = r
+    for r in _rows(LABEL_FILE):
+        out[(r["scene_id"], r["labeler_id"])] = r
     return out
 
 
 def scene_for_page(s: dict, phase: str) -> dict:
-    """What the page shows: no test flag, no selection reasons; 'after' only once revealed."""
-    out = {k: v for k, v in s.items() if k not in ("test_candidate", "test_rule", "selection", "mask_inputs") and (phase == "full" or k != "after")}
-    return out
+    """What the page shows: no test flag, no selection reasons, no mask internals. Before 'after' is opened also no
+    'after' and no 'event' — before_big_hit / before_retreat / before_death are worked out from what happened next."""
+    hidden = {"test_candidate", "test_rule", "selection", "mask_inputs"} | (set() if phase == "full" else {"after", "event"})
+    return {k: v for k, v in s.items() if k not in hidden}
 
 
 def clip_msgs(s: dict, phase: str) -> list:
@@ -683,18 +820,24 @@ def serve(port: int = HTTP_PORT) -> None:
             if u.path == "/scenes":
                 lab = latest_labels()
                 who = q.get("labeler", [""])[0]
-                body = [{"scene_id": s["scene_id"], "event": s["event"], "segment": s["segment"], "source": s["source"],
-                         "labeled": (s["scene_id"], who) in lab} for s in scenes]
+                body = [{"scene_id": s["scene_id"], "source": s["source"], "labeled": (s["scene_id"], who) in lab} for s in scenes]
                 return self._send(200, json.dumps(body, ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8")
             if u.path == "/scene":
                 s = by_id.get(q.get("id", [""])[0])
                 if s is None:
                     return self._send(404, b"no scene", "text/plain")
                 phase = "full" if q.get("phase", ["pre"])[0] == "full" else "pre"
+                who = q.get("labeler", [""])[0].strip()
+                if phase == "full":
+                    ok, why = request_reveal(s["scene_id"], who)
+                    if not ok:
+                        return self._send(409, json.dumps({"error": why}, ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8")
                 with lock:
                     load_scene(s, phase)
+                views = label_views(label_rows(s["scene_id"], who))
                 body = {"scene": scene_for_page(s, phase), "tactics": LS.TACTICS, "tactics_ko": TACTIC_KO, "seek_rel": s["t_d"] - rp.t0,
-                        "label": latest_labels().get((s["scene_id"], q.get("labeler", [""])[0]))}
+                        "label": views["final"], "primary": views["primary"], "revealed": revealed(s["scene_id"], who),
+                        "outside_input": OUTSIDE_INPUT, "unsure_reasons": UNSURE_REASONS}
                 return self._send(200, json.dumps(body, ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8")
             return super().do_GET()
 
@@ -709,13 +852,10 @@ def serve(port: int = HTTP_PORT) -> None:
                 s = by_id[d.get("scene_id")]
             except Exception as e:
                 return self._send(400, json.dumps({"ok": False, "errors": [repr(e)[:100]]}).encode(), "application/json")
-            errs = validate_label(d, s)
-            if errs:
-                return self._send(400, json.dumps({"ok": False, "errors": errs}, ensure_ascii=False).encode("utf-8"), "application/json")
-            row = make_label(d, s)
-            with lock, LABEL_FILE.open("a", encoding="utf-8") as f:
-                f.write(json.dumps(row, ensure_ascii=False) + "\n")
-            self._send(200, json.dumps({"ok": True}).encode(), "application/json")
+            ok, out = save_label(d, s)
+            if not ok:
+                return self._send(400, json.dumps({"ok": False, "errors": out}, ensure_ascii=False).encode("utf-8"), "application/json")
+            self._send(200, json.dumps({"ok": True, "stage": out["stage"]}).encode(), "application/json")
 
     srv = RS.RadarHTTPServer(("127.0.0.1", port), H)
     print(f"label pilot: http://127.0.0.1:{port}  ({len(scenes)} scenes, labels → {LABEL_FILE})")
@@ -728,23 +868,38 @@ def serve(port: int = HTTP_PORT) -> None:
 # ── report ──
 
 def report() -> None:
+    """Rates are per first-pass (primary) label; changes made after opening 'after' are counted separately."""
     scenes = {s["scene_id"]: s for s in load_scenes()}
-    labs = list(latest_labels().values())
-    print(f"scenes {len(scenes)} · fights {len({s['fight_id'] for s in scenes.values()})} · labels {len(labs)}")
+    rows = [r for r in _rows(LABEL_FILE) if r.get("label_source") == "human_verified"]
+    print(f"scenes {len(scenes)} · fights {len({s['fight_id'] for s in scenes.values()})} · label rows {len(rows)}")
     miss = collections.Counter(k for s in scenes.values() for k in s["missing"])
     print("  missing observations (scenes): " + ", ".join(f"{k} {v}" for k, v in miss.most_common()))
-    for who in sorted({l["labeler_id"] for l in labs}):
-        ls = [l for l in labs if l["labeler_id"] == who]
-        d = sorted(l["duration_s"] for l in ls)
-        uns = [l for l in ls if l["unsure"]]
-        print(f"\n  labeler {who}: {len(ls)} scenes, fights {len({scenes[l['scene_id']]['fight_id'] for l in ls if l['scene_id'] in scenes})}")
-        print(f"    time per scene: median {d[len(d) // 2]:.0f} s · p90 {d[int(.9 * (len(d) - 1))]:.0f} s · total {sum(d) / 60:.0f} min")
-        print(f"    unsure {len(uns)} ({100 * len(uns) / len(ls):.0f} %): " + ", ".join(f"{k} {v}" for k, v in collections.Counter(l['unsure_reason'] for l in uns).items()))
-        print(f"    saw 'after' before saving: {sum(l['saw_after'] for l in ls)}")
-        print(f"    acceptable set size: " + ", ".join(f"{k} {v}" for k, v in sorted(collections.Counter(len(l['acceptable']) for l in ls).items())))
-        off = [(l["scene_id"], t) for l in ls for t in l["acceptable"] if l["scene_id"] in scenes and t not in scenes[l["scene_id"]]["allowed"]]
-        print(f"    acceptable but outside the rule mask: {len(off)} " + str(off[:6]))
-        for l in ls:
+    unav = collections.Counter((t, u["why"]) for s in scenes.values() for t, u in s["unavailable"].items())
+    print("  not candidates (tactic, why): " + ", ".join(f"{t}:{w} {n}" for (t, w), n in unav.most_common()))
+    for who in sorted({r["labeler_id"] for r in rows}):
+        per = {sid: label_views([r for r in rows if r["scene_id"] == sid and r["labeler_id"] == who]) for sid in scenes}
+        prim = [v["primary"] for v in per.values() if v["primary"]]
+        if not prim:
+            continue
+        n = len(prim)
+        d = sorted(l["duration_s"] for l in prim)
+        pct = lambda k: f"{k} ({100 * k / n:.0f} %)"
+        print(f"\n  labeler {who}: {n} scenes (first pass), fights {len({scenes[l['scene_id']]['fight_id'] for l in prim})}")
+        print(f"    time per scene: median {d[n // 2]:.0f} s · p90 {d[int(.9 * (n - 1))]:.0f} s · total {sum(d) / 60:.0f} min")
+        uns = [l for l in prim if l["unsure"]]
+        print(f"    unsure (missing information): {pct(len(uns))} — " + ", ".join(f"{k} {v}" for k, v in collections.Counter(l['unsure_reason'] for l in uns).items()))
+        print(f"    no fitting tactic in the current set: {pct(sum(l['no_good_action'] for l in prim))} — wanted: "
+              + ", ".join(f"{k} {v}" for k, v in collections.Counter(x for l in prim for x in l['outside_set']).most_common()))
+        print(f"    model input alone not enough: {pct(sum(not l['model_input_sufficient'] for l in prim))} — needed: "
+              + ", ".join(f"{OUTSIDE_INPUT[k]} {v}" for k, v in collections.Counter(x for l in prim for x in l['outside_input']).most_common()))
+        print(f"    acceptable set size: " + ", ".join(f"{k} {v}" for k, v in sorted(collections.Counter(len(l['acceptable']) for l in prim).items())))
+        off = [(l["scene_id"], t, scenes[l["scene_id"]]["unavailable"][t]["why"]) for l in prim for t in l["acceptable"]
+               if t in scenes[l["scene_id"]]["unavailable"]]
+        print(f"    acceptable although not a candidate: {len(off)} " + str(off[:6]))
+        changed = [sid for sid, v in per.items() if v["revisions"] and v["primary"] and
+                   (v["final"]["acceptable"], v["final"]["forbidden"]) != (v["primary"]["acceptable"], v["primary"]["forbidden"])]
+        print(f"    opened 'after': {sum(revealed(sid, who) for sid in per)} · changed the judgment afterwards: {len(changed)} {changed[:6]}")
+        for l in prim:
             if l["definition_note"]:
                 print(f"    definition note [{l['scene_id']}]: {l['definition_note']}")
 
@@ -756,11 +911,17 @@ def main() -> None:
     b.add_argument("--n", type=int, default=40)
     s = sub.add_parser("serve")
     s.add_argument("--port", type=int, default=HTTP_PORT)
+    s.add_argument("--labels-dir", default=None, help="write labels/reveals here instead of data/labels — for trying the page out")
     sub.add_parser("report")
     a = ap.parse_args()
     if a.cmd == "build":
         build(a.n)
     elif a.cmd == "serve":
+        if a.labels_dir:
+            global LABEL_FILE, REVEALS, LABEL_SOURCE
+            LABEL_FILE, REVEALS = Path(a.labels_dir) / "pilot_labels.jsonl", Path(a.labels_dir) / "pilot_reveals.jsonl"
+            LABEL_SOURCE = "ui_trial"
+            print(f"labels go to {a.labels_dir} as label_source 'ui_trial', not data/labels")
         serve(a.port)
     else:
         report()

@@ -264,6 +264,59 @@ README 권고대로 criteria + 중립 라벨(A/B). 3문항을 한 번의 forward
 5. 수용소 데몬(보스) 6장면: 전술 목록이 필드 싸움용이라 보스(구르기 위주, [MoKa] 원칙 '보스는 양손·회피')엔 안 맞을 수 있음 — 판단 불가가 몰릴 수 있음
 6. 뒤잡기: 사람 장면의 후보 여부는 근사(망자·3.5 m·혼자)
 
+### 11.6 라벨 의미 점검 (2026-10-01, [MoKa] 요청 — 학습·질문 형식·게임·구르기 구현 없음)
+
+**세 가지를 따로 둔다**
+| | 어디에 | 형식 |
+|---|---|---|
+| ① 실제로 한 행동 (observed) | 과거: `context.actor_did` (모델 입력) · 이후: `after.bot_logged` / `after.human_pressed` (참고만) | **기록 원래 말 그대로** — 봇은 `Fight.note` 이름(`기다림×19 반사×2`), 사람은 버튼(`{"button":"B","hold_s":0.12,"my_anim_after":710,"guess":"구르기로 보임 (애니 710, 번호 미확인)"}`). 봇 행동을 전술 이름으로 옮긴 `after.bot_action_as_tactic`은 규칙 기준선용, 정답 아님 |
+| ② 그때 봇이 할 수 있던 행동 (available) | `allowed` + `unavailable` | `unavailable[전술] = {why, detail}` — `not_in_bot`(봇에 없음·이 설정에서 꺼짐) / `rule_blocked`(규칙 조건이 지금 막음) / `unobserved`(조건에 필요한 관측이 없음). `allowed ∪ unavailable` = 전술 9개, 겹침 없음 (`laya_shadow.why_not`, `allowed()`와 같은 조건) |
+| ③ 라벨러 판단 (accepted/forbidden) | 라벨 | `acceptable`·`forbidden`·`best` + 아래 세 가지 '답 없음' |
+
+**구르기**: 봇에 없는 행동 — 전술 목록·후보·정답 선택지 어디에도 없음. 사람 시범의 B는 버튼 사실로만 남고, 사람 장면의 `evade`는 "봇 기본(guard) 스타일엔 백스텝 회피 없음"(`not_in_bot`)이라 후보가 아님 — 사람이 구른 것과 무관. 사람 파일의 B 228번: 길게 누름 113(애니 변화 없음 → 달리기로 보임), 짧게 → 애니 710 57번(구르기로 보임, 미확인), 690 5번(백스텝 — 봇 백스텝 로그와 같은 번호).
+
+**'답 없음' 세 가지 (라벨 0.2)**: `unsure` + 이유 = 정보가 없어 판단 못 함 · `no_good_action` (+ `outside_set`, 예: `["구르기"]`) = 판단은 되는데 지금 전술 중 맞는 게 없음 — 둘은 같이 못 고름 · `model_input_sufficient: false` (+ `outside_input`: 지형·내 동작·락온·무기 거리·4.5 m 밖 적·적 이름·인식 범위·재생으로 본 움직임·기타) = 판단은 화면에서만 본 정보에 기댐(허용·금지는 그대로 적음).
+
+저장 예 (UI 시험, 임시 폴더, `ui_trial`):
+```json
+{"scene_id":"9bef5c874e","stage":"pre_reveal","acceptable":[],"forbidden":["attack"],"no_good_action":true,"outside_set":["구르기"],
+ "unsure":false,"model_input_sufficient":false,"outside_input":["my_anim","terrain"], ...}
+{"scene_id":"a200dbb00e","stage":"pre_reveal","acceptable":[],"forbidden":[],"unsure":true,"unsure_reason":"정보 부족","no_good_action":false, ...}
+```
+
+**라벨 보존**: '이후 보기'는 그 라벨러의 1차 라벨이 있어야 열림(서버가 409로 거절). 연 기록은 `data/labels/pilot_reveals.jsonl`. 그 뒤 저장은 `stage: post_reveal` + `revision_of`(1차의 시각)로 **새 줄** — 1차는 그대로(`label_views`: primary·final·revisions). 단계는 서버가 정함(페이지 값 안 믿음). `serve --labels-dir`(화면 시험)은 `label_source: ui_trial`로 쓰고 report는 `human_verified`만 셈. 장면을 만드는 것·사람 시범이라는 것만으로 `human_verified`가 붙는 곳은 없음.
+
+**추정값 표시**: `obs_provenance[키] = {kind, how}` — `logged`(실행 로그 줄: 무기 거리·스타일), `derived`(다른 값에서 계산: 상태 범주·적 종류·닿음·휘두른 시간), `estimated`(근사: 에스트 수·에스트 원함·뒤잡기 자리), `assumed`(가정: 사람 장면의 봇 기본 스타일·무기표 최장·최단 거리). 목록에 없는 키 = 기록을 그대로 읽은 값. 화면에 태그로 보임.
+
+**1차 화면·모델 입력에 섞이는 것 다시 점검**: 찾은 누설 1건 고침 — 화면의 '장면을 고른 사건'(`before_big_hit`·`before_retreat`·`before_death`는 미래에서 계산)이 11장면에서 보였음 → 결과 공개 뒤에만, `/scenes` 목록에서도 뺌. 그 밖에 결정 시점 뒤 프레임·봇 로그 줄·봇 계획(`target`·`path`·`spot`·`smash`)은 1차 화면에 없음, `obs`·`context`·`allowed`에 `after` 값 없음 — `tests/label_pilot_test.py`가 검사.
+
+**라벨러 화면 vs 모델 입력**
+| 정보 | 라벨러 화면 (1차) | 장면 `obs`/`context` | Laya 섀도 입력 (`laya_shadow.features`) |
+|---|---|---|---|
+| 내 HP·SP | 레이더·표 | 있음 | 있음 |
+| 목표 종류·상태·HP·거리·높이·각도·휘두른 시간 | 레이더·표 | 있음 (+ `target_npc`·`target_anim`) | 있음 (npc·애니 번호 없음, `target_one_hit` 있음) |
+| 무기 거리·닿음 | 표 | 봇: 로그, 사람: 없음 | 있음 |
+| 4.5 m 안 다른 적 | 레이더에 하나하나 | 수·휘두르는지만 | 같음 |
+| 4.5 m 밖 적(원거리 투척병 등)·그 동작 | 레이더 | **없음** | **없음** |
+| 지형 (가장자리·벽·좁은 곳) | 레이더 바닥 | **없음** | **없음** (마스크에만: 뒤 공간·arena) |
+| 내 동작 (구르기·경직·공격 중) | 레이더 anim ID 켜면 | **없음** | **없음** |
+| 락온 | 사람 시범엔 기록 있음 | **없음** | **없음** |
+| 움직임 (속도·방향) | 재생 | **없음** (목표 상태 변화만) | **없음** |
+| 에스트 | 표 (봇 추정) | 추정 | `estus_wanted`(실제 Care), 수는 없음 |
+| 스타일·let_it_come | 표 (스타일) | 스타일만 | 둘 다 |
+| 이번 싸움 받은 피해 | — | 없음 | `taken_this_fight_pct` |
+| 직전 3초 (목표 상태 변화·내 HP 변화·한 행동) | 표 | 있음 (모델 입력으로 명세) | **없음** — 섀도는 한 틱의 값만 보냄 |
+| 적 이름(스폰 번호)·인식 범위·아이템 | 레이더 | 없음 | 없음 |
+| 사건·이후·결과·봇 계획 | 결과 공개 뒤에만 | 없음 | 없음 |
+→ 라벨러가 지형·내 동작·락온·먼 적·움직임에 기대면 `model_input_sufficient: false`로 표시. **장면 `obs`와 섀도 입력의 키가 다름**(맥락 유무, 몇 개 키) — 학습 전에 하나로 맞춰야 함(이번엔 안 바꿈: 모델 입력·질문 형식 변경은 범위 밖).
+
+**라벨링 지침** (화면의 '라벨링 지침'에도 있음): 세 가지를 섞지 않기 · 사람이 구른 장면은 지금 전술 중 대안이 있으면 허용, 없으면 '맞는 것 없음' + 구르기(회피로 바꿔 적지 않음) · 방패 들고 기다리기는 막기·거리 유지 둘 다 허용 가능(guard 스타일의 '기다림'은 방패를 든 채) · 후퇴 = 싸움을 끝내고 떠남(나중에 마시는 것 포함), 회복 = 싸움 중 그 자리나 한 걸음 물러나 마심 · 방패 들고 다가감 = 접근(+막기), 닿는 거리 안에서 들어가며 치기 = 공격.
+혼동 사례 (40장면 안): 방패 든 기다림 `0366a9a6d5`·`661cd237e1`·`a200dbb00e` · 막으며 다가감 `40229cc4de`·`28afee2e73`·`f43354082e` · 후퇴로 끝난 싸움 `74f6c6cc00`·`873303cc8b`·`e89d1b6c89`·`f48b4a00cc` · 사람 B `3b6aec3e65`·`9bef5c874e`(둘 다 길게 누름 = 달리기로 보임).
+
+**장면·라벨 파일**: 스키마 `dsr-scene/0.2`로 다시 만듦 — 이전(0.1, 커밋 `90b28c8`)과 대조: 장면 ID 40개 같음, `t_d`·싸움·실행·클립·구역·적·사건·선정·test 후보(13)·`obs`·`allowed`·`missing`·결과 값 전부 같음. 바뀐 것: 새 필드(`unavailable`·`obs_provenance`), 관측 행동의 형식(원래 말 그대로), `mask_inputs`에 `_backstab_on` 추가와 사람 장면의 가정 명시(`allowed`는 그대로). `obs_notes`·`allowed_basis`는 위 둘로 대체. 실제 라벨 파일은 아직 없음(0줄) — 옮길 것 없음.
+
+**남은 모호성**: 애니 710이 구르기인지 미확인(번호 표 없음) · 반올림 경계(2.6 m vs 2.3 + 0.3)는 `allowed`와 같은 계산이라 일관되지만 화면 숫자로는 같아 보임 · 수용소 데몬 6장면은 필드용 전술 목록과 안 맞을 수 있음 · '결과 보기'는 되돌릴 수 없음(의도) · `duration_s`는 장면을 연 때부터라 읽는 시간 포함 · 사람 장면 후보는 '지금 봇의 기본 설정이었다면'으로 계산(가정 태그)
+
 ## 12. 학습·평가에서 '허용 전술 집합'을 표현하는 법 (설계만, 학습 안 함)
 
 **공식 미세조정 코드에서 확인한 것** (`notebooks/laya_finetune_typed_decisions_mps.py`·Kaggle 노트북, GitHub main `4aa6761`, 2026-10-01 읽음):
