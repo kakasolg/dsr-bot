@@ -1474,7 +1474,8 @@ class Field:
           · 아니면 던질 거리(LURE_MAX) 안·같은 층·길 있는 적 하나를 나이프로 깨워 기다려 싸움 (한 놈에 2번까지)
           · 아무도 없으면 다음 CAREFUL_LEG
         → 'arrived' | 'done' | 'dead' | 'no_path' | 'timeout'"""
-        t0, lured = time.time(), {}
+        t0 = time.time()
+        lured = self.__dict__.setdefault("_careful_lured", {})   # kept across walks — 10-01b retried the ledge crossbowman on every walk
         while time.time() - t0 < CAREFUL_MAX_S:
             if not self.alive():
                 return "dead"
@@ -1515,8 +1516,8 @@ class Field:
                     if r.result != "killed":
                         self.recover(f"{tag} {r.result}", nm)
                     continue
-                if lr == "no_knife":
-                    lured[c.ptr] = 2                       # can't pull it — walk on, it comes when it sees us (then 'coming' above)
+                if lr in ("no_knife", "no_spot", "no_path", "no_lock", "too_far", "too_close"):
+                    lured[c.ptr] = 2                       # can't pull it from here (ledge, no throw spot) — walk on, it comes when it sees us
             path = nm.find_path((p.x, p.y, p.z), tuple(goal))
             if not path:
                 return "no_path"

@@ -90,7 +90,14 @@ def test_no_knife_walks_on() -> None:
         assert r == "arrived" and seen.count(("lure", 3)) == 1, (r, seen)
     finally:
         F.CAREFUL_LOOK_S = old
-    print("ok  no knife → stop trying to pull that one, keep walking")
+    w2 = World(player=(0.0, -13.4, 0.0), hp=793)
+    w2.add(3, 0x1019, 255002, (4.0, -13.4, 10.0), anim=-1)              # crossbowman on a ledge: no throw spot
+    f2, seen2 = setup(w2)
+    f2.lure = lambda *a, **k: (seen2.append(("lure", 3)), "no_spot")[1]
+    f2.careful_walk_to((0.0, -13.4, 3.0), Nm(), "#4 이동")
+    f2.careful_walk_to((0.0, -13.4, 6.0), Nm(), "#5 이동")             # next walk: not tried again
+    assert seen2.count(("lure", 3)) == 1, seen2
+    print("ok  no knife / no throw spot → stop trying to pull that one (also on later walks), keep walking")
 
 
 if __name__ == "__main__":
