@@ -138,6 +138,7 @@ LURE_R = 10.0            # knife throw distance — with lock-on, 11.9 and 11.4 
 LURE_TRIES = 3
 LURE_DY = 1.5            # max height diff between throw spot and target / current spot — so we don't jump down to a foe below a cliff (2026-09-24 run 8)
 LURE_ABORT_R = 10.0              # abort throwing if another awake, moving foe is within this
+PICK_TRIES = 3           # A presses to pick up a bloodstain
 CAREFUL_LEG = 4.0        # careful_walk_to: walk this far, then stop and look
 CAREFUL_LOOK_S = 1.5     # …stand this long (guard up) watching who comes
 CAREFUL_COME_R = 12.0    # an awake, moving foe this close (same level) → wait for it here and fight it alone
@@ -1569,9 +1570,15 @@ class Field:
         if r != "arrived":
             return r
         souls0 = self.mv.tm.souls() or 0
-        self.mv.press(M.B.XUSB_GAMEPAD_A)
-        time.sleep(1.5)
-        got = (self.mv.tm.souls() or 0) > souls0
+        got = False
+        for k in range(PICK_TRIES):                        # 09-30·10-01: the first A on arrival missed both times, a later one took it
+            if k:
+                time.sleep(1.0)
+            self.mv.press(M.B.XUSB_GAMEPAD_A)
+            time.sleep(1.5)
+            got = (self.mv.tm.souls() or 0) > souls0
+            if got:
+                break
         self.log(f"   핏자국: {'회수' if got else '못 주움'} (소울 {souls0} → {self.mv.tm.souls()})")
         return "got" if got else "miss"
 
