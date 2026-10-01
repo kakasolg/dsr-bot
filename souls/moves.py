@@ -63,9 +63,10 @@ def rel_angle(p, c) -> float:
     return (math.atan2(c.x - p.x, c.z - p.z) - fwd + math.pi) % (2 * math.pi) - math.pi
 
 
+LOOK_MAX_S = 0.25         # longest single camera tap (≈ 37° at full stick)
 LOCK_BODY_DEG = 20.0     # before R3: body within this of the target …
 LOCK_CAM_DEG = 6.0       # … and camera within this (R3 grabs whatever is nearest camera centre)
-LOCK_ALIGN_S = 1.2       # time allowed to line both up
+LOCK_ALIGN_S = 1.5       # time allowed to line both up
 
 
 class Moves:
@@ -109,9 +110,14 @@ class Moves:
                 if abs(d) > math.radians(0.5):
                     Moves.LOOK_SIGN = 1 if d > 0 else -1
             return
-        mag = min(1.0, max(0.35, abs(err) / 45.0))         # was /60 — full stick from 45° (camera follow, MoKa 2026-10-01)
+        # ── 오른스틱 세기·시간 → 카메라가 도는 양 (2026-10-01 실측, 마을 마당에 서서 한 방향으로 3번씩, 0.7 s 기다림) ──
+        #  0.35 → 0°/s (데드존 — 예전 펄스는 오차 20° 밑에선 0.35~0.4라 카메라가 18° 어긋난 채 멈춤, 락온 실패 3번)
+        #  0.45 → ~17°/s · 0.6 → ~50°/s · 0.7 → ~70°/s · 1.0 → ~150°/s. 그래서 세기를 고르고 시간 = 오차 ÷ 속도 × 0.8 (관성 여유)
+        e = abs(err)
+        mag, rate = (1.0, 150.0) if e >= 20 else (0.7, 70.0) if e >= 8 else (0.6, 50.0)
+        hold = max(0.03, min(LOOK_MAX_S, e / rate * 0.8))
         self.pad.look(Moves.LOOK_SIGN * (1 if err > 0 else -1) * mag, 0.0)
-        time.sleep(dur)
+        time.sleep(hold)
         self.pad.look(0.0, 0.0)
 
     def look_at(self, ptr, tol: float = 5.0, timeout: float = 1.5) -> float | None:
@@ -125,8 +131,8 @@ class Moves:
             err = self.cam_err(s, c.x, c.z)
             if err is None or abs(err) <= tol:
                 break
-            self.look_pulse(err, 0.08 if abs(err) > 30 else 0.04)
-            time.sleep(0.06)
+            self.look_pulse(err)
+            time.sleep(0.12)                              # let the camera settle (it drifts on after the tap)
         self.pad.look(0.0, 0.0)
         return err
 
@@ -617,7 +623,7 @@ class Moves:
             if aim and abs(body) > LOCK_BODY_DEG:
                 self.aim(ptr, deg=8.0, timeout=0.6)
             elif cam is not None and abs(cam) > LOCK_CAM_DEG:
-                self.look_at(ptr, tol=LOCK_CAM_DEG, timeout=0.6)
+                self.look_at(ptr, tol=LOCK_CAM_DEG, timeout=1.0)
             else:
                 break
         s = self.snap(40.0)

@@ -79,7 +79,7 @@ class CamFollow:
                     self.errs.append(abs(err))
                 if err is None or abs(err) <= DEADBAND:
                     continue
-                self.mv.look_pulse(err, 0.04 if abs(err) < 25 else 0.08 if abs(err) < 60 else 0.12)
+                self.mv.look_pulse(err)                    # tap size from the measured turn speed (Moves.look_pulse)
                 self.pulses += 1
                 if not had_sign and self.mv.LOOK_SIGN is not None:
                     had_sign = True
