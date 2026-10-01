@@ -173,6 +173,21 @@ def _win32_passthrough(tk_root) -> None:
     u.SetWindowLongW(hwnd, GWL_EXSTYLE, style | WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_TOPMOST)
 
 
+def _focus_back(tk_root) -> None:
+    """If the overlay ended up as the foreground window, give it back to the game. Tk activates a new window once when it
+    first maps, before WS_EX_NOACTIVATE is set — the bot then saw game_in_front() False and stood still for ~2 min (2026-10-01)."""
+    if sys.platform != "win32":
+        return
+    import ctypes
+    u = ctypes.windll.user32
+    me = u.GetParent(tk_root.winfo_id()) or tk_root.winfo_id()
+    game = u.FindWindowW(None, "DARK SOULS™: REMASTERED")
+    if game and u.GetForegroundWindow() == me:
+        u.keybd_event(0x12, 0, 0, 0)                    # Alt tap — Windows refuses SetForegroundWindow from a background process otherwise
+        u.keybd_event(0x12, 0, 2, 0)
+        u.SetForegroundWindow(game)
+
+
 def _game_rect():
     """(x, y, w, h) of the game window, or None."""
     if sys.platform != "win32":
@@ -205,6 +220,7 @@ class Overlay:
         self.root.geometry("900x520+40+40")
         self.root.update_idletasks()
         _win32_passthrough(self.root)
+        _focus_back(self.root)
         threading.Thread(target=self._poll, daemon=True).start()
         self._rect = None
         self.root.after(100, self._tick)
@@ -229,6 +245,7 @@ class Overlay:
         if rect and rect != self._rect:                                  # follow the game window
             self._rect = rect
             self.root.geometry(f"{rect[2]}x{rect[3]}+{rect[0]}+{rect[1]}")
+            _focus_back(self.root)                                       # moving/resizing can activate it too
         cv = self.canvas
         cv.delete("all")
         w = cv.winfo_width()
