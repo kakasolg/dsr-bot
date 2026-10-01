@@ -100,7 +100,40 @@ def test_no_knife_walks_on() -> None:
     print("ok  no knife / no throw spot → stop trying to pull that one (also on later walks), keep walking")
 
 
+
+def test_ignored_foe_on_us_is_a_chaser() -> None:
+    """10-01c: a foe the walk ignored after a 'stuck' fight hit us from 0.8 m for 10 s with no counter, then we fell into a gap."""
+    w = World(player=(0.0, -23.3, 0.0), hp=793)
+    c = w.add(2, 0x1018, 254010, (0.0, -23.3, 0.8), anim=3003)
+    f = make_field(w)
+    s = w.snapshot()
+    assert f._chaser(s, {2}) is not None, "ignored foe swinging at 0.8 m must be fought"
+    c.anim = 3500
+    assert f._chaser(w.snapshot(), {2}) is not None, "…and when it is staggered next to us"
+    w.move(2, (0.0, -23.3, 3.5))
+    c.anim = 3003
+    assert f._chaser(w.snapshot(), {2}) is None, "an ignored foe 3.5 m off stays ignored"
+    print("ok  ignored foe swinging / staggered within 2.5 m is a chaser again; farther stays ignored")
+
+
+
+def test_no_throw_from_another_height() -> None:
+    old = F.CAREFUL_LOOK_S
+    F.CAREFUL_LOOK_S = 0.0
+    try:
+        w = World(player=(0.0, -13.4, 0.0), hp=793)
+        w.add(3, 0x1019, 250000, (4.0, -11.9, 10.0), anim=-1)            # 1.5 m higher (top of the stairs)
+        f, seen = setup(w)
+        f.careful_walk_to((0.0, -13.4, 3.0), Nm(), "#2 이동")
+        assert ("lure", 3) not in seen, seen
+    finally:
+        F.CAREFUL_LOOK_S = old
+    print("ok  a foe 1.5 m higher is not thrown at from below — walk on up first")
+
+
 if __name__ == "__main__":
     test_order()
     test_no_knife_walks_on()
+    test_ignored_foe_on_us_is_a_chaser()
+    test_no_throw_from_another_height()
     print("전부 통과")

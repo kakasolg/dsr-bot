@@ -120,6 +120,9 @@ FALL_BACK_MAX_S = 15.0   # …or after this long
 FALL_BACK_OFF_S = 10.0   # no path back → fight in place this long before trying to fall back again
 CROWD_MAX = 3            # 'crowd' fall-backs within CROWD_WINDOW_S before we stop falling back — the callers don't count a 'crowd' as a try, so without
 CROWD_WINDOW_S = 90.0    # this cap 'crowd → fall_back → crowd' repeats forever (P-26: 16 times, 0 damage dealt, dead)
+IGNORE_CLOSE_R = 2.5     # a foe the walk gave up on ('stuck'/'lost') still counts as a chaser when it is this close and swinging or
+                         # staggered — 10-01c: an ignored 254010 hit us 4 times from 0.8 m over 10 s (staggered 3 times) with no counter,
+                         # we walked on being hit and fell 5 m into the gap by town#3 ([MoKa]: "판단이 느려서 적에게 밀려서 틈에 빠졌음")
 RETREAT_CLEAR_R = 10.0   # a retreat goes on until no awake foe is within this (same level) — stopping at safe() (6 m) left the chaser 6–7 m
                          # behind and the Estus check then said 'foes nearby' (20 times in 09-30a…10-01b)
 RETREAT_HP = 0.5         # leave a fight below this share of max HP (was 0.25 — MoKa 2026-10-01: retreat more; low_hp fights took 335 each)
@@ -146,6 +149,7 @@ CAREFUL_LEG = 4.0        # careful_walk_to: walk this far, then stop and look
 CAREFUL_LOOK_S = 1.5     # …stand this long (guard up) watching who comes
 CAREFUL_COME_R = 12.0    # an awake, moving foe this close (same level) → wait for it here and fight it alone
 CAREFUL_MAX_S = 240.0
+CAREFUL_LURE_DY = 0.8    # only throw at a foe within this height of us — on stairs / a half level lock-on fails (MoKa 2026-10-01)
 LURE_MIN, LURE_MAX = 6.0, 13.0   # throw conditions on flat ground — closer than this and just walking wakes it; farther and lock-on fails
 KNIFE_LOW = 5            # warn below this — going to buy from the merchant is a later task (user 2026-09-24)
 HOLD_TRIES = 3           # hold-the-spot targets (lure_at.hold): lure attempts; wait HOLD_WAIT in place between them
@@ -1229,7 +1233,8 @@ class Field:
         Shield soldiers are deferred — with several, easy ones first (user 2026-09-25: "deal with the other enemies first, I said",
         "you go to the two shield soldiers too fast" — met the two shield soldiers on the Undead Burg terrace back to back with no time to heal,
         took 220+ damage each and got surrounded). Only when there is no easy one (shield soldiers only) take that one first."""
-        cands = [c for c in sn.hostile(FOLLOW_R + 1.0) if awake(c) and c.ptr not in ignore
+        on_us = lambda c: M.horiz(sn.player, c) < IGNORE_CLOSE_R and ((c.anim or -1) in M.ATTACK or (c.anim or -1) in M.STAGGER)
+        cands = [c for c in sn.hostile(FOLLOW_R + 1.0) if awake(c) and (c.ptr not in ignore or on_us(c))
                  and c.npc_param not in getattr(self, "ignore_npcs", ())   # e.g. the Asylum Demon while fleeing (souls/asylum)
                  and M.horiz(sn.player, c) < FOLLOW_R and abs(c.y - sn.player.y) < FOLLOW_DY
                  and (c.anim not in (None, -1) or c.dist < 2.0)]
@@ -1506,7 +1511,9 @@ class Field:
                 if r.result != "killed" and not self.recover(f"{tag} {r.result}", nm) and self.estus_left() <= 0:
                     return "dead"
                 continue
-            idle = [c for c in s.hostile(LURE_MAX) if c.hp > 0 and same(c) and lured.get(c.ptr, 0) < 2
+            # 같은 높이에서만 던진다 ([MoKa] 2026-10-01: "타운에서 위치가 애매한 데서 나이프 던지려는데 락온이 안 돼서 꼬였음 —
+            # 계단에 확실히 올라온 이후에만 락온이 될 것 같음"). 높이가 다르면 던지지 않고 다음 CAREFUL_LEG를 걸어 올라간다
+            idle = [c for c in s.hostile(LURE_MAX) if c.hp > 0 and abs(c.y - p.y) <= CAREFUL_LURE_DY and lured.get(c.ptr, 0) < 2
                     and nm.find_path((p.x, p.y, p.z), (c.x, c.y, c.z))]
             if idle:
                 c = min(idle, key=lambda x: M.horiz(p, x))
@@ -1523,7 +1530,7 @@ class Field:
                     if r.result != "killed":
                         self.recover(f"{tag} {r.result}", nm)
                     continue
-                if lr in ("no_knife", "no_spot", "no_path", "no_lock", "too_far", "too_close"):
+                if lr in ("no_knife", "no_spot", "no_path"):   # no_lock / too_far / too_close: may work from the next stop
                     lured[c.ptr] = 2                       # can't pull it from here (ledge, no throw spot) — walk on, it comes when it sees us
             path = nm.find_path((p.x, p.y, p.z), tuple(goal))
             if not path:
