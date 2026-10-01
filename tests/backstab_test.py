@@ -191,3 +191,65 @@ def test_circle_floor() -> None:
 
 
 test_circle_floor()
+
+
+def test_r1_timing_logged() -> None:
+    """MoKa 2026-10-01: with the Battle Axe the backstab misses its timing (a delay). The R1 line shows where the foe was when
+    we decided and right after R1 went in (release wait + press)."""
+    w, c, mv = setup(1.0)
+    w.on_r1 = lambda: setattr(c, "hp", 0)
+    logs = []
+    assert D._backstab(mv, w.snapshot(), c, lambda: False, log=logs.append) == "stabbed"
+    line = next((l for l in logs if "뒤잡기 R1: 판정" in l), None)
+    assert line is not None and "→ 누른 직후" in line and "적 애니" in line, logs
+    print("ok  R1 timing: " + line.strip())
+
+
+test_r1_timing_logged()
+
+
+def test_back_to_safe_guards() -> None:
+    """Walking back from an edge after a backstab is a blind spell (no duel tick) — shield up for it (MoKa 2026-10-01)."""
+    import types
+    calls = []
+    p = types.SimpleNamespace(x=1.0, y=0.0, z=0.0, gx=1.0, gy=0.0, gz=0.0)
+    s = types.SimpleNamespace(player=p)
+    mv = types.SimpleNamespace(snap=lambda within=8.0: s, guard=lambda on: calls.append(("guard", on)),
+                               stick_to=lambda s_, x, z, k: (0.0, -k),
+                               pad=types.SimpleNamespace(move=lambda x, y: (calls.append(("move", x, y)),
+                                                                            setattr(p, "x", p.x - 0.3)),
+                                                         release_due=lambda: None))
+    class NM:
+        def floor_at(self, x, z, y): return (0.0, 0) if x < 0.6 else None       # floor only toward −x
+    D._back_to_safe(mv, NM(), (0.0, 0.0, 0.0), lambda *a: None, secs=1.0)
+    assert calls and calls[0] == ("guard", True), calls[:3]                    # shield up before the first step
+    assert any(c[0] == "move" for c in calls) and ("guard", False) not in calls  # left up for the duel to decide
+    print("ok  back off the edge with the shield up")
+
+
+test_back_to_safe_guards()
+
+
+def test_two_hands_one_on_one() -> None:
+    """Wall heavy / switching to two hands only one-on-one (MoKa 2026-10-01): another awake foe within 3.5 m → no heavy;
+    a one-handed switch needs nobody else within 6 m; asleep / downed ones don't count."""
+    import types
+    F = types.SimpleNamespace(ptr=1, foe=types.SimpleNamespace(kind="shield"),
+                              mv=types.SimpleNamespace(tm=types.SimpleNamespace(grip=lambda: 1)))
+    def snap(*others):
+        p = types.SimpleNamespace(x=0.0, y=0.0, z=0.0)
+        tgt = types.SimpleNamespace(ptr=1, hp=85, x=0.0, y=0.0, z=1.5, anim=-1)
+        chars = [tgt] + [types.SimpleNamespace(ptr=10 + i, hp=85, x=d, y=0.0, z=0.0, anim=a) for i, (d, a) in enumerate(others)]
+        return types.SimpleNamespace(player=p, hostile=lambda r: chars)
+    assert D._heavy_ok(F, snap())                                  # alone, shield soldier, one hand → switch allowed
+    assert not D._heavy_ok(F, snap((3.2, -1)))                     # 09-30c 343 s: a second soldier idle at 3.2 m
+    assert not D._heavy_ok(F, snap((5.0, 3000)))                   # one hand: nobody within 6 m for the switch
+    assert D._heavy_ok(F, snap((5.0, 9000)))                       # asleep doesn't count
+    assert D._heavy_ok(F, snap((2.0, 9910)))                       # downed doesn't count
+    F.mv.tm.grip = lambda: 3
+    assert D._heavy_ok(F, snap((5.0, 3000)))                       # already two-handed: only 3.5 m matters
+    assert not D._heavy_ok(F, snap((3.0, -1)))
+    print("ok  two hands / wall heavy only one-on-one")
+
+
+test_two_hands_one_on_one()

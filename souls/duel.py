@@ -89,7 +89,7 @@ def backstab_stick(c, p, side: float | None = None) -> tuple[float, float, float
     return (side if side is not None else (-1.0 if ang >= 0 else 1.0)), fwd, behind
 
 
-def _backstab(mv, s, c, cancel, nm=None) -> str:
+def _backstab(mv, s, c, cancel, nm=None, log=None) -> str:
     """Lock on, strafe round at body contact, R1 once behind. → 'stabbed' | 'hit' (R1 landed but no kill) | 'moved' (it stopped
     being idle) | 'not_behind' (time out) | 'no_lock' | 'lost'. Always leaves the stick centered and lock-on off."""
     ptr, hp0 = c.ptr, c.hp
@@ -101,14 +101,24 @@ def _backstab(mv, s, c, cancel, nm=None) -> str:
             time.sleep(0.01)
     busy0 = vars(mv).get("cam_busy", False)           # vars(): test fakes raise on unknown attributes
     mv.cam_busy = True                                     # lock-on drives the camera — CamFollow hands off
-    def stab() -> str:
+    def stab(s0=None, c0=None) -> str:
         # let go of everything first — guard (LB) up or the stick held turns R1 into a normal attack. Human demos press R1 alone
         # (buttons 0x200, no LB); the bot held LB through the whole duel (0x100 → 0x180 at R1). user 2026-09-28: "behind it, all input
         # released for an instant — that is when the backstab registers"
         getattr(mv.pad, "guard", lambda on: None)(False)
         mv.pad.move(0.0, 0.0)
+        t0 = time.time()
         wait(BACKSTAB_RELEASE_S)
         mv.pad.attack()
+        if log is not None and s0 is not None and c0 is not None:
+            # where it was when we decided vs right after R1 went in — MoKa 2026-10-01: with the Battle Axe the backstab misses
+            # its timing (a delay), not the weapon. This shows how far the foe turned / we drifted during the release + R1.
+            s1 = mv.snap(8.0)
+            c1 = mv.find(s1, ptr) if s1 else None
+            if c1 is not None:
+                log(f"      뒤잡기 R1: 판정 {abs(math.degrees(M.rel_angle(c0, s0.player))):.0f}°·{M.horiz(s0.player, c0):.2f} m "
+                    f"→ 누른 직후 {abs(math.degrees(M.rel_angle(c1, s1.player))):.0f}°·{M.horiz(s1.player, c1):.2f} m "
+                    f"({time.time() - t0:.2f} s, 적 애니 {c0.anim}→{c1.anim})")
         c2 = None
         for _ in range(max(1, int(BACKSTAB_WATCH_S / max(BACKSTAB_TICK, 1e-3)))):
             wait(BACKSTAB_TICK)
@@ -123,14 +133,14 @@ def _backstab(mv, s, c, cancel, nm=None) -> str:
 
     try:
         if at_back(s, c):                                  # already at its back (e.g. it staggered while we stood) — R1 now; locking on
-            return stab()                                  # first cost 0.25 s and then 'no_lock' threw the chance away (27m: 145° at 1.4 m)
+            return stab(s, c)                              # first cost 0.25 s and then 'no_lock' threw the chance away (27m: 145° at 1.4 m)
         if mv.lock_state(ptr) != "target":
             if mv.lock_state(ptr) == "other":
                 mv.unlock()
             if not mv.lock_target(ptr, tries=2, aim=False):   # camera onto it first — a bare R3 grabs whatever is at camera center
                 s = mv.snap(8.0) or s
                 c = mv.find(s, ptr) or c
-                return stab() if at_back(s, c) else "no_lock"
+                return stab(s, c) if at_back(s, c) else "no_lock"
         side = None
         budget = max(BACKSTAB_S, M.horiz(s.player, c) / 1.5 + 1.0)   # walking in from SNEAK_R takes longer than a circle at contact
         for _ in range(max(1, int(budget / max(BACKSTAB_TICK, 1e-3)))):
@@ -149,7 +159,7 @@ def _backstab(mv, s, c, cancel, nm=None) -> str:
             if side is None and x != 0.0:
                 side = x
             if behind >= BACKSTAB_DEG and M.horiz(s.player, c) <= BACKSTAB_MAX_R:
-                return stab()
+                return stab(s, c)
             mv.pad.move(x, y)
             wait(BACKSTAB_TICK)
         return "not_behind"
@@ -225,6 +235,9 @@ def _back_to_safe(mv, nm, start, log, arena=None, secs: float = 2.5) -> None:
     else:
         where = "시작 자리"
     log(f"      뒤잡기 뒤 발밑 가장자리 — {where} ({start[0]:.1f},{start[2]:.1f})로 물러남")
+    # shield up while walking back — this walk is a blind spell (no duel tick, no reflex): 09-30 runs lost −341 HP per run in
+    # these (blind_report.py), [MoKa] 2026-10-01: "가드는 하는 것이 좋음". Left up: the next duel tick sets the guard it wants.
+    getattr(mv, "guard", lambda on: None)(True)
     t0 = time.time()
     while time.time() - t0 < secs:
         s = mv.snap(8.0)
@@ -770,9 +783,10 @@ def prep_linger(F, T):
         T.room = False                                     # 셋 이상 붙었으면 뒤잡기로 돌지 않는다 — 도는 동안 다른 놈들에게 맞음 (P-29)
     # 벽·좁은 통로가 우선 — 배틀 액스(heavy_vertical)면 뒤잡기로 돌지 않고 강공 ([MoKa] 2026-09-28: "벽, 좁은 통로가 우선 순위를 높여줘",
     # 배틀 액스만 가능한 플레이, 다른 무기는 약공이 나음)
-    T.wall = _walled(F.nm, T.p, T.c) if F.weapon.heavy_vertical and (_two_handed(F) or _shield_foe(F)) else None
-    if T.wall is not None:
-        T.room = False
+    walled = _walled(F.nm, T.p, T.c) if F.weapon.heavy_vertical and (_two_handed(F) or _shield_foe(F)) else None
+    if walled is not None:
+        T.room = False                                     # at a wall: no circling for a backstab (as before)
+    T.wall = walled if walled is not None and _heavy_ok(F, T.s) else None   # …the heavy itself only one-on-one (_heavy_ok)
     return None
 
 
@@ -797,7 +811,7 @@ def rule_hit_first(F, T):
 def _do_backstab(F, T, s, c, label: str):
     F.circle_n += 1
     start = (s.player.x, s.player.y, s.player.z)
-    r = _backstab(F.mv, s, c, F.cancel, F.nm)
+    r = _backstab(F.mv, s, c, F.cancel, F.nm, F.log)
     _back_to_safe(F.mv, F.nm, start, F.log, F.arena)
     if r == "edge":
         F.edge_until = time.time() + 5.0
@@ -1142,6 +1156,24 @@ def _shield_foe(F) -> bool:
     return F.foe is not None and F.foe.kind == "shield"
 
 
+def _others_near(s, ptr, r: float) -> bool:
+    """Another awake foe (not the target, not asleep or downed — standing still counts) within r m at our level."""
+    p = s.player
+    return any(x.ptr != ptr and x.hp > 0 and M.horiz(p, x) < r and abs(x.y - p.y) < 2.0
+               and not (9000 <= (x.anim or 0) < 9100) and (x.anim if x.anim is not None else -1) not in M.DOWNED
+               for x in s.hostile(r + 1.0))
+
+
+def _heavy_ok(F, s) -> bool:
+    """Wall heavy allowed: already two-handed with nobody else within HEAVY_CLEAR_R, or a shield soldier one-on-one (we'd switch
+    to two hands for it — only with nobody else within ALONE_R). [MoKa] 2026-10-01: "3.5 m 안에 적이 있으면 양잡은 좋지 않음.
+    1:1 확실한 상황에서 양잡" — 09-30c 343 s: two hands + heavy + light next to a second shield soldier (3.2 m, idle) took 3.2 s
+    as one block, dealt 12, took 362."""
+    if _others_near(s, F.ptr, HEAVY_CLEAR_R):
+        return False
+    return _two_handed(F) or (_shield_foe(F) and not _others_near(s, F.ptr, ALONE_R))
+
+
 def _slam(F, s, c, swinging: bool = False) -> float | None:
     """Wall distance if the vertical heavy is the move now (heavy_vertical weapon, wall within WALL_R, SP ≥ WALL_HEAVY_SP), else None.
 
@@ -1150,13 +1182,16 @@ def _slam(F, s, c, swinging: bool = False) -> float | None:
      · 방패병: 한손이면 먼저 양손으로 바꾸고 강공 → 약공 (_shield_combo). 양손 강공이 가드를 깨고 약공이 이어 들어감 ([MoKa] 경험).
        09-30 벽 자리 시험의 피해 15·준비 중 −145는 한손 강공이 방패에 막힌 것 (wall-heavy-2026-09-30a, guard 스타일 = 한손)
      · 다른 적: 이미 양손일 때만 강공, 한손이면 약공
+     · 양손 전환은 확실한 1:1에서만(ALONE_R 6 m 안 다른 적 없음), 3.5 m 안 다른 적이 있으면 벽 강공 안 함 ([MoKa] 2026-10-01, _heavy_ok)
      · 적이 휘두르는 중에 끊어 치기로는 안 씀 (강공은 느림)"""
     w = F.weapon
-    if not w.heavy_vertical or swinging or (s.player.sp or 0) < WALL_HEAVY_SP or not (_two_handed(F) or _shield_foe(F)):
+    if not w.heavy_vertical or swinging or (s.player.sp or 0) < WALL_HEAVY_SP or not _heavy_ok(F, s):
         return None
     return _walled(F.nm, s.player, c)
 
 
+HEAVY_CLEAR_R = 3.5      # no wall heavy with another awake foe this close ([MoKa] 2026-10-01)
+ALONE_R = 6.0            # switch to two hands only one-on-one: nobody else awake within this (FOE_R of the walk checks)
 GRIP_WAIT_S = 0.6        # two_hand_right: the grip changes ~0.4 s after the toggle (control.Pad.two_hand_right)
 
 
