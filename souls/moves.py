@@ -63,6 +63,12 @@ def rel_angle(p, c) -> float:
     return (math.atan2(c.x - p.x, c.z - p.z) - fwd + math.pi) % (2 * math.pi) - math.pi
 
 
+LOCK_BODY_DEG = 20.0     # before R3: body within this of the target …
+LOCK_CAM_DEG = 6.0       # … and camera within this (R3 grabs whatever is nearest camera centre)
+LOCK_ALIGN_S = 1.2       # time allowed to line both up
+LOCK_DY = 2.0            # no lock-on try at a foe more than this above / below (another level)
+
+
 class Moves:
     def __init__(self, tm, pad: control.Pad):
         self.tm, self.pad = tm, pad
@@ -599,16 +605,44 @@ class Moves:
         finally:
             self.cam_busy = False
 
+    def _lock_align(self, ptr, aim: bool) -> dict:
+        """Body and camera onto ptr right before R3 — ([MoKa] 2026-10-01: "캐릭터 앞이 어느 정도 적을 향하고 있어야 함"; 10-01d: 8 failed
+        lock-ons, camera 49–81° off in 5 of them). → {body, cam, dy, dist} at the press (degrees / metres), for the log."""
+        t0 = time.time()
+        while time.time() - t0 < LOCK_ALIGN_S:
+            s = self.snap(40.0)
+            c = self.find(s, ptr)
+            if c is None or s.player.heading is None:
+                return {}
+            body, cam = math.degrees(rel_angle(s.player, c)), self.cam_err(s, c.x, c.z)
+            if aim and abs(body) > LOCK_BODY_DEG:
+                self.aim(ptr, deg=8.0, timeout=0.6)
+            elif cam is not None and abs(cam) > LOCK_CAM_DEG:
+                self.look_at(ptr, tol=LOCK_CAM_DEG, timeout=0.6)
+            else:
+                break
+        s = self.snap(40.0)
+        c = self.find(s, ptr)
+        if c is None or s.player.heading is None:
+            return {}
+        cam = self.cam_err(s, c.x, c.z)
+        return {"body": round(math.degrees(rel_angle(s.player, c))), "cam": None if cam is None else round(cam),
+                "dy": round(c.y - s.player.y, 1), "dist": round(horiz(s.player, c), 1)}
+
     def lock_target(self, ptr, tries: int = 3, aim: bool = True) -> bool:
         """Lock on to ptr the way the user does: body toward it, camera on it (R3 grabs the enemy nearest camera center), R3, check;
-        a neighbour grabbed → release and retry. → True when locked on ptr."""
+        a neighbour grabbed → release and retry. → True when locked on ptr. self.last_lock = alignment at the last R3 (log)."""
+        self.last_lock = {}
         if self.lock_state(ptr) == "target":
             return True
-        if aim:
-            self.aim(ptr, deg=8.0, timeout=1.5)   # turn the body toward it so lock-on grabs the target
+        s = self.snap(40.0)
+        c = self.find(s, ptr)
+        if c is not None and abs(c.y - s.player.y) > LOCK_DY:
+            self.last_lock = {"why": "other level", "dy": round(c.y - s.player.y, 1)}
+            return False                          # 10-01d: three tries at a foe 5 m up the stairs — R3 never grabs it from below
         for _ in range(tries):
             if self.lock_state(ptr) == "none":
-                self.look_at(ptr, tol=5.0, timeout=2.5)   # R3 grabs the enemy at camera center — point the camera at the target first (user's method)
+                self.last_lock = self._lock_align(ptr, aim)
             self.pad.lock_on()
             t = time.time()
             while time.time() - t < 0.4:
@@ -629,7 +663,10 @@ class Moves:
         locked = self.lock_target(ptr)
         off = None
         if not locked and require_lock:
-            return {"ok": False, "locked": False, "why": "락온 안 걸림 — 안 던짐 (락온 없는 나이프는 오늘 0/5)", "dist": round(c.dist, 1)}
+            al = getattr(self, "last_lock", {}) or {}
+            return {"ok": False, "locked": False, "dist": round(c.dist, 1), "align": al,
+                    "why": "락온 안 걸림 — 안 던짐 (락온 없는 나이프는 오늘 0/5)"
+                           + (f" · R3 때 몸 {al.get('body')}° 카메라 {al.get('cam')}° 높이 {al.get('dy')} m" if al else "")}
         if not locked:
             # User 2026-09-24: "Aim problem when throwing knives — align direction with the enemy". Resetting the camera behind the body after aligning the body
             # makes camera direction = body direction (before, the camera from walking was looking sideways)
