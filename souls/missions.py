@@ -57,8 +57,9 @@ NO_LURE = {1}            # #1 is on a high spot: from afar it's blocked by rocks
 # ("Not a good method, but for now it breaks the order too much, no choice" — script the demo order as-is instead of generalized judgment).
 # The firebomb one (254012) early, the two shield soldiers (255000·255002) last — also consistent with the existing "ranged first"·"shield soldiers later" principles.
 BURG_TOWN = json.loads((DATA / "burg-town-map.json").read_text(encoding="utf-8"))["enemies"]
-BURG_CAREFUL = {4}       # BURG_TOWN walks done slowly, stopping to pull one at a time (Field.careful_walk_to) — #4 이동 died to three twice
-                         # (09-30b, 10-01a), MoKa 2026-10-01: "그쪽으로 가게 되면 천천히 가고, 대기하면서 한 명씩 끌어당겨야 함"
+BURG_CAREFUL = {1, 2, 3, 4, 5, 6}   # BURG_TOWN walks done slowly, stopping to pull one at a time (Field.careful_walk_to) — #4 이동 died to three
+                         # twice (09-30b, 10-01a). MoKa 2026-10-01: "그쪽으로 가게 되면 천천히 가고, 대기하면서 한 명씩 끌어당겨야 함", then "행동이 아니라
+                         # 천천히 움직이며 하나씩 끌어당기려는 전술적 플레이가 부족" → all six, not just #4
 
 
 def _route():
