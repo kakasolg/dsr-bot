@@ -71,7 +71,7 @@ GLOSSARY: dict[str, str] = {
     "창고 방": "storeroom", "통로(귀환)": "passage (return)", "통로": "passage", "화톳불": "bonfire", "귀환 길": "return path",
     "공격 애니 중인 적 없음": "no foe mid-attack", "투사체·낙하·범위 밖?": "projectile / fall / out of range?",
     "칸 고르는 사이 적이 옴": "a foe came while picking the slot", "그놈부터": "that one first", "중단": "stopped", "접근": "approaching",
-    "R3 때": "at R3", "몸": "body",
+    "R3 때": "at R3", "몸": "body", "방향": "face",
     "끌어온": "lured", "더 가까이": "closer", "순서": "order", "벽까지": "to wall", "벽으로": "to the wall",
     "마을 정리": "town cleanup", "안개벽": "fog wall", "평지 구역": "flat zone", "평지": "flat ground", "꼭대기": "top",
     # actions

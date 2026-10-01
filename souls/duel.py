@@ -739,6 +739,31 @@ def rule_finish_first(F, T):
     return None
 
 
+FACE_FIRST_DEG = 35.0    # body this far off the target → this tick only turns toward it
+FACE_FIRST_R = 10.0      # … when the target is within this
+FACE_GUARD_R = 4.0       # … with the shield up if it is awake this close
+
+
+def rule_face_first(F, T):
+    """── 타겟이 정해지면 방향 정렬이 최우선 ([MoKa] 2026-10-01) ──────────────────
+     · 몸이 타겟에서 FACE_FIRST_DEG 넘게 벗어나 있으면 이 틱은 돌기만 한다 (가까운 깨어 있는 적이면 방패 든 채로)
+     · 10-01 구역 1: 다가오는 망자를 옆에 두고 다른 걸 하다 정면이 아닌 채로 맞음. 몸 방향은 가드 들 때만 맞추고 있었음
+     · 내가 공격 동작 중이면 건너뜀 (그때 스틱은 안 먹음)"""
+    s, c, p = T.s, T.c, T.p
+    if c is None or p.heading is None or s.cam_yaw is None or T.h > FACE_FIRST_R:
+        return None
+    if p.anim not in (None, -1) and not (100 <= p.anim < 200):   # own swing / roll etc. — guard-block (1xx) can still turn
+        return None
+    if abs(math.degrees(M.rel_angle(p, c))) <= FACE_FIRST_DEG:
+        return None
+    if F.style.shield and T.h < FACE_GUARD_R and not (9000 <= (c.anim or 0) < 9100):
+        F.mv.guard(True)
+    F.mv.face(s, c, deg=FACE_FIRST_DEG / 2)
+    F.note("방향", s, c)
+    time.sleep(0.02)
+    return CONT
+
+
 def prep_reflex(F, T):
     """Feed the reflex and the shadow-kick logger; how long the target has been swinging (age)."""
     if F.reflex is not None:
@@ -1270,7 +1295,7 @@ def rule_attack(F, T):
     return F.killed_if(hit.dead)
 
 
-RULES = [rule_separate, rule_finish_first, prep_reflex, rule_early_kick, rule_late_windup_block, prep_linger, rule_hit_first,
+RULES = [rule_face_first, rule_separate, rule_finish_first, prep_reflex, rule_early_kick, rule_late_windup_block, prep_linger, rule_hit_first,
          rule_backstab_swing, rule_reflex, rule_lure, rule_edge, rule_estus, rule_stagger_punish, rule_evade, rule_block,
          rule_downed, prep_backstab_chance, rule_wait_far, rule_approach, rule_finish, rule_stamina, prep_face, rule_backstab,
          rule_attack]
