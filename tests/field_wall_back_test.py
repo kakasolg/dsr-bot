@@ -97,13 +97,18 @@ def test_no_backstab_in_crowd() -> None:
         three(w)
         duel(w, Nm(wall_x=0.5), ticks=6)                                 # at a wall: fights on, three on us
         assert not tried, "backstab tried with three on us"
+        w2 = World(player=(0.0, -49.4, 0.0), sp=90, hp=682)
+        w2.add(2, 0x1018, 254010, (1.0, -49.4, 0.0), anim=3000)
+        w2.add(3, 0x1019, 254011, (0.0, -49.4, 1.2), anim=3003)              # 2:1 (MoKa 2026-10-01: past the secret passage)
+        duel(w2, Nm(wall_x=0.5), ticks=6)
+        assert not tried, "backstab tried at 2:1"
         w1 = World(player=(0.0, -49.4, 0.0), sp=90, hp=682)
         w1.add(2, 0x1018, 254010, (1.0, -49.4, 0.0), anim=3000)
         duel(w1, Nm(wall_x=0.5), ticks=6)
         assert tried, "one foe: backstab should still be tried"
     finally:
         D.CIRCLE_MAX_SWEEPS, D._room_behind, D._backstab = old, rb, bs
-    print("ok  three on us → no backstab circling; one foe → backstab as before")
+    print("ok  two or three on us → no backstab circling; one foe → backstab as before")
 
 
 def test_back_to_wall_picks_spot() -> None:

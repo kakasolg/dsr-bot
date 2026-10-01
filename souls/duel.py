@@ -35,6 +35,7 @@ FINISH_KEEP_HP = 40     # if its HP is below this, don't retreat even when my HP
 FINISH_HP, FINISH_SP = 25, 15   # if its HP is within one light attack (measured 34–41), hit with as little as 15 stamina
 HEAVY_SP = 100           # heavy attack in a stagger opening only at this stamina or more (one heavy while guarding costs 90)
 WALL_R = 1.2             # a NavMesh border (wall or drop) this close to us or the foe → heavy_vertical weapons slam instead of the light
+NO_BACKSTAB_N = 2        # this many on us (target + moving others within CROWD_R) → no backstab circling, light + shield (2:1, MoKa 2026-10-01)
 WALL_BACK_N = 3          # this many on us (target + moving others within CROWD_R) → back to a wall, one at a time (P-29)
 WALL_AT = 1.2            # already this close to a wall (Navmesh.wall_dist) → stay and fight
 WALL_HEAVY_SP = 60       # …when stamina is at least this (Battle Axe heavy −50, −20 more if it hits the ground)
@@ -779,8 +780,10 @@ def prep_linger(F, T):
         T.a = -1
     foe = F.foe
     T.room = foe is not None and foe.circle_behind and T.now >= F.edge_until and _room_behind(F.nm, T.p, T.c)
-    if T.room and _crowd(T.s, F.ptr) >= WALL_BACK_N:
-        T.room = False                                     # 셋 이상 붙었으면 뒤잡기로 돌지 않는다 — 도는 동안 다른 놈들에게 맞음 (P-29)
+    if T.room and _crowd(T.s, F.ptr) >= NO_BACKSTAB_N:
+        # 둘 이상 붙었으면 뒤잡기로 돌지 않고 약공·방패 ([MoKa] 2026-10-01: 비밀 통로 지나 만나는 둘은 구조적으로 동시에 2:1 —
+        # 약공·방패 플레이가 맞음). 도는 동안 다른 놈에게 맞음 (P-29: 셋에게 뒤잡기 4번 모두 실패, 사망)
+        T.room = False
     # 벽·좁은 통로가 우선 — 배틀 액스(heavy_vertical)면 뒤잡기로 돌지 않고 강공 ([MoKa] 2026-09-28: "벽, 좁은 통로가 우선 순위를 높여줘",
     # 배틀 액스만 가능한 플레이, 다른 무기는 약공이 나음)
     walled = _walled(F.nm, T.p, T.c) if F.weapon.heavy_vertical and (_two_handed(F) or _shield_foe(F)) else None
