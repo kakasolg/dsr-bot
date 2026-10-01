@@ -30,10 +30,11 @@ HOSTILE = {6, 7, 24, 25, 27}
 KEY = "#010203"                 # transparent colour key (drawn pixels of exactly this colour are see-through)
 FG, MUTED, WARN, GOOD = "#f2f2f2", "#b8bcc6", "#ff6a6a", "#6ee29a"
 C_PLAYER, C_FOE, C_TARGET, C_PATH, C_SPOT, C_PROP, C_SMASH = "#6c9cf0", "#ff6a6a", "#f0c33c", "#b69cff", "#6ee29a", "#c79c78", "#ff8a4c"
+C_ZONE = "#9fd8c8"
 C_ITEM = {"soul": "#7fd3ff", "humanity": "#f4f4f4", "titanite": "#aaa8ff"}
 ITEM_LETTER = {"soul": "S", "humanity": "H", "titanite": "T"}
 POLL_S = 0.1
-RADAR_PX, RADAR_M = 200, 15.0   # mini radar size (px) and range (m)
+RADAR_PX, RADAR_M = 500, 15.0   # mini radar size (px) and range (m) — 200 → 500 ([MoKa] 2026-10-01: "2배", then "500px도 괜찮음")
 SAYS = 3
 
 
@@ -56,6 +57,8 @@ def lines(state: dict | None, now: float | None = None) -> list[tuple[str, str]]
     if age is not None and age > 2:
         out.append((f"stale {age:.0f} s", WARN))
     p = snap["player"]
+    if state.get("zone"):
+        out.append((f"zone: {state['zone']}", C_ZONE))
     hp, mhp = p.get("hp") or 0, p.get("max_hp") or 0
     frac = hp / mhp if mhp else 0
     out.append((f"HP {hp}/{mhp} ({frac:.0%})  SP {p.get('sp')}/{p.get('max_sp')}  Estus {snap.get('flask_hp', '?')}",
@@ -63,7 +66,7 @@ def lines(state: dict | None, now: float | None = None) -> list[tuple[str, str]]
     chars = snap.get("chars") or []
     tgt = next((c for c in chars if c.get("ptr") == snap.get("target")), None) if snap.get("target") is not None else None
     if tgt:
-        out.append((f"target: {tgt.get('name') or tgt.get('npc')}  {tgt.get('dist', 0):.1f} m  HP {tgt.get('hp')}  anim {tgt.get('anim')}", C_TARGET))
+        out.append((f"target: {(state.get('labels') or {}).get(str(tgt.get('ptr'))) or tgt.get('name') or tgt.get('npc')}  {tgt.get('dist', 0):.1f} m  HP {tgt.get('hp')}  anim {tgt.get('anim')}", C_TARGET))
     if snap.get("path_tag"):
         out.append((f"path: {snap['path_tag']} ({len(snap.get('path') or [])} pts)", C_PATH))
     if snap.get("spot_tag"):
@@ -80,6 +83,26 @@ def lines(state: dict | None, now: float | None = None) -> list[tuple[str, str]]
         out.append((f"foes within 8 m: {len(near)} ({awake} moving)", WARN if awake >= 2 else MUTED))
     for i, s in enumerate((state.get("says") or [])[-SAYS:][::-1]):
         out.append(("› " + s.get("line", "").strip()[:80], FG if i == 0 else MUTED))    # newest first
+    return out
+
+
+def radar_labels(state: dict | None, size: int = RADAR_PX, range_m: float = RADAR_M) -> list[tuple[float, float, str]]:
+    """Foe names on the mini radar ("ramp#2 shield", "hollow-12" — places.Labels via radar_server): [(x, y, text)] for live foes in range."""
+    labels = (state or {}).get("labels") or {}
+    snap = (state or {}).get("snap") or {}
+    live = [c for c in snap.get("chars") or [] if c.get("team") in HOSTILE and (c.get("hp") or 0) > 0]
+    out = []
+    p = snap.get("player") or {}
+    base = snap.get("cam_yaw") or 0.0
+    c0, k = size / 2, (size / 2 - 6) / range_m
+    for c in live:
+        dx, dz = c["x"] - p.get("x", 0), c["z"] - p.get("z", 0)
+        d = math.hypot(dx, dz)
+        name = labels.get(str(c.get("ptr")))
+        if d > range_m or not name:
+            continue
+        a = math.atan2(dx, dz) - base
+        out.append((c0 + math.sin(a) * d * k, c0 - math.cos(a) * d * k, name))
     return out
 
 
@@ -229,6 +252,8 @@ class Overlay:
                 cv.create_oval(x - 4, y2 - 4, x + 4, y2 + 4, fill=col, outline="#000000")
                 if kind == "target":
                     cv.create_oval(x - 8, y2 - 8, x + 8, y2 + 8, outline=C_TARGET, width=2)
+        for a, b, name in radar_labels(self.state):
+            self._text(ox + a + 7, oy + b - 14, name, FG, 10)
         self.root.after(int(POLL_S * 1000), self._tick)
 
     def run(self) -> None:

@@ -35,6 +35,7 @@ import radar
 import radar_record
 import radar_warp
 import steam_state
+import places
 import translate
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -49,6 +50,9 @@ HTTP_PORT = radar.PORT + 1
 SAY_KEEP = 12
 STEAM_S = 5.0                  # s between Steam offline checks
 STATUS_FRESH = 2.0             # s — game state older than this = no sender
+
+
+places_HOSTILE = {6, 7, 24, 25, 27, 33}
 
 
 def load_props(folder: Path = GAMEFILES) -> list[list]:
@@ -126,6 +130,7 @@ class State:
         self.props = props if props is not None else load_props()
         self.items = items if items is not None else load_items()
         self.enemies = enemies if enemies is not None else load_enemies()
+        self.labels = places.Labels()          # foe names fixed per foe ("ramp#2 shield", "hollow-12") — MoKa can point at one
         self.lock = threading.Lock()
         self.recorder = None                  # radar_record.Recorder — every message received is also saved
         self.replay = None                    # radar_record.Replay — when playing a recording back
@@ -145,6 +150,8 @@ class State:
             self.t_snap = 0.0                 # last snapshot — what "age" reports
             self.status: dict | None = None   # last game-state packet (radar.py status_dict)
             self.t_status = 0.0
+            if getattr(self, "labels", None) is not None:
+                self.labels.by_ptr.clear()
 
     def put(self, msg: dict) -> None:
         if self.recorder is not None:
@@ -192,6 +199,9 @@ class State:
             out["props"] = [o for o in self.props if abs(o[0] - p["x"]) < PROP_R and abs(o[2] - p["z"]) < PROP_R
                             and abs(o[1] - p["y"]) < PROP_DY and math.hypot(o[0] - p["x"], o[2] - p["z"]) < PROP_R]
             out["ai"] = match_ai(snap.get("chars") or [], self.enemies)
+            out["zone"] = places.zone(p["x"], p["y"], p["z"], en=self.english)
+            out["labels"] = {str(c["ptr"]): self.labels.of(c, en=self.english) for c in snap.get("chars") or []
+                             if c.get("team") in places_HOSTILE and c.get("x") is not None}
             # items: [x, y, z, kind, label] not yet picked up (any of its flags set = taken)
             out["items"] = [o[:5] for o in self.items if math.hypot(o[0] - p["x"], o[2] - p["z"]) < PROP_R
                             and abs(o[1] - p["y"]) < ITEM_DY and not (set(o[5]) & picked)]

@@ -266,7 +266,7 @@ function draw() {
       ctx.fillStyle = c.hp / c.max_hp < 0.35 ? css("--hplow") : css("--hp"); ctx.fillRect(x - 10, y + 8, 20 * c.hp / c.max_hp, 3);
     }
     ctx.fillStyle = css("--ink");
-    const label = (c.name || c.npc || "") + (showAnim && c.anim != null ? " · " + c.anim : "");
+    const label = (((last.labels || {})[c.ptr]) || c.name || c.npc || "") + (showAnim && c.anim != null ? " · " + c.anim : "");
     if (label) ctx.fillText(label, x + 8, y - 6);
     ctx.globalAlpha = 1;
   }
@@ -288,8 +288,10 @@ function side() {
     `<div><span>Position</span><span>${p.x?.toFixed(1)}, ${p.y?.toFixed(1)}, ${p.z?.toFixed(1)}</span></div>`;
   const tgt = snap.target != null ? snap.chars.find(c => c.ptr === snap.target) : null;
   const row = (k, v) => `<div><span>${k}</span><span>${v}</span></div>`;
+  const lab = c => ((last.labels || {})[c.ptr]) || c.name || c.npc;
   $("intent").innerHTML =
-    row(`<i class="key" style="background:var(--target)"></i>Target`, tgt ? `${esc(tgt.name || tgt.npc)} · ${tgt.dist?.toFixed(1)} m` : "none") +
+    row(`<i class="key" style="background:var(--muted)"></i>Zone`, esc(last.zone || "—")) +
+    row(`<i class="key" style="background:var(--target)"></i>Target`, tgt ? `${esc(lab(tgt))} · ${tgt.dist?.toFixed(1)} m` : "none") +
     (tgt && (last.ai || {})[tgt.ptr] ? row(`<i class="key" style="background:var(--foe);opacity:.4"></i>AI`, aiText((last.ai || {})[tgt.ptr], tgt)) : "") +
     row(`<i class="key" style="background:var(--path)"></i>Path`, snap.path ? `${esc(snap.path_tag || "")} · ${snap.path.length} pts` : "none") +
     row(`<i class="key" style="background:var(--friend)"></i>Hold spot`, snap.spot ? esc(snap.spot_tag || "") + ` · ${Math.hypot(snap.spot[0] - p.x, snap.spot[2] - p.z).toFixed(1)} m` : "none") +
@@ -298,7 +300,7 @@ function side() {
     itemsRows(last.items || [], p, row);
   const foes = snap.chars.filter(c => HOSTILE.has(c.team) && c.hp > 0).slice(0, 8);
   $("foes").innerHTML = foes.map(c =>
-    `<tr><td>${esc(c.name || c.npc)}</td><td class="n">${c.dist?.toFixed(1)} m</td><td class="n">${c.hp}/${c.max_hp}</td></tr>`).join("")
+    `<tr><td>${esc(lab(c))}</td><td class="n">${c.dist?.toFixed(1)} m</td><td class="n">${c.hp}/${c.max_hp}</td></tr>`).join("")
     || "<tr><td>none</td></tr>";
 }
 
