@@ -208,7 +208,7 @@ class Missions:
         self.log(f"── 경사로: {r}")
         return r
 
-    def clear_burg_town(self) -> str:
+    def clear_burg_town(self, only: set | None = None) -> str:
         """Kill the 6 in Undead Burg in exactly the order the user killed them (BURG_TOWN).
         **Uses walk_to() instead of field.clear()** — initially used clear() and it failed when measured (2026-09-25, burg-loop 101100):
         #1~3 (close) worked but #4~6 (near the bonfire room, far and behind walls) couldn't be reached by duel()'s local approach (_approach) alone,
@@ -217,6 +217,8 @@ class Missions:
         chaser automatically — sometimes the target itself is already killed on the way), and after arriving, fight() it if alive."""
         nb = self.nms[MAP_B]
         for i, e in enumerate(BURG_TOWN, 1):
+            if only is not None and i not in only:
+                continue
             if not self.f.alive():
                 return "died"
             s0 = self.mv.snap(40.0)
@@ -276,7 +278,12 @@ class Missions:
         self.log(f"── 한 마리: {res}, 귀환 {back}")
         return f"{res} / 귀환 {back}"
 
-    def to_merchant(self) -> str:
+    def to_merchant(self, stop: str | None = None, town: set | None = None) -> str:
+        """stop: 'passage' = end at the Undead Burg entrance, 'town' = end after clearing `town` (BURG_TOWN numbers; None = all six,
+        set() = none — later zones of a --seg run). Used by burg_segment."""
+        return self._to_merchant(stop, town)
+
+    def _to_merchant(self, stop: str | None, town: set | None) -> str:
         """To the merchant. Continues from the segment·point nearest the current position — passage (A) · Undead Burg (B) · storeroom (C).
         Previously it only looked at segment A, called it 'far', went back to the top of the stairs and got stuck (started inside Undead Burg, 2026-09-24)."""
         na, nb = self.nms[MAP_A], self.nms[MAP_B]
@@ -305,15 +312,19 @@ class Missions:
             if r != "arrived":
                 return f"통로 {r}"
             self.log(f"   경계 {time.time() - t0:.0f} s")
+            if stop == "passage":
+                return "통로 끝"
             seg, k = "B", 0
         if seg in ("B", "C"):
             self.f.home = pb[0]                            # in Undead Burg, retreat toward the entrance (this navmesh has no path to Firelink Shrine — no_path spinning)
         if seg == "B":
             # On entering Undead Burg, first clear the 6 in the fixed order (BURG_TOWN) — after that, only opportunistic fights while walking
             # (user 2026-09-25: "Code it to kill in the order I kill", "Make sure to keep the order")
-            r = self.clear_burg_town()
+            r = self.clear_burg_town(town)
             if r != "cleared" and not r.startswith("left"):
                 return f"성벽 마을 순서 {r}"
+            if stop == "town":
+                return f"성벽 마을 {sorted(town) if town is not None else '전부'} {r}"
             # This is after roaming to the far end of town (#6) to kill the 6 — walking from the k (entrance) chosen on entry went straight toward the far entrance point
             # and hit a wall (2026-09-25, four runs in a row "Undead Burg stuck"). Re-find the nearest point from here and pathfind to it.
             s = self.f.snap_settled(5.0)
@@ -460,6 +471,31 @@ class Missions:
         return "lit" if ok else f"실패 (앉음 {sat}, {before}→{after})"
 
     # ── Missions ─────────────────────────────────────────────
+    BURG_SEGMENTS = {1: "ramp", 2: "passage", 3: "town1", 4: "town2", 5: "merchant", 6: "bonfire"}
+
+    def burg_segment(self, n: int) -> str:
+        """One zone of burg_bonfire, then stop — [MoKa] 2026-10-01: "한 구역이 끝나면 중단하고, 피드백하고 다음 구역으로". Each zone goes on
+        from where the character stands, without resting (killed foes stay dead): 1 ramp (rests at Firelink first) · 2 secret passage to the
+        town entrance · 3 town #1–#3 · 4 town #4–#6 · 5 through town and the storeroom to the merchant · 6 light the Undead Burg bonfire."""
+        name = self.BURG_SEGMENTS[n]
+        if not self.f.alive():
+            self.f.wait_respawn()
+        if name == "ramp":
+            if not self.start_fresh():
+                return "휴식 실패"
+            ok, r = self.pass_ramp()
+            return f"경사로 {r}"
+        if name == "passage":
+            return self.to_merchant(stop="passage")
+        if name == "town1":
+            return self.to_merchant(stop="town", town={1, 2, 3})
+        if name == "town2":
+            return self.to_merchant(stop="town", town={4, 5, 6})
+        if name == "merchant":
+            r = self.to_merchant(town=set())
+            return f"상인 {r}"
+        return self.light_burg_bonfire()
+
     def burg_bonfire(self) -> str:
         if not self.f.alive():
             self.f.wait_respawn()

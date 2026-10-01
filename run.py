@@ -84,7 +84,8 @@ def main() -> None:
     ap.add_argument("--no-rest", action="store_true")
     ap.add_argument("--no-quit", action="store_true", help="퀵 종료(메뉴로 나갔다 오기) 안 씀 — 영상 촬영용")
     ap.add_argument("--i", type=int, default=5, help="hunt-one: BURG_TOWN 몇 번째 (5 = 석궁병 255002)")
-    ap.add_argument("--seg", default="1", help="asylum: 구간 번호 또는 범위 (1 = 감방 → 사다리 → 첫 화톳불, 2-3 = 이어서, ROADMAP 1-h)")
+    ap.add_argument("--seg", default=None, help="asylum: 구간 번호 또는 범위 (기본 1; 1 = 감방 → 사다리 → 첫 화톳불, 2-3 = 이어서, ROADMAP 1-h). "
+                    "burg-bonfire: 구역 하나 또는 범위만 하고 멈춤 — 1 경사로 · 2 비밀 통로 · 3 마을 #1~#3 · 4 마을 #4~#6 · 5 상인 · 6 화톳불 (기본: 전부)")
     ap.add_argument("--radar", action="store_true", help="send state to the radar (view with radar_server.py / overlay.py)")
     ap.add_argument("--no-lure", action="store_true", help="나이프로 한 놈씩 깨우지 않고 예전처럼 걸어가 붙는다 (비교용)")
     ap.add_argument("--style", choices=["guard", "backstep", "rush"], default="guard",
@@ -183,7 +184,15 @@ def main() -> None:
         log(f"캐릭터 상태 읽기 실패: {ex!r}")
     ms = missions.Missions(fld, nms, log=log, lure=not a.no_lure)
     try:
-        if a.cmd == "burg-bonfire":
+        if a.cmd == "burg-bonfire" and a.seg:
+            lo, _, hi = a.seg.partition("-")
+            r = None
+            for n in range(int(lo), int(hi or lo) + 1):
+                r = ms.burg_segment(n)
+                log(f"══ 구역 {n} ({ms.BURG_SEGMENTS[n]}) 끝: {r}")
+                if not fld.alive():
+                    break
+        elif a.cmd == "burg-bonfire":
             r = ms.burg_bonfire()
         elif a.cmd == "burg-loop":
             r = ms.burg_bonfire_round_trip()
@@ -200,7 +209,7 @@ def main() -> None:
         elif a.cmd == "merchant":
             r = ms.to_merchant()
         elif a.cmd == "asylum":
-            lo, _, hi = a.seg.partition("-")
+            lo, _, hi = (a.seg or "1").partition("-")
             segs = list(range(int(lo), int(hi or lo) + 1))
             run_ = asylum.Asylum(fld, nms[asylum.MAP], log=log, events=log.event)
             why = run_.ready()
