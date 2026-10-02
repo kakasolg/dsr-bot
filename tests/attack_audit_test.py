@@ -463,23 +463,185 @@ def _audit_run(step=30):
 
 
 def test_checker() -> None:
+    """Golden runs: every fight ends right after its attacks (the harness cancels after two ticks), so no outcome window is
+    observed — with or without pad correlation nothing may be primary (P-35)."""
     recs = _audit_run()
     res = CHK.check(recs)
     assert res["explained"], res["problems"]
     assert res["invocations"] == sum(res["classes"].values()) > 0
-    assert res["classes"].get("primary", 0) == 0                     # no pad correlation → nothing primary
-    ev = [r for r in recs if r.get("rec") == "attack_rule_invocation_snapshot" and r["presses_reported"] == 1]
-    onsets = [((r["rule_enter_time"]["wall"] + r["rule_exit_time"]["wall"]) / 2, "RB") for r in ev]   # one press inside each invocation
+    assert set(res["classes"]) == set(AA.CLASSES)
+    ev = [r for r in recs if r.get("rec") in CHK.DECISION_RECS]
+    onsets = [((r["rule_enter_time"]["wall"] + r["rule_exit_time"]["wall"]) / 2, "RB") for r in ev]
     res2 = CHK.check(recs, onsets)
-    assert res2["classes"].get("primary", 0) > 0, res2["classes"]
-    assert res2["classes"]["primary"] <= len(ev)
+    assert res2["classes"]["primary"] == 0, res2["classes"]
+    assert res2["classes"]["outcome_unobserved_fight_end"] + res2["classes"]["outcome_overlap"] > 0
+    assert res["classes"]["no_attack"] == res["records"].get("audit_no_attack", 0)
     gap = [r for r in recs if r.get("seq") != recs[5].get("seq")]                    # a record vanished without a trace
     assert not CHK.check(gap)["explained"]
     bad = json.loads(json.dumps(recs))
     next(r for r in bad if r.get("rec") in CHK.DECISION_RECS)["feature_schema_version"] = 999
-    assert CHK.check(bad)["classes"].get("schema_mismatch") == 1
-    print(f"ok  checker: {res['invocations']} invocations all classified, seqs explained; pad correlation → "
-          f"{res2['classes'].get('primary')} primary; a silent gap and a schema change are caught")
+    r3 = CHK.check(bad)
+    assert r3["classes"]["missing"] >= 1 and r3["primary_exclusion_reasons"].get("schema_mismatch") == 1
+    print(f"ok  checker: {res['invocations']} invocations → {res2['classes']}; a silent gap and a schema change are caught")
+
+
+# ── P-35: conservative outcome windows ──
+class _Case:
+    """One fight (t0 100), fake clock: attack invocations and later ticks at chosen times after the rule returned."""
+
+    def __init__(self, sink=None):
+        self.clock = {"ns": 0}
+        self.sink = sink or MemorySink()
+        self.tap = AA.DecisionTap(self.sink, "case", clock=lambda: self.clock["ns"],
+                                  wall=lambda: 1000.0 + self.clock["ns"] / 1e9)
+        self.exit_ns = None
+
+    def attack(self, rule="attack", hits=None, ptr=2):
+        F, T = _fake_ft()
+        F.ptr = ptr
+        tok = self.tap.freeze(F, T)
+        F.res.hits.extend([_hit()] if hits is None else hits)
+        self.clock["ns"] += 50_000_000
+        self.tap.decided(F, T, tok, rule, D.CONT)
+        self.exit_ns = self.clock["ns"]
+
+    def tick(self, dt, target=True, ptr=2):
+        """A tick dt s after the last attack returned (the clock never goes back)."""
+        self.clock["ns"] = max(self.clock["ns"], self.exit_ns + int(dt * 1e9))
+        w = World(player=(0.0, -49.4, 0.0), sp=90)
+        if target:
+            w.add(2, 0x1002, 254000, (0.0, -49.4, 1.0), hp=40, anim=3500)
+        w.add(3, 0x1003, 255000, (2.0, -49.4, 3.0), hp=75, anim=-1)
+        s = w.snapshot(40.0)
+        F = SimpleNamespace(t0=100.0, ptr=ptr)
+        self.tap.sensed(F, SimpleNamespace(s=s))
+
+    def end(self, result="killed"):
+        self.tap.end(SimpleNamespace(t0=100.0), SimpleNamespace(result=result, vs=254000))
+
+    def records(self, sink_recs=None):
+        recs = [AA.run_header("case", "test", {}, "axe", "guard")]
+        ft = self.tap.footer()
+        recs += (sink_recs if sink_recs is not None else self.sink.recs) + [ft]
+        for i, r in enumerate(recs):
+            r["file_seq"] = i
+        return recs
+
+    def check(self, pad=True):
+        recs = self.records()
+        ev = [r for r in recs if r.get("rec") in CHK.DECISION_RECS]
+        onsets = [((r["rule_enter_time"]["wall"] + r["rule_exit_time"]["wall"]) / 2, "RB") for r in ev] if pad else None
+        return CHK.check(recs, onsets), recs
+
+
+def _full(c, upto=1.0, step=0.1, skip=(), lost_at=None, switch_at=None):
+    t = step
+    while t <= upto + 1e-9:
+        if round(t, 2) not in skip:
+            c.tick(round(t, 2), target=round(t, 2) != lost_at, ptr=3 if switch_at is not None and t >= switch_at else 2)
+        t += step
+
+
+def test_outcome_windows() -> None:
+    """0/1/2 samples then fight end, a full window, a gap, target lost, a second attack inside the window, a backstab
+    attempt inside it, a target switch, the run ending — each lands in exactly one class; fight_end is never complete."""
+    cases = {}
+
+    def run(name, build, pad=True):
+        c = _Case()
+        build(c)
+        res, recs = c.check(pad)
+        first = res["rows"][0] if res["rows"][0]["rec"] in CHK.DECISION_RECS else next(r for r in res["rows"] if r["rec"] in CHK.DECISION_RECS)
+        cases[name] = (first["class"], first["reasons"], res, c)
+        return first["class"]
+
+    assert run("0 samples + fight end", lambda c: (c.attack(), c.end())) == "outcome_unobserved_fight_end"
+    assert run("1 sample + fight end", lambda c: (c.attack(), c.tick(0.1), c.end())) == "outcome_unobserved_fight_end"
+    assert run("2 samples + fight end", lambda c: (c.attack(), c.tick(0.1), c.tick(0.2), c.end())) == "outcome_unobserved_fight_end"
+    assert run("0.9 s covered + fight end", lambda c: (c.attack(), _full(c, 0.9), c.end())) == "outcome_unobserved_fight_end"
+    assert run("full window", lambda c: (c.attack(), _full(c))) == "primary"
+    assert run("full window, no pad", lambda c: (c.attack(), _full(c)), pad=False) == "input_unconfirmed"
+    assert run("full window then fight end", lambda c: (c.attack(), _full(c, 1.0), c.end())) == "primary"
+    assert run("0.4 s gap", lambda c: (c.attack(), _full(c, skip=(0.3, 0.4, 0.5)))) == "outcome_incomplete"
+    assert run("target lost", lambda c: (c.attack(), _full(c, lost_at=0.5))) == "outcome_incomplete"
+    assert run("second attack at 0.3 s", lambda c: (c.attack(), c.tick(0.1), c.tick(0.2), c.attack(), _full(c))) == "outcome_overlap"
+    assert run("backstab try at 0.3 s", lambda c: (c.attack(), c.tick(0.1), c.attack(rule="backstab", hits=[]), _full(c))) == "outcome_overlap"
+    assert run("target switch at 0.5 s", lambda c: (c.attack(), _full(c, switch_at=0.5))) == "outcome_overlap"
+    assert run("run ends", lambda c: (c.attack(), c.tick(0.1), c.tick(0.2))) == "outcome_incomplete"
+    assert run("chained presses, full window", lambda c: (c.attack(hits=[_hit(presses=2)]), _full(c))) == "ambiguous"
+    assert "fight_end" in cases["0 samples + fight end"][1] and "no_samples" in cases["0 samples + fight end"][1]
+    assert "run_end" in cases["run ends"][1]
+    assert "overlap_target_switch" in cases["target switch at 0.5 s"][1]
+    assert "overlap_next_attack_rule_invocation" in cases["backstab try at 0.3 s"][1]
+    _, _, res, c = cases["second attack at 0.3 s"]
+    assert res["classes"]["outcome_overlap"] == 1 and res["classes"]["primary"] == 1     # the second attack's own window is clean
+    for name, (cls, reasons, res, c) in cases.items():
+        assert res["explained"] and sum(res["classes"].values()) == res["invocations"], name
+        ft = c.tap.footer()
+        assert sum(ft["invocation_classes_bot_side"].values()) == res["invocations"], (name, ft["invocation_classes_bot_side"])
+        out = [r for r in c.sink.recs if r["rec"] == "attack_outcome"]
+        assert all(o["outcome_status"] != "complete" or o["window"]["coverage"]["covered"] for o in out), name
+        bot = {r["event_id"]: AA.STATUS_CLASS[r["outcome_status"]] for r in out}
+        for row in res["rows"]:                               # the bot's label never claims more than the checker
+            if row["event_id"] in bot and row["class"] in ("primary", "input_unconfirmed"):
+                assert bot[row["event_id"]] == "pending_input_check", (name, row)
+    print(f"ok  {len(cases)} outcome-window cases: " + ", ".join(f"{k} → {v[0]}" for k, v in cases.items()))
+
+
+def test_old_fight_end_not_complete() -> None:
+    """The first ramp run (schema 0.1, before P-35): its 3 former primary rows must not be primary any more."""
+    path = ROOT / "data" / "samples" / "clear-ramp-audit-2026-10-02-o1.attack_audit.jsonl"
+    recs = CHK.load(path)
+    ev = [r for r in recs if r.get("rec") in CHK.DECISION_RECS]
+    onsets = [((r["rule_enter_time"]["wall"] + r["rule_exit_time"]["wall"]) / 2, "RB") for r in ev for _ in range(r["presses_reported"])]
+    res = CHK.check(recs, onsets)
+    assert res["explained"] and res["invocations"] == 7
+    assert res["classes"]["primary"] == 0, res["classes"]
+    assert res["classes"]["outcome_unobserved_fight_end"] == 3 and res["classes"]["ambiguous"] == 4, res["classes"]
+    print(f"ok  first ramp audit re-checked: {res['classes']}")
+
+
+def test_writer_failure_classes() -> None:
+    """Records dropped by a full queue: the invocations they belong to are classed 'dropped' (row gone or its outcome gone),
+    every seq is explained, and the footer still carries the counts."""
+    gate = threading.Event()
+    real_open = open
+
+    class Gated:
+        def __init__(self, path):
+            self.f = real_open(path, "a", encoding="utf-8")
+
+        def write(self, s_):
+            gate.wait(10.0)
+            return self.f.write(s_)
+
+        def flush(self):
+            self.f.flush()
+
+        def fileno(self):
+            return self.f.fileno()
+
+        def close(self):
+            self.f.close()
+    with tempfile.TemporaryDirectory() as d:
+        path = Path(d) / "w.jsonl"
+        gate.set()
+        w = AA.AuditWriter(path, AA.run_header("case", "test", {}, "axe", "guard"), queue_max=1, opener=Gated)
+        gate.clear()
+        c = _Case(sink=w)
+        for _ in range(6):
+            c.attack()
+            _full(c)
+        gate.set()
+        summary = c.tap.close()
+        recs = CHK.load(path)
+        res = CHK.check(recs)
+        assert summary["writer"]["dropped"] > 0, summary
+        assert res["explained"], (res["problems"], res["unexplained_seqs"])
+        assert res["classes"]["dropped"] > 0, res["classes"]
+        assert sum(res["classes"].values()) == res["invocations"] == 6, res["classes"]   # each invocation once
+        assert next(r for r in recs if r["rec"] == "run_footer")["writer"]["dropped"] == summary["writer"]["dropped"]
+    print(f"ok  writer drops: {summary['writer']['dropped']} records dropped → classes {res['classes']}, all seqs explained")
 
 
 def test_flag_default_off() -> None:

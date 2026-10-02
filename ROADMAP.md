@@ -222,7 +222,9 @@ Laya가 싸움 상태를 보고 이미 있는 전술 후보 중 하나를 고르
 - [-] [win] 공격 outcome-proxy 분리 감사 ([MoKa] 2026-10-02 승인, 추론 전용, 사전 등록 `d54337b` `data/laya/attack_proxy_audit_plan.md`) — **동등성 게이트 불합격 → 추론 안 함** (P-34). a1–a3 레이더 재구성 vs 기록 features: 140/203 재구성, 불합격 필드 7개, `allowed()` 83.6 %. [MoKa] 결정 대기
 - [x] [win] 공격 감사 장치 구현 ([MoKa] 2026-10-02 조건부 승인, 게임 실행 미승인, LAYA.md 17): `attack_audit.py`, `duel(tap=None)`, `run.py --attack-audit`(기본 꺼짐), `experiments/attack_audit_check.py`. 확인: `tests/attack_audit_test.py` — golden 40,320 감사 켠 채 그대로, 실패 4가지에도 같은 판단, 동결 계약(5만 호출, 공유 객체 0, 흔들기 내성, 음성 대조 검출), pytest 55 통과
 - [x] [win] 첫 관측 실행 ([MoKa] 2026-10-02 경사로 1회 승인, Burg 미승인): `20261002_015707_clear-ramp` (커밋 `4cae9e6`, `--basic --radar --attack-audit`, 레이더 `20261002_015645`) — cleared, 위험 '깨끗'. 감사: 공격 호출 7 (primary 3 · ambiguous 4 = 모두 chained), seq 21개 모두 written, 유실·writer 오류 0, pad 대조 7/7. 문제: 결과 창이 거의 관측되지 않았는데 primary로 분류됨 (P-35). 샘플 `data/samples/clear-ramp-audit-2026-10-02-o1.*`
-- [ ] [win] P-35 고친 뒤 [MoKa]에게 Burg 관측 실행 승인 요청
+- [x] [MoKa] 첫 경사로 관측 실행 판정 (2026-10-02): 기록·seq 완전성·writer/drop·pad 대조·기본 실행 비침투성 **통과**, outcome-proxy 수집은 P-35로 **미검증**
+- [x] [win] P-35 최소 수정 (LAYA.md 17.1): 결과 창 보수적 판정, 분류 9가지, 점검기가 다시 계산, footer 집계. 첫 실행 재분류 primary 3 → unobserved_fight_end 3. pytest·golden 통과
+- [ ] [MoKa] 경사로 재검증 실행 승인 (Burg 미승인)
 - [ ] [win] (허락 뒤) `run.py burg-bonfire --basic --laya-shadow` — 섀도 켠 실행과 끈 실행의 `blind_report.py`·틱 수 비교, `.laya.jsonl` report
 
 ## 1-f. 모퉁이에서 일찍 꺾기 · 제자리 비비기 · 뒤돌기 (2026-09-28 [사람] 관찰)
@@ -652,7 +654,7 @@ Laya가 싸움 상태를 보고 이미 있는 전술 후보 중 하나를 고르
   - (b) 재구성 코드의 구현 한계(첫 1초·에스트·arena)를 고친 계획 개정을 다시 사전 등록하고 재검증. 레이더 지연 필드는 그래도 남는다.
   - (c) 앞으로의 실행에서 공격 결정마다 봇이 직접 features를 남기게 해서(섀도 기록, 행동 영향 없음) 새 데이터로 감사. 게임 실행은 허락 필요.
 
-### P-35 공격 감사: 결과 창(1.0 s)이 거의 관측되지 않는데 점검기가 primary로 분류 (2026-10-02, [win], 첫 관측 실행 `20261002_015707_clear-ramp`)
+### P-35 공격 감사: 결과 창(1.0 s)이 거의 관측되지 않는데 점검기가 primary로 분류 — **고침 2026-10-02 (LAYA.md 17.1), 게임 재검증 전** (2026-10-02, [win], 첫 관측 실행 `20261002_015707_clear-ramp`)
 - 공격 7번 모두 그 공격이나 바로 다음 공격으로 적이 죽어 싸움이 끝났다. `attack_outcome`의 1.0 s 샘플은 0–2개다.
   - 싸움이 끝나면 `_sense` 틱이 없다.
   - 다음 공격 규칙이 도는 동안에도 틱이 없다.

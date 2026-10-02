@@ -1,14 +1,18 @@
 """Offline check of one attack-audit file (attack_audit.py). No game, no model.
 
 OUTCOME PROXY, NOT A HUMAN-VERIFIED TACTICAL LABEL, NOT A SAFETY VALIDATION. Never merged with the P-34 radar-reconstructed
-audit data.
+audit data. The radar is used only for the pad-input correlation — it never fills an outcome window (P-35).
 
   python experiments/attack_audit_check.py data/runs/<run>.attack_audit.jsonl [--radar data/radar/<rec>.jsonl]
          [--log data/runs/<run>.log] [--allow-chained] [--out result.json]
 
-Every issued seq must be explained (written / dropped / lost), and every attack invocation gets exactly one class:
-  schema_mismatch · ambiguous · dropped_outcome · missing_outcome · overlaps_loss · outcome_incomplete · input_unconfirmed · primary
-primary = complete, schema/hash/source match, pad input correlated (radar), no ambiguity, no loss in its span.
+Every issued seq must be explained (written / dropped / lost), and every attack invocation gets exactly one class
+(attack_audit.CLASSES), first match in this order:
+  dropped · missing · no_attack · ambiguous · outcome_overlap · outcome_unobserved_fight_end · outcome_incomplete ·
+  input_unconfirmed · primary
+The outcome status is recomputed here from the raw samples (attack_audit.outcome_status) and from the other invocations of
+the same fight — the bot's own label is not trusted; the stricter of the two wins. Every reason that applies is also
+listed (reasons), so the exclusion table counts all of them, not only the first.
 """
 from __future__ import annotations
 
@@ -20,7 +24,12 @@ import sys
 from collections import Counter
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+import attack_audit as AA  # noqa: E402
+
 DECISION_RECS = ("attack_rule_invocation_snapshot", "audit_ambiguous_multi_attack", "audit_ambiguous_attack_outside_invocation")
+INVOCATION_RECS = DECISION_RECS + ("audit_no_attack",)
+STRICT = ["complete", "incomplete", "unobserved_fight_end", "overlap"]          # stricter → later
 HEAD = re.compile(r'^\{"rt": ([0-9.]+), "type": "(\w+)"')
 RB, RT_MIN = 0x0200, 100
 
@@ -90,9 +99,12 @@ def check(recs: list, onsets: list | None = None, allow_chained: bool = False, l
     # seq accounting: every issued seq is written, dropped or lost
     written = {r["seq"] for r in recs if isinstance(r.get("seq"), int) and r.get("rec") not in ("run_header", "run_footer")}
     dropped = set((footer or {}).get("dropped_seqs") or [])
+    gone_recs = [tuple(x) for x in (footer or {}).get("dropped_recs") or []] + [tuple(x) for x in (footer or {}).get("lost_recs") or []]
     for r in recs:
         if r.get("rec") == "audit_missing" and r.get("reason") == "queue_full":
             dropped |= set(r.get("seqs") or [])
+            gone_recs += [tuple(x) for x in r.get("recs") or []]
+    gone_recs = list({x[0]: x for x in gone_recs}.values())     # footer and audit_missing name the same drops — once per seq
     lost = set((footer or {}).get("lost_seqs") or [])
     last = (footer or {}).get("seq_last") or max(written | dropped | lost | {0})
     acct = Counter()
@@ -103,39 +115,88 @@ def check(recs: list, onsets: list | None = None, allow_chained: bool = False, l
         if k == "unexplained":
             unexplained.append(q)
     loss = sorted(dropped | lost | set(unexplained))
+    gone_outcome = {e for _, rec, e in gone_recs if rec == "attack_outcome"}
     ids = {k: (header or {}).get(k) for k in ("feature_schema_version", "features_src_sha", "code_path")}
     outcomes = {r["event_id"]: r for r in recs if r.get("rec") == "attack_outcome"}
-    classes, rows = Counter(), []
-    for ev in [r for r in recs if r.get("rec") in DECISION_RECS]:
+    invocations = [r for r in recs if r.get("rec") in INVOCATION_RECS]
+    by_fight: dict = {}
+    for r in invocations:
+        by_fight.setdefault((r.get("fight") or {}).get("t0"), []).append(r)
+    classes, rows, why_all = Counter(), [], Counter()
+
+    def put(ev_id, rec, rule, cls, reasons, extra=None):
+        classes[cls] += 1
+        why_all.update(reasons)
+        rows.append({"event_id": ev_id, "rec": rec, "rule": rule, "class": cls, "reasons": reasons, **(extra or {})})
+
+    for _, rec, e in gone_recs:                              # the invocation row itself never reached the file
+        if rec in INVOCATION_RECS:
+            put(e, rec, None, "dropped", ["invocation_row_dropped"])
+    for r in recs:
+        if r.get("rec") == "audit_missing" and r.get("reason") in ("freeze_error", "build_error"):
+            put(r["event_id"], r["rec"], r.get("rule"), "missing", [r["reason"]])
+    for ev in invocations:
+        if ev["rec"] == "audit_no_attack":
+            put(ev["event_id"], ev["rec"], ev.get("rule"), "no_attack",
+                ["no_attack"] + (["possible_unrecorded_input"] if ev.get("possible_unrecorded_input") else []))
+            continue
         cor = correlate(ev, onsets)
         oc = outcomes.get(ev["event_id"])
-        span_end = oc["seq"] if oc else last
+        reasons = [a for a in ev.get("ambiguity", []) if a != "input_time_not_observed" and not (allow_chained and a == "chained_presses")]
+        amb = list(reasons)
         sha_ok = hashlib.sha256(ev.get("feat_json", "").encode("utf-8")).hexdigest() == ev.get("feat_sha256")
-        amb = [a for a in ev.get("ambiguity", []) if a != "input_time_not_observed" and not (allow_chained and a == "chained_presses")]
-        if any(ev.get(k) != v for k, v in ids.items()) or not sha_ok:
-            c = "schema_mismatch"
-        elif amb:
-            c = "ambiguous"
-        elif oc is None:
-            c = "dropped_outcome" if any(ev["seq"] < q <= last for q in dropped | lost) else "missing_outcome"
-        elif any(ev["seq"] < q < span_end for q in loss):
-            c = "overlaps_loss"
-        elif not (oc["window"]["complete"] or oc["window"]["duel_ended_in_window"]):
-            c = "outcome_incomplete"
-        elif cor["input_correlation"] != "confirmed":
-            c = "input_unconfirmed"
+        schema_bad = any(ev.get(k) != v for k, v in ids.items()) or not sha_ok
+        if schema_bad:
+            reasons.append("schema_mismatch")
+        status = None
+        if oc is not None:
+            exit_w = ev["rule_exit_time"]["wall"]
+            overlaps = list(oc.get("overlaps") or [])
+            for other in by_fight.get((ev.get("fight") or {}).get("t0"), []):
+                t = other["rule_enter_time"]["wall"]
+                if other is not ev and exit_w <= t < exit_w + oc["window"].get("post_s", AA.POST_S) \
+                        and not any(o.get("event_id") == other["event_id"] for o in overlaps):
+                    overlaps.append({"kind": "next_decision" if other["rec"] != "audit_no_attack" else "next_attack_rule_invocation",
+                                     "event_id": other["event_id"]})
+            w = oc["window"]
+            ended = w.get("fight_result") if w.get("fight_result") is not None else ("ended" if w.get("duel_ended_in_window") else None)
+            st, oreasons, cov = AA.outcome_status(w.get("samples") or [], ended, overlaps)
+            bot = oc.get("outcome_status") or "complete"
+            status = max(st, bot if bot in STRICT else "incomplete", key=STRICT.index)
+            reasons += [x for x in oreasons + list(oc.get("outcome_reasons") or []) if x not in reasons]
         else:
-            c = "primary"
-        classes[c] += 1
-        rows.append({"event_id": ev["event_id"], "rec": ev["rec"], "rule": ev.get("rule"), "class": c, "ambiguity": amb, **cor})
-    n_ev = sum(classes.values())
+            reasons.append("outcome_dropped" if ev["event_id"] in gone_outcome else "outcome_missing")
+        span_end = oc["seq"] if oc else last
+        if any(ev["seq"] < q < span_end for q in loss):
+            reasons.append("overlaps_loss")
+        if cor["input_correlation"] != "confirmed":
+            reasons.append(f"input_{cor['input_correlation']}")
+        if ev["event_id"] in gone_outcome:
+            cls = "dropped"
+        elif schema_bad or oc is None or "overlaps_loss" in reasons:
+            cls = "missing"
+        elif amb:
+            cls = "ambiguous"
+        elif status == "overlap":
+            cls = "outcome_overlap"
+        elif status == "unobserved_fight_end":
+            cls = "outcome_unobserved_fight_end"
+        elif status == "incomplete":
+            cls = "outcome_incomplete"
+        elif cor["input_correlation"] != "confirmed":
+            cls = "input_unconfirmed"
+        else:
+            cls = "primary"
+        put(ev["event_id"], ev["rec"], ev.get("rule"), cls, reasons, {"outcome_status": status, **cor})
     hits_in_audit = sum(len(r.get("hits") or []) for r in recs if r.get("rec") in DECISION_RECS)
+    n_inv = len(rows)
     return {"disclaimer": "outcome proxy, not human-verified tactical label, not a safety validation",
-            "problems": problems, "seq_accounting": dict(acct), "unexplained_seqs": unexplained[:50],
-            "records": dict(Counter(r.get("rec") for r in recs)),
-            "invocations": n_ev, "classes": dict(classes),
-            "explained": not problems and not unexplained and n_ev == sum(classes.values()),
-            "no_attack": sum(1 for r in recs if r.get("rec") == "audit_no_attack"),
+            "schema": (header or {}).get("schema"), "problems": problems, "seq_accounting": dict(acct),
+            "unexplained_seqs": unexplained[:50], "records": dict(Counter(r.get("rec") for r in recs)),
+            "invocations": n_inv, "classes": {c: classes.get(c, 0) for c in AA.CLASSES},
+            "explained": not problems and not unexplained and set(classes) <= set(AA.CLASSES) and sum(classes.values()) == n_inv,
+            "primary_exclusion_reasons": dict(why_all),
+            "bot_side": {k: (footer or {}).get(k) for k in ("invocation_classes_bot_side", "primary_exclusion_reasons")},
             "hits_in_audit": hits_in_audit, "log_attack_lines": log_attack_lines,
             "prep_us": (footer or {}).get("prep_us"), "writer": (footer or {}).get("writer"),
             "rows": rows}

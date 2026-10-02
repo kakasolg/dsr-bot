@@ -411,3 +411,17 @@ P-34(레이더 재구성 감사, 게이트 불합격)의 옛 데이터는 불합
 - **비용**: 오프라인 가짜 환경에서 잰 값은 freeze p50 8.7 µs · p95 17 µs/규칙 호출, payload p50 33 µs · p95 66 µs이다.
   실제 게임 값이 아니다. 첫 관측 실행의 **관찰 기준**(검증된 사실 아님)은 payload p95 ≤ 1 ms, 틱 간격 차이 ≤ 2 ms이다.
   freeze는 규칙 호출 **앞**에서 돈다. 그래서 한 틱 안의 앞선 규칙 수만큼 공격 규칙 호출이 늦어진다(오프라인 수십 µs).
+
+### 17.1 P-35 수정 — 결과 창을 보수적으로 (2026-10-02, 스키마 `dsr-attack-audit/0.2`)
+- **complete 조건**: 공격 규칙이 끝난 뒤 1.0 s를 봇 자신의 틱 샘플이 덮어야 한다(0.25 s보다 긴 빈 구간 없음). 그 사이에 다른 일이 없어야 한다.
+- **complete가 아닌 경우**:
+  - 창 안에서 싸움이 끝남 → `outcome_unobserved_fight_end`
+  - 다음 공격 규칙 호출(뒤잡기 시도 포함)·목표 전환·새 싸움과 겹침 → `outcome_overlap`
+  - 빈 구간·목표가 안 보임·실행 끝 → `outcome_incomplete`
+- 레이더로 빈 창을 채우지 않는다. 레이더 보충은 별도 사전 등록과 귀속 규칙 없이는 primary에 쓰지 않는다.
+- **분류**: 공격 호출마다 정확히 하나다. 점검기가 원시 샘플과 같은 싸움의 다른 호출로 상태를 다시 계산하고, 봇 기록과 비교해 더 엄격한 쪽을 쓴다.
+  - 순서: dropped · missing · no_attack · ambiguous · outcome_overlap · outcome_unobserved_fight_end · outcome_incomplete · input_unconfirmed · primary
+  - 해당하는 제외 사유는 모두 따로 센다.
+  - footer에 봇 쪽 분류 수와 제외 사유를 남긴다.
+- **첫 경사로 실행(0.1) 재분류**: primary 3 → `outcome_unobserved_fight_end` 3. 나머지 ambiguous 4. primary는 0이다.
+- freeze 위치와 스냅샷 방식은 바꾸지 않았다. 경사로 실측 freeze p95 170.7 µs는 관찰값으로만 둔다.
