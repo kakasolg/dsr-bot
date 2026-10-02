@@ -235,6 +235,17 @@ Laya가 싸움 상태를 보고 이미 있는 전술 후보 중 하나를 고르
 - [x] [MoKa] B-dist pilot 1회 승인·실행 (2026-10-02): `data/observe/20261002_123237.jsonl` (로컬). E1 — 입구에서 0034+0015 2:1 (HP −326), 투척병 no-hit 접근 반응(약 10.9 m)·B1b 약 2.4 m 추적, 250000 이동은 시간 상관만. 투척병 처치 뒤 21~37 m 내부 진행은 protocol 밖 exploratory로 분리 → `TOWN_ENTRY.md` §D
 - [x] [MoKa] B-dist 반복 1회 승인·실행 (2026-10-02): `data/observe/20261002_124925.jsonl` (로컬). 입구 0034+0015 2:1 재발 (E1 ×2), 투척병이 첫 2:1 전투 중 반응·투척 (E1). 계단 아래 후퇴 뒤 내부 재진입 여러 번은 exploratory. §D 전체 반영은 미결정
 - [x] [win] `TOWN_ENTRY.md` §E 방향성 위치·detection-risk envelope ([MoKa] 2026-10-02 승인, 설계만): zone·이동 방향 분류, envelope = 관측 기반 보수적 위험 모델 (AI 반경 증명 아님), ONE_NOTICE → return/fallback, MULTI·UNKNOWN → 내부 추가 접근 금지, E1 기록은 사례. NavMesh 오프라인 확인 (보조 자료): 계단 아래가 MAP_A/B 경계, 끼인 공간 250000은 B1b까지 mesh 경로 없음, 입구 꼭대기 옆 mesh 구멍
+- [x] [win] Laya 기여 여부 읽기 전용 검토 ([MoKa] 2026-10-02 요청, 코드·게임 변경 없음) → **결론 A. Laya 불필요.** 기본 반사 다섯이 이미 규칙층에 있음:
+  - ATTACK: `field._chaser`(FOLLOW_R 4.5 m) → `_walk_chaser` → `duel` `RULES`
+  - RETREAT: `rule_separate`·`_low_hp_line`, `recover`·`_crowd_capped`, `watch.Escape`
+  - HEAL: `rule_estus`+`Care.wants`, `_walk` WALK_HEAL, `recover` heal
+  - STOP: `nav.goto`의 snapshot/`cam_yaw` 없음 → `pad.neutral`, `Escape`의 pad 고정, watchdog
+  - CONTINUE: `_walk`·`_resync_plan`
+
+  Laya가 맡을 일은 중복이거나, 제외된 판단(귀속·구역·envelope)에 기대게 된다. 근거도 실패(P-34) 또는 미확정(audit primary=0)이다. UNKNOWN (확인 안 함, Laya와 무관):
+  - pad 층 입력 고착 직접 감지 (`control.Pad` 미검토)
+  - 걷기 틱마다 reflex가 먼저 도는지 전체 순서
+  - 마을 입구에서 기존 반사의 품질 — 필요하면 기존 기록으로 따로 본다
 - [ ] [MoKa] zone-boundary F9 walk 계획 확인·승인 (미승인) · B-hit 설계·실행 (미승인)
 - [ ] [win] (허락 뒤) `run.py burg-bonfire --basic --laya-shadow` — 섀도 켠 실행과 끈 실행의 `blind_report.py`·틱 수 비교, `.laya.jsonl` report
 
