@@ -288,6 +288,27 @@ def test_lure_scenes_and_fixes() -> None:
     print("ok  lure scenes: decision at lock-on, own options, #4 corrected in the input with the bot's belief kept")
 
 
+def test_boundary_set_hides_and_counts() -> None:
+    """Boundary review: before a first-pass label the page carries no bot rule/tactic, no Laya prediction, no selection
+    reason; 'risky wrong' = proposal attack, attack forbidden, guard accepted."""
+    f = L.ROOT / "data" / "labels" / "boundary_scenes.jsonl"
+    if f.exists():
+        scenes = [json.loads(l) for l in f.read_text(encoding="utf-8").splitlines() if l.strip()]
+        for s in scenes:
+            page = json.dumps(L.scene_for_page(s, "pre"), ensure_ascii=False)
+            for k in ('"bot_rule"', '"bot_tactic"', '"laya_choice"', '"laya_rev_choice"', '"selection"', "laya_attack_bot_guard", "order_flip", "disagree", '"after"'):
+                assert k not in page, (s["scene_id"], k)
+            assert set(L.scene_for_page(s, "pre")["obs"]) == set(s["obs"]) and not any(k.startswith("_") for k in s["obs"])
+            assert all(x["dt"] <= 0 for x in L.scene_for_page(s, "pre")["shots"])
+        assert sum("laya_attack_bot_guard" in s["selection"]["why"] for s in scenes) == 10
+    lab = lambda acc, forb: {"acceptable": acc, "forbidden": forb}
+    assert L.risky_wrong("attack", lab(["guard"], ["attack"]))
+    assert not L.risky_wrong("attack", lab(["guard", "attack"], []))
+    assert not L.risky_wrong("guard", lab(["guard"], ["attack"]))
+    assert not L.risky_wrong("attack", lab(["hold_position"], ["attack"]))       # attack forbidden but guard not accepted: not this kind
+    print("ok  boundary set: rule/Laya/selection hidden before the first label; risky-wrong rule")
+
+
 if __name__ == "__main__":
     test_scene_separates_after()
     test_human_roll_is_not_evade()
@@ -296,4 +317,5 @@ if __name__ == "__main__":
     test_ramp_set_selection_and_shots()
     test_review_bot_prefill()
     test_lure_scenes_and_fixes()
+    test_boundary_set_hides_and_counts()
     test_one_scene_per_fight()

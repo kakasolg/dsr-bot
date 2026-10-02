@@ -51,7 +51,8 @@ def load_cases() -> list:
             if r.get("npc") in FIX_KIND and f.get("target_kind") == "ranged":
                 f["target_kind"] = FIX_KIND[r["npc"]]
             out.append({"run": run, "fight": f"{run}:{r['fight']}", "feat": f, "allowed": r["allowed"], "label": r["policy"],
-                        "label_source": "endorsed_run", "rule": r["rule"]})
+                        "label_source": "endorsed_run", "rule": r["rule"], "seq": r.get("seq"), "t_state": r.get("t_state"),
+                        "npc": r.get("npc")})
     return out
 
 
@@ -211,6 +212,25 @@ def evaluate(name: str, path: str | None) -> dict:
     return res
 
 
+def predict_all(path: str, test: str) -> None:
+    """Inference only (no training): every tick of the held-out run with that fold's checkpoint → data/laya/pred_<fold>.jsonl.
+    For the boundary review (LAYA.md 15) — choice, probabilities, and the choice with the options reversed."""
+    import torch
+    import laya
+    agent = laya.load(path, device="cuda" if torch.cuda.is_available() else "cpu")
+    rows = []
+    for c in [c for c in load_cases() if c["run"] == test]:
+        st = LS.state_for(c["feat"])
+        a = agent.predict(st, LS.questions_for(c["allowed"]))["answers"]["tactic"]
+        rev = agent.predict(st, LS.questions_for(list(reversed(c["allowed"]))))["answers"]["tactic"]
+        rows.append({"run": c["run"], "seq": c["seq"], "t_state": c["t_state"], "fight": c["fight"], "npc": c["npc"], "rule": c["rule"],
+                     "policy": c["label"], "allowed": c["allowed"], "choice": a["choice"], "probs": a.get("probabilities"),
+                     "top_p": a.get("answer_confidence"), "rev_choice": rev["choice"], "checkpoint": path})
+    out = ROOT / "data" / "laya" / f"pred_{Path(path).name}.jsonl"
+    out.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + "\n", encoding="utf-8")
+    print(f"{len(rows)} predictions → {out}")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--mode", choices=["head", "full"], default="head")
@@ -221,10 +241,14 @@ def main() -> None:
     ap.add_argument("--seed", type=int, default=20261001)
     ap.add_argument("--eval-only", default=None, help="'base' = the shipped checkpoint, or a checkpoint path")
     ap.add_argument("--test", default="a3", help="held-out run (the others train) — rotate for a by-run estimate")
+    ap.add_argument("--predict", default=None, help="checkpoint path: write per-tick predictions for --test (no training)")
     a = ap.parse_args()
     global TRAIN_RUNS, TEST_RUNS
     TEST_RUNS = (a.test,)
     TRAIN_RUNS = tuple(r for r in ("a1", "a2", "a3") if r != a.test)
+    if a.predict:
+        predict_all(a.predict, a.test)
+        return
     if a.eval_only:
         evaluate(("base" if a.eval_only == "base" else Path(a.eval_only).name) + f"-test-{a.test}", None if a.eval_only == "base" else a.eval_only)
         return

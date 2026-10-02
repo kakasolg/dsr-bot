@@ -31,6 +31,19 @@
         "--review-bot"
       ],
       "port": 47814
+    },
+    {
+      "name": "label-boundary",
+      "runtimeExecutable": ".venv/Scripts/python.exe",
+      "runtimeArgs": [
+        "label_pilot.py",
+        "serve",
+        "--set",
+        "boundary",
+        "--port",
+        "47815"
+      ],
+      "port": 47815
     }
   ]
 }

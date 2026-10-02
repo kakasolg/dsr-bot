@@ -245,7 +245,11 @@ async function reveal(mark = true) {
   setStage(cur);
   if (j.scene.shots && j.scene.shots.length) showShots(j.scene.shots);
   const a = j.scene.after, ko = j.tactics_ko;
-  const did = a.bot_logged !== undefined
+  const did = a.bot_rule !== undefined
+    ? `봇이 한 것: 규칙 <b>${esc(a.bot_rule)}</b> → ${esc(ko[a.bot_tactic] || a.bot_tactic)}<br>`
+      + `Laya (미세조정, 이 실행을 학습하지 않은 체크포인트 ${esc(a.laya_checkpoint || "")}): <b>${esc(ko[a.laya_choice] || a.laya_choice || "—")}</b>`
+      + ` (확률 ${a.laya_top_p != null ? a.laya_top_p.toFixed(2) : "—"}) · 선택지 순서를 뒤집으면: ${esc(ko[a.laya_rev_choice] || a.laya_rev_choice || "—")}`
+    : a.bot_logged !== undefined
     ? `봇이 한 것 (다음 1 s, 봇 기록 그대로): ${esc(a.bot_logged)}<br><span class="note">전술 이름으로 옮기면(규칙 기준선용, 정답 아님): ${Object.entries(a.bot_action_as_tactic || {}).map(([k, n]) => (ko[k] || k) + "×" + n).join(" ") || "—"}</span>`
     : `사람이 누른 버튼 (다음 1.5 s, 사실 그대로 — 정답 아님): ${(a.human_pressed || []).map(act).join(" · ") || "없음"}`;
   $("after").innerHTML = `<div class="after"><b>이후 (참고 — 모델 입력 아님. 이제부터 저장은 '결과 본 뒤 수정'으로 따로 남음)</b><br>

@@ -812,6 +812,100 @@ def _tag_runs(scenes: list) -> None:
         s["test_rule"] = "last bot run of the set (fixed before labeling)"
 
 
+# ── boundary review: single decision ticks from the shadow logs (LAYA.md 15) ──
+SHADOW_PROV = {
+    "target_state": ("derived", "애니 번호 범위 → 범주 (souls/moves.py)"), "target_kind": ("derived", "npc 번호 → souls/foes.py 표"),
+    "in_reach": ("derived", "distance_m ≤ weapon_reach_m"), "stamina_for_attack": ("derived", "SP ≥ 무기 sp_min"),
+    "target_one_hit": ("derived", "목표 HP ≤ duel.FINISH_HP"), "estus_wanted": ("derived", "Field.Care: 에스트 남음 + HP < 60 %"),
+    "estus_opening": ("derived", "duel.opening: 쓰러짐 또는 3 m 밖·안 휘두름 + 다른 적 조용"),
+    "other_swinging_near": ("derived", "2.5 m 안 다른 적 휘두름 (duel._other_swinging)"),
+    "taken_this_fight_pct": ("derived", "이번 싸움 시작 HP − 최저 HP"), "target_swing_age_s": ("derived", "반사가 본 휘두르기 시작부터 (틱 기준)"),
+    "fighting_style": ("logged", "봇 설정"), "let_it_come": ("logged", "봇 설정 (wait_far)"),
+}
+
+
+def build_ticks(selection_path: str, radar_path: str) -> None:
+    """One scene per selected tick: model input = the tick's own features (what the shadow sent), replay/screenshots from
+    the radar recording around it. Hidden until a first-pass label: the bot's rule/tactic, Laya's prediction, the outcome,
+    why it was picked. The bot's earlier actions are not shown either (rule output)."""
+    sel = {(r, q): why for r, q, why in json.loads(Path(selection_path).read_text(encoding="utf-8"))}
+    ticks, preds = {}, {}
+    for fn in (ROOT / "data" / "samples").glob("clear-ramp-shadow-2026-10-01-a*.laya.jsonl"):
+        run = fn.name.split("-")[-1].split(".")[0]
+        for line in fn.read_text(encoding="utf-8").splitlines():
+            r = json.loads(line)
+            if r.get("type") == "answer":
+                ticks[(run, r["seq"])] = r
+    for fn in (ROOT / "data" / "laya").glob("pred_ramp-v0-full*.jsonl"):
+        for line in fn.read_text(encoding="utf-8").splitlines():
+            if line.strip():
+                p = json.loads(line)
+                preds[(p["run"], p["seq"])] = p
+    src = (ROOT / radar_path).resolve() if not Path(radar_path).is_absolute() else Path(radar_path)
+    snaps = []
+    with src.open(encoding="utf-8", errors="replace") as f:
+        for line in f:
+            m = HEAD.match(line)
+            if m and m.group(2) == "snap":
+                s = json.loads(line)
+                if (s.get("player") or {}).get("x") is not None and (s.get("t") or 0) > 1e9:
+                    snaps.append((s["t"], float(m.group(1)), s))
+    by_t = [(t, rt) for t, rt, _ in snaps]
+
+    def rt_of(epoch):
+        t, rt = min(by_t, key=lambda x: abs(x[0] - epoch))
+        return rt if abs(t - epoch) < 1.0 else None
+
+    plan = []
+    for key, why in sorted(sel.items()):
+        tk, pr = ticks.get(key), preds.get(key)
+        rt = rt_of(tk["t_state"]) if tk else None
+        if rt is None:
+            print(f"  skip {key}: no snapshot")
+            continue
+        fight_start = float(tk["fight"])
+        rt0 = rt_of(fight_start)
+        plan.append((key, why, tk, pr, rt, (max(rt0 - FIGHT_LEAD_S, rt - MAX_PRE_S) if rt0 is not None else rt - PRE_S)))
+    clips = _clip_bot(src, {k: (min(pre, rt - PRE_S), rt + POST_S) for k, _, _, _, rt, pre in plan})
+    scenes = []
+    for key, why, tk, pr, rt, pre in plan:
+        msgs = clips[key]
+        snap = _nearest([(m["rt"], m) for m in msgs if m.get("type") == "snap" and (m.get("player") or {}).get("x") is not None], rt)
+        feat = dict(tk["feat"])
+        prov = {k: {"kind": kd, "how": how} for k, (kd, how) in SHADOW_PROV.items() if feat.get(k) is not None}
+        if tk.get("npc") in FOE_FIX and feat.get("target_kind") == "ranged":
+            feat["target_kind"] = FOE_FIX[tk["npc"]][0]
+            prov["target_kind"] = {"kind": "corrected", "how": FOE_FIX[tk["npc"]][1]}
+        ptr = (snap or {}).get("target")
+        hp0, e0 = _hp_at(msgs, rt), _hp_at(msgs, rt, ptr)
+        h15, h3, e3 = _hp_at(msgs, rt + 1.5), _hp_at(msgs, rt + 3.0), _hp_at(msgs, rt + 3.0, ptr)
+        sid = hashlib.md5(f"{src.name}|{key[0]}|{key[1]}".encode()).hexdigest()[:10]
+        sc = {"scene_id": sid, "schema": SCENE_SCHEMA, "decision": "duel", "source": "bot", "source_file": str(src.relative_to(ROOT)).replace("\\", "/"),
+              "run_id": key[0], "tick": {"run": key[0], "seq": key[1], "t_state": tk["t_state"]}, "fight_id": f"{key[0]}:{tk['fight']}",
+              "t_d": round(rt, 2), "clip": [round(min(pre, rt - PRE_S), 2), round(rt + POST_S, 2)],
+              "segment": _zone(snap["player"]) if snap else None, "enemy": {"npc": tk.get("npc"), "kind": _kind(tk.get("npc"))},
+              "event": "boundary", "code_commit": "094c2f6", "code_commit_note": "A 실행(18:00~18:08) 때 HEAD — 봇 파일은 44b0973과 같고 #4 수정(2ae22ef) 전",
+              "code_commit_approx": False, "obs": {k: v for k, v in feat.items() if not k.startswith("_")},
+              "mask_inputs": {k: v for k, v in feat.items() if k.startswith("_")}, "obs_provenance": prov,
+              "t_epoch": tk["t_state"], "shots": _shots_for(tk["t_state"]),
+              "context": {**_context(msgs, rt, ptr, []), "actor_did": []},
+              "context_note": "봇이 그 전에 한 행동은 1차 화면에서 뺌 (규칙 출력)",
+              "allowed": tk["allowed"], "unavailable": LS.why_not(tk["feat"]),
+              "after": {"bot_rule": tk["rule"], "bot_tactic": tk["policy"],
+                        "laya_choice": pr and pr["choice"], "laya_top_p": pr and pr.get("top_p"), "laya_rev_choice": pr and pr.get("rev_choice"),
+                        "laya_checkpoint": pr and Path(pr["checkpoint"]).name,
+                        "my_hp_change_1_5s": (h15 - hp0) if hp0 is not None and h15 is not None else None,
+                        "my_hp_change_3s": (h3 - hp0) if hp0 is not None and h3 is not None else None,
+                        "target_hp_change_3s": (e3 - e0) if e0 is not None and e3 is not None else None, "fight_result": "—"},
+              "missing": {}, "test_candidate": False, "test_rule": "boundary review set — not a train/test split",
+              "selection": {"why": why, "event": "boundary", "zone": None, "kind": _kind(tk.get("npc")), "result": "—", "source": "bot"}}
+        (CLIPS / f"{sid}.jsonl").write_text("\n".join(json.dumps(m, ensure_ascii=False) for m in msgs if sc["clip"][0] <= m["rt"] <= sc["clip"][1]) + "\n", encoding="utf-8")
+        scenes.append(sc)
+    scenes.sort(key=lambda s: (s["run_id"], s["tick"]["seq"]))
+    SCENES.write_text("\n".join(json.dumps(s, ensure_ascii=False) for s in scenes) + "\n", encoding="utf-8")
+    print(f"{len(scenes)} scenes → {SCENES}")
+
+
 FIGHT_LEAD_S, MAX_PRE_S = 2.0, 20.0   # chosen-recording sets: replay from the fight's start (− 2 s), at most 20 s back
 
 
@@ -1165,6 +1259,39 @@ def report() -> None:
         for l in prim:
             if l["definition_note"]:
                 print(f"    definition note [{l['scene_id']}]: {l['definition_note']}")
+        boundary_report([(scenes[l["scene_id"]], l) for l in prim if "bot_tactic" in scenes[l["scene_id"]].get("after", {})])
+
+
+def risky_wrong(choice, label) -> bool:
+    """The case the review is for: the proposal was attack, the person forbade attack and accepted guard."""
+    return choice == "attack" and "attack" in label["forbidden"] and "guard" in label["acceptable"]
+
+
+def boundary_report(pairs: list) -> None:
+    """Boundary review (LAYA.md 15): per first-pass label — risky wrong answers, the rule's and Laya's choice outside the
+    accepted set, and the 'no answer' kinds. Scenes marked unsure / no fitting tactic have no accepted set and are left
+    out of the outside-rates (counted separately)."""
+    if not pairs:
+        return
+    judged = [(s, l) for s, l in pairs if not l["unsure"] and not l["no_good_action"]]
+    n = len(judged)
+    print(f"\n    ── boundary review: {len(pairs)} first-pass labels, {n} with an accepted set")
+    for who, key in (("rule (bot)", "bot_tactic"), ("Laya (fine-tuned)", "laya_choice")):
+        out = [s for s, l in judged if s["after"][key] not in l["acceptable"]]
+        forb = [s for s, l in judged if s["after"][key] in l["forbidden"]]
+        risky = [s for s, l in judged if risky_wrong(s["after"][key], l)]
+        print(f"    {who:<18} outside accepted {len(out)}/{n} ({100 * len(out) / max(1, n):.0f} %) · forbidden chosen {len(forb)} · "
+              f"risky wrong (attack forbidden, guard accepted) {len(risky)}: {[s['scene_id'] for s in risky]}")
+    sel = collections.Counter(w for s, _ in pairs for w in s["selection"]["why"])
+    print(f"    picked because: {dict(sel)}")
+    la = [(s, l) for s, l in judged if "laya_attack_bot_guard" in s["selection"]["why"]]
+    print(f"    of the {len(la)} judged 'Laya attack / bot guard' cases: attack accepted {sum('attack' in l['acceptable'] for _, l in la)}, "
+          f"attack forbidden {sum('attack' in l['forbidden'] for _, l in la)}, guard accepted {sum('guard' in l['acceptable'] for _, l in la)}")
+    print(f"    unsure {sum(l['unsure'] for _, l in pairs)} ({collections.Counter(l['unsure_reason'] for _, l in pairs if l['unsure'])}) · "
+          f"no fitting tactic {sum(l['no_good_action'] for _, l in pairs)} ({collections.Counter(x for _, l in pairs for x in l['outside_set'])}) · "
+          f"model input not enough {sum(not l['model_input_sufficient'] for _, l in pairs)} "
+          f"({collections.Counter(x for _, l in pairs for x in l['outside_input'])}) · "
+          f"definition ambiguous {sum(1 for _, l in pairs if l['unsure_reason'] == '전술 정의가 애매' or l['definition_note'])}")
 
 
 def main() -> None:
@@ -1175,6 +1302,7 @@ def main() -> None:
     b.add_argument("--set", default="pilot", help="scene set name (pilot = the first 40) → data/labels/<set>_*.jsonl")
     b.add_argument("--radar", nargs="*", default=None, help="only these bot radar recordings (every fight, replay from its start)")
     b.add_argument("--per-fight", type=int, default=2)
+    b.add_argument("--ticks", default=None, help="boundary review: selection JSON [[run, seq, [why…]], …] from the shadow logs")
     s = sub.add_parser("serve")
     s.add_argument("--port", type=int, default=HTTP_PORT)
     s.add_argument("--set", default="pilot")
@@ -1185,7 +1313,9 @@ def main() -> None:
     a = ap.parse_args()
     if a.set != "pilot":
         use_set(a.set)
-    if a.cmd == "build":
+    if a.cmd == "build" and a.ticks:
+        build_ticks(a.ticks, a.radar[0])
+    elif a.cmd == "build":
         build(a.n, a.radar, a.per_fight)
     elif a.cmd == "serve":
         if a.review_bot:
