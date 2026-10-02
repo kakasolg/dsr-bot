@@ -359,6 +359,19 @@ class Pad:
             self.pad.update()
             self._due[button] = time.time() + hold
 
+    def press(self, button, hold: float) -> None:
+        """Blocking press → wait hold → release, the release in finally (P0-G — menus: quitout._press). Unlike tap() it
+        sleeps; nothing is scheduled. While another thread holds the freeze both writes go to _NullPad, like any input."""
+        with self._lock:
+            self.pad.press_button(button)
+            self.pad.update()
+        try:
+            time.sleep(hold)
+        finally:
+            with self._lock:
+                self.pad.release_button(button)
+                self.pad.update()
+
     def release_due(self) -> None:
         """예약된 버튼 떼기 — 감지 루프가 매 틱 부른다."""
         if not self._due:

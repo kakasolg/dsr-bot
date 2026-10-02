@@ -42,14 +42,9 @@ def _in_world(tm) -> bool:
 
 def _press(pad, b, gap: float, min_gap: float = MENU_GAP) -> None:
     """min_gap: 뗀 뒤 최소 대기. 다음 입력 전에 화면 전환을 **확인하는** 곳은 그 확인이 간격 노릇을 하므로 VERIFIED_GAP 으로 줄인다
-    (사용자 2026-09-24 "강종이 사람보다 느려" — 7 번 × 0.1 s 가 전부 확인 대기와 겹쳐 있었다)."""
-    with pad._lock:
-        pad.pad.press_button(b)
-        pad.pad.update()
-    time.sleep(HOLD)
-    with pad._lock:
-        pad.pad.release_button(b)
-        pad.pad.update()
+    (사용자 2026-09-24 "강종이 사람보다 느려" — 7 번 × 0.1 s 가 전부 확인 대기와 겹쳐 있었다).
+    Goes through Pad.press (release in finally) — no direct vgamepad access outside control.Pad (P0-G)."""
+    pad.press(b, HOLD)
     time.sleep(max(min_gap, gap - HOLD))
 
 
