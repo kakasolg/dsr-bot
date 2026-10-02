@@ -93,6 +93,9 @@ def main() -> None:
     ap.add_argument("--laya-worker", default="wsl", help="laya_worker.py 를 띄울 곳: wsl (기본, WSL Ubuntu venv) 또는 python 실행 파일 경로")
     ap.add_argument("--laya-device", default=None, help="cpu | cuda (기본: laya 가 고름)")
     ap.add_argument("--laya-backend", default=None, help="laya (기본) | fake:<전술> — 모델 없이 경로만 시험")
+    ap.add_argument("--attack-audit", action="store_true",
+                    help="공격 규칙 호출 직전 입력을 기록만 (data/runs/<시각>.attack_audit.jsonl, attack_audit.py) — 기본 꺼짐. "
+                         "Laya 추론·행동 반영 없음, 패드·규칙엔 반영 안 함. outcome proxy, not human-verified tactical label, not a safety validation")
     ap.add_argument("--no-lure", action="store_true", help="나이프로 한 놈씩 깨우지 않고 예전처럼 걸어가 붙는다 (비교용)")
     ap.add_argument("--style", choices=["guard", "backstep", "rush"], default="guard",
                     help="guard: 방패로 받고 휘청에 친다 (기본) | backstep: 양손, 백스텝으로 피하고 헛친 뒤 약공 | "
@@ -189,6 +192,15 @@ def main() -> None:
                                             err_path=laya_out.replace(".jsonl", ".err"), log=log)
         fld.advisor = laya_shadow.Advisor(laya_ch.offer)
         log(f"laya shadow: 기록만 → {laya_out} (워커 {a.laya_worker}, 패드·규칙엔 반영 안 함)")
+    audit_tap = None
+    if a.attack_audit:
+        import attack_audit
+        audit_out = str(log.path).replace(".jsonl", ".attack_audit.jsonl")
+        run_id = Path(audit_out).name.split(".")[0]
+        audit_tap = attack_audit.DecisionTap(
+            attack_audit.AuditWriter(audit_out, attack_audit.run_header(run_id, a.cmd, vars(a), w.name, a.style)), run_id)
+        fld.tap = audit_tap
+        log(f"attack audit: 기록만 → {audit_out} (공격 규칙 호출 직전 입력, 패드·규칙엔 반영 안 함)")
     if a.basic:
         from souls import duel as duel_
         duel_.BACKSTAB, duel_.HEAVY = False, False
@@ -284,6 +296,8 @@ def main() -> None:
         esc.stop()
         blood.stop()
         bbox.stop()
+        if audit_tap is not None:
+            log(f"attack audit: {audit_tap.close()}")
         if laya_ch is not None:
             adv = getattr(fld, "advisor", None)
             log(f"laya shadow: {laya_ch.close()}" + (f" · advisor 오류 {adv.errors} ({adv.last_error})" if adv and adv.errors else ""))

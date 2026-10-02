@@ -1307,7 +1307,7 @@ RULES = [rule_separate, rule_finish_first, prep_reflex, rule_face_first, rule_ea
 def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: float = 0.25,
          cancel=lambda: False, care=None, reflex=None, arena=None, style=None, wait_far: bool = False,
          gen=None, events=None, may_approach=None, crowd_ok: bool = False, wall_ok: bool = False,
-         advisor=None) -> DuelResult:
+         advisor=None, tap=None) -> DuelResult:
     """care: healing handler from layer 4 — care.wants(s) (wants to drink?), care.take(recheck) (drinks; recheck(s) rechecks the opening).
     Whether there's an opening is judged here (layer 3): opening(). If close, backstep to open distance and recheck next tick.
     reflex: reflex (souls/reflex.py) — first thing every tick. If it moved, this tick rests (it also blocks attacks from non-targets head-on).
@@ -1318,7 +1318,10 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
       come along too, so what would have come alone had to be fought as a group at once (ramp, 0 damage/8 s, 493 taken, force-quit for being surrounded).
       Distinguish "when to wait and when to act" — let distant foes come, react only after they enter reach.
     advisor: laya_shadow.Advisor (run.py --laya-shadow) — told which rule acted, after it acted. Record only: nothing it
-      returns is read here, and it swallows its own errors (LAYA.md)."""
+      returns is read here, and it swallows its own errors (LAYA.md).
+    tap: attack_audit.DecisionTap (run.py --attack-audit, off by default) — copies what features() reads before each rule
+      call, records the attack rule invocations after they return. Observation only: nothing it returns steers the fight
+      (its payload goes only to the advisor), and it swallows its own errors."""
     from . import style as style_
     F = Fight(mv, weapon, ptr, nm, log, limit, low_hp, cancel, care, reflex, arena, style_.of(style or "guard"), wait_far, gen, events,
               may_approach, crowd_ok, wall_ok)
@@ -1327,17 +1330,28 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
         if isinstance(T, DuelResult):
             if advisor is not None:
                 advisor.end(F, T)
+            if tap is not None:
+                tap.end(F, T)
             return T
         if T is CONT:
             continue
+        if tap is not None:
+            tap.sensed(F, T)
         for rule in RULES:
+            tok = tap.freeze(F, T) if tap is not None else None
             out = rule(F, T)
             if out is None:
                 continue
             name = rule.__name__.removeprefix("rule_").removeprefix("prep_")
             F.res.rules[name] = F.res.rules.get(name, 0) + 1
+            pay = tap.decided(F, T, tok, name, out) if tap is not None else None
             if advisor is not None:
-                advisor.observe(F, T, name, out)
+                if pay is None:
+                    advisor.observe(F, T, name, out)
+                else:
+                    advisor.observe(F, T, name, out, payload=pay)
             if isinstance(out, DuelResult):
+                if tap is not None:
+                    tap.end(F, out)
                 return out
             break

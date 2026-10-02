@@ -220,6 +220,8 @@ Laya가 싸움 상태를 보고 이미 있는 전술 후보 중 하나를 고르
 - [ ] [MoKa]+[win] 평가용 사람 확인 라벨 300개 — 파일럿 결과 보고 규모 확정 뒤
 - [ ] [win] 실행 로그·섀도 행에 `code_commit`·구역·싸움 id
 - [-] [win] 공격 outcome-proxy 분리 감사 ([MoKa] 2026-10-02 승인, 추론 전용, 사전 등록 `d54337b` `data/laya/attack_proxy_audit_plan.md`) — **동등성 게이트 불합격 → 추론 안 함** (P-34). a1–a3 레이더 재구성 vs 기록 features: 140/203 재구성, 불합격 필드 7개, `allowed()` 83.6 %. [MoKa] 결정 대기
+- [x] [win] 공격 감사 장치 구현 ([MoKa] 2026-10-02 조건부 승인, 게임 실행 미승인, LAYA.md 17): `attack_audit.py`, `duel(tap=None)`, `run.py --attack-audit`(기본 꺼짐), `experiments/attack_audit_check.py`. 확인: `tests/attack_audit_test.py` — golden 40,320 감사 켠 채 그대로, 실패 4가지에도 같은 판단, 동결 계약(5만 호출, 공유 객체 0, 흔들기 내성, 음성 대조 검출), pytest 55 통과
+- [ ] [MoKa] 첫 관측 실행 승인 (`clear-ramp --basic --radar --attack-audit` → 점검기 → burg-bonfire)
 - [ ] [win] (허락 뒤) `run.py burg-bonfire --basic --laya-shadow` — 섀도 켠 실행과 끈 실행의 `blind_report.py`·틱 수 비교, `.laya.jsonl` report
 
 ## 1-f. 모퉁이에서 일찍 꺾기 · 제자리 비비기 · 뒤돌기 (2026-09-28 [사람] 관찰)

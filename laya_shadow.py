@@ -211,6 +211,118 @@ def state_for(f: dict) -> dict:
     return {k: v for k, v in f.items() if not k.startswith("_") and v is not None}
 
 
+# ── one frozen input, one payload: shared by the shadow (Advisor) and the attack audit (attack_audit.py) ──
+FEATURE_SCHEMA_VERSION = 1      # bump when features()/allowed()/why_not() or the frozen attributes change
+F_ATTRS = ("weapon", "foe", "ptr", "care", "hp_start", "hp_min", "style", "wait_far", "reflex", "arena", "nm", "low_hp")
+T_ATTRS = ("h", "dy", "a", "age", "room")       # + s, p, c (copied snapshot)
+_IMMUTABLE = (int, float, str, bool, bytes, type(None))
+
+
+class _Present:
+    """Stands in for a live object that features() only tests for `is not None` (reflex thread, arena, NavMesh)."""
+    __slots__ = ()
+
+    def __repr__(self):
+        return "<present>"
+
+
+PRESENT = _Present()
+
+
+class FrozenView:
+    """Plain holder — attributes are set by freeze()."""
+
+
+def is_immutable(v, _depth: int = 0) -> bool:
+    if isinstance(v, _IMMUTABLE) or v is PRESENT:
+        return True
+    if isinstance(v, (tuple, frozenset)):
+        return _depth < 4 and all(is_immutable(x, _depth + 1) for x in v)
+    params = getattr(type(v), "__dataclass_params__", None)
+    if params is not None and params.frozen:
+        return _depth < 4 and all(is_immutable(getattr(v, k), _depth + 1) for k in v.__dataclass_fields__)
+    return False
+
+
+def _plain_copy(obj):
+    """A new object of the same class holding only obj's immutable attributes (a Field.Care keeps `left`, not its Field)."""
+    if obj is None:
+        return None
+    new = object.__new__(type(obj))
+    for k, v in vars(obj).items():
+        if is_immutable(v):
+            setattr(new, k, v)
+    return new
+
+
+def copy_snapshot(s):
+    """Snapshot with its own player/chars copies (Chr fields are numbers/strings) → (copy, {id(live chr): copy})."""
+    import copy as copy_
+    s2 = copy_.copy(s)
+    s2.player = copy_.copy(s.player)
+    s2.chars = [copy_.copy(c) for c in s.chars]
+    ids = {id(s.player): s2.player}
+    ids.update({id(c): c2 for c, c2 in zip(s.chars, s2.chars)})
+    return s2, ids
+
+
+def freeze(F, T, snap_copy=None) -> tuple[FrozenView, FrozenView]:
+    """What features(F, T) reads, copied now — the rule about to run may change F/T or the objects behind them; features()
+    on the result never reads the live objects again (tests/attack_audit_test.py checks both). snap_copy: copy_snapshot(T.s)
+    already made for this tick (the snapshot is the same for every rule of a tick)."""
+    import copy as copy_
+    fv, tv = FrozenView(), FrozenView()
+    for k in F_ATTRS:
+        v = getattr(F, k, None)
+        if k in ("reflex", "arena", "nm"):
+            v = None if v is None else PRESENT
+        elif k == "care":
+            v = _plain_copy(v)
+        elif not is_immutable(v):
+            v = copy_.deepcopy(v)
+        setattr(fv, k, v)
+    s2, ids = snap_copy if snap_copy is not None else copy_snapshot(T.s)
+    tv.s = s2
+    tv.p = ids.get(id(T.p)) or copy_.copy(T.p)
+    tv.c = ids.get(id(T.c)) or copy_.copy(T.c)
+    for k in T_ATTRS:
+        if k in T.__dict__:
+            v = T.__dict__[k]
+            setattr(tv, k, v if is_immutable(v) else copy_.deepcopy(v))
+    return fv, tv
+
+
+_SCHEMA_IDS = None
+
+
+def schema_ids() -> dict:
+    """Identifies the exact feature code: an analyzer drops rows whose ids differ from the run header's."""
+    global _SCHEMA_IDS
+    if _SCHEMA_IDS is None:
+        import hashlib
+        import inspect
+        src = "".join(inspect.getsource(f) for f in (features, target_state, allowed, why_not, freeze, copy_snapshot, _plain_copy))
+        sha = hashlib.sha256(src.encode("utf-8")).hexdigest()
+        _SCHEMA_IDS = {"feature_schema_version": FEATURE_SCHEMA_VERSION, "features_src_sha": sha,
+                       "code_path": f"laya_shadow.decision_payload@{sha[:12]}"}
+    return dict(_SCHEMA_IDS)
+
+
+def canonical_json(d: dict) -> str:
+    return json.dumps(d, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False)
+
+
+def decision_payload(fv, tv) -> dict:
+    """features() once, on frozen inputs → the one payload both the shadow request and the audit row carry."""
+    import hashlib
+    f = features(fv, tv)
+    fj = canonical_json(f)
+    ids = schema_ids()
+    return {"feat": f, "feat_json": fj, "feat_sha256": hashlib.sha256(fj.encode("utf-8")).hexdigest(),
+            "feature_keys_sha": hashlib.sha256(",".join(sorted(f)).encode("utf-8")).hexdigest()[:16],
+            "allowed": allowed(f), "why_not": why_not(f), **ids}
+
+
 def questions_for(allowed_: list) -> dict:
     return {"tactic": {"type": "choice", "instructions": INSTRUCTIONS, "criteria": {k: TACTICS[k] for k in allowed_}}}
 
@@ -283,22 +395,30 @@ class Advisor:
                 "allowed": al, "feat": f, "t_state": round(t_state, 3), "t_offer": time.time(), "prep_bot_ms": round(prep_ms, 3),
                 "bot_os": sys.platform}
 
-    def observe(self, F, T, rule: str, out=None) -> None:
+    def observe(self, F, T, rule: str, out=None, payload=None) -> None:
         """A rule acted this tick (duel loop, after the rule ran). `out` is what the rule returned — a fight ending
-        such as low_hp from wait_far goes to end()."""
+        such as low_hp from wait_far goes to end(). payload: decision_payload() the attack audit already made from the
+        inputs frozen before the rule ran — used as is (same features, not computed again)."""
         try:
             if getattr(out, "result", None) in END_TACTIC:
                 return self.end(F, out, T, rule)
             now = time.time()
             if RULE_TACTIC.get(rule) is not None and now - self.last_t >= self.min_interval:
                 t0 = time.perf_counter()
-                f = features(F, T)
-                al = allowed(f)
+                if payload is not None:
+                    f, al = dict(payload["feat"]), list(payload["allowed"])
+                else:
+                    f = features(F, T)
+                    al = allowed(f)
                 policy = policy_tactic(rule, f)
                 prep = (time.perf_counter() - t0) * 1000
                 self._last[F.t0] = (f, al, now)
                 self.last_t = now
-                self.send(self._req(F, f, al, rule, policy, "tick", T.now, prep))
+                req = self._req(F, f, al, rule, policy, "tick", T.now, prep)
+                if payload is not None:                      # links this request to the audit row (same bytes)
+                    req.update(feat_sha256=payload["feat_sha256"], audit_event_id=payload.get("event_id"),
+                               input="frozen_before_rule")
+                self.send(req)
         except Exception as e:
             self.errors, self.last_error = self.errors + 1, repr(e)[:200]
         finally:

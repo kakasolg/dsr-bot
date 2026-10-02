@@ -386,3 +386,28 @@ python label_pilot.py serve --set ramp          ← 라벨, 끝나면 report --s
 - 금지 후보 제안 0 · 잘못된 출력 0
 - 추론 p95가 싸움 틱 간격(~45 ms)과 견줄 만한지 — 아니면 '틱마다 조언'은 불가, '이벤트마다'만 가능
 - 일치율은 다수 클래스 기준선보다 뚜렷이 높고, 불일치 사례를 [MoKa]가 봤을 때 Laya 쪽이 나은 장면이 있는지 (규칙이 틀린 P-기록 장면 위주)
+
+## 17. 공격 감사 장치 (attack audit) — 기존 봇 공격 규칙의 관측 장치 (2026-10-02, [MoKa] 조건부 승인, 게임 실행 미승인)
+
+**Laya 추론도, 행동 반영도 아니다.** 기존 봇의 공격 규칙이 불렸을 때 그 직전 입력을 기록만 한다.
+모든 파일은 **outcome proxy, not human-verified tactical label, not a safety validation**이다.
+P-34(레이더 재구성 감사, 게이트 불합격)의 옛 데이터는 불합격 상태로 남기고, 새 감사 데이터와 합치지 않는다.
+
+- **켜는 법**: `run.py --attack-audit` (기본 꺼짐) → `data/runs/<run>.attack_audit.jsonl`. 코드는 `attack_audit.py`.
+- **연결**:
+  - `duel(tap=…)`: 규칙을 부르기 전마다 `tap.freeze`(features()가 읽는 것을 복사), 행동한 규칙 뒤에 `tap.decided`, 이후 틱마다 `tap.sensed`, 싸움이 끝나면 `tap.end`.
+  - `laya_shadow.freeze` / `decision_payload`: features()를 한 번만 계산한다. 섀도가 켜져 있으면 공격 틱에서 같은 payload(같은 sha)를 쓴다.
+- **기록 이름**: `attack_rule_invocation_snapshot` — 공격 규칙 **호출 직전**의 입력이다. 정확한 버튼 시각이 아니다(입력 경로를 바꾸지 않았다).
+  - 실제 패드 입력과의 관계는 따로 적는다: `rule_enter_time`, `rule_exit_time`, `first_attack_input_time_if_observed`(봇 안에서는 늘 null), `input_time_source`, `hit_delta`, `attack_count_if_observed`, `presses_reported`.
+  - 레이더 pad 기록과의 대조는 `experiments/attack_audit_check.py --radar`에서 오프라인으로 한다.
+- **모호함은 primary에서 뺀다**:
+  - `audit_ambiguous_multi_attack`: 한 호출에 hit 2개 이상, 또는 'heavy+light'처럼 동작이 둘
+  - `audit_ambiguous_attack_outside_invocation`: reflex 스레드가 먼저 친 백스텝 공격
+  - `chained_presses`: light×2 같은 연속 누름. 기본은 모호함이고, `--allow-chained`로만 푼다
+  - `audit_no_attack`: 공격 규칙이 돌았는데 hit가 0. 뒤잡기는 hit 기록 없이 R1을 누르므로 `possible_unrecorded_input`을 단다
+- **결과**: `attack_outcome`은 같은 `event_id`의 별도 줄이다. 1.0 s 동안 봇 자신의 틱 스냅샷을 모은다. 모델 입력과 섞지 않는다.
+- **완전성**: 모든 줄에 `seq`가 붙고, footer가 `seq_last`와 dropped·lost seq 목록을 남긴다. 같은 요약이 실행 로그에도 한 줄로 남는다.
+  점검기는 모든 seq가 written / dropped / lost 중 하나로 설명되는지, 모든 호출이 한 class로 분류되는지 확인한다.
+- **비용**: 오프라인 가짜 환경에서 잰 값은 freeze p50 8.7 µs · p95 17 µs/규칙 호출, payload p50 33 µs · p95 66 µs이다.
+  실제 게임 값이 아니다. 첫 관측 실행의 **관찰 기준**(검증된 사실 아님)은 payload p95 ≤ 1 ms, 틱 간격 차이 ≤ 2 ms이다.
+  freeze는 규칙 호출 **앞**에서 돈다. 그래서 한 틱 안의 앞선 규칙 수만큼 공격 규칙 호출이 늦어진다(오프라인 수십 µs).

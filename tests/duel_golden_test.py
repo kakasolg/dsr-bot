@@ -148,8 +148,9 @@ def situations_axe():
                    ground=True)
 
 
-def run(sc, advisor=None) -> list:
-    """advisor: a laya_shadow.Advisor riding along (tests/laya_shadow_test.py, laya_eval.py cases golden) — the trace must not change."""
+def run(sc, advisor=None, tap=None, mv_hook=None) -> list:
+    """advisor: a laya_shadow.Advisor riding along (tests/laya_shadow_test.py, laya_eval.py cases golden); tap: an
+    attack_audit.DecisionTap (tests/attack_audit_test.py) — the trace must not change with either. mv_hook(mv): test access."""
     trace = []
     w = World(player=(0.0, -49.4, 0.0), sp=sc["sp"])
     w.player.heading = -math.pi                                   # facing +z (facing = heading + π)
@@ -166,6 +167,8 @@ def run(sc, advisor=None) -> list:
         care = Care(trace) if sc["care"] else None
         arena = {None: None, "near": [0.5, -49.4, 0.5], "far": [0.0, -49.4, -8.0], "ledge": [0.0, -45.0, -8.0]}[sc["arena"]]
     mv = Mv(w, trace)
+    if mv_hook is not None:
+        mv_hook(mv, w)
     g = {"now": sc.get("grip")}
     mv.tm.grip = lambda: g["now"]
     mv.pad.two_hand_right = lambda: (trace.append(("two_hand",)), g.update(now={1: 3, 3: 1}.get(g["now"], g["now"])))
@@ -188,7 +191,7 @@ def run(sc, advisor=None) -> list:
     try:
         r = D.duel(mv, weapons.BATTLE_AXE if sc.get("weapon") == "axe" else weapons.BROADSWORD, 2, nm, log=lambda line: trace.append(("log", _CLOCK.sub("T", line))), cancel=cancel,
                    reflex=Reflex(sc["reflex"], trace), style=sc["style"], wait_far=sc["wait"], care=care, arena=arena,
-                   advisor=advisor)
+                   advisor=advisor, tap=tap)
         trace.append(("result", r.result))
     except Exception as e:                                        # a crash is a decision too — it must stay the same
         trace.append(("error", type(e).__name__, str(e)))
