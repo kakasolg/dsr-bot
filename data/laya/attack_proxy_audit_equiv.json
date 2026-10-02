@@ -1,0 +1,496 @@
+{
+ "disclaimer": {
+  "kind": "outcome proxy, not human-verified tactical label",
+  "not": "not a safety validation",
+  "use": "never human_verified, a train target or a final test label",
+  "plan": "data/laya/attack_proxy_audit_plan.md (pre-registered, commit d54337b)"
+ },
+ "step": "equivalence (plan 6) — no model",
+ "ticks": 203,
+ "reconstructed": 140,
+ "not_reconstructed": {
+  "fight_not_found": 60,
+  "target_not_found": 3
+ },
+ "snap_age_s": {
+  "median": 0.052,
+  "max": 0.114
+ },
+ "fight_start_err_s": {
+  "median": 0.038,
+  "max": 0.043
+ },
+ "fields": {
+  "_arena": {
+   "agree": 0.9286,
+   "n": 140,
+   "criterion": "exact",
+   "mismatches": [
+    {
+     "logged": false,
+     "recon": true,
+     "n": 10
+    }
+   ],
+   "pass": false
+  },
+  "_evade": {
+   "agree": 1.0,
+   "n": 140,
+   "criterion": "exact",
+   "mismatches": [],
+   "pass": true
+  },
+  "_may_retreat": {
+   "agree": 1.0,
+   "n": 140,
+   "criterion": "exact",
+   "mismatches": [],
+   "pass": true
+  },
+  "_reflex_on": {
+   "agree": 1.0,
+   "n": 140,
+   "criterion": "exact",
+   "mismatches": [],
+   "pass": true
+  },
+  "_room": {
+   "agree": 1.0,
+   "n": 140,
+   "criterion": "exact",
+   "mismatches": [],
+   "pass": true
+  },
+  "_shield": {
+   "agree": 1.0,
+   "n": 140,
+   "criterion": "exact",
+   "mismatches": [],
+   "pass": true
+  },
+  "_sp_ok": {
+   "agree": 1.0,
+   "n": 140,
+   "criterion": "exact",
+   "mismatches": [],
+   "pass": true
+  },
+  "distance_m": {
+   "agree": 0.85,
+   "n": 140,
+   "criterion": "|Δ| ≤ 0.15",
+   "abs_err": {
+    "median": 0.0,
+    "p95": 0.3,
+    "max": 0.8
+   },
+   "none_mismatch": 0,
+   "pass": false
+  },
+  "estus_opening": {
+   "agree": 0.9929,
+   "n": 140,
+   "criterion": "exact",
+   "mismatches": [
+    {
+     "logged": false,
+     "recon": true,
+     "n": 1
+    }
+   ],
+   "pass": true
+  },
+  "estus_wanted": {
+   "agree": 0.0,
+   "n": 140,
+   "criterion": "exact",
+   "mismatches": [
+    {
+     "logged": false,
+     "recon": null,
+     "n": 140
+    }
+   ],
+   "pass": false
+  },
+  "facing_error_deg": {
+   "agree": 0.9571,
+   "n": 140,
+   "criterion": "|Δ| ≤ 10",
+   "abs_err": {
+    "median": 0.0,
+    "p95": 4.0,
+    "max": 98.0
+   },
+   "none_mismatch": 0,
+   "pass": true
+  },
+  "fighting_style": {
+   "agree": 1.0,
+   "n": 140,
+   "criterion": "exact",
+   "mismatches": [],
+   "pass": true
+  },
+  "height_diff_m": {
+   "agree": 0.9929,
+   "n": 140,
+   "criterion": "|Δ| ≤ 0.15",
+   "abs_err": {
+    "median": 0.0,
+    "p95": 0.1,
+    "max": 0.2
+   },
+   "none_mismatch": 0,
+   "pass": true
+  },
+  "in_reach": {
+   "agree": 0.9429,
+   "n": 140,
+   "criterion": "exact",
+   "mismatches": [
+    {
+     "logged": false,
+     "recon": true,
+     "n": 1
+    },
+    {
+     "logged": true,
+     "recon": false,
+     "n": 7
+    }
+   ],
+   "pass": false
+  },
+  "let_it_come": {
+   "agree": 1.0,
+   "n": 140,
+   "criterion": "exact",
+   "mismatches": [],
+   "pass": true
+  },
+  "my_hp_pct": {
+   "agree": 1.0,
+   "n": 140,
+   "criterion": "|Δ| ≤ 0.03",
+   "abs_err": {
+    "median": 0.0,
+    "p95": 0.0,
+    "max": 0.0
+   },
+   "none_mismatch": 0,
+   "pass": true
+  },
+  "my_stamina_pct": {
+   "agree": 0.9571,
+   "n": 140,
+   "criterion": "|Δ| ≤ 0.03",
+   "abs_err": {
+    "median": 0.0,
+    "p95": 0.02,
+    "max": 0.26
+   },
+   "none_mismatch": 0,
+   "pass": true
+  },
+  "other_swinging_near": {
+   "agree": 1.0,
+   "n": 140,
+   "criterion": "exact",
+   "mismatches": [],
+   "pass": true
+  },
+  "others_within_4_5m": {
+   "agree": 1.0,
+   "n": 140,
+   "criterion": "exact",
+   "mismatches": [],
+   "pass": true
+  },
+  "stamina_for_attack": {
+   "agree": 1.0,
+   "n": 140,
+   "criterion": "exact",
+   "mismatches": [],
+   "pass": true
+  },
+  "taken_this_fight_pct": {
+   "agree": 1.0,
+   "n": 140,
+   "criterion": "|Δ| ≤ 0.03",
+   "abs_err": {
+    "median": 0.0,
+    "p95": 0.0,
+    "max": 0.0
+   },
+   "none_mismatch": 0,
+   "pass": true
+  },
+  "target_facing_me_deg": {
+   "agree": 0.9286,
+   "n": 140,
+   "criterion": "|Δ| ≤ 10",
+   "abs_err": {
+    "median": 0.5,
+    "p95": 12.0,
+    "max": 18.0
+   },
+   "none_mismatch": 0,
+   "pass": false
+  },
+  "target_hp_pct": {
+   "agree": 1.0,
+   "n": 140,
+   "criterion": "|Δ| ≤ 0.03",
+   "abs_err": {
+    "median": 0.0,
+    "p95": 0.0,
+    "max": 0.0
+   },
+   "none_mismatch": 0,
+   "pass": true
+  },
+  "target_kind": {
+   "agree": 1.0,
+   "n": 140,
+   "criterion": "exact",
+   "mismatches": [],
+   "pass": true
+  },
+  "target_one_hit": {
+   "agree": 1.0,
+   "n": 140,
+   "criterion": "exact",
+   "mismatches": [],
+   "pass": true
+  },
+  "target_state": {
+   "agree": 0.9071,
+   "n": 140,
+   "criterion": "exact",
+   "mismatches": [
+    {
+     "logged": "getting_up",
+     "recon": "idle",
+     "n": 1
+    },
+    {
+     "logged": "idle",
+     "recon": "swinging",
+     "n": 1
+    },
+    {
+     "logged": "staggered",
+     "recon": "swinging",
+     "n": 10
+    },
+    {
+     "logged": "swinging",
+     "recon": "staggered",
+     "n": 1
+    }
+   ],
+   "pass": false
+  },
+  "target_swing_age_s": {
+   "agree": 0.8786,
+   "n": 140,
+   "criterion": "|Δ| ≤ 0.15",
+   "abs_err": {
+    "median": 0.04,
+    "p95": 0.28,
+    "max": 0.32
+   },
+   "none_mismatch": 12,
+   "pass": false
+  },
+  "weapon_reach_m": {
+   "agree": 1.0,
+   "n": 140,
+   "criterion": "exact",
+   "mismatches": [],
+   "pass": true
+  }
+ },
+ "allowed": {
+  "agree": 0.8357,
+  "pass": false,
+  "mismatches": [
+   {
+    "logged": [
+     "attack",
+     "guard",
+     "hold_position",
+     "retreat"
+    ],
+    "recon": [
+     "attack",
+     "guard",
+     "hold_position",
+     "reposition",
+     "retreat"
+    ]
+   },
+   {
+    "logged": [
+     "attack",
+     "guard",
+     "hold_position",
+     "retreat"
+    ],
+    "recon": [
+     "attack",
+     "guard",
+     "hold_position",
+     "reposition",
+     "retreat"
+    ]
+   },
+   {
+    "logged": [
+     "attack",
+     "guard",
+     "hold_position",
+     "retreat"
+    ],
+    "recon": [
+     "attack",
+     "guard",
+     "hold_position",
+     "reposition",
+     "retreat"
+    ]
+   },
+   {
+    "logged": [
+     "attack",
+     "guard",
+     "hold_position",
+     "reposition",
+     "retreat"
+    ],
+    "recon": [
+     "approach",
+     "attack",
+     "guard",
+     "hold_position",
+     "reposition",
+     "retreat"
+    ]
+   },
+   {
+    "logged": [
+     "attack",
+     "guard",
+     "hold_position",
+     "reposition",
+     "retreat"
+    ],
+    "recon": [
+     "approach",
+     "attack",
+     "guard",
+     "hold_position",
+     "reposition",
+     "retreat"
+    ]
+   },
+   {
+    "logged": [
+     "attack",
+     "guard",
+     "hold_position",
+     "reposition",
+     "retreat"
+    ],
+    "recon": [
+     "approach",
+     "attack",
+     "guard",
+     "hold_position",
+     "reposition",
+     "retreat"
+    ]
+   },
+   {
+    "logged": [
+     "approach",
+     "guard",
+     "hold_position",
+     "reposition",
+     "retreat"
+    ],
+    "recon": [
+     "approach",
+     "attack",
+     "guard",
+     "hold_position",
+     "reposition",
+     "retreat"
+    ]
+   },
+   {
+    "logged": [
+     "attack",
+     "guard",
+     "hold_position",
+     "reposition",
+     "retreat"
+    ],
+    "recon": [
+     "approach",
+     "attack",
+     "guard",
+     "hold_position",
+     "reposition",
+     "retreat"
+    ]
+   },
+   {
+    "logged": [
+     "approach",
+     "guard",
+     "hold_position",
+     "reposition",
+     "retreat"
+    ],
+    "recon": [
+     "approach",
+     "attack",
+     "guard",
+     "hold_position",
+     "reposition",
+     "retreat"
+    ]
+   },
+   {
+    "logged": [
+     "attack",
+     "guard",
+     "hold_position",
+     "reposition",
+     "retreat"
+    ],
+    "recon": [
+     "approach",
+     "attack",
+     "guard",
+     "hold_position",
+     "reposition",
+     "retreat"
+    ]
+   }
+  ]
+ },
+ "failed_fields": [
+  "_arena",
+  "distance_m",
+  "estus_wanted",
+  "in_reach",
+  "target_facing_me_deg",
+  "target_state",
+  "target_swing_age_s"
+ ],
+ "gate": "fail"
+}
