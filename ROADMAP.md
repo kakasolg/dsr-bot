@@ -232,7 +232,8 @@ Laya가 싸움 상태를 보고 이미 있는 전술 후보 중 하나를 고르
 - [x] [win] 마을 입구 구역 설계·관측 프로토콜 문서화 ([MoKa] 2026-10-02 승인): `TOWN_ENTRY.md` — 확인 표(기록/사용자/추정 구분, 등급), 8상태 설계, 사람 플레이 읽기 전용 A/B/C 프로토콜·F9 마커. 구역은 provisional(`--seg 3`). 코드·봇·Laya·audit 변경 없음
 - [x] [MoKa] 마을 입구 사람 플레이 Type A 1회 승인·실행 (2026-10-02, 반경 40 m, 읽기 전용): 기록 `data/observe/20261002_065653.jsonl` (로컬). E1 — 사람이 위험선 전에서 접근을 멈춰 적을 하나씩 분리 (동시 근접 최대 1). 2:1 반증·봇 자동 분리의 증거 아님. 254011·투척병 반응은 hit-reacted. 마커 순서 해석 불가 → `TOWN_ENTRY.md` §D
 - [x] [win] `TOWN_ENTRY.md` 개정 ([MoKa] 2026-10-02): 9상태 "위험선 전에서 하나씩 끌어와, 입구에 온 적만 처리" (target / 접근하면 안 되는 target / 깊이 / return trigger / wave 경고 / 중단), 금지 행동, Type B 수정 설계(B-dist·B-hit run 분리), 다음 마커 체크리스트, §D Type A 기록. 봇 미확정: lure depth · wave threshold · return trigger
-- [ ] [MoKa] Type B 사람 플레이 관측 실행 승인 (B-dist·B-hit 각각 따로, 미승인)
+- [x] [MoKa] B-dist pilot 1회 승인·실행 (2026-10-02): `data/observe/20261002_123237.jsonl` (로컬). E1 — 입구에서 0034+0015 2:1 (HP −326), 투척병 no-hit 접근 반응(약 10.9 m)·B1b 약 2.4 m 추적, 250000 이동은 시간 상관만. 투척병 처치 뒤 21~37 m 내부 진행은 protocol 밖 exploratory로 분리 → `TOWN_ENTRY.md` §D
+- [ ] [MoKa] B-dist 반복 1회 승인 (미승인) · B-hit 설계·실행 (미승인)
 - [ ] [win] (허락 뒤) `run.py burg-bonfire --basic --laya-shadow` — 섀도 켠 실행과 끈 실행의 `blind_report.py`·틱 수 비교, `.laya.jsonl` report
 
 ## 1-f. 모퉁이에서 일찍 꺾기 · 제자리 비비기 · 뒤돌기 (2026-09-28 [사람] 관찰)
