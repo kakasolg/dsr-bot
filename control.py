@@ -386,6 +386,36 @@ class Pad:
         self.hold(B.XUSB_GAMEPAD_Y, False)
 
 
+# ── 임시값 (P0-C, 근거 등급: 임시 제안값) ─────────────────────────────
+#  관측이 끊긴 동안 입력을 남기지 않는 안전 경로에서만 쓴다 — 전술 상수(nav·duel·reflex)가 아니다.
+#  0.25 s 는 feed.WAIT 를 빌린 값이고 실측 근거는 없다. 실제 게임 검증 전에는 정책 상수로 올리지 않는다
+NO_OBS_NEUTRAL_S = 0.25
+
+
+class NoObs:
+    """No snapshot this tick → stick to 0 at once; still none after NO_OBS_NEUTRAL_S → everything released (once per gap).
+    seen() when a snapshot comes back. on_full: what 'everything released' is (default pad.neutral; Field passes mover.stop)."""
+
+    def __init__(self, pad, on_full=None):
+        self.pad, self.on_full = pad, on_full
+        self.since: float | None = None
+        self.full = False
+
+    def missing(self) -> None:
+        now = time.time()
+        if self.since is None:
+            self.since, self.full = now, False
+        self.pad.move(0.0, 0.0)
+        if not self.full and now - self.since >= NO_OBS_NEUTRAL_S:
+            self.full = True
+            full = self.on_full or getattr(self.pad, "neutral", None)
+            if full is not None:
+                full()
+
+    def seen(self) -> None:
+        self.since = None
+
+
 def world_to_stick(dx: float, dz: float, cam_yaw: float, yaw_offset: float, flip_x: bool) -> tuple[float, float]:
     """월드 평면 방향(dx, dz) 을 카메라 yaw 기준 스틱(x, y) 로. 부호/오프셋은 calibrate 결과."""
     ang = math.atan2(dx, dz)            # 월드 방향각

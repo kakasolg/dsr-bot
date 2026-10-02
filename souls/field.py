@@ -14,6 +14,7 @@ import time
 import types
 from pathlib import Path
 
+import control
 import nav
 
 from . import duel as D
@@ -1378,6 +1379,7 @@ class Field:
                                    smashed={})         # smashed: prop name → swings this walk (props_.blocking)
         self.reflex.nm = nm
         mover = nav.Mover(self.mv.pad)
+        no_obs = control.NoObs(self.mv.pad, on_full=mover.stop)   # no snapshot: stick off now, everything off after a while (P0-C)
         try:
             while not plan.done:
                 if self.esc.escaping:
@@ -1387,8 +1389,10 @@ class Field:
                 t = plan.tolerance(tight)
                 s = self.mv.snap(40.0)
                 if s is None:
+                    no_obs.missing()
                     time.sleep(0.1)
                     continue
+                no_obs.seen()
                 if done is not None and done(s):
                     mover.stop()
                     return "arrived"                       # caller-defined 'no need to go further'

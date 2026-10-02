@@ -14,6 +14,7 @@
   · 반경이 RADIUS 를 넘는 요청(find_at 200 m)과 스레드가 죽은 경우는 직접 읽는다 (폴백, 동작은 예전과 같다).
   · 프레임의 Chr 객체는 공유한다 — 층 코드는 Chr 를 고치지 않는다 (grep 으로 확인, 2026-09-24).
   · 로딩 중엔 아래가 None 을 준다 → latest 를 지우고 None. 호출자는 예전처럼 None 을 처리한다.
+  · 기다린 뒤에도 STALE_S 보다 낡은 프레임이면 None (피드 스레드가 멈춤) — 낡은 프레임을 새것처럼 주지 않는다.
 """
 from __future__ import annotations
 
@@ -27,6 +28,9 @@ RADIUS = 40.0        # 피드가 읽는 반경 — 호출자 대부분이 5~40 m
 MAX_AGE = 0.05       # 이보다 낡은 프레임은 안 준다
 WAIT = 0.25          # 새 프레임을 기다리는 최대 시간 (로딩 중이면 그냥 None)
 MIN_PERIOD = 1 / 60  # 읽기 상한 60 Hz — 더 빨리 돌 이유가 없고 GIL 을 양보한다
+# 임시값 (P0-C, 근거 등급: 임시 제안값 — 정책 상수 아님): 기다린 뒤에도 이보다 낡은 프레임은 주지 않는다 (None).
+# 예전엔 WAIT 가 지나도 새 프레임이 없으면 옛 latest 를 '방금 것'처럼 줬다 — 피드 스레드가 죽지 않고 멈추면 낡은 화면으로 판단
+STALE_S = 0.25
 
 
 class Feed:
@@ -38,7 +42,7 @@ class Feed:
         self._th = threading.Thread(target=self._run, daemon=True, name="feed")
         self.frames = 0
         self.read_ms = 0.0                      # 지수 이동 평균
-        self.served = {"fresh": 0, "waited": 0, "direct": 0, "none": 0}
+        self.served = {"fresh": 0, "waited": 0, "direct": 0, "none": 0, "stale": 0}
         self.listeners: list = []               # 프레임마다 불림 (피드 스레드) — blackbox.py. 가볍게, 예외는 삼킨다
 
     def start(self, first: float = 2.0) -> "Feed":
@@ -90,6 +94,9 @@ class Feed:
             s = self.latest
         if s is None:
             self.served["none"] += 1
+            return None
+        if time.time() - s.t > STALE_S:
+            self.served["stale"] += 1
             return None
         self.served["waited"] += 1
         return self._view(s, within)

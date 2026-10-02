@@ -16,6 +16,7 @@ import math
 import time
 from dataclasses import dataclass, field
 
+import control
 import nav
 
 from . import foes as foes_
@@ -554,6 +555,7 @@ class Fight:
         self.acts: dict = {}                               # what was done in 1 s (for logging)
         self.note_t = self.t0
         self.shadow = ShadowKick(log=log, events=events, gen=gen)   # gen·events: supplied by Field.fight (for shadow kick events)
+        self.no_obs = control.NoObs(mv.pad)                # no snapshot: stick off now, everything off after a while (P0-C)
 
     def note(self, act: str, s_, c_) -> None:
         """Count what was done per tick, one line per 1 s — so we can see where it gets stuck (2026-09-24: didn't know why it couldn't hit for 18 s at 4 m)."""
@@ -613,8 +615,10 @@ def _sense(F: Fight):
         return F.done("timeout")
     s = mv.snap(SEEK_R)
     if s is None:
+        F.no_obs.missing()                                 # nothing seen → nothing held (P0-C)
         time.sleep(0.05)
         return CONT
+    F.no_obs.seen()
     p = s.player
     if p.hp is not None:
         F.hp_min = min(F.hp_min, p.hp)

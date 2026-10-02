@@ -285,11 +285,13 @@ Laya가 싸움 상태를 보고 이미 있는 전술 후보 중 하나를 고르
 
 - [x] [win] P0-A 패드 하나: `control.Pad`가 장치를 만들기 전에 기계 전체 잠금(`data/pad.lock`, gitignore됨)을 잡고, 못 잡으면 `PadBusy`로 멈춤 (다른 스크립트도 같은 잠금, fail closed). `Pad.close()` = 중립 → 장치 제거 → 잠금 해제, `reconnect`는 잠금 유지. watchdog은 잠금이 잡혀 있으면 `event=skip reason=pad_lock_held`만 남기고 패드·입력 없음 — 살아 있지만 멈춘 봇은 더 이상 구조하지 않음 ([MoKa] 결정). 확인: `tests/pad_lock_test.py` (다른 프로세스가 쥔 잠금 포함) 통과, pytest 56. 고치기 전 코드: 장치 둘이 동시에 살아 있고, 봇 패드가 살아 있는데 watchdog이 장치 2개를 더 만듦
 - [x] [win] P0-B 사용자 중지(Ctrl+C): 곧바로 `pad.neutral()` → 정리하는 동안 퀵 종료·턱 되돌림 끔 → 카메라 따라가기 멈춤. 퀵 종료·다크사인·ChrClassWarp 쓰기·메뉴 입력을 시작하지 않음. `finally`는 마지막 neutral 뒤에 봇 잠금 해제. 사용자 중지가 아닌 예외의 퀵 종료(shake)는 그대로. 확인: `tests/run_stop_test.py` (`run.main`을 가짜로 돌림) 통과, pytest 57. 고치기 전 코드: Ctrl+C 바로 다음 호출이 퀵 종료
+- [x] [win] P0-C 관측 없음: `duel._sense`·`Field._walk`에서 snapshot이 없으면 그 틱에 스틱 0, `NO_OBS_NEUTRAL_S`(임시 0.25 s) 넘게 없으면 버튼까지 전부 놓음 (공백마다 한 번). `Feed.snapshot`은 기다린 뒤에도 `STALE_S`(임시 0.25 s)보다 낡은 프레임이면 `None`. 확인: `tests/no_obs_test.py` 통과, pytest 58, golden 그대로. 고치기 전 코드: 0.5 s 공백 동안 스틱·가드 그대로, 멈춘 피드가 0.36 s 낡은 프레임을 줌
 
 game에서만 확인할 수 있는 것 — 오프라인으로는 확인 못 함, resolved·정책 보장 아님:
 - (공통) 게임이 XInput을 얼마나 자주 읽는지, 패드 호출 → 게임 반응 지연 (P1 기록 전엔 모름)
 - (A) 프로세스가 죽은 뒤 OS가 pad lock을 푸는 시간 — 늦으면 watchdog이 한 번 skip 하고 20 s 뒤 다시 봄
 - (B) Escape 스레드가 이미 시작한 낙사 퀵 종료는 사용자 중지로 멈추지 않음 (기존 그대로, 최대 40 s 기다림). 메인 스레드 `esc.fire` 도중 Ctrl+C면 게임이 메뉴에 남을 수 있음 — 기존 문제, 이번에 안 고침
+- (C) 실제 게임에서 짧은 관측 공백이 얼마나 자주 생기는지, 0.25 s 뒤 가드가 내려가 맞는지
 
 ## 1-f. 모퉁이에서 일찍 꺾기 · 제자리 비비기 · 뒤돌기 (2026-09-28 [사람] 관찰)
 
