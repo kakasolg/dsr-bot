@@ -213,7 +213,7 @@ Laya가 싸움 상태를 보고 이미 있는 전술 후보 중 하나를 고르
 - [x] [win] 경사로 B·C·D·A ([MoKa] 2026-10-01): B 에스트 수 = 다음 음용 + 1(휴식 뒤 낡은 값 지움) · C #4 모델 입력은 MoKa 사실(근접 망자, 출처 '사람이 고침'), 봇이 믿은 값 따로 · D 끌어오기 장면 16개(#5 화염병 8 — 락온 R3 순간) · A `clear-ramp --basic --radar --laya-shadow`(가짜 백엔드, 모델 없음) 3번: a1 '깨끗' · a2 '깨끗' — [MoKa] 기준 플레이 · a3 '주의'(시간 초과만). 틱 기록에서 봇 행동이 후보 밖 0. 로그 `data/samples/clear-ramp-shadow-2026-10-01-a1~3`
 - [~] [win] **#4 (254001) 가드를 너무 일찍 내림** — P-32. 고침: `foes.AXE_HOLLOW`(windup 3004, 1.0 s부터 막기 유지), `ranged`는 그대로(승인된 끌어오기 동작 유지). `tests/axe_hollow_test.py`, duel_golden 그대로. **게임 확인 필요** — [MoKa] 신호 뒤 경사로 실행
 - [x] [win] Laya 첫 DSR 미세조정 경사로 v0 ([MoKa] 2026-10-01, LAYA.md 14): A 틱 203개(승인된 실행의 봇 결정), 실행 단위 3겹 — 전체 미세조정 85.2 % vs 늘 guard 57.1 % vs 제로샷 12~35 %, 순서 민감도 26 % → 3~10 %, 추론 p50 ~22 ms. 틀린 것: 막기↔치기 17, approach 7/10. 경사로·규칙 따라하기 수준만 보여 줌, 행동 연결 없음
-- [ ] [MoKa] 다음: 미세조정 체크포인트를 섀도로 켜고 경사로 실행(행동 반영 없음) / 경사로 데이터 더 / 틱 사람 확인 중 선택
+- [-] [MoKa] 다음: 미세조정 체크포인트를 섀도로 켜고 경사로 실행(행동 반영 없음) / 경사로 데이터 더 / 틱 사람 확인 중 선택 — **Laya 중단** (1-j, [MoKa] 2026-10-02)
 - [ ] [win] #4 `ranged`(투척병) 분류 자체 고치기 — 끌어오기·기다리기 동작이 바뀌므로 따로 실행해 비교
 - [ ] [win] 실행 설정 파일 (`<run>.settings.json`: 커밋·수정 여부·인자·싸움 상수·장비·적 분류) — 커밋을 실행 시각으로 추정하지 않게. [MoKa] 결정 대기
 - [-] [MoKa] 파일럿 40장면 라벨 — 10장면에서 멈춤, 경사로 세트로 바꿈: `python label_pilot.py serve` → http://127.0.0.1:47811, 끝나면 `python label_pilot.py report` → 장면당 시간·판단 불가 비율·정의 메모로 test 300·학습 라벨 규모 확정
@@ -247,7 +247,7 @@ Laya가 싸움 상태를 보고 이미 있는 전술 후보 중 하나를 고르
   - 걷기 틱마다 reflex가 먼저 도는지 전체 순서
   - 마을 입구에서 기존 반사의 품질 — 필요하면 기존 기록으로 따로 본다
 - [ ] [MoKa] zone-boundary F9 walk 계획 확인·승인 (미승인) · B-hit 설계·실행 (미승인)
-- [ ] [win] (허락 뒤) `run.py burg-bonfire --basic --laya-shadow` — 섀도 켠 실행과 끈 실행의 `blind_report.py`·틱 수 비교, `.laya.jsonl` report
+- [-] [win] (허락 뒤) `run.py burg-bonfire --basic --laya-shadow` — 섀도 켠 실행과 끈 실행의 `blind_report.py`·틱 수 비교, `.laya.jsonl` report — **Laya 중단** (1-j)
 
 ## 1-j. 결론 A 이후 — 기본 반사를 정확히 (2026-10-02 [MoKa] 정리)
 
@@ -260,7 +260,16 @@ Laya가 싸움 상태를 보고 이미 있는 전술 후보 중 하나를 고르
 - [ ] [win] UNKNOWN 읽기 전용 검토 — `control.Pad` 입력 고착 감지, 걷기 틱의 reflex 순서
 - [ ] [win] 기존 반사 품질 읽기 전용 점검 — 기존 실행 기록에서 2마리 이상 붙었을 때 후퇴·에스트 결정 (`blind_report`·`hotspots`)
 - [ ] [MoKa] 실행 설정 기록(`<run>.settings.json`, 로그 `code_commit`) 결정 — 1-i 같은 항목
-- [ ] [MoKa] Laya 정리 방침 — 꺼 둔 채 유지 / 동결, 라벨 도구의 `why_not`을 `laya_shadow.py` 밖으로 뺄지
+- [x] [MoKa] Laya 정리 방침 → **Laya 중단** ([MoKa] 2026-10-02). `--laya-shadow`는 쓰지 않음(기본 꺼짐 그대로), WSL 체크포인트·미세조정 더 안 함. 코드 정리(섀도 경로 제거 또는 고침, `why_not`·`features`를 라벨 도구·attack audit 쪽으로 옮기기)는 아래 [cloud] 리뷰의 CI 문제와 같이 정함
+- [x] [cloud] Laya 테스트 중 나온 발견 다시 검토 (2026-10-02, 코드 읽기·기존 기록·오프라인 golden만, 봇 동작 변경 없음):
+  - **미세조정 85.2 %는 if문 수준**: 같은 203틱·같은 실행 단위 3겹으로 결정 트리 — 1단(휘두름 → guard) 76.8 %, 2단 82.8 %, 3단 90.6 %. 라벨이 규칙 출력(guard 116 중 110 = `reflex`, hold 60 = `wait_far`)이라 규칙을 다시 배운 것. a1에선 Laya 73.5 % vs 늘 guard 70.6 %. 결론 A를 뒷받침
+  - **CI 빨강**: `tests/laya_shadow_test.py::test_worker_never_blocks`가 Linux에서 늘 실패(OS 파이프가 커서 요청이 쌓임, 버림 0 기대가 깨짐) → 이 브랜치 offline-tests가 계속 failure. 그리고 `WorkerChannel.close()`가 멈춘 워커에서 끝나지 않을 수 있고 그 뒤에 `pad.neutral()`이 있음(`run.py` finally). 섀도를 안 쓰면 실제 위험은 없음 — 정리 때 같이
+  - **P-31**: 원인은 '뒤잡기 실패'가 아니라 **순서** — 뒤잡기 기회(`backstab_chance`)면 `rule_approach`를 건너뛰는데 `rule_finish`가 `rule_backstab`보다 앞이라 3.5 m 안 한 방 적에게 허공을 침. 제안된 고침(`h <= reach + 0.3`)을 golden에 넣어 보면 144상황(2.2·4.0 m)이 **약공 → 뒤잡기 돌기**로 바뀜(죽기 직전 적 주위를 도는 것). 대안 `backstab_chance`에 `T.c.hp > FINISH_HP` → 336상황이 **다가가기**로. `--basic`(BACKSTAB 꺼짐)에선 둘 다 안 생기므로 뒤잡기를 다시 켤 때 정하면 됨
+  - **P-32** (`AXE_HOLLOW`): `rule_late_windup_block`에 나이 상한이 없음 — 망자는 3004가 끝난 뒤에도 그 애니에 머무는 일이 있어(`axe_hollow_test`의 칼 망자 설명) 떨어진 뒤에도 애니가 바뀔 때까지 막기만 할 수 있음. 게임 확인 때 #4에서 막기가 2 s 넘게 이어지는지 볼 것. 그리고 `foes.py` 66줄은 "254001이 134451에서 던진 기록"이라 함 — #4 `ranged` 고치기 전에 그 기록부터 확인 (도끼 + 화염병 둘 다일 수 있음)
+  - **P-33**: 기존 샘플 로그 `휘청 →` 361번 — **경사로(clear-ramp 3세트) 40번은 전부 피해를 주고 내 피해 20 이상 0번**, 문제는 성벽 마을(burg-bonfire-radar 290번 중 19번, 합 −1578, 대개 254010·여럿). 무기 동작별 내 피해 20 이상: light×2 16/237 · light×1 1/104 · heavy 4/20. 즉 P-33의 경사로 세 장면은 결과로는 맞았음(재검토 라벨이 1차와 엇갈림). 고친다면 '막은 뒤 반격 금지'보다 성벽 마을의 2연타·강공 반격, 옆 적 있을 때를 먼저 볼 것
+  - **걷기 중 반사 순서 (UNKNOWN)**: 걷기 틱마다 `mode_fn` → `reflex.threat_now`로 감지 → goto가 `retreat`로 끝남 → `_walk_chaser`에서 `reflex.hold()` 막기. 단 `nav.goto`의 막힘 탈출(뒤로 0.5~1.7 s + 옆 0.4 s sleep)은 `mode_fn`보다 앞이라 **그동안 최대 ~2.1 s 위협을 안 봄** — 게임에서 맞은 기록이 있는지 확인 필요(아직 P 번호 없음)
+  - **패드 입력 고착 (UNKNOWN)**: `tap()`은 뗄 시각만 예약하고 `Moves` 루프와 `nav.goto` 루프가 `release_due()`로 뗌, 탈출 때 `freeze()`가 전부 뗌. 코드상 큰 구멍은 못 찾음, 게임 쪽 직접 감지는 없음 — 낮은 우선순위
+  - **P-34~P-37**: Laya·outcome-proxy 감사용이라 Laya 중단으로 더 할 일 없음. attack audit은 0.3 동결·기본 꺼짐 그대로 (pad 대조 기능만 쓸모)
 - 마을 입구(Part 2·B-hit 등)는 지금처럼 따로 승인
 
 라벨링 방향 (제안, 구현 안 함):
@@ -780,6 +789,7 @@ Laya가 싸움 상태를 보고 이미 있는 전술 후보 중 하나를 고르
 
 ## 9. 변경 이력
 
+- 2026-10-02: **Laya 중단** ([MoKa]) — 1-i 남은 Laya 항목 [-], 1-j에 [cloud] 재검토 결과
 - 2026-10-01: 1-i Laya 섀도 모드 추가 ([MoKa] 요청) — 기록만, 모델은 WSL Ubuntu의 별도 프로세스, 설치는 승인 뒤
 
 - 2026-10-01: [MoKa]와 구역별로 한 바퀴 (`run.py burg-bonfire --seg N --basic`) — 방패 + 약공만으로 경사로 → 화톳불 428 s, 사망 0 (P-30). 그 과정에서: 후퇴 더 많이(HP 50 %, 지는 싸움 일찍, 10 m 비울 때까지, 붙은 적이면 구르기), 성벽 마을 천천히 걷기·하나씩 끌어오기, 셋 이상이면 벽으로·2:1이면 뒤잡기 안 함, 타겟 방향 정렬이 최우선(`rule_face_first`), 락온 전 몸·카메라 정렬, **카메라 오른스틱 실측(0.35 = 데드존)으로 탭 고침**(카메라 오차 중앙 17° → 5°), 높이 제한은 되돌림. 오버레이: 구역·적 이름, 500 px 레이더, `SCRIPTED BOT · autoplay` 배지, 포커스 뺏던 버그 수정. 뒤잡기·강공 다시 켤지는 [MoKa] 결정 대기
