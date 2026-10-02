@@ -224,7 +224,9 @@ Laya가 싸움 상태를 보고 이미 있는 전술 후보 중 하나를 고르
 - [x] [win] 첫 관측 실행 ([MoKa] 2026-10-02 경사로 1회 승인, Burg 미승인): `20261002_015707_clear-ramp` (커밋 `4cae9e6`, `--basic --radar --attack-audit`, 레이더 `20261002_015645`) — cleared, 위험 '깨끗'. 감사: 공격 호출 7 (primary 3 · ambiguous 4 = 모두 chained), seq 21개 모두 written, 유실·writer 오류 0, pad 대조 7/7. 문제: 결과 창이 거의 관측되지 않았는데 primary로 분류됨 (P-35). 샘플 `data/samples/clear-ramp-audit-2026-10-02-o1.*`
 - [x] [MoKa] 첫 경사로 관측 실행 판정 (2026-10-02): 기록·seq 완전성·writer/drop·pad 대조·기본 실행 비침투성 **통과**, outcome-proxy 수집은 P-35로 **미검증**
 - [x] [win] P-35 최소 수정 (LAYA.md 17.1): 결과 창 보수적 판정, 분류 9가지, 점검기가 다시 계산, footer 집계. 첫 실행 재분류 primary 3 → unobserved_fight_end 3. pytest·golden 통과
-- [ ] [MoKa] 경사로 재검증 실행 승인 (Burg 미승인)
+- [x] [MoKa] 경사로 재검증 실행 승인 (2026-10-02, 1회, 목적 "audit instrumentation validation only", Burg 미승인)
+- [x] [win] 경사로 재검증 실행: `20261002_030153_clear-ramp` (커밋 `1366464` = 69fb195 + header `purpose` 칸, `--basic --radar --attack-audit`, 레이더 `20261002_030144`) — cleared, 위험 '깨끗'. 감사: 공격 호출 6 = primary 1 · ambiguous 4 (chained) · outcome_unobserved_fight_end 1. seq 21/21 written, drop·lost·writer 오류·tap 오류 0, pad 대조 6/6 confirmed. complete 창 1건 (샘플 19개, 0.016–1.047 s, 최대 간격 0.079 s). 봇 쪽 분류와 점검기 분류 일치. 점검기의 제외 사유 집계가 사유를 두 번 셈 (P-36). 샘플 `data/samples/clear-ramp-audit-2026-10-02-o2.*`
+- [ ] [MoKa] 재검증 실행 판정 · Burg 실행 여부 (미승인)
 - [ ] [win] (허락 뒤) `run.py burg-bonfire --basic --laya-shadow` — 섀도 켠 실행과 끈 실행의 `blind_report.py`·틱 수 비교, `.laya.jsonl` report
 
 ## 1-f. 모퉁이에서 일찍 꺾기 · 제자리 비비기 · 뒤돌기 (2026-09-28 [사람] 관찰)
@@ -654,7 +656,7 @@ Laya가 싸움 상태를 보고 이미 있는 전술 후보 중 하나를 고르
   - (b) 재구성 코드의 구현 한계(첫 1초·에스트·arena)를 고친 계획 개정을 다시 사전 등록하고 재검증. 레이더 지연 필드는 그래도 남는다.
   - (c) 앞으로의 실행에서 공격 결정마다 봇이 직접 features를 남기게 해서(섀도 기록, 행동 영향 없음) 새 데이터로 감사. 게임 실행은 허락 필요.
 
-### P-35 공격 감사: 결과 창(1.0 s)이 거의 관측되지 않는데 점검기가 primary로 분류 — **고침 2026-10-02 (LAYA.md 17.1), 게임 재검증 전** (2026-10-02, [win], 첫 관측 실행 `20261002_015707_clear-ramp`)
+### P-35 공격 감사: 결과 창(1.0 s)이 거의 관측되지 않는데 점검기가 primary로 분류 — **고침 2026-10-02 (LAYA.md 17.1), 경사로 재검증 1회 `20261002_030153` 에서 보수적으로 동작 확인 (MoKa 판정 전)** (2026-10-02, [win], 첫 관측 실행 `20261002_015707_clear-ramp`)
 - 공격 7번 모두 그 공격이나 바로 다음 공격으로 적이 죽어 싸움이 끝났다. `attack_outcome`의 1.0 s 샘플은 0–2개다.
   - 싸움이 끝나면 `_sense` 틱이 없다.
   - 다음 공격 규칙이 도는 동안에도 틱이 없다.
@@ -664,6 +666,11 @@ Laya가 싸움 상태를 보고 이미 있는 전술 후보 중 하나를 고르
   - 샘플이 창을 덮지 못하면 `outcome_unobserved`로 primary에서 뺀다.
   - 남은 구간을 레이더로 보충할지는 귀속 규칙과 함께 다시 사전 등록한다.
   - 다음 공격과 겹친 창은 `overlapping_next_attack`으로 표시한다.
+
+### P-36 공격 감사 점검기: 제외 사유 집계에서 결과 사유를 두 번 셈 (2026-10-02, [win], 재검증 실행 `20261002_030153_clear-ramp`)
+- 점검기 `check()`의 `reasons += [x for x in oreasons + bot_reasons if x not in reasons]`는 `reasons`를 늘리기 전에 한 번에 걸러서, 점검기가 다시 계산한 사유와 봇이 적은 사유가 같으면 둘 다 들어간다.
+- 그래서 `primary_exclusion_reasons`가 fight_end 10 · no_samples 10 (봇 footer는 5 · 5). 분류(class)·seq·pad 결과에는 영향 없음 — 집계 숫자만 틀림.
+- 고칠 것: 사유 목록을 중복 없이 합치고, 테스트에 "점검기 사유 수 = 봇 사유 수(같은 기록일 때)" 추가. 승인 후.
 
 ## 10. 게시판 중계 ([cloud]는 비공개 게시판에 못 닿음)
 
