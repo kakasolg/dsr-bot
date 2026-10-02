@@ -226,7 +226,7 @@ def main() -> None:
     TEST_RUNS = (a.test,)
     TRAIN_RUNS = tuple(r for r in ("a1", "a2", "a3") if r != a.test)
     if a.eval_only:
-        evaluate("base" if a.eval_only == "base" else Path(a.eval_only).name, None if a.eval_only == "base" else a.eval_only)
+        evaluate(("base" if a.eval_only == "base" else Path(a.eval_only).name) + f"-test-{a.test}", None if a.eval_only == "base" else a.eval_only)
         return
     name = a.name or f"ramp-v0-{a.mode}" + ("" if a.test == "a3" else f"-test-{a.test}")
     evaluate(name, train(name, a.mode, a.epochs, a.perms, a.micro, a.seed))

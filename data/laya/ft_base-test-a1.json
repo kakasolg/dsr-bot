@@ -1,0 +1,128 @@
+{
+ "name": "base-test-a1",
+ "checkpoint": "convaiinnovations/laya@55cf4c4",
+ "test_runs": [
+  "a1"
+ ],
+ "n": 34,
+ "fights": 6,
+ "agreement": 0.353,
+ "majority_baseline": {
+  "label": "guard",
+  "rate": 0.706
+ },
+ "per_label": {
+  "approach": "0/3",
+  "attack": "5/7",
+  "guard": "7/24"
+ },
+ "chosen": {
+  "attack": 17,
+  "guard": 12,
+  "hold_position": 5
+ },
+ "order_flip_rate": 0.324,
+ "top_p_median": 0.314,
+ "latency_ms": {
+  "p50": 21.0,
+  "p95": 22.4
+ },
+ "mistakes": [
+  {
+   "label": "approach",
+   "choice": "guard",
+   "top_p": 0.3042,
+   "conf": 0.0525,
+   "rev_choice": "guard",
+   "fight": "a1:1790902889.689"
+  },
+  {
+   "label": "guard",
+   "choice": "attack",
+   "top_p": 0.4811,
+   "conf": 0.1744,
+   "rev_choice": "attack",
+   "fight": "a1:1790902889.689"
+  },
+  {
+   "label": "approach",
+   "choice": "guard",
+   "top_p": 0.3389,
+   "conf": 0.0595,
+   "rev_choice": "guard",
+   "fight": "a1:1790902889.689"
+  },
+  {
+   "label": "guard",
+   "choice": "attack",
+   "top_p": 0.4002,
+   "conf": 0.1225,
+   "rev_choice": "attack",
+   "fight": "a1:1790902917.157"
+  },
+  {
+   "label": "guard",
+   "choice": "attack",
+   "top_p": 0.3009,
+   "conf": 0.0454,
+   "rev_choice": "guard",
+   "fight": "a1:1790902917.157"
+  },
+  {
+   "label": "guard",
+   "choice": "attack",
+   "top_p": 0.297,
+   "conf": 0.0421,
+   "rev_choice": "guard",
+   "fight": "a1:1790902917.157"
+  },
+  {
+   "label": "attack",
+   "choice": "guard",
+   "top_p": 0.3056,
+   "conf": 0.048,
+   "rev_choice": "guard",
+   "fight": "a1:1790902917.157"
+  },
+  {
+   "label": "attack",
+   "choice": "guard",
+   "top_p": 0.3205,
+   "conf": 0.1128,
+   "rev_choice": "guard",
+   "fight": "a1:1790902929.040"
+  },
+  {
+   "label": "guard",
+   "choice": "attack",
+   "top_p": 0.3807,
+   "conf": 0.0649,
+   "rev_choice": "attack",
+   "fight": "a1:1790902954.573"
+  },
+  {
+   "label": "guard",
+   "choice": "attack",
+   "top_p": 0.3873,
+   "conf": 0.0664,
+   "rev_choice": "attack",
+   "fight": "a1:1790902954.573"
+  },
+  {
+   "label": "guard",
+   "choice": "attack",
+   "top_p": 0.3921,
+   "conf": 0.0684,
+   "rev_choice": "attack",
+   "fight": "a1:1790902954.573"
+  },
+  {
+   "label": "guard",
+   "choice": "attack",
+   "top_p": 0.3962,
+   "conf": 0.069,
+   "rev_choice": "attack",
+   "fight": "a1:1790902954.573"
+  }
+ ]
+}

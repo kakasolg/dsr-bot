@@ -1,5 +1,5 @@
 {
- "name": "base",
+ "name": "base-test-a2",
  "checkpoint": "convaiinnovations/laya@55cf4c4",
  "test_runs": [
   "a2"
@@ -25,8 +25,8 @@
  "order_flip_rate": 0.419,
  "top_p_median": 0.308,
  "latency_ms": {
-  "p50": 20.8,
-  "p95": 23.7
+  "p50": 21.7,
+  "p95": 25.2
  },
  "mistakes": [
   {
