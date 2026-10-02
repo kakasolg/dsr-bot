@@ -26,14 +26,16 @@ LOCK_PATH = ROOT / "data" / "bot.lock"
 
 
 class BotLock:
-    def __init__(self):
+    def __init__(self, path: Path | None = None):
         self._f = None
+        self.path = path              # None = LOCK_PATH (the bot lock); control.Pad passes its own pad lock file
 
     def acquire(self) -> bool:
         """지금 아무도 안 쥐고 있으면 잠그고 True. 이미 누가 쥐고 있으면(그 프로세스가 살아있으면) False —
         추측이 아니라 OS 가 보장한다(그 프로세스가 죽으면, 강제 종료여도, 자동으로 풀린다)."""
-        LOCK_PATH.parent.mkdir(parents=True, exist_ok=True)
-        f = LOCK_PATH.open("a+")
+        path = self.path or LOCK_PATH
+        path.parent.mkdir(parents=True, exist_ok=True)
+        f = path.open("a+")
         try:
             if sys.platform == "win32":
                 import msvcrt

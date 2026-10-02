@@ -96,16 +96,34 @@ def watch_safety(tm, pad) -> None:
 def rescue(tm) -> None:
     """다크사인을 먼저 시도한다 — 퀵 종료(자리 안 바뀜)와 달리 알려진 화톳불로 순간이동해 안전 지역이 확정된다."""
     import control
-    from souls import missions, moves
     lock = BotLock()
-    held_by_other = not lock.acquire()          # 참고 로그용일 뿐 — 멈춰 있다는 관측 자체가 이미 충분한 증거라 막지는 않는다
+    held_by_other = not lock.acquire()          # 참고 로그용 — 막는 건 아래 패드 잠금
     if held_by_other:
-        log("   (참고: 잠금은 다른 프로세스가 쥐고 있음 — 그래도 3 초 넘게 안 움직였으니 개입)")
+        log("   (참고: 봇 잠금은 다른 프로세스가 쥐고 있음)")
     else:
         lock.release()
+    # ── 패드 하나 원칙 ([MoKa] 2026-10-02 P0-A) ─────────────────────────────
+    #  봇이 살아서 패드 잠금을 쥐고 있으면 구조하지 않는다 — 가상 패드 둘이 동시에 넣는 것보다 구조를 포기하는 쪽이 안전.
+    #  잠금 확인은 어떤 입력보다도 먼저 (focus_game 도 ALT 키·제목줄 클릭을 보낸다)
+    if control.pad_lock_held():
+        log("   event=skip reason=pad_lock_held — 다른 프로세스가 가상 패드를 쥐고 있음, 패드 안 만들고 입력 안 보냄")
+        return
+    try:
+        pad = control.Pad()
+    except control.PadBusy as ex:              # probe 와 생성 사이에 누가 잡음
+        log(f"   event=skip reason=pad_lock_held — {ex}")
+        return
+    try:
+        _rescue(tm, pad)
+    finally:
+        pad.close()                            # 잠금을 바로 놓는다 — 다음 본체가 패드를 만들 수 있게
+
+
+def _rescue(tm, pad) -> None:
+    import control
+    from souls import missions, moves
     log("   ⚠ 3 초 넘게 안 움직임 — 패드 잡고 구조 시도")
     control.focus_game()
-    pad = control.Pad()
     pad.reconnect()                # 죽은 본체의 패드가 막 빠진 직후라 게임이 새 패드를 못 받을 때가 있다 (실측 2026-09-25)
     mv = moves.Moves(tm, pad)
     if mv.select_item(117, timeout=3.0):

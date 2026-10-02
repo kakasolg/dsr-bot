@@ -13,6 +13,7 @@ import math
 import sys
 import threading
 import time
+from pathlib import Path
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
@@ -109,17 +110,41 @@ class _NullPad:
 
 _NULL_PAD = _NullPad()
 
+# machine-wide: one virtual pad at a time. Two pads (watchdog's rescue pad next to a live bot's) mix inputs in the game.
+# Every script gets it through Pad(); the OS drops it when the holder dies (botlock.BotLock, its own file)
+PAD_LOCK_PATH = Path(__file__).resolve().parent / "data" / "pad.lock"
+
+
+class PadBusy(RuntimeError):
+    """Another Pad holds the pad lock (or this one is closed) — no virtual pad is created (fail closed)."""
+
+
+def pad_lock_held() -> bool:
+    """Does some Pad hold the pad lock right now? Probe only: takes and drops it at once, creates no device."""
+    from botlock import BotLock
+    probe = BotLock(PAD_LOCK_PATH)
+    if not probe.acquire():
+        return True
+    probe.release()
+    return False
+
 
 class Pad:
     # 긴급 탈출(메뉴 → Quit Game) 동안 판단 루프가 스틱·버튼을 계속 넣으면 메뉴 입력과 섞인다 → 탈출 스레드만 패드를 쓴다
     _frozen_by: int | None = None
     _vpad = None
 
+    CONNECT_WAIT_S = 2.0      # game picks up a new XInput device (pressing at once lost the first input)
+    RECONNECT_GAP_S = 1.5     # reconnect(): unplugged → plugged (measured, see reconnect)
+    RECONNECT_WAIT_S = 2.5
+
     @property
     def pad(self):
         if self._frozen_by is not None and threading.get_ident() != self._frozen_by:
             return _NULL_PAD
-        return self._vpad
+        # no device (mid-reconnect, or closed): drop the input instead of AttributeError — an exception here would reach
+        # run.py's error path, which quits out
+        return self._vpad if self._vpad is not None else _NULL_PAD
 
     @pad.setter
     def pad(self, v) -> None:
@@ -150,26 +175,65 @@ class Pad:
         # 반사 스레드(reflex.py)와 판단 루프가 같이 누른다 — 보고서(report)를 동시에 고치지 않게 잠근다
         self._lock = threading.RLock()
         self.force_guard = False  # 반사 스레드가 켜면 판단 루프가 가드를 내려도 무시한다 (적 공격 중)
+        self._closed = False
+        self._pad_lock = None
         if vg is None:
             raise RuntimeError("vgamepad is not installed (Windows only) — cannot create the virtual pad")
-        self.pad = vg.VX360Gamepad()
-        self.neutral()
-        time.sleep(2.0)  # 게임이 새 XInput 장치를 인식할 시간 (바로 누르면 첫 입력이 씹힘)
+        from botlock import BotLock
+        lock = BotLock(PAD_LOCK_PATH)
+        if not lock.acquire():                 # before the device exists — a refused Pad never plugs anything in
+            raise PadBusy(f"pad lock held by another process or Pad ({PAD_LOCK_PATH}) — not creating a second virtual pad")
+        self._pad_lock = lock
+        try:
+            self.pad = vg.VX360Gamepad()
+            self.neutral()
+        except BaseException:
+            self.close()
+            raise
+        time.sleep(self.CONNECT_WAIT_S)
+
+    def close(self) -> None:
+        """Neutral → unplug the device → drop the pad lock. Idempotent; later input goes nowhere (_NullPad)."""
+        got = self._lock.acquire(timeout=1.0)   # an exit path must not hang on a stuck holder
+        try:
+            if self._closed:
+                return
+            self._closed = True
+            v, self._vpad = self._vpad, None
+            self._due.clear()
+            if v is not None:
+                try:
+                    v.reset()
+                    v.update()
+                except Exception:
+                    pass
+            del v                                # last reference → vgamepad __del__ → vigem_target_remove
+        finally:
+            if got:
+                self._lock.release()
+        import gc
+        gc.collect()                             # also when something holds it in a cycle (reconnect does the same)
+        if self._pad_lock is not None:
+            self._pad_lock.release()
+            self._pad_lock = None
 
     def reconnect(self) -> None:
         """가상 패드를 뺐다 다시 꽂는다. 실측: 이전 프로세스의 패드가 막 빠진 직후 새 패드를 만들면
-        게임이 입력을 안 받는 때가 있다 (화면에 '컨트롤러 연결 해제' 알림 둘, 버튼 표시가 키보드 E 로 바뀜)."""
+        게임이 입력을 안 받는 때가 있다 (화면에 '컨트롤러 연결 해제' 알림 둘, 버튼 표시가 키보드 E 로 바뀜).
+        The pad lock stays held across the gap — nobody else can plug a pad in meanwhile."""
+        if self._closed or self._pad_lock is None:
+            raise PadBusy("reconnect on a closed Pad — it no longer holds the pad lock")
         with self._lock:
             self._due.clear()
             self.pad = None
         import gc
         gc.collect()
-        time.sleep(1.5)
+        time.sleep(self.RECONNECT_GAP_S)
         with self._lock:
             self.pad = vg.VX360Gamepad()
-            self.pad.reset()
-            self.pad.update()
-        time.sleep(2.5)
+            self._vpad.reset()
+            self._vpad.update()
+        time.sleep(self.RECONNECT_WAIT_S)
 
     def _note_stick(self, x: float, y: float) -> None:
         on = abs(x) > 1e-3 or abs(y) > 1e-3

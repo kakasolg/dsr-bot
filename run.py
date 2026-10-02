@@ -153,8 +153,18 @@ def main() -> None:
                     f"넣고 다시 켜거나 --no-lure. 멈춤 (게임 입력 없음)")
                 return
             log(f"   투척 나이프(290)가 퀵 슬롯에 없어서 {slot + 1}번째 빈 칸에 넣음 (가진 수 {have}) → 슬롯 {tm.quick_items()}")
-    control.focus_game()
-    pad = control.Pad()
+    # one virtual pad per machine (P0-A): refuse before any input — focus_game already sends ALT / a title-bar click
+    busy = "다른 프로세스가 가상 패드를 쥐고 있음" if control.pad_lock_held() else None
+    if busy is None:
+        control.focus_game()
+        try:
+            pad = control.Pad()
+        except control.PadBusy as ex:
+            busy = str(ex)
+    if busy is not None:
+        log(f"   ⚠ {busy} — 패드 둘이 부딪힌다, 멈춤 (게임 입력 없음)")
+        lock.release()
+        return
     if a.cmd == "asylum":
         from souls import asylum
         nms = {asylum.MAP: navmesh.Navmesh(asylum.MAP)}
