@@ -1042,7 +1042,7 @@ def prep_backstab_chance(F, T):
     T.bs_near = h <= BACKSTAB_REACH or (back_to_me and h <= SNEAK_R)
     T.foe_still = True
     T.backstab_chance = (T.room and (a == -1 or a in M.ATTACK or a in M.STAGGER) and T.foe_still and F.circle_n < CIRCLE_MAX_SWEEPS
-                         and T.bs_near and abs(T.dy) <= 1.0)
+                         and T.bs_near and abs(T.dy) <= 1.0 and T.c.hp > FINISH_HP)
     if T.backstab_chance and not (not _other_swinging(s, F.ptr) and (F.nm is None or nav.ground_ahead(F.nm, p, c.x - p.x, c.z - p.z, reach=1.0))):
         F.note("뒤잡기안함:" + ("옆공격" if _other_swinging(s, F.ptr) else "바닥"), s, c)
     if not T.backstab_chance and F.foe is not None and F.foe.circle_behind and a == -1 and h <= BACKSTAB_REACH + 0.5:

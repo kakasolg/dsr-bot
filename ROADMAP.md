@@ -255,7 +255,7 @@ Laya가 싸움 상태를 보고 이미 있는 전술 후보 중 하나를 고르
 
 할 일 (우선순위 순, 아직 시작 안 함):
 - [ ] [MoKa]+[win] P-32 게임 확인 — `AXE_HOLLOW` 가드가 경사로에서 맞는지 (게임 실행은 승인 뒤)
-- [ ] [MoKa] P-31 결정 — `rule_finish`에 `h <= reach + 0.3`. 넣으면 golden 다시 찍기
+- [x] [MoKa] P-31 결정 → **다가가기** ([MoKa] 2026-10-02) — [cloud] 고침: 한 방짜리 목표는 뒤잡기 기회가 아님(`prep_backstab_chance`에 `T.c.hp > FINISH_HP`). 닿는 거리 밖이면 `rule_approach`(wait_far면 기다림), 안이면 `rule_finish` 그대로. golden 352상황 바뀜(약공/막기 → 다가가기 316, wait_far 기다림 36, 전부 '한 방·뒤 공간·혼자·1.4~4.0 m') → 다시 찍음. `tests/finish_reach_test.py`(고치기 전 실패 확인), pytest 55 통과. `--basic`에선 원래 안 생기므로 게임 확인은 뒤잡기를 다시 켤 때
 - [ ] [MoKa] P-33 결정 — 막은 직후 `rule_stagger_punish`. 먼저 [win]이 기존 기록에서 적 종류별 휘청 애니가 진짜 틈인지 읽기 전용 확인
 - [ ] [win] UNKNOWN 읽기 전용 검토 — `control.Pad` 입력 고착 감지, 걷기 틱의 reflex 순서
 - [ ] [win] 기존 반사 품질 읽기 전용 점검 — 기존 실행 기록에서 2마리 이상 붙었을 때 후퇴·에스트 결정 (`blind_report`·`hotspots`)
@@ -690,7 +690,7 @@ Laya가 싸움 상태를 보고 이미 있는 전술 후보 중 하나를 고르
 - 2026-09-30 [MoKa] 결정: **벽으로 물러나서 하나씩**. [win] 반영: `duel` — 움직이는 적이 셋 이상(`WALL_BACK_N`, 목표 포함 4 m 안) 붙었는데 벽(`Navmesh.wall_dist` < 1.2 m) 옆이 아니면 `crowd` + `wall_back`으로 끝냄, 셋 이상 붙어 있으면 뒤잡기로 돌지 않음(T.room 끔). `Field.back_to_wall` — 적 반대쪽(적 쪽 반평면 제외)·낭떠러지(drop) 2.5 m 밖 벽 자리, 모서리 먼저, 10 m 안, 가드 든 채 걸어감, 그 뒤 20 s(`WALL_OFF_S`)는 그 자리에서 싸움. `Navmesh.edge_kinds`: 열린 경계를 seam(같은 높이 바닥 = 조각 이음, 경계 아님)·drop(1.5 m 넘게 아래 바닥)·wall(바닥 없음)로 — 옛 `cliffs()`는 바닥 없음도 낭떠러지로 봐서 성벽 마을 경계 거의 전부가 낭떠러지였음. 성벽 마을: seam 644·drop 760·wall 3,833. 09-30b 자리로 재생: 230 s(벽 2.6 m)엔 7.7 m 떨어진 벽 자리(벽 0.9 m, drop 4.9 m)로 감, 252·277 s는 이미 벽 1.0 m 안이라 그대로 싸움(대신 뒤잡기 안 돎 — 그 실행의 뒤잡기 4번 모두 edge·not_behind). `tests/field_wall_back_test.py`, duel_golden 그대로, pytest 44. **한계**: 바닥 없는 허공 경계도 wall로 보임(충돌 메시 없이 구분 불가) — 성벽 마을 바깥 성벽 위 등에서 확인 필요. **게임 확인 필요**: burg-bonfire `#4 이동`
 - 덧: 벽 강공(`duel._walled`)은 `border_dist`(seam 포함)를 씀 — 09-30 MoKa 벽 자리 (−18.5,−13.4,−63.6)의 '벽 0.08 m'는 seam이었고 진짜 벽은 1.76 m. 오늘 '벽 0.1 m — 강공'의 일부는 seam일 수 있음 → `wall_dist`로 바꿀지 [MoKa] 결정 → 2026-09-30 [MoKa] 결정: `wall_dist`로. [win] 반영 (`wall_dist`가 없는 NavMesh·가짜는 `border_dist`), 테스트·golden 그대로
 
-### P-31 `rule_finish`가 닿는 거리 밖(2.2~4.0 m)에서 침 (2026-10-01, [win], 1-i)
+### P-31 `rule_finish`가 닿는 거리 밖(2.2~4.0 m)에서 침 — **고침 2026-10-02 (다가가기, 1-j)** (2026-10-01, [win], 1-i)
 - Laya 섀도 마스크를 duel_golden 상황에 맞춰 보다 발견: 목표 HP가 한 방(`FINISH_HP`) 안이고 뒤잡기 기회(`T.room` → `backstab_chance`)면 `rule_approach`가 건너뛰어지고, `rule_finish`에는 거리 검사가 없어 2.2·4.0 m에서 약공 1번 (배틀 액스·브로드소드, 망자·화염병 망자). `--basic`(BACKSTAB 꺼짐)에선 안 생김. 게임 로그로는 아직 확인 안 함. 고칠 방향(결정 대기): `rule_finish`에 `h <= reach + 0.3` 추가 — 골든 다시 찍기 필요
 - 덧: golden의 가짜 반사는 안 터지므로 옆 적이 휘두를 때 `rule_attack`이 치는 상황(golden만의 것)도 Laya 마스크 밖으로 셈 — 게임에선 `rule_reflex`가 먼저
 
@@ -787,6 +787,7 @@ Laya가 싸움 상태를 보고 이미 있는 전술 후보 중 하나를 고르
   6. 작은 것: `LOCK_ALIGN_S`는 코드 1.5 s, ROADMAP 1.2 s · `look_pulse(err, dur)`의 `dur`는 이제 안 씀
   - [MoKa] "2~4번 고쳐줘" → 반영 (`tests/review_1001_test.py`, 고치기 전 코드에선 3개 다 실패 확인): (2) `Field.recover` — `why`가 `losing`이면 HP와 상관없이 `low`(물러남 → 마심) (3) `rule_face_first`를 `prep_reflex` 바로 뒤로 옮김(`rule_separate`·`rule_finish_first` 다음) + 4.5 m 안 다른 적(`T.near45`)이 휘두르면 목표가 4 m 밖이어도 방패 들고 돎. duel_golden 그대로(첫 판단 같음 — 가드·돌기는 골든이 안 셈) (4) `Field.forget_foes()` — `rest_at`의 휴식 뒤·`wait_respawn`의 리스폰 뒤 `_careful_lured` 비움. 게임 확인 전: 다음 실행에서 `losing` 줄 뒤 `화톳불 쪽으로 물러남`이 나오는지
 - 2026-10-02 [cloud→게시판] **Laya 중단 뒤 정리** ([MoKa] 결정): (1) 섀도 경로 제거 — `laya_*.py`·`laya_shadow_test` 삭제, `run.py --laya-*` 없어짐, 특징·후보 함수는 그대로 `fight_features.py`로(라벨 도구·attack audit은 같은 값). CI 빨강의 원인이던 테스트가 없어져 pytest 54 통과. (2) Laya 테스트 중 발견 재검토는 1-j [cloud] 항목: P-31 고침안은 '뒤잡기 돌기'로 바뀜(대안 '다가가기'), P-32 막기 시간 상한 없음·#4 화염병 기록 확인 필요, P-33 경사로 휘청 반격은 기록상 문제 없음(성벽 마을 2연타·강공이 문제), `nav.goto` 막힘 탈출 중 최대 ~2.1 s 위협 안 봄. **[MoKa] 결정 요청**: P-31을 뒤잡기 다시 켤 때 어느 쪽으로 할지 · `nav.goto` 탈출 중 위협 확인을 P 번호로 올리고 고칠지 · [win]이 P-32 게임 확인 때 #4 막기 지속 시간도 볼지
+- 2026-10-02 [cloud→게시판] P-31 고침 ([MoKa] "다가가기"): 한 방짜리 목표는 뒤잡기 기회로 안 봄 → 닿는 거리 밖이면 다가가기(wait_far면 기다림), 안이면 마무리. 원인은 규칙 순서(`rule_finish`가 `rule_backstab`보다 앞인데 뒤잡기 기회면 `rule_approach`를 건너뜀). golden 352상황 다시 찍음, `tests/finish_reach_test.py`. `--basic`엔 영향 없음 — [win] 게임 확인은 뒤잡기를 다시 켤 때
 ---
 
 ## 9. 변경 이력
