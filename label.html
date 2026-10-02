@@ -37,11 +37,17 @@
   .msg { margin-top:8px; min-height:1.4em; } .msg.err { color:var(--no); } .msg.ok { color:var(--ok); }
   details { margin-top:6px; } summary { cursor:pointer; color:var(--accent); font-size:13px; }
   details ul { margin:4px 0; padding-left:18px; font-size:12px; color:var(--dim); }
+  #shot { cursor:zoom-in; }
+  #zoom { position:fixed; inset:0; background:rgba(0,0,0,.88); display:none; overflow:auto; z-index:10; cursor:zoom-out; }
+  #zoom.on { display:block; }
+  #zoomImg { display:block; margin:40px auto 8px; width:auto; height:auto; max-width:none; max-height:none; image-rendering:auto; }
+  #zoomCap { color:#ddd; text-align:center; font-size:13px; padding-bottom:30px; }
   .stage { font-size:12px; padding:1px 8px; border-radius:8px; border:1px solid var(--line); }
   @media (max-width: 1000px) { .wrap { grid-template-columns:1fr; height:auto; } iframe { height:75vh; border-right:0; border-bottom:1px solid var(--line); } }
 </style>
 </head>
 <body>
+<div id="zoom" title="클릭하거나 Esc로 닫기"><img id="zoomImg" alt="스크린샷 원래 크기"><div id="zoomCap"></div></div>
 <div class="wrap">
   <iframe id="radar" src="/radar" title="레이더 재생"></iframe>
   <div class="side">
@@ -73,6 +79,7 @@
       <h2>게임 화면 <span class="note" id="shotlabel"></span></h2>
       <img id="shot" style="width:100%; border-radius:6px; border:1px solid var(--line)" alt="스크린샷">
       <input type="range" id="shotpos" min="0" max="0" value="0" style="width:100%">
+      <div class="note">사진을 누르면 저장된 원래 크기로 봄 (늘리지 않음)</div>
     </div>
 
     <h2>결정 시점 관측 (모델 입력) <span class="note">— 태그: 로그·유도·추정·가정, 태그 없음 = 기록을 그대로 읽은 값</span></h2>
@@ -107,6 +114,12 @@
     <div class="box">
       <label><input type="checkbox" id="insufficient"> 모델 입력만으로는 판정 불가 — 화면에서만 본 정보가 필요</label>
       <div class="chk" id="outside" style="margin-top:4px"></div>
+    </div>
+
+    <div class="box">
+      <label><input type="checkbox" id="visualBad"> 화면이 부족해서 확실히 판단 못 함 (visual_insufficient)</label>
+      <div class="chk" id="visualWhy" style="margin-top:4px"></div>
+      <input id="visualNote" type="text" placeholder="(선택) 무엇이 안 보였나" style="width:100%; margin-top:4px">
     </div>
 
     <h2>근거</h2>
@@ -215,6 +228,8 @@ function render(r) {
   $("evidence").innerHTML = evKeys.map(k => `<label><input type="checkbox" value="${k}" ${(prev.evidence || []).includes(k) ? "checked" : ""}> ${esc(OBS_KO[k] || k)}</label>`).join("");
   $("msg").textContent = ""; $("msg").className = "msg";
   document.querySelectorAll('input[name=conf]').forEach(x => x.checked = x.value === prev.confidence);
+  $("visualWhy").innerHTML = Object.entries(r.visual_reasons || {}).map(([k, v]) => `<label><input type="checkbox" value="${k}" ${(prev.visual_reasons || []).includes(k) ? "checked" : ""}> ${esc(v)}</label>`).join("");
+  $("visualBad").checked = !!prev.visual_insufficient; $("visualNote").value = prev.visual_note || "";
   showShots(s.shots || []);
   setStage(r); paint();
 }
@@ -234,6 +249,18 @@ function drawShot() {
   $("shotlabel").textContent = `${x.dt > 0 ? "+" : ""}${x.dt.toFixed(1)} s ${x.dt > 0 ? "(결정 뒤)" : x.dt === 0 ? "(결정 시점)" : "(결정 전)"} · ${+$("shotpos").value + 1}/${shots.length}`;
 }
 $("shotpos").oninput = drawShot;
+function openZoom() {
+  if (!$("shot").src) return;
+  $("zoomImg").src = $("shot").src;               // the same /shot response — the saved JPEG, shown at its own pixel size
+  $("zoomImg").onload = () => {
+    const z = $("zoomImg"), small = $("shot");
+    $("zoomCap").textContent = `저장된 원래 크기 ${z.naturalWidth}×${z.naturalHeight} (표시 ${z.width}×${z.height}) · 패널에선 ${small.width}×${small.height} — ${$("shotlabel").textContent}`;
+  };
+  $("zoom").classList.add("on");
+}
+$("shot").onclick = openZoom;
+$("zoom").onclick = () => $("zoom").classList.remove("on");
+document.addEventListener("keydown", e => { if (e.key === "Escape") $("zoom").classList.remove("on"); });
 
 function paint() { document.querySelectorAll(".tog").forEach(b => b.classList.toggle("on", state[b.dataset.t] === b.dataset.v)); }
 
@@ -268,7 +295,9 @@ async function save() {
     no_good_action: $("nogood").checked, outside_set: want,
     model_input_sufficient: !$("insufficient").checked, outside_input: [...document.querySelectorAll("#outside input:checked")].map(x => x.value),
     rationale: $("why").value.trim(), evidence: [...document.querySelectorAll("#evidence input:checked")].map(x => x.value),
-    definition_note: $("defnote").value.trim()};
+    definition_note: $("defnote").value.trim(),
+    visual_insufficient: $("visualBad").checked,
+    visual_reasons: [...document.querySelectorAll("#visualWhy input:checked")].map(x => x.value), visual_note: $("visualNote").value.trim()};
   const r = await fetch("/label", {method:"POST", headers:{"Content-Type":"application/json", "X-Radar":"1"}, body: JSON.stringify(body)});
   const j = await r.json().catch(() => ({ok:false, errors:["응답 없음"]}));
   $("msg").textContent = j.ok ? `저장됨 — ${j.stage === "post_reveal" ? "결과 본 뒤 수정 (1차는 그대로)" : "1차 라벨"} (${body.duration_s.toFixed(0)} s)` : "저장 안 됨: " + (j.errors || []).join(", ");

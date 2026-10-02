@@ -35,13 +35,18 @@ LABELS = ROOT / "data" / "labels"
 SCENES = LABELS / "pilot_scenes.jsonl"
 LABEL_FILE = LABELS / "pilot_labels.jsonl"
 CLIPS = LABELS / "clips"
-SCENE_SCHEMA, LABEL_SCHEMA = "dsr-scene/0.2", "dsr-label/0.3"
+SCENE_SCHEMA, LABEL_SCHEMA = "dsr-scene/0.2", "dsr-label/0.4"
 CONFIDENCE = ("low", "mid", "high")
 REVEALS = LABELS / "pilot_reveals.jsonl"   # who opened 'after' for which scene, when — decides a label's stage
 OUTSIDE_INPUT = {"terrain": "지형 (가장자리·벽·좁은 곳)", "my_anim": "내 동작 (구르는 중·경직·공격 중)", "lock_on": "락온",
                  "weapon_reach": "무기 거리", "far_enemies": "4.5 m 밖 적", "enemy_identity": "적 이름·스폰 번호",
                  "ai_range": "적 인식 범위 (AI ranges)", "replay_motion": "재생으로 본 움직임 (속도·방향)", "other": "기타"}
 UNSURE_REASONS = ("정보 부족", "화면으로 안 보임", "전술 정의가 애매", "기타")
+# label 0.4: the screen itself was not good enough to judge reliably — separate from 'unsure' (missing information)
+VISUAL_REASONS = {"enemy_motion": "적 모션 (휘두르기 준비·타이밍)", "foot_position": "발 위치·간격", "terrain": "지형 (가장자리·턱·벽)",
+                  "ui": "UI (HP·SP·락온 표시)", "camera": "카메라 (각도·가림)", "other": "기타"}
+ONLY = None      # serve --only: scene ids to show
+PASS = "first"   # serve --pass <name>: a new labeling pass over the same scenes — its own first-pass/reveal state, earlier passes untouched
 LABEL_SOURCE = "human_verified"   # serve --labels-dir (trying the page out) writes "ui_trial" instead — never counted
 REVIEW_BOT = False                 # serve --review-bot: bot scenes open pre-filled with what the bot did; the labeler fixes what's wrong
 
@@ -1010,7 +1015,9 @@ def validate_label(d: dict, scene: dict) -> list:
     keys = set(scene["obs"]) | {"context." + k for k in scene["context"]}
     if not set(d.get("evidence") or []) <= keys:
         errs.append("evidence must name obs/context keys")
-    for k in ("rationale", "definition_note"):
+    if d.get("visual_insufficient") and not (set(d.get("visual_reasons") or []) and set(d.get("visual_reasons") or []) <= set(VISUAL_REASONS)):
+        errs.append("visual_insufficient: name what the screen didn't show (visual_reasons)")
+    for k in ("rationale", "definition_note", "visual_note"):
         if len(str(d.get(k) or "")) > 400:
             errs.append(f"{k} too long")
     return errs
@@ -1030,7 +1037,11 @@ def make_label(d: dict, scene: dict, stage: str = "pre_reveal", revision_of: str
             "model_input_sufficient": d.get("model_input_sufficient") is not False,
             "outside_input": sorted(set(d.get("outside_input") or [])),
             "rationale": str(d.get("rationale") or ""), "evidence": sorted(set(d.get("evidence") or [])),
-            "definition_note": str(d.get("definition_note") or "")}
+            "definition_note": str(d.get("definition_note") or ""),
+            "visual_insufficient": bool(d.get("visual_insufficient")),
+            "visual_reasons": sorted(set(d.get("visual_reasons") or [])) if d.get("visual_insufficient") else [],
+            "visual_note": str(d.get("visual_note") or "") if d.get("visual_insufficient") else "",
+            "pass": PASS}
 
 
 def load_scenes() -> list:
@@ -1042,11 +1053,25 @@ def _rows(path: Path) -> list:
 
 
 def label_rows(scene_id: str, labeler: str) -> list:
-    return [r for r in _rows(LABEL_FILE) if r["scene_id"] == scene_id and r["labeler_id"] == labeler]
+    """This labeler's rows for the scene in the current pass (rows saved before passes existed belong to 'first')."""
+    return [r for r in _rows(LABEL_FILE) if r["scene_id"] == scene_id and r["labeler_id"] == labeler and r.get("pass", "first") == PASS]
 
 
 def revealed(scene_id: str, labeler: str) -> bool:
-    return any(r["scene_id"] == scene_id and r["labeler_id"] == labeler for r in _rows(REVEALS))
+    return any(r["scene_id"] == scene_id and r["labeler_id"] == labeler and r.get("pass", "first") == PASS for r in _rows(REVEALS))
+
+
+def shot_file(scene: dict, i: int, labeler: str) -> tuple[int, Path | None]:
+    """The saved screenshot file as it is (no re-encoding, no resizing) → (200, path); 403 after the decision until this
+    labeler opened 'after' in this pass; 404 if there is no such shot."""
+    try:
+        shot = scene["shots"][i]
+    except (IndexError, KeyError, TypeError):
+        return 404, None
+    if shot["dt"] > 0 and not revealed(scene["scene_id"], labeler):
+        return 403, None
+    p = ROOT / shot["file"]
+    return (200, p) if p.exists() else (404, None)
 
 
 def label_views(rows: list) -> dict:
@@ -1069,8 +1094,8 @@ def request_reveal(scene_id: str, labeler: str) -> tuple[bool, str]:
         return False, "1차 라벨(결과 보기 전)을 먼저 저장해야 결과를 볼 수 있음"
     if not revealed(scene_id, labeler):
         with _WRITE, REVEALS.open("a", encoding="utf-8") as f:
-            f.write(json.dumps({"scene_id": scene_id, "labeler_id": labeler, "revealed_at": time.strftime("%Y-%m-%dT%H:%M:%S%z")},
-                               ensure_ascii=False) + "\n")
+            f.write(json.dumps({"scene_id": scene_id, "labeler_id": labeler, "revealed_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+                                "pass": PASS}, ensure_ascii=False) + "\n")
     return True, ""
 
 
@@ -1132,6 +1157,9 @@ def serve(port: int = HTTP_PORT) -> None:
     import radar_server as RS
     from urllib.parse import parse_qs, urlparse
     scenes = load_scenes()
+    if ONLY is not None:                                       # serve --only <list>: just these scenes, in the list's order
+        rank = {sid: i for i, sid in enumerate(ONLY)}
+        scenes = sorted((s for s in scenes if s["scene_id"] in rank), key=lambda s: rank[s["scene_id"]])
     by_id = {s["scene_id"]: s for s in scenes}
     state = RS.State(english=False)
     try:
@@ -1165,18 +1193,21 @@ def serve(port: int = HTTP_PORT) -> None:
             if u.path == "/shot":
                 s = by_id.get(q.get("id", [""])[0])
                 try:
-                    shot = s["shots"][int(q.get("i", ["-1"])[0])]
-                except Exception:
-                    return self._send(404, b"no shot", "text/plain")
-                if shot["dt"] > 0 and not revealed(s["scene_id"], q.get("labeler", [""])[0].strip()):
+                    code, path = shot_file(s, int(q.get("i", ["-1"])[0]), q.get("labeler", [""])[0].strip())
+                except (TypeError, ValueError):
+                    code, path = 404, None
+                if code == 403:
                     return self._send(403, b"after the decision - open 'after' first", "text/plain")
-                return self._send(200, (ROOT / shot["file"]).read_bytes(), "image/jpeg")
+                if code != 200:
+                    return self._send(404, b"no shot", "text/plain")
+                return self._send(200, path.read_bytes(), "image/jpeg")          # the saved file byte for byte
             if u.path == "/radar":
                 return self._send(200, RS.PAGE.read_bytes(), "text/html; charset=utf-8")
             if u.path == "/scenes":
                 lab = latest_labels()
                 who = q.get("labeler", [""])[0]
-                body = [{"scene_id": s["scene_id"], "source": s["source"], "labeled": (s["scene_id"], who) in lab} for s in scenes]
+                body = [{"scene_id": s["scene_id"], "source": s["source"],
+                         "labeled": label_views(label_rows(s["scene_id"], who))["primary"] is not None} for s in scenes]   # this pass only
                 return self._send(200, json.dumps(body, ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8")
             if u.path == "/scene":
                 s = by_id.get(q.get("id", [""])[0])
@@ -1194,7 +1225,7 @@ def serve(port: int = HTTP_PORT) -> None:
                 body = {"scene": scene_for_page(s, phase), "tactics": s.get("tactics") or LS.TACTICS, "tactics_ko": {**TACTIC_KO, **LURE_KO}, "seek_rel": s["t_d"] - rp.t0,
                         "label": views["final"], "primary": views["primary"], "revealed": revealed(s["scene_id"], who),
                         "outside_input": OUTSIDE_INPUT, "unsure_reasons": UNSURE_REASONS,
-                        "prefill": bot_prefill(s) if REVIEW_BOT else None}
+                        "prefill": bot_prefill(s) if REVIEW_BOT else None, "visual_reasons": VISUAL_REASONS, "pass": PASS}
                 return self._send(200, json.dumps(body, ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8")
             return super().do_GET()
 
@@ -1307,6 +1338,8 @@ def main() -> None:
     s.add_argument("--port", type=int, default=HTTP_PORT)
     s.add_argument("--set", default="pilot")
     s.add_argument("--labels-dir", default=None, help="write labels/reveals here instead of data/labels — for trying the page out")
+    s.add_argument("--pass", dest="label_pass", default="first", help="labeling pass name (a new pass starts blind again)")
+    s.add_argument("--only", default=None, help="JSON file with the scene ids to serve (e.g. a re-review list)")
     s.add_argument("--review-bot", action="store_true", help="open bot scenes pre-filled with what the bot did (labels record mode/prefill)")
     r = sub.add_parser("report")
     r.add_argument("--set", default="pilot")
@@ -1318,6 +1351,10 @@ def main() -> None:
     elif a.cmd == "build":
         build(a.n, a.radar, a.per_fight)
     elif a.cmd == "serve":
+        global PASS, ONLY
+        PASS = a.label_pass
+        if a.only:
+            ONLY = [x["scene_id"] if isinstance(x, dict) else x for x in json.loads(Path(a.only).read_text(encoding="utf-8"))["scenes"]]
         if a.review_bot:
             global REVIEW_BOT
             REVIEW_BOT = True

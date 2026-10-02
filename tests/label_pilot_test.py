@@ -309,6 +309,55 @@ def test_boundary_set_hides_and_counts() -> None:
     print("ok  boundary set: rule/Laya/selection hidden before the first label; risky-wrong rule")
 
 
+def test_zoom_shows_saved_file_and_label_04() -> None:
+    """Zoom serves the saved screenshot byte for byte (no resize, no re-encode) and the page shows it at its own pixel size;
+    shots after the decision stay blocked; visual_insufficient needs its reasons; a new pass starts blind; the ramp ticks are
+    endorsed_run (not human-verified, not final eval) and approach is not_measurable."""
+    from PIL import Image
+    with tempfile.TemporaryDirectory() as d:
+        temp_files(Path(d))
+        try:
+            shot = Path(d) / "1790900000000.jpg"
+            Image.new("RGB", (960, 555), (40, 80, 120)).save(shot, quality=70)
+            sc = {"scene_id": "zz", "shots": [{"dt": -0.5, "file": str(shot)}, {"dt": 1.0, "file": str(shot)}]}
+            code, path = L.shot_file(sc, 0, "tester")
+            assert code == 200 and path.read_bytes() == shot.read_bytes()
+            with Image.open(path) as im:
+                assert im.size == (960, 555)                                        # the saved size, as served
+            assert L.shot_file(sc, 1, "tester")[0] == 403                           # after the decision: blocked before 'after'
+            assert L.shot_file(sc, 5, "tester")[0] == 404
+            h = human_scene(Path(d))
+            assert L.validate_label(payload(h, visual_insufficient=True), h)       # reasons required
+            assert L.validate_label(payload(h, visual_insufficient=True, visual_reasons=["enemy_motion", "foot_position"]), h) == []
+            assert L.validate_label(payload(h, visual_insufficient=True, visual_reasons=["telepathy"]), h)
+            ok, row = L.save_label(payload(h, visual_insufficient=True, visual_reasons=["camera"], visual_note="벽에 가림"), h)
+            assert ok and row["schema"] == "dsr-label/0.4" and row["visual_reasons"] == ["camera"] and row["pass"] == "first"
+            ok, _ = L.request_reveal(h["scene_id"], "tester")
+            assert ok and L.revealed(h["scene_id"], "tester")
+            L.PASS = "rereview1"                                                     # a new pass: blind again, the old row untouched
+            try:
+                assert not L.revealed(h["scene_id"], "tester") and L.label_views(L.label_rows(h["scene_id"], "tester"))["primary"] is None
+                assert not L.request_reveal(h["scene_id"], "tester")[0]
+                ok, r2 = L.save_label(payload(h), h)
+                assert ok and r2["stage"] == "pre_reveal" and r2["pass"] == "rereview1"
+            finally:
+                L.PASS = "first"
+            assert L.label_views(L.label_rows(h["scene_id"], "tester"))["primary"]["visual_reasons"] == ["camera"]
+        finally:
+            restore()
+    page = (L.ROOT / "label.html").read_text(encoding="utf-8")
+    z = page[page.find("#zoomImg {"):page.find("}", page.find("#zoomImg {"))]
+    assert "width:auto" in z and "max-width:none" in z and "max-height:none" in z   # natural size, never stretched
+    assert '$("zoomImg").src = $("shot").src' in page                              # the same /shot response
+    meta = L.ROOT / "data" / "laya" / "ramp_tick_meta.jsonl"
+    if meta.exists():
+        rows = [json.loads(l) for l in meta.read_text(encoding="utf-8").splitlines() if l.strip()]
+        assert all(r["label_source"] == "endorsed_run" and r["human_verified"] is False and r["final_eval_data"] is False for r in rows)
+        assert sum(r.get("measurability") == "not_measurable" for r in rows) == 4
+        assert sum(r["group"] == "navigation_not_judged" for r in rows) == 6
+    print("ok  zoom: saved file byte for byte at its own size; label 0.4 visual_insufficient; passes; ramp ticks endorsed_run")
+
+
 if __name__ == "__main__":
     test_scene_separates_after()
     test_human_roll_is_not_evade()
@@ -318,4 +367,5 @@ if __name__ == "__main__":
     test_review_bot_prefill()
     test_lure_scenes_and_fixes()
     test_boundary_set_hides_and_counts()
+    test_zoom_shows_saved_file_and_label_04()
     test_one_scene_per_fight()

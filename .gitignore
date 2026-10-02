@@ -39,3 +39,4 @@ data/laya/*
 !data/laya/ramp_tick_meta.jsonl
 !data/laya/ramp_filter.json
 !data/labels/*_scene_meta.jsonl
+!data/labels/*_rereview_priority.json

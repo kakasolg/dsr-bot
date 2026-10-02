@@ -1,0 +1,414 @@
+{
+ "note": "re-review on the zoomed screen; served blind with --pass rereview1 --only this file",
+ "order": [
+  "laya_attack_rule_guard",
+  "guard_attack_split",
+  "outside_accepted",
+  "no_rationale",
+  "visual_detail"
+ ],
+ "candidates": 52,
+ "scenes": [
+  {
+   "scene_id": "4bdf231c38",
+   "run": "a3",
+   "tick": 47,
+   "fight_id": "a3:1790903194.959",
+   "rule_action": "guard",
+   "laya_action": "attack",
+   "distance_m": 1.7,
+   "height_diff_m": 0.5,
+   "target_state": "staggered",
+   "moka_accepted_first_pass": [
+    "attack"
+   ],
+   "why": [
+    "laya_attack_rule_guard",
+    "guard_attack_split",
+    "outside_accepted",
+    "no_rationale",
+    "visual_detail"
+   ]
+  },
+  {
+   "scene_id": "65f6bc01b4",
+   "run": "a2",
+   "tick": 7,
+   "fight_id": "a2:1790903027.517",
+   "rule_action": "guard",
+   "laya_action": "attack",
+   "distance_m": 1.2,
+   "height_diff_m": 0.3,
+   "target_state": "staggered",
+   "moka_accepted_first_pass": [
+    "attack"
+   ],
+   "why": [
+    "laya_attack_rule_guard",
+    "guard_attack_split",
+    "outside_accepted",
+    "no_rationale"
+   ]
+  },
+  {
+   "scene_id": "58f00be27d",
+   "run": "a2",
+   "tick": 41,
+   "fight_id": "a2:1790903066.802",
+   "rule_action": "guard",
+   "laya_action": "attack",
+   "distance_m": 1.5,
+   "height_diff_m": -0.0,
+   "target_state": "staggered",
+   "moka_accepted_first_pass": [
+    "attack",
+    "guard"
+   ],
+   "why": [
+    "laya_attack_rule_guard",
+    "guard_attack_split",
+    "no_rationale",
+    "visual_detail"
+   ]
+  },
+  {
+   "scene_id": "2304bbcd97",
+   "run": "a3",
+   "tick": 34,
+   "fight_id": "a3:1790903194.959",
+   "rule_action": "guard",
+   "laya_action": "attack",
+   "distance_m": 1.6,
+   "height_diff_m": 0.4,
+   "target_state": "staggered",
+   "moka_accepted_first_pass": [
+    "attack",
+    "guard"
+   ],
+   "why": [
+    "laya_attack_rule_guard",
+    "guard_attack_split",
+    "no_rationale",
+    "visual_detail"
+   ]
+  },
+  {
+   "scene_id": "8cc221c896",
+   "run": "a3",
+   "tick": 59,
+   "fight_id": "a3:1790903207.091",
+   "rule_action": "guard",
+   "laya_action": "attack",
+   "distance_m": 1.9,
+   "height_diff_m": 0.5,
+   "target_state": "staggered",
+   "moka_accepted_first_pass": [
+    "attack",
+    "guard"
+   ],
+   "why": [
+    "laya_attack_rule_guard",
+    "guard_attack_split",
+    "no_rationale",
+    "visual_detail"
+   ]
+  },
+  {
+   "scene_id": "6771ad8f5c",
+   "run": "a3",
+   "tick": 74,
+   "fight_id": "a3:1790903243.700",
+   "rule_action": "guard",
+   "laya_action": "attack",
+   "distance_m": 1.8,
+   "height_diff_m": 0.1,
+   "target_state": "staggered",
+   "moka_accepted_first_pass": [
+    "attack",
+    "guard"
+   ],
+   "why": [
+    "laya_attack_rule_guard",
+    "guard_attack_split",
+    "no_rationale",
+    "visual_detail"
+   ]
+  },
+  {
+   "scene_id": "dad93fab4a",
+   "run": "a2",
+   "tick": 40,
+   "fight_id": "a2:1790903066.802",
+   "rule_action": "guard",
+   "laya_action": "attack",
+   "distance_m": 1.2,
+   "height_diff_m": -0.0,
+   "target_state": "staggered",
+   "moka_accepted_first_pass": [
+    "attack",
+    "guard"
+   ],
+   "why": [
+    "laya_attack_rule_guard",
+    "guard_attack_split",
+    "no_rationale"
+   ]
+  },
+  {
+   "scene_id": "51f6af443b",
+   "run": "a2",
+   "tick": 63,
+   "fight_id": "a2:1790903118.686",
+   "rule_action": "guard",
+   "laya_action": "attack",
+   "distance_m": 1.1,
+   "height_diff_m": 0.1,
+   "target_state": "staggered",
+   "moka_accepted_first_pass": [
+    "attack",
+    "guard"
+   ],
+   "why": [
+    "laya_attack_rule_guard",
+    "guard_attack_split",
+    "no_rationale"
+   ]
+  },
+  {
+   "scene_id": "d475dd0f8f",
+   "run": "a3",
+   "tick": 58,
+   "fight_id": "a3:1790903194.959",
+   "rule_action": "guard",
+   "laya_action": "attack",
+   "distance_m": 0.9,
+   "height_diff_m": 0.2,
+   "target_state": "staggered",
+   "moka_accepted_first_pass": [
+    "attack",
+    "guard"
+   ],
+   "why": [
+    "laya_attack_rule_guard",
+    "guard_attack_split",
+    "no_rationale"
+   ]
+  },
+  {
+   "scene_id": "953a6e05a7",
+   "run": "a3",
+   "tick": 84,
+   "fight_id": "a3:1790903272.059",
+   "rule_action": "guard",
+   "laya_action": "attack",
+   "distance_m": 1.2,
+   "height_diff_m": 0.3,
+   "target_state": "staggered",
+   "moka_accepted_first_pass": [
+    "attack",
+    "guard"
+   ],
+   "why": [
+    "laya_attack_rule_guard",
+    "guard_attack_split",
+    "no_rationale"
+   ]
+  },
+  {
+   "scene_id": "be95617a85",
+   "run": "a1",
+   "tick": 8,
+   "fight_id": "a1:1790902889.689",
+   "rule_action": "attack",
+   "laya_action": "guard",
+   "distance_m": 1.7,
+   "height_diff_m": 0.2,
+   "target_state": "staggered",
+   "moka_accepted_first_pass": [
+    "attack"
+   ],
+   "why": [
+    "guard_attack_split",
+    "outside_accepted",
+    "no_rationale",
+    "visual_detail"
+   ]
+  },
+  {
+   "scene_id": "62bf2e78d7",
+   "run": "a1",
+   "tick": 17,
+   "fight_id": "a1:1790902929.040",
+   "rule_action": "guard",
+   "laya_action": "guard",
+   "distance_m": 1.7,
+   "height_diff_m": 0.1,
+   "target_state": "staggered",
+   "moka_accepted_first_pass": [
+    "attack"
+   ],
+   "why": [
+    "guard_attack_split",
+    "outside_accepted",
+    "no_rationale",
+    "visual_detail"
+   ]
+  },
+  {
+   "scene_id": "4f51641ba6",
+   "run": "a1",
+   "tick": 18,
+   "fight_id": "a1:1790902929.040",
+   "rule_action": "attack",
+   "laya_action": "guard",
+   "distance_m": 1.7,
+   "height_diff_m": 0.1,
+   "target_state": "staggered",
+   "moka_accepted_first_pass": [
+    "attack"
+   ],
+   "why": [
+    "guard_attack_split",
+    "outside_accepted",
+    "no_rationale",
+    "visual_detail"
+   ]
+  },
+  {
+   "scene_id": "c498481cc3",
+   "run": "a1",
+   "tick": 33,
+   "fight_id": "a1:1790902979.754",
+   "rule_action": "guard",
+   "laya_action": "guard",
+   "distance_m": 1.6,
+   "height_diff_m": 0.2,
+   "target_state": "swinging",
+   "moka_accepted_first_pass": [
+    "attack"
+   ],
+   "why": [
+    "guard_attack_split",
+    "outside_accepted",
+    "no_rationale",
+    "visual_detail"
+   ]
+  },
+  {
+   "scene_id": "ad22f0c74e",
+   "run": "a1",
+   "tick": 10,
+   "fight_id": "a1:1790902889.689",
+   "rule_action": "attack",
+   "laya_action": "guard",
+   "distance_m": 1.5,
+   "height_diff_m": 0.4,
+   "target_state": "other",
+   "moka_accepted_first_pass": [
+    "attack"
+   ],
+   "why": [
+    "guard_attack_split",
+    "outside_accepted",
+    "no_rationale"
+   ]
+  },
+  {
+   "scene_id": "34ecfb16d9",
+   "run": "a1",
+   "tick": 14,
+   "fight_id": "a1:1790902917.157",
+   "rule_action": "attack",
+   "laya_action": "attack",
+   "distance_m": 0.9,
+   "height_diff_m": 0.1,
+   "target_state": "staggered",
+   "moka_accepted_first_pass": [
+    "guard"
+   ],
+   "why": [
+    "guard_attack_split",
+    "outside_accepted",
+    "no_rationale"
+   ]
+  },
+  {
+   "scene_id": "1d2e6d27b9",
+   "run": "a1",
+   "tick": 25,
+   "fight_id": "a1:1790902954.573",
+   "rule_action": "guard",
+   "laya_action": "guard",
+   "distance_m": 0.9,
+   "height_diff_m": 0.1,
+   "target_state": "swinging",
+   "moka_accepted_first_pass": [
+    "attack"
+   ],
+   "why": [
+    "guard_attack_split",
+    "outside_accepted",
+    "no_rationale"
+   ]
+  },
+  {
+   "scene_id": "77f59d63f1",
+   "run": "a1",
+   "tick": 26,
+   "fight_id": "a1:1790902954.573",
+   "rule_action": "attack",
+   "laya_action": "guard",
+   "distance_m": 0.9,
+   "height_diff_m": 0.1,
+   "target_state": "staggered",
+   "moka_accepted_first_pass": [
+    "attack"
+   ],
+   "why": [
+    "guard_attack_split",
+    "outside_accepted",
+    "no_rationale"
+   ]
+  },
+  {
+   "scene_id": "593d4e00d4",
+   "run": "a1",
+   "tick": 34,
+   "fight_id": "a1:1790902979.754",
+   "rule_action": "attack",
+   "laya_action": "guard",
+   "distance_m": 0.9,
+   "height_diff_m": 0.1,
+   "target_state": "staggered",
+   "moka_accepted_first_pass": [
+    "guard",
+    "hold_position"
+   ],
+   "why": [
+    "guard_attack_split",
+    "outside_accepted",
+    "no_rationale"
+   ]
+  },
+  {
+   "scene_id": "b4c8b2e21f",
+   "run": "a3",
+   "tick": 65,
+   "fight_id": "a3:1790903218.195",
+   "rule_action": "attack",
+   "laya_action": "guard",
+   "distance_m": 1.7,
+   "height_diff_m": 0.1,
+   "target_state": "staggered",
+   "moka_accepted_first_pass": [
+    "attack",
+    "guard"
+   ],
+   "why": [
+    "guard_attack_split",
+    "no_rationale",
+    "visual_detail"
+   ]
+  }
+ ]
+}

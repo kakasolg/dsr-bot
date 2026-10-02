@@ -112,7 +112,9 @@ def main() -> None:
                 "radar_timestamp": round(s["t"], 3), "match_delta_ms": round(delta, 1),
                 "in_ramp_fight_area": (arena_d <= ARENA_R) if arena_d is not None else "unknown",
                 "zone_confidence": ("unknown" if delta > MATCH_MAX_MS or zone is None else "high" if delta <= MATCH_OK_MS else "low"),
-                "evidence_grade": "estimated"}
+                "evidence_grade": "estimated",
+                # the tactic is the bot's choice in runs MoKa approved as a whole — not a per-decision human label, not final eval data
+                "label_source": "endorsed_run", "human_verified": False, "final_eval_data": False}
         if d is None or dy is None or d > NAV_D_M or abs(dy) > NAV_DY_M:
             meta["group"] = "navigation_not_judged"
             meta["group_reason"] = f"target {d} m away, height {dy:+} m — walking to where the enemy is (provisional {NAV_D_M} m / {NAV_DY_M} m)"
@@ -129,6 +131,8 @@ def main() -> None:
                             wait_reason="let_it_come (wait_far on): stand with the shield up and let it walk in")
             else:
                 meta["decision_kind"] = "combat_action"
+            if t["policy"] == "approach":
+                meta["measurability"] = "not_measurable"         # 4 step-ins in all — 1-2 per test fold
         rows.append(meta)
     out = ROOT / "data" / "laya" / "ramp_tick_meta.jsonl"
     out.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + "\n", encoding="utf-8")
@@ -146,5 +150,54 @@ def main() -> None:
     print(f"{len(rows)} ticks → {out}; {len(meta)} boundary scenes → data/labels/boundary_scene_meta.jsonl")
 
 
+PRIORITY = ["laya_attack_rule_guard", "guard_attack_split", "outside_accepted", "no_rationale", "visual_detail"]
+
+
+def priority(n_max: int = 20) -> None:
+    """Re-review list for the zoomed screen (LAYA.md 16): boundary combat scenes ranked by the first matching reason in
+    PRIORITY, then by how many reasons match. Written to a file the label page never reads (only the ids are served)."""
+    meta = {m["scene_id"]: m for m in map(json.loads, (ROOT / "data" / "labels" / "boundary_scene_meta.jsonl").read_text(encoding="utf-8").splitlines())}
+    scenes = [json.loads(l) for l in (ROOT / "data" / "labels" / "boundary_scenes.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]
+    labels = {}
+    for l in (ROOT / "data" / "labels" / "boundary_labels.jsonl").read_text(encoding="utf-8").splitlines():
+        r = json.loads(l)
+        if r.get("stage") == "pre_reveal" and r.get("pass", "first") == "first":
+            labels[r["scene_id"]] = r
+    out = []
+    for sc in scenes:
+        if meta[sc["scene_id"]]["group"] != "combat":
+            continue
+        a, lab, o = sc["after"], labels.get(sc["scene_id"]), sc["obs"]
+        rule, laya = a["bot_tactic"], a["laya_choice"]
+        acc = set(lab["acceptable"]) if lab and not lab["unsure"] else None
+        why = []
+        if laya == "attack" and rule == "guard":
+            why.append("laya_attack_rule_guard")
+        if {rule, laya} == {"guard", "attack"} or (acc is not None and len(acc & {"guard", "attack"}) == 1
+                                                   and ({rule, laya} & {"guard", "attack"}) - acc):
+            why.append("guard_attack_split")
+        if acc is not None and (rule not in acc or laya not in acc):
+            why.append("outside_accepted")
+        if lab and not lab["rationale"].strip():
+            why.append("no_rationale")
+        reach = o.get("weapon_reach_m") or 1.6
+        if o.get("target_state") in ("swinging", "staggered") and reach - 0.2 <= (o.get("distance_m") or 0) <= reach + 0.7:
+            why.append("visual_detail")
+        if why:
+            out.append({"scene_id": sc["scene_id"], "run": sc["tick"]["run"], "tick": sc["tick"]["seq"], "fight_id": sc["fight_id"],
+                        "rule_action": rule, "laya_action": laya, "distance_m": o.get("distance_m"), "height_diff_m": o.get("height_diff_m"),
+                        "target_state": o.get("target_state"), "moka_accepted_first_pass": sorted(acc) if acc is not None else None, "why": why})
+    out.sort(key=lambda r: (min(PRIORITY.index(w) for w in r["why"]), -len(r["why"]), r["run"], r["tick"]))
+    pick = out[:n_max]
+    path = ROOT / "data" / "labels" / "boundary_rereview_priority.json"
+    path.write_text(json.dumps({"note": "re-review on the zoomed screen; served blind with --pass rereview1 --only this file",
+                                "order": PRIORITY, "candidates": len(out), "scenes": pick}, ensure_ascii=False, indent=1), encoding="utf-8")
+    print(f"{len(out)} candidates, {len(pick)} listed → {path}")
+
+
 if __name__ == "__main__":
-    main()
+    import sys
+    if "--priority" in sys.argv:
+        priority()
+    else:
+        main()

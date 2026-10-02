@@ -44,6 +44,23 @@
         "47815"
       ],
       "port": 47815
+    },
+    {
+      "name": "label-rereview",
+      "runtimeExecutable": ".venv/Scripts/python.exe",
+      "runtimeArgs": [
+        "label_pilot.py",
+        "serve",
+        "--set",
+        "boundary",
+        "--pass",
+        "rereview1",
+        "--only",
+        "data/labels/boundary_rereview_priority.json",
+        "--port",
+        "47816"
+      ],
+      "port": 47816
     }
   ]
 }
