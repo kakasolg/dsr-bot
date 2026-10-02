@@ -23,7 +23,7 @@ if hasattr(sys.stdout, "reconfigure"):
 
 import attack_audit as AA
 import duel_golden_test as G
-import laya_shadow as LS
+import fight_features as LS
 from field_fakes import World
 from souls import duel as D, moves as M, style as ST, weapons
 
@@ -424,29 +424,6 @@ def test_writer_failures() -> None:
         w = AA.AuditWriter(Path(d) / "x" / "missing_dir" / "a.jsonl", {"rec": "run_header"})   # can't even open
         assert w.put({"seq": 1}) is False and w.close({})["disabled_reason"] == "open_error"
     print(f"ok  writer: clean file, drops named in audit_missing, write/open errors turn it off and count — nothing raised")
-
-
-# ── shared payload ──
-def test_shared_payload_with_advisor() -> None:
-    """Audit on + shadow on: the shadow's request for an attack carries the audit row's bytes (same sha, same feat); the
-    audit keeps every attack even when the shadow's rate limit drops ticks."""
-    sent, rows, rows_alone = [], [], []
-    for i, sc in enumerate(sample(12)):
-        tap = AA.DecisionTap(MemorySink(), f"s{i}")              # event ids unique across situations
-        G.run(sc, advisor=LS.Advisor(sent.append, min_interval=0.0), tap=tap)
-        rows += tap.sink.recs
-        tap2 = AA.DecisionTap(MemorySink(), "s")
-        G.run(sc, advisor=LS.Advisor(lambda r: None, min_interval=60.0), tap=tap2)
-        rows_alone += tap2.sink.recs
-    by_id = {r["event_id"]: r for r in rows if r.get("rec") in CHK.DECISION_RECS}
-    linked = [q for q in sent if q.get("audit_event_id")]
-    assert linked
-    for q in linked:
-        r = by_id[q["audit_event_id"]]
-        assert q["feat_sha256"] == r["feat_sha256"] and q["feat"] == json.loads(r["feat_json"]) and q["allowed"] == r["allowed"]
-    n = lambda rs: sum(1 for r in rs if r.get("rec") in CHK.DECISION_RECS)
-    assert n(rows) == n(rows_alone), (n(rows), n(rows_alone))
-    print(f"ok  {len(linked)} shadow requests share the audit payload byte for byte; rate limit doesn't thin the audit ({n(rows)} rows)")
 
 
 # ── offline checker ──

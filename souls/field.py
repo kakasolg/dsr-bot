@@ -534,7 +534,6 @@ class Field:
                        limit=limit, wait_far=wait_far, gen=self.esc.gen, events=self.events, may_approach=may_approach,
                        crowd_ok=CROWD_FALL_BACK and time.time() >= self._crowd_off_until,
                        wall_ok=WALL_BACK and time.time() >= getattr(self, "_wall_off_until", 0.0),
-                       advisor=getattr(self, "advisor", None),   # run.py --laya-shadow: record-only (LAYA.md)
                        tap=getattr(self, "tap", None))           # run.py --attack-audit: observation only (attack_audit.py)
         finally:
             self.mv.cam_target = None

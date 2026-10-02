@@ -88,14 +88,9 @@ def main() -> None:
                     "burg-bonfire: 구역 하나 또는 범위만 하고 멈춤 — 1 경사로 · 2 비밀 통로 · 3 마을 #1~#3 · 4 마을 #4~#6 · 5 상인 · 6 화톳불 (기본: 전부)")
     ap.add_argument("--basic", action="store_true", help="방패 + 약공만 — 뒤잡기·벽 강공·양손 전환 끔 ([MoKa] 2026-10-01, duel.BACKSTAB/HEAVY)")
     ap.add_argument("--radar", action="store_true", help="send state to the radar (view with radar_server.py / overlay.py)")
-    ap.add_argument("--laya-shadow", action="store_true",
-                    help="싸움 틱마다 Laya 제안을 기록만 (data/runs/<시각>.laya.jsonl) — 패드·규칙엔 반영 안 함 (LAYA.md)")
-    ap.add_argument("--laya-worker", default="wsl", help="laya_worker.py 를 띄울 곳: wsl (기본, WSL Ubuntu venv) 또는 python 실행 파일 경로")
-    ap.add_argument("--laya-device", default=None, help="cpu | cuda (기본: laya 가 고름)")
-    ap.add_argument("--laya-backend", default=None, help="laya (기본) | fake:<전술> — 모델 없이 경로만 시험")
     ap.add_argument("--attack-audit", action="store_true",
                     help="공격 규칙 호출 직전 입력을 기록만 (data/runs/<시각>.attack_audit.jsonl, attack_audit.py) — 기본 꺼짐. "
-                         "Laya 추론·행동 반영 없음, 패드·규칙엔 반영 안 함. outcome proxy, not human-verified tactical label, not a safety validation")
+                         "패드·규칙엔 반영 안 함. outcome proxy, not human-verified tactical label, not a safety validation")
     ap.add_argument("--no-lure", action="store_true", help="나이프로 한 놈씩 깨우지 않고 예전처럼 걸어가 붙는다 (비교용)")
     ap.add_argument("--style", choices=["guard", "backstep", "rush"], default="guard",
                     help="guard: 방패로 받고 휘청에 친다 (기본) | backstep: 양손, 백스텝으로 피하고 헛친 뒤 약공 | "
@@ -184,14 +179,6 @@ def main() -> None:
     from souls.camera import CamFollow
     cam = CamFollow(mv, esc, log=log).start()          # so a viewer can see what the bot is doing (user 2026-09-26)
     log(f"스타일: {a.style}")
-    laya_ch = None
-    if a.laya_shadow:
-        import laya_shadow
-        laya_out = str(log.path).replace(".jsonl", ".laya.jsonl")
-        laya_ch = laya_shadow.WorkerChannel(laya_shadow.worker_cmd(laya_out, a.laya_worker, a.laya_device, a.laya_backend),
-                                            err_path=laya_out.replace(".jsonl", ".err"), log=log)
-        fld.advisor = laya_shadow.Advisor(laya_ch.offer)
-        log(f"laya shadow: 기록만 → {laya_out} (워커 {a.laya_worker}, 패드·규칙엔 반영 안 함)")
     audit_tap = None
     if a.attack_audit:
         import attack_audit
@@ -301,9 +288,6 @@ def main() -> None:
         bbox.stop()
         if audit_tap is not None:
             log(f"attack audit: {audit_tap.close()}")
-        if laya_ch is not None:
-            adv = getattr(fld, "advisor", None)
-            log(f"laya shadow: {laya_ch.close()}" + (f" · advisor 오류 {adv.errors} ({adv.last_error})" if adv and adv.errors else ""))
         try:
             import risk_report
             log(risk_report.one_line(risk_report.score(log.path)))

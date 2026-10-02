@@ -7,7 +7,7 @@ final test label. Inference only: no training, no checkpoint change, no calibrat
   python experiments/attack_proxy_audit.py equiv     a1–a3: radar-reconstructed features() vs the features logged live
                                                      → data/laya/attack_proxy_audit_equiv.json (no model)
 
-Reconstruction = laya_shadow.features(F, T) itself, on telemetry.Snapshot/Chr built from radar snapshots and stand-in F/T
+Reconstruction = fight_features.features(F, T) itself (was laya_shadow.features), on telemetry.Snapshot/Chr built from radar snapshots and stand-in F/T
 whose values come only from the recording up to the decision time (the bot's own log lines are in the radar as 'say').
 """
 from __future__ import annotations
@@ -24,7 +24,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-import laya_shadow as LS                                    # noqa: E402
+import fight_features as LS                                    # noqa: E402
 from souls import duel as D, foes as foes_, moves as M, style as ST, weapons as W   # noqa: E402
 from telemetry import Chr, Snapshot                         # noqa: E402
 
@@ -37,7 +37,7 @@ STATUS = re.compile(r"\[\s*([0-9.]+)s\] 거리 ")
 END = re.compile(r"^(?:\[\s*[0-9.]+\])?\s*(.+?)(?: \(끝까지\))?: (killed|low_hp|losing|crowd|me_dead|stuck|timeout|lost|cancel|unsafe_approach|stalemate) — (\d+) s")
 ESTUS = re.compile(r"에스트: \{.*'left': (\d+)")
 SNAP_MAX_S = 0.25
-FIX_KIND = {254001: "hollow"}                               # laya_finetune.FIX_KIND — same as the training input (plan 7)
+FIX_KIND = {254001: "hollow"}                               # laya_finetune.FIX_KIND (removed 2026-10-02) — same as the training input (plan 7)
 
 
 # ── radar recording ──

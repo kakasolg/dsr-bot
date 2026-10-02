@@ -21,7 +21,7 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
 import label_pilot as L
-import laya_shadow as LS
+import fight_features as LS
 
 REAL = (L.LABEL_FILE, L.REVEALS, L.CLIPS)
 

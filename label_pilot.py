@@ -28,7 +28,7 @@ from pathlib import Path
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
-import laya_shadow as LS
+import fight_features as LS
 
 ROOT = Path(__file__).resolve().parent
 LABELS = ROOT / "data" / "labels"
@@ -491,7 +491,7 @@ def _target(snap: dict, line: dict | None, npc=None):
 
 
 def _obs(snap: dict, tgt: dict, reach, style, basic, estus_left, swing_age) -> tuple[dict, dict]:
-    """Observed numbers at t_d (laya_shadow.features keys where the recording has them) and what is missing, with why."""
+    """Observed numbers at t_d (fight_features.features keys where the recording has them) and what is missing, with why."""
     from souls import foes as foes_
     p = snap["player"]
     others = [c for c in _awake_foes(snap) if c.get("ptr") != tgt.get("ptr") and _horiz(p, c) < 4.5 and abs(c["y"] - p["y"]) < 1.5]
@@ -518,7 +518,7 @@ def _obs(snap: dict, tgt: dict, reach, style, basic, estus_left, swing_age) -> t
          "_room": not basic and foe.circle_behind and h <= 3.5 and not others}
     if tgt.get("npc") in FOE_FIX:
         f["target_kind"] = FOE_FIX[tgt["npc"]][0]
-    if reach is None:                                       # unknown weapon: mask bounds from the weapon table (laya_shadow.allowed)
+    if reach is None:                                       # unknown weapon: mask bounds from the weapon table (fight_features.allowed)
         from souls import weapons as W
         rs = [w.reach for w in vars(W).values() if isinstance(w, W.Weapon)]
         f["_reach_max"], f["_reach_min"] = max(rs), min(rs)
@@ -671,11 +671,10 @@ def _hp_at(msgs: list, t: float, ptr=None):
 
 
 def _acts_tactics(acts: str) -> dict:
-    import laya_eval
     done = collections.Counter()
     for part in acts.split():
         name, _, n = part.rpartition("×")
-        t = laya_eval.note_tactic(name or part)
+        t = LS.note_tactic(name or part)
         if t:
             done[t] += int(n) if n.isdigit() else 1
     return dict(done)

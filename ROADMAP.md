@@ -260,10 +260,11 @@ Laya가 싸움 상태를 보고 이미 있는 전술 후보 중 하나를 고르
 - [ ] [win] UNKNOWN 읽기 전용 검토 — `control.Pad` 입력 고착 감지, 걷기 틱의 reflex 순서
 - [ ] [win] 기존 반사 품질 읽기 전용 점검 — 기존 실행 기록에서 2마리 이상 붙었을 때 후퇴·에스트 결정 (`blind_report`·`hotspots`)
 - [ ] [MoKa] 실행 설정 기록(`<run>.settings.json`, 로그 `code_commit`) 결정 — 1-i 같은 항목
-- [x] [MoKa] Laya 정리 방침 → **Laya 중단** ([MoKa] 2026-10-02). `--laya-shadow`는 쓰지 않음(기본 꺼짐 그대로), WSL 체크포인트·미세조정 더 안 함. 코드 정리(섀도 경로 제거 또는 고침, `why_not`·`features`를 라벨 도구·attack audit 쪽으로 옮기기)는 아래 [cloud] 리뷰의 CI 문제와 같이 정함
+- [x] [MoKa] Laya 정리 방침 → **Laya 중단** ([MoKa] 2026-10-02). `--laya-shadow`는 쓰지 않음(기본 꺼짐 그대로), WSL 체크포인트·미세조정 더 안 함
+- [x] [cloud] 섀도 경로 제거 ([MoKa] 2026-10-02 "(a)로"): `laya_shadow.py`·`laya_worker.py`·`laya_eval.py`·`laya_finetune.py`·`tests/laya_shadow_test.py` 삭제, `run.py --laya-*` 인자·`duel(advisor=)`·`Field.fight`의 advisor 연결 제거. 라벨 도구·attack audit이 쓰던 특징·후보 함수(`features`·`allowed`·`why_not`·`freeze`·`decision_payload`·`note_tactic` 등)는 **바꾸지 않고** `fight_features.py`로 옮김 — `features_src_sha` 그대로(`4ab38f0283fc`), audit 헤더의 `code_path`만 `fight_features.decision_payload@…`로 바뀜(옛 기록은 파일 안에서만 대조하므로 영향 없음). 기록(`data/laya/`·`*.laya.jsonl` 샘플·LAYA.md)은 남김. 확인: duel_golden 40,320 그대로, `python -m pytest` 54 통과(이전 1 실패 = `laya_shadow_test`)
 - [x] [cloud] Laya 테스트 중 나온 발견 다시 검토 (2026-10-02, 코드 읽기·기존 기록·오프라인 golden만, 봇 동작 변경 없음):
   - **미세조정 85.2 %는 if문 수준**: 같은 203틱·같은 실행 단위 3겹으로 결정 트리 — 1단(휘두름 → guard) 76.8 %, 2단 82.8 %, 3단 90.6 %. 라벨이 규칙 출력(guard 116 중 110 = `reflex`, hold 60 = `wait_far`)이라 규칙을 다시 배운 것. a1에선 Laya 73.5 % vs 늘 guard 70.6 %. 결론 A를 뒷받침
-  - **CI 빨강**: `tests/laya_shadow_test.py::test_worker_never_blocks`가 Linux에서 늘 실패(OS 파이프가 커서 요청이 쌓임, 버림 0 기대가 깨짐) → 이 브랜치 offline-tests가 계속 failure. 그리고 `WorkerChannel.close()`가 멈춘 워커에서 끝나지 않을 수 있고 그 뒤에 `pad.neutral()`이 있음(`run.py` finally). 섀도를 안 쓰면 실제 위험은 없음 — 정리 때 같이
+  - **CI 빨강**: `tests/laya_shadow_test.py::test_worker_never_blocks`가 Linux에서 늘 실패(OS 파이프가 커서 요청이 쌓임, 버림 0 기대가 깨짐) → 이 브랜치 offline-tests가 계속 failure. 그리고 `WorkerChannel.close()`가 멈춘 워커에서 끝나지 않을 수 있고 그 뒤에 `pad.neutral()`이 있음(`run.py` finally). → 섀도 경로 제거로 해결 (위 항목)
   - **P-31**: 원인은 '뒤잡기 실패'가 아니라 **순서** — 뒤잡기 기회(`backstab_chance`)면 `rule_approach`를 건너뛰는데 `rule_finish`가 `rule_backstab`보다 앞이라 3.5 m 안 한 방 적에게 허공을 침. 제안된 고침(`h <= reach + 0.3`)을 golden에 넣어 보면 144상황(2.2·4.0 m)이 **약공 → 뒤잡기 돌기**로 바뀜(죽기 직전 적 주위를 도는 것). 대안 `backstab_chance`에 `T.c.hp > FINISH_HP` → 336상황이 **다가가기**로. `--basic`(BACKSTAB 꺼짐)에선 둘 다 안 생기므로 뒤잡기를 다시 켤 때 정하면 됨
   - **P-32** (`AXE_HOLLOW`): `rule_late_windup_block`에 나이 상한이 없음 — 망자는 3004가 끝난 뒤에도 그 애니에 머무는 일이 있어(`axe_hollow_test`의 칼 망자 설명) 떨어진 뒤에도 애니가 바뀔 때까지 막기만 할 수 있음. 게임 확인 때 #4에서 막기가 2 s 넘게 이어지는지 볼 것. 그리고 `foes.py` 66줄은 "254001이 134451에서 던진 기록"이라 함 — #4 `ranged` 고치기 전에 그 기록부터 확인 (도끼 + 화염병 둘 다일 수 있음)
   - **P-33**: 기존 샘플 로그 `휘청 →` 361번 — **경사로(clear-ramp 3세트) 40번은 전부 피해를 주고 내 피해 20 이상 0번**, 문제는 성벽 마을(burg-bonfire-radar 290번 중 19번, 합 −1578, 대개 254010·여럿). 무기 동작별 내 피해 20 이상: light×2 16/237 · light×1 1/104 · heavy 4/20. 즉 P-33의 경사로 세 장면은 결과로는 맞았음(재검토 라벨이 1차와 엇갈림). 고친다면 '막은 뒤 반격 금지'보다 성벽 마을의 2연타·강공 반격, 옆 적 있을 때를 먼저 볼 것
@@ -785,11 +786,12 @@ Laya가 싸움 상태를 보고 이미 있는 전술 후보 중 하나를 고르
   5. 카메라 고침(`065a738`) 뒤 숫자는 구역 4 한 번뿐(470번 중 90 % 10° 안) — 한 번에 도는 `--basic` 실행에서 다시 확인. `카메라 정렬` 줄은 실행 a~e 로그엔 없음(그 뒤에 추가)
   6. 작은 것: `LOCK_ALIGN_S`는 코드 1.5 s, ROADMAP 1.2 s · `look_pulse(err, dur)`의 `dur`는 이제 안 씀
   - [MoKa] "2~4번 고쳐줘" → 반영 (`tests/review_1001_test.py`, 고치기 전 코드에선 3개 다 실패 확인): (2) `Field.recover` — `why`가 `losing`이면 HP와 상관없이 `low`(물러남 → 마심) (3) `rule_face_first`를 `prep_reflex` 바로 뒤로 옮김(`rule_separate`·`rule_finish_first` 다음) + 4.5 m 안 다른 적(`T.near45`)이 휘두르면 목표가 4 m 밖이어도 방패 들고 돎. duel_golden 그대로(첫 판단 같음 — 가드·돌기는 골든이 안 셈) (4) `Field.forget_foes()` — `rest_at`의 휴식 뒤·`wait_respawn`의 리스폰 뒤 `_careful_lured` 비움. 게임 확인 전: 다음 실행에서 `losing` 줄 뒤 `화톳불 쪽으로 물러남`이 나오는지
+- 2026-10-02 [cloud→게시판] **Laya 중단 뒤 정리** ([MoKa] 결정): (1) 섀도 경로 제거 — `laya_*.py`·`laya_shadow_test` 삭제, `run.py --laya-*` 없어짐, 특징·후보 함수는 그대로 `fight_features.py`로(라벨 도구·attack audit은 같은 값). CI 빨강의 원인이던 테스트가 없어져 pytest 54 통과. (2) Laya 테스트 중 발견 재검토는 1-j [cloud] 항목: P-31 고침안은 '뒤잡기 돌기'로 바뀜(대안 '다가가기'), P-32 막기 시간 상한 없음·#4 화염병 기록 확인 필요, P-33 경사로 휘청 반격은 기록상 문제 없음(성벽 마을 2연타·강공이 문제), `nav.goto` 막힘 탈출 중 최대 ~2.1 s 위협 안 봄. **[MoKa] 결정 요청**: P-31을 뒤잡기 다시 켤 때 어느 쪽으로 할지 · `nav.goto` 탈출 중 위협 확인을 P 번호로 올리고 고칠지 · [win]이 P-32 게임 확인 때 #4 막기 지속 시간도 볼지
 ---
 
 ## 9. 변경 이력
 
-- 2026-10-02: **Laya 중단** ([MoKa]) — 1-i 남은 Laya 항목 [-], 1-j에 [cloud] 재검토 결과
+- 2026-10-02: **Laya 중단** ([MoKa]) — 1-i 남은 Laya 항목 [-], 1-j에 [cloud] 재검토 결과, 섀도 경로 제거(`fight_features.py`로 특징 함수만 남김)
 - 2026-10-01: 1-i Laya 섀도 모드 추가 ([MoKa] 요청) — 기록만, 모델은 WSL Ubuntu의 별도 프로세스, 설치는 승인 뒤
 
 - 2026-10-01: [MoKa]와 구역별로 한 바퀴 (`run.py burg-bonfire --seg N --basic`) — 방패 + 약공만으로 경사로 → 화톳불 428 s, 사망 0 (P-30). 그 과정에서: 후퇴 더 많이(HP 50 %, 지는 싸움 일찍, 10 m 비울 때까지, 붙은 적이면 구르기), 성벽 마을 천천히 걷기·하나씩 끌어오기, 셋 이상이면 벽으로·2:1이면 뒤잡기 안 함, 타겟 방향 정렬이 최우선(`rule_face_first`), 락온 전 몸·카메라 정렬, **카메라 오른스틱 실측(0.35 = 데드존)으로 탭 고침**(카메라 오차 중앙 17° → 5°), 높이 제한은 되돌림. 오버레이: 구역·적 이름, 500 px 레이더, `SCRIPTED BOT · autoplay` 배지, 포커스 뺏던 버그 수정. 뒤잡기·강공 다시 켤지는 [MoKa] 결정 대기

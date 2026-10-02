@@ -7,7 +7,7 @@ target or a final test label. Data from these files is not merged with the old r
   run.py --attack-audit  →  data/runs/<run>.attack_audit.jsonl            (off by default)
   duel(..., tap=DecisionTap(AuditWriter(path, header), run_id))
 
-What a row is: the inputs laya_shadow.features() reads, frozen right before an attack rule was *invoked*
+What a row is: the inputs fight_features.features() reads, frozen right before an attack rule was *invoked*
 ('attack_rule_invocation_snapshot'). It is not an exact button-press snapshot: the input path is unchanged, so the pad
 press inside the rule is not observed here — rule_enter/exit times bound it, and experiments/attack_audit_check.py can
 correlate it with the radar's pad stream.
@@ -39,7 +39,7 @@ import time
 from collections import Counter
 from pathlib import Path
 
-import laya_shadow as LS
+import fight_features as LS
 
 SCHEMA = "dsr-attack-audit/0.3"     # 0.2: conservative outcome status (P-35) · 0.3: per-sample attribution context (P-37)
 PROXY = "outcome proxy, not human-verified tactical label, not a safety validation"
@@ -377,7 +377,7 @@ class AuditWriter:
 class DecisionTap:
     """Called by souls/duel.duel() (tap=...): freeze() before every rule call, decided() after the rule that acted,
     sensed() on each later tick (outcome window), end() when the fight ends. Every method swallows its own errors and
-    returns quickly; nothing it returns changes the fight (decided() hands the same payload to the Laya shadow, if on)."""
+    returns quickly; nothing it returns changes the fight."""
 
     def __init__(self, sink, run_id: str, clock=time.monotonic_ns, wall=time.time):
         self.sink, self.run_id, self.clock, self.wall = sink, run_id, clock, wall
