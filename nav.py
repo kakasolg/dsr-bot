@@ -55,9 +55,19 @@ class Mover:
         self.next_jump = 0.0
         self.guard_on = False
         self.jump_at = None
+        self._epoch = getattr(pad, "epoch", None)   # pads without one (walksim.SimPad) never trigger a resync
+
+    def _resync(self) -> None:
+        """Someone wiped the report (pad.neutral / freeze / reconnect) — what we think we hold is gone. Forget it, so set()
+        presses again what the mode needs (P0-D: after a no-snapshot neutral the guard silently stayed down)."""
+        ep = getattr(self.pad, "epoch", None)
+        if ep != self._epoch:
+            self.mode, self.guard_on, self.jump_at = "walk", False, None
+            self._epoch = ep
 
     def set(self, mode: str) -> None:
         now = time.time()
+        self._resync()
         if mode != self.mode:
             self.pad.sprint(mode == "sprint")
             if mode not in ("guardjump", "guard") and self.guard_on:
@@ -90,6 +100,7 @@ class Mover:
     def stop(self) -> None:
         self.pad.neutral()
         self.mode, self.guard_on, self.jump_at = "walk", False, None
+        self._epoch = getattr(self.pad, "epoch", None)   # our own neutral: already in step
 
 
 BACK_PROBE = 1.4          # look this far ahead when backing up (m)

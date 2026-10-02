@@ -154,6 +154,7 @@ class Pad:
         """이 스레드만 패드를 쓴다 — 다른 스레드의 입력은 버려진다. 눌려 있던 것은 전부 뗀다."""
         with self._lock:
             self._frozen_by = threading.get_ident()
+            self.epoch += 1
             self._due.clear()
             if self._vpad is not None:
                 self._vpad.reset()
@@ -162,6 +163,7 @@ class Pad:
     def unfreeze(self) -> None:
         with self._lock:
             self._frozen_by = None
+            self.epoch += 1               # what others 'pressed' while frozen went to _NullPad — make them press it again
 
     # 스틱을 놓은 걸 게임이 알아채는 데 60fps ~0.16 s (30fps 0.33 s, 사용자 실측). 그 전에 R1 이면 발차기, R2 면 점프 공격
     # (조작표: 앞 + R1 = 발차기, 앞 + R2 = 점프 공격). 공격 버튼은 이 층에서 늘 스틱을 놓고 기다린 뒤 누른다 —
@@ -170,6 +172,9 @@ class Pad:
 
     def __init__(self):
         self._due: dict = {}      # 버튼 → 뗄 시각 (tap 이 자지 않도록)
+        # +1 whenever the report is wiped behind the callers' backs (neutral·freeze·unfreeze·reconnect·close) — nav.Mover sees
+        # it change and forgets what it thinks it holds, so the next set() presses it again (P0-D)
+        self.epoch = 0
         self._stick_on = False    # 왼스틱이 지금 중립이 아닌가
         self._stick_off_t = 0.0   # 왼스틱을 마지막으로 놓은 시각
         # 반사 스레드(reflex.py)와 판단 루프가 같이 누른다 — 보고서(report)를 동시에 고치지 않게 잠근다
@@ -199,6 +204,7 @@ class Pad:
             if self._closed:
                 return
             self._closed = True
+            self.epoch += 1
             v, self._vpad = self._vpad, None
             self._due.clear()
             if v is not None:
@@ -225,6 +231,7 @@ class Pad:
             raise PadBusy("reconnect on a closed Pad — it no longer holds the pad lock")
         with self._lock:
             self._due.clear()
+            self.epoch += 1
             self.pad = None
         import gc
         gc.collect()
@@ -251,6 +258,7 @@ class Pad:
 
     def neutral(self) -> None:
         with self._lock:
+            self.epoch += 1
             self._note_stick(0.0, 0.0)
             self.pad.reset()
             if self.force_guard:

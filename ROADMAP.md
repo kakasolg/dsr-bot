@@ -286,12 +286,15 @@ Laya가 싸움 상태를 보고 이미 있는 전술 후보 중 하나를 고르
 - [x] [win] P0-A 패드 하나: `control.Pad`가 장치를 만들기 전에 기계 전체 잠금(`data/pad.lock`, gitignore됨)을 잡고, 못 잡으면 `PadBusy`로 멈춤 (다른 스크립트도 같은 잠금, fail closed). `Pad.close()` = 중립 → 장치 제거 → 잠금 해제, `reconnect`는 잠금 유지. watchdog은 잠금이 잡혀 있으면 `event=skip reason=pad_lock_held`만 남기고 패드·입력 없음 — 살아 있지만 멈춘 봇은 더 이상 구조하지 않음 ([MoKa] 결정). 확인: `tests/pad_lock_test.py` (다른 프로세스가 쥔 잠금 포함) 통과, pytest 56. 고치기 전 코드: 장치 둘이 동시에 살아 있고, 봇 패드가 살아 있는데 watchdog이 장치 2개를 더 만듦
 - [x] [win] P0-B 사용자 중지(Ctrl+C): 곧바로 `pad.neutral()` → 정리하는 동안 퀵 종료·턱 되돌림 끔 → 카메라 따라가기 멈춤. 퀵 종료·다크사인·ChrClassWarp 쓰기·메뉴 입력을 시작하지 않음. `finally`는 마지막 neutral 뒤에 봇 잠금 해제. 사용자 중지가 아닌 예외의 퀵 종료(shake)는 그대로. 확인: `tests/run_stop_test.py` (`run.main`을 가짜로 돌림) 통과, pytest 57. 고치기 전 코드: Ctrl+C 바로 다음 호출이 퀵 종료
 - [x] [win] P0-C 관측 없음: `duel._sense`·`Field._walk`에서 snapshot이 없으면 그 틱에 스틱 0, `NO_OBS_NEUTRAL_S`(임시 0.25 s) 넘게 없으면 버튼까지 전부 놓음 (공백마다 한 번). `Feed.snapshot`은 기다린 뒤에도 `STALE_S`(임시 0.25 s)보다 낡은 프레임이면 `None`. 확인: `tests/no_obs_test.py` 통과, pytest 58, golden 그대로. 고치기 전 코드: 0.5 s 공백 동안 스틱·가드 그대로, 멈춘 피드가 0.36 s 낡은 프레임을 줌
+- [x] [win] P0-D Mover ↔ 실제 보고: `Pad.epoch`(neutral·freeze·unfreeze·reconnect·close마다 +1)가 바뀌면 `nav.Mover`가 자기 상태를 잊고 다음 `set()`에서 필요한 버튼을 다시 누름. epoch 없는 패드(walksim `SimPad`)는 그대로. 확인: `tests/mover_epoch_test.py` 통과, pytest 59, walksim·walk_replay 숫자 그대로. 고치기 전 코드: neutral 뒤 `set("guard")`가 LB를 다시 안 누름 (P-38)
 
 game에서만 확인할 수 있는 것 — 오프라인으로는 확인 못 함, resolved·정책 보장 아님:
 - (공통) 게임이 XInput을 얼마나 자주 읽는지, 패드 호출 → 게임 반응 지연 (P1 기록 전엔 모름)
 - (A) 프로세스가 죽은 뒤 OS가 pad lock을 푸는 시간 — 늦으면 watchdog이 한 번 skip 하고 20 s 뒤 다시 봄
 - (B) Escape 스레드가 이미 시작한 낙사 퀵 종료는 사용자 중지로 멈추지 않음 (기존 그대로, 최대 40 s 기다림). 메인 스레드 `esc.fire` 도중 Ctrl+C면 게임이 메뉴에 남을 수 있음 — 기존 문제, 이번에 안 고침
 - (C) 실제 게임에서 짧은 관측 공백이 얼마나 자주 생기는지, 0.25 s 뒤 가드가 내려가 맞는지
+- (D) 짧은 B → 구르기/백스텝: sprint 걷기(수용소 `run` 단계, 막힘 탈출 뒤 달리기)가 이제 점마다 "도착 neutral로 B 뗌 → 다음 점에서 B 누름"을 반복함. DSR이 짧은 B 누름·뗌을 구르기/백스텝으로 받는지, 어느 길이부터인지 모름
+- (D) 가드 걷기(retreat·fall_back·back_to_wall)가 이제 끝까지 가드를 유지 — 스태미나가 모자라지 않는지
 
 ## 1-f. 모퉁이에서 일찍 꺾기 · 제자리 비비기 · 뒤돌기 (2026-09-28 [사람] 관찰)
 
@@ -744,6 +747,12 @@ game에서만 확인할 수 있는 것 — 오프라인으로는 확인 못 함,
   - 원거리 적·발사체 정보가 없다.
 - 고침: 샘플마다 표적 정체·8 m 안 모든 캐릭터·원거리 위협을 기록하고, 새 class `outcome_attribution_unconfirmed`와 `attribution_reasons`를 둔다.
 - 남은 한계: 발사체를 읽지 않으므로 지금 장치로는 모든 complete 창이 `ranged_threat_unknown` → primary 0. 원거리 종류는 봇 표(`souls/foes.py`)의 믿음이다.
+
+### P-38 점에 도착한 neutral 뒤 Mover가 가드·달리기를 다시 안 누름 (2026-10-02, [win], 1-k P0-D)
+- 증상: P0 오프라인 검토 중 발견 (게임에서 본 것 아님). `nav.goto`는 점마다 도착하면 `pad.neutral()`(버튼까지 리셋)인데, `nav.follow`·`Field._walk`가 넘긴 `Mover`는 `guard_on`·`mode`를 그대로 믿고 다음 점에서 LB·B를 다시 안 누름 → `"guard"` 걷기(retreat·fall_back·back_to_wall)는 첫 점 뒤 가드 없이, `"sprint"` 걷기(수용소 `run`)는 첫 점 뒤 걸어서 감
+- 원인 (확인, 코드): `nav.Mover.set`은 모드가 같으면 버튼을 다시 누르지 않음
+- 해결: P0-D (`Pad.epoch` → `Mover._resync`, `tests/mover_epoch_test.py`). 게임 확인 전 — 짧은 B 부작용은 1-k의 game 확인 항목
+
  ([cloud]는 비공개 게시판에 못 닿음)
 
 형식: `- 날짜 [cloud→게시판] 내용` / `- 날짜 [게시판→cloud] 내용`. 옮겼거나 처리했으면 끝에 `→ 옮김`·`→ 처리`. 지워지지 않게 위에서 아래로 쌓는다.
