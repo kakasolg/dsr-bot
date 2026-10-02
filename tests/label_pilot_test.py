@@ -264,6 +264,30 @@ def test_review_bot_prefill() -> None:
     print("ok  review mode: pre-filled from the bot's action, confirmed vs corrected kept apart, human demos not pre-filled")
 
 
+def test_lure_scenes_and_fixes() -> None:
+    """Knife-throw decisions: t_d = the lock-on press before the X press that preceded the knife line; options are things
+    the bot does (throw / walk up / wait); #4 254001's kind is MoKa's correction in the model input, the bot's belief kept."""
+    says = [(10.0, "   #5: 나이프 1 (10.7 m, 락온 True, 조준 None°) → 피해 44, 움직임"), (10.1, "   #5 끌어오기: dead")]
+    presses = [(7.0, 0, "R3"), (8.2, 0, "X")]
+    snaps = [(t / 10, snap(t / 10, d=10.0)) for t in range(0, 120)]
+    for _, sn in snaps:
+        sn["chars"][0]["npc"] = 254002
+    got = L._lure_candidates(Path(L.ROOT / "data" / "radar" / "x.jsonl"), "run", says, snaps, presses)
+    assert len(got) == 1 and got[0]["t_d"] == 7.0 and got[0]["npc"] == 254002 and got[0]["result"] == "dead", got
+    sc = L.build_lure_scene(got[0], [m for _, m in snaps])
+    assert sc["decision"] == "lure" and set(sc["tactics"]) == {"throw_knife", "approach", "hold_position"}
+    assert sc["obs"]["distance_m"] == 10.0 and "throw_knife" in sc["allowed"] and "knife" not in json.dumps(sc["obs"]) .replace("knife_throw_no", "")
+    assert sc["after"]["bot_action_as_tactic"] == {"throw_knife": 1}
+    assert L.validate_label(payload(sc, best="throw_knife", acceptable=["throw_knife"], forbidden=["approach"]), sc) == []
+    assert L.validate_label(payload(sc, best="attack", acceptable=[], forbidden=[]), sc)          # duel tactics aren't options here
+    for _, sn in snaps:
+        sn["chars"][0]["npc"] = 254001
+    s4 = L.build_lure_scene(dict(got[0], npc=254001), [m for _, m in snaps])
+    assert s4["obs"]["target_kind"] == "hollow" and s4["obs_provenance"]["target_kind"]["kind"] == "corrected"
+    assert s4["mask_inputs"]["_bot_target_kind"] == "ranged"
+    print("ok  lure scenes: decision at lock-on, own options, #4 corrected in the input with the bot's belief kept")
+
+
 if __name__ == "__main__":
     test_scene_separates_after()
     test_human_roll_is_not_evade()
@@ -271,4 +295,5 @@ if __name__ == "__main__":
     test_why_not_covers_every_tactic()
     test_ramp_set_selection_and_shots()
     test_review_bot_prefill()
+    test_lure_scenes_and_fixes()
     test_one_scene_per_fight()

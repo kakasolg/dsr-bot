@@ -51,7 +51,7 @@ def bot_prefill(scene: dict) -> dict | None:
     best = the tactic it spent most ticks on, acceptable = every tactic it did. None for human demos or when the bot's
     log names map to no tactic."""
     a = scene.get("after") or {}
-    done = {t: n for t, n in (a.get("bot_action_as_tactic") or {}).items() if t in LS.TACTICS}
+    done = {t: n for t, n in (a.get("bot_action_as_tactic") or {}).items() if t in (scene.get("tactics") or LS.TACTICS)}
     if scene.get("source") != "bot" or not done:
         return None
     return {"best": max(done, key=done.get), "acceptable": sorted(done), "bot_logged": a.get("bot_logged", "")}
@@ -141,11 +141,18 @@ def _file_epoch(stem: str) -> float:
     return time.mktime(time.strptime(stem[:15], "%Y%m%d_%H%M%S"))
 
 
+def _commit_at(run_id: str, t_d: float):
+    try:
+        return _commit_before(_file_epoch(run_id) + t_d)
+    except ValueError:
+        return None
+
+
 # ── candidates from bot radar recordings ──
 
 def _scan_bot(path: Path) -> dict:
     """One streaming pass: log lines (all) and a 2 Hz sample of snapshots (positions for zones)."""
-    says, snaps, last_b = [], [], -1
+    says, snaps, last_b, presses, prev_btn = [], [], -1, [], {}
     with path.open(encoding="utf-8", errors="replace") as f:
         for line in f:
             m = HEAD.match(line)
@@ -154,12 +161,19 @@ def _scan_bot(path: Path) -> dict:
             rt, typ = float(m.group(1)), m.group(2)
             if typ == "say":
                 says.append((rt, json.loads(line).get("line", "")))
+            elif typ == "pad":                                # R3 (lock-on) and X (item: knife / Estus) presses, per slot
+                d = json.loads(line)
+                i, b = d.get("i"), d.get("btn") or 0
+                for bit, name in ((0x0080, "R3"), (0x4000, "X")):
+                    if b & bit and not prev_btn.get(i, 0) & bit:
+                        presses.append((rt, i, name))
+                prev_btn[i] = b
             elif typ == "snap" and int(rt * 2) != last_b:
                 last_b = int(rt * 2)
                 s = json.loads(line)
                 if (s.get("player") or {}).get("x") is not None:
                     snaps.append((rt, s))
-    return {"says": says, "snaps": snaps}
+    return {"says": says, "snaps": snaps, "presses": presses}
 
 
 def _nearest(snaps: list, t: float):
@@ -182,8 +196,11 @@ def bot_candidates(path: Path) -> list:
     run = path.stem
     fights, cur, prev_t = [], None, 1e9
     reach, style, basic, estus = None, None, False, None
-    big = []
+    big, drinks, rests = [], [], []
     for rt, line in says:
+        if "불의 제전 휴식: 됨" in line or "화톳불 휴식: 됨" in line:
+            estus = None                                     # resting refills the flasks — the last drink's count is stale
+            rests.append(rt)
         if (m := WEAPON.search(line)):
             reach = float(m.group(2))
         if "스타일:" in line:
@@ -192,6 +209,7 @@ def bot_candidates(path: Path) -> list:
             basic = True
         if (m := ESTUS.search(line)):
             estus = int(m.group(1))
+            drinks.append((rt, estus))
         if (m := BBOX.search(line)):
             big.append((rt, int(m.group(2))))
         if (m := STATUS.match(line)):
@@ -202,12 +220,19 @@ def bot_candidates(path: Path) -> list:
             prev_t = t_f
             cur["lines"].append({"rt": rt, "h": float(m.group(2)), "dy": float(m.group(3)), "anim": None if m.group(4) == "None" else int(m.group(4)),
                                  "ehp": int(m.group(5)), "hp": int(m.group(6)), "sp": int(m.group(7)), "acts": m.group(10),
-                                 "reach": reach, "style": style, "basic": basic, "estus": estus})
+                                 "reach": reach, "style": style, "basic": basic, "estus": estus,
+                                 "estus_how": "last_drink" if estus is not None else None})
         elif (m := END.match(line)) and cur is not None and cur["end"] is None:
             cur.update(end=rt, result=m.group(2), tag=m.group(1).strip(), dealt=int(m.group(4)), taken=int(m.group(5)))
             nums = re.findall(r"\b(\d{6})\b", m.group(1))
             cur["npc"] = int(nums[-1]) if nums else None
-    out = []
+    for fg in fights:                                        # before the run's first drink: the next drink's count + 1
+        for l in fg["lines"]:
+            if l["estus"] is None:
+                nxt = next(((t, left) for t, left in drinks if t > l["rt"]), None)
+                if nxt and not any(l["rt"] < r < nxt[0] for r in rests):
+                    l["estus"], l["estus_how"] = nxt[1] + 1, "next_drink"
+    out = _lure_candidates(path, run, says, snaps, sc["presses"])
     for fi, fg in enumerate(fights):
         fid = f"{run}#f{fi:03d}"
         ls = fg["lines"]
@@ -237,6 +262,46 @@ def bot_candidates(path: Path) -> list:
                         "fight_id": fid, "t_d": round(t_d, 2), "event": ev, "zone": _zone(snap["player"]),
                         "npc": fg.get("npc"), "result": fg["result"] or "unknown", "y": snap["player"]["y"],
                         "_line": prev, "_next": nxt, "_fight": fg})
+    return out
+
+
+# ── lure (knife) decisions — the ramp's #5 never reaches a melee fight: two knives at ~10 m kill it ([MoKa] 2026-10-01) ──
+LURE_TACTICS = {"throw_knife": "Lock on and throw a knife to hit it and pull it over (what the bot does now).",
+                "approach": "Walk up to it and fight there.",
+                "hold_position": "Stay put and let it come (or leave it for now)."}
+LURE_KO = {"throw_knife": "나이프 던지기", "approach": "걸어가서 붙기", "hold_position": "기다리기"}
+KNIFE = re.compile(r"(#\d+)[^:]*: 나이프 (\d+) \(([\d.]+) m, 락온 (\w+)[^)]*\) → 피해 (\d+)")
+LURE_END = re.compile(r"(#\d+) 끌어오기(?: \d+/\d+)?: (\w+)")
+
+
+def _lure_candidates(path: Path, run: str, says: list, snaps: list, presses: list) -> list:
+    """One scene per knife throw. t_d = the lock-on (R3) press that started it (else the X press − 1 s): the moment the
+    bot committed to throwing. The knife line itself comes ~1.8 s after the X press."""
+    import json as _j
+    ramp = _j.loads((ROOT / "data" / "enemy-map.json").read_text(encoding="utf-8"))["enemies"]
+    out = []
+    for k, (rt, line) in enumerate(says):
+        m = KNIFE.search(line)
+        if not m:
+            continue
+        tag, nth = m.group(1), int(m.group(2))
+        x = [t for t, i, b in presses if b == "X" and rt - 3.0 <= t <= rt]
+        if not x:
+            continue
+        r3 = [t for t, i, b in presses if b == "R3" and x[-1] - 3.0 <= t <= x[-1]]
+        t_d = r3[-1] if r3 else x[-1] - 1.0
+        snap = _nearest(snaps, t_d)
+        if snap is None:
+            continue
+        idx = int(tag[1:]) - 1
+        npc = ramp[idx]["npc"] if 0 <= idx < len(ramp) else None
+        end = next((l for t, l in says[k + 1:k + 6] if (e := LURE_END.search(l)) and e.group(1) == tag), "")
+        res = (LURE_END.search(end).group(2) if end else "unknown")
+        out.append({"source": "bot", "decision": "lure", "source_file": str(path.relative_to(ROOT)).replace("\\", "/"),
+                    "run_id": run, "fight_id": f"{run}#lure{len(out):03d}", "t_d": round(t_d, 2), "event": "lure",
+                    "zone": _zone(snap["player"]), "npc": npc, "result": res, "y": snap["player"]["y"],
+                    "_knife": {"line": line.strip(), "nth": nth, "dist": float(m.group(3)), "lock": m.group(4) == "True",
+                               "dmg": int(m.group(5)), "x_at": round(x[-1], 2), "r3_at": round(r3[-1], 2) if r3 else None}})
     return out
 
 
@@ -440,11 +505,14 @@ def _obs(snap: dict, tgt: dict, reach, style, basic, estus_left, swing_age) -> t
          "others_within_4_5m": len(others),
          "other_swinging_near": any(_anim_cat(c.get("anim")) == "swinging" and _horiz(p, c) < 2.5 for c in others),
          "estus_left": estus_left, "fighting_style": style,
+         "_bot_target_kind": "ranged" if foe.ranged else foe.kind,
          # mask inputs. Human demos: the question is what *the current bot* could do there, so its default setup is assumed
          # (guard style, backstab on) — obs_provenance says so. Rolling is never a tactic.
          "_shield": (style or "guard") == "guard", "_evade": (style or "guard") == "backstep",
          "_sp_ok": None, "_arena": None, "_may_retreat": True, "_backstab_on": not basic,
          "_room": not basic and foe.circle_behind and h <= 3.5 and not others}
+    if tgt.get("npc") in FOE_FIX:
+        f["target_kind"] = FOE_FIX[tgt["npc"]][0]
     if reach is None:                                       # unknown weapon: mask bounds from the weapon table (laya_shadow.allowed)
         from souls import weapons as W
         rs = [w.reach for w in vars(W).values() if isinstance(w, W.Weapon)]
@@ -496,6 +564,20 @@ def _provenance(obs: dict, bot: bool) -> dict:
     p = {**PROV_COMMON, **(PROV_BOT if bot else PROV_HUMAN)}
     return {k: {"kind": kind, "how": how} for k, (kind, how) in p.items()
             if (k.startswith("mask.") and k[5:] in obs) or obs.get(k) is not None}
+
+
+# facts MoKa corrected where the bot's data (souls/foes.py) is wrong: the scene's model input uses the corrected value,
+# the bot's belief is kept in mask_inputs._bot_target_kind (what the bot acted on). The bot itself is not changed.
+FOE_FIX = {254001: ("hollow", "MoKa 2026-10-01: 방패 없이 도끼를 양손으로 잡고 공격하는 근접 망자 — 봇 데이터(foes.py)는 화염병 투척병(ranged)")}
+
+
+def _scene_provenance(obs: dict, bot: bool, line: dict | None) -> dict:
+    p = _provenance(obs, bot)
+    if bot and line and line.get("estus_how") == "next_drink" and "estus_left" in p:
+        p["estus_left"]["how"] = "같은 실행에서 다음 음용의 'left' + 1 (그 사이 휴식 없음)"
+    if obs.get("target_npc") in FOE_FIX:
+        p["target_kind"] = {"kind": "corrected", "how": FOE_FIX[obs["target_npc"]][1]}
+    return p
 
 
 def _b_detail(msgs: list, t_press: float) -> dict:
@@ -594,7 +676,61 @@ def _acts_tactics(acts: str) -> dict:
     return dict(done)
 
 
+def build_lure_scene(c: dict, msgs: list) -> dict:
+    """A knife-throw decision: state when the bot locked on, options throw / walk up / wait (things the bot does)."""
+    from souls import foes as foes_
+    t_d = c["t_d"]
+    snaps = [(m["rt"], m) for m in msgs if m.get("type") == "snap" and (m.get("player") or {}).get("x") is not None]
+    snap = _nearest(snaps, t_d)
+    if snap is None:
+        raise ValueError("no snapshot at t_d")
+    p = snap["player"]
+    cands = [x for x in snap.get("chars") or [] if x.get("npc") == c["npc"] and (x.get("hp") or 0) > 0 and x.get("x") is not None]
+    if not cands:
+        raise ValueError("lure target not in the snapshot")
+    tgt = min(cands, key=lambda x: _horiz(p, x))
+    foe = foes_.of(tgt.get("npc"))
+    others = [x for x in _awake_foes(snap) if x.get("ptr") != tgt.get("ptr") and _horiz(p, x) < 10.0]
+    kind = FOE_FIX[tgt["npc"]][0] if tgt.get("npc") in FOE_FIX else ("ranged" if foe.ranged else foe.kind)
+    obs = {"my_hp_pct": round(p["hp"] / p["max_hp"], 2) if p.get("max_hp") else None,
+           "my_stamina_pct": round(p["sp"] / p["max_sp"], 2) if p.get("max_sp") else None,
+           "target_kind": kind, "target_npc": tgt.get("npc"), "target_state": _anim_cat(tgt.get("anim")), "target_anim": tgt.get("anim"),
+           "target_hp_pct": round(tgt["hp"] / tgt["max_hp"], 2) if tgt.get("max_hp") else None,
+           "distance_m": round(_horiz(p, tgt), 1), "height_diff_m": round(tgt["y"] - p["y"], 1),
+           "facing_error_deg": _rel_deg(p, tgt), "target_facing_me_deg": _rel_deg(tgt, p),
+           "others_awake_within_10m": len(others), "knife_throw_no": c["_knife"]["nth"]}
+    prov = {k: v for k, v in _provenance(obs, True).items() if not k.startswith("mask.")}
+    if tgt.get("npc") in FOE_FIX:
+        prov["target_kind"] = {"kind": "corrected", "how": FOE_FIX[tgt["npc"]][1]}
+    prov["knife_throw_no"] = {"kind": "logged", "how": "실행 로그 '나이프 N' 줄"}
+    hp0, e0 = _hp_at(msgs, t_d), _hp_at(msgs, t_d, tgt.get("ptr"))
+    h3, e3 = _hp_at(msgs, t_d + 3.0), _hp_at(msgs, t_d + 3.0, tgt.get("ptr"))
+    test = c["zone"] in TEST_ZONES or tgt.get("npc") in TEST_NPCS
+    return {"scene_id": hashlib.md5(f"{c['source_file']}|{t_d}".encode()).hexdigest()[:10], "schema": SCENE_SCHEMA,
+            "decision": "lure", "tactics": LURE_TACTICS, "source": "bot", "source_file": c["source_file"], "run_id": c["run_id"],
+            "fight_id": c["fight_id"], "t_d": t_d, "clip": [round(t_d - PRE_S, 2), round(t_d + POST_S, 2)], "segment": c["zone"],
+            "enemy": {"npc": tgt.get("npc"), "kind": _kind(tgt.get("npc"))}, "event": "lure", "code_commit": _commit_at(c["run_id"], t_d),
+            "code_commit_approx": True, "obs": obs, "mask_inputs": {"_bot_target_kind": "ranged" if foe.ranged else foe.kind},
+            "obs_provenance": prov,
+            "t_epoch": round(snap["t"], 3) if (snap.get("t") or 0) > 1e9 else None,
+            "shots": _shots_for(snap["t"] if (snap.get("t") or 0) > 1e9 else None),
+            "context": _context(msgs, t_d, tgt.get("ptr"), []),
+            "allowed": ["throw_knife", "approach", "hold_position"], "unavailable": {},
+            "after": {"bot_logged": c["_knife"]["line"], "bot_action_as_tactic": {"throw_knife": 1},
+                      "bot_action_as_tactic_note": "봇이 실제로 한 것 — 정답 아님",
+                      "my_hp_change_1_5s": (_hp_at(msgs, t_d + 1.5) - hp0) if hp0 is not None and _hp_at(msgs, t_d + 1.5) is not None else None,
+                      "my_hp_change_3s": (h3 - hp0) if hp0 is not None and h3 is not None else None,
+                      "target_hp_change_3s": (e3 - e0) if e0 is not None and e3 is not None else None,
+                      "fight_result": c["result"]},
+            "missing": {"knives_left": "남은 나이프 수는 기록에 없음 (던지기 후보는 허용으로 봄)",
+                        "lock_on_possible": "락온 가능 여부는 미리 알 수 없음 (시야·거리)"},
+            "test_candidate": bool(test), "test_rule": "zone in town#4/crossbow spot, enemy 255002 (fixed before labeling)",
+            "selection": {"event": "lure", "zone": c["zone"], "kind": _kind(c.get("npc")), "result": c["result"], "source": "bot"}}
+
+
 def build_scene(c: dict, msgs: list) -> dict:
+    if c.get("decision") == "lure":
+        return build_lure_scene(c, msgs)
     t_d = c["t_d"]
     snap = _nearest([(m["rt"], m) for m in msgs if m.get("type") == "snap" and (m.get("player") or {}).get("x") is not None], t_d)
     if snap is None:
@@ -637,9 +773,9 @@ def build_scene(c: dict, msgs: list) -> dict:
     return {"scene_id": sid, "schema": SCENE_SCHEMA, "source": c["source"], "source_file": c["source_file"], "run_id": c["run_id"],
             "fight_id": c["fight_id"], "t_d": t_d, "clip": [round(t_d - PRE_S, 2), round(t_d + POST_S, 2)],
             "segment": zone, "enemy": {"npc": tgt.get("npc"), "kind": _kind(tgt.get("npc"))}, "event": c["event"],
-            "code_commit": _commit_before(_file_epoch(c["run_id"]) + t_d) if bot else None, "code_commit_approx": bot,
+            "code_commit": _commit_at(c["run_id"], t_d) if bot else None, "code_commit_approx": bot,
             "obs": {k: v for k, v in obs.items() if not k.startswith("_")}, "mask_inputs": {k: v for k, v in obs.items() if k.startswith("_")},
-            "obs_provenance": _provenance(obs, bot),
+            "obs_provenance": _scene_provenance(obs, bot, line),
             "t_epoch": round(snap["t"], 3) if (snap.get("t") or 0) > 1e9 else None,
             "shots": _shots_for(snap["t"] if (snap.get("t") or 0) > 1e9 else None),
             "context": _context(msgs, t_d, tgt.get("ptr"), actor),
@@ -749,7 +885,7 @@ def validate_label(d: dict, scene: dict) -> list:
     bot's current tactic set fits — e.g. only a roll would do), model_input_sufficient = False (the labeler can judge, but
     only from things the model input doesn't have)."""
     errs = []
-    tac = set(LS.TACTICS)
+    tac = set(scene.get("tactics") or LS.TACTICS)
     acc, forb = set(d.get("acceptable") or []), set(d.get("forbidden") or [])
     if not d.get("labeler_id") or len(str(d["labeler_id"])) > 40:
         errs.append("labeler_id")
@@ -961,7 +1097,7 @@ def serve(port: int = HTTP_PORT) -> None:
                 with lock:
                     load_scene(s, phase)
                 views = label_views(label_rows(s["scene_id"], who))
-                body = {"scene": scene_for_page(s, phase), "tactics": LS.TACTICS, "tactics_ko": TACTIC_KO, "seek_rel": s["t_d"] - rp.t0,
+                body = {"scene": scene_for_page(s, phase), "tactics": s.get("tactics") or LS.TACTICS, "tactics_ko": {**TACTIC_KO, **LURE_KO}, "seek_rel": s["t_d"] - rp.t0,
                         "label": views["final"], "primary": views["primary"], "revealed": revealed(s["scene_id"], who),
                         "outside_input": OUTSIDE_INPUT, "unsure_reasons": UNSURE_REASONS,
                         "prefill": bot_prefill(s) if REVIEW_BOT else None}

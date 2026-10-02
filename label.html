@@ -22,7 +22,7 @@
   td:first-child { color:var(--dim); width:44%; }
   .miss { color:var(--warn); }
   .tag { display:inline-block; padding:0 6px; border-radius:8px; font-size:11px; margin-left:4px; border:1px solid var(--line); color:var(--dim); }
-  .tag.estimated, .tag.assumed { color:var(--warn); border-color:var(--warn); }
+  .tag.estimated, .tag.assumed, .tag.corrected { color:var(--warn); border-color:var(--warn); }
   .tac { display:grid; grid-template-columns:1fr auto auto; gap:2px 6px; align-items:center; margin:3px 0; }
   .tac .why { grid-column:1 / -1; font-size:11px; color:var(--dim); margin:-2px 0 2px; }
   .tac.masked .name { color:var(--dim); }
@@ -134,8 +134,8 @@ const OBS_KO = {my_hp_pct:"내 HP", my_stamina_pct:"내 SP", target_kind:"목표
   target_anim:"목표 애니", target_swing_age_s:"휘두른 지 (s)", target_hp_pct:"목표 HP", distance_m:"거리 (m)", height_diff_m:"높이 차 (m)",
   weapon_reach_m:"무기 거리 (m)", in_reach:"닿음", facing_error_deg:"내 정면과 목표 각 (°)", target_facing_me_deg:"목표 정면과 나 각 (°)",
   others_within_4_5m:"4.5 m 안 다른 적", other_swinging_near:"2.5 m 안 다른 적 휘두름", estus_left:"에스트 남음", fighting_style:"스타일",
-  estus_wanted:"에스트 원함 (HP 60 % 아래)", "context.target_states":"직전 목표 상태", "context.my_hp_change":"직전 내 HP 변화", "context.actor_did":"직전에 한 행동"};
-const KIND_KO = {logged:"로그", derived:"유도", estimated:"추정", assumed:"가정"};
+  estus_wanted:"에스트 원함 (HP 60 % 아래)", others_awake_within_10m:"10 m 안 깨어 있는 다른 적", knife_throw_no:"몇 번째 나이프", "context.target_states":"직전 목표 상태", "context.my_hp_change":"직전 내 HP 변화", "context.actor_did":"직전에 한 행동"};
+const KIND_KO = {logged:"로그", derived:"유도", estimated:"추정", assumed:"가정", corrected:"사람이 고침"};
 const WHY_KO = {not_in_bot:"봇에 없음", rule_blocked:"규칙상 지금 불가", unobserved:"관측 부족"};
 const PCT = new Set(["my_hp_pct", "my_stamina_pct", "target_hp_pct"]);
 const fmt = (v, k) => v === null || v === undefined ? "—" : typeof v === "boolean" ? (v ? "예" : "아니오") : PCT.has(k) ? (v*100).toFixed(0) + " %" : String(v);

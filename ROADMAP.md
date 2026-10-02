@@ -210,7 +210,9 @@ Laya가 싸움 상태를 보고 이미 있는 전술 후보 중 하나를 고르
 - [x] [win] 경사로 세트 준비 ([MoKa] 2026-10-01): `shots.py`(2 Hz 스크린샷, 포커스 안 건드림), `build --set ramp --radar …`(모든 싸움 1~2장면, 싸움 시작부터 재생, 스크린샷 붙임), 라벨 0.3(가장 좋은 것 하나 + 확신 필수). 확인: `tests/label_pilot_test.py` 6개, pytest 53, 옛 녹화로 build 시험(싸움 58 → 84장면), 화면 시험(임시 폴더). 봇은 안 돌림
 - [x] [win] [MoKa] 신호 뒤 `clear-ramp --basic --radar` — **4번**([MoKa] 중단): 전부 cleared, r1 '주의'·r2~r4 '깨끗', **r3 = [MoKa] 기준 플레이** (LAYA.md 13). `build --set ramp` 24장면(싸움 17), `serve --set ramp --review-bot` (http://127.0.0.1:47814)
 - [ ] [MoKa] 경사로 24장면 라벨 (검토 모드: 봇 행동이 미리 채워짐, 틀린 것만 고침) → `python label_pilot.py report --set ramp`
-- [ ] [win] **#4 (254001) 분류 고치기** — [MoKa]: 방패 없이 도끼 양손 망자(근접), 지금 `foes.py`는 화염병 투척병(원거리). 고친 뒤 duel_golden 다시 찍기 (P-32로 기록)
+- [x] [win] 경사로 B·C·D·A ([MoKa] 2026-10-01): B 에스트 수 = 다음 음용 + 1(휴식 뒤 낡은 값 지움) · C #4 모델 입력은 MoKa 사실(근접 망자, 출처 '사람이 고침'), 봇이 믿은 값 따로 · D 끌어오기 장면 16개(#5 화염병 8 — 락온 R3 순간) · A `clear-ramp --basic --radar --laya-shadow`(가짜 백엔드, 모델 없음) 3번: a1 '깨끗' · a2 '깨끗' — [MoKa] 기준 플레이 · a3 '주의'(시간 초과만). 틱 기록에서 봇 행동이 후보 밖 0. 로그 `data/samples/clear-ramp-shadow-2026-10-01-a1~3`
+- [~] [win] **#4 (254001) 가드를 너무 일찍 내림** — P-32. 고침: `foes.AXE_HOLLOW`(windup 3004, 1.0 s부터 막기 유지), `ranged`는 그대로(승인된 끌어오기 동작 유지). `tests/axe_hollow_test.py`, duel_golden 그대로. **게임 확인 필요** — [MoKa] 신호 뒤 경사로 실행
+- [ ] [win] #4 `ranged`(투척병) 분류 자체 고치기 — 끌어오기·기다리기 동작이 바뀌므로 따로 실행해 비교
 - [ ] [win] 실행 설정 파일 (`<run>.settings.json`: 커밋·수정 여부·인자·싸움 상수·장비·적 분류) — 커밋을 실행 시각으로 추정하지 않게. [MoKa] 결정 대기
 - [-] [MoKa] 파일럿 40장면 라벨 — 10장면에서 멈춤, 경사로 세트로 바꿈: `python label_pilot.py serve` → http://127.0.0.1:47811, 끝나면 `python label_pilot.py report` → 장면당 시간·판단 불가 비율·정의 메모로 test 300·학습 라벨 규모 확정
 - [ ] [MoKa]+[win] 평가용 사람 확인 라벨 300개 — 파일럿 결과 보고 규모 확정 뒤
@@ -621,6 +623,11 @@ Laya가 싸움 상태를 보고 이미 있는 전술 후보 중 하나를 고르
 ### P-31 `rule_finish`가 닿는 거리 밖(2.2~4.0 m)에서 침 (2026-10-01, [win], 1-i)
 - Laya 섀도 마스크를 duel_golden 상황에 맞춰 보다 발견: 목표 HP가 한 방(`FINISH_HP`) 안이고 뒤잡기 기회(`T.room` → `backstab_chance`)면 `rule_approach`가 건너뛰어지고, `rule_finish`에는 거리 검사가 없어 2.2·4.0 m에서 약공 1번 (배틀 액스·브로드소드, 망자·화염병 망자). `--basic`(BACKSTAB 꺼짐)에선 안 생김. 게임 로그로는 아직 확인 안 함. 고칠 방향(결정 대기): `rule_finish`에 `h <= reach + 0.3` 추가 — 골든 다시 찍기 필요
 - 덧: golden의 가짜 반사는 안 터지므로 옆 적이 휘두를 때 `rule_attack`이 치는 상황(golden만의 것)도 Laya 마스크 밖으로 셈 — 게임에선 `rule_reflex`가 먼저
+
+### P-32 경사로 #4(254001, 도끼 양손 망자)에게 가드를 너무 일찍 내려 −118 (2026-10-01, [win]/[MoKa], LAYA.md 13)
+- [MoKa] (경사로 7번 실행을 보고): "#4 도끼병 공격 할때 가드 플레이가 적절 하지 않았음. 나머지는 좋았음" → "가드를 너무 일찍 내렸음".
+- 블랙박스: r1·r4에서 3003을 막은 뒤 이어지는 3004가 **시작 후 1.69~1.70 s에** 떨어짐. `prep_linger`가 1.6 s(`SWING_S`) 넘은 3000번대를 '서 있음'으로 바꿔 `rule_hit_first`가 약공 → 그 사이 3004에 −118 (두 번 다 로그 `막기×5 먼저치기×1 … 내 피해 118`). 나머지 하나(r1 −132)는 2.9 m에서 달려드는 3007을 방패 없이 맞음(싸움 밖, 따라오는 중). 그리고 `foes.py`가 254001을 화염병 투척병(`FIREBOMB_HOLLOW`)으로 분류 — windup 정보 없음.
+- 고침: `AXE_HOLLOW`(windup=(3004,), windup_act_s=1.0) → `rule_late_windup_block`이 1.0 s부터 떨어질 때까지 막기. 그 순간 재현 테스트: 고치기 전 약공 → 고친 뒤 막기, 칼 망자 그대로 (`tests/axe_hollow_test.py`). 게임 확인 전
 
 ## 10. 게시판 중계 ([cloud]는 비공개 게시판에 못 닿음)
 

@@ -43,6 +43,13 @@ FIREBOMB_HOLLOW = Foe("망자(화염병)", ranged=True, **_HOLLOW,
 #    two at 0.4–0.7 s interrupted the attack for 0 → windup=(3004,), kick within 1.2 s, block beyond
 #  · 3005 lunge (from 4 m at 3–4.5 m/s, lands at +1.0 s) costs 1–2 when blocked — keep blocking
 #  · 3500 lasts 0.8–1.3 s, during which it backs off at 1.5–1.9 m/s (1 m → 3–4.7 m) — kick immediately (previously 'lure' ran off to the flat ground)
+# Ramp #4 (254001): [MoKa] 2026-10-01 "다른 망자는 방패와 칼, #4만 방패 없이 도끼를 양손으로 잡고 공격" · "가드를 너무 일찍 내렸음".
+#  Blackbox r1·r4: after blocking 3003 the follow-up 3004 lands 1.69–1.70 s after it starts; prep_linger (SWING_S 1.6) called it idle,
+#  hit_first swung and took −118 both times. windup=(3004,), windup_act_s=1.0 → rule_late_windup_block keeps the shield up until it lands.
+#  ranged stays True for now: the lure/waiting the ramp runs do with it is what MoKa approved — the 'thrower' label is wrong
+#  (LAYA.md 13), fixing it changes those decisions and needs its own runs.
+AXE_HOLLOW = Foe("망자(도끼 양손)", ranged=True, windup=(3004,), windup_act_s=1.0, **_HOLLOW,
+                 note="경사로 #4. 방패 없이 도끼를 양손으로 — 3003 뒤 3004가 1.7 s에 떨어짐, 1.0 s부터 그때까지 막기 유지 (MoKa 2026-10-01)")
 SHIELD = Foe("방패 병사", kind="shield", kick_when_idle=True, circle_behind=False, unblockable=(3009,), punish_hits=1,
              windup=(3004,), windup_act_s=1.2, kick_on_stagger=True, early_kick="shadow",
              note="가만히 서면 방패를 들어 약공이 12 씩만 (6번 쳐도 못 잡음). 가드 올린 채면 발차기로 휘청 (위키). "
@@ -57,7 +64,7 @@ ASYLUM_DEMON = Foe("수용소 데몬", kind="boss", note="boss/README.md — 필
 BY_NPC: dict[int, Foe] = {
     254000: HOLLOW, 254010: HOLLOW, 254011: HOLLOW,
     # 254002: previously treated as a sword hollow, but in demo 140708 the firebomb thrower was #5 (254002). 254001 (#4) has a record of throwing in 134451, so both are ranged
-    254001: FIREBOMB_HOLLOW, 254002: FIREBOMB_HOLLOW, 254012: FIREBOMB_HOLLOW,
+    254001: AXE_HOLLOW, 254002: FIREBOMB_HOLLOW, 254012: FIREBOMB_HOLLOW,
     250000: Foe("망자(성벽 마을)", kind="hollow", combos=(3000, 3004), unblockable=(3009,)),
     255000: SHIELD, 255010: SHIELD,
     # 255002 is a crossbowman, not a shield soldier — 3000/3001 are firing motions, not a guard stance. Anim struct +0xA0 turns 1 and
