@@ -226,7 +226,9 @@ Laya가 싸움 상태를 보고 이미 있는 전술 후보 중 하나를 고르
 - [x] [win] P-35 최소 수정 (LAYA.md 17.1): 결과 창 보수적 판정, 분류 9가지, 점검기가 다시 계산, footer 집계. 첫 실행 재분류 primary 3 → unobserved_fight_end 3. pytest·golden 통과
 - [x] [MoKa] 경사로 재검증 실행 승인 (2026-10-02, 1회, 목적 "audit instrumentation validation only", Burg 미승인)
 - [x] [win] 경사로 재검증 실행: `20261002_030153_clear-ramp` (커밋 `1366464` = 69fb195 + header `purpose` 칸, `--basic --radar --attack-audit`, 레이더 `20261002_030144`) — cleared, 위험 '깨끗'. 감사: 공격 호출 6 = primary 1 · ambiguous 4 (chained) · outcome_unobserved_fight_end 1. seq 21/21 written, drop·lost·writer 오류·tap 오류 0, pad 대조 6/6 confirmed. complete 창 1건 (샘플 19개, 0.016–1.047 s, 최대 간격 0.079 s). 봇 쪽 분류와 점검기 분류 일치. 점검기의 제외 사유 집계가 사유를 두 번 셈 (P-36). 샘플 `data/samples/clear-ramp-audit-2026-10-02-o2.*`
-- [ ] [MoKa] 재검증 실행 판정 · Burg 실행 여부 (미승인)
+- [x] [MoKa] 재검증 판정 (2026-10-02): o2 `:9`는 primary로 취급하지 않음 — 시간 창·pad는 통과, 표적 정체와 다수 적·원거리 위협 귀속을 1 s 동안 증명할 정보 없음 (P-37)
+- [x] [win] P-37 귀속 조건 (LAYA.md 17.2, 스키마 0.3): 샘플별 표적 정체·8 m 맥락·원거리 위협 기록, `outcome_attribution_unconfirmed` + `attribution_reasons`, P-36 중복 집계 고침. o2 `:9` → attribution_unconfirmed. pytest·golden 통과. 발사체를 못 읽어 지금 장치로는 primary가 구조적으로 0
+- [ ] [MoKa] 다음 단계 결정: 발사체 관측 추가 여부 · Burg 실행 여부 (둘 다 미승인)
 - [ ] [win] (허락 뒤) `run.py burg-bonfire --basic --laya-shadow` — 섀도 켠 실행과 끈 실행의 `blind_report.py`·틱 수 비교, `.laya.jsonl` report
 
 ## 1-f. 모퉁이에서 일찍 꺾기 · 제자리 비비기 · 뒤돌기 (2026-09-28 [사람] 관찰)
@@ -667,12 +669,20 @@ Laya가 싸움 상태를 보고 이미 있는 전술 후보 중 하나를 고르
   - 남은 구간을 레이더로 보충할지는 귀속 규칙과 함께 다시 사전 등록한다.
   - 다음 공격과 겹친 창은 `overlapping_next_attack`으로 표시한다.
 
-### P-36 공격 감사 점검기: 제외 사유 집계에서 결과 사유를 두 번 셈 (2026-10-02, [win], 재검증 실행 `20261002_030153_clear-ramp`)
+### P-36 공격 감사 점검기: 제외 사유 집계에서 결과 사유를 두 번 셈 — **고침 2026-10-02 (P-37과 같은 줄)** (2026-10-02, [win], 재검증 실행 `20261002_030153_clear-ramp`)
 - 점검기 `check()`의 `reasons += [x for x in oreasons + bot_reasons if x not in reasons]`는 `reasons`를 늘리기 전에 한 번에 걸러서, 점검기가 다시 계산한 사유와 봇이 적은 사유가 같으면 둘 다 들어간다.
 - 그래서 `primary_exclusion_reasons`가 fight_end 10 · no_samples 10 (봇 footer는 5 · 5). 분류(class)·seq·pad 결과에는 영향 없음 — 집계 숫자만 틀림.
 - 고칠 것: 사유 목록을 중복 없이 합치고, 테스트에 "점검기 사유 수 = 봇 사유 수(같은 기록일 때)" 추가. 승인 후.
 
-## 10. 게시판 중계 ([cloud]는 비공개 게시판에 못 닿음)
+### P-37 공격 감사: 시간 창이 완전해도 결과를 어느 적에 돌릴지 증명 못 함 — **장치·점검기 고침 2026-10-02 (LAYA.md 17.2), 게임 재검증 전** (2026-10-02, [MoKa] 판정, 재검증 실행 `20261002_030153_clear-ramp` `:9`)
+- `:9`는 1.0 s 창을 덮고(샘플 19, 최대 간격 0.079 s) pad도 확인됐지만 primary가 아니다.
+  - 샘플에 표적 handle·npc가 없다.
+  - 8 m 안의 다른 적은 호출 순간에만 기록됐다.
+  - 창 안에서는 3.5 m 안 공격 애니 적만 기록됐다.
+  - 원거리 적·발사체 정보가 없다.
+- 고침: 샘플마다 표적 정체·8 m 안 모든 캐릭터·원거리 위협을 기록하고, 새 class `outcome_attribution_unconfirmed`와 `attribution_reasons`를 둔다.
+- 남은 한계: 발사체를 읽지 않으므로 지금 장치로는 모든 complete 창이 `ranged_threat_unknown` → primary 0. 원거리 종류는 봇 표(`souls/foes.py`)의 믿음이다.
+ ([cloud]는 비공개 게시판에 못 닿음)
 
 형식: `- 날짜 [cloud→게시판] 내용` / `- 날짜 [게시판→cloud] 내용`. 옮겼거나 처리했으면 끝에 `→ 옮김`·`→ 처리`. 지워지지 않게 위에서 아래로 쌓는다.
 

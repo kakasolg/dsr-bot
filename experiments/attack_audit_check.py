@@ -9,10 +9,14 @@ audit data. The radar is used only for the pad-input correlation — it never fi
 Every issued seq must be explained (written / dropped / lost), and every attack invocation gets exactly one class
 (attack_audit.CLASSES), first match in this order:
   dropped · missing · no_attack · ambiguous · outcome_overlap · outcome_unobserved_fight_end · outcome_incomplete ·
-  input_unconfirmed · primary
+  outcome_attribution_unconfirmed · input_unconfirmed · primary
 The outcome status is recomputed here from the raw samples (attack_audit.outcome_status) and from the other invocations of
 the same fight — the bot's own label is not trusted; the stricter of the two wins. Every reason that applies is also
 listed (reasons), so the exclusion table counts all of them, not only the first.
+outcome_incomplete = the time samples don't cover the window. outcome_attribution_unconfirmed = they do, but the samples
+can't show which enemy / threat the hit (or no hit) belongs to (attack_audit.attribution_status; reasons in
+attribution_reasons). Records written before schema 0.3 lack the per-sample context and never pass (P-37).
+Primary is expected to be very rare or 0: the point is to keep only the few cases whose attribution can be shown.
 """
 from __future__ import annotations
 
@@ -148,7 +152,7 @@ def check(recs: list, onsets: list | None = None, allow_chained: bool = False, l
         schema_bad = any(ev.get(k) != v for k, v in ids.items()) or not sha_ok
         if schema_bad:
             reasons.append("schema_mismatch")
-        status = None
+        status, att = None, []
         if oc is not None:
             exit_w = ev["rule_exit_time"]["wall"]
             overlaps = list(oc.get("overlaps") or [])
@@ -163,7 +167,15 @@ def check(recs: list, onsets: list | None = None, allow_chained: bool = False, l
             st, oreasons, cov = AA.outcome_status(w.get("samples") or [], ended, overlaps)
             bot = oc.get("outcome_status") or "complete"
             status = max(st, bot if bot in STRICT else "incomplete", key=STRICT.index)
-            reasons += [x for x in oreasons + list(oc.get("outcome_reasons") or []) if x not in reasons]
+            for x in oreasons + list(oc.get("outcome_reasons") or []):        # once each (P-36)
+                if x not in reasons:
+                    reasons.append(x)
+            tgt = ev.get("target") or {}
+            ref = {"handle": tgt.get("handle"), "npc": tgt.get("npc")} if tgt else oc.get("target_ref")
+            att, _ = AA.attribution_status(w.get("samples") or [], ref, (header or {}).get("observes"))
+            for x in list(oc.get("attribution_reasons") or []):
+                if x not in att:
+                    att.append(x)
         else:
             reasons.append("outcome_dropped" if ev["event_id"] in gone_outcome else "outcome_missing")
         span_end = oc["seq"] if oc else last
@@ -183,11 +195,14 @@ def check(recs: list, onsets: list | None = None, allow_chained: bool = False, l
             cls = "outcome_unobserved_fight_end"
         elif status == "incomplete":
             cls = "outcome_incomplete"
+        elif att:
+            cls = "outcome_attribution_unconfirmed"
         elif cor["input_correlation"] != "confirmed":
             cls = "input_unconfirmed"
         else:
             cls = "primary"
-        put(ev["event_id"], ev["rec"], ev.get("rule"), cls, reasons, {"outcome_status": status, **cor})
+        put(ev["event_id"], ev["rec"], ev.get("rule"), cls, reasons + [a for a in att if a not in reasons] if status == "complete" else reasons,
+            {"outcome_status": status, "attribution_reasons": att, **cor})
     hits_in_audit = sum(len(r.get("hits") or []) for r in recs if r.get("rec") in DECISION_RECS)
     n_inv = len(rows)
     return {"disclaimer": "outcome proxy, not human-verified tactical label, not a safety validation",

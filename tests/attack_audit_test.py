@@ -486,15 +486,23 @@ def test_checker() -> None:
 
 
 # ── P-35: conservative outcome windows ──
-class _Case:
-    """One fight (t0 100), fake clock: attack invocations and later ticks at chosen times after the rule returned."""
+DEFAULT_OTHERS = ((3, 255000, (2.0, -49.4, 3.0), 75, -1),)     # an idle shield soldier 3.6 m away (alive → attack-capable candidate)
 
-    def __init__(self, sink=None):
+
+class _Case:
+    """One fight (t0 100), fake clock: attack invocations and later ticks at chosen times after the rule returned.
+    others: (ptr, npc, pos, hp, anim) of the non-targets in every tick. sees_projectiles: pretend a future device that also
+    reads projectiles (header 'observes' and the bot side) — the only way a window can reach primary in a test (P-37)."""
+
+    def __init__(self, sink=None, others=DEFAULT_OTHERS, sees_projectiles=False):
         self.clock = {"ns": 0}
         self.sink = sink or MemorySink()
+        self.others = others
+        self.observes = dict(AA.OBSERVES, projectiles=sees_projectiles)
         self.tap = AA.DecisionTap(self.sink, "case", clock=lambda: self.clock["ns"],
                                   wall=lambda: 1000.0 + self.clock["ns"] / 1e9)
         self.exit_ns = None
+        self.target_npc = {}                                 # dt → npc for the target pointer from then on
 
     def attack(self, rule="attack", hits=None, ptr=2):
         F, T = _fake_ft()
@@ -510,18 +518,32 @@ class _Case:
         self.clock["ns"] = max(self.clock["ns"], self.exit_ns + int(dt * 1e9))
         w = World(player=(0.0, -49.4, 0.0), sp=90)
         if target:
-            w.add(2, 0x1002, 254000, (0.0, -49.4, 1.0), hp=40, anim=3500)
-        w.add(3, 0x1003, 255000, (2.0, -49.4, 3.0), hp=75, anim=-1)
+            npc = next((n for t, n in sorted(self.target_npc.items(), reverse=True) if dt >= t), 254000)
+            w.add(2, 0x1002, npc, (0.0, -49.4, 1.0), hp=40, anim=3500)
+        for optr, onpc, pos, hp, anim in self.others:
+            w.add(optr, 0x1000 + optr, onpc, pos, hp=hp, anim=anim)
         s = w.snapshot(40.0)
         F = SimpleNamespace(t0=100.0, ptr=ptr)
-        self.tap.sensed(F, SimpleNamespace(s=s))
+        saved, AA.OBSERVES = AA.OBSERVES, self.observes
+        try:
+            self.tap.sensed(F, SimpleNamespace(s=s))
+        finally:
+            AA.OBSERVES = saved
 
     def end(self, result="killed"):
-        self.tap.end(SimpleNamespace(t0=100.0), SimpleNamespace(result=result, vs=254000))
+        saved, AA.OBSERVES = AA.OBSERVES, self.observes
+        try:
+            self.tap.end(SimpleNamespace(t0=100.0), SimpleNamespace(result=result, vs=254000))
+        finally:
+            AA.OBSERVES = saved
 
     def records(self, sink_recs=None):
-        recs = [AA.run_header("case", "test", {}, "axe", "guard")]
-        ft = self.tap.footer()
+        recs = [dict(AA.run_header("case", "test", {}, "axe", "guard"), observes=self.observes)]
+        saved, AA.OBSERVES = AA.OBSERVES, self.observes
+        try:
+            ft = self.tap.footer()
+        finally:
+            AA.OBSERVES = saved
         recs += (sink_recs if sink_recs is not None else self.sink.recs) + [ft]
         for i, r in enumerate(recs):
             r["file_seq"] = i
@@ -547,8 +569,8 @@ def test_outcome_windows() -> None:
     attempt inside it, a target switch, the run ending — each lands in exactly one class; fight_end is never complete."""
     cases = {}
 
-    def run(name, build, pad=True):
-        c = _Case()
+    def run(name, build, pad=True, clean=False):
+        c = _Case(others=(), sees_projectiles=True) if clean else _Case()
         build(c)
         res, recs = c.check(pad)
         first = res["rows"][0] if res["rows"][0]["rec"] in CHK.DECISION_RECS else next(r for r in res["rows"] if r["rec"] in CHK.DECISION_RECS)
@@ -559,12 +581,14 @@ def test_outcome_windows() -> None:
     assert run("1 sample + fight end", lambda c: (c.attack(), c.tick(0.1), c.end())) == "outcome_unobserved_fight_end"
     assert run("2 samples + fight end", lambda c: (c.attack(), c.tick(0.1), c.tick(0.2), c.end())) == "outcome_unobserved_fight_end"
     assert run("0.9 s covered + fight end", lambda c: (c.attack(), _full(c, 0.9), c.end())) == "outcome_unobserved_fight_end"
-    assert run("full window", lambda c: (c.attack(), _full(c))) == "primary"
-    assert run("full window, no pad", lambda c: (c.attack(), _full(c)), pad=False) == "input_unconfirmed"
-    assert run("full window then fight end", lambda c: (c.attack(), _full(c, 1.0), c.end())) == "primary"
+    # time-complete windows reach primary only with a clean context and a (hypothetical) projectile-reading device — P-37
+    assert run("full window", lambda c: (c.attack(), _full(c)), clean=True) == "primary"
+    assert run("full window, no pad", lambda c: (c.attack(), _full(c)), pad=False, clean=True) == "input_unconfirmed"
+    assert run("full window then fight end", lambda c: (c.attack(), _full(c, 1.0), c.end()), clean=True) == "primary"
+    assert run("full window, this device", lambda c: (c.attack(), _full(c))) == "outcome_attribution_unconfirmed"
     assert run("0.4 s gap", lambda c: (c.attack(), _full(c, skip=(0.3, 0.4, 0.5)))) == "outcome_incomplete"
     assert run("target lost", lambda c: (c.attack(), _full(c, lost_at=0.5))) == "outcome_incomplete"
-    assert run("second attack at 0.3 s", lambda c: (c.attack(), c.tick(0.1), c.tick(0.2), c.attack(), _full(c))) == "outcome_overlap"
+    assert run("second attack at 0.3 s", lambda c: (c.attack(), c.tick(0.1), c.tick(0.2), c.attack(), _full(c)), clean=True) == "outcome_overlap"
     assert run("backstab try at 0.3 s", lambda c: (c.attack(), c.tick(0.1), c.attack(rule="backstab", hits=[]), _full(c))) == "outcome_overlap"
     assert run("target switch at 0.5 s", lambda c: (c.attack(), _full(c, switch_at=0.5))) == "outcome_overlap"
     assert run("run ends", lambda c: (c.attack(), c.tick(0.1), c.tick(0.2))) == "outcome_incomplete"
@@ -586,6 +610,89 @@ def test_outcome_windows() -> None:
             if row["event_id"] in bot and row["class"] in ("primary", "input_unconfirmed"):
                 assert bot[row["event_id"]] == "pending_input_check", (name, row)
     print(f"ok  {len(cases)} outcome-window cases: " + ", ".join(f"{k} → {v[0]}" for k, v in cases.items()))
+
+
+def test_attribution() -> None:
+    """P-37: a time-complete window is primary only if every sample shows the same target (handle + npc), every other
+    character within 8 m is dead / asleep / not hostile, no ranged or unknown-type enemy is alive anywhere in the snapshot,
+    nothing alive is outside the 8 m radius, and the device reads projectiles. Otherwise outcome_attribution_unconfirmed."""
+    def far(ptr, npc, d, hp=75, anim=-1):
+        return (ptr, npc, (0.0, -49.4, d), hp, anim)
+    cases = {}
+
+    def run(name, others=(), sees=True, build=None):
+        c = _Case(others=others, sees_projectiles=sees)
+        (build or (lambda c: (c.attack(), _full(c))))(c)
+        res, recs = c.check()
+        row = next(r for r in res["rows"] if r["rec"] in CHK.DECISION_RECS)
+        bot = c.tap.inv_class[row["event_id"]]
+        assert res["explained"] and sum(res["classes"].values()) == res["invocations"], name
+        assert bot == (row["class"] if row["class"] != "primary" else "pending_input_check"), (name, bot, row)   # same verdict
+        cases[name] = (row["class"], row["attribution_reasons"])
+        return row["class"], row["attribution_reasons"]
+
+    def changed(c):
+        c.attack()
+        c.target_npc[0.5] = 254002                                       # same pointer, another npc from 0.5 s
+        _full(c)
+
+    assert run("clean (hypothetical projectile device)") == ("primary", [])
+    cls, why = run("complete, this device (projectiles not read)", sees=False)
+    assert cls == "outcome_attribution_unconfirmed" and why == ["ranged_threat_unknown"], why
+    cls, why = run("target npc changes mid-window", build=changed)
+    assert cls == "outcome_attribution_unconfirmed" and "target_identity_changed" in why, why
+    cls, why = run("live non-target within 8 m", others=DEFAULT_OTHERS)
+    assert cls == "outcome_attribution_unconfirmed" and why == ["other_attack_capable_enemy_within_8m"], why
+    assert run("dead + asleep non-targets within 8 m", others=((3, 254000, (2.0, -49.4, 3.0), 0, 2255),
+                                                                (4, 254000, (-2.0, -49.4, 4.0), 75, 9001))) == ("primary", [])
+    cls, why = run("observed crossbowman at 15 m", others=(far(5, 255002, 15.0),))
+    assert cls == "outcome_attribution_unconfirmed" and {"ranged_threat_present", "enemy_outside_observation_radius"} <= set(why), why
+    cls, why = run("unknown-type enemy at 12 m", others=(far(6, 999999, 12.0),))
+    assert cls == "outcome_attribution_unconfirmed" and "ranged_threat_unknown" in why, why
+    cls, why = run("sword hollow at 20 m", others=(far(7, 254000, 20.0),))
+    assert cls == "outcome_attribution_unconfirmed" and why == ["enemy_outside_observation_radius"], why
+    # the same clean window with its per-sample context stripped (old format) or broken never passes
+    c = _Case(others=(), sees_projectiles=True)
+    c.attack()
+    _full(c)
+    res, recs = c.check()
+    assert res["classes"]["primary"] == 1
+    for k, drop in (("old format (no target/others per sample)", ("target", "others_8m", "outside", "ranged")),
+                    ("context error in one sample", ())):
+        bad = json.loads(json.dumps(recs))
+        for o in bad:
+            if o.get("rec") == "attack_outcome":
+                for i, smp in enumerate(o["window"]["samples"]):
+                    for f in drop:
+                        smp.pop(f, None)
+                    if not drop and i == 3:
+                        smp["ctx_error"] = "boom"
+                o["attribution_reasons"] = []                   # the bot's own verdict is not trusted either
+        ev = [r for r in bad if r.get("rec") in CHK.DECISION_RECS]
+        r2 = CHK.check(bad, [((e["rule_enter_time"]["wall"] + e["rule_exit_time"]["wall"]) / 2, "RB") for e in ev])
+        row = next(r for r in r2["rows"] if r["rec"] in CHK.DECISION_RECS)
+        assert row["class"] == "outcome_attribution_unconfirmed", (k, row)
+        cases[k] = (row["class"], row["attribution_reasons"])
+    assert "target_identity_missing_per_sample" in cases["old format (no target/others per sample)"][1]
+    assert "other_enemy_context_incomplete" in cases["context error in one sample"][1]
+    print(f"ok  {len(cases)} attribution cases: " + "; ".join(f"{k} → {v[0]} {v[1]}" for k, v in cases.items()))
+
+
+def test_o2_event9_not_primary() -> None:
+    """The ramp re-validation run (schema 0.2): event :9 covered its 1.0 s window and its pad press was confirmed, but the
+    samples have no per-sample target identity or 8 m context → outcome_attribution_unconfirmed, never primary (P-37)."""
+    recs = CHK.load(ROOT / "data" / "samples" / "clear-ramp-audit-2026-10-02-o2.attack_audit.jsonl")
+    ev = [r for r in recs if r.get("rec") in CHK.DECISION_RECS]
+    onsets = [((r["rule_enter_time"]["wall"] + r["rule_exit_time"]["wall"]) / 2, "RB") for r in ev for _ in range(r["presses_reported"])]
+    res = CHK.check(recs, onsets)
+    assert res["explained"] and res["invocations"] == 6
+    row = next(r for r in res["rows"] if r["event_id"].endswith(":9"))
+    assert row["outcome_status"] == "complete" and row["input_correlation"] == "confirmed"
+    assert row["class"] == "outcome_attribution_unconfirmed", row
+    assert {"target_identity_missing_per_sample", "other_enemy_context_incomplete"} <= set(row["attribution_reasons"])
+    assert res["classes"]["primary"] == 0 and res["classes"]["ambiguous"] == 4 and res["classes"]["outcome_unobserved_fight_end"] == 1
+    assert res["primary_exclusion_reasons"]["fight_end"] == 5                 # each reason once per invocation (P-36)
+    print(f"ok  o2 re-checked: {res['classes']}; :9 → {row['class']} {row['attribution_reasons']}")
 
 
 def test_old_fight_end_not_complete() -> None:

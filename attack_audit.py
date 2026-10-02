@@ -22,6 +22,12 @@ Outcome status (P-35, outcome_status()): complete only when the bot's own tick s
 returned (no stretch > MAX_SAMPLE_GAP_S) with nothing else in it. A fight ending inside the window → unobserved_fight_end;
 another attack-rule invocation / target switch / new fight inside it → overlap; gaps, target out of view, run end →
 incomplete. The radar never fills a window. Classes per invocation: CLASSES (settled by experiments/attack_audit_check.py).
+
+Attribution (P-37, attribution_status()): a time-complete window is still not primary unless every sample shows the same
+target (handle + npc) and accounts for every other character within OTHERS_R (a minimum observation radius, not a safety
+radius — nothing outside it is assumed safe), no ranged / unknown-type enemy is alive anywhere, nothing alive is outside the
+radius, and the device reads projectiles (it doesn't: OBSERVES) → otherwise outcome_attribution_unconfirmed with
+attribution_reasons. Primary is expected to be very rare or 0 — the point is to keep only cases whose attribution can be shown.
 """
 from __future__ import annotations
 
@@ -35,7 +41,7 @@ from pathlib import Path
 
 import laya_shadow as LS
 
-SCHEMA = "dsr-attack-audit/0.2"     # 0.2: conservative outcome status (P-35)
+SCHEMA = "dsr-attack-audit/0.3"     # 0.2: conservative outcome status (P-35) · 0.3: per-sample attribution context (P-37)
 PROXY = "outcome proxy, not human-verified tactical label, not a safety validation"
 DISCLAIMER = {"kind": "outcome proxy, not human-verified tactical label", "not": "not a safety validation",
               "use": "never human_verified, a train target or a final test label",
@@ -46,8 +52,17 @@ POST_S = 1.0
 MAX_SAMPLE_GAP_S = 0.25         # an outcome window counts as observed only if no stretch of it (from the rule's return) is longer than this
 # one class per attack invocation (experiments/attack_audit_check.py; the bot side can't see the pad, so it never says primary)
 CLASSES = ("primary", "ambiguous", "no_attack", "missing", "dropped", "input_unconfirmed",
-           "outcome_unobserved_fight_end", "outcome_overlap", "outcome_incomplete")
+           "outcome_unobserved_fight_end", "outcome_overlap", "outcome_incomplete", "outcome_attribution_unconfirmed")
+# OTHERS_R: 표적 외 적을 샘플마다 기록하는 최소 관측 반경. "밖이면 안전"이라는 안전 반경이 아니다 —
+# 범위 밖은 안전하다고 추정하지 않는다 (P-37). primary를 보수적으로 빼기 위한 관측 범위일 뿐이다.
 OTHERS_R = 8.0
+HOSTILE_TEAMS = (6, 7, 24, 25, 27, 33)      # telemetry.Snapshot.hostile
+# What this device can observe at all — the checker reads it from the header. Projectiles (arrows, firebombs) are not read
+# from the game, so their presence/position can never be settled: every window gets ranged_threat_unknown (P-37).
+OBSERVES = {"projectiles": False, "others_radius_m": OTHERS_R, "outside_radius": "summary only (count, nearest), never assumed safe"}
+ATTRIBUTION_REASONS = ("target_identity_missing_per_sample", "target_identity_changed", "other_enemy_context_incomplete",
+                       "other_attack_capable_enemy_within_8m", "ranged_threat_present", "ranged_threat_unknown",
+                       "projectile_observed", "enemy_outside_observation_radius")
 ATTACKER_R = 3.5
 MAX_SAMPLES = 60
 _STOP = object()
@@ -91,6 +106,100 @@ def outcome_status(samples: list, ended, overlaps: list, post_s: float = POST_S,
 
 STATUS_CLASS = {"complete": "pending_input_check", "unobserved_fight_end": "outcome_unobserved_fight_end",
                 "overlap": "outcome_overlap", "incomplete": "outcome_incomplete"}
+
+# Static provenance of the per-sample context (written once per outcome window).
+CONTEXT_PROVENANCE = {
+    "source": "T.s — the snapshot the bot read on that tick (no radar, nothing filled in)",
+    "target": "looked up by pointer; identity = same handle (ptr#fight gen) and same npc as at the invocation",
+    "others_8m": f"every character other than the target within {OTHERS_R} m horizontal — a minimum observation radius, not a safety radius",
+    "outside_radius": "alive hostiles beyond it: count and nearest distance only; never assumed safe",
+    "ranged": "alive hostile non-targets at any distance in the snapshot whose type is ranged (souls/foes.py ranged flag — the bot's "
+              "belief, uncorrected) or unknown (npc not in the table)",
+    "projectiles": "not observed by this device (no game read) — presence/position unknown",
+    "dead": "hp <= 0 (death animation ids are not verified, so they are not used)",
+    "asleep": "anim 9000–9099",
+    "attack_capable_candidate": "conservative candidate only: hostile team, hp > 0, not asleep — NOT proof it could hit within the window",
+    "snapshot_completeness": "only characters the game had loaded and the bot could read are listed",
+}
+
+
+def _enemy_row(x, p, gen) -> dict:
+    """One character as the sample sees it. attack_capable_candidate is a conservative flag, not a proof of a possible hit."""
+    from souls import foes as FO
+    from souls import moves as M
+    anim = x.anim
+    hp = x.hp
+    hostile = x.team in HOSTILE_TEAMS
+    asleep = anim is not None and 9000 <= anim < 9100
+    dead = hp is None or hp <= 0
+    ranged = FO.BY_NPC[x.npc_param].ranged if x.npc_param in FO.BY_NPC else None     # None = type unknown
+    basis = [("hostile_team" if hostile else f"team_{x.team}_not_hostile"), ("dead_hp<=0" if dead else "hp>0"),
+             ("asleep" if asleep else "not_asleep")]
+    return {"handle": f"{x.ptr:#x}#{gen}", "npc": x.npc_param, "team": x.team, "hp": hp, "anim": anim,
+            "d": round(_horiz(p, x), 2), "dy": round(x.y - p.y, 2), "asleep": asleep, "dead": dead, "observed": True,
+            "ranged_type": ranged, "attack_anim": anim is not None and anim in M.ATTACK,
+            "attack_capable_candidate": hostile and not dead and not asleep, "basis": basis}
+
+
+def sample_context(s, p, target_ptr, gen) -> dict:
+    """Per-sample attribution context (schema 0.3): the target's identity and every other character the window must account for."""
+    c = next((x for x in s.chars if x.ptr == target_ptr), None)
+    target = None
+    if c is not None:
+        target = {k: v for k, v in _enemy_row(c, p, gen).items() if k in ("handle", "npc", "hp", "anim", "d", "dy", "attack_anim")}
+    others, ranged, outside = [], [], {"hostile_alive": 0, "nearest_m": None}
+    for x in s.chars:
+        if x.ptr == target_ptr:
+            continue
+        row = _enemy_row(x, p, gen)
+        if row["d"] < OTHERS_R:
+            others.append(row)
+        elif x.team in HOSTILE_TEAMS and not row["dead"]:
+            outside["hostile_alive"] += 1
+            if outside["nearest_m"] is None or row["d"] < outside["nearest_m"]:
+                outside["nearest_m"] = row["d"]
+        if x.team in HOSTILE_TEAMS and not row["dead"] and row["ranged_type"] is not False:
+            ranged.append({k: row[k] for k in ("handle", "npc", "hp", "anim", "d", "dy", "asleep", "ranged_type", "attack_anim")})
+    return {"target": target, "others_8m": others, "outside": outside, "ranged": ranged, "projectiles": None}
+
+
+def attribution_status(samples: list, target_ref: dict | None, observes: dict | None):
+    """→ (reasons, detail). Empty reasons only when every sample proves the target's identity and that nothing else could
+    have hit (or been hit) in the window. Bot and checker both use this; old records without the fields never pass."""
+    reasons, detail = [], {"handles": {}}
+
+    def add(r, who=None):
+        if r not in reasons:
+            reasons.append(r)
+        if who is not None:
+            detail["handles"].setdefault(r, [])
+            if who not in detail["handles"][r] and len(detail["handles"][r]) < 10:
+                detail["handles"][r].append(who)
+    if not target_ref or not target_ref.get("handle") or target_ref.get("npc") is None:
+        add("target_identity_missing_per_sample")
+    if not samples:
+        add("other_enemy_context_incomplete")
+    for x in samples:
+        if "target" not in x:
+            add("target_identity_missing_per_sample")
+        elif x["target"] is not None and target_ref and (x["target"].get("handle") != target_ref.get("handle")
+                                                          or x["target"].get("npc") != target_ref.get("npc")):
+            add("target_identity_changed", x["target"].get("handle"))
+        if not all(k in x for k in ("others_8m", "outside", "ranged")) or x.get("ctx_error"):
+            add("other_enemy_context_incomplete")
+            continue
+        for o in x["others_8m"]:
+            if o.get("attack_capable_candidate") is not False:          # missing flag counts as capable
+                add("other_attack_capable_enemy_within_8m", o.get("handle"))
+        for r in x["ranged"]:
+            add("ranged_threat_present" if r.get("ranged_type") is True else "ranged_threat_unknown", r.get("handle"))
+        if (x["outside"] or {}).get("hostile_alive"):
+            add("enemy_outside_observation_radius")
+        if x.get("projectiles"):
+            add("projectile_observed")
+    if not (observes or {}).get("projectiles"):
+        add("ranged_threat_unknown", "projectiles_not_observable")
+    return reasons, detail
 
 
 def _horiz(a, b) -> float:
@@ -413,7 +522,8 @@ class DecisionTap:
             if amb:
                 self._classify(rec["event_id"], "ambiguous", amb)
             self._pending.append({"event_id": rec["event_id"], "ptr": c.ptr, "gen": gen, "fight_t0": tok["fight_t0"],
-                                  "exit_ns": exit_ns, "hits": rec["hits"], "samples": [], "overlaps": []})
+                                  "exit_ns": exit_ns, "hits": rec["hits"], "samples": [], "overlaps": [],
+                                  "target_ref": {"handle": handle(c), "npc": c.npc_param}})
             return pay
         except Exception as e:
             self._err(e)
@@ -448,9 +558,13 @@ class DecisionTap:
                        for x in s.hostile(ATTACKER_R + 2.0) if (x.anim if x.anim is not None else -1) in M.ATTACK
                        and _horiz(p, x) < ATTACKER_R]
                 if len(pe["samples"]) < MAX_SAMPLES:
-                    pe["samples"].append({"dt_s": round(dt, 3), "snap_t": s.t, "hp": p.hp, "target_present": c is not None,
-                                          "target_anim": c.anim if c else None, "target_hp": c.hp if c else None,
-                                          "attackers_3_5m": att})
+                    smp = {"dt_s": round(dt, 3), "snap_t": s.t, "hp": p.hp, "target_present": c is not None,
+                           "target_anim": c.anim if c else None, "target_hp": c.hp if c else None, "attackers_3_5m": att}
+                    try:
+                        smp.update(sample_context(s, p, pe["ptr"], pe["gen"]))
+                    except Exception as e:                   # the sample stays, its context is marked missing
+                        smp["ctx_error"] = repr(e)[:120]
+                    pe["samples"].append(smp)
                 if dt >= POST_S:
                     self._finish(pe, ended=None)
         except Exception as e:
@@ -471,8 +585,14 @@ class DecisionTap:
         self._pending.remove(pe)
         smp = pe["samples"]
         status, reasons, cov = outcome_status(smp, ended, pe["overlaps"])
-        self._classify(pe["event_id"], STATUS_CLASS[status], reasons)
+        att_reasons, att_detail = attribution_status(smp, pe.get("target_ref"), OBSERVES)
+        cls = STATUS_CLASS[status]
+        if status == "complete" and att_reasons:             # time window complete, but who hit whom is not settled
+            cls = "outcome_attribution_unconfirmed"
+        self._classify(pe["event_id"], cls, reasons + (att_reasons if status == "complete" else []))
         self._put(self._ev("attack_outcome", event_id=pe["event_id"], proxy=PROXY, outcome_status=status, outcome_reasons=reasons,
+                           attribution_reasons=att_reasons, attribution_detail=att_detail, target_ref=pe.get("target_ref"),
+                           context_provenance=CONTEXT_PROVENANCE,
                            hit=pe["hits"], overlaps=pe["overlaps"],
                            window={"post_s": POST_S, "max_gap_s": MAX_SAMPLE_GAP_S, "samples": smp, "coverage": cov,
                                    "complete": status == "complete", "duel_ended_in_window": ended not in (None, "run_end"),
@@ -537,5 +657,5 @@ def run_header(run_id: str, mission: str, args: dict, weapon: str | None, style:
             **LS.schema_ids(), "mission": mission, "args": args, "weapon": weapon, "style": style,
             "clock": {"mono": "time.monotonic_ns", "wall": "time.time", "snapshot": "Snapshot.t (time.time at the bot's read)"},
             "record_kind": "attack_rule_invocation_snapshot — inputs frozen before the attack rule was invoked; not the exact button press",
-            "laya_inference": False, "bot_behavior_changed": False,
+            "laya_inference": False, "bot_behavior_changed": False, "observes": OBSERVES,
             "purpose": run_purpose()}

@@ -425,3 +425,39 @@ P-34(레이더 재구성 감사, 게이트 불합격)의 옛 데이터는 불합
   - footer에 봇 쪽 분류 수와 제외 사유를 남긴다.
 - **첫 경사로 실행(0.1) 재분류**: primary 3 → `outcome_unobserved_fight_end` 3. 나머지 ambiguous 4. primary는 0이다.
 - freeze 위치와 스냅샷 방식은 바꾸지 않았다. 경사로 실측 freeze p95 170.7 µs는 관찰값으로만 둔다.
+
+### 17.2 P-37 — 결과 귀속을 증명할 수 없으면 primary 아님 (2026-10-02, 스키마 `dsr-attack-audit/0.3`, [MoKa] 결정)
+- **이 장치의 목적**: 많은 공격을 "안전했다"고 판정하는 것이 아니다. 귀속을 증명할 수 있는 극소수 사례만 outcome-proxy 분석에 남긴다. **primary는 매우 드물거나 0일 수 있다.**
+- **primary 조건 (모두 만족)**:
+  - 1.0 s 창을 audit 샘플이 덮는다 (17.1).
+  - 매 샘플에서 표적이 같은 handle#epoch와 npc다.
+  - pad 입력이 확인된다.
+  - chained / multi / reflex / backstab / target-lost / overlap / missing이 아니다.
+  - 8 m 안의 다른 캐릭터가 모두 죽었거나(HP ≤ 0) 잠들었거나(애니 9000–9099) 적 팀이 아니다.
+  - 스냅샷 어디에도 살아 있는 원거리 적이나 종류를 모르는 적이 없다.
+  - 8 m 밖에 살아 있는 적이 없다.
+  - 장치가 발사체를 관측한다.
+- **8 m (`OTHERS_R`)**: primary를 보수적으로 빼기 위한 **최소 관측 반경**이다. "밖이면 안전"이라는 안전 반경이 아니다. 기록 범위 밖은 안전하다고 추정하지 않는다. 8 m 밖의 원거리 적을 거리만으로 공격 불가능하다고 보지 않는다.
+- **attack_capable_candidate**: 적 팀, HP > 0, 잠들지 않음. 보수적 후보 표시일 뿐이며, 실제로 즉시 칠 수 있었다는 증명이 아니다. 사망 애니메이션 번호는 검증되지 않아 쓰지 않고 HP ≤ 0으로만 본다.
+- **샘플마다 남기는 것**:
+  - 표적: handle#epoch, npc, HP, 애니, 거리, 높이, `target_present`
+  - 8 m 안 모든 캐릭터: handle#epoch, npc, 팀, HP, 애니, 거리, 높이, asleep, dead, observed, ranged_type, attack_anim, attack_capable_candidate와 근거(basis)
+  - 8 m 밖: 살아 있는 적 수와 가장 가까운 거리 (요약만)
+  - 원거리 위협: 거리와 상관없이 살아 있는 원거리·종류 불명 적. 종류는 `souls/foes.py`의 `ranged` 표시(봇의 믿음, 고치지 않은 값)이고, 표에 없는 npc는 불명이다.
+  - 발사체: `null` = 관측 안 함
+  - 출처·누락·추정 여부: 창마다 `context_provenance`, header의 `observes`
+- **분류**: class를 하나 더한다 → `outcome_attribution_unconfirmed`. 세부는 `attribution_reasons` 배열에 남긴다:
+  - `target_identity_missing_per_sample`
+  - `target_identity_changed`
+  - `other_enemy_context_incomplete`
+  - `other_attack_capable_enemy_within_8m`
+  - `ranged_threat_present`
+  - `ranged_threat_unknown`
+  - `projectile_observed`
+  - `enemy_outside_observation_radius`
+- **두 class의 경계**: `outcome_incomplete`는 시간 샘플이 창을 덮지 못한 경우에만 쓴다. `outcome_attribution_unconfirmed`는 시간 창은 완전한데 피격/무피격을 어느 적·어느 위협에 돌릴 수 없는 경우에만 쓴다.
+  - 순서: dropped · missing · no_attack · ambiguous · outcome_overlap · outcome_unobserved_fight_end · outcome_incomplete · outcome_attribution_unconfirmed · input_unconfirmed · primary
+- **현재 장치는 발사체(화살·화염병)를 읽지 않는다** (`observes.projectiles = false`). 그래서 시간 창이 완전한 모든 공격에 `ranged_threat_unknown`이 붙고, **지금 장치로는 primary가 구조적으로 0이다.** primary가 가능하려면 발사체 관측(게임 읽기 추가)이 별도 승인으로 필요하다. 테스트는 그런 장치를 가정한 header로만 primary 경로를 확인한다.
+- **옛 데이터**: 스키마 0.3 전 기록은 샘플별 필드가 없어 primary로 소급하지 않는다. 원본 파일은 그대로 두고, 점검기 결과에서만 새 분류를 쓴다.
+  - o2 `:9`: 시간 창 complete, pad confirmed → `outcome_attribution_unconfirmed` (target_identity_missing_per_sample, other_enemy_context_incomplete, ranged_threat_unknown)
+- 점검기는 봇이 적은 귀속 사유를 믿지 않고 원시 샘플로 다시 계산해 합친다. 같은 사유는 한 번만 센다 (P-36 고침).
