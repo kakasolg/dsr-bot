@@ -208,7 +208,10 @@ Laya가 싸움 상태를 보고 이미 있는 전술 후보 중 하나를 고르
 - [x] [win] 라벨 의미 점검 ([MoKa] 2026-10-01, LAYA.md 11.6): 실제 행동·가능 행동·판단을 분리 — 관측 행동은 원래 기록 말로, 후보 아님마다 이유(`not_in_bot`/`rule_blocked`/`unobserved`, `laya_shadow.why_not`), 라벨 0.2에 '맞는 것 없음'·'모델 입력 부족', 1차 라벨 보존(결과는 1차 저장 뒤에만, 이후 저장은 수정 이력), 추정값 출처 표시. 누설 1건 고침: 1차 화면의 '사건'(미래에서 계산)이 11장면에 보였음. 구르기는 봇 전술로 안 넣음, 사람 B는 버튼 사실로만. 장면 ID·test 후보 그대로(40/40 대조). 확인: `tests/label_pilot_test.py` 5개, pytest 53, 봇·사람 장면 화면에서 저장(임시 폴더 `ui_trial`). 실제 라벨 파일 없음
 - [x] [MoKa] 파일럿 1~10 라벨 (`pilot_labels.jsonl`): 중앙 109 s/장면, 허용 집합 5~9개, "이 화면만 보고 확신이 없음" → 경사로 세트로 (LAYA.md 13)
 - [x] [win] 경사로 세트 준비 ([MoKa] 2026-10-01): `shots.py`(2 Hz 스크린샷, 포커스 안 건드림), `build --set ramp --radar …`(모든 싸움 1~2장면, 싸움 시작부터 재생, 스크린샷 붙임), 라벨 0.3(가장 좋은 것 하나 + 확신 필수). 확인: `tests/label_pilot_test.py` 6개, pytest 53, 옛 녹화로 build 시험(싸움 58 → 84장면), 화면 시험(임시 폴더). 봇은 안 돌림
-- [ ] [win] **[MoKa] 신호 뒤** `clear-ramp --basic --radar` ×5 + `radar_server.py` + `shots.py` → `build --set ramp` → [MoKa] 라벨
+- [x] [win] [MoKa] 신호 뒤 `clear-ramp --basic --radar` — **4번**([MoKa] 중단): 전부 cleared, r1 '주의'·r2~r4 '깨끗', **r3 = [MoKa] 기준 플레이** (LAYA.md 13). `build --set ramp` 24장면(싸움 17), `serve --set ramp --review-bot` (http://127.0.0.1:47814)
+- [ ] [MoKa] 경사로 24장면 라벨 (검토 모드: 봇 행동이 미리 채워짐, 틀린 것만 고침) → `python label_pilot.py report --set ramp`
+- [ ] [win] **#4 (254001) 분류 고치기** — [MoKa]: 방패 없이 도끼 양손 망자(근접), 지금 `foes.py`는 화염병 투척병(원거리). 고친 뒤 duel_golden 다시 찍기 (P-32로 기록)
+- [ ] [win] 실행 설정 파일 (`<run>.settings.json`: 커밋·수정 여부·인자·싸움 상수·장비·적 분류) — 커밋을 실행 시각으로 추정하지 않게. [MoKa] 결정 대기
 - [-] [MoKa] 파일럿 40장면 라벨 — 10장면에서 멈춤, 경사로 세트로 바꿈: `python label_pilot.py serve` → http://127.0.0.1:47811, 끝나면 `python label_pilot.py report` → 장면당 시간·판단 불가 비율·정의 메모로 test 300·학습 라벨 규모 확정
 - [ ] [MoKa]+[win] 평가용 사람 확인 라벨 300개 — 파일럿 결과 보고 규모 확정 뒤
 - [ ] [win] 실행 로그·섀도 행에 `code_commit`·구역·싸움 id

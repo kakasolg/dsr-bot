@@ -84,6 +84,7 @@
     <h2>관측 누락</h2>
     <div id="missing" class="note"></div>
 
+    <div id="prefillNote" class="box" style="display:none; border-color:var(--accent)"></div>
     <h2>그때 봇이 할 수 있던 것 중에서</h2>
     <div class="bar"><b>가장 좋은 것 하나</b><select id="best"></select></div>
     <div class="bar"><b>확신</b>
@@ -115,6 +116,7 @@
     <textarea id="defnote" maxlength="400" placeholder="(선택) 전술 정의가 모호했다면 무엇이"></textarea>
 
     <div class="bar" style="margin-top:10px">
+      <button id="okBot" style="display:none">봇 행동 맞음 — 그대로 저장</button>
       <button class="primary" id="save">저장</button>
       <button id="showAfter" disabled>이후 행동·결과 보기</button>
     </div>
@@ -169,7 +171,7 @@ function setStage(r) {
 function render(r) {
   const s = r.scene;
   $("meta").innerHTML = [["출처", s.source === "bot" ? "봇 실행" : "사람 시범"], ["실행", s.run_id], ["싸움", s.fight_id],
-    ["구역", s.segment || "구역 미정"], ["적", `${s.enemy.kind} (${s.enemy.npc})`],
+    ["구역", s.segment || "구역 미정"], ["적", `${s.enemy.kind} (${s.enemy.npc})${s.enemy.note ? " — " + s.enemy.note : ""}`],
     ["코드 커밋", s.code_commit ? s.code_commit + (s.code_commit_approx ? " (실행 시각 기준 추정)" : "") : "—"]]
     .map(([k, v]) => `<tr><td>${k}</td><td>${esc(v)}</td></tr>`).join("");
   const pv = s.obs_provenance || {};
@@ -183,7 +185,12 @@ function render(r) {
   const mk = Object.entries(pv).filter(([k]) => k.startsWith("mask."));
   $("missing").innerHTML = Object.entries(s.missing).map(([k, v]) => `<div><span class="miss">${OBS_KO[k] || k}</span>: ${esc(v)}</div>`).join("")
     + (mk.length ? `<div style="margin-top:4px">후보 계산에 쓴 가정·추정: ${mk.map(([k, p]) => `<span class="tag ${p.kind}" title="${esc(p.how)}">${esc(k.slice(5))}: ${KIND_KO[p.kind]}</span>`).join(" ")}</div>` : "");
-  const prev = r.label || {};
+  const pf = !r.label && r.prefill ? r.prefill : null;
+  const prev = r.label || (pf ? {best: pf.best, acceptable: pf.acceptable} : {});
+  $("prefillNote").style.display = r.prefill ? "" : "none";
+  $("prefillNote").innerHTML = r.prefill ? `<b>봇이 실제로 한 것으로 미리 채움</b> — 틀린 것만 고치고 저장. 봇 기록: ${esc(r.prefill.bot_logged)}`
+    + (r.label ? ` <span class="note">(이미 저장한 라벨을 보여 줌)</span>` : "") : "";
+  $("okBot").style.display = pf ? "" : "none";
   state = {};
   (prev.acceptable || []).forEach(t => state[t] = "acc");
   (prev.forbidden || []).forEach(t => state[t] = "forb");
@@ -271,6 +278,10 @@ async function save() {
 }
 
 $("save").onclick = save;
+$("okBot").onclick = () => {
+  if (!document.querySelector('input[name=conf]:checked')) document.querySelector('input[name=conf][value=high]').checked = true;
+  save();
+};
 $("showAfter").onclick = () => reveal(true);
 $("prev").onclick = () => openScene(idx - 1);
 $("next").onclick = () => openScene(idx + 1);

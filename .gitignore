@@ -29,3 +29,4 @@ data/labels/*
 !data/labels/*_scenes.jsonl
 !data/labels/*_labels.jsonl
 !data/labels/*_reveals.jsonl
+!data/labels/*_run_notes.jsonl

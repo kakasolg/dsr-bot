@@ -238,10 +238,37 @@ def test_one_scene_per_fight() -> None:
     print(f"ok  selection: {len(got)} scenes from {len(per_fight)} fights, ramp ≤ 8, ≤ 4 per run, reproducible")
 
 
+def test_review_bot_prefill() -> None:
+    """--review-bot: bot scenes open with what the bot did; the row says it was a review, what was pre-filled and
+    whether the labeler changed it. Human demos are never pre-filled (their buttons are not answers)."""
+    with tempfile.TemporaryDirectory() as d:
+        temp_files(Path(d))
+        L.REVIEW_BOT = True
+        try:
+            h = human_scene(Path(d))
+            assert L.bot_prefill(h) is None
+            b = dict(h, scene_id="botscene", source="bot",
+                     after={**h["after"], "bot_logged": "반사×3 기다림×7", "bot_action_as_tactic": {"guard": 3, "hold_position": 7}})
+            pf = L.bot_prefill(b)
+            assert pf["best"] == "hold_position" and pf["acceptable"] == ["guard", "hold_position"]
+            ok, same = L.save_label(payload(b, best="hold_position", acceptable=["guard"], forbidden=[], confidence="high"), b)
+            assert ok and same["mode"] == "review_bot" and same["changed_from_prefill"] is False, same
+            ok, fixed = L.save_label(payload(b, best="attack", acceptable=[], forbidden=[]), b)
+            assert ok and fixed["changed_from_prefill"] is True and fixed["prefill"]["best"] == "hold_position"
+            assert fixed["label_source"] == "human_verified"
+            ok, hrow = L.save_label(payload(h), h)
+            assert ok and hrow["mode"] == "blind" and "prefill" not in hrow
+        finally:
+            L.REVIEW_BOT = False
+            restore()
+    print("ok  review mode: pre-filled from the bot's action, confirmed vs corrected kept apart, human demos not pre-filled")
+
+
 if __name__ == "__main__":
     test_scene_separates_after()
     test_human_roll_is_not_evade()
     test_label_kinds_and_stage()
     test_why_not_covers_every_tactic()
     test_ramp_set_selection_and_shots()
+    test_review_bot_prefill()
     test_one_scene_per_fight()

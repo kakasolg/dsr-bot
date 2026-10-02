@@ -43,6 +43,18 @@ OUTSIDE_INPUT = {"terrain": "지형 (가장자리·벽·좁은 곳)", "my_anim":
                  "ai_range": "적 인식 범위 (AI ranges)", "replay_motion": "재생으로 본 움직임 (속도·방향)", "other": "기타"}
 UNSURE_REASONS = ("정보 부족", "화면으로 안 보임", "전술 정의가 애매", "기타")
 LABEL_SOURCE = "human_verified"   # serve --labels-dir (trying the page out) writes "ui_trial" instead — never counted
+REVIEW_BOT = False                 # serve --review-bot: bot scenes open pre-filled with what the bot did; the labeler fixes what's wrong
+
+
+def bot_prefill(scene: dict) -> dict | None:
+    """What the bot did in the second after t_d, as a starting answer ([MoKa] 2026-10-01: "아닌 것만 내가 변경") —
+    best = the tactic it spent most ticks on, acceptable = every tactic it did. None for human demos or when the bot's
+    log names map to no tactic."""
+    a = scene.get("after") or {}
+    done = {t: n for t, n in (a.get("bot_action_as_tactic") or {}).items() if t in LS.TACTICS}
+    if scene.get("source") != "bot" or not done:
+        return None
+    return {"best": max(done, key=done.get), "acceptable": sorted(done), "bot_logged": a.get("bot_logged", "")}
 PRE_S, POST_S, CONTEXT_S = 6.0, 4.0, 3.0
 HTTP_PORT = 47811
 SEED = 20261001
@@ -637,6 +649,33 @@ def build_scene(c: dict, msgs: list) -> dict:
             "selection": {"event": c["event"], "zone": zone, "kind": _kind(c.get("npc")), "result": result, "source": c["source"]}}
 
 
+# what MoKa says a foe is, where the bot's data (souls/foes.py) differs — shown to the labeler next to the bot's kind;
+# obs.target_kind stays the bot's belief (that is what the bot acted on)
+FOE_NOTE = {254001: "망자 — 방패 없이 도끼를 양손으로 잡고 공격 (MoKa 2026-10-01). 봇 데이터(foes.py)는 아직 화염병 투척병으로 분류"}
+
+
+def _tag_runs(scenes: list) -> None:
+    """Chosen-recording sets: which bot run (data/runs/<stamp>_<cmd>.log: start = stamp, end = last write) each scene is
+    from, and the test rule fixed before labeling — the set's last run is the test candidate."""
+    logs = []
+    for p in (ROOT / "data" / "runs").glob("*.log"):
+        try:
+            logs.append((_file_epoch(p.stem), p.stat().st_mtime, p.stem))
+        except ValueError:
+            pass
+    for s in scenes:
+        t = s.get("t_epoch")
+        hit = [stem for t0, t1, stem in logs if t is not None and t0 <= t <= t1 + 1.0]
+        s["bot_run"] = hit[0] if hit else None
+        s["run_id"] = s["bot_run"] or s["run_id"]
+        if s["enemy"]["npc"] in FOE_NOTE:
+            s["enemy"]["note"] = FOE_NOTE[s["enemy"]["npc"]]
+    runs = sorted({s["bot_run"] for s in scenes if s["bot_run"]})
+    for s in scenes:
+        s["test_candidate"] = bool(runs) and s["bot_run"] == runs[-1]
+        s["test_rule"] = "last bot run of the set (fixed before labeling)"
+
+
 FIGHT_LEAD_S, MAX_PRE_S = 2.0, 20.0   # chosen-recording sets: replay from the fight's start (− 2 s), at most 20 s back
 
 
@@ -685,6 +724,8 @@ def build(n: int = 40, radar: list | None = None, per_fight: int = 2) -> None:
             msgs = [m for m in clips[id(c)] if s["clip"][0] <= m["rt"] <= s["clip"][1]]
             (CLIPS / f"{s['scene_id']}.jsonl").write_text("\n".join(json.dumps(m, ensure_ascii=False) for m in msgs) + "\n", encoding="utf-8")
             scenes.append(s)
+    if radar:
+        _tag_runs(scenes)
     scenes.sort(key=lambda s: s["scene_id"])
     LABELS.mkdir(parents=True, exist_ok=True)
     SCENES.write_text("\n".join(json.dumps(s, ensure_ascii=False) for s in scenes) + "\n", encoding="utf-8")
@@ -816,6 +857,12 @@ def save_label(d: dict, scene: dict) -> tuple[bool, object]:
     else:
         stage, prev = "pre_reveal", views["primary"]          # a correction before opening 'after' — still first-pass
     row = make_label(d, scene, stage, prev["labeled_at"] if prev else None)
+    pre = bot_prefill(scene) if REVIEW_BOT else None
+    row["mode"] = "review_bot" if pre else "blind"
+    if pre:                                                  # kept apart: confirmed the bot vs corrected it
+        row["prefill"] = {"best": pre["best"], "acceptable": pre["acceptable"]}
+        row["changed_from_prefill"] = (row["best"] != pre["best"] or set(row["acceptable"]) != set(pre["acceptable"])
+                                       or bool(row["forbidden"]) or row["unsure"] or row["no_good_action"])
     with _WRITE, LABEL_FILE.open("a", encoding="utf-8") as f:
         f.write(json.dumps(row, ensure_ascii=False) + "\n")
     return True, row
@@ -916,7 +963,8 @@ def serve(port: int = HTTP_PORT) -> None:
                 views = label_views(label_rows(s["scene_id"], who))
                 body = {"scene": scene_for_page(s, phase), "tactics": LS.TACTICS, "tactics_ko": TACTIC_KO, "seek_rel": s["t_d"] - rp.t0,
                         "label": views["final"], "primary": views["primary"], "revealed": revealed(s["scene_id"], who),
-                        "outside_input": OUTSIDE_INPUT, "unsure_reasons": UNSURE_REASONS}
+                        "outside_input": OUTSIDE_INPUT, "unsure_reasons": UNSURE_REASONS,
+                        "prefill": bot_prefill(s) if REVIEW_BOT else None}
                 return self._send(200, json.dumps(body, ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8")
             return super().do_GET()
 
@@ -995,6 +1043,7 @@ def main() -> None:
     s.add_argument("--port", type=int, default=HTTP_PORT)
     s.add_argument("--set", default="pilot")
     s.add_argument("--labels-dir", default=None, help="write labels/reveals here instead of data/labels — for trying the page out")
+    s.add_argument("--review-bot", action="store_true", help="open bot scenes pre-filled with what the bot did (labels record mode/prefill)")
     r = sub.add_parser("report")
     r.add_argument("--set", default="pilot")
     a = ap.parse_args()
@@ -1003,6 +1052,9 @@ def main() -> None:
     if a.cmd == "build":
         build(a.n, a.radar, a.per_fight)
     elif a.cmd == "serve":
+        if a.review_bot:
+            global REVIEW_BOT
+            REVIEW_BOT = True
         if a.labels_dir:
             global LABEL_FILE, REVEALS, LABEL_SOURCE
             LABEL_FILE, REVEALS = Path(a.labels_dir) / f"{a.set}_labels.jsonl", Path(a.labels_dir) / f"{a.set}_reveals.jsonl"

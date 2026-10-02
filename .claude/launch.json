@@ -4,8 +4,33 @@
     {
       "name": "label-pilot",
       "runtimeExecutable": ".venv/Scripts/python.exe",
-      "runtimeArgs": ["label_pilot.py", "serve"],
+      "runtimeArgs": [
+        "label_pilot.py",
+        "serve"
+      ],
       "port": 47811
+    },
+    {
+      "name": "radar",
+      "runtimeExecutable": ".venv/Scripts/python.exe",
+      "runtimeArgs": [
+        "radar_server.py"
+      ],
+      "port": 47801
+    },
+    {
+      "name": "label-ramp",
+      "runtimeExecutable": ".venv/Scripts/python.exe",
+      "runtimeArgs": [
+        "label_pilot.py",
+        "serve",
+        "--set",
+        "ramp",
+        "--port",
+        "47814",
+        "--review-bot"
+      ],
+      "port": 47814
     }
   ]
 }
