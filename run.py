@@ -201,6 +201,9 @@ def main() -> None:
             attack_audit.AuditWriter(audit_out, attack_audit.run_header(run_id, a.cmd, vars(a), w.name, a.style)), run_id)
         fld.tap = audit_tap
         log(f"attack audit: 기록만 → {audit_out} (공격 규칙 호출 직전 입력, 패드·규칙엔 반영 안 함)")
+        purpose = attack_audit.run_purpose()
+        if purpose:
+            log(f"attack audit 실행 목적: {purpose}")
     if a.basic:
         from souls import duel as duel_
         duel_.BACKSTAB, duel_.HEAVY = False, False

@@ -514,6 +514,11 @@ class DecisionTap:
             return {"error": repr(e)[:200]}
 
 
+def run_purpose() -> str | None:
+    """실행 목적 메모 (ATTACK_AUDIT_PURPOSE) — header와 로그에 기록만 하고 동작엔 영향 없음."""
+    return os.environ.get("ATTACK_AUDIT_PURPOSE") or None
+
+
 def run_header(run_id: str, mission: str, args: dict, weapon: str | None, style: str | None) -> dict:
     """Written once at start (outside the fight loop): code identity, settings, schema ids, the disclaimer."""
     import subprocess
@@ -532,4 +537,5 @@ def run_header(run_id: str, mission: str, args: dict, weapon: str | None, style:
             **LS.schema_ids(), "mission": mission, "args": args, "weapon": weapon, "style": style,
             "clock": {"mono": "time.monotonic_ns", "wall": "time.time", "snapshot": "Snapshot.t (time.time at the bot's read)"},
             "record_kind": "attack_rule_invocation_snapshot — inputs frozen before the attack rule was invoked; not the exact button press",
-            "laya_inference": False, "bot_behavior_changed": False}
+            "laya_inference": False, "bot_behavior_changed": False,
+            "purpose": run_purpose()}
