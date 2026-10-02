@@ -1,0 +1,129 @@
+{
+ "name": "ramp-v0-head",
+ "checkpoint": "/home/moka/laya-ft/ramp-v0-head",
+ "test_runs": [
+  "a3"
+ ],
+ "n": 95,
+ "fights": 7,
+ "agreement": 0.4,
+ "majority_baseline": {
+  "label": "guard",
+  "rate": 0.547
+ },
+ "per_label": {
+  "approach": "0/4",
+  "attack": "4/5",
+  "guard": "13/52",
+  "hold_position": "21/34"
+ },
+ "chosen": {
+  "attack": 35,
+  "guard": 31,
+  "hold_position": 29
+ },
+ "order_flip_rate": 0.442,
+ "top_p_median": 0.373,
+ "latency_ms": {
+  "p50": 21.1,
+  "p95": 24.8
+ },
+ "mistakes": [
+  {
+   "label": "approach",
+   "choice": "guard",
+   "top_p": 0.3685,
+   "conf": 0.1557,
+   "rev_choice": "guard",
+   "fight": "a3:1790903172.377"
+  },
+  {
+   "label": "guard",
+   "choice": "attack",
+   "top_p": 0.3491,
+   "conf": 0.145,
+   "rev_choice": "attack",
+   "fight": "a3:1790903172.377"
+  },
+  {
+   "label": "guard",
+   "choice": "attack",
+   "top_p": 0.3519,
+   "conf": 0.1469,
+   "rev_choice": "attack",
+   "fight": "a3:1790903172.377"
+  },
+  {
+   "label": "guard",
+   "choice": "attack",
+   "top_p": 0.3595,
+   "conf": 0.1484,
+   "rev_choice": "attack",
+   "fight": "a3:1790903172.377"
+  },
+  {
+   "label": "guard",
+   "choice": "attack",
+   "top_p": 0.3527,
+   "conf": 0.1456,
+   "rev_choice": "attack",
+   "fight": "a3:1790903172.377"
+  },
+  {
+   "label": "hold_position",
+   "choice": "guard",
+   "top_p": 0.3764,
+   "conf": 0.1614,
+   "rev_choice": "guard",
+   "fight": "a3:1790903194.959"
+  },
+  {
+   "label": "hold_position",
+   "choice": "guard",
+   "top_p": 0.3764,
+   "conf": 0.1614,
+   "rev_choice": "guard",
+   "fight": "a3:1790903194.959"
+  },
+  {
+   "label": "hold_position",
+   "choice": "guard",
+   "top_p": 0.3764,
+   "conf": 0.1614,
+   "rev_choice": "guard",
+   "fight": "a3:1790903194.959"
+  },
+  {
+   "label": "hold_position",
+   "choice": "guard",
+   "top_p": 0.384,
+   "conf": 0.1716,
+   "rev_choice": "guard",
+   "fight": "a3:1790903194.959"
+  },
+  {
+   "label": "hold_position",
+   "choice": "guard",
+   "top_p": 0.3811,
+   "conf": 0.1727,
+   "rev_choice": "guard",
+   "fight": "a3:1790903194.959"
+  },
+  {
+   "label": "guard",
+   "choice": "hold_position",
+   "top_p": 0.3733,
+   "conf": 0.1611,
+   "rev_choice": "guard",
+   "fight": "a3:1790903194.959"
+  },
+  {
+   "label": "guard",
+   "choice": "hold_position",
+   "top_p": 0.3728,
+   "conf": 0.1611,
+   "rev_choice": "guard",
+   "fight": "a3:1790903194.959"
+  }
+ ]
+}

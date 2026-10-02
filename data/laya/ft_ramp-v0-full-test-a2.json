@@ -1,0 +1,82 @@
+{
+ "name": "ramp-v0-full-test-a2",
+ "checkpoint": "/home/moka/laya-ft/ramp-v0-full-test-a2",
+ "test_runs": [
+  "a2"
+ ],
+ "n": 74,
+ "fights": 6,
+ "agreement": 0.919,
+ "majority_baseline": {
+  "label": "guard",
+  "rate": 0.541
+ },
+ "per_label": {
+  "approach": "3/3",
+  "attack": "5/5",
+  "guard": "34/40",
+  "hold_position": "26/26"
+ },
+ "chosen": {
+  "approach": 4,
+  "attack": 9,
+  "guard": 34,
+  "hold_position": 27
+ },
+ "order_flip_rate": 0.095,
+ "top_p_median": 1.0,
+ "latency_ms": {
+  "p50": 23.7,
+  "p95": 28.0
+ },
+ "mistakes": [
+  {
+   "label": "guard",
+   "choice": "attack",
+   "top_p": 0.932,
+   "conf": 0.7904,
+   "rev_choice": "attack",
+   "fight": "a2:1790903027.517"
+  },
+  {
+   "label": "guard",
+   "choice": "approach",
+   "top_p": 0.9999,
+   "conf": 0.9991,
+   "rev_choice": "approach",
+   "fight": "a2:1790903027.517"
+  },
+  {
+   "label": "guard",
+   "choice": "attack",
+   "top_p": 0.4229,
+   "conf": 0.2599,
+   "rev_choice": "guard",
+   "fight": "a2:1790903066.802"
+  },
+  {
+   "label": "guard",
+   "choice": "attack",
+   "top_p": 0.4198,
+   "conf": 0.2509,
+   "rev_choice": "guard",
+   "fight": "a2:1790903066.802"
+  },
+  {
+   "label": "guard",
+   "choice": "attack",
+   "top_p": 0.4191,
+   "conf": 0.2542,
+   "rev_choice": "guard",
+   "fight": "a2:1790903118.686"
+  },
+  {
+   "label": "guard",
+   "choice": "hold_position",
+   "top_p": 0.9998,
+   "conf": 0.9986,
+   "rev_choice": "hold_position",
+   "fight": "a2:1790903118.686"
+  }
+ ]
+}

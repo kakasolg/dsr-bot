@@ -30,3 +30,7 @@ data/labels/*
 !data/labels/*_labels.jsonl
 !data/labels/*_reveals.jsonl
 !data/labels/*_run_notes.jsonl
+# Laya fine-tune results (small JSON); checkpoints stay in WSL ~/laya-ft
+!data/laya/
+data/laya/*
+!data/laya/ft_*.json
