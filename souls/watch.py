@@ -157,14 +157,29 @@ class Escape:
         import control
         import nav
         st = control.world_to_stick(sp[0] - p.x, sp[2] - p.z, s.cam_yaw, nav.YAW_OFFSET, nav.FLIP_X)
-        self.pad.move(st[0], st[1])
-        time.sleep(0.35)
-        self.pad.move(0.0, 0.0)
+        if not self._nudge(st):
+            return
         self.last_nudge = time.time()
         self.nudges += 1
         self.log(f"   ⤺ 턱 위 미끄러짐 (바닥 {'없음' if drop is None else f'{drop:.0f} m 아래'}, {sp[1] - p.y:.1f} m 내려옴) — 안전 자리로 되돌림")
         if self.events:
             self.events("ledge", drop=None if drop is None else round(drop, 1), slide=round(sp[1] - p.y, 2), pos=[round(p.x, 2), round(p.y, 2), round(p.z, 2)])
+
+    NUDGE_S = 0.35
+
+    def _nudge(self, st) -> bool:
+        """One writer for the nudge (P0-F): freeze → stick → neutral → unfreeze, the last two in finally. The decision loop's
+        input is dropped meanwhile (guard included — [MoKa] accepted the guard being down for NUDGE_S); nav.Mover presses
+        it again after unfreeze (Pad.epoch). False = a quit-out holds the pad, no nudge."""
+        if not self.pad.freeze(take=False):
+            return False
+        try:
+            self.pad.move(st[0], st[1])
+            time.sleep(self.NUDGE_S)
+        finally:
+            self.pad.neutral()
+            self.pad.unfreeze()
+        return True
 
     def fire(self, why: str, kind: str, tm=None, p=None) -> dict:
         """Quit to menu and come back. Upper layers also call this to shake off enemies (kind='shake'). → result"""

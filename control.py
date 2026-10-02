@@ -188,18 +188,27 @@ class Pad:
     def pad(self, v) -> None:
         self._vpad = v
 
-    def freeze(self) -> None:
-        """이 스레드만 패드를 쓴다 — 다른 스레드의 입력은 버려진다. 눌려 있던 것은 전부 뗀다."""
+    def freeze(self, take: bool = True) -> bool:
+        """이 스레드만 패드를 쓴다 — 다른 스레드의 입력은 버려진다. 눌려 있던 것은 전부 뗀다.
+        take=False: another thread already holds the freeze → leave it alone and return False (Escape._ledge yields to
+        a running quit-out; the quit-out itself takes it, take=True)."""
         with self._lock:
-            self._frozen_by = threading.get_ident()
+            me = threading.get_ident()
+            if not take and self._frozen_by not in (None, me):
+                return False
+            self._frozen_by = me
             self.epoch += 1
             self._due.clear()
             if self._vpad is not None:
                 self._vpad.reset()
                 self._vpad.update()
+        return True
 
     def unfreeze(self) -> None:
+        """Only the thread holding the freeze lifts it — a nudge that was overtaken by a quit-out must not unfreeze it."""
         with self._lock:
+            if self._frozen_by != threading.get_ident():
+                return
             self._frozen_by = None
             self.epoch += 1               # what others 'pressed' while frozen went to _NullPad — make them press it again
 
