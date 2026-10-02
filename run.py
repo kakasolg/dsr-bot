@@ -284,6 +284,16 @@ def main() -> None:
             r = quit_test(ms, mv, esc, log)
         log(f"══ 결과: {r}")
         log.event("result", cmd=a.cmd, result=r)
+    except KeyboardInterrupt:
+        # user stop (Ctrl+C): input off first, and from here on no quit-out, Darksign, ChrClassWarp write or menu input (P0-B).
+        # A quit-out the Escape thread already started (a fall) is not ours to stop — the wait below lets it finish
+        pad.neutral()
+        esc.quit_ok = esc.nudge_ok = False      # the Escape thread keeps watching but only logs (fire → skipped)
+        cam.stop()                              # camera follow would keep turning the right stick through the cleanup waits
+        pad.neutral()
+        log("══ 사용자 중지 (Ctrl+C) — 입력 중립, 퀵 종료 안 함")
+        log.event("user_stop", cmd=a.cmd)
+        raise
     except BaseException as ex:
         # if the bot stops, the character stands idle next to enemies and dies (twice on 2026-09-24) — quit out to shake enemies before stopping
         import traceback
@@ -295,34 +305,37 @@ def main() -> None:
                 log(f"   퀵 종료도 실패: {ex2!r}")
         raise
     finally:
-        t_wait = time.time()
-        while esc.escaping and time.time() - t_wait < 40.0:  # exiting mid quit-out leaves the game stuck in menu/loading
-            time.sleep(0.2)
+        pad.neutral()      # first, so nothing stays held through the waits below (dropped while Escape holds the pad mid quit-out)
         try:
-            if not fld.alive():
-                fld.wait_respawn(30.0)                     # ending while dead leaves no bloodstain (it's confirmed by the soul drop after respawn)
-                time.sleep(1.5)
-        except Exception:
-            pass
-        cam.stop()
-        log(cam.stats())
-        esc.stop()
-        blood.stop()
-        bbox.stop()
-        if audit_tap is not None:
-            log(f"attack audit: {audit_tap.close()}")
-        if laya_ch is not None:
-            adv = getattr(fld, "advisor", None)
-            log(f"laya shadow: {laya_ch.close()}" + (f" · advisor 오류 {adv.errors} ({adv.last_error})" if adv and adv.errors else ""))
-        try:
-            import risk_report
-            log(risk_report.one_line(risk_report.score(log.path)))
-        except Exception as ex:
-            log(f"위험 요약 실패: {ex!r}")
-        lock.release()
-        pad.neutral()
-        if hasattr(tm, "stats"):
-            log(f"텔레메트리 피드: {tm.stats()}")   # frames = underlying read count, fresh/waited = frames received by layers, direct = fallback
+            t_wait = time.time()
+            while esc.escaping and time.time() - t_wait < 40.0:  # exiting mid quit-out leaves the game stuck in menu/loading
+                time.sleep(0.2)
+            try:
+                if not fld.alive():
+                    fld.wait_respawn(30.0)                     # ending while dead leaves no bloodstain (it's confirmed by the soul drop after respawn)
+                    time.sleep(1.5)
+            except Exception:
+                pass
+            cam.stop()
+            log(cam.stats())
+            esc.stop()
+            blood.stop()
+            bbox.stop()
+            if audit_tap is not None:
+                log(f"attack audit: {audit_tap.close()}")
+            if laya_ch is not None:
+                adv = getattr(fld, "advisor", None)
+                log(f"laya shadow: {laya_ch.close()}" + (f" · advisor 오류 {adv.errors} ({adv.last_error})" if adv and adv.errors else ""))
+            try:
+                import risk_report
+                log(risk_report.one_line(risk_report.score(log.path)))
+            except Exception as ex:
+                log(f"위험 요약 실패: {ex!r}")
+        finally:
+            pad.neutral()
+            lock.release()     # only after the final neutral (P0-B) — the watchdog or the next bot may take over from here
+            if hasattr(tm, "stats"):
+                log(f"텔레메트리 피드: {tm.stats()}")   # frames = underlying read count, fresh/waited = frames received by layers, direct = fallback
 
 
 def quit_test(ms, mv, esc, log) -> str:
