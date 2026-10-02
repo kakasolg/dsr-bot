@@ -42,6 +42,12 @@
   #zoom.on { display:block; }
   #zoomImg { display:block; margin:40px auto 8px; width:auto; height:auto; max-width:none; max-height:none; image-rendering:auto; }
   #zoomCap { color:#ddd; text-align:center; font-size:13px; padding-bottom:30px; }
+  #left { position:relative; min-height:0; }
+  #big { position:absolute; inset:0; background:#000; display:none; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:12px; }
+  #big.on { display:flex; }
+  #bigImg { width:auto; height:auto; max-width:100%; max-height:calc(100% - 70px); border:1px solid var(--line); border-radius:6px; }
+  #bigBar { width:min(100%, 960px); display:flex; gap:8px; align-items:center; color:#ddd; font-size:13px; }
+  #bigBar input { flex:1; }
   .stage { font-size:12px; padding:1px 8px; border-radius:8px; border:1px solid var(--line); }
   @media (max-width: 1000px) { .wrap { grid-template-columns:1fr; height:auto; } iframe { height:75vh; border-right:0; border-bottom:1px solid var(--line); } }
 </style>
@@ -49,7 +55,14 @@
 <body>
 <div id="zoom" title="클릭하거나 Esc로 닫기"><img id="zoomImg" alt="스크린샷 원래 크기"><div id="zoomCap"></div></div>
 <div class="wrap">
-  <iframe id="radar" src="/radar" title="레이더 재생"></iframe>
+  <div id="left">
+    <iframe id="radar" src="/radar" title="레이더 재생"></iframe>
+    <div id="big">
+      <img id="bigImg" alt="게임 화면 (저장 크기까지)">
+      <div id="bigBar"><button id="bigPrev">◀</button><input type="range" id="bigPos" min="0" max="0" value="0"><button id="bigNext">▶</button>
+        <span id="bigCap"></span><button id="bigClose">레이더로</button></div>
+    </div>
+  </div>
   <div class="side">
     <div class="bar">
       <input id="who" type="text" placeholder="라벨러 ID" size="10">
@@ -79,7 +92,8 @@
       <h2>게임 화면 <span class="note" id="shotlabel"></span></h2>
       <img id="shot" style="width:100%; border-radius:6px; border:1px solid var(--line)" alt="스크린샷">
       <input type="range" id="shotpos" min="0" max="0" value="0" style="width:100%">
-      <div class="note">사진을 누르면 저장된 원래 크기로 봄 (늘리지 않음)</div>
+      <div class="bar" style="margin-top:4px"><button id="bigToggle">왼쪽 큰 칸에 게임 화면 보기</button>
+        <span class="note">사진을 누르면 저장된 원래 크기로 봄 (늘리지 않음)</span></div>
     </div>
 
     <h2>결정 시점 관측 (모델 입력) <span class="note">— 태그: 로그·유도·추정·가정, 태그 없음 = 기록을 그대로 읽은 값</span></h2>
@@ -238,17 +252,39 @@ let shots = [];
 function showShots(list) {
   shots = list;
   $("shotbox").style.display = shots.length ? "" : "none";
-  if (!shots.length) return;
+  if (!shots.length) { $("big").classList.remove("on"); return; }
   $("shotpos").max = shots.length - 1;
   const last0 = shots.reduce((k, x, i) => x.dt <= 0 ? i : k, 0);
   $("shotpos").value = last0; drawShot();
+  let keep = false; try { keep = localStorage.getItem("bigShot") === "1"; } catch (e) {}
+  setBig(keep);
 }
 function drawShot() {
   const x = shots[+$("shotpos").value];
   $("shot").src = `/shot?id=${cur.scene.scene_id}&i=${x.i}&labeler=${who()}`;
   $("shotlabel").textContent = `${x.dt > 0 ? "+" : ""}${x.dt.toFixed(1)} s ${x.dt > 0 ? "(결정 뒤)" : x.dt === 0 ? "(결정 시점)" : "(결정 전)"} · ${+$("shotpos").value + 1}/${shots.length}`;
+  $("bigImg").src = $("shot").src;                 // same saved file; fitted to the big pane, never above its own size
+  $("bigPos").max = shots.length - 1; $("bigPos").value = $("shotpos").value;
+  $("bigCap").textContent = $("shotlabel").textContent;
 }
 $("shotpos").oninput = drawShot;
+function setBig(on) {
+  $("big").classList.toggle("on", on && shots.length > 0);
+  $("bigToggle").textContent = on ? "레이더 보기" : "왼쪽 큰 칸에 게임 화면 보기";
+  try { localStorage.setItem("bigShot", on ? "1" : "0"); } catch (e) {}
+}
+$("bigToggle").onclick = () => setBig(!$("big").classList.contains("on"));
+$("bigClose").onclick = () => setBig(false);
+$("bigPos").oninput = () => { $("shotpos").value = $("bigPos").value; drawShot(); };
+const stepShot = d => { $("shotpos").value = Math.max(0, Math.min(shots.length - 1, +$("shotpos").value + d)); drawShot(); };
+$("bigPrev").onclick = () => stepShot(-1);
+$("bigNext").onclick = () => stepShot(1);
+document.addEventListener("keydown", e => {
+  if (!$("big").classList.contains("on") || ["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement.tagName)) return;
+  if (e.key === "ArrowLeft") stepShot(-1);
+  if (e.key === "ArrowRight") stepShot(1);
+});
+$("bigImg").onclick = openZoom;
 function openZoom() {
   if (!$("shot").src) return;
   $("zoomImg").src = $("shot").src;               // the same /shot response — the saved JPEG, shown at its own pixel size

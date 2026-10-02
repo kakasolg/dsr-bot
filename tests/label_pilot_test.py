@@ -349,6 +349,9 @@ def test_zoom_shows_saved_file_and_label_04() -> None:
     z = page[page.find("#zoomImg {"):page.find("}", page.find("#zoomImg {"))]
     assert "width:auto" in z and "max-width:none" in z and "max-height:none" in z   # natural size, never stretched
     assert '$("zoomImg").src = $("shot").src' in page                              # the same /shot response
+    b = page[page.find("#bigImg {"):page.find("}", page.find("#bigImg {"))]
+    assert "width:auto" in b and "max-width:100%" in b and "height:auto" in b       # big pane: fitted, never above its own size
+    assert '$("bigImg").src = $("shot").src' in page
     meta = L.ROOT / "data" / "laya" / "ramp_tick_meta.jsonl"
     if meta.exists():
         rows = [json.loads(l) for l in meta.read_text(encoding="utf-8").splitlines() if l.strip()]
