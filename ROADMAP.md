@@ -228,7 +228,9 @@ Laya가 싸움 상태를 보고 이미 있는 전술 후보 중 하나를 고르
 - [x] [win] 경사로 재검증 실행: `20261002_030153_clear-ramp` (커밋 `1366464` = 69fb195 + header `purpose` 칸, `--basic --radar --attack-audit`, 레이더 `20261002_030144`) — cleared, 위험 '깨끗'. 감사: 공격 호출 6 = primary 1 · ambiguous 4 (chained) · outcome_unobserved_fight_end 1. seq 21/21 written, drop·lost·writer 오류·tap 오류 0, pad 대조 6/6 confirmed. complete 창 1건 (샘플 19개, 0.016–1.047 s, 최대 간격 0.079 s). 봇 쪽 분류와 점검기 분류 일치. 점검기의 제외 사유 집계가 사유를 두 번 셈 (P-36). 샘플 `data/samples/clear-ramp-audit-2026-10-02-o2.*`
 - [x] [MoKa] 재검증 판정 (2026-10-02): o2 `:9`는 primary로 취급하지 않음 — 시간 창·pad는 통과, 표적 정체와 다수 적·원거리 위협 귀속을 1 s 동안 증명할 정보 없음 (P-37)
 - [x] [win] P-37 귀속 조건 (LAYA.md 17.2, 스키마 0.3): 샘플별 표적 정체·8 m 맥락·원거리 위협 기록, `outcome_attribution_unconfirmed` + `attribution_reasons`, P-36 중복 집계 고침. o2 `:9` → attribution_unconfirmed. pytest·golden 통과. 발사체를 못 읽어 지금 장치로는 primary가 구조적으로 0
-- [ ] [MoKa] 다음 단계 결정: 발사체 관측 추가 여부 · Burg 실행 여부 (둘 다 미승인)
+- [x] [MoKa] 다음 단계 결정 (2026-10-02): 발사체 읽기 구현 안 함 · Burg audit 실행 미승인 · attack audit schema 0.3 동결 (관측 범위·발사체·원거리 소유 추적·임계값·Laya outcome-proxy AUC 확장 안 함). 0.3의 primary=0은 모델 실패가 아니라 귀속 증거 부족. `outcome_attribution_unconfirmed` 기록은 사람 고해상도 검토 사례를 찾는 보조 자료로만 보존
+- [x] [win] 마을 입구 구역 설계·관측 프로토콜 문서화 ([MoKa] 2026-10-02 승인): `TOWN_ENTRY.md` — 확인 표(기록/사용자/추정 구분, 등급), 8상태 설계, 사람 플레이 읽기 전용 A/B/C 프로토콜·F9 마커. 구역은 provisional(`--seg 3`). 코드·봇·Laya·audit 변경 없음
+- [ ] [MoKa] 마을 입구 사람 플레이 읽기 전용 관측 실행 승인 (기록 반경 40 m 후보 확정 포함, 미승인)
 - [ ] [win] (허락 뒤) `run.py burg-bonfire --basic --laya-shadow` — 섀도 켠 실행과 끈 실행의 `blind_report.py`·틱 수 비교, `.laya.jsonl` report
 
 ## 1-f. 모퉁이에서 일찍 꺾기 · 제자리 비비기 · 뒤돌기 (2026-09-28 [사람] 관찰)
