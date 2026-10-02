@@ -233,7 +233,9 @@ Laya가 싸움 상태를 보고 이미 있는 전술 후보 중 하나를 고르
 - [x] [MoKa] 마을 입구 사람 플레이 Type A 1회 승인·실행 (2026-10-02, 반경 40 m, 읽기 전용): 기록 `data/observe/20261002_065653.jsonl` (로컬). E1 — 사람이 위험선 전에서 접근을 멈춰 적을 하나씩 분리 (동시 근접 최대 1). 2:1 반증·봇 자동 분리의 증거 아님. 254011·투척병 반응은 hit-reacted. 마커 순서 해석 불가 → `TOWN_ENTRY.md` §D
 - [x] [win] `TOWN_ENTRY.md` 개정 ([MoKa] 2026-10-02): 9상태 "위험선 전에서 하나씩 끌어와, 입구에 온 적만 처리" (target / 접근하면 안 되는 target / 깊이 / return trigger / wave 경고 / 중단), 금지 행동, Type B 수정 설계(B-dist·B-hit run 분리), 다음 마커 체크리스트, §D Type A 기록. 봇 미확정: lure depth · wave threshold · return trigger
 - [x] [MoKa] B-dist pilot 1회 승인·실행 (2026-10-02): `data/observe/20261002_123237.jsonl` (로컬). E1 — 입구에서 0034+0015 2:1 (HP −326), 투척병 no-hit 접근 반응(약 10.9 m)·B1b 약 2.4 m 추적, 250000 이동은 시간 상관만. 투척병 처치 뒤 21~37 m 내부 진행은 protocol 밖 exploratory로 분리 → `TOWN_ENTRY.md` §D
-- [ ] [MoKa] B-dist 반복 1회 승인 (미승인) · B-hit 설계·실행 (미승인)
+- [x] [MoKa] B-dist 반복 1회 승인·실행 (2026-10-02): `data/observe/20261002_124925.jsonl` (로컬). 입구 0034+0015 2:1 재발 (E1 ×2), 투척병이 첫 2:1 전투 중 반응·투척 (E1). 계단 아래 후퇴 뒤 내부 재진입 여러 번은 exploratory. §D 전체 반영은 미결정
+- [x] [win] `TOWN_ENTRY.md` §E 방향성 위치·detection-risk envelope ([MoKa] 2026-10-02 승인, 설계만): zone·이동 방향 분류, envelope = 관측 기반 보수적 위험 모델 (AI 반경 증명 아님), ONE_NOTICE → return/fallback, MULTI·UNKNOWN → 내부 추가 접근 금지, E1 기록은 사례. NavMesh 오프라인 확인 (보조 자료): 계단 아래가 MAP_A/B 경계, 끼인 공간 250000은 B1b까지 mesh 경로 없음, 입구 꼭대기 옆 mesh 구멍
+- [ ] [MoKa] zone-boundary F9 walk 계획 확인·승인 (미승인) · B-hit 설계·실행 (미승인)
 - [ ] [win] (허락 뒤) `run.py burg-bonfire --basic --laya-shadow` — 섀도 켠 실행과 끈 실행의 `blind_report.py`·틱 수 비교, `.laya.jsonl` report
 
 ## 1-f. 모퉁이에서 일찍 꺾기 · 제자리 비비기 · 뒤돌기 (2026-09-28 [사람] 관찰)
