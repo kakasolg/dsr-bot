@@ -35,7 +35,8 @@ LABELS = ROOT / "data" / "labels"
 SCENES = LABELS / "pilot_scenes.jsonl"
 LABEL_FILE = LABELS / "pilot_labels.jsonl"
 CLIPS = LABELS / "clips"
-SCENE_SCHEMA, LABEL_SCHEMA = "dsr-scene/0.2", "dsr-label/0.2"
+SCENE_SCHEMA, LABEL_SCHEMA = "dsr-scene/0.2", "dsr-label/0.3"
+CONFIDENCE = ("low", "mid", "high")
 REVEALS = LABELS / "pilot_reveals.jsonl"   # who opened 'after' for which scene, when — decides a label's stage
 OUTSIDE_INPUT = {"terrain": "지형 (가장자리·벽·좁은 곳)", "my_anim": "내 동작 (구르는 중·경직·공격 중)", "lock_on": "락온",
                  "weapon_reach": "무기 거리", "far_enemies": "4.5 m 밖 적", "enemy_identity": "적 이름·스폰 번호",
@@ -277,6 +278,55 @@ def human_candidates(stem: str, msgs: list | None = None) -> list:
 # ── selection ──
 
 QUOTA = {"swing": 9, "opening": 6, "close_idle": 6, "far": 4, "before_big_hit": 6, "before_retreat": 5, "before_death": 3}
+
+
+EVENT_RANK = ["before_death", "before_retreat", "before_big_hit", "opening", "swing", "close_idle", "far"]
+
+
+def select_fights(cands: list, per_fight: int = 2, seed: int = SEED) -> list:
+    """For a set made from chosen recordings (e.g. ramp runs): every fight, up to per_fight scenes with different events,
+    ≥ 3 s apart, rarer events first. Deterministic."""
+    rng = random.Random(seed)
+    by_fight = collections.defaultdict(list)
+    for c in cands:
+        by_fight[c["fight_id"]].append(c)
+    out = []
+    for fid in sorted(by_fight):
+        cs = by_fight[fid][:]
+        rng.shuffle(cs)
+        cs.sort(key=lambda c: EVENT_RANK.index(c["event"]) if c["event"] in EVENT_RANK else 99)
+        got = []
+        for c in cs:
+            if len(got) >= per_fight:
+                break
+            if all(g["event"] != c["event"] and abs(g["t_d"] - c["t_d"]) >= 3.0 for g in got):
+                got.append(c)
+        out += got
+    return out
+
+
+def use_set(name: str) -> None:
+    """'pilot' = the first 40 scenes (data/labels/pilot_*). Any other name: data/labels/<name>_scenes/labels/reveals.jsonl."""
+    global SCENES, LABEL_FILE, REVEALS
+    SCENES, LABEL_FILE, REVEALS = (LABELS / f"{name}_scenes.jsonl", LABELS / f"{name}_labels.jsonl", LABELS / f"{name}_reveals.jsonl")
+
+
+_SHOTS = None
+
+
+def _shots_for(epoch: float | None, hz: float = 2.0) -> list:
+    """Screenshots (shots.py, data/shots/*/<epoch ms>.jpg) from t_d − PRE_S to t_d + POST_S, at most hz per second."""
+    global _SHOTS
+    if epoch is None:
+        return []
+    if _SHOTS is None:
+        _SHOTS = sorted((int(p.stem) / 1000.0, p) for p in (ROOT / "data" / "shots").glob("*/*.jpg") if p.stem.isdigit())
+    out, last = [], -1e9
+    for t, p in _SHOTS:
+        if epoch - PRE_S <= t <= epoch + POST_S and t - last >= 1.0 / hz - 1e-3:
+            out.append({"dt": round(t - epoch, 2), "file": str(p.relative_to(ROOT)).replace("\\", "/")})
+            last = t
+    return out
 
 
 def select(cands: list, n: int = 40, seed: int = SEED) -> list:
@@ -578,6 +628,8 @@ def build_scene(c: dict, msgs: list) -> dict:
             "code_commit": _commit_before(_file_epoch(c["run_id"]) + t_d) if bot else None, "code_commit_approx": bot,
             "obs": {k: v for k, v in obs.items() if not k.startswith("_")}, "mask_inputs": {k: v for k, v in obs.items() if k.startswith("_")},
             "obs_provenance": _provenance(obs, bot),
+            "t_epoch": round(snap["t"], 3) if (snap.get("t") or 0) > 1e9 else None,
+            "shots": _shots_for(snap["t"] if (snap.get("t") or 0) > 1e9 else None),
             "context": _context(msgs, t_d, tgt.get("ptr"), actor),
             "allowed": allowed, "unavailable": LS.why_not(obs),
             "after": after, "missing": missing, "test_candidate": bool(test),
@@ -585,23 +637,34 @@ def build_scene(c: dict, msgs: list) -> dict:
             "selection": {"event": c["event"], "zone": zone, "kind": _kind(c.get("npc")), "result": result, "source": c["source"]}}
 
 
-def build(n: int = 40) -> None:
+FIGHT_LEAD_S, MAX_PRE_S = 2.0, 20.0   # chosen-recording sets: replay from the fight's start (− 2 s), at most 20 s back
+
+
+def build(n: int = 40, radar: list | None = None, per_fight: int = 2) -> None:
+    """Without radar: the original 40-scene pilot (all recordings, stratified select). With radar: only those bot
+    recordings, every fight (select_fights), replay from the fight's start, screenshots attached."""
     t0 = time.time()
     cands = []
-    for p in sorted((ROOT / "data" / "radar").glob("2026*.jsonl")):
-        if p.stat().st_size < 1_000_000:
-            continue
+    files = [ROOT / r for r in radar] if radar else [p for p in sorted((ROOT / "data" / "radar").glob("2026*.jsonl"))
+                                                    if p.stat().st_size >= 1_000_000]
+    for p in files:
         cs = bot_candidates(p)
         cands += cs
         print(f"  bot   {p.name}: {len(cs)} candidates ({len({c['fight_id'] for c in cs})} fights)")
     human_msgs = {}
-    for stem in HUMAN_FILES:
+    for stem in ([] if radar else HUMAN_FILES):
         human_msgs[stem] = _load_human(stem)
         cs = human_candidates(stem, human_msgs[stem])
         cands += cs
         print(f"  human {stem}: {len(cs)} candidates ({len({c['fight_id'] for c in cs})} fights)")
     print(f"{len(cands)} candidates, {len({c['fight_id'] for c in cands})} fights ({time.time() - t0:.0f} s)")
-    picked = select(cands, n)
+    picked = select_fights(cands, per_fight) if radar else select(cands, n)
+
+    def pre_from(c) -> float:
+        if not radar:
+            return c["t_d"] - PRE_S
+        return max(c["_fight"]["start"] - FIGHT_LEAD_S, c["t_d"] - MAX_PRE_S) if c.get("_fight") else c["t_d"] - PRE_S
+
     CLIPS.mkdir(parents=True, exist_ok=True)
     scenes, by_file = [], collections.defaultdict(list)
     for c in picked:
@@ -611,13 +674,14 @@ def build(n: int = 40) -> None:
             allm = human_msgs[Path(src).stem]
             clips = {id(c): [m for m in allm if c["t_d"] - PRE_S <= m["rt"] <= c["t_d"] + POST_S] for c in cs}
         else:
-            clips = _clip_bot(ROOT / src, {id(c): (c["t_d"] - PRE_S, c["t_d"] + POST_S) for c in cs})
+            clips = _clip_bot(ROOT / src, {id(c): (min(pre_from(c), c["t_d"] - PRE_S), c["t_d"] + POST_S) for c in cs})
         for c in cs:
             try:
                 s = build_scene(c, clips[id(c)])
             except ValueError as e:
                 print(f"  skip {src} {c['t_d']}: {e}")
                 continue
+            s["clip"][0] = round(min(pre_from(c), s["clip"][0]), 2)
             msgs = [m for m in clips[id(c)] if s["clip"][0] <= m["rt"] <= s["clip"][1]]
             (CLIPS / f"{s['scene_id']}.jsonl").write_text("\n".join(json.dumps(m, ensure_ascii=False) for m in msgs) + "\n", encoding="utf-8")
             scenes.append(s)
@@ -652,14 +716,16 @@ def validate_label(d: dict, scene: dict) -> list:
         errs.append("unknown tactic")
     if acc & forb:
         errs.append("a tactic is both acceptable and forbidden")
-    if d.get("best") not in (None, "") and d["best"] not in acc:
-        errs.append("best must be one of acceptable")
+    if d.get("best") not in (None, "") and (d["best"] not in tac or d["best"] in forb):
+        errs.append("best must be a tactic that is not forbidden")
     if d.get("unsure") and d.get("no_good_action"):
         errs.append("unsure (missing information) and no_good_action (nothing fits) are different — pick one")
     if d.get("no_good_action") and (acc or d.get("best")):
         errs.append("no_good_action means no acceptable tactic")
-    if not (acc or forb or d.get("unsure") or d.get("no_good_action")):
-        errs.append("choose at least one tactic, or mark unsure / no_good_action")
+    if not (d.get("best") or d.get("unsure") or d.get("no_good_action")):
+        errs.append("choose the best tactic, or mark unsure / no_good_action")         # 0.3: best is the core answer
+    if d.get("confidence") not in CONFIDENCE:
+        errs.append("confidence: low / mid / high")
     if d.get("unsure") and d.get("unsure_reason") not in UNSURE_REASONS:
         errs.append("unsure_reason")
     outside = d.get("outside_set") or []
@@ -686,8 +752,9 @@ def make_label(d: dict, scene: dict, stage: str = "pre_reveal", revision_of: str
             "labeler_id": str(d["labeler_id"]), "labeled_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
             "stage": stage, "revision_of": revision_of,
             "duration_s": round(float(d.get("duration_s") or 0), 1),
-            "acceptable": sorted(set(d.get("acceptable") or [])), "forbidden": sorted(set(d.get("forbidden") or [])),
-            "best": d.get("best") or None, "unsure": bool(d.get("unsure")), "unsure_reason": d.get("unsure_reason") if d.get("unsure") else None,
+            "acceptable": sorted(set(d.get("acceptable") or []) | ({d["best"]} if d.get("best") else set())),   # best is acceptable
+            "forbidden": sorted(set(d.get("forbidden") or [])),
+            "best": d.get("best") or None, "confidence": d.get("confidence"), "unsure": bool(d.get("unsure")), "unsure_reason": d.get("unsure_reason") if d.get("unsure") else None,
             "no_good_action": bool(d.get("no_good_action")), "outside_set": [x.strip() for x in d.get("outside_set") or []],
             "model_input_sufficient": d.get("model_input_sufficient") is not False,
             "outside_input": sorted(set(d.get("outside_input") or [])),
@@ -765,7 +832,9 @@ def scene_for_page(s: dict, phase: str) -> dict:
     """What the page shows: no test flag, no selection reasons, no mask internals. Before 'after' is opened also no
     'after' and no 'event' — before_big_hit / before_retreat / before_death are worked out from what happened next."""
     hidden = {"test_candidate", "test_rule", "selection", "mask_inputs"} | (set() if phase == "full" else {"after", "event"})
-    return {k: v for k, v in s.items() if k not in hidden}
+    out = {k: v for k, v in s.items() if k not in hidden}
+    out["shots"] = [dict(x, i=i) for i, x in enumerate(s.get("shots") or []) if phase == "full" or x["dt"] <= 0]
+    return out
 
 
 def clip_msgs(s: dict, phase: str) -> list:
@@ -816,6 +885,15 @@ def serve(port: int = HTTP_PORT) -> None:
             q = parse_qs(u.query)
             if u.path in ("/", "/label"):
                 return self._send(200, page.read_bytes(), "text/html; charset=utf-8")
+            if u.path == "/shot":
+                s = by_id.get(q.get("id", [""])[0])
+                try:
+                    shot = s["shots"][int(q.get("i", ["-1"])[0])]
+                except Exception:
+                    return self._send(404, b"no shot", "text/plain")
+                if shot["dt"] > 0 and not revealed(s["scene_id"], q.get("labeler", [""])[0].strip()):
+                    return self._send(403, b"after the decision - open 'after' first", "text/plain")
+                return self._send(200, (ROOT / shot["file"]).read_bytes(), "image/jpeg")
             if u.path == "/radar":
                 return self._send(200, RS.PAGE.read_bytes(), "text/html; charset=utf-8")
             if u.path == "/scenes":
@@ -910,17 +988,24 @@ def main() -> None:
     sub = ap.add_subparsers(dest="cmd", required=True)
     b = sub.add_parser("build")
     b.add_argument("--n", type=int, default=40)
+    b.add_argument("--set", default="pilot", help="scene set name (pilot = the first 40) → data/labels/<set>_*.jsonl")
+    b.add_argument("--radar", nargs="*", default=None, help="only these bot radar recordings (every fight, replay from its start)")
+    b.add_argument("--per-fight", type=int, default=2)
     s = sub.add_parser("serve")
     s.add_argument("--port", type=int, default=HTTP_PORT)
+    s.add_argument("--set", default="pilot")
     s.add_argument("--labels-dir", default=None, help="write labels/reveals here instead of data/labels — for trying the page out")
-    sub.add_parser("report")
+    r = sub.add_parser("report")
+    r.add_argument("--set", default="pilot")
     a = ap.parse_args()
+    if a.set != "pilot":
+        use_set(a.set)
     if a.cmd == "build":
-        build(a.n)
+        build(a.n, a.radar, a.per_fight)
     elif a.cmd == "serve":
         if a.labels_dir:
             global LABEL_FILE, REVEALS, LABEL_SOURCE
-            LABEL_FILE, REVEALS = Path(a.labels_dir) / "pilot_labels.jsonl", Path(a.labels_dir) / "pilot_reveals.jsonl"
+            LABEL_FILE, REVEALS = Path(a.labels_dir) / f"{a.set}_labels.jsonl", Path(a.labels_dir) / f"{a.set}_reveals.jsonl"
             LABEL_SOURCE = "ui_trial"
             print(f"labels go to {a.labels_dir} as label_source 'ui_trial', not data/labels")
         serve(a.port)

@@ -67,7 +67,7 @@ def restore() -> None:
 
 def payload(s, **kw):
     d = {"scene_id": s["scene_id"], "labeler_id": "tester", "duration_s": 30.0, "acceptable": ["guard"], "forbidden": ["attack"],
-         "best": "guard", "unsure": False, "no_good_action": False, "outside_set": [], "model_input_sufficient": True,
+         "best": "guard", "confidence": "mid", "unsure": False, "no_good_action": False, "outside_set": [], "model_input_sufficient": True,
          "outside_input": [], "rationale": "휘두르는 중, 1.2 m", "evidence": ["target_state", "distance_m"]}
     d.update(kw)
     return d
@@ -146,7 +146,7 @@ def test_label_kinds_and_stage() -> None:
             needs = payload(s, model_input_sufficient=False, outside_input=["terrain", "my_anim"])
             assert L.validate_label(needs, s) == []
             for change, why in [({"acceptable": ["guard"], "forbidden": ["guard"]}, "both"), ({"best": "attack"}, "best"),
-                                ({"acceptable": [], "forbidden": [], "best": None}, "at least one"),
+                                ({"acceptable": [], "forbidden": [], "best": None}, "best tactic"), ({"confidence": None}, "confidence"),
                                 ({"unsure": True, "unsure_reason": "?"}, "unsure_reason"), ({"evidence": ["after.fight_result"]}, "evidence"),
                                 ({"acceptable": ["fly"]}, "unknown"), ({"labeler_id": ""}, "labeler"),
                                 ({"no_good_action": True}, "no acceptable"), ({"outside_input": ["mind_reading"]}, "outside_input")]:
@@ -193,6 +193,28 @@ def test_why_not_covers_every_tactic() -> None:
     print("ok  every tactic is either a candidate or has one reason: not_in_bot / rule_blocked / unobserved")
 
 
+def test_ramp_set_selection_and_shots() -> None:
+    """Chosen-recording sets: every fight, ≤ 2 scenes with different events ≥ 3 s apart; shots after the decision are not
+    on the first-pass page."""
+    cands = [{"fight_id": f"r#f{f}", "t_d": f * 100 + i * 1.5, "event": ev}
+             for f in range(6) for i, ev in enumerate(["swing", "swing", "opening", "far", "before_retreat"])]
+    got = L.select_fights(cands, 2)
+    per = {}
+    for c in got:
+        per.setdefault(c["fight_id"], []).append(c)
+    assert set(per) == {f"r#f{f}" for f in range(6)}
+    for cs in per.values():
+        assert len(cs) <= 2 and len({c["event"] for c in cs}) == len(cs)
+        assert len(cs) < 2 or abs(cs[0]["t_d"] - cs[1]["t_d"]) >= 3.0
+        assert cs[0]["event"] == "before_retreat"                                   # rarer events first
+    assert L.select_fights(cands, 2) == got
+    sc = {"scene_id": "x", "shots": [{"dt": -1.0, "file": "a.jpg"}, {"dt": 0.0, "file": "b.jpg"}, {"dt": 1.5, "file": "c.jpg"}],
+          "after": {}, "event": "swing"}
+    assert [x["dt"] for x in L.scene_for_page(sc, "pre")["shots"]] == [-1.0, 0.0]
+    assert [x["i"] for x in L.scene_for_page(sc, "full")["shots"]] == [0, 1, 2]
+    print("ok  ramp set: every fight, ≤ 2 different scenes each; screenshots after the decision hidden before 'after'")
+
+
 def test_one_scene_per_fight() -> None:
     cands = []
     for f in range(30):
@@ -221,4 +243,5 @@ if __name__ == "__main__":
     test_human_roll_is_not_evade()
     test_label_kinds_and_stage()
     test_why_not_covers_every_tactic()
+    test_ramp_set_selection_and_shots()
     test_one_scene_per_fight()

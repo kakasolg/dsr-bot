@@ -69,6 +69,11 @@
 
     <h2>장면</h2>
     <table id="meta"></table>
+    <div id="shotbox" style="display:none">
+      <h2>게임 화면 <span class="note" id="shotlabel"></span></h2>
+      <img id="shot" style="width:100%; border-radius:6px; border:1px solid var(--line)" alt="스크린샷">
+      <input type="range" id="shotpos" min="0" max="0" value="0" style="width:100%">
+    </div>
 
     <h2>결정 시점 관측 (모델 입력) <span class="note">— 태그: 로그·유도·추정·가정, 태그 없음 = 기록을 그대로 읽은 값</span></h2>
     <table id="obs"></table>
@@ -79,10 +84,14 @@
     <h2>관측 누락</h2>
     <div id="missing" class="note"></div>
 
-    <h2>전술 — 허용 / 금지 (둘 다 아니면 중립)</h2>
-    <div class="note">회색 = 그때 봇이 할 수 없던 전술, 아래 줄에 이유(봇에 없음 / 규칙상 지금 불가 / 관측 부족). 그래도 고를 수 있음.</div>
+    <h2>그때 봇이 할 수 있던 것 중에서</h2>
+    <div class="bar"><b>가장 좋은 것 하나</b><select id="best"></select></div>
+    <div class="bar"><b>확신</b>
+      <label><input type="radio" name="conf" value="low"> 낮음</label>
+      <label><input type="radio" name="conf" value="mid"> 중간</label>
+      <label><input type="radio" name="conf" value="high"> 높음</label></div>
+    <div class="note">아래: 분명히 하면 안 되는 것은 '금지'. 다른 것도 괜찮으면 '허용'(선택). 회색 = 그때 봇이 할 수 없던 전술과 이유.</div>
     <div id="tactics"></div>
-    <div class="bar" style="margin-top:6px"><span class="note">가장 좋은 것(선택):</span><select id="best"></select></div>
 
     <div class="box">
       <label><input type="checkbox" id="nogood"> 지금 봇의 전술 중 맞는 것 없음</label>
@@ -198,8 +207,26 @@ function render(r) {
   const evKeys = Object.keys(s.obs).concat(Object.keys(s.context).map(k => "context." + k));
   $("evidence").innerHTML = evKeys.map(k => `<label><input type="checkbox" value="${k}" ${(prev.evidence || []).includes(k) ? "checked" : ""}> ${esc(OBS_KO[k] || k)}</label>`).join("");
   $("msg").textContent = ""; $("msg").className = "msg";
+  document.querySelectorAll('input[name=conf]').forEach(x => x.checked = x.value === prev.confidence);
+  showShots(s.shots || []);
   setStage(r); paint();
 }
+
+let shots = [];
+function showShots(list) {
+  shots = list;
+  $("shotbox").style.display = shots.length ? "" : "none";
+  if (!shots.length) return;
+  $("shotpos").max = shots.length - 1;
+  const last0 = shots.reduce((k, x, i) => x.dt <= 0 ? i : k, 0);
+  $("shotpos").value = last0; drawShot();
+}
+function drawShot() {
+  const x = shots[+$("shotpos").value];
+  $("shot").src = `/shot?id=${cur.scene.scene_id}&i=${x.i}&labeler=${who()}`;
+  $("shotlabel").textContent = `${x.dt > 0 ? "+" : ""}${x.dt.toFixed(1)} s ${x.dt > 0 ? "(결정 뒤)" : x.dt === 0 ? "(결정 시점)" : "(결정 전)"} · ${+$("shotpos").value + 1}/${shots.length}`;
+}
+$("shotpos").oninput = drawShot;
 
 function paint() { document.querySelectorAll(".tog").forEach(b => b.classList.toggle("on", state[b.dataset.t] === b.dataset.v)); }
 
@@ -209,6 +236,7 @@ async function reveal(mark = true) {
   if (!res.ok) { $("msg").textContent = j.error || "결과를 열 수 없음"; $("msg").className = "msg err"; return; }
   cur = {...cur, ...j, scene: {...cur.scene, ...j.scene}};
   setStage(cur);
+  if (j.scene.shots && j.scene.shots.length) showShots(j.scene.shots);
   const a = j.scene.after, ko = j.tactics_ko;
   const did = a.bot_logged !== undefined
     ? `봇이 한 것 (다음 1 s, 봇 기록 그대로): ${esc(a.bot_logged)}<br><span class="note">전술 이름으로 옮기면(규칙 기준선용, 정답 아님): ${Object.entries(a.bot_action_as_tactic || {}).map(([k, n]) => (ko[k] || k) + "×" + n).join(" ") || "—"}</span>`
@@ -225,7 +253,7 @@ async function save() {
   const want = ($("wantRoll").checked ? ["구르기"] : []).concat($("wantOther").value.split(",").map(x => x.trim()).filter(Boolean));
   const body = {scene_id: cur.scene.scene_id, labeler_id: w, duration_s: (performance.now() - t_open) / 1000,
     acceptable: Object.keys(state).filter(t => state[t] === "acc"), forbidden: Object.keys(state).filter(t => state[t] === "forb"),
-    best: $("best").value || null, unsure: $("unsure").checked, unsure_reason: $("unsure").checked ? $("unsureWhy").value : null,
+    best: $("best").value || null, confidence: (document.querySelector('input[name=conf]:checked') || {}).value || null, unsure: $("unsure").checked, unsure_reason: $("unsure").checked ? $("unsureWhy").value : null,
     no_good_action: $("nogood").checked, outside_set: want,
     model_input_sufficient: !$("insufficient").checked, outside_input: [...document.querySelectorAll("#outside input:checked")].map(x => x.value),
     rationale: $("why").value.trim(), evidence: [...document.querySelectorAll("#evidence input:checked")].map(x => x.value),
