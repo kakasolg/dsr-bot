@@ -36,3 +36,6 @@ data/laya/*
 !data/laya/ft_*.json
 !data/laya/pred_*.jsonl
 !data/laya/boundary_selection.json
+!data/laya/ramp_tick_meta.jsonl
+!data/laya/ramp_filter.json
+!data/labels/*_scene_meta.jsonl

@@ -1,0 +1,7 @@
+{
+ "name": "ramp-2026-10-01 provisional",
+ "nav_distance_m": 10.0,
+ "nav_height_m": 2.0,
+ "basis": "observed gap in these 203 ticks: excluded ≥ 8.7 m / ≥ 6.2 m, kept ≤ 6.4 m / ≤ 1.4 m",
+ "not_for": "bot runtime rules or navigation policy"
+}
