@@ -287,6 +287,7 @@ Laya가 싸움 상태를 보고 이미 있는 전술 후보 중 하나를 고르
 - [x] [win] P0-B 사용자 중지(Ctrl+C): 곧바로 `pad.neutral()` → 정리하는 동안 퀵 종료·턱 되돌림 끔 → 카메라 따라가기 멈춤. 퀵 종료·다크사인·ChrClassWarp 쓰기·메뉴 입력을 시작하지 않음. `finally`는 마지막 neutral 뒤에 봇 잠금 해제. 사용자 중지가 아닌 예외의 퀵 종료(shake)는 그대로. 확인: `tests/run_stop_test.py` (`run.main`을 가짜로 돌림) 통과, pytest 57. 고치기 전 코드: Ctrl+C 바로 다음 호출이 퀵 종료
 - [x] [win] P0-C 관측 없음: `duel._sense`·`Field._walk`에서 snapshot이 없으면 그 틱에 스틱 0, `NO_OBS_NEUTRAL_S`(임시 0.25 s) 넘게 없으면 버튼까지 전부 놓음 (공백마다 한 번). `Feed.snapshot`은 기다린 뒤에도 `STALE_S`(임시 0.25 s)보다 낡은 프레임이면 `None`. 확인: `tests/no_obs_test.py` 통과, pytest 58, golden 그대로. 고치기 전 코드: 0.5 s 공백 동안 스틱·가드 그대로, 멈춘 피드가 0.36 s 낡은 프레임을 줌
 - [x] [win] P0-D Mover ↔ 실제 보고: `Pad.epoch`(neutral·freeze·unfreeze·reconnect·close마다 +1)가 바뀌면 `nav.Mover`가 자기 상태를 잊고 다음 `set()`에서 필요한 버튼을 다시 누름. epoch 없는 패드(walksim `SimPad`)는 그대로. 확인: `tests/mover_epoch_test.py` 통과, pytest 59, walksim·walk_replay 숫자 그대로. 고치기 전 코드: neutral 뒤 `set("guard")`가 LB를 다시 안 누름 (P-38)
+- [x] [win] P0-E 종료 정리: Pad가 생기면 atexit(→ 모든 Pad `close`)과 Windows 콘솔 처리기를 등록. Ctrl+C 이벤트 → 얼림과 상관없이 중립만 (이어서 P0-B), Ctrl+Break·콘솔 닫기·로그오프·종료 → 중립 → 장치 제거 → 잠금 해제. 확인: `tests/pad_exit_test.py` (자식 프로세스 정상 종료·잡히지 않은 예외·실제 Ctrl+Break) 통과, pytest 60. 고치기 전 코드: 정상 종료 때 마지막 보고가 스틱 + LB 그대로, 장치도 안 빠짐
 
 game에서만 확인할 수 있는 것 — 오프라인으로는 확인 못 함, resolved·정책 보장 아님:
 - (공통) 게임이 XInput을 얼마나 자주 읽는지, 패드 호출 → 게임 반응 지연 (P1 기록 전엔 모름)
@@ -295,6 +296,7 @@ game에서만 확인할 수 있는 것 — 오프라인으로는 확인 못 함,
 - (C) 실제 게임에서 짧은 관측 공백이 얼마나 자주 생기는지, 0.25 s 뒤 가드가 내려가 맞는지
 - (D) 짧은 B → 구르기/백스텝: sprint 걷기(수용소 `run` 단계, 막힘 탈출 뒤 달리기)가 이제 점마다 "도착 neutral로 B 뗌 → 다음 점에서 B 누름"을 반복함. DSR이 짧은 B 누름·뗌을 구르기/백스텝으로 받는지, 어느 길이부터인지 모름
 - (D) 가드 걷기(retreat·fall_back·back_to_wall)가 이제 끝까지 가드를 유지 — 스태미나가 모자라지 않는지
+- (E) `TerminateProcess`·`taskkill /F`·python.exe 크래시·`os._exit`에서는 정리 코드가 안 돎. 그때 ViGEm이 장치를 언제 빼는지, 그 사이 게임이 마지막 보고를 붙잡는지 모름
 
 ## 1-f. 모퉁이에서 일찍 꺾기 · 제자리 비비기 · 뒤돌기 (2026-09-28 [사람] 관찰)
 

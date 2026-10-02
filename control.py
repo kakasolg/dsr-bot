@@ -13,6 +13,7 @@ import math
 import sys
 import threading
 import time
+import weakref
 from pathlib import Path
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -129,6 +130,43 @@ def pad_lock_held() -> bool:
     return False
 
 
+# ── process exit (P0-E) ─────────────────────────────
+# Every exit that still runs code: neutral → unplug. atexit = normal end and uncaught exceptions; the console handler =
+# Ctrl+Break, closing the console window, logoff/shutdown (the default handler then ends the process without atexit).
+# Ctrl+C there only neutralizes — Python then raises KeyboardInterrupt and run.py's user stop takes over.
+# TerminateProcess / a hard kill runs nothing here: what ViGEm does with the device then is UNKNOWN (not tested in game).
+_LIVE: "weakref.WeakSet[Pad]" = weakref.WeakSet()
+_HOOKED = False
+_CTRL_HANDLER = None          # the ctypes callback must stay referenced while registered
+CTRL_C_EVENT = 0
+
+
+def _release_all(close: bool) -> None:
+    for p in list(_LIVE):
+        try:
+            p.close() if close else p.release_all()
+        except Exception:
+            pass
+
+
+def _on_console_event(ev: int) -> bool:
+    _release_all(close=ev != CTRL_C_EVENT)
+    return False              # not handled — the next handler (Python's Ctrl+C / the default exit) still runs
+
+
+def _hook_exit() -> None:
+    global _HOOKED, _CTRL_HANDLER
+    if _HOOKED:
+        return
+    _HOOKED = True
+    import atexit
+    atexit.register(_release_all, True)
+    if sys.platform == "win32":
+        handler_type = ctypes.WINFUNCTYPE(ctypes.wintypes.BOOL, ctypes.wintypes.DWORD)
+        _CTRL_HANDLER = handler_type(lambda ev: _on_console_event(int(ev)))
+        ctypes.windll.kernel32.SetConsoleCtrlHandler(_CTRL_HANDLER, True)
+
+
 class Pad:
     # 긴급 탈출(메뉴 → Quit Game) 동안 판단 루프가 스틱·버튼을 계속 넣으면 메뉴 입력과 섞인다 → 탈출 스레드만 패드를 쓴다
     _frozen_by: int | None = None
@@ -195,7 +233,24 @@ class Pad:
         except BaseException:
             self.close()
             raise
+        _LIVE.add(self)
+        _hook_exit()
         time.sleep(self.CONNECT_WAIT_S)
+
+    def release_all(self) -> None:
+        """Exit paths only: every input off now, even while another thread holds the freeze — it is a user / OS stop."""
+        got = self._lock.acquire(timeout=1.0)
+        try:
+            self.epoch += 1
+            self._due.clear()
+            self._note_stick(0.0, 0.0)
+            v = self._vpad
+            if v is not None:
+                v.reset()
+                v.update()
+        finally:
+            if got:
+                self._lock.release()
 
     def close(self) -> None:
         """Neutral → unplug the device → drop the pad lock. Idempotent; later input goes nowhere (_NullPad)."""
