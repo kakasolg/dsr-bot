@@ -63,6 +63,18 @@ RULES: list[tuple[str, str]] = [
      r"\1: knife \2 (\3) → damage \4, no reaction | no lock-on — not thrown (knives without lock-on today \5)"),
     (r"^핏자국: (회수|못 주움) \(소울 (\d+) → (\S+)\)",
      lambda m: f"bloodstain: {'recovered' if m[1] == '회수' else 'not picked up'} (souls {m[2]} → {m[3]})"),
+    # Asylum route (souls/asylum.py, run.py asylum) — step labels are left for GLOSSARY
+    (r"^수용소 구간 (\d+): (\d+)단계 \((.*)\)", r"Asylum segment \1: \2 steps (\3)"),
+    (r"^수용소: 첫 단계에서 (\d+) m — 가장 가까운 구간 (\d+)의 (\d+)번째 단계부터 이어감",
+     r"Asylum: \1 m from the first step — resuming at step \3 of the nearest segment \2"),
+    (r"^수용소(\d+) (\d+)/(\d+) ", r"Asylum\1 \2/\3 "),
+    (r"^수용소(\d+) ", r"Asylum\1 "),
+    (r"^\(퀵 종료 꺼짐\) 낙사 \(발밑 바닥 (\d+) m 아래\) — 나가지 않고 계속",
+     r"(quit-out off) falling to death (floor \1 m below) — not quitting, carrying on"),
+    (r"^\(퀵 종료 꺼짐\) 낙사 \(바닥 모름, 0\.8 s 에 ([\d.]+) m\) — 나가지 않고 계속",
+     r"(quit-out off) falling to death (floor unknown, \1 m in 0.8 s) — not quitting, carrying on"),
+    (r"^⚠ 모르는 무기 (\d+) — (.*) 사용법으로 \(souls/weapons\.py 에 추가할 것\)",
+     r"⚠ unknown weapon \1 — using the \2 moveset (add it to souls/weapons.py)"),
 ]
 
 # word / phrase → English, longest first (built at import)
@@ -115,6 +127,26 @@ GLOSSARY: dict[str, str] = {
     "칸을 못 고름": "slot not selectable", "밴딧 나이프": "Bandit's Knife", "휘두를 때": "while it swings",
     "발밑 가장자리": "edge underfoot", "싸움 자리": "fight spot", "시작 자리": "start spot", "찍어 둔 자리": "marked spot",
     "가드 든 채": "guard up,", "맨 뒤로 미룬다": "moved to the back of the queue", "뒤잡기안함": "no-backstab",
+    # Asylum step labels (data/routes/asylum-fresh.json) and souls/asylum.py words
+    "감방: 열쇠 줍기·문 열기": "cell: pick up key · open door", "사다리 (감방 복도 → 뜰)": "ladder (cell corridor → courtyard)",
+    "첫 화톳불 (1812960) 불 붙이기": "light the first bonfire (1812960)", "큰 방 문 (데몬 처음 나옴 → 도망)": "big hall door (demon appears → run)",
+    "도망친 방 화톳불 (1812961)": "bonfire in the escape room (1812961)",
+    "시작 장비 줍기 1: 방패 + 메뉴 장착 (확인, 항상 같음)": "starting gear 1: shield + equip in menu (verified, always the same)",
+    "시작 장비 줍기 2: 배틀 액스 + 메뉴 장착 (확인, 항상 같음)": "starting gear 2: Battle Axe + equip in menu (verified, always the same)",
+    "위층 문": "upstairs door", "굴러오는 바위 — 떨어져 피함 (확인)": "rolling boulder — drop down to dodge (verified)",
+    "오스카 대화 (에스트·열쇠)": "talk to Oscar (Estus · key)", "위층 기사 뒤 A": "A behind the upstairs knight",
+    "데몬 위 안개벽 → 떨어지며 치기 (들어가면 바로 뛰어내림)": "fog wall above the demon → plunging attack (jump right after entering)",
+    "데몬 열쇠 줍기 (데몬 죽은 자리)": "pick up the demon's key (where it died)",
+    "데몬 열쇠로 잠긴 문 열기 → 까마귀 쪽 (확인)": "open the locked door with the demon's key → toward the crow (verified)",
+    "화톳불 목록에 추가": "added to bonfire list", "화톳불에서 못 일어남": "couldn't stand up from the bonfire",
+    "방향 못 맞춤": "couldn't face the recorded heading", "끝 점까지": "to the end point", "걷기": "walk", "멈춤": "stopped",
+    "안개벽 통과": "fog wall passed", "안개벽 못 지나감": "fog wall not passed", "가운데에서": "from center",
+    "안 올라감": "not climbing", "올라감": "climbed", "다시": "again", "사다리": "ladder", "떨어지기": "drop",
+    "메뉴 건너뜀": "menu skipped", "까마귀 장면 넘기기": "skipping the crow scene", "메뉴": "menu", "장착 확인": "equip check",
+    "맞음": "correct", "이미": "already", "안 옮겨짐": "not moved", "까마귀": "crow", "양손 잡기": "two-hand grip", "안 바뀜": "unchanged",
+    "떨어지며 치기": "plunging attack", "데몬 처치": "demon killed", "데몬 싸움 중 에스트": "Estus during the demon fight", "데몬": "demon",
+    "에스트 없음": "no Estus", "왼손1": "left hand 1", "오른손1": "right hand 1", "방패": "shield",
+    "사용자 중지": "stopped by user", "입력 중립": "inputs neutral", "퀵 종료 안 함": "no quit-out", "오류로 멈춤": "stopped on error",
     "소울": "souls", "인간성": "humanity", "반지": "rings", "왼손": "left hand", "양손": "two-handed", "잡기": "grip", "원함": "want",
 }
 # short entries (≤ 2 syllables) only as whole words, so "나" doesn't eat the start of "나가지"

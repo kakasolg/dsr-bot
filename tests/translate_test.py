@@ -36,6 +36,10 @@ cases = {
     "#6 이동: 막힘 감지 (2 s 동안 0.3 m 미만) — 앞길에 o1132 (o1132_06, 2.7 m)": "#6 move: stuck (under 0.3 m in 2 s) — o1132 (o1132_06) ahead, 2.7 m",
     "화톳불로: arrived": "to the bonfire: arrived",
     "성벽 마을": "Undead Burg",
+    "   수용소1 5/17 A ×1 (감방: 열쇠 줍기·문 열기)": "   Asylum1 5/17 A ×1 (cell: pick up key · open door)",
+    "   수용소1 15/17 사다리 190.6 → 195.6: 올라감 (y 195.9)": "   Asylum1 15/17 ladder 190.6 → 195.6: climbed (y 195.9)",
+    "수용소 구간 1: 17단계 (walk → 첫 화톳불 (1812960) 불 붙이기)": "Asylum segment 1: 17 steps (walk → light the first bonfire (1812960))",
+    "      장착 확인 왼손1: 900000 → 1462000 (맞음)": "      equip check left hand 1: 900000 → 1462000 (correct)",
     "no korean here": "no korean here",
 }
 print("규칙·사전")
