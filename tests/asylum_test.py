@@ -93,6 +93,63 @@ def test_flee_and_gear() -> None:
     print("ok  fleeing: sprint + demon ignored from the big door to the second bonfire; gear menus checked (shield ok, axe not equipped → fail)")
 
 
+def test_menu_waits_for_screen() -> None:
+    """START / A / B wait for the memory screen value to change, then MENU_SETTLE; a START that opens nothing is pressed again (P-40)."""
+    f = make_field(World(player=(0.0, -49.4, 0.0)))
+    a = A.Asylum(f, nm=None, log=f.log)
+    scr = {"v": 1, "swallow": 1}
+    log = []
+
+    class Pm:
+        def read_uint(self, addr):
+            return scr["v"]
+
+    def press(self, b, hold=0.1, gap=0.1):
+        name = next(k for k, v in A.BTN.items() if v == b)
+        log.append(("press", name))
+        if name == "START" and scr["swallow"]:
+            scr["swallow"] -= 1                          # first START swallowed
+        elif name in ("START", "A"):
+            scr["v"] += 1
+            if name == "A":
+                eq["왼손1"] = 1462000
+    eq = {"왼손1": 900000}
+    a.tm = type("T", (), {"pm": Pm(), "base": 0, "equipment": lambda self: dict(eq)})()
+    a.mv = type("M", (), {"press": press})()
+    sleep, clock = A.time.sleep, A.time.time
+    now = [0.0]
+    A.time.sleep = lambda s: (log.append(("sleep", round(s, 2))) if s >= 0.1 else None, now.__setitem__(0, now[0] + s))
+    A.time.time = lambda: now[0]
+    try:
+        assert a._menu({"keys": ["START", "RIGHT", "A"], "dt": [0, 0.3, 0.3], "label": "시작 장비 줍기 1: 방패"}, "t") == "ok"
+    finally:
+        A.time.sleep, A.time.time = sleep, clock
+    presses = [x[1] for x in log if x[0] == "press"]
+    assert presses == ["START", "START", "RIGHT", "A"], presses
+    settles = [x[1] for x in log if x[0] == "sleep" and x[1] >= A.MENU_SETTLE]
+    assert len(settles) >= 2, log                        # after the START that opened the menu and after A
+    print("ok  menu: swallowed START pressed again; START / A wait for the screen to change + settle")
+
+
+def test_guard_walk_with_shield() -> None:
+    """Shield in the left hand → walks go with the guard up; fleeing still sprints; no shield (or unreadable) → plain walk."""
+    f = make_field(World(player=(0.0, -49.4, 0.0)))
+    a = A.Asylum(f, nm=None, log=f.log)
+    modes = []
+    f.walk = lambda pts, nm, tag, mode="walk", **k: modes.append(mode) or "ok"
+    eq = {"왼손1": 900000}
+    a.tm = type("T", (), {"equipment": lambda self: dict(eq)})()
+    st = {"type": "walk", "pts": [[0, -49.4, 0], [1, -49.4, 0]]}
+    a._walk(st, "t")
+    eq["왼손1"] = 1462000
+    a._walk(st, "t")
+    a._walk(dict(st, run=True), "t")
+    a.tm = type("T", (), {"equipment": lambda self: 1 / 0})()
+    a._walk(st, "t")
+    assert modes == ["walk", "guard", "sprint", "walk"], modes
+    print("ok  walks: guard up once the shield is on, sprint while fleeing, plain walk without a shield")
+
+
 def test_keeps_human_pause() -> None:
     f = make_field(World(player=(0.0, -49.4, 0.0)))
     f.alive = lambda: True
@@ -310,6 +367,8 @@ if __name__ == "__main__":
     test_heading()
     test_run_order_and_stop()
     test_flee_and_gear()
+    test_menu_waits_for_screen()
+    test_guard_walk_with_shield()
     test_keeps_human_pause()
     test_ready_and_last_stand()
     test_resume_and_segments()

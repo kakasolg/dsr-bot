@@ -63,6 +63,12 @@ CLIMB_S = 15.0           # give up a ladder after this
 DROP_S = 4.0
 MENU_GAP = 0.35          # menu inputs when the recording has no gaps (control buffer tangles when faster — user)
 MENU_GAP_MIN = 0.25
+# START·A·B는 메뉴 화면을 바꾼다 — 메모리 화면 값(quitout._screen)이 누른 지 ~0.15 s 뒤 바뀐다. 녹화 간격만 믿고 누르니
+# 장비 화면이 다 열리기 전에 DOWN이 씹혀 방패 대신 검 자루가 왼손으로 감 (09-29 구간 2, 10-03b 다시 — P-40).
+# 1 s 간격으로 천천히 누르면 같은 키로 맞게 장착됨 (10-03 실측). 방향키·장착 A는 화면 값이 안 바뀜 → 그건 녹화 간격대로
+MENU_SCREEN_KEYS = {"START", "A", "B"}
+MENU_SCREEN_WAIT = 1.2   # wait this long for the screen value to change after START / A / B (equip A and B in the world don't change it)
+MENU_SETTLE = 0.45       # after it changed: let the new screen finish drawing before the next key
 KEEP_GAP_M = 1.5         # a press/menu right after another one within this distance keeps the human's pause between them
 KEEP_GAP_MAX = 6.0
 BTN = {"A": control.B.XUSB_GAMEPAD_A, "B": control.B.XUSB_GAMEPAD_B, "START": control.B.XUSB_GAMEPAD_START,
@@ -231,7 +237,8 @@ class Asylum:
         s = self.mv.snap(5.0)
         if s is not None and len(pts) > 1 and math.dist((s.player.x, s.player.y, s.player.z), pts[0]) < 1.0:
             pts = pts[1:]
-        r = self.f.walk(pts, self.nm, f"{tag} 걷기", mode="sprint" if st.get("run") else "walk")
+        mode = "sprint" if st.get("run") else ("guard" if self._shield_on() else "walk")
+        r = self.f.walk(pts, self.nm, f"{tag} 걷기", mode=mode)
         if r == "dead":
             return "dead"
         s = self.mv.snap(5.0)
@@ -240,6 +247,14 @@ class Asylum:
             self.log(f"   {tag} 걷기: {r}, 끝 점까지 {d:.1f} m")
             return "fail"
         return "ok"
+
+    def _shield_on(self) -> bool:
+        """방패를 들었으면 걸을 때 가드를 올린다 ([MoKa] 2026-10-03: 방패 장착 뒤 화살 쏘는 망자에게 계속 맞음)."""
+        try:
+            left = self.tm.equipment().get(GEAR["방패"][0])
+        except Exception:
+            return False
+        return left is not None and left // 100 * 100 == GEAR["방패"][1]
 
     def _stand(self, pos, hd) -> bool:
         """Walk to pos (within PRESS_TOL) and turn to heading hd with short stick nudges (DS1 can't turn in place — farm.rest)."""
@@ -363,7 +378,7 @@ class Asylum:
             else:
                 gap = MENU_GAP
             if k in BTN:
-                self.mv.press(BTN[k], gap=gap)
+                self._menu_key(k, gap)
         time.sleep(0.5)
         self.log(f"   {tag} 메뉴 {' '.join(st['keys'])} ({st.get('label') or '?'})")
         if want is None:
@@ -373,6 +388,24 @@ class Asylum:
         ok = now is not None and now // 100 * 100 == item               # +n upgrades keep the base id's hundreds
         self.log(f"      장착 확인 {slot}: {before.get(slot)} → {now} ({'맞음' if ok else f'원함 {item}'})")
         return "ok" if ok else "fail"
+
+    def _menu_key(self, k: str, gap: float) -> None:
+        """One menu key. START / A / B: wait until the menu screen value changes, then MENU_SETTLE (at least the human's gap);
+        a START that changed nothing (menu didn't open) is pressed once more. Screen unreadable → the recorded gap as before."""
+        import quitout
+        before = quitout._screen(self.tm) if k in MENU_SCREEN_KEYS else None
+        if before is None:
+            self.mv.press(BTN[k], gap=gap)
+            return
+        for attempt in range(2 if k == "START" else 1):
+            t0 = time.time()
+            self.mv.press(BTN[k], gap=0.0)
+            while time.time() - t0 < MENU_SCREEN_WAIT and quitout._screen(self.tm) == before:
+                time.sleep(0.02)
+            if quitout._screen(self.tm) != before:
+                time.sleep(max(MENU_SETTLE, gap - (time.time() - t0)))
+                return
+        # no change: the equip A in a list, a B out in the world — or a swallowed key; carry on, the equipment check decides
 
     def _fight(self, st, tag) -> str:
         s = self.mv.snap(15.0)
