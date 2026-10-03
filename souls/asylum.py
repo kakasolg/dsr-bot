@@ -78,7 +78,10 @@ MENU_GAP_MIN = 0.25
 MENU_SCREEN_KEYS = {"START", "A", "B"}
 MENU_SCREEN_WAIT = 1.2   # wait this long for the screen value to change after START / A / B (equip A and B in the world don't change it)
 MENU_SETTLE = 0.45       # after it changed: let the new screen finish drawing before the next key
-KEEP_GAP_M = 1.5         # a press/menu right after another one within this distance keeps the human's pause between them
+EQ_SLOT_DOWNS = {"오른손1": 0, "왼손1": 1}   # rows down from 오른손1, where the equipment screen opens (10-03 captures)
+EQUIP_TRIES = 5          # list openings before giving up — the starting lists hold 2–3 items
+EQUIP_CHECK_S = 0.4      # after the equip A, before reading the equipment
+KEEP_GAP_M = 1.5        # a press/menu right after another one within this distance keeps the human's pause between them
 KEEP_GAP_MAX = 6.0
 BTN = {"A": control.B.XUSB_GAMEPAD_A, "B": control.B.XUSB_GAMEPAD_B, "START": control.B.XUSB_GAMEPAD_START,
        "UP": control.B.XUSB_GAMEPAD_DPAD_UP, "DOWN": control.B.XUSB_GAMEPAD_DPAD_DOWN,
@@ -391,6 +394,20 @@ class Asylum:
             self.log(f"   {tag} 메뉴 건너뜀 (까마귀 장면 넘기기)")
             return "ok"
         control.focus_game()
+        if want is not None:
+            slot, item = want
+            n = self._equip(slot, item)
+            for oslot, oitem in GEAR.values():
+                # 목록을 넘기다 다른 손의 장비를 이 칸에 장착하면 그 손이 비게 됨 (예: 오른손 목록의 방패) → 다시 장착
+                after = self.tm.equipment().get(oslot)
+                if oslot != slot and (before.get(oslot) or 0) // 100 * 100 == oitem and (after or 0) // 100 * 100 != oitem:
+                    self.log(f"      {oslot} 빠짐 ({after}) — 다시 장착")
+                    self._equip(oslot, oitem)
+            now = self.tm.equipment().get(slot)
+            ok = now is not None and now // 100 * 100 == item           # +n upgrades keep the base id's hundreds
+            self.log(f"   {tag} 메뉴 장착 {slot} ({st.get('label') or '?'}): 목록 {n}번 열어 봄")
+            self.log(f"      장착 확인 {slot}: {before.get(slot)} → {now} ({'맞음' if ok else f'원함 {item}'})")
+            return "ok" if ok else "fail"
         dts = st.get("dt") or []
         for j, k in enumerate(st["keys"]):
             if j + 1 < len(dts):                           # wait the human's gap before the next key (menu open ~0.7 s)
@@ -408,6 +425,44 @@ class Asylum:
         ok = now is not None and now // 100 * 100 == item               # +n upgrades keep the base id's hundreds
         self.log(f"      장착 확인 {slot}: {before.get(slot)} → {now} ({'맞음' if ok else f'원함 {item}'})")
         return "ok" if ok else "fail"
+
+    def _equip(self, slot: str, item: int) -> int:
+        """
+        ── 장비 메뉴는 결과를 보며 고른다 (P-40) ──────────────────────────
+         · 녹화 키(START RIGHT A DOWN A DOWN A …)를 그대로 누르면 안 됨: 목록이 열릴 때 커서 자리가 그때그때 다름 —
+           10-03d 왼손 목록이 방패에 커서를 두고 열림 → 녹화의 DOWN이 맨 위 검 자루로 돌아가 검 자루 장착
+         · 그래서: 장비 화면(커서는 오른손1에서 열림) → 칸으로 내려감 → 목록 열고 A로 장착 → 메모리로 장비 확인.
+           아니면 목록을 다시 열어(커서는 지금 든 것에서 시작) 한 칸 내리고 다시 장착 — 목록이 짧아 몇 번이면 한 바퀴
+        → 목록을 연 횟수. 메뉴는 닫고 끝낸다."""
+        self._menu_key("START", MENU_GAP)
+        self._menu_key("RIGHT", MENU_GAP)                  # Items → Equipment tab
+        self._menu_key("A", MENU_GAP)                      # equipment screen, cursor on 오른손1
+        for _ in range(EQ_SLOT_DOWNS[slot]):
+            self._menu_key("DOWN", MENU_GAP)
+        n = 0
+        for k in range(EQUIP_TRIES):
+            n += 1
+            self._menu_key("A", MENU_GAP)                  # open this slot's list
+            if k:
+                self._menu_key("DOWN", MENU_GAP)
+            self._menu_key("A", MENU_GAP)                  # equip the highlighted one → back on the equipment screen
+            time.sleep(EQUIP_CHECK_S)
+            now = self.tm.equipment().get(slot)
+            if now is not None and now // 100 * 100 == item:
+                break
+        self._close_menu()
+        return n
+
+    def _close_menu(self) -> None:
+        """B until the menu is closed — never a B out in the world (that's a backstep)."""
+        for _ in range(4):
+            try:
+                open_ = self.tm.menu_open()
+            except Exception:
+                open_ = None
+            if open_ is False:
+                return
+            self._menu_key("B", MENU_GAP)
 
     def _menu_key(self, k: str, gap: float) -> None:
         """One menu key. START / A / B: wait until the menu screen value changes, then MENU_SETTLE (at least the human's gap);

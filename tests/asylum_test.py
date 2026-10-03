@@ -121,7 +121,7 @@ def test_menu_waits_for_screen() -> None:
     A.time.sleep = lambda s: (log.append(("sleep", round(s, 2))) if s >= 0.1 else None, now.__setitem__(0, now[0] + s))
     A.time.time = lambda: now[0]
     try:
-        assert a._menu({"keys": ["START", "RIGHT", "A"], "dt": [0, 0.3, 0.3], "label": "시작 장비 줍기 1: 방패"}, "t") == "ok"
+        assert a._menu({"keys": ["START", "RIGHT", "A"], "dt": [0, 0.3, 0.3], "label": "메뉴 시험"}, "t") == "ok"
     finally:
         A.time.sleep, A.time.time = sleep, clock
     presses = [x[1] for x in log if x[0] == "press"]
@@ -129,6 +129,85 @@ def test_menu_waits_for_screen() -> None:
     settles = [x[1] for x in log if x[0] == "sleep" and x[1] >= A.MENU_SETTLE]
     assert len(settles) >= 2, log                        # after the START that opened the menu and after A
     print("ok  menu: swallowed START pressed again; START / A wait for the screen to change + settle")
+
+
+class FakeMenu:
+    """The equipment menu as seen on 10-03: START → items, RIGHT → equipment tab, A → equipment screen on 오른손1,
+    DOWN → next slot, A → that slot's list with the cursor at `start` (an item name, or the one held), DOWN wraps, A equips
+    (an item held in the other hand swaps), B goes back one screen."""
+    ROWS = ["오른손1", "왼손1"]
+
+    def __init__(self, eq, lists, start):
+        self.eq, self.lists, self.start = eq, lists, start
+        self.state, self.row, self.cur, self.opens = "world", 0, 0, 0
+
+    def key(self, k):
+        s = self.state
+        if s == "world" and k == "START":
+            self.state = "items"
+        elif s == "items" and k == "RIGHT":
+            self.state = "tab"
+        elif s == "tab" and k == "A":
+            self.state, self.row = "screen", 0
+        elif s == "screen" and k == "DOWN":
+            self.row = (self.row + 1) % len(self.ROWS)
+        elif s == "screen" and k == "A":
+            items = self.lists[self.ROWS[self.row]]
+            first = self.start.pop(0) if self.start else self.eq[self.ROWS[self.row]]
+            self.state, self.cur, self.opens = "list", items.index(first) if first in items else 0, self.opens + 1
+        elif s == "list" and k == "DOWN":
+            self.cur = (self.cur + 1) % len(self.lists[self.ROWS[self.row]])
+        elif s == "list" and k == "A":
+            slot, it = self.ROWS[self.row], self.lists[self.ROWS[self.row]][self.cur]
+            other = next((o for o in self.ROWS if o != slot and self.eq[o] == it), None)
+            if other:
+                self.eq[other] = 900000
+            self.eq[slot], self.state = it, "screen"
+        elif k == "B":
+            self.state = {"list": "screen", "screen": "tab", "tab": "items", "items": "world"}.get(s, s)
+
+    def screen(self):
+        return {"world": 1, "items": 2, "tab": 2, "screen": 3, "list": 4}[self.state]
+
+
+def test_equip_closed_loop() -> None:
+    """Gear menus pick by result: whichever item the list opens on, the shield ends up in 왼손1 and the menu is closed (P-40)."""
+    for start, want_opens in ((212000, 2), (1462000, 1)):
+        f = make_field(World(player=(0.0, -49.4, 0.0)))
+        a = A.Asylum(f, nm=None, log=f.log)
+        eq = {"오른손1": 212000, "왼손1": 900000}
+        m = FakeMenu(eq, {"오른손1": [212000, 1462000], "왼손1": [212000, 1462000]}, [start])
+        names = {v: k for k, v in A.BTN.items()}
+        a.mv = type("M", (), {"press": lambda self, b, hold=0.1, gap=0.1: m.key(names[b])})()
+        a.tm = type("T", (), {"equipment": lambda self: dict(eq), "menu_open": lambda self: m.state != "world",
+                              "pm": type("P", (), {"read_uint": lambda self, addr: m.screen()})(), "base": 0})()
+        sleep = A.time.sleep
+        A.time.sleep = lambda s: None
+        try:
+            r = a._menu({"keys": ["START", "RIGHT", "A", "DOWN", "A", "DOWN", "A", "B", "B", "B", "B"],
+                         "label": "시작 장비 줍기 1: 방패 + 메뉴 장착"}, "t")
+        finally:
+            A.time.sleep = sleep
+        assert r == "ok" and eq["왼손1"] == 1462000 and m.state == "world", (start, r, eq, m.state)
+        assert m.opens == want_opens, (start, m.opens)
+    # the axe: the right-hand list also holds the shield — stepping through it takes the shield out of 왼손1 → equipped again
+    f = make_field(World(player=(0.0, -49.4, 0.0)))
+    a = A.Asylum(f, nm=None, log=f.log)
+    eq = {"오른손1": 212000, "왼손1": 1462000}
+    m = FakeMenu(eq, {"오른손1": [212000, 1462000, 701000], "왼손1": [212000, 1462000, 701000]}, [])
+    names = {v: k for k, v in A.BTN.items()}
+    a.mv = type("M", (), {"press": lambda self, b, hold=0.1, gap=0.1: m.key(names[b])})()
+    a.tm = type("T", (), {"equipment": lambda self: dict(eq), "menu_open": lambda self: m.state != "world",
+                          "pm": type("P", (), {"read_uint": lambda self, addr: m.screen()})(), "base": 0})()
+    sleep = A.time.sleep
+    A.time.sleep = lambda s: None
+    try:
+        r = a._menu({"keys": ["START", "RIGHT", "A", "A", "DOWN", "A", "B", "B", "A"], "label": "시작 장비 줍기 2: 배틀 액스 + 메뉴"}, "t")
+    finally:
+        A.time.sleep = sleep
+    assert r == "ok" and eq == {"오른손1": 701000, "왼손1": 1462000} and m.state == "world", (r, eq, m.state)
+    assert any("왼손1 빠짐" in l for l in f.logs), f.logs[-4:]
+    print("ok  gear menu: list opening on the hilt or on the shield → shield in 왼손1, menu closed; axe pass that knocks the shield out re-equips it")
 
 
 def test_guard_walk_with_shield() -> None:
@@ -384,6 +463,7 @@ if __name__ == "__main__":
     test_run_order_and_stop()
     test_flee_and_gear()
     test_menu_waits_for_screen()
+    test_equip_closed_loop()
     test_guard_walk_with_shield()
     test_rush_to_axe()
     test_keeps_human_pause()

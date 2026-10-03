@@ -1,0 +1,28 @@
+[    0.0] ctl: 기록만 → D:\dev\dsr-bot\data\runs\20261003_145015_asylum.ctl.jsonl
+[    0.2] radar: sending — python radar_server.py -> http://127.0.0.1:47801, python overlay.py
+[    4.7]    물건 비켜 가기 (지난 실행에서 2번 이상 부숨): o1132_06 o1150_01 o1321_0021
+[    4.8] 무기: 배틀 액스 (약공 2연타, 닿는 거리 1.6 m, 강공 안 씀)
+[    4.8] 스타일: guard
+[    4.9] attack audit: 기록만 → D:\dev\dsr-bot\data\runs\20261003_145015_asylum.attack_audit.jsonl (공격 규칙 호출 직전 입력, 패드·규칙엔 반영 안 함)
+[    4.9] 캐릭터: SL 4 VIT 12 END 14 STR 14 DEX 9 | 반지 -1,-1 왼손 900000
+[    4.9] 수용소 구간 1: 17단계 (walk → 첫 화톳불 (1812960) 불 붙이기)
+[    5.1]    카메라: 오른스틱 +x → cam_yaw + (첫 펄스로 배움)
+[    8.7]    수용소1 5/17 A ×1 (감방: 열쇠 줍기·문 열기)
+[   11.5]    수용소1 7/17 A ×1 (감방: 열쇠 줍기·문 열기)
+[   12.8]    수용소1 9/17 A ×1 (감방: 열쇠 줍기·문 열기)
+[   44.0]    수용소1 13/17 A ×1 (사다리 (감방 복도 → 뜰))
+[   49.5]    수용소1 15/17 사다리 190.6 → 195.6: 올라감 (y 195.9)
+[   54.3]    수용소1 17/17 A ×1 (첫 화톳불 (1812960) 불 붙이기)
+[   56.8] 수용소 구간 2: 20단계 (walk → 시작 장비 줍기 2: 배틀 액스 + 메뉴 장착 (확인, 항상 같음))
+[   61.5]    수용소2 2/20 A ×1 (큰 방 문 (데몬 처음 나옴 → 도망))
+[   80.5]    수용소2 6/20 A ×1 (도망친 방 화톳불 (1812961))
+[   91.5]    수용소2 8/20 A ×1 (시작 장비 줍기 1: 방패 + 메뉴 장착 (확인, 항상 같음))
+[   95.7]    수용소2 12/20 A ×1 (시작 장비 줍기 1: 방패 + 메뉴 장착 (확인, 항상 같음))
+[  108.1]    수용소2 14/20 메뉴 START RIGHT A DOWN A DOWN A B B B B (시작 장비 줍기 1: 방패 + 메뉴 장착 (확인, 항상 같음))
+[  108.1]       장착 확인 왼손1: 900000 → 212000 (원함 1462000)
+[  108.1]    수용소2 14/20 menu (시작 장비 줍기 1: 방패 + 메뉴 장착 (확인, 항상 같음)): fail — 멈춤
+[  108.1] ══ 결과: 구간 2 fail at 14 menu 시작 장비 줍기 1: 방패 + 메뉴 장착 (확인, 항상 같음)
+[  108.1] 카메라 정렬: 기록 없음
+[  108.1] attack audit: {'tap': {'seq_last': 0, 'counts': {}, 'tap_errors': 0, 'tap_last_error': None, 'prep_us': {'freeze': {'n': 0, 'p50': None, 'p95': None, 'max': None}, 'payload': {'n': 0, 'p50': None, 'p95': None, 'max': None}, 'enqueue': {'n': 0, 'p50': None, 'p95': None, 'max': None}}, 'invocation_classes_bot_side': {}, 'primary_exclusion_reasons': {}}, 'writer': {'written': 2, 'dropped': 0, 'dropped_seqs': [], 'lost': 0, 'lost_seqs': [], 'write_errors': 0, 'last_error': None, 'disabled_reason': None, 'max_queue_depth': 0, 'thread_stopped': True}}
+[  108.1] ══ 위험 판정: 깨끗  (결과 구간 2 fail at 14 menu 시작 장비 줍기 1: 방패 + 메뉴 장착 (확인, 항상 같음), 최저 HP 100%, 큰 피격 0번 -0)  
+[  108.1] 텔레메트리 피드: {'frames': 6080, 'read_ms': 0.8, 'fresh': 8959, 'waited': 0, 'direct': 1747, 'none': 0, 'stale': 0}
