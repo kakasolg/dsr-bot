@@ -31,13 +31,17 @@ class HpMv(Mv):
         dmg = min(ch.hp, self.per * n)
         ch.hp -= dmg
         ch.anim = self.swing_back if ch.hp > 0 else -1
+        ch.z += getattr(self, "push", 0.0)               # staggered back by the hits
         return M.Hit("light", presses=n, dmg=dmg, dead=ch.hp <= 0)
 
 
-def run(hp=69, per=32, ticks=1, sp=98):
+def run(hp=69, per=32, ticks=1, sp=98, dist=1.2, other=None, push=0.0):
     w = World(player=(0.0, -49.4, 0.0), sp=sp, max_sp=98, hp=616)
-    w.add(2, 0x1018, 250022, (0.0, -49.4, 1.2), anim=-1, hp=hp, max_hp=69)
+    w.add(2, 0x1018, 250022, (0.0, -49.4, dist), anim=-1, hp=hp, max_hp=69)
+    if other is not None:
+        w.add(3, 0x1019, 250022, (other, -49.4, 1.2), anim=-1, hp=69, max_hp=69)
     mv = HpMv(w, 2, per)
+    mv.push = push
     mv.tm.grip = lambda: 1
     n = {"k": 0}
 
@@ -68,8 +72,26 @@ def test_no_third_when_dead() -> None:
     print("ok  combo kills → no third")
 
 
+def test_no_third_out_of_reach() -> None:
+    mv, logs, r = run(hp=69, per=32, push=weapons.BATTLE_AXE.reach)   # 1.2 m → pushed past reach by the combo (10-03f: 1.8 m)
+    assert mv.calls == [2] and not any("3타째" in l for l in logs), (mv.calls, logs[-3:])
+    print("ok  foe beyond reach after the combo → no third")
+
+
+def test_single_hit_with_another_near() -> None:
+    mv, logs, r = run(hp=69, per=32, other=4.0)       # a second hollow 4 m away (lying still)
+    assert mv.calls == [1], mv.calls
+    assert ("guard", True) in mv.pad.calls or any(c[0] == "guard" for c in mv.pad.calls), mv.pad.calls[-5:]
+    assert not any("3타째" in l for l in logs), logs[-3:]
+    mv, logs, r = run(hp=69, per=32, other=D.SINGLE_HIT_R + 1.0)   # the other one far → the combo as before
+    assert mv.calls[:1] == [2], mv.calls
+    print(f"ok  another foe within {D.SINGLE_HIT_R} m → one light then shield, no third; farther → light×2")
+
+
 if __name__ == "__main__":
     test_third_finishes()
     test_no_third_when_tough()
     test_no_third_when_dead()
+    test_no_third_out_of_reach()
+    test_single_hit_with_another_near()
     print("전부 통과")

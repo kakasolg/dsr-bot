@@ -34,7 +34,8 @@ OTHERS_R, OTHERS_ATTACK_R = 5.0, 8.0   # and no other awake foe within 5 m, and 
 CARE_RETRY = 3.0
 FINISH_KEEP_HP = 40     # if its HP is below this, don't retreat even when my HP is low (down to 12 %) (after dark sign the shield soldier went 10 → 85)
 FINISH_HP, FINISH_SP = 25, 15   # if its HP is within one light attack (measured 34–41), hit with as little as 15 stamina
-THIRD_REACH_SLACK = 0.3  # _third: the foe staggers back a little from the second hit
+THIRD_REACH_SLACK = 0.0  # _third only within reach — at +0.3 it swung at 1.8 m into a foe staggered back and missed (10-03f)
+SINGLE_HIT_R = 6.0       # hit first: another foe (awake or lying still) this close → one light, then the shield (P-39 (A))
 HEAVY_SP = 100           # heavy attack in a stagger opening only at this stamina or more (one heavy while guarding costs 90)
 WALL_R = 1.2             # a NavMesh border (wall or drop) this close to us or the foe → heavy_vertical weapons slam instead of the light
 LOSING_TAKEN = 0.35       # taken this share of max HP in this fight …
@@ -866,15 +867,22 @@ def rule_hit_first(F, T):
                              and (w.startup or 0.0) <= INTERRUPT_STARTUP_MAX))
             and not _other_swinging(T.s, F.ptr)
             and F.mv.face(T.s, T.c, deg=30.0)):
+        single = _others_near(T.s, F.ptr, SINGLE_HIT_R)
         if _sleeper_heavy(F, T):
             F.log(f"      잠든 적 (HP {T.c.hp}) — 강공 한 방")
             hit = F.mv.heavy(T.s, T.c)
+        elif single:
+            # ── 옆에 다른 적이 있으면 한 번만 치고 방패 ([MoKa] 2026-10-03, P-39 (A)) ──────────
+            #  · 수용소 위층 망자 둘: 2연타(약 2 s) 도중 4 m 옆 둘째가 붙어 −154 (10-03a), −116 (10-03f)
+            #  · 한 번 치고 곧바로 방패 — 이어지는 건 휘청 반격·막기 규칙이 맡는다
+            hit = _strike(F, T.s, T.c, n=1, swinging=a != -1)
+            F.mv.guard(True)
         else:
             hit = _strike(F, T.s, T.c, n=w.combo, sp_second=w.sp_min, swinging=a != -1)
         F.record(hit)
         F.note("먼저치기", T.s, T.c)
         F.log(f"      먼저 치기 → {hit.kind}×{hit.presses} 피해 {hit.dmg}, 옆 {hit.others}, 내 피해 {hit.taken}")
-        if not hit.dead:
+        if not hit.dead and not single:
             hit = _third(F, hit)
         return F.killed_if(hit.dead)
     return None
