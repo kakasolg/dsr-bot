@@ -552,6 +552,8 @@ class Fight:
         self.circle_n = 0                                  # attempts to circle behind (foe.circle_behind) — prevents infinite loop
         self.edge_until = 0.0                              # after an 'edge' stop: no backstab for a while (it'd circle into the same gap)
         self.still = [None, 0.0, 0.0, 0.0]                 # [ptr, x, z, since] — where the foe last moved, for BACKSTAB_STILL_S
+        self.calm: dict[int, tuple[float, float, float]] = {}   # ptr → (x, z, first seen) while it hasn't moved or animated (_asleep)
+        self.woke: set[int] = set()
         self.acts: dict = {}                               # what was done in 1 s (for logging)
         self.note_t = self.t0
         self.shadow = ShadowKick(log=log, events=events, gen=gen)   # gen·events: supplied by Field.fight (for shadow kick events)
@@ -708,7 +710,23 @@ def _sense(F: Fight):
         h, dy, a = M.horiz(p, c), c.y - p.y, (c.anim if c.anim is not None else -1)
     if not (h > F.weapon.reach and F.wait_far):            # if not waiting, also clear the waiting HP baseline
         F.wait_hp0 = None
+    _track_calm(F, c, a, now)
     return Tick(s=s, p=p, c=c, h=h, dy=dy, a=a, now=now)
+
+
+def _track_calm(F, c, a, now) -> None:
+    """Every tick, on the raw anim (before prep_linger rewrites it): a foe that animates or moves is awake for the rest of the fight."""
+    if c.ptr in F.woke:
+        return
+    at = F.calm.setdefault(c.ptr, (c.x, c.z, now))
+    if a != -1 or math.hypot(c.x - at[0], c.z - at[1]) > SLEEP_MOVE_M or c.hp < (c.max_hp or c.hp):
+        F.woke.add(c.ptr)
+
+
+def _asleep(F, c, now) -> bool:
+    """Lying still the whole fight so far (≥ SLEEP_SEEN_S), never hit — the Asylum's dormant hollows wake only at ~1 m."""
+    at = getattr(F, "calm", {}).get(c.ptr)
+    return at is not None and c.ptr not in F.woke and now - at[2] >= SLEEP_SEEN_S
 
 
 # ── rules, in priority order (RULES below). Each gets (Fight, Tick) and returns None (not mine — next rule), CONT (acted),
@@ -847,12 +865,30 @@ def rule_hit_first(F, T):
                              and (w.startup or 0.0) <= INTERRUPT_STARTUP_MAX))
             and not _other_swinging(T.s, F.ptr)
             and F.mv.face(T.s, T.c, deg=30.0)):
-        hit = _strike(F, T.s, T.c, n=w.combo, sp_second=w.sp_min, swinging=a != -1)
+        if _sleeper_heavy(F, T):
+            F.log(f"      잠든 적 (HP {T.c.hp}) — 강공 한 방")
+            hit = F.mv.heavy(T.s, T.c)
+        else:
+            hit = _strike(F, T.s, T.c, n=w.combo, sp_second=w.sp_min, swinging=a != -1)
         F.record(hit)
         F.note("먼저치기", T.s, T.c)
         F.log(f"      먼저 치기 → {hit.kind}×{hit.presses} 피해 {hit.dmg}, 옆 {hit.others}, 내 피해 {hit.taken}")
         return F.killed_if(hit.dead)
     return None
+
+
+def _sleeper_heavy(F, T) -> bool:
+    """
+    ── 잠든 적 첫 타는 강공 ([MoKa] 2026-10-03, P-39) ──────────────────
+     · 수용소 위층 문 뒤 망자 둘(250022, HP 69): 1 m 안까지 자다가 깸. 첫 놈을 치면 4 m 옆 둘째가 ~1 s 만에 붙는다
+     · 09-29a: 한손 벽 강공 한 방(69)에 첫 놈 죽음 → 둘째와 1:1, 받은 피해 0
+     · 10-03a: 약공 2연타 64 → HP 5 남음 → 둘이 같이 침, −154·−106, 최저 HP 25 %
+     · 그래서 자는 적이 강공 한 방에 죽을 HP면 한손이어도 강공. 준비 0.86 s 동안 그놈은 자고 있다.
+       관측된 배틀 액스 강공 피해는 대부분 69·75·85 (망자 HP 그대로) — 0·26·32도 있음 (빗나감·방패)
+    """
+    w = F.weapon
+    return (HEAVY and w.heavy_vertical and T.a == -1 and T.c.hp <= SLEEPER_HEAVY_HP
+            and (T.p.sp or 0) >= SLEEPER_HEAVY_SP and _asleep(F, T.c, T.now))
 
 
 def _do_backstab(F, T, s, c, label: str):
@@ -1238,6 +1274,10 @@ def _slam(F, s, c, swinging: bool = False) -> float | None:
 
 
 HEAVY_CLEAR_R = 3.5      # no wall heavy with another awake foe this close ([MoKa] 2026-10-01)
+SLEEPER_HEAVY_HP = 75    # opening heavy on a sleeping foe only if one heavy kills it (Battle Axe heavy: 69/75/85 seen, _sleeper_heavy)
+SLEEPER_HEAVY_SP = 60    # heavy costs 50 (+20 on a ground hit)
+SLEEP_SEEN_S = 1.0       # watched lying still this long in this fight before it counts as asleep
+SLEEP_MOVE_M = 0.3       # moved more than this from where it lay → awake
 ALONE_R = 6.0            # switch to two hands only one-on-one: nobody else awake within this (FOE_R of the walk checks)
 GRIP_WAIT_S = 0.6        # two_hand_right: the grip changes ~0.4 s after the toggle (control.Pad.two_hand_right)
 
