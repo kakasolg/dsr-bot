@@ -34,6 +34,7 @@ OTHERS_R, OTHERS_ATTACK_R = 5.0, 8.0   # and no other awake foe within 5 m, and 
 CARE_RETRY = 3.0
 FINISH_KEEP_HP = 40     # if its HP is below this, don't retreat even when my HP is low (down to 12 %) (after dark sign the shield soldier went 10 → 85)
 FINISH_HP, FINISH_SP = 25, 15   # if its HP is within one light attack (measured 34–41), hit with as little as 15 stamina
+THIRD_REACH_SLACK = 0.3  # _third: the foe staggers back a little from the second hit
 HEAVY_SP = 100           # heavy attack in a stagger opening only at this stamina or more (one heavy while guarding costs 90)
 WALL_R = 1.2             # a NavMesh border (wall or drop) this close to us or the foe → heavy_vertical weapons slam instead of the light
 LOSING_TAKEN = 0.35       # taken this share of max HP in this fight …
@@ -873,8 +874,30 @@ def rule_hit_first(F, T):
         F.record(hit)
         F.note("먼저치기", T.s, T.c)
         F.log(f"      먼저 치기 → {hit.kind}×{hit.presses} 피해 {hit.dmg}, 옆 {hit.others}, 내 피해 {hit.taken}")
+        if not hit.dead:
+            hit = _third(F, hit)
         return F.killed_if(hit.dead)
     return None
+
+
+def _third(F, hit):
+    """
+    ── 2연타가 한 번 몫을 남기면 곧바로 3타째 ([MoKa] 2026-10-03, P-39 (1)) ──────────
+     · 수용소 위층 망자(HP 69): 배틀 액스 약공 2연타가 매번 64 → HP 5. 그 틈에 반격(3000)이 시작돼
+       rule_finish_first(휘두르지 않을 때만)가 못 끝내고, 옆 망자까지 와서 −154·−106 (10-03a), −212·−53 (10-03e)
+     · 그래서 2연타 직후 HP ≤ FINISH_HP이고 닿는 거리면 그놈 동작과 상관없이 한 번 더 — 맞은 휘청(2006) 중이라 먼저 들어간다
+    → the last hit (the third if it was swung, else the one given)."""
+    s2 = F.mv.snap(10.0)
+    c2 = F.mv.find(s2, F.ptr) if s2 is not None else None
+    if (c2 is None or c2.hp <= 0 or c2.hp > FINISH_HP or M.horiz(s2.player, c2) > F.weapon.reach + THIRD_REACH_SLACK
+            or (s2.player.sp or 0) <= 0):
+        return hit
+    hp0 = c2.hp
+    hit3 = F.mv.light(s2, c2, n=1)
+    F.record(hit3)
+    F.note("3타째", s2, c2)
+    F.log(f"      3타째 (HP {hp0}) → 피해 {hit3.dmg}, 내 피해 {hit3.taken}{' — 처치' if hit3.dead else ''}")
+    return hit3
 
 
 def _sleeper_heavy(F, T) -> bool:
