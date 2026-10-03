@@ -51,6 +51,15 @@ DEMON_ESTUS_R = 6.0
 RESUME_NEAR = 5.0        # farther than this from the first step → start from the nearest step (after dying / a restart)
 # 데몬 처음 만남: 큰 방 문을 연 뒤부터 도망친 방 화톳불까지는 달리고, 데몬과 싸우지 않는다 (사람도 도망침)
 FLEE = ("큰 방 문", "도망친 방 화톳불")
+
+
+class _Everyone(frozenset):
+    """ignore_npcs that holds every NPC — walks fight nobody (between the shield and the Battle Axe)."""
+    def __contains__(self, npc) -> bool:
+        return True
+
+
+EVERYONE = _Everyone()
 DEMON = 223200
 # 시작 장비 (산적): 첫 번째로 줍는 게 방패, 두 번째가 배틀 액스 — [MoKa] 항상 같음. 메뉴 장착 뒤 확인
 GEAR = {"방패": ("왼손1", 1462000), "배틀 액스": ("오른손1", 701000)}
@@ -165,9 +174,12 @@ class Asylum:
             lab = st.get("label", "")
             if st["type"] == "press" and lab.startswith(FLEE[0]):
                 fleeing = True
-            if fleeing:
+            # 방패는 들었는데 아직 배틀 액스 전: 검 자루로는 한 번에 4 — 망자 250021과 45 s 싸워 준 38·받은 300, 에스트 없이 멈춤
+            # (10-03c). [MoKa] "배틀 액스 확보할 때까지는 빨리" → 달리고, 아무와도 안 싸움
+            rushing = st["type"] == "walk" and not fleeing and self._shield_on() and not self._armed()
+            if fleeing or rushing:
                 st = dict(st, run=True) if st["type"] == "walk" else st
-            self.f.ignore_npcs = {DEMON} if fleeing else set()
+            self.f.ignore_npcs = EVERYONE if rushing else {DEMON} if fleeing else set()
             if st["type"] == "press" and lab.startswith(FLEE[1]):
                 fleeing = False
             what = st.get("label") or st["type"]
@@ -255,6 +267,14 @@ class Asylum:
         except Exception:
             return False
         return left is not None and left // 100 * 100 == GEAR["방패"][1]
+
+    def _armed(self) -> bool:
+        """Battle Axe in the right hand — until then a fight is the sword hilt (4 a hit)."""
+        try:
+            right = self.tm.equipment().get(GEAR["배틀 액스"][0])
+        except Exception:
+            return True                                    # unreadable: behave as before (fight when chased)
+        return right is not None and right // 100 * 100 == GEAR["배틀 액스"][1]
 
     def _stand(self, pos, hd) -> bool:
         """Walk to pos (within PRESS_TOL) and turn to heading hd with short stick nudges (DS1 can't turn in place — farm.rest)."""

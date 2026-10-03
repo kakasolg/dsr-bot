@@ -150,6 +150,22 @@ def test_guard_walk_with_shield() -> None:
     print("ok  walks: guard up once the shield is on, sprint while fleeing, plain walk without a shield")
 
 
+def test_rush_to_axe() -> None:
+    """Shield on, no Battle Axe yet → walks sprint and fight nobody; once the axe is in the right hand → guard walk, fights again."""
+    f = make_field(World(player=(0.0, -49.4, 0.0)))
+    f.alive = lambda: True
+    a = A.Asylum(f, nm=None, log=f.log)
+    eq = {"왼손1": 1462000, "오른손1": 212000}
+    a.tm = type("T", (), {"equipment": lambda self: dict(eq)})()
+    seen = []
+    f.walk = lambda pts, nm, tag, mode="walk", **k: seen.append((mode, 250021 in f.ignore_npcs)) or "ok"
+    a._press = lambda st, tag: eq.update({"오른손1": 701000}) or "ok"
+    walk = {"type": "walk", "pts": [[0, -49.4, 0], [1, -49.4, 0]]}
+    a.run([walk, {"type": "press", "label": "시작 장비 줍기 2: 배틀 액스"}, walk])
+    assert seen == [("sprint", True), ("guard", False)], seen
+    print("ok  shield but no axe: sprint, fight nobody; axe in hand: guard walk, fights again")
+
+
 def test_keeps_human_pause() -> None:
     f = make_field(World(player=(0.0, -49.4, 0.0)))
     f.alive = lambda: True
@@ -369,6 +385,7 @@ if __name__ == "__main__":
     test_flee_and_gear()
     test_menu_waits_for_screen()
     test_guard_walk_with_shield()
+    test_rush_to_axe()
     test_keeps_human_pause()
     test_ready_and_last_stand()
     test_resume_and_segments()
