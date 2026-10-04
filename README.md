@@ -102,6 +102,18 @@ They also run on Linux/macOS without the Windows-only packages (`pymem`, `vgamep
 maps, and user-marked safe zones (`safe-zones.json`). Observation recordings and run logs (1 GB+) are not included; open an
 issue if you need them.
 
+### Controller overlay (separate repo)
+
+[controller-response-overlay](https://github.com/kakasolg/controller-response-overlay) shows XInput pad input (buttons,
+triggers, sticks) as an OBS overlay. It is read-only and shares no code with this bot.
+
+- Checked (2026-10-03, OBS 32.2.2 Browser Source): a human's pad (Xbox Series, Bluetooth, Steam Input off), and bot runs
+  with the physical pad switched off, where the bot's virtual pad was XInput slot 0 — inputs were shown correctly in both
+  cases (MoKa's observation; the radar recording showed only slot 0 during the runs).
+- Not checked: a physical pad and the bot's virtual pad connected at the same time (two slots). The overlay can't tell
+  which slot is the bot, so pick it with `?slot=N`.
+- Start it with `run-overlay.bat` in that repo. It uses port 47820, so it doesn't clash with the radar (47800–47801).
+
 ## Worth trying next
 
 - Fights with several enemies at once (the biggest source of damage now) — separating them, choosing where to fight
