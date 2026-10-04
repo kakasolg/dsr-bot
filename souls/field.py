@@ -56,7 +56,28 @@ def fog_ahead(p, q):
     return None
 
 
-RESYNC_DY = 1.0                     # nearest waypoint this far above/below → different level: re-plan from here (hotspot #4, 2026-09-28)
+def careful_leg(here, path) -> list:
+    """
+    ── careful_walk_to의 한 구간 (10-03c) ──────────────────────────────
+     · NavMesh 길의 첫 점이 지금 서 있는 칸의 경계라 뒤쪽(2.2 m)에 있고 둘째 점이 바로 옆이면, 첫 점은 건너뜀
+     · 구간 길이 CAREFUL_LEG는 길을 따라 잰 거리가 아니라 지금 자리에서 곧게 잰 거리 — 길을 따라 재면 뒤로 2.2 m 갔다
+       2.5 m 돌아오는 것으로 4 m가 차서 제자리. 성벽 마을 `#4 이동` (−42.0, −18.7, −37.1)에서 60 s 동안 15번 왔다 갔다
+       (10-03b 같은 자리도 같은 길)"""
+    pts = list(path[1:])
+    while len(pts) >= 2 and math.dist(here, pts[1]) <= CAREFUL_SKIP_R and math.dist(here, pts[1]) < math.dist(here, pts[0]):
+        pts = pts[1:]
+    leg = []
+    for b in pts:
+        leg.append(b)
+        if math.dist(here, b) >= CAREFUL_LEG:
+            break
+    return leg
+
+
+CAREFUL_SKIP_R = 1.0     # careful_leg: a path point this close and nearer than the one before it → start from it
+
+
+RESYNC_DY = 1.0                    # nearest waypoint this far above/below → different level: re-plan from here (hotspot #4, 2026-09-28)
 ALMOST_M, ALMOST_DY = 1.7, 0.8       # a point missed ('stuck'/'timeout') from this close = almost there: go on to the next point
                                      # (MoKa 2026-09-30, ROADMAP 6-a: 40 % of the logged misses were ≤ 1.7 m / |dy| ≤ 0.8 — the
                                      # arrival radius, not a blockage — and the detour after them failed again 43 % of the time).
@@ -1616,12 +1637,7 @@ class Field:
             path = nm.find_path((p.x, p.y, p.z), tuple(goal))
             if not path:
                 return "no_path"
-            leg, acc = [], 0.0
-            for a, b in zip(path, path[1:]):
-                leg.append(b)
-                acc += math.dist(a, b)
-                if acc >= CAREFUL_LEG:
-                    break
+            leg = careful_leg((p.x, p.y, p.z), path)
             r = self.walk(leg, nm, tag, mode="walk")
             if r == "dead":
                 return "dead"

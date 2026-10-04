@@ -156,7 +156,25 @@ def test_recover_rolls_off_a_close_chaser() -> None:
     print("ok  recover: hollow 0.9 m away → roll away first; drop behind → no roll, fight on (False)")
 
 
+def test_leg_moves_forward() -> None:
+    """10-03c Burg #4: the navmesh path began at a portal 2.2 m behind; measured along the path the 4 m leg ended where we
+    stood, so careful_walk_to stepped back and forth 15 times in 60 s. Now: skip that point, measure the leg straight."""
+    from souls import field as F
+    here = (-42.0, -18.7, -37.1)
+    path = [here, (-43.2, -18.8, -35.2), (-41.9, -18.7, -37.3), (-41.4, -18.7, -37.9), (-40.1, -18.0, -39.4),
+            (-39.0, -17.0, -40.7), (-36.0, -15.3, -44.0)]
+    leg = F.careful_leg(here, path)
+    assert leg[0] == (-41.9, -18.7, -37.3), leg
+    assert ((leg[-1][0] - here[0]) ** 2 + (leg[-1][2] - here[2]) ** 2) ** 0.5 >= F.CAREFUL_LEG - 0.2, leg
+    straight = [(0.0, 0.0, 0.0), (1.0, 0.0, 0.0), (2.0, 0.0, 0.0), (3.0, 0.0, 0.0), (5.0, 0.0, 0.0), (9.0, 0.0, 0.0)]
+    assert F.careful_leg(straight[0], straight) == straight[1:5], F.careful_leg(straight[0], straight)
+    corner = [(0.0, 0.0, 0.0), (0.0, 0.0, 3.0), (2.5, 0.0, 3.0), (6.0, 0.0, 3.0)]   # a real corner: 2nd point is not within 1 m
+    assert F.careful_leg(corner[0], corner)[0] == (0.0, 0.0, 3.0), F.careful_leg(corner[0], corner)
+    print("ok  careful leg: a portal point behind us is skipped, the leg reaches 4 m straight from here; plain paths as before")
+
+
 if __name__ == "__main__":
+    test_leg_moves_forward()
     test_order()
     test_no_knife_walks_on()
     test_ignored_foe_on_us_is_a_chaser()
