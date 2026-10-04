@@ -239,10 +239,12 @@ def test_rush_to_axe() -> None:
     seen = []
     f.walk = lambda pts, nm, tag, mode="walk", **k: seen.append((mode, 250021 in f.ignore_npcs)) or "ok"
     a._press = lambda st, tag: eq.update({"오른손1": 701000}) or "ok"
-    walk = {"type": "walk", "pts": [[0, -49.4, 0], [1, -49.4, 0]]}
-    a.run([walk, {"type": "press", "label": "시작 장비 줍기 2: 배틀 액스"}, walk])
-    assert seen == [("sprint", True), ("guard", False)], seen
-    print("ok  shield but no axe: sprint, fight nobody; axe in hand: guard walk, fights again")
+    walk = {"type": "walk", "pts": [[0, -49.4, 0], [0.5, -49.4, 0], [1, -49.4, 0], [1.5, -49.4, 0]]}   # the fake player doesn't move
+    step = {"type": "walk", "pts": [[1.5, -49.4, 0.5]]}                 # the last step onto the pickup spot
+    a.run([walk, step, {"type": "press", "label": "시작 장비 줍기 2: 배틀 액스"}, walk])
+    assert seen == [("sprint", True), ("guard", False), ("guard", False)], seen
+    print("ok  shield but no axe: long walks sprint and fight nobody; the one-point step onto the axe walks (no B → no jump); "
+          "axe in hand: guard walk, fights again")
 
 
 def test_keeps_human_pause() -> None:

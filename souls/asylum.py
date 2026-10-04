@@ -60,6 +60,7 @@ class _Everyone(frozenset):
 
 
 EVERYONE = _Everyone()
+RUSH_MIN_PTS = 2         # sprint to the axe only on walks with more points than this (not the last step onto the pickup spot)
 DEMON = 223200
 # 시작 장비 (산적): 첫 번째로 줍는 게 방패, 두 번째가 배틀 액스 — [MoKa] 항상 같음. 메뉴 장착 뒤 확인
 GEAR = {"방패": ("왼손1", 1462000), "배틀 액스": ("오른손1", 701000)}
@@ -179,7 +180,10 @@ class Asylum:
                 fleeing = True
             # 방패는 들었는데 아직 배틀 액스 전: 검 자루로는 한 번에 4 — 망자 250021과 45 s 싸워 준 38·받은 300, 에스트 없이 멈춤
             # (10-03c). [MoKa] "배틀 액스 확보할 때까지는 빨리" → 달리고, 아무와도 안 싸움
-            rushing = st["type"] == "walk" and not fleeing and self._shield_on() and not self._armed()
+            # 한두 점짜리 걷기(줍는 자리로 마지막 한 걸음)는 달리지 않음 — 달려 온 끝에 B를 다시 눌러 점프(애니 900), 배틀 액스를
+            # 5 m 지나쳐 A가 허공 → 못 주움 → 메뉴 목록에 없음 → fail (10-03 17:52, [MoKa] "점프해서 위치가 안 맞아")
+            rushing = (st["type"] == "walk" and not fleeing and self._shield_on() and not self._armed()
+                       and len(st.get("pts", [])) > RUSH_MIN_PTS)
             if fleeing or rushing:
                 st = dict(st, run=True) if st["type"] == "walk" else st
             self.f.ignore_npcs = EVERYONE if rushing else {DEMON} if fleeing else set()
