@@ -17,6 +17,7 @@ import time
 from dataclasses import dataclass, field
 
 import control
+import ctl
 import nav
 
 from . import foes as foes_
@@ -1379,6 +1380,46 @@ RULES = [rule_separate, rule_finish_first, prep_reflex, rule_face_first, rule_ea
          rule_attack]
 
 
+# ── P1-C: which rule acted (only with run.py --ctl) ──────────────────────────
+# Rules that only hold a stance tick after tick are run-length folded (same rule and target → one record with n). Every
+# other rule — attacks, backstab, estus, kicks, and any rule not listed here — is always written on its own.
+FOLD_RULES = {"block", "wait_far", "approach", "face", "linger", "reflex", "stamina", "separate", "edge", "lure", "downed",
+              "face_first", "backstab_chance", "late_windup_block"}
+
+
+class _RuleRec:
+    """Records only: the duel loop never reads anything from here, and nothing here raises."""
+
+    def __init__(self):
+        self.run: dict | None = None     # pending folded run
+
+    def add(self, F, T, name: str, out) -> None:
+        try:
+            c = getattr(T, "c", None)
+            s = getattr(T, "s", None)
+            ptr = getattr(c, "ptr", None) if c is not None else F.ptr
+            st = getattr(s, "t", None)
+            rec = {"rule": name, "ptr": ptr, "out": "result" if isinstance(out, DuelResult) else str(out),
+                   "snap_t": st, "fseq": getattr(s, "fseq", None),
+                   "snap_age_ms": None if st is None else round((time.time() - st) * 1000, 1)}
+            if name in FOLD_RULES and self.run is not None and (self.run["rule"], self.run["ptr"]) == (name, ptr):
+                self.run["n"] += 1
+                return
+            self.flush()
+            if name in FOLD_RULES:
+                self.run = {**rec, "n": 1}
+            else:
+                ctl.emit("dec.rule", **rec, n=1)
+        except Exception:
+            pass
+
+    def flush(self) -> None:
+        if self.run is not None:
+            ctl.emit("dec.rule", **self.run)
+            self.run = None
+
+
+
 def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: float = 0.25,
          cancel=lambda: False, care=None, reflex=None, arena=None, style=None, wait_far: bool = False,
          gen=None, events=None, may_approach=None, crowd_ok: bool = False, wall_ok: bool = False,
@@ -1400,9 +1441,12 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
     from . import style as style_
     F = Fight(mv, weapon, ptr, nm, log, limit, low_hp, cancel, care, reflex, arena, style_.of(style or "guard"), wait_far, gen, events,
               may_approach, crowd_ok, wall_ok)
+    rr = _RuleRec() if ctl.on() else None              # P1-C: record only
     while True:
         T = _sense(F)
         if isinstance(T, DuelResult):
+            if rr is not None:
+                rr.flush()
             if advisor is not None:
                 advisor.end(F, T)
             if tap is not None:
@@ -1419,6 +1463,8 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
                 continue
             name = rule.__name__.removeprefix("rule_").removeprefix("prep_")
             F.res.rules[name] = F.res.rules.get(name, 0) + 1
+            if rr is not None:
+                rr.add(F, T, name, out)
             pay = tap.decided(F, T, tok, name, out) if tap is not None else None
             if advisor is not None:
                 if pay is None:
@@ -1426,6 +1472,8 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
                 else:
                     advisor.observe(F, T, name, out, payload=pay)
             if isinstance(out, DuelResult):
+                if rr is not None:
+                    rr.flush()
                 if tap is not None:
                     tap.end(F, out)
                 return out

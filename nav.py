@@ -11,6 +11,7 @@ Navigation primitive — walk to a target point in global coordinates.
 """
 from __future__ import annotations
 
+import itertools
 import math
 import sys
 import time
@@ -19,6 +20,7 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
 import control
+import ctl
 import env
 import telemetry
 
@@ -276,6 +278,39 @@ def follow(tm, pad, path: list, terrain=None, mode_fn=None, on_tick=None, defaul
         mover.stop()
 
 
+# ── P1-C: goto decisions (only with run.py --ctl) ────────────────────────────
+_GID = itertools.count(1)
+
+
+class _GotoRec:
+    """One goto call's decisions: its start, every movement-mode change (not every tick), and what it returned.
+    Recording only — goto never reads anything back from here, and nothing here raises."""
+
+    def __init__(self, target, tolerance):
+        self.gid, self.mode = next(_GID), None
+        try:
+            ctl.emit("dec.goto", ev="start", gid=self.gid, tgt=[round(float(v), 3) for v in target], tol=tolerance)
+        except Exception:
+            pass
+
+    def set_mode(self, mode, dist, s) -> None:
+        if mode == self.mode:
+            return
+        try:
+            ctl.emit("dec.goto", ev="mode", gid=self.gid, mode=mode, prev=self.mode, dist=round(float(dist), 3),
+                     snap_t=getattr(s, "t", None), fseq=getattr(s, "fseq", None))
+        except Exception:
+            pass
+        self.mode = mode
+
+
+def _end(rec, r: str) -> str:
+    """goto's return value, unchanged — plus an 'end' record when recording."""
+    if rec is not None:
+        ctl.emit("dec.goto", ev="end", gid=rec.gid, ret=r, mode=rec.mode)
+    return r
+
+
 def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float], tolerance: float = 1.5,
          timeout: float = 60.0, on_tick=None, log=print, sprint_always: bool = False, mode_fn=None,
          mover: "Mover | None" = None, engage_fn=None, abort_on_stuck: bool = False,
@@ -297,35 +332,36 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
     probe_t0 = time.time()
     probe_off = [False]      # if probe makes no progress, use normal walking for the rest of this goto
     offmesh_futile = [False]  # the off-mesh return didn't move us — use the back/side escape for the rest of this goto
+    rec = _GotoRec(target, tolerance) if ctl.on() else None    # P1-C: record only
     try:
         while True:
             now = time.time()
             if now - t_start > timeout:
-                return "timeout"
+                return _end(rec, "timeout")
             s = tm.snapshot(within=30.0)
             if s is None or s.player.gx is None or s.cam_yaw is None:
                 pad.neutral()
                 time.sleep(0.1)
                 if now - t_start > 15 and s is None:
-                    return "lost"
+                    return _end(rec, "lost")
                 if s is not None and s.cam_yaw is None:   # if camadr dies, steering is impossible — don't stand waiting for the timeout
                     no_cam_since = no_cam_since or now
                     if now - no_cam_since > 5:
                         log("  카메라 yaw 없음 5 s — lost")
-                        return "lost"
+                        return _end(rec, "lost")
                 continue
             no_cam_since = None
             p = s.player
             if p.hp <= 0:
                 pad.neutral()
-                return "dead"
+                return _end(rec, "dead")
             dx, dz = tx - p.gx, tz - p.gz
             dist = math.hypot(dx, dz)
             if on_tick:
                 on_tick(s, dist)
             if dist <= tolerance and (ty is None or abs(p.gy - ty) <= ARRIVE_DY):
                 pad.neutral()
-                return "arrived"
+                return _end(rec, "arrived")
 
             # stuck detection
             if last_progress_d is None or last_progress_d - dist >= STUCK_MIN_PROGRESS:
@@ -333,7 +369,7 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
             elif now - last_progress_t > STUCK_WINDOW:
                 if abort_on_stuck:          # stuck while retreating: don't sidestep (guard down) and get hit — turn around and block immediately
                     pad.neutral()
-                    return "stuck"
+                    return _end(rec, "stuck")
                 # the caller may clear the way itself (field: break a crate in front — ROADMAP 1-c: the escape moves and the
                 # per-point timeout took 16 s before the crate was even looked at). True = handled, measure progress afresh
                 if on_stuck is not None and on_stuck(p, target):
@@ -344,7 +380,7 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
                 if escapes >= 2 and ty is not None and p.gy is not None and abs(ty - p.gy) > UNREACHABLE_DY:
                     pad.neutral()
                     log(f"  막힘 + 높이 차 {ty - p.gy:+.1f} m — 못 가는 점")
-                    return "unreachable"
+                    return _end(rec, "unreachable")
                 log(f"  stuck at {dist:.1f} m — escape #{escapes}")
                 mover.set("walk")
                 # layer-0 recovery: if standing off the NavMesh (pocket), return to a mesh point at the same height before back/side escapes
@@ -387,7 +423,7 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
                 if side_dir is None:
                     pad.neutral()
                     log("  막힘 — 양옆이 낭떠러지라 빠져나가지 않음")
-                    return "stuck"
+                    return _end(rec, "stuck")
                 # user 2026-09-24: "must back off enough, then go forward" — a 0.5 s (1.2 m) back-off got stuck at the same spot every time at the ledge under the ramp (-24.5,-48.3,26.0).
                 # if there is floor behind, back off farther the more it gets stuck (0.9→1.3→1.7 s), turn slightly sideways, then re-approach running
                 back_s = min(1.7, 0.9 + 0.4 * (escapes - 1))
@@ -406,15 +442,17 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
                 last_progress_d, last_progress_t = dist, time.time()
                 if escapes >= 6:
                     pad.neutral()
-                    return "timeout"
+                    return _end(rec, "timeout")
                 continue
 
             mode = mode_fn(s) if mode_fn else ("sprint" if (sprint_always or dist > SPRINT_BEYOND) else "walk")
             if now < boost_until and mode in ("walk", "sprint"):
                 mode = "sprint"                        # run to re-approach right after a stuck escape
+            if rec is not None:
+                rec.set_mode(mode, dist, s)
             if mode == "retreat":
                 pad.neutral()               # Guard wants retreat/flee — the path loop goes back
-                return "retreat"
+                return _end(rec, "retreat")
             if mode == "hold":
                 # check footing before standing to fight — if next to a cliff, move first, then fight (user principle)
                 fs, safe_dir = footing(terrain, p)

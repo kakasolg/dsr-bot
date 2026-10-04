@@ -22,6 +22,8 @@ from __future__ import annotations
 import math
 import time
 
+import ctl
+
 import nav
 
 from . import moves as M
@@ -98,7 +100,7 @@ class Reflex:
         """→ whether the reflex moved this tick (shield, turning)."""
         self.update(s)
         if not self.reflex_on:
-            return False         # rush: record only (attack_age etc.), no block or dodge — the attack loop isn't interrupted
+            return self._act(None)  # rush: record only (attack_age etc.), no block or dodge — the attack loop isn't interrupted
         th = self.threats(s)
         now = time.time()
         lock_ptr, lock_until = self._lock
@@ -109,28 +111,30 @@ class Reflex:
         if c is None and time.time() - self._hit_t < 0.4:
             c = self._nearest(s, HIT_R)                    # 2) hit from an unknown source — nearest enemy
         if c is None:
-            return False
+            return self._act(None)
         p = s.player
         start = self._start.get(c.ptr)
         evade_now = self.evade and M.horiz(p, c) <= EVADE_R          # dodge even with two — never use the shield (user)
         if evade_now and start is not None and now - start < EVADE_DELAY and self._dodged.get(c.ptr) != start:
             self.step_away(s, c)                           # too early — just face it and wait (dodge after the blade is committed so it can't track)
             self.acted += 1
-            return True
+            return self._act("wait", c, s, start)
         if c.anim is not None and start is not None and (evade_now or self.unblockable(c)):
             if self._dodged.get(c.ptr) != start:
                 self._dodged[c.ptr] = start
                 kind = self.dodge(s, c, attack=evade_now and self.bs_attack)
                 self._pending = {"t": now, "kind": kind, "dist": round(M.horiz(p, c), 2), "eanim": c.anim, "npc": c.npc_param,
                                  "hp0": p.hp or 0, "min_hp": p.hp or 0}
+                act = f"dodge:{kind}"
             else:
                 self.step_away(s, c)                       # once dodged, keep distance without shield for the rest of that attack
+                act = "step_away"
             self.acted += 1
-            return True
+            return self._act(act, c, s, start)
         if (p.sp or 0) < GUARD_SP or self.evade:
             self.step_away(s, c)                       # backstep style: if we can't dodge (too far), just face it, no shield
             self.acted += 1
-            return True
+            return self._act("face", c, s, start)
         self.mv.pad.guard(True)
         safe_turn = self.nm is None or nav.ground_ahead(self.nm, p, c.x - p.x, c.z - p.z, reach=0.8)
         if safe_turn:
@@ -138,7 +142,26 @@ class Reflex:
         else:
             self.mv.pad.move(0.0, 0.0)
         self.acted += 1
-        return True
+        return self._act("guard", c, s, start)
+
+    _ctl_last: tuple | None = None   # P1-C: last (act, ptr) recorded
+
+    def _act(self, act: str | None, c=None, s=None, start=None) -> bool:
+        """tick's return value: True when it acted (act given), False when not. P1-C: with run.py --ctl, a 'dec.reflex' record
+        when (act, target) changes — a new burst after a quiet tick counts as a change. Record only; never raises."""
+        if not ctl.on():
+            return act is not None
+        key = None if act is None else (act, getattr(c, "ptr", None))
+        if key != self._ctl_last:
+            self._ctl_last = key
+            if act is not None:
+                try:
+                    ctl.emit("dec.reflex", act=act, ptr=c.ptr, eanim=c.anim, npc=getattr(c, "npc_param", None),
+                             age=None if start is None else round(time.time() - start, 3),
+                             snap_t=getattr(s, "t", None), fseq=getattr(s, "fseq", None))
+                except Exception:
+                    pass
+        return act is not None
 
     def _others_near(self, s, c) -> bool:
         return any(x.ptr != c.ptr and x.hp > 0 and x.anim not in (-1, None) and M.horiz(s.player, x) < MIXED_R for x in s.hostile(MIXED_R + 1))

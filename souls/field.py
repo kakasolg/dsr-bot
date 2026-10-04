@@ -15,6 +15,7 @@ import types
 from pathlib import Path
 
 import control
+import ctl
 import nav
 
 from . import duel as D
@@ -1332,6 +1333,26 @@ class Field:
             self.log(f"   {plan.tag}: 경로 재탐색 — 이어갈 점이 다른 층 (Δy {dy:+.1f} m), {len(plan.path)}점")
             self.mv.show_path = (plan.tag, list(plan.path))
 
+    def _walk_mode(self, sn, st, g0, mode: str) -> str:
+        """_walk's mode_fn: 'retreat' or the walk mode. The same four checks in the same order as before, stopping at the
+        first true one — threat_now updates the reflex, and _chaser is not called once threat_now said yes. P1-C: with
+        run.py --ctl, which check fired is recorded (record only)."""
+        c = None
+        if self.reflex.threat_now(sn):
+            why = "threat"
+        elif (c := self._chaser(sn, st.ignore)):
+            why = "chaser"
+        elif self.esc.escaping:
+            why = "escaping"
+        elif self.esc.gen != g0:
+            why = "gen"
+        else:
+            return mode
+        if ctl.on():
+            ctl.emit("dec.walk_retreat", reason=why, ptr=getattr(c, "ptr", None), npc=getattr(c, "npc_param", None),
+                     snap_t=getattr(sn, "t", None), fseq=getattr(sn, "fseq", None))
+        return "retreat"
+
     def _walk_chaser(self, plan: "WalkPlan", st, nm, mover) -> str | None:
         """goto said 'retreat': block, fight the chaser if there is one, carry on from where the fight left us. → 'dead' | 'no_estus' | None"""
         tag = plan.tag
@@ -1464,8 +1485,7 @@ class Field:
                                                 why=f"막힘 감지 ({nav.STUCK_WINDOW:.0f} s 동안 {nav.STUCK_MIN_PROGRESS} m 미만)")
 
                 r = self._follow(q, t, terr, mover, on_stuck,
-                                 mode_fn=lambda sn: "retreat" if (self.reflex.threat_now(sn) or self._chaser(sn, st.ignore)
-                                                                  or self.esc.escaping or self.esc.gen != g0) else mode)
+                                 mode_fn=lambda sn: self._walk_mode(sn, st, g0, mode))
                 if r == "dead":
                     return "dead"
                 if self.esc.gen != g0:                     # left and returned via quit-out — restart from the nearest point
