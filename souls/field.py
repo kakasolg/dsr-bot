@@ -30,7 +30,32 @@ FOLLOW_DY = 2.5          # foe following on stairs — up to this height differe
 SAFE_R = 6.0             # estus: no awake foe within this, and
 SAFE_ATTACK_R = 8.0      #          nobody swinging within this
 RESYNC_BACK, RESYNC_AHEAD = 3, 15   # range for re-picking the waypoint after a fight while walking (field.walk)
-RESYNC_DY = 1.0                      # nearest waypoint this far above/below → different level: re-plan from here (hotspot #4, 2026-09-28)
+# ── 아는 안개벽 (P-41) ─────────────────────────────────────────────
+#  · 성벽 마을 마을 구역(#1~#3) 끝 → `#4 이동`: "Traverse the white light". 10-03a 봇이 21 s 비비다 timeout 1번 → fog_through는
+#    2번 놓쳐야 켜져서 안 켜짐, [MoKa]가 A. 첫 방문 캐릭터에만 걸림 (그전 실행들은 이미 지난 캐릭터)
+#  · 길이 이 벽을 가로지르면 걷기 전에 벽 앞에 서서 A (없어졌으면 안내가 안 떠서 그냥 지나감)
+FOG_WALLS = [(-50.0, -22.3, -32.0)]
+FOG_PASS_R = 1.5         # the line to the next point passes this close (horizontal) to a wall's center → it crosses the wall
+FOG_DY = 2.5
+FOG_FRONT_M = 1.2        # stand this far before the wall, on the line to the point, then fog_through
+
+
+def fog_ahead(p, q):
+    """The FOG_WALLS entry the straight line p → q crosses (center strictly between them, within FOG_PASS_R), else None."""
+    dx, dz = q[0] - p[0], q[2] - p[2]
+    l2 = dx * dx + dz * dz
+    if l2 < 1e-6:
+        return None
+    for c in FOG_WALLS:
+        if abs(c[1] - p[1]) > FOG_DY:
+            continue
+        t = ((c[0] - p[0]) * dx + (c[2] - p[2]) * dz) / l2
+        if 0.0 < t < 1.0 and math.hypot(c[0] - (p[0] + t * dx), c[2] - (p[2] + t * dz)) <= FOG_PASS_R:
+            return c
+    return None
+
+
+RESYNC_DY = 1.0                     # nearest waypoint this far above/below → different level: re-plan from here (hotspot #4, 2026-09-28)
 ALMOST_M, ALMOST_DY = 1.7, 0.8       # a point missed ('stuck'/'timeout') from this close = almost there: go on to the next point
                                      # (MoKa 2026-09-30, ROADMAP 6-a: 40 % of the logged misses were ≤ 1.7 m / |dy| ≤ 0.8 — the
                                      # arrival radius, not a blockage — and the detour after them failed again 43 % of the time).
@@ -1376,7 +1401,8 @@ class Field:
         Inside tight = {"center": [x,y,z], "r": m} (narrow bridge without railings), step precisely at 0.45 m."""
         plan = WalkPlan(path, tag, tol)
         st = types.SimpleNamespace(fails=0, fights=0, ignore=set(), desperate=False,
-                                   smashed={})         # smashed: prop name → swings this walk (props_.blocking)
+                                   smashed={},         # smashed: prop name → swings this walk (props_.blocking)
+                                   fogged=set())       # FOG_WALLS already tried this walk (fog_ahead)
         self.reflex.nm = nm
         mover = nav.Mover(self.mv.pad)
         no_obs = control.NoObs(self.mv.pad, on_full=mover.stop)   # no snapshot: stick off now, everything off after a while (P0-C)
@@ -1399,6 +1425,12 @@ class Field:
                 if s.player.hp < s.player.max_hp * WALK_HEAL and self.safe(s) and self.estus_left() > 0:
                     mover.stop()                           # damage taken while walking (firebombs etc.) — don't defer until the next fight
                     self.heal(0.7)
+                fog = fog_ahead((s.player.x, s.player.y, s.player.z), q)
+                if fog is not None and fog not in st.fogged:
+                    st.fogged.add(fog)
+                    mover.stop()
+                    self._fog_cross(fog, (s.player.x, s.player.y, s.player.z), q, nm, tag)
+                    continue
                 f_q = nm.floor_at(q[0], q[2], q[1]) if len(q) > 2 else None
                 f_p = nm.floor_at(s.player.x, s.player.z, s.player.y)
                 terr = nm if (f_q is not None and abs(f_q[0] - q[1]) < 2.0 and f_p is not None and abs(f_p[0] - s.player.y) < 2.0) else None
@@ -1503,6 +1535,19 @@ class Field:
                 return moved > 2.0
             s = self.mv.snap(5.0) or s
         return False
+
+    def _fog_cross(self, fog, p, q, nm, tag: str) -> bool:
+        """Known fog wall between us and q: stand FOG_FRONT_M before it on the line to q, then fog_through (turn, A on the prompt).
+        No wall there any more (no prompt) → fog_through just gives up and the walk carries on as before. → passed?"""
+        dx, dz = q[0] - p[0], q[2] - p[2]
+        n = math.hypot(dx, dz) or 1.0
+        front = (fog[0] - dx / n * FOG_FRONT_M, fog[1], fog[2] - dz / n * FOG_FRONT_M)
+        if math.hypot(front[0] - p[0], front[2] - p[2]) > 0.8:
+            self.walk([front], nm, f"{tag} 안개벽 앞")
+        ok = self.fog_through(q)
+        self.log(f"   {tag}: 안개벽 ({fog[0]:.1f}, {fog[1]:.1f}, {fog[2]:.1f}) {'통과' if ok else '못 지나감 — 그대로 걸음'}")
+        self.events("fog_cross", tag=tag, fog=list(fog), ok=ok)
+        return ok
 
     def walk_to(self, goal, nm, tag: str, mode: str = "walk", tol: float | None = None, done=None) -> str:
         s = self.mv.snap(5.0)
