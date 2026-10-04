@@ -150,8 +150,18 @@ def _release_all(close: bool) -> None:
 
 
 def _on_console_event(ev: int) -> bool:
+    import ctl
+    ctl.emit("life", ev="console", console_ev=ev, pads=len(_LIVE))       # P1: observation only, never raises
     _release_all(close=ev != CTRL_C_EVENT)
+    if ev != CTRL_C_EVENT:
+        ctl.flush(ctl.EXIT_FLUSH_S)   # the process ends right after this handler — no atexit; bounded wait
     return False              # not handled — the next handler (Python's Ctrl+C / the default exit) still runs
+
+
+def _on_atexit() -> None:
+    import ctl
+    ctl.emit("life", ev="atexit", pads=len(_LIVE))                        # P1: observation only, never raises
+    _release_all(True)
 
 
 def _hook_exit() -> None:
@@ -160,7 +170,7 @@ def _hook_exit() -> None:
         return
     _HOOKED = True
     import atexit
-    atexit.register(_release_all, True)
+    atexit.register(_on_atexit)
     if sys.platform == "win32":
         handler_type = ctypes.WINFUNCTYPE(ctypes.wintypes.BOOL, ctypes.wintypes.DWORD)
         _CTRL_HANDLER = handler_type(lambda ev: _on_console_event(int(ev)))

@@ -96,6 +96,8 @@ def main() -> None:
     ap.add_argument("--attack-audit", action="store_true",
                     help="공격 규칙 호출 직전 입력을 기록만 (data/runs/<시각>.attack_audit.jsonl, attack_audit.py) — 기본 꺼짐. "
                          "Laya 추론·행동 반영 없음, 패드·규칙엔 반영 안 함. outcome proxy, not human-verified tactical label, not a safety validation")
+    ap.add_argument("--ctl", action="store_true",
+                    help="P1: controller timing events → data/runs/<시각>_<명령>.ctl.jsonl (ctl.py) — 기본 꺼짐. 기록만, 패드·규칙엔 반영 안 함")
     ap.add_argument("--no-lure", action="store_true", help="나이프로 한 놈씩 깨우지 않고 예전처럼 걸어가 붙는다 (비교용)")
     ap.add_argument("--style", choices=["guard", "backstep", "rush"], default="guard",
                     help="guard: 방패로 받고 휘청에 친다 (기본) | backstep: 양손, 백스텝으로 피하고 헛친 뒤 약공 | "
@@ -120,6 +122,11 @@ def main() -> None:
     from souls.watch import Blood, Escape
 
     log = Log(a.cmd)
+    import ctl
+    if a.ctl:                                               # before the Pad exists: atexit then closes the pad first, this after
+        ctl.start(str(log.path).replace(".jsonl", ".ctl.jsonl"), run=log.path.stem, argv=sys.argv, cmd=a.cmd)
+        ctl.emit("life", ev="start", cmd=a.cmd, args=vars(a))
+        log(f"ctl: 기록만 → {str(log.path).replace('.jsonl', '.ctl.jsonl')}")
     lock = BotLock()
     # watchdog.py also polls briefly, grabbing and releasing at once — overlapping that instant can fail once, so retry a few times
     # (measured 2026-09-25: with a single try and no retry, 6 of 10 runs overlapped and failed immediately)
@@ -129,6 +136,7 @@ def main() -> None:
         time.sleep(0.2)
     else:
         log("   ⚠ 이미 다른 본체가 실행 중 — 겹쳐 켜면 패드가 부딪힌다, 멈춤")
+        ctl.emit("life", ev="normal_exit", result="bot_lock_held")
         return
     tm = env.make_telemetry({})
     import track
@@ -151,6 +159,7 @@ def main() -> None:
                        "Steam 오프라인 확인 안 됨" if steam_state.check().get("offline") is not True else "메모리 모양이 다름")
                 log(f"   ⚠ 투척 나이프(290)가 퀵 슬롯에 없음 (슬롯 {quick}, 가진 수 {have}) — 못 넣음: {why}. "
                     f"넣고 다시 켜거나 --no-lure. 멈춤 (게임 입력 없음)")
+                ctl.emit("life", ev="normal_exit", result="no_knife_slot")
                 return
             log(f"   투척 나이프(290)가 퀵 슬롯에 없어서 {slot + 1}번째 빈 칸에 넣음 (가진 수 {have}) → 슬롯 {tm.quick_items()}")
     # one virtual pad per machine (P0-A): refuse before any input — focus_game already sends ALT / a title-bar click
@@ -163,6 +172,7 @@ def main() -> None:
             busy = str(ex)
     if busy is not None:
         log(f"   ⚠ {busy} — 패드 둘이 부딪힌다, 멈춤 (게임 입력 없음)")
+        ctl.emit("life", ev="normal_exit", result="pad_lock_held")
         lock.release()
         return
     if a.cmd == "asylum":
@@ -284,6 +294,7 @@ def main() -> None:
             r = quit_test(ms, mv, esc, log)
         log(f"══ 결과: {r}")
         log.event("result", cmd=a.cmd, result=r)
+        ctl.emit("life", ev="normal_exit", result=r)
     except KeyboardInterrupt:
         # user stop (Ctrl+C): input off first, and from here on no quit-out, Darksign, ChrClassWarp write or menu input (P0-B).
         # A quit-out the Escape thread already started (a fall) is not ours to stop — the wait below lets it finish
@@ -293,11 +304,13 @@ def main() -> None:
         pad.neutral()
         log("══ 사용자 중지 (Ctrl+C) — 입력 중립, 퀵 종료 안 함")
         log.event("user_stop", cmd=a.cmd)
+        ctl.emit("life", ev="user_stop")
         raise
     except BaseException as ex:
         # if the bot stops, the character stands idle next to enemies and dies (twice on 2026-09-24) — quit out to shake enemies before stopping
         import traceback
         log(f"══ 오류로 멈춤: {ex!r}\n{traceback.format_exc()}")
+        ctl.emit("life", ev="exception_exit", exc=type(ex).__name__, msg=repr(ex)[:200])
         if not esc.escaping:
             try:
                 esc.fire(f"봇 오류({type(ex).__name__}) — 적 떼어내고 멈춤", "shake")
