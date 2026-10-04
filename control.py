@@ -22,6 +22,8 @@ if hasattr(sys.stdout, "reconfigure"):
 import ctypes
 import ctypes.wintypes
 
+import ctl
+
 # vgamepad (ViGEmBus) is Windows-only. Offline tests only need the button constants,
 # so fall back to a stand-in; creating a real pad still requires vgamepad.
 try:
@@ -110,6 +112,29 @@ class _NullPad:
 
 
 _NULL_PAD = _NullPad()
+
+
+# ── P1-B: pad observation (only with run.py --ctl) ──────────────────────────
+# One record per report written. Recording never changes what is sent or in which order: the device update happens first,
+# the record after, and with --ctl off the only extra work is one bool check. Identical consecutive reports are folded into
+# the next record's `dup`; a changed report is always written.
+def _site() -> str:
+    """file:function:line of the first caller outside this module."""
+    f = sys._getframe(1)
+    while f is not None and f.f_globals.get("__name__") == __name__:
+        f = f.f_back
+    return "?" if f is None else f"{Path(f.f_code.co_filename).name}:{f.f_code.co_name}:{f.f_lineno}"
+
+
+def _report(dev) -> dict:
+    """The report ints as sent (XInput raw values). Fields a device doesn't expose are None."""
+    r = getattr(dev, "report", None)
+
+    def g(name, mask=None):
+        v = getattr(r, name, None)
+        return None if v is None else (int(v) & mask if mask else int(v))
+    return {"btn": g("wButtons"), "lt": g("bLeftTrigger", 0xFF), "rt": g("bRightTrigger", 0xFF),
+            "lx": g("sThumbLX"), "ly": g("sThumbLY"), "rx": g("sThumbRX"), "ry": g("sThumbRY")}
 
 # machine-wide: one virtual pad at a time. Two pads (watchdog's rescue pad next to a live bot's) mix inputs in the game.
 # Every script gets it through Pad(); the OS drops it when the holder dies (botlock.BotLock, its own file)
@@ -205,22 +230,26 @@ class Pad:
         with self._lock:
             me = threading.get_ident()
             if not take and self._frozen_by not in (None, me):
+                ctl.emit("esc", ev="freeze", ok=False, take=take, holder=self._frozen_by)
                 return False
             self._frozen_by = me
             self.epoch += 1
             self._due.clear()
             if self._vpad is not None:
                 self._vpad.reset()
-                self._vpad.update()
+                self._send("freeze", self._vpad)
+            ctl.emit("esc", ev="freeze", ok=True, take=take, holder=me, ep=self.epoch)
         return True
 
     def unfreeze(self) -> None:
         """Only the thread holding the freeze lifts it — a nudge that was overtaken by a quit-out must not unfreeze it."""
         with self._lock:
             if self._frozen_by != threading.get_ident():
+                ctl.emit("esc", ev="unfreeze", ok=False, holder=self._frozen_by)
                 return
             self._frozen_by = None
             self.epoch += 1               # what others 'pressed' while frozen went to _NullPad — make them press it again
+            ctl.emit("esc", ev="unfreeze", ok=True, ep=self.epoch)
 
     # 스틱을 놓은 걸 게임이 알아채는 데 60fps ~0.16 s (30fps 0.33 s, 사용자 실측). 그 전에 R1 이면 발차기, R2 면 점프 공격
     # (조작표: 앞 + R1 = 발차기, 앞 + R2 = 점프 공격). 공격 버튼은 이 층에서 늘 스틱을 놓고 기다린 뒤 누른다 —
@@ -266,7 +295,8 @@ class Pad:
             v = self._vpad
             if v is not None:
                 v.reset()
-                v.update()
+                self._send("release_all", v)
+                self._neutral_rec("release_all", v)
         finally:
             if got:
                 self._lock.release()
@@ -284,7 +314,8 @@ class Pad:
             if v is not None:
                 try:
                     v.reset()
-                    v.update()
+                    self._send("close", v)
+                    self._neutral_rec("close", v)
                 except Exception:
                     pass
             del v                                # last reference → vgamepad __del__ → vigem_target_remove
@@ -307,13 +338,16 @@ class Pad:
             self._due.clear()
             self.epoch += 1
             self.pad = None
+            ctl.emit("pad_dev", ev="unplug", ep=self.epoch)
         import gc
         gc.collect()
         time.sleep(self.RECONNECT_GAP_S)
         with self._lock:
             self.pad = vg.VX360Gamepad()
             self._vpad.reset()
-            self._vpad.update()
+            self._ctl_key = None                 # a new device: its first report is always recorded, even if unchanged
+            self._send("reconnect", self._vpad)
+            ctl.emit("pad_dev", ev="plug", ep=self.epoch)
         time.sleep(self.RECONNECT_WAIT_S)
 
     def _note_stick(self, x: float, y: float) -> None:
@@ -330,14 +364,60 @@ class Pad:
         if left > 0:
             time.sleep(left)
 
-    def neutral(self) -> None:
+    # ── P1-B recording ──────────────────────────────
+    # A call identical to the last record (same report, or a drop by the same method) is only counted; the count goes out
+    # as `dup` on the next record. So every call is accounted for: Σ(1 + dup) over pad / pad.drop records + _ctl_fold.
+    _ctl_key: tuple | None = None
+    _ctl_fold = 0
+
+    def _send(self, m: str, dev=None) -> None:
+        """Every report write goes through here: the device update first, then — only with run.py --ctl — one record.
+        dev: the device to update (default self.pad, i.e. _NullPad while another thread holds the freeze)."""
+        d = self.pad if dev is None else dev
+        if not ctl.on():
+            d.update()
+            return
+        t0 = time.perf_counter_ns()
+        d.update()
+        self._record(m, d, (time.perf_counter_ns() - t0) // 1000)
+
+    def _record(self, m: str, d, up_us: int) -> None:
+        """Never raises. up_us: how long update() took here (a proxy, not game-side timing)."""
+        try:
+            drop = d is _NULL_PAD
+            rep = None if drop else _report(d)
+            key = ("drop", m) if drop else ("pad", tuple(rep.values()))
+            if key == self._ctl_key:
+                self._ctl_fold += 1
+                return
+            fold, self._ctl_fold, self._ctl_key = self._ctl_fold, 0, key
+            if drop:
+                ctl.emit("pad.drop", m=m, caller=_site(), frz=self._frozen_by, closed=self._closed, dup=fold)
+            else:
+                ctl.emit("pad", m=m, caller=_site(), **rep, frz=self._frozen_by, ep=self.epoch, up_us=up_us, dup=fold)
+        except Exception:
+            pass
+
+    def _neutral_rec(self, why: str | None, dev=None) -> None:
+        """One 'neutral' record: reason, call site, epoch, the report left on the device. Only with --ctl; never raises."""
+        if not ctl.on():
+            return
+        try:
+            d = self.pad if dev is None else dev
+            ctl.emit("neutral", why=why, site=_site(), ep=self.epoch, dropped=d is _NULL_PAD, report=_report(d))
+        except Exception:
+            pass
+
+    def neutral(self, why: str | None = None) -> None:
+        """why: optional reason, only for the P1 record (the call site is recorded anyway)."""
         with self._lock:
             self.epoch += 1
             self._note_stick(0.0, 0.0)
             self.pad.reset()
             if self.force_guard:
                 self.pad.press_button(B.XUSB_GAMEPAD_LEFT_SHOULDER)
-            self.pad.update()
+            self._send("neutral")
+            self._neutral_rec(why)
 
     def move(self, x: float, y: float) -> None:
         """왼스틱. x: 오른쪽 +, y: 앞 + (각 -1..1)"""
@@ -347,13 +427,13 @@ class Pad:
         with self._lock:
             self._note_stick(x, y)
             self.pad.left_joystick_float(x_value_float=x, y_value_float=y)
-            self.pad.update()
+            self._send("move")
 
     def look(self, x: float, y: float) -> None:
         """오른스틱 (카메라)."""
         with self._lock:
             self.pad.right_joystick_float(x_value_float=x, y_value_float=y)
-            self.pad.update()
+            self._send("look")
 
     def tap(self, button, hold: float = 0.08, stick_ok: bool = False) -> None:
         """버튼을 누르고 **뗄 시각만 예약**한다 — 자지 않는다.
@@ -366,7 +446,7 @@ class Pad:
             self.release_stick()
         with self._lock:
             self.pad.press_button(button)
-            self.pad.update()
+            self._send("tap")
             self._due[button] = time.time() + hold
 
     def press(self, button, hold: float) -> None:
@@ -374,13 +454,13 @@ class Pad:
         sleeps; nothing is scheduled. While another thread holds the freeze both writes go to _NullPad, like any input."""
         with self._lock:
             self.pad.press_button(button)
-            self.pad.update()
+            self._send("press")
         try:
             time.sleep(hold)
         finally:
             with self._lock:
                 self.pad.release_button(button)
-                self.pad.update()
+                self._send("press_release")
 
     def release_due(self) -> None:
         """예약된 버튼 떼기 — 감지 루프가 매 틱 부른다."""
@@ -393,7 +473,7 @@ class Pad:
                 self.pad.release_button(b)
                 del self._due[b]
             if done:
-                self.pad.update()
+                self._send("release_due")
 
     def guard_held(self) -> bool:
         return bool(self.pad.report.wButtons & B.XUSB_GAMEPAD_LEFT_SHOULDER) if self.pad else False
@@ -403,7 +483,7 @@ class Pad:
             if not on and button == B.XUSB_GAMEPAD_LEFT_SHOULDER and self.force_guard:
                 return
             (self.pad.press_button if on else self.pad.release_button)(button)
-            self.pad.update()
+            self._send("hold")
 
     # 의미 있는 이름들
     def dodge(self) -> None: self.tap(B.XUSB_GAMEPAD_B, 0.06)
@@ -442,18 +522,18 @@ class Pad:
         with self._lock:
             self._note_stick(*stick)
             self.pad.left_joystick_float(x_value_float=stick[0], y_value_float=stick[1])
-            self.pad.update()
+            self._send("jump_attack")
         self._r2(hold)
         self.move(0.0, 0.0)
 
     def _r2(self, hold: float) -> None:
         with self._lock:
             self.pad.right_trigger_float(value_float=1.0)
-            self.pad.update()
+            self._send("r2")
         time.sleep(hold)
         with self._lock:
             self.pad.right_trigger_float(value_float=0.0)
-            self.pad.update()
+            self._send("r2_release")
 
     def kick(self, sx: float, sy: float) -> None:
         """발차기 = 캐릭터 정면으로 스틱을 끝까지 + RB 를 **같은 보고(report)에** 넣는다.
@@ -466,7 +546,7 @@ class Pad:
             self._note_stick(sx, sy)
             self.pad.left_joystick_float(x_value_float=sx, y_value_float=sy)
             self.pad.press_button(B.XUSB_GAMEPAD_RIGHT_SHOULDER)
-            self.pad.update()
+            self._send("kick")
             self._due[B.XUSB_GAMEPAD_RIGHT_SHOULDER] = time.time() + 0.06
     def lock_on(self) -> None: self.tap(B.XUSB_GAMEPAD_RIGHT_THUMB, 0.06)
     def sprint(self, on: bool) -> None: self.hold(B.XUSB_GAMEPAD_B, on)

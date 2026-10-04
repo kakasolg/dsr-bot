@@ -306,10 +306,12 @@ game에서만 확인할 수 있는 것 — 오프라인으로는 확인 못 함,
 결정 → 패드 보고 → 관측 → 멈춤의 시간 순서를 같은 실행 안에서 잴 수 있게 **기록만** 더한다 (`run.py --ctl`, 기본 꺼짐, 파일은 `data/runs/<run>.ctl.jsonl`만). 주 시계는 `perf_counter_ns`(QPC), `wall_ns`는 벽시계 로그와 느슨하게 맞추는 용도. 기록을 켜고 꺼도 패드 보고 값·순서가 같아야 한다. 기록기 실패는 패드·멈춤·Escape·사용자 중지·잠금에 닿지 않는다. 게임 FPS·게임 프레임 시간·게임이 XInput을 읽는 시각은 재지 않으며 그렇게 부르지 않는다. 항목마다 따로 검토·커밋.
 
 - [x] [win] P1-A 기록기·생명주기·hdr/sync: 새 `ctl.py`(호출 쪽은 `put_nowait`만, 큐 가득 → drop 수 + `gap`, 쓰기 실패 → 한 번 다시 열고 스스로 꺼짐), `run.py --ctl`(`life`: start·normal_exit·user_stop·exception_exit), `control.py` 종료 훅(`life`: atexit·console, 콘솔 닫기는 패드 정리 뒤 최대 1 s flush). 확인: `tests/ctl_writer_test.py` 통과, pytest 66 (HEAD 65), golden·walksim(entrance 10)·walk_replay(-n 50) HEAD와 같음. 2026-10-03 실제 실행 4번(`--ctl`)에서 hdr·sync·life·end가 정상으로 기록됨
-- [ ] [win] P1-B 패드 업데이트·neutral·freeze 기록
+- [x] [win] P1-B 패드 업데이트·neutral·freeze 기록: `control.Pad`의 보고 쓰기 22곳이 전부 `Pad._send(방법)`을 지남 — 장치 `update()`를 먼저, `--ctl`일 때만 그 뒤에 기록. 기록: `pad`(방법 `m`, `caller` = control.py 밖 첫 호출 위치, 보고 정수 btn·lt·rt·lx·ly·rx·ry, `frz`, `ep`, `up_us` = update 걸린 시간·대리값, `dup`), `pad.drop`(얼린 동안 `_NullPad`로 간 입력), `neutral`(why·site·ep·남은 보고; release_all·close 포함), `esc`(freeze·거절·unfreeze·무시), `pad_dev`(reconnect unplug·plug). 앞 기록과 같은 호출은 세기만 하고 다음 기록의 `dup`로 — Σ(1+dup) = 쓰기 수, 바뀐 보고는 접지 않음, 새 장치의 첫 보고는 늘 기록. 확인: `tests/ctl_pad_test.py` 3/3 통과(켜기/끄기 때 장치가 받은 보고·순서 같음, 꺼짐이면 기록 코드 안 불림, 켜짐 추가 시간 입력당 ~7 µs 가짜 장치 기준), pytest 67, golden·walksim(entrance 10)·walk_replay(-n 50) P1-A와 같음. 설계와 다른 점: `neutral(why=)`는 받지만 부르는 곳 45곳엔 안 넣음 — 대신 `site`(파일:함수:줄)가 자동으로 남음 (가짜·시뮬 패드 5개의 `neutral()` 모양을 안 바꾸려고)
 - [ ] [win] P1-C 판단 이벤트 (goto 모드 전환, Field._walk 물러남 이유, Reflex 행동, duel 규칙)
 - [ ] [win] P1-D 관측 품질·Escape·watchdog 이벤트 (`--ctl-frames`는 기본 꺼짐)
 - [ ] [win] P1-E 정렬·큐 넘침·쓰기 실패·켜기/끄기 같음 테스트
+
+남은 UNKNOWN (P1-B): `up_us`·기록 비용은 가짜 장치에서만 잼 — 실제 ViGEm `update()` 시간과 기록을 켠 실제 실행의 틱 간격은 실제 실행 전엔 모름. 보고 정수는 vgamepad가 보낸 값이고, 게임이 그 값을 언제 읽는지는 여전히 모름. 접힌 반복(`dup`)은 몇 번인지만 남고 각각의 시각은 안 남음.
 
 남은 UNKNOWN (P1-A): 콘솔 닫기에서 1 s flush 전에 프로세스가 죽으면 파일 끝이 잘릴 수 있음. 강제 종료 뒤엔 `end` 기록 없이 끝남 — 분석은 "잘림"으로 본다. P1-A만으로는 지연을 잴 수 없음 (패드·판단·Escape 이벤트는 P1-B~D).
 

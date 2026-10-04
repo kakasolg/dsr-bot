@@ -37,6 +37,14 @@ class _Report:
             out |= bit(b)
         return out
 
+    # XUSB_REPORT's other fields as ints, so a recorder sees stick / trigger changes (scaling is the fake's own)
+    bLeftTrigger = property(lambda self: int(round(self.dev.lt * 255)))
+    bRightTrigger = property(lambda self: int(round(self.dev.rt * 255)))
+    sThumbLX = property(lambda self: int(round(self.dev.lx * 32767)))
+    sThumbLY = property(lambda self: int(round(self.dev.ly * 32767)))
+    sThumbRX = property(lambda self: int(round(self.dev.rx * 32767)))
+    sThumbRY = property(lambda self: int(round(self.dev.ry * 32767)))
+
 
 class Rec:
     """What one fake device did — kept apart from the device, so holding it doesn't keep the device alive (removal = GC)."""
