@@ -40,7 +40,7 @@ def test_geometry() -> None:
 def run_walk(path, fog_ok=True, me=ME):
     f = make_field(World(player=me))
     calls = []
-    f.fog_through = lambda toward: calls.append(("fog", tuple(toward))) or fog_ok
+    f.fog_through = lambda toward, known=False: calls.append(("fog", tuple(toward), known)) or fog_ok
     f.walk = lambda pts, nm, tag, **k: calls.append(("front", tuple(pts[0]))) or "arrived"
     f._follow = lambda q, *a, **k: calls.append(("go", tuple(q))) or "arrived"
     r = F.Field._walk(f, list(path), Nm(), "#4 이동")
@@ -48,18 +48,19 @@ def run_walk(path, fog_ok=True, me=ME):
 
 
 def test_walk_crosses_once() -> None:
-    r, calls, logs = run_walk([BEYOND, (-49.0, -21.8, -36.0)])             # already at the wall (10-03a spot)
+    r, calls, logs = run_walk([BEYOND, (-49.0, -21.8, -36.0)], me=(-50.1, -22.7, -31.2))   # already at the wall
     assert r == "arrived" and [c[0] for c in calls] == ["fog", "go", "go"], calls
+    assert calls[0][2] is True, calls[0]                                     # known wall: A without the prompt check
     assert any("안개벽" in l and "통과" in l for l in logs), logs[-3:]
     r, calls, logs = run_walk([BEYOND], me=(-50.4, -22.7, -26.0))           # 6 m back: walk to the front spot first
     assert [c[0] for c in calls] == ["front", "fog", "go"], calls
     front = calls[0][1]
-    assert 0.9 < ((front[0] - F.FOG_WALLS[0][0]) ** 2 + (front[2] - F.FOG_WALLS[0][2]) ** 2) ** 0.5 < 1.5 and front[2] > F.FOG_WALLS[0][2], front
+    assert 0.4 < ((front[0] - F.FOG_WALLS[0][0]) ** 2 + (front[2] - F.FOG_WALLS[0][2]) ** 2) ** 0.5 < 0.8 and front[2] > F.FOG_WALLS[0][2], front
     print("ok  walk: at the wall → fog_through once; farther back → walk to the spot before the wall first; then the points as before")
 
 
 def test_no_wall_left_walks_on() -> None:
-    r, calls, logs = run_walk([BEYOND], fog_ok=False)                       # no prompt (wall gone) → just walk on
+    r, calls, logs = run_walk([BEYOND], fog_ok=False, me=(-50.1, -22.7, -31.2))   # A did nothing (wall gone) → just walk on
     assert r == "arrived" and [c[0] for c in calls] == ["fog", "go"], calls
     assert any("못 지나감" in l for l in logs), logs[-3:]
     print("ok  no wall any more → one try, then the walk carries on")
@@ -68,11 +69,36 @@ def test_no_wall_left_walks_on() -> None:
 def test_walk_elsewhere_untouched() -> None:
     f = make_field(World(player=(0.0, -49.4, 0.0)))
     calls = []
-    f.fog_through = lambda toward: calls.append("fog") or True
+    f.fog_through = lambda toward, known=False: calls.append("fog") or True
     f._follow = lambda q, *a, **k: calls.append("go") or "arrived"
     assert F.Field._walk(f, [(1.0, -49.4, 0.0), (2.0, -49.4, 0.0)], Nm(), "t") == "arrived"
     assert calls == ["go", "go"], calls
     print("ok  paths that cross no known wall walk exactly as before")
+
+
+def test_known_wall_presses_without_prompt() -> None:
+    import legacy.ladder_test as L
+    old = L.prompt_px
+    L.prompt_px = lambda: 0                                                  # the dark-box check never fires (10-03b)
+    sleep = F.time.sleep
+    F.time.sleep = lambda s: None
+    try:
+        for known, want in ((True, True), (False, False)):
+            f = make_field(World(player=(-50.1, -22.7, -31.2)))
+            presses = []
+            f.mv.stick_to = lambda s, x, z, scale: (0.0, scale)
+            f.mv.pad.move = lambda *a: None
+
+            def press(b, hold=0.1, gap=0.1, f=f):
+                presses.append(b)
+                f.mv.w.player.x, f.mv.w.player.y, f.mv.w.player.z = -49.6, -21.8, -34.5   # A at the wall → through it
+            f.mv.press = press
+            ok = f.fog_through(BEYOND, known=known)
+            assert ok is want and (len(presses) == 1) is want, (known, ok, presses)
+    finally:
+        L.prompt_px = old
+        F.time.sleep = sleep
+    print("ok  fog_through: known wall → A without the prompt and passes; unknown wall without a prompt → no A")
 
 
 if __name__ == "__main__":
@@ -80,4 +106,5 @@ if __name__ == "__main__":
     test_walk_crosses_once()
     test_no_wall_left_walks_on()
     test_walk_elsewhere_untouched()
+    test_known_wall_presses_without_prompt()
     print("전부 통과")

@@ -33,11 +33,12 @@ RESYNC_BACK, RESYNC_AHEAD = 3, 15   # range for re-picking the waypoint after a 
 # ── 아는 안개벽 (P-41) ─────────────────────────────────────────────
 #  · 성벽 마을 마을 구역(#1~#3) 끝 → `#4 이동`: "Traverse the white light". 10-03a 봇이 21 s 비비다 timeout 1번 → fog_through는
 #    2번 놓쳐야 켜져서 안 켜짐, [MoKa]가 A. 첫 방문 캐릭터에만 걸림 (그전 실행들은 이미 지난 캐릭터)
-#  · 길이 이 벽을 가로지르면 걷기 전에 벽 앞에 서서 A (없어졌으면 안내가 안 떠서 그냥 지나감)
+#  · 길이 이 벽을 가로지르면 걷기 전에 벽 앞에 서서 A — 안내창 판정 없이 (흰 빛 뒤라 어두운 상자 판정이 안 됨, 10-03b 4번 실패).
+#    벽이 없어졌으면 A가 아무 일도 안 하고 2 m 안 움직임 → 그냥 걸음
 FOG_WALLS = [(-50.0, -22.3, -32.0)]
 FOG_PASS_R = 1.5         # the line to the next point passes this close (horizontal) to a wall's center → it crosses the wall
 FOG_DY = 2.5
-FOG_FRONT_M = 1.2        # stand this far before the wall, on the line to the point, then fog_through
+FOG_FRONT_M = 0.6        # stand this far before the wall, on the line to the point, then fog_through (1.2 too far — 10-03b)
 
 
 def fog_ahead(p, q):
@@ -1512,10 +1513,11 @@ class Field:
         self.log(f"      {tag}: 길 막은 {prop['model']} ({prop['name']}) 부숨 시도 — ({q[0]:.1f},{q[1]:.1f},{q[2]:.1f})")
         self.events("smash", tag=tag, prop=prop["name"], model=prop["model"], pos=q)
 
-    def fog_through(self, toward) -> bool:
+    def fog_through(self, toward, known: bool = False) -> bool:
         """If stuck before a fog wall: turn toward the next waypoint, and press A when the prompt appears (user: "press A at the fog wall", "align direction").
         We stood beside the fog pushing into the wall → 'blocked' (2026-09-24). The prompt only appears when facing the fog.
-        → passed through? (moved more than 2 m)"""
+        known: a FOG_WALLS wall — press A without the prompt check: under the Burg wall's white light the dark-box check never
+        fired (10-03b, 4 tries, no A), P-41. → passed through? (moved more than 2 m)"""
         import legacy.ladder_test as L                    # prompt detection (dark ratio at bottom center of screen, ~900 when shown)
         s = self.mv.snap(5.0)
         if s is None or s.cam_yaw is None:
@@ -1526,14 +1528,15 @@ class Field:
             time.sleep(0.3)
             self.mv.pad.move(0.0, 0.0)
             time.sleep(0.4)
-            if L.prompt_px() >= 850:
+            if known or L.prompt_px() >= 850:
                 self.mv.press(M.B.XUSB_GAMEPAD_A, 0.3)
                 time.sleep(4.5)
                 s2 = self.mv.snap(5.0)
                 moved = math.dist(p0, (s2.player.x, s2.player.y, s2.player.z)) if s2 else 0.0
                 self.log(f"   안개벽: A → {moved:.1f} m 이동")
-                return moved > 2.0
-            s = self.mv.snap(5.0) or s
+                if moved > 2.0 or not known:
+                    return moved > 2.0
+            s = self.mv.snap(5.0) or s                     # known wall, A didn't take: push a bit harder and press again
         return False
 
     def _fog_cross(self, fog, p, q, nm, tag: str) -> bool:
@@ -1544,7 +1547,7 @@ class Field:
         front = (fog[0] - dx / n * FOG_FRONT_M, fog[1], fog[2] - dz / n * FOG_FRONT_M)
         if math.hypot(front[0] - p[0], front[2] - p[2]) > 0.8:
             self.walk([front], nm, f"{tag} 안개벽 앞")
-        ok = self.fog_through(q)
+        ok = self.fog_through(q, known=True)
         self.log(f"   {tag}: 안개벽 ({fog[0]:.1f}, {fog[1]:.1f}, {fog[2]:.1f}) {'통과' if ok else '못 지나감 — 그대로 걸음'}")
         self.events("fog_cross", tag=tag, fog=list(fog), ok=ok)
         return ok
