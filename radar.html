@@ -422,13 +422,27 @@ function gameStatus() {
     $("steam").title = (st.why || []).join(" · ");
   }
   const why = warpBlock(g, st, w);
+  if (why && warpArmed !== null) disarmWarp();
   $("wgo").disabled = !!why;
   $("wgo").title = why;
   $("wmsg").textContent = warpNote || (w && w.last) || why || "ready";
 }
+// in-page confirm (click twice): confirm() returns false at once in some embedded browsers (desktop app pane, 2026-10-05)
+let warpArmed = null, warpArmTimer;
+function disarmWarp() { warpArmed = null; clearTimeout(warpArmTimer); $("wgo").textContent = "Warp"; }
+$("wbf").onchange = () => { disarmWarp(); gameStatus(); };
 $("wgo").onclick = async () => {
   const b = bonfireList.find(x => String(x.id) === $("wbf").value);
-  if (!b || !confirm(`Warp to ${b.name}?\nThe game loads that area (like the bonfire menu). Souls are kept.`)) return;
+  if (!b) return;
+  if (warpArmed !== b.id) {
+    warpArmed = b.id;
+    $("wgo").textContent = "Confirm";
+    warpNote = `warp to ${b.name}? click Confirm within 5 s (the game loads that area; souls are kept)`;
+    clearTimeout(warpArmTimer);
+    warpArmTimer = setTimeout(() => { disarmWarp(); warpNote = ""; gameStatus(); }, 5000);
+    return gameStatus();
+  }
+  disarmWarp();
   warpNote = "";
   try {
     const r = await fetch("/warp", {method: "POST", cache: "no-store", headers: {"Content-Type": "application/json", "X-Radar": "1"},
