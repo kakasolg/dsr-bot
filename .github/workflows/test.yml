@@ -1,22 +1,44 @@
 name: offline-tests
 
+# Only what the offline tests can see: code, test inputs (data/ — samples, gamefiles, runs are read by tests), deps,
+# pytest config and this file. README/ROADMAP/LAYERS and other markdown never trigger a run.
 on:
   push:
+    paths:
+      - "**.py"
+      - "data/**"
+      - "requirements-lock.txt"
+      - "pytest.ini"
+      - ".github/workflows/test.yml"
+      - "!**.md"
   pull_request:
+    paths:
+      - "**.py"
+      - "data/**"
+      - "requirements-lock.txt"
+      - "pytest.ini"
+      - ".github/workflows/test.yml"
+      - "!**.md"
+
+# A newer push to the same branch (or the PR's push and pull_request pair) cancels the older run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-lock.txt
       - name: Install dependencies (without Windows-only pymem/vgamepad)
         run: |
           grep -viE '^(pymem|vgamepad)==' requirements-lock.txt > /tmp/req.txt
-          pip install -r /tmp/req.txt
+          pip install -r /tmp/req.txt pytest
       - name: Run offline tests (fake world, no game)
-        run: |
-          pip install pytest
-          python -m pytest -v
+        run: python -m pytest -v

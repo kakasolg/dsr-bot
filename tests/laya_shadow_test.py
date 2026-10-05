@@ -155,14 +155,16 @@ def _req(i):
 
 
 def test_worker_never_blocks() -> None:
-    """A slow worker: offers return at once, the newest is kept, old ones are dropped and counted."""
+    """A slow worker: offers return at once, the newest is kept, old ones are dropped and counted.
+    pad: 요청이 쌓여 버려지려면 파이프가 차서 보내는 스레드가 막혀야 한다 — Windows 파이프는 작아 금방 차지만 Linux는
+    64 KB라 작은 요청 60개(~18 KB)는 다 들어가 버림 0 → CI만 실패했다 (439fead~). 요청당 8 KB면 둘 다 찬다."""
     with tempfile.TemporaryDirectory() as d:
         out = Path(d) / "x.laya.jsonl"
         ch = LS.WorkerChannel(LS.worker_cmd(out, sys.executable, backend="fake:slow:0.3"), log=lambda *a: None)
         worst = 0.0
         for i in range(60):
             t0 = time.perf_counter()
-            ch.offer(_req(i))
+            ch.offer(_req(i) | {"pad": "x" * 8192})
             worst = max(worst, time.perf_counter() - t0)
             time.sleep(0.01)
         summary = ch.close()

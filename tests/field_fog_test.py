@@ -77,7 +77,7 @@ def test_walk_elsewhere_untouched() -> None:
 
 
 def test_known_wall_presses_without_prompt() -> None:
-    import legacy.ladder_test as L
+    import screen_prompt as L
     old = L.prompt_px
     L.prompt_px = lambda: 0                                                  # the dark-box check never fires (10-03b)
     sleep = F.time.sleep

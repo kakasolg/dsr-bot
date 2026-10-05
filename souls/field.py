@@ -1559,7 +1559,7 @@ class Field:
         We stood beside the fog pushing into the wall → 'blocked' (2026-09-24). The prompt only appears when facing the fog.
         known: a FOG_WALLS wall — press A without the prompt check: under the Burg wall's white light the dark-box check never
         fired (10-03b, 4 tries, no A), P-41. → passed through? (moved more than 2 m)"""
-        import legacy.ladder_test as L                    # prompt detection (dark ratio at bottom center of screen, ~900 when shown)
+        import screen_prompt as L                         # prompt detection (dark ratio at bottom center of screen, ~900 when shown)
         s = self.mv.snap(5.0)
         if s is None or s.cam_yaw is None:
             return False

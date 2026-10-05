@@ -826,6 +826,13 @@ game에서만 확인할 수 있는 것 — 오프라인으로는 확인 못 함,
 - 고침: 장비 메뉴는 결과를 보며 고름 (`Asylum._equip`) — 장비 화면(오른손1에서 열림) → 칸으로 내려감 → 목록 열고 A로 장착 → 메모리로 확인, 아니면 다시 열어 한 칸 내리고 장착(최대 5번) → B로 메뉴가 닫힐 때까지만. 넘기다 다른 손 장비가 빠지면(오른손 목록의 방패) 다시 장착. 게임 확인: 방패 방에서 왼손 검 자루 → 목록 2번 열어 **방패 맞음**, 메뉴 닫힘. `test_equip_closed_loop`
 - 게임 확인 10-03e: **방패 목록 1번·배틀 액스 목록 2번 열어 둘 다 맞음**, 방패 뒤 달리기로 배틀 액스까지 싸움 없이(블랙박스 1번 −80, 망자 250021 9.9 m — 화살로 보임), 수용소 전체 **done 393 s**(09-29a 423 s), 데몬 25 s 약공 4번. `hotspots` AGAIN 1곳(P-28 ③ 데몬 열쇠 문 뒤), P-28 ①(위층 문 앞)은 안 나옴. 판단 공백 3번 6.7 s 피해 0. 위험 판정 주의(최저 38 %) — P-39 자리
 
+### P-43 CI `offline-tests`가 10-03 `439fead`부터 22번 내리 실패 — Windows에선 둘 다 통과 (2026-10-05, [win])
+- `laya_shadow_test.py::test_worker_never_blocks` `AssertionError: (0, 18)`: 느린 워커에서 요청이 버려지는지(`dropped > 0`) 보는데, 버림은 파이프가 차서 `_pump`가 쓰기에서 막힐 때만 생김. Windows 파이프는 작아 금방 차지만(로컬 60 중 28 버림) Linux는 64 KB라 작은 요청 60개(~18 KB)가 다 들어가 버림 0. 기능(offer가 안 막힘, `worst < 5 ms`)은 CI에서도 통과 — 테스트 전제가 Windows였음.
+- `field_fog_test.py` (P-41 `f1945b3`부터) `No module named 'vgamepad'`: `souls/field.py`의 `fog_through`가 안내창 판정 `prompt_px`를 `legacy.ladder_test`에서 가져왔고, 그 모듈이 맨 위에서 `vgamepad`를 import (CI는 pymem·vgamepad를 빼고 설치). 봇이 legacy·experiments(`vision_probe`)에 기대는 것도 폴더 규칙 위반.
+- 고침: `prompt_px`·`PROMPT_ON`·`window_rect`를 루트 `screen_prompt.py`로(무거운 import는 부를 때만), `field.py`·테스트는 그쪽을, `legacy/ladder_test.py`는 다시 가져다 씀(boss/ 스크립트 그대로). laya 테스트는 요청당 8 KB 덧붙여 두 OS 모두 파이프가 차게. 확인: Windows pytest 69 통과, WSL(Linux·vgamepad 없음)에서 두 테스트 통과(버림 51/60).
+- 함께: 워크플로에 `paths`(코드·`data/`·의존성만, `.md`는 안 돎)·`timeout-minutes: 15`·`concurrency` 취소·pip 캐시. 실행 1번 약 3 min.
+
+
  ([cloud]는 비공개 게시판에 못 닿음)
 
 형식: `- 날짜 [cloud→게시판] 내용` / `- 날짜 [게시판→cloud] 내용`. 옮겼거나 처리했으면 끝에 `→ 옮김`·`→ 처리`. 지워지지 않게 위에서 아래로 쌓는다.
