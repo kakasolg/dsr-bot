@@ -10,7 +10,7 @@ Endpoints: /  (radar.html)   /state  (latest snapshot + last decision lines + br
 /state also: "game" (off / title / world / dead + menu, from the sender's status packets; "none" if no sender for 2 s),
 "steam" (steam_state.check() every STEAM_S: offline True/False/None + why), "warp" (radar_warp: busy / last result).
 POST /warp {"id": <bonfire>}  bonfire warp — refused unless Steam is offline, no bot runs, the player is in the world
-(radar_warp.py). GET /bonfires  the lit bonfires to offer.
+(radar_warp.py). GET /bonfires  the lit bonfires to offer (the last reported character's, also after the sender stops).
 /state "age" = seconds since the last *snapshot* (not since any packet: radar_pad.py's pad packets alone must not make a
 frozen map look live); "age_any" = since any packet.
 Props and items come from data/gamefiles/*.json (msb_extract.py) — every extracted map is loaded; the ones near the
@@ -150,6 +150,7 @@ class State:
             self.t_snap = 0.0                 # last snapshot — what "age" reports
             self.status: dict | None = None   # last game-state packet (radar.py status_dict)
             self.t_status = 0.0
+            self.last_char: str | None = None  # last character a sender reported — kept after the sender stops
             if getattr(self, "labels", None) is not None:
                 self.labels.by_ptr.clear()
 
@@ -171,6 +172,8 @@ class State:
                 self.pads[int(msg.get("i") or 0)] = {k: msg.get(k) for k in ("btn", "lt", "rtr", "lx", "ly", "rx", "ry")}
             elif msg.get("type") == "status":
                 self.status, self.t_status = msg, self.t_recv
+                if msg.get("char"):
+                    self.last_char = msg["char"]
             elif msg.get("type") == "say":
                 self.says.append({"t": msg.get("t"), "line": msg.get("line", "")})
 
@@ -290,7 +293,9 @@ def make_handler(state: State):
                 state.replay.command(q.get("cmd", [""])[0], float(v) if v not in (None, "") else None)
                 self._send(200, json.dumps(state.replay.status()).encode("utf-8"), "application/json")
             elif self.path.split("?")[0] == "/bonfires":
-                char = (state.get().get("game") or {}).get("char")
+                # 보내는 쪽(radar.py watch)이 2 시간 한도 등으로 멈추면 캐릭터를 모르게 돼 목록이 비었다 (2026-10-05).
+                # 마지막 캐릭터 목록을 계속 보여 준다 — 워프 자체는 radar_warp 가 지금 게임의 캐릭터로 다시 확인한다.
+                char = (state.get().get("game") or {}).get("char") or state.last_char
                 body = state.warp.bonfires(char) if state.warp is not None else []
                 self._send(200, json.dumps(body, ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8")
             elif self.path.split("?")[0] == "/state":

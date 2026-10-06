@@ -186,6 +186,12 @@ check("/bonfires — 지금 캐릭터의 목록", json.loads(c.getresponse().rea
 st.put({"type": "status", "t": time.time(), "game": "world", "menu": False, "away": None, "char": "NewGuy"})
 c.request("GET", "/bonfires")
 check("/bonfires — 새 캐릭터는 빈 목록", json.loads(c.getresponse().read()) == [])
+st.put({"type": "status", "t": time.time(), "game": "world", "menu": False, "away": None, "char": "Knight bot"})
+st.t_status -= 60                                  # sender stopped — status no longer fresh
+c.request("GET", "/state")
+gone = json.loads(c.getresponse().read())["game"] == {"game": "none"}
+c.request("GET", "/bonfires")
+check("/bonfires — 보내는 쪽이 멈춰도 마지막 캐릭터 목록", gone and json.loads(c.getresponse().read()) == [{"id": 1012962, "name": "Undead Burg"}])
 srv.shutdown()
 
 print("실패 0" if not fails else f"실패 {fails}")
