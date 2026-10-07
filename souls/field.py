@@ -42,6 +42,21 @@ FOG_DY = 2.5
 FOG_FRONT_M = 0.6        # stand this far before the wall, on the line to the point, then fog_through (1.2 too far — 10-03b)
 
 
+# Doors a foe can shut behind itself. 성벽 마을 위쪽 구역 5 안전 자리 서쪽 문 — 10-06j 255000이 지나가며 닫아 봇이 안전 자리로 못 돌아가고
+# 같은 자리에서 4번 막힘. [MoKa]: "a 눌러, 방패병이 문을 닫았어" → (21.0,−103.8)에서 A, 열리고 지나감. 위치는 막힌 자리와 다음 길 점 사이
+DOORS = [(20.2, -6.0, -103.4)]
+DOOR_R = 2.5             # stuck this close (horizontal, same level) to a door → press A once
+DOOR_OPEN_S = 1.5        # …then wait this long for it to swing before walking on
+
+
+def door_near(p):
+    """The DOORS entry within DOOR_R of p (same level), else None."""
+    for d in DOORS:
+        if abs(d[1] - p[1]) <= FOG_DY and math.hypot(d[0] - p[0], d[2] - p[2]) <= DOOR_R:
+            return d
+    return None
+
+
 def fog_ahead(p, q):
     """The FOG_WALLS entry the straight line p → q crosses (center strictly between them, within FOG_PASS_R), else None."""
     dx, dz = q[0] - p[0], q[2] - p[2]
@@ -579,6 +594,10 @@ class Field:
             if r.result != "cancel" or far is None or not far() or self.esc.escaping or not self.alive():
                 return r
             zr = self._retreat_to_zone(spot, nm)
+            s = self.mv.snap(5.0)
+            if zr == "stuck" and s is not None and door_near((s.player.x, s.player.y, s.player.z)) is not None:
+                self.open_door(spot, tag)                  # 10-06j: the shield soldier shut the door on the way back
+                zr = self._retreat_to_zone(spot, nm)
             self.log(f"   {tag}: 안전 자리에서 {TETHER_R:.0f} m 넘게 벗어남 — 싸움 끊고 가드 든 채 안전 자리로: {zr}")
             self.events("tether", tag=tag, result=zr, n=k + 1)
             if zr == "dead":
@@ -1461,6 +1480,12 @@ class Field:
                 if r2 == "arrived":
                     st.fails = 0
                     return "next"
+        door = door_near((s3.player.x, s3.player.y, s3.player.z)) if s3 else None
+        if st.fails >= 2 and door is not None and door not in st.doored:
+            st.doored.add(door)
+            self.open_door(q, tag)
+            st.fails = 0
+            return "retry"
         if st.fails >= 2 and self.fog_through(q):
             st.fails = 0                        # passed the fog wall — restart from the nearest point
             s2 = self.mv.snap(5.0)
@@ -1479,7 +1504,8 @@ class Field:
         plan = WalkPlan(path, tag, tol)
         st = types.SimpleNamespace(fails=0, fights=0, ignore=set(), desperate=False,
                                    smashed={},         # smashed: prop name → swings this walk (props_.blocking)
-                                   fogged=set())       # FOG_WALLS already tried this walk (fog_ahead)
+                                   fogged=set(),       # FOG_WALLS already tried this walk (fog_ahead)
+                                   doored=set())       # DOORS already opened this walk (one A each — a second A shuts it)
         self.reflex.nm = nm
         mover = nav.Mover(self.mv.pad)
         no_obs = control.NoObs(self.mv.pad, on_full=mover.stop)   # no snapshot: stick off now, everything off after a while (P0-C)
@@ -1613,6 +1639,19 @@ class Field:
                     return moved > 2.0
             s = self.mv.snap(5.0) or s                     # known wall, A didn't take: push a bit harder and press again
         return False
+
+    def open_door(self, toward, tag: str) -> None:
+        """Stuck at a known door: face the next point and press A once (a second A would shut it again), wait for it to swing."""
+        s = self.mv.snap(5.0)
+        if s is not None and s.cam_yaw is not None:
+            self.mv.pad.move(*self.mv.stick_to(s, toward[0], toward[2], 0.4))
+            time.sleep(0.25)
+            self.mv.pad.move(0.0, 0.0)
+            time.sleep(0.2)
+        self.mv.pad.interact()
+        time.sleep(DOOR_OPEN_S)
+        self.log(f"   {tag}: 문 앞에서 막힘 — A로 문 열기")
+        self.events("door", tag=tag)
 
     def _fog_cross(self, fog, p, q, nm, tag: str) -> bool:
         """Known fog wall between us and q: stand FOG_FRONT_M before it on the line to q, then fog_through (turn, A on the prompt).

@@ -36,7 +36,13 @@ def length(p):
 # ── data vs NavMesh ─────────────────────────────────────────
 nm = navmesh.Navmesh.from_npz(Path(__file__).resolve().parent.parent / "data" / "samples" / "navmesh_m10_01_00_00.npz")
 zones = MS.UPPER["zones"]
-check("7 zones, zone 7 (fog wall) has no foes", len(zones) == 7 and zones[6]["kills"] == [])
+check("8 zones, zone 7 (fog wall front) has no foes", len(zones) == 8 and zones[6]["kills"] == [])
+z8 = zones[7]
+lad = z8["before"][1]["ladder"]
+p = nm.find_path(tuple(z8["before"][0]["fog"]["beyond"]), tuple(lad["bottom"]))
+check(f"zone 8: beyond the fog wall → ladder bottom ({length(p):.0f} m)", len(p) >= 2 and length(p) < 8)
+p = nm.find_path((50.78, 24.73, -116.64), tuple(z8["safe"]))
+check(f"zone 8: ladder top → safe spot on the tower ({length(p):.0f} m)", len(p) >= 2 and length(p) < 20)
 prev = MS.BURG_BONFIRE_SIDE
 for z in zones:
     safe = tuple(z["safe"])
@@ -261,6 +267,33 @@ def walking_find(s, ptr):                              # it patrols up to the sa
 m.mv.find = walking_find
 r = m._lure(foe, 27, s5, LineNm(), "t", {"wait": 5, "lure_at": list(rail)})
 check("wait: guard at the safe spot until the patrolling 255000 comes — no running out", r == "here" and calls == [])
+
+# zone 8 ladder ([MoKa] "사다리 타고 올라가서") — face, A, stick up until the top height
+MS.LADDER_CLIMB_S = 3.0
+lad_log = []
+pos = {"y": 15.97}
+def lad_move(x, y):
+    lad_log.append(("move", x, y))
+    if y > 0.9 and ("A" in [e[0] for e in lad_log]):
+        pos["y"] += 1.5
+m = MS.Missions.__new__(MS.Missions)
+m.log = lambda *a: None
+m.f = NS(walk_to=lambda *a, **k: "arrived", alive=lambda: True, _settle=lambda *a, **k: 0.0)
+m.mv = NS(snap=lambda r=5.0: NS(player=NS(x=49.16, y=pos["y"], z=-117.1), cam_yaw=0.0),
+          stick_to=lambda s, x, z, sc=1.0: (sc, 0.0),
+          pad=NS(move=lad_move, interact=lambda: lad_log.append(("A",)), neutral=lambda: None))
+r = m._before(z8["before"][1], None, "t")
+check("ladder: A at the bottom, then stick up until the top", r == "ok" and pos["y"] >= 24.2 and ("A",) in lad_log)
+pos["y"] = 15.97
+lad_log.clear()
+m.mv.pad.interact = lambda: lad_log.append(("noA",))   # A doesn't grab the ladder
+r = m._before(z8["before"][1], None, "t")
+check("ladder: never climbs → fail after the tries", r == "fail" and pos["y"] < 17)
+
+from souls import field as F  # noqa: E402
+# 10-06j: the shield soldier shut the door west of the zone 5 safe spot ([MoKa] "a 눌러, 방패병이 문을 닫았어")
+check("door: stuck at (21.0,−6.0,−103.6) is next to the known door", F.door_near((21.0, -6.0, -103.6)) is not None)
+check("door: the zone 5 safe spot is not", F.door_near((24.1, -5.7, -99.0)) is None)
 
 ledge = MS.UPPER_IGNORE[0]
 foe = Chr(npc_param=254012, ptr=13, x=ledge[0] + 1.0, y=ledge[1], z=ledge[2], hp=75, anim=-1)

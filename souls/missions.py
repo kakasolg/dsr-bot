@@ -75,6 +75,8 @@ UPPER_NEAR_SAFE_R = 4.0  # within this of the safe spot, don't turn our back to 
 UPPER_TRIES = 4          # same target until dead, at most this many lure + fight rounds (a round may go to a foe that came along)
 UPPER_ENCOUNTER_R = 10.0 # running in: any awake, moving foe on our level this close → turn back to the safe spot
 UPPER_HEAL_FRAC = 0.7    # before each lure: below this share of max HP, Estus first
+LADDER_TRIES = 3         # zone 8 ladder: face + A + climb attempts
+LADDER_CLIMB_S = 15.0    # …give one climb this long (souls/asylum CLIMB_S)
 UPPER_SIP_FRAC = 0.8     # back at the safe spot: drink only below this share (10-06g spent one on 713/742; [MoKa] 90 % → 80 %)
 UPPER_SWING_R = 2.5      # …and not while a foe this close is mid-swing (10-06g: interrupted by a firebomb from 2.4 m)
 
@@ -301,7 +303,17 @@ class Missions:
         zones0, tether0 = getattr(self.f, "extra_zones", ()), getattr(self.f, "tether", None)
         self.f.extra_zones, self.f.tether = (safe,), safe
         try:
-            r = self.f.careful_walk_to(safe, nb, f"구역{n} 안전 자리")
+            for step in z.get("before", []):
+                r = self._before(step, nb, f"구역{n}")
+                if r == "dead":
+                    return "died"
+                if r != "ok":
+                    return f"{next(iter(step))} {r}"
+            if z.get("run_to_safe"):
+                r = self._sprint(safe, nb, None)
+                r = "dead" if r == "dead" else ("arrived" if r in ("arrived", "stopped") else r)
+            else:
+                r = self.f.careful_walk_to(safe, nb, f"구역{n} 안전 자리")
             if r == "dead":
                 return "died"
             if r != "arrived":
@@ -469,6 +481,59 @@ class Missions:
         back = self._sprint(safe, nb, lambda sn: math.hypot(sn.player.x - safe[0], sn.player.z - safe[2]) < 1.5)
         self.log(f"   {tag}: {why} — 달려서 안전 자리로 {back}")
         return "died" if back == "dead" else "here"
+
+    def _before(self, step: dict, nb, tag: str) -> str:
+        """A zone's 'before' step (구역 8, [MoKa] "안개벽 지나서, 사다리 타고 올라가서"). → 'ok' | 'dead' | 'fail' | walk result
+          fog: walk to front, settle, fog_through toward beyond (known wall — A without the prompt check), as souls/asylum does
+          ladder: walk to bottom, face `face`, A, stick up until top_y, keep pushing to step off (souls/asylum._climb)"""
+        if "fog" in step:
+            st = step["fog"]
+            front, beyond = tuple(st["front"]), tuple(st["beyond"])
+            r = self.f.walk_to(front, nb, f"{tag} 안개벽 앞")
+            if r == "dead" or not self.f.alive():
+                return "dead"
+            self.f._settle(front, tol=0.5)
+            ok = self.f.fog_through(beyond, known=True)
+            self.log(f"   {tag}: 안개벽 {'통과' if ok else '못 지나감'}")
+            return "ok" if ok else "fail"
+        st = step["ladder"]
+        bottom, face, top_y = tuple(st["bottom"]), tuple(st["face"]), float(st["top_y"])
+        r = self.f.walk_to(bottom, nb, f"{tag} 사다리 아래")
+        if r == "dead" or not self.f.alive():
+            return "dead"
+        self.f._settle(bottom, tol=0.4)
+        for attempt in range(LADDER_TRIES):
+            s = self.mv.snap(5.0)
+            if s is not None and s.cam_yaw is not None:
+                self.mv.pad.move(*self.mv.stick_to(s, face[0], face[2], 0.35))
+                time.sleep(0.25)
+                self.mv.pad.move(0.0, 0.0)
+                time.sleep(0.2)
+            self.mv.pad.interact()
+            time.sleep(0.8)
+            s = self.mv.snap(5.0)
+            y0 = s.player.y if s else bottom[1]
+            t0, moved = time.time(), False
+            while time.time() - t0 < LADDER_CLIMB_S:
+                self.mv.pad.move(0.0, 1.0)                 # stick up = climb
+                time.sleep(0.1)
+                s = self.mv.snap(5.0)
+                if s is None:
+                    continue
+                moved = moved or s.player.y > y0 + 0.4
+                if s.player.y >= top_y - 0.3:
+                    time.sleep(0.8)                        # keep pushing — step off the top
+                    break
+                if not moved and time.time() - t0 > 2.5:
+                    break                                  # not on the ladder — face it again and A
+            self.mv.pad.neutral()
+            s = self.mv.snap(5.0)
+            if s is not None and s.player.y >= top_y - 0.6:
+                self.log(f"   {tag}: 사다리 올라감 (y {s.player.y:.1f})")
+                return "ok"
+            self.log(f"   {tag}: 사다리 안 올라감 ({attempt + 1}/{LADDER_TRIES}, y {None if s is None else round(s.player.y, 1)})")
+            self.f._settle(bottom, tol=0.4)
+        return "fail"
 
     def _wait_at_safe(self, ptr, safe, secs: float) -> bool:
         """Guard at the safe spot up to secs for the target (or anyone) to come within UPPER_COME_R of it. → it came"""
