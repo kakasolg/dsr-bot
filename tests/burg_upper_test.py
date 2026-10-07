@@ -38,11 +38,11 @@ nm = navmesh.Navmesh.from_npz(Path(__file__).resolve().parent.parent / "data" / 
 zones = MS.UPPER["zones"]
 check("8 zones, zone 7 (fog wall front) has no foes", len(zones) == 8 and zones[6]["kills"] == [])
 z8 = zones[7]
-lad = z8["before"][0]["ladder"]
+lad = z8["before"][1]["ladder"]
 p = nm.find_path(tuple(zones[6]["safe"]), tuple(lad["approach"][0]))
 check(f"zone 8: top of the stairs → foot of the stairs ({length(p):.0f} m)", len(p) >= 2 and length(p) < 15)
-check("zone 8: no fog-wall step — the fog is the tower door, not on the way to the ladder",
-      all("fog" not in s for s in z8["before"]))
+check("zone 8: fog wall first, then the ladder ([MoKa] '안개벽 처리 않해?')",
+      [next(iter(s)) for s in z8["before"]] == ["fog", "ladder"])
 p = nm.find_path(tuple(z8["safe"]), tuple(z8["kills"][0][1]))
 check(f"zone 8: ladder top → first crossbowman ({length(p):.0f} m)", len(p) >= 2 and length(p) < 10)
 check("zone 8: crossbowmen are attacked at once ([MoKa] '가자 마자 공격해')", all(k[2].get("attack") for k in z8["kills"]))
@@ -286,12 +286,12 @@ m.f = NS(walk_to=lambda *a, **k: "arrived", walk=lambda *a, **k: "arrived", aliv
 m.mv = NS(snap=lambda r=5.0: NS(player=NS(x=49.16, y=pos["y"], z=-117.1), cam_yaw=0.0),
           stick_to=lambda s, x, z, sc=1.0: (sc, 0.0),
           pad=NS(move=lad_move, interact=lambda: lad_log.append(("A",)), neutral=lambda: None))
-r = m._before(z8["before"][0], None, "t")
+r = m._before(z8["before"][1], None, "t")
 check("ladder: A at the bottom, then stick up until the top", r == "ok" and pos["y"] >= 24.2 and ("A",) in lad_log)
 pos["y"] = 15.97
 lad_log.clear()
 m.mv.pad.interact = lambda: lad_log.append(("noA",))   # A doesn't grab the ladder
-r = m._before(z8["before"][0], None, "t")
+r = m._before(z8["before"][1], None, "t")
 check("ladder: never climbs → fail after the tries", r == "fail" and pos["y"] < 17)
 
 from souls import field as F  # noqa: E402

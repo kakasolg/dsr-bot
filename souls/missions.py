@@ -303,6 +303,8 @@ class Missions:
         zones0, tether0 = getattr(self.f, "extra_zones", ()), getattr(self.f, "tether", None)
         self.f.extra_zones, self.f.tether = (safe,), safe
         try:
+            if z.get("before") and not self._top_up(nb, f"구역{n}"):   # fog wall · ladder ahead — no fighting there, drink first
+                return "no_estus"
             for step in z.get("before", []):
                 r = self._before(step, nb, f"구역{n}")
                 if r == "dead":
