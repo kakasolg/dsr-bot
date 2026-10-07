@@ -45,12 +45,18 @@ for z in zones:
     check(f"zone {z['n']} safe spot reachable from the previous one ({length(p):.0f} m)", len(p) >= 2)
     near = min((math.dist(q, s) for q in p for s in MS.UPPER_IGNORE), default=99.0)
     check(f"zone {z['n']} walk keeps off the firebomb ledge (closest {near:.1f} m)", near > MS.UPPER_IGNORE_R)
-    for npc, pos in z["kills"]:
+    for k in z["kills"]:
+        npc, pos, how = k[0], k[1], (k[2] if len(k) > 2 else {})
         p = nm.find_path(safe, tuple(pos))
         check(f"zone {z['n']} {npc} reachable from the safe spot ({length(p):.0f} m)", len(p) >= 2)
+        if how.get("lure_at"):
+            la = tuple(how["lure_at"])
+            p = nm.find_path(safe, la)
+            check(f"zone {z['n']} {npc} lure spot on the floor and reachable ({length(p):.0f} m)",
+                  nm.on_mesh(*la, dy=1.5) and len(p) >= 2)
     prev = safe
 check("ignored ledge foes are none of the zone targets",
-      all(math.dist(tuple(pos), s) > MS.UPPER_IGNORE_R for z in zones for _n, pos in z["kills"] for s in MS.UPPER_IGNORE))
+      all(math.dist(tuple(pos), s) > MS.UPPER_IGNORE_R for z in zones for _n, pos, *_ in z["kills"] for s in MS.UPPER_IGNORE))
 
 
 # ── pull-to-safe logic with fakes ───────────────────────────
@@ -203,10 +209,10 @@ check("another foe wakes on the way in → run back, fight it at the safe spot f
 
 # "무조건 에스트부터" — back at the spot with HP down (not low enough for _top_up), drink before fighting, foe near or not
 foe = Chr(npc_param=255001, ptr=24, x=-1.3, y=-10.1, z=-95.4, hp=85, anim=-1)
-m, f, calls, w = make(foe, hp=600)
+m, f, calls, w = make(foe, hp=560)
 r = m._pull_to_safe(255001, (-1.3, -10.1, -95.4), safe, LineNm(), "t")
 k = kinds(calls)
-check("back at the spot with HP 600/742 → Estus first (ignoring the foe-near check), then fight",
+check("back at the spot with HP 560/742 → Estus first (ignoring the foe-near check), then fight",
       r == "killed" and "drink" in k and k.index("drink") < k.index("fight") and ("drink", True) in calls)
 foe = Chr(npc_param=255001, ptr=25, x=-1.3, y=-10.1, z=-95.4, hp=85, anim=-1)
 m, f, calls, w = make(foe, hp=742)
@@ -227,11 +233,34 @@ def drink_case(hp, foes):
 
 
 check("HP 713/742 (96 %) → no sip", drink_case(713, []) == [])
-check("HP 600/742 → sip", drink_case(600, []) == ["drink"])
+check("HP 560/742 → sip", drink_case(560, []) == ["drink"])
+check("HP 600/742 (81 %) → no sip ([MoKa] 90 % → 80 %)", drink_case(600, []) == [])
 check("HP 522/742 but a firebomb hollow swinging 2.4 m away → wait (duel's care drinks in an opening)",
       drink_case(522, [Chr(npc_param=254012, ptr=1, x=-7.0, y=-10.0, z=-75.9, hp=75, anim=3008)]) == [])
 check("…a foe 2.4 m away but not swinging → sip",
       drink_case(522, [Chr(npc_param=254012, ptr=1, x=-7.0, y=-10.0, z=-75.9, hp=75, anim=-1)]) == ["drink"])
+
+# zone 5 ([MoKa]: "계단으로 내려가지 않고 처음에 난간으로 가면 255001이 순찰 돌아 옴")
+rail = (30.8, -7.1, -99.2)
+s5 = (24.1, -5.7, -99.0)
+foe = Chr(npc_param=255001, ptr=26, x=40.0, y=-8.8, z=-102.4, hp=85, anim=-1)
+m, f, calls, w = make(foe, wake="asleep")
+r = m._lure(foe, 26, s5, LineNm(), "t", {"lure_at": list(rail)})
+check("lure_at: run only to the railing spot, not down to its spawn, then back to the safe spot",
+      r == "here" and calls[0][1] == rail and calls[1][1] == s5)
+
+foe = Chr(npc_param=255000, ptr=27, x=33.0, y=-8.5, z=-100.7, hp=85, anim=-1)
+m, f, calls, w = make(foe)
+polls = {"n": 0}
+base_find = m.mv.find
+def walking_find(s, ptr):                              # it patrols up to the safe spot while we wait
+    polls["n"] += 1
+    if polls["n"] > 2:
+        foe.x, foe.z = 27.6, -98.8
+    return base_find(s, ptr)
+m.mv.find = walking_find
+r = m._lure(foe, 27, s5, LineNm(), "t", {"wait": 5, "lure_at": list(rail)})
+check("wait: guard at the safe spot until the patrolling 255000 comes — no running out", r == "here" and calls == [])
 
 ledge = MS.UPPER_IGNORE[0]
 foe = Chr(npc_param=254012, ptr=13, x=ledge[0] + 1.0, y=ledge[1], z=ledge[2], hp=75, anim=-1)

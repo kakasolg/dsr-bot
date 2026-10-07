@@ -75,7 +75,7 @@ UPPER_NEAR_SAFE_R = 4.0  # within this of the safe spot, don't turn our back to 
 UPPER_TRIES = 4          # same target until dead, at most this many lure + fight rounds (a round may go to a foe that came along)
 UPPER_ENCOUNTER_R = 10.0 # running in: any awake, moving foe on our level this close → turn back to the safe spot
 UPPER_HEAL_FRAC = 0.7    # before each lure: below this share of max HP, Estus first
-UPPER_SIP_FRAC = 0.9     # back at the safe spot: drink only below this share (10-06g spent one on 713/742)
+UPPER_SIP_FRAC = 0.8     # back at the safe spot: drink only below this share (10-06g spent one on 713/742; [MoKa] 90 % → 80 %)
 UPPER_SWING_R = 2.5      # …and not while a foe this close is mid-swing (10-06g: interrupted by a firebomb from 2.4 m)
 
 
@@ -306,10 +306,11 @@ class Missions:
                 return "died"
             if r != "arrived":
                 self.log(f"   구역{n} 안전 자리까지 {r} — 지금 자리에서 이어감")
-            for i, (npc, pos) in enumerate(z["kills"], 1):
+            for i, k in enumerate(z["kills"], 1):
                 if not self.f.alive():
                     return "died"
-                r = self._pull_to_safe(npc, tuple(pos), safe, nb, f"구역{n}-{i} {npc}")
+                npc, pos, how = k[0], k[1], (k[2] if len(k) > 2 else {})
+                r = self._pull_to_safe(npc, tuple(pos), safe, nb, f"구역{n}-{i} {npc}", how)
                 if r in ("died", "no_estus"):
                     return r
         finally:
@@ -318,7 +319,7 @@ class Missions:
         self.log(f"── 구역{n}: 끝")
         return "cleared"
 
-    def _pull_to_safe(self, npc: int, pos, safe, nb, tag: str) -> str:
+    def _pull_to_safe(self, npc: int, pos, safe, nb, tag: str, how: dict | None = None) -> str:
         """── 안전 자리로 끌어와 싸우기 ([MoKa] 2026-10-06 녹화) ──────────────────────────────
          MoKa는 구역 적을 그 자리에서 싸우지 않고 깨운 뒤 안전 자리까지 데리고 와서 잡았다 (구역 2: 255001을 스폰에서 20 m 끌고 옴).
          나이프가 없는 캐릭터라 던져서 깨우지 않는다. 녹화 그대로 **달려 들어가서**(~4.7 m/s) 그놈이 깨어 움직이면 곧바로
@@ -346,7 +347,7 @@ class Missions:
             if t is None or t.hp <= 0:
                 self.log(f"   {tag}: 죽음")
                 return "killed"
-            if self._lure(t, ptr, safe, nb, tag) == "died":
+            if self._lure(t, ptr, safe, nb, tag, how or {}) == "died":
                 return "died"
             self._drink_back(tag)
             foe = self._first_foe(ptr)
@@ -416,12 +417,17 @@ class Missions:
         near = self._encounters(s, ptr) if s is not None and hasattr(s, "hostile") else []
         return min(near, key=lambda c: M.horiz(s.player, c)).ptr if near else ptr
 
-    def _lure(self, t, ptr, safe, nb, tag: str) -> str:
+    def _lure(self, t, ptr, safe, nb, tag: str, how: dict | None = None) -> str:
         """── 유인: 조우하면 돌아오는 게 먼저 ([MoKa] 2026-10-06) ──────────────────────────────
          "적을 유인하다 목표 지점까지 가려는 게 우선이 아니라 적을 조우하면 안전구역으로 돌아오는 것이 우선".
          이미 오는 중·안전 자리 가까운 목표 → 나가지 않음. 아니면 목표 쪽으로 달려가다 **누구든** 깨어 움직이면(목표가 아니어도)
          그 틱에 멈추고 달려서 돌아옴. 목표 UPPER_CLOSE_R까지 갔는데 아무도 안 움직이면 가드 들고 UPPER_NOTICE_S 기다린 뒤 돌아옴.
-         안전 자리 UPPER_NEAR_SAFE_R 안이면 돌아서지 않음. → 'here' | 'died'"""
+         안전 자리 UPPER_NEAR_SAFE_R 안이면 돌아서지 않음.
+         how (UPPER kills의 셋째 칸, 구역 5 — [MoKa] "계단으로 내려가지 않고 처음에 난간으로 가면 255001이 순찰 돌아 옴"):
+          · wait: 먼저 안전 자리에서 가드 든 채 이만큼 기다림 — 순찰하는 놈(255000)은 스스로 올라온다
+          · lure_at: 그놈 스폰 대신 여기까지만 달려가서 알아채게 함 (계단 아래로 안 내려감) · notice: 거기서 기다리는 시간
+         → 'here' | 'died'"""
+        how = how or {}
         here0 = (t.x, t.y, t.z)
 
         def woke(c) -> bool:                               # moving: anim set and off where it stood (idle anims don't count)
@@ -429,6 +435,9 @@ class Missions:
 
         if (t.anim not in (None, -1) and t.anim not in M.STAGGER) or math.hypot(t.x - safe[0], t.z - safe[2]) < UPPER_COME_R:
             self.log(f"   {tag}: 이미 오는 중이거나 안전 자리 가까움 — 안전 자리에서 받음")
+            return "here"
+        if how.get("wait") and self._wait_at_safe(ptr, safe, float(how["wait"])):
+            self.log(f"   {tag}: 안전 자리에서 기다리니 옴")
             return "here"
 
         def met(sn) -> bool:
@@ -439,14 +448,15 @@ class Missions:
             c = self.mv.find(sn, ptr)
             return met(sn) or (c is not None and M.horiz(sn.player, c) < UPPER_CLOSE_R)
 
-        if self._sprint(here0, nb, stop_in) == "dead":
+        goal = tuple(how["lure_at"]) if how.get("lure_at") else here0
+        if self._sprint(goal, nb, stop_in) == "dead":
             return "died"
         s = self.mv.snap(200.0)
         if s is not None and not met(s):
             guard = getattr(self.mv.pad, "guard", lambda on: None)
             guard(True)
             t0 = time.time()
-            while time.time() - t0 < UPPER_NOTICE_S:
+            while time.time() - t0 < float(how.get("notice", UPPER_NOTICE_S)):
                 s = self.mv.snap(200.0)
                 if s is None or met(s):
                     break
@@ -459,6 +469,25 @@ class Missions:
         back = self._sprint(safe, nb, lambda sn: math.hypot(sn.player.x - safe[0], sn.player.z - safe[2]) < 1.5)
         self.log(f"   {tag}: {why} — 달려서 안전 자리로 {back}")
         return "died" if back == "dead" else "here"
+
+    def _wait_at_safe(self, ptr, safe, secs: float) -> bool:
+        """Guard at the safe spot up to secs for the target (or anyone) to come within UPPER_COME_R of it. → it came"""
+        guard = getattr(self.mv.pad, "guard", lambda on: None)
+        guard(True)
+        try:
+            t0 = time.time()
+            while time.time() - t0 < secs:
+                s = self.mv.snap(200.0)
+                if s is not None:
+                    c = self.mv.find(s, ptr)
+                    if c is None or c.hp <= 0 or math.hypot(c.x - safe[0], c.z - safe[2]) < UPPER_COME_R:
+                        return True
+                    if any(math.hypot(e.x - safe[0], e.z - safe[2]) < UPPER_COME_R for e in self._encounters(s, ptr)):
+                        return True
+                time.sleep(0.2)
+            return False
+        finally:
+            guard(False)
 
     def _sprint(self, goal, nb, stop) -> str:
         """Run along the NavMesh path to goal (no guard) until stop(snapshot). → 'arrived' | 'stopped' | 'dead' | 'no_path' | …"""

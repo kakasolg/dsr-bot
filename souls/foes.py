@@ -67,6 +67,9 @@ BY_NPC: dict[int, Foe] = {
     254001: AXE_HOLLOW, 254002: FIREBOMB_HOLLOW, 254012: FIREBOMB_HOLLOW,
     250000: Foe("망자(성벽 마을)", kind="hollow", combos=(3000, 3004), unblockable=(3009,)),
     255000: SHIELD, 255010: SHIELD,
+    # 255001: [MoKa] 2026-10-06 "255000은 방패, 롱소드 망자이고, 255001은 방패, 창 망자" — 성벽 마을 위쪽(구역 2·5). 등록 전엔 기본값이라
+    # 3004(창 찌르기) 중 '먼저 치기' 두 번에 −232씩, 친 건 방패에 0 (P-46, 10-06h)
+    255001: SHIELD,
     # 255002 is a crossbowman, not a shield soldier — 3000/3001 are firing motions, not a guard stance. Anim struct +0xA0 turns 1 and
     # 0.3–0.7 s later an impact hits my shield (my anim 140, SP −7) every 2.7 s (2026-09-25 measured, user "I'm getting hit by arrows, it's right in front").
     # As SHIELD, wait_far said "not approaching" and just blocked for 8 minutes. The fire motion number doesn't change, so anim changes don't reveal it.
