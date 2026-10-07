@@ -61,6 +61,13 @@ STAIRS_TOP_K = 22       # route b (passage-merchant.json) point at the top of th
 BURG_CAREFUL = {1, 2, 3, 4, 5, 6}   # BURG_TOWN walks done slowly, stopping to pull one at a time (Field.careful_walk_to) — #4 이동 died to three
                          # twice (09-30b, 10-01a). MoKa 2026-10-01: "그쪽으로 가게 되면 천천히 가고, 대기하면서 한 명씩 끌어당겨야 함", then "행동이 아니라
                          # 천천히 움직이며 하나씩 끌어당기려는 전술적 플레이가 부족" → all six, not just #4
+# Undead Burg bonfire → Taurus fog wall (ROADMAP 1-m), from [MoKa]'s recordings 2026-10-06 (observe 151317·173431).
+# MoKa pressed F9 on the spot they count as safe for each zone, then pulled that zone's foes there one by one; once the zone is
+# clear the safe spot moves on. Zone 7 = just before the fog wall, no foes.
+UPPER = json.loads((DATA / "burg-upper-map.json").read_text(encoding="utf-8"))
+UPPER_IGNORE = [tuple(p) for _n, p in UPPER["ignore"]]
+UPPER_IGNORE_R = 4.0     # a foe this close to an ignored ledge spot is one of the ledge firebomb hollows — never a target
+UPPER_WAKE_R = 15.0      # walking toward a target: once it's awake and this close, turn back to the safe spot
 
 
 def _route():
@@ -269,6 +276,80 @@ class Missions:
                     return "no_estus"
         self.log("── 성벽 마을(순서 고정): 끝")
         return "cleared"
+
+    def upper_zone(self, n: int) -> str:
+        """Zone n of the Burg bonfire → fog wall stretch (UPPER): walk carefully to the zone's safe spot, make it the retreat
+        target (Field.home), then for each foe in MoKa's kill order go wake it and fight it back at the safe spot."""
+        nb = self.nms[MAP_B]
+        z = UPPER["zones"][n - 1]
+        safe = tuple(z["safe"])
+        r = self.f.careful_walk_to(safe, nb, f"구역{n} 안전 자리")
+        if r == "dead":
+            return "died"
+        if r != "arrived":
+            self.log(f"   구역{n} 안전 자리까지 {r} — 지금 자리에서 이어감")
+        home0, self.f.home = self.f.home, safe
+        try:
+            for i, (npc, pos) in enumerate(z["kills"], 1):
+                if not self.f.alive():
+                    return "died"
+                r = self._pull_to_safe(npc, tuple(pos), safe, nb, f"구역{n}-{i} {npc}")
+                if r in ("died", "no_estus"):
+                    return r
+        finally:
+            self.f.home = home0
+        self.log(f"── 구역{n}: 끝")
+        return "cleared"
+
+    def _pull_to_safe(self, npc: int, pos, safe, nb, tag: str) -> str:
+        """── 안전 자리로 끌어와 싸우기 ([MoKa] 2026-10-06 녹화) ──────────────────────────────
+         MoKa는 구역 적을 그 자리에서 싸우지 않고 깨운 뒤 안전 자리까지 데리고 와서 잡았다 (구역 2: 255001을 스폰에서 20 m 끌고 옴).
+         나이프가 없는 캐릭터라 던져서 깨우지 않고, 천천히 다가가다 깨어 움직이면 돌아서서 안전 자리로 물러난 뒤 맞이함.
+         턱 위 화염병(UPPER_IGNORE)은 사다리·낙사 구간이라 목표로 삼지 않는다."""
+        c = self.f.find_at(npc, pos, 8.0) or self.f.find_at(npc, pos, 20.0)
+        if c is not None and any(math.dist((c.x, c.y, c.z), q) < UPPER_IGNORE_R for q in UPPER_IGNORE):
+            c = None
+        if c is None:
+            self.log(f"   {tag}: 안 보임 — 이미 잡았거나 죽음")
+            return "gone"
+        ptr = c.ptr
+
+        def woke(sn) -> bool:
+            t = self.mv.find(sn, ptr)
+            return t is None or t.hp <= 0 or (t.anim not in (None, -1) and M.horiz(sn.player, t) < UPPER_WAKE_R)
+
+        r = self.f.careful_walk_to((c.x, c.y, c.z), nb, f"{tag} 깨우러", done=woke)
+        if r == "dead":
+            return "died"
+        t = self.mv.find(self.mv.snap(200.0), ptr)
+        if t is None or t.hp <= 0:
+            self.log(f"   {tag}: 가는 길에 잡음")
+            return "killed"
+        if r == "done":
+            back = self.f.retreat(nb, safe)
+            self.log(f"   {tag}: 깨어남 — 안전 자리로 물러남 {back}")
+        res = self.f.fight(ptr, nb, tag, wait_far=True)
+        if res.result == "me_dead":
+            return "died"
+        if res.result != "killed":
+            ok = self.f.recover(f"{tag} {res.result}", nb)
+            if not ok and self.f.estus_left() <= 0:
+                return "no_estus"
+        return res.result
+
+    UPPER_SEGMENTS = {n: f"zone{n}" for n in range(1, len(UPPER["zones"]) + 1)}
+
+    def upper_segment(self, n: int) -> str:
+        """One safe-spot zone, then stop (same as burg_segment). Zone 1 rests at the Undead Burg bonfire first — every foe revives,
+        HP·Estus full, so each try starts the same; later zones go on from where the character stands, without resting."""
+        if not self.f.alive():
+            self.f.wait_respawn()
+        if n == 1:
+            ok = self.f.rest_at(self.nms[MAP_B], SPOTS["burg-bonfire"])
+            self.log(f"── 성벽 마을 휴식: {'됨' if ok else '안 됨'}")
+            if not ok:
+                return "휴식 실패"
+        return self.upper_zone(n)
 
     def hunt_one(self, i: int) -> str:
         """From the Undead Burg bonfire, kill only BURG_TOWN #i and walk back to the bonfire — for testing single-enemy handling

@@ -6,6 +6,7 @@ __pycache__/
 # A new file that must be shared: add a line below.
 data/*
 !data/burg-town-map.json
+!data/burg-upper-map.json
 !data/climb-goal.json
 !data/dsr-bonfires.txt
 !data/enemy-map.json

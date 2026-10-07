@@ -8,6 +8,7 @@
   python run.py clear-burg-town          from here (inside Undead Burg), kill 6 enemies in the user's kill order (BURG_TOWN)
   python run.py merchant                 from here to the merchant (no rest)
   python run.py light-burg               from here (Undead Burg), just light the bonfire
+  python run.py burg-upper [--seg 1-7]   Undead Burg bonfire → Taurus fog wall, MoKa's safe-spot zones (ROADMAP 1-m; zone 1 rests first)
   python run.py quit-test                kill #1 and compare ramp enemy survival before/after quit-out (does quit-out revive dead enemies?)
 
   python run.py watch --radar            no bot: read-only radar while you play by hand (no pad input, no memory writes;
@@ -80,12 +81,12 @@ LURE_CMDS = {"burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["status", "watch", "burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt-one", "merchant", "light-burg", "quit-test", "passage-drill", "asylum"])
+    ap.add_argument("cmd", choices=["status", "watch", "burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt-one", "merchant", "light-burg", "burg-upper", "quit-test", "passage-drill", "asylum"])
     ap.add_argument("--no-rest", action="store_true")
     ap.add_argument("--no-quit", action="store_true", help="퀵 종료(메뉴로 나갔다 오기) 안 씀 — 영상 촬영용")
     ap.add_argument("--i", type=int, default=5, help="hunt-one: BURG_TOWN 몇 번째 (5 = 석궁병 255002)")
     ap.add_argument("--seg", default=None, help="asylum: 구간 번호 또는 범위 (기본 1; 1 = 감방 → 사다리 → 첫 화톳불, 2-3 = 이어서, ROADMAP 1-h). "
-                    "burg-bonfire: 구역 하나 또는 범위만 하고 멈춤 — 1 경사로 · 2 비밀 통로 · 3 마을 #1~#3 · 4 마을 #4~#6 · 5 상인 · 6 화톳불 (기본: 전부)")
+                    "burg-bonfire: 구역 하나 또는 범위만 하고 멈춤 — 1 경사로 · 2 비밀 통로 · 3 마을 #1~#3 · 4 마을 #4~#6 · 5 상인 · 6 화톳불 (기본: 전부). burg-upper: 안전 자리 구역 1~7 (기본: 전부, 7 = 안개벽 앞)")
     ap.add_argument("--basic", action="store_true", help="방패 + 약공만 — 뒤잡기·벽 강공·양손 전환 끔 ([MoKa] 2026-10-01, duel.BACKSTAB/HEAVY)")
     ap.add_argument("--radar", action="store_true", help="send state to the radar (view with radar_server.py / overlay.py)")
     ap.add_argument("--laya-shadow", action="store_true",
@@ -247,6 +248,14 @@ def main() -> None:
                     break
         elif a.cmd == "burg-bonfire":
             r = ms.burg_bonfire()
+        elif a.cmd == "burg-upper":
+            lo, _, hi = (a.seg or f"1-{len(ms.UPPER_SEGMENTS)}").partition("-")
+            r = None
+            for n in range(int(lo), int(hi or lo) + 1):
+                r = ms.upper_segment(n)
+                log(f"══ 구역 {n} ({ms.UPPER_SEGMENTS[n]}) 끝: {r}")
+                if not fld.alive() or r in ("died", "no_estus", "휴식 실패"):
+                    break
         elif a.cmd == "burg-loop":
             r = ms.burg_bonfire_round_trip()
         elif a.cmd == "passage-drill":
