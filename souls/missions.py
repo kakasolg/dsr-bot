@@ -301,7 +301,8 @@ class Missions:
         # 걷기는 따라온 놈을 싸우기 전에 찍어 둔 자리(ZONE_REACH 15 m 안)로 가드 든 채 물러나므로, 이 구역 동안 안전 자리를 거기 넣는다
         # [MoKa]: "적이 붙으면 그 다음에 안전 구역으로 가야 하는데, 그냥 있으면 화염폭탄에 맞아서 죽지" → 싸움 도중에도 벗어나면 끊고 돌아옴 (Field.fight tether)
         zones0, tether0 = getattr(self.f, "extra_zones", ()), getattr(self.f, "tether", None)
-        self.f.extra_zones, self.f.tether = (safe,), safe
+        no_safe = bool(z.get("no_safe"))                  # 구역 3 — [MoKa] "적이 하나씩 만나니깐 그냥 공격 … 안전 구역 자체가 필요 없어"
+        self.f.extra_zones, self.f.tether = ((), None) if no_safe else ((safe,), safe)
         try:
             if z.get("before") and not self._top_up(nb, f"구역{n}"):   # fog wall · ladder ahead — no fighting there, drink first
                 return "no_estus"
@@ -311,7 +312,9 @@ class Missions:
                     return "died"
                 if r != "ok":
                     return f"{next(iter(step))} {r}"
-            if z.get("run_to_safe"):
+            if no_safe:
+                r = "arrived"
+            elif z.get("run_to_safe"):
                 r = self._sprint(safe, nb, None)
                 r = "dead" if r == "dead" else ("arrived" if r in ("arrived", "stopped") else r)
             else:

@@ -90,7 +90,7 @@ def make(foe, wake="moves", hp=742, results=("killed",), estus=5, other=None, hi
 
     def find_at(npc, pos, r=3.0, dy_max=3.0):
         c = world["foe"]
-        return c if c is not None and c.npc_param == npc and math.dist((c.x, c.y, c.z), pos) < r else None
+        return c if c is not None and c.hp > 0 and c.npc_param == npc and math.dist((c.x, c.y, c.z), pos) < r else None
 
     def chars():
         return [c for c in (world["foe"], world["other"]) if c is not None and c.hp > 0]
@@ -298,6 +298,17 @@ from souls import field as F  # noqa: E402
 # 10-06j: the shield soldier shut the door west of the zone 5 safe spot ([MoKa] "a 눌러, 방패병이 문을 닫았어")
 check("door: stuck at (21.0,−6.0,−103.6) is next to the known door", F.door_near((21.0, -6.0, -103.6)) is not None)
 check("door: the zone 5 safe spot is not", F.door_near((24.1, -5.7, -99.0)) is None)
+
+# zone 3 ([MoKa] "안전 구역 자체가 필요 없어") — no walk to a safe spot, no tether, straight at each foe
+z3 = zones[2]
+check("zone 3: no_safe, both foes attacked at once", z3.get("no_safe") and all(k[2].get("attack") for k in z3["kills"]))
+foe = Chr(npc_param=254010, ptr=31, x=2.9, y=-9.9, z=-98.3, hp=75, anim=-1)
+m, f, calls, w = make(foe)
+walked = []
+f.careful_walk_to = lambda *a, **k: walked.append(a) or "arrived"
+r = m.upper_zone(3)
+fights = [c for c in calls if c[0] == "fight"]
+check("zone 3: no careful walk to the old spot, fought with no tether", r == "cleared" and walked == [] and fights and fights[0][5] is None)
 
 ledge = MS.UPPER_IGNORE[0]
 foe = Chr(npc_param=254012, ptr=13, x=ledge[0] + 1.0, y=ledge[1], z=ledge[2], hp=75, anim=-1)
