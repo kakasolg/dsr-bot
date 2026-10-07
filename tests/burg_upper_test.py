@@ -241,7 +241,7 @@ check("…a foe 2.4 m away but not swinging → sip",
       drink_case(522, [Chr(npc_param=254012, ptr=1, x=-7.0, y=-10.0, z=-75.9, hp=75, anim=-1)]) == ["drink"])
 
 # zone 5 ([MoKa]: "계단으로 내려가지 않고 처음에 난간으로 가면 255001이 순찰 돌아 옴")
-rail = (30.8, -7.1, -99.2)
+rail = (29.91, -7.34, -111.59)
 s5 = (24.1, -5.7, -99.0)
 foe = Chr(npc_param=255001, ptr=26, x=40.0, y=-8.8, z=-102.4, hp=85, anim=-1)
 m, f, calls, w = make(foe, wake="asleep")
