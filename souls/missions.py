@@ -77,7 +77,7 @@ UPPER_ENCOUNTER_R = 10.0 # running in: any awake, moving foe on our level this c
 UPPER_HEAL_FRAC = 0.7    # before each lure: below this share of max HP, Estus first
 LADDER_TRIES = 3         # zone 8 ladder: face + A + climb attempts
 LADDER_CLIMB_S = 15.0    # …give one climb this long (souls/asylum CLIMB_S)
-UPPER_SIP_FRAC = 0.8     # back at the safe spot: drink only below this share (10-06g spent one on 713/742; [MoKa] 90 % → 80 %)
+UPPER_SIP_FRAC = 0.7     # back at the safe spot: drink only below this share (10-06g spent one on 713/742; [MoKa] 90 → 80 → 70 %)
 UPPER_SWING_R = 2.5      # …and not while a foe this close is mid-swing (10-06g: interrupted by a firebomb from 2.4 m)
 
 
@@ -350,6 +350,15 @@ class Missions:
             return "gone"
         ptr = c.ptr
         res = None
+        if (how or {}).get("attack"):                      # 구역 8 석궁 — [MoKa] "가자 마자 공격해": no lure, no waiting, close in now
+            for k in range(UPPER_TRIES):
+                res = self.f.fight(ptr, nb, tag)
+                if res.result in ("me_dead", "killed"):
+                    return "died" if res.result == "me_dead" else "killed"
+                t = self.mv.find(self.mv.snap(200.0), ptr)
+                if t is None or t.hp <= 0:
+                    return "killed"
+            return res.result
         for k in range(UPPER_TRIES):
             if not self.f.alive():
                 return "died"
@@ -489,6 +498,12 @@ class Missions:
         if "fog" in step:
             st = step["fog"]
             front, beyond = tuple(st["front"]), tuple(st["beyond"])
+            s = self.mv.snap(5.0)
+            if s is not None:
+                here = (s.player.x, s.player.y, s.player.z)
+                if math.dist(here, beyond) < math.dist(here, front):
+                    self.log(f"   {tag}: 이미 안개벽 너머")
+                    return "ok"
             r = self.f.walk_to(front, nb, f"{tag} 안개벽 앞")
             if r == "dead" or not self.f.alive():
                 return "dead"
@@ -498,7 +513,14 @@ class Missions:
             return "ok" if ok else "fail"
         st = step["ladder"]
         bottom, face, top_y = tuple(st["bottom"]), tuple(st["face"]), float(st["top_y"])
-        r = self.f.walk_to(bottom, nb, f"{tag} 사다리 아래")
+        s = self.mv.snap(5.0)
+        if s is not None and s.player.y >= top_y - 0.6:
+            self.log(f"   {tag}: 이미 사다리 위")
+            return "ok"
+        if st.get("approach"):                             # [MoKa]: "계단에서 내려 와서, 옆으로 붙어서" — the recorded line, not a diagonal
+            r = self.f.walk([tuple(q) for q in st["approach"]], nb, f"{tag} 사다리 아래", tol=0.4)
+        else:
+            r = self.f.walk_to(bottom, nb, f"{tag} 사다리 아래")
         if r == "dead" or not self.f.alive():
             return "dead"
         self.f._settle(bottom, tol=0.4)

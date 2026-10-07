@@ -38,11 +38,14 @@ nm = navmesh.Navmesh.from_npz(Path(__file__).resolve().parent.parent / "data" / 
 zones = MS.UPPER["zones"]
 check("8 zones, zone 7 (fog wall front) has no foes", len(zones) == 8 and zones[6]["kills"] == [])
 z8 = zones[7]
-lad = z8["before"][1]["ladder"]
-p = nm.find_path(tuple(z8["before"][0]["fog"]["beyond"]), tuple(lad["bottom"]))
-check(f"zone 8: beyond the fog wall → ladder bottom ({length(p):.0f} m)", len(p) >= 2 and length(p) < 8)
-p = nm.find_path((50.78, 24.73, -116.64), tuple(z8["safe"]))
-check(f"zone 8: ladder top → safe spot on the tower ({length(p):.0f} m)", len(p) >= 2 and length(p) < 20)
+lad = z8["before"][0]["ladder"]
+p = nm.find_path(tuple(zones[6]["safe"]), tuple(lad["approach"][0]))
+check(f"zone 8: top of the stairs → foot of the stairs ({length(p):.0f} m)", len(p) >= 2 and length(p) < 15)
+check("zone 8: no fog-wall step — the fog is the tower door, not on the way to the ladder",
+      all("fog" not in s for s in z8["before"]))
+p = nm.find_path(tuple(z8["safe"]), tuple(z8["kills"][0][1]))
+check(f"zone 8: ladder top → first crossbowman ({length(p):.0f} m)", len(p) >= 2 and length(p) < 10)
+check("zone 8: crossbowmen are attacked at once ([MoKa] '가자 마자 공격해')", all(k[2].get("attack") for k in z8["kills"]))
 prev = MS.BURG_BONFIRE_SIDE
 for z in zones:
     safe = tuple(z["safe"])
@@ -78,7 +81,7 @@ class LineNm:
 MS.UPPER_NOTICE_S = 0.0     # no real waiting in the fakes
 
 
-def make(foe, wake="moves", hp=742, results=("killed",), estus=5, other=None):
+def make(foe, wake="moves", hp=742, results=("killed",), estus=5, other=None, hit=0):
     """foe: Chr or None. wake: 'moves' = it wakes and steps toward us while we run in · 'asleep' = never wakes ·
     'idle_anim' = it plays an anim without leaving its spot (not awake). results: what each fight returns."""
     calls = []
@@ -100,6 +103,7 @@ def make(foe, wake="moves", hp=742, results=("killed",), estus=5, other=None):
         goal = tuple(path[-1])
         calls.append(("sprint", goal, mode))
         if goal != safe and foe is not None:               # running in
+            world["hp"] -= hit                             # a firebomb on the way
             if world["other"] is not None and world["other"].hp > 0 and world["other"].anim == -1:
                 o = world["other"]                         # someone else wakes on the way, 6 m ahead of us
                 o.anim = 3000
@@ -215,10 +219,10 @@ check("another foe wakes on the way in → run back, fight it at the safe spot f
 
 # "무조건 에스트부터" — back at the spot with HP down (not low enough for _top_up), drink before fighting, foe near or not
 foe = Chr(npc_param=255001, ptr=24, x=-1.3, y=-10.1, z=-95.4, hp=85, anim=-1)
-m, f, calls, w = make(foe, hp=560)
+m, f, calls, w = make(foe, hp=600, hit=100)
 r = m._pull_to_safe(255001, (-1.3, -10.1, -95.4), safe, LineNm(), "t")
 k = kinds(calls)
-check("back at the spot with HP 560/742 → Estus first (ignoring the foe-near check), then fight",
+check("HP 600 → 500/742 on the way out → back at the spot, Estus first (ignoring the foe-near check), then fight",
       r == "killed" and "drink" in k and k.index("drink") < k.index("fight") and ("drink", True) in calls)
 foe = Chr(npc_param=255001, ptr=25, x=-1.3, y=-10.1, z=-95.4, hp=85, anim=-1)
 m, f, calls, w = make(foe, hp=742)
@@ -239,12 +243,12 @@ def drink_case(hp, foes):
 
 
 check("HP 713/742 (96 %) → no sip", drink_case(713, []) == [])
-check("HP 560/742 → sip", drink_case(560, []) == ["drink"])
-check("HP 600/742 (81 %) → no sip ([MoKa] 90 % → 80 %)", drink_case(600, []) == [])
-check("HP 522/742 but a firebomb hollow swinging 2.4 m away → wait (duel's care drinks in an opening)",
-      drink_case(522, [Chr(npc_param=254012, ptr=1, x=-7.0, y=-10.0, z=-75.9, hp=75, anim=3008)]) == [])
+check("HP 500/742 → sip", "drink" in drink_case(500, []))
+check("HP 540/742 (73 %) → no sip ([MoKa] 90 → 80 → 70 %)", drink_case(540, []) == [])
+check("HP 480/742 but a firebomb hollow swinging 2.4 m away → wait (duel's care drinks in an opening)",
+      drink_case(480, [Chr(npc_param=254012, ptr=1, x=-7.0, y=-10.0, z=-75.9, hp=75, anim=3008)]) == [])
 check("…a foe 2.4 m away but not swinging → sip",
-      drink_case(522, [Chr(npc_param=254012, ptr=1, x=-7.0, y=-10.0, z=-75.9, hp=75, anim=-1)]) == ["drink"])
+      "drink" in drink_case(480, [Chr(npc_param=254012, ptr=1, x=-7.0, y=-10.0, z=-75.9, hp=75, anim=-1)]))
 
 # zone 5 ([MoKa]: "계단으로 내려가지 않고 처음에 난간으로 가면 255001이 순찰 돌아 옴")
 rail = (29.91, -7.34, -111.59)
@@ -278,16 +282,16 @@ def lad_move(x, y):
         pos["y"] += 1.5
 m = MS.Missions.__new__(MS.Missions)
 m.log = lambda *a: None
-m.f = NS(walk_to=lambda *a, **k: "arrived", alive=lambda: True, _settle=lambda *a, **k: 0.0)
+m.f = NS(walk_to=lambda *a, **k: "arrived", walk=lambda *a, **k: "arrived", alive=lambda: True, _settle=lambda *a, **k: 0.0)
 m.mv = NS(snap=lambda r=5.0: NS(player=NS(x=49.16, y=pos["y"], z=-117.1), cam_yaw=0.0),
           stick_to=lambda s, x, z, sc=1.0: (sc, 0.0),
           pad=NS(move=lad_move, interact=lambda: lad_log.append(("A",)), neutral=lambda: None))
-r = m._before(z8["before"][1], None, "t")
+r = m._before(z8["before"][0], None, "t")
 check("ladder: A at the bottom, then stick up until the top", r == "ok" and pos["y"] >= 24.2 and ("A",) in lad_log)
 pos["y"] = 15.97
 lad_log.clear()
 m.mv.pad.interact = lambda: lad_log.append(("noA",))   # A doesn't grab the ladder
-r = m._before(z8["before"][1], None, "t")
+r = m._before(z8["before"][0], None, "t")
 check("ladder: never climbs → fail after the tries", r == "fail" and pos["y"] < 17)
 
 from souls import field as F  # noqa: E402
