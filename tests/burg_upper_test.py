@@ -132,5 +132,42 @@ check("Field._near_zone offers the zone's safe spot 13 m back (death spot of 10-
       F.Field._near_zone(fake, here, nm) == tuple(z2["safe"]))
 check("…and not without it", F.Field._near_zone(NS(), here, nm) is None)
 
+
+# tether ([MoKa]: "적이 붙으면 그 다음에 안전 구역으로 가야 … 그냥 있으면 화염폭탄에 맞아서 죽지")
+def tethered(results, start, spot=tuple(z2["safe"]), move=True):
+    """results: what each _fight_once returns; the player stands at `start` and is moved to the spot by a retreat."""
+    pos = {"p": start}
+    log = []
+
+    def once(ptr, nm_, tag, arena, desperate, limit, wait_far, leash, may_approach, far=None):
+        log.append(("fight", wait_far, far is not None, far() if far else None))
+        return NS(result=results.pop(0))
+
+    def retreat(zone, nm_):
+        log.append(("retreat", tuple(zone)))
+        if move:
+            pos["p"] = zone
+        return "arrived"
+
+    me = NS(tether=spot, esc=NS(escaping=False), alive=lambda: True, log=lambda *a: None, events=lambda *a, **k: None,
+            _fight_once=once, _retreat_to_zone=retreat,
+            mv=NS(snap=lambda r=5.0: NS(player=NS(x=pos["p"][0], y=pos["p"][1], z=pos["p"][2]))))
+    me._tether_far = lambda s: F.Field._tether_far(me, s)
+    r = F.Field.fight(me, 1, None, "t")
+    return r, log
+
+
+r, log = tethered(["cancel", "killed"], (-7.67, -10.09, -86.5))
+check("fight 13 m from the safe spot is cut → guard back to the spot → fought again there, waiting for it",
+      r.result == "killed" and [x[0] for x in log] == ["fight", "retreat", "fight"]
+      and log[0][3] is True and log[2][1] is True and log[2][3] is False)
+r, log = tethered(["cancel"], (-7.0, -10.0, -75.0))
+check("a cancel near the spot (another leash / escape) is passed on, no retreat", r.result == "cancel" and len(log) == 1)
+r, log = tethered(["killed"], (0.0, 0.0, 0.0), spot=None)
+check("no tether outside the zones → one plain fight", r.result == "killed" and log == [("fight", False, False, None)])
+r, log = tethered(["cancel"] * F.TETHER_TRIES + ["killed"], (-7.67, -10.09, -86.5), move=False)
+fights = [x for x in log if x[0] == "fight"]
+check(f"after {F.TETHER_TRIES} cuts the last fight is untethered", r.result == "killed" and fights[-1][2] is False)
+
 print(f"\n{'all ok' if not fails else f'{fails} FAILED'}")
 sys.exit(1 if fails else 0)

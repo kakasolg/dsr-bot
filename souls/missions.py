@@ -286,8 +286,9 @@ class Missions:
         home0, self.f.home = self.f.home, safe
         # 10-06b 구역 2: 255001이 깨우러 가는 걸음 중간에 따라붙어, 걷기의 '따라온 놈' 싸움이 안전 자리 13 m 앞(턱 화염병 9 m)에서 바로 시작 → 사망.
         # 걷기는 따라온 놈을 싸우기 전에 찍어 둔 자리(ZONE_REACH 15 m 안)로 가드 든 채 물러나므로, 이 구역 동안 안전 자리를 거기 넣는다
-        zones0 = getattr(self.f, "extra_zones", ())
-        self.f.extra_zones = (safe,)
+        # [MoKa]: "적이 붙으면 그 다음에 안전 구역으로 가야 하는데, 그냥 있으면 화염폭탄에 맞아서 죽지" → 싸움 도중에도 벗어나면 끊고 돌아옴 (Field.fight tether)
+        zones0, tether0 = getattr(self.f, "extra_zones", ()), getattr(self.f, "tether", None)
+        self.f.extra_zones, self.f.tether = (safe,), safe
         try:
             r = self.f.careful_walk_to(safe, nb, f"구역{n} 안전 자리")
             if r == "dead":
@@ -302,7 +303,7 @@ class Missions:
                     return r
         finally:
             self.f.home = home0
-            self.f.extra_zones = zones0
+            self.f.extra_zones, self.f.tether = zones0, tether0
         self.log(f"── 구역{n}: 끝")
         return "cleared"
 

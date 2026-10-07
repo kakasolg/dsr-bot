@@ -223,7 +223,9 @@ RETURN_LEG_M = 2.0       # length of the first leg of the path back to the spot 
 # user: "it's not a fully safe zone", "you'll still need to guard even where I said" → walk there with guard up, and keep blocking there too
 ZONES = [tuple(z["pos"]) for z in json.loads((Path(__file__).resolve().parent.parent / "data" / "safe-zones.json")
                                               .read_text(encoding="utf-8"))["zones"]]
-ZONE_REACH = 15.0        # before fighting a chaser, if a marked spot is within this (horizontal, same floor 1.5 m), retreat there and receive it
+TETHER_R = 8.0          # fight.tether: a fight this far (horizontal) from the zone's safe spot is cut and taken back there (P-45)
+TETHER_TRIES = 3        # …at most this many cuts per fight, then fight on where it is
+ZONE_REACH = 15.0       # before fighting a chaser, if a marked spot is within this (horizontal, same floor 1.5 m), retreat there and receive it
 UNSAFE_PAUSE = 5.0       # incoming foe not engaged due to E-2 — wait/defend ticks on flat ground this long, then re-check (user: "even 2 seconds is short, wait 5 seconds")
 CLOSE_MELEE_R = 3.0      # end a contact fight if another foe is within this (wider than duel.SWITCH_R 2.5 — cut before switching targets)
 
@@ -558,7 +560,34 @@ class Field:
 
     def fight(self, ptr, nm, tag: str, arena=None, desperate: bool = False, limit: float = 45.0, wait_far: bool = False,
               leash=None, may_approach=None) -> D.DuelResult:
-        """If leash() is true, end the fight on that tick (cancel) — keeps a contact fight during hold-the-spot inside the safe zone (Patch C)."""
+        """If leash() is true, end the fight on that tick (cancel) — keeps a contact fight during hold-the-spot inside the safe zone (Patch C).
+
+        ── 안전 자리 묶기 (self.tether, missions.upper_zone이 구역 동안 둠) ──────────────────
+         [MoKa] 2026-10-06 (P-45): "적이 붙으면 그 다음에 안전 구역으로 가야 하는데, 그냥 있으면 화염폭탄에 맞아서 죽지".
+         싸움이 안전 자리에서 TETHER_R 넘게 벗어나면 그 틱에 끊고, 가드 든 채 안전 자리로 물러나 거기서 다시 받는다(wait_far).
+         TETHER_TRIES번 끊은 뒤엔 묶지 않고 끝까지 — 안 따라오는 놈(석궁 등)과 끊고 물러나기만 되풀이하지 않게."""
+        spot = getattr(self, "tether", None)
+        r = None
+        for k in range(TETHER_TRIES + 1):
+            far = self._tether_far(spot) if spot is not None and k < TETHER_TRIES else None
+            r = self._fight_once(ptr, nm, tag, arena, desperate, limit, wait_far or k > 0, leash, may_approach, far)
+            if r.result != "cancel" or far is None or not far() or self.esc.escaping or not self.alive():
+                return r
+            zr = self._retreat_to_zone(spot, nm)
+            self.log(f"   {tag}: 안전 자리에서 {TETHER_R:.0f} m 넘게 벗어남 — 싸움 끊고 가드 든 채 안전 자리로: {zr}")
+            self.events("tether", tag=tag, result=zr, n=k + 1)
+            if zr == "dead":
+                return r
+        return r
+
+    def _tether_far(self, spot):
+        def far() -> bool:
+            s = self.mv.snap(5.0)
+            return s is not None and math.hypot(s.player.x - spot[0], s.player.z - spot[2]) > TETHER_R
+        return far
+
+    def _fight_once(self, ptr, nm, tag: str, arena, desperate: bool, limit: float, wait_far: bool, leash, may_approach,
+                    far=None) -> D.DuelResult:
         g0 = self.esc.gen
         e = self.mv.estus_id()
         if e is not None and self.mv.tm.selected_item() != e:
@@ -578,7 +607,7 @@ class Field:
         self.mv.cam_target = ptr                           # camera.CamFollow turns the camera toward this foe
         try:
             r = D.duel(self.mv, self.w, ptr, nm, log=self.log,
-                       cancel=lambda: self.esc.escaping or self.esc.gen != g0 or (leash is not None and leash()),
+                       cancel=lambda: self.esc.escaping or self.esc.gen != g0 or (leash is not None and leash()) or (far is not None and far()),
                        care=Care(self), reflex=self.reflex, arena=arena, low_hp=0.0 if desperate else RETREAT_HP, style=self.style,
                        limit=limit, wait_far=wait_far, gen=self.esc.gen, events=self.events, may_approach=may_approach,
                        crowd_ok=CROWD_FALL_BACK and time.time() >= self._crowd_off_until,
