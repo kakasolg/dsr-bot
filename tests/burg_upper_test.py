@@ -213,6 +213,26 @@ m, f, calls, w = make(foe, hp=742)
 m._pull_to_safe(255001, (-1.3, -10.1, -95.4), safe, LineNm(), "t")
 check("full HP → no drink", "drink" not in kinds(calls))
 
+# 10-06g → [MoKa] "둘 다 적용": no sip above 90 %, and not while a foe within 2.5 m is mid-swing
+def drink_case(hp, foes):
+    log = []
+    pl = NS(x=-7.0, y=-10.0, z=-73.5, hp=hp, max_hp=742)
+    m = MS.Missions.__new__(MS.Missions)
+    m.log = lambda *a: None
+    m.f = NS(estus_left=lambda: 5, events=lambda *a, **k: None)
+    m.mv = NS(snap=lambda r=5.0: NS(player=pl, hostile=lambda rr: foes),
+              drink=lambda fn: log.append("drink") or {"ok": True})
+    m._drink_back("t")
+    return log
+
+
+check("HP 713/742 (96 %) → no sip", drink_case(713, []) == [])
+check("HP 600/742 → sip", drink_case(600, []) == ["drink"])
+check("HP 522/742 but a firebomb hollow swinging 2.4 m away → wait (duel's care drinks in an opening)",
+      drink_case(522, [Chr(npc_param=254012, ptr=1, x=-7.0, y=-10.0, z=-75.9, hp=75, anim=3008)]) == [])
+check("…a foe 2.4 m away but not swinging → sip",
+      drink_case(522, [Chr(npc_param=254012, ptr=1, x=-7.0, y=-10.0, z=-75.9, hp=75, anim=-1)]) == ["drink"])
+
 ledge = MS.UPPER_IGNORE[0]
 foe = Chr(npc_param=254012, ptr=13, x=ledge[0] + 1.0, y=ledge[1], z=ledge[2], hp=75, anim=-1)
 m, f, calls, w = make(foe)

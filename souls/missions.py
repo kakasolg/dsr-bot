@@ -75,6 +75,8 @@ UPPER_NEAR_SAFE_R = 4.0  # within this of the safe spot, don't turn our back to 
 UPPER_TRIES = 4          # same target until dead, at most this many lure + fight rounds (a round may go to a foe that came along)
 UPPER_ENCOUNTER_R = 10.0 # running in: any awake, moving foe on our level this close → turn back to the safe spot
 UPPER_HEAL_FRAC = 0.7    # before each lure: below this share of max HP, Estus first
+UPPER_SIP_FRAC = 0.9     # back at the safe spot: drink only below this share (10-06g spent one on 713/742)
+UPPER_SWING_R = 2.5      # …and not while a foe this close is mid-swing (10-06g: interrupted by a firebomb from 2.4 m)
 
 
 def _route():
@@ -381,14 +383,20 @@ class Missions:
     def _drink_back(self, tag: str) -> None:
         """── 돌아오면 에스트부터 ([MoKa] 2026-10-06) ──────────────────────────────
          "그 구간이 화염병 맞는 구간이라 안전 구역으로 오고, 무조건 에스트부터 마시게 해" · "반응이 느려서 화염병을 거의 맞는다고
-         가정해야 해" → 안전 자리에 오면 HP가 조금이라도 줄었으면 근처에 적이 있어도(Field.safe 안 봄) 한 모금, 그래도
-         UPPER_HEAL_FRAC 밑이면 한 모금 더. 꽉 차 있으면 안 마심."""
+         가정해야 해" → 안전 자리에 오면 근처에 적이 있어도(Field.safe 안 봄) 한 모금, 그래도 UPPER_HEAL_FRAC 밑이면 한 모금 더.
+         10-06g 뒤 [MoKa] 승인으로 두 예외: HP UPPER_SIP_FRAC 위면 안 마심(713/742에 한 개 씀) · UPPER_SWING_R 안에서 휘두르는
+         적이 있으면 미룸(2.4 m 화염병에 끊겨 −109, 개수 그대로) — 그땐 싸움 중 에스트(duel care)가 틈을 봄."""
         for sip in range(2):
             s = self.mv.snap(15.0)
-            if s is None or s.player.hp >= s.player.max_hp * (1.0 if sip == 0 else UPPER_HEAL_FRAC):
+            if s is None or s.player.hp >= s.player.max_hp * (UPPER_SIP_FRAC if sip == 0 else UPPER_HEAL_FRAC):
                 return
             if self.f.estus_left() <= 0:
                 self.log(f"   {tag}: 에스트 없음")
+                return
+            swing = [c for c in s.hostile(UPPER_SWING_R + 1.0) if c.hp > 0 and (c.anim or -1) in M.ATTACK
+                     and M.horiz(s.player, c) < UPPER_SWING_R] if hasattr(s, "hostile") else []
+            if swing:
+                self.log(f"   {tag}: 에스트 미룸 — {swing[0].npc_param} {M.horiz(s.player, swing[0]):.1f} m에서 휘두르는 중")
                 return
             r = self.mv.drink(lambda _s: True)
             self.log(f"   {tag}: 안전 자리 — 에스트 먼저 (HP {s.player.hp}/{s.player.max_hp}): {r}")
