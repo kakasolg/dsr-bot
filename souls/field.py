@@ -1685,6 +1685,10 @@ class Field:
         → 'arrived' | 'done' | 'dead' | 'no_path' | 'timeout'"""
         t0 = time.time()
         lured = self.__dict__.setdefault("_careful_lured", {})   # kept across walks — 10-01b retried the ledge crossbowman on every walk
+        # ── recover()가 False(붙은 적·뒤가 낭떠러지 → "그 자리에서 싸움")면 다음 싸움은 끝까지 (Field.walk의 st.desperate와 같음) ──
+        #  10-06 구역 5: HP 47 %에서 255000이 붙음 → fight가 0 s 만에 low_hp → recover "구르지 않고 그 자리에서 싸움"(False) →
+        #  여기서 그걸 버리고 다시 fight → 또 0 s low_hp … 초당 10번 돌며 치지도 마시지도 않는 동안 −248·−123
+        desperate = False
         while time.time() - t0 < CAREFUL_MAX_S:
             if not self.alive():
                 return "dead"
@@ -1702,11 +1706,15 @@ class Field:
             coming = [c for c in s.hostile(CAREFUL_COME_R) if awake(c) and same(c) and c.anim not in (None, -1)]
             if coming:
                 c = min(coming, key=lambda x: M.horiz(p, x))
-                r = self.fight(c.ptr, nm, f"{tag}: 오는 놈 {c.npc_param}", wait_far=True, limit=COMING_LIMIT)
+                r = self.fight(c.ptr, nm, f"{tag}: 오는 놈 {c.npc_param}", wait_far=True, limit=COMING_LIMIT, desperate=desperate)
                 if r.result == "me_dead":
                     return "dead"
-                if r.result != "killed" and not self.recover(f"{tag} {r.result}", nm) and self.estus_left() <= 0:
-                    return "dead"
+                desperate = False
+                if r.result != "killed":
+                    ok = self.recover(f"{tag} {r.result}", nm)
+                    if not ok and self.estus_left() <= 0:
+                        return "dead"
+                    desperate = not ok
                 continue
             idle = [c for c in s.hostile(LURE_MAX) if c.hp > 0 and same(c) and lured.get(c.ptr, 0) < 2
                     and nm.find_path((p.x, p.y, p.z), (c.x, c.y, c.z))]
@@ -1719,11 +1727,13 @@ class Field:
                 if lr == "dead":
                     continue
                 if lr in ("lured", "awake"):
-                    r = self.fight(c.ptr, nm, f"{tag}: 끌어온 {c.npc_param}", wait_far=True, limit=COMING_LIMIT)
+                    r = self.fight(c.ptr, nm, f"{tag}: 끌어온 {c.npc_param}", wait_far=True, limit=COMING_LIMIT,
+                                   desperate=desperate)
                     if r.result == "me_dead":
                         return "dead"
+                    desperate = False
                     if r.result != "killed":
-                        self.recover(f"{tag} {r.result}", nm)
+                        desperate = not self.recover(f"{tag} {r.result}", nm)
                     continue
                 if lr in ("no_knife", "no_spot", "no_path"):   # no_lock / too_far / too_close: may work from the next stop
                     lured[c.ptr] = 2                       # can't pull it from here (ledge, no throw spot) — walk on, it comes when it sees us

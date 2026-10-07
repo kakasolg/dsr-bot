@@ -323,6 +323,7 @@ class Missions:
                 return "died"
             if r != "arrived":
                 self.log(f"   구역{n} 안전 자리까지 {r} — 지금 자리에서 이어감")
+            left = []
             for i, k in enumerate(z["kills"], 1):
                 if not self.f.alive():
                     return "died"
@@ -330,9 +331,14 @@ class Missions:
                 r = self._pull_to_safe(npc, tuple(pos), safe, nb, f"구역{n}-{i} {npc}", how)
                 if r in ("died", "no_estus"):
                     return r
+                if r not in ("killed", "gone"):
+                    left.append(f"#{i} {npc} {r}")
         finally:
             self.f.home = home0
             self.f.extra_zones, self.f.tether = zones0, tether0
+        if left:                                       # 10-06 구역 8: 석궁 둘이 살아 있는데 'cleared' (P-47)
+            self.log(f"── 구역{n}: 끝 — 남은 적 {', '.join(left)}")
+            return "left " + " ".join(s.split()[0] for s in left)
         self.log(f"── 구역{n}: 끝")
         return "cleared"
 
@@ -356,13 +362,20 @@ class Missions:
         ptr = c.ptr
         res = None
         if (how or {}).get("attack"):                      # 구역 8 석궁 — [MoKa] "가자 마자 공격해": no lure, no waiting, close in now
+            desperate = False                          # 10-06 구역 8: low_hp 뒤 물러남·에스트 없이 0 s 싸움을 4번 → 사망 (P-47)
             for k in range(UPPER_TRIES):
-                res = self.f.fight(ptr, nb, tag)
+                if not self.f.alive():
+                    return "died"
+                res = self.f.fight(ptr, nb, tag, desperate=desperate)
                 if res.result in ("me_dead", "killed"):
                     return "died" if res.result == "me_dead" else "killed"
                 t = self.mv.find(self.mv.snap(200.0), ptr)
                 if t is None or t.hp <= 0:
                     return "killed"
+                ok = self.f.recover(f"{tag} {res.result}", nb)
+                if not ok and self.f.estus_left() <= 0:
+                    return "no_estus"
+                desperate = not ok
             return res.result
         for k in range(UPPER_TRIES):
             if not self.f.alive():

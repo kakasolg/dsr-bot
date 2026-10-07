@@ -310,6 +310,30 @@ r = m.upper_zone(3)
 fights = [c for c in calls if c[0] == "fight"]
 check("zone 3: no careful walk to the old spot, fought with no tether", r == "cleared" and walked == [] and fights and fights[0][5] is None)
 
+# P-47: attack mode — low_hp → recover; recover False → the next fight to the end; a survivor is reported, not 'cleared'
+foe = Chr(npc_param=255002, ptr=41, x=52.9, y=23.8, z=-119.8, hp=85, anim=-1)
+m, f, calls, w = make(foe, results=("low_hp", "killed"))
+flags = []
+base_fight = f.fight
+def fight_flag(ptr, nm_, tag, wait_far=False, desperate=False, **kw):
+    flags.append(desperate)
+    return base_fight(ptr, nm_, tag, wait_far=wait_far, **kw)
+f.fight = fight_flag
+f.recover = lambda *a, **k: calls.append(("recover",)) or False
+r = m._pull_to_safe(255002, (52.9, 23.8, -119.8), (49.96, 24.81, -116.86), LineNm(), "t", {"attack": True})
+check("attack: low_hp → recover (False: fight in place) → next fight desperate → killed",
+      r == "killed" and flags == [False, True] and ("recover",) in calls)
+foe = Chr(npc_param=255002, ptr=42, x=52.9, y=23.8, z=-119.8, hp=85, anim=-1)
+m, f, calls, w = make(foe, results=("low_hp",) * 8)
+m.f.recover = lambda *a, **k: True
+z8b = dict(zones[7]); z8b["before"] = []
+MS.UPPER["zones"][7], keep = z8b, MS.UPPER["zones"][7]
+try:
+    zr = m.upper_zone(8)
+finally:
+    MS.UPPER["zones"][7] = keep
+check("zone with a target still alive → 'left …', not 'cleared' (10-06 zone 8)", zr.startswith("left"))
+
 ledge = MS.UPPER_IGNORE[0]
 foe = Chr(npc_param=254012, ptr=13, x=ledge[0] + 1.0, y=ledge[1], z=ledge[2], hp=75, anim=-1)
 m, f, calls, w = make(foe)

@@ -101,6 +101,33 @@ def test_no_knife_walks_on() -> None:
 
 
 
+def test_fight_in_place_goes_to_the_end() -> None:
+    """10-06 zone 5: HP 47 % → every fight ended 'low_hp' at once, recover said 'fight in place' (False), and the walk threw
+    that away and started another 0 s fight — ten times a second, never swinging or drinking. Next fight must be desperate."""
+    old = F.CAREFUL_LOOK_S
+    F.CAREFUL_LOOK_S = 0.0
+    try:
+        w = World(player=(0.0, -13.4, 0.0), hp=793)
+        w.add(2, 0x1018, 255000, (0.0, -13.4, 1.2), anim=3000)
+        f, seen = setup(w)
+        flags = []
+
+        def fight(ptr, nm, tag, wait_far=False, limit=45.0, desperate=False, **kw):
+            flags.append(desperate)
+            if desperate:
+                w.chars[ptr].hp = 0
+                return D.DuelResult("killed")
+            return D.DuelResult("low_hp")
+        f.fight = fight
+        f.recover = lambda *a, **k: False                     # stuck on, drop behind → fight in place
+        r = f.careful_walk_to((0.0, -13.4, 3.0), Nm(), "구역5 안전 자리")
+        assert r == "arrived" and flags[:2] == [False, True], (r, flags)
+    finally:
+        F.CAREFUL_LOOK_S = old
+    print("ok  recover says 'fight in place' → the next fight is to the end (no 0 s low_hp loop)")
+
+
+
 def test_ignored_foe_on_us_is_a_chaser() -> None:
     """10-01c: a foe the walk ignored after a 'stuck' fight hit us from 0.8 m for 10 s with no counter, then we fell into a gap."""
     w = World(player=(0.0, -23.3, 0.0), hp=793)
