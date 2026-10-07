@@ -137,7 +137,7 @@ class Reflex:
             return self._act("face", c, s, start)
         self.mv.pad.guard(True)
         safe_turn = self.nm is None or nav.ground_ahead(self.nm, p, c.x - p.x, c.z - p.z, reach=0.8)
-        if safe_turn:
+        if safe_turn and not M.quiet_aim(p, c, self.attack_age(c.ptr)):   # swing about to end, aimed → stick stays off (proposal A)
             self.mv.face(s, c, deg=25.0)
         else:
             self.mv.pad.move(0.0, 0.0)

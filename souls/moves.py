@@ -57,6 +57,19 @@ def horiz(p, c) -> float:
     return math.hypot(c.x - p.x, c.z - p.z)
 
 
+STICK_QUIET_AGE = 1.0    # blocking: this long into its swing, stop nudging the stick so the next R1 needs no stick-release wait
+QUIET_FACE_DEG = 30.0    # …only while already this well aimed (duel.rule_hit_first aims to 30° too)
+
+
+def quiet_aim(p, c, age) -> bool:
+    """Blocking a swing that is about to end, already aimed well enough → leave the stick alone (duel.rule_block, reflex guard).
+    R1 waits Pad.STICK_RELEASE_S (0.16 s) after any stick input; face() nudged it whenever we were 20–25° off, so every opening
+    paid that wait — foe attack anim end → our attack anim 0.33–0.34 s (10-03·10-06 black boxes). [MoKa] 2026-10-06 proposal A:
+    "반응은 빠르면 빠를수록 피격을 안 당하고, 공격 성공율은 더 올라가"."""
+    return (age is not None and age >= STICK_QUIET_AGE and p.heading is not None
+            and abs(math.degrees(rel_angle(p, c))) <= QUIET_FACE_DEG)
+
+
 def rel_angle(p, c) -> float:
     """How many rad c is off my facing (−π..π, + is right). Measured: world yaw = heading + π. (old patrol.rel_angle — moved to layer 1)"""
     fwd = p.heading + math.pi

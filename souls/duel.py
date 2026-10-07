@@ -59,6 +59,9 @@ WAIT_CLOSE_M = 0.5
 WAIT_HURT_HP = 120.0    # if this much HP is lost while waiting via wait_far — being hit by something other than the tracked (non-swinging) target, stop waiting
 LEDGE_DY = 3.0           # don't lure it if it is this much above or below arena (it won't follow)
 SWING_S = 1.6            # past this since the attack anim started, not considered swinging
+AFTER_SWING_S = 0.6      # rule_after_swing: right after its swing ends, this long to strike ([MoKa] '끝나면 무조건 공격')
+AFTER_SWING_DEG = 45.0   # …strike at once if aimed within this (turn first only beyond it)
+AFTER_SWING_STEP = 1.2   # …and step in if it's at most this much beyond our reach
 PULL_R = 8.0             # lure: start backing off if it is within this (even if not moving)
 SEEK_R = 100.0           # search for it within this radius — at 40 m it missed #1 at 42 m from the bonfire and everything was 'lost'
 CIRCLE_MAX_SWEEPS = 2    # tries per foe before normal attacks (99 during the 2026-09-28 "backstab no matter what" runs)
@@ -804,6 +807,55 @@ def prep_reflex(F, T):
     return None
 
 
+def rule_after_swing(F, T):
+    """
+    ── 휘두름이 끝나면 무조건 친다 ([MoKa] 2026-10-06) ──────────────────────────────
+     "상대가 휘두르는 애니 끝나면 무조건 공격해야해. 가끔 보면 타이밍 안 맞는다고 다음 기다리는데, 적들이 몰려오는데
+      다음 텀 기다리면 다대일 되서 좋을게 없어."
+     · 끝 = 공격 애니(3000번대)에서 벗어난 틱, 또는 SWING_S 넘게 이어진 공격(prep_linger와 같은 기준). 그 뒤 AFTER_SWING_S 안
+     · 전엔 rule_face_first(30° 넘으면 먼저 돌기)·rule_hit_first(방패병 제외, 닿는 거리 안만)·rule_wait_far(멀면 기다림)
+       때문에 한 텀 쉬는 일이 있었다 → 여기선 AFTER_SWING_DEG 안이면 바로, 닿는 거리 + AFTER_SWING_STEP 안이면 한 걸음 들어가 친다
+     · 방패병(kick_when_idle)은 발차기 → 약공(rule_attack과 같은 콤보), 옆에 다른 적이 있으면 한 번만 치고 방패(rule_hit_first와 같음)
+    """
+    a_raw, now = T.a, T.now
+    prev = F.__dict__.get("_aprev")
+    F._aprev = a_raw
+    started = getattr(F.reflex, "_start", {}).get(F.ptr) if F.reflex is not None else None   # identifies this one attack
+    if a_raw in M.ATTACK and T.age is not None and T.age > SWING_S and F.__dict__.get("_swing_aged") != started:
+        F._swing_aged = started
+        F._swing_end_t = now
+    elif prev in M.ATTACK and a_raw not in M.ATTACK:
+        F._swing_end_t = now
+    end_t = F.__dict__.get("_swing_end_t")
+    if end_t is None or now - end_t > AFTER_SWING_S:
+        return None
+    w, c, p = F.weapon, T.c, T.p
+    if (c is None or c.hp <= 0 or a_raw in M.ATTACK and not (T.age is not None and T.age > SWING_S) or abs(T.dy) > 1.0
+            or T.h > w.reach + AFTER_SWING_STEP or (p.sp or 0) < w.sp_min or _other_swinging(T.s, F.ptr)
+            or p.anim not in (None, -1) and not (100 <= p.anim < 200)):
+        return None
+    if not F.mv.face(T.s, c, deg=AFTER_SWING_DEG):
+        time.sleep(0.02)
+        return CONT                                    # way off — this tick turns, the next one (still in the window) strikes
+    if T.h > w.reach and T.s.cam_yaw is not None:
+        F.mv.pad.move(*F.mv.stick_to(T.s, c.x, c.z, 0.8))
+        time.sleep(min(0.35, 0.1 + (T.h - w.reach) * 0.2))
+    F._swing_end_t = None
+    s = F.mv.snap(10.0) or T.s
+    c = F.mv.find(s, F.ptr) or c
+    single = _others_near(s, F.ptr, SINGLE_HIT_R)
+    if F.foe.kick_when_idle:
+        hit = F.mv.kick_combo(s, c, n=1 if single else w.combo)
+    else:
+        hit = _strike(F, s, c, n=1 if single else w.combo, sp_second=w.sp_min)
+    if single:
+        F.mv.guard(True)
+    F.record(hit)
+    F.note("휘두름 끝 반격", s, c)
+    F.log(f"      휘두름 끝 → {hit.kind}×{hit.presses} 피해 {hit.dmg}, 옆 {hit.others}, 내 피해 {hit.taken}")
+    return F.killed_if(hit.dead)
+
+
 def rule_early_kick(F, T):
     """Shield soldier early kick: 'shadow' only logs the candidate; 'act' (experiment only, no Foe data enables it) kicks one beat earlier
     (user 2026-09-26) — at the start of a slow-landing attack (3004), or just as post-attack stagger (3500) begins. Checked before reflex and lure."""
@@ -1083,6 +1135,14 @@ def rule_block(F, T):
                 nm is None or nav.ground_ahead(nm, p, c.x - p.x, c.z - p.z, reach=0.8)):
             F.mv.pad.move(*F.mv.stick_to(s, c.x, c.z, 0.6))
             F.note("막으며다가감", s, c)
+        elif M.quiet_aim(p, c, T.age):
+            # ── 휘두름 끝날 무렵엔 스틱을 미리 놓는다 ([MoKa] 2026-10-06, 제안 A) ──────────
+            #  · R1 앞엔 스틱을 놓고 STICK_RELEASE_S(0.16 s) 기다린다(앞 + R1 = 발차기). 막는 동안 face()가 20°만 벗어나도
+            #    스틱을 건드려서, 틈이 나면 매번 그 0.16 s를 다 기다렸다 — 적 공격 애니 끝 → 우리 공격 애니 시작 0.33~0.34 s
+            #    (10-03·10-06 블랙박스). [MoKa]: "반응은 빠르면 빠를수록 피격을 안 당하고, 공격 성공율은 더 올라가"
+            #  · 공격 규칙의 겨누기 허용(30°) 안이면 더 돌지 않고 놓아 둔다 → 틈이 나면 R1이 곧바로 나감
+            F.mv.pad.move(0.0, 0.0)
+            F.note("막기", s, c)
         else:
             F.mv.face(s, c)
             F.note("막기", s, c)
@@ -1374,7 +1434,7 @@ def rule_attack(F, T):
     return F.killed_if(hit.dead)
 
 
-RULES = [rule_separate, rule_finish_first, prep_reflex, rule_face_first, rule_early_kick, rule_late_windup_block, prep_linger, rule_hit_first,
+RULES = [rule_separate, rule_finish_first, prep_reflex, rule_after_swing, rule_face_first, rule_early_kick, rule_late_windup_block, prep_linger, rule_hit_first,
          rule_backstab_swing, rule_reflex, rule_lure, rule_edge, rule_estus, rule_stagger_punish, rule_evade, rule_block,
          rule_downed, prep_backstab_chance, rule_wait_far, rule_approach, rule_finish, rule_stamina, prep_face, rule_backstab,
          rule_attack]
