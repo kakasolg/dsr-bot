@@ -351,7 +351,8 @@ game에서만 확인할 수 있는 것 — 오프라인으로는 확인 못 함,
     2026-10-06 [MoKa] 결정: **턱 위 화염병 254012는 무시한다.** 거기까지는 사다리를 타고 망루 쪽으로 가야 하는데 낙사 위험 구간이라, 봇이 잡으러 가면 오히려 낙사 위험이 너무 커짐 (위 NavMesh 경로의 (6.5,−4.0)→(6.3,−1.6) 수직 구간이 사다리로 보임). → 봇은 그 턱으로 가는 경로를 **쓰지 않는다**(목표·끌어오기·추격 모두). 대신 턱 아래(B 뒷부분)에서는 오래 머물지 않고, [MoKa]가 255001 무리를 (−7,−10,−74)로 끌고 온 것처럼 턱 아래 적도 사정권 밖으로 끌어내 싸운다. 사정권 경계는 녹화의 3008 시점·피격 자리로 [win]이 잰다
 - [x] [win] 녹화에서 경로·적 목록 뽑기 → `souls/missions.py`에 구역 정의 — 2026-10-06 [win]: 타우로스 앞까지 [MoKa]의 안전 자리 구역 1~7을 `data/burg-upper-map.json`으로, `Missions.upper_zone`(안전 자리로 천천히 → 구역 동안 `Field.home` = 안전 자리 → 적마다 `_pull_to_safe`: 천천히 다가가다 깨어 움직이면 안전 자리로 물러나 `fight(wait_far)`, 자고 있으면 그 자리에서, 턱 위 화염병 4 m 안은 목표 아님), `run.py burg-upper [--seg 1-7]`(구역 1은 성벽 마을 화톳불에서 먼저 쉼). 구역 6 안전 자리는 녹화 자리 밑에 바닥이 없어 1.1 m 옆 바닥으로. 확인: `tests/burg_upper_test.py` 통과(안전 자리마다 바닥·이전 자리에서 길·적까지 길·턱 4 m 밖, 끌어오기 4가지). 타우로스(③)는 아직
 - [ ] [cloud] 화염병 할로우 "빨리 붙기" 규칙 — 거리가 멀고 그 적이 던지는 애니(애니 번호는 [win]이 녹화에서 확인)면 돌지 말고 곧장 다가가기. `duel_golden_test`로 바뀐 상황 확인
-- [ ] [win] 구역 ①·② 봇 실행 (`python run.py burg-upper --seg 1 --basic --radar`부터 하나씩, 기준 세이브 `burg-bonfire-hp742-before-taurus`), 구역마다 `blind_report.py`·`hotspots.py`·`track_report.py`, 로그·track을 `data/samples/`에
+- [~] [win] 구역 ①·② 봇 실행 (`BOT_GAME=dsr python run.py burg-upper --seg 1 --basic --radar`부터 하나씩, 기준 세이브 `burg-bonfire-hp742-before-taurus`), 구역마다 `blind_report.py`·`hotspots.py`·`track_report.py`, 로그·track을 `data/samples/`에
+  - 2026-10-06a [win] 구역 1: **cleared 92.5 s, 받은 피해 0, 최저 HP 100 %** — 254010 5 s · 석궁 255002 11 s(kick+light) · 254010 5 s, 넷째 254010은 깨우러 가는 길에 따라와 5 s. 셋은 깨어남 → 안전 자리로 물러남 → 거기서 잡음(설계대로). hotspots: 새 걷기 문제 없음, track: 멈칫 0, blind: 공백 0. 로그 `data/samples/burg-upper-radar-2026-10-06a.txt`·`burg-upper-2026-10-06a.track.jsonl`
 - [ ] [cloud]+[win] 타우로스: 사다리 오르기 → 낙하 공격 순서 (수용소 데몬 낙하 코드 참고) → 양손 회피 싸움. 보스용 일반 싸움 방식의 첫 사례로 만든다 (9-30 원칙: 방패 플레이 안 됨)
 - [ ] [win] 구역 ③ 실행 — 처치·사망·최저 HP·낙하 피해 기록
 
