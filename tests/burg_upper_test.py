@@ -58,59 +58,80 @@ class Chr(NS):
     pass
 
 
-def make(foe, woke_on_walk=True):
-    """foe: Chr or None. woke_on_walk: careful_walk_to's done() fires (foe woke) instead of arriving."""
+class LineNm:
+    def find_path(self, a, b):
+        return [tuple(a), tuple(b)]
+
+
+def make(foe, wake="moves"):
+    """foe: Chr or None. wake: 'moves' = it wakes and steps toward us while we run in · 'asleep' = never wakes ·
+    'idle_anim' = it plays an anim without leaving its spot (not awake)."""
     calls = []
     world = {"foe": foe}
+    me = {"p": (-7.0, -10.0, -73.5)}
 
     def find_at(npc, pos, r=3.0, dy_max=3.0):
         c = world["foe"]
         return c if c is not None and c.npc_param == npc and math.dist((c.x, c.y, c.z), pos) < r else None
 
-    def careful_walk_to(goal, nm_, tag, done=None):
-        calls.append(("walk", tag, done is not None))
-        if done is None:
-            return "arrived"
-        if woke_on_walk and foe is not None:
-            foe.anim = 3000
-            return "done" if done(NS(player=NS(x=foe.x + 5, y=foe.y, z=foe.z))) else "arrived"
+    def snap(r=5.0):
+        return NS(player=NS(x=me["p"][0], y=me["p"][1], z=me["p"][2]))
+
+    def walk_path(path, nm_, mode="walk", stop=None, **kw):
+        goal = path[-1]
+        calls.append(("sprint", tuple(goal), mode))
+        if stop is not None and foe is not None:
+            if wake == "moves":
+                foe.anim, foe.z = 3000, foe.z + 1.0
+            elif wake == "idle_anim":
+                foe.anim = 7000
+            me["p"] = (foe.x, foe.y, foe.z - (6.0 if wake == "moves" else 2.0))
+            return "stopped" if stop(snap()) else "arrived"
+        me["p"] = tuple(goal)
         return "arrived"
 
     def fight(ptr, nm_, tag, wait_far=False, **kw):
-        calls.append(("fight", ptr, wait_far, tuple(f.home) if f.home else None, tuple(getattr(f, "extra_zones", ()))))
+        calls.append(("fight", ptr, wait_far, tuple(f.home) if f.home else None, tuple(getattr(f, "extra_zones", ())),
+                      getattr(f, "tether", None)))
         world["foe"].hp = 0
         return NS(result="killed")
 
-    f = NS(home=(0.0, 0.0, 0.0), find_at=find_at, careful_walk_to=careful_walk_to, fight=fight,
-           retreat=lambda nm_, home: calls.append(("retreat", tuple(home))) or "arrived",
+    f = NS(home=(0.0, 0.0, 0.0), find_at=find_at, fight=fight, careful_walk_to=lambda *a, **k: "arrived",
            recover=lambda *a, **k: True, estus_left=lambda: 5, alive=lambda: True)
-    mv = NS(snap=lambda r=5.0: NS(), find=lambda s, ptr: world["foe"] if world["foe"] and world["foe"].ptr == ptr else None)
+    mv = NS(snap=snap, walk_path=walk_path,
+            find=lambda s, ptr: world["foe"] if world["foe"] and world["foe"].ptr == ptr else None)
     f.mv = mv
     m = MS.Missions.__new__(MS.Missions)
-    m.f, m.mv, m.nms, m.log = f, mv, {MS.MAP_B: None}, lambda *a: None
+    m.f, m.mv, m.nms, m.log = f, mv, {MS.MAP_B: LineNm()}, lambda *a: None
     return m, f, calls
 
 
 safe = (-7.0, -10.0, -73.5)
 foe = Chr(npc_param=255001, ptr=11, x=-1.3, y=-10.1, z=-95.4, hp=85, anim=-1)
 m, f, calls = make(foe)
-r = m._pull_to_safe(255001, (-1.3, -10.1, -95.4), safe, None, "t")
-check("woke while walking → retreat to the safe spot, then fight waiting for it",
-      r == "killed" and [c[0] for c in calls] == ["walk", "retreat", "fight"] and calls[1][1] == safe and calls[2][2] is True)
+r = m._pull_to_safe(255001, (-1.3, -10.1, -95.4), safe, LineNm(), "t")
+check("run in, it wakes → run (no guard) back to the safe spot → fight waiting for it ([MoKa] '빠르게 나와야')",
+      r == "killed" and [c[0] for c in calls] == ["sprint", "sprint", "fight"]
+      and calls[0][2] == calls[1][2] == "sprint" and calls[1][1] == safe and calls[2][2] is True)
 
 foe = Chr(npc_param=254010, ptr=12, x=2.9, y=-9.9, z=-98.3, hp=75, anim=-1)
-m, f, calls = make(foe, woke_on_walk=False)
-r = m._pull_to_safe(254010, (2.9, -9.9, -98.3), safe, None, "t")
-check("still asleep on arrival → fight there, no retreat", r == "killed" and [c[0] for c in calls] == ["walk", "fight"])
+m, f, calls = make(foe, wake="asleep")
+r = m._pull_to_safe(254010, (2.9, -9.9, -98.3), safe, LineNm(), "t")
+check("still asleep 3 m from it → fight there, no run back", r == "killed" and [c[0] for c in calls] == ["sprint", "fight"])
+
+foe = Chr(npc_param=254010, ptr=15, x=2.9, y=-9.9, z=-98.3, hp=75, anim=-1)
+m, f, calls = make(foe, wake="idle_anim")
+r = m._pull_to_safe(254010, (2.9, -9.9, -98.3), safe, LineNm(), "t")
+check("an anim without leaving its spot is not 'awake' → no run back", r == "killed" and [c[0] for c in calls] == ["sprint", "fight"])
 
 ledge = MS.UPPER_IGNORE[0]
 foe = Chr(npc_param=254012, ptr=13, x=ledge[0] + 1.0, y=ledge[1], z=ledge[2], hp=75, anim=-1)
 m, f, calls = make(foe)
-r = m._pull_to_safe(254012, ledge, safe, None, "t")
+r = m._pull_to_safe(254012, ledge, safe, LineNm(), "t")
 check("ledge firebomb hollow → not a target, nothing walked or fought", r == "gone" and calls == [])
 
 m, f, calls = make(None)
-check("foe not seen → gone", m._pull_to_safe(254010, (2.6, -9.9, -102.2), safe, None, "t") == "gone" and calls == [])
+check("foe not seen → gone", m._pull_to_safe(254010, (2.6, -9.9, -102.2), safe, LineNm(), "t") == "gone" and calls == [])
 
 z2 = zones[1]
 first = z2["kills"][0]
@@ -134,7 +155,7 @@ check("…and not without it", F.Field._near_zone(NS(), here, nm) is None)
 
 
 # tether ([MoKa]: "적이 붙으면 그 다음에 안전 구역으로 가야 … 그냥 있으면 화염폭탄에 맞아서 죽지")
-def tethered(results, start, spot=tuple(z2["safe"]), move=True):
+def tethered(results, start, spot=tuple(z2["safe"]), move=True, npc=None):
     """results: what each _fight_once returns; the player stands at `start` and is moved to the spot by a retreat."""
     pos = {"p": start}
     log = []
@@ -153,6 +174,8 @@ def tethered(results, start, spot=tuple(z2["safe"]), move=True):
             _fight_once=once, _retreat_to_zone=retreat,
             mv=NS(snap=lambda r=5.0: NS(player=NS(x=pos["p"][0], y=pos["p"][1], z=pos["p"][2]))))
     me._tether_far = lambda s: F.Field._tether_far(me, s)
+    if npc is not None:
+        me.mv.find = lambda s, ptr: NS(npc_param=npc)
     r = F.Field.fight(me, 1, None, "t")
     return r, log
 
@@ -168,6 +191,11 @@ check("no tether outside the zones → one plain fight", r.result == "killed" an
 r, log = tethered(["cancel"] * F.TETHER_TRIES + ["killed"], (-7.67, -10.09, -86.5), move=False)
 fights = [x for x in log if x[0] == "fight"]
 check(f"after {F.TETHER_TRIES} cuts the last fight is untethered", r.result == "killed" and fights[-1][2] is False)
+r, log = tethered(["killed"], (-7.67, -10.09, -86.5), npc=255002)
+check("ranged foe (crossbow 255002) is not tethered — 10-06c cut it 3 times for 15 s",
+      r.result == "killed" and log == [("fight", False, False, None)])
+r, log = tethered(["cancel", "killed"], (-7.67, -10.09, -86.5), npc=255001)
+check("melee foe (255001) still tethered", [x[0] for x in log] == ["fight", "retreat", "fight"])
 
 print(f"\n{'all ok' if not fails else f'{fails} FAILED'}")
 sys.exit(1 if fails else 0)

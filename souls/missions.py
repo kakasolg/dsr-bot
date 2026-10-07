@@ -67,7 +67,8 @@ BURG_CAREFUL = {1, 2, 3, 4, 5, 6}   # BURG_TOWN walks done slowly, stopping to p
 UPPER = json.loads((DATA / "burg-upper-map.json").read_text(encoding="utf-8"))
 UPPER_IGNORE = [tuple(p) for _n, p in UPPER["ignore"]]
 UPPER_IGNORE_R = 4.0     # a foe this close to an ignored ledge spot is one of the ledge firebomb hollows — never a target
-UPPER_WAKE_R = 15.0      # walking toward a target: once it's awake and this close, turn back to the safe spot
+UPPER_MOVED_M = 0.5      # a target counts as awake once it has an anim and is this far off where it stood
+UPPER_CLOSE_R = 3.0      # running in: stop this close even if it hasn't woken — fight it there
 
 
 def _route():
@@ -310,7 +311,9 @@ class Missions:
     def _pull_to_safe(self, npc: int, pos, safe, nb, tag: str) -> str:
         """── 안전 자리로 끌어와 싸우기 ([MoKa] 2026-10-06 녹화) ──────────────────────────────
          MoKa는 구역 적을 그 자리에서 싸우지 않고 깨운 뒤 안전 자리까지 데리고 와서 잡았다 (구역 2: 255001을 스폰에서 20 m 끌고 옴).
-         나이프가 없는 캐릭터라 던져서 깨우지 않고, 천천히 다가가다 깨어 움직이면 돌아서서 안전 자리로 물러난 뒤 맞이함.
+         나이프가 없는 캐릭터라 던져서 깨우지 않는다. 녹화 그대로 **달려 들어가서**(~4.7 m/s) 그놈이 깨어 움직이면 곧바로
+         **달려서 나온다**(가드 없이) — [MoKa] 10-06: "유인하러 들어갔다 빠르게 나와야 해". 10-06b·c는 천천히 걷기(4 m + 1.5 s 멈춤)·
+         가드 걷기로 물러나다 255001에게 따라잡혀 화염병 사정권에서 싸웠다(P-45). UPPER_CLOSE_R까지 가도 안 깨면 그 자리에서 싸움.
          턱 위 화염병(UPPER_IGNORE)은 사다리·낙사 구간이라 목표로 삼지 않는다."""
         c = self.f.find_at(npc, pos, 8.0) or self.f.find_at(npc, pos, 20.0)
         if c is not None and any(math.dist((c.x, c.y, c.z), q) < UPPER_IGNORE_R for q in UPPER_IGNORE):
@@ -318,22 +321,27 @@ class Missions:
         if c is None:
             self.log(f"   {tag}: 안 보임 — 이미 잡았거나 죽음")
             return "gone"
-        ptr = c.ptr
+        ptr, here0 = c.ptr, (c.x, c.y, c.z)
 
-        def woke(sn) -> bool:
+        def woke(t) -> bool:                               # moving: anim set and off where it stood (idle anims don't count)
+            return t.anim not in (None, -1) and math.dist((t.x, t.y, t.z), here0) > UPPER_MOVED_M
+
+        def stop_in(sn) -> bool:
             t = self.mv.find(sn, ptr)
-            return t is None or t.hp <= 0 or (t.anim not in (None, -1) and M.horiz(sn.player, t) < UPPER_WAKE_R)
+            return t is None or t.hp <= 0 or woke(t) or M.horiz(sn.player, t) < UPPER_CLOSE_R
 
-        r = self.f.careful_walk_to((c.x, c.y, c.z), nb, f"{tag} 깨우러", done=woke)
+        r = self._sprint(here0, nb, stop_in)
         if r == "dead":
             return "died"
         t = self.mv.find(self.mv.snap(200.0), ptr)
         if t is None or t.hp <= 0:
-            self.log(f"   {tag}: 가는 길에 잡음")
+            self.log(f"   {tag}: 가는 길에 죽음")
             return "killed"
-        if r == "done":
-            back = self.f.retreat(nb, safe)
-            self.log(f"   {tag}: 깨어남 — 안전 자리로 물러남 {back}")
+        if woke(t):
+            back = self._sprint(safe, nb, None)
+            self.log(f"   {tag}: 깨어남 — 달려서 안전 자리로 {back}")
+            if back == "dead":
+                return "died"
         res = self.f.fight(ptr, nb, tag, wait_far=True)
         if res.result == "me_dead":
             return "died"
@@ -342,6 +350,16 @@ class Missions:
             if not ok and self.f.estus_left() <= 0:
                 return "no_estus"
         return res.result
+
+    def _sprint(self, goal, nb, stop) -> str:
+        """Run along the NavMesh path to goal (no guard) until stop(snapshot). → 'arrived' | 'stopped' | 'dead' | 'no_path' | …"""
+        s = self.mv.snap(5.0)
+        if s is None:
+            return "no_snapshot"
+        path = nb.find_path((s.player.x, s.player.y, s.player.z), tuple(goal))
+        if not path:
+            return "no_path"
+        return self.mv.walk_path(nav.trim_path(path[1:], tuple(goal)), nb, "sprint", stop=stop)
 
     UPPER_SEGMENTS = {n: f"zone{n}" for n in range(1, len(UPPER["zones"]) + 1)}
 

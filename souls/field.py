@@ -565,8 +565,13 @@ class Field:
         ── 안전 자리 묶기 (self.tether, missions.upper_zone이 구역 동안 둠) ──────────────────
          [MoKa] 2026-10-06 (P-45): "적이 붙으면 그 다음에 안전 구역으로 가야 하는데, 그냥 있으면 화염폭탄에 맞아서 죽지".
          싸움이 안전 자리에서 TETHER_R 넘게 벗어나면 그 틱에 끊고, 가드 든 채 안전 자리로 물러나 거기서 다시 받는다(wait_far).
-         TETHER_TRIES번 끊은 뒤엔 묶지 않고 끝까지 — 안 따라오는 놈(석궁 등)과 끊고 물러나기만 되풀이하지 않게."""
+         TETHER_TRIES번 끊은 뒤엔 묶지 않고 끝까지 — 안 따라오는 놈과 끊고 물러나기만 되풀이하지 않게.
+         원거리 적(foes.ranged — 석궁·화염병)은 묶지 않음: 10-06c 구역 1 석궁 255002가 안 따라와 3번 끊고 돌아오기만 15 s."""
         spot = getattr(self, "tether", None)
+        if spot is not None and callable(getattr(self.mv, "find", None)):
+            c = self.mv.find(self.mv.snap(SEEK_R), ptr)
+            if c is not None and foes_.of(c.npc_param).ranged:
+                spot = None
         r = None
         for k in range(TETHER_TRIES + 1):
             far = self._tether_far(spot) if spot is not None and k < TETHER_TRIES else None
