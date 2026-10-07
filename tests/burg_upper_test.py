@@ -63,87 +63,177 @@ class LineNm:
         return [tuple(a), tuple(b)]
 
 
-def make(foe, wake="moves"):
+MS.UPPER_NOTICE_S = 0.0     # no real waiting in the fakes
+
+
+def make(foe, wake="moves", hp=742, results=("killed",), estus=5, other=None):
     """foe: Chr or None. wake: 'moves' = it wakes and steps toward us while we run in · 'asleep' = never wakes ·
-    'idle_anim' = it plays an anim without leaving its spot (not awake)."""
+    'idle_anim' = it plays an anim without leaving its spot (not awake). results: what each fight returns."""
     calls = []
-    world = {"foe": foe}
+    world = {"foe": foe, "hp": hp, "results": list(results), "near": False, "other": other}
     me = {"p": (-7.0, -10.0, -73.5)}
 
     def find_at(npc, pos, r=3.0, dy_max=3.0):
         c = world["foe"]
         return c if c is not None and c.npc_param == npc and math.dist((c.x, c.y, c.z), pos) < r else None
 
+    def chars():
+        return [c for c in (world["foe"], world["other"]) if c is not None and c.hp > 0]
+
     def snap(r=5.0):
-        return NS(player=NS(x=me["p"][0], y=me["p"][1], z=me["p"][2]))
+        pl = NS(x=me["p"][0], y=me["p"][1], z=me["p"][2], hp=world["hp"], max_hp=742)
+        return NS(player=pl, hostile=lambda rr: [c for c in chars() if math.hypot(c.x - pl.x, c.z - pl.z) < rr])
 
     def walk_path(path, nm_, mode="walk", stop=None, **kw):
-        goal = path[-1]
-        calls.append(("sprint", tuple(goal), mode))
-        if stop is not None and foe is not None:
+        goal = tuple(path[-1])
+        calls.append(("sprint", goal, mode))
+        if goal != safe and foe is not None:               # running in
+            if world["other"] is not None and world["other"].hp > 0 and world["other"].anim == -1:
+                o = world["other"]                         # someone else wakes on the way, 6 m ahead of us
+                o.anim = 3000
+                me["p"] = (o.x, o.y, o.z - 6.0)
+                return "stopped" if stop(snap()) else "arrived"
             if wake == "moves":
                 foe.anim, foe.z = 3000, foe.z + 1.0
             elif wake == "idle_anim":
                 foe.anim = 7000
             me["p"] = (foe.x, foe.y, foe.z - (6.0 if wake == "moves" else 2.0))
             return "stopped" if stop(snap()) else "arrived"
-        me["p"] = tuple(goal)
+        me["p"] = goal
+        if world["other"] is not None and world["other"].hp > 0 and world["other"].anim != -1:
+            o = world["other"]                             # it followed us back
+            o.x, o.z = goal[0], goal[2] - 3.0
         return "arrived"
 
     def fight(ptr, nm_, tag, wait_far=False, **kw):
         calls.append(("fight", ptr, wait_far, tuple(f.home) if f.home else None, tuple(getattr(f, "extra_zones", ())),
                       getattr(f, "tether", None)))
-        world["foe"].hp = 0
-        return NS(result="killed")
+        r = world["results"].pop(0)
+        if r == "killed":
+            (world["other"] if world["other"] is not None and ptr == world["other"].ptr else world["foe"]).hp = 0
+        return NS(result=r)
+
+    def drink(safe_fn):
+        calls.append(("drink", safe_fn(None)))
+        world["hp"] = min(742, world["hp"] + 300)
+        return {"ok": True}
+
+    def heal(frac=0.7, sips=3):
+        calls.append(("heal",))
+        if not world["near"] and estus:
+            world["hp"] = 742
+
+    def retreat(nm_, home):
+        calls.append(("retreat", tuple(home)))
+        world["near"] = False
+        return "arrived"
 
     f = NS(home=(0.0, 0.0, 0.0), find_at=find_at, fight=fight, careful_walk_to=lambda *a, **k: "arrived",
-           recover=lambda *a, **k: True, estus_left=lambda: 5, alive=lambda: True)
-    mv = NS(snap=snap, walk_path=walk_path,
+           recover=lambda *a, **k: calls.append(("recover",)) or True, estus_left=lambda: estus, alive=lambda: True,
+           heal=heal, retreat=retreat, events=lambda *a, **k: None)
+    mv = NS(snap=snap, walk_path=walk_path, pad=NS(guard=lambda on: None), drink=drink,
             find=lambda s, ptr: world["foe"] if world["foe"] and world["foe"].ptr == ptr else None)
     f.mv = mv
     m = MS.Missions.__new__(MS.Missions)
     m.f, m.mv, m.nms, m.log = f, mv, {MS.MAP_B: LineNm()}, lambda *a: None
-    return m, f, calls
+    return m, f, calls, world
 
 
 safe = (-7.0, -10.0, -73.5)
+kinds = lambda calls: [c[0] for c in calls]
 foe = Chr(npc_param=255001, ptr=11, x=-1.3, y=-10.1, z=-95.4, hp=85, anim=-1)
-m, f, calls = make(foe)
+m, f, calls, w = make(foe)
 r = m._pull_to_safe(255001, (-1.3, -10.1, -95.4), safe, LineNm(), "t")
 check("run in, it wakes → run (no guard) back to the safe spot → fight waiting for it ([MoKa] '빠르게 나와야')",
-      r == "killed" and [c[0] for c in calls] == ["sprint", "sprint", "fight"]
+      r == "killed" and kinds(calls) == ["sprint", "sprint", "fight"]
       and calls[0][2] == calls[1][2] == "sprint" and calls[1][1] == safe and calls[2][2] is True)
 
 foe = Chr(npc_param=254010, ptr=12, x=2.9, y=-9.9, z=-98.3, hp=75, anim=-1)
-m, f, calls = make(foe, wake="asleep")
+m, f, calls, w = make(foe, wake="asleep")
 r = m._pull_to_safe(254010, (2.9, -9.9, -98.3), safe, LineNm(), "t")
-check("still asleep 3 m from it → fight there, no run back", r == "killed" and [c[0] for c in calls] == ["sprint", "fight"])
+check("still asleep 3 m from it → guard a moment, then run back anyway and take it at the spot",
+      r == "killed" and kinds(calls) == ["sprint", "sprint", "fight"] and calls[1][1] == safe)
 
 foe = Chr(npc_param=254010, ptr=15, x=2.9, y=-9.9, z=-98.3, hp=75, anim=-1)
-m, f, calls = make(foe, wake="idle_anim")
+m, f, calls, w = make(foe, wake="idle_anim")
 r = m._pull_to_safe(254010, (2.9, -9.9, -98.3), safe, LineNm(), "t")
-check("an anim without leaving its spot is not 'awake' → no run back", r == "killed" and [c[0] for c in calls] == ["sprint", "fight"])
+check("an anim without leaving its spot is not 'awake' (still guard-wait, then back)",
+      r == "killed" and kinds(calls) == ["sprint", "sprint", "fight"])
+
+# 10-06d: 254011 already awake 4.4 m from the spot — the bot ran at it and then 'ran back' 2 m from the spot, hit 3 times
+foe = Chr(npc_param=254011, ptr=16, x=-7.1, y=-10.0, z=-77.9, hp=75, anim=3000)
+m, f, calls, w = make(foe)
+c = m._lure(foe, 16, safe, LineNm(), "t")
+check("already coming / near the spot → no running out, take it at the spot (10-06d)", c == "here" and calls == [])
+
+foe = Chr(npc_param=254011, ptr=17, x=-6.0, y=-10.0, z=-79.0, hp=75, anim=-1)    # asleep but 5.6 m from the spot
+m, f, calls, w = make(foe)
+check("asleep but within 8 m of the spot → wait there too", m._lure(foe, 17, safe, LineNm(), "t") == "here" and calls == [])
+
+foe = Chr(npc_param=255001, ptr=18, x=-1.3, y=-10.1, z=-95.4, hp=85, anim=-1)
+m, f, calls, w = make(foe, results=("low_hp", "killed"))
+r = m._pull_to_safe(255001, (-1.3, -10.1, -95.4), safe, LineNm(), "t")
+check("low_hp → recover, and the same foe again until it dies (10-06d left 255001 alive)",
+      r == "killed" and kinds(calls).count("fight") == 2 and "recover" in kinds(calls))
+
+foe = Chr(npc_param=254010, ptr=19, x=2.9, y=-9.9, z=-98.3, hp=75, anim=-1)
+m, f, calls, w = make(foe, hp=300)
+r = m._pull_to_safe(254010, (2.9, -9.9, -98.3), safe, LineNm(), "t")
+check("HP 300/742 → Estus before running out ([MoKa] '에스트를 마셔야 하는 것이 우선')", r == "killed" and kinds(calls)[0] == "heal")
+
+foe = Chr(npc_param=254010, ptr=20, x=2.9, y=-9.9, z=-98.3, hp=75, anim=-1)
+m, f, calls, w = make(foe, hp=300)
+w["near"] = True                                       # a foe too close to drink
+r = m._pull_to_safe(254010, (2.9, -9.9, -98.3), safe, LineNm(), "t")
+check("low HP and a foe too close to drink → back off to the bonfire (home), then drink",
+      r == "killed" and kinds(calls)[:3] == ["heal", "retreat", "heal"])
+
+foe = Chr(npc_param=254010, ptr=21, x=2.9, y=-9.9, z=-98.3, hp=75, anim=-1)
+m, f, calls, w = make(foe, hp=300, estus=0)
+check("low HP and no Estus → stop the zone", m._pull_to_safe(254010, (2.9, -9.9, -98.3), safe, LineNm(), "t") == "no_estus")
+
+# [MoKa]: "적을 조우하면 안전구역으로 돌아오는 것이 우선" — someone else wakes on the way in → back at once, fight it at the spot first
+foe = Chr(npc_param=255001, ptr=22, x=-1.3, y=-10.1, z=-95.4, hp=85, anim=-1)
+oth = Chr(npc_param=254011, ptr=23, x=-7.3, y=-9.9, z=-88.0, hp=75, anim=-1)
+m, f, calls, w = make(foe, wake="asleep", results=("killed", "killed"), other=oth)
+r = m._pull_to_safe(255001, (-1.3, -10.1, -95.4), safe, LineNm(), "t")
+fp = [c[1] for c in calls if c[0] == "fight"]
+check("another foe wakes on the way in → run back, fight it at the safe spot first, then the target",
+      r == "killed" and fp == [23, 22] and calls[1] == ("sprint", safe, "sprint"))
+
+# "무조건 에스트부터" — back at the spot with HP down (not low enough for _top_up), drink before fighting, foe near or not
+foe = Chr(npc_param=255001, ptr=24, x=-1.3, y=-10.1, z=-95.4, hp=85, anim=-1)
+m, f, calls, w = make(foe, hp=600)
+r = m._pull_to_safe(255001, (-1.3, -10.1, -95.4), safe, LineNm(), "t")
+k = kinds(calls)
+check("back at the spot with HP 600/742 → Estus first (ignoring the foe-near check), then fight",
+      r == "killed" and "drink" in k and k.index("drink") < k.index("fight") and ("drink", True) in calls)
+foe = Chr(npc_param=255001, ptr=25, x=-1.3, y=-10.1, z=-95.4, hp=85, anim=-1)
+m, f, calls, w = make(foe, hp=742)
+m._pull_to_safe(255001, (-1.3, -10.1, -95.4), safe, LineNm(), "t")
+check("full HP → no drink", "drink" not in kinds(calls))
 
 ledge = MS.UPPER_IGNORE[0]
 foe = Chr(npc_param=254012, ptr=13, x=ledge[0] + 1.0, y=ledge[1], z=ledge[2], hp=75, anim=-1)
-m, f, calls = make(foe)
+m, f, calls, w = make(foe)
 r = m._pull_to_safe(254012, ledge, safe, LineNm(), "t")
 check("ledge firebomb hollow → not a target, nothing walked or fought", r == "gone" and calls == [])
 
-m, f, calls = make(None)
+m, f, calls, w = make(None)
 check("foe not seen → gone", m._pull_to_safe(254010, (2.6, -9.9, -102.2), safe, LineNm(), "t") == "gone" and calls == [])
 
 z2 = zones[1]
 first = z2["kills"][0]
 foe = Chr(npc_param=first[0], ptr=14, x=first[1][0], y=first[1][1], z=first[1][2], hp=85, anim=-1)
-m, f, calls = make(foe)
+m, f, calls, w = make(foe)
 home0 = f.home
 r = m.upper_zone(2)
 fights = [c for c in calls if c[0] == "fight"]
-check("upper_zone: home = the zone's safe spot during the fight, restored after",
-      r == "cleared" and fights and fights[0][3] == tuple(z2["safe"]) and f.home == home0)
-check("upper_zone: the safe spot is a marked fall-back spot during the zone, cleared after (10-06b)",
-      fights and fights[0][4] == (tuple(z2["safe"]),) and getattr(f, "extra_zones", ()) == ())
+check("upper_zone: home = the Undead Burg bonfire during the zone (where recover drinks), restored after",
+      r == "cleared" and fights and fights[0][3] == MS.BURG_BONFIRE_SIDE and f.home == home0)
+check("upper_zone: the safe spot is the marked fall-back spot and the tether during the zone, cleared after",
+      fights and fights[0][4] == (tuple(z2["safe"]),) and fights[0][5] == tuple(z2["safe"])
+      and getattr(f, "extra_zones", ()) == () and getattr(f, "tether", None) is None)
 
 # 10-06b: a chaser caught mid-walk 13 m before the zone 2 safe spot → the walk's chaser fight must fall back there first
 from souls import field as F

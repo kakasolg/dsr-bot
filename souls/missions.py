@@ -68,7 +68,13 @@ UPPER = json.loads((DATA / "burg-upper-map.json").read_text(encoding="utf-8"))
 UPPER_IGNORE = [tuple(p) for _n, p in UPPER["ignore"]]
 UPPER_IGNORE_R = 4.0     # a foe this close to an ignored ledge spot is one of the ledge firebomb hollows — never a target
 UPPER_MOVED_M = 0.5      # a target counts as awake once it has an anim and is this far off where it stood
-UPPER_CLOSE_R = 3.0      # running in: stop this close even if it hasn't woken — fight it there
+UPPER_CLOSE_R = 3.0      # running in: stop this close even if it hasn't woken…
+UPPER_NOTICE_S = 2.0     # …and stand guarding this long for it to notice, then run back anyway
+UPPER_COME_R = 8.0       # a target already this close to the safe spot (or already moving) isn't run at — wait for it there
+UPPER_NEAR_SAFE_R = 4.0  # within this of the safe spot, don't turn our back to run there — fight (10-06d died 2–3 m from it)
+UPPER_TRIES = 4          # same target until dead, at most this many lure + fight rounds (a round may go to a foe that came along)
+UPPER_ENCOUNTER_R = 10.0 # running in: any awake, moving foe on our level this close → turn back to the safe spot
+UPPER_HEAL_FRAC = 0.7    # before each lure: below this share of max HP, Estus first
 
 
 def _route():
@@ -279,12 +285,14 @@ class Missions:
         return "cleared"
 
     def upper_zone(self, n: int) -> str:
-        """Zone n of the Burg bonfire → fog wall stretch (UPPER): walk carefully to the zone's safe spot, make it the retreat
-        target (Field.home), then for each foe in MoKa's kill order go wake it and fight it back at the safe spot."""
+        """Zone n of the Burg bonfire → fog wall stretch (UPPER): walk carefully to the zone's safe spot (a marked fall-back spot
+        and the fight tether while the zone runs), then for each foe in MoKa's kill order go wake it and fight it back there."""
         nb = self.nms[MAP_B]
         z = UPPER["zones"][n - 1]
         safe = tuple(z["safe"])
-        home0, self.f.home = self.f.home, safe
+        # home = where recover() backs off to drink. Not the safe spot (10-06d: already there, foe on us → never drank) and not
+        # the run's default (Firelink — another NavMesh, no path) → the Undead Burg bonfire
+        home0, self.f.home = self.f.home, BURG_BONFIRE_SIDE
         # 10-06b 구역 2: 255001이 깨우러 가는 걸음 중간에 따라붙어, 걷기의 '따라온 놈' 싸움이 안전 자리 13 m 앞(턱 화염병 9 m)에서 바로 시작 → 사망.
         # 걷기는 따라온 놈을 싸우기 전에 찍어 둔 자리(ZONE_REACH 15 m 안)로 가드 든 채 물러나므로, 이 구역 동안 안전 자리를 거기 넣는다
         # [MoKa]: "적이 붙으면 그 다음에 안전 구역으로 가야 하는데, 그냥 있으면 화염폭탄에 맞아서 죽지" → 싸움 도중에도 벗어나면 끊고 돌아옴 (Field.fight tether)
@@ -314,42 +322,135 @@ class Missions:
          나이프가 없는 캐릭터라 던져서 깨우지 않는다. 녹화 그대로 **달려 들어가서**(~4.7 m/s) 그놈이 깨어 움직이면 곧바로
          **달려서 나온다**(가드 없이) — [MoKa] 10-06: "유인하러 들어갔다 빠르게 나와야 해". 10-06b·c는 천천히 걷기(4 m + 1.5 s 멈춤)·
          가드 걷기로 물러나다 255001에게 따라잡혀 화염병 사정권에서 싸웠다(P-45). UPPER_CLOSE_R까지 가도 안 깨면 그 자리에서 싸움.
-         턱 위 화염병(UPPER_IGNORE)은 사다리·낙사 구간이라 목표로 삼지 않는다."""
+         턱 위 화염병(UPPER_IGNORE)은 사다리·낙사 구간이라 목표로 삼지 않는다.
+         10-06d (P-45): 이미 깨어 안전 자리 4 m 앞까지 온 254011에게 또 달려 나갔다가, 안전 자리 2 m 앞에서 "달려서 돌아가기"만 하며
+         세 번 맞고 죽음([MoKa]: "왜 다시 돌아가려 한거야?") → 이미 오는 놈·안전 자리 가까운 놈엔 안 나가고, 안전 자리 UPPER_NEAR_SAFE_R
+         안이면 돌아서지 않고 싸움. 그 전엔 255001을 HP 334로 남겨 두고 다음 놈으로 넘어감 → 그놈이 죽을 때까지 UPPER_TRIES번,
+         나가기 전마다 에스트 먼저([MoKa]: "hp가 많이 줄었으면, 에스트를 마셔야 하는 것이 우선")."""
         c = self.f.find_at(npc, pos, 8.0) or self.f.find_at(npc, pos, 20.0)
         if c is not None and any(math.dist((c.x, c.y, c.z), q) < UPPER_IGNORE_R for q in UPPER_IGNORE):
             c = None
         if c is None:
             self.log(f"   {tag}: 안 보임 — 이미 잡았거나 죽음")
             return "gone"
-        ptr, here0 = c.ptr, (c.x, c.y, c.z)
+        ptr = c.ptr
+        res = None
+        for k in range(UPPER_TRIES):
+            if not self.f.alive():
+                return "died"
+            if not self._top_up(nb, tag):
+                return "no_estus"
+            t = self.mv.find(self.mv.snap(200.0), ptr)
+            if t is None or t.hp <= 0:
+                self.log(f"   {tag}: 죽음")
+                return "killed"
+            if self._lure(t, ptr, safe, nb, tag) == "died":
+                return "died"
+            self._drink_back(tag)
+            foe = self._first_foe(ptr)
+            ftag = tag if foe == ptr else f"{tag}: 같이 온 놈"
+            res = self.f.fight(foe, nb, ftag, wait_far=True)
+            if res.result == "me_dead":
+                return "died"
+            if res.result == "killed" and foe == ptr:
+                return "killed"
+            if res.result != "killed":
+                ok = self.f.recover(f"{ftag} {res.result}", nb)
+                if not ok and self.f.estus_left() <= 0:
+                    return "no_estus"
+                self.log(f"   {ftag}: {res.result} — 살아 있음, 다시 ({k + 1}/{UPPER_TRIES})")
+        return res.result if res is not None else "gone"
 
-        def woke(t) -> bool:                               # moving: anim set and off where it stood (idle anims don't count)
-            return t.anim not in (None, -1) and math.dist((t.x, t.y, t.z), here0) > UPPER_MOVED_M
+    def _top_up(self, nb, tag: str) -> bool:
+        """Estus before going out: below UPPER_HEAL_FRAC drink here, or — a foe too close to drink — back off toward the bonfire
+        (Field.home) until clear, drink, and the next lure runs from there. False = low and no Estus left."""
+        s = self.mv.snap(15.0)
+        if s is None or s.player.hp >= s.player.max_hp * UPPER_HEAL_FRAC:
+            return True
+        self.f.heal(UPPER_HEAL_FRAC)
+        s = self.mv.snap(15.0)
+        if s is None or s.player.hp >= s.player.max_hp * UPPER_HEAL_FRAC:
+            return True
+        if self.f.estus_left() <= 0:
+            return False
+        back = self.f.retreat(nb, self.f.home)
+        self.log(f"   {tag}: HP {s.player.hp}/{s.player.max_hp} — 적이 가까워 화톳불 쪽으로 물러나 에스트: {back}")
+        self.f.heal(UPPER_HEAL_FRAC)
+        return True
+
+    def _drink_back(self, tag: str) -> None:
+        """── 돌아오면 에스트부터 ([MoKa] 2026-10-06) ──────────────────────────────
+         "그 구간이 화염병 맞는 구간이라 안전 구역으로 오고, 무조건 에스트부터 마시게 해" · "반응이 느려서 화염병을 거의 맞는다고
+         가정해야 해" → 안전 자리에 오면 HP가 조금이라도 줄었으면 근처에 적이 있어도(Field.safe 안 봄) 한 모금, 그래도
+         UPPER_HEAL_FRAC 밑이면 한 모금 더. 꽉 차 있으면 안 마심."""
+        for sip in range(2):
+            s = self.mv.snap(15.0)
+            if s is None or s.player.hp >= s.player.max_hp * (1.0 if sip == 0 else UPPER_HEAL_FRAC):
+                return
+            if self.f.estus_left() <= 0:
+                self.log(f"   {tag}: 에스트 없음")
+                return
+            r = self.mv.drink(lambda _s: True)
+            self.log(f"   {tag}: 안전 자리 — 에스트 먼저 (HP {s.player.hp}/{s.player.max_hp}): {r}")
+            self.f.events("estus", **r)
+            if not r.get("ok"):
+                return
+
+    def _encounters(self, sn, ptr) -> list:
+        """Awake, moving foes on our level within UPPER_ENCOUNTER_R — the target or anyone else ([MoKa]: "적을 조우하면 안전구역으로")."""
+        p = sn.player
+        return [c for c in sn.hostile(UPPER_ENCOUNTER_R) if c.hp > 0 and c.anim not in (None, -1)
+                and abs(c.y - p.y) < 2.5 and M.horiz(p, c) < UPPER_ENCOUNTER_R]
+
+    def _first_foe(self, ptr):
+        """Back at the safe spot: fight whoever is closest and coming (it may not be the target), else the target."""
+        s = self.mv.snap(UPPER_ENCOUNTER_R + 1.0)
+        near = self._encounters(s, ptr) if s is not None and hasattr(s, "hostile") else []
+        return min(near, key=lambda c: M.horiz(s.player, c)).ptr if near else ptr
+
+    def _lure(self, t, ptr, safe, nb, tag: str) -> str:
+        """── 유인: 조우하면 돌아오는 게 먼저 ([MoKa] 2026-10-06) ──────────────────────────────
+         "적을 유인하다 목표 지점까지 가려는 게 우선이 아니라 적을 조우하면 안전구역으로 돌아오는 것이 우선".
+         이미 오는 중·안전 자리 가까운 목표 → 나가지 않음. 아니면 목표 쪽으로 달려가다 **누구든** 깨어 움직이면(목표가 아니어도)
+         그 틱에 멈추고 달려서 돌아옴. 목표 UPPER_CLOSE_R까지 갔는데 아무도 안 움직이면 가드 들고 UPPER_NOTICE_S 기다린 뒤 돌아옴.
+         안전 자리 UPPER_NEAR_SAFE_R 안이면 돌아서지 않음. → 'here' | 'died'"""
+        here0 = (t.x, t.y, t.z)
+
+        def woke(c) -> bool:                               # moving: anim set and off where it stood (idle anims don't count)
+            return c.anim not in (None, -1) and math.dist((c.x, c.y, c.z), here0) > UPPER_MOVED_M
+
+        if (t.anim not in (None, -1) and t.anim not in M.STAGGER) or math.hypot(t.x - safe[0], t.z - safe[2]) < UPPER_COME_R:
+            self.log(f"   {tag}: 이미 오는 중이거나 안전 자리 가까움 — 안전 자리에서 받음")
+            return "here"
+
+        def met(sn) -> bool:
+            c = self.mv.find(sn, ptr)
+            return c is None or c.hp <= 0 or woke(c) or any(e.ptr != ptr for e in self._encounters(sn, ptr))
 
         def stop_in(sn) -> bool:
-            t = self.mv.find(sn, ptr)
-            return t is None or t.hp <= 0 or woke(t) or M.horiz(sn.player, t) < UPPER_CLOSE_R
+            c = self.mv.find(sn, ptr)
+            return met(sn) or (c is not None and M.horiz(sn.player, c) < UPPER_CLOSE_R)
 
-        r = self._sprint(here0, nb, stop_in)
-        if r == "dead":
+        if self._sprint(here0, nb, stop_in) == "dead":
             return "died"
-        t = self.mv.find(self.mv.snap(200.0), ptr)
-        if t is None or t.hp <= 0:
-            self.log(f"   {tag}: 가는 길에 죽음")
-            return "killed"
-        if woke(t):
-            back = self._sprint(safe, nb, None)
-            self.log(f"   {tag}: 깨어남 — 달려서 안전 자리로 {back}")
-            if back == "dead":
-                return "died"
-        res = self.f.fight(ptr, nb, tag, wait_far=True)
-        if res.result == "me_dead":
-            return "died"
-        if res.result != "killed":
-            ok = self.f.recover(f"{tag} {res.result}", nb)
-            if not ok and self.f.estus_left() <= 0:
-                return "no_estus"
-        return res.result
+        s = self.mv.snap(200.0)
+        if s is not None and not met(s):
+            guard = getattr(self.mv.pad, "guard", lambda on: None)
+            guard(True)
+            t0 = time.time()
+            while time.time() - t0 < UPPER_NOTICE_S:
+                s = self.mv.snap(200.0)
+                if s is None or met(s):
+                    break
+                time.sleep(0.1)
+            guard(False)
+        s = self.mv.snap(5.0)
+        if s is not None and math.hypot(s.player.x - safe[0], s.player.z - safe[2]) <= UPPER_NEAR_SAFE_R:
+            return "here"
+        why = "조우" if s is not None and met(s) else "아직 아무도 안 움직임"
+        back = self._sprint(safe, nb, lambda sn: math.hypot(sn.player.x - safe[0], sn.player.z - safe[2]) < 1.5)
+        self.log(f"   {tag}: {why} — 달려서 안전 자리로 {back}")
+        return "died" if back == "dead" else "here"
 
     def _sprint(self, goal, nb, stop) -> str:
         """Run along the NavMesh path to goal (no guard) until stop(snapshot). → 'arrived' | 'stopped' | 'dead' | 'no_path' | …"""
