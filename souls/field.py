@@ -538,7 +538,7 @@ class Field:
             return None
         p = s.player
         best = None
-        for z in ZONES:
+        for z in ZONES + list(getattr(self, "extra_zones", ())):   # extra_zones: a mission's own marked spots (missions.upper_zone)
             d = math.hypot(z[0] - p.x, z[2] - p.z)
             if d <= HOLD_ZONE_R:
                 return None

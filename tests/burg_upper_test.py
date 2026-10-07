@@ -77,7 +77,7 @@ def make(foe, woke_on_walk=True):
         return "arrived"
 
     def fight(ptr, nm_, tag, wait_far=False, **kw):
-        calls.append(("fight", ptr, wait_far, tuple(f.home) if f.home else None))
+        calls.append(("fight", ptr, wait_far, tuple(f.home) if f.home else None, tuple(getattr(f, "extra_zones", ()))))
         world["foe"].hp = 0
         return NS(result="killed")
 
@@ -121,6 +121,16 @@ r = m.upper_zone(2)
 fights = [c for c in calls if c[0] == "fight"]
 check("upper_zone: home = the zone's safe spot during the fight, restored after",
       r == "cleared" and fights and fights[0][3] == tuple(z2["safe"]) and f.home == home0)
+check("upper_zone: the safe spot is a marked fall-back spot during the zone, cleared after (10-06b)",
+      fights and fights[0][4] == (tuple(z2["safe"]),) and getattr(f, "extra_zones", ()) == ())
+
+# 10-06b: a chaser caught mid-walk 13 m before the zone 2 safe spot → the walk's chaser fight must fall back there first
+from souls import field as F
+here = NS(player=NS(x=-7.67, y=-10.09, z=-86.5))
+fake = NS(extra_zones=(tuple(z2["safe"]),))
+check("Field._near_zone offers the zone's safe spot 13 m back (death spot of 10-06b)",
+      F.Field._near_zone(fake, here, nm) == tuple(z2["safe"]))
+check("…and not without it", F.Field._near_zone(NS(), here, nm) is None)
 
 print(f"\n{'all ok' if not fails else f'{fails} FAILED'}")
 sys.exit(1 if fails else 0)

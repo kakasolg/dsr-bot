@@ -283,13 +283,17 @@ class Missions:
         nb = self.nms[MAP_B]
         z = UPPER["zones"][n - 1]
         safe = tuple(z["safe"])
-        r = self.f.careful_walk_to(safe, nb, f"구역{n} 안전 자리")
-        if r == "dead":
-            return "died"
-        if r != "arrived":
-            self.log(f"   구역{n} 안전 자리까지 {r} — 지금 자리에서 이어감")
         home0, self.f.home = self.f.home, safe
+        # 10-06b 구역 2: 255001이 깨우러 가는 걸음 중간에 따라붙어, 걷기의 '따라온 놈' 싸움이 안전 자리 13 m 앞(턱 화염병 9 m)에서 바로 시작 → 사망.
+        # 걷기는 따라온 놈을 싸우기 전에 찍어 둔 자리(ZONE_REACH 15 m 안)로 가드 든 채 물러나므로, 이 구역 동안 안전 자리를 거기 넣는다
+        zones0 = getattr(self.f, "extra_zones", ())
+        self.f.extra_zones = (safe,)
         try:
+            r = self.f.careful_walk_to(safe, nb, f"구역{n} 안전 자리")
+            if r == "dead":
+                return "died"
+            if r != "arrived":
+                self.log(f"   구역{n} 안전 자리까지 {r} — 지금 자리에서 이어감")
             for i, (npc, pos) in enumerate(z["kills"], 1):
                 if not self.f.alive():
                     return "died"
@@ -298,6 +302,7 @@ class Missions:
                     return r
         finally:
             self.f.home = home0
+            self.f.extra_zones = zones0
         self.log(f"── 구역{n}: 끝")
         return "cleared"
 
