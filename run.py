@@ -45,6 +45,7 @@ class Log:
         self._lock = threading.Lock()          # the black box writer thread writes to the same file
         self.t0 = time.time()
         self.on_line = None                    # radar hook (--radar): gets each log line, must not raise
+        self.zone = None                       # "burg-upper:5" while a zone / segment runs — added to every event (runinfo, ROADMAP 1-i)
 
     def __call__(self, msg: str) -> None:
         line = f"[{time.time() - self.t0:7.1f}] {msg}"
@@ -57,7 +58,8 @@ class Log:
 
     def event(self, _ev: str, **kw) -> None:
         # the arg used to be named kind; it collided with the quit-out result's kind and stopped the bot (2026-09-24)
-        line = json.dumps({"t": round(time.time() - self.t0, 2), "ev": _ev, **kw}, ensure_ascii=False, default=str)
+        z = {"zone": self.zone} if self.zone and "zone" not in kw else {}
+        line = json.dumps({"t": round(time.time() - self.t0, 2), "ev": _ev, **z, **kw}, ensure_ascii=False, default=str)
         with self._lock:
             self.ev.write(line + "\n")
             self.ev.flush()
@@ -99,6 +101,7 @@ def main() -> None:
                          "Laya 추론·행동 반영 없음, 패드·규칙엔 반영 안 함. outcome proxy, not human-verified tactical label, not a safety validation")
     ap.add_argument("--ctl", action="store_true",
                     help="P1: controller timing events → data/runs/<시각>_<명령>.ctl.jsonl (ctl.py) — 기본 꺼짐. 기록만, 패드·규칙엔 반영 안 함")
+    ap.add_argument("--note", default=None, help="한 줄 메모 — 실행 설정 기록(<run>.settings.json)과 로그 첫 줄에 남음 (예: 세이브 이름)")
     ap.add_argument("--no-lure", action="store_true", help="나이프로 한 놈씩 깨우지 않고 예전처럼 걸어가 붙는다 (비교용)")
     ap.add_argument("--style", choices=["guard", "backstep", "rush"], default="guard",
                     help="guard: 방패로 받고 휘청에 친다 (기본) | backstep: 양손, 백스텝으로 피하고 헛친 뒤 약공 | "
@@ -122,7 +125,20 @@ def main() -> None:
     from souls.field import Field
     from souls.watch import Blood, Escape
 
+    if a.basic:                                             # before the settings record, so it holds the constants this run uses
+        from souls import duel as duel_
+        duel_.BACKSTAB, duel_.HEAVY = False, False
     log = Log(a.cmd)
+    import runinfo
+    settings_path = Path(str(log.path).replace(".jsonl", ".settings.json"))
+    t_run = time.time()
+    info, diff = runinfo.collect(log.path.stem, sys.argv, vars(a), note=a.note)
+    log(runinfo.short(info))                                # first line — travels with the log into data/samples/
+    if not runinfo.write(settings_path, info, diff):
+        log(f"   ⚠ 실행 설정 기록 못 씀: {settings_path}")
+
+    def run_end(result) -> None:                            # once; never raises (runinfo.end)
+        runinfo.end(settings_path, result=result, secs=round(time.time() - t_run, 1))
     import ctl
     if a.ctl:                                               # before the Pad exists: atexit then closes the pad first, this after
         ctl.start(str(log.path).replace(".jsonl", ".ctl.jsonl"), run=log.path.stem, argv=sys.argv, cmd=a.cmd)
@@ -138,11 +154,15 @@ def main() -> None:
     else:
         log("   ⚠ 이미 다른 본체가 실행 중 — 겹쳐 켜면 패드가 부딪힌다, 멈춤")
         ctl.emit("life", ev="normal_exit", result="bot_lock_held")
+        run_end("bot_lock_held")
         return
     tm = env.make_telemetry({})
     import track
     track_ = track.Track(str(log.path).replace(".jsonl", ".track.jsonl")).attach(tm)   # planned vs actual path (track_report.py)
     log.on_line = track_.say
+    if hasattr(track_, "write"):
+        track_.write({"type": "run", "run": info["run"], "commit": info["code"]["commit"], "dirty": info["code"]["dirty"],
+                      "argv": info["argv"], "settings_sha1": info["settings_sha1"]})
     if a.radar:
         import radar
         radar_ = radar.Radar().attach(tm)
@@ -161,6 +181,7 @@ def main() -> None:
                 log(f"   ⚠ 투척 나이프(290)가 퀵 슬롯에 없음 (슬롯 {quick}, 가진 수 {have}) — 못 넣음: {why}. "
                     f"넣고 다시 켜거나 --no-lure. 멈춤 (게임 입력 없음)")
                 ctl.emit("life", ev="normal_exit", result="no_knife_slot")
+                run_end("no_knife_slot")
                 return
             log(f"   투척 나이프(290)가 퀵 슬롯에 없어서 {slot + 1}번째 빈 칸에 넣음 (가진 수 {have}) → 슬롯 {tm.quick_items()}")
     # one virtual pad per machine (P0-A): refuse before any input — focus_game already sends ALT / a title-bar click
@@ -174,6 +195,7 @@ def main() -> None:
     if busy is not None:
         log(f"   ⚠ {busy} — 패드 둘이 부딪힌다, 멈춤 (게임 입력 없음)")
         ctl.emit("life", ev="normal_exit", result="pad_lock_held")
+        run_end("pad_lock_held")
         lock.release()
         return
     if a.cmd == "asylum":
@@ -225,9 +247,7 @@ def main() -> None:
         purpose = attack_audit.run_purpose()
         if purpose:
             log(f"attack audit 실행 목적: {purpose}")
-    if a.basic:
-        from souls import duel as duel_
-        duel_.BACKSTAB, duel_.HEAVY = False, False
+    if a.basic:                                             # flags were set before the settings record (top of main)
         log("기본 플레이: 방패 + 약공만 (뒤잡기·강공 끔)")
     log.event("style", style=a.style)
     try:   # log character state each run — level-ups, rings (poise) and weapon change results, and without records batch comparisons got muddy (user 2026-09-25)
@@ -236,12 +256,16 @@ def main() -> None:
         log.event("char", stats=st, equip=eq)
     except Exception as ex:
         log(f"캐릭터 상태 읽기 실패: {ex!r}")
+    runinfo.update(settings_path, game=runinfo.game(tm, mv, w))
+    fld.run_id = log.path.stem                              # fight ids: <run>#f001 … (Field.fight)
     ms = missions.Missions(fld, nms, log=log, lure=not a.no_lure)
+    result = "exception"
     try:
         if a.cmd == "burg-bonfire" and a.seg:
             lo, _, hi = a.seg.partition("-")
             r = None
             for n in range(int(lo), int(hi or lo) + 1):
+                log.zone = f"burg:{n}"
                 r = ms.burg_segment(n)
                 log(f"══ 구역 {n} ({ms.BURG_SEGMENTS[n]}) 끝: {r}")
                 if not fld.alive():
@@ -252,6 +276,7 @@ def main() -> None:
             lo, _, hi = (a.seg or f"1-{len(ms.UPPER_SEGMENTS)}").partition("-")
             r = None
             for n in range(int(lo), int(hi or lo) + 1):
+                log.zone = f"burg-upper:{n}"
                 r = ms.upper_segment(n)
                 log(f"══ 구역 {n} ({ms.UPPER_SEGMENTS[n]}) 끝: {r}")
                 if not fld.alive() or r in ("died", "no_estus", "휴식 실패"):
@@ -292,6 +317,7 @@ def main() -> None:
                     plan = [(n0, cut)] + plan[si + 1:]
                     log(f"수용소: 첫 단계에서 {math.dist(first, here):.0f} m — 가장 가까운 구간 {n0}의 {j0 + 1}번째 단계부터 이어감")
                 for n, steps in plan:                      # back to back — standing idle between segments got us beaten to 152/616
+                    log.zone = f"asylum:{n}"
                     log(f"수용소 구간 {n}: {len(steps)}단계 ({steps[0].get('label') or steps[0]['type']} → {steps[-1].get('label') or steps[-1]['type']})")
                     r = run_.run(steps, f"수용소{n}")
                     if r != "done":
@@ -301,6 +327,8 @@ def main() -> None:
             r = ms.light_burg_bonfire()
         else:
             r = quit_test(ms, mv, esc, log)
+        log.zone = None
+        result = r
         log(f"══ 결과: {r}")
         log.event("result", cmd=a.cmd, result=r)
         ctl.emit("life", ev="normal_exit", result=r)
@@ -314,12 +342,14 @@ def main() -> None:
         log("══ 사용자 중지 (Ctrl+C) — 입력 중립, 퀵 종료 안 함")
         log.event("user_stop", cmd=a.cmd)
         ctl.emit("life", ev="user_stop")
+        result = "user_stop"
         raise
     except BaseException as ex:
         # if the bot stops, the character stands idle next to enemies and dies (twice on 2026-09-24) — quit out to shake enemies before stopping
         import traceback
         log(f"══ 오류로 멈춤: {ex!r}\n{traceback.format_exc()}")
         ctl.emit("life", ev="exception_exit", exc=type(ex).__name__, msg=repr(ex)[:200])
+        result = f"exception:{type(ex).__name__}"
         if not esc.escaping:
             try:
                 esc.fire(f"봇 오류({type(ex).__name__}) — 적 떼어내고 멈춤", "shake")
@@ -356,6 +386,11 @@ def main() -> None:
         finally:
             pad.neutral()
             lock.release()     # only after the final neutral (P0-B) — the watchdog or the next bot may take over from here
+            try:
+                run_end(result)
+                log(f"실행 설정 기록: {settings_path.name}")
+            except Exception:
+                pass
             if hasattr(tm, "stats"):
                 log(f"텔레메트리 피드: {tm.stats()}")   # frames = underlying read count, fresh/waited = frames received by layers, direct = fallback
 

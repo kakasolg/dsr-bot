@@ -6,6 +6,7 @@ Checks:
     ledge nudges are switched off for the cleanup; camera follow is stopped; a user_stop event is written
   · other exceptions: unchanged — Escape.fire(..., "shake") as before
   · every path: the last pad call is neutral and it comes before the bot lock's release, even if cleanup raises
+  · runinfo: the first log line is the run's settings line and <run>.settings.json gets its end result on every path
 """
 from __future__ import annotations
 import sys as _sys, pathlib as _pl  # repo root first (the bot's modules), then this folder
@@ -149,6 +150,17 @@ def final_order_ok() -> bool:
     return bool(pad_calls) and TRACE[pad_calls[-1]] == "neutral" and pad_calls[-1] < rel
 
 
+def settings(tmp: Path) -> dict | None:
+    """The newest run's settings record (runinfo) — runs in one second share a name; each run rewrites it."""
+    fs = sorted((tmp / "data" / "runs").glob("*_merchant.settings.json"))
+    return json.loads(fs[-1].read_text(encoding="utf-8")) if fs else None
+
+
+def first_line(tmp: Path) -> str:
+    fs = sorted((tmp / "data" / "runs").glob("*_merchant.log"))
+    return fs[-1].read_text(encoding="utf-8").splitlines()[0] if fs else ""
+
+
 def main() -> None:
     tmp = Path(tempfile.mkdtemp(prefix="runstop_"))
     install(tmp)
@@ -163,17 +175,22 @@ def main() -> None:
     check("Ctrl+C: 마지막 패드 호출은 neutral, 잠금 풀기 전", final_order_ok())
     events = [json.loads(l) for f in (tmp / "data" / "runs").glob("*_merchant.jsonl") for l in f.read_text(encoding="utf-8").splitlines()]
     check("Ctrl+C: user_stop 사건 기록", any(ev.get("ev") == "user_stop" for ev in events))
+    st = settings(tmp)
+    check("Ctrl+C: 실행 설정 기록 — 끝 결과 user_stop", st is not None and (st.get("end") or {}).get("result") == "user_stop")
+    check("로그 첫 줄 = 실행 설정 한 줄 (run · code · 인자)", first_line(tmp).split("] ", 1)[-1].startswith("run ") and " · code " in first_line(tmp))
 
     # 2) other exception: unchanged — shake quit-out
     e = go(RuntimeError("bug"))
     check("오류: 예외 그대로 나감", isinstance(e, RuntimeError))
     check("오류: 예전처럼 fire(shake)", ("fire", "shake") in TRACE)
     check("오류: 마지막 패드 호출은 neutral, 잠금 풀기 전", final_order_ok())
+    check("오류: 실행 설정 기록 — 끝 결과 exception:RuntimeError", ((settings(tmp) or {}).get("end") or {}).get("result") == "exception:RuntimeError")
 
     # 3) cleanup itself raises — the final neutral and the release still happen, in that order
     e = go(KeyboardInterrupt(), boom=True)
     check("정리 실패: 그래도 neutral → 잠금 풀기", "lock.release" in TRACE and final_order_ok())
     check("정리 실패: fire 안 부름", not any(isinstance(x, tuple) and x[0] == "fire" for x in TRACE))
+    check("정리 실패: 실행 설정 끝 기록은 그래도 남음", ((settings(tmp) or {}).get("end") or {}).get("result") == "user_stop")
     print("run_stop_test: 전부 통과")
 
 

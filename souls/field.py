@@ -582,6 +582,8 @@ class Field:
          싸움이 안전 자리에서 TETHER_R 넘게 벗어나면 그 틱에 끊고, 가드 든 채 안전 자리로 물러나 거기서 다시 받는다(wait_far).
          TETHER_TRIES번 끊은 뒤엔 묶지 않고 끝까지 — 안 따라오는 놈과 끊고 물러나기만 되풀이하지 않게.
          원거리 적(foes.ranged — 석궁·화염병)은 묶지 않음: 10-06c 구역 1 석궁 255002가 안 따라와 3번 끊고 돌아오기만 15 s."""
+        self._fight_n = getattr(self, "_fight_n", 0) + 1     # one id per fight() — a tether cut and re-taken stays the same fight
+        self.fight_id = f"{getattr(self, 'run_id', 'run')}#f{self._fight_n:03d}"   # run.py sets run_id (runinfo, ROADMAP 1-i)
         spot = getattr(self, "tether", None)
         if spot is not None and callable(getattr(self.mv, "find", None)):
             c = self.mv.find(self.mv.snap(SEEK_R), ptr)
@@ -641,7 +643,8 @@ class Field:
         finally:
             self.mv.cam_target = None
         self.log(f"   {tag}{' (끝까지)' if desperate else ''}: {r.line()}")
-        self.events("duel", tag=tag, npc=r.npc, result=r.result, secs=round(r.secs, 1), dealt=r.dealt, taken=r.taken)
+        self.events("duel", tag=tag, npc=r.npc, result=r.result, secs=round(r.secs, 1), dealt=r.dealt, taken=r.taken,
+                    fight=getattr(self, "fight_id", None))
         if r.result == "crowd" and r.wall_back:
             self.back_to_wall(nm)
         elif r.result == "crowd" and self._crowd_capped():

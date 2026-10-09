@@ -107,6 +107,13 @@
 4. [MoKa] CLAUDE.md 복사 절차를 `sample.py`로 바꾸는 것 승인 → 그 뒤 모든 실행.
 5. 제안 1~4의 A/B는 `ab.py`로 비교.
 
+### 구현 상태 (2026-10-09 [cloud], [MoKa] "제안 5번부터 구현 시작")
+- 단계 1·2 오프라인 완료: `runinfo.py` · `run.py`(첫 줄, `--note`, `--basic` 플래그를 기록 전에 적용, 모든 끝 경로에서 `end`) · `Field.fight` `fight_id`(`duel` 이벤트 `fight`) ·
+  `Log.event` `zone` · track 첫 `run` 줄 · `sample.py` · `ab.py` · `hotspots`/`blind_report` 머리줄. `tests/runinfo_test.py`, `tests/run_stop_test.py`(끝 기록 3경로), golden 그대로.
+- §7 답 전 기본값(나중에 바꾸기 쉬움): ① diff는 `data/runs/`에만(`sample.py`가 안 옮김, `.gitignore`에 `data/samples/*.diff`) ② `sample.py`는 `<stamp>_<cmd>[_이름]`, 옛 이름은 그대로
+  ③ 게임 상태(HP·위치·소울·인간성·에스트·나이프·퀵 슬롯·마지막 화톳불)는 기록 ④ dirty는 막지 않고 기록만.
+- 남은 것: [win] §5-2…4 확인, `label_pilot.py build`가 settings를 읽는 것(제안 4 단계 2와 같이).
+
 ## 7. [MoKa] 결정할 것
 1. **커밋 안 한 수정의 diff를 `<run>.diff`로 남기는 것** — 저장소가 공개라 samples로 복사하면 아직 다듬지 않은 코드가 그대로 올라감. 대안: diff는 `data/runs/`(로컬)에만,
    samples엔 바뀐 파일 이름과 해시만.

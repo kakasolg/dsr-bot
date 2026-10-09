@@ -84,11 +84,14 @@ def main() -> None:
     ap.add_argument("--gap", type=float, default=GAP_S)
     ap.add_argument("--list", action="store_true", help="every blind spell of the newest run")
     a = ap.parse_args()
-    files = a.files or sorted(glob.glob(str(ROOT / "data" / "samples" / "burg-bonfire-radar-*.txt")), key=lambda f: Path(f).stat().st_mtime)
+    files = a.files or sorted(glob.glob(str(ROOT / "data" / "samples" / "burg-bonfire-radar-*.txt"))   # + sample.py names (<stamp>_<cmd>…)
+                              + glob.glob(str(ROOT / "data" / "samples" / "20*_burg-*.txt")), key=lambda f: Path(f).stat().st_mtime)
     if not files:
         print("no bot logs")
         return
     runs = {Path(f).stem.replace("burg-bonfire-radar-", ""): spells(f, a.gap) for f in files}
+    import runinfo
+    print(f"newest: {Path(files[-1]).name} — {runinfo.describe(files[-1])}")
     print(f"blind spells (> {a.gap:.0f} s without a duel status line inside one fight): count × seconds −HP lost meanwhile")
     print(table(runs))
     if a.list:

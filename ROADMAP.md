@@ -63,7 +63,8 @@ zone 8 crossbowmen (P-47).
 **Instrumentation / run records**
 - [ ] [win] P1-D observation quality · Escape · watchdog events (`--ctl-frames` off by default) (1-l)
 - [ ] [win] P1-E ordering · queue overflow · write failure · on/off-equal tests (1-l)
-- [~] [cloud] Run settings record (proposal 5, `docs/design-run-settings.md`) — MoKa 2026-10-09: start implementing. Steps 1–2 (`runinfo.py`, `run.py`, `fight_id`/`zone`, `sample.py`, `ab.py`); then [win] check §5-2…4
+- [~] [cloud] Run settings record (proposal 5, `docs/design-run-settings.md`) — steps 1–2 done offline 2026-10-09: `runinfo.py` (`<run>.settings.json` + first log line + track `run` line), `fight_id`/`zone` in events, `sample.py`, `ab.py`, report headers; `tests/runinfo_test.py` + `run_stop_test` 20/20 checks, golden same
+- [ ] [win] After `git pull`: one short run (e.g. `burg-upper --seg 3 --note test`) → `.settings.json` + first line `run … · code …`; edit one line and run again → `+dirty(1)` and `.diff`; `python sample.py` → `python ab.py <run> <run>` warns on `code.dirty` (design §5-2…4)
 - [ ] [MoKa] Laya: keep off / freeze; move label tool's `why_not` out of `laya_shadow.py`?
 - [ ] [MoKa] Ramp 24-scene labels (review mode) → `python label_pilot.py report --set ramp`; then size of the 300-label eval set
 - [ ] [MoKa] Town entry: zone-boundary F9 walk plan · B-hit design (not approved)
