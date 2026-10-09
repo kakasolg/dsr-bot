@@ -40,7 +40,7 @@ zone 8 crossbowmen (P-47).
 ## 2. Open by area
 
 **Fight rules / reflexes (1-j: "basic reflexes done right", MoKa 10-02)**
-- [~] [cloud] Scene expectations (proposal 4): design drafted `docs/design-scene-expectations.md`; waits for MoKa (§7)
+- [~] [cloud] Scene expectations (proposal 4, `docs/design-scene-expectations.md`) — MoKa 2026-10-09: start implementing. Steps 1–2: `tests/scene_world.py`, `tests/expect/duel.jsonl`, `duel_expect_test`, label drafts
 - [~] [cloud] One floor check (proposal 3, P-49): design drafted `docs/design-floor-check.md`; waits for MoKa (§7)
 - [~] [cloud] Multi-foe = spot choice (analysis proposal 1): design drafted `docs/design-multi-foe-spot.md`; step 1 (measure only) waits for MoKa's answers (§8)
 - [~] [win] P-32 axe hollow `AXE_HOLLOW` guard — game check on the ramp (needs MoKa's go)
