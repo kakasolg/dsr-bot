@@ -1,1005 +1,155 @@
-# ROADMAP — 개선 계획 · 체크리스트 · 문제 기록
+# ROADMAP — what is open now
 
-이 문서 하나로 두 작업자가 협업한다. **작업 전에 반드시 이 문서를 먼저 읽고, 작업 후 체크와 기록을 갱신한다.**
+Short on purpose: **only open work, one line each**. Full history (Korean, verbatim, nothing deleted) lives in
+`docs/roadmap/` — find any section id (`1-m`, `6-a`, `P-29` …) there with `grep -n "1-m\." docs/roadmap/*.md`.
 
-## 0. 작업 방식
+| File | Holds |
+|---|---|
+| `docs/roadmap/plan.md` | sections 0 … 7 in full (old rules, every `[x]` item with its check result, measurements, MoKa quotes) |
+| `docs/roadmap/problems.md` | section 8 problem log P-1 … in full — **new problems are appended here** |
+| `docs/roadmap/relay.md` | old section 10 board relay (2026-09-30 … 10-01) |
+| `docs/roadmap/changelog.md` | old section 9 change log |
 
-| 작업자 | 환경 | 맡는 일 |
+Rules for keeping this file small (CLAUDE.md has the full working rules):
+- An item lives here while it is `[ ]` / `[~]` / `[!]`. When it becomes `[x]` or `[-]`, move the line (with its one-line
+  check result) to the matching section of `docs/roadmap/plan.md` and delete it here.
+- Details, run logs and numbers go in the archive or in `data/samples/`; here one line + a pointer.
+- Status marks: `[ ]` todo · `[~]` in progress · `[!]` blocked · `[x]` done · `[-]` cancelled. Roles: `[cloud]` `[win]` `[MoKa]` (old `[사람]` = MoKa).
+
+---
+
+## 1. Now — Undead Burg bonfire → Taurus Demon (1-m, MoKa 2026-10-06)
+
+Bot already clears cell → Undead Burg bonfire in one run (10-03e). `run.py burg-upper` = MoKa's safe-spot zones 1–8
+(`data/burg-upper-map.json`). Test save: `backup-20261006-155749-burg-bonfire-hp742-before-taurus`.
+10-06 bot runs cleared zones 1–8 one or a few at a time (zone 4 lowest HP 40 %); the `--seg 5-8` run died at the
+zone 8 crossbowmen (P-47).
+
+- [ ] [win] Zone 8: at the ladder top **roll twice** away from the two crossbowmen, then fight (MoKa 10-06) → P-47
+- [ ] [cloud]+[win] Taurus: bridge F9#7 calls the boss → run to ladder, climb → **gold pine resin** → plunge (~40 % of boss HP) → ~4 light attacks, keep stamina > 0; start with ≥ 1 Estus (MoKa 10-06)
+- [ ] [cloud] Firebomb hollow "close in fast" rule — unless the way there is a fall-risk zone (ledge 254012 is ignored) → check with `duel_golden_test`
+- [~] [win] Zone-by-zone bot runs; after each: `blind_report.py` · `hotspots.py` · `track_report.py`, logs to `data/samples/`
+- [~] [MoKa] Recordings of the route (3 done, Taurus killed in the 3rd) — more only if a zone needs it
+
+## 2. Open by area
+
+**Fight rules / reflexes (1-j: "basic reflexes done right", MoKa 10-02)**
+- [~] [win] P-32 axe hollow `AXE_HOLLOW` guard — game check on the ramp (needs MoKa's go)
+- [ ] [MoKa] P-31 decide: `rule_finish` only within `reach + 0.3` (re-record golden)
+- [ ] [MoKa] P-33 decide: no `stagger_punish` right after a block; [win] first checks per-foe stagger anims in old logs (read-only)
+- [ ] [win] Read-only: `control.Pad` stuck-input detection; reflex order inside a walk tick
+- [ ] [win] Read-only: retreat/Estus decisions when ≥ 2 foes were close, from old runs
+- [ ] [win] #4 `ranged` (thrower) classification fix — changes lure/wait, compare in its own runs
+- [~] [win] Battle-axe vertical heavy against walls (two-handed only; shield soldiers: heavy → light) — game checks
+- [ ] [cloud]+[win] Boss fight default = two-handed + dodging (9-30 principle); Taurus is the first case
+
+**Walking / navigation (6-a harness, 1-f, 1-g)**
+- [~] [cloud] Harness layer-2 trust check: reproduces the passage-entrance point-70 before/after (direction yes, size exaggerated)
+- [ ] [cloud] Compare target walk rules (progress switch · lateral slow-down · look-ahead · stop · recover) inside `_follow` on layer 2, then [win] A/B
+- [ ] [win] [urgent since 09-30] "almost arrived" rule check in game (`거의 도착 … 다음 점으로` lines, asylum 1 m-short spots)
+- [~] [win] 1-f A: early-turn / rubbing at corners reduced? (`hotspots.py`)
+- [ ] [cloud] 1-f C: at a stuck corner go 1 m further along the incoming direction before turning — parked behind 1-g
+- 1-g learning (parked, MoKa 09-28/09-30): step 1 motion model = 6-a layer 2 (done); step 2 imitation policy after layer-2 trust check
+
+**Instrumentation / run records**
+- [ ] [win] P1-D observation quality · Escape · watchdog events (`--ctl-frames` off by default) (1-l)
+- [ ] [win] P1-E ordering · queue overflow · write failure · on/off-equal tests (1-l)
+- [ ] [MoKa] decide run settings file `<run>.settings.json` + `code_commit` / zone / fight id in logs (1-i, 1-j)
+- [ ] [MoKa] Laya: keep off / freeze; move label tool's `why_not` out of `laya_shadow.py`?
+- [ ] [MoKa] Ramp 24-scene labels (review mode) → `python label_pilot.py report --set ramp`; then size of the 300-label eval set
+- [ ] [MoKa] Town entry: zone-boundary F9 walk plan · B-hit design (not approved)
+
+**Game files · radar · overlay (2, 4, 5)**
+- [~] [win] Re-run `msb_extract.py m10_02_00_00 m10_01_00_00` for `treasures`
+- [~] [win] Borderless overlay + bot: overlay visible, clicks pass through, bot does not stop
+- [~] [win] Radar upgrade check (navmesh drawn, pad slots, recording, `--replay`)
+- [ ] [win] Radar AI ranges (sight cone, hearing circle, leash) match the game
+- [ ] [cloud] Feed a recording back into the bot's decision code ("what would the bot have done")
+
+**Later / parked (3, 6, 7)**
+- [ ] [cloud] Collision mesh: read `map/*.hkxbhd` with soulstruct-havok; classify NavMesh edges wall/cliff → `EDGE_PENALTY`
+- [ ] [cloud] 2D simulator: enemy sense/chase/leash from NavMesh + ThinkParam, plug `souls/field.py` in, separate/lure strategy experiments
+- [ ] [cloud] Explore mode (offline only, invincible + invisible), Lua decompile, TAE timing → attack prediction
+
+## 3. Old open items — confirm or cancel ([MoKa])
+
+Still `[ ]`/`[~]` in the archive but probably overtaken by later work. Not deleted; MoKa marks each `[x]` or `[-]`.
+- 0-b: [win] run + `track_report`/`hotspots` on the 09-27 radar recordings (P-17 numbers) — later runs did this
+- 0-b: [win] 10-01 run request for `97d4f14` (review fixes 2–4) — runs continued after it
+- 0-b: [cloud]+[MoKa] radar/overlay as a distributable mod — still wanted?
+- 0-b: [win] small checks: radar/overlay, `msb_extract` treasures (duplicate of section 2)
+- 1: [win] after the folder move: `run.py` / pytest / `experiments/` scripts still run — many runs since
+- 1-e: [win] run `hotspots.py` after every run — now a CLAUDE.md rule
+- 1-h: [MoKa] asylum step names; [win] asylum mission remaining segments ① … ④ — bot clears cell → bonfire since 10-03
+- 1-f: [MoKa]+[win] backstab demo recording (10 backstabs)
+- 1-i: [MoKa] next step for the fine-tuned Laya checkpoint; [win] `--laya-shadow` run (Laya concluded "not needed", 10-02)
+- 2: [MoKa] spot-check extracted boxes/enemy positions; [cloud] "file evidence" grade in LAYERS.md
+- 4: [win] radar `watch` → `stale` after 2 s check
+
+## 4. Problem index
+
+Full entries: `docs/roadmap/problems.md`. Status: **open** · **parked** · **decide** (waits for MoKa) ·
+**verify** (fixed offline, game check pending) · **fixed** · **won't fix**.
+
+| P | Problem | Status |
 |---|---|---|
-| **[cloud]** | 클라우드 Claude Code (게임 없음, Linux) | 계획, 게임 없이 되는 코드 (파서, 시뮬레이터, 뷰어, 테스트), 코드 리뷰 |
-| **[win]** | 윈도우 로컬 Claude Code + 실제 게임 | 게임 파일 추출 실행, 실제 게임 테스트, 윈도우 전용 기능 (오버레이, 패드) |
-| **[MoKa]** | 사용자 (옛 기록의 `[사람]`) | 방향 결정, 실제 플레이 확인, 최종 판단 |
-
-**규칙**
-1. 작업 브랜치: `claude/dsr-bot-project-review-r3hh9f`. 시작 전에 `git pull`, 끝나면 커밋하고 푸시한다.
-2. 항목을 시작하면 `[ ]` → `[~]`(진행 중)로 바꾸고 커밋한다. 둘이 같은 항목을 동시에 잡지 않게 하기 위해서다.
-3. 끝나면 `[x]`로 바꾸고, **확인 방법과 결과**를 한 줄 적는다 (예: "field 테스트 11/11 통과", "Undead Burg에서 실행, 오브젝트 213개 추출").
-4. 막히거나 예상과 다르면 **8. 문제 기록**에 항목을 추가한다. 해결되면 그 아래에 해결 방법을 적는다. 지우지 않는다.
-5. [win]이 필요한 확인은 항목에 `→ [win] 확인 필요`라고 적어 둔다. 게임 파일이나 기록 샘플이 필요하면 `data/samples/`에 작은 것만 올린다 (대용량 금지).
-6. 게임 메모리를 쓰는 기능(무적, 투명, 워프)은 **오프라인에서만** 쓴다.
-7. 계획을 바꾸면 **9. 변경 이력**에 날짜와 이유를 적는다.
-8. 주고받는 이야기(결과 보고·질문·결정 요청)는 [win]·[MoKa]는 비공개 MCP 게시판에서 한다. **[cloud]는 게시판에 못 닿으므로 이 문서 "10. 게시판 중계"를 거친다** (공개 GitHub Issues는 더 안 씀, #2~#14는 옛 기록). 확정된 것만 항목에 반영한다.
-
-상태 표시: `[ ]` 할 일 · `[~]` 진행 중 · `[x]` 완료 · `[!]` 막힘 (문제 기록 참고) · `[-]` 취소
-
----
-
-## 0-b. 우선순위 정리 (2026-09-28 [사람] 결정)
-
-[사람]: "난이도가 너무 높은 것은 뒤로 빼고 할 수 있는 것만 하자. 신경망 학습·게임 엔진은 [사람]이 먼저 공부하고 다음 단계로." 아래 순서대로만 진행. 보류 항목은 지우지 않고 해당 섹션에 그대로 둠.
-
-**[긴급] (2026-09-30 [MoKa] 지정 — 다른 일보다 먼저)**
-- [x] **[긴급]** [win] 걷기 하네스 2층 데이터 올리기 — 이게 없으면 [cloud]가 2층(닫힌 루프: 움직임 모델 + NavMesh)을 못 만듦. (1) NavMesh 내보내기: Burg `m10_01_00_00`·Firelink `m10_02_00_00`·Asylum `m18_01_00_00` — `navmesh.Navmesh`의 `v`·`t`·`adj`·`flags`(+ MCG gates)를 `np.savez_compressed`로 `data/samples/navmesh_<맵>.npz` (크면 먼저 알려 주기) (2) 레이더 녹화 `data/radar/*.jsonl`에서 봇 걷기 구간(스틱 `pad` slot 1 + `snap`, 10 Hz)을 잘라 `data/samples/radar_walk_*.jsonl` — 비밀 통로 입구·나가는 길(passage-drill), 경사로 끝, 창고 방, 합계 수 MB 이하. 자세한 건 6-a·"10. 게시판 중계" — 2026-09-30 [win] 올림: (1) `data/samples/navmesh_m10_01_00_00.npz`(Burg, 삼각형 7,217·게이트 129, 118 KB)·`navmesh_m10_02_00_00.npz`(Firelink 2,126·59, 47 KB)·`navmesh_m18_01_00_00.npz`(Asylum 2,706·23, 43 KB) — 키 `v`(float64, MSB 배치 적용된 게임 좌표)·`t`·`flags`·`piece`·`adj`(조각 안 이웃, −1 없음)·`gate_tri`/`gate_id`(MCG 게이트: 같은 id끼리 이어짐), `navmesh.Navmesh`와 v·t·adj 같음 확인, 내보내기 `experiments/navmesh_export.py` (2) `data/samples/radar_walk_{passage,passage_exit,ramp_top,storeroom}.jsonl`(합계 5.8 MB, 장소마다 걷기 6번 — 통로 입구 6파일, 나가는 길 passage-drill 1파일, 경사로 꼭대기 6파일, 창고 방 6파일): 걷기마다 머리 줄 `{"type":"walk",src,tag,t0,t1,bot_slot}` 뒤에 앞뒤 1 s 포함 snap(10 Hz, cam_yaw·path·player, chars는 15 m 안)·pad(봇 slot만, 바뀔 때마다 ~50 Hz)·say. **주의: 봇 패드 slot은 파일마다 다름** — 사람 패드가 같이 꽂혀 있으면 1, 봇 패드만이면 0 (09-27a·09-28 214627은 1, 09-27 220722·09-28 002715·09-30은 0) → 머리 줄 `bot_slot` 사용. 내보내기 `experiments/radar_walk_export.py`
-- [ ] **[긴급]** [win] 봇 걷기 변경 확인(거의 도착 규칙·안개벽) — 6-a의 `[win] 거의 도착 규칙 확인` 항목
-- [ ] **[긴급]** [win] 2026-10-01 [MoKa] 실행 요청 — `97d4f14`(검토 고침 2~4번) 확인. `git pull` 뒤 `python run.py burg-bonfire --basic --radar` **한 번에(`--seg` 없이) 2번 이상** (배틀 액스 캐릭터). 실행마다 `python blind_report.py`·`python hotspots.py`·`python track_report.py`, 로그·track을 `data/samples/`에. 보고할 것: (1) 구역별 한 바퀴(428 s, 사망 0, 최저 HP 49 %)가 한 번에도 되는지 — 시간·사망·최저 HP·큰 피격 (2) 로그 끝 `카메라 정렬:` 줄 — 구역 4의 중앙 5° · 10° 안 90 %가 유지되는지 (3) `losing`이 나오면 그 뒤 `화톳불 쪽으로 물러남` → 에스트가 이어지는지(전엔 HP 60 % 위면 그냥 새 싸움), `losing`·`low_hp` 횟수와 에스트 소모 (4) 몸 돌리는 틱(`방향` 상태 줄)에 옆 적에게 맞은 피해 — blind_report·블랙박스로 (5) 휴식·사망 뒤 성벽 마을 끌어오기가 다시 시도되는지(`_careful_lured` 비움). 결과는 "10. 게시판 중계"에 `[게시판→cloud]`로
-
-- [x] **[긴급]** [win] 2026-10-01 [MoKa] "Win 실행 필요함" — `burg-bonfire --radar` (배틀 액스 캐릭터) 2번 이상 → 실행마다 `python blind_report.py`·`python hotspots.py`·`python track_report.py`, 로그·track을 `data/samples/`에. 확인할 것: (1) 로그의 새 줄 **`뒤잡기 R1: 판정 …° · … m → 누른 직후 …° · … m (… s, 적 애니 …)`** — 판정 때와 R1 직후 각도·거리·적 애니가 얼마나 달라지는지(배틀 액스 뒤잡기 `hit`의 원인: [MoKa] 관측 "지연으로 타이밍이 안 맞음"). `hit`과 `stabbed` 줄을 나눠서 보고 (2) 가장자리 물러남 때 가드가 올라가는지, `blind_report.py`의 edge retreat 피해가 09-30 평균(실행당 −341)보다 줄었는지 (3) 방패병 둘 이상·다른 적 3.5 m 안에서 양손 전환·벽 강공이 안 나오는지(`방패병: 양손으로`가 1:1에서만) — **2026-10-01 [win] 2번 함** (`data/samples/burg-bonfire-radar-2026-10-01{a,b}.txt`·track). a: `#4 이동`에서 셋에게 사망(P-29), b: **lit, 1129 s**(위험, 최저 HP 11 %). (1) **뒤잡기 R1 9줄**: 판정→R1 직후 각도는 9번 중 8번 커짐(0.16 s 사이 등 뒤로 더 들어감) → 놓고 기다리는 0.1 s 탓 아님. 거리도 아님(1.10~1.12 m에서도 hit). **갈린 건 적 상태**: 휘두르는 중(3001~3005·3010) 7번 전부 `hit`, 휘청(3500) 2번 중 `stabbed` 1(나머지 1은 0.16 s 사이 −1로 풀림). → 배틀 액스로 '휘두를 때 뒤잡기'는 안 됨 (2) 가장자리 물러남 피해: a 2번 −535 → b 4번 −182 (09-30 평균 −341). blind_report 합계 b −182로 최근 실행 중 가장 낮음 (3) 양손 전환·벽 강공은 둘 다 1:1에서만(`방패병: 양손으로` 3번, 모두 혼자인 방패병·석궁병, 피해 0~72). b에선 천천히 걷기(`careful_walk_to`)로 `#4 이동`을 하나씩 끌어와 살아서 지남. 대신 길어짐 — 오버레이 포커스 버그 ~2분 + **선반 위 석궁병(town#5)을 걷기마다 다시 끌어오려다** `no_spot`·`no_reaction`·던질 자리 막힘(hotspots NEW 3곳 그 근처), `#4`·`#5` 걷기 240 s 상한 → 실패한 끌어오기를 실행 내내 기억하게 고침
-
-**지금 할 것 (작고 확인 가능한 것)** — 2026-09-28 [사람] 두 번째 정리 반영
-- [x] [cloud] Bandit's Knife(103000)를 `souls/weapons.py`에 추가 — 첫 값(위키 기준): 닿는 거리 1.0 m, 2연타, sp_min 30. 실측 전
-- [x] [win] Bandit's Knife 실측: `reach.py`로 헛손질 거리, 허공 휘두르기로 startup·active·recovery → `weapons.py` 값 고침
-  - 2026-09-28 [win] (+3 강화, [MoKa]: "거의 패링·뒤잡 전용") **허공 휘두르기** (새 `experiments/swing_probe.py`, 6/6 같음): 애니 203000, 스태미나 −14 at **0.34 s**, +0xA0 0x100 비트 0.34~0.46 s, idle 복귀 1.36 s → startup 0.34 · active 0.12 · recovery 0.90. LB 들고 휘두르면 startup 같고 0.76 s에 끝남(회복 캔슬). 2타: 두 번째 R1 0.25 s는 무시, 0.35~0.95 s는 항상 이어짐 → 공식 `chain_at` 0.42 s가 창 안. **닿는 거리**: `reach.py direct`는 NavMesh 없이 직선으로 다가가다 성벽 마을 화톳불 난간에서 떨어져 맵 밖으로(y −767, PlayerNoDead라 안 죽음, [MoKa]가 게임 강종·재시작) → 표본 0 (P-19). 대신 블랙박스(knife 실행 13개, 새 `experiments/knife_hits.py`): 칼날 나간 순간 거리별 명중 0.8 m 28/41 · 1.0 m 19/22 · 1.4 m 3/3 · 1.6 m 12/19 · 1.8 m 1/6 · ≥2.2 m 0/16 → 경계 ≈1.6 m, **reach 1.0 → 1.3**. `weapons.py` 고침, pytest 28 통과. 로그: `data/samples/swing-bandits-knife-2026-09-28a.txt`·`…-guard-2026-09-28b.txt`·`reach-bandits-knife-2026-09-28a.txt`. 참고: 09-28 실행의 약공 애니는 425000(스태미나 −14) — LB 든 허공 휘두르기는 203000이라 425000은 다른 조건(락온?)으로 보임, 확인 안 함
-- [x] [cloud] 계획 경로 vs 실제 궤적: 봇이 실행마다 `data/runs/<시각>_<이름>.track.jsonl`(2 Hz 위치·HP·근처 적, 계획 경로는 바뀔 때만, 로그 줄) 기록 — 레이더 서버 없이도. `track_report.py`: 걷기마다 걸린 시간·계획/실제 거리·경로에서 벗어난 거리·끝 도착 여부·**멈칫**(6 m 안 적 없이 1 s 넘게 0.3 m/s 미만), 여러 실행이면 멈칫 자리별 실행마다 초. 레이더 녹화(`data/radar/*.jsonl`)도 읽음. `tests/track_report_test.py`
-- [x] [cloud] `hotspots.py` 기본을 "이번 실행 vs 이전"으로: NEW·AGAIN·GONE만 (옛 전체 목록은 `--all`)
-- [ ] [win] 봇 1번 실행 → `python track_report.py`·`python hotspots.py` 결과와 track 파일을 `data/samples/`에 올림. 오늘 레이더 녹화(`data/radar/20260927_191338.jsonl` 등)에도 `python track_report.py --quiet <파일>` 돌려 결과 첨부 — 통로 입구 멈칫이 숫자로 나오는지 (P-17 기록용)
-- [x] [win] **새 캐릭터로 지금까지 만든 것 확인** ([MoKa] 2026-09-28): 산적 `Bandit Bot` (SL 7 VIT 15, 배틀 액스 701000, 거미 방패, 투척 나이프 0). 수용소는 [MoKa]가 직접 플레이하며 `observe_record.py` 녹화(`data/observe/20260928_221908.jsonl`, 393 s, 20 MB 로컬) — 감방 → 불의 제전 328 s, **수용소 데몬 피해 0**(낙공 −417 + 배틀 액스 한손 약공 ~−100 × 4, 23 s; 옛 양손 브로드소드 102 s). 게임에서 읽기: 이름 `Bandit Bot`, 무기 배틀 액스(닿는 거리 1.6 m), 퀵 슬롯 `[201,-1,-1,-1,-1]`, 캐릭터별 화톳불 목록 따로 → **정상**. `burg-bonfire --radar`: 나이프 0개라 게임 입력 없이 멈춤 **정상** → `--no-lure` 1번째(a) 경사로 110 s 사망 — P-24 → 고친 뒤 2번째(b) **lit, 497 s**, 경사로 cleared 109 s 받은 피해 0, 위험 판정 위험(최저 HP 39%, 큰 피격 10번, 퀵 종료 1번, 에스트 5번; Knight bot 28z는 396 s·최저 41%·큰 피격 7번). `hotspots.py` NEW (−49.6,−21.8,−33.2) `#4 이동` stuck 8 s(1번뿐), AGAIN 상자 `o1321_0021`(P-12). 로그·track: `data/samples/*-2026-09-28-bandit-a/b*` → #13
-- [~] [win] 배틀 액스 강공(수직 내려찍기)을 좁은 통로·벽에 붙은 적에게 쓰기 — 2026-09-28 넣음: `Weapon.heavy_vertical`(배틀 액스만), 나나 적이 NavMesh 경계에서 `WALL_R` 1.2 m 안이고 SP ≥ 60이면 약공 쓰는 규칙 전부(먼저 치기·휘청 반격·마무리·기본 공격)에서 강공, **발차기·뒤잡기보다 우선**([MoKa]: 벽·좁은 통로 우선, 배틀 액스만 가능한 플레이 — 다른 무기는 약공이 나음). 적이 휘두르는 중에 끊어 치기는 약공 그대로(강공 0.86 s는 느림). `tests/duel_wall_heavy_test.py`, duel_golden(브로드소드) 그대로. → [win] 게임 확인 1번 (`data/samples/burg-bonfire-radar-2026-09-28-bandit-e.txt`, 나이프, 둘러싸임 후퇴 끔): **lit, 419 s** (나이프 없던 b 497 s), 경사로 cleared 146 s. 강공(수직) 12번 — 기록된 11번 중 피해 7번(75·76 한 방 처치 6번, 26·32), **헛침 4번 중 3번은 강공 준비 중 맞음**(−99·−54·−81, 휘청 반격 1·먼저 치기 1·기본 1). 위험 판정 위험(최저 HP 10%, 큰 피격 12번, low_hp 3번 — #4 254010에게 강공 없이 351 받은 싸움 포함). hotspots: AGAIN 상자 `o1321_0021`만. 처음 적은 내용: — [MoKa] 2026-09-28 테스트 관찰: 가로 휘두르기는 벽에 걸리지만 수직은 안 걸림. **배틀 액스만의 특징**, 리치 긴 다른 무기는 다름 → 무기 표에 휘두르는 방향(세로/가로)을 두고, 좁은 곳 판단(NavMesh 폭·벽 거리)과 묶어 규칙으로. 실측 값은 `weapons.py` 배틀 액스 강공 주석
-  - 2026-09-30 [win] 벽 자리 시험 ([MoKa]: "이 지형에서", 성벽 마을 `#6 이동` 옆 벽 (−18.5,−13.4,−63.6), 벽까지 0.05 m, 새 `experiments/wall_heavy_here.py` — 같은 층 적을 끌어와 봇 `duel` 그대로, `data/samples/wall-heavy-2026-09-30a.*`): 같은 층 적이 방패병 255000 한 마리뿐 → **표본 1**. 벽 0.5 m·SP 110에서 강공 1번: 1.5 m, **피해 15뿐(85 → 70), 휘두르는 동안 −145** — 그놈이 막고 걷다(9920) 곧바로 3000으로 반격. 그 뒤 휘청(3500)에 약공 2번 −54, 마무리 → killed 24 s, 받은 피해 152. 09-30a burg-bonfire에서도 189 s 254010에게 강공 헛침 중 −470 → **'강공 준비(0.86 s) 중 맞음'이 다시 나옴**. 검토거리: 방패 든 적이 막는 중(9920)이거나 휘청이 아닐 땐 벽이어도 강공 안 쓰기. 표본을 늘리려면 적이 여럿 같은 층에 있는 벽 자리 필요
-  - 2026-09-30 [MoKa] 결정·[win] 반영: **벽 강공은 양손 잡기일 때만** (`duel._slam`, 한손·잡기 못 읽음 → 약공, 방패병이면 발차기). [MoKa]: 방패를 든 적도 양손 강공이면 가드를 깨 무력화 → 강공 → 약공이 효과 좋음. 위 벽 자리 시험의 피해 15는 guard 스타일(한손) 강공이 막힌 것. 강공으로 가드가 깨지면(9600) 다음 틈에 휘청 반격이 약공. duel_golden: Battle Axe 집합에 grip 1/3 추가(13,824) — 양손은 전과 같음, 한손은 벽 0.5 m 848건이 강공 → 약공·발차기·뒤잡기, 브로드소드 그대로. **남은 것**: 기본 guard 스타일은 한손이라 벽 강공이 이제 안 나옴 → 양손으로 싸울 때(`--style backstep`/`rush`, 또는 벽 앞에서 양손 전환) 게임 확인
-  - 2026-09-30 [MoKa] 바로잡음·[win] 반영: **방패병을 강공할 땐 양손으로 바꾸고 강공 → 약공** (`duel._shield_combo`). 벽 강공 조건이 맞으면 한손이어도 양손으로 전환(0.4 s, 잡기를 못 읽으면 전환 안 하고 약공) → 강공 → 곧바로 약공 1번, 결과는 `heavy+light` 한 번으로 기록. 그 싸움 끝까지 양손 유지, 다음 싸움에서 `Field.fight`가 스타일 잡기로 되돌림. 방패병 말고 다른 적은 이미 양손일 때만 벽 강공. duel_golden: 방패병 + 벽 0.5 m 224건만 바뀜. **게임 확인 필요**: 벽 옆 방패병(성벽 마을 #6 이동 벽 자리 등)에서 `python experiments/wall_heavy_here.py` — 전환 시간 동안 맞는지, 강공이 가드를 깨는지(9600), 약공이 들어가는지. 양손 유지로 방패 막기가 약해지는 게 문제면 약공 뒤 한손으로 되돌리기 검토
-  - 2026-09-30 [MoKa] 원칙: **거의 모든 보스는 방패 플레이가 안 됨 → 양손 잡기, 회피 위주**. 수용소 데몬은 이미 양손(`grip_want`). 보스용 일반 싸움 방식을 만들 때 기본값으로
-- [ ] [cloud]+[사람] 레이더·오버레이 고도화 / 모드(배포 가능한 도구)로 만들기 검토 — 오늘의 큰 성과([사람])
-- [ ] [win] 남은 작은 확인들: 4번 레이더·오버레이 [win] 확인, `msb_extract` treasures 재실행
-- `hotspots.py` 결과가 오늘은 너무 많아 읽기 어려움([사람]) → 오늘 날짜 실행만 보는 옵션 등은 [cloud]가 필요할 때
-
-**보류 (난이도 높음 — [사람] 공부 뒤 다시)** — 걷기 신경망 정책은 2026-09-30 [MoKa] 결정(→ #4): 1단계 움직임 모델 = 6-a 2층으로 진행, 2단계 흉내 정책 = 6-a 2층 신뢰 확인 뒤 결정
-- 1-g 봇이 스스로 배우기 (작은 신경망 정책·흉내 학습·강화 학습, 실수 기록으로 행동 바꾸기)
-- 3. 충돌 메시(havok) 읽기, 6. 2D 시뮬레이터, 7. 탐험 모드·Lua/TAE 공격 예측, 5. 기록을 봇 판단에 다시 넣기
-- 뒤잡기 `hit` 원인 규명, 3009 중 따라 도는 적, 보스형 뒤잡기, 무기 바꿔 뒤잡기
-- P-17 비밀 통로 나가는 길 — [사람]: "지금도 되긴 하는데 고칠수록 근본 문제가 생김" → 1-g 뒤로
-- 뒤잡기 추가 개선(다른 적 반대쪽으로 돌기 등) — [사람]: "지금 이 정도면 됨, 아주 나중에"
-- 1-f C (모퉁이에서 1 m 더 가서 꺾기) — 걷기 제어를 규칙으로 계속 고치는 방식이라 1-g 결정 뒤로
-
-## 0-c. 구조 정리 — 한 곳을 고쳐도 다른 곳이 안 흔들리게 (2026-09-28 [사람]: "구조적 문제부터")
-
-원칙: **동작은 그대로, 구조만.** 먼저 지금 동작을 오프라인 테스트로 고정 → 나누기 → 같은 테스트 통과 → [win] 1번 실행해 `track_report.py`·`hotspots.py` 숫자가 전과 비슷한지.
-
-- [x] [cloud] 걷기(`field._walk`, 150줄에 걷기·싸움·재동기화·부수기·탈출이 섞임)를 네 조각으로: `WalkPlan`(경로·현재 점·도착 반경, 게임 없음) · `_follow`(한 점까지 스틱 — **걷는 방식을 바꿀 땐 여기만**, 지금은 `nav.goto`) · `_walk_chaser`(따라온 적과 싸우고 이어가기) · `_walk_missed`(못 간 점: 부수기·돌아가기·안개벽·stuck). 확인: 나누기 전에 만든 `tests/walk_loop_test.py` 7개(순서대로 도착, 1번 못 가면 다음 점, 3번 연속 stuck, 돌아가기, 싸움 뒤·귀환 뒤 가까운 점)가 나눈 뒤에도 그대로 통과, pytest 26
-- [x] [win] 걷기 나누기 확인: `burg-bonfire --radar` 1번 → 오류 없는지, `track_report.py`·`hotspots.py`가 전과 비슷한지
-  - 2026-09-28 [win] `burg-bonfire --radar` 1번 (게임을 원격으로 켬: Steam 오프라인 확인 → `steam://rungameid/570940` → `quitout.reload`로 이어하기): **오류 없음**, lit, 362 s, 위험 판정 주의(최저 HP 25%, 큰 피격 4번). 로그·track: `data/samples/burg-bonfire-radar-2026-09-28x.txt`, `data/samples/burg-bonfire-2026-09-28x.track.jsonl`
-  - `track_report.py`: 멈칫 자리 5곳, 가장 긴 곳 (−62.9,−23.3,−24.0) 6 s `#3 이동`(B1b 싸움 받는 자리), (−58.9,−23.3,−25.0) 3 s, (−22.1,−13.4,−63.3) 3 s `#6 이동` — 나누기 전 마지막 실행 기록(레이더 `20260927_220722`, 드릴 섞임)의 미션 구간 23·17·9 s보다 짧거나 비슷 → **전과 비슷(나빠지지 않음)**
-  - `hotspots.py`: AGAIN 3곳 — 전부 이미 기록된 곳(P-12: 상자 `o1321_0021`·`o1150_01` 부숨, `#3 이동` (−52.2,−22.8,−26.9)), NEW 없음, GONE 11곳(−9.8,−11.2,−69.0 포함). **고친 것**([win] 작은 수정): `hotspots.py`가 기본 파일 목록을 경로 이름순으로 정렬해 `data/samples/`가 `data/runs/`보다 뒤에 와서, 새 실행 대신 어제 샘플(28v)을 "이번 실행"으로 잡음 → 수정 시각 순으로. 참고: 이유 칸에 "돌아서 돌아서 …"가 수십 번 이어진 태그가 그대로 나와 출력이 499 KB가 됨 — 태그 정리 필요 ([cloud]) → [cloud] 반복된 " 돌아서"를 하나로, 한 자리에 이유 4개까지만 (+N more)
-- [x] [cloud] 싸움(`duel()`, 500줄·if 60여 개)을 **규칙 목록**으로: `Fight`(싸움 내내 기억하는 것) · `_sense`(읽기·목표 따라가기·끝 조건) · 규칙 함수 24개를 `RULES` 순서대로(`rule_*` = 행동, `prep_*` = 뒤 규칙이 쓸 값 계산) — 순서는 옛 if 순서 그대로. 결과(`DuelResult.rules`)에 규칙별 동작 횟수. 확인: 나누기 **전 코드로** 26,496가지 상황(적 종류·애니·거리·SP·HP·방향·뒤 공간·옆 적·기다림·스타일·반사 + NavMesh·싸움 자리·가장자리·에스트·떼어놓기)의 결정을 모두 찍어 두고(`tests/duel_golden_test.py`, `duel_golden.json.gz`) 나눈 뒤 **전부 같음**. 1° 바꾸기만 해도 416개가 달라지는 것 확인. pytest 통과
-- [x] [win] 싸움 나누기 확인: `burg-bonfire --radar` 1번 → 오류 없는지, 위험 판정·뒤잡기 결과·`track_report.py`·`hotspots.py`가 전과 비슷한지 → #3
-  - 2026-09-28 [win] 1번째 (y): **오류 없음**, 하지만 **경사로에서 끝남** — 173 s `결과: 경사로 left #3?`, 위험 판정 위험(최저 HP 34%, 큰 피격 7번, 범인 255010×5·254000×2). 43 s 둘러싸임 퀵 종료(crowd) → 신원 끊김 → #3 254000 `스폰에서 못 찾음` 2번 → `left #3?`로 포기. 같은 흐름이 나누기 전에도 있었음(09-24 `경사로 left #5`, 퀵 종료 뒤) → field `clear` 쪽, 싸움 나누기 탓 아님으로 봄. 뒤잡기 결과: edge×4 · hit×2 · stabbed×1 (28x: hit·edge·stabbed·not_behind·no_lock 섞임, 비슷). 255010 timeout(12 s, 준 0 / 받은 380) — 나누기 전에도 30/209번 timeout(28o·q·r·s·u)이라 새것 아님, 다만 받은 피해 380은 가장 큼. `track_report.py`: 걷기 6번, 멈칫 0. `hotspots.py`: NEW·AGAIN 없음, GONE 10곳은 마을까지 안 가서. 참고: `DuelResult.rules`는 메모리에만 있고 로그·jsonl에 안 남음. 로그·track: `data/samples/burg-bonfire-radar-2026-09-28y.txt`, `data/samples/burg-bonfire-2026-09-28y.track.jsonl`. 마을·화톳불 구간 비교가 안 돼서 **한 번 더 필요** — 2번째는 게임이 꺼져 있어 못 돌림
-  - 2026-09-28 [win] 2번째 (z, #7 수정 `4fdc6e8` 포함): **오류 없음, lit, 396 s** (28x 362 s). 위험 판정 위험(최저 HP 41%, 큰 피격 7번 -1072, 범인 254010×3·255010×2·254011×1, 강종×1 crowd) — 28x 주의(최저 25%, 큰 피격 4번)보다 최저 HP는 높고 큰 피격은 많음. 경사로 `cleared`(162 s). 퀵 종료 1번은 마을 `#4 이동`(255 s, 3명 둘러쌈) → 다시 들어와 물러남·싸움 이어서 마을 끝까지. 뒤잡기 결과: edge×8 · hit×1 · stabbed×1 · lost×1 (퀵 종료 순간). 255010: 첫 번째 timeout(13 s, 받은 4) → 두 번째에 killed. `track_report.py`: 걷기 19번, 멈칫 3곳 5.0 s (가장 긴 곳 (−22.1,−13.4,−63.3) 2.5 s `#6 이동` — 28x도 같은 자리 3 s, 상자 `o1321_0021` → P-12 (e)), 28x 5곳·최장 6 s보다 짧음. `hotspots.py`: AGAIN 1곳 (상자 `o1321_0021`, P-12), NEW 없음. 로그·track: `data/samples/burg-bonfire-radar-2026-09-28z.txt`, `data/samples/burg-bonfire-2026-09-28z.track.jsonl`. **결론: 두 실행 모두 오류 없고 싸움 결과·멈칫이 나누기 전과 비슷 → 확인 끝**
-
-## 기존 도구 조사 (2026-09-27)
-
-새로 만들기 전에 이미 있는 것을 먼저 쓴다. 이 저장소는 MIT라서 **GPL/AGPL 코드는 복사하지 않고** 참고하거나 따로 실행하는 도구로만 쓴다.
-
-| 필요한 것 | 기존 도구 | 라이선스 | 쓰는 방법 |
-|---|---|---|---|
-| 충돌 메시(hkx) 읽기 (3번) | [soulstruct-havok](https://github.com/Grimrukh/soulstruct-havok) — soulstruct와 같은 저자, 맵 충돌 지원 | 확인 필요 | 의존성으로 추가해서 사용 (가장 유력) |
-| 맵 눈으로 확인 (2·3번 검증) | [DarkSoulsModelViewerDX](https://github.com/soulsmods/DarkSoulsModelViewerDX), [DSMapStudio](https://github.com/katalash/DSMapStudio) (DSR은 비공식), [soulstruct-blender](https://github.com/Grimrukh/soulstruct-blender) | — | [사람]/[win]이 추출 결과와 비교할 때 사용 |
-| AI Lua 디컴파일 (7번) | [DSLuaDecompiler](https://github.com/katalash/DSLuaDecompiler) — DS1 AI 스크립트(Lua 5.0) 대상 | — | 따로 실행해서 결과만 읽음 |
-| 공격 타이밍 TAE (7번) | [DSAnimStudio](https://github.com/Meowmaritus/DSAnimStudio) — DSR 지원 TAE 편집기 | — | 공격 판정 프레임 확인용 |
-| 게임 위 오버레이 (4번) | [DSR Practice Tool](https://github.com/fruizt/Dark_Souls_Remastered_Practice_Tool) — Rust, DLL 주입 + DX11 ImGui, 무적·충돌 끄기·게임 속도 | AGPL-3.0 | 코드 복사 금지. 탐험 모드 수동 검증에 도구로 사용 가능. 우리 오버레이는 계획대로 투명 창 방식 |
-| 학습 환경·시뮬레이터 (6번) | [DSLE](https://github.com/ConnAALL/dsle) — DSR 1.04, 보스 22개, 실제 게임을 Wine 컨테이너로 여러 개 실행 | GPL-3.0 | 시뮬레이터가 아니라 실제 게임 병렬 실행. 보스전 전용이라 필드 이동과는 다름. 설계 참고 |
-| 〃 | [SoulsGym](https://github.com/amacati/SoulsGym) — DS3/엘든링 보스전 Gymnasium 환경 | — | 메모리 읽기·쓰기로 환경을 만드는 방식 참고 |
-
-**결론**
-- 3번(충돌 메시)은 직접 파서를 만들지 말고 soulstruct-havok부터 시험한다.
-- 4번 레이더·오버레이, 6번 필드용 2D 시뮬레이터에 해당하는 기존 도구는 없다. 계획대로 만든다.
-- 7번(Lua·TAE)은 기존 도구로 뽑은 결과를 읽는 방식으로 한다.
-
-## 1. 기반 정리 — 게임 없이 테스트
-
-- [x] [cloud] pymem/vgamepad 없이도 모듈이 불러와지게 함 (`telemetry.py`, `dsr_telemetry.py`, `control.py`, `quitout.py`) — Linux Python 3.12에서 오프라인 테스트 11/11 통과
-- [x] [win] 위 수정 후 실제 게임에서 `run.py burg-bonfire` 한 번 정상 동작 확인
-  - 2026-09-27 [win] `clear-ramp`(사용자 지시, `--radar` 없음)로 대신 확인: 1회차는 캐릭터가 Burg 화톳불에 있어 `no_path`·적 못 찾음(시작 위치 문제, 코드 문제 아님). 불의 제전으로 bonfire_warp 후 2회차: 휴식 됨 → 6/6 `cleared`, 108 s, 최저 HP 61%, 큰 피격 2번, 예외 없음. clear-ramp는 정상. `burg-bonfire` 전 구간은 아직 미확인이라 [~] 유지
-  - 2026-09-27 [win] `burg-bonfire`(레이더 없음) 실행: 휴식 됨 → 경사로 cleared(125 s) → 성벽 마을 끝(320 s) → 상인 도착(331 s), 예외 없음. 사용자 요청으로 상인 앞에서 중단 — 버그 화톳불 구간 미확인. 다음 실행은 `--radar`로
-  - 2026-09-27 [win] `burg-bonfire --radar` 전 구간: 휴식 → 경사로 cleared(116 s) → 성벽 마을 끝(373 s) → 상인(386 s) → 버그 화톳불 앉음(418 s, 결과 `lit`), 예외 없음 → 동작 정상. 단 위험 판정 "위험"(최저 HP 2%, 퀵 종료 2번) — P-6
-- [x] [cloud] 테스트를 `tests/`로 옮기고 pytest로 실행 — 오프라인 테스트 17개 + `field_fakes.py`를 `tests/`로. `tests/test_offline.py`가 각 스크립트를 따로 실행하는 pytest 케이스(스크립트 단독 실행도 그대로), `pytest.ini`는 그 파일만 모음. `python -m pytest` 17 passed. CI·시작 훅도 pytest로
-- [x] [cloud] GitHub Actions CI: Python 3.12, Windows 전용 패키지 뺀 의존성, 오프라인 테스트 실행 — `.github/workflows/test.yml`, 로컬 3.12에서 같은 명령 통과
-- [x] [cloud] 클라우드 세션 시작 훅 (`.claude/hooks/session-start.sh`): Python 3.12 venv + 오프라인 테스트 의존성 자동 설치 — 훅 실행·재실행 OK, `moves_test.py` 통과
-- [x] [cloud] `.gitignore`의 `data/` 규칙 정리 (필요한 파일이 무시되지 않게) — `data/*` + 예외(`*.json`, `*.txt`, `routes/`, `gamefiles/`, `samples/`), 새 파일로 추적·무시 확인
-- [x] [cloud] 루트 정리: 실험 스크립트는 `experiments/`로, `telemetry`/`dsr_telemetry`와 `nav`/`navmesh`의 관계를 문서화
-  - 2026-09-28 [cloud] 관계 문서화 끝 (README "The two similar-looking pairs", `telemetry.py` 머리말). 쓰이지 않는 `sit_before.pkl`·`sit_seated.pkl` 삭제(읽는 코드 없음, git 기록엔 남음). 폴더 옮기기는 남음 — 윈도우 실행 명령이 바뀌므로 테스트 이동(pytest)과 한 번에
-  - 2026-09-28 [cloud] 폴더 정리: 봇·도구 어디에서도 import 안 되는 26개 + 게임 측정 `axe_heavy_test.py`를 `experiments/`로 (import 관계를 코드로 분석해 고름). 옮긴 파일은 머리에 저장소 루트를 import 경로에 넣고, 파일 기준 `data/` 경로를 한 단계 위로 고침. `boss/boss.py`의 `vision_probe` import 경로 추가. 문서의 스크립트 경로도 바꿈. 루트 파일 90 → 44개(py 74 → 29). 봇 실행 모듈·도구(레이더·오버레이·추출)는 `run.py`가 import하므로 루트에 둠. 실험 스크립트는 문법·import 경로만 확인(게임 필요)
-
-- [ ] [win] 폴더 정리 뒤 확인: `python run.py burg-bonfire --radar` 가 전처럼 도는지, `python -m pytest` (pytest 설치: `uv pip install pytest`), 자주 쓰던 실험 스크립트가 있으면 `python experiments/<이름>.py`로 도는지. 테스트 명령은 `python tests/<이름>_test.py`로 바뀜
-
-## 1-b. 윈도우 1차 결과로 나온 할 일 (2026-09-27 [cloud] 분석)
-
-- [x] [cloud] P-6 상세 1: `souls/duel.py`의 "목표 바꿈"이 잠든 적(애니 -1)도 고르던 문제 — 조건을 `_interloper()`로 빼고 서 있는 적(애니 -1/None) 제외. 결과 줄에 실제 상대 표시(`stuck (실제 상대 250000)`). 높이 경계(1.2 m)는 그대로 둠(서 있는 적 제외만으로 이번 장면은 막힘). `duel_shadow_test.py`에 9개 경우 추가, 전체 오프라인 테스트 통과. → [win] 확인: 깨어 있는데 잠깐 서 있는(애니 -1) 옆 적에게 늦게 반응하지 않는지
-- [x] [cloud] P-6 상세 2: 걷다가 경로 점을 못 가면, 돌아가기 전에 `souls/props.py`가 `data/gamefiles/<맵>.json`에서 앞길(3.5 m 안, 진행선 1.3 m 안, 같은 높이)의 부서지는 물건을 찾고 → `field._smash`가 1.3 m까지 다가가 돌아서 약공 2번 → 같은 점 다시 시도. 같은 물건은 걷기 한 번에 2회까지. 강공 필요(`min_attack` ≥ 50)는 제외. `props_test.py`: 실제 P-6 좌표로 `o1130_12`·`o1132_06` 찾음, CI 포함. → [win] 확인: 그 장면에서 상자를 부수고 지나가는지, 상자가 아닌 이유로 막힌 곳에서 엉뚱한 물건을 치며 시간을 쓰지 않는지(로그 `부숨 시도`, 이벤트 `smash`)
-- [x] [cloud] P-4: counts에 `characters`(전체)·`enemies`(사람형 제외)·`humans`를 나눠 표시. 오브젝트에 `min_attack`(MinAttackForDamage) 추가, 50 이상은 `breakable_strong`으로 셈 (Burg 12, Firelink 0). 커밋된 JSON 2개도 같은 규칙으로 갱신(추가만, 기존 값 불변). `msb_extract_test.py` 통과
-- [x] [cloud] P-5: `.gitignore`를 파일 단위 허용 목록으로 좁힘 (윈도우 실행 산출물이 안 뜨게) — `data/*`·`data/routes/*`는 무시하고 필요한 파일만 이름으로 허용. 가짜 파일로 확인: `diag.json`·`dmglog*.json`·`routes/asylum-*.json` 숨김, `gamefiles/`·`samples/`는 보임, 추적 중인 12개 영향 없음
-- [x] [win] 위 수정 후 `burg-bonfire --radar` 재실행, P-6 두 장면 비교
-  - 2026-09-27 [win] 결과: `lit`, 435 s, 예외 없음. 위험 판정 위험 → **주의** (최저 HP 2% → 42%, 큰 피격 8 → 5번, 퀵 종료 2 → 0번). 로그: `data/samples/burg-bonfire-radar-2026-09-27a.txt`(수정 전), `…-27b.txt`(수정 후)
-  - 장면 1 (성벽 마을 진입): 같은 경로로 올라가다 161 s에 `가장자리방어` 한 번(전과 같음). 165 s `목표 바꿈: 254010 (2.1 m, 애니 9920)` — 깨어 있는 적만 골랐고 2 s 만에 처치 → "끼어든 254010 처치 — 원래 목표로". **stuck 재발 없음**
-  - 장면 2 (`#6` 21/22번 점): 이번엔 그 점에서 `못 감`도 `부숨 시도`도 없이 지나감. 전 실행과 달리 그 근처에서 방패병 두 마리와 46 s 싸우며 위치가 달라져 상자에 막히는 상황이 재현되지 않음 → **부숨 동작은 이 장면에서 미확인**
-  - `부숨 시도`는 전체에서 1번: 212.5 s `#3` 0/2번 점 (-52.2,-22.8,-26.9)을 8.9 m 앞 (-60.7,-23.3,-24.4)에서 `timeout`(약 16 s 제자리) → `o1150_01` (-59.1,-22.9,-25.4, 1.6 m) 부숨 시도(2 s) → 바로 다음 목표로 진행. 16 s는 부숨 전 걷기 timeout이 쓴 시간. 이 자리가 실제로 상자에 막혔던 건지는 [사람]/레이더 확인 필요. 엉뚱한 곳에서 반복해 치는 모습은 없음
-  - 옆 적 늦은 반응: 2번 있음 → P-7. (1) 242.7 s 원래 목표와 1.7 m에서 대치 중 HP 752 → 670(-82), 243.3 s에야 `목표 바꿈: 254010 (1.0 m, 애니 3003)` — 옆 적이 이미 공격 동작(3003)이었음. (2) 340.2 s 방패병 2마리 중 `목표 바꿈: 255000 (1.2 m, 애니 3000)` 뒤에도 350.3 s 블랙박스 -109 (255000 애니 3000, 1.85 m 정면)
-
-## 1-c. 윈도우 2차 결과로 나온 할 일 (2026-09-27 [cloud] 분석)
-
-1-b 결과: 위험 → 주의 (최저 HP 2% → 42%, 큰 피격 8 → 5, 퀵 종료 2 → 0). P-6 장면 1 해결 확인. 장면 2는 재현 안 됨.
-
-- [x] [cloud] 막힘을 빨리 알아채기: `nav.goto`에 `on_stuck` 훅 추가 — 기존 막힘 감지(2 s 동안 0.3 m 미만 진행)가 옆걸음 탈출을 하기 **전에** 호출. `field._walk`가 여기서 앞길 부서지는 물건을 확인·부숨(`_smash_blocking`, 한 점 실패 뒤 확인과 같은 함수). 달리기(B) 풀고 다가감. `props_test.py`: 2.0 s에 호출, P-6 장면 상자 부숨, 물건당 2회 제한
-- [x] [cloud] 레이더에 부서지는 물건 표시 — 서버가 `data/gamefiles/*.json`의 부서지는 물건을 읽어 플레이어 40 m·높이 6 m 안의 것만 보냄. 채운 네모 = 약공으로 부서짐, 빈 네모 = 강공 필요, 주황 원 = 방금 부숨 시도(`mv.show_smash`, 10 s). "하는 일" 카드에 부숨 시도·물건 수. `radar_test.py` 통과, 데모 캡처 확인
-- [x] [cloud] 로그 보강 ([win] 요청): 부숨 앞에 무엇이 막힘을 알렸는지(`막힘 감지 (2 s 동안 0.3 m 미만)` / `점 못 감 (timeout)`)와 물건까지 거리, 후퇴 중 모드가 바뀔 때마다 `후퇴 모드: guard (가장 가까운 255000 1.9 m)`. 테스트 통과
-- [x] [cloud] P-7(a)/P-8 방패병 둘 (1차, 추천안 1+3) — `souls/duel.py`:
-  - **버그**: 끼어든 적을 잡고 원래 목표로 돌아가도 적 정보(`foe`)가 끼어든 망자 것으로 남아, 방패병에게 망자용 `먼저 치기`를 씀(27c 291 s: 피해 4, 받은 240 → 사망). 이제 매 틱 현재 목표에서 다시 읽음
-  - 휘청반격도 먼저 치기처럼 **옆 적이 2.5 m 안에서 공격 중이면 안 함**(27c 284 s: 방패병 휘청에 약공 피해 4, 옆 망자 3003에 -115) → 반사가 막음
-  - 물러나는 HP 기준: 살아 있는(누운 적 제외) 적 둘 이상이 4 m·같은 높이 안이면 25 % → **45 %** (27c: 262 → 22 → 사망이 한 번의 교환)
-  - `no_spot`(떼어놓을 자리 없음)의 대안은 아직 — 위 세 가지로 부족하면 다음 단계
-  - `duel_shadow_test.py`에 추가, 전체 오프라인 테스트 통과. → [win] 확인: 방패병 둘 장면의 받은 피해·사망 여부, 45 % 후퇴가 너무 잦아 시간을 많이 쓰지 않는지(로그 `low_hp`)
-  - 2026-09-27 [win] 27e: 방패병 `255000` 둘(279 s `no_spot` 1번)을 따로 처치 — 첫째 7 s 받은 피해 1, 둘째 14 s 받은 피해 72. 사망 없음, `low_hp` 후퇴 0번(45 % 후퇴로 시간 쓴 곳 없음). **방패병이 다가올 때 한 박자 늦게 맞음 2번** ([사람] 관찰): 54.0 s 경사로 `255010` 애니 3000 1.58 m 정면, 1.23 s 동안 -113 (직전 휘청반격으로 한 마리 처치한 직후) / 287.5 s `255000` 애니 3009(가드 못 하는 공격) 1.4 m, -70 — 내 애니 2052(피격). P-10
-- [x] [cloud] P-7(c) 결투 timeout 뒤 물러날 때 가드 — `field.retreat`(화톳불 쪽 후퇴)가 항상 가드 없이 걷던 것을, 깨어 있는 적이 4 m·같은 높이 안에 있으면 가드 들고 걷도록 (`_retreat_mode`, `_retreat_to_zone`과 같은 방식). 뒷걸음(락온 없이 적을 보며 물러나기)은 이 게임 조작상 안 함 — 가드로 대신. `field_retreat_test.py` 추가(CI는 `field_*` 패턴으로 자동 포함)
-- [x] [win] 위 수정 후 `burg-bonfire --radar` 재실행 — 확인할 것: (1) 막히면 2~3 s 안에 `부숨 시도`가 나오는지(이전 16 s), 레이더에서 네모(물건)·주황 원이 실제 상자와 맞는지 (2) 엉뚱한 막힘에서 물건을 치며 시간을 쓰지 않는지 (3) 결투 timeout 뒤 후퇴할 때 가드를 들고 있는지, 그때 받는 피해
-  - 2026-09-27 [win] 결과 (`data/samples/burg-bonfire-radar-2026-09-27c.txt`): **사망** — 경사로 cleared(109 s) → 성벽 마을 끝(270 s) → 상인 가는 길에서 293 s dead. 위험 판정 사망 (최저 HP 0%, 큰 피격 7번 -1195, 퀵 종료 1번). 비교: 27a 위험(lit, 최저 2%) → 27b 주의(lit, 최저 42%) → 27c 사망. P-8
-  - (1) 부숨: 2번, 둘 다 `못 감` 없이 `on_stuck`으로 바로 나옴 — 245.6 s `o1321_0021` (-22.7,-13.4,-64.3), 254.3 s `o1132_06` (-35.9,-13.5,-69.4) = **P-6 장면 2의 그 상자**. 27b의 "16 s timeout 뒤 부숨"과 달리 `못 감`(15 s) 줄이 없으므로 점 timeout 전에 부숨. 막힘 시작 시각은 로그에 없어 2~3 s인지 정확히는 못 잼 (막힘 감지 시각을 로그에 남기면 좋겠음). 두 번째 부숨 3 s 뒤 방패병 둘과 싸움 시작 → 상자 지나간 것으로 보임. 레이더 네모·주황 원 일치는 [사람] 확인 대기
-  - (2) 엉뚱한 부숨: 없음. `#4` 32/39번 점 (-9.8,-11.3,-68.6) `unreachable`(27a는 같은 점 stuck)에서는 물건을 치지 않고 넘어감
-  - (3) 결투 timeout 뒤 후퇴: 이번엔 **timeout 후퇴가 한 번도 없어 미확인**. 대신 `low_hp` 후퇴 1번(291.3 s, HP 22) — 방패병 0.85 m 앞, 0.45 s에 -262로 사망. `_retreat_mode`가 가드를 골랐는지는 로그에 안 남음(모드 로그 필요). 160.3 s `찍어 둔 자리로 가드 든 채 물러남: arrived`는 기존 동작으로 정상
-  - 2026-09-27 [win] 재실행 `--no-quit` (사용자 지시, `…-27d.txt`): **lit, 324 s, 위험 판정 깨끗** (최저 HP 63%, 큰 피격 6번 -683, 퀵 종료 없음). 부숨 1번 — 268.1 s `o1321_0021` (27c와 같은 물건, `못 감` 없이 on_stuck). `o1132_06` 자리는 막힘 없이 지나감. 엉뚱한 부숨 없음, `#4` 35/42번 점 `unreachable`은 27c와 같음. 방패병 `255000` 둘이 이번엔 따로 와서 5 s·10 s에 각각 처치, 받은 피해 0 (`no_spot` 없음) — P-8은 둘이 같이 붙을 때만 나오는 것으로 보임. timeout 후퇴는 이번에도 없어 (3) 미확인
-  - 2026-09-27 [사람] 레이더 확인: 갈색 네모(부서지는 물건) 위치가 게임의 상자·통과 맞음 (다크사인 귀환 뒤, 봇 없이 읽기 전용 발신으로). 주황 원은 따로 확인 못 함. 남은 것: (3) timeout 뒤 후퇴 가드 — 그 상황이 나와야 확인 가능
-  - 참고 (준비 절차): 부순 상자는 **화톳불 휴식만으로는 안 돌아오고 로딩 화면(다크사인 귀환·화톳불 워프·사망)이 있어야 되살아남** — [사람] 다크사인 귀환 뒤 확인, 커뮤니티 글도 같음. 27d에서 `o1132_06` 막힘이 없던 것도 이 때문일 수 있음. 부숨 테스트 전엔 워프나 귀환으로 상자를 되살릴 것. 레이더 페이지는 서버 코드가 바뀌면 브라우저 강력 새로고침(Ctrl+F5) 필요
-
-## 1-e. 스스로 회복한 실수도 센다 (2026-09-28 [사람] 지적)
-
-"매번 같은 곳에서 길을 틀리고 스스로 고쳐서 가는데, 봇도 [win]도 아무것도 안 한다" — 위험 판정은 사망·HP·피격만 세고, 봇은 실행 사이 기억이 없고, 계획 경로·실제 궤적이 로그에 안 남아서 아무도 못 봤음. 쉬운 구간의 이런 실수가 어려운 구간에선 사망.
-
-- [x] [cloud] `hotspots.py`: 실행 로그의 "못 감"·"부숨" 줄을 위치별로 모아 **2번 이상 실행에서 같은 곳**을 보여 줌 (게임 불필요). 27a~e 결과:
-  - **(-9.8, -11.3, -68.6) 5번 중 4번** — `#4 이동`: 석궁병(255002) 발판(높이 -9.8)에서 싸운 뒤, 남은 경로의 1.5 m **아래** 점으로 가려다 `unreachable`/`stuck` (6~8 s 낭비). 싸움으로 위치가 바뀐 뒤 "가장 가까운 점" 재동기화가 다른 층의 점을 고름
-  - (-22.7, -13.4, -64.3) 3번 — 같은 상자 `o1321_0021`을 매번 부숨 (정상 동작이지만 경로가 상자를 지나는 것)
-  - (-52.2, -22.8, -26.9) 2번 — `#3 이동` 0/2번 점 timeout/stuck, 바로 앞 상자 `o1150_01` 부숨 뒤에도 막힘
-  - `tests/hotspots_test.py` 추가
-- [ ] [win] **실행이 끝날 때마다** `python hotspots.py` → 새로 2번 이상 나온 곳은 "8. 문제 기록"에 올림 (사람이 말하지 않아도)
-- [x] [cloud] 위 1위 지점 수정안: 싸움 뒤·귀환 뒤 재동기화에서 가장 가까운 점이 **다른 층**(높이차 > `RESYNC_DY` 1.0 m)이면 현재 위치에서 목표까지 `nm.find_path`로 다시 찾음 (`field.resync`, 경로 못 찾으면 예전대로). 로그 `경로 재탐색 — 이어갈 점이 다른 층 (Δy …)`, 레이더 경로도 바뀜. 확인: `tests/walk_resync_test.py` (턱 위 y −9.8, 경로 y −11.3 → 재탐색)
-- [x] [win] 재탐색 확인: 봇 실행 → 로그에 `경로 재탐색`이 나오는지, `python hotspots.py`에서 (−9.8, −11.3, −68.6) 지점이 줄었는지
-  - 2026-09-28 [win] 27g (`data/samples/burg-bonfire-radar-2026-09-28g.txt`, 무기 Bandit's Knife): 368.4 s `#4 이동: 경로 재탐색 — 이어갈 점이 다른 층 (Δy +1.6 m), 5점` — 석궁병 `255002`를 발판에서 잡은 직후. 이번 실행엔 (−9.8, −11.3, −68.6) `못 감` **없음** (27a~f는 매번 나오던 자리). `hotspots.py`는 이제 옛 로그까지 349개 실행을 세서 그 지점이 21개로 나오지만 이번 실행은 0
-- [x] [cloud] 계획 경로(걷기 시작·끝 이벤트)와 실제 궤적(초당 2번 위치, `<실행>.track.jsonl`)을 로그에 남기고, 실행 후 비교 리포트 → 0-b 참고 (`track.py`, `track_report.py`) — "못 감"까지 가지 않은 헤맴도 잡기 위해
-
-## 1-h. 새 캐릭터 수용소를 봇이 (2026-09-28 [MoKa]: "새로 캐릭터 만들었을 때 수용소에서 봇이 할 수 있게 준비해줘")
-
-레벨·장비 최소 도전으로 새 캐릭터를 자주 만듦 → 첫 구간인 북방의 불사자 수용소(m18_01)를 봇이. 경사로와 달리 **한 번만 일어나는 일**(감방 열쇠, 데몬 처음 만나 도망, 시작 장비 줍고 메뉴 장착, 오스카, 떨어지며 치기, 큰 문, 까마귀)이라 쉬고 다시 하기가 안 됨 → 사람 첫 통과 녹화가 틀.
-
-- [x] [win] 재료: [MoKa] Bandit Bot 첫 통과 녹화 `data/observe/20260928_221908.jsonl` (감방 → 불의 제전 328 s, 데몬 피해 0, 로컬 20 MB). 수용소 NavMesh가 녹화 위치의 94 %와 맞음(안 맞는 곳 = 사다리·계단·떨어짐). 옛 `boss/ah.py`·`crow.py`의 `ladder_test` import(legacy/로 옮겨져 깨짐) 고침. 옛 경로 `data/routes/asylum-*.json`(로컬), 데몬 AI 표·대본 `boss/README.md`
-- [x] [win] `asylum_steps.py`: 녹화 → 단계 목록 `data/routes/asylum-fresh.json` (65단계: 걷기 32·누르기 20·사다리/떨어짐 3·메뉴 2·싸움 7·까마귀 1). 연타는 한 단계로(오스카 대화 A ×37), 메뉴 입력은 그대로(`START RIGHT A DOWN A …`), 걷기엔 달림 여부. 이름(label)은 위치로 붙인 **추정** → [MoKa] 확인. `tests/asylum_steps_test.py`
-- [~] [MoKa] 단계 이름 확인 — 2026-09-29 [MoKa]: 142.7 s 떨어짐 = **굴러오는 바위 피함**, 302 s = **데몬 열쇠로 잠긴 문 열고 까마귀 쪽**, 처음에 **방패, 다음에 배틀 액스** 획득 — 순서는 항상 같음 (장비 줍기 1 = 방패, 2 = 배틀 액스). 101.5 s 누르기·157.5 s 싸움·298.0 s 누르기는 기억 안 남 → 새 캐릭터로 다시 녹화하며 F9로 표시하고 설명
-- [x] [MoKa] **시험 방법 결정** 2026-09-29: **매번 새 캐릭터** (세이브 되돌리기 안 씀 — 파일 하나에 모든 캐릭터)
-- [x] [win] 2번째 녹화 (2026-09-29, 세이브를 Bandit Bot 전으로 되돌리고 같은 이름으로 새로 만듦, F9 10번): `data/observe/20260929_061447.jsonl` (로컬 21 MB) → `asylum_steps.py`가 F9를 `mark` 단계로, 캐릭터 만들기 구간은 자동으로 건너뜀 → `asylum-fresh.json` 97단계. 감방 → 까마귀 409 s(99 → 508 s). 데몬: 낙공 −417 + 약공 4번 −101, 40 s, 내 HP 589 → 최저 240 (1번째 녹화는 23 s·피해 0). 세이브 백업 `backup-20260929-010438-bandit-bot-before-new-char`·`…-061324-before-restore-bandit`(옛 Bandit Bot), 봇 화톳불 목록의 옛 `Bandit Bot` 항목은 비움(`data/bonfires-lit.before-new-bandit-20260929.json`에 보관)
-- [x] [win] 구간 ① 만듦 (2026-09-29): `souls/asylum.py` + `run.py asylum --seg 1` — 단계 목록을 차례로: 걷기(`Field.walk`, 달림 표시면 달리기), 누르기(그 자리 0.35 m 안으로 가서 녹화 때 방향 ±20°로 돌고 A ×n), 사다리(스틱 위로, 2.5 s 안 오르면 A 한 번 더), 떨어지기(내려갈 때까지 착지점 쪽으로), 메뉴(녹화 입력 0.35 s 간격), 싸움(`Field.fight`). 구간 ① = 감방 → 사다리 → 첫 화톳불 17단계 (시작의 캐릭터 만들기 `START START`는 뺌). 누르기 단계에 방향(`hd`) 추가. `tests/asylum_test.py`. 세이브 백업 `backup-20260929-062922-new-bandit-bot-firelink` → [win] 새 캐릭터 `Asylum Test`(SL 4, 감방 세이브 백업 `backup-20260929-063628-asylum-test-char-in-cell`)로 **1번 만에 done, 54 s** (사람 68 s): 열쇠·문 A 3번, 복도 걷기, 사다리 A → 190.6 → 195.9 올라감, 화톳불 자리 (3.2, 195.9, 8.3)에서 A, 피해 0, 걷기 문제 0. 불이 실제로 붙었는지는 메모리로 못 봄 → [MoKa] 화면 확인. `data/samples/asylum-seg1-2026-09-29a.*`
-- [x] [win] 구간 ② (큰 방 문 → 데몬 피해 달리기 → 두 번째 화톳불 → 방패·배틀 액스 줍기·메뉴 장착, 20단계): 1번째 (`data/samples/asylum-seg2-2026-09-29a.txt`) — 문·도망(데몬 무시, 달리기)·화톳불 **피해 0으로 됨**, **방패 메뉴에서 실패**: 줍기 A 뒤 0.6 s 만에 닫기 A(사람 3.5 s) → 획득 창이 열린 채 메뉴 입력이 밀려 **부러진 직검이 왼손으로**([MoKa] 화면 확인). 고침: 같은 자리의 연속 누르기·메뉴는 녹화 때 간격을 지킴, 메뉴 키 사이도 녹화 간격(`dt`). 다시 확인은 세이브 `backup-20260929-064209-asylum-test-after-seg1`로 되돌려서 → 2번째 (`…-seg2-2026-09-29b.txt`): **done, 76 s**, 최저 HP 94 %, 장착 확인 왼손1 900000 → **1462000 방패**, 오른손1 212000 → **701000 배틀 액스** — 구간 ② 확인 끝
-- [x] [win] 구간 ③ (배틀 액스 뒤 → 위층 문 → 굴러오는 바위 떨어져 피함 → 망자 → 오스카 대화, 22단계): 1번째 (`data/samples/asylum-seg3-2026-09-29a.txt`) **실패·사망** — 구간 ②와 ③ 사이 ~1.5분 캐릭터가 배틀 액스 자리에 서 있다가 망자 250021에게 맞아 **시작부터 HP 152/616** → 위층에서 250022가 오자 low_hp(18 %) → 물러날 곳(home) 없음·에스트 없음 → 멈춤 → 멈춘 채 맞아 죽음 ([MoKa] 확인) → P-27. 고침: `--seg 2-3`처럼 구간을 이어서, 시작할 때 HP < 50 %·에스트 없음이면 안 움직임, 실패로 멈출 때 6 m 안 깨어 있는 적은 끝까지 싸우고 멈춤. `tests/asylum_test.py` → 2번째 (세이브 ② 직후로 되돌려 이어하기 즉시, `…-seg3-2026-09-29b.txt`): **done, 92 s**, 최저 HP 87 %, 망자 250022를 **벽 강공 한 방**(벽 0.7 m, 피해 69), 문·바위 떨어지기·오스카 A 7·17·1·4 → **에스트 받음**(퀵 슬롯 201) — 구간 ③ 확인 끝
-- [x] [win] 구간 ④ (위층 망자 셋·기사 255030 → 데몬 위 발판 입구, 14단계) — 바로 이어서 실행: **done, 83 s, 피해 0** (망자 둘 벽 강공 한 방, 기사 휘청 반격, '위층 문'은 안개벽 — 기존 안개벽 처리로 통과). **그런데 안개벽 안(데몬 위 발판)에서 끝나 서 있다가 데몬 도약에 죽음** → 두 번째 화톳불에서 되살아남. 구간 ④의 끝을 안개벽 앞(`위층 기사 뒤 A`)으로 옮김
-- [x] [win] 구간 ⑤ (안개벽 → **떨어지며 치기**(boss.py 방식: 데몬이 나를 보거나 도약 3023 시작하면 곧장, 떨어지는 중 R1 연타, 그동안 낙사 퀵 종료 끔) → 데몬(`duel` 끝까지, 240 s) → 열쇠 → 문 → 까마귀(자리에서 순간 이동 기다림, START 안 누름)). 죽은 뒤 이어가기: 첫 단계에서 5 m 넘게 떨어져 있으면 가장 가까운 단계부터, 이미 장착한 장비 메뉴는 건너뜀, 불 붙은 화톳불에서 A로 앉으면 B로 일어남. 1번째 `--seg 2-5` (두 번째 화톳불에서 이어가기, `data/samples/asylum-seg2to5-2026-09-29a.*`): 구간 ②(메뉴 건너뜀)·③·④ **모두 됨**(193 s, 최저 HP 65 %), **⑤ 안개벽 못 지나감** — A를 x 4.18에서 누름(사람 3.33·3.82). [MoKa]: 문 한쪽에 치우치면 안개벽 통과 못 함 → 문 가운데 (3.55, 210.11, −34.72)에 0.15 m 안으로 서서 안내가 뜨면 A(`Field.fog_through`), 3번까지. 양손 잡기도 추가([MoKa] 녹화: 뛰어내리기 직전 Y) — 데몬 싸움 내내 유지
-  - 2026-09-29 `--seg 5` (`data/samples/asylum-seg5-2026-09-29a.*`): 안개벽 가운데 0.14 m → **통과**, 양손 grip 3, **떨어지며 치기 813 → 396**(사람과 같음), duel로 약공 2번 −202 → **데몬 194 남음**. 그 뒤 duel이 `stuck`(중심 1.6 m까지 다가가려 함 — 데몬은 몸이 커서 2 m 안으로 못 들어감)·가드로 받다 밀려 404 받고 **사망**, 에스트 안 마심. 떨어지는 동안 턱 보정(`_ledge`)이 3번 끼어듦. [MoKa]: "계속 때리던가, 뒤잡 하듯이 보스 뒤로 돌던가 했어야지. 가드 무조건 밀리지" → **데몬 전용 싸움**(`Asylum._demon`): 가드·구르기 없음(양손), 데몬 정면에서 100° 넘게 벗어나 3.2 m 안이면 계속 약공, 앞이면 3.8 m로 크게 돌아 등 쪽으로, 엉덩방아 3008은 8.4 m 밖으로 달림, HP 35 % 아래·6 m 밖·공격 아님이면 에스트. 떨어지는 동안 턱 보정 끔(`Escape.nudge_ok`)
-  - 2026-09-29 데몬 전용 싸움 1번째 (`…-seg2to5-2026-09-29b.*`, ②~④ 다시 됨, 기사에게 −277): 떨어지며 치기 813 → 396, **약공 0번** — "100° 넘게 뒤일 때만" 조건이라 못 침, 3.8 m 돌기로는 데몬이 계속 돌아서 정면 0~12°에 머묾 → 3005·3006에 맞아 사망. 사람 녹화 분석: 약공 9번 모두 2.0~3.5 m, 정면에서 9~158°(대부분 60~100°), 한 대 치고 6~7 m 밖으로 빠짐. [MoKa]: "뒤로 크게 돌았어야 했어" → 뒤(110° 이상)가 아니면 **5.5 m로 크게** 돌아 등 쪽으로(한 번에 45°씩, 가까운 쪽), 뒤면 2.6 m로 들어가 침; 옆(45° 이상)이거나 데몬이 멈춰 있고 3.5 m 안이면 한 대 치고 6.5 m 밖으로 빠짐
-  - 2026-09-29 3번째 (`…-seg2to5-2026-09-29c.*`): 떨어지며 치기 813 → 396(내 HP 616) 뒤 **착지 0.1 s 만에 낙사 퀵 종료**("발밑 바닥 16 m 아래" — 데몬 방 바닥 NavMesh 빈 곳, 퀵 종료를 떨어지는 동안만 껐다가 착지하자 다시 켠 탓) → 안개벽 앞에서 다시 시작, 죽였던 위층 망자 둘이 되살아나 있음(P-25) → 사망. 고침: 낙사 퀵 종료·턱 보정을 떨어지며 치기부터 **데몬을 잡을 때까지** 끔
-  - **2026-09-29 4번째 — 데몬 처치, 불의 제전 도착** (`data/samples/asylum-seg2to5-2026-09-29d.*`, 두 번째 화톳불에서 `--seg 2-5`, 332 s): ②~④ 됨(피해 0, 핏자국 회수), 안개벽 2번째에 통과, 양손, 떨어지며 치기 813 → 396, **데몬 40 s·약공 5번**(−101 ×3, −93, 1번 헛침: 거리 2.1~3.4 m, 정면에서 9°·51°·120°·123°), 받은 피해 550(3005 −148, 3003 −201, 3012 −201) 최저 HP 66/616(11 %) — **데몬 싸움 중 에스트 안 마심**(6 m 밖 조건이 안 맞음) → 다음에 볼 것. 열쇠 → 잠긴 문 → 까마귀 → **불의 제전 (−47.4, −59.8, 53.3)**. 도착 순간 위치가 270 m 바뀐 걸 낙사로 보고 퀵 종료 1번(불의 제전에서, 피해 없음) → 까마귀 기다리는 동안 낙사 퀵 종료 끔
-- [x] [win] **수용소 전체를 봇이 한 번에** (2026-09-29, [MoKa] 요청: 새 캐릭터 상태부터 — 세이브 `…-063628-asylum-test-char-in-cell`로 되돌려 `run.py asylum --seg 1-5`, `data/samples/asylum-full-2026-09-29a.*`): **done, 423 s**(사람 409 s), 위험 판정 깨끗(최저 HP 61 %, 큰 피격 1번 −87). 구간 ① 54 s, ② 76 s(방패·배틀 액스 장착 확인), ③ 95 s(망자 둘 벽 강공 한 방, 바위 떨어지기, 오스카), ④ 70 s, ⑤ 125 s — 안개벽 가운데 0.03 m 1번에 통과, 떨어지며 치기 813 → 396, **데몬 26 s·약공 4번(−101 ×3, −93)·받은 피해 0**(거리 2.1~3.4 m, 정면에서 9·49·121·117°), 열쇠 → 문 → 까마귀 → 불의 제전. `hotspots.py` AGAIN 3곳 → P-28. `track_report.py` 멈칫 15곳 29 s — 가장 긴 곳 위층 문(안개벽) 앞 ~15 s
-- [ ] [win] `run.py asylum` 미션 (나머지 구간): 단계를 차례로 — 걷기(`Field.walk`, NavMesh), 누르기(그 자리·방향으로 A), 사다리(A + 위), 메뉴(녹화 입력 재생 — 클래스마다 장비 칸이 달라 확인 필요), 싸움(`duel`, 망자·기사), 데몬 도망(달리기), 떨어지며 치기 + 데몬(`boss/boss.py` 대본을 배틀 액스로: 녹화 = 낙공 −417 + 약공 4번 ~−100, 23 s)
-- [ ] [win] 구간별로 나눠 확인: ① 감방 → 첫 화톳불 ② 데몬 도망 → 장비 → 오스카 ③ 위층 → 떨어지며 치기 → 데몬 ④ 큰 문 → 까마귀
-
-## 1-g. 방향 — 봇이 스스로 배우게 (2026-09-28 [사람])
-
-[사람]: "봇이 스스로 학습이 안 되는 게 더 큰 문제 — 매번 [cloud]/[win]이 조정하면 더 어려운 스테이지에선 사람이 나가떨어진다." 오늘도 뒤잡기 조건·통로 입구·걷기 속도를 사람이 보고 말하면 고치는 식이었음. [cloud]·[사람]이 설계를 정할 것. 후보 (정리만, 아직 결정 아님):
-- [ ] 실행마다 실수 기록(막힘·맴돌기·늦은 반응·뒤잡기 실패 결과)을 자리·상황별로 쌓고, 다음 실행이 그 기록으로 행동을 바꿈 (예: 같은 자리에서 2번 막히면 그 자리에서 속도를 줄이거나 사람 경로 점을 씀) — 사람이 매번 안 봐도 되게
-- [ ] 사람 시범 녹화(`observe_record`)에서 자리별 경로·속도·스틱 쓰는 법을 자동으로 뽑아 봇 기본값으로 (오늘 입구·뒤잡기는 손으로 비교했음)
-- [ ] 드릴(`backstab_drill.py`, `run.py passage-drill`)처럼 한 동작만 반복하는 환경에서 수치를 자동으로 찾기 (시뮬레이터 6번과 연결)
-- 2026-09-30 [MoKa] 결정 (→ #4, 닫음): 걷기 신경망 정책은 두 단계로. **1단계 움직임 모델**(기록의 상태·스틱 → 0.1 s 뒤 움직임, 봇 동작 안 바뀜)은 6-a 2층 첫 항목과 같은 일이라 **6-a로 진행**. **2단계 흉내 정책**(MoKa 걷기 녹화 → 정책 → 오프라인 → 그림자 모드 → `passage-drill`에서만 켜고 `track_report` 비교)은 **6-a '2층 신뢰 확인'(통로 입구 멈칫 전/후 재현)이 된 뒤에 결정** — 하네스를 못 믿으면 정책도 평가할 곳이 없음
-- [사람] 정리 (2026-09-28): **"NavMesh가 있고, 이 모양의 길은 이 속도로 이렇게 돌면 된다"가 학습돼야 하는데 그 시스템이 없다 — 근본적으로 다시 생각할 것.** 지금 걷기는 점·반경·스틱 세기를 사람이 정한 고정 규칙이라, 자리마다 사람이 보고 고쳐야 함. 필요한 것: 지형(NavMesh 모양·폭·꺾는 각도) → 속도·턴 방식을 실제 이동 결과(막힘·미끄러짐·걸린 시간)로 배우는 구조. 설계는 [cloud]·[사람]
-- 대화 정리 (2026-09-28 [사람]·[win], 설계 참고용 — 결정 아님):
-  - **소형 LLM 파인튜닝으로 이동 제어?** 스틱은 20~50 ms마다 바뀌어야 하고 입력이 좌표·숫자라 LLM은 느리고 비효율. 이동은 **작은 신경망 정책**(입력: 캐릭터 기준 주변 NavMesh 격자·속도·방향·다음 경로 점 → 출력: 스틱)이 맞음 — ① 사람 시범 녹화(`observe_record`)로 흉내 학습 ② 드릴·2D 시뮬레이터(6번)에서 반복 연습(강화 학습). **LLM은 느린 판단**(전략·순서·로그 읽고 실패 원인 요약)에 둠 — "아래(손)는 작은 신경망, 위(판단)는 LLM"
-  - **게임 속 몹은?** 학습 안 함 — Lua AI 스크립트(goal)·NpcThinkParam(시야·청각·귀환)으로 판단, 이동은 엔진이 NavMesh 경로대로 몸을 직접 돌리고 밂(관성·카메라 문제 없음), 활동 범위 좁음. 봇은 사람처럼 카메라 기준 스틱·관성으로 조작해야 해서 '손'이 어려움. 가져올 것: 크게 꺾을 땐 "돌고 나서 간다", 7번(Lua·TAE)으로 적 판단을 근거로
-  - **자율 주행과 비교**: 인지(메모리라 쉬움)·지도(NavMesh)·경로 계획·**제어**(오늘 문제) 네 단계. 자율 주행 제어의 표준 — 곡률 보고 커브 전 감속, 앞을 보고 조향(pure pursuit), **움직임 모델을 실측으로 맞춤**(스틱 → 회전·미끄러짐, 레이더 기록에 스틱·위치가 0.1 s로 있음) — 한 번 배우면 새 스테이지 모퉁이도 NavMesh 모양만으로 계산 가능
-  - **드론 비유**: 3D·불안정한 몸이라 완전 자율이 어렵고 실제론 '사람 + 자동 보조'. 봇 이동은 자동차 쪽(땅·NavMesh·정확한 위치)이라 자동 학습 가능, 운영은 드론식 — 봇이 기본을 하고 막히는 곳만 사람이 시범, **그 시범이 학습 데이터가 되어 같은 종류는 다시 안 부름** → 사람 일이 "매번 고치기"에서 "가끔 보여 주기"로
-
-## 1-i. Laya 섀도 모드 — 로컬 판단 모델 검증 (2026-10-01 [MoKa] 요청)
-
-Laya가 싸움 상태를 보고 이미 있는 전술 후보 중 하나를 고르게 하되 **기록만** (패드·규칙 반영 없음). 설계·숫자는 LAYA.md.
-- [x] [win] 섀도 경계·오프라인 평가 — `laya_shadow.py`(특징·마스크·Advisor·WorkerChannel), `laya_worker.py`(별도 프로세스, WSL), `laya_eval.py`(cases golden/logs → score → report), `duel(advisor=None)`·`Field.fight`·`run.py --laya-shadow`. 확인: duel_golden 40,320 그대로, `tests/laya_shadow_test.py`(advisor 3가지로 10,080 상황 trace 같음, Moves 접근 0, 느린·없는 워커에 offer ≤0.1 ms), pytest 52 통과
-- [x] [win] WSL 설치([MoKa] 승인)·실제 Laya 평가 (LAYA.md 9): 421 M·804 MB 체크포인트, CUDA 추론 p50 ~19~20 ms·p95 ~21 ms, 실제 경로 요청→답 p50 23.7·p95 44 ms, CPU p50 ~330 ms. 금지 제안 0. **하지만 보류 99.9 %, 보류 없이 일치 golden 45.9 %·logs 38.4 %(기준선 수준), approach 0번, 후보 순서만 바꿔도 43 % 답이 바뀜** → 이대로는 판단에 못 씀. 다음 (a) 멈춤 (b) noul 질문으로 다시 평가 (c) 미세조정 — [MoKa] 결정 대기
-- [x] [win] 라벨 출처 조사·분할안·소규모 미세조정 계획 ([MoKa] 2026-10-01: "제로샷 결과로 미세조정 가능성을 기각하지 말 것", LAYA.md 10). golden·logs 라벨은 전부 규칙 출력, **사람이 확인한 결정 단위 정답 0개**. 사람 시범(로컬 `data/observe` 21파일) 가까운 싸움 1,019 s·153번. 실제 싸움 2,576번 중 72 %가 경사로. noul 진단: 숫자만으로 정해지는 "거리 밖인가?"도 AUC 0.16~0.41 → 제로샷은 상태의 숫자를 못 읽음 (진단일 뿐). 학습은 안 함
-- [x] [win] 라벨링 파일럿 도구 ([MoKa] 2026-10-01: 30~50장면 최소 파일럿, LAYA.md 11) — 명세 먼저(`0e52b54`), `label_pilot.py build/serve/report` + `label.html`(레이더 재생 재사용). 40장면·싸움 40·실행 16, test 후보 13. 확인: `tests/label_pilot_test.py`, pytest 53 통과, 화면에서 허용/금지·이후 보기·저장 거부(ID 없음 400, 헤더 없음 403) 확인. 사람 라벨 0
-- [x] [win] 라벨 의미 점검 ([MoKa] 2026-10-01, LAYA.md 11.6): 실제 행동·가능 행동·판단을 분리 — 관측 행동은 원래 기록 말로, 후보 아님마다 이유(`not_in_bot`/`rule_blocked`/`unobserved`, `laya_shadow.why_not`), 라벨 0.2에 '맞는 것 없음'·'모델 입력 부족', 1차 라벨 보존(결과는 1차 저장 뒤에만, 이후 저장은 수정 이력), 추정값 출처 표시. 누설 1건 고침: 1차 화면의 '사건'(미래에서 계산)이 11장면에 보였음. 구르기는 봇 전술로 안 넣음, 사람 B는 버튼 사실로만. 장면 ID·test 후보 그대로(40/40 대조). 확인: `tests/label_pilot_test.py` 5개, pytest 53, 봇·사람 장면 화면에서 저장(임시 폴더 `ui_trial`). 실제 라벨 파일 없음
-- [x] [MoKa] 파일럿 1~10 라벨 (`pilot_labels.jsonl`): 중앙 109 s/장면, 허용 집합 5~9개, "이 화면만 보고 확신이 없음" → 경사로 세트로 (LAYA.md 13)
-- [x] [win] 경사로 세트 준비 ([MoKa] 2026-10-01): `shots.py`(2 Hz 스크린샷, 포커스 안 건드림), `build --set ramp --radar …`(모든 싸움 1~2장면, 싸움 시작부터 재생, 스크린샷 붙임), 라벨 0.3(가장 좋은 것 하나 + 확신 필수). 확인: `tests/label_pilot_test.py` 6개, pytest 53, 옛 녹화로 build 시험(싸움 58 → 84장면), 화면 시험(임시 폴더). 봇은 안 돌림
-- [x] [win] [MoKa] 신호 뒤 `clear-ramp --basic --radar` — **4번**([MoKa] 중단): 전부 cleared, r1 '주의'·r2~r4 '깨끗', **r3 = [MoKa] 기준 플레이** (LAYA.md 13). `build --set ramp` 24장면(싸움 17), `serve --set ramp --review-bot` (http://127.0.0.1:47814)
-- [ ] [MoKa] 경사로 24장면 라벨 (검토 모드: 봇 행동이 미리 채워짐, 틀린 것만 고침) → `python label_pilot.py report --set ramp`
-- [x] [win] 경사로 B·C·D·A ([MoKa] 2026-10-01): B 에스트 수 = 다음 음용 + 1(휴식 뒤 낡은 값 지움) · C #4 모델 입력은 MoKa 사실(근접 망자, 출처 '사람이 고침'), 봇이 믿은 값 따로 · D 끌어오기 장면 16개(#5 화염병 8 — 락온 R3 순간) · A `clear-ramp --basic --radar --laya-shadow`(가짜 백엔드, 모델 없음) 3번: a1 '깨끗' · a2 '깨끗' — [MoKa] 기준 플레이 · a3 '주의'(시간 초과만). 틱 기록에서 봇 행동이 후보 밖 0. 로그 `data/samples/clear-ramp-shadow-2026-10-01-a1~3`
-- [~] [win] **#4 (254001) 가드를 너무 일찍 내림** — P-32. 고침: `foes.AXE_HOLLOW`(windup 3004, 1.0 s부터 막기 유지), `ranged`는 그대로(승인된 끌어오기 동작 유지). `tests/axe_hollow_test.py`, duel_golden 그대로. **게임 확인 필요** — [MoKa] 신호 뒤 경사로 실행
-- [x] [win] Laya 첫 DSR 미세조정 경사로 v0 ([MoKa] 2026-10-01, LAYA.md 14): A 틱 203개(승인된 실행의 봇 결정), 실행 단위 3겹 — 전체 미세조정 85.2 % vs 늘 guard 57.1 % vs 제로샷 12~35 %, 순서 민감도 26 % → 3~10 %, 추론 p50 ~22 ms. 틀린 것: 막기↔치기 17, approach 7/10. 경사로·규칙 따라하기 수준만 보여 줌, 행동 연결 없음
-- [ ] [MoKa] 다음: 미세조정 체크포인트를 섀도로 켜고 경사로 실행(행동 반영 없음) / 경사로 데이터 더 / 틱 사람 확인 중 선택
-- [ ] [win] #4 `ranged`(투척병) 분류 자체 고치기 — 끌어오기·기다리기 동작이 바뀌므로 따로 실행해 비교
-- [ ] [win] 실행 설정 파일 (`<run>.settings.json`: 커밋·수정 여부·인자·싸움 상수·장비·적 분류) — 커밋을 실행 시각으로 추정하지 않게. [MoKa] 결정 대기
-- [-] [MoKa] 파일럿 40장면 라벨 — 10장면에서 멈춤, 경사로 세트로 바꿈: `python label_pilot.py serve` → http://127.0.0.1:47811, 끝나면 `python label_pilot.py report` → 장면당 시간·판단 불가 비율·정의 메모로 test 300·학습 라벨 규모 확정
-- [ ] [MoKa]+[win] 평가용 사람 확인 라벨 300개 — 파일럿 결과 보고 규모 확정 뒤
-- [ ] [win] 실행 로그·섀도 행에 `code_commit`·구역·싸움 id
-- [-] [win] 공격 outcome-proxy 분리 감사 ([MoKa] 2026-10-02 승인, 추론 전용, 사전 등록 `d54337b` `data/laya/attack_proxy_audit_plan.md`) — **동등성 게이트 불합격 → 추론 안 함** (P-34). a1–a3 레이더 재구성 vs 기록 features: 140/203 재구성, 불합격 필드 7개, `allowed()` 83.6 %. [MoKa] 결정 대기
-- [x] [win] 공격 감사 장치 구현 ([MoKa] 2026-10-02 조건부 승인, 게임 실행 미승인, LAYA.md 17): `attack_audit.py`, `duel(tap=None)`, `run.py --attack-audit`(기본 꺼짐), `experiments/attack_audit_check.py`. 확인: `tests/attack_audit_test.py` — golden 40,320 감사 켠 채 그대로, 실패 4가지에도 같은 판단, 동결 계약(5만 호출, 공유 객체 0, 흔들기 내성, 음성 대조 검출), pytest 55 통과
-- [x] [win] 첫 관측 실행 ([MoKa] 2026-10-02 경사로 1회 승인, Burg 미승인): `20261002_015707_clear-ramp` (커밋 `4cae9e6`, `--basic --radar --attack-audit`, 레이더 `20261002_015645`) — cleared, 위험 '깨끗'. 감사: 공격 호출 7 (primary 3 · ambiguous 4 = 모두 chained), seq 21개 모두 written, 유실·writer 오류 0, pad 대조 7/7. 문제: 결과 창이 거의 관측되지 않았는데 primary로 분류됨 (P-35). 샘플 `data/samples/clear-ramp-audit-2026-10-02-o1.*`
-- [x] [MoKa] 첫 경사로 관측 실행 판정 (2026-10-02): 기록·seq 완전성·writer/drop·pad 대조·기본 실행 비침투성 **통과**, outcome-proxy 수집은 P-35로 **미검증**
-- [x] [win] P-35 최소 수정 (LAYA.md 17.1): 결과 창 보수적 판정, 분류 9가지, 점검기가 다시 계산, footer 집계. 첫 실행 재분류 primary 3 → unobserved_fight_end 3. pytest·golden 통과
-- [x] [MoKa] 경사로 재검증 실행 승인 (2026-10-02, 1회, 목적 "audit instrumentation validation only", Burg 미승인)
-- [x] [win] 경사로 재검증 실행: `20261002_030153_clear-ramp` (커밋 `1366464` = 69fb195 + header `purpose` 칸, `--basic --radar --attack-audit`, 레이더 `20261002_030144`) — cleared, 위험 '깨끗'. 감사: 공격 호출 6 = primary 1 · ambiguous 4 (chained) · outcome_unobserved_fight_end 1. seq 21/21 written, drop·lost·writer 오류·tap 오류 0, pad 대조 6/6 confirmed. complete 창 1건 (샘플 19개, 0.016–1.047 s, 최대 간격 0.079 s). 봇 쪽 분류와 점검기 분류 일치. 점검기의 제외 사유 집계가 사유를 두 번 셈 (P-36). 샘플 `data/samples/clear-ramp-audit-2026-10-02-o2.*`
-- [x] [MoKa] 재검증 판정 (2026-10-02): o2 `:9`는 primary로 취급하지 않음 — 시간 창·pad는 통과, 표적 정체와 다수 적·원거리 위협 귀속을 1 s 동안 증명할 정보 없음 (P-37)
-- [x] [win] P-37 귀속 조건 (LAYA.md 17.2, 스키마 0.3): 샘플별 표적 정체·8 m 맥락·원거리 위협 기록, `outcome_attribution_unconfirmed` + `attribution_reasons`, P-36 중복 집계 고침. o2 `:9` → attribution_unconfirmed. pytest·golden 통과. 발사체를 못 읽어 지금 장치로는 primary가 구조적으로 0
-- [x] [MoKa] 다음 단계 결정 (2026-10-02): 발사체 읽기 구현 안 함 · Burg audit 실행 미승인 · attack audit schema 0.3 동결 (관측 범위·발사체·원거리 소유 추적·임계값·Laya outcome-proxy AUC 확장 안 함). 0.3의 primary=0은 모델 실패가 아니라 귀속 증거 부족. `outcome_attribution_unconfirmed` 기록은 사람 고해상도 검토 사례를 찾는 보조 자료로만 보존
-- [x] [win] 마을 입구 구역 설계·관측 프로토콜 문서화 ([MoKa] 2026-10-02 승인): `TOWN_ENTRY.md` — 확인 표(기록/사용자/추정 구분, 등급), 8상태 설계, 사람 플레이 읽기 전용 A/B/C 프로토콜·F9 마커. 구역은 provisional(`--seg 3`). 코드·봇·Laya·audit 변경 없음
-- [x] [MoKa] 마을 입구 사람 플레이 Type A 1회 승인·실행 (2026-10-02, 반경 40 m, 읽기 전용): 기록 `data/observe/20261002_065653.jsonl` (로컬). E1 — 사람이 위험선 전에서 접근을 멈춰 적을 하나씩 분리 (동시 근접 최대 1). 2:1 반증·봇 자동 분리의 증거 아님. 254011·투척병 반응은 hit-reacted. 마커 순서 해석 불가 → `TOWN_ENTRY.md` §D
-- [x] [win] `TOWN_ENTRY.md` 개정 ([MoKa] 2026-10-02): 9상태 "위험선 전에서 하나씩 끌어와, 입구에 온 적만 처리" (target / 접근하면 안 되는 target / 깊이 / return trigger / wave 경고 / 중단), 금지 행동, Type B 수정 설계(B-dist·B-hit run 분리), 다음 마커 체크리스트, §D Type A 기록. 봇 미확정: lure depth · wave threshold · return trigger
-- [x] [MoKa] B-dist pilot 1회 승인·실행 (2026-10-02): `data/observe/20261002_123237.jsonl` (로컬). E1 — 입구에서 0034+0015 2:1 (HP −326), 투척병 no-hit 접근 반응(약 10.9 m)·B1b 약 2.4 m 추적, 250000 이동은 시간 상관만. 투척병 처치 뒤 21~37 m 내부 진행은 protocol 밖 exploratory로 분리 → `TOWN_ENTRY.md` §D
-- [x] [MoKa] B-dist 반복 1회 승인·실행 (2026-10-02): `data/observe/20261002_124925.jsonl` (로컬). 입구 0034+0015 2:1 재발 (E1 ×2), 투척병이 첫 2:1 전투 중 반응·투척 (E1). 계단 아래 후퇴 뒤 내부 재진입 여러 번은 exploratory. §D 전체 반영은 미결정
-- [x] [win] `TOWN_ENTRY.md` §E 방향성 위치·detection-risk envelope ([MoKa] 2026-10-02 승인, 설계만): zone·이동 방향 분류, envelope = 관측 기반 보수적 위험 모델 (AI 반경 증명 아님), ONE_NOTICE → return/fallback, MULTI·UNKNOWN → 내부 추가 접근 금지, E1 기록은 사례. NavMesh 오프라인 확인 (보조 자료): 계단 아래가 MAP_A/B 경계, 끼인 공간 250000은 B1b까지 mesh 경로 없음, 입구 꼭대기 옆 mesh 구멍
-- [x] [win] Laya 기여 여부 읽기 전용 검토 ([MoKa] 2026-10-02 요청, 코드·게임 변경 없음) → **결론 A. Laya 불필요.** 기본 반사 다섯이 이미 규칙층에 있음:
-  - ATTACK: `field._chaser`(FOLLOW_R 4.5 m) → `_walk_chaser` → `duel` `RULES`
-  - RETREAT: `rule_separate`·`_low_hp_line`, `recover`·`_crowd_capped`, `watch.Escape`
-  - HEAL: `rule_estus`+`Care.wants`, `_walk` WALK_HEAL, `recover` heal
-  - STOP: `nav.goto`의 snapshot/`cam_yaw` 없음 → `pad.neutral`, `Escape`의 pad 고정, watchdog
-  - CONTINUE: `_walk`·`_resync_plan`
-
-  Laya가 맡을 일은 중복이거나, 제외된 판단(귀속·구역·envelope)에 기대게 된다. 근거도 실패(P-34) 또는 미확정(audit primary=0)이다. UNKNOWN (확인 안 함, Laya와 무관):
-  - pad 층 입력 고착 직접 감지 (`control.Pad` 미검토)
-  - 걷기 틱마다 reflex가 먼저 도는지 전체 순서
-  - 마을 입구에서 기존 반사의 품질 — 필요하면 기존 기록으로 따로 본다
-- [ ] [MoKa] zone-boundary F9 walk 계획 확인·승인 (미승인) · B-hit 설계·실행 (미승인)
-- [ ] [win] (허락 뒤) `run.py burg-bonfire --basic --laya-shadow` — 섀도 켠 실행과 끈 실행의 `blind_report.py`·틱 수 비교, `.laya.jsonl` report
-
-## 1-j. 결론 A 이후 — 기본 반사를 정확히 (2026-10-02 [MoKa] 정리)
-
-목표는 복잡한 AI가 아니라 기본 반사(ATTACK·RETREAT·HEAL·STOP·CONTINUE)를 정확히 하는 것. 1-i 검토에서 Laya 없이도 남는 것은 규칙 결함 발견(P-31·P-32·P-33), 라벨 검토 화면, attack audit의 pad 대조, "규칙 출력 ≠ 사람 확인 정답"과 "레이더 재생 ≠ 봇 입력"(P-34)이라는 사실이다.
-
-할 일 (우선순위 순, 아직 시작 안 함):
-- [ ] [MoKa]+[win] P-32 게임 확인 — `AXE_HOLLOW` 가드가 경사로에서 맞는지 (게임 실행은 승인 뒤)
-- [ ] [MoKa] P-31 결정 — `rule_finish`에 `h <= reach + 0.3`. 넣으면 golden 다시 찍기
-- [ ] [MoKa] P-33 결정 — 막은 직후 `rule_stagger_punish`. 먼저 [win]이 기존 기록에서 적 종류별 휘청 애니가 진짜 틈인지 읽기 전용 확인
-- [ ] [win] UNKNOWN 읽기 전용 검토 — `control.Pad` 입력 고착 감지, 걷기 틱의 reflex 순서
-- [ ] [win] 기존 반사 품질 읽기 전용 점검 — 기존 실행 기록에서 2마리 이상 붙었을 때 후퇴·에스트 결정 (`blind_report`·`hotspots`)
-- [ ] [MoKa] 실행 설정 기록(`<run>.settings.json`, 로그 `code_commit`) 결정 — 1-i 같은 항목
-- [ ] [MoKa] Laya 정리 방침 — 꺼 둔 채 유지 / 동결, 라벨 도구의 `why_not`을 `laya_shadow.py` 밖으로 뺄지
-- 마을 입구(Part 2·B-hit 등)는 지금처럼 따로 승인
-
-라벨링 방향 (제안, 구현 안 함):
-- **지금 쓸 곳**: 사람 확인 장면 = 회귀 테스트 기대값 (예: P-33 세 장면은 guard만 허용). 지금 golden은 규칙 자기 출력이라 규칙이 틀려도 통과한다.
-- **나중 학습용으로 지킬 것**:
-  - 출처 구분 (사람 확인 / 규칙 출력 / 결과 추정). 정답은 사람 확인만.
-  - 장면마다 code_commit.
-  - 싸움·실행 단위 분할.
-  - "확신 없음"·"입력 부족"도 남긴다.
-  - 규모: 평가용 약 300개 ≈ 109 s × 300 ≈ 9시간 → 사람 손만으로는 어렵다.
-- **MoKa 부담 줄이기** — 자동 값은 정답이 아니라 미리 채운 제안이다. 출처를 따로 표시하고 사람 확인으로 세지 않는다.
-  - A. triage: 행동 뒤 1 s 안 피해, 2마리 이상 근접, 드문 규칙(`finish`·`stagger_punish`), 판단 공백 장면만 보여 준다. 기존 로그로 가능.
-  - B. 검토 모드(`--review-bot`) 유지: 봇 행동을 미리 채우고 틀린 것만 고친다.
-  - C. 사실로 정해지는 것은 자동 후보로 표시한다 (닿는 거리 밖 공격 → 허용 아님 후보 등).
-  - D. 비슷한 장면을 묶어 대표만 보고, 나머지는 제안 + 무작위 재확인.
-  - E. 한 번에 10장면·시간 제한, 같은 장면을 몰래 다시 섞어 판단 흔들림을 측정한다.
-  - 추천은 A+B+E 먼저, C는 그다음. 미세조정 Laya로 "의견이 다른 장면"을 찾는 방법은 결론 A와 맞지 않고 WSL 유지 부담도 있어 지금은 쓰지 않는다.
-
-## 1-k. 가상 패드 fail-safe P0 (2026-10-02 [MoKa] 승인)
-
-가상 패드 통합 검증(게임) 전에 입력이 남거나 패드가 둘이 되는 길을 막는다. 확인은 전부 오프라인 — 가짜 vgamepad(`tests/pad_fakes.py`) 위의 실제 `control.Pad`, 게임·실제 입력·메모리 쓰기 없음. 각 테스트는 고치기 전 코드에서 실패하는 것을 확인했다 (테스트 자체, 또는 그때 있던 API만 쓰는 probe). 새 임시값(`control.NO_OBS_NEUTRAL_S`·`feed.STALE_S` 0.25 s, 종료 때 잠금 대기 1.0 s)은 안전 경로 전용 임시 제안값이고 전투·이동 전술 상수가 아니다 (duel golden 그대로).
-
-- [x] [win] P0-A 패드 하나: `control.Pad`가 장치를 만들기 전에 기계 전체 잠금(`data/pad.lock`, gitignore됨)을 잡고, 못 잡으면 `PadBusy`로 멈춤 (다른 스크립트도 같은 잠금, fail closed). `Pad.close()` = 중립 → 장치 제거 → 잠금 해제, `reconnect`는 잠금 유지. watchdog은 잠금이 잡혀 있으면 `event=skip reason=pad_lock_held`만 남기고 패드·입력 없음 — 살아 있지만 멈춘 봇은 더 이상 구조하지 않음 ([MoKa] 결정). 확인: `tests/pad_lock_test.py` (다른 프로세스가 쥔 잠금 포함) 통과, pytest 56. 고치기 전 코드: 장치 둘이 동시에 살아 있고, 봇 패드가 살아 있는데 watchdog이 장치 2개를 더 만듦
-- [x] [win] P0-B 사용자 중지(Ctrl+C): 곧바로 `pad.neutral()` → 정리하는 동안 퀵 종료·턱 되돌림 끔 → 카메라 따라가기 멈춤. 퀵 종료·다크사인·ChrClassWarp 쓰기·메뉴 입력을 시작하지 않음. `finally`는 마지막 neutral 뒤에 봇 잠금 해제. 사용자 중지가 아닌 예외의 퀵 종료(shake)는 그대로. 확인: `tests/run_stop_test.py` (`run.main`을 가짜로 돌림) 통과, pytest 57. 고치기 전 코드: Ctrl+C 바로 다음 호출이 퀵 종료
-- [x] [win] P0-C 관측 없음: `duel._sense`·`Field._walk`에서 snapshot이 없으면 그 틱에 스틱 0, `NO_OBS_NEUTRAL_S`(임시 0.25 s) 넘게 없으면 버튼까지 전부 놓음 (공백마다 한 번). `Feed.snapshot`은 기다린 뒤에도 `STALE_S`(임시 0.25 s)보다 낡은 프레임이면 `None`. 확인: `tests/no_obs_test.py` 통과, pytest 58, golden 그대로. 고치기 전 코드: 0.5 s 공백 동안 스틱·가드 그대로, 멈춘 피드가 0.36 s 낡은 프레임을 줌
-- [x] [win] P0-D Mover ↔ 실제 보고: `Pad.epoch`(neutral·freeze·unfreeze·reconnect·close마다 +1)가 바뀌면 `nav.Mover`가 자기 상태를 잊고 다음 `set()`에서 필요한 버튼을 다시 누름. epoch 없는 패드(walksim `SimPad`)는 그대로. 확인: `tests/mover_epoch_test.py` 통과, pytest 59, walksim·walk_replay 숫자 그대로. 고치기 전 코드: neutral 뒤 `set("guard")`가 LB를 다시 안 누름 (P-38)
-- [x] [win] P0-E 종료 정리: Pad가 생기면 atexit(→ 모든 Pad `close`)과 Windows 콘솔 처리기를 등록. Ctrl+C 이벤트 → 얼림과 상관없이 중립만 (이어서 P0-B), Ctrl+Break·콘솔 닫기·로그오프·종료 → 중립 → 장치 제거 → 잠금 해제. 확인: `tests/pad_exit_test.py` (자식 프로세스 정상 종료·잡히지 않은 예외·실제 Ctrl+Break) 통과, pytest 60. 고치기 전 코드: 정상 종료 때 마지막 보고가 스틱 + LB 그대로, 장치도 안 빠짐
-- [x] [win] P0-F 턱 되돌림 = writer 하나: `Escape._nudge` — `freeze(take=False)`(퀵 종료가 쥐고 있으면 안 함) → 스틱 0.35 s → `finally`에서 neutral·unfreeze. `unfreeze()`는 얼린 스레드만. 되돌리는 0.35 s 동안 가드가 내려감 ([MoKa] 승인), 끝나면 Mover가 다시 누름 (P0-D). 확인: `tests/ledge_nudge_test.py` 통과, pytest 61. 고치기 전 코드: 0.35 s 되돌림 사이에 판단 스레드 입력 34개가 섞임
-- [x] [win] P0-G Pad 우회 없앰: `Pad.press(button, hold)` (누름 → hold → `finally`에서 뗌), `quitout._press`가 이것을 씀 → 모든 보고 쓰기가 `control.Pad`를 지남. 확인: `tests/pad_press_test.py` (소스 스캔: 루트·`souls/`·`boss/`·`experiments/` 117 파일에서 vgamepad 직접 쓰기 0건) 통과, pytest 62. 고치기 전 코드: `quitout._press` 누른 채 KeyboardInterrupt면 A가 눌린 채 남음
-
-game에서만 확인할 수 있는 것 — 오프라인으로는 확인 못 함, resolved·정책 보장 아님:
-- (공통) 게임이 XInput을 얼마나 자주 읽는지, 패드 호출 → 게임 반응 지연 (P1 기록 전엔 모름)
-- (A) 프로세스가 죽은 뒤 OS가 pad lock을 푸는 시간 — 늦으면 watchdog이 한 번 skip 하고 20 s 뒤 다시 봄
-- (B) Escape 스레드가 이미 시작한 낙사 퀵 종료는 사용자 중지로 멈추지 않음 (기존 그대로, 최대 40 s 기다림). 메인 스레드 `esc.fire` 도중 Ctrl+C면 게임이 메뉴에 남을 수 있음 — 기존 문제, 이번에 안 고침
-- (C) 실제 게임에서 짧은 관측 공백이 얼마나 자주 생기는지, 0.25 s 뒤 가드가 내려가 맞는지
-- (D) 짧은 B → 구르기/백스텝: sprint 걷기(수용소 `run` 단계, 막힘 탈출 뒤 달리기)가 이제 점마다 "도착 neutral로 B 뗌 → 다음 점에서 B 누름"을 반복함. DSR이 짧은 B 누름·뗌을 구르기/백스텝으로 받는지, 어느 길이부터인지 모름
-- (D) 가드 걷기(retreat·fall_back·back_to_wall)가 이제 끝까지 가드를 유지 — 스태미나가 모자라지 않는지
-- (E) `TerminateProcess`·`taskkill /F`·python.exe 크래시·`os._exit`에서는 정리 코드가 안 돎. 그때 ViGEm이 장치를 언제 빼는지, 그 사이 게임이 마지막 보고를 붙잡는지 모름
-- (F) 되돌림이 예전만큼 당기는지, 0.35 s 가드 공백 중 맞는지. 막 누른 B를 되돌림의 freeze/neutral이 곧 떼면 짧은 B(구르기/백스텝)가 될 수 있음 — C의 "공백 뒤 전부 놓음"도 같은 위험
-
-## 1-l. 제어 관측(ctl) P1 (2026-10-02 [MoKa] 승인)
-
-결정 → 패드 보고 → 관측 → 멈춤의 시간 순서를 같은 실행 안에서 잴 수 있게 **기록만** 더한다 (`run.py --ctl`, 기본 꺼짐, 파일은 `data/runs/<run>.ctl.jsonl`만). 주 시계는 `perf_counter_ns`(QPC), `wall_ns`는 벽시계 로그와 느슨하게 맞추는 용도. 기록을 켜고 꺼도 패드 보고 값·순서가 같아야 한다. 기록기 실패는 패드·멈춤·Escape·사용자 중지·잠금에 닿지 않는다. 게임 FPS·게임 프레임 시간·게임이 XInput을 읽는 시각은 재지 않으며 그렇게 부르지 않는다. 항목마다 따로 검토·커밋.
-
-- [x] [win] P1-A 기록기·생명주기·hdr/sync: 새 `ctl.py`(호출 쪽은 `put_nowait`만, 큐 가득 → drop 수 + `gap`, 쓰기 실패 → 한 번 다시 열고 스스로 꺼짐), `run.py --ctl`(`life`: start·normal_exit·user_stop·exception_exit), `control.py` 종료 훅(`life`: atexit·console, 콘솔 닫기는 패드 정리 뒤 최대 1 s flush). 확인: `tests/ctl_writer_test.py` 통과, pytest 66 (HEAD 65), golden·walksim(entrance 10)·walk_replay(-n 50) HEAD와 같음. 2026-10-03 실제 실행 4번(`--ctl`)에서 hdr·sync·life·end가 정상으로 기록됨
-- [x] [win] P1-B 패드 업데이트·neutral·freeze 기록: `control.Pad`의 보고 쓰기 22곳이 전부 `Pad._send(방법)`을 지남 — 장치 `update()`를 먼저, `--ctl`일 때만 그 뒤에 기록. 기록: `pad`(방법 `m`, `caller` = control.py 밖 첫 호출 위치, 보고 정수 btn·lt·rt·lx·ly·rx·ry, `frz`, `ep`, `up_us` = update 걸린 시간·대리값, `dup`), `pad.drop`(얼린 동안 `_NullPad`로 간 입력), `neutral`(why·site·ep·남은 보고; release_all·close 포함), `esc`(freeze·거절·unfreeze·무시), `pad_dev`(reconnect unplug·plug). 앞 기록과 같은 호출은 세기만 하고 다음 기록의 `dup`로 — Σ(1+dup) = 쓰기 수, 바뀐 보고는 접지 않음, 새 장치의 첫 보고는 늘 기록. 확인: `tests/ctl_pad_test.py` 3/3 통과(켜기/끄기 때 장치가 받은 보고·순서 같음, 꺼짐이면 기록 코드 안 불림, 켜짐 추가 시간 입력당 ~7 µs 가짜 장치 기준), pytest 67, golden·walksim(entrance 10)·walk_replay(-n 50) P1-A와 같음. 설계와 다른 점: `neutral(why=)`는 받지만 부르는 곳 45곳엔 안 넣음 — 대신 `site`(파일:함수:줄)가 자동으로 남음 (가짜·시뮬 패드 5개의 `neutral()` 모양을 안 바꾸려고)
-- [x] [win] P1-C 판단 이벤트 (goto 모드 전환, Field._walk 물러남 이유, Reflex 행동, duel 규칙): `dec.goto`(goto마다 `gid`, start = 목표·허용 거리, mode = **바뀔 때만** prev·dist·snap_t, end = 돌려준 값 그대로 — `return X`를 `return _end(rec, X)`로, 값 같음), `dec.walk_retreat`(`Field._walk_mode`: 예전 람다와 **같은 네 검사·같은 순서·같은 단락** — threat_now가 참이면 _chaser 안 부름 — 어느 검사가 걸렸는지 reason·ptr·npc), `dec.reflex`(`Reflex.tick`의 True/False 자리를 `_act`로 — 값 같음, (행동, 대상)이 바뀔 때만, 조용한 틱 뒤 새 묶음은 다시 기록: guard·face·wait·step_away·dodge:<종류>), `dec.rule`(duel이 고른 규칙: rule·ptr·out·snap_t·snap_age_ms·n — 자세만 잡는 규칙(`duel.FOLD_RULES`: block·wait_far·approach·face …)은 같은 규칙·대상 연속을 n으로 접고, **그 밖의 규칙(공격·뒤잡기·에스트·발차기, 목록에 없는 새 규칙)은 늘 하나씩**). 모두 `--ctl`일 때만 기록 객체를 만들고, 판단은 아무것도 다시 읽지 않음. 확인: `tests/ctl_decision_test.py` 3/3 통과 — **기록을 켠 채 golden 40,320 상황 판단이 전부 같음**, `_walk_mode` 호출 순서·단락이 켜기/끄기 같음, goto는 가짜 패드에 간 보고·결과 같음, Reflex는 반환·패드 호출 같음. pytest 68, golden·walksim(entrance 10)·walk_replay(-n 50) P1-B와 같음
-- [ ] [win] P1-D 관측 품질·Escape·watchdog 이벤트 (`--ctl-frames`는 기본 꺼짐)
-- [ ] [win] P1-E 정렬·큐 넘침·쓰기 실패·켜기/끄기 같음 테스트
-
-남은 UNKNOWN (P1-C): `fseq` 칸은 있지만 P1-D에서 Snapshot에 넣기 전까지 늘 null — 지금은 `snap_t`(읽기 끝난 벽시계, ~16 ms)로만 묶임. goto가 예외로 끝나면 `end` 기록이 없음(예외 = 기록 없음으로 읽음). `FOLD_RULES`는 이름 보고 고른 임시 목록 — 실제 실행 기록에서 접힌 규칙에 중요한 순간이 묻히는지는 아직 모름. 실제 실행에서 기록 양·판단 틱 간격 영향은 실제 실행 전엔 모름.
-
-남은 UNKNOWN (P1-B): `up_us`·기록 비용은 가짜 장치에서만 잼 — 실제 ViGEm `update()` 시간과 기록을 켠 실제 실행의 틱 간격은 실제 실행 전엔 모름. 보고 정수는 vgamepad가 보낸 값이고, 게임이 그 값을 언제 읽는지는 여전히 모름. 접힌 반복(`dup`)은 몇 번인지만 남고 각각의 시각은 안 남음.
-
-남은 UNKNOWN (P1-A): 콘솔 닫기에서 1 s flush 전에 프로세스가 죽으면 파일 끝이 잘릴 수 있음. 강제 종료 뒤엔 `end` 기록 없이 끝남 — 분석은 "잘림"으로 본다. P1-A만으로는 지연을 잴 수 없음 (패드·판단·Escape 이벤트는 P1-B~D).
-
-## 1-m. 다음 구간 — 성벽 마을 화톳불 → 타우로스 데몬 (2026-10-06 [MoKa] 결정)
-
-배경: 감방 → 성벽 마을 화톳불을 한 번에 깸(`da2654c`, 10-03e: 372 s, 최저 HP 56 %, 안개벽 봇이 통과). 10-03 실행 4번 중 3번 불 켬(b는 상인 앞 사망, c는 최저 22 %). 귀환 지점이 성벽 마을 화톳불(1012962)이라 다음 구간은 성벽 마을을 다시 돌지 않고 거기서 반복 시험한다. 교회까지 같은 맵 `m10_01` → NavMesh는 `data/samples/navmesh_m10_01_00_00.npz`에 이미 있음. **목표는 타우로스 데몬 처치까지** — 드레이크 다리 → 교회는 그 뒤에 따로 정한다.
-
-[MoKa] 결정 (2026-10-06):
-- **화염병 할로우(지붕 원거리)는 발사체를 읽지 않고 빨리 붙어서 친다** — 단, 붙으러 가는 길이 낙사 위험 구간이면 무시하고 사정권 밖에서 싸운다 (10-06, 턱 위 254012) — 10-02 "발사체 읽기 구현 안 함" 그대로. 던지는 줄에 오래 서 있지 않게 곧장 붙기.
-- **타우로스 데몬은 탑 사다리 위 낙하 공격으로 시작** (수용소 데몬과 같은 방식) → 그다음은 9-30 원칙대로 **양손 잡기 + 회피 위주**.
-- 성벽 마을처럼 **구역마다 멈추고 확인** (`--seg`).
-
-할 일:
-- [x] [MoKa]+[win] 시작 전: 세이브 백업·캐릭터 정하기 — 2026-10-06 [win]: 레벨업 많이 한 상태 백업 `backup-20261006-143930-leveled-before-taurus`·`…-144122-before-restore-burg`(게임 종료 때 쓴 마지막 상태), 10-03 감방 → 화톳불 한 번에 깬 직후 세이브(`backup-20261003-182314-full-run-cell-to-burg-bonfire-lit`, 해시 85915A67…)로 되돌림, [MoKa] 게임에서 로드 확인. (작업 트리의 P1-D 변경 커밋은 1-l 쪽 일로 따로)
-- [~] [MoKa] 화톳불 → 타우로스 안개벽 → 낙하 공격 자리까지 직접 플레이, 레이더 녹화(`radar_server` + `observe_record.py`) — 경로·적 배치(화염병 할로우 위치 포함)·사다리·낙하 자리를 기록에서 뽑는다
-  - 2026-10-06 [MoKa] 2차 녹화의 F9 뜻 (1차와 다름): **F9 = [MoKa]가 안전 구역이라고 보는 자리.** 그 구역의 적을 모두 처리하면 안전 구역이 다음 F9 자리로 바뀐다. → 분석: F9 n의 자리 = 구역 n의 안전 자리(물러날 곳·끌어올 곳), F9 n ~ F9 n+1 사이에 죽은 적 = 구역 n의 적. 봇 구역 정의(`souls/missions.py`)에 구역마다 안전 자리로 넣는다
-  - 2026-10-06 [MoKa] 3차 — **타우로스까지 처치** (`data/observe/20261006_173431.jsonl` 578 s 로컬, 기준 세이브에서 시작, F9 7번 — 1~6은 2차와 같은 안전 자리). 타우로스 225000 (HP 1215) 486.5 s에 처치. [MoKa]: "마지막 F9 자리에 가면 데몬이 나타나고, 사다리를 타고 올라가 낙하 공격으로 피해를 주고, 바짝 붙어서 공격"
-    순서: F9#7 (22.9,15.9,−120.9) 다리 위에 서면 417.9 s 타우로스가 (−1.6,30.3,−112.6)에서 뛰어내림 → 동쪽으로 ~27 m 달려 사다리 아래 (49.1,16,−117.1), 오르기(애니 7012) 428~435 s → 꼭대기 (50.5,24.8,−117.1) → 438.0 s 뛰어내림(1550 → 304800), 아래 타우로스 (45.5,15.8,−119.1) 애니 3011 → **낙하 공격 −411** (1215 → 804). 3 s쯤 y≈20에 걸렸다가 442 s 바닥으로
-    붙어서 약공(304000) 한 번에 −91, 445~452 s 5번 → 349. **그 사이 스태미나가 0 밑으로(−25)** → 454 s 3006 −237, 459 s 3000 −237 → HP 136/742 (18 %). 물러나 에스트 2번(468·476 s, 마시는 중 −72 한 번), 480~486 s 약공 4번으로 마무리. 싸움 받은 피해 546
-    봇에 넣을 것: (1) 다리 F9#7에서 보스 불러내기 → 사다리로 달리기·오르기 (2) 보스가 사다리 아래 ~5 m 안에 오면 낙하 (3) 붙어서 약공, **단 스태미나를 남겨 두고 끊기**(3006·3000 한 방 −237 = 최대 HP 32 %) (4) HP 낮으면 떨어져 에스트. 사다리·낙하·떨어진 뒤 걸림은 봇에 처음
-    구역 1~6은 2차와 같은 결과: 구역 4(255001 연속기 3003·3004·3005)가 또 가장 위험 — −211, −231, −156, −156 → HP 156. 구역 3(동쪽 계단)도 −30~−108 여러 번. 279000은 이번엔 처치(84 s, 스폰 자리). 값은 `data/samples/burg-upper-zones-2026-10-06.json`의 `taurus`
-  - 2026-10-06 **봇 시험 기준 세이브**: `backup-20261006-155749-burg-bonfire-hp742-before-taurus` (해시 A77FB9FA…, 성벽 마을 화톳불에 앉은 뒤, 최대 HP 742, 그 시각 워프 목록 `bonfires-lit.json`도 폴더 안에 — P-44). 타우로스 녹화 뒤·봇 시험마다 이걸로 되돌린다
-  - 2026-10-06 [MoKa] 2차 (안전 자리 F9): `data/observe/20261006_151317.jsonl` 453 s (로컬), F9 8번, 최대 HP 742 (1차 698 — 또 레벨업). 받은 피해 570, **최저 HP 431/742 (58 %)** (1차 49), 에스트 2번. 구역·안전 자리·처치 목록 → `data/samples/burg-upper-zones-2026-10-06.json`. 실수한 녹화 `…151029.jsonl`은 분석에서 뺌.
-    구역(안전 자리 → 잡은 적): 1 (−0.8,−10,−62.5) 망자 3 + 석궁 · 2 (−7,−10,−73.5) 255001 + 망자 2 (안전 자리로 끌고 와서) · 3 **(3.6,−10.9,−90.6) — 턱 바로 아래**, 망자 2 · 4 (11.2,−6.6,−92.8) 동쪽 계단 망자 3 + 석궁 · 5 (24.1,−5.7,−99) 255000 + 255001×2 · 6 (37.5,−9.1,−104.8) 255001 · 7 (52.1,17.2,−118.6) **안개벽 바로 앞** ([MoKa]), 잡은 적 없음 · 8 (62,23.7,−116.9) 석궁 2
-    큰 피격: 구역 5에서 255000 3000에 2초 사이 −128·−153 (0.8 m) — 가장 큼. 그 밖에 −66(화톳불 옆 254010 3000), −80, −113(구역 3 254010 3005), −30
-    **턱 위 화염병은 셋** (254012: (0.2,−4,−90.2)·(3.5,−1.9,−86.2)·(5.1,−1.8,−84.1)) — 3008을 3번 봤지만(19.7 m·29.9 m·11.4 m) 이번엔 한 번도 안 맞음. 턱 바로 아래(구역 3 안전 자리)는 맞지 않음 — 1차의 −111은 (−1.6,−9.9,−95.8)에서. 사정권 경계는 표본이 아직 적음
-  - 2026-10-06 [MoKa] 1차: **근처 적 처리만** (`data/observe/20261006_145144.jsonl` 454 s, 26 MB 로컬 · 레이더 `data/radar/20261006_120529.jsonl`의 14:51~14:59, F9 6번). 64 s에 최대 HP 616 → 698 — [MoKa] 확인: 화톳불에서 레벨업함. 싸움 94~440 s, 처치 20, 받은 피해 949, **최저 HP 49/698 (7 %)**, 에스트 3번. 순서(처치 자리):
-    A 화톳불 서쪽 마당 94~120 s — 254010×3 + 석궁 255002 (−13.5,−9.8,−71.4)
-    B 남쪽 153~195 s — 255001 + 254011×2를 (−7,−10,−74)까지 끌고 와서 잡음, 그다음 254010×2 (3,−10,−96~−102). **화염병 254012는 위 턱 (0.2,−4.0,−90.2, 높이 +6 m)에서 안 내려오고 안 잡힘** — 178.2 s 3008(던지기) 직후 −111 (가까운 적 5.4 m, 공격 애니 없음)
-    C 동쪽 계단 226~278 s — 254010·254011·254012 셋 (15~18,−5.7,−104) → (10~14,−6,−93~−99), 석궁 255002 (23,−0.2,−96.8)
-    D 306~366 s **가장 위험** — 255000 (21,−5,−94), 255001×3 (30~40,−8,−100~−113). 큰 피격: 331.2 s 255001 3005 −217 (우리 공격 303300 중 맞음), 350.4 s **−240 — 가장 가까운 적 10.5 m(255001, 9910 뒤), 공격 애니 없음 → 원거리로 보이나 던진 놈 모름**, 354.3 s 255001 3000 −135 → 49
-    E 위쪽 405~440 s — 330060 (53,15.7,−122), 석궁 255002×2 꼭대기 (52.5,23.7,−120)
-    안 싸운 것: 279000 (HP 497, 7.7,−15.7,−100 — 아래층), 255043·255044 (HP 204, 1.1 m까지 붙었는데 피해 없음), 349001·349101·349201 (HP 62~148). 이름 모르는 번호(255001·255043·255044·279000·330060·349xxx)는 `souls/foes.py`에 없음 — [MoKa] 확인 필요. 1-m 결정대로면 254012는 "빨리 붙기" 대상인데 높이 +6 m 턱 위라 붙을 길이 있는지부터 확인
-    2026-10-06 [MoKa]: **턱 위 화염병 254012는 동쪽 계단(C)까지 가야 처리할 수 있다.** NavMesh(`navmesh_m10_01_00_00.npz`) `find_path`도 같음 — C 처치 자리 (14.5,−5.7,−99.4) → (6.5,−4.5,−100.1) → 위로 (6.3,−1.6,−99.7) → (5.2,−2.9,−94.8) → 턱 (0.5,−3.9,−90.4), 31.7 m. B 싸움 자리에서 가면 58 m. → 봇 구역: C의 셋을 잡은 뒤 바로 턱으로 가서 254012. B 뒷부분(턱 아래 254010×2, (3,−10,−96~−102))은 화염병 사정권이라 C·턱을 먼저 하고 나중에 내려와 잡는 순서도 검토 ([MoKa] 결정 필요)
-    2026-10-06 [MoKa] 결정: **턱 위 화염병 254012는 무시한다.** 거기까지는 사다리를 타고 망루 쪽으로 가야 하는데 낙사 위험 구간이라, 봇이 잡으러 가면 오히려 낙사 위험이 너무 커짐 (위 NavMesh 경로의 (6.5,−4.0)→(6.3,−1.6) 수직 구간이 사다리로 보임). → 봇은 그 턱으로 가는 경로를 **쓰지 않는다**(목표·끌어오기·추격 모두). 대신 턱 아래(B 뒷부분)에서는 오래 머물지 않고, [MoKa]가 255001 무리를 (−7,−10,−74)로 끌고 온 것처럼 턱 아래 적도 사정권 밖으로 끌어내 싸운다. 사정권 경계는 녹화의 3008 시점·피격 자리로 [win]이 잰다
-- [x] [win] 녹화에서 경로·적 목록 뽑기 → `souls/missions.py`에 구역 정의 — 2026-10-06 [win]: 타우로스 앞까지 [MoKa]의 안전 자리 구역 1~7을 `data/burg-upper-map.json`으로, `Missions.upper_zone`(안전 자리로 천천히 → 구역 동안 `Field.home` = 안전 자리 → 적마다 `_pull_to_safe`: 천천히 다가가다 깨어 움직이면 안전 자리로 물러나 `fight(wait_far)`, 자고 있으면 그 자리에서, 턱 위 화염병 4 m 안은 목표 아님), `run.py burg-upper [--seg 1-7]`(구역 1은 성벽 마을 화톳불에서 먼저 쉼). 구역 6 안전 자리는 녹화 자리 밑에 바닥이 없어 1.1 m 옆 바닥으로. 확인: `tests/burg_upper_test.py` 통과(안전 자리마다 바닥·이전 자리에서 길·적까지 길·턱 4 m 밖, 끌어오기 4가지). 타우로스(③)는 아직
-- [ ] [cloud] 화염병 할로우 "빨리 붙기" 규칙 — 거리가 멀고 그 적이 던지는 애니(애니 번호는 [win]이 녹화에서 확인)면 돌지 말고 곧장 다가가기. `duel_golden_test`로 바뀐 상황 확인
-- [~] [win] 구역 ①·② 봇 실행 (`BOT_GAME=dsr python run.py burg-upper --seg 1 --basic --radar`부터 하나씩, 기준 세이브 `burg-bonfire-hp742-before-taurus`), 구역마다 `blind_report.py`·`hotspots.py`·`track_report.py`, 로그·track을 `data/samples/`에
-  - 2026-10-06a [win] 구역 1: **cleared 92.5 s, 받은 피해 0, 최저 HP 100 %** — 254010 5 s · 석궁 255002 11 s(kick+light) · 254010 5 s, 넷째 254010은 깨우러 가는 길에 따라와 5 s. 셋은 깨어남 → 안전 자리로 물러남 → 거기서 잡음(설계대로). hotspots: 새 걷기 문제 없음, track: 멈칫 0, blind: 공백 0. 로그 `data/samples/burg-upper-radar-2026-10-06a.txt`·`burg-upper-2026-10-06a.track.jsonl`
-- [ ] [cloud]+[win] 타우로스: 사다리 오르기 → 낙하 공격 순서 (수용소 데몬 낙하 코드 참고) → 양손 회피 싸움. 보스용 일반 싸움 방식의 첫 사례로 만든다 (9-30 원칙: 방패 플레이 안 됨)
-- [ ] [win] 구역 ③ 실행 — 처치·사망·최저 HP·낙하 피해 기록
-
-캐릭터: 프로젝트 목표가 "레벨·장비 최소로 깨기"라 **레벨업을 적게 한 상태가 기본** — 2026-10-06 [MoKa] 결정: 10-03 성벽 마을 화톳불 세이브(레벨업 안 한 산적, 배틀 액스)로 한다. 레벨업 많이 한 캐릭터는 위 백업에 있음. 세이브 파일 하나에 모든 캐릭터가 있으니 바꾸기 전에 늘 백업.
-
-## 1-f. 모퉁이에서 일찍 꺾기 · 제자리 비비기 · 뒤돌기 (2026-09-28 [사람] 관찰)
-
-[사람]: 비밀 통로 좌회전 등 모퉁이마다 항상 일찍 꺾어 벽에 걸리고, 막히면 10 cm씩 빙글빙글 제자리 — "1 m 더 가서 꺾으면" 될 것을. 뒤잡기도 부자연스럽게 돌다가 역공.
-
-- [x] [cloud] A: 모퉁이 도착 판정 — 경로가 1.5 m 앞뒤로 35° 넘게 꺾이는 점은 도착 반경 0.5 m (기존: 전부 1 m, 녹화 경로 0.8 m → 모퉁이 1 m 앞에서 다음 점으로 돌기 시작). 녹화 경로에도 적용 (`path_tolerances(steep=False)`: 계단 규칙은 빼고 모퉁이 규칙만). 비밀 통로 경로 `passage-merchant.json` `a`의 20~23번 점이 모퉁이로 잡힘. `tests/corner_test.py` (가짜 L자 통로)
-- [-] [cloud] B: 경로 펴기에 몸 폭 검사 — 취소. 가짜 L자 통로에서 기존 `simplify`도 모퉁이에서 0.57 m 떨어지고, 모퉁이를 가로지르는 선은 "연결 안 된 면" 검사가 이미 거절 → 코드만 보고 한 추정이 재현 안 됨
-- [~] [win] A 확인: 비밀 통로 좌회전·다른 모퉁이에서 일찍 꺾어 비비는 게 줄었는지 (레이더 보라 점선과 실제 움직임), `python hotspots.py`
-  - 2026-09-28 [win] 레이더 기록 분석(게임 불필요): 수정 전 `data/radar/20260927_182624.jsonl`(27f 1회) vs 수정 후 `…191338.jsonl`(27g~v 14회). 통로 경로 `a` 21번 꺾이는 곳(−43.3,−33.9,−5.05) 3 m 안 통과: **수정 전후 모두 1.9~2.0 s, 멈춤 0 s, 방향 뒤집기 0** — 이 모퉁이는 문제 없음. 경로 점별 느린 시간(속도 < 0.5 m/s, 6 m 안에 살아 있는 적 없을 때만, 14회 합): `a` 경로는 a27(통로 끝) 5.9 s(회당 0.4 s)뿐. 긴 곳은 `b26`(−61.9,−23.3,−23.9) 15 s·`b77~81`(−30,−15.3,−49) 15 s — 둘 다 싸움 받는 자리에서 기다리는 곳, `b43~45`(−53,−22.7,−29) 11 s — P-12 `#3 이동` 막힘 자리. **[사람]이 본 '일찍 꺾어 비비는 모퉁이'가 어디인지 위치 확인 필요**
-  - [사람]: "지도 넣은 뒤 몇 번은 제대로 들어가다 또 발생, 봇이 조종해서 들어가니 말 안 함" → 경사로 끝 → 통로 입구 구간(녹화 경로 합류) 분석: **15/15 실행이 통로 입구 앞 (−25.1, −33.7, 8.8)에서 1.8~4.4 s 멈칫**(수정 전후 같음), 최악 19.6 s(평소 14 s) — 입구 옆벽에 걸려 스틱 옆으로 3 s 비빔 → B 탈출 두 번 뒤 진입. 원인: 녹화 경로 run 69 → 70(사람이 꺾은 모퉁이, 다리 아치 위) → a0 중 **70을 `_no_void`가 지움**(발밑 NavMesh가 16 m 아래) → 69 → a0 대각선이 입구 옆벽을 스침. 입구 쪽은 NavMesh가 비어 있음(비밀 통로). 수정: **가는 길에만** 70을 다시 넣음(`missions._with_entry_corner`, 돌아오는 길은 `_no_void` 이유대로 그대로). `tests/route_entry_test.py`. 확인: 2026-09-28 `burg-bonfire --radar` 1회(입구 지난 뒤 [사람] 요청으로 중단, 레이더 `data/radar/20260927_220722.jsonl`) — **입구까지 12.4 s, 멈칫 0회** (전: 13.7~19.6 s, 매번 1.8~4.4 s 멈칫). 1회라 몇 번 더 볼 것
-  - `run.py passage-drill`(화톳불 ↔ 통로 입구 5회, 전투 없음) 추가. (a) 턴 수정 전 5회(`data/samples/passage-drill-2026-09-28a.txt`): **들어갈 때 꼭대기 → 입구 5회 모두 4.2 s, 입구 앞 멈칫 0** → 입구 문제는 70번 점 복구만으로 해결. 그러나 **나갈 때(NavMesh 길로 화톳불까지) 56~105 s, `못 감` 27줄** — 입구 안쪽 모서리로 꺾여 들어가 막힘 ([사람]: "거의 나갔는데 턴하면서 안쪽으로") (b) [사람] 제안으로 `nav.goto`에 급턴 스틱 줄이기(45°↑ 0.5, 90°↑ 0.3)·턴 직전 0.15 s 스틱 놓기 추가 후 5회(`…-28b.txt`): 1회차 나가는 길에서 막힘 15줄 → 탈출 중 (−19.4, −33.9, 10.1) 부근 **낙사**. 턴 수정이 원인인지는 불명(나가는 길 막힘은 수정 전에도 있었음). P-17
-- [ ] [cloud] C: 모퉁이에서 막히면 뒤로 물러나기 전에 **들어오던 방향으로 1 m 더 간 뒤 꺾기** (지금 탈출은 목표 점만 알고 들어온 방향을 모름 → 뒤로·옆으로·같은 점 재돌진) — A 결과 보고
-- [ ] [사람]+[win] 뒤잡기 시범 녹화: `python observe_record.py`로 사람이 뒤잡기 10번 정도 (시작할 때 F9). 위치·방향·애니(10 Hz), 적 위치·방향·애니, 락온, 패드 입력(120 Hz)이 다 남음 → `data/samples/`에 올림
-- [x] [cloud] 녹화 분석 도구 `backstab_report.py` (+ `tests/backstab_report_test.py`) — 사람 뒤잡기 성공 3번 (`data/samples/observe_backstab_*`) 결과:
-  - **락온을 계속 켬** (원 도는 동안 11/11·6/6·7/7 프레임) → 몸이 늘 적을 봄(조준 오차 ≤ 6°), 뒤에 닿는 순간 바로 R1
-  - **적 몸에 붙어서 돔**: 거리 0.85~0.96 m(몸이 맞닿는 거리) — 앞서 [cloud]가 제안한 "1.8~2.2 m 원"은 틀림
-  - **스틱 끝까지**(1.0 이상), 뒤로 도는 데 0.6~1.1 s (49° → 157° 를 0.6 s)
-  - R1 은 **뒤 130~180°, 0.85 m, 적 애니 -1(평상)** 일 때 → 게임이 등 뒤로 끌어당김(0.59 m, 180°), 0.8~0.9 s 뒤 킬
-  - 같은 자리에서 R1 이 **보통 공격**이 된 경우: 적이 휘청(3500)·공격(3003/3009/3040) 중이거나 막 끝난 직후. 적 애니 -1 인데도 보통 공격이 된 경우도 3번 있어 조건이 다 밝혀지진 않음(10 Hz 기록 한계일 수 있음)
-  - 세 번 모두 먼저 보통 공격으로 HP를 깎은 뒤(75→26, 3) 마무리 — 꽉 찬 HP에서의 뒤잡기 피해는 아직 모름
-- [x] [cloud] 봇 뒤잡기 수정안: `duel._backstab`이 `_circle_sweep`을 대체 — 적이 평상(-1)이고 2.5 m 안이면 **락온 → 스틱 옆으로 끝까지 + 0.9 m 유지 보정 → 뒤 ≥ 135°·1.3 m 안이면 R1 → 1 s 킬 확인 → 락온 해제**. 적이 움직이면 멈춤, 락온 안 되면 포기, 2번 실패하면 보통 공격. 망자(칼·화염병) `circle_behind=True` (방패병은 그대로 꺼둠). 사람처럼 **이미 한 대 때린 뒤**(`res.dealt > 0`)엔 먼저 치기 대신 뒤잡기. 확인: `tests/backstab_test.py` (락온 가짜 세계에서 양쪽 모두 14° → 139° 0.7 s, R1 1번)
-- [x] [win] 뒤잡기 확인: 망자 상대로 로그 `뒤잡기 → stabbed/hit/moved/not_behind/no_lock` 횟수, 레이더로 도는 모습, 역공 당하는지. `observe_record.py`로 같이 녹화하면 `python backstab_report.py <파일>`로 사람 시범과 비교 가능
-  - 2026-09-28 [win] 27g: 시도 2번뿐, 둘 다 `moved` (198.9 s 적 3004, 284.5 s 적 3010 — 도는 중 적이 공격 시작). 원인: 평상(-1) 망자가 1.2~2.5 m에 서 있으면 **"기다림"(멀리서 방패 들고 대기)·"붙기" 규칙이 먼저 걸려 뒤잡기 검사까지 못 감** (로그: 애니 -1, 1.7~2.2 m에서 `기다림×20` 반복 여러 번). 수정([사람] 요청, [win]): `duel.py`에 `backstab_chance`(뒤잡기 조건과 같음) — 이때는 기다림·붙기를 건너뛰고 뒤잡기로. pytest 23 통과
-  - 무기: [사람]이 **Bandit's Knife(103000)**로 바꿈(뒤잡기·패링 치명타가 큼). `souls/weapons.py`에 없어 브로드소드 값(닿는 거리 1.2 m, 2연타)으로 싸움 → [cloud] 추가 필요(닿는 거리·연타 실측)
-  - 27h (`…-28h.txt`, 기다림 건너뛰기 뒤): 시도 8번, **8번 모두 `moved`**, lit·주의(최저 28%). 원인: 걸어서 다가오는 망자도 애니 −1 → 뒤잡기 시작 0.3~1 s 뒤 적이 공격(3000/3005) 시작. 사람 성공 3번은 멈춰 선 적. 수정: 적이 **0.3 s 동안 0.15 m 안에 멈춰 있을 때만** 시작(`BACKSTAB_STILL_S/M`, `foe_still`). pytest 23 통과
-  - 27i (`…-28i.txt`): 시도 1번(`moved`), lit·주의(최저 29%). 가만히 선 망자 2.4 m에서 시도 안 한 장면 → 안 한 이유를 로그에 남김(`뒤잡기안함:안멈춤/횟수/멀다/높이`)
-  - 27j (`…-28j.txt`): **경사로 `partial`(#2 unreachable)로 끝남**, 위험(최저 48%). 뒤잡기안함 이유는 전부 `안멈춤`, 시도 1번 `no_lock`. **그 뒤 칼 끌어오기 락온 10번 연속 `no_lock`** (g·h·i는 0번) — `_backstab`이 R3·R1을 누르고 `release_due`를 한 번도 안 불러 버튼이 눌린 채 남을 수 있었음 → 뒤잡기 안에서 기다릴 때 `release_due`를 부르게 고침. `tests/hotspots_test.py`의 "1위 = (−9.8,−11.3,−68.6)" 고정은 새 샘플로 순서가 바뀌어 "4번 이상"으로 완화. pytest 23 통과
-  - 27k (`…-28k.txt`, 시작 거리 2.5 → 3.5 m): lit·**주의(최저 56%, 큰 피격 2번)**, 락온 실패 0. 뒤잡기 3번: moved 2, not_behind 1. 레이더 기록(`data/radar/20260927_191338.jsonl`)으로 오늘 시도 15번을 모두 보니 **도는 내내 적 정면 0~6°** — 망자가 봇 따라 몸을 돌림, 앞으로 미는 스틱 때문에 1.3~1.5 m에서 몸이 부딪힘(사람 0.9 m). 반면 2번은 망자가 **등을 보이고(160~175°) 6 m에 가만히** 서 있었는데 봇은 기다리기만 함 → 수정: 가만히 선 망자가 등을 보이면(≥110°) **6 m 안에서 곧장 등 뒤로 걸어 들어가 R1**(`SNEAK_R/DEG`, 이미 뒤면 옆걸음 없이 전진, 시간 예산은 거리/1.5+1 s). pytest 23 통과
-  - 27l (`…-28l.txt`, 뒤로 걸어 들어가기): lit·주의(최저 31%). 뒤잡기 3번 모두 moved. 레이더: (a) 등 보인 망자(145~178°)에게 5.6 → 3.4 m까지 뒤로 들어감, 3.4 m에서 망자가 돌아봄 (b) **등 뒤 139°·1.6 m에 1.3 s 서 있었는데 R1 안 누름** — R1 거리 1.3 m 제한. 수정: `BACKSTAB_MAX_R` 1.3 → 1.7, `BACKSTAB_DEG` 135 → 130 (사람 130~180°)
-  - 27m (`…-28m.txt`): lit·**위험(최저 17%)**, 뒤잡기 7번(moved 4, no_lock 2, not_behind 1). 레이더: 망자가 **휘청(3500) 중엔 안 돌아서** 봇이 등 뒤로 넘어감(0° → 145°), 평상으로 돌아온 순간 **등 뒤 128~145°·1.0~1.4 m** — 사람 시범과 같은 기회인데 봇은 락온부터 하다 `no_lock`으로 버림. 수정: 이미 등 뒤(≥130°, ≤1.7 m)면 **락온 없이 바로 R1**, 락온 실패해도 등 뒤면 R1, 등 보인 적은 0.3 s 멈춤 조건 생략
-  - 27n (`…-28n.txt`): lit·주의(최저 50%), **시도 0번**, 안 한 이유 전부 `안멈춤`. 녹화상 가까운 평상 망자는 0.3 s 동안 75%가 0 m 이동 → 판정 쪽 문제로 보고 로그 보강
-  - 27o (`…-28o.txt`): lit·주의(최저 27%), 시도 2번(moved). `안멈춤(0.0~0.2s)` — **멈춘 시간이 0.2 s를 못 넘김**: 결투가 읽는 적 위치가 틱마다 흔들리는 것으로 보임. 수정: 멈춤 = **0.3 s 동안 봇과의 거리가 0.3 m 넘게 줄지 않고 평상 유지**(다가오는 망자 ≈ 0.45 m/0.3 s)
-  - 2026-09-28 [사람] 요청으로 반복 중단 (27p 실행 도중 끊음, 결과 없음). **여기까지 뒤잡기 성공 0번** (시도 합계 27g~o: moved 대부분, no_lock 3, not_behind 2). 봇 실행 전체를 같이 녹화한 `data/observe/20260927_191346.jsonl`(280 MB, 로컬)에 `backstab_report.py` → 성공 장면 없음(빈 리포트). 마지막 수정(거리 기준 멈춤)은 실제 확인 전. 남은 가설: (1) 멈춤 판정 새 기준 확인 (2) 휘청(3500) 뒤 등 뒤로 넘어가는 기회에 락온 없이 R1 — 27m 이후 그 장면 재현 안 됨 (3) 뒤로 걸어 들어가다 3.4 m에서 들킴 → 걷는 속도·소리 영향 여부 [cloud] 판단
-  - 2026-09-28 [사람] 지적: "적이 멈춘 적은 없어 — 캐릭터가 적 뒤에 있고 **컨트롤러를 순간 모두 릴리스**하면 뒤잡 판정". 사람 시범 R1은 버튼 0x200(R1만), 봇은 LB(가드)를 쥔 채 0x180 → 봇 결투 R1 전에 가드·스틱 놓고 0.1 s(`BACKSTAB_RELEASE_S`), 멈춤 조건 제거
-  - **`backstab_drill.py`** ([사람] 요청: 미션과 따로 이것만) — 가장 가까운 망자까지 NavMesh로 3.5 m 걸어가 락온(안 되면 한 번 더, 그래도 안 되면 월드 좌표로 원 둘레 점을 향해) → 옆걸음으로 등 뒤 → `--stab`이면 입력 모두 놓고 R1. 결과(버그 화톳불 아래 망자):
-    - 1회(등 뒤만): 1.1 s 만에 **등 뒤 143°·1.28 m** — 망자가 먼저 공격(3000)을 시작해 그동안 못 돌아서 등 뒤로 넘어감. 봇 결투는 적이 공격 시작하면 `moved`로 포기하던 것 — **적이 휘두르는 순간이 오히려 기회**
-    - 2회(`--stab`): 락온 실패 → 카메라 기준 스틱으로 6 s 헤맴(timeout) → 락온 재시도·월드 좌표 원 돌기 추가
-    - 3회(`--stab`): 적 공격(3003) 중 0.8 s 만에 등 뒤 153°·1.12 m → 입력 놓고 R1 → **처치 (뒤잡기 첫 성공)**. 봇 결투(`duel._backstab`)의 "적 공격 시작 = moved 포기"를 이 방식으로 바꿀지 [cloud]·[사람] 판단
-    - 4회(`--stab`, [사람]이 끌어온 망자): **두 번째 성공**, 4.2 s. 적 애니 3009(가드 못 하는 공격) 중엔 2.5 s 동안 등 뒤 0~8°로 못 돎(적이 따라 돔), 3003으로 바뀐 뒤 0.7 s 만에 151°·1.12 m → R1 → 처치. 정면(0°)에서 옆걸음 방향이 틱마다 +/−로 바뀌어 시간 낭비 — 처음 고른 방향을 유지하게 할 것
-    - 석궁병 `255002`는 벽에 붙어 서 있어 뒤잡기 불가 ([사람]) — 원래 대상 아님(`circle_behind` 꺼짐), `foes.py` 메모에 추가
-    - 5회: 등 뒤 133°·1.50 m에서 R1 → **보통 공격**(HP 75 → 57). 성공 2번은 151°·153°, 1.12 m → R1 조건 140° 이상·1.3 m 이하로 좁힘, 옆걸음 방향은 처음 고른 쪽 유지(`backstab_stick(side)`, 결투에도 적용)
-    - 6회(같은 망자, 깨어 있음): 2.1 s, **등 뒤 162°·1.25 m → 처치 (세 번째 성공)**. 적이 휘두르는 중(3010)·평상(−1) 모두 돌아 들어감. 드릴 성공 3/4 (실패 1번은 넓은 조건 때)
-    - 그때까지 락온은 [사람]이 손으로 해 줌 → `Moves.lock_target`(몸·카메라를 적에게 → R3 → 확인, 다른 적이면 풀고 재시도 — 칼 던지기에 있던 방식)을 꺼내 드릴·결투 뒤잡기·칼이 같이 씀
-    - 7회(봇이 직접 락온): 락온 성공 → 1.3 s 만에 **등 뒤 168°·1.16 m → 처치 (네 번째 성공)**. 드릴 4/5
-  - 결투에 드릴 방식 반영: 적이 휘둘러도 뒤잡기 계속(넘어짐만 `moved`), 망자가 휘두를 때도 시작, 그때는 "막기"보다 뒤잡기 먼저(`bs_swing`). `tests/backstab_test.py`의 "공격 중 → moved"를 "넘어짐 → moved"로. pytest 23 통과 → 처음부터 `burg-bonfire --radar` 재실행
-  - 27q (`…-28q.txt`, 도중 중단): 뒤잡기 `hit` 1 → **154.2 s `stabbed` — 미션 중 첫 뒤잡기 성공**. 망자 2·3번은 휘두를 때마다 **반사(막기)가 먼저 걸려** 뒤잡기 검사까지 못 감 → 망자가 가까이서 휘두르고 옆에 다른 적이 안 휘두르면 반사보다 뒤잡기 먼저(`bs_early`)
-  - [사람]: "망자는 무조건 타이밍이 나오는 적 — 1·2·3번 무조건 뒤잡기", "뒤잡기 판정 동안은 무적이라 다른 적 공격이 안 됨" → **`BACKSTAB_ONLY`**: 망자(`circle_behind`)에겐 먼저 치기·휘청 반격 안 함, 휘청(3500) 중에도 뒤잡기, 포기 횟수 2 → 99. `tests/duel_shadow_test.py`는 다른 결투 규칙을 보는 테스트라 뒤잡기를 끄고 돌림. pytest 23 통과
-  - 27r (`…-28r.txt`, 반사보다 뒤잡기 먼저 — `BACKSTAB_ONLY` 전 코드): lit·주의(최저 45%). **뒤잡기 13번: stabbed 8**, not_behind 3, moved 1, hit 1 — 경사로 망자 1·2·3번 모두 뒤잡기 처치
-  - [사람]: "벽·낭떠러지에 붙은 적은 예외" → `_room_behind`: 적 등 뒤 1 m와 양옆 중 한쪽에 NavMesh 바닥(높이차 ≤ 1 m)이 있어야 뒤잡기, 없으면 원래 규칙(먼저 치기·휘청 반격). `tests/backstab_test.py`에 벽 경우 추가
-  - 27s (`…-28s.txt`): **123.9 s `UnboundLocalError: room`로 멈춤** — `room`을 계산하는 줄보다 앞선 "먼저 치기" 조건에서 씀. 테스트는 `duel_shadow_test`가 `BACKSTAB_ONLY`를 꺼서 단락 평가로 못 잡음 → 계산을 앞으로 옮김. 그 전까지 뒤잡기 stabbed 2·hit 1
-  - 27t (`…-28t.txt`): 뒤잡기 stabbed 2(경사로 #1·다가온 망자), **48.5 s 경사로에서 낙사** — 두 번째 뒤잡기 뒤 (−34.9, −50.7, 27.1)에 4 s 서 있다가 #2 끌어오기로 움직이는 첫 순간 25 m 추락(−693). 뒤잡기가 적 등 뒤로 끌어당겨 가장자리에 세운 것으로 추정. [사람] 결정 1+2: (1) `_room_behind`가 적 등 뒤 0.5·1·1.5·2 m 모두 바닥 확인(`BACK_CHECK_M`) (2) 뒤잡기 직후 `_footing_ok`(발밑·1 m 둘레 8방향)가 아니면 `_back_to_safe`로 **10 m 안 같은 층의 싸움 자리(arena, 에스트 마시는 평지 — [사람] 제안)** 또는 뒤잡기 시작 자리로 먼저 걸어감. 쫓아오는 적을 표시된 안전 구역에서 받는 건 이미 있음(`ZONE_REACH` 15 m). `tests/backstab_test.py`에 추가, pytest 23 통과
-  - 27u (`…-28u.txt`): 뒤잡기 **stabbed 7**, not_behind 4, hit 1, no_lock 1. `뒤잡기 뒤 발밑 가장자리 — …로 물러남` 7번(낙사 없음), `뒤잡기안함:높이` 4. **310.5 s `ModuleNotFoundError: vision_probe`로 멈춤** — 성벽 마을 경로 점 2번 못 가면 `field.fog_through`가 `legacy.ladder_test`를 불러오는데 [cloud] 정리(0474f5c)로 `vision_probe`가 `experiments/`로 옮겨짐 → `legacy/ladder_test.py`·`hunt.py`·`stall_watch.py`에 `boss/boss.py`와 같은 `experiments/` 경로 추가 ([win] 작은 수정). P-15
-  - [사람]: 도는 중 틈새로 떨어짐(P-16) → `_circle_floor`. 그리고 "무조건 뒤잡기 말고 봇이 판단해서 될 때만" → `BACKSTAB_ONLY = False`, `CIRCLE_MAX_SWEEPS` 99 → 2 (바닥·높이·옆 적 확인 통과할 때만, 2번 실패하면 보통 공격)
-  - **27v 마무리** (`…-28v.txt`): **lit·주의(최저 54%, 큰 피격 7번), 335 s**, 오류·낙사 없음. 뒤잡기 stabbed 2, hit 4, `edge`(도는 중 바닥 없어 멈춤) 3, 뒤잡기 뒤 가장자리 물러남 4. `hotspots.py` 새로 2번 이상 나온 곳 없음
-  - **오늘 정리 (2026-09-28, [사람] 요청으로 여기서 마무리)**: 뒤잡기 조건 = 등 뒤 ≥ 140°·≤ 1.3 m, **입력 모두 놓고 0.1 s 뒤 R1**, **적이 휘두르는 중이 기회**(못 돔), 락온은 몸·카메라를 적에게 돌린 뒤 R3(`Moves.lock_target`), 도는 방향 고정, 벽·낭떠러지·틈새 확인. 드릴 4/5, 미션 중 최고 8/13(27r). 남은 것 ([사람] 생각할 시간 필요): `hit` 4번 원인(R1 순간 적 상태·거리), 3009(가드 불가 공격) 중엔 적이 따라 돔, Bandit's Knife 무기 표, P-10(방패병 첫 공격 늦음), P-12 반복 막힘
-  - [사람] 2026-09-28 설명·방향: (a) 뒤잡기가 무효된 몇 건은 **옆에 다른 적이 있는 쪽으로 돌다가** — 도는 방향을 다른 적 반대쪽으로 고를 것 (b) 적 AI에도 뒤잡 방지가 있어 고수는 앞에서 지그재그 하다 뒤로 돌아 들어감 — 지금은 무리 (c) **뒤잡기를 연습시킨 목적은 보스형 거대 몬스터** — 앞에 있으면 무조건 맞으니 뒤에서 공격하는 것을 미리 익히는 것 (d) Bandit's Knife는 오른손 무기 슬롯 2개 중 하나로 두고 **뒤잡기 때만 바꿔 쓰는 것** — 나중에 (e) 진짜 급한 건 **비밀 통로에서 일찍 꺾는 문제**(1-f A)
-
-## 2. 게임 파일에서 지형·적 정보 추출
-
-- [x] [cloud] `msb_extract.py <mapID>` 작성 — `.msb`에서 추출해 `data/gamefiles/<mapID>.json`으로 저장 (`data/maps/`는 mapmem·navmesh 캐시가 쓰므로 분리) — 가짜 MSB로 `msb_extract_test.py` 통과, CI 포함. 실제 게임 파일로는 미확인 → [win] 확인 필요
-  - 오브젝트: 위치, 모델명, 부서짐 여부 (ObjectParam)
-  - 적: 위치, 방향, 순찰 경로, ThinkParam ID
-- [x] [cloud] NpcThinkParam 추출: 시야 거리·각도, 청각 범위, 귀환 거리 → 적 데이터에 붙이기 — 같은 스크립트의 `think` 필드. 단위(미터 여부)는 게임에서 확인 필요
-- [x] [win] `python msb_extract.py m10_02_00_00 m10_01_00_00` 실행하고 `data/gamefiles/*.json` 커밋. 확인할 것: 오류 없이 도는지, 오브젝트·적 수가 그럴듯한지, 박스(`breakable: true`)가 실제로 부서지는지 몇 개. ObjectParam 행 번호 = 모델 번호 가정이 맞는지(`param_row_found`가 대부분 true인지)
-  - 2026-09-27 [win] 실행 결과: 오류 없음(soulstruct의 중복 param 행 경고만). m10_02(Firelink) 오브젝트 82(부서짐 25)·적 41(표시 27), m10_01(Burg) 오브젝트 529(부서짐 407)·적 174(표시 166). `param_row_found` true: Burg 507/529(96%), Firelink 52/82(63%, 없는 30개 중 28개가 `o0020`) → 가정은 대체로 맞음. 박스 실제 파괴는 [사람] 확인 대기: Burg `o1175_05` (21.6, 9.6, -18.6), `o1130_39` (26.4, 9.8, -26.4), `o1130_44` (2.0, -10.0, -58.8). P-4 참고
-  - 2026-09-27 [win]+[사람] 박스 확인 (상인 근처 Burg, 높이 -13.5): 사람이 근처 부서지는 물건을 모두 부수는 동안 읽기 전용 모니터로 공격 순간마다 앞 2.5 m의 `breakable` 오브젝트를 기록. 약공격 10번 모두 1.5 m·±45° 안에 추출 오브젝트가 있었음 (`o1321_0022`, `o1133_04`, `o1132_07`, `o1132_06`, `o1130_12`, `o1130_29`, `o1133_05`, `o1130_30` 등) → 위치·부서짐 여부 맞음. 개별 파괴 여부를 메모리로 읽는 방법은 아직 없음
-- [ ] [사람] 결과가 실제 게임과 맞는지 몇 개 확인 (박스 위치, 적 대기 위치)
-- [ ] [cloud] 증거 등급 추가: "파일 근거" (LAYERS.md에 반영)
-
-## 3. 충돌 메시 — 벽과 낭떠러지 구분
-
-- [ ] [cloud] `map/*.hkxbhd` 충돌 메시를 soulstruct-havok으로 읽을 수 있는지 시험 (기존 도구 조사 참고)
-- [ ] [cloud] NavMesh 경계를 벽/낭떠러지로 분류 → `navmesh.py`의 `EDGE_PENALTY` 활성화
-- [ ] [win] 실제 경로에서 낭떠러지 회피 확인
-
-## 4. 실시간 오버레이 · 레이더
-
-- [x] [cloud] 봇 상태 내보내기: 매 틱 짧은 상태(위치, 적, 목표, 판단 한 줄)를 로컬로 전송. 실패해도 봇은 계속 동작 — `radar.py` (UDP 127.0.0.1:47800, 10 Hz, 피드 구독·없으면 폴링), `run.py --radar`로 켬. 판단 한 줄 = 봇 로그 한 줄. `radar_test.py` 통과, CI 포함. 목표 적·경로는 아직 안 보냄
-- [x] [cloud] 레이더 페이지: 기존 `observe_view.html` 그리기 재사용, 가짜 월드로 동작 확인 — `radar_server.py` + `radar.html` (http://127.0.0.1:47801), `--demo`로 게임 없이 확인. 카메라 위/북쪽 위, 범위 10/20/40 m, 다크·라이트, 모바일 폭 확인 (헤드리스 Chromium 캡처)
-- [x] [win] `python radar_server.py` 켜고 `python run.py clear-ramp --radar`로 실제 확인. 확인할 것: 적 위치·방향이 게임 화면과 맞는지(특히 "카메라 위" 모드의 좌우), 봇이 느려지지 않는지, 서버를 안 켜도 봇이 정상인지, 목표 적 노란 원·경로 보라 점선·지킬 자리 초록 원이 실제 행동과 맞는지
-  - 2026-09-27 [win] `clear-ramp --radar` + 서버: 6/6 cleared, 121 s, 최저 HP 75%, read_ms 5.1 (레이더 없이 3.7). [사람] 확인: 적 위치·방향, "카메라 위" 좌우, 목표 노란 원·경로 보라 점선·지킬 자리 초록 원 모두 실제와 맞음, 느려짐 없음. 서버 끄고 `--radar`: 6/6 cleared, 129 s, 예외 없음
-- [x] [cloud] 레이더에 목표 적·경로·지킬 자리 표시 (Field/Missions에서 보내기) — 목표 = 기존 `mv.cam_target`, 경로 = `field.walk`가 `mv.show_path`에 걸고 끝나면 풂(돌아가기 중첩은 바깥 경로로 복귀), 지킬 자리 = `field._hold_at`이 `mv.show_spot`에 기록(2초 지나면 안 보임). 봇은 이 값을 읽지 않음. `radar_test.py` 통과, 데모로 세 상황 캡처 확인
-- [x] [cloud] 오버레이 창 코드 (투명, 클릭 통과, **포커스 안 가져감** — `control.game_in_front()` 때문에 필수) — `overlay.py`: tkinter 창, 투명색 키 + `WS_EX_LAYERED|TRANSPARENT|NOACTIVATE|TOOLWINDOW|TOPMOST`, 게임 창 위치를 따라감, `radar_server.py`의 `/state`를 10 Hz로 읽음. 왼쪽 위 글(HP·SP·에스트, 목표·경로·지킬 자리·부숨, 8 m 안 적 수, 판단 3줄), 오른쪽 위 미니 레이더(15 m, 카메라 위). `overlay_test.py`(표시 내용·레이더 좌표) 통과, Linux 가상 화면에서 그려지는 것 캡처 확인(투명은 윈도우에서만)
-- [x] [cloud] 화면 영어 번역 (유튜브용) — 레이더·오버레이 UI는 영어로, 봇의 한국어 로그 줄·경로 이름은 `translate.py`가 **화면에서만** 번역(로그 파일은 한국어 그대로). 자주 나오는 문장은 규칙, 나머지는 단어 사전(두 글자 이하는 단어 경계에서만). 샘플 로그 913줄 중 911줄 완전 번역. `radar_server.py --korean`이면 번역 안 함. `translate_test.py` 추가
-- [x] [cloud] 아이템(소울·인간성·쐐기석) 레이더 표시 — `msb_extract.py`가 맵의 보물(시체·상자의 아이템)을 추가로 뽑음: 위치, 아이템 이름(`msg/ENGLISH` 게임 영어 텍스트), 종류(soul/humanity/titanite/other), 획득 플래그(`ItemLotParam.ItemFlag`). `radar.py`가 1초마다 40 m 안 보물의 획득 플래그를 `tm.event_flag`로 읽어 서버에 알림 → **주운 것은 화면에서 빠짐**. 레이더: 색 마름모 + 이름("all items"를 켜면 기타도), Doing 카드에 종류별 개수·가장 가까운 아이템. 오버레이: 미니 레이더 마름모 + `item: … m` 한 줄. 테스트: `msb_extract_test.py`(보물·이름·종류·플래그), `radar_test.py`(서버 거르기·플래그 읽기), `overlay_test.py`
-- [~] [win] `python msb_extract.py m10_02_00_00 m10_01_00_00` **다시 실행**해 `data/gamefiles/*.json`에 `treasures` 추가 후 커밋 (기존 파일엔 아이템이 없음). 확인: 콘솔의 아이템 수(소울/인간성/쐐기석), 아이템 이름이 영어로 나오는지(`msg/ENGLISH` 경로가 맞는지), 레이더에 아이템이 게임 위치와 맞게 보이는지, **줍고 나면 1~2초 안에 사라지는지**
-  - 2026-09-27 [win] 재추출: 오류 없음. 콘솔 — m10_02(Firelink) 아이템 49 (소울 8, 인간성 1, 쐐기석 0), m10_01(Burg) 아이템 42 (소울 12, 인간성 3, 쐐기석 0). 아이템 이름 영어 확인 (`Soul of a Lost Undead`, `Basement Key`, `Mail Breaker`, `Throwing Knife` 등, 이름 없음 0개) → `msg/ENGLISH` 경로 맞음. 아이템 없는 자리(`label` 빈 값) Firelink 20·Burg 10. 보물 `name`은 MSB 원래 이름이라 일본어(`宝死体00`). 기존 값 변화 없음(`with_patrol` 줄 위치만 바뀜). 레이더 위치·줍고 사라짐은 아래 실행에서 확인. 레이더 아이템 표시는 높이 ±1 m로 좁힘(P-9). **줍고 사라짐은 아직 미확인** — 봇은 아이템을 줍지 않아 [사람]이 직접 주워 봐야 함
-- [~] [win] 테두리 없는 창 모드에서 오버레이가 보이고 봇 입력이 멈추지 않는지 확인 — 순서: `python radar_server.py` → `python overlay.py` → `python run.py burg-bonfire --radar`. 확인: 글·미니 레이더가 게임 위에 보이는지, 배경이 투명한지, 마우스 클릭이 게임으로 가는지, **봇이 멈추지 않는지**(`game_in_front`), 게임 창을 옮기면 따라오는지, 글이 읽히는지(크기·위치). 먼저 `python overlay.py --demo`로 봇 없이 보이는지부터
-  - 2026-09-27 [win] `radar_server.py` → `overlay.py` → `burg-bonfire --radar --no-quit` (`data/samples/burg-bonfire-radar-2026-09-27e.txt`): 오버레이 켠 채 **봇 끝까지 안 멈춤** — lit, 333 s, 위험 판정 주의(최저 HP 43%, 큰 피격 7번 -730, 퀵 종료 없음). [사람]이 게임 위 오버레이를 보며 진행(글·미니 레이더 보임). 미니 레이더의 물건·아이템이 작아 구분 안 됨 → 기본 끔(P-9). `--demo`는 실제 서버와 포트가 겹쳐 생략. 창 옮김 따라가기·클릭 통과는 따로 확인 안 함
-  - 봇 판단 줄 영어: 이번 로그 204줄을 `translate.line`에 통과 → **한국어 남은 줄 0개**. 레이더 `/state`의 says도 영어로 확인. 봇 밖 문구(발신기의 `레이더만 (봇 없음, 읽기 전용)`)는 `radar만 (봇 none, …)`처럼 반쯤만 바뀜 — 봇 줄은 아니라 영향 없음
-- [x] [cloud] 표시 추가: 적 시야 부채꼴·청각 원·귀환 거리 원 — `radar_server.py`가 실시간 적을 `data/gamefiles`의 같은 종류·가장 가까운 스폰(80 m 안)과 짝지어 NpcThinkParam 값을 붙임(`/state`의 `ai`). 레이더: 목표 적은 시야 부채꼴(보통 30 m·120°) 채움 + 청각 원(10 m) + 귀환 원(스폰에서 75 m, 9999는 표시 안 함) + 스폰 ×, 다른 적은 시야 테두리만, 레이더 원 밖은 잘라냄. "AI ranges"로 끔. Doing 카드에 목표 AI 값·스폰에서 거리. 증거 등급 "파일" — 미터 단위 가정, 게임 확인 필요. 경로선·안전 구역은 이미 있음. `radar_test.py` 통과, 데모 캡처(다크·라이트)
-- [ ] [win] 레이더 AI 범위 확인: 목표 적이 시야 부채꼴 밖에서 다가갈 때 늦게 알아채는지, 청각 원 안으로 들어가면 돌아보는지, 귀환 원 밖까지 끌고 가면 돌아가는지 (단위가 미터가 맞는지)
-
-## 5. 기록 재생
-
-- [x] [win] 작은 관찰 기록 샘플을 `data/samples/`에 올림 — `data/samples/observe_ramp_fight_60s.jsonl` (1.6 MB): 2026-09-26 사람 플레이 기록 `20260926_160200.jsonl`에서 첫 피격 20 s 전부터 60 s (hdr 1 + w 601 + pad 1283 + sys 6줄, 경사로 전투). 원본 헤더 그대로라 `ms`는 원본 기준(45.3 s부터)
-- [ ] [cloud] 기록을 봇 판단 코드에 다시 넣어 "그때 봇이라면 뭘 했을지" 비교하는 도구
-- [x] [cloud] 레이더 페이지에서 기록 되감기 재생 — 2026-09-28: 아래 "레이더 고도화" 참고
-- [x] [cloud] 레이더 고도화 ([사람] 제안 2026-09-28): (1) **기록·재생** — `radar_server.py`가 받은 모든 메시지를 `data/radar/<시각>.jsonl`에 저장(`--no-record`로 끔), `--replay <파일>`이면 같은 화면에 타임라인(재생/일시정지, 이동, 0.25~4배속, ◀▶ 한 프레임, 스페이스·←→ 키). **`observe_record.py` 사람 시범 녹화도 그대로 재생**. (2) **컨트롤러** — `radar_pad.py`가 XInput을 읽기만 해서(observe_record와 같은 방식) 스틱·버튼·트리거를 그림, 봇의 가상 패드도 같은 방식으로 보임, 기록에도 남음. (3) **바닥** — `radar_mesh.py`가 서버 PC의 게임 폴더에서 NavMesh를 직접 읽어(내보내기 없음) 30 m 안의 면을 높이별 색으로, 바닥이 끝나는 변은 선으로(조각 이음매는 제외), 사다리 표시. `tests/radar_replay_test.py`. 데모·샘플 재생으로 화면 확인(바닥은 가짜 지형)
-- [~] [win] 레이더 고도화 확인: `python radar_server.py` 켜면 "navmesh: drawn"이 나오는지·바닥이 게임 지형과 맞는지(특히 비밀 통로 모퉁이), 컨트롤러 그림이 사람·봇 입력과 맞는지(패드가 둘이면 slot), `data/radar/`에 기록이 생기는지, `--replay`로 그 기록을 다시 볼 수 있는지
-  - 2026-09-27 [win] (1) 서버 시작: `navmesh: drawn (m10_02_00_00,m10_01_00_00)`, `controller: reading XInput`, `recording: data/radar/…jsonl` 모두 나옴. 버그 화톳불 근처에서 30 m 안 면 271개 전송. [사람]: 웹 레이더 바닥 제대로 나옴 (비밀 통로 모퉁이는 따로 확인 전). (2) 컨트롤러: 사람 패드 slot 0 입력이 웹 그림에 맞게 표시됨 ([사람] 확인), 봇 실행 중 봇 가상 패드는 **slot 1**로 기록(패드 메시지 8623개 중 버튼 눌림 607) — 사람·봇 패드가 따로 잡힘. (3) 봇 실행 `burg-bonfire --radar --no-quit` (`data/samples/burg-bonfire-radar-2026-09-27f.txt`): lit, 285 s, 위험 판정 깨끗(최저 HP 57%, 큰 피격 3번). 그 서버 기록 `data/radar/20260927_182624.jsonl`(18 MB, 12124 메시지, 394 s)을 `radar_server.py --replay … --http 47802 --udp 47810`로 열어 재생 상태(`playing`, 길이 394 s) 확인 — 실제 서버와 같이 띄우려면 포트를 바꿔야 함. `tests/radar_replay_test.py`의 "윈도우가 아니면 패드 없음" 검사는 윈도우에서 건너뛰게 고침(08aec60). 남은 것: 비밀 통로 모퉁이 바닥, (4) 뒤잡기 시범 녹화 재생
-  - 2026-09-27 [win] (4) [사람]이 버그 화톳불 근처에서 뒤잡기 시범(마지막 한 마리 성공)하는 동안 `observe_record.py` 녹화 → `data/observe/20260927_183723.jsonl` (448 s, 33 MB, w 4479·pad 21767·sys 46, 깨진 줄 0, F9 마커 없음). `radar_server.py --replay`로 열림: 26246 메시지, 재생 중, 플레이어·적 16·바닥 288면·패드 표시 확인. 파일이 커서 커밋 안 함(로컬). 레이더 서버 패드 읽기·observe_record가 같이 읽어도 문제 없음. 남은 것: 비밀 통로 모퉁이 바닥 [사람] 확인
-  - 2026-09-27 [win] 재녹화 (뒤잡기 성공이 적어서): `data/observe/20260927_184707.jsonl` (326 s, 19 MB, 성공 1번에 F9 → `mk` 173.3 s). `--replay`로 열림. **F9 마커가 재생 타임라인에 안 나오던 문제** — `radar_record._observe_to_radar`가 `k == "marker"`만 보고 observe_record는 `"mk"`를 씀 → 둘 다 받게 고침([win] 작은 수정), 재생 `markers`에 나옴 확인. 파일은 로컬(커밋 안 함)
-  - 2026-09-27 [win] 3차 녹화 `data/observe/20260927_185353.jsonl` (178 s, 14 MB, F9 2번: 37.0 s·142.6 s) — `--replay`로 열림, 타임라인 마커 2개. 로컬
-  - 샘플: F9 마커 ±20 s만 잘라 `data/samples/observe_backstab_20260927_184707_m1.jsonl`(3.4 MB), `…185353_m1.jsonl`(3.0 MB), `…185353_m2.jsonl`(3.2 MB) — 원본 헤더 유지, 각 40 s, `radar_record.load`로 열리고 마커 포함. 뒤잡기 성공 시범 3번 ([cloud] 뒤잡기 학습용)
-- [x] [cloud] 레이더 읽기 전용 감시 (손으로 플레이할 때): 스냅샷을 보내는 건 `run.py --radar`·`backstab_drill.py`뿐이라, 봇 없이 하면 레이더가 마지막 봇 화면에 멈춤 — 그런데 `radar_pad.py` 패드 패킷이 `age`를 새로 고쳐 멈춘 게 안 보였음. `python radar.py watch` (= `python run.py watch --radar`): `BOT_GAME=dsr` 텔레메트리 + `Radar().attach(tm)` + say 한 줄 `radar watch: read-only`, 그 뒤 잠만 잠 — 패드·BotLock·메모리 쓰기 없음. 봇 `--radar`와 같이 켜지 말 것(스냅샷 둘). 서버 `/state`의 `age`는 이제 **마지막 스냅샷** 기준(패드만 오면 `waiting`/`stale`), 모든 패킷 기준은 `age_any`. 레이더 페이지 stale 표시에 툴팁 안내. `tests/radar_watch_test.py` 통과(스냅샷 계속 감, 쓰기 속성 요청 0, `control` 안 불러옴, 패드만 올 때 age 증가). 전체 pytest 29/30 — 실패 1은 이 변경과 무관한 `props_steer_test.py` 콘솔 인코딩(cp949, `→`)
-- [ ] [win] 확인: `python radar_server.py` → 게임 켜고 손으로 플레이하며 `python radar.py watch` → 레이더가 움직임을 따라오는지, 감시를 끄면 2 s 뒤 `stale`로 바뀌는지(패드는 계속 움직여도)
-- [x] [cloud] 레이더 상태창 ① 게임 상태: 발신기(`radar.py`)가 0.5 s마다 `status` 패킷 — 플레이어 없을 때도 보냄. `game` = off(프로세스 없음, `GetExitCodeProcess`) / title(플레이어 없음 — **타이틀과 로딩은 아직 못 나눔**, 몇 초째인지 `away`) / world / dead, `menu` = `tm.menu_open()`. 서버 `/state`의 `game`(2 s 넘게 안 오면 `none` = 보내는 쪽 없음), 레이더 머리 칩·오버레이 줄. `radar.py watch`는 게임이 꺼지면 5 s마다 다시 붙고, 게임은 도는데 30 s 넘게 플레이어가 없으면 한 번 다시 붙음(타이틀 뒤 포인터 대비). 실제 게임에서 읽기만 해 봄: `world`, 메뉴 닫힘, 위치 (87.0, 15.0, 105.1). `tests/radar_watch_test.py`
-- [x] [cloud] 레이더 상태창 ② Steam 오프라인: `steam_state.py` — `loginusers.vdf`의 WantsOfflineMode(MostRecent → AutoLoginUser → 하나뿐인 사용자) **그리고** steam.exe·게임의 외부 TCP 연결 0 (iphlpapi, IPv4+6). 하나라도 온라인 증거면 `ONLINE`, 못 읽으면 `?`(= 오프라인 아님). steamwebhelper는 오프라인에서도 외부 연결 1개가 있어 안 셈. 연결 수는 `Get-NetTCPConnection`과 같음(chrome 9, python 4) 확인, 이 PC 지금 `OFFLINE`. 서버가 5 s마다 → `/state`의 `steam`, 머리 칩(마우스 올리면 이유)·오버레이 `Steam ONLINE` 경고. `python steam_state.py`로 따로 확인. `tests/steam_state_test.py`
-- [x] [cloud] 레이더 ③ 화톳불 워프: 레이더 "Bonfire warp" 카드(불 붙인 화톳불 목록 `GET /bonfires`, 확인 창) → `POST /warp` → `radar_warp.Warper` → `dsr_telemetry.bonfire_warp`. 거절 조건(이유를 카드에 표시): replay·demo / 다른 워프 중 / 불 안 붙인 화톳불 / Steam 오프라인 확인 안 됨 / 봇 실행 중(`bot.lock` — 워프 동안 쥐고 있어 봇도 못 켬) / 게임 없음 / 타이틀·로딩 / 사망 / 메뉴 열림. 다른 웹페이지의 요청은 막음(Host·Origin·`X-Radar` 헤더). 결과는 Decisions 줄(기록에도 남음). 마지막 화톳불이 목적지로 바뀜(게임 메뉴 워프와 같음). `tests/radar_warp_test.py`(거절 10가지, 허용 1, 403·409). 데모에서 페이지·브라우저 POST 확인. **실제 워프는 안 해 봄**
-- [x] [win] 확인 (게임에서): `python radar_server.py` + `python radar.py watch` → (1) 머리 칩이 인게임 / 메뉴 열면 `· menu` / 퀵 종료하면 `title / loading` → 이어하기 뒤 다시 `in game`(watch가 타이틀 뒤에도 계속 따라오는지, 콘솔에 `attached again`이 나오는지) / 게임 끄면 `game off` → 다시 켜면 돌아오는지 (2) Steam 칩 `Steam offline`, 마우스 올린 이유 (3) 워프 카드에서 불 붙인 화톳불 하나로 워프 → 도착, Decisions에 `arrived`. 봇 실행 중에는 버튼이 거절하는지. 타이틀과 로딩을 나눌 메모리 값이 필요하면 [cloud]에 이슈로
-  - 2026-09-28 [MoKa] (2) `Steam offline` 칩, (1) `in game` 칩 확인. (3) 워프: Undead Burg 화톳불 → **Firelink Shrine 도착**, 카드에 `arrived at Firelink Shrine (Bonfire)`, 레이더가 새 위치(−47.3, −59.9, 53.2)를 따라옴. 남은 것: 메뉴 `· menu`, 퀵 종료 → `title / loading` → 복귀, 게임 끄기·다시 켜기, 봇 실행 중 워프 거절. 처음 켰을 때 예전 서버가 겹쳐 떠서 칩이 안 나옴 → P-20 (#9)
-  - 2026-09-28 [MoKa] 서버를 포트 독점 코드(3af958e)로 다시 켬 — 두 번째 서버·예전 방식 bind 모두 거절 확인. 워프 한 번 더: **Undead Parish (Sunlight Altar) 도착**. 타이틀로 나감 → 칩 `title / loading (N s)`(`/state` `game: title`, away 68.8 s), **워프 버튼 꺼짐** 확인. 이어하기 → **`in game` 복귀**, `age` 0.01 s, 새 위치 (22.0, 9.5, −25.0) 따라옴 — watch를 다시 켜지 않고 타이틀을 지나도 계속 따라옴. 워프 버튼 다시 켜짐. 메뉴 열기 → `/state` `menu: true`, 칩 `in game · menu`, **워프 버튼 바로 꺼짐**. 게임 끄고 다시 켬(21:00:31) → 타이틀에서 `title / loading`(새 프로세스에 붙음 — 옛 핸들이면 `game off`) → 이어하기 뒤 **`in game`, `age` 0.1 s, 위치 따라옴** — watch 다시 켤 필요 없음. 이때 Steam 칩이 잠깐 `ONLINE`(steam.exe 외부 연결 1개) → P-21 (#10). 봇 실행 중 거절: [MoKa] `burg-bonfire --radar`(21:12:41)는 캐릭터가 Sunlight Altar에 있어 `no_path` → 24 s 만에 `휴식 실패`로 끝났고, 워프 두 번(21:14:04 Sunlight Altar, 21:14:18 불의 제전)은 **봇이 끝난 뒤**라 허용이 맞음. 대신 [cloud]가 다른 프로세스가 실제 `bot.lock`을 쥔 상태에서 `Warper`(가짜 게임) → `a bot is running`으로 2.0 s 뒤 거절, 놓은 뒤엔 허용 확인. 2026-09-28 21:20 [cloud] 게임에서 직접: `burg-bonfire --radar` 도는 중(경사로 #1에 다가가는 중) `POST /warp` → **409 `a bot is running (data/bot.lock held)`, 2.0 s**, 캐릭터는 봇 경로대로 계속 이동 — 확인 끝. 21:14:04 워프는 목록 첫 항목(ID 순 = Sunlight Altar)이 기본 선택이라 생긴 것으로 보임 → 기본 선택 없음(`choose a bonfire…`, 고르기 전엔 버튼 꺼짐)으로 고침
-- [x] [cloud] 화톳불 워프 목록을 **캐릭터별로** ([MoKa] 질문 2026-09-28: 새 캐릭터로 해도 되나 — 레벨·장비를 최소로 두고 미션을 깨는 도전을 자주 하므로 새 캐릭터가 흔함). 예전엔 목록이 PC에 하나(`bonfires.SEED` 4곳 + `data/bonfires-lit.json`)라 새 캐릭터에게도 그 4곳이 워프 목록에 나와 진행을 건너뛸 수 있었음. 캐릭터 = 게임 속 이름 `dsr_telemetry.char_name()` (PlayerGameData+0xA8 UTF-16, 게임에서 `"Knight bot"` 읽음). 파일은 `{이름: {화톳불: 날짜}}`, 기본 4곳·예전 형식 파일은 `Knight bot` 것. 모르는 캐릭터·이름 못 읽음 → 빈 목록(워프 거절). 워프(`bonfire_warp`, `radar_warp`)는 게임에서 읽은 캐릭터의 목록으로 확인, 레이더 목록(`/bonfires`)도 발신기가 보낸 캐릭터 기준, 캐릭터가 바뀌면 페이지가 목록을 다시 읽음(칩에 마우스 올리면 이름). 직접 플레이할 때도 발신기가 5 s마다 마지막 화톳불을 그 캐릭터 목록에 더함(쉬면 불 붙인 것). 한계: 이름이 같은 캐릭터는 목록을 같이 씀. `tests/bonfires_test.py`, `radar_warp_test`(새 캐릭터·이름 모름 거절)
-- [x] [cloud] 기본 무기 = **배틀 액스** ([MoKa] 결정 2026-09-28: 앞으로 주로 산적 캐릭터, 시작 무기 배틀 액스 701000). 배틀 액스는 원래 아는 무기라 산적은 그대로 인식되고, 모르는 무기일 때의 기본값만 브로드소드 → 배틀 액스(`weapons.DEFAULT`)
-- [x] [cloud] 배틀 액스 실측 (2026-09-28, [MoKa] 요청, Knight bot의 오른손 2번 칸 배틀 액스 +5, 불의 제전): `experiments/swing_probe.py` 허공 스윙 20번 이상 — startup **0.64 s**(스태미나 −25), active 0.64~0.81 s(**0.17**), LB 들면 1.42 s에 대기 애니, 안 들면 ~1.49 s에 움직일 수 있음 → recovery **0.68**. 2타: 두 번째 R1 0.25~0.55 s는 무시, 0.65~0.95 s면 이어져 두 번째 칼날 ~1.99 s → `chain_gap` 0.54 (새 필드, 기본 0.2 — 전엔 모든 무기에 0.2 고정). 닿는 거리: 블랙박스 40개 실행(`knife_hits.py 303000 303999`) 명중이 1.9 m까지 → **1.6 m** (전 1.5 추정). 처음 잰 한 번은 캐릭터가 밀려 벽에 튕김([MoKa] 지적) → 화톳불로 워프해 열린 쪽을 보고 다시 잼(위치 1 m 이내 유지). 기록 `data/samples/swing-battle-axe-2026-09-28a.txt`(LB 없음)·`…-guard-2026-09-28b.txt`. 재는 중 P-23 발견. **강공**([MoKa] 요청, 같은 날): `swing_probe.py`에 `heavy`(R2) 추가. 애니 303300, 칼날 **0.86 s**, 스태미나 −50. 평지에서도 두 가지 — 땅에 찍힘(303150, 스태미나 −20 더, 1.44 s에 움직임, 1.61 s 대기) / 안 닿음(303340, 판정 ~1.0 s까지, 1.93 s에 움직임, 2.86 s 대기). 두 번째 R2는 1.0~1.4 s에 눌러야 이어짐(칼날 ~2.68 s). [MoKa]: 내리찍어 땅에 닿는 게 정상, 경사로 쪽에서는 더 쉽게 닿음, 강공은 공격력도 세고 **경직 확률이 높음**. 처음 두 번은 경사로 쪽이라 거의 매번 땅, 평지(화톳불에서 heading 0.79, NavMesh 4 m 안 높이차 0.15 m)에서 다시 잼 — 끝부분은 밀려서 벽에 맞음([MoKa] 알림)이라 뺌. 봇은 강공을 안 씀(`use_heavy` False) — [MoKa] 결정 2026-09-28: 경직에 잘 걸리는 적이 따로 있고, **경직 말고는 방법이 없을 때만** 씀(사람도 잘 안 씀). 그런 적·상황이 정해지면 그때 규칙으로. 기록 `data/samples/swing-battle-axe-heavy-*`
-
-## 6-a. 걷기 재생 하네스 — 기록을 변형해 수백 번 평가 (2026-09-30 MoKa 결정)
-
-왜: 실제 게임 1회는 약 6분이고 결과가 실행마다 크게 다르다(통로 나가는 길 56~105 s). 걷기 규칙·학습 모델을 게임 없이 반복 평가할 곳이 필요하다. 기록은 **옛 컨트롤러가 낸 스틱의 결과**라서 두 층으로 나눈다: 1층(열린 루프)은 **판정**(진행도·횡방향 오차·멈춤 조건)을, 2층(닫힌 루프: 움직임 모델 + NavMesh)은 **새 걷기 방식**을 평가한다. 시뮬레이터 결과는 거르는 용도이고, 판정은 실제 게임([win] A/B 여러 번)이 한다.
-
-목표로 삼는 걷기 규칙 (MoKa 제시, 지금 걷기와 비교는 대화 기록): 진입(anchor 반경·헤딩·HP/상태·구간 안전 확인) · 추적(A→B 진행도 0.95 전엔 B→C 전환 금지, 횡방향 오차 크면 감속·경로 복귀, 급코너에서 look-ahead 축소) · 중단(진행도 안 늘어남, 절벽 경계 접근, 관측 이상, 피격·경직·구르기) · 복구(neutral → 짧은 후진 또는 직전 안전 anchor → 재시도 초과 시 safe stop). 지금 걷기(`nav.goto`)는 도착 반경으로 다음 점으로 넘어가고, 진행도·횡방향 오차·look-ahead·내 경직 검사·anchor 복귀가 없다.
-
-- [x] [cloud] 1층: `walkgeom.py` — 진행도 s·횡방향 오차 e·경로 위 거리(`project`/`locate`), 0.95 전환 규칙(`Gate`), 급코너 look-ahead 축소(`lookahead_dist`), 모퉁이 안쪽 꺾기 측정(`corner_cuts`). `walk_replay.py` — track 파일(레이더 녹화도)의 걷기마다 멈춤 검사(경로 위 진행 없음, 횡방향 이탈, 관측 이상: 순간 이동·빈 틈, 내 경직 2000~2099·160)를 돌리고, 잡음·프레임 누락·시간 흔들기·속도 배율·오프셋·순간 이동을 넣은 변형을 씨앗 고정으로 수백 번 평가. `track_report.frames`에 anim·hp·heading 추가(기존 출력 불변). `tests/walkgeom_test.py`·`tests/walk_replay_test.py`, pytest 42 통과
-  - 기준선 (커밋된 track 21개, 걷기 257, 걸음 멈칫 37 — 공격·에스트 중 멈칫은 뺌, 변형 100번): 멈춤 검사 창 1.5 s → 재현율 0.71·오경보 2.1/분, **2 s(지금 `nav.STUCK_WINDOW`와 같음) → 0.74·1.2/분**, 3 s → 0.84·0.46/분 (3 s는 짧은 멈칫을 아예 셈에서 빼서 높게 보임). 최소 진전 0.3 → 0.5 m는 재현율 +0.04 정도. 순간 이동 잡힘 0.86 — 2 Hz track에선 4 m 안팎 튐이 달리기(3.7 m/s)와 구분 안 되고, 연속 두 프레임이 같이 튀면 진짜 이동으로 받아들임 → 10 Hz 레이더 녹화로 다시 볼 것
-  - 변형 없이: 급코너(35° 넘게 꺾임) 666번 지나감 중 **319번(48 %)이 모퉁이 안쪽으로 0.5 m 넘게** 지나감 — 1-f "일찍 꺾기"가 숫자로 나옴. 걸을 때 |횡방향 오차| 중앙 0.11 m, 90 % 1.03 m, 95 % 2.71 m
-  - 실행: `python walk_replay.py` (기본 200번), `--window 1.5 2 3 --min-gain 0.3 0.5`로 설정 비교, `--walks`로 걷기별 표
-  - 2026-09-30 [cloud] `locate` 창을 구간 개수(뒤 1·앞 3, 근거 없는 첫 값 — Havok과 무관)에서 **경로 위 거리**로: 뒤 1.5 m·앞 4 m(`LOCATE_BACK_M`/`AHEAD_M` — 2 Hz 달리기 한 프레임 1.85 m × 2), 첫 프레임은 경로 전체, 창 안 가장 가까운 구간도 3 m 넘게 멀면(`LOCATE_LOST_M`) 전체에서 다시 찾음(1 m 이상 가까울 때만 — 지그재그 두 가닥은 ~1 m라 안 걸림). 확인: 커밋된 track 5,043 프레임에서 창이 실제 위치보다 뒤처진 프레임 **31 → 1**(남은 것 = 경로 중간에서 시작한 걷기·싸움으로 멀리 밀린 뒤였던 12개 중 나머지). `tests/walkgeom_test.py`에 촘촘한 녹화 경로(0.3 m 간격)를 2 Hz 달리기로 따라가기·프레임 하나 빠짐·긴 구간·넉백·중간 시작·멀리 밀림·지그재그 추가. 기준선 거의 같음(창 2 s: 재현율 0.74, 오경보 1.18/분)
-  - 2026-09-30 [cloud] **진행도 0.95 전환 규칙(`Gate`) 재생 평가** — `python walk_replay.py --gate 0.9 0.95 1.0 --release -1 0.5 1.0 -n 20`. 열린 루프: 옛 걸음(도착 반경으로 전환)에 Gate를 옆에 돌려 "옛 걸음이 0.95에 못 미친 채 다음으로 간 점"과 "Gate였다면 얼마나 붙잡혔을지"를 잼. 결과(변형 없음, 걷기 201·전환 점 2,223): **0.95에 못 미치고 지나간 점 29 %, 급코너만 43 %**(0.9 → 26 %/38 %, 1.0 → 32 %/49 %) — 1-f "일찍 꺾기"와 같은 이야기. **Gate 그대로면 한 번 붙잡은 뒤 안 놓음**: 걷기 33개(16 %)가 끝까지 앞 구간에 걸림, 붙잡힌 시간 25.7 s/분, 뒤처짐 p90 26 m — 모퉁이를 안쪽으로 돈 뒤 다음 구간을 선 안쪽으로 계속 걸으면 앞 구간 진행도가 다시는 안 오름. 실제 컨트롤러라면 **0.95를 채우러 뒤로 돌아가야** 함 → 풀림 조건 `Gate(release_lat=…)` 추가(기본 꺼짐): 다음 구간 안(0 < s < 1)이고 그 선에서 release_lat 안이면 넘어감. 1.0 m: 끝까지 걸림 **33 → 4**, 붙잡힌 시간 5.2 s/분, 뒤처짐 p90 0 m (0.5 m: 6개). 남은 4개는 봇이 경로에서 4~33 m 벗어난 뒤(싸움·돌아가기) — Gate가 아니라 재동기화(`field.resync`)가 맡을 일. 변형 20번도 같은 경향(0.95: 걸림 601/4226 → 1.0 m 123). Gate가 붙잡는 자리 상위: 수용소3 5번 점(−2.2, 195.9, 6.5) 9번, `#2 이동` 4번 점(−58.4, −22.9, −29.9) 7번, **`통로` 8번 점(−25.3, −33.9, 6.7) 6번 — P-17 통로 입구 근처**, 경사로 (−26.1, −48.1, 30.4) 여러 걷기. Gate `k=None`이면 첫 프레임에 봇이 있는 구간에서 시작(중간 시작 걷기). 테스트: `walkgeom_test`(풀림 1.0/0.5 m, 중간 시작), `walk_replay_test`(모퉁이 통과·안쪽으로 돌아 계속 걷기·돌아와서 선 위로·switch_s 0.75). pytest 42 통과. **결정 필요 ([MoKa])**: 닫힌 루프에서 쓸 규칙을 "0.95 + 풀림 1.0 m"로 할지 — 풀림 없는 0.95는 모퉁이를 안쪽으로 돌면 뒤로 돌아가게 만듦
-  - 2026-09-30 [MoKa] 결정: **0.95 + 풀림 1.0 m**. [cloud] 반영: `walkgeom.RELEASE_LAT = 1.0`이 `Gate`의 기본값(`release_lat=None`이면 풀림 없는 옛 규칙), `walk_replay --gate`도 기본 1.0 m(`--release -1`로 비교). 재생 결과 그대로(끝까지 걸림 4/201, 붙잡힌 시간 5.2 s/분). 테스트: 기본값 1.0 m·기본 Gate가 안쪽으로 돈 모퉁이를 놓음, 옛 규칙 테스트는 `release_lat=None`으로 명시. 봇 걷기(`nav.goto`)는 아직 안 바뀜 — 2층 닫힌 루프 비교 뒤
-  - 2026-09-30 [cloud] **급코너 look-ahead 축소 재생 평가** — `python walk_replay.py --lookahead 0.5 1.0 1.5 2.5 1.5/0.5 2.5/1.0 -n 20` ('1.5' = 고정, '1.5/0.5' = 급코너(35° 넘게 꺾임) 앞에서 0.5 m까지 줄임 = `walkgeom` 기본). 열린 루프: 기록된 위치(급코너 3 m 안)마다 look-ahead만큼 앞 경로 점을 겨눴을 때 (1) 봇 → 겨냥점 직선이 경로 안쪽으로 가로지르는 거리(봇 자신이 선에서 떨어진 만큼은 뺌 — 안쪽 벽에 걸리는 위험의 대리값, 1-f·P-17) (2) 1 m 걸을 때 겨냥 방향이 바뀌는 각도(스틱을 얼마나 급히 돌려야 하는지). 결과(변형 없음, 모퉁이 통과 605번): 모퉁이 통과 중 0.25 m 넘게 가로지름 — 고정 0.5 m 0 %, 1.0 m 0 %, **1.5 m 6 %**, 2.5 m 48 %(90° 이상 54 %), **1.5/0.5 1 %**, 2.5/1.0 5 %(90° 이상 15 %). 겨냥 회전 p90 — 고정 2.5 m 34.5°/m, 1.5 m 41.8, **1.5/0.5 50.9**, 0.5 m 50.6. → **축소는 가로지름을 고정 1.5 m의 6 %에서 1 %로 줄이고, 대가로 모퉁이에서 겨냥이 고정 0.5 m만큼 급히 돎(+22 %)**. 변형 20번(12,144 통과)도 같은 경향(1.5: 5 %, 1.5/0.5: 0 %). 기본값 1.5/0.5 유지 — 급히 도는 것이 실제로 미끄러짐·막힘을 부르는지는 닫힌 루프(움직임 모델)에서만 알 수 있음. 한계: 경로선 기준이지 벽 기준이 아님(NavMesh 경로는 이미 경계에서 1.2 m 떨어뜨림), 2 Hz라 회전값이 거침. 테스트: `walk_replay_test`(L자에서 고정 2.5 m는 0.25 m 넘게 가로지름·축소는 0.2 m 이하·대신 회전 더 큼, 옆으로 떨어져 걸은 건 가로지름 아님)
-  - 2026-09-30 [cloud] **중단 조건 재생 평가** — (1) 진행 없음·(3) 관측 이상은 위 기준선(창 2 s 재현율 0.74·오경보 1.2/분, 순간 이동 0.86). (2) **절벽 경계 접근은 여기서 평가 못 함**: NavMesh·`data/cliffs/`가 클라우드에 없고, 기록의 추락 20건(높이 3 m 넘게 떨어짐)은 전부 걷기 밖(워프·사망 뒤 부활·수용소 낙하 구간) — 2층 데이터(게시판 중계 요청) 뒤. (4) **피격·경직** — `python walk_replay.py --hits`: 걷는 중(직전 1 s 평상 애니·0.5 m/s 넘게 이동) 받은 피해(프레임 사이 HP −10 넘게) **89번**. 보는 방식별: **내 경직 애니(2000~2099·160)로만 보면 52 %**(2 Hz라 0.4~0.9 s 경직을 프레임 사이에서 놓침 — 봇은 ~200 Hz로 읽으니 하한), **HP 감소로 보면 100 %**, **지금 봇(`reflex.threat_now`: HP 감소 + 3 m 안 깨어 있는 적 → 걷기 멈추고 싸움) 74 %**. 가장 가까운 적 거리별: 3 m 안 66번(피해 4,477) — 지금 규칙이 다 멈추는데도 **42 %가 3 s 안에 또 맞음**(멈춘 뒤 막기·싸움이 늦음 = P-10 쪽 문제), 3~6 m 12번·6~12 m 4번·12 m 안에 없음 7번(원거리·화염병) — 지금 규칙은 안 멈추고 **다시 맞은 건 23번 중 1번**. → 조건 목록의 "피격/경직 → 중단"은 **애니가 아니라 HP 감소로 보고, 멈추는 건 적이 3 m 안일 때만(지금 규칙)**이 기록과 맞음. 멀리서 맞았을 때 멈추면 오히려 과녁이 됨. 구르기 애니 번호는 아직 모름(`stunned()`에 없음). `track_report.frames`에 `foe_d`(가장 가까운 깨어 있는 적 수평 거리, track 파일은 12 m 안만 기록) 추가 — 출력 불변. 테스트: `walk_replay_test`(걷는 중 피해·칩 피해 9 제외·서 있을 때/공격 중 제외·연속 피해·거리 구간)
-  - 2026-09-30 [cloud] **복구 조건 재생 평가** — `python walk_replay.py --recovery`. (a) track(2 Hz) 걸음 멈칫 35번: **시작점 23**(경로 0.5 m 안에서 서 있음 — 20번 중 17번은 헤딩 변화 0°, 중앙 1.5 s: 방향 돌리기가 아니라 그냥 서 있음, 원인 모름 — 경로를 띄운 뒤 걷기 시작 전 대기로 추정, 확인 필요), 끝 6(도착), **걷기 중간(진짜 막힘) 6** — 6번 모두 결국 지나감(원래 경로를 1 m 더 감, 돌아가기 걷기 포함, 중앙 3.6 s, 최대 44.8 s `#4 이동` (−19.6, −13.4, −62.5)), 같은 자리 두 번 막힌 곳 없음 → **재시도 상한 N=1~3 어느 것도 한 번도 안 걸림**, 물러난 거리도 2 Hz에선 전부 0.3 m 미만으로 보여 "짧은 후진 vs anchor 복귀"는 비교 불가(직전 안전 anchor는 중앙 0.8 m 뒤 — 멈칫 직전까지 정상으로 걷던 곳). (b) 로그(`data/samples/*.txt` 53개) `못 감` 81번: stuck 56·timeout 17·unreachable 8. 같은 걷기 안 재시도 1번째 74·2번째 7·**3번째 0 → 지금 상한(3번 연속 → `stuck`)도 기록상 한 번도 안 걸림**. **40 %(32번)는 점까지 1.7 m 안·높이 차 0.8 m 이하에서 `stuck`** — 막힌 게 아니라 도착 반경(1 m·모퉁이 0.5·계단 0.4)을 못 채운 것. 첫 실패 뒤 NavMesh 돌아가기(`… 돌아서`)도 43 %(21/49)가 다시 실패, 돌아가기 자신의 실패 32번 중 19번이 역시 "거의 도착". → 복구 규칙(후진·anchor·상한)을 다듬기 전에 **"거의 도착해서 막힘"을 도착으로 처리할지**(예: 1.7 m 안에서 막히면 다음 점이 앞에 있으면 넘어감 — Gate 풀림과 같은 생각)가 더 큰 몫. 복구 동작 자체 비교는 10 Hz 레이더 녹화·2층(닫힌 루프)에서. 테스트: `walk_replay_test`(중간 멈칫·1 m 후진·돌아가기 걷기로 통과·시작점 멈칫 분류·로그 파싱·거의 도착 판정)
-  - 2026-09-30 [MoKa] 결정: 거의 도착 규칙 넣기. [cloud] 반영 — **봇 걷기가 바뀜**: `field._walk_missed`에서 점을 못 갔을 때(`stuck`·`timeout`) 그 점까지 1.7 m 안·높이 차 0.8 m 이하(`ALMOST_M`, `ALMOST_DY`)이고 **마지막 점이 아니면** 부수기 확인 뒤, 돌아가기 전에 바로 다음 점으로(실패 횟수도 0으로). 로그 `N번 점 거의 도착 (1.1 m, Δy +0.3) — 다음 점으로`, 이벤트 `walk_almost`. 마지막 점(던질 자리·싸움 자리 등 정확히 서야 하는 곳)은 예전 과정 그대로 — 로그의 거의 도착 32번 중 12번이 마지막 점이라 이 규칙은 20번에 해당. `unreachable`(높이)도 제외. `못 감` 줄은 전처럼 먼저 남으므로 `hotspots.py` 집계는 그대로. 확인: `tests/walk_loop_test.py`(1.1 m·1.6 m 짧음 → 다음 점·돌아가기 없음, 1.8 m·1.2 m 높음·unreachable·마지막 점 → 예전 과정, 거의 도착 3번 연속이어도 `stuck` 아님), pytest 42 통과
-  - 2026-09-30 [cloud] **걷기 시작점에서 서 있는 원인** (`--recovery`에 원인별 표, 주변 로그 줄·프레임의 적으로 자동 분류) — 23번 모두 설명됨: **문 열기·줍기 `A` 직후 10**(19.6 s — 큰 문은 `A` 뒤 약 6 s 동안 0.25 m/s로 밀려 들어가는 문 여는 동작, 애니 값은 `-1`로 읽혀서 봇·하네스 모두 "동작 중"을 모름. 문이 열려야 갈 수 있으니 시간 손해는 아님, 걷기 막힘 감지(2 s에 0.3 m)도 안 걸림) · **첫 점 거의 도착 5**(8.7 s — 방금 넣은 거의 도착 규칙이 처리) · **안개벽 앞 2**(7.6 s — 걷기 점이 안개벽 너머, 2번 실패해야 `fog_through`) · **화톳불 `A` 직후 2**(5.7 s — 09-29 06:44 샘플, 07:04에 넣은 `_press`의 2.5 s 대기 전 코드라 이미 고쳐짐) · **걷기가 아닌 것 4**(퀵 종료 로딩 1, 결투 중 12 m 안 적 기다림 1, 결투 끝난 직후 2 — track의 `foe` 표시가 6 m까지라 걷기 멈칫으로 셈). **거의 도착 규칙 고침**: 실패 횟수를 0으로 되돌리지 않게 — 되돌리면 안개벽 앞(수용소4 (−7.8, 208.4, −8.2): 첫 점 1.6 m 거의 도착, 나머지 점은 너머)에서 `fog_through`가 한 점 늦어짐. 이제 거의 도착 다음의 진짜 실패에서 곧바로 안개벽 시도, 거의 도착이 이어져도 `stuck`으로 안 끝나는 건 그대로. `tests/walk_loop_test.py`에 안개벽 경우, `walk_replay_test`에 원인 분류 8가지
-- [ ] **[긴급]** [win] 거의 도착 규칙 확인: 봇 실행 1~2번 → 로그에 `거의 도착 … 다음 점으로`가 나오는지, 그 뒤 다음 점으로 잘 가는지(되돌아와 막히지 않는지), `python hotspots.py`에서 수용소 (34.3, 193.2, −23.9)·(−7.8, 208.4, −8.2) 같은 1 m 남기고 막히던 자리의 시간이 줄었는지
-- [x] **[긴급]** [win] 2층 데이터 (2026-09-30 [MoKa]: 긴급): NavMesh 내보내기(Burg·Firelink·Asylum, `data/samples/navmesh_<맵>.npz`)와 레이더 녹화 걷기 구간 샘플(스틱 포함) → "10. 게시판 중계" 2026-09-30 (옛 공개 이슈 #15) — 올림, 위 [긴급] 항목 참고
-- [x] [cloud] 움직임 모델: 레이더 녹화의 스틱·카메라 yaw → 속도·회전·관성, 일부 실행으로 맞추고 나머지로 1 s 뒤 위치 오차 확인
-  - 2026-09-30 [cloud] 1차 — `motion.py` (+ `tests/motion_test.py`). [win] 레이더 녹화가 아직 없어 **사람 시범 녹화 4개**(`data/samples/observe_*.jsonl`, 락온 없음·평상 애니·끊김 없는 구간 97 s)로 먼저 맞춤. 기록에서 확인: **움직이는 방향 = 스틱의 월드 방향**(카메라 yaw + atan2(lx, ly), 중앙 오차 0.7°) = 몸 방향(heading + π, 0.8°). 모델: 스틱 < 0.4 멈춤·< 0.7 걷기 1.64 m/s·그 이상 3.4 m/s·B 누르면 4.6 m/s(맞춘 값), 몸 방향은 최대 회전 속도로 스틱 쪽으로, 속도는 1차 지연(올라갈 때 0.23 s·내려갈 때 0.10 s). 파일 하나씩 빼고 맞춘 뒤 뺀 파일에서 **1 s 뒤 위치 오차 중앙 0.07~0.23 m** (등속 가정 0.36~1.00 m, 제자리 0.69~1.48 m), p90은 한 파일만 2.0 m(적과 부딪힘·벽으로 추정 — 벽은 모델에 없음). 한계: 10 Hz라 빠른 회전은 못 잼(회전 속도가 맞추기 상한 30 rad/s에 붙음 = 10 Hz에선 즉시 돎으로 보임), 반만 민 스틱 표본이 적어 걷기 구간 값은 nav.py 실측 그대로, 사람 패드라 봇 패드(slot 1)와 다를 수 있음 → [win] 레이더 녹화가 오면 `python motion.py fit data/samples/radar_walk_*.jsonl --slot 1`로 다시 맞춤. 벽·바닥은 NavMesh 데이터 뒤
-  - 2026-10-01 [cloud] **봇 데이터로 다시 맞춤** — `python motion.py fit data/samples/radar_walk_*.jsonl` ([win] 걷기 24번, 자유 이동 262 s, 걷기마다 머리 줄의 `bot_slot`으로 봇 패드만 읽음: `motion.load_walk_cuts`). 장소(파일) 하나씩 빼고: **1 s 뒤 위치 오차 중앙 0.18~0.22 m**(등속 가정 0.54~1.24 m, 제자리 1.39~3.23 m), p90 0.61~1.29 m — 단 **통로 나가는 길은 p90 2.76 m로 등속 가정(2.28)보다 나쁨: 벽**(막히는 곳). 맞춘 값: 스틱 끝 3.27 m/s(사람 시범과 같음). **B 달리기는 봇 데이터로 못 맞춤** — 봇이 B를 누르는 프레임은 대부분 막힘 탈출 직후 "달려서 다시 접근"(`nav.goto` `boost_until`)이라 벽에 붙은 채(중앙 0.7 m/s) → 사람 시범 값 3.98 m/s로 고정. 가속 시간(`tau_up`)도 맞추기 상한(0.8 s)에 붙음 — 같은 이유(벽 앞 출발)로 보이며 벽을 넣은 뒤 다시 볼 것. 회전은 10 Hz라 여전히 "즉시"
-  - 2026-10-01 [cloud] **NavMesh를 게임 없이 읽기**: `navmesh.Navmesh.from_npz(path)` — [win] 내보내기(`navmesh_<맵>.npz`)로 기존 `Navmesh`와 같은 객체(`find_path`·`floor_at`·`on_mesh`·게이트 그대로). 봇 걷기 위치가 메시 위에 있는 비율: 통로 입구 96 %·경사로 꼭대기 100 %(둘 다 **Firelink `m10_02`**), 창고 방 78 %(Burg), **통로 나가는 길 82 % — 비밀 통로 자체에 NavMesh가 없음**(1-f 기록과 같음) → 2층 벽 모델을 NavMesh만으로 만들면 비밀 통로 안이 벽이 됨: 그 구간은 사람 녹화 경로(`passage-merchant.json`)를 통로 바닥으로 쓰거나 기록 위치로 "걸을 수 있는 곳"을 덧붙여야 함. `tests/navmesh_npz_test.py`(삼각형·게이트 수, Asylum 좌표, 기록 위치가 맞는 맵 위, find_path), `tests/motion_test.py`(걷기 잘라 읽기·slot)
-- [x] [cloud] 2층 벽·바닥: `motion.step` 다음 위치가 걸을 수 있는 면 밖이면 경계를 따라 미끄러지게(벽) / 높이가 크게 떨어지면 낙사, 비밀 통로처럼 NavMesh 없는 구간은 기록 위치로 보강 → 통로 나가는 길 p90이 등속 가정보다 좋아지는지로 확인
-  - 2026-10-01 [cloud] `motion.World` — 매 적분 단계: 같은 높이(±0.6 m) 바닥이면 감(높이 따라감) · 1.5 m 넘게 아래 바닥만 있으면 낙하 · NavMesh 없는 곳은 **다른 걷기**의 기록 위치(0.5 m 칸, ±1 m 높이)로 보충(평가하는 걷기 자신의 위치는 뺌) · 그 외는 벽: 밀던 방향을 ±20°·40°·60°·80° 꺾어(꺾은 만큼 짧게) 한쪽만 열리면 그쪽으로 미끄러짐, 양쪽 다 열리면 정면으로 미는 것이라 제자리. `python motion.py walls`로 비교. 벽 넣고 다시 맞춘 기본값: 스틱 끝 3.42 m/s, 가속 0.8 s(맞추기 상한), 감속 0.1 s. **1 s 뒤 오차(중앙/p90, 벽 있음 · 없음 · 등속 가정)**: 통로 입구 0.19/1.21 · 같음 · 0.54/2.25, **통로 나가는 길 0.29/1.99 · 0.32/2.09 · 0.68/2.28** (목표대로 p90이 등속 가정보다 좋아짐), 경사로 꼭대기 0.18/0.65 · 같음 · 1.24/3.08, 창고 방 0.20/0.66 · 0.20/0.75 · 0.90/2.34. **남은 문제 셋**: (1) 장소 하나씩 빼고 맞추면 통로 나가는 길만 일반화가 안 됨 — 그 장소를 빼면 가속이 0.27 s로 맞춰지고 그 장소 p90이 2.89 m(등속 가정 2.28보다 나쁨) → "느린 출발"은 거의 그 장소에만 있는 현상(비밀 통로 벽에 밀려 출발이 늦음)인데 벽 모델이 재현을 못 함: 보충 칸(다른 걷기 위치 ± 한 칸)이 통로를 실제보다 넓게 만드는 것으로 의심 (2) 가속 0.8 s가 상한에 붙음 — 10 Hz로는 안 보이는 "돌고 나서 출발"을 가속이 대신 흡수하는 것으로 보임, 레이더 녹화가 10 Hz라 회전 속도 직접 측정은 50 Hz 패드 + 위치 보간으로 다시 시도 (3) **가짜 낙하 6번** — 통로 쪽 기록엔 1.5 m 넘는 낙하가 0번인데 모델은 떨어짐: 다리 아치처럼 NavMesh상 발밑 바닥이 훨씬 아래인 자리(1-f 70번 점, `_no_void`)로 보임 → 낙하는 "기록에서 그 근처를 걸은 적이 없을 때만"으로 좁힐 것. `tests/motion_test.py`에 가짜 복도(직진·미끄러짐·정면 막힘·낙하·보충·자기 위치 제외·벽 앞 멈춤)
-  - 2026-10-01 [cloud] **보충 칸·가짜 낙하 고침** — (1) 보충 칸이 원인이었음: 기록 위치 둘레 3×3 칸(최대 ~1 m)을 걸을 수 있게 해서 비밀 통로가 실제보다 넓었음 → 기록 위치 **0.35 m 안만**(`FILL_R`; 10 Hz 달리기 점 간격 ~0.33 m라 0.2 m면 점 사이가 끊김, 0.75 m부터 다시 나빠짐). (2) 가짜 낙하 5곳은 전부 통로 입구 앞 (−24, −33.8, 6~10) — 다리 아치 위, NavMesh는 16 m 아래(y −49.8)만 있음(1-f 70번 점) → **같은 높이에서 다른 걷기가 2 m 안을 지나간 곳은 낙하 아닌 벽**(`FALL_GUARD_R`, 기록에선 그 자리에서 떨어진 적이 없음). 가짜 낙하 0. (3) 가속을 다시 맞추니 **0.215 s**(상한에 안 붙음, 사람 시범 0.23과 비슷) — 0.8 s는 넓어진 통로를 메우던 값이었음. **장소 하나씩 빼고 맞춘 1 s 뒤 오차(중앙/p90, 벽 있음 · 없음 · 등속 가정)**: 통로 입구 **0.12/0.59** · 0.12/1.71 · 0.54/2.25, 통로 나가는 길 **0.18/0.80** · 0.22/3.26 · 0.68/2.28 (전: 빼고 맞추면 2.89 — 일반화 문제 해결), 경사로 꼭대기 **0.12/0.43** · 같음 · 1.24/3.08, 창고 방 **0.15/0.48** · 0.15/0.54 · 0.90/2.34. 남은 한계: 회전은 10 Hz라 여전히 "즉시"(10 rad/s 기본값, 직접 측정 안 함), B 달리기는 사람 값, 보충은 같은 장소를 다른 걷기가 지나간 적이 있어야 함(새 장소의 NavMesh 빈 곳은 벽). `tests/motion_test.py`에 보충 반경·낙하 막음 추가, pytest 45 통과
-- [x] [cloud] 2층 하네스: 모델 + NavMesh(벽 경계에서 멈춤·미끄러짐, 절벽 밖 = 낙사, 부서지는 물건 = 막힘)에 `nav.goto`/`field._follow`를 그대로 연결(`tests/field_fakes.py` 확장). 변형: 시작 위치·헤딩, 넉백, 입력 지연, 데드존, 속도 배율
-  - 2026-10-01 [cloud] `walksim.py` — 봇의 `nav.goto`를 고치지 않고 그대로 돌림: 스냅샷은 `SimTm`, 패드는 `SimPad`, `nav.time`만 가상 시계로 바꿔 `time.sleep`이 캐릭터를 움직임(`motion.step` + `motion.World`). 점마다 `terrain`·도착 반경은 `field._walk`(녹화 경로 tol 0.8)와 같은 규칙. 변형은 지금 시작 위치 ±0.3 m·방향 ±30°·카메라 yaw(부서지는 물건·넉백·지연은 아직). `python walksim.py entrance -n 20`. `tests/walksim_test.py`(가짜 L자 통로를 nav.goto로 끝까지, 카메라 무관, 벽 너머 점은 못 감, 입구 전후)
-- [~] [cloud] 2층 신뢰 확인: 통로 입구 70번 점 복구 전(매번 1.8~4.4 s 멈칫) / 후(0회) 차이를 재현하는지 — 못 하면 쓰지 않음
-  - 2026-10-01 [cloud] **방향은 재현, 크기는 과장**: 20번씩 — 고치기 전 경로(69 → a0 대각선) **20/20 입구 멈칫**, 고친 뒤(70 + 사람이 들어가는 점) **0/20**, 고친 뒤 꼭대기 → 통로 안 3점 **중앙 3.8 s**(게임 드릴 5회 모두 4.2 s). 그러나 고치기 전 멈칫이 **11.6~13.7 s**(게임 1.8~4.4 s)이고 매번 a0 점을 timeout으로 놓침 → 아직 "개선됐다/안 됐다"의 크기 비교엔 못 씀. 원인 추적: (1) 다리 아치 위는 NavMesh상 16 m 아래만 바닥이라, 그 점을 향해 출발할 때 메시 위였으면 `terrain`이 켜져 **낭떠러지 회피(`safe_heading`/`ground_ahead`)가 "앞에 바닥 없음"으로 스틱을 돌리거나 세움** — 같은 자리에서 `terrain` 없이 다시 출발하면 1.4 s에 통과. 게임에서도 같은 코드가 돌므로 **게임의 입구 멈칫(1.8~4.4 s) 원인일 수 있음**(게임 캐릭터는 결국 미끄러져 빠져나가고, 시뮬레이터 벽은 기록 위치 0.35 m 밖이 전부 벽이라 더 딱딱함) (2) **`nav.goto` 결함**: 막혔을 때 "메시 밖 → 가까운 메시 점으로 복귀"가 거의 못 움직여도 `continue`하고 탈출 횟수 상한(6)도 안 걸려, 점 시간 제한(15 s)까지 같은 동작만 반복(시뮬레이터에서 6번 연속). 수정 `nav.OFFMESH_GIVE_UP`(복귀가 0.2 m도 못 움직이면 그 goto에선 옆걸음 탈출로) — 하네스에서 고치기 전 경로 멈칫 13.7 → 10 s로 조금만 줄어, **기본은 꺼둠**(봇 동작 그대로). 봇 로그엔 `goto` 로그가 꺼져 있어(`field._follow`의 `log=lambda *a: None`) 게임에서 이 반복이 있었는지는 모름. 다음: 벽을 덜 딱딱하게(기록 위치 + 그 사이를 잇는 띠) 해서 크기를 맞출지, 시뮬레이터로 (1)을 고친 버전(메시 밖 목표면 `terrain` 끄기)을 비교할지
-- [ ] [cloud] 위 목표 규칙(진행도 전환·횡방향 감속·look-ahead·중단·복구)을 `_follow` 안에서만 바꾼 걷기를 2층에서 지금 걷기와 비교 → 좋은 것만 [win] A/B 여러 번. 신경망 정책(1-g, #4)도 같은 하네스로 평가
-
-## 6. 2D 시뮬레이터
-
-- [ ] [cloud] NavMesh + 적 배치 + ThinkParam으로 적 감지·추격·귀환 모델링
-- [ ] [cloud] 봇 판단 코드(`souls/field.py`)를 그대로 연결 (눈·손만 시뮬레이터로 교체)
-- [ ] [cloud] 기록(5번)으로 시뮬레이터 값 맞추기
-- [ ] [cloud] 여러 마리 분리·끌어오기 전략 대량 실험
-- [ ] [win] 시뮬레이터에서 좋았던 전략을 실제 게임에서 검증
-
-## 7. 탐험 모드 · 전투 예측 (후반)
-
-- [ ] [cloud] 탐험 모드: 무적 + 투명 상태로 미확인 구역을 걸어서 검증, "관찰 확인" 등급으로 저장. 낙하 높이 기록 필수
-- [ ] [win] 탐험 모드 실제 실행
-- [ ] [cloud] AI Lua 디컴파일 가능 여부 조사
-- [ ] [cloud] 애니메이션(TAE) 타이밍 + Lua 공격 후보 → 공격 예측
-
----
-
-## 8. 문제 기록
-
-새 문제는 아래 형식으로 **맨 아래에 추가**한다.
-
-```
-### P-번호 제목 (날짜, 작성자, 관련 항목)
-- 증상:
-- 원인 (추정/확인):
-- 해결: (해결되면 작성, 미해결이면 "미해결")
-```
-
-### P-1 오프라인 테스트가 Linux에서 실행 안 됨 (2026-09-27, [cloud], 1번)
-- 증상: `field_*_test.py` 등이 `ModuleNotFoundError: pymem`, 이어서 `vgamepad`, `KeyError: 'TEMP'`로 실패
-- 원인 (확인): Windows 전용 import가 모듈 맨 위에 있었고, `TEMP` 환경변수에 의존함
-- 해결: import를 try/except로 감싸고, 실제 연결 시에만 오류를 냄. `TEMP`가 없으면 `tempfile.gettempdir()` 사용
-
-### P-2 Python 3.11에서 f-string 문법 오류 (2026-09-27, [cloud], 1번)
-- 증상: `SyntaxError: f-string: expecting '}'`
-- 원인 (확인): 코드가 Python 3.12 문법(f-string 안의 같은 따옴표)을 씀
-- 해결: 3.12로 실행 (README 요구사항과 같음). CI도 3.12로 고정할 것
-
-### P-3 soulstruct를 Linux에서 불러오면 오류 (2026-09-27, [cloud], 2번)
-- 증상: `from soulstruct.darksouls1r.maps import MSB`가 `ds1-common.emedf.json` 없음으로 실패
-- 원인 (확인): PyPI 휠에 JSON 데이터 파일이 빠져 있음 (윈도우도 같음)
-- 해결: `navmesh.py`가 이미 쓰는 우회(events/ai/ezstate 모듈을 빈 모듈로 대체)를 재사용 — `msb_extract.py`는 `import navmesh`를 먼저 함
-
-### P-4 msb_extract 요약 수치·미발견 행 (2026-09-27, [win], 2번)
-- 증상: 콘솔 요약의 적 수가 JSON `enemies` 길이와 다름 (Firelink 27 vs 41, Burg 166 vs 174). 차이 = `kind: human`(모델 `c0000`) 수. Firelink 오브젝트 30개가 `param_row_found: false`, 그중 28개가 `o0020`. Burg는 `o1111`(7), `o1301`/`o1302`(각 4) 등 22개
-- 원인 (추정): `counts.enemies`가 human을 뺀 수로 보임 (의도라면 이름을 분명히). `o0020` 등은 ObjectParam 행이 없는 장식/특수 모델이거나 행 번호가 모델 번호와 다른 경우. Burg 부서짐 407/529는 통·상자가 많은 구역이라 그럴듯하나, `o1230`처럼 `MinAttackForDamage: 90`인 것도 breakable로 잡힘
-- 해결: counts 이름 분리(`characters`/`enemies`/`humans`), `min_attack`·`breakable_strong` 추가 (2026-09-27 [cloud]). 행이 없는 `o0020` 등은 부서지지 않음으로 둠 (행이 없으면 게임도 기본값으로 처리한다고 추정 — [사람] 확인 필요 시 추가)
-
-### P-5 .gitignore 변경 후 로컬 실행 파일이 추적 후보로 뜸 (2026-09-27, [win], 1번)
-- 증상: `data/*.json` 예외 때문에 윈도우 로컬의 `data/diag.json`, `data/dmglog*.json`, `data/char-state.json`, `data/routes/asylum-*.json` 등 20여 개가 `git status`에 untracked로 나옴
-- 원인 (확인): `.gitignore`가 `data/*.json`, `data/routes/`를 모두 허용함. 봇·실험 스크립트가 실행 중 쓰는 파일이 섞임
-- 해결: `.gitignore`를 파일 단위 허용 목록으로 바꿈 (2026-09-27 [cloud]). 새로 공유할 파일은 `.gitignore`에 한 줄 추가
-
-### P-6 burg-bonfire 성벽 마을 구간 위험 (2026-09-27, [win], 1번)
-- 증상: `run.py burg-bonfire --radar` 완주(`lit`, 418 s)했지만 위험 판정 "위험": 최저 HP 2%, 큰 피격 8번 -1085 (254011×4, 254001×2, 254010×2), 둘러싸임(crowd) 퀵 종료 2번 — (-55.0,-22.8,-29.5) HP 151, (-21.2,-13.4,-59.3) HP 338. `#1 254011` stuck 18 s(가장자리 방어, 높이 -1.2), `#4` 경로점 (-9.8,-11.3,-68.6) stuck, `#6` (-36.0,-13.5,-70.1) timeout. 같은 날 레이더 없이 돈 1회차(상인까지)는 이 정도로 위험하지 않았음
-- 원인 (추정): README의 알려진 약점(여러 마리가 동시에 붙는 전투). 레이더 켠 영향은 read_ms 3.7로 없어 보임
-- 상세 1 (139.5~157.9 s, 성벽 마을 진입 직후, 일반 망자만): 원래 목표 `#1 254011` (-56.9,-22.8,-31.0)이 10.8 m 위라 `no_path` → 올라가던 중 146.6 s에 2.5 m 거리 `250000`으로 `목표 바꿈`. 그 적은 턱 아래(최종 높이차 -1.2 m, 각 -61°)라 `가장자리방어`가 전진을 막음 → 거리 1.5~2.4 m 오락가락, 18 s 뒤 `stuck`. 적 애니 -1(비각성), 양쪽 피해 0. (추정) 목표 바꿀 때 걸어서 닿는지 확인 안 함. 로그 결과 줄이 `#1 254011: stuck`이라 실제 상대(250000)와 다름
-- 상세 2 (336~353 s, 방패병 `255000` 2마리 중 1마리 처치 직후, [사람] 확인한 장면): `#6` 경로 21/22번 점 (-36.0,-13.5,-70.1)을 2.6 m 앞 (-34.3,-13.5,-72.0)에서 못 가고 `timeout`. 그 점 옆은 추출 `breakable` 상자 `o1130_12`, `o1132_06` 자리 (같은 날 [사람]이 부쉈으나 화톳불 휴식으로 되살아남). (추정) NavMesh는 상자를 모름 → 상자에 막힘. `data/gamefiles/m10_01_00_00.json`의 상자를 경로 장애물로 쓰거나 막히면 부수고 지나가기
-- 재현: 불의 제전에서 `BOT_GAME=dsr python run.py burg-bonfire --radar`. 로그는 [win] 로컬에만 있음(필요하면 data/samples/에 올림)
-- 해결 (2026-09-27 [cloud], 실제 확인 전): 상세 1 → 서 있는 적은 목표 바꿈에서 제외 (`duel._interloper`). 상세 2 → 막히면 앞길의 부서지는 물건을 치고 다시 시도 (`souls/props.py`, `field._smash`). [win] 재실행으로 확인 필요
-
-### P-7 방패병 둘 대치·옆 적 늦은 반응 (2026-09-27, [win], 1-b)
-- 증상: 1-b 재실행(`data/samples/burg-bonfire-radar-2026-09-27b.txt`)에서 (a) 방패병 `255000` 두 마리와 `#6 이동: 따라온 255000: timeout — 46 s, 준 피해 52, 받은 피해 82` — `떼어놓기 … → no_spot` 3번(317/322/327 s), 발차기+약공이 13씩만 들어감, 결국 화톳불 쪽으로 물러났다 돌아와 처치. (b) 242.7 s 원래 목표와 대치 중 옆 `254010`(애니 3003, 공격 중)에게 -82 맞은 뒤 243.3 s에 목표 바꿈. (c) 350.3 s 블랙박스 -109 (255000 애니 3000, 1.85 m 정면±6°)
-- 원인 (추정): (a) 방패병 둘을 떼어놓을 자리를 못 찾으면 대안이 없음. (b) 1-b의 "서 있는 적 제외" 뒤로, 옆 적이 애니 -1에서 곧바로 공격(3003)으로 넘어가면 바꾸는 시점이 공격 시작 뒤가 됨 — 1-b [win] 확인 문구의 "늦게 반응" 사례
-- 재현: 불의 제전에서 `BOT_GAME=dsr python run.py burg-bonfire --radar`
-- [cloud] 분석 (2026-09-27, 로그 `…-27b.txt`):
-  - (b)는 1-b 수정 때문이 아님: 블랙박스 #3(245.2 s)은 **254010 두 마리가 둘 다 공격 중(3003)**, 1.26 m·1.9 m 정면. 목표 자신(1.7~1.8 m)도 공격 중이었음. 목표 바꿈은 "목표보다 0.8 m 이상 가까울 것"(SWITCH_MARGIN) 조건에 걸려 옆 적이 1.0 m까지 올 때 일어났고, 이 거리 조건은 수정 전과 같음. 수정 전이었어도 같은 시점. 근본 원인은 **두 마리 동시 공격**(README의 알려진 약점)
-  - (c)는 결투가 timeout으로 끝난 뒤(346.5 s) 화톳불 쪽으로 물러나는 중에 맞음 (350.3 s) → 물러날 때 가드/거리 문제, 목표 바꿈과 무관
-  - (a)가 진짜 과제: 방패병은 kick+light가 13씩만 들어가고, 떼어놓을 자리 없음(`no_spot`) 시 대안이 없음
-  - 부숨: 212.5 s 1번 발동. 그 전에 **16.6 s를 막힌 채 걸었음**(195.9 → 212.5 s, goto 한 점 timeout). 부순 뒤 목표가 사라져 바로 다음으로 넘어가 효과는 불분명
-- 해결: 미해결 ([cloud]) — 1-c 참고
-
-### P-8 1-c 재실행에서 방패병 둘에게 사망 (2026-09-27, [win], 1-c)
-- 증상: `data/samples/burg-bonfire-radar-2026-09-27c.txt`. 상자 `o1132_06`을 부순 직후(254 s) 같은 자리(-34.8,-13.5,-71.4)에서 방패병 `255000` 둘 → 261 s 발차기+약공 중 -131·-289, 둘러싸임 퀵 종료(HP 503). 재접속 뒤 같은 둘과 다시 싸움: `떼어놓기 … no_spot` 3번(274/279/290 s), 목표 바꿈 3번(255000 → 254010 → 원래), 휘청반격 light×1 피해 4에 -115, 291.3 s `먼저 치기 → light×2 피해 4, 내 피해 240`(HP 262 → 22) → `low_hp` 후퇴 시작, 293.0 s 블랙박스 -262 (255000 애니 3000, 0.85 m 정면) → dead
-- 원인 (추정): P-7(a) 방패병 둘 문제 그대로 (`no_spot`에 대안 없음). 가드 올린 방패병에 약공(피해 4)을 넣는 `먼저 치기`/`휘청반격`이 반격을 크게 받음. HP 22에서 적 0.85 m 앞 후퇴는 이미 늦음. 이번엔 상자가 빨리 부서져 방패병 구역에 더 일찍·가까이 들어간 것도 영향이 있을 수 있음(27b는 그 전에 46 s 대치)
-- 재현: 불의 제전에서 `BOT_GAME=dsr python run.py burg-bonfire --radar`
-- [cloud] 분석 (2026-09-27): 사망 직전 두 번 모두 **가드 올린 방패병에게 약공**(휘청반격 피해 4 → 받은 -115, 먼저 치기 피해 4 → 받은 -240). 방패에 막히는 공격을 넣고 반격을 맞는 교환이 핵심 손실. 27d처럼 둘이 따로 오면 피해 0으로 처치 → "둘이 동시에 붙은 상태에서 방패에 약공"만 피하면 됨. 설계 후보: (1) 방패병이 가드 중(`foes.kind == "shield"` + 가드 애니)이면 약공 금지, 발차기로 가드 깨기 뒤에만 공격 (2) 둘이 3 m 안에 모이면 싸우지 말고 화톳불 쪽으로 가드 후퇴 → 따라오는 순서대로 하나씩 (3) `low_hp` 후퇴 기준을 방패병 둘일 때 더 일찍 (HP 22는 늦음)
-- 해결: 미해결 ([cloud]; P-7(a) 설계와 같이 — [사람]과 방향 합의 후)
-
-### P-9 오버레이 미니 레이더의 물건·아이템 표시가 게임 위에서 구분 안 됨 (2026-09-27, [win], 4번)
-- 증상: [사람] "인 게임에서는 너무 작아서 뭐가 뭔지 모르겠어" — 오버레이 미니 레이더의 부서지는 물건 네모·아이템 점이 너무 작아 구분 불가
-- 해결 ([win] 작은 수정, 윈도우에서만 확인 가능): `overlay.py`에 `--marks` 옵션 추가 — 기본은 미니 레이더에서 물건·아이템을 **안 그림**(방금 부숨 시도한 물건의 주황 표시는 유지), `--marks`로 켜면 전처럼. 글 줄의 `item: …` 한 줄은 그대로. `radar_points(..., marks=True)` 기본값이라 `overlay_test.py` 그대로 통과. 레이더 웹 페이지는 변경 없음. 이어서 `--items` 추가 ([사람] 요청): 미니 레이더에 소울·인간성·쐐기석만 그리고 물건 네모는 안 그림
-- 남은 것 ([cloud] 판단): 켤 때 더 크게·기호로 구분할지
-- 추가 ([win] 작은 수정, [사람] 요청): 레이더 서버가 보내는 물건·아이템을 **플레이어 높이 ±1 m**만으로 좁힘 (`radar_server.py` `PROP_DY` 6 → 1, `ITEM_DY` 12 → 1). 증상: 없는 물건·아이템이 보였는데 아래·위층 것으로 추정. 레이더 페이지·오버레이 둘 다 적용. 봇의 부숨 판단(`souls/props.py`)은 따로라 영향 없음. `radar_test.py`·`overlay_test.py` 통과. 턱 위 아이템은 이제 안 보임 (원래 12 m로 넓힌 이유였음) — 문제되면 [cloud]가 층 판단을 NavMesh로
-- 조정 ([사람] 요청): 아이템만 **±5 m**로 다시 넓힘 (`ITEM_DY` 1 → 5) — ±1 m면 계단·턱 위 소울이 안 보임. 물건은 ±1 m 유지
-- 발견 (미해결, [cloud]): `radar_server.State.picked`는 받은 "주움" 플래그를 더하기만 하고 지우지 않음 → **세이브를 되돌리면 되살아난 아이템이 서버를 다시 켤 때까지 숨겨짐** (세이브 복구 뒤 확인). 캐릭터/세이브가 바뀌면(예: 플래그가 다시 꺼짐) 지우도록
-- 해결 (2026-09-27 [cloud]): `radar.py`가 근처 보물의 플래그를 **주운 것도 매번 다시 읽어** 꺼지면 `unpicked`를 보내고 서버가 지움 (읽기 실패·로딩 중이면 아는 값 유지). 미니 레이더 아이템은 반지름 9 px 마름모 + 글자(S 소울 / H 인간성 / T 쐐기석)로 키움 (`--items`·`--marks`일 때). `radar_test.py`·`overlay_test.py` 통과
-
-### P-10 방패병이 다가오며 치는 첫 공격에 한 박자 늦음 (2026-09-27, [win], 1-d)
-- 증상 ([사람] 관찰 2번, 27e 로그): (1) 54.0 s 경사로 방패병 `255010` 애니 3000, 1.58 m 정면±0°, 1.23 s 동안 -113 — 바로 앞 휘청반격(53.6 s)으로 다른 적을 끝낸 직후. (2) 287.5 s 방패병 `255000` 애니 3009 (`foes.py` unblockable), 1.4 m, 거리 2.0 → 1.4로 다가오며 침, -70, 내 애니 2052(피격), 그 틱 `반사×29`
-- 원인 (추정): (1) 공격 동작이 끝나는 중이라 반사가 늦음. (2) 다가오면서 치는 3009를 반사가 회피로 못 바꿈 — 거리 2 m 밖에서 시작되는 공격의 예고를 안 봄
-- 재현: 불의 제전에서 `BOT_GAME=dsr python run.py burg-bonfire --radar --no-quit`
-- 해결: 미해결 ([cloud]). [사람]: "알고만 있으면 됨" — 급하지 않음
-
-### P-11 봇 실행·세이브 교체 뒤 게임이 실제 컨트롤러를 못 받음 (2026-09-27, [win])
-- 증상: 오늘 봇 여러 번 실행 + 타이틀에서 세이브 교체 여러 번 뒤, 키보드·마우스는 되는데 Xbox 컨트롤러(블루투스)로 캐릭터가 안 움직임. 윈도우·XInput은 정상(레이더 컨트롤러 그림은 움직임), 가상 패드(ViGEm) 장치는 남아 있지 않음. `radar_server.py --no-pad`로 레이더 패드 읽기를 꺼도 그대로 → 레이더 원인 아님
-- 원인 (추정): 봇 가상 패드가 생겼다 없어지기를 반복하면서 DSR이 실제 패드로 다시 붙지 못함
-- 해결: 윈도우 재부팅 + 게임 재시작으로 복구. 레이더(패드 읽기 켬)와 같이 켜도 컨트롤러 정상 ([사람] 확인). 봇 뒤에 패드가 안 먹으면 컨트롤러 껐다 켜기 → 게임 재시작
-
-### P-12 hotspots.py: 여러 실행에서 반복되는 막힘 (2026-09-27, [win], CLAUDE.md 규칙)
-- `python hotspots.py` (27f 실행 뒤): (a) **(-52.2,-22.8,-26.9)** `#3 이동` 0/2번 점 못 감 5번(timeout×3, stuck×2) — 실행 3개(20260926_162900, 20260927_104433=27b, 20260927_123103=27e) (b) 그 바로 옆 **(-59.1,-22.9,-25.4)** 상자 `o1150_01` 부숨 4번 — 27b·27e(1-c 뒤 부숨이 매번 이 상자) (c) (-24.1,-46.7,28.6) 불의 제전 길 unreachable/timeout 3번(9/25 burg-loop) (d) 창고 방 (-35.0,-16.9,-78.8) stuck 8번(9/25·9/26)
-- 봇이 스스로 회복했지만 규칙상 결함. (a)(b)는 같은 자리 — 상자 부숨 뒤에도 점을 못 가는 경우가 있어 부숨만으로 안 풀리는 모양
-- 참고: `hotspots.py`가 `data/samples/*.txt`와 원래 로그를 따로 세어 같은 실행이 두 번 잡힘(27b·27e) — 실행 수가 부풀려짐
-- 해결 (2026-09-28 [cloud]): 같은 문제들을 같은 시각·위치에 가진 로그는 한 실행으로 셈 (`hotspots.dedupe`). 1위 지점 (-9.8,-11.3,-68.6)은 6개 실행 중 5번. (a)(b) 상자 부순 뒤에도 못 가는 #3 첫 점은 남은 과제
-- 2026-09-28 [win] (e) `#6 이동` 상자 `o1321_0021` (−22.7,−13.4,−64.3): 28x·28z 둘 다 부수고, 바로 옆 (−22.1,−13.4,−63.3)에서 멈칫 3 s·2.5 s — 경로가 상자를 지나서 부술 때마다 멈춤 (hotspots AGAIN, 이전 15/380 실행). 스스로 회복하지만 매번 같은 자리 → 경로를 상자 옆으로 비키는 것 검토 [cloud]
-- 2026-09-28 [cloud] (e) 수정 → #8: NavMesh 경로를 **지난 실행에서 2번 이상 부순 물건** 옆으로 비켜 가게 함. 28z `#6 이동` 경로 12번 점이 상자 중심에서 0.36 m였음.
-- 2026-09-28 [win] (e) 확인 (`data/samples/burg-bonfire-radar-2026-09-28aa.txt`, lit 410 s, 주의): 시작 로그 `물건 비켜 가기 …: o1132_06 o1150_01 o1321_0021` (cloud와 같음). **비켜 가기 안 됨** — `비켜 감` 로그 없음, `#6 이동`에서 `o1321_0021` 앞 멈칫 2.0 s + 부숨, `o1132_06`도 부숨 (hotspots AGAIN 2). 오프라인 재생(`experiments/steer_debug.py`): (1) `o1321_0021` — 물건 반대쪽 두 점은 NavMesh 위·경계에서 1.43/1.50 m인데 `clear_line`(a→점1, 점2→b)이 False. 원인: `clear_line` 기본 `step=0.5`가 작은 삼각형을 건너뛰어 이웃 아닌 면으로 넘어감 → 벽으로 판단 (5494→5467). `step=0.1`이면 세 구간 모두 True. 원래 경로의 a→b도 0.5·0.1 둘 다 False라 NavMesh 경로 점끼리도 이 검사를 못 넘음 (2) `o1132_06` — `#6 이동` 끝점(목표)이 상자에서 1.2 m 안이라 설계대로 건너뜀. → [cloud] `_ok`의 `clear_line`을 촘촘히(0.1) 또는 삼각형 따라가기로, `o1132_06`은 끝점을 옆으로 옮길지 결정
-  - `props.learned()`: 봇 시작 때 `hotspots`와 같은 로그(`data/samples`, `data/runs`, 복사본은 1번)에서 "부숨 시도"를 셈. 지금 저장소 로그 기준 `o1321_0021`·`o1150_01`(b)·`o1132_06`. 로그 `물건 비켜 가기 (…): …`
-  - `props.steer_around`(`navmesh.find_path` 끝에서): 그 물건에서 1.2 m 안을 지나면 앞뒤 점을 물건 옆 1.6 m의 두 점으로 이음. 물건 없는 쪽을 먼저, 안 되면 반대쪽. 새 점이 NavMesh 위이고 경계(벽·낭떠러지)에서 0.6 m 이상(`Navmesh.border_dist`), 새 구간이 `clear_line`이고 다른 물건을 안 지날 때만. 안 되면 원래 경로(부수기가 그대로 대비책). 로그 `경로가 … 위를 지나감 — 옆 1.6 m로 비켜 감`
-  - 모든 부서지는 물건에 적용하지 않은 이유: 파일 속성이 다 같아(ObjectHP 1, CharacterCollision 1) 가려낼 수 없고, 28z에서만 멈칫 없던 12곳의 길이 바뀜
-  - 확인: `tests/props_steer_test.py`(28z 실제 경로·상자 위치: 0.27 m → 1.58 m, 한쪽 벽이면 반대쪽, 좁으면 그대로, 층·계단·끝점·루프, `learned`), pytest 29 통과 → [win] 확인 필요
-- **P-12 (e) 현재 상태 (2026-09-30 정리, → #8)**: **게임에서는 아직 안 고쳐짐.** 전제: 코드(`82256c6`)는 들어 있고 오프라인 테스트는 통과하지만(가짜 바닥), 실제 NavMesh에서는 `aa` 실행(2026-09-28)에 비켜 가기가 한 번도 안 일어남. 원인 둘 — (1) `o1321_0021`: `props._ok`가 `nm.clear_line`을 기본 `step=0.5`로 불러 작은 삼각형을 건너뛰고 이웃 아닌 면으로 넘어간 걸 벽으로 봄. 반대쪽 두 점은 NavMesh 위·경계 1.4 m인데 a→점1·점2→b가 False. `step=0.1`이면 세 구간 다 True (원래 경로의 a→b는 0.1에서도 False — 경로 점끼리도 이 검사를 못 넘음) (2) `o1132_06`: `#6 이동`의 끝점(목표)이 상자에서 1.2 m 안 → `k >= len(path)`로 설계상 건너뜀. **이후 손댄 커밋 없음**(`STEER` 전역 제거는 동작 같음). 남은 일: [cloud] `_ok`의 `clear_line`을 촘촘히(`step=0.1`) 또는 삼각형 경계 따라가기 + 끝점이 물건 옆이면 옮길지 [MoKa] 결정 → 고친 뒤 [win] `burg-bonfire --radar` 1번, `비켜 감` 로그와 `#6 이동` 멈칫·부숨 사라졌는지. 그때까지 부수기가 대비책이라 실행 결과는 나빠지지 않음(멈칫 2~3 s). 샘플 `data/samples/burg-bonfire-radar-2026-09-28aa.txt`, 재현 `experiments/steer_debug.py`
-- 2026-09-30 [MoKa] 결정 (→ #8): 목표 지점이 상자 1.2 m 안일 때 **원칙은 상자를 부수는 것**, 상황이 안 되면(부수기가 안 먹히거나 막힘이 계속되면) **목표를 상자 반대쪽으로 옮기는 것이 차선책**. `clear_line` 촘촘히(`step=0.1`) 수정은 [cloud] 진행 가능
-- 2026-09-30 [cloud] (e) (1) 고침 (→ #8): `props._ok`가 `clear_line`을 `step=LINE_STEP`(0.1 m)로 부름 — `steer_around`에서만 바뀜, 다른 걷기·`duel` 도망은 그대로. `aa` 실행 경로로 오프라인 재생(`experiments/steer_debug.py`, 같은 step으로 맞춤): `o1321_0021`을 지나는 두 경로(`#6 이동` 22점, `화톳불로` 40점) 모두 **비켜 감**(바깥쪽 두 점, 경계 1.4·1.5 m, `ledge_step` 없음). `o1132_06`(목표가 상자 안)은 그대로 건너뜀 — MoKa 결정대로 부수기가 기본, 반대쪽으로 옮기기는 아직 안 넣음. pytest 42 통과. **남은 일: [win] `burg-bonfire --radar` 1번** — `비켜 감` 로그 2번(#6 이동·화톳불로), `o1321_0021` 부숨과 (−22.1,−13.4,−63.3) 멈칫이 사라졌는지, 비켜 간 자리에서 벽 비빔·낙사 없는지, `hotspots.py`
-- 2026-09-30 [win] (e) (1) 게임 확인 (→ #8, `data/samples/burg-bonfire-radar-2026-09-30a.txt`·`burg-bonfire-2026-09-30a.track.jsonl`, 배틀 액스, SL 20): **비켜 가기 됨** — 282.3 s `#6 이동`·325.7 s `화톳불로` 둘 다 `경로가 o1321 (o1321_0021) 위를 지나감 — 옆 1.6 m로 비켜 감`, `o1321_0021` 부숨 없음, 옛 멈칫 자리 (−22.1,−13.4,−63.3) 멈칫 없음(`#6 이동` 경로 이탈 최대 0.78 m, 벽 비빔·낙사 없음). `hotspots`: `o1321_0021` 부숨 **GONE**(이전 19/420), AGAIN은 `o1132_06`만(목표가 상자 안 — MoKa 결정대로 부숨, 296.1 s 막힘 감지 → 297.6 s 부숨). 실행: **lit, 351 s**, 위험 판정 위험(최저 HP 18 %, 큰 피격 7번 −1003, low_hp 1번 = 189 s `#1 이동` 254010에게 강공 헛침 중 −470, timeout 1번 = 126 s 254000 강공×) — 비켜 가기와 무관. 남은 것: 차선책(부수기가 안 될 때 목표를 상자 반대쪽으로 옮기기)은 필요해지면 새 이슈로
-
-### P-13 봇 실행 뒤 웹 레이더에 사람 컨트롤러가 안 보임 (2026-09-27, [win], 레이더 고도화)
-- 증상: 봇이 끝난 뒤 [사람] 패드 입력이 웹 레이더 컨트롤러 그림에 안 나옴. 서버 `pads`에 봇 가상 패드 slot 1이 값 0으로 계속 남고, 페이지는 패드가 둘이면 slot 1을 그림 → 사람 slot 0이 가려짐
-- 원인 (확인): `radar_pad.py`는 바뀐 값만 보내고 연결이 끊긴 슬롯은 알리지 않음, 서버는 슬롯을 지우지 않음
-- 해결 ([win] 작은 수정): `radar_pad.py`가 끊긴 슬롯에 `{"type": "pad", "i": n, "gone": true}`를 보내고, `radar_server.State.put`이 그 슬롯을 지움. `tests/radar_replay_test.py`에 확인 추가, `pytest -k radar` 통과. 페이지(`radar.html`)는 그대로
-
-### P-14 뒤잡기 직후 경사로 가장자리에서 낙사 (2026-09-28, [win], 1-f)
-- 증상: 27t 43.7 s 망자 뒤잡기 처치 → 봇 (−34.9, −50.7, 27.1)에 4 s 정지 → 47.3 s 다음 행동(#2 끌어오기) 시작과 동시에 1.4 s 동안 25 m 낙하, 사망
-- 원인 (추정): 뒤잡기는 게임이 캐릭터를 적 등 뒤로 끌어당김 → 적이 가장자리 근처면 봇이 가장자리에 서게 됨. `_room_behind`는 등 뒤 1 m 한 점만 봤음
-- 해결 (2026-09-28 [win], [사람] 결정): 등 뒤 0.5~2 m 여러 점 확인 + 뒤잡기 직후 발밑 확인·싸움 자리로 물러나기. 실제 확인 전
-
-### P-15 옮긴 실험 모듈을 봇이 실행 중에 불러 멈춤 (2026-09-28, [win])
-- 증상: 27u 310.5 s `ModuleNotFoundError: No module named 'vision_probe'` — `souls/field.py` `fog_through` → `legacy/ladder_test.py` → `import vision_probe`
-- 원인 (확인): 0474f5c에서 `vision_probe.py`를 `experiments/`로 옮겼는데 `legacy/`의 세 파일은 경로를 안 고침(`boss/boss.py`만 고침). 오프라인 테스트는 이 경로(안개벽 통과)를 안 거침
-- 해결 ([win]): 세 파일에 `experiments/`를 `sys.path`에 넣는 줄 추가, `import legacy.ladder_test` 확인. 봇 코어(`souls/`, 루트)에서 `experiments/`·`legacy/` 모듈을 부르는 곳은 `field.fog_through`(legacy.ladder_test)와 `farm.py`(legacy.reflex)뿐. [cloud]: 이 import 경로를 테스트에 넣을 것
-
-### P-16 뒤잡기로 도는 중 틈새로 떨어짐 (2026-09-28, [win], 1-f)
-- 증상 ([사람] 관찰): 27u 성벽 마을에서 뒤잡기하려고 돌다가 틈새로 떨어짐 — 로그상 304 s 봇 높이 −29.1, 가려던 점 −22.8 (6 m 아래) → `unreachable` 두 번 → P-15 오류
-- 원인 (추정): 바닥 확인이 뒤잡기 시작 전(적 등 뒤)·끝난 뒤(발밑)만 있고 도는 중엔 없음
-- 해결 ([win]): `_circle_floor` — 도는 틱마다 원 둘레 양쪽·바깥 0.8 m에 같은 높이 바닥, 없으면 `edge`로 멈추고 그 적은 5 s 동안 뒤잡기 안 함. `tests/backstab_test.py` 추가. 실제 확인 전
-
-### P-17 통로 입구를 나가는 길에서 막힘·낙사 (2026-09-28, [win], 1-f A) → #5
-- 증상: `passage-drill` 돌아가는 길(통로 → 불의 제전, NavMesh 경로)에서 입구 부근 (−25.9, −33.7, 7.6)·(−24.2, −33.8, 7.5) `못 감` 반복 (수정 전 27줄/5회, 56~105 s). 턴 수정 뒤 1회차엔 탈출하다 (−19.4, −33.9, 10.1) 부근에서 낙사
-- 원인 (추정): 나가는 길은 녹화 경로가 아니라 NavMesh 경로 — 입구 쪽은 NavMesh가 비어 있어(비밀 통로) 경로가 입구 안쪽 모서리로 꺾임. 실제 미션의 귀환 길도 70번 점이 빠진 녹화 경로라 같은 위험
-- 해결: 미해결. 안: 나갈 때도 사람 경로를 거꾸로(a0 → run 70 → 69) — 70번은 다리 아치 위라 발밑 바닥 확인을 그 구간만 사람 경로 기준으로. 턴 수정(`nav.turn_scale`·스틱 놓기)은 유지/되돌리기 [사람] 판단
-- 추가 분석 (2026-09-28, [사람]: "다른 데는 정상인데 여기만 유독 심함"): 사람 녹화 경로(불의 제전 → 버그 화톳불)의 30° 넘는 모퉁이 전부를 봇 궤적(전투 중 제외)과 비교 — 꺾는 각도·앞뒤 점 간격·NavMesh 유무·봇이 사람 길에서 벗어난 거리·멈칫 시간. 통로 입구 모퉁이(run 70, 표에서 A4)만 세 가지가 겹침: **꺾는 각도 80°(가장 급함), 다음 점까지 4.1 m(가장 긺, 다른 곳 0.7~2.2 m), NavMesh 없음**. 70번 복구 전(27v) 멈칫 2.4 s → 복구 뒤(27w, `data/samples/burg-bonfire-radar-2026-09-28w.txt`) 0 s. NavMesh 있는 다른 모퉁이(A26 62°, A28, B78, B121 등)는 둘 다 멈칫 0~0.1 s. 참고: C137·C138 창고 방 모퉁이 27w 멈칫 6.5 s, B56(NavMesh 없음) 27v 5.7 s — 싸움 받는 자리 근처라 따로 볼 것
-- [사람] 시범 녹화 `data/observe/20260927_224715.jsonl`(로컬, F9 3개: 입구 앞 (−26.1,−33.7,9.0)·입구 안 (−29.8,−33.9,3.9)·정상 모퉁이 (−43.2,−33.6,−6.4)). 사람 vs 봇(27w): **입구에서 사람은 x −26.1까지 서쪽으로 더 간 뒤 남쪽으로 꺾음 — 같은 z(≈9)에서 봇보다 약 1.2 m 서쪽**, 봇은 70 → a0 선을 따라 입구 동쪽 벽을 스침(속도 1.0 m/s까지 떨어짐). 정상 모퉁이는 녹화 점이 1 m 간격이라 봇이 사람 길과 0.13 m 차이. 수정: 70번 뒤에 사람이 걸은 입구 점 3개 (−25.18,9.56)·(−26.09,8.99)·(−26.38,7.87) 추가(`missions.ENTRY_WALK`). 실제 확인 전
-- [사람]: "안 되는 곳은 스틱을 너무 급하게 돌린다" — 패드 입력 비교(사람 녹화 slot 0, 봇 27w 레이더 slot 0): 입구에서 한 틱에 스틱 방향을 바꾼 최대 각도 **사람 13°(≈840°/s)·세기 평균 0.75 vs 봇 39°(≈2270°/s)·늘 1.0**, 정상 모퉁이 사람 11°(≈670°/s) vs 봇 33°. 수정: `nav.limit_stick_turn` — 스틱 방향 변화 **초당 700°까지**(`STICK_TURN_DPS`), 턴 직전 스틱 놓기는 끔(`TURN_RELEASE_S = 0`, 사람은 놓지 않고 천천히 돌림), 급턴 세기 줄이기(`turn_scale`)는 유지. `tests/turn_scale_test.py` 추가. 실제 확인 전 → **되돌림** (아래)
-- [사람]: "사람은 화면 보며 속도까지 계산하지만 봇은 무리 — 적이 없는데 빨리 갈 필요가 없다" → `nav.calm`: 12 m 안에 살아 있는 적이 없으면 스틱 최대 0.7, 달리기 안 함(`CALM_R`, `CALM_STICK`). 사람은 입구를 ≈1.6 m/s로 걸었고 봇은 2.5~3.5 m/s. 실제 확인 전
-- 27x: 천천히 걷기·스틱 회전 제한으로 **불의 제전 화톳불 앞 점 0.6~0.7 m에서 맴돌다 시간 초과 2번** (도착 반경 0.5 m 안으로 못 들어감). [사람]: "원래대로 돌려줘" → `nav.py`를 오늘 턴 수정 전(5c94ba6)으로 되돌림: 급턴 스틱 줄이기·턴 전 놓기·회전 속도 제한·천천히 걷기 모두 제거, `tests/turn_scale_test.py` 삭제. 통로 입구 녹화 점 복구(70번 + 사람이 걸은 입구 점 3개, `missions.ENTRY_WALK`)는 남김 — 70번만 있을 때 입구 멈칫 0으로 확인, 입구 점 3개는 실제 확인 전
-
-### P-18 경사로에서 퀵 종료 뒤 신원을 잃고 `left #N`으로 미션 끝 (2026-09-28, [win], 0-c) → #7
-- 증상: `data/samples/burg-bonfire-radar-2026-09-28y.txt` — 43 s 둘러싸임 퀵 종료(crowd, 254000 둘) → 다시 들어온 뒤 60 s 여섯 놈 모두 `신원 끊김(세대 변화·오래 안 보임)` → #3 254000 `스폰에서 못 찾음` 2번째 → 173 s `결과: 경사로 left #3?`. 경사로는 `cleared`가 아니면 거기서 미션을 끝내서 마을·화톳불까지 안 감. 나누기 전에도 같은 흐름: `data/runs/20260924_093735_burg-bonfire.log` (퀵 종료 2번 뒤 `경사로 left #5`), `20260925_180844_burg-loop.log` (낙사 퀵 종료 4번 뒤 `경사로 left #6`)
-- 원인 (추정): 퀵 종료로 적 포인터가 새로 잡히는데, 이미 죽인 놈(#3 254000은 퀵 종료 전후로 같은 이름 254000이 여럿 죽음)은 스폰에 다시 안 나타나 `unbound`로 남음 → 2번이면 `#3?`로 넘기고, 경사로 결과가 `left`라 미션 중단. 싸움 나누기(duel) 쪽이 아니라 `field.clear`의 신원 다시 잡기
-- 해결: 2026-09-28 [cloud] `Missions.ramp_passed` — 경사로 결과가 `cleared`이거나 남은 게 **전부 `#N?`**(신원 끊김, 살았는지 모름)면 다음 구간으로 (로그 `살았는지 모름(신원 끊김)만 남음 … 계속`). `#N`(3번 싸워도 삶)·`#N~`(다른 높이로 감, 살아 있음)이 하나라도 있으면 전처럼 멈춤. `burg-bonfire`·왕복 둘 다. 확인: `tests/ramp_passed_test.py` (고치기 전 코드에선 실패), pytest 28 통과 → [win] 퀵 종료 뒤 마을까지 가는지 실제 확인 필요 (#3 2번째 실행에서 같이 볼 수 있음)
-
-### P-19 `reach.py direct`가 직선으로 다가가다 난간에서 떨어짐 (2026-09-28, [win])
-- 증상: `python experiments/reach.py direct 24 2.0,…,0.6 nodead` (성벽 마을 화톳불, 가장 가까운 적 254010 19.8 m, 높이 −1.5 m). `nav.goto`로 설 자리까지 직선으로 가다 난간 밖으로 떨어져 y −363 → −767까지 계속 낙하(PlayerNoDead 켜 둠 → 죽지 않고 맵 밖). 스윙 2번은 10 m·21 m에서 헛손질, 그 뒤 `주변에 살아 있는 적 없음`으로 끝남. [MoKa]가 게임 강종 후 재시작. 로그: `data/samples/reach-bandits-knife-2026-09-28a.txt`. PlayerNoDead는 끝에 0으로 되돌림
-- 원인: `direct()`는 30 m 안 아무 적이나 골라 NavMesh 없이 직선 `goto` — 높이가 다른 적에게 가려면 난간을 넘음. 게다가 NoDead라 낙사 판정이 안 나서 맵 밖으로 계속 떨어짐
-- 해결: 미해결. 이번엔 블랙박스 분석으로 대신함. 다시 쓰려면: 평지·혼자 있는 적만(높이차 ≤ 0.5 m, 거리 ≤ 8 m), 다가갈 땐 NavMesh 경로, NoDead 켤 땐 낙하(y가 1 s에 3 m 넘게 떨어짐) 감지 시 즉시 중단 [cloud]
-
-### P-20 레이더 서버가 두 개 겹쳐 떠서 예전 서버가 데이터를 가로챔 (2026-09-28, [MoKa]/[cloud]) → #9
-- 증상: 새 코드로 `radar_server.py`를 켰는데 페이지에 게임 상태·Steam 칩이 `—`, 워프 카드 "off here". 예전 서버를 끈 직후 **다른 Claude Code 세션이 예전 서버(`-u radar_server.py`)와 예전 임시 발신기를 다시 띄웠고**, 둘 다 떠 있었음
-- 원인: 윈도우는 한쪽이 SO_REUSEADDR를 켜면(`HTTPServer` 기본) 같은 포트에 두 번째 bind가 **조용히 성공**함. 예전 서버가 UDP 47800(모든 스냅샷)을, 새 서버가 페이지를 줘서 옛 데이터가 새 페이지에 보임. 새 서버의 UDP 오류는 스레드 안이라 안 보였음
-- 해결 ([cloud]): `radar_server.py`가 **시작하자마자** HTTP·UDP를 `SO_EXCLUSIVEADDRUSE`로 잡고(`RadarHTTPServer`, `bind_udp`), 이미 쓰이면 바로 종료 코드 1 + 찾는 PowerShell 명령·다른 포트 안내. 새 서버가 먼저 떠 있으면 예전 코드 서버도 못 끼어듦. 지금 떠 있는 서버(예전 bind)를 상대로 두 번째 서버가 바로 멈추는 것 확인. `tests/radar_port_test.py`
-- 남은 것: 다른 세션이 레이더를 다시 띄우지 않게 — 레이더 서버·`radar.py watch`는 MoKa가 켜고 끔
-
-### P-21 게임을 다시 켠 직후 오프라인 모드인데 steam.exe에 외부 연결 1개 (2026-09-28, [MoKa]/[cloud]) → #10
-- 증상: 게임 재시작(21:00:31) 뒤 타이틀에서 레이더 Steam 칩이 `Steam ONLINE` — `steam_state` 이유: `Steam set offline, steam.exe 1 outside conn, game 0 outside conn`. 1~2분 뒤 다시 읽으니 연결 0, `offline`. 게임 자체의 연결은 계속 0
-- 판단: 판정은 보수적으로 맞게 동작(그동안 워프는 거절됨). 다만 오프라인 모드의 steam.exe가 게임 실행 때 어디에 연결하는지는 모름 — 연결 주소를 못 남김. 연결이 SYN_SENT(시도만)였을 수도 있음
-- 조치 ([cloud]): `steam_state.check()`가 외부 연결을 `주소:포트 상태`로 돌려주고(`conns`), `radar_server.py`가 판정이 바뀔 때마다 콘솔과 Decisions(녹화에도 남음)에 `steam: ONLINE — … [steam.exe 1.2.3.4:443 ESTABLISHED]` 한 줄. 다음에 재현되면 그 줄로 원인 판단
-- 재현: 오프라인 모드에서 게임을 끄고 다시 켜며 서버 콘솔의 `steam:` 줄 확인
-- 2026-09-29 [cloud] 서버 콘솔 `steam:` 줄 3번 잡힘 (09-28 23:47 ~ 09-29 06:11): steam.exe → `23.62.46.181:443`(30 s), `199.232.215.82:443`(약 1분), `23.62.46.175:443`(30 s, rDNS `…deploy.static.akamaitechnologies.com`) 모두 ESTABLISHED, 게임 연결은 늘 0. **게임 재시작과 상관없이 몇 시간마다** 생기는 HTTPS CDN 받기(Akamai·Fastly)로 보임 — Steam 로그인 서버(Valve 주소, 27015~27050)는 아님. 판정은 안전 쪽으로 틀림(그동안 워프 거절). 고칠지는 결정 필요: (a) 그대로 (b) steam.exe의 443 CDN 연결은 빼고 Valve 주소·Steam 포트만 셈 (c) `ONLINE`이 1분 넘게 이어질 때만 ONLINE
-
-### P-22 투척 나이프가 퀵 슬롯에 없으면 끌어오기가 매번 실패하고 경사로가 partial로 끝남 (2026-09-28, [MoKa]/[cloud]) → #11
-- 증상: `burg-bonfire --radar` (`data/samples/burg-bonfire-radar-2026-09-28ab.txt`, 195.6 s) — `#2: 나이프 1 (None m, …) | 290 칸을 못 고름` → `끌어오기 n/3: no_lock` 6번 → `#2 255010: 끝내 못 끌어옴 — deferred_unreachable` → **경사로 partial**, 위험 판정 위험(최저 HP 43%, 큰 피격 5번). #5도 같은 이유로 못 끌어와 low_hp
-- 원인: [MoKa]가 퀵 슬롯에서 나이프를 뺌(슬롯 `[205, 292, 310, 330, -1]`, 나이프 86개 소지). `field._lure`는 **가진 개수**만 보고 던지러 가서, 퀵 슬롯에서 못 고르는 걸 락온 실패로 잘못 셈
-- 해결 ([cloud]): `run.py`가 나이프를 쓰는 미션(`LURE_CMDS`)은 시작 전 `tm.quick_items()`에 290이 없으면 **패드를 만들기 전에** 멈추고 알림(`⚠ 투척 나이프(290)가 퀵 슬롯에 없음 … 넣고 다시 켜거나 --no-lure`) — 실제 게임에서 확인. `field._lure`도 퀵 슬롯에 없으면 바로 `no_knife`. hotspots: 새 문제 없음(경사로에서 끝나 나머지는 GONE), track_report 멈칫 0
-- 추가 ([MoKa] 요청, 2026-09-28 [cloud]가 게임에서 실험): 봇이 빠진 나이프를 **스스로 퀵 슬롯에 넣음** — `dsr_telemetry.equip_quick_item(290)`. 먼저 세이브 백업 `Documents\NBGI\DARK SOULS REMASTERED\backup-20260928-212855-before-quickslot-knife` (타이틀 화면에서, 세이브 해시 같음). 실험: 인벤토리 번호 = (항목 위치 − 0x680) / 0x1C (기존 4칸 모두 맞음, 나이프 88). 슬롯 한 칸은 번호 `+0x2E0`·ID `+0x360`·**번호 복사본 `+0x438`** 세 곳 — 앞의 둘만 쓰면 D-pad ↓가 나이프를 건너뜀, 셋 다 쓰면 선택됨 → HUD `Throwing Knife 86` → 던짐 86 → 85 → 퀵 종료·이어하기 뒤에도 세 곳 다 유지(세이브에 저장). `run.py`는 이제 나이프가 퀵 슬롯에 없으면 **Steam 오프라인일 때** 첫 빈 칸에 넣고 계속 — 나이프 없음·빈 칸 없음·오프라인 아님·메모리 모양 다름(기존 슬롯이 인벤토리와 안 맞음)이면 전처럼 멈춤. 게임에서 확인: 이미 있으면 그 칸(쓰기 없음), 빼 둔 뒤 넣기, 없는 아이템 None. `tests/quick_slot_test.py`. 번역: 새 샘플의 나이프·락온 줄 규칙 추가(`락온 안 걸림`이 "lock-on inside caught"로 잘못 나오던 것도), `translate_test` 97.7 %. 나이프는 지금 5번째 칸에 들어가 있음. 장비 메뉴 퀵 슬롯 화면에서도 정상으로 보임 ([MoKa] 확인)
-
-### P-23 봇이 들고 있는 무기 대신 오른손 1번 칸 무기를 읽음 (2026-09-28, [cloud]) → #12
-- 증상: 오른손 1번 칸 밴딧 나이프, 2번 칸 배틀 액스(들고 있음)일 때 `run.py` 로그 `무기: 밴딧 나이프` — 나이프 닿는 거리 1.3 m·타이밍으로 싸우며 실제로는 도끼를 휘두름. 블랙박스: 09-28 07:46·08:02 실행에 배틀 액스 약공 애니 303000. 언제부터 도끼를 들었는지는 그 사이 실행마다 다름 — 09-28 나이프 실측·판단 기록은 애니 203000(단검)으로 걸렀으니 영향 없음
-- 원인: `dsr_telemetry.right_weapon()`이 `+0x328`(1번 칸)만 읽음. 들고 있는 칸은 `+0x310`(0/1), k번 칸 ID는 `+0x328 + 8k` — D-pad →로 `+0x310` 1 → 0, HUD가 나이프로 바뀜 확인
-- 해결: `right_weapon()`이 들고 있는 칸의 ID를 돌려줌. 게임에서 701005(배틀 액스 +5) 확인. 봇은 시작할 때 한 번만 읽으니, 실행 중 무기를 바꾸면 여전히 틀림
-
-
-### P-24 나이프 없는 캐릭터: `--no-lure`가 `burg-bonfire`에서 무시되고 `no_knife`를 매번 다시 시도 (2026-09-28, [win]) → #13
-- 증상: 새 캐릭터 `Bandit Bot`(나이프 0개)으로 `burg-bonfire --radar --no-lure` — 경사로 #2에게 `끌어오기 n/3: no_knife` → 8 s 기다림 × 3 → 맨 뒤로 미룸(25 s), #5도 `no_knife` → #5에게 걸어가 망자 셋이 한꺼번에 붙어 0.16 s −237 → 퀵 종료 → HP 441로 이어 싸우다 110 s 사망 (`data/samples/burg-bonfire-radar-2026-09-28-bandit-a.txt`)
-- 원인: (1) `--no-lure`가 `clear-ramp` 명령에만 전달됨 — `burg_bonfire`는 `clear_ramp()` 기본값(lure=True) (2) `field.clear`가 `no_knife`를 "이번엔 안 됨"으로 셈
-- 해결: `Missions(lure=…)`로 모든 경사로 미션에 적용, `field.clear`는 `no_knife`면 그 정리 동안 끌어오기 끔. `tests/field_no_knife_test.py`. 다시 실행 → lit 497 s, 경사로 받은 피해 0 (`…-bandit-b.txt`)
-- 남은 것: 낮은 레벨에서 둘러싸일 때(퀵 종료 뒤 HP 65 %로 이어 싸움, 옆에 적이 있어 에스트 안 마심)는 싸움 규칙 쪽 — 따로
-
-### P-25 퀵 종료 뒤 죽인 적이 되살아남 — 게임 버그, 특정 상황에서만 (2026-09-28, [win]/[MoKa]) → #14
-- 증상: Bandit Bot 3번째 실행(`data/samples/burg-bonfire-radar-2026-09-28-bandit-c.txt`) 96 s 낙사 판정 퀵 종료(`0.8 s 에 4.0 m`, `back: 시간 초과`) 뒤 경사로 6마리가 전부 살아 있음 — 84 s에 죽인 255010, 94 s에 죽인 254002, 앞서 죽인 254000 둘까지 (track: 94 s 적 2 → 108 s 적 6). 그 뒤 둘러싸여 175 s 사망, 소울 793 핏자국
-- 판단 ([MoKa]): **게임 버그** — 항상이 아니라 특정 상황에서만. `field.shake_off`의 "죽은 적은 그대로" 가정이 이때는 틀림. P-18(퀵 종료 뒤 신원 끊김)도 같은 원인일 수 있음
-- [MoKa] 확인: 96 s 낙사는 실제 낙사, 퀵 종료는 제때 함(오탐 아님)
-- 할 일: 봇이 퀵 종료 뒤 되살아난 적을 알아채고 그 자리에서 싸우지 않게 — 일부: 경사로 끝의 `left #N?`는 이제 살아 있는 적을 확인(`Missions.pass_ramp`, 2026-09-30). 되살아난 적 자체를 세고 물러나는 건 남음
-- 2번째 (2026-09-29 수용소): 데몬 방 착지 직후 낙사 오판 퀵 종료 → 안개벽 앞에서 다시 시작, 이미 죽인 위층 망자 250021·250022가 살아 있음 (`data/samples/asylum-seg2to5-2026-09-29c.*`)
-
-### P-26 둘러싸임 후퇴가 1~2 s마다 끊겨 16번 반복, 공격 0 (2026-09-28, [win])
-- 증상: 같은 실행 107~175 s — `crowd` → `물러남 1~2 s: stopped` → 바로 다시 `crowd`를 16번, 그동안 준 피해 0, 698 → 23 → 사망. 멈춘 순간에도 `따라온 적 2~3`
-- 원인: (1) `fall_back`이 따라오는 적을 높이차 `FOLLOW_DY` 2.5 m 안만 셈 — 경사로 위쪽 적은 +2.5~3.0 m라 빠져서 너무 일찍 멈춤 (2) 가드 들고 걷기는 망자 걸음과 비슷해 떼어지지 않고 물러나는 동안 맞음 (3) 후퇴 직후 바로 다시 `crowd`
-- 할 일: 달려서 후퇴(간격이 벌어질 때까지), 높이 조건 넓힘, 후퇴 직후 몇 초는 가장 가까운 한 마리와 싸움. P-25 상황(6마리)에선 후퇴로도 감당 못 함
-- 2번째 (나이프 있음, `…-bandit-d.txt`): 경사로는 나이프로 **cleared 133 s** — 성벽 마을 `#2 이동`에서 망자 **둘**(254010·254012)에게 204~234 s 같은 반복 10번, 준 피해 74, 사망(소울 537). 둘은 전엔 잡던 상황(`…-bandit-b`, 후퇴 규칙 없이 lit) → **이 후퇴 규칙이 지금은 해로움**
-- [MoKa] 결정 2026-09-28: **일단 끔** (`field.CROWD_FALL_BACK = False`) — 둘러싸임 퀵 종료는 없앤 채, 예전 HP 45 % 후퇴만. 달려서 떼어놓는 방식으로 따로 고친 뒤 다시 켬
-
-### P-27 수용소 구간 사이에 봇이 꺼진 채 서 있다가 맞음, 멈춘 뒤 적 옆에서 죽음 (2026-09-29, [win]/[MoKa])
-- 증상: `run.py asylum --seg 3`이 HP 152/616으로 시작 (구간 ② 끝은 최저 94 %) — ②와 ③ 사이 약 1.5분 배틀 액스 자리에 서 있는 동안 망자 250021(7.7 m)에게 맞음. 위층에서 low_hp로 멈춘 뒤 캐릭터가 서 있다가 250022에게 죽음 (`data/samples/asylum-seg3-2026-09-29a.*`)
-- 원인: 구간마다 따로 실행 → 사이에 아무도 조작 안 함. 실패로 멈출 때 옆 적을 그대로 둠 (에스트 없고 home 없어 물러나지도 못함)
-- 해결: 구간 범위를 한 번에 (`--seg 2-3`), 시작 HP 확인, 실패 전 끝까지 싸움 (`souls/asylum.py` `ready`·`_last_stand`)
-
-### P-28 수용소 봇: 같은 자리 멈칫 3곳 (AGAIN, 스스로 회복) (2026-09-29, [win])
-- `hotspots.py` AGAIN (2번 이상 실행): ① (−7.8, 208.4, −9.8) 구간 ④ 3/12 위층 문 = 안개벽 앞 — 봇이 A 없이 걸어 들어가려다 막혀 `Field.fog_through`가 처리할 때까지 ~15 s ② (35.4, 192.9, −24.0) 구간 ② 7/20 두 번째 화톳불 뒤 방패 가는 길 ③ (3.2, 198.2, −35.2) 구간 ⑤ 18/25 데몬 열쇠로 연 문 바로 뒤 (문 열리는 동안)
-- 모두 스스로 지나감. ①은 데몬 위 안개벽처럼 문 가운데에서 A(`FOG_CENTER`)로 바꾸면 줄어듦 — 단 같은 '위층 문' 누르기가 구간 ③(처음, 바위)에도 있어 그쪽은 통과하면 안 됨 → 두 번째(구간 ④)만. ②·③은 녹화 경로 점이 벽·문틀에 가까운지 확인 필요 (`data/samples/asylum-full-2026-09-29a.*`)
-
-
-### P-29 성벽 마을 `#4 이동`: 망자 254010 셋에게 붙어 공격 0번으로 사망 (2026-09-30, [win])
-- 실행 `data/samples/burg-bonfire-radar-2026-09-30b.txt`·`burg-bonfire-2026-09-30b.track.jsonl` (배틀 액스 한손 guard, SL 20, 걷기 변경 `8ed2e8a`·`3a6356e`·벽 강공 양손 규칙 `aecaeea` 포함): 경사로 cleared 133 s, `#1`·`#2`는 잡음(`#2` 254012 싸움에서 −385), **`#4 이동` 230 s~279 s에 사망** — 위험 판정 사망, 큰 피격 12번 −2358(254010×9).
-- track으로 확인: 서로 다른 망자 254010 **셋**(ptr 다름, 위치 다름 — 겹친 유령 아님)이 (−19.6,−62.7) 근처와 (−29.5,−49.5) 근처에서 0.84~0.85 m(몸 붙은 거리)로 동시에 붙음. **셋 다 HP 75 그대로** — `#4 이동` 싸움 4번 모두 준 피해 0 (`low_hp — 6 s, 받은 피해 604, 공격 없음`, `low_hp — 18 s, 455`). 그 사이 `뒤잡기(휘두를 때) → edge`·`not_behind` 4번, low_hp 후퇴 → 에스트 → 같은 셋이 따라와 다시 둘러쌈을 3번 반복.
-- 둘러싸임 후퇴(`CROWD_FALL_BACK`)는 기본 꺼짐이라 crowd로 안 끝나고 한 놈씩 싸우다 다른 놈에게 맞음. 09-30a(같은 날 오전, 같은 캐릭터)는 같은 `#4 이동`을 살아서 지나감(받은 피해 249·87·60, 그때도 공격 거의 0) → 이 자리가 3마리 몰리는 자리.
-- 걷기 변경 확인: `거의 도착 … 다음 점으로` 로그 0번(걸릴 상황이 없었음), `hotspots.py` "no walking problems this time", 멈칫 3곳 1.5~3.6 s → 걷기 쪽 문제는 안 보임, 단 수용소 자리 확인은 아직.
-- 소울 2313·인간성 1이 핏자국 (−34.7,−15.3,−45.3)에 남음.
-- 검토거리: 셋 이상 붙으면 뒤잡기(휘두를 때) 시도 금지, 벽·좁은 곳으로 물러나 하나씩(1-b P-7과 같은 계열), 또는 `CROWD_FALL_BACK` 상한(P-26 `100f407`) 켠 채 시험
-- 2026-10-01 [win] 실행 a (`data/samples/burg-bonfire-radar-2026-10-01a.txt`, cloud `e74f2b4` 포함): 경사로 cleared 151 s, **`#4 이동`에서 또 사망**(327 s, 254010 둘 + 250000) — 셋 이상 붙어 **벽 후퇴가 처음 걸림**(303 s `crowd` → 벽 0.8 m 자리 6.4 s 걸어감) 그런데 걸어가는 동안 −406, 그 뒤 뒤잡기 → edge → 물러남 −535. 핏자국 (−28.1,−13.4,−58.8) 소울 4665·인간성 2. blind_report: 공백 32.7 s·−850 (가장자리 물러남 2번 −535, 양손·강공 0번). hotspots AGAIN `#3 이동` (−52.2,−22.8,−26.9) stuck·상자 `o1150_01`.
-  - **뒤잡기 R1 로그 5줄**: 판정→R1 직후 각도는 오히려 커짐(142~160° → 149~161°, 0.16 s) — 놓고 기다리는 0.1 s 때문은 아님. **거리가 갈림**: `stabbed` 1번은 1.11 m(적 3500), `hit` 4번은 1.17~1.23 m(적 3001·3003·3005·3500→−1). R1 상한 `BACKSTAB_MAX_R` 1.3 m → 1.12 m 근처로 줄이는 것 검토 (09-27 드릴도 1.12 m 성공·1.50 m 실패)
-  - [MoKa] 2026-10-01: "비밀 통로 지나 만나는 둘은 구조적으로 동시에 2:1 — 약공·방패가 맞음" → `duel.NO_BACKSTAB_N = 2`: 둘 이상 붙으면 뒤잡기로 안 돎 (`a8f13b5`, golden 1,848 상황 바뀜 — 전부 '옆에 움직이는 적', 뒤잡기 936 → 0)
-  - [MoKa] 2026-10-01: "죽은 자리는 너무 성급하게 진행해서 다수에게 둘러싸임. 그쪽으로 가게 되면 천천히 가고, 대기하면서 한 명씩 끌어당겨야 함" → `Field.careful_walk_to`: 4 m 걷고 멈춰 1.5 s 가드 든 채 지켜봄, 12 m 안 오는 놈은 그 자리에서 기다려 싸움, 아니면 13 m 안·같은 층 서 있는 놈 하나를 나이프로 끌어와 싸움(한 놈 2번까지). `missions.BURG_CAREFUL = {4}` — 성벽 마을 `#4 이동`만. `tests/careful_walk_test.py` → [MoKa] "행동 문제가 아니라 천천히 움직이며 하나씩 끌어당기는 전술적 플레이가 부족" → **성벽 마을 6구간 전부**(`BURG_CAREFUL = {1..6}`)
-- 2026-10-01 [win] 실행 b 도중 **봇이 약 2분 제자리** (900~1015 s, `#6 이동` 마을 (−14.2,−13.5,−68.4)에서 매 점 `timeout`·나이프 `290 칸을 못 고름`) — 원인: 오버레이를 다시 켜면서 **오버레이 창이 포그라운드를 가져감** → `control.game_in_front()` False → 패드 입력 안 보냄. Tk가 창을 처음 띄울 때 한 번 활성화함(WS_EX_NOACTIVATE는 그 뒤에 붙음). 고침: `overlay._focus_back` — 시작할 때·게임 창 따라 움직일 때 오버레이가 앞이면 게임 창을 다시 앞으로. 다시 켜서 확인: 게임이 계속 앞(`game_in_front` True). 이 실행의 그 구간은 봇 판단 문제로 세지 않음
-- 2026-10-01 [MoKa] "전술적인 문제와 후퇴를 더 많이 할 필요 — 그것부터 해결" → [win] 09-30a~10-01b 큰 피격 62번(−9824) 분석: **3 m 안 적 1명·8 m 안 다른 적 없음(진짜 1:1) 35번 −4779 (49 %)** — 망자 연타 3003 −1595·3000 −1405가 대부분, 2명 이상 붙음 18번 −3376, 3~8 m에 다른 적 4번 −1065. 싸움 결과로는 **low_hp 7번이 2347**(한 번에 ~335, 25 %까지 버팀). 후퇴 뒤 `에스트: 근처에 적 — 안 마심` 20번(물러남이 6 m 'safe'에서 멈춰 쫓아온 놈이 6~7 m 뒤). 반영:
-  - 싸움에서 나오는 HP 선 25 % → **50 %** (`field.RETREAT_HP`, 거의 죽은 적은 그대로 마무리)
-  - **지는 싸움은 일찍 나옴**: 이 싸움에서 최대 HP 35 %(`duel.LOSING_TAKEN`)를 받았는데 그놈 HP 50 %(`LOSING_DEALT`)도 못 깎았으면 `losing` → 물러나 마시고 다시 (`tests/field_wall_back_test.py`)
-  - **물러남은 10 m 안에 깨어 있는 적이 없을 때까지**(`RETREAT_CLEAR_R`) — 그 뒤 에스트
-  - duel_golden 그대로. 게임 확인 전 — 에스트 소모가 늘 수 있음(10개)
-
-### P-30 성벽 마을 `town#3` 옆: 무시 목록의 망자에게 10 s 맞고 반격 없이 걷다 틈으로 5 m 떨어짐 (2026-10-01, [win]/[MoKa])
-- 실행 c (`data/samples/burg-bonfire-radar-2026-10-01c.txt`·track, 후퇴 변경 `d329696` 포함) — [MoKa] "판단이 느려서 적에게 밀려서 틈에 빠졌음", 중단하고 다시 시작. 395.8 s `#3 이동: 따라온 254010: stuck` → 걷기가 그놈을 무시 목록(`st.ignore`)에 넣음 → 417~426 s 그놈이 0.8~2 m에서 4번 공격(휘청 3500 3번)하는데 반사로 막기만, 공격 0 → 426.8 s 다음 점으로 걷다 (−56.4,−23.5,−26.1)에서 틈으로 떨어짐(y −23.3 → −28.6, 애니 1550·1750), 그 아래에서 점 못 감(unreachable)·자는 250000 쫓기.
-- 고침: `Field._chaser` — 무시 목록의 적도 2.5 m(`IGNORE_CLOSE_R`) 안에서 휘두르거나 휘청이면 다시 싸움 상대 (`tests/careful_walk_test.py`)
-- 같은 실행, [MoKa] "타운에서 위치가 애매한 데서 나이프 던지려는데 락온이 안 돼서 꼬였음 — 계단에 확실히 올라온 이후에만 락온이 될 것 같음" → `careful_walk_to`는 적과 높이 0.8 m(`CAREFUL_LURE_DY`) 안일 때만 던짐(전엔 2.5 m), `no_lock`·`too_far`·`too_close`는 그 적을 포기하지 않음(다음 멈춤에서 다시)
-- 2026-10-01 바로잡음 — [MoKa] "그건 아니고, 벽에 팔이 끼어서 작동 안 하는 느낌". track 다시 봄: 378~427 s 봇은 벽에 등을 대고(벽 0.0~0.6 m, `wall_dist`) 있었고, 친 때는 303000 → **303040**(벽에 걸려 튕기는 동작으로 보임 — 배틀 액스 약공은 가로). 망자가 방패에 튕겨 **휘청(3500)을 8번쯤, 늘 1.9~2.2 m**에서 — 휘청 반격 거리(reach+0.3 = 1.9 m) 밖이라 한 번도 안 들어감. 즉 벽 앞에선 약공이 걸리고 틈은 한 걸음 밖. 무시 목록 고침은 해는 없으니 둠. **남은 고칠 거리 ([MoKa] 결정 대기)**: (1) 휘청이면 2.6 m까지 한 걸음 들어가 치기 (2) 벽 0.8 m 안 1:1이면 양손 → 세로 강공 → 약공, 다른 적 있으면 벽에서 떨어진 뒤 공격
-- 2026-10-01 실행 d 중 [MoKa] "적과 캐릭터 정렬이 잘 안 돼서 락온이 안 되는 것 — 캐릭터 앞이 어느 정도 적을 향하고 있어야 함" → 실행 d 락온 실패 8번 중 5번은 카메라가 49~81° 벗어남(몸은 6° 안), 3번은 적이 5 m 위(던질 자리가 다른 층). 고침 `Moves.lock_target`: R3 직전에 몸 20°(`LOCK_BODY_DEG`)·카메라 6°(`LOCK_CAM_DEG`) 안이 될 때까지 다시 돌림(최대 1.2 s), 높이 2 m(`LOCK_DY`) 넘게 다른 적은 R3 안 함, 실패 로그에 R3 때 몸·카메라 각도·높이 (`tests/lock_align_test.py`)
-- 2026-10-01 [win] 실행 d (`data/samples/burg-bonfire-radar-2026-10-01d.txt`, 후퇴 변경 `d329696`·무시 목록 고침 `2845190` 포함, 락온 정렬 `5d4b7e4`는 **아직 안 들어감**): **lit, 534 s, 위험 판정 '주의'**(최저 HP 34 %, 큰 피격 13번 −1671) — 09-30a 이후 처음으로 '위험'·'사망'이 아님 (09-30a·c·10-01b 최저 11~19 %, 09-30b·10-01a 사망). '근처에 적 — 안 마심' 1번(전엔 실행당 1~8), 에스트 6번 마심, `losing` 0번·low_hp 2번. blind_report −445(가장자리 물러남 3번 −249, 뒤잡기 −196). hotspots AGAIN `#3 이동` 두 곳(옛 자리), 멈칫 6곳 1.0~2.5 s. 한 번이라 우연일 수 있음 — 같은 조건으로 더 돌려 볼 것
-- 2026-10-01 [win] 실행 e (`…-10-01e.*`, 락온 정렬 `5d4b7e4` 포함): **lit, 451 s, '주의', 최저 HP 53 %, 큰 피격 7번 −698** — 지금까지 가장 좋음 (d: 34 %·13번 −1671). '안 마심' 1번. **락온은 그대로 10번 중 8번 실패** — 새 로그로 보니 8번 중 5번은 R3 때 몸 0°·카메라 ±1°로 정확히 맞았는데도 실패(2번은 카메라 15~24°, 1번은 높이 4.1 m). 그때 적은 전부 서 있음(애니 −1, 잠든 9000대 아님)·같은 층. → 정렬이 아니라 **시야가 막힘**으로 보임: 254010 (−52.7,−23.7)은 `town#3` 상자(`o1150`, AGAIN 막힘 자리) 뒤, 250000 (−59.6,−19.9)은 4 m 모퉁이 너머. 고칠 방향: 락온 안 되면 그 자리에서 다시 누르지 말고 적이 보이는 자리(경로상 다음 점)로 옮겨서 — [MoKa] 확인 필요
-- 2026-10-01 [MoKa] "다시 시도할 때 한 구역이 끝나면 중단하고, 피드백하고 다음 구역으로 — 내가 피드백하려면 그게 나음" → `run.py burg-bonfire --seg N` (범위 `2-3`도): 1 경사로(불의 제전 휴식 뒤) · 2 비밀 통로 · 3 마을 #1~#3 · 4 마을 #4~#6 · 5 상인 · 6 화톳불. 각 구역은 지금 자리에서 쉬지 않고 이어서(잡은 적은 그대로 죽어 있음), 끝나면 `══ 구역 N (이름) 끝: …` 남기고 멈춤 (`Missions.burg_segment`)
-- 2026-10-01 구역 1(경사로) `--seg 1`: cleared 100 s, '깨끗'(최저 HP 70 %, 큰 피격 3번 −345). [MoKa] "첫 적이 다가오는데 가드 안 한 건 뒤잡하려고?" → 맞음: 31.7 s 1.6 m에서 망자가 휘두르기 시작(3000) → `rule_block`은 '휘두를 때 뒤잡기'(bs_swing)면 막기를 건너뛰고, `rule_backstab_swing`이 반사보다 먼저 → 락온·카메라 맞추며 1.7 s 서 있다 −58·−62, 가드 없이 돌다 R1 일반 타격. [MoKa] "공통적으로 적이 다가오면 미리 방향 정렬하고 가드를 해야 하는데 왜 안 되나" → 뒤잡기 규칙이 가드보다 먼저인 곳이 셋: 기다리기(`rule_wait_far`)는 뒤잡기 기회면 건너뜀, 막기(`rule_block`)는 2 m 안 휘두름이면 건너뜀, 반사는 '휘두를 때 뒤잡기' 뒤 순서. 몸 방향도 가드 들 때만 맞춤.
-- 2026-10-01 [MoKa] "뒤잡기를 임시로 하지 말고, 방패·약공 플레이로 새로 시작 — 여기서부터 확인" → `run.py --basic`: `duel.BACKSTAB = False`(T.room 늘 꺼짐 → 뒤잡기 규칙 전부 안 걸림), `duel.HEAVY = False`(벽 강공·양손 전환 끔). 기본값은 그대로(켜짐) — 결과 보고 결정
-- 2026-10-01 [MoKa] "타겟이 설정되면 방향을 정렬하는 것을 최우선으로" → `duel.rule_face_first`를 `RULES` 맨 앞에: 타겟이 10 m 안이고 몸이 35°(`FACE_FIRST_DEG`) 넘게 벗어나면 그 틱은 돌기만(4 m 안 깨어 있는 적이면 방패 든 채로), 내 공격 동작 중엔 건너뜀. duel_golden 10,368 상황 바뀜 — 전부 옆 1.3 m의 '다른 적'(목표가 그쪽으로 바뀜)이 있는 상황: 이제 그쪽으로 먼저 돌고 가드. 다시 기록
-- 2026-10-01 [MoKa] "카메라 시점·캐릭터·적 정렬이 잘되면 생각하는 플레이가 잘 나오고, 아니면 안 될 확률이 높다 — 이 게임을 하는 모든 플레이어가 겪는 것(3D 게임 기본인데 이 게임은 유난히 취약, 일부러일 수도). 카메라 따라오는 것도 더 빠르게, 신경 써서 잡는지 확인" → `souls/camera.py`: 데드밴드 25° → 10°, 틱 0.12 → 0.05 s, 펄스 0.04/0.08/0.12 s(오차 25°·60° 기준), 스틱 세기 /60 → /45(`Moves.look_pulse`). 싸움 중 목표와 카메라 오차를 모아 실행 끝에 `카메라 정렬: 중앙 …° · 90 % …° · 10° 안 …%` 로그 — 다음 실행부터 이 숫자로 확인
-- 2026-10-01 [MoKa] "화염병 병사 정렬을 제대로 안 하고 금방 투척 나이프 던지는 걸 포기 — 이유?" → 원인: `5d4b7e4`의 높이 2 m 제한(`LOCK_DY`) — 경사로 `#5` 화염병은 4.1 m 위 턱이라 몸·카메라 정렬도 안 하고 곧바로 락온 실패(`R3 때 몸 None° 카메라 None° 높이 4.1 m`) → 안 던짐 → 끌어오기 `no_lock`. 그 전 7번(09-30a~10-01d)은 매번 락온 성공, 나이프 2개 −44·−31. 구역 1 `--basic` 두 번 사망이 이것 뒤에 화염병 둘이 내려와 붙은 것. [MoKa] "타운에서 안 된 이유는 방향 정렬과 카메라 정렬 문제였지, 높이 차는 문제가 아니었음 — 원래로 돌리고 테스트" → `LOCK_DY`와 천천히 걷기의 `CAREFUL_LURE_DY`(0.8 m) 둘 다 되돌림, 몸 20°·카메라 6° 정렬은 그대로. 테스트 반대로(4.1 m 위도 정렬 뒤 R3, 1.5 m 위도 끌어옴)
-- 2026-10-01 [win] 되돌린 뒤 구역 1 `--seg 1 --basic` (`data/samples/burg-bonfire-seg1-basic-2026-10-01d.*`): **cleared 111 s, '깨끗', 최저 HP 85 %, 큰 피격 1번 −116** — `#5` 화염병 락온 다시 됨(나이프 2개 −44·−31, 끌어와 잡음), `#2`·`#6`도 락온·명중. 뒤잡기 0번. 앞선 `--basic` 두 번(b·c, 높이 제한 있을 때)은 화염병 둘에게 사망 — 그때 핏자국 소울 9785·인간성 3을 잃음(c 회수 실행 중 사망). 카메라 정렬은 여전히 중앙 17°·90 % 26°·10° 안 28 % — 빠르게 한 뒤로도 개선 안 됨, 다음 거리
-- 2026-10-01 구역 2 `--seg 2 --basic`: 통로 끝 28 s, 싸움·멈칫 0. [MoKa] "계단까지는 안전 구역 — 쭉 올라가도 돼" → 마을 입구 계단(route b 0~22번 점)은 보통 걷기로 올라간 뒤 천천히 걷기(`Missions._climb_entry_stairs`). 구역 3 `--seg 3 --basic`: 성벽 마을 #1~#3 cleared 106 s, '깨끗', 최저 HP 60 %, 큰 피격 4번 −446. [MoKa] "두 번째 적 상대할 때 방향 정렬을 더 잘해야 해 — 그래서 락온 실패" → 락온 실패 3번 모두 R3 때 몸 0~6°인데 **카메라 −18~−19°**. 원인 실측(마을 마당, 오른스틱 한 방향 3번씩): **세기 0.35는 카메라가 안 움직임(데드존)**, 0.45 ~17°/s, 0.6 ~50°/s, 0.7 ~70°/s, 1.0 ~150°/s — 예전 펄스는 오차 20° 밑에서 세기 0.35~0.4·0.04~0.08 s라 0~1°만 돌아 18° 어긋난 채 멈춤(카메라 정렬 통계 중앙 17~19°도 이것). 고침 `Moves.look_pulse`: 세기 1.0/0.7/0.6(오차 20°·8° 기준) × 시간 = 오차 ÷ 속도 × 0.8 (최대 0.25 s), `look_at`은 탭 뒤 0.12 s 기다림, 정렬 1.5 s. 게임에서 확인: 18° → 3~4°(탭 1번), 45° → 2°(2번), 120° → 1.7°(4번). [MoKa] "락온 실패하면 방향 정렬하고 다시 락온" → `lock_target`은 3번까지, 매번 몸·카메라 다시 맞추고 R3 (카메라가 이제 실제로 맞춰짐)
-- 2026-10-01 구역 4 `--seg 4 --basic` (카메라 탭 고침 `065a738` 포함): 성벽 마을 #4~#6 cleared 137 s, '주의'(최저 HP 49 %, 큰 피격 2번 −267) — 두 번 죽었던 `#4` 길을 피해 0·219로 지남. **카메라 정렬 중앙 5° · 90 % 10° · 10° 안 90 %** (고치기 전 구역 1~3: 중앙 15~19°, 10° 안 18~37 %)
-- 2026-10-01 구역 5 상인 도착 12 s(싸움·막힘 0), 구역 6 성벽 마을 화톳불 lit 34 s(상자 `o1321_0021` 비켜 감) — 둘 다 '깨끗'. **구역별 `--basic` 한 바퀴 (1 경사로 111 s · 2 통로 28 s · 3 마을 #1~#3 106 s · 4 마을 #4~#6 137 s · 5 상인 12 s · 6 화톳불 34 s = 428 s, 사망 0, 최저 HP 49 %)**. 구역마다 멈추고 [MoKa] 피드백을 받아 고친 것: 높이 제한 되돌림, 입구 계단은 보통 걷기, 카메라 탭 실측으로 고침. 다음: 같은 설정으로 한 번에(`--basic`, `--seg` 없이) 돌려 재현되는지, 그리고 뒤잡기·강공을 다시 켤지 [MoKa] 결정
----
-- 2026-09-30 핏자국 회수 (`experiments/fetch_blood.py`: 성벽 마을 화톳불로 워프 → 걸어가 줍기 → 불의 제전으로 워프): 1번째는 핏자국 0.15 m 위에서 A 1번이 안 먹어 못 주움, 2번째에 A 4번째로 **회수**(소울 472 → 2785, 인간성 1). 가는 길에 망자 셋·석궁병 잡음 — 석궁병(kind shield)에게 양손 전환 강공이 처음 게임에서 걸려 한 방 85. **`Field.pick_blood`의 A 1번은 안 먹을 때가 있음** → 고칠 거리
-- 2026-09-30 [MoKa] 결정: **벽으로 물러나서 하나씩**. [win] 반영: `duel` — 움직이는 적이 셋 이상(`WALL_BACK_N`, 목표 포함 4 m 안) 붙었는데 벽(`Navmesh.wall_dist` < 1.2 m) 옆이 아니면 `crowd` + `wall_back`으로 끝냄, 셋 이상 붙어 있으면 뒤잡기로 돌지 않음(T.room 끔). `Field.back_to_wall` — 적 반대쪽(적 쪽 반평면 제외)·낭떠러지(drop) 2.5 m 밖 벽 자리, 모서리 먼저, 10 m 안, 가드 든 채 걸어감, 그 뒤 20 s(`WALL_OFF_S`)는 그 자리에서 싸움. `Navmesh.edge_kinds`: 열린 경계를 seam(같은 높이 바닥 = 조각 이음, 경계 아님)·drop(1.5 m 넘게 아래 바닥)·wall(바닥 없음)로 — 옛 `cliffs()`는 바닥 없음도 낭떠러지로 봐서 성벽 마을 경계 거의 전부가 낭떠러지였음. 성벽 마을: seam 644·drop 760·wall 3,833. 09-30b 자리로 재생: 230 s(벽 2.6 m)엔 7.7 m 떨어진 벽 자리(벽 0.9 m, drop 4.9 m)로 감, 252·277 s는 이미 벽 1.0 m 안이라 그대로 싸움(대신 뒤잡기 안 돎 — 그 실행의 뒤잡기 4번 모두 edge·not_behind). `tests/field_wall_back_test.py`, duel_golden 그대로, pytest 44. **한계**: 바닥 없는 허공 경계도 wall로 보임(충돌 메시 없이 구분 불가) — 성벽 마을 바깥 성벽 위 등에서 확인 필요. **게임 확인 필요**: burg-bonfire `#4 이동`
-- 덧: 벽 강공(`duel._walled`)은 `border_dist`(seam 포함)를 씀 — 09-30 MoKa 벽 자리 (−18.5,−13.4,−63.6)의 '벽 0.08 m'는 seam이었고 진짜 벽은 1.76 m. 오늘 '벽 0.1 m — 강공'의 일부는 seam일 수 있음 → `wall_dist`로 바꿀지 [MoKa] 결정 → 2026-09-30 [MoKa] 결정: `wall_dist`로. [win] 반영 (`wall_dist`가 없는 NavMesh·가짜는 `border_dist`), 테스트·golden 그대로
-
-### P-31 `rule_finish`가 닿는 거리 밖(2.2~4.0 m)에서 침 (2026-10-01, [win], 1-i)
-- Laya 섀도 마스크를 duel_golden 상황에 맞춰 보다 발견: 목표 HP가 한 방(`FINISH_HP`) 안이고 뒤잡기 기회(`T.room` → `backstab_chance`)면 `rule_approach`가 건너뛰어지고, `rule_finish`에는 거리 검사가 없어 2.2·4.0 m에서 약공 1번 (배틀 액스·브로드소드, 망자·화염병 망자). `--basic`(BACKSTAB 꺼짐)에선 안 생김. 게임 로그로는 아직 확인 안 함. 고칠 방향(결정 대기): `rule_finish`에 `h <= reach + 0.3` 추가 — 골든 다시 찍기 필요
-- 덧: golden의 가짜 반사는 안 터지므로 옆 적이 휘두를 때 `rule_attack`이 치는 상황(golden만의 것)도 Laya 마스크 밖으로 셈 — 게임에선 `rule_reflex`가 먼저
-
-### P-32 경사로 #4(254001, 도끼 양손 망자)에게 가드를 너무 일찍 내려 −118 (2026-10-01, [win]/[MoKa], LAYA.md 13)
-- [MoKa] (경사로 7번 실행을 보고): "#4 도끼병 공격 할때 가드 플레이가 적절 하지 않았음. 나머지는 좋았음" → "가드를 너무 일찍 내렸음".
-- 블랙박스: r1·r4에서 3003을 막은 뒤 이어지는 3004가 **시작 후 1.69~1.70 s에** 떨어짐. `prep_linger`가 1.6 s(`SWING_S`) 넘은 3000번대를 '서 있음'으로 바꿔 `rule_hit_first`가 약공 → 그 사이 3004에 −118 (두 번 다 로그 `막기×5 먼저치기×1 … 내 피해 118`). 나머지 하나(r1 −132)는 2.9 m에서 달려드는 3007을 방패 없이 맞음(싸움 밖, 따라오는 중). 그리고 `foes.py`가 254001을 화염병 투척병(`FIREBOMB_HOLLOW`)으로 분류 — windup 정보 없음.
-- 고침: `AXE_HOLLOW`(windup=(3004,), windup_act_s=1.0) → `rule_late_windup_block`이 1.0 s부터 떨어질 때까지 막기. 그 순간 재현 테스트: 고치기 전 약공 → 고친 뒤 막기, 칼 망자 그대로 (`tests/axe_hollow_test.py`). 게임 확인 전
-
-### P-33 막은 뒤 휘청에 바로 반격(`stagger_punish`) — [MoKa] "막았어야 하는 상황, 봇이 잘못 판단" (2026-10-01, [MoKa]/[win], LAYA.md 16)
-- 확대 화면 재검토(`rereview1`) 17~20: 봇이 막은 직후 적이 휘청(3500대)으로 보이는 틱에서 `rule_stagger_punish` → 약공. 18 a1 tick 26 vs #4 254001 0.9 m, 19 a1 tick 34 vs 254000 0.9 m, 20 a3 tick 65 vs 255010 1.7 m (SP 75 %). 17은 18 바로 앞의 막기 틱(같은 싸움). [MoKa] 재검토 라벨은 셋 다 guard만 허용(1차 저화질 라벨은 attack 허용이었음). 미세조정 Laya는 셋 다 guard.
-- 아직 안 고침 (봇 동작 변경은 [MoKa] 결정). 볼 것: 휘청 애니가 진짜 틈인지(적 종류별 — #4는 3003 뒤 3004가 이어짐, P-32), 휘청 뒤 남은 시간, 다른 적. 라벨엔 금지 표시가 없어 '위험 오답' 집계엔 아직 안 잡힘
-
-### P-34 레이더 재구성 입력이 봇의 실제 features와 같지 않음 — 공격 감사 게이트 불합격 (2026-10-02, [win], `data/laya/attack_proxy_audit_plan.md` 부록 A)
-- a1–a3 tick 203개를 레이더 `20261001_172152`로 `laya_shadow.features()`와 같은 경로로 재구성해 기록 값과 비교했다.
-  - 재구성 140개. 싸움 첫 1초 tick 60개는 싸움 시작을 못 찾았고, 3개는 목표를 못 찾았다.
-  - 95% 기준 불합격: distance_m 0.85 · in_reach 0.94 · target_state 0.91 · target_swing_age_s 0.88 · target_facing_me_deg 0.93 · estus_wanted 0 · _arena 0.93. `allowed()` 0.836.
-- 원인:
-  - 레이더는 다른 프로세스가 10 Hz로 읽는다. 결정 시점 이전 스냅샷만 쓰면 최대 0.11 s 늦다.
-  - 에스트 수와 싸움별 arena는 기록에 없다.
-- 그래서 옛 실행(Burg)으로 결정 순간의 Laya 입력을 만드는 방법은 지금은 믿을 수 없다. 추론은 하지 않았다.
-- 결정 대기 [MoKa]. 다음 중 하나:
-  - (a) 감사 중단
-  - (b) 재구성 코드의 구현 한계(첫 1초·에스트·arena)를 고친 계획 개정을 다시 사전 등록하고 재검증. 레이더 지연 필드는 그래도 남는다.
-  - (c) 앞으로의 실행에서 공격 결정마다 봇이 직접 features를 남기게 해서(섀도 기록, 행동 영향 없음) 새 데이터로 감사. 게임 실행은 허락 필요.
-
-### P-35 공격 감사: 결과 창(1.0 s)이 거의 관측되지 않는데 점검기가 primary로 분류 — **고침 2026-10-02 (LAYA.md 17.1), 경사로 재검증 1회 `20261002_030153` 에서 보수적으로 동작 확인 (MoKa 판정 전)** (2026-10-02, [win], 첫 관측 실행 `20261002_015707_clear-ramp`)
-- 공격 7번 모두 그 공격이나 바로 다음 공격으로 적이 죽어 싸움이 끝났다. `attack_outcome`의 1.0 s 샘플은 0–2개다.
-  - 싸움이 끝나면 `_sense` 틱이 없다.
-  - 다음 공격 규칙이 도는 동안에도 틱이 없다.
-- 점검기는 `duel_ended_in_window`를 완료로 쳐서, 결과를 거의 못 본 3건을 primary로 분류했다. 결과 귀속 근거가 없는 primary다.
-- 나머지는 정상이었다: 공격 줄 수 대조(finish_first는 실행 로그에 공격 줄이 없어 로그 5줄 vs 감사 7건 — 장치 문제 아님), seq 설명, pad 대조.
-- 고칠 것(봇 코드 아님, 감사 장치·점검기):
-  - 샘플이 창을 덮지 못하면 `outcome_unobserved`로 primary에서 뺀다.
-  - 남은 구간을 레이더로 보충할지는 귀속 규칙과 함께 다시 사전 등록한다.
-  - 다음 공격과 겹친 창은 `overlapping_next_attack`으로 표시한다.
-
-### P-36 공격 감사 점검기: 제외 사유 집계에서 결과 사유를 두 번 셈 — **고침 2026-10-02 (P-37과 같은 줄)** (2026-10-02, [win], 재검증 실행 `20261002_030153_clear-ramp`)
-- 점검기 `check()`의 `reasons += [x for x in oreasons + bot_reasons if x not in reasons]`는 `reasons`를 늘리기 전에 한 번에 걸러서, 점검기가 다시 계산한 사유와 봇이 적은 사유가 같으면 둘 다 들어간다.
-- 그래서 `primary_exclusion_reasons`가 fight_end 10 · no_samples 10 (봇 footer는 5 · 5). 분류(class)·seq·pad 결과에는 영향 없음 — 집계 숫자만 틀림.
-- 고칠 것: 사유 목록을 중복 없이 합치고, 테스트에 "점검기 사유 수 = 봇 사유 수(같은 기록일 때)" 추가. 승인 후.
-
-### P-37 공격 감사: 시간 창이 완전해도 결과를 어느 적에 돌릴지 증명 못 함 — **장치·점검기 고침 2026-10-02 (LAYA.md 17.2), 게임 재검증 전** (2026-10-02, [MoKa] 판정, 재검증 실행 `20261002_030153_clear-ramp` `:9`)
-- `:9`는 1.0 s 창을 덮고(샘플 19, 최대 간격 0.079 s) pad도 확인됐지만 primary가 아니다.
-  - 샘플에 표적 handle·npc가 없다.
-  - 8 m 안의 다른 적은 호출 순간에만 기록됐다.
-  - 창 안에서는 3.5 m 안 공격 애니 적만 기록됐다.
-  - 원거리 적·발사체 정보가 없다.
-- 고침: 샘플마다 표적 정체·8 m 안 모든 캐릭터·원거리 위협을 기록하고, 새 class `outcome_attribution_unconfirmed`와 `attribution_reasons`를 둔다.
-- 남은 한계: 발사체를 읽지 않으므로 지금 장치로는 모든 complete 창이 `ranged_threat_unknown` → primary 0. 원거리 종류는 봇 표(`souls/foes.py`)의 믿음이다.
-
-### P-38 점에 도착한 neutral 뒤 Mover가 가드·달리기를 다시 안 누름 (2026-10-02, [win], 1-k P0-D)
-- 증상: P0 오프라인 검토 중 발견 (게임에서 본 것 아님). `nav.goto`는 점마다 도착하면 `pad.neutral()`(버튼까지 리셋)인데, `nav.follow`·`Field._walk`가 넘긴 `Mover`는 `guard_on`·`mode`를 그대로 믿고 다음 점에서 LB·B를 다시 안 누름 → `"guard"` 걷기(retreat·fall_back·back_to_wall)는 첫 점 뒤 가드 없이, `"sprint"` 걷기(수용소 `run`)는 첫 점 뒤 걸어서 감
-- 원인 (확인, 코드): `nav.Mover.set`은 모드가 같으면 버튼을 다시 누르지 않음
-- 해결: P0-D (`Pad.epoch` → `Mover._resync`, `tests/mover_epoch_test.py`). 게임 확인 전 — 짧은 B 부작용은 1-k의 game 확인 항목
-
-### P-39 수용소 구간 ④ 위층 망자 둘: 벽 강공 대신 약공 → HP 25 %까지 (2026-10-03, [win])
-- 실행 `data/samples/asylum-full-2026-10-03a.*` (세이브 `…-063628-asylum-test-char-in-cell`로 되돌려 `run.py asylum --seg 1-5 --radar`, 배틀 액스 한손 guard): **done, 416 s**(09-29a 423 s), 데몬 25 s·약공 4번·받은 피해 0 그대로. 그러나 위험 판정 **주의** — 최저 HP 25 %, 큰 피격 2번 −260 (09-29a: 깨끗, 최저 61 %, −87 1번)
-- 자리: 구간 ④ 4/12, 위층 안개벽(문) 바로 뒤. 망자 250022가 **둘**(블랙박스 추정에 250022 두 줄, 1.2·1.7 m) + 250021 10 m. 봇은 `먼저 치기 → light×2 피해 64` — 망자 HP 69가 5 남아 안 죽음 → 그 사이 −154(0.68 s), 이어 −106 → HP 199/616. 끝내 죽였지만 받은 피해 260, 에스트 3병 씀(그중 1번 `끊김`)
-- 09-29a 같은 자리: `250022: killed — 2 s, 받은 피해 0, 공격 heavy` (벽 강공 한 방). 그 뒤 `e74f2b4`(벽 강공·양손은 1:1에서만)·`a8f13b5`(2:1은 약공+방패)로, 둘이 붙은 이 자리는 강공이 꺼짐 → 약공 2연타가 69에 5 모자람
-- 생각할 것 ([MoKa] 결정): (a) 수용소에서는 2:1이어도 "한 방에 죽는 상대 + 벽 가까움"이면 벽 강공 허용 (b) 약공 2연타가 남긴 HP ≤ 약공 한 번이면 물러나지 말고 3타째 (c) 문 뒤에서 한 놈씩 끌어내기. 실행 하나라 아직 원인 확정은 아님
-- 함께: P-28 멈칫 ①(−7.8, 208.4, −9.8 위층 문 앞)·③(3.2, 198.2, −35.2 데몬 열쇠 문 뒤)이 이번에도 나옴 (`hotspots.py` AGAIN, 3번째 실행). ①은 이번엔 ~7 s(09-29a ~15 s). 판단 공백(`blind_report.py`)은 3번 6.9 s, 피해 0
-- 작은 것: 시작 무기 212000(부러진 직검)이 `souls/weapons.py`에 없어 `⚠ 모르는 무기` 경고 → 배틀 액스 사용법으로 대신 씀 (구간 ②에서 배틀 액스 장착 전까지만)
-- 고침 ([MoKa] 2026-10-03 "자는 적 첫 타 강공" — "문으로 물러나기"는 망자가 1 m에서 깨자마자 치므로 등 보이며 7 m 걷게 돼 뺌): `duel._sleeper_heavy` — 배틀 액스(`heavy_vertical`)로 이 싸움에서 1 s 넘게(`SLEEP_SEEN_S`) 애니 −1·0.3 m 안 움직임·HP 가득인 적을 먼저 칠 때, HP ≤ 75(`SLEEPER_HEAVY_HP`)·SP ≥ 60이면 한손이어도 강공 한 방. `--basic`이면 안 씀. 골든 40,320개 그대로, `tests/duel_sleeper_test.py`. 게임 확인 ↓
-
-- 게임 확인 10-03e (`data/samples/asylum-full-2026-10-03e.*`): **강공 안 나감** — 같은 자리 `먼저 치기 → light×2 피해 64` → HP 5, 받은 피해 212(+ 둘째에게 53), 최저 HP 38 %. 블랙박스(~60 Hz): 첫 망자가 봇이 **1.2 m 안에 들어오자 깨서 곧바로 공격(3008)** — 봇은 1.5~1.6 m까지 붙고 멈춘 뒤 치는데 그때 이미 깨어 휘두르는 중 → `_sleeper_heavy`가 맞게 꺼지고 휘두르기 끊는 약공. 잠든 채로 칠 틈이 없음. 09-29a의 한 방(벽 강공)은 타이밍 운으로 봄. 다음 방향 [MoKa] 2026-10-03 (1) "3타째로 마무리"
-- 고침 (1): `duel._third` — 먼저 치기 2연타 뒤 그놈 HP ≤ `FINISH_HP`(25)이고 닿는 거리(+0.3 m)면 그놈 동작과 상관없이 곧바로 약공 한 번 더 (`rule_finish_first`는 휘두르지 않을 때만이라 반격 3000에 막혔음). 골든 128개 바뀜 — 모두 HP 낮은 망자에게 먼저 치기한 상황에서 3타째가 더해진 것 (의도), `--record`. `tests/duel_third_test.py`.
-- 게임 확인 10-03f (`data/samples/asylum-full-2026-10-03f.*`): **3타째 나갔지만 빗나감** — 2연타 64 → HP 5인데 그동안 둘째 망자(3004, 1.79 m)에게 −116 (**2연타 도중에 맞음** — 3타째로는 못 막는 피해). 2연타가 끝난 뒤 첫 망자는 휘청으로 1.8 m까지 밀려나 반격(3008) 중 → 3타째 피해 0. 이어 −140, 이 싸움 받은 피해 256, 최저 HP 24 % (위험 판정 **위험**). 결론: 문제는 2연타(약 2 s) 동안 둘째가 붙는 것. 다음 방향 [MoKa] 2026-10-03 "(A)+(C)"
-- 고침 (A): 먼저 치기 때 6 m(`SINGLE_HIT_R`) 안에 다른 적(서 있거나 가만히 있는 것 포함, `_others_near`)이 있으면 약공 **1번**만 치고 곧바로 방패, 3타째 없음. 그 뒤는 기존 규칙(휘청 반격·막기·공격)이 그대로 — 그 규칙들의 2연타는 안 바꿈. (C): 3타째는 닿는 거리 안에서만(`THIRD_REACH_SLACK` 0). 골든 192개 바뀜 — 모두 둘이 붙은(pair) 상황의 먼저 치기가 light×1 + 방패로 (의도), `--record`. `tests/duel_third_test.py`.
-- 게임 확인 10-03g (`data/samples/asylum-full-2026-10-03g.*`): **(A) 효과 없음, 더 나쁨** — 1번 친 약공이 **피해 0**: 봇이 1.17 m까지 붙는 순간 망자가 깨서 3008 공격, 약공 준비(0.64 s)가 짐. 그 뒤 9 s 동안 둘 사이에서 막기만(반사·막기, SP 6까지), 준 피해 0·받은 137 → low_hp로 물러남(home 없음) → 떼어놓기 → 에스트 → 결국 둘 다 잡음. 이어 위층 기사 255030에게 −277(low_hp, 지난 실행들은 0), 데몬 −252(3006, 3.5 m). 최저 31 %, 위험 판정 **위험**, done 442 s. `hotspots` AGAIN P-28 ③만, 판단 공백 4번 10.3 s 피해 0
-- 정리: 위층 첫 망자는 **1.2 m에서 깨자마자 친다** — 봇이 다가가 먼저 치는 한(약공 1번·2연타·3타째 모두) 그 첫 공격과 겹친다. 남은 길: 깨우기 전 거리에서 시작하는 공격(강공 거리 실측), 또는 깨운 뒤 한 발 물러나 첫 공격을 방패로 받고 반격. [MoKa] 결정 대기
-- 게임 확인 10-03h (`data/samples/asylum-full-2026-10-03h.*`, OBS 1080p 녹화 `Videos/2026-10-03 16-28-18.mp4`, 코드는 10-03g와 같음): 이번엔 위층 **약공 1번이 64** → 첫 망자 2 s에 처치, 받은 피해 0. 둘째(HP 12 남음)에게 76, 이어 250021에게 76 — 위층 합계 152, 10-03g(137+)·a(260)와 비슷. 같은 코드에서 첫 약공이 맞기도(h) 빗나가기도(g) — 망자가 깨는 순간과의 타이밍 운. done 427 s, 최저 37 %, 위험 판정 주의
-- 데몬 피해가 이어짐: a·e 0, f −207, g −252, **h −497 (3번, 53 s, 약공 5번)**. 데몬 싸움은 `Asylum._demon`(duel 안 씀)이고 10-03e 이후 그 코드는 안 바뀜 → 이번 고침 때문은 아님. 3번 연속이라 따로 볼 것 (`hotspots` AGAIN P-28 ③ + 구간 ② 7/20 방패 가는 길, 판단 공백 2번 4.3 s 피해 0)
-
-### P-41 성벽 마을 마을 구역(#1~#3) 끝 → `#4 이동` 안개벽을 못 지나감 — [MoKa]가 A로 통과시킴 (2026-10-03, [win])
-- 실행 `data/samples/burg-bonfire-radar-2026-10-03a.txt`·`burg-bonfire-2026-10-03a.track.jsonl` (`Asylum Test` SL4, 수용소 막 깬 캐릭터, `burg-bonfire --no-lure --basic --radar`, OBS 1080p 녹화 `Videos/2026-10-03 16-47-09.mp4`): **lit, 505 s**, 위험 판정 주의(최저 46 %, 큰 피격 6번 −637, 254010×2·254012·255002). 성벽 마을 화톳불 1012962 앉음
-- 안개벽: 마을 구역 #1~#3 정리 뒤 `#4 이동` 첫 점 쪽 (−50.1, −22.2, −32.2) 앞 안개벽("Traverse the white light", 화면 캡처 `data/shots/20261003_164719/` 247~268 s). 봇은 21 s 동안 안개벽에 비비기만 → `#4 이동: 3/6번 점 (−49.6, −21.8, −33.2) 못 감 (timeout, 1번째)` → [MoKa]가 A로 통과. `Field.walk`의 `fog_through`는 2번 놓쳐야 켜지는데 여기선 1번째(timeout 21 s)라 안 켜짐 — 첫 방문 캐릭터에만 있는 안개벽이라 그동안 경로 실행에 안 걸렸던 것으로 봄
-- 고침: `field.FOG_WALLS`에 이 벽 (−50.0, −22.3, −32.0) 등록, `fog_ahead` — 걷기의 다음 점으로 가는 직선이 아는 벽을 가로지르면(가운데 1.5 m 안) 그 점으로 걷기 전에 벽 1.2 m 앞에 서서 `fog_through`(돌아서 안내 뜨면 A), 걷기 한 번에 한 번만. 벽이 없어졌으면(안내 없음) 그냥 걸음. 반대 방향(귀환)도 같음. `tests/field_fog_test.py`.
-- 게임 확인 10-03b (수용소부터 한 번에, OBS `Videos/2026-10-03 17-05-27.mp4`; 수용소 `asylum-full-2026-10-03i.*` done 427 s·최저 26 %·데몬 −600, 성벽 마을 `burg-bonfire-radar-2026-10-03b.txt`): **안개벽 고침 안 됨** — `fog_ahead`는 맞게 걸려 4번 `fog_through`(191·213·215·232 s), 4번 모두 "못 지나감". `fog_through`는 안내창을 `legacy.ladder_test.prompt_px()`(화면 아래 가운데 어두운 픽셀 비율 ≥ 850)로 찾고 그때만 A를 누름 — 이 벽은 뒤가 흰 빛이라 안내창이 어둡게 안 잡히는 것으로 봄 (수용소 데몬 위 안개벽은 이 방식으로 됨). 232~234 s에 지나감 — 봇이 A를 안 눌렀으니 [MoKa]가 눌렀는지 확인 필요
-- 고침 2 ([MoKa] "안개벽부터"): 아는 벽(`FOG_WALLS`)이면 `fog_through(known=True)` — 안내창 판정 없이 다음 점 쪽으로 밀고 A, 2 m 안 움직이면 더 세게 밀고 A 한 번 더. 서는 자리 1.2 → 0.6 m. `test_known_wall_presses_without_prompt`.
-- 게임 확인 10-03c (불의 제전 도착 세이브로 되돌려 `burg-bonfire --no-lure --basic`, `burg-bonfire-radar-2026-10-03c.txt`, OBS `Videos/2026-10-03 17-24-53.mp4`): **안개벽 봇이 스스로 통과** — A 0.6 m → 다시 밀고 A 3.2 m (350 s). lit, 600 s, 최저 22 %, 위험 판정 위험 (큰 피격 7번 −939, 254010×2·255000×2·255010)
-- 같은 실행, 시작 10 s 뒤 또 "Windows Input Experience"가 포커스 2분 (17:25:14 → 17:27:16 작업 전환으로 풀림) — 감시가 SetForegroundWindow 234번 실패. 지금까지 3번 모두 실행 10~13 s 뒤. 감시를 AttachThreadInput + Alt+Esc로 바꿈 (그 뒤엔 안 나옴)
-
-### P-42 성벽 마을 `#4 이동` careful walk가 같은 자리에서 왔다 갔다 (2026-10-03, [win], [MoKa] "5번 정도 반복하는 이유")
-- 10-03c 안개벽 지난 뒤 (−42.0, −18.7, −37.1) ↔ (−42.7, −18.8, −36.0) 368~430 s, 약 15번. 레이더 녹화의 길: NavMesh 길 첫 점이 지금 칸의 경계 (−43.2, −35.2)로 **2.2 m 뒤**, 둘째가 (−41.9, −37.3) 바로 옆. `careful_walk_to`는 구간을 길 따라 잰 4 m로 잘라서 뒤로 2.2 m + 돌아오기 2.5 m로 끝 → 제자리 → 1.5 s 지켜봄 → 같은 길 반복. 10-03b도 같은 자리 같은 길 (레이더 rt 693)
-- 고침: `field.careful_leg` — 첫 점이 뒤에 있고 둘째가 1 m 안이면 첫 점 건너뜀, 구간 길이는 지금 자리에서 곧게 잰 4 m. 실제 값으로 구간 = 앞쪽 4.9 m. `tests/careful_walk_test.py` `test_leg_moves_forward`.
-- 게임 확인 10-03d (불의 제전 도착 세이브, `burg-bonfire-radar-2026-10-03d.txt`, OBS `Videos/2026-10-03 17-38-32.mp4`): **왔다 갔다 없어짐** — 그 자리 (−42, −37) 근처에 머문 시간 ~1 s (전엔 60 s). 안개벽 다시 스스로 통과(A 0.6 m → 3.2 m). **lit, 472 s, 최저 62 %**, 위험 판정 주의(큰 피격 3번 −370, 254010×2) — 이 캐릭터로 가장 좋은 실행. `hotspots` GONE 4곳, AGAIN `#3 이동` (−52.2, −22.8, −26.9) 12번째·통로 입구·o1150_01 부숨 (옛 문제들), 판단 공백 15번 43.6 s 피해 0
-- 입력 도구 창은 이번에도 시작 9 s 뒤(17:38:50) 떠서 15 s 뒤 감시가 게임을 되돌림 (17:39:05) — 4번 연속 실행 10 s 안팎. 원인 미확인 (봇 시작 뒤 무엇이 띄우는지) 이어 `#4 이동`에서 망자 254010 셋에게 사망 (P-29와 같은 자리, SL4 캐릭터) — 3타째 빗나감(HP 1 남기고 −131) 포함
-- 따로: 같은 실행 처음 18~84 s 불의 제전 화톳불 옆에서 66 s 제자리 — 안개벽 아님(화면 확인), 게임 창이 포커스를 잃음("Windows Input Experience" 전체 화면 창). 봇은 게임이 앞일 때만 입력 → 멈춤. 포커스 잃음을 로그에 남길 것
-- 그 밖: `hotspots` AGAIN `o1132_06` 상자 부숨(15번째, P-12)·`#4 이동` timeout (−49.6, −21.8, −33.2) 11 s, 판단 공백 8번 42.1 s 피해 0
-- 같은 실행: 데몬 싸움에서 −207 (데몬 3011, 6.7 m 정면 26°) — 지난 실행들은 데몬 피해 0. 데몬 28 s 약공 4번으로 처치. 따로 볼 것
-
-### P-40 수용소 구간 ② 방패 메뉴: 장비 화면이 다 열리기 전에 DOWN이 씹혀 검 자루가 왼손으로 (2026-10-03, [win])
-- 실행 `data/samples/asylum-full-2026-10-03b.*` (P-39 고친 뒤, `--radar --ctl --attack-audit` + `shots.py`): 구간 ② 14/20 메뉴 `START RIGHT A DOWN A DOWN A B B B B` 뒤 **왼손1 900000 → 212000**(원함 1462000), 오른손 맨손 → fail로 멈춤 (109 s, 피해 0). 09-29 구간 ② 1번째와 같은 모양
-- 화면 캡처(`data/shots/20261003_142111/`): 102.3 s 장비 화면이 열렸는데 커서가 아직 오른손(Straight Sword Hilt) — 왼손으로 내리는 DOWN이 화면이 열리는 중에 들어가 씹힘. 녹화 간격만 믿고 누르는 메뉴 입력(눈 감고 누르기)
-- 확인 (게임, 같은 자리): 메모리 화면 값(`quitout._screen`)이 START·화면 넘기는 A·닫는 B 뒤 0.15 s에 바뀜, 방향키·장착 A는 안 바뀜. 같은 키를 1 s 간격으로 누르면 방패가 맞게 왼손으로
-- 고침: `Asylum._menu_key` — START·A·B는 화면 값이 바뀌는 걸 보고(최대 1.2 s) 0.45 s 더 기다린 뒤 다음 키, 안 열린 START는 한 번 더. 방향키는 녹화 간격대로. 화면 값을 못 읽으면 전과 같음. `tests/asylum_test.py` `test_menu_waits_for_screen`. **게임 확인 전**
-- 함께 ([MoKa] 2026-10-03 "방패 장착 뒤엔 가드 올리고 움직여야 — 화살 쏘는 몹한테 계속 맞음"): 왼손에 방패(1462000)가 있으면 수용소 걷기 단계는 `guard` 모드(LB 든 채), 도망 구간 달리기는 그대로. `test_guard_walk_with_shield`
-- 덤: 오버레이가 켜져 있으면 왼쪽 위 글자가 메뉴 제목 자리를 덮어 `quitout`의 글자 확인(`_is_screen`)이 틀림 → 10-03 불의 제전에서 퀵 종료 3번 실패 (안내 문구 창도 같이 막고 있었음, B로 닫음). 봇이 위험할 때 쓰는 퀵 종료도 오버레이가 켜져 있으면 실패할 수 있음 — 확인 필요
-- 게임 확인 10-03c (`data/samples/asylum-full-2026-10-03c.*`): 메뉴 고침은 됨 — **왼손1 900000 → 1462000 (맞음)**. 그러나 다음 걷기(15/20, 배틀 액스로 가는 길)에서 망자 250021과 싸움 — 오른손이 아직 검 자루라 한 번에 피해 4, 45 s timeout(준 38·받은 300), 에스트 없음으로 멈춤. 09-29a·10-03a는 이 길에서 안 싸움 — 가드 들고 걸어 느려진 사이 따라붙은 것으로 봄. `hotspots` 걷기 문제 없음, 판단 공백 7번 16.5 s 피해 0
-- 고침 ([MoKa] "배틀 액스 확보할 때까지는 빨리"): 방패는 들었는데 오른손이 배틀 액스가 아니면 걷기는 달리기 + 아무와도 안 싸움(`ignore_npcs = EVERYONE`), 배틀 액스를 든 뒤부터 가드 걷기. `test_rush_to_axe`. **게임 확인 전**
-- 게임 확인 10-03j (`data/samples/asylum-full-2026-10-03j.*`, OBS `Videos/2026-10-03 17-52-15.mp4`): 긴 달리기(15/20)는 배틀 액스 0.8 m 앞 도착. 이어 **한 점짜리 걷기(17/20)도 달리기** → 달리는 중 B를 다시 눌러 **점프(애니 900)**, 배틀 액스를 5 m 지나쳐 A가 허공 → 못 주움 → 메뉴 목록에 없어 5번 열고 fail ([MoKa]: "도끼 있는데서 점프해서 위치가 안 맞아 픽 못 함"). 그 사이 오른손 목록을 넘기다 방패가 빠져 다시 장착됨
-- 고침: 달리기는 점이 3개 이상인 걷기에만 (`RUSH_MIN_PTS`), 줍는 자리로 가는 마지막 한두 점은 그냥 걸음. `test_rush_to_axe`.
-- **게임 확인 — 감방 → 성벽 마을 화톳불 한 번에 성공 (10-03k/e, OBS 1080p `Videos/2026-10-03 18-04-29.mp4`)**: 수용소 `asylum-full-2026-10-03k.*` **done 379 s, 위험 판정 깨끗, 최저 75 %, 큰 피격 0** — 방패·배틀 액스 장착 맞음(목록 1·2번), 위층 첫 망자 2 s 처치·받은 피해 0, 둘째 −38, 데몬 26 s 약공 4번 피해 0. 이어 성벽 마을 `burg-bonfire-radar-2026-10-03e.txt` **lit 372 s, 최저 56 %**, 위험 판정 주의(큰 피격 5번 −518, 255010×2·254010), 안개벽 스스로 통과(A 2번), `hotspots` NEW·AGAIN 없음, 판단 공백 11번 26.4 s −113
-- 게임 확인 10-03d (`data/samples/asylum-full-2026-10-03d.*`): 화면 기다리기만으로는 **다시 실패** (왼손1 → 212000). 캡처: 왼손 칸까지는 맞게 내려감, 그런데 **목록이 방패에 커서를 두고 열림** → 녹화의 DOWN이 맨 위 검 자루로 돌아감. 목록 첫 커서 자리가 그때그때 다름 → 녹화 키 그대로는 안 됨
-- 고침: 장비 메뉴는 결과를 보며 고름 (`Asylum._equip`) — 장비 화면(오른손1에서 열림) → 칸으로 내려감 → 목록 열고 A로 장착 → 메모리로 확인, 아니면 다시 열어 한 칸 내리고 장착(최대 5번) → B로 메뉴가 닫힐 때까지만. 넘기다 다른 손 장비가 빠지면(오른손 목록의 방패) 다시 장착. 게임 확인: 방패 방에서 왼손 검 자루 → 목록 2번 열어 **방패 맞음**, 메뉴 닫힘. `test_equip_closed_loop`
-- 게임 확인 10-03e: **방패 목록 1번·배틀 액스 목록 2번 열어 둘 다 맞음**, 방패 뒤 달리기로 배틀 액스까지 싸움 없이(블랙박스 1번 −80, 망자 250021 9.9 m — 화살로 보임), 수용소 전체 **done 393 s**(09-29a 423 s), 데몬 25 s 약공 4번. `hotspots` AGAIN 1곳(P-28 ③ 데몬 열쇠 문 뒤), P-28 ①(위층 문 앞)은 안 나옴. 판단 공백 3번 6.7 s 피해 0. 위험 판정 주의(최저 38 %) — P-39 자리
-
-### P-43 CI `offline-tests`가 10-03 `439fead`부터 22번 내리 실패 — Windows에선 둘 다 통과 (2026-10-05, [win])
-- `laya_shadow_test.py::test_worker_never_blocks` `AssertionError: (0, 18)`: 느린 워커에서 요청이 버려지는지(`dropped > 0`) 보는데, 버림은 파이프가 차서 `_pump`가 쓰기에서 막힐 때만 생김. Windows 파이프는 작아 금방 차지만(로컬 60 중 28 버림) Linux는 64 KB라 작은 요청 60개(~18 KB)가 다 들어가 버림 0. 기능(offer가 안 막힘, `worst < 5 ms`)은 CI에서도 통과 — 테스트 전제가 Windows였음.
-- `field_fog_test.py` (P-41 `f1945b3`부터) `No module named 'vgamepad'`: `souls/field.py`의 `fog_through`가 안내창 판정 `prompt_px`를 `legacy.ladder_test`에서 가져왔고, 그 모듈이 맨 위에서 `vgamepad`를 import (CI는 pymem·vgamepad를 빼고 설치). 봇이 legacy·experiments(`vision_probe`)에 기대는 것도 폴더 규칙 위반.
-- 고침: `prompt_px`·`PROMPT_ON`·`window_rect`를 루트 `screen_prompt.py`로(무거운 import는 부를 때만), `field.py`·테스트는 그쪽을, `legacy/ladder_test.py`는 다시 가져다 씀(boss/ 스크립트 그대로). laya 테스트는 요청당 8 KB 덧붙여 두 OS 모두 파이프가 차게. 확인: Windows pytest 69 통과, WSL(Linux·vgamepad 없음)에서 두 테스트 통과(버림 51/60).
-- 함께: 워크플로에 `paths`(코드·`data/`·의존성만, `.md`는 안 돎)·`timeout-minutes: 15`·`concurrency` 취소·pip 캐시. 실행 1번 약 3 min.
-
-
- ([cloud]는 비공개 게시판에 못 닿음)
-
-형식: `- 날짜 [cloud→게시판] 내용` / `- 날짜 [게시판→cloud] 내용`. 옮겼거나 처리했으면 끝에 `→ 옮김`·`→ 처리`. 지워지지 않게 위에서 아래로 쌓는다.
-
-- 2026-09-30 [cloud→게시판] 리뷰 결과: CI 17연속 실패(`asylum_test`의 `ctypes.windll`)는 `995e155`로 해결(run 189 성공). 남은 것: (1) P-18 `ramp_passed`가 `left #N?`를 "이미 죽였다"고 봄 — P-25(퀵 종료 뒤 죽인 적이 되살아남)와 충돌 (2) `duel_golden`이 Broadsword만 고정, 기본 무기는 Battle Axe라 안전망 밖 (3) 꺼 둔 `CROWD_FALL_BACK` 죽은 코드(켜면 `tried -= 1`로 반복 상한 없음) (4) `props.STEER`/`LOG` 모듈 전역 (5) #8 상자 비켜 가기가 게임에서 안 됐다는 `aa` 기록 뒤 확인 없음 (6) 열린 이슈 #7·#9 정리 → 처리
-- 2026-09-30 [cloud→게시판] 3번(MCP 직접 연결) 전제 확인: 이 클라우드 환경은 `mcp-maswarm.moko.fyi`를 프록시가 403으로 막음(허용 도메인 추가 필요), 환경변수는 환경 설정에서 넣을 수 있음, 저장소 `.mcp.json`을 읽는지는 미확인. [MoKa]가 원할 때 진행 (서비스 토큰은 클라우드 전용으로 따로 발급)
-- 2026-09-30 [cloud→게시판] 골든 테스트에 Battle Axe(기본 무기) 6,912 상황 추가 — 벽 0.5 m/1.5 m/없음 × SP 90/10 × 적·애니·거리 등. 기존 Broadsword 26,496개 결정은 그대로 같음. 벽 0.5 m + SP 90이면 강공 336건, 벽 없거나 1.5 m면 약공 → 벽 강공 규칙이 스냅샷으로 고정됨. 규칙을 고치면 `python tests/duel_golden_test.py`가 알려 줌 → 처리
-- 2026-09-30 [cloud→게시판] P-18 `ramp_passed`와 P-25 충돌 수정: `left #N?`를 "이미 죽였다"로 믿지 않음. `Missions.pass_ramp` — `#N?`뿐이면 `ramp_survivors`(같은 종류가 자기 스폰 15 m·같은 층에 살아 있음)를 확인, 있으면 경사로를 다시 (최대 `RAMP_RETRIES` 2번), 그래도 남으면 `경사로 left #N? (살아 있는 적 남음)`으로 멈춤. 없으면 P-18대로 통과. `#N`·`#N~`·`cleared` 동작 그대로. 확인: `tests/ramp_passed_test.py`(재시도·상한·survivor 판정), pytest 40. **게임 확인 필요**: 퀵 종료 뒤 `left #N?`가 나오는 실행에서 `되살아났을 수 있음(P-25)` 줄과 재시도가 실제로 동작하는지. 한계: 되살아난 적을 "처음부터 물러나서" 상대하는 건 아직 아님(재시도는 기존 clear_ramp) → 처리(부분)
-- 2026-09-30 [cloud→게시판] `CROWD_FALL_BACK` 반복 상한 (P-26 원인 중 하나): 호출부가 `crowd`를 시도로 안 세서(`tried -= 1`) `crowd → fall_back → crowd`가 끝없이 이어질 수 있었음. `Field._crowd_capped` — 90 s 안에 3번(`CROWD_MAX`)째 `crowd`면 물러나지 않고 60 s(`CROWD_OFF_S`) 동안 그 자리에서 싸움(`crowd_ok` 꺼짐), 로그 `P-26 반복 방지`·이벤트 `fall_back capped`. **기능은 여전히 꺼져 있음**(`CROWD_FALL_BACK=False`) — 다시 켤 때의 안전장치. 확인: `tests/field_crowd_test.py`(상한·시간 만료·진짜 `Field.fight`로 8번 돌려 후퇴 2번 뒤 `crowd_ok=False`), pytest 40. 게임 확인은 켤 때 → 처리
-- 2026-09-30 [cloud→게시판] `props.STEER`·`props.LOG` 모듈 전역 제거 (동작 같음): 비켜 갈 물건 이름·로그 함수는 이제 `Navmesh` 객체에 붙음(`nm.steer`, `nm.steer_log`). `props.attach(nms, log)`를 `run.py`가 시작할 때 한 번 부르고(옛: `Field.__init__`이 만들 때마다 로그를 다시 읽고 전역에 씀), `navmesh.find_path`·`steer_around`는 그 Navmesh 것만 읽음. 한 프로세스에 Navmesh/봇이 둘이어도, 테스트끼리도 안 섞임. 확인: `tests/props_steer_test.py`(전역 없음, 다른 Navmesh 영향 없음, `attach` 목록·dict·`learn` 실패), pytest 40. 게임 확인: 시작 로그에 `물건 비켜 가기 (지난 실행에서 2번 이상 부숨): …`가 전과 같이 나오는지 → 처리
-- 2026-09-30 [cloud→게시판] #8(상자 비켜 가기) 정리: 상태 = **게임에서 안 됨, 원인 확인, 아직 안 고침**. 위 P-12 (e) "현재 상태" 참고. [MoKa]에게 결정 요청: `o1132_06`처럼 **목표 지점 자체가 상자 1.2 m 안**이면 (a) 지금처럼 그냥 부수기 (b) 목표를 상자 반대쪽으로 옮기기 중 어느 쪽? 그리고 `clear_line`을 촘촘히(`step=0.1`) 부르는 수정을 진행해도 되는지(이 검사는 `steer_around`에서만 바뀌므로 다른 걷기엔 영향 없음). 이슈 #8은 공개 GitHub에 열려 있음 — 결과 댓글은 안 남기고 게시판으로 옮겨 처리 → 옮김
-- 2026-09-30 [cloud→게시판] 6-a 걷기 재생 하네스: 1층(열린 루프, `walk_replay.py`·`walkgeom.py`) 완료 — 기준선은 6-a 참고 (멈춤 검사 2 s: 재현율 0.74·오경보 1.2/분, 급코너 48 %를 안쪽으로 0.5 m 넘게). **[win] 요청** (2층 닫힌 루프용, 게임 폴더에만 있음): (1) NavMesh 내보내기 Burg `m10_01_00_00`·Firelink `m10_02_00_00`·Asylum `m18_01_00_00` — `navmesh.Navmesh`의 `v`·`t`·`adj`·`flags`(+ MCG gates)를 `np.savez_compressed`로 `data/samples/navmesh_<맵>.npz` (크면 먼저 알려 주면 [cloud]가 내보내기 스크립트를 만듦) (2) 레이더 녹화 `data/radar/*.jsonl`의 봇 걷기 구간(스틱 `pad` slot 1 + `snap`, 10 Hz)을 잘라 `data/samples/radar_walk_*.jsonl` — 비밀 통로 입구·나가는 길(passage-drill), 경사로 끝, 창고 방, 합계 수 MB 이하. 같은 내용을 공개 이슈 #15로도 올렸음(새 규칙 전) — 2026-09-30 닫음 (댓글 없이) → 처리
-- 2026-09-30 [cloud→게시판] `walkgeom.locate` 창을 거리 기준으로 바꿈 (6-a 참고, 뒤처짐 31 → 1 프레임) → 처리
-- 2026-09-30 [cloud→게시판] 6-a Gate(진행도 0.95 전환) 재생 평가 결과와 **[MoKa] 결정 요청**: 옛 걸음은 전환 점의 29 %(급코너 43 %)를 0.95 전에 넘어감. 풀림 없는 Gate는 모퉁이를 안쪽으로 돈 걷기를 끝까지 붙잡음(16 %) → 다음 구간 선 1.0 m 안이면 넘어가는 풀림을 넣으면 2 %(남은 건 경로에서 멀리 벗어난 경우). 닫힌 루프 규칙을 "0.95 + 풀림 1.0 m"로 해도 되는지. 자세한 숫자는 6-a → 처리 ([MoKa] 2026-09-30 "0.95 + 풀림 1.0 m", `walkgeom.RELEASE_LAT` 기본값으로 반영)
-- 2026-09-30 [cloud→게시판] 6-a 급코너 look-ahead 축소 재생 평가: 기본(1.5 m, 급코너 앞 0.5 m까지 축소)이 겨냥 직선이 모퉁이 안쪽을 0.25 m 넘게 가로지르는 비율을 고정 1.5 m의 6 %에서 1 %로 줄임. 대가로 모퉁이에서 겨냥 방향이 22 % 더 급히 돎(p90 41.8 → 50.9°/m). 기본값 유지 — 급히 도는 게 실제로 문제인지는 2층(닫힌 루프)에서. 자세한 표는 6-a → 처리
-- 2026-09-30 [cloud→게시판] 6-a 중단 조건 재생 평가: 걷는 중 피해 89번 — 경직 애니로 보면 52 %만 잡힘, HP 감소로 보면 100 %. 지금 봇(HP 감소 + 3 m 안 적이면 멈추고 싸움)이 74 %를 멈추고, 멈춘 경우의 42 %가 3 s 안에 또 맞음(멈춘 뒤 대응이 늦음). 멀리서 맞은 23번은 안 멈추고 계속 걸었는데 다시 맞은 건 1번 → 지금 규칙 유지 권장. 절벽 접근은 NavMesh·절벽 기록이 없어 평가 못 함(기록된 추락은 전부 걷기 밖). 구르기 애니 번호 아는 분? → 처리(구르기 번호는 질문)
-- 2026-09-30 [cloud→게시판] 6-a 복구 조건 재생 평가: 기록에서 재시도 상한은 한 번도 안 걸림(track 걷기 중간 막힘 6번 모두 결국 통과, 로그 `못 감` 81번 중 3번째 재시도 0번). 대신 **`못 감`의 40 %가 점 1.7 m 안에서 도착 반경을 못 채운 "거의 도착"**이고, 그 뒤 돌아가기도 43 %가 같은 식으로 다시 실패. **[MoKa] 결정 요청**: "거의 도착(1.7 m 안, 높이 차 0.8 m 이하)에서 막히면 다음 점으로 넘어감"을 복구 규칙 앞에 넣을지. 짧은 후진 vs anchor 복귀 비교는 2 Hz로는 안 보여서 10 Hz 레이더 녹화 뒤. 그리고 걷기 시작점에서 1.5 s씩 그냥 서 있는 게 23번 — [win]이 원인을 아는지? → 처리 ([MoKa] "거의 도착 규칙 넣기" — 반영)
-- 2026-09-30 [cloud→게시판] **봇 걷기 변경 — [win] 확인 부탁**: 점을 못 갔을 때(stuck·timeout) 1.7 m 안·높이 차 0.8 m 이하이고 마지막 점이 아니면 돌아가기 없이 다음 점으로 (`field._walk_missed`, 로그 `거의 도착 … 다음 점으로`). 확인 방법은 6-a의 [win] 항목. 걷기 시작점에서 1.5 s씩 서 있는 23번의 원인 질문은 그대로 남음
-- 2026-09-30 [cloud→게시판] 걷기 시작점에서 서 있던 23번 원인 찾음 (질문 취소): 문 여는 동작 10·첫 점 거의 도착 5·안개벽 앞 2·옛 화톳불 대기 2(이미 고쳐짐)·걷기 아닌 것 4. 거의 도착 규칙은 안개벽 앞에서 통과 시도가 늦지 않게 실패 횟수를 유지하도록 고침 — [win] 확인 때 수용소4 안개벽 앞도 같이 봐 주세요 → 처리
-- 2026-09-30 [게시판→cloud] [MoKa] #8 결정: 목표가 상자 1.2 m 안이면 기본은 부수기, 안 되면 목표를 상자 반대쪽으로 옮기기(차선책). P-12 (e)에 기록
-- 2026-09-30 [cloud→게시판] #8 (1) `clear_line` step 0.1 수정 완료 — 오프라인에서 `o1321_0021` 두 경로 비켜 감. [win] `burg-bonfire --radar` 1번 확인 요청 (P-12 (e) 참고) → [win] 확인: 비켜 감 2번, `o1321_0021` GONE (P-12 (e)) → 처리
-- 2026-09-30 [cloud→게시판] 2층 움직임 모델 1차 (`motion.py`): 사람 시범 녹화로 맞춤 — 1 s 뒤 위치 오차 중앙 0.07~0.23 m(등속 가정은 0.36~1.00 m). 봇 레이더 녹화(스틱 slot 1)가 오면 그걸로 다시 맞추고, NavMesh가 오면 벽·바닥을 붙여 2층 하네스로 → 둘 다 아래 [긴급] 요청 → 처리
-- 2026-10-01 [cloud→게시판] 2층 움직임·벽 모델 완료: 장소 하나씩 빼고 맞춰도 1 s 뒤 위치 오차 p90 0.43~0.80 m(등속 가정 2.25~3.08 m). 고친 것: 비밀 통로 보충 칸이 너무 넓었음(1 m → 0.35 m), 통로 입구 다리 아치의 가짜 낙하 없앰. 다음은 이 위에 `nav.goto`를 연결한 닫힌 루프 하네스 → 처리
-- 2026-10-01 [cloud→게시판] 2층 벽·바닥 모델(`motion.World`) 1차: 통로 나가는 길 1 s 뒤 오차 p90 2.09 → 1.99 m로 등속 가정(2.28)보다 좋아짐, 창고 방 0.75 → 0.66. 남은 것: 통로 나가는 길은 다른 장소로 맞춘 값으론 아직 일반화 안 됨, 다리 아치 같은 자리에서 가짜 낙하. 자세한 건 6-a → 처리
-- 2026-10-01 [cloud→게시판] [win] 2층 데이터 받아서 씀: 움직임 모델을 봇 걷기로 다시 맞춤(1 s 뒤 오차 중앙 0.18~0.22 m), NavMesh는 게임 없이 읽힘(`Navmesh.from_npz`). 발견: 통로·경사로는 Firelink 맵, **비밀 통로 안은 NavMesh가 없음**(나가는 길 기록의 18 %가 메시 밖), B 달리기 프레임은 대부분 막힘 탈출 직후 벽 앞이라 달리기 속도는 사람 값 사용. 다음: 벽·바닥 충돌 → 처리
-- 2026-09-30 [cloud→게시판] **[긴급] ([MoKa] 지정)** [win] 두 가지를 먼저: (1) 2층 데이터 — NavMesh 내보내기(Burg·Firelink·Asylum → `data/samples/navmesh_<맵>.npz`)와 레이더 녹화 봇 걷기 구간 샘플(스틱 포함 → `data/samples/radar_walk_*.jsonl`), 없으면 [cloud]의 2층 작업이 멈춤 (2) 봇 걷기 변경(거의 도착 규칙·안개벽) 게임 확인. 둘 다 ROADMAP 맨 위 "[긴급]"에 있음 → (1) 처리
-- 2026-09-30 [게시판→cloud] [win] 2층 데이터 올림: `data/samples/navmesh_<맵>.npz` 3개 + `radar_walk_*.jsonl` 4개 (5.8 MB). 형식·봇 패드 slot이 파일마다 다른 점은 맨 위 [긴급] 항목. 걷기 변경 확인(2)은 아직
-- 2026-09-30 [게시판→cloud] [win] 걷기 변경 확인 1번 (burg-bonfire 09-30b): `거의 도착` 0번, 걷기 멈칫·hotspots 문제 없음. 대신 `#4 이동`에서 망자 셋에게 사망 → P-29. 수용소 자리 확인은 새 캐릭터 필요
-- 2026-09-30 [게시판→cloud] [win] P-29(셋에게 사망) 대응 [MoKa] 결정 '벽으로 물러나서 하나씩' 반영 — `duel` wall_back, `Field.back_to_wall`, `Navmesh.edge_kinds`/`wall_dist`/`drop_dist`/`wall_spots` (P-29 참고). 게임 확인 전
-- 2026-09-30 [win] 확인 실행 c (`data/samples/burg-bonfire-radar-2026-09-30c.txt`, 벽 강공 `wall_dist`·P-29 벽 후퇴 포함): **lit, 414 s**, 위험 판정 위험(최저 HP 19 %, 큰 피격 12번 −1967). `#4 이동`은 이번엔 셋이 동시에 안 붙어 벽 후퇴 안 걸림(`셋 이상` 로그 0) → P-29 게임 확인은 아직. hotspots 문제 없음, 멈칫 4곳 2.0~3.1 s.
-  - [MoKa] 관찰 "뒤잡기 도는 게 느려짐, 판단이 느리고 이상함" → [win] 확인: 판단 틱은 그대로(초당 21~25, 09-28·09-30a와 같음), 도는 속도도 그대로(중앙 32°/s·0.80 m/s, 09-28 31°/s·0.81 m/s). 대신 (1) **방패병 양손 묶음이 3.2 s 동안 막기 없이 묶임** — 343 s 방패병 둘(1.7 m·3.2 m) 앞에서 벽 강공 → 양손 전환 → 강공 → 약공, 준 피해 12·받은 피해 362 → low_hp (첫 번째 석궁병 혼자일 땐 한 방 85) (2) **`edge_kinds` 첫 계산 ~1 s가 첫 벽 판정 때(싸움 중) 걸림** → `run.py` 시작할 때 미리 계산하게 고침 (3) 뒤잡기로 돌 때 가드(LB)를 든 채 옆걸음 — 느린 걸음, 옛 기록에도 2~40 % (4) 2.0 m 휘청(3500)은 휘청 반격 거리(reach+0.3 = 1.9 m) 밖이라 1 s 동안 아무것도 안 함, 그 뒤 휘두르는 중에 돌기 시작 → not_behind (5) 뒤잡기 R1이 일반 타격이면 1 s 지켜보기를 다 기다림. 고칠 방향은 [MoKa] 결정 대기
-- 2026-10-01 [cloud→게시판] **[MoKa] 요청 검토: "행동·판단이 느려졌다" vs [win] "틱 그대로"** — 둘 다 맞음. 판단 틱(초당 21~25)과 도는 속도는 그대로지만, **판단 루프가 아예 안 도는 시간("판단 공백")이 늘고 그동안 맞음**. 평균 틱은 이걸 못 봄. 새 도구 `python blind_report.py` — 싸움 중 상태 줄(약 1 s마다)이 2 s 넘게 끊긴 구간과 그 사이 받은 피해(블랙박스 창이 겹치는 것). 실행당 평균: **공백 중 받은 피해 09-27/28 32번 평균 −225(최대 −638) → 09-30 a·b·c −179·−996·−781**. 원인별(09-27/28 평균 → 09-30 평균): **뒤잡기 뒤 가장자리 물러남 1.0번·5.4 s·−37 → 3.0번·15.8 s·−341**(`duel._back_to_safe`: 최대 2.5 s, 막기·반사 없이 등을 보이고 걸어서 물러남 — 코드는 09-28 이후 그대로, 부르는 횟수가 늘었음), **벽 강공·양손 전환 0.1번 → 1.7번·4.3 s·−121**(09-30c 343 s 방패병 둘: 양손+강공+약공 3.2 s 한 덩어리, 준 피해 12·받은 피해 362 — 19 s 뒤 같은 둘을 발차기+약공으로 피해 0). **물러남이 늘어난 이유: 배틀 액스로는 뒤잡기가 거의 안 됨** — 배틀 액스 실행 전체 뒤잡기 67번 중 성공 2번(09-30은 30번 중 0번: edge 13·일반 타격 12·not_behind 4), 브로드소드·밴딧 나이프 때는 실행마다 1~8번 성공. 봇이 안 될 뒤잡기를 위해 계속 돌고, 돈 끝 가장자리면 막기 없이 물러나며 맞음. **[MoKa] 결정 요청**: (1) 배틀 액스(뒤잡기 성공률 낮은 무기)일 때 뒤잡기 돌기 끄기 — 무기별 켜기/끄기 (2) `_back_to_safe` 물러나는 동안 가드(LB) 들고 반사 계속, 2.5 s → 1.5 s, 2.5 m 안 적이 휘두르면 먼저 막기 (3) 벽 강공·양손 전환은 3.5 m 안에 다른 깨어 있는 적이 있으면 안 함 (4) [win] 실행 뒤 점검에 `python blind_report.py` 추가(CLAUDE.md의 hotspots·track_report 옆). 테스트 `tests/blind_report_test.py` → 처리
-- 2026-10-01 [게시판→cloud] [MoKa] 답: (1) 배틀 액스가 뒤잡기가 안 되는 게 아니라 **지연으로 타이밍이 안 맞는 것**(관측) (2) 가장자리 물러날 때 **가드는 하는 게 좋음** (3) **3.5 m 안 적이 있으면 양잡 안 좋음, 확실한 1:1에서만 양잡** (4) Win 실행 필요 → 처리
-- 2026-10-01 [cloud→게시판] 반영(`souls/duel.py`): (1) 뒤잡기 R1 때 **판정 순간과 R1 직후의 각도·거리·적 애니를 로그로**(`뒤잡기 R1: 판정 148°·0.95 m → 누른 직후 …`) — 지연 원인 후보: `stab()`이 판정 뒤 가드·스틱 놓고 0.1 s(`BACKSTAB_RELEASE_S`) 기다린 다음 R1, 그 사이 적이 돌면 R1 땐 등 뒤가 아님. 숫자 나오면 고칠 방향 정함(동작은 아직 안 바꿈) (2) `_back_to_safe` 시작할 때 **가드 올림**(물러나는 2.5 s 동안 판단 틱·반사가 없는 구간) (3) **`_heavy_ok`**: 3.5 m 안에 깨어 있는 다른 적(서 있는 것 포함, 잠든·쓰러진 건 제외)이 있으면 벽 강공 안 함, 한손 → 양손 전환은 6 m 안에 아무도 없을 때만. 벽 앞 뒤잡기 금지는 그대로. 골든 테스트 224 상황 바뀜 — 전부 "벽 0.5 m + 1.3 m 옆 다른 적"에서 강공 → 약공(160)·발차기(8), 양손 전환 → 약공(48)·발차기(8), 다시 기록. `tests/backstab_test.py`에 R1 로그·가드·1:1 판정. pytest 46 통과. **[win] 실행 요청은 맨 위 [긴급]** → 처리 ([win] 10-01 a·b, 맨 위 [긴급] 항목)
-- 2026-10-01 [cloud→게시판] [MoKa] 결정: `python blind_report.py`를 [win] 실행 뒤 점검 목록에 추가 — CLAUDE.md의 `hotspots.py`·`track_report.py` 줄에 넣음. 판단 공백 피해가 이전 실행들보다 뚜렷이 늘면 그 원인을 "8. 문제 기록"에 → 처리
-- 2026-10-01 [cloud→게시판] 닫힌 루프 하네스(`walksim.py`) 첫 결과: 봇의 `nav.goto`를 그대로 돌려 통로 입구 70번 점 전후를 비교 — 전 20/20 멈칫, 후 0/20, 후 소요 3.8 s(게임 4.2 s)로 방향은 맞음. 멈칫 길이는 게임보다 3~4배 길어 아직 크기 비교엔 못 씀. 찾은 것: 다리 아치처럼 NavMesh상 바닥이 한참 아래인 곳에서 봇의 낭떠러지 회피가 앞길을 막음(게임 입구 멈칫의 원인 후보), `nav.goto`의 "메시 밖 복귀"가 못 움직여도 시간 제한까지 반복하는 결함(수정은 넣었지만 기본 꺼둠). **[MoKa] 결정 요청**: 게임 확인 전에 (a) `OFFMESH_GIVE_UP` 켜기 (b) "목표 점이 메시 밖이면 낭떠러지 회피 끄기" 둘 중 무엇을 하네스에서 먼저 볼지, 그리고 [win] 실행 때 `field._follow`의 goto 로그를 켜서 볼지
-
-- 2026-10-01 [게시판→cloud] [win] 실행 a·b 결과(맨 위 [긴급]): 뒤잡기 `hit`은 거리·지연이 아니라 **적이 휘두르는 중**일 때(7/7), 휘청 때 성공 → '휘두를 때 뒤잡기'(`rule_backstab_swing`)를 배틀 액스에서 끌지 [MoKa] 결정 필요. 그 밖에 [MoKa] 결정으로 들어간 것: 2:1 뒤잡기 금지(`a8f13b5`), 성벽 마을 천천히 걷기·하나씩 끌어오기(`careful_walk_to`, `BURG_CAREFUL` 1~6), 오버레이 구역·적 이름·배지·포커스 수정
-- 2026-10-01 [cloud→게시판] **[win] 10-01 작업 검토** (커밋 22개 `6ed9240`~`c664695`, 테스트 50개 통과, duel_golden 일치). 잘된 것: 구역별 `--seg N --basic` 한 바퀴 428 s 사망 0, 카메라 탭 실측(0.35 = 데드존) 고침으로 구역 4 카메라 오차 중앙 17° → 5°, blind_report 공백 피해 09-30 평균 −652 → 10-01 b~e −182~−445 → `--basic` 구역들 0~−144. 확인해 줄 것:
-  1. **뒤잡기 R1 — a·b만이 아니라 a~e 22번을 보면** `stabbed` 3번: 휘청(3500)이 R1 직후에도 이어진 2번 중 2, 휘두르는 중 14번 중 1(3001, c), **서 있는(−1) 3번 중 0**, 휘청이 0.16 s 사이 풀린 2번 중 0. 즉 "휘두를 때만 안 됨"이 아니라 **휘청 때만 됨**; 서 있는 적도 142~149°·1.08~1.29 m에서 3/3 `hit`. 그리고 휘청 4번 중 2번은 판정→R1 0.16 s 사이 휘청이 풀림 — 휘청 창에선 [MoKa]의 "지연" 관측이 맞음(놓고 기다리는 0.1 s `BACKSTAB_RELEASE_S`). 다시 켤 때 제안: 휘청일 때만 + 휘청에선 0.1 s 대기 없이 R1, 그리고 로그에 내 몸이 적을 향한 각도(지금은 적 기준 내 위치 각도만) 추가 — 서 있는 적 실패 원인을 가르려면 필요
-  2. **`losing`이 거의 안 걸리는 구조**: 꽉 찬 HP로 시작해 35 % 받으면 HP 65 % → `losing` → `recover()`는 HP 60 % 밑(`low`)일 때만 물러남 → 아무것도 안 하고(근처 적이면 안 마심) 곧 새 싸움, 새 싸움은 `hp_start`가 다시 잡혀 그 뒤엔 `low_hp` 50 %가 먼저 걸림. 게임 로그에도 `losing` 0번. 고칠 방향: `recover`에서 `why`가 `losing`이면 `low`로 침
-  3. `rule_face_first`가 `RULES` 맨 앞 → 몸이 35° 넘게 돌아간 틱엔 `prep_reflex`(반사에 스냅 넣기)·`rule_separate`·`rule_early_kick`·`rule_late_windup_block`이 건너뜀. 4 m 안이면 방패를 들고 돌아서 대개 괜찮지만, 목표가 4~10 m에 있고 다른 적이 옆에서 휘두르면 가드 없이 돎. `prep_reflex` 뒤로 옮기거나, 4 m 안에 휘두르는 다른 적이 있으면 가드 올리기 권함 (골든 다시 찍기 필요)
-  4. `_careful_lured`(끌어오기 실패 기억)를 Field에 실행 내내 둠 — 휴식·사망으로 적이 되살아나면 포인터가 같을 수 있어 그 적을 영영 안 끌어옴. 휴식·리스폰 때 비우기
-  5. 카메라 고침(`065a738`) 뒤 숫자는 구역 4 한 번뿐(470번 중 90 % 10° 안) — 한 번에 도는 `--basic` 실행에서 다시 확인. `카메라 정렬` 줄은 실행 a~e 로그엔 없음(그 뒤에 추가)
-  6. 작은 것: `LOCK_ALIGN_S`는 코드 1.5 s, ROADMAP 1.2 s · `look_pulse(err, dur)`의 `dur`는 이제 안 씀
-  - [MoKa] "2~4번 고쳐줘" → 반영 (`tests/review_1001_test.py`, 고치기 전 코드에선 3개 다 실패 확인): (2) `Field.recover` — `why`가 `losing`이면 HP와 상관없이 `low`(물러남 → 마심) (3) `rule_face_first`를 `prep_reflex` 바로 뒤로 옮김(`rule_separate`·`rule_finish_first` 다음) + 4.5 m 안 다른 적(`T.near45`)이 휘두르면 목표가 4 m 밖이어도 방패 들고 돎. duel_golden 그대로(첫 판단 같음 — 가드·돌기는 골든이 안 셈) (4) `Field.forget_foes()` — `rest_at`의 휴식 뒤·`wait_respawn`의 리스폰 뒤 `_careful_lured` 비움. 게임 확인 전: 다음 실행에서 `losing` 줄 뒤 `화톳불 쪽으로 물러남`이 나오는지
----
-
-### P-44 세이브를 되돌려도 레이더 워프 목록(`data/bonfires-lit.json`)은 안 되돌아감 (2026-10-06, [win])
-
-- 증상: 10-06 [MoKa]가 레벨업한 상태에서 10-03 성벽 마을 세이브로 되돌렸는데, 레이더 워프 목록은 `Asylum Test`에 화톳불 18개(교회·지하묘지·거인 묘지·센 요새 쪽·아노르 론도 등, 10-04~10-06에 더한 것)를 그대로 보여 줌. 되돌린 세이브에서 실제로 불 붙인 곳은 10-03의 4개뿐.
-- 원인: 목록은 게임 속 캐릭터 이름별로 쌓기만 함(`bonfires.py` — 게임 메모리에서 "불 붙임" 목록을 못 찾아서 쉴 때 마지막 화톳불 ID를 더하는 방식). 세이브 파일을 바꿔도 이름이 같으니 그대로 남음. `bonfire_warp`는 안 붙인 화톳불로도 보내므로, 그대로 두면 되돌린 캐릭터가 아직 못 간 곳으로 워프할 수 있음.
-- 처리 (2026-10-06 [MoKa] "레이더 워프 다시 정리"): `Asylum Test`를 날짜가 10-03인 4개만 남김 — 성벽 마을 1012962·불의 제전 1022960·수용소 감방 1812100·수용소 #2 1812961. 옛 목록은 `data/bonfires-lit.backup-20261006-before-restore-cleanup.json`(로컬). 레이더 `/bonfires`가 4개로 바뀐 것 확인.
-- 남은 일: 세이브를 되돌릴 때마다 손으로 정리해야 함. 되돌리기 절차(백업 → 복사)에 "그 세이브 시각 뒤에 더한 화톳불 빼기"를 넣거나, 목록을 세이브 백업 폴더와 같이 저장해 함께 되돌리는 방법 — [MoKa] 결정 뒤
-
-### P-46 `burg-upper` 구역 5: 255001에게 맞기만 하다 사망 — 255001 대응 규칙이 없음 (2026-10-06, [win])
-
-- 10-06h `--seg 5` (에스트 5개로 시작): 255000을 깨우러 가다 255001 3005 −212(조우 판정 전) → 안전 자리 에스트 → 255001 둘 + 255000이 같이 옴. 255001 하나는 휘청 반격으로 처치. 다른 255001에게 **'먼저 치기'를 두 번 했는데 두 번 다 준 피해 0 · 받은 피해 232** (그놈 애니 3004 중). 14 s 동안 준 피해 32 · 받은 피해 464. low_hp → 화톳불 쪽으로 물러남이 계단 아래 (8.5,−8.6,−90.3)까지 끌고 내려가 → 묶기가 안전 자리로 돌아가려다 stuck 3번 → 뒤가 낭떠러지라 못 구르고 −232·−213 → 사망. 255001 큰 피격 6번 −1254. `data/samples/burg-upper-radar-2026-10-06h.txt`
-- 255001은 `souls/foes.py`에 없음(기본값). 기록상 큰 피격 애니: 3004 −232(4번, 0.85~1.9 m), 3005 −212(3번), 3000 −133. [MoKa] 녹화 3차에서도 같은 자리에서 3003·3004·3005에 −211·−231·−156·−156.
-- 비슷한 것: 도끼 망자(254001, `AXE_HOLLOW`)는 3004가 "시작 2.0~2.1 s 뒤에 떨어지는" 큰 준비 동작이라 `windup=(3004,)`(1.2 s 안이면 발차기, 그 뒤엔 막기). 255001도 3004 중 먼저 치기가 매번 맞은 걸 보면 같은 성격일 수 있음 — **확인 안 됨**
-- 다른 문제: 구역 동안 low_hp 물러남(home = 성벽 마을 화톳불)이 적을 끌고 계단 아래로 내려가 묶기와 충돌(stuck 3번)
-- 2026-10-06 [MoKa] "불의 제전에서 마을 화톳불까지는 좋았는데, 여기 와서 반응이 느려진 것 같으니 비교해봐" → 블랙박스 비교 (10-03 burg-bonfire 5개 vs 10-06 burg-upper 14개): **봇 반응은 같음** — 적 공격 애니 끝 → 봇 공격 애니 시작 중앙값 0.33 s vs 0.34 s, 메모리 읽기 프레임 18 ms vs 17 ms(초당 ~55), 큰 피격 중 우리 공격 중 맞은 비율 15/53 vs 14/57. **다른 것은 적**: 10-06은 255001(방패 창) 3004에 10번·3500 근처 6번·3000/3005 6번, 2마리 이상이 3 m 안에서 움직이던 피격 11번(10-03은 0번). 반응 0.34 s 중 0.16 s는 R1 전 스틱 떼고 기다림(앞 + R1 = 발차기라 필요), 나머지는 몸 돌리기. 배틀 액스 약공 시작 0.34 s까지 더하면 우리 칼은 적 공격 애니 끝나고 ~0.7 s 뒤. 제안 A(적 휘두름 끝나기 전 스틱을 미리 놓고 방패 든 채 기다려 R1 즉시) — [MoKa] 결정 대기
-- 10-06 비교 실행 (지금 캐릭터 그대로, 10-03e와 같은 옵션 `--no-lure --basic --radar --ctl --attack-audit`, 레이더 워프로 불의 제전에서 시작): 경사로 #1·#3·#2(255010)·#5 처치 뒤 #4(254001) 싸움 중 **턱에서 미끄러져 떨어짐** — 낙사 퀵 종료가 다시 불러오기 '시간 초과', 19.9 m 떨어져 사망(103 s). 반응 지표는 그 사이 블랙박스 표본 2개뿐(0.40 s·1.70 s). **[MoKa] 직접 보고: "여기까지는 반응 속도 좋아"** → 봇이 느려진 게 아니라 위쪽 구역의 적(255001 방패 창, 둘이 같이 붙음)이 다름을 뒷받침. `data/samples/burg-bonfire-radar-2026-10-06a.txt`. 경사로 낙사(퀵 종료 시간 초과)는 따로 볼 것
-- 2026-10-06 [MoKa] "A 적용 해줘. 반응은 빠르면 빠를수록 피격을 안 당하고, 공격 성공율은 더 올라가" → `moves.quiet_aim`: 막는 중 적 공격이 1.0 s 넘었고 이미 30° 안을 보면 face()가 스틱을 건드리지 않음(duel.rule_block·reflex 막기 둘 다) → 다음 R1이 스틱 놓고 0.16 s 기다릴 일이 없음. `tests/stick_quiet_test.py`
-- 2026-10-06 [MoKa] "상대가 휘두르는 애니 끝나면 무조건 공격해야해. 가끔 타이밍 안 맞는다고 다음 기다리는데, 적들이 몰려오는데 다음 텀 기다리면 다대일" → 새 규칙 `duel.rule_after_swing`(prep_reflex 바로 뒤, rule_face_first 앞): 공격 애니에서 벗어난 틱(또는 SWING_S 넘긴 공격) 뒤 0.6 s 안, 45° 안이면 바로 / 닿는 거리 + 1.2 m 안이면 한 걸음 들어가 침, 방패병은 발차기 콤보, 옆에 다른 적이 있으면 한 번만 치고 방패, 다른 놈이 휘두르는 중이면 안 침. 전엔 방향 먼저(30°)·먼저 치기(방패병 제외·닿는 거리 안만)·기다림 때문에 한 텀 쉬었음. duel_golden 같음(한 틱 스냅숏엔 '직전 애니'가 없어 이 규칙이 안 걸림) → `tests/duel_after_swing_test.py` 11개. pytest 72 통과. **게임 확인 필요**
-- 10-06 게임 확인 (`--seg 1-8` → [MoKa] "기다리지 말고"로 중지, 구역 5 `wait` 뺌 → `--seg 5-8` → [MoKa] "안개벽 처리 않해?"로 중지 → 구역 8 안개벽 단계 되살림 → `--seg 8`): **구역 1~8 모두 cleared, 사망 0** — 구역 1 75 s(지금까지 가장 빠름, 전 81~98 s), 구역 2 36 s(전 60 s+), 구역 1~4 250 s(전 277 s), 구역 5 255001 난간 유인 5 s 피해 0, 구역 6 2 s, 구역 8 안개벽 A 한 번에 2.3 m 통과 → 벽 따라 사다리 → 올라감(y 24.8) → 석궁 둘 12 s 피해 0, 구역 8 37.5 s. `rule_after_swing` 16번 중 받은 피해 있던 건 1번(61), 75(한 방 처치) 8번. **ctl로 잰 판단 스냅숏 → R1: after_swing 8번 중 5번 0~1 ms**(스틱 놓고 기다림 없음), 3번 148~287 ms(한 걸음 들어감·발차기). [MoKa] "보스가 살아 있는 동안 안개벽은 계속 활성화" → 안개벽 단계는 늘 필요. 구역 8 앞(안개벽·사다리) 전에 HP 70 % 밑이면 에스트(`_top_up`). `data/samples/burg-upper-radar-2026-10-06-195804.txt`·`…-200335.txt`·`…-200729.txt`
-- 2026-10-06 [MoKa] "구역 2까지는 문제 없는데, 3구역에서 안전 구역으로 설정한 데가 화염병 터지는 곳" · "구역 3은 적이 하나씩 만나니깐 그냥 공격하면 됨. 안전 구역 자체가 필요 없어" → 구역 3 `no_safe`(안전 자리로 안 감, 묶기·찍어 둔 자리 없음), 망자 둘 `attack`. 블랙박스의 화염병 큰 피격은 (−7.4,−10.1,−88) — 구역 2 → 3 가는 길. pytest 72 통과
-- 10-06 `--seg 1-3` (구역 3 no_safe 뒤): **구역 1~3 cleared, 사망 0, 153 s, 최저 HP 62 %**, 큰 피격 1번(구역 1 254010 3000 −224, 안전 자리에서 에스트로 회복). 구역 3: 망자 둘 곧바로 공격 21 s·7 s, 받은 피해 0, 화염병 피격 없음. 구역 2: 255001 싸움이 같이 온 254011과 22 s stalemate(받은 79) 뒤 다시 → 처치. hotspots·track 깨끗. `data/samples/burg-upper-radar-2026-10-06-201550.txt`
-- 10-06 `--seg 4`: **cleared 122 s, 사망 0, 최저 HP 40 %**, 큰 피격 5번 −604. 첫 망자(254010)에게 달려가다 **셋(254010·254011·화염병 254012)이 한꺼번에 깨어 같이 옴** — 조우 판정(29.4 s) 전에 254012 3007 −156(0.88 m), 안전 자리에서 에스트 → 셋에게 8 s 동안 −336, low_hp인데 뒤가 낭떠러지라 못 구름 → 화톳불 쪽으로 물러나 에스트 → 하나씩 처치. 석궁 14 s 피해 0. 10-06g(56 %)·10-06i(61 %)보다 나쁨. `data/samples/burg-upper-radar-2026-10-06-201910.txt`
-- → [MoKa] 확인 필요: 255001은 어떤 적이고 어떻게 상대하는지 (도끼 망자처럼 3004 준비 중엔 막기/발차기?)
-- [MoKa] 답 (2026-10-06): "255000은 방패, 롱소드 망자이고, 255001은 방패, 창 망자" · "계단으로 내려가지 않고 처음에 난간으로 가면 255001이 자동으로 순찰을 돌아, 그러면 그것을 안전구역에서 해결". → 255001을 `foes.SHIELD`로 등록(3004 = windup, 가만히 서 방패 들면 발차기). 구역 5 kills에 셋째 칸: 255000 `wait` 25 s(녹화에서 안전 자리에서 기다리면 스스로 올라옴) 뒤 `lure_at`, 255001 둘 `lure_at` 난간. **난간 좌표 (30.8,−7.1,−99.2)는 추정**(3차 녹화 280 s에 서자 255001이 움직임, 벽·가장자리 0.6 m) — [MoKa]가 구역 4까지 돌린 뒤 F9로 알려 주기로. 돌아와 에스트 기준 90 % → 80 % ([MoKa]). duel_golden 같음, pytest 70 통과
-- 10-06i `--seg 1-4` (한 번에): **구역 1~4 cleared, 사망 0, 276.5 s, 최저 HP 61 %**, 끝에 에스트 5. 큰 피격 7번 −1100(254010×3·254011×2·255001×1 — 구역 2 255001 3009 가드 깨기 + 254011 −266, 구역 3 가는 길 턱 화염병 −218, 구역 4 둘이 같이 −195). 돌아와 에스트 한 번 끊김(구역 4). hotspots·track·blind 깨끗. `data/samples/burg-upper-radar-2026-10-06i.txt`
-
-### P-45 `burg-upper` 구역 2: 255001이 깨우러 가는 걸음 중간에 따라붙어 안전 자리 13 m 앞에서 싸우다 사망 (2026-10-06, [win])
-
-- 10-06b `--seg 2`: 안전 자리 (−7,−10,−73.5)에서 255001(스폰 (−1.3,−95.4)) 쪽으로 천천히 걷는 중, 깨어 따라온 255001을 **걷기의 '따라온 놈' 싸움**이 그 자리 (−7.7,−10.1,−86.5)에서 바로 시작. 뒤에 바닥 없음 → 구르지 않고 버팀, 5 s 동안 준 피해 0 · 받은 피해 742 (블랙박스: 0.47 s −327 그놈 3500 + 턱 화염병 254012 3008 10 m, 1.23 s −415 그놈 3004 + 254012 3008). `data/samples/burg-upper-radar-2026-10-06b.txt`
-- 원인: `_pull_to_safe`의 "깨면 안전 자리로 물러남"은 걸음(4 m) **사이**에서만 봄. 걸음 안에서 따라온 놈은 `Field._walk_chaser`가 먼저 싸움. 그 싸움 전에 "찍어 둔 자리(`data/safe-zones.json`) 15 m 안이면 가드 든 채 거기로 물러나 받기"가 이미 있는데, 새 안전 자리는 그 목록에 없었음.
-- [MoKa] 녹화와 비교: 두 녹화 모두 255001 쪽으로 **달려가(~4.7 m/s)** 1~2 m에서 알아채게 한 뒤 **달려서 안전 자리로 돌아옴** — 255001이 20 m 따라와 안전 자리에서 싸움.
-- 고침: 구역 동안 안전 자리를 `Field.extra_zones`에 넣어 `_near_zone`이 같이 봄(안전 자리까지 걷는 동안 포함, 끝나면 되돌림). `tests/burg_upper_test.py`에 죽은 자리에서 안전 자리를 고르는지 추가. **남은 차이**: 봇은 가드 걷기로 물러나고 [MoKa]는 달려서 돌아옴 — 가드 걷기 중에 따라잡히면 다시 볼 것 → [win] 다음 실행에서 확인
-- 10-06c `--seg 1-2` (묶기 8 m 넣은 뒤): 구역 1 cleared 133 s, 받은 피해 263 (92 s·0이던 10-06a보다 나쁨) — 석궁 255002가 안 따라와 묶기가 3번 끊고 돌아오기만 15 s. 구역 2 들어가며 255001 −240(+ 턱 화염병 3008 10 m)에 [MoKa] 지시로 중지: **"이제 유인하러 들어갔다 빠르게 나와야 해"**. `data/samples/burg-upper-radar-2026-10-06c.txt`
-- 고침 2: `_pull_to_safe`를 녹화대로 — **달려 들어가서**(sprint, 천천히 걷기 아님) 그놈이 anim이 있고 선 자리에서 0.5 m 넘게 움직이면 곧바로 **가드 없이 달려서** 안전 자리로, 거기서 `fight(wait_far)`. 3 m까지 가도 안 깨면 그 자리에서 싸움. 묶기는 원거리 적(`foes.ranged` — 석궁·화염병)엔 안 걺. `tests/burg_upper_test.py` 55개, pytest 70 통과
-- 10-06d `--seg 1-2` (빠른 유인): 구역 1 cleared 89 s(받은 피해 196). 구역 2 **사망** — 255001에 22 m 달려가 1.4 m까지 붙었는데 아직 모름 → 그 자리 싸움이 묶기로 바로 끊기고 가드 걷기로 돌아오다 −212(+턱 화염병 3008). HP 334로 low_hp인데 **255001을 살려 두고 다음 놈으로**, 적 가까워 에스트 못 마심(home = 안전 자리라 물러날 데가 없음). 이미 깨어 4.4 m까지 온 254011에게 또 달려 나갔다가 안전 자리 2~3 m 앞에서 "달려서 돌아가기"만 하며 −116·−125·−93 → 사망. `data/samples/burg-upper-radar-2026-10-06d.txt`
-  [MoKa]: "왜 다시 돌아가려 한거야?" · "hp가 많이 줄었으면, 에스트를 마셔야 하는 것이 우선" · "적을 유인하다 목표 지점까지 가려는 게 우선이 아니라 적을 조우하면 안전구역으로 돌아오는 것이 우선. 그 구간이 화염병 맞는 구간이라 안전 구역으로 오고, 무조건 에스트부터 마시게 해" · "반응이 느려서 화염병을 거의 맞는다고 가정해야 해"
-- 고침 3: 달려가다 **누구든**(목표 아니어도) 깨어 움직이면 그 틱에 돌아옴(10 m·같은 층) · 목표 3 m까지 가도 아무도 안 움직이면 가드 2 s 뒤 그래도 돌아옴 · 안전 자리에 오면 **HP가 줄었으면 근처 적과 상관없이 에스트 먼저**(한 모금, 70 % 밑이면 한 모금 더) · 가장 가까이 오는 놈부터 싸움 · 이미 오는 놈·안전 자리 8 m 안 놈엔 안 나감 · 안전 자리 4 m 안이면 안 돌아섬 · 같은 목표를 죽을 때까지(4번) · 나가기 전 HP 70 % 밑이면 에스트(적이 가까우면 화톳불 쪽으로 물러나서) · 구역 동안 home = 성벽 마을 화톳불. 테스트 통과, pytest 70
-- 10-06e `--seg 1-2` (고침 3 뒤): **구역 1·2 모두 cleared, 사망 0, 156.7 s, 최저 HP 71 %**, 에스트 3번(돌아와서 마심 539·530·590 → 742, 남은 7). 구역 2 255001은 안전 자리에서 11 s 받은 피해 0으로 처치(전 두 번 사망 원인). 큰 피격 3번 −504: 254010 둘이 같이 와 −140, **255001 −212는 돌아서기 전**(0.88 m에서 바로 3005 — 조우 판정이 늦음, 턱 화염병 3008 10 m), 254011 −152. hotspots 새 문제 없음 · track 멈칫 0 · blind 공백 0. `data/samples/burg-upper-radar-2026-10-06e.txt`
-- 2026-10-06 [MoKa] 난간 F9 (observe 20261006_190154): (30.57,−7.5,−109.83) — 추정했던 (30.8,−7.1,−99.2)가 아니라 그보다 11 m 남쪽 통로. 바닥 없는 자리라 1.9 m 옆 (29.91,−7.34,−111.59)을 `lure_at`으로, 안전 자리에서 서·남쪽 통로로 32 m(계단 안 내려감). [MoKa]: "이 자리에 있으면 방패 창 병사가 순찰을 돌기 시작해" · "다시 돌아가서 설정한 안전 구역으로 가야해" → 거기서 `notice` 15 s 기다린 뒤(녹화에선 34 s 동안 안 움직임) 달려서 안전 자리로
-- 10-06j `--seg 5` (난간 유인 첫 실행): 안전 자리로 가는 길에 255000이 따라와 싸움 → **안전 자리 서쪽 문을 255000이 닫아** 봇이 (21.0,−6.0,−103.6)에서 안전 자리로 못 돌아가고 stuck(묶기 3번 + 걷기 4점). HP 742 그대로. [MoKa]: "a 눌러, 방패병이 문을 닫았어" → 봇 멈추고 A → [MoKa] "지금 문 앞에 있어. a 눌러서 문 열고 나가봐" → A 뒤 문 지나 (19.2,−5.7,−100.6). [MoKa]가 방패·창 병사 하나 처치. `data/samples/burg-upper-radar-2026-10-06j.txt`
-  고침: `field.DOORS` = [(20.2,−6.0,−103.4)] — 걷기가 그 2.5 m 안에서 두 번 막히면 다음 점 쪽 보고 A 한 번(걷기마다 문 하나에 한 번 — 두 번 누르면 닫힘), 묶기의 안전 자리 물러남이 stuck이고 문 근처면 A 후 한 번 더
-- 10-06k `--seg 5-7`: **구역 5·6·7 cleared, 사망 0, 150.7 s, 최저 HP 72 %**. 구역 5: 255000은 이미 없음, 255001 난간 유인 → 조우 → 안전 자리 에스트(536 → 742) → 3009 −121, 같이 온 255001 stalemate → 다시 → 처치. 구역 6 255001 처치(준 피해 0 — 떨어진 듯). 구역 7 안개벽 앞 도착, 에스트 3 남음. `data/samples/burg-upper-radar-2026-10-06k.txt`
-- [MoKa]: "이제 안개벽 지나서, 사다리 타고 올라가서 석궁병 2 처리 해야 해" → **구역 8** 추가 (녹화 151317 365~405 s): `before` = 안개벽(앞 (50.44,17.16,−118.43) → 너머 (47.0,15.82,−119.14), known) → 사다리(아래 (49.16,15.97,−117.1), 동쪽 보고 A, 위로 y 24.5까지 — souls/asylum._climb와 같은 방식), `run_to_safe`로 꼭대기에서 F9#8 (61.95,23.7,−116.93)까지 달림, 석궁 255002 둘 `wait` 20 s. 테스트(사다리 가짜 2개, 문 2개, 경로 2개) 추가, pytest 70 통과
-- 10-06l 구역 8 첫 시도: 안개벽 앞을 벽 너머로 잡아 걷기가 벽을 밀다 ~45 s 뒤 A([MoKa] "a 안누르고 가려고 해"); 그 뒤 사다리 아래로 대각선으로 가다 계단 가장자리에 걸림([MoKa] "아니야" → 멈춤). 화면(shot.py — `BOT_GAME=dsr` 필요)으로 보니 **하얀 안개벽은 계단 위 탑 문에 그대로** — 사다리는 그 왼쪽 벽. [MoKa] "계단에서 내려 와서, 옆으로 붙어서 사다리 타야해" → 녹화 점 그대로 손으로 걸어 A → 꼭대기 (49.96,24.81,−116.86). [MoKa] "가자 마자 공격해" — 그 사이 꼭대기에 둔 채 코드 고치다 **낙사**(봇·패드 꺼진 상태, 석궁에 밀린 듯). `data/samples/burg-upper-radar-2026-10-06-191813.txt`·`…-191959.txt`
-  고침: 구역 8 = 사다리 하나(`approach` = 계단 아래 (46,−118.3) → 벽 따라 z −117.2 → (49.16,−117.1), 이미 위면 건너뜀) → 안전 자리 = 사다리 꼭대기 → 석궁 둘 `attack`(유인·기다림 없이 곧바로). 안개벽 단계 뺌. 돌아와 에스트 기준 80 % → **70 %** ([MoKa]). pytest 70 통과
-  남은 것: 구역 1 셋째 254010(스폰 (−15.9,−13.3,−58.7), 안전 자리보다 3.4 m 아래 마당)은 올라오지 않아 묶기가 3번 끊고 돌아오기만 하다 끝에 그 자리에서 처치 — [MoKa]도 내려가서 잡은 놈 → 그 자리에서 싸우게 할지 결정 필요. 255001에게 1 m 안까지 다가가기 전에 돌아서는 방법(더 일찍 멈추기)
-- 10-06f `--seg 3`: **cleared 53 s, 받은 피해 0, 최저 HP 100 %** — 안전 자리로 가는 길에 따라온 254010 2 s, 둘째 254010은 조우 → 달려서 안전 자리 → 6 s. 턱 화염병 피격 없음. `data/samples/burg-upper-radar-2026-10-06f.txt`
-- 10-06g `--seg 4` (동쪽 계단): **cleared 80 s, 사망 0, 최저 HP 56 %**, 에스트 3 (한 번 끊김). 254010 조우 → 안전 자리, 같이 온 놈(254011) 싸움 23 s 받은 피해 220(화염병 254012 3008 2.5 m −109 포함). **돌아와서 '무조건 에스트'가 끊김** — 화염병 254012가 2.4 m에서 던져 −109, 개수 그대로(522 → 413). 그 뒤 싸움 중 에스트로 413 → 713. 화염병 254012 5 s, 석궁 255002 조우 → 안전 자리 14 s 받은 피해 0. **713/742(96 %)에서도 에스트 1개 씀** — 29 회복에 한 개(규칙 그대로). hotspots·track·blind 깨끗. `data/samples/burg-upper-radar-2026-10-06g.txt`
-  [MoKa] 결정 (2026-10-06): **둘 다 적용** — 돌아와서 HP 90 % 위면 안 마심(`UPPER_SIP_FRAC`), 2.5 m 안에 휘두르는 적이 있으면 미룸(`UPPER_SWING_R`, 싸움 중 에스트가 틈을 봄). 테스트 추가, pytest 70 통과
-
-### P-47 "HP 낮음" 0 s 싸움 반복 — 치지도 마시지도 않고 맞기만 함, 구역 8에서 사망 + 살아 있는데 'cleared' (2026-10-06, [win])
-
-- 10-06 `--seg 5-8` (난간 기다림 0.3 s): 구역 5 안전 자리로 가다 HP 47 %에서 255000이 붙음 → `careful_walk_to`의 '오는 놈' 싸움이 **0 s 만에 low_hp** → `recover`: "붙어 있고 뒤에 바닥 없음 — 그 자리에서 싸움"(False) → careful walk가 그 결과를 버리고 다시 싸움 → 또 0 s low_hp… 초당 ~10번, 그 사이 −248·−123. 구역 8 꼭대기: 석궁 255002 `attack`에서 10 s 동안 준 0·받은 456 → low_hp → attack 분기가 물러남·에스트 없이 0 s 싸움을 4번 → **사망**, 그런데 구역 결과는 **'cleared'**(석궁 둘 살아 있음). 큰 피격 7번 −1314. `data/samples/burg-upper-radar-2026-10-06-202244.txt`
-- [MoKa]: "뭐가 문제야? 갑자기 뭔가 꼬였어?" — 새로 망가진 게 아니라 낮은 HP로 붙는 일이 늘면서 드러난 것(전 실행들은 그 자리에 HP가 넉넉히 도착).
-- 고침: `Field.careful_walk_to`(오는 놈·끌어온 놈)와 `Missions._pull_to_safe`의 attack 분기가 `Field.walk`처럼 `recover`가 False면 다음 싸움을 **끝까지(desperate)**, attack 분기는 싸움마다 `recover`(물러나 에스트). 구역에 살아 남은 목표가 있으면 'cleared' 대신 `left #i …`. 테스트: `careful_walk_test`(0 s 반복 → 끝까지), `burg_upper_test`(attack low_hp → recover → desperate, 남은 적 → left). pytest 72 통과
-- 남은 질문: 구역 8 석궁에게 '가자 마자 공격'에서 준 0·받은 456 — 녹화에선 동쪽으로 11 m 달려가 F9#8에서 따라온 석궁을 잡음 → [MoKa] 결정 대기
-- [MoKa] 결정 (2026-10-06, **내일 시험**): "구역 8 석궁병을 바로 공격하려고 하면 위치가 불리하니, **구르기를 2번 해서 석궁병하고 간격을 벌려야** 해" → 사다리 꼭대기에서 구르기 2번으로 거리를 벌린 뒤 싸우게. 구역 8 석궁병까지 마무리한 뒤 보스로 — "보스하고는 **최소 3개의 에스트**가 있어야 해" → 타우로스 시작 전 에스트 ≥ 3 확인(모자라면 화톳불에서 다시)
-- [MoKa] 보스 계획 (2026-10-06, 내일): "보스 싸울 때는 **황금 송진을 바르고 낙하 공격**으로 보스 HP를 거의 **40 %** 줄이고, **약공 4번 정도**면 끝날 거야. 생각해보니 **에스트는 1개만** 있으면 될 것 같아" → 위의 '에스트 ≥ 3'은 **≥ 1**로 바꿈. 할 것: 황금 송진 아이템 번호·퀵 슬롯 확인, 사다리 위에서 낙하 전에 바르기(바르는 동작 시간·지속 시간 확인), 낙하 공격 뒤 바로 붙어 약공 4번(녹화 3차: 낙하 −411, 약공 한 번 −91 — 송진 없이)
-
-## 9. 변경 이력
-
-- 2026-10-06: 1-m 추가 — 다음 구간 성벽 마을 화톳불 → 타우로스 데몬 ([MoKa] 결정: 화염병 할로우는 빨리 붙기, 타우로스는 낙하 공격으로 시작)
-
-- 2026-10-01: 1-i Laya 섀도 모드 추가 ([MoKa] 요청) — 기록만, 모델은 WSL Ubuntu의 별도 프로세스, 설치는 승인 뒤
-
-- 2026-10-01: [MoKa]와 구역별로 한 바퀴 (`run.py burg-bonfire --seg N --basic`) — 방패 + 약공만으로 경사로 → 화톳불 428 s, 사망 0 (P-30). 그 과정에서: 후퇴 더 많이(HP 50 %, 지는 싸움 일찍, 10 m 비울 때까지, 붙은 적이면 구르기), 성벽 마을 천천히 걷기·하나씩 끌어오기, 셋 이상이면 벽으로·2:1이면 뒤잡기 안 함, 타겟 방향 정렬이 최우선(`rule_face_first`), 락온 전 몸·카메라 정렬, **카메라 오른스틱 실측(0.35 = 데드존)으로 탭 고침**(카메라 오차 중앙 17° → 5°), 높이 제한은 되돌림. 오버레이: 구역·적 이름, 500 px 레이더, `SCRIPTED BOT · autoplay` 배지, 포커스 뺏던 버그 수정. 뒤잡기·강공 다시 켤지는 [MoKa] 결정 대기
-- 2026-10-01: [win] 실행 뒤 점검에 `blind_report.py` 추가 ([MoKa])
-- 2026-09-30: 6-a 걷기 재생 하네스 추가 (MoKa 결정) — 1층(열린 루프) 완료, 2층은 [win] 데이터(10. 게시판 중계) 뒤
-- 2026-09-30: 게시판을 공개 GitHub Issues에서 비공개 MCP 게시판으로 옮김 — [cloud]는 ROADMAP "10. 게시판 중계"로 소통 ([MoKa] 결정)
-- 2026-09-29: 1-h 새 캐릭터 수용소를 봇이 — 사람 첫 통과 녹화(F9 표시) → 단계 목록 → `run.py asylum --seg 1-5`, 데몬 전용 싸움(치고 빠지기·크게 돌기). 새 캐릭터 테스트: 매번 새 캐릭터 + 세이브 백업/되돌리기는 [win]이 함 ([MoKa])
-- 2026-09-29: 새 캐릭터(산적 Bandit Bot) 테스트로 나온 것 — 나이프 없는 경사로(P-24), 둘러싸임 퀵 종료 없앰·후퇴 규칙은 꺼 둠(P-26), 배틀 액스 벽·좁은 통로 강공, 에스트 더 자주 (0.6 / 0.7)
-- 2026-09-28: 게시판으로 GitHub Issues 사용 시작 (라벨·템플릿, CLAUDE.md 규칙) — MoKa 결정. 사람 작업자 표시를 [사람] → [MoKa]로
-- 2026-09-28: 0-c 싸움을 규칙 목록으로 (동작 같음, 26,496 상황 비교)
-- 2026-09-28: 0-c 구조 정리 시작 — 걷기를 네 조각으로 (동작 같음)
-- 2026-09-28: 0-b 우선순위 정리 — 쉬운 것만 진행, 학습·시뮬레이터·충돌 메시 등은 보류
-- 2026-09-28: 다른 층 재동기화 시 경로 재탐색, 락온 뒤잡기(`_backstab`) — [win] 확인 대기
-- 2026-09-27: 문서 작성. 대화에서 정한 순서 반영 (기반 → 추출 → 충돌 메시 → 오버레이 → 기록 재생 → 시뮬레이터 → 탐험·전투)
-- 2026-09-28: CI 부품 버전 올림(checkout v5, setup-python v6 — Node.js 20 지원 종료 경고)
-- 2026-09-27: 윈도우 2차 결과 분석 → 1-c 섹션 추가
-- 2026-09-27: 윈도우 1차 결과 분석 → 1-b 섹션 추가
-- 2026-09-27: 기존 도구 조사 추가. 3번은 soulstruct-havok 사용으로 변경
-- 2026-09-27: CD는 불필요(배포 대상 없음)로 판단, CI만 추가
+| 1 | Offline tests failed on Linux (Windows-only imports, `TEMP`) | fixed |
+| 2 | Python 3.11 f-string syntax error | fixed (3.12) |
+| 3 | soulstruct import fails on Linux (missing JSON) | fixed (stub modules) |
+| 4 | `msb_extract` summary counts / missing ObjectParam rows | fixed |
+| 5 | `.gitignore` let local run files show as untracked | fixed (allow-list) |
+| 6 | Burg: stuck behind a ledge foe; path through crates | verify |
+| 7 | Two shield soldiers: no separation spot (`no_spot`), late reaction to the side foe | open → same family as P-29 |
+| 8 | Died to two shield soldiers (light attacks into raised shields) | open → P-29 family |
+| 9 | Overlay mini-radar marks unreadable; restored items stayed hidden | fixed |
+| 10 | Late on a shield soldier's advancing first attack (3009) | open, low priority |
+| 11 | Real controller ignored after bot runs / save swaps (ViGEm) | workaround: reboot |
+| 12 | Same stalls every run (`#3 이동` (−52.2,−22.8,−26.9), crates `o1150_01`, `o1132_06`, `o1321_0021`) | open |
+| 13 | Web radar hid the human pad (bot slot stayed) | fixed |
+| 14 | Fell off the ramp edge right after a backstab | verify |
+| 15 | Bot imported a moved experiment module mid-run | fixed (see P-43) |
+| 16 | Fell through a gap while circling for a backstab | verify |
+| 17 | Secret-passage exit: stuck / fell | parked → 1-g |
+| 18 | Ramp `left #N?` after a quit-out ended the mission | verify (`pass_ramp`) |
+| 19 | `experiments/reach.py direct` walked off a railing | open, low priority |
+| 20 | Two radar servers bound the same port | fixed (exclusive bind) |
+| 21 | steam.exe outside connection right after restart (CDN) | decide (a/b/c) |
+| 22 | Throwing knife not in a quick slot → lure always fails | fixed (start check) |
+| 23 | Read weapon slot 1 instead of the held weapon | fixed |
+| 24 | `--no-lure` ignored by `burg-bonfire`; `no_knife` retried | fixed |
+| 25 | Killed foes come back after a quit-out (game bug, sometimes) | open (partly handled) |
+| 26 | Crowd retreat broke every 1–2 s, 16 times, 0 attacks | open (`CROWD_FALL_BACK` off, capped) |
+| 27 | Asylum: bot idle between segments got hit; died beside a foe | fixed |
+| 28 | Asylum: same 3 stall spots (self-recovered) | open |
+| 29 | Burg `#4 이동`: three 254010 at once, 0 attacks, died (twice) | open — top cause of deaths |
+| 30 | Ignored foe hit for 10 s, then fell 5 m through a gap; lock-on blocked by line of sight | partly fixed |
+| 31 | `rule_finish` swings from 2.2–4.0 m | decide |
+| 32 | Dropped guard too early vs axe hollow 254001 | verify |
+| 33 | `stagger_punish` right after a block (should keep blocking) | decide |
+| 34 | Radar-rebuilt features ≠ bot's real features (audit gate failed) | won't fix (audit frozen 10-02) |
+| 35 | Audit: unobserved outcome window classified primary | fixed |
+| 36 | Audit checker double-counted exclusion reasons | fixed |
+| 37 | Audit can't attribute an outcome to one foe (no projectile data) | fixed; frozen at schema 0.3 |
+| 38 | Mover didn't re-press guard/sprint after a neutral | verify (P0-D) |
+| 39 | Asylum ④: light instead of wall heavy vs two hollows | fixed |
+| 40 | Asylum ② menu: DOWN eaten before the equip screen opened | fixed |
+| 41 | Burg fog wall before `#4 이동` not passed | fixed |
+| 42 | `careful_walk` back-and-forth at one spot | fixed (verified 10-03d) |
+| 43 | CI red 22 times (Linux pipe size, `vgamepad` via legacy import) | fixed |
+| 44 | Restoring a save does not restore the radar warp list | decide |
+| 45 | `burg-upper` zone 2: chaser caught the bot mid-walk, died 13 m from the safe spot | fixed (run back to safe spot) |
+| 46 | `burg-upper` zone 5: no rules for 255001 (shield + spear) | fixed (`foes.SHIELD`, wait/lure) |
+| 47 | "HP low" 0 s fight loops; zone 8 death; 'cleared' with survivors | partly fixed; zone 8 → section 1 |
+
+## 5. Relay — [cloud] ↔ board
+
+[cloud] cannot reach the private MCP board (CLAUDE.md). Format: `- date [cloud→board] text` / `- date [board→cloud] text`;
+whoever moves or handles an entry adds `→ moved` / `→ done` (old entries: `[cloud→게시판]`, `→ 옮김` / `→ 처리` — same thing). When every entry here is `→ moved`/`→ done`, cut them
+to the bottom of `docs/roadmap/relay.md`.
+
+- 2026-10-09 [cloud→board] ROADMAP slimmed 307 KB → this file; all old text moved verbatim to `docs/roadmap/` (sections 0–7 → `plan.md`, problem log → `problems.md`, relay → `relay.md`, change log → `changelog.md`). Found while doing it: commit `2c5daf8` (10-02, P-37 edit) deleted the `## 10. 게시판 중계` heading, so the relay entries sat inside P-43 and CLAUDE.md pointed to a missing section — restored in `relay.md`.
+- 2026-10-09 [cloud→board] **[MoKa] decide**: (1) section 3 "Old open items" — mark each done or cancelled (2) the public GitHub issues #2 #5 #7 #9 #10 #14 are still open although the board moved on 09-30 — close them as "moved to the private board"? (3) sessions started from `main` are ~244 commits behind the work branch; the session-start hook now warns, but merging the work branch into `main` from time to time (or making it the default branch) removes the cause.
+
+## 6. Change log (newest first; older entries in `docs/roadmap/changelog.md`)
+
+- 2026-10-09: ROADMAP restructured — open items only, English; history moved verbatim to `docs/roadmap/`; relay section restored; problem index added. `tests/roadmap_test.py` keeps this file small and the index complete.
