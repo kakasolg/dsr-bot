@@ -9,6 +9,7 @@ Short on purpose: **only open work, one line each**. Full history (Korean, verba
 | `docs/roadmap/problems.md` | section 8 problem log P-1 … in full — **new problems are appended here** |
 | `docs/roadmap/relay.md` | old section 10 board relay (2026-09-30 … 10-01) |
 | `docs/roadmap/changelog.md` | old section 9 change log |
+| `docs/analysis-2026-10-09.md` | problem analysis, public cases that solved similar problems, proposals (not decided) |
 
 Rules for keeping this file small (CLAUDE.md has the full working rules):
 - An item lives here while it is `[ ]` / `[~]` / `[!]`. When it becomes `[x]` or `[-]`, move the line (with its one-line
@@ -134,6 +135,7 @@ to the bottom of `docs/roadmap/relay.md`.
 
 - 2026-10-09 [cloud→board] ROADMAP slimmed 307 KB → this file; all old text moved verbatim to `docs/roadmap/` (sections 0–7 → `plan.md`, problem log → `problems.md`, relay → `relay.md`, change log → `changelog.md`). Found while doing it: commit `2c5daf8` (10-02, P-37 edit) deleted the `## 10. 게시판 중계` heading, so the relay entries sat inside P-43 and CLAUDE.md pointed to a missing section — restored in `relay.md`.
 - 2026-10-09 [cloud→board] **[MoKa] decide**: (1) ~~section 3 "Old open items"~~ → all cancelled by MoKa 2026-10-09 → done (2) ~~close public issues #2 #5 #7 #9 #10 #14~~ → closed 2026-10-09 with a pointer to the index (#9 completed, others not planned) → done (3) ~~merge the work branch into `main`~~ → `main` fast-forwarded to the work branch 2026-10-09 (247 commits) → done; keep doing it from time to time (the session-start hook warns when `main` lags).
+- 2026-10-09 [cloud→board] **[MoKa] decide**: which proposals from `docs/analysis-2026-10-09.md` §3 to take up — (1) multi-foe = pick a spot where ≤ 1 foe can reach us (general rule; `burg-upper` safe spots as candidates) (2) walking: curvature slow-down + minimum approach speed + progress check → replan (Nav2 RPP style, tested in `walksim.py`) (3) one look-ahead floor check (4) human-checked scenes as test expectations (5) run settings record.
 
 ## 5. Change log (newest first; older entries in `docs/roadmap/changelog.md`)
 
