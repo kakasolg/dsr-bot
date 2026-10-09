@@ -133,10 +133,11 @@ whoever moves or handles an entry adds `→ moved` / `→ done` (old entries: `[
 to the bottom of `docs/roadmap/relay.md`.
 
 - 2026-10-09 [cloud→board] ROADMAP slimmed 307 KB → this file; all old text moved verbatim to `docs/roadmap/` (sections 0–7 → `plan.md`, problem log → `problems.md`, relay → `relay.md`, change log → `changelog.md`). Found while doing it: commit `2c5daf8` (10-02, P-37 edit) deleted the `## 10. 게시판 중계` heading, so the relay entries sat inside P-43 and CLAUDE.md pointed to a missing section — restored in `relay.md`.
-- 2026-10-09 [cloud→board] **[MoKa] decide**: (1) ~~section 3 "Old open items"~~ → all cancelled by MoKa 2026-10-09 → done (2) ~~close public issues #2 #5 #7 #9 #10 #14~~ → closed 2026-10-09 with a pointer to the index (#9 completed, others not planned) → done (3) sessions started from `main` are ~244 commits behind the work branch; the session-start hook now warns, but merging the work branch into `main` from time to time (or making it the default branch) removes the cause.
+- 2026-10-09 [cloud→board] **[MoKa] decide**: (1) ~~section 3 "Old open items"~~ → all cancelled by MoKa 2026-10-09 → done (2) ~~close public issues #2 #5 #7 #9 #10 #14~~ → closed 2026-10-09 with a pointer to the index (#9 completed, others not planned) → done (3) ~~merge the work branch into `main`~~ → `main` fast-forwarded to the work branch 2026-10-09 (247 commits) → done; keep doing it from time to time (the session-start hook warns when `main` lags).
 
 ## 5. Change log (newest first; older entries in `docs/roadmap/changelog.md`)
 
+- 2026-10-09: `main` and the work branch fast-forwarded to the same commit (09-28 … 10-06 work + this restructure).
 - 2026-10-09: [MoKa] old public issues #2 #5 #7 #9 #10 #14 closed (P-17/18/21/25 stay tracked in the problem index).
 - 2026-10-09: [MoKa] cancelled all 11 "old open items" (15 archive lines marked `[-]` in `docs/roadmap/plan.md`); section removed.
 - 2026-10-09: ROADMAP restructured — open items only, English; history moved verbatim to `docs/roadmap/`; relay section restored; problem index added. `tests/roadmap_test.py` keeps this file small and the index complete.
