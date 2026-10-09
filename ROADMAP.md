@@ -71,22 +71,7 @@ zone 8 crossbowmen (P-47).
 - [ ] [cloud] 2D simulator: enemy sense/chase/leash from NavMesh + ThinkParam, plug `souls/field.py` in, separate/lure strategy experiments
 - [ ] [cloud] Explore mode (offline only, invincible + invisible), Lua decompile, TAE timing → attack prediction
 
-## 3. Old open items — confirm or cancel ([MoKa])
-
-Still `[ ]`/`[~]` in the archive but probably overtaken by later work. Not deleted; MoKa marks each `[x]` or `[-]`.
-- 0-b: [win] run + `track_report`/`hotspots` on the 09-27 radar recordings (P-17 numbers) — later runs did this
-- 0-b: [win] 10-01 run request for `97d4f14` (review fixes 2–4) — runs continued after it
-- 0-b: [cloud]+[MoKa] radar/overlay as a distributable mod — still wanted?
-- 0-b: [win] small checks: radar/overlay, `msb_extract` treasures (duplicate of section 2)
-- 1: [win] after the folder move: `run.py` / pytest / `experiments/` scripts still run — many runs since
-- 1-e: [win] run `hotspots.py` after every run — now a CLAUDE.md rule
-- 1-h: [MoKa] asylum step names; [win] asylum mission remaining segments ① … ④ — bot clears cell → bonfire since 10-03
-- 1-f: [MoKa]+[win] backstab demo recording (10 backstabs)
-- 1-i: [MoKa] next step for the fine-tuned Laya checkpoint; [win] `--laya-shadow` run (Laya concluded "not needed", 10-02)
-- 2: [MoKa] spot-check extracted boxes/enemy positions; [cloud] "file evidence" grade in LAYERS.md
-- 4: [win] radar `watch` → `stale` after 2 s check
-
-## 4. Problem index
+## 3. Problem index
 
 Full entries: `docs/roadmap/problems.md`. Status: **open** · **parked** · **decide** (waits for MoKa) ·
 **verify** (fixed offline, game check pending) · **fixed** · **won't fix**.
@@ -141,15 +126,16 @@ Full entries: `docs/roadmap/problems.md`. Status: **open** · **parked** · **de
 | 46 | `burg-upper` zone 5: no rules for 255001 (shield + spear) | fixed (`foes.SHIELD`, wait/lure) |
 | 47 | "HP low" 0 s fight loops; zone 8 death; 'cleared' with survivors | partly fixed; zone 8 → section 1 |
 
-## 5. Relay — [cloud] ↔ board
+## 4. Relay — [cloud] ↔ board
 
 [cloud] cannot reach the private MCP board (CLAUDE.md). Format: `- date [cloud→board] text` / `- date [board→cloud] text`;
 whoever moves or handles an entry adds `→ moved` / `→ done` (old entries: `[cloud→게시판]`, `→ 옮김` / `→ 처리` — same thing). When every entry here is `→ moved`/`→ done`, cut them
 to the bottom of `docs/roadmap/relay.md`.
 
 - 2026-10-09 [cloud→board] ROADMAP slimmed 307 KB → this file; all old text moved verbatim to `docs/roadmap/` (sections 0–7 → `plan.md`, problem log → `problems.md`, relay → `relay.md`, change log → `changelog.md`). Found while doing it: commit `2c5daf8` (10-02, P-37 edit) deleted the `## 10. 게시판 중계` heading, so the relay entries sat inside P-43 and CLAUDE.md pointed to a missing section — restored in `relay.md`.
-- 2026-10-09 [cloud→board] **[MoKa] decide**: (1) section 3 "Old open items" — mark each done or cancelled (2) the public GitHub issues #2 #5 #7 #9 #10 #14 are still open although the board moved on 09-30 — close them as "moved to the private board"? (3) sessions started from `main` are ~244 commits behind the work branch; the session-start hook now warns, but merging the work branch into `main` from time to time (or making it the default branch) removes the cause.
+- 2026-10-09 [cloud→board] **[MoKa] decide**: (1) ~~section 3 "Old open items"~~ → all cancelled by MoKa 2026-10-09 → done (2) the public GitHub issues #2 #5 #7 #9 #10 #14 are still open although the board moved on 09-30 — close them as "moved to the private board"? (3) sessions started from `main` are ~244 commits behind the work branch; the session-start hook now warns, but merging the work branch into `main` from time to time (or making it the default branch) removes the cause.
 
-## 6. Change log (newest first; older entries in `docs/roadmap/changelog.md`)
+## 5. Change log (newest first; older entries in `docs/roadmap/changelog.md`)
 
+- 2026-10-09: [MoKa] cancelled all 11 "old open items" (15 archive lines marked `[-]` in `docs/roadmap/plan.md`); section removed.
 - 2026-10-09: ROADMAP restructured — open items only, English; history moved verbatim to `docs/roadmap/`; relay section restored; problem index added. `tests/roadmap_test.py` keeps this file small and the index complete.

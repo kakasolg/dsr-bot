@@ -20,7 +20,7 @@
 - [win], [MoKa] and Mac Claude use the private MCP board (`maswarm-watchlist`, `board_*`). **[cloud] cannot reach it**
   (network allow-list / env not set, checked 2026-09-29), so [cloud] talks only through repo files and commit messages.
   The repo is public: don't open GitHub issues (#2–#15 are old records).
-- [cloud] → board: add `- <date> [cloud→board] …` to ROADMAP "5. Relay". Board → [cloud]: the board side adds
+- [cloud] → board: add `- <date> [cloud→board] …` to ROADMAP "4. Relay". Board → [cloud]: the board side adds
   `[board→cloud]` there. Whoever handles an entry marks `→ moved` / `→ done`. Only settled things go into items or the problem log.
 - Direct MCP access for [cloud] (cloud-only service token) waits for MoKa's environment setup.
 

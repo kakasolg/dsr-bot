@@ -2,4 +2,4 @@ blank_issues_enabled: false
 contact_links:
   - name: The board moved (2026-09-30)
     url: https://github.com/kakasolg/dsr-bot/blob/main/ROADMAP.md
-    about: Workers use the private MCP board; the cloud session relays through ROADMAP.md "5. Relay". Issues here are old records.
+    about: Workers use the private MCP board; the cloud session relays through ROADMAP.md "4. Relay". Issues here are old records.
