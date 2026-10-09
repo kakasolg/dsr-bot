@@ -63,7 +63,7 @@ zone 8 crossbowmen (P-47).
 **Instrumentation / run records**
 - [ ] [win] P1-D observation quality · Escape · watchdog events (`--ctl-frames` off by default) (1-l)
 - [ ] [win] P1-E ordering · queue overflow · write failure · on/off-equal tests (1-l)
-- [ ] [MoKa] decide run settings file `<run>.settings.json` + `code_commit` / zone / fight id in logs (1-i, 1-j) — design drafted `docs/design-run-settings.md` (proposal 5, §7)
+- [~] [cloud] Run settings record (proposal 5, `docs/design-run-settings.md`) — MoKa 2026-10-09: start implementing. Steps 1–2 (`runinfo.py`, `run.py`, `fight_id`/`zone`, `sample.py`, `ab.py`); then [win] check §5-2…4
 - [ ] [MoKa] Laya: keep off / freeze; move label tool's `why_not` out of `laya_shadow.py`?
 - [ ] [MoKa] Ramp 24-scene labels (review mode) → `python label_pilot.py report --set ramp`; then size of the 300-label eval set
 - [ ] [MoKa] Town entry: zone-boundary F9 walk plan · B-hit design (not approved)
