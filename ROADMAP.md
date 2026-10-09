@@ -10,6 +10,7 @@ Short on purpose: **only open work, one line each**. Full history (Korean, verba
 | `docs/roadmap/relay.md` | old section 10 board relay (2026-09-30 … 10-01) |
 | `docs/roadmap/changelog.md` | old section 9 change log |
 | `docs/analysis-2026-10-09.md` | problem analysis, public cases that solved similar problems, proposals (not decided) |
+| `docs/design-multi-foe-spot.md` | design for proposal 1 (multi-foe = spot choice): measurements, design, steps, questions for MoKa |
 
 Rules for keeping this file small (CLAUDE.md has the full working rules):
 - An item lives here while it is `[ ]` / `[~]` / `[!]`. When it becomes `[x]` or `[-]`, move the line (with its one-line
@@ -35,6 +36,7 @@ zone 8 crossbowmen (P-47).
 ## 2. Open by area
 
 **Fight rules / reflexes (1-j: "basic reflexes done right", MoKa 10-02)**
+- [~] [cloud] Multi-foe = spot choice (analysis proposal 1): design drafted `docs/design-multi-foe-spot.md`; step 1 (measure only) waits for MoKa's answers (§8)
 - [~] [win] P-32 axe hollow `AXE_HOLLOW` guard — game check on the ramp (needs MoKa's go)
 - [ ] [MoKa] P-31 decide: `rule_finish` only within `reach + 0.3` (re-record golden)
 - [ ] [MoKa] P-33 decide: no `stagger_punish` right after a block; [win] first checks per-foe stagger anims in old logs (read-only)
@@ -136,6 +138,7 @@ to the bottom of `docs/roadmap/relay.md`.
 - 2026-10-09 [cloud→board] ROADMAP slimmed 307 KB → this file; all old text moved verbatim to `docs/roadmap/` (sections 0–7 → `plan.md`, problem log → `problems.md`, relay → `relay.md`, change log → `changelog.md`). Found while doing it: commit `2c5daf8` (10-02, P-37 edit) deleted the `## 10. 게시판 중계` heading, so the relay entries sat inside P-43 and CLAUDE.md pointed to a missing section — restored in `relay.md`.
 - 2026-10-09 [cloud→board] **[MoKa] decide**: (1) ~~section 3 "Old open items"~~ → all cancelled by MoKa 2026-10-09 → done (2) ~~close public issues #2 #5 #7 #9 #10 #14~~ → closed 2026-10-09 with a pointer to the index (#9 completed, others not planned) → done (3) ~~merge the work branch into `main`~~ → `main` fast-forwarded to the work branch 2026-10-09 (247 commits) → done; keep doing it from time to time (the session-start hook warns when `main` lags).
 - 2026-10-09 [cloud→board] **[MoKa] decide**: which proposals from `docs/analysis-2026-10-09.md` §3 to take up — (1) multi-foe = pick a spot where ≤ 1 foe can reach us (general rule; `burg-upper` safe spots as candidates) (2) walking: curvature slow-down + minimum approach speed + progress check → replan (Nav2 RPP style, tested in `walksim.py`) (3) one look-ahead floor check (4) human-checked scenes as test expectations (5) run settings record.
+- 2026-10-09 [cloud→board] Proposal 1 design draft: `docs/design-multi-foe-spot.md`. Found offline: P-29's third hollow ran in at 3.5 m/s with anim −1 (counted as 'standing' by `_crowd`); MoKa's `burg-upper` safe spots are mostly open ground (5/8), what they share is distance — ≥ 11 m by path from their foes and from the ledge firebombs (zone 3, dropped by MoKa, is 7.7 m; zone 8, P-47, is 6–7 m from the crossbows). **[MoKa] decide** §8: (1) human spots = candidate + bonus or must-use (2) run to the spot (3) spots next to a drop: penalty or filter (zones 4·8 read 0.5 m) (4) zone 8 → spot ~11 m east like the recording? (5) knife to wake one at a time?
 
 ## 5. Change log (newest first; older entries in `docs/roadmap/changelog.md`)
 
