@@ -11,6 +11,7 @@ Short on purpose: **only open work, one line each**. Full history (Korean, verba
 | `docs/roadmap/changelog.md` | old section 9 change log |
 | `docs/analysis-2026-10-09.md` | problem analysis, public cases that solved similar problems, proposals (not decided) |
 | `docs/design-multi-foe-spot.md` | design for proposal 1 (multi-foe = spot choice): measurements, design, steps, questions for MoKa |
+| `docs/design-walk-follow.md` | design for proposal 2 (walking: progress check → replan, pass-through arrival, curvature slow-down deferred) |
 
 Rules for keeping this file small (CLAUDE.md has the full working rules):
 - An item lives here while it is `[ ]` / `[~]` / `[!]`. When it becomes `[x]` or `[-]`, move the line (with its one-line
@@ -48,7 +49,7 @@ zone 8 crossbowmen (P-47).
 
 **Walking / navigation (6-a harness, 1-f, 1-g)**
 - [~] [cloud] Harness layer-2 trust check: reproduces the passage-entrance point-70 before/after (direction yes, size exaggerated)
-- [ ] [cloud] Compare target walk rules (progress switch · lateral slow-down · look-ahead · stop · recover) inside `_follow` on layer 2, then [win] A/B
+- [~] [cloud] Compare target walk rules inside `_follow` on layer 2, then [win] A/B — design drafted `docs/design-walk-follow.md` (proposal 2); waits for MoKa (§7)
 - [ ] [win] [urgent since 09-30] "almost arrived" rule check in game (`거의 도착 … 다음 점으로` lines, asylum 1 m-short spots)
 - [~] [win] 1-f A: early-turn / rubbing at corners reduced? (`hotspots.py`)
 - [ ] [cloud] 1-f C: at a stuck corner go 1 m further along the incoming direction before turning — parked behind 1-g
@@ -128,6 +129,7 @@ Full entries: `docs/roadmap/problems.md`. Status: **open** · **parked** · **de
 | 45 | `burg-upper` zone 2: chaser caught the bot mid-walk, died 13 m from the safe spot | fixed (run back to safe spot) |
 | 46 | `burg-upper` zone 5: no rules for 255001 (shield + spear) | fixed (`foes.SHIELD`, wait/lure) |
 | 47 | "HP low" 0 s fight loops; zone 8 death; 'cleared' with survivors | partly fixed; zone 8 → section 1 |
+| 48 | 6-a "48 % of sharp corners cut inside" is a 2 Hz sampling artifact (10 Hz: 20 %, two places) | open (measure fix) |
 
 ## 4. Relay — [cloud] ↔ board
 
@@ -139,6 +141,7 @@ to the bottom of `docs/roadmap/relay.md`.
 - 2026-10-09 [cloud→board] **[MoKa] decide**: (1) ~~section 3 "Old open items"~~ → all cancelled by MoKa 2026-10-09 → done (2) ~~close public issues #2 #5 #7 #9 #10 #14~~ → closed 2026-10-09 with a pointer to the index (#9 completed, others not planned) → done (3) ~~merge the work branch into `main`~~ → `main` fast-forwarded to the work branch 2026-10-09 (247 commits) → done; keep doing it from time to time (the session-start hook warns when `main` lags).
 - 2026-10-09 [cloud→board] **[MoKa] decide**: which proposals from `docs/analysis-2026-10-09.md` §3 to take up — (1) multi-foe = pick a spot where ≤ 1 foe can reach us (general rule; `burg-upper` safe spots as candidates) (2) walking: curvature slow-down + minimum approach speed + progress check → replan (Nav2 RPP style, tested in `walksim.py`) (3) one look-ahead floor check (4) human-checked scenes as test expectations (5) run settings record.
 - 2026-10-09 [cloud→board] Proposal 1 design draft: `docs/design-multi-foe-spot.md`. Found offline: P-29's third hollow ran in at 3.5 m/s with anim −1 (counted as 'standing' by `_crowd`); MoKa's `burg-upper` safe spots are mostly open ground (5/8), what they share is distance — ≥ 11 m by path from their foes and from the ledge firebombs (zone 3, dropped by MoKa, is 7.7 m; zone 8, P-47, is 6–7 m from the crossbows). **[MoKa] decide** §8: (1) human spots = candidate + bonus or must-use (2) run to the spot (3) spots next to a drop: penalty or filter (zones 4·8 read 0.5 m) (4) zone 8 → spot ~11 m east like the recording? (5) knife to wake one at a time?
+- 2026-10-09 [cloud→board] Proposal 2 design draft: `docs/design-walk-follow.md`. Found offline (`experiments/walk_corpus.py`): the 6-a "48 % of sharp corners cut inside" is mostly the 2 Hz track spacing (a perfect follow thinned to 2 Hz also reads 45 %; 10 Hz radar walks: 20 %, all at the Firelink top and the passage exit) → P-48. The harness re-walks 601 foe-free recorded walks: 598 arrive; game stalls in 64 of them (422 s) are mostly not steering (bonfire `A`, fog wall, overlay focus). Plan: A progress check → replan, B pass-through arrival (Gate) + never below walk speed near the end, C curvature slow-down **deferred** until a [win] turn-rate drill. **[MoKa] decide** §7: (1) defer C (2) which end points must be exact (3) replan detour cap (4) A/B places.
 
 ## 5. Change log (newest first; older entries in `docs/roadmap/changelog.md`)
 
