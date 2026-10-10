@@ -3,7 +3,8 @@
   python tests/runinfo_test.py
 
 Checks: commit / branch / dirty / diff from a throwaway git repo · no git → None, nothing raises · constants after a flag
-(--basic) · settings_sha1 follows code / arguments / constants, not the character or the end · short() ↔ head_line() ·
+(--basic) · settings_sha1 follows code / arguments / constants, not the character or the end, nor the dirty run's
+diff file name (so the first log line's hash stays the record's) · short() ↔ head_line() ·
 end() once · writes never raise · sample.py keeps the stamp and leaves the diff behind · ab.py lists only what differs.
 """
 from __future__ import annotations
@@ -81,6 +82,9 @@ def main() -> None:
         check("write with a diff: .diff beside it, diff_file named", runinfo.write(sp, d, "diff text")
               and (runs / "20261009_120000_burg-upper.diff").read_text(encoding="utf-8") == "diff text"
               and runinfo.read(sp)["code"]["diff_file"] == "20261009_120000_burg-upper.diff")
+        sha0 = d["settings_sha1"]                      # the first log line's hash (before write added diff_file)
+        check("settings_sha1 after update() on a dirty run = the first line's (diff_file not hashed; 2026-10-09 e1002b4c ≠ 45f9fec7)",
+              runinfo.update(sp, game={"hp": [1, 2]})["settings_sha1"] == sha0)
         line = runinfo.short(d)
         log = runs / "20261009_120000_burg-upper.log"
         log.write_text(f"[    0.0] {line}\n[    0.1] 무기: …\n", encoding="utf-8")

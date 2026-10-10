@@ -436,3 +436,9 @@ New problems still go here (append at the bottom) and get a one-line row in ROAD
 - 증상: `20261009_230500_burg-upper` (HP 742, 죽지 않음, 구역 1~3 cleared). `blind_report.py`: 판단 공백 40.5 s −269, 그중 edge retreat 3× 10.6 s **−181** — 197.0 s "뒤잡기(휘두를 때) → edge … 시작 자리 (5.1,−91.9)로 물러남" 동안 먼저 치기 light×2 피해 0·내 피해 87 (HP 469/742), 206.7 s 같은 자리 (6.2,−93.7)로 물러남 6.1 s 동안 −94 (HP 375/742). 둘 다 254010 애니 추정. 직전 burg-upper 표본 10-06a는 11.6 s −100.
 - 원인: 미확인 — 뒤잡기 자리가 발밑 가장자리라 물러나는 동안 판단 줄이 끊기고 그 사이 맞음. P-49(턱에서 `rule_edge`/footing)와 같은 계열일 수 있음.
 - 해결: 미해결. 같은 자리에서 다시 나오는지 다음 구역 3 실행에서 `hotspots.py`·`blind_report.py --list`로 확인.
+
+### P-52 더러운(커밋 안 된) 실행에서 로그 첫 줄의 settings 해시 ≠ 기록 파일의 해시 (2026-10-09, [win])
+
+- 증상: "Ready to test" (3) `20261009_234512_burg-upper` (`+dirty(1)`) — 로그 첫 줄 `settings e1002b4c`, `<run>.settings.json`·`ab.py`는 `45f9fec7`. 깨끗한 실행(`20261009_230500`)은 둘 다 `27d4bb8a`로 같음.
+- 원인: `runinfo.collect()`가 해시를 낸 뒤 `write()`가 `code.diff_file`(= 실행 이름이 든 파일 이름)을 더하고, 나중 `update()`가 그걸 넣어 해시를 다시 냄. 그래서 첫 줄 해시로 기록을 못 찾고, 같은 diff인 두 실행도 해시가 늘 다름.
+- 해결: `settings_sha1`이 `code.diff_file`은 빼고 셈 (diff 내용은 `diff_sha1`이 이미 담음). `tests/runinfo_test.py`에 "dirty 실행 update() 뒤 해시 = 첫 줄 해시" (옛 코드로는 FAIL). 이미 있는 dirty 기록은 하나뿐(이 확인 실행).

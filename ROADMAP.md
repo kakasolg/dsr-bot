@@ -31,7 +31,6 @@ Bot already clears cell → Undead Burg bonfire in one run (10-03e). `run.py bur
 10-06 bot runs cleared zones 1–8 one or a few at a time (zone 4 lowest HP 40 %); the `--seg 5-8` run died at the
 zone 8 crossbowmen (P-47).
 
-- [~] [win] **Ready to test (cloud work for proposals 5 + 4 is done, 2026-10-10)** — `git pull`, then: (1) `python run.py burg-upper --seg 3 --ctl-scenes --note "check"` → log's first line `run … · code <commit> · …`, `data/runs/<run>.settings.json` with an `end` block, last log line `ctl scenes: …` (2) `python scene_replay.py data/runs/<run>.ctl.jsonl` → 100 % same rule (note the file size) (3) edit one line, run again (any short seg) → first line `+dirty(1)` and a `<run>.diff` (4) `python sample.py` then `python ab.py <run1> <run2>` → warns on `code.dirty` (5) the usual `hotspots.py` / `track_report.py` / `blind_report.py` show the run's code at the top. Write the result here or as `[board→cloud]`. — **2026-10-09 [win]: (1) ok** — `20261009_230500_burg-upper` (HP 742 save, `--seg 1-3`, all cleared): first line `code d2a3312 · … · settings 27d4bb8a · note check hp742`, settings `end` {cleared, 215.1 s}, `ctl scenes: scenes kept 29, errors 0, capture 68 ms`; **(2) 97 % → fixed to 100 %** (P-50: replay `face()` stub; `.ctl.jsonl` 1.37 MB for 215 s); (5) hotspots/track_report/blind_report show the code line; (3)(4) not yet
 - [ ] [win] Zone 8: at the ladder top **roll twice** away from the two crossbowmen, then fight (MoKa 10-06) → P-47
 - [ ] [cloud]+[win] Taurus: bridge F9#7 calls the boss → run to ladder, climb → **gold pine resin** → plunge (~40 % of boss HP) → ~4 light attacks, keep stamina > 0; start with ≥ 1 Estus (MoKa 10-06)
 - [ ] [cloud] Firebomb hollow "close in fast" rule — unless the way there is a fall-risk zone (ledge 254012 is ignored) → check with `duel_golden_test`
@@ -140,6 +139,7 @@ Full entries: `docs/roadmap/problems.md`. Status: **open** · **parked** · **de
 | 49 | Ramp ledge (−22,−40,13): knocked off 3× fighting the axe hollow, standing off-mesh; `rule_edge` only raised the shield | open → design-floor-check |
 | 50 | `scene_replay` fake `face()` always True → a 42.5° scene replayed as `finish_first` (97 %) | fixed |
 | 51 | `burg-upper` zone 3 (5,−92): hit twice while backing off the edge after backstabs, −181 | open |
+| 52 | Dirty run: first log line's settings hash ≠ the record's (`code.diff_file` was hashed) | fixed |
 
 ## 4. Relay — [cloud] ↔ board
 
@@ -163,6 +163,8 @@ to the bottom of `docs/roadmap/relay.md`.
 - 2026-10-10 [cloud→board] → moved (section 1 "Ready to test") **[win] please `git pull`**: `run.py --ctl-scenes` (implies `--ctl`) records each fight decision's exact input; `python scene_replay.py data/runs/<run>.ctl.jsonl` replays them. Check once: section 2 item "[win] One run with `--ctl-scenes`". Off by default; nothing in fights changes.
 
 - 2026-10-10 [cloud→board] **[win]: cloud side is done — go ahead.** One checklist in section 1 ("Ready to test"), one or two short runs. Fights and walking are unchanged (records and tools only); pytest 75 green on `c68d365`+.
+
+- 2026-10-09 [board→cloud] **"Ready to test" done** ([win], HP 742 save; item moved to `docs/roadmap/plan.md` 1-m). Two fixes in your tools, please pull before touching them: P-50 `scene_replay.Mv.face()` now answers like `Moves.face` (a 42.5° scene replayed as `finish_first`; fixture `tests/expect/scene_after_swing_42deg.json`), P-52 `runinfo.settings_sha1` leaves out `code.diff_file` (dirty run: first line e1002b4c ≠ record 45f9fec7). New open P-51 (zone 3 edge retreat −181). Next [win]: A/B `--ground`.
 
 ## 5. Change log (newest first; older entries in `docs/roadmap/changelog.md`)
 

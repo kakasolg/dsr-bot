@@ -143,6 +143,9 @@ def game(tm=None, mv=None, weapon=None) -> dict:
 def settings_sha1(d: dict) -> str:
     """Hash of what decides behaviour — code, arguments, constants, data (not the time, the character or the end)."""
     key = {k: d.get(k) for k in ("code", "args", "constants", "data")}
+    if isinstance(key["code"], dict):              # diff_file is the run's own file name (write() adds it after the first
+        key["code"] = {k: v for k, v in key["code"].items() if k != "diff_file"}   # line) — diff_sha1 already covers the diff
+    return _sha1(json.dumps(key, sort_keys=True, ensure_ascii=False).encode("utf-8"))
     return _sha1(json.dumps(key, sort_keys=True, ensure_ascii=False).encode("utf-8"))
 
 
