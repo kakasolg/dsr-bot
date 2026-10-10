@@ -32,6 +32,10 @@
   boss experiments · `legacy/` = old code. The bot must not import from `experiments/` or `legacy/` (P-15, P-43).
 - Fight rules (`souls/duel.py` `RULES`) fire top-down, first match wins. After changing a rule or the order,
   `python tests/duel_golden_test.py` shows which situations changed; if intended, re-record with `--record` and say why in the commit message.
+- `python tests/duel_expect_test.py` checks the rules against scenes MoKa judged (`tests/expect/duel.jsonl`: situation +
+  allowed / forbidden tactics + source; status `pass` · `known_fail:P-n` · `review`). golden = "changed?", this = "right?".
+  A new MoKa instruction about fighting → add 2–5 scenes (source.kind `moka`, quote it) in the same commit as the rule change;
+  when a decision closes a `known_fail`, set those lines to `pass`. `python tests/scene_world.py labels` drafts lines from labels.
 - Game-memory writes (invincible, invisible, warp) are for offline use only.
 - Rule and number sources: LAYERS.md. Record formats: OBSERVE.md.
 

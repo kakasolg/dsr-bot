@@ -40,7 +40,8 @@ zone 8 crossbowmen (P-47).
 ## 2. Open by area
 
 **Fight rules / reflexes (1-j: "basic reflexes done right", MoKa 10-02)**
-- [~] [cloud] Scene expectations (proposal 4, `docs/design-scene-expectations.md`) — MoKa 2026-10-09: start implementing. Steps 1–2: `tests/scene_world.py`, `tests/expect/duel.jsonl`, `duel_expect_test`, label drafts
+- [~] [cloud] Scene expectations (proposal 4, `docs/design-scene-expectations.md`) — steps 1–2 done 2026-10-09: `tests/scene_world.py`, `tests/duel_expect_test.py`, `tests/expect/duel.jsonl` 48 scenes (13 from MoKa instructions / P-31 / P-33, 35 from blind labels whose rebuild = the bot's own choice): pass 34 · known_fail P-33 9 · P-31 1 · review 4; catches 4/4 deliberate rule breaks. Next: step 3 `--ctl-scenes` (exact bot input), `label_pilot` reads settings
+- [ ] [MoKa] Skim `tests/expect/duel.jsonl` label lines (10 min) and the 4 `review` scenes: idle hollow 8.7–8.9 m (you: hold/reposition, bot approached) ×2, swing at 2.2 m (you: reposition, bot guarded), 'other' anim 2.0 m (you: attack/guard, bot approached)
 - [~] [cloud] One floor check (proposal 3, P-49): design drafted `docs/design-floor-check.md`; waits for MoKa (§7)
 - [~] [cloud] Multi-foe = spot choice (analysis proposal 1): design drafted `docs/design-multi-foe-spot.md`; step 1 (measure only) waits for MoKa's answers (§8)
 - [~] [win] P-32 axe hollow `AXE_HOLLOW` guard — game check on the ramp (needs MoKa's go)
@@ -154,6 +155,8 @@ to the bottom of `docs/roadmap/relay.md`.
 - 2026-10-09 [cloud→board] Proposal 5 design draft: `docs/design-run-settings.md`. Found: of 115 sample logs, 0 carry a commit and 0 the arguments; only 8 keep the time of day in their name. Of those 8 (10-06 evening), the 20:03:35 and 20:07:29 runs ran **uncommitted** edits (zone 5 `wait` removed, zone 8 fog step restored — committed later as `cc0d272`), so matching by time would name the wrong commit. Arguments matter: the same 87 labelled scenes score 31 % vs 56 % depending on `--basic`. Plan: `<run>.settings.json` (commit, dirty + diff, argv, ~250 constants after flags ≈ 5 KB, data hashes, game state, `--note`), first log line, `fight_id`/`zone`, `sample.py` (keep the timestamp), `ab.py` (warn when more than the intended setting differs). **[MoKa] decide** §7: (1) where the uncommitted diff goes (public repo) (2) sample naming `<stamp>_<cmd>[_name]` (3) game state in a public file (4) record-only for dirty runs.
 
 - 2026-10-09 [cloud→board] **[win] please `git pull`**: run settings record is in (`runinfo.py`). Every `python run.py …` now writes `data/runs/<run>.settings.json` and starts the log with `run … · code <commit>[+dirty(n)] · <args>`. After a run copy it with `python sample.py [<run>] [name]` (replaces the hand copy in CLAUDE.md). Check once: section 2 item "[win] After `git pull`: one short run …". Nothing in fights or walking changed.
+
+- 2026-10-10 [cloud→board] Scene expectations are in: `python tests/duel_expect_test.py` (also in pytest) checks the fight rules against 48 scenes MoKa judged (`tests/expect/duel.jsonl`). From now on a fighting instruction from MoKa → 2–5 scenes in the same commit as the rule change (CLAUDE.md "Code and tests"). P-33 has 9 scenes and P-31 one waiting as `known_fail` — when MoKa decides, flip them to `pass`. **[MoKa]**: section 2 item "Skim … the 4 review scenes".
 
 ## 5. Change log (newest first; older entries in `docs/roadmap/changelog.md`)
 

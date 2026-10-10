@@ -118,6 +118,16 @@ NavMesh·arena·에스트·휘두른 지 몇 초·옆 적 둘 이상은 재구�
 4. [win] `--ctl-scenes`로 경사로·위 마을 한 번씩 → [MoKa] 라벨 페이지에서 30~50개 (LAYA.md의 300 라벨 계획을 이 형식으로).
 5. 앞으로 [MoKa] 지시마다: 규칙 바꾸는 커밋에 장면 2~5개를 같이 (CLAUDE.md "Code and tests"에 한 줄 추가 제안).
 
+### 구현 상태 (2026-10-09 [cloud], [MoKa] "제안 4번도 구현 시작")
+- 단계 1·2 완료: `tests/scene_world.py`(장면 → `duel()`, golden의 가짜 Mv·Reflex 재사용 — golden 코드는 안 건드림, 설계의 "golden이 scene_world를 부름"은 하지 않음),
+  `tests/duel_expect_test.py`, `tests/expect/duel.jsonl` 48장면. 라벨 초안은 `label_pilot.py expect` 대신 `python tests/scene_world.py labels`(테스트 쪽 코드라 루트 도구가 tests를 가져오지 않게).
+- 장면: [MoKa] 지시·문제 13개(휘두름 끝 공격 2 · 둘이면 뒤잡기 안 함 + 대조 · 방향 먼저 · 막기 · 기다리기 · 방패병 발차기 · 마무리 · 도끼 망자·창 방패병 늦은 windup · P-33 · P-31) +
+  blind 라벨 35개(boundary, 재구성 = 그때 봇 선택인 장면만, `--basic` 설정 — a1~a3 실행 기록 1-i). ramp 24개는 넣지 않음(§3.5).
+- 결과: pass 34 · known_fail:P-33 9 · known_fail:P-31 1 · `review` 4(봇과 [MoKa]가 다른데 맞는 문제 번호 없음 — known_fail처럼 실패가 맞음으로 셈).
+- 일부러 망가뜨려 봄: `NO_BACKSTAB_N` 99 · `rule_face_first` 뺌 · `rule_after_swing` 뺌 → 각 장면 FAIL, `rule_stagger_punish` 끔 → P-33 장면 하나가 "NOW PASSES"로 알림.
+- §7 답 전 기본값: ① `known_fail` 씀 ② (P-33 결정 대기 — 장면은 known_fail로) ③ ramp 라벨 안 넣음 ④ `--ctl-scenes`는 아직 없음(단계 3).
+- 한계 확인: 255001·도끼 망자 3004 **이른** windup(1.0 s 안 → 발차기?)은 가짜 반사가 먼저 막아 재구성으로 판정 못 함 → 넣지 않음, 단계 3 장면으로.
+
 ## 7. [MoKa] 결정할 것
 1. 기대값 파일을 테스트에 넣는 것 — `known_fail`(결정 대기 중인 문제는 실패가 맞음으로 표시)이 있어도 되는지.
 2. **휘청(3500) 뒤에 언제 치고 언제 막는지** — 라벨 45개가 반반(§2-c)이고 10-06 "끝나면 무조건 공격"과도 부딪힘. 예: "내 막기에 튕긴 휘청은
