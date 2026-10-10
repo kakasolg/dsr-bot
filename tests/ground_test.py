@@ -71,6 +71,13 @@ def main() -> None:
     check("leave-one-run-out: run a's cells gone, run b's kept", g2.floor_at(1.1, 0.0, 0.0) == (-16.0, 0) and g2.floor_at(5.0, 0.0, 0.0) == (0.0, 0))
     check("no walked data: behaves exactly like the NavMesh", ground.Ground(Nm(), None).floor_at(1.1, 0.0, 0.0) == (-16.0, 0))
 
+    check("Field._walk keeps the 'check floor at all?' call on the NavMesh (Ground.nm)",
+          getattr(g, "nm", g).floor_at(1.1, 0.0, 0.0) == (-16.0, 0) and getattr(Nm(), "nm", None) is None)
+
+    import scenes
+    rec = {"nm": getattr(g, "map_id", None), "ground": type(g).__name__ == "Ground"}
+    check("scenes record whether the run read floor through Ground (--ground)", rec == {"nm": "fake", "ground": True})
+
     fr = [("r", 0.0, 0, 0, 0, -1, 500), ("r", 0.5, 1, 0, 0, -1, 500), ("r", 1.0, 2, 0, 0, -1, 500),   # standing
           ("r", 1.5, 3, -4, 0, -1, 500), ("r", 2.0, 3, -8, 0, 1550, 500), ("r", 2.5, 3, -8, 0, -1, 0)]   # falls, dies
     check("standing(): the frame before a drop, mid-fall, fall anims and dead frames are left out",

@@ -147,6 +147,16 @@ P-47) · `passage-drill`(지도 C가 통로 입구 멈칫을 줄이는지). 비�
 - **봇엔 아직 안 연결** ([win]이 제안 4·5 확인 중 — 동작 바뀌는 것을 섞지 않음). 다음: `run.py --ground`(걷기·싸움의 `terrain`/`nm` = `Ground`, 기본 꺼짐) → [win] `passage-drill` A/B(통로 입구 멈칫 §2-d),
   그 뒤 A `rule_footing`(§7 결정 필요). 새 기록이 쌓이면 `python ground.py build`로 다시.
 
+### 구현 상태 — `--ground` (2026-10-10 [cloud])
+- `run.py --ground`(기본 꺼짐): 미션(걷기·싸움)에 넘기는 NavMesh를 `ground.for_map`으로 감쌈. **낙하 감지·턱 되돌림(`watch.Escape`)은 NavMesh 그대로** —
+  봇이 전에 서 있던 턱 끝(P-49)을 바닥으로 보면 미끄러질 때 되돌림이 안 걸릴 수 있어서. 끝에 "걸어 본 자리로 바닥이라 답한 횟수" 한 줄.
+- `Field._walk`가 "이 점에서 바닥 확인을 켤지"는 **원래 NavMesh로** 정함(`getattr(nm, "nm", nm)`): 지도로 정하면 NavMesh 밖 73걸음에서 확인이 새로 켜지고
+  그중 9걸음(수용소 (9,198,−14), 창고 방 (−30,−13,−77))이 막힘 → `--ground`는 잘못된 "바닥 없음"을 줄이기만 하고 새로 막지는 않음.
+- `scenes.py`가 `ground` 여부를 기록, `scene_replay.py`가 같은 지도로 재생.
+- 하네스(`walksim`, 통로 입구 6번씩): 고치기 전 경로 입구 멈칫 NavMesh **11.6~13.7 s → `--ground` 1.6~2.1 s**(게임에서 잰 1.8~4.4 s와 같은 크기 — §2-d 의심을 뒷받침),
+  고친 뒤 경로 3.8 s 그대로, 낙하 0. 한계: 하네스 바닥 보충도 같은 기록이라 판정은 [win] A/B.
+- 테스트: `tests/ground_test.py`, `tests/run_stop_test.py`(`--ground`이면 미션은 Ground, Escape는 NavMesh, settings에 `args.ground`).
+
 ## 7. [MoKa] 결정할 것
 1. 발밑이 위험하면 **적이 휘두르는 중에도** 방패 든 채 한 걸음 옮기는 것 — 그 걸음 동안 맞을 수 있음 (지금은 공격 중엔 안 움직임).
 2. `rule_footing`의 순서: 제안은 `rule_after_swing`(휘두름 끝나면 무조건 공격, 10-06) **앞** — 턱 끝에선 치기보다 자리 먼저. 뒤로 미루면 턱 끝에서도 먼저 침.

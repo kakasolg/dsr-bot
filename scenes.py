@@ -87,6 +87,7 @@ def capture(F, T) -> dict:
                                                "prefer": getattr(rf, "prefer", None)},
             "care": None if care is None else {"wants": wants},
             "nm": getattr(F.nm, "map_id", None) if F.nm is not None else None,
+            "ground": type(F.nm).__name__ == "Ground",       # run.py --ground: floor checks read NavMesh + walked cells
             "flags": {k: getattr(D, k) for k in ("BACKSTAB", "HEAVY", "BACKSTAB_ONLY")}}
 
 

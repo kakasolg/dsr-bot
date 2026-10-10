@@ -1537,8 +1537,10 @@ class Field:
                     mover.stop()
                     self._fog_cross(fog, (s.player.x, s.player.y, s.player.z), q, nm, tag)
                     continue
-                f_q = nm.floor_at(q[0], q[2], q[1]) if len(q) > 2 else None
-                f_p = nm.floor_at(s.player.x, s.player.z, s.player.y)
+                base = getattr(nm, "nm", None)              # run.py --ground: whether to check floor at all stays the NavMesh's call
+                base = base if hasattr(base, "floor_at") else nm   # (a plain NavMesh / test fake: itself)
+                f_q = base.floor_at(q[0], q[2], q[1]) if len(q) > 2 else None   # (73 off-mesh steps would newly be checked, 9 blocked — 2026-10-10)
+                f_p = base.floor_at(s.player.x, s.player.z, s.player.y)
                 terr = nm if (f_q is not None and abs(f_q[0] - q[1]) < 2.0 and f_p is not None and abs(f_p[0] - s.player.y) < 2.0) else None
                 g0 = self.esc.gen
 

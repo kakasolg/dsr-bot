@@ -7,7 +7,7 @@ radar values, the bot's own input as it was (docs/design-scene-expectations.md 3
 replay(rec) → the rule that acts now. The Moves calls are faked (nothing moves), helpers that run their own loops
 (backstab, approach, separate, back-to-safe) only report that they were called, time.sleep is skipped. The reflex fires
 exactly when it fired then (rule "reflex") — what it does inside isn't replayed. NavMesh: the map's npz from
-data/samples/ when the scene names one (navmesh_<map>.npz), else none.
+data/samples/ when the scene names one (navmesh_<map>.npz), else none; wrapped in ground.Ground when the run used --ground.
 """
 from __future__ import annotations
 
@@ -143,7 +143,11 @@ def replay(rec: dict) -> str | None:
     F = D.Fight.__new__(D.Fight)
     for k, v in rec["fight"].items():
         setattr(F, k, scenes.restore(v, now))
-    F.mv, F.nm, F.log, F.cancel = mv, _navmesh(rec.get("nm")), (lambda *a: None), (lambda: False)
+    nm = _navmesh(rec.get("nm"))
+    if nm is not None and rec.get("ground"):               # the run used --ground: the same floor map
+        import ground
+        nm = ground.for_map(nm)
+    F.mv, F.nm, F.log, F.cancel = mv, nm, (lambda *a: None), (lambda: False)
     F.weapon, F.style = _weapon(rec.get("weapon")), style_.of(rec.get("style") or "guard")
     F.reflex = Reflex(rec.get("reflex"), rec.get("rule") == "reflex", now) if rec.get("reflex") is not None else None
     F.care = Care(rec["care"]["wants"]) if rec.get("care") is not None else None

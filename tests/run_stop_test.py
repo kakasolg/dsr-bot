@@ -6,6 +6,7 @@ Checks:
     ledge nudges are switched off for the cleanup; camera follow is stopped; a user_stop event is written
   · other exceptions: unchanged — Escape.fire(..., "shake") as before
   · every path: the last pad call is neutral and it comes before the bot lock's release, even if cleanup raises
+  · --ground: missions (walks, fights) read floor through ground.Ground, the fall / ledge watch keeps the plain NavMesh
   · runinfo: the first log line is the run's settings line and <run>.settings.json gets its end result on every path
 """
 from __future__ import annotations
@@ -64,6 +65,7 @@ class FakeEsc:
 
     def __init__(self, pad, nms, log=None, events=None):
         self.escaping, self.quit_ok, self.nudge_ok = False, True, True
+        self.nms = nms
         FakeEsc.last = self
 
     def start(self): return self
@@ -100,8 +102,10 @@ class FakeBox:
 
 class FakeMissions:
     exc: BaseException | None = None
+    nms = None
 
-    def __init__(self, *a, **k): pass
+    def __init__(self, fld=None, nms=None, *a, **k):
+        FakeMissions.nms = nms
 
     def to_merchant(self):
         TRACE.append("mission")
@@ -129,10 +133,10 @@ def install(tmp: Path) -> None:
     botlock.BotLock = FakeLock
 
 
-def go(exc: BaseException, boom: bool = False) -> BaseException | None:
+def go(exc: BaseException, boom: bool = False, extra=()) -> BaseException | None:
     TRACE.clear()
     FakeMissions.exc, FakeBox.boom = exc, boom
-    sys.argv = ["run.py", "merchant"]
+    sys.argv = ["run.py", "merchant", *extra]
     try:
         run.main()
     except BaseException as e:                    # noqa: BLE001 — the test wants to see whatever main lets out
@@ -191,6 +195,12 @@ def main() -> None:
     check("정리 실패: 그래도 neutral → 잠금 풀기", "lock.release" in TRACE and final_order_ok())
     check("정리 실패: fire 안 부름", not any(isinstance(x, tuple) and x[0] == "fire" for x in TRACE))
     check("정리 실패: 실행 설정 끝 기록은 그래도 남음", ((settings(tmp) or {}).get("end") or {}).get("result") == "user_stop")
+    # 4) --ground: walks and fights get ground.Ground, the fall / ledge watch keeps the plain NavMesh
+    e = go(KeyboardInterrupt(), extra=("--ground",))
+    check("--ground: missions get Ground, Escape the plain NavMesh",
+          FakeMissions.nms and all(type(v).__name__ == "Ground" for v in FakeMissions.nms.values())
+          and FakeEsc.last.nms and all(type(v).__name__ != "Ground" for v in FakeEsc.last.nms))
+    check("--ground: recorded in the settings (args.ground)", ((settings(tmp) or {}).get("args") or {}).get("ground") is True)
     print("run_stop_test: 전부 통과")
 
 

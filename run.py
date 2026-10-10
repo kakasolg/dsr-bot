@@ -103,6 +103,9 @@ def main() -> None:
                     help="P1: controller timing events → data/runs/<시각>_<명령>.ctl.jsonl (ctl.py) — 기본 꺼짐. 기록만, 패드·규칙엔 반영 안 함")
     ap.add_argument("--ctl-scenes", action="store_true",
                     help="--ctl 에 더해 싸움 결정마다 그 순간의 입력을 .ctl.jsonl 에 'scene' 으로 (scenes.py) — python scene_replay.py 로 다시 돌림. 기록만")
+    ap.add_argument("--ground", action="store_true",
+                    help="걷기·싸움의 바닥 확인에 NavMesh + 걸어 본 자리(ground.py, data/walked/) — 통로·다리 아치처럼 NavMesh가 빈 곳을 낭떠러지로 안 봄. "
+                         "낙하 감지·턱 되돌림(watch)은 NavMesh 그대로. 기본 꺼짐 (A/B용)")
     ap.add_argument("--note", default=None, help="한 줄 메모 — 실행 설정 기록(<run>.settings.json)과 로그 첫 줄에 남음 (예: 세이브 이름)")
     ap.add_argument("--no-lure", action="store_true", help="나이프로 한 놈씩 깨우지 않고 예전처럼 걸어가 붙는다 (비교용)")
     ap.add_argument("--style", choices=["guard", "backstep", "rush"], default="guard",
@@ -223,7 +226,12 @@ def main() -> None:
     w = weapons.of(tm.right_weapon())
     mv.weapon = w
     log(f"무기: {w.name} (약공 {w.combo}연타, 닿는 거리 {w.reach} m, 강공 {'씀' if w.use_heavy else '안 씀'})")
-    esc = Escape(pad, list(nms.values()), log=log, events=log.event)
+    esc = Escape(pad, list(nms.values()), log=log, events=log.event)   # fall / ledge watch: always the plain NavMesh (also with --ground)
+    if a.ground:                                            # walks and fights read floor through the walked-cell map (design-floor-check §3-C)
+        import ground
+        nms = {k: ground.for_map(v) for k, v in nms.items()}
+        log("ground: 바닥 확인 = NavMesh + 걸어 본 자리 (" + ", ".join(f"{k} {len(g.walked)}칸" for k, g in nms.items())
+            + ") — 낙하 감지는 NavMesh 그대로")
     esc.quit_ok = not a.no_quit
     if a.no_quit:
         import os
@@ -387,6 +395,8 @@ def main() -> None:
                 log(f"attack audit: {audit_tap.close()}")
             if scene_tap is not None:
                 log(f"ctl scenes: {scene_tap.summary()}")
+            if a.ground:
+                log("ground: 걸어 본 자리로 바닥이라 답한 횟수 " + ", ".join(f"{k} {getattr(g, 'filled', 0)}" for k, g in nms.items()))
             if laya_ch is not None:
                 adv = getattr(fld, "advisor", None)
                 log(f"laya shadow: {laya_ch.close()}" + (f" · advisor 오류 {adv.errors} ({adv.last_error})" if adv and adv.errors else ""))
