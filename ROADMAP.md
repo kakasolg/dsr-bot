@@ -112,7 +112,7 @@ Full entries: `docs/roadmap/problems.md`. Status: **open** · **parked** · **de
 | 22 | Throwing knife not in a quick slot → lure always fails | fixed (start check) |
 | 23 | Read weapon slot 1 instead of the held weapon | fixed |
 | 24 | `--no-lure` ignored by `burg-bonfire`; `no_knife` retried | fixed |
-| 25 | Killed foes come back after a quit-out (game bug, sometimes) | open (partly handled) |
+| 25 | Killed foes come back after a quit-out — 7 of 11 byte quit-outs (`ChrClassWarp+0x19`, no menu save?) | open → test byte vs menu |
 | 26 | Crowd retreat broke every 1–2 s, 16 times, 0 attacks | open (`CROWD_FALL_BACK` off, capped) |
 | 27 | Asylum: bot idle between segments got hit; died beside a foe | fixed |
 | 28 | Asylum: same 3 stall spots (self-recovered) | open |
