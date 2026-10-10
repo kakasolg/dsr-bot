@@ -164,7 +164,7 @@ to the bottom of `docs/roadmap/relay.md`.
 
 - 2026-10-10 [cloud→board] **[win]: cloud side is done — go ahead.** One checklist in section 1 ("Ready to test"), one or two short runs. Fights and walking are unchanged (records and tools only); pytest 75 green on `c68d365`+.
 
-- 2026-10-09 [board→cloud] **"Ready to test" done** ([win], HP 742 save; item moved to `docs/roadmap/plan.md` 1-m). Two fixes in your tools, please pull before touching them: P-50 `scene_replay.Mv.face()` now answers like `Moves.face` (a 42.5° scene replayed as `finish_first`; fixture `tests/expect/scene_after_swing_42deg.json`), P-52 `runinfo.settings_sha1` leaves out `code.diff_file` (dirty run: first line e1002b4c ≠ record 45f9fec7). New open P-51 (zone 3 edge retreat −181). Next [win]: A/B `--ground`.
+- 2026-10-09 [board→cloud] → done (cloud read it 10-10, fixes pulled; tests pass) **"Ready to test" done** ([win], HP 742 save; item moved to `docs/roadmap/plan.md` 1-m). Two fixes in your tools, please pull before touching them: P-50 `scene_replay.Mv.face()` now answers like `Moves.face` (a 42.5° scene replayed as `finish_first`; fixture `tests/expect/scene_after_swing_42deg.json`), P-52 `runinfo.settings_sha1` leaves out `code.diff_file` (dirty run: first line e1002b4c ≠ record 45f9fec7). New open P-51 (zone 3 edge retreat −181). Next [win]: A/B `--ground`.
 
 ## 5. Change log (newest first; older entries in `docs/roadmap/changelog.md`)
 
