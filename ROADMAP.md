@@ -31,7 +31,7 @@ Bot already clears cell → Undead Burg bonfire in one run (10-03e). `run.py bur
 10-06 bot runs cleared zones 1–8 one or a few at a time (zone 4 lowest HP 40 %); the `--seg 5-8` run died at the
 zone 8 crossbowmen (P-47).
 
-- [ ] [win] **Ready to test (cloud work for proposals 5 + 4 is done, 2026-10-10)** — `git pull`, then: (1) `python run.py burg-upper --seg 3 --ctl-scenes --note "check"` → log's first line `run … · code <commit> · …`, `data/runs/<run>.settings.json` with an `end` block, last log line `ctl scenes: …` (2) `python scene_replay.py data/runs/<run>.ctl.jsonl` → 100 % same rule (note the file size) (3) edit one line, run again (any short seg) → first line `+dirty(1)` and a `<run>.diff` (4) `python sample.py` then `python ab.py <run1> <run2>` → warns on `code.dirty` (5) the usual `hotspots.py` / `track_report.py` / `blind_report.py` show the run's code at the top. Write the result here or as `[board→cloud]`.
+- [~] [win] **Ready to test (cloud work for proposals 5 + 4 is done, 2026-10-10)** — `git pull`, then: (1) `python run.py burg-upper --seg 3 --ctl-scenes --note "check"` → log's first line `run … · code <commit> · …`, `data/runs/<run>.settings.json` with an `end` block, last log line `ctl scenes: …` (2) `python scene_replay.py data/runs/<run>.ctl.jsonl` → 100 % same rule (note the file size) (3) edit one line, run again (any short seg) → first line `+dirty(1)` and a `<run>.diff` (4) `python sample.py` then `python ab.py <run1> <run2>` → warns on `code.dirty` (5) the usual `hotspots.py` / `track_report.py` / `blind_report.py` show the run's code at the top. Write the result here or as `[board→cloud]`. — **2026-10-09 [win]: (1) ok** — `20261009_230500_burg-upper` (HP 742 save, `--seg 1-3`, all cleared): first line `code d2a3312 · … · settings 27d4bb8a · note check hp742`, settings `end` {cleared, 215.1 s}, `ctl scenes: scenes kept 29, errors 0, capture 68 ms`; **(2) 97 % → fixed to 100 %** (P-50: replay `face()` stub; `.ctl.jsonl` 1.37 MB for 215 s); (5) hotspots/track_report/blind_report show the code line; (3)(4) not yet
 - [ ] [win] Zone 8: at the ladder top **roll twice** away from the two crossbowmen, then fight (MoKa 10-06) → P-47
 - [ ] [cloud]+[win] Taurus: bridge F9#7 calls the boss → run to ladder, climb → **gold pine resin** → plunge (~40 % of boss HP) → ~4 light attacks, keep stamina > 0; start with ≥ 1 Estus (MoKa 10-06)
 - [ ] [cloud] Firebomb hollow "close in fast" rule — unless the way there is a fall-risk zone (ledge 254012 is ignored) → check with `duel_golden_test`
@@ -138,6 +138,8 @@ Full entries: `docs/roadmap/problems.md`. Status: **open** · **parked** · **de
 | 47 | "HP low" 0 s fight loops; zone 8 death; 'cleared' with survivors | partly fixed; zone 8 → section 1 |
 | 48 | 6-a "48 % of sharp corners cut inside" is a 2 Hz sampling artifact (10 Hz: 20 %, two places) | open (measure fix) |
 | 49 | Ramp ledge (−22,−40,13): knocked off 3× fighting the axe hollow, standing off-mesh; `rule_edge` only raised the shield | open → design-floor-check |
+| 50 | `scene_replay` fake `face()` always True → a 42.5° scene replayed as `finish_first` (97 %) | fixed |
+| 51 | `burg-upper` zone 3 (5,−92): hit twice while backing off the edge after backstabs, −181 | open |
 
 ## 4. Relay — [cloud] ↔ board
 

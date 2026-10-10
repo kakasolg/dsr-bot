@@ -9,6 +9,7 @@ Checks:
     when its sink raises
   · which decisions are kept: attacks etc. always; a pose rule (block, wait …) only while the target staggers or winds up,
     once per change
+  · a real run's scene whose body was 42.5° off replays to the same rule (the fake face() answers like Moves.face)
   · timestamps / sets / int-keyed dicts survive restore() with a new clock
 """
 from __future__ import annotations
@@ -95,6 +96,11 @@ def main() -> None:
         tap.decided(F, T(a), rule, D.CONT)
     check("pose rule kept only in a stagger / windup and once per change; attacks always",
           [k["rule"] for k in kept] == ["block", "wait_far", "block", "attack"])
+
+    # 2026-10-09 burg-upper run: body 42.5° off an HP 11 foe — the game's face(deg=30) said no, so finish_first passed and
+    # after_swing (deg 45) acted; a replay whose face() always says yes picked finish_first
+    rec = json.loads((_pl.Path(__file__).resolve().parent / "expect" / "scene_after_swing_42deg.json").read_text(encoding="utf-8"))
+    check(f"real scene, body 42.5° off: replay face() answers like Moves.face → {R.replay(rec)}", R.replay(rec) == "after_swing")
 
     now = 2_000_000_000.0
     v = scenes._plain({"t": now - 1.5, "s": {3, 4}, "d": {7: (1.0, now - 0.2)}, "x": [now + 2]}, now)

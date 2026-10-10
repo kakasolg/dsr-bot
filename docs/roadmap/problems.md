@@ -424,3 +424,15 @@ New problems still go here (append at the bottom) and get a one-line row in ROAD
 - 원인: 10-06a 84~91 s 봇은 **7 s 동안 NavMesh 밖**(`floor_at` 없음)에 서서 싸움. `nav.footing` 0.25~0.33(기준 0.6) → `rule_edge`가 걸렸지만(`가장자리방어×1`) arena로 가지 않는 경우엔 **방패 들고 적을 보기만** 함 — `footing`이 낸 안전한 방향 (0.87, 0.5)은 안 씀. `rule_edge`는 적이 공격 중이면 안 돌고 3 s에 한 번뿐인데 도끼 망자는 3003·3043을 이어서 휘두름. 적 → 나 방향(밀리는 쪽) 1.5 m엔 바닥 없음. 09-28도 같은 모양.
 - 같은 계열: 싸움 중 NavMesh 밖 시간은 전체의 2 %(62 s)인데 초당 받은 피해 21.6(위는 11.7), 의도치 않은 낙하 5번 중 3번. 구역 8 사다리 꼭대기(P-47 사망)도 NavMesh 밖 싸움 자리.
 - 해결: 미해결 — 설계 `docs/design-floor-check.md` §3-A (`rule_footing`: 발밑이 위험하면 안전한 방향으로 한 걸음/구르기), [MoKa] 결정 대기.
+
+### P-50 `scene_replay.py` 가짜 `face()`가 늘 True — 몸이 30° 넘게 돌아간 장면이 다른 규칙으로 재생됨 (2026-10-09, [win])
+
+- 증상: "Ready to test" (2) 첫 실제 확인 `20261009_230500_burg-upper` (HP 742, `--seg 1-3 --ctl-scenes`)에서 29 장면 중 28 (97 %)만 같은 규칙 — 장면 3: 그때 `after_swing` → 지금 `finish_first`. 같은 커밋 `d2a3312`, 같은 입력.
+- 원인: 장면 3은 HP 11 적을 몸이 **42.5°** 벗어난 채 봄. 게임에선 `rule_finish_first`의 `F.mv.face(deg=30)`가 False(돌기만) → 통과, 다음 `rule_after_swing`의 `face(deg=45)`가 True → 침. 재생용 `scene_replay.Mv.face()`는 늘 True라 `finish_first`가 먼저 걸림. 봇 판단은 바뀌지 않음 — 재생 도구 결함.
+- 해결: `Mv.face()`가 `Moves.face`와 같은 답(heading·cam_yaw 없음 또는 `rel_angle` > deg → False). 그 장면을 `tests/expect/scene_after_swing_42deg.json`으로 두고 `tests/scene_replay_test.py`가 확인 (옛 가짜로는 `finish_first`). 다시 재생 29/29 (100 %).
+
+### P-51 `burg-upper` 구역 3 (5,−92) 뒤잡기 뒤 가장자리 물러남 중 두 번 맞음 −181 (2026-10-09, [win])
+
+- 증상: `20261009_230500_burg-upper` (HP 742, 죽지 않음, 구역 1~3 cleared). `blind_report.py`: 판단 공백 40.5 s −269, 그중 edge retreat 3× 10.6 s **−181** — 197.0 s "뒤잡기(휘두를 때) → edge … 시작 자리 (5.1,−91.9)로 물러남" 동안 먼저 치기 light×2 피해 0·내 피해 87 (HP 469/742), 206.7 s 같은 자리 (6.2,−93.7)로 물러남 6.1 s 동안 −94 (HP 375/742). 둘 다 254010 애니 추정. 직전 burg-upper 표본 10-06a는 11.6 s −100.
+- 원인: 미확인 — 뒤잡기 자리가 발밑 가장자리라 물러나는 동안 판단 줄이 끊기고 그 사이 맞음. P-49(턱에서 `rule_edge`/footing)와 같은 계열일 수 있음.
+- 해결: 미해결. 같은 자리에서 다시 나오는지 다음 구역 3 실행에서 `hotspots.py`·`blind_report.py --list`로 확인.

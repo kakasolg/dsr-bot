@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import collections
 import json
+import math
 import sys
 import time
 from pathlib import Path
@@ -65,8 +66,11 @@ class Mv:
         return self._hit("kick", n)
 
     def face(self, s, c, deg=20.0):
+        """Same answer as Moves.face for this snapshot: off by more than deg (or no heading / camera) → False.
+        2026-10-09 run: always-True turned a 42.5° after_swing scene into finish_first (deg 30)."""
         self.calls.append("face")
-        return True
+        p = s.player
+        return p.heading is not None and s.cam_yaw is not None and abs(math.degrees(M.rel_angle(p, c))) <= deg
 
     def stick_to(self, s, x, z, scale=1.0):
         return (0.0, scale)
