@@ -19,6 +19,7 @@ import ctl
 import nav
 
 from . import duel as D
+from . import escape as escape_
 from . import foes as foes_
 from . import moves as M
 from . import props as props_
@@ -199,6 +200,10 @@ WALL_OFF_S = 20.0        # after backing to a wall (or finding none), fight wher
 CROWD_OFF_S = 60.0       # …then fight in place this long (the old 45 % HP retreat still applies) before trying again
 
 
+ESCAPE_PICK = True         # back off toward where the foes are not (souls/escape.py, [MoKa] 2026-10-10: "20m 이내에 적이 어디 있는지
+                           # 파악 하고, 없는 쪽으로 … 보통 진입했던 반대 방향인데, 그것도 체크는 해야지") — False: the old way (path home, roll straight away)
+TRAIL_STEP = 1.0           # walk trail: a point every this many metres (the way we came, for escape)
+TRAIL_MAX = 80
 GROUND_IN_FIGHTS = False   # run.py --ground: walks read floor through ground.Ground; fights / recover / wall-back keep the plain
                            # NavMesh — the A/B on-run death at the P-49 ledge (P-56) changed 109 toward-foe floor answers there
 
@@ -408,14 +413,21 @@ class Field:
         """Quit-out sends foes back to spawn (aggro reset, dead foes stay dead)."""
         return self.esc.fire(why, "shake")
 
-    def retreat(self, nm, home) -> str:
-        """Retreat along the path toward the bonfire — stop once safe (foes go back once out of their aggro range)."""
+    def retreat(self, nm, home, choice=None) -> str:
+        """Back off — toward escape.pick's place when there is one (where the foes are not; usually the way we came), else
+        along the path toward the bonfire — stop once safe (foes go back once out of their aggro range)."""
         s = self.mv.snap(5.0)
-        if s is None or home is None:
+        if s is None or (home is None and (choice is None or choice.point is None)):
             return "no_home"
-        path = nm.find_path((s.player.x, s.player.y, s.player.z), tuple(home)) if nm is not None else None
+        me = (s.player.x, s.player.y, s.player.z)
+        goal = tuple(choice.point) if choice is not None and choice.point is not None else (tuple(home) if home else None)
+        path = nm.find_path(me, goal) if nm is not None else None
+        if not path and goal != (tuple(home) if home else None) and home:
+            goal = tuple(home)
+            path = nm.find_path(me, goal) if nm is not None else None
         if not path:
             return "no_path"                               # (spinning in place → recover returns False → next fight is to-the-end)
+        bonfire, home = home, goal
         t0 = time.time()
         last = [None]
 
@@ -436,8 +448,15 @@ class Field:
             p = sn.player
             return time.time() - t0 > 1.0 and any(awake(c) and (c.anim or -1) in M.ATTACK and M.horiz(p, c) < CHASER_STOP_R
                                                   for c in sn.hostile(CHASER_STOP_R + 1.0))
-        return self.mv.walk_path(nav.trim_path(path[1:], tuple(home)), nm, mode,   # walk, not run: running safety is only a NavMesh estimate (evidence-grade gate, 2026-09-26)
-                                 stop=lambda sn: (time.time() - t0 > 3.0 and clear(sn)) or chased(sn))
+        stop = lambda sn: (time.time() - t0 > 3.0 and clear(sn)) or chased(sn)
+        r = self.mv.walk_path(nav.trim_path(path[1:], tuple(home)), nm, mode, stop=stop)   # walk, not run: running safety is only a NavMesh estimate (evidence-grade gate, 2026-09-26)
+        if r == "arrived" and bonfire and home != tuple(bonfire):   # reached the escape place but not clear yet → on toward the bonfire, as before
+            sn = self.mv.snap(RETREAT_CLEAR_R + 1.0)
+            if sn is not None and not clear(sn):
+                path = nm.find_path((sn.player.x, sn.player.y, sn.player.z), tuple(bonfire))
+                if path:
+                    r = self.mv.walk_path(nav.trim_path(path[1:], tuple(bonfire)), nm, mode, stop=stop)
+        return r
 
     def fall_back(self, nm) -> str:
         """Surrounded (duel 'crowd') — walk back toward home (the way we came: Firelink / the Burg entrance) with the guard up
@@ -525,6 +544,43 @@ class Field:
         near = any(awake(c) and M.horiz(p, c) < RETREAT_GUARD_R and abs(c.y - p.y) < FOLLOW_DY for c in sn.hostile(RETREAT_GUARD_R + 1.0))
         return "guard" if near else "walk"
 
+    def _note_trail(self, sn) -> None:
+        """Where we walked (newest last) — the way we came, for escape.pick."""
+        p = getattr(sn, "player", None)
+        if p is None or p.x is None:
+            return
+        tr = self.__dict__.setdefault("trail", [])
+        q = (p.x, p.y, p.z)
+        if not tr or math.dist(q, tr[-1]) >= TRAIL_STEP:
+            tr.append(q)
+            del tr[:-TRAIL_MAX]
+
+    def _gap(self, nm, s, prefer=None):
+        """escape.gap_dir for where we stand: foes within GAP_R block their side unless they stagger / are down."""
+        p = s.player
+        close = [(c.x, c.z, (c.anim or -1) not in M.STAGGER and (c.anim or -1) not in M.DOWNED)
+                 for c in s.hostile(escape_.GAP_R + 1.0) if awake(c) and M.horiz(p, c) < escape_.GAP_R and abs(c.y - p.y) < FOLLOW_DY]
+        ok = (lambda dx, dz: True) if nm is None else (lambda dx, dz: nav.ground_ahead(nm, p, dx, dz, reach=2.5))
+        return escape_.gap_dir((p.x, p.y, p.z), close, ok, prefer)
+
+    def escape_choice(self, nm, s):
+        """escape.pick for where we stand now (None when ESCAPE_PICK is off or it can't be worked out)."""
+        if not ESCAPE_PICK or nm is None or s is None:
+            return None
+        p = s.player
+        me = (p.x, p.y, p.z)
+        try:
+            foes = [(c.x, c.y, c.z, awake(c) and (c.anim not in (None, -1) or M.horiz(p, c) < 2.0))
+                    for c in s.hostile(escape_.SCAN_R + 2.0) if c.hp > 0]
+            home = nm.find_path(me, tuple(self.home)) if self.home else None
+            ch = escape_.pick(nm, me, foes, list(getattr(self, "trail", [])), home)
+        except Exception as e:
+            self.log(f"   물러날 쪽 계산 실패 ({e!r}) — 예전처럼")
+            return None
+        self.log(f"   {ch.line()}")
+        self.events("escape", src=ch.src, point=ch.point, kept=sum(1 for t in ch.table if t[2] is not None), cands=len(ch.table))
+        return ch
+
     def recover(self, why: str, nm=None) -> bool:
         """When a fight goes wrong. → is it worth continuing
           · if safe, estus up to 90 %
@@ -543,21 +599,42 @@ class Field:
         #  붙은 적이 있으면 그 반대로 한 번 구르고 나서 물러남. 뒤가 낭떠러지면 구르지 않고 그 자리에서 싸움(→ False)
         p = s.player
         stuck_on = [c for c in s.hostile(CHASER_ROLL_R + 1.0) if awake(c) and M.horiz(p, c) < CHASER_ROLL_R and abs(c.y - p.y) < FOLLOW_DY]
+        ch = self.escape_choice(nm, s) if (not self.safe(s) and low and not why.endswith("crowd")) else None
         if not self.safe(s) and low and stuck_on and not why.endswith("crowd"):
+            # ── 빈틈으로 구르기, 없으면 약공으로 틈을 만들기 ([MoKa] 2026-10-10, souls/escape.gap_dir) ──
+            #  "주변에 적이 애워싸면, 빈틈이 있다면 그 방향으로 구르고, 없으면 한 두대 약공 때리고 상대가 틈을 만들어 주면
+            #   그 방향으로 비벼 들어가서 빠져 나가야지." 예전엔 가장 가까운 놈의 반대쪽만 보고, 거기 바닥이 없으면 그 자리에서
+            #  끝까지 싸웠다 (P-46 · P-56 경사로 턱 사망)
+            prefer = ch.point if ch is not None else None
+            dirn, hits = self._gap(nm, s, prefer), 0
+            while dirn is None and hits < escape_.BREAK_HITS:
+                near = [c for c in s.hostile(escape_.GAP_R + 1.0) if awake(c) and M.horiz(s.player, c) < escape_.GAP_R]
+                if not near:
+                    break
+                c = min(near, key=lambda x: M.horiz(s.player, x))
+                hit = self.mv.light(s, c, n=1)
+                hits += 1
+                self.log(f"   {why}: 빈틈 없음 — {c.npc_param} {M.horiz(s.player, c):.1f} m에 약공 ({hits}/{escape_.BREAK_HITS}): "
+                         f"{getattr(hit, 'kind', hit)} 피해 {getattr(hit, 'dmg', '?')}")
+                s = self.mv.snap(15.0) or s
+                dirn = self._gap(nm, s, prefer)
+            p = s.player
             c = min(stuck_on, key=lambda x: M.horiz(p, x))
             d = M.horiz(p, c) or 1.0
-            dx, dz = (p.x - c.x) / d, (p.z - c.z) / d
-            if nm is not None and not nav.ground_ahead(nm, p, dx, dz, reach=2.5):
-                self.log(f"   {why}: {c.npc_param} {d:.1f} m 붙어 있고 뒤에 바닥 없음 — 구르지 않고 그 자리에서 싸움")
+            if dirn is None:
+                self.log(f"   {why}: {c.npc_param} {d:.1f} m 붙어 있고 빠져나갈 빈틈 없음 (약공 {hits}번 뒤) — 그 자리에서 싸움")
                 return False
-            self.log(f"   {why}: {c.npc_param} {d:.1f} m 붙어 있음 — 반대로 구른 뒤 물러남")
+            dx, dz = dirn
+            self.log(f"   {why}: {len(stuck_on)}명 붙어 있음 — 빈틈 쪽 ({math.degrees(math.atan2(dx, dz)):+.0f}°)"
+                     + (f"으로 약공 {hits}번 뒤" if hits else "으로") + " 구른 뒤 물러남")
+            self.events("break_out", hits=hits, foes=len(stuck_on), dir=round(math.degrees(math.atan2(dx, dz))))
             self.mv.roll_toward(s, p.x + dx * 3.0, p.z + dz * 3.0)
             s = self.mv.snap(15.0) or s
         if not self.safe(s) and low and not why.endswith("crowd"):   # crowd: fall_back already split them — fight the one that followed
             # no Darksign — like resting it revives every killed foe (user 2026-09-24) and also loses souls and humanity.
             # worse than dying (after death the bloodstain can recover them). Used while engaged, we sometimes died to hits during its 2~3 s
-            r = self.retreat(nm, self.home)
-            self.log(f"   {why}: 적이 가깝고 HP {s.player.hp} — 화톳불 쪽으로 물러남: {r}")
+            r = self.retreat(nm, self.home, choice=ch)
+            self.log(f"   {why}: 적이 가깝고 HP {s.player.hp} — 물러남: {r}")
         self.heal(0.9, sips=4)
         s = self.mv.snap(5.0)
         return bool(s and s.player.hp >= s.player.max_hp * 0.6)
@@ -1408,6 +1485,7 @@ class Field:
         """_walk's mode_fn: 'retreat' or the walk mode. The same four checks in the same order as before, stopping at the
         first true one — threat_now updates the reflex, and _chaser is not called once threat_now said yes. P1-C: with
         run.py --ctl, which check fired is recorded (record only)."""
+        self._note_trail(sn)
         c = None
         if self.reflex.threat_now(sn):
             why = "threat"

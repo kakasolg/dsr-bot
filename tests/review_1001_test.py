@@ -29,7 +29,7 @@ def _recover_field(hp: int):
     f.recover = types.MethodType(F.Field.recover, f)
     f.safe = lambda s: False
     f.retreats = []
-    f.retreat = lambda nm, home: (f.retreats.append(home), "safe")[1]
+    f.retreat = lambda nm, home, choice=None: (f.retreats.append(home), "safe")[1]
     f.heal = lambda *a, **k: None
     f.home = (0.0, -49.4, -20.0)
     return f

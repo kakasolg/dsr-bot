@@ -11,6 +11,7 @@ _sys.path[:0] = [str(_pl.Path(__file__).resolve().parent.parent), str(_pl.Path(_
 
 import math
 import sys
+import types
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
@@ -167,7 +168,7 @@ def test_recover_rolls_off_a_close_chaser() -> None:
     f = make_field(w)
     rolls = []
     f.mv.roll_toward = lambda s, x, z: rolls.append((round(x, 1), round(z, 1)))
-    f.retreat = lambda nm, home: "stopped"
+    f.retreat = lambda nm, home, choice=None: "stopped"
     f.heal = lambda *a, **k: None
     f.home = (0.0, -49.4, -20.0)
     old = nav_.ground_ahead
@@ -177,10 +178,47 @@ def test_recover_rolls_off_a_close_chaser() -> None:
         assert rolls and rolls[0][1] < 0, rolls                            # away from the foe (it is at +z)
         rolls.clear()
         nav_.ground_ahead = lambda *a, **k: False
+        hits = []
+        f.mv.light = lambda s_, c_, n=1: hits.append(c_.ptr) or types.SimpleNamespace(kind="light", dmg=0)
         assert F.Field.recover(f, "t low_hp", nm=object()) is False and not rolls, rolls
+        assert len(hits) == 2, hits                                        # MoKa 10-10: no way out → a light or two first
     finally:
         nav_.ground_ahead = old
-    print("ok  recover: hollow 0.9 m away → roll away first; drop behind → no roll, fight on (False)")
+    print("ok  recover: hollow 0.9 m away → roll away first; no floor anywhere → two lights, still no gap → fight on (False)")
+
+
+def test_recover_breaks_out_of_a_ring() -> None:
+    """[MoKa] 2026-10-10: surrounded → roll through the gap; no gap → a light or two, and roll out where the hit foe staggers."""
+    import nav as nav_
+    w = World(player=(0.0, -49.4, 0.0), hp=300)
+    w.add(2, 0x1018, 254010, (0.0, -49.4, 1.0), anim=3003)            # front (+z)
+    w.add(3, 0x1019, 254010, (1.0, -49.4, 0.0), anim=3003)            # right (+x)
+    w.add(4, 0x101A, 254010, (-1.0, -49.4, 0.0), anim=3003)           # left
+    f = make_field(w)
+    rolls, hits = [], []
+    f.mv.roll_toward = lambda s, x, z: rolls.append((round(x, 1), round(z, 1)))
+    f.retreat = lambda nm, home, choice=None: "stopped"
+    f.heal = lambda *a, **k: None
+    f.home = (0.0, -49.4, -20.0)
+    old = nav_.ground_ahead
+    try:
+        nav_.ground_ahead = lambda *a, **k: True
+        F.Field.recover(f, "t low_hp", nm=object())
+        assert rolls and rolls[0][1] < -2.0 and abs(rolls[0][0]) < 1.0, rolls   # the open side is behind (−z)
+        rolls.clear()
+        w.add(5, 0x101B, 254010, (0.0, -49.4, -1.0), anim=3003)       # now all four sides
+        def light(s_, c_, n=1):
+            hits.append(c_.ptr)
+            w.chars[c_.ptr].anim = 3500                                 # the hit one staggers — its side opens
+            return types.SimpleNamespace(kind="light", dmg=20)
+        f.mv.light = light
+        F.Field.recover(f, "t low_hp", nm=object())
+        assert len(hits) == 1 and rolls, (hits, rolls)
+        hx, hz = w.chars[hits[0]].x, w.chars[hits[0]].z
+        assert rolls[0][0] * hx + rolls[0][1] * hz > 0, (rolls, hits)    # out through the staggered one's side
+    finally:
+        nav_.ground_ahead = old
+    print("ok  recover in a ring: open side → roll there; closed ring → one light, the hit foe staggers, roll out past it")
 
 
 def test_leg_moves_forward() -> None:
@@ -207,4 +245,5 @@ if __name__ == "__main__":
     test_ignored_foe_on_us_is_a_chaser()
     test_throw_at_another_height()
     test_recover_rolls_off_a_close_chaser()
+    test_recover_breaks_out_of_a_ring()
     print("전부 통과")
