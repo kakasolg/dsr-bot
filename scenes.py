@@ -15,7 +15,7 @@ from __future__ import annotations
 import time
 from dataclasses import asdict
 
-SCHEMA = "dsr-scene-input/0.1"
+SCHEMA = "dsr-scene-input/0.2"   # 0.2: reflex.anim (a fake reflex without _anim leaves it out)
 CHAR_R = 15.0                    # characters within this of us are kept (the rules look at most ~10 m)
 ABS_T = 1e9                      # a float above this in the Fight's state is a wall-clock time → stored relative to now
 SKIP_F = {"mv", "nm", "log", "cancel", "care", "reflex", "style", "weapon", "foe", "last_seen", "shadow", "no_obs",
@@ -84,7 +84,8 @@ def capture(F, T) -> dict:
             "style": getattr(F.style, "name", None),
             "reflex": None if rf is None else {"age": rf.attack_age(F.ptr),
                                                "start": _plain(dict(getattr(rf, "_start", {}) or {}), now),
-                                               "prefer": getattr(rf, "prefer", None)},
+                                               "prefer": getattr(rf, "prefer", None),
+                                               **({"anim": _plain(dict(rf._anim), now)} if hasattr(rf, "_anim") else {})},
             "care": None if care is None else {"wants": wants},
             "nm": getattr(F.nm, "map_id", None) if F.nm is not None else None,
             "ground": type(F.nm).__name__ == "Ground",       # run.py --ground: floor checks read NavMesh + walked cells

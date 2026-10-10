@@ -10,6 +10,8 @@ Checks:
   · which decisions are kept: attacks etc. always; a pose rule (block, wait …) only while the target staggers or winds up,
     once per change
   · a real run's scene whose body was 42.5° off replays to the same rule (the fake face() answers like Moves.face)
+  · a real run's scene where the foe's attack anim changed mid-chain replays to the same rule (the fake reflex restarts the
+    age like Reflex.update)
   · timestamps / sets / int-keyed dicts survive restore() with a new clock
 """
 from __future__ import annotations
@@ -101,6 +103,12 @@ def main() -> None:
     # after_swing (deg 45) acted; a replay whose face() always says yes picked finish_first
     rec = json.loads((_pl.Path(__file__).resolve().parent / "expect" / "scene_after_swing_42deg.json").read_text(encoding="utf-8"))
     check(f"real scene, body 42.5° off: replay face() answers like Moves.face → {R.replay(rec)}", R.replay(rec) == "after_swing")
+    # 2026-10-10 ramp run: the hollow went 3000 → 3002 (3.9 s into the first) — prep_reflex's update() restarted the age, so
+    # prep_linger kept it swinging and backstab_swing acted; a replay reflex with the recorded age fixed picked hit_first.
+    # This record predates the `anim` field, so it also checks the _aprev fallback.
+    rec = json.loads((_pl.Path(__file__).resolve().parent / "expect" / "scene_backstab_swing_new_anim.json").read_text(encoding="utf-8"))
+    check(f"real scene, new attack anim mid-chain: replay reflex restarts the age like Reflex.update → {R.replay(rec)}",
+          R.replay(rec) == "backstab_swing")
 
     now = 2_000_000_000.0
     v = scenes._plain({"t": now - 1.5, "s": {3, 4}, "d": {7: (1.0, now - 0.2)}, "x": [now + 2]}, now)

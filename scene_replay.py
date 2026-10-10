@@ -84,16 +84,43 @@ class Mv:
 
 
 class Reflex:
-    def __init__(self, rec: dict, fired: bool, now: float):
+    """update() / attack_age() as Reflex does: a new attack anim (3000 → 3002 counts) restarts the age inside the tick
+    (prep_reflex). 2026-10-10 ramp run: a fixed age 3.9 s turned a backstab_swing scene into hit_first.
+    Schema 0.1 scenes (before `anim` was recorded): the target's last anim is the Fight's _aprev (the previous tick's).
+    No `anim` in a 0.2 scene = a test's fake reflex: the recorded age as it was."""
+    def __init__(self, rec: dict, fired: bool, now: float, target=None, aprev=None, schema=None):
         r = rec or {}
         self.age, self.fired, self.prefer, self.last_hit = r.get("age"), fired, r.get("prefer"), None
         self._start = scenes.restore(r.get("start") or {"_dict": []}, now)
+        if "anim" in r:                                    # schema 0.2, a real Reflex
+            self._anim = scenes.restore(r["anim"], now)
+        elif schema == "dsr-scene-input/0.1" and target is not None and aprev is not None:
+            self._anim = {target: aprev}                   # 0.1 (real runs only): the previous tick's target anim
+        else:
+            self._anim = None                              # a fake reflex (tests) — its age is fixed
+        # the recorded age was read a few ms after the tick's `now` that start is relative to (1.625 vs 1.582 s next to
+        # SWING_S 1.6) — keep that lag for an attack that doesn't restart
+        st = self._start.get(target)
+        self._lag = self.age - (now - st) if self.age is not None and st is not None else 0.0
+        self._restarted = set()
 
     def update(self, s):
-        pass
+        if self._anim is None:
+            return
+        now = time.time()
+        for c in s.hostile(8.0):
+            a = c.anim if c.anim is not None else -1
+            if a in M.ATTACK and self._anim.get(c.ptr) != a:
+                self._start[c.ptr] = now
+                self._restarted.add(c.ptr)
+            self._anim[c.ptr] = a
 
     def attack_age(self, ptr):
-        return self.age
+        if self._anim is None:
+            return self.age
+        if self._anim.get(ptr) not in M.ATTACK or ptr not in self._start:
+            return None
+        return time.time() - self._start[ptr] + (0.0 if ptr in self._restarted else self._lag)
 
     def tick(self, s):
         return self.fired
@@ -153,7 +180,9 @@ def replay(rec: dict) -> str | None:
         nm = ground.for_map(nm)
     F.mv, F.nm, F.log, F.cancel = mv, nm, (lambda *a: None), (lambda: False)
     F.weapon, F.style = _weapon(rec.get("weapon")), style_.of(rec.get("style") or "guard")
-    F.reflex = Reflex(rec.get("reflex"), rec.get("rule") == "reflex", now) if rec.get("reflex") is not None else None
+    F.reflex = (Reflex(rec.get("reflex"), rec.get("rule") == "reflex", now, rec["tick"]["ptr"], rec["fight"].get("_aprev"),
+                       rec.get("schema"))
+                if rec.get("reflex") is not None else None)
     F.care = Care(rec["care"]["wants"]) if rec.get("care") is not None else None
     F.may_approach, F.acts, F.note_t = None, {}, now
     r = rec.get("res") or {}

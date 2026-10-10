@@ -442,3 +442,21 @@ New problems still go here (append at the bottom) and get a one-line row in ROAD
 - 증상: "Ready to test" (3) `20261009_234512_burg-upper` (`+dirty(1)`) — 로그 첫 줄 `settings e1002b4c`, `<run>.settings.json`·`ab.py`는 `45f9fec7`. 깨끗한 실행(`20261009_230500`)은 둘 다 `27d4bb8a`로 같음.
 - 원인: `runinfo.collect()`가 해시를 낸 뒤 `write()`가 `code.diff_file`(= 실행 이름이 든 파일 이름)을 더하고, 나중 `update()`가 그걸 넣어 해시를 다시 냄. 그래서 첫 줄 해시로 기록을 못 찾고, 같은 diff인 두 실행도 해시가 늘 다름.
 - 해결: `settings_sha1`이 `code.diff_file`은 빼고 셈 (diff 내용은 `diff_sha1`이 이미 담음). `tests/runinfo_test.py`에 "dirty 실행 update() 뒤 해시 = 첫 줄 해시" (옛 코드로는 FAIL). 이미 있는 dirty 기록은 하나뿐(이 확인 실행).
+
+### P-53 `burg-upper` 구역 1 (−1.9,−14.1,−70.2): 맞은 뒤 4 m 낙하 → 퀵 종료로 회복 (2026-10-09, [win])
+
+- 증상: `20261009_234512_burg-upper` (HP 742, `--seg 1`, 결과 cleared) 111.1 s 254010 애니 3005에 −109 (HP 501), 116.6 s "퀵 종료: 낙사 (바닥 모름, 0.8 s 에 4.0 m)" → 6.4 s 뒤 다시 불러와 0.5 m 옆에서 이어 감. 102.0 ~ 111.1 s 판단 줄 없음. 위험 판정 "위험 … 강종×1(fall)". `hotspots.py`는 걷기 문제로 안 잡음.
+- 원인: 미확인 — 구역 1 안전 자리 근처 턱에서 싸우다 밀렸을 가능성 (P-49와 같은 계열, 같은 실행에서 "뒤잡기 뒤 발밑 가장자리" 물러남도 있음).
+- 해결: 미해결. 다음 구역 1 실행에서 같은 자리면 문제 키움; `--ground` A/B 뒤 `rule_footing`(설계 3-A)과 같이 볼 것.
+
+### P-54 `scene_replay.py` 가짜 반사가 나이를 고정 — 싸움 중 공격 애니가 바뀐(3000→3002) 장면이 다른 규칙으로 재생됨 (2026-10-10, [win])
+
+- 증상: `20261010_060949_burg-bonfire` (경사로) 15 장면 중 14 (93 %) — 장면 1: 그때 `backstab_swing` → 지금 `hit_first`. 기록된 반사 나이 3.9 s.
+- 원인: 틱 안에서 `prep_reflex`가 `reflex.update(snapshot)`를 부름 → 망자 애니가 3000 → 3002로 바뀌어 **새 공격**으로 보고 나이를 0으로 다시 셈 → `prep_linger`가 '서 있음'(−1)으로 안 바꿈 → `hit_first`는 배틀 액스 시동 0.64 s > 0.45로 빠짐 → `backstab_swing`. 재생용 가짜 반사는 `update()`가 아무것도 안 하고 기록된 나이를 그대로 줘서 `prep_linger`가 −1로 바꾸고 `hit_first`가 걸림.
+- 해결: 가짜 반사가 `Reflex.update`처럼 새 공격 애니면 시작 시각을 다시 잡고 나이를 시작 시각에서 셈 (기록된 나이가 틱 시작보다 수 ms 늦게 읽힌 차이는 그대로 둠 — 1.625 vs 1.582 s, SWING_S 1.6 옆). 장면 기록 0.2: `reflex.anim`(반사가 본 마지막 애니)도 남김; 0.1 기록은 `Fight._aprev`(전 틱 목표 애니)로 짐작; 테스트의 가짜 반사(anim 없음)는 예전처럼. 픽스처 `tests/expect/scene_backstab_swing_new_anim.json`. 실제 실행 4개 78/78 (100 %).
+
+### P-55 `passage-drill`: 화톳불 워프가 경사로 적을 되살림 → 꼭대기 가는 길에 사망 (2026-10-10, [win])
+
+- 증상: `--ground` A/B 첫 드릴(끔) `20261010_061443_passage-drill` — 바로 앞 `burg-bonfire --seg 1`로 경사로를 다 잡았는데, 드릴 1회째 불의 제전 워프 뒤 꼭대기로 가는 길에서 254000 둘 + 255010에게 HP 742 → 0 (65 s). 핏자국 (−25.2,−47.6,29.7).
+- 원인: `passage_drill`은 "쉬지 않으니 경사로는 비어 있다"고 가정하지만 (`missions.py` docstring), 매 회 `bonfire_warp`(불러오기)로 적이 되살아남. 09-28엔 경사로를 매번 다시 잡지 않아도 됐는지 모름 (그땐 나이프 유인·다른 캐릭터).
+- 해결: 미해결. `--ground` A/B 계획을 바꿔야 함 — 드릴 대신 `burg-bonfire --seg 1-2`(불의 제전 휴식 → 경사로 → 통로 입구·출구)로 비교하거나, 드릴을 워프 없이(걸어서 돌아옴, P-17 위험) 돌리기. [MoKa] 결정.
