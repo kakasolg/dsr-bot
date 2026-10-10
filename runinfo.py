@@ -247,6 +247,35 @@ def find(ref: str, runs: Path = ROOT / "data" / "runs", samples: Path = ROOT / "
     return None
 
 
+_ALL: list | None = None
+
+
+def covering(t_epoch: float | None, folders=(ROOT / "data" / "runs", ROOT / "data" / "samples")) -> dict | None:
+    """The settings record of the bot run that was going at wall time t_epoch (started ≤ t ≤ started + end.secs + 5 s), or
+    None — label_pilot uses it for a scene's commit and flags instead of guessing the commit from the time (approx)."""
+    global _ALL
+    if t_epoch is None:
+        return None
+    if _ALL is None:
+        _ALL = []
+        for folder in folders:
+            for f in sorted(Path(folder).glob("*.settings.json")):
+                d = read(f)
+                try:
+                    t0 = datetime.fromisoformat(d["started"]).timestamp()
+                except Exception:
+                    continue
+                secs = ((d.get("end") or {}).get("secs")) or 4 * 3600.0
+                _ALL.append((t0, t0 + secs + 5.0, d))
+    return next((d for t0, t1, d in _ALL if t0 <= t_epoch <= t1), None)
+
+
+def flags(d: dict) -> dict:
+    """The duel flags a run used (from its constants), e.g. {"BACKSTAB": False, "HEAVY": False} for --basic."""
+    c = ((d or {}).get("constants") or {}).get("souls.duel") or {}
+    return {k: c[k] for k in ("BACKSTAB", "HEAVY") if k in c}
+
+
 if __name__ == "__main__":
     for ref in sys.argv[1:]:
         f = find(ref)

@@ -101,6 +101,8 @@ def main() -> None:
                          "Laya 추론·행동 반영 없음, 패드·규칙엔 반영 안 함. outcome proxy, not human-verified tactical label, not a safety validation")
     ap.add_argument("--ctl", action="store_true",
                     help="P1: controller timing events → data/runs/<시각>_<명령>.ctl.jsonl (ctl.py) — 기본 꺼짐. 기록만, 패드·규칙엔 반영 안 함")
+    ap.add_argument("--ctl-scenes", action="store_true",
+                    help="--ctl 에 더해 싸움 결정마다 그 순간의 입력을 .ctl.jsonl 에 'scene' 으로 (scenes.py) — python scene_replay.py 로 다시 돌림. 기록만")
     ap.add_argument("--note", default=None, help="한 줄 메모 — 실행 설정 기록(<run>.settings.json)과 로그 첫 줄에 남음 (예: 세이브 이름)")
     ap.add_argument("--no-lure", action="store_true", help="나이프로 한 놈씩 깨우지 않고 예전처럼 걸어가 붙는다 (비교용)")
     ap.add_argument("--style", choices=["guard", "backstep", "rush"], default="guard",
@@ -140,10 +142,18 @@ def main() -> None:
     def run_end(result) -> None:                            # once; never raises (runinfo.end)
         runinfo.end(settings_path, result=result, secs=round(time.time() - t_run, 1))
     import ctl
+    if a.ctl_scenes:
+        a.ctl = True                                        # the scenes go into the .ctl.jsonl
     if a.ctl:                                               # before the Pad exists: atexit then closes the pad first, this after
         ctl.start(str(log.path).replace(".jsonl", ".ctl.jsonl"), run=log.path.stem, argv=sys.argv, cmd=a.cmd)
         ctl.emit("life", ev="start", cmd=a.cmd, args=vars(a))
         log(f"ctl: 기록만 → {str(log.path).replace('.jsonl', '.ctl.jsonl')}")
+    scene_tap = None
+    if a.ctl_scenes:
+        import scenes
+        from souls import duel as duel_scenes
+        scene_tap = duel_scenes.SCENE_TAP = scenes.Tap()
+        log("ctl scenes: 싸움 결정마다 그 순간의 입력 기록 (scene_replay.py 로 다시 돌림, 판단엔 반영 안 함)")
     lock = BotLock()
     # watchdog.py also polls briefly, grabbing and releasing at once — overlapping that instant can fail once, so retry a few times
     # (measured 2026-09-25: with a single try and no retry, 6 of 10 runs overlapped and failed immediately)
@@ -375,6 +385,8 @@ def main() -> None:
             bbox.stop()
             if audit_tap is not None:
                 log(f"attack audit: {audit_tap.close()}")
+            if scene_tap is not None:
+                log(f"ctl scenes: {scene_tap.summary()}")
             if laya_ch is not None:
                 adv = getattr(fld, "advisor", None)
                 log(f"laya shadow: {laya_ch.close()}" + (f" · advisor 오류 {adv.errors} ({adv.last_error})" if adv and adv.errors else ""))

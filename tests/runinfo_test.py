@@ -118,6 +118,14 @@ def main() -> None:
         diff3 = ab.differences([a1, a3])
         check("ab.py: a constant and the start HP show up too",
               "constants.souls.duel.BACKSTAB" in diff3 and "game.hp" in diff3 and "args.basic" in diff3)
+        runinfo._ALL = None
+        from datetime import datetime as _dt
+        t0 = _dt.fromisoformat(runinfo.read(sp)["started"]).timestamp()
+        check("covering(): the run going at a time is found (with its --basic flags), outside it is not",
+              (runinfo.covering(t0 + 5.0, folders=(runs,)) or {}).get("run") == "20261009_120000_burg-upper"
+              and runinfo.covering(t0 + 3600.0, folders=(runs,)) is None and runinfo.covering(None) is None)
+        check("flags(): duel flags from the constants", set(runinfo.flags(d2)) == {"BACKSTAB", "HEAVY"} and runinfo.flags(d2)["BACKSTAB"] is False)
+        runinfo._ALL = None
         print("runinfo_test: 전부 통과")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)

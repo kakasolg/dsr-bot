@@ -153,6 +153,21 @@ def _commit_at(run_id: str, t_d: float):
         return None
 
 
+def _code_fields(run_id: str, t_d: float, t_epoch, bot: bool) -> dict:
+    """code_commit for a bot scene: from the run's settings record when there is one (runinfo — exact, plus the duel flags
+    the run used, e.g. --basic), else guessed from the time as before (code_commit_approx)."""
+    if not bot:
+        return {"code_commit": None, "code_commit_approx": False}
+    import runinfo
+    d = runinfo.covering(t_epoch)
+    if d is None:
+        return {"code_commit": _commit_at(run_id, t_d), "code_commit_approx": True}
+    c = d.get("code") or {}
+    return {"code_commit": (c.get("commit") or "")[:10] or None, "code_commit_approx": False,
+            "run_settings": {"run": d.get("run"), "dirty": c.get("dirty"), "argv": d.get("argv"), "flags": runinfo.flags(d),
+                             "settings_sha1": d.get("settings_sha1")}}
+
+
 # ── candidates from bot radar recordings ──
 
 def _scan_bot(path: Path) -> dict:
@@ -778,7 +793,7 @@ def build_scene(c: dict, msgs: list) -> dict:
     return {"scene_id": sid, "schema": SCENE_SCHEMA, "source": c["source"], "source_file": c["source_file"], "run_id": c["run_id"],
             "fight_id": c["fight_id"], "t_d": t_d, "clip": [round(t_d - PRE_S, 2), round(t_d + POST_S, 2)],
             "segment": zone, "enemy": {"npc": tgt.get("npc"), "kind": _kind(tgt.get("npc"))}, "event": c["event"],
-            "code_commit": _commit_at(c["run_id"], t_d) if bot else None, "code_commit_approx": bot,
+            **_code_fields(c["run_id"], t_d, snap["t"] if (snap.get("t") or 0) > 1e9 else None, bot),
             "obs": {k: v for k, v in obs.items() if not k.startswith("_")}, "mask_inputs": {k: v for k, v in obs.items() if k.startswith("_")},
             "obs_provenance": _scene_provenance(obs, bot, line),
             "t_epoch": round(snap["t"], 3) if (snap.get("t") or 0) > 1e9 else None,

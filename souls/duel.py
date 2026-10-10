@@ -1443,6 +1443,7 @@ RULES = [rule_separate, rule_finish_first, prep_reflex, rule_after_swing, rule_f
 # ── P1-C: which rule acted (only with run.py --ctl) ──────────────────────────
 # Rules that only hold a stance tick after tick are run-length folded (same rule and target → one record with n). Every
 # other rule — attacks, backstab, estus, kicks, and any rule not listed here — is always written on its own.
+SCENE_TAP = None   # run.py --ctl-scenes: scenes.Tap — copies each decision's input for scene_replay.py (record only, never read back)
 FOLD_RULES = {"block", "wait_far", "approach", "face", "linger", "reflex", "stamina", "separate", "edge", "lure", "downed",
               "face_first", "backstab_chance", "late_windup_block"}
 
@@ -1516,6 +1517,8 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             continue
         if tap is not None:
             tap.sensed(F, T)
+        if SCENE_TAP is not None:
+            SCENE_TAP.tick(F, T)                           # copies the input before the rules change F (scenes.py, record only)
         for rule in RULES:
             tok = tap.freeze(F, T) if tap is not None else None
             out = rule(F, T)
@@ -1525,6 +1528,8 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             F.res.rules[name] = F.res.rules.get(name, 0) + 1
             if rr is not None:
                 rr.add(F, T, name, out)
+            if SCENE_TAP is not None:
+                SCENE_TAP.decided(F, T, name, out)
             pay = tap.decided(F, T, tok, name, out) if tap is not None else None
             if advisor is not None:
                 if pay is None:

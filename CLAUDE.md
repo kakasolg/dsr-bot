@@ -36,6 +36,8 @@
   allowed / forbidden tactics + source; status `pass` · `known_fail:P-n` · `review`). golden = "changed?", this = "right?".
   A new MoKa instruction about fighting → add 2–5 scenes (source.kind `moka`, quote it) in the same commit as the rule change;
   when a decision closes a `known_fail`, set those lines to `pass`. `python tests/scene_world.py labels` drafts lines from labels.
+- `run.py --ctl-scenes` saves the exact input of each fight decision into the `.ctl.jsonl`; `python scene_replay.py <file>`
+  replays them through today's RULES (same rule as then? — after a rule change, which real decisions would now differ).
 - Game-memory writes (invincible, invisible, warp) are for offline use only.
 - Rule and number sources: LAYERS.md. Record formats: OBSERVE.md.
 

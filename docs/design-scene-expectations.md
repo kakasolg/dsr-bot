@@ -128,6 +128,17 @@ NavMesh·arena·에스트·휘두른 지 몇 초·옆 적 둘 이상은 재구�
 - §7 답 전 기본값: ① `known_fail` 씀 ② (P-33 결정 대기 — 장면은 known_fail로) ③ ramp 라벨 안 넣음 ④ `--ctl-scenes`는 아직 없음(단계 3).
 - 한계 확인: 255001·도끼 망자 3004 **이른** windup(1.0 s 안 → 발차기?)은 가짜 반사가 먼저 막아 재구성으로 판정 못 함 → 넣지 않음, 단계 3 장면으로.
 
+### 구현 상태 — 단계 3 (2026-10-10 [cloud])
+- `scenes.py`: `duel.SCENE_TAP`(기본 None)이 매 틱 규칙 직전의 입력(15 m 안 스냅숏, `Fight`의 평범한 값 — 시각은 그 틱 기준 상대값, 반사의 휘두른 시간·`_start`,
+  에스트 바람, `BACKSTAB`·`HEAVY`, 무기·스타일, NavMesh 맵 id)을 복사, 공격류 결정(`FOLD_RULES` 밖)과 휘청·windup 중 자세 규칙(바뀔 때 한 번)만 `ctl.emit("scene")`.
+  `run.py --ctl-scenes`(`--ctl` 포함). 판단은 아무것도 다시 읽지 않음.
+- `scene_replay.py`: 기록으로 `Fight`·`Tick`을 되살려 오늘의 `RULES`를 한 번 — 가짜 세계를 다시 만들지 않음. Moves는 가짜(움직임 없음), 자기 반복이 있는 도우미(뒤잡기·붙기·떼어놓기)는
+  불렸다는 것만, 반사는 그때 반사가 결정했으면 똑같이 발동. NavMesh는 `data/samples/navmesh_<맵>.npz`.
+- 확인(`tests/scene_replay_test.py`): 기대값 장면 + golden 상황(가짜 NavMesh·`_room_behind` 고친 것 제외)에서 기록한 687건 **모두 같은 규칙**으로 재생,
+  기록기를 켜도 golden 312상황 trace 같음, sink가 실패해도 예외 없음. 틱당 ~40 µs, 결정 하나 ~2 KB(옆 적 1) ~ 4 KB(10).
+- 설계와 다른 점: 장면을 라벨 페이지에 바로 띄우는 것(§3.3 셋째 줄)은 아직 — [win] 실제 기록이 나온 뒤.
+- 덧: `label_pilot.py build`가 실행 설정 기록(`runinfo.covering`)에서 커밋·`--basic` 플래그를 가져옴(`run_settings`), `scene_world.py labels`가 그 플래그를 씀.
+
 ## 7. [MoKa] 결정할 것
 1. 기대값 파일을 테스트에 넣는 것 — `known_fail`(결정 대기 중인 문제는 실패가 맞음으로 표시)이 있어도 되는지.
 2. **휘청(3500) 뒤에 언제 치고 언제 막는지** — 라벨 45개가 반반(§2-c)이고 10-06 "끝나면 무조건 공격"과도 부딪힘. 예: "내 막기에 튕긴 휘청은

@@ -174,18 +174,19 @@ def label_drafts() -> list[dict]:
     allowed, known_fail:P-33 for stagger scenes it isn't (the open decision), else review."""
     rows = lambda f: [json.loads(x) for x in open(f, encoding="utf-8") if x.strip()] if f.exists() else []
     out = []
-    for name, flags in SET_FLAGS.items():
+    for name, flags in SET_FLAGS.items():                          # sets whose scenes have no settings record: their known flags
         scenes = {s["scene_id"]: s for s in rows(LABELS / f"{name}_scenes.jsonl")}
         last = {}
         for r in rows(LABELS / f"{name}_labels.jsonl"):
             last[r["scene_id"]] = r
         for sid, lab in sorted(last.items()):
             sc0 = scenes.get(sid)
+            run_flags = ((sc0 or {}).get("run_settings") or {}).get("flags")   # label_pilot: from the run's settings record
             if (sc0 is None or lab.get("label_source") != "human_verified" or lab.get("unsure") or not lab.get("acceptable")
                     or lab.get("confidence") == "low" or lab.get("mode") == "review_bot"):
                 continue
             bot = (sc0.get("after") or {}).get("bot_tactic")
-            sit = from_obs(sc0["obs"], sc0, flags)
+            sit = from_obs(sc0["obs"], sc0, run_flags or flags)
             d = decide(sit)
             if bot is None or d["tactic"] != bot:
                 continue                                           # rebuild ≠ what the bot did — needs an exact-input scene

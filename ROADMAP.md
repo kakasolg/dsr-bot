@@ -40,7 +40,8 @@ zone 8 crossbowmen (P-47).
 ## 2. Open by area
 
 **Fight rules / reflexes (1-j: "basic reflexes done right", MoKa 10-02)**
-- [~] [cloud] Scene expectations (proposal 4, `docs/design-scene-expectations.md`) — steps 1–2 done 2026-10-09: `tests/scene_world.py`, `tests/duel_expect_test.py`, `tests/expect/duel.jsonl` 48 scenes (13 from MoKa instructions / P-31 / P-33, 35 from blind labels whose rebuild = the bot's own choice): pass 34 · known_fail P-33 9 · P-31 1 · review 4; catches 4/4 deliberate rule breaks. Next: step 3 `--ctl-scenes` (exact bot input), `label_pilot` reads settings
+- [~] [cloud] Scene expectations (proposal 4, `docs/design-scene-expectations.md`) — steps 1–2 done 2026-10-09: `tests/scene_world.py`, `tests/duel_expect_test.py`, `tests/expect/duel.jsonl` 48 scenes (13 from MoKa instructions / P-31 / P-33, 35 from blind labels whose rebuild = the bot's own choice): pass 34 · known_fail P-33 9 · P-31 1 · review 4; catches 4/4 deliberate rule breaks. Step 3 done offline 2026-10-10: `scenes.py` (`duel.SCENE_TAP`, `run.py --ctl-scenes`), `scene_replay.py` — round trip 687/687 same rule, tap changes no decision, ~40 µs/tick, ~2–4 KB per kept decision; `label_pilot` takes commit + `--basic` flags from the run's settings record (`runinfo.covering`)
+- [ ] [win] One run with `--ctl-scenes` (e.g. `burg-upper --seg 3 --ctl-scenes`) → `python scene_replay.py data/runs/<run>.ctl.jsonl` should say 100 % same rule; note the file size and the log's `ctl scenes:` line
 - [ ] [MoKa] Skim `tests/expect/duel.jsonl` label lines (10 min) and the 4 `review` scenes: idle hollow 8.7–8.9 m (you: hold/reposition, bot approached) ×2, swing at 2.2 m (you: reposition, bot guarded), 'other' anim 2.0 m (you: attack/guard, bot approached)
 - [~] [cloud] One floor check (proposal 3, P-49): design drafted `docs/design-floor-check.md`; waits for MoKa (§7)
 - [~] [cloud] Multi-foe = spot choice (analysis proposal 1): design drafted `docs/design-multi-foe-spot.md`; step 1 (measure only) waits for MoKa's answers (§8)
@@ -157,6 +158,8 @@ to the bottom of `docs/roadmap/relay.md`.
 - 2026-10-09 [cloud→board] **[win] please `git pull`**: run settings record is in (`runinfo.py`). Every `python run.py …` now writes `data/runs/<run>.settings.json` and starts the log with `run … · code <commit>[+dirty(n)] · <args>`. After a run copy it with `python sample.py [<run>] [name]` (replaces the hand copy in CLAUDE.md). Check once: section 2 item "[win] After `git pull`: one short run …". Nothing in fights or walking changed.
 
 - 2026-10-10 [cloud→board] Scene expectations are in: `python tests/duel_expect_test.py` (also in pytest) checks the fight rules against 48 scenes MoKa judged (`tests/expect/duel.jsonl`). From now on a fighting instruction from MoKa → 2–5 scenes in the same commit as the rule change (CLAUDE.md "Code and tests"). P-33 has 9 scenes and P-31 one waiting as `known_fail` — when MoKa decides, flip them to `pass`. **[MoKa]**: section 2 item "Skim … the 4 review scenes".
+
+- 2026-10-10 [cloud→board] **[win] please `git pull`**: `run.py --ctl-scenes` (implies `--ctl`) records each fight decision's exact input; `python scene_replay.py data/runs/<run>.ctl.jsonl` replays them. Check once: section 2 item "[win] One run with `--ctl-scenes`". Off by default; nothing in fights changes.
 
 ## 5. Change log (newest first; older entries in `docs/roadmap/changelog.md`)
 
