@@ -64,7 +64,6 @@ zone 8 crossbowmen (P-47).
 - 1-g learning (parked, MoKa 09-28/09-30): step 1 motion model = 6-a layer 2 (done); step 2 imitation policy after layer-2 trust check
 
 **Instrumentation / run records**
-- [ ] [win] P1-D observation quality · Escape · watchdog events (`--ctl-frames` off by default) (1-l)
 - [ ] [win] P1-E ordering · queue overflow · write failure · on/off-equal tests (1-l)
 - [~] [cloud] Run settings record (proposal 5, `docs/design-run-settings.md`) — steps 1–2 done offline 2026-10-09: `runinfo.py` (`<run>.settings.json` + first log line + track `run` line), `fight_id`/`zone` in events, `sample.py`, `ab.py`, report headers; `tests/runinfo_test.py` + `run_stop_test` 20/20 checks, golden same
 - [ ] [MoKa] Laya: keep off / freeze; move label tool's `why_not` out of `laya_shadow.py`?
@@ -165,6 +164,7 @@ to the bottom of `docs/roadmap/relay.md`.
 
 ## 5. Change log (newest first; older entries in `docs/roadmap/changelog.md`)
 
+- 2026-10-09: [win] P1-D done (1-l): `Snapshot.fseq`/`pc` filled by `Feed` (P1-C records now carry `fseq`), `obs`/`esc`/watchdog events, `run.py --ctl-frames` (with `--ctl`) → `<run>.frames.jsonl`; `tests/ctl_obs_test.py`. Full entry + 4-a overlay idea note (not to build) in `docs/roadmap/plan.md`.
 - 2026-10-09: `main` and the work branch fast-forwarded to the same commit (09-28 … 10-06 work + this restructure).
 - 2026-10-09: [MoKa] old public issues #2 #5 #7 #9 #10 #14 closed (P-17/18/21/25 stay tracked in the problem index).
 - 2026-10-09: [MoKa] cancelled all 11 "old open items" (15 archive lines marked `[-]` in `docs/roadmap/plan.md`); section removed.

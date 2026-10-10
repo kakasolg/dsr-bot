@@ -308,8 +308,10 @@ game에서만 확인할 수 있는 것 — 오프라인으로는 확인 못 함,
 - [x] [win] P1-A 기록기·생명주기·hdr/sync: 새 `ctl.py`(호출 쪽은 `put_nowait`만, 큐 가득 → drop 수 + `gap`, 쓰기 실패 → 한 번 다시 열고 스스로 꺼짐), `run.py --ctl`(`life`: start·normal_exit·user_stop·exception_exit), `control.py` 종료 훅(`life`: atexit·console, 콘솔 닫기는 패드 정리 뒤 최대 1 s flush). 확인: `tests/ctl_writer_test.py` 통과, pytest 66 (HEAD 65), golden·walksim(entrance 10)·walk_replay(-n 50) HEAD와 같음. 2026-10-03 실제 실행 4번(`--ctl`)에서 hdr·sync·life·end가 정상으로 기록됨
 - [x] [win] P1-B 패드 업데이트·neutral·freeze 기록: `control.Pad`의 보고 쓰기 22곳이 전부 `Pad._send(방법)`을 지남 — 장치 `update()`를 먼저, `--ctl`일 때만 그 뒤에 기록. 기록: `pad`(방법 `m`, `caller` = control.py 밖 첫 호출 위치, 보고 정수 btn·lt·rt·lx·ly·rx·ry, `frz`, `ep`, `up_us` = update 걸린 시간·대리값, `dup`), `pad.drop`(얼린 동안 `_NullPad`로 간 입력), `neutral`(why·site·ep·남은 보고; release_all·close 포함), `esc`(freeze·거절·unfreeze·무시), `pad_dev`(reconnect unplug·plug). 앞 기록과 같은 호출은 세기만 하고 다음 기록의 `dup`로 — Σ(1+dup) = 쓰기 수, 바뀐 보고는 접지 않음, 새 장치의 첫 보고는 늘 기록. 확인: `tests/ctl_pad_test.py` 3/3 통과(켜기/끄기 때 장치가 받은 보고·순서 같음, 꺼짐이면 기록 코드 안 불림, 켜짐 추가 시간 입력당 ~7 µs 가짜 장치 기준), pytest 67, golden·walksim(entrance 10)·walk_replay(-n 50) P1-A와 같음. 설계와 다른 점: `neutral(why=)`는 받지만 부르는 곳 45곳엔 안 넣음 — 대신 `site`(파일:함수:줄)가 자동으로 남음 (가짜·시뮬 패드 5개의 `neutral()` 모양을 안 바꾸려고)
 - [x] [win] P1-C 판단 이벤트 (goto 모드 전환, Field._walk 물러남 이유, Reflex 행동, duel 규칙): `dec.goto`(goto마다 `gid`, start = 목표·허용 거리, mode = **바뀔 때만** prev·dist·snap_t, end = 돌려준 값 그대로 — `return X`를 `return _end(rec, X)`로, 값 같음), `dec.walk_retreat`(`Field._walk_mode`: 예전 람다와 **같은 네 검사·같은 순서·같은 단락** — threat_now가 참이면 _chaser 안 부름 — 어느 검사가 걸렸는지 reason·ptr·npc), `dec.reflex`(`Reflex.tick`의 True/False 자리를 `_act`로 — 값 같음, (행동, 대상)이 바뀔 때만, 조용한 틱 뒤 새 묶음은 다시 기록: guard·face·wait·step_away·dodge:<종류>), `dec.rule`(duel이 고른 규칙: rule·ptr·out·snap_t·snap_age_ms·n — 자세만 잡는 규칙(`duel.FOLD_RULES`: block·wait_far·approach·face …)은 같은 규칙·대상 연속을 n으로 접고, **그 밖의 규칙(공격·뒤잡기·에스트·발차기, 목록에 없는 새 규칙)은 늘 하나씩**). 모두 `--ctl`일 때만 기록 객체를 만들고, 판단은 아무것도 다시 읽지 않음. 확인: `tests/ctl_decision_test.py` 3/3 통과 — **기록을 켠 채 golden 40,320 상황 판단이 전부 같음**, `_walk_mode` 호출 순서·단락이 켜기/끄기 같음, goto는 가짜 패드에 간 보고·결과 같음, Reflex는 반환·패드 호출 같음. pytest 68, golden·walksim(entrance 10)·walk_replay(-n 50) P1-B와 같음
-- [ ] [win] P1-D 관측 품질·Escape·watchdog 이벤트 (`--ctl-frames`는 기본 꺼짐)
+- [x] [win] P1-D 관측 품질·Escape·watchdog 이벤트 (`--ctl-frames`는 기본 꺼짐): `telemetry.Snapshot`에 기본값 있는 칸 둘(`fseq` = 피드 프레임 번호, `pc` = **우리** 메모리 읽기가 끝난 perf_counter_ns — 게임 프레임 시각 아님)을 더하고 `Feed`가 프레임마다 채움(`_view`도 옮김) — 이제 P1-C 기록의 `fseq`가 채워짐. `obs`: Feed `snapshot()`이 None/stale을 돌려주기 시작할 때·바뀔 때·회복될 때만(`recovered`에 이어진 시간), `NoObs` noobs_stick0 → noobs_full → noobs_recovered. `--ctl-frames`(반드시 `--ctl`과 함께; 혼자면 경고만): 피드 프레임마다 한 줄을 **따로** `data/runs/<run>.frames.jsonl`에(위치·방향·애니·hp·sp·cam_yaw·read_ms·pc_read_end, ~9 KB/s). `esc`: Escape `_nudge` start·end·yield, `fire` skipped·start·quit(byte/menu, 걸린 시간)·end. `watchdog.py --ctl`(기본 꺼짐) → `data/runs/<시각>_watchdog.ctl.jsonl`: start·stall·bot_lock·skip(probe/create)·rescue_start·result·pad_close. observe_record·radar_server는 안 건드림(승인 범위). 확인: `tests/ctl_obs_test.py` 3/3 — Snapshot 새 칸 기본 None·`to_dict` 키 그대로·위치 인자 생성 그대로, Feed 반환값 켜기/끄기 같음, none→stale→recovered 전환만 기록, frames 파일 따로·fseq 연속, NoObs·Escape는 장치가 받은 보고 켜기/끄기 같음, 패드 잠금 잡힌 watchdog → skip 기록·Pad 안 만듦, `run.py --ctl --ctl-frames` 두 파일·`--ctl-frames`만이면 없음, 실제 `data/` 파일 안 건드림. pytest 69, golden·walksim(entrance 10)·walk_replay(-n 50) P1-C와 같음
 - [ ] [win] P1-E 정렬·큐 넘침·쓰기 실패·켜기/끄기 같음 테스트
+
+남은 UNKNOWN (P1-D): 프레임 기록은 **우리 읽기**(~60 Hz)의 표본이라 게임 프레임 번호·FPS가 아니다 — 게임 쪽 프레임 카운터는 아직 모름. `read_ms`·프레임 간격 흔들림은 성능 **대리값**일 뿐. Escape의 메뉴 경로(quit_to_title 실패 → 메뉴 퀵 종료)와 `_back_to_mesh`는 가짜로 안 돌려 봄. watchdog `--ctl`은 실제 감시 실행에서 안 써 봄. 여러 스레드가 동시에 `snapshot()`을 부를 때 obs 전환 기록 순서는 대략적일 수 있음(값엔 영향 없음).
 
 남은 UNKNOWN (P1-C): `fseq` 칸은 있지만 P1-D에서 Snapshot에 넣기 전까지 늘 null — 지금은 `snap_t`(읽기 끝난 벽시계, ~16 ms)로만 묶임. goto가 예외로 끝나면 `end` 기록이 없음(예외 = 기록 없음으로 읽음). `FOLD_RULES`는 이름 보고 고른 임시 목록 — 실제 실행 기록에서 접힌 규칙에 중요한 순간이 묻히는지는 아직 모름. 실제 실행에서 기록 양·판단 틱 간격 영향은 실제 실행 전엔 모름.
 
@@ -449,6 +451,24 @@ game에서만 확인할 수 있는 것 — 오프라인으로는 확인 못 함,
   - 봇 판단 줄 영어: 이번 로그 204줄을 `translate.line`에 통과 → **한국어 남은 줄 0개**. 레이더 `/state`의 says도 영어로 확인. 봇 밖 문구(발신기의 `레이더만 (봇 없음, 읽기 전용)`)는 `radar만 (봇 none, …)`처럼 반쯤만 바뀜 — 봇 줄은 아니라 영향 없음
 - [x] [cloud] 표시 추가: 적 시야 부채꼴·청각 원·귀환 거리 원 — `radar_server.py`가 실시간 적을 `data/gamefiles`의 같은 종류·가장 가까운 스폰(80 m 안)과 짝지어 NpcThinkParam 값을 붙임(`/state`의 `ai`). 레이더: 목표 적은 시야 부채꼴(보통 30 m·120°) 채움 + 청각 원(10 m) + 귀환 원(스폰에서 75 m, 9999는 표시 안 함) + 스폰 ×, 다른 적은 시야 테두리만, 레이더 원 밖은 잘라냄. "AI ranges"로 끔. Doing 카드에 목표 AI 값·스폰에서 거리. 증거 등급 "파일" — 미터 단위 가정, 게임 확인 필요. 경로선·안전 구역은 이미 있음. `radar_test.py` 통과, 데모 캡처(다크·라이트)
 - [ ] [win] 레이더 AI 범위 확인: 목표 적이 시야 부채꼴 밖에서 다가갈 때 늦게 알아채는지, 청각 원 안으로 들어가면 돌아보는지, 귀환 원 밖까지 끌고 가면 돌아가는지 (단위가 미터가 맞는지)
+
+### 4-a. 아이디어 — 락온 없이 겨냥을 돕는 표시 (2026-10-04 [MoKa], **생각만 하는 단계 — 구현 안 함**)
+
+배경: DSR의 락온이 불편해서, 락온을 안 하고도 비슷한 도움을 주는 오버레이 표시를 생각해 봄. **있으면 좋지만 게임 난이도를 인위적으로 낮춰 보는 사람·플레이어에게 오히려 반감을 줄 수 있어서 만들지 않는다.** 할 일이 아니라 메모다 — 만들기로 하면 그때 [MoKa]가 정하고 범위·표시 방법을 따로 검토한다.
+
+떠올린 표시:
+- **화면 중앙 십자선** — 활 조준 모드(활 양손 + L1)의 십자선과 같은 것. 카메라가 보는 곳은 늘 화면 중앙이라 계산이 필요 없다.
+- **캐릭터가 향한 곳 표시** — 3인칭에선 카메라 방향과 몸 방향이 다르다. 캐릭터 정면 몇 m 앞 지점을 화면에 투영해 표시하면 "지금 휘두르면 어디로 가는지"가 보인다.
+- **락온된 적 / 정면 범위 안 적 표시** — 락온 대상은 이미 읽음(`PlayerIns+0xEF0`, 2026-09-23 측정). 적 위치를 화면에 투영해 표시.
+
+조사·근거 (2026-10-04 검색, 확인 안 됨):
+- 활 조준은 1인칭 + 화면 중앙 십자선, 석궁엔 십자선 없음 (Steam 토론). 화살이 좌우는 몸 방향, 위아래는 카메라 기울기를 따른다는 설명은 신뢰도 낮은 사이트 — 게임에서 확인 전엔 참고만.
+- 락온 대상 고르기는 "범위 안 적 중 화면 중앙에 가장 가까운 것"이라는 설명이 있으나 **다크소울을 흉내 낸 UE4 플러그인 기준**이고 프롬 게임 공식 규칙이 아님. 락온 거리는 적마다 다르고 DS3에선 NpcParam·dummy 220으로 정한다는 모딩 자료 — DSR은 미확인. 표시만 할 거면 규칙을 몰라도 됨(잡힌 대상을 읽으면 됨).
+
+만든다면 필요한 것 (참고):
+- `overlay.py`에 그림 (투명·클릭 통과·포커스 안 가져감 — 이미 있음). 게임 메모리 **읽기만**. 창 모드·테두리 없는 창 모드에서만 보임.
+- 카메라 행렬(`ChrFollowCam`)을 지금은 yaw만 쓰지만, 위치·방향 전체를 읽어야 투영 가능. **시야각(FOV)을 모름** — 스크린샷과 비교해 맞춰야 함(게임 실행 필요). 화면 중앙 십자선만은 이게 필요 없음.
+- 넣는다면 기본 꺼짐, 켜면 화면에 표시가 켜져 있다는 걸 드러내기(영상에 나갈 때 보조 표시임을 숨기지 않게).
 
 ## 5. 기록 재생
 

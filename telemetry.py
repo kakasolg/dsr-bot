@@ -110,6 +110,9 @@ class Snapshot:
     arm_style: Optional[int] = None   # 3 = right-hand weapon two-handed — for a character with an empty left hand, LB guards only then (one-handed LB = punch)
     flask_hp: Optional[int] = None    # remaining Crimson Flask count. None if unreadable
     max_flask_hp: Optional[int] = None
+    # P1-D: set by feed.Feed for each frame it reads (None when read directly). Only P1 records read them.
+    fseq: Optional[int] = None        # the feed's frame number
+    pc: Optional[int] = None          # perf_counter_ns right after the memory read ended — our read, not the game's frame
 
     def hostile(self, within: float = 30.0) -> list[Chr]:
         return [c for c in self.chars if c.team in (6, 7, 24, 25, 27, 33) and c.hp > 0 and c.dist <= within]

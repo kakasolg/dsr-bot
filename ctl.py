@@ -47,6 +47,7 @@ class _Off:
 
 
 _sink = _Off()
+_frames = _Off()          # P1-D: run.py --ctl-frames only — one record per feed frame, its own file
 _atexit_hooked = False
 
 
@@ -83,7 +84,7 @@ def sync_fields() -> dict:
 
 
 class Sink:
-    def __init__(self, path: Path, opener=None):
+    def __init__(self, path: Path, opener=None, name: str = "ctl-writer"):
         self.path = Path(path)
         self.opener = opener or (lambda p: open(p, "a", encoding="utf-8"))
         self.q: queue.Queue = queue.Queue(maxsize=QUEUE_MAX)
@@ -99,7 +100,7 @@ class Sink:
         self._flushed = 0                            # … and how many of those were on disk at the last flush
         self._want_flush = False                     # flush() asks the writer to flush now
         self._f = self.opener(self.path)
-        self._th = threading.Thread(target=self._loop, daemon=True, name="ctl-writer")
+        self._th = threading.Thread(target=self._loop, daemon=True, name=name)
 
     # ── caller side ──
     def put(self, k: str, f: dict) -> None:
@@ -269,6 +270,44 @@ def start(path, run: str, argv: list, cmd: str | None = None, opener=None) -> Si
     return s
 
 
+def start_frames(path, run: str) -> Sink:
+    """P1-D, run.py --ctl-frames: a separate <run>.frames.jsonl with its own hdr / sync / end. Stopped by stop()."""
+    global _frames
+    _stop_frames()
+    s = Sink(Path(path), name="ctl-frames")
+    s.put("hdr", {"schema": SCHEMA, "run": run, "pid": os.getpid(), "kind": "frames", "wall_ns": time.time_ns(),
+                  "note": "one record per feed frame; pc_read_end = perf_counter_ns after our memory read (not a game frame time)"})
+    s.put("sync", sync_fields())
+    _frames = s.start()
+    return s
+
+
+def frame(**fields) -> None:
+    """Never blocks, never raises. No-op unless --ctl-frames."""
+    s = _frames
+    if not s.alive:
+        return
+    try:
+        s.put("frame", fields)
+    except Exception:
+        pass
+
+
+def frames_on() -> bool:
+    return _frames.alive
+
+
+def _stop_frames() -> None:
+    global _frames
+    s = _frames
+    _frames = _Off()
+    if isinstance(s, Sink):
+        try:
+            s.stop()
+        except Exception:
+            pass
+
+
 def flush(timeout: float = EXIT_FLUSH_S) -> bool:
     s = _sink
     if not s.alive or not isinstance(s, Sink):
@@ -281,6 +320,7 @@ def flush(timeout: float = EXIT_FLUSH_S) -> bool:
 
 def stop() -> dict | None:
     global _sink
+    _stop_frames()
     s = _sink
     if not isinstance(s, Sink):
         return None

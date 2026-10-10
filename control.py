@@ -580,14 +580,18 @@ class NoObs:
         now = time.time()
         if self.since is None:
             self.since, self.full = now, False
+            ctl.emit("obs", ev="noobs_stick0")              # P1-D: transitions only, record only
         self.pad.move(0.0, 0.0)
         if not self.full and now - self.since >= NO_OBS_NEUTRAL_S:
             self.full = True
             full = self.on_full or getattr(self.pad, "neutral", None)
             if full is not None:
                 full()
+            ctl.emit("obs", ev="noobs_full", after_ms=round((now - self.since) * 1000, 1))
 
     def seen(self) -> None:
+        if self.since is not None:
+            ctl.emit("obs", ev="noobs_recovered", dur_ms=round((time.time() - self.since) * 1000, 1), full=self.full)
         self.since = None
 
 

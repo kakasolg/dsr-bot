@@ -22,6 +22,7 @@ import threading
 import time
 from typing import Optional
 
+import ctl
 from telemetry import Snapshot
 
 RADIUS = 40.0        # 피드가 읽는 반경 — 호출자 대부분이 5~40 m
@@ -44,6 +45,7 @@ class Feed:
         self.read_ms = 0.0                      # 지수 이동 평균
         self.served = {"fresh": 0, "waited": 0, "direct": 0, "none": 0, "stale": 0}
         self.listeners: list = []               # 프레임마다 불림 (피드 스레드) — blackbox.py. 가볍게, 예외는 삼킨다
+        self._obs: tuple | None = None          # P1-D: (kind, pc) of the open missing / stale stretch — records only
 
     def start(self, first: float = 2.0) -> "Feed":
         self._th.start()
@@ -64,12 +66,17 @@ class Feed:
                 s = self.tm.snapshot(within=self.radius)
             except Exception:
                 s = None
+            pc = time.perf_counter_ns()
             dt = time.time() - t0
             self.read_ms = dt * 1000 if not self.frames else self.read_ms * 0.95 + dt * 1000 * 0.05
+            if s is not None:                   # P1-D: which frame this is and when our read ended (nothing steers by them)
+                s.fseq, s.pc = self.frames + 1, pc
             with self._cv:
                 self.latest = s
                 self.frames += 1
                 self._cv.notify_all()
+            if ctl.frames_on():
+                self._frame_rec(s, pc, dt)
             for fn in list(self.listeners):
                 try:
                     fn(s)
@@ -88,24 +95,58 @@ class Feed:
             s = self.latest
             if s is not None and now - s.t <= MAX_AGE:
                 self.served["fresh"] += 1
+                if self._obs is not None:
+                    self._obs_rec(None)
                 return self._view(s, within)
             seen = self.frames
             self._cv.wait_for(lambda: self.frames != seen, timeout=WAIT)
             s = self.latest
         if s is None:
             self.served["none"] += 1
+            self._obs_rec("none")
             return None
         if time.time() - s.t > STALE_S:
             self.served["stale"] += 1
+            self._obs_rec("stale")
             return None
         self.served["waited"] += 1
+        self._obs_rec(None)
         return self._view(s, within)
 
     @staticmethod
     def _view(s: Snapshot, within: float) -> Snapshot:
         return Snapshot(t=s.t, player=s.player, chars=[c for c in s.chars if c.dist <= within],
                         cam_yaw=s.cam_yaw, cam_pitch=s.cam_pitch, arm_style=s.arm_style,
-                        flask_hp=s.flask_hp, max_flask_hp=s.max_flask_hp)
+                        flask_hp=s.flask_hp, max_flask_hp=s.max_flask_hp, fseq=s.fseq, pc=s.pc)
+
+    # ── P1-D records (run.py --ctl / --ctl-frames). Records only: snapshot() returns the same thing with or without them ──
+    def _obs_rec(self, kind: str | None) -> None:
+        """A missing / stale stretch opens (kind) or closes (None, with how long it lasted). Transitions only."""
+        if not ctl.on():
+            return
+        try:
+            cur = self._obs
+            if kind is None:
+                if cur is not None:
+                    self._obs = None
+                    ctl.emit("obs", ev="recovered", was=cur[0], dur_ms=round((time.perf_counter_ns() - cur[1]) / 1e6, 1),
+                             served=dict(self.served))
+            elif cur is None or cur[0] != kind:
+                self._obs = (kind, time.perf_counter_ns() if cur is None else cur[1])
+                ctl.emit("obs", ev=kind, served=dict(self.served))
+        except Exception:
+            pass
+
+    def _frame_rec(self, s, pc: int, dt: float) -> None:
+        try:
+            p = s.player if s is not None else None
+            ctl.frame(fseq=self.frames, snap_t=None if s is None else s.t, pc_read_end=pc, read_ms=round(dt * 1000, 2),
+                      none=s is None, x=getattr(p, "x", None), y=getattr(p, "y", None), z=getattr(p, "z", None),
+                      heading=getattr(p, "heading", None), anim=getattr(p, "anim", None), hp=getattr(p, "hp", None),
+                      sp=getattr(p, "sp", None), cam_yaw=None if s is None else s.cam_yaw,
+                      n_chars=None if s is None else len(s.chars))
+        except Exception:
+            pass
 
     def stats(self) -> dict:
         return {"frames": self.frames, "read_ms": round(self.read_ms, 1), **self.served}

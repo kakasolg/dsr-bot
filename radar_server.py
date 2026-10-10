@@ -382,7 +382,8 @@ def main() -> None:
     ap.add_argument("--replay", metavar="FILE", help="play back a radar recording (data/radar/*.jsonl) or an observe_record.py file")
     ap.add_argument("--no-record", action="store_true", help="don't save this session to data/radar/")
     ap.add_argument("--no-pad", action="store_true", help="don't read the controller (XInput)")
-    ap.add_argument("--maps", default="m10_02_00_00,m10_01_00_00", help="NavMesh maps to draw (read from the game install)")
+    ap.add_argument("--maps", default=None, help="NavMesh maps to draw, comma-separated (read from the game install); "
+                                                 "default: every map extracted to data/gamefiles (msb_extract.py)")
     ap.add_argument("--no-mesh", action="store_true", help="don't draw the NavMesh")
     a = ap.parse_args()
     try:                                  # bind before anything else: a second server must stop here, not share the ports
@@ -408,6 +409,9 @@ def main() -> None:
             state.mesh = radar_mesh.MeshView([radar_mesh.rect_mesh([(-14, -4, 6, 4, 0.0), (6, -4, 14, 4, 0.0), (6, 4, 14, 16, 0.0),
                                                                     (6, -16, 14, -4, 0.0), (-14, -16, -6, -4, 1.5)])])
         else:
+            # 맵들이 한 월드 좌표를 쓰는 것으로 보인다 (추출한 y 범위: Depths 위 / Blighttown 아래, 2026-10-07) — 같이 실어도
+            # 높이 거르기(MESH_DY)로 지금 층만 그린다. 그래서 추출한 맵을 전부 싣는다.
+            a.maps = a.maps or ",".join(sorted(f.stem for f in GAMEFILES.glob("m*.json"))) or "m10_02_00_00,m10_01_00_00"
             state.mesh = radar_mesh.load(a.maps.split(","))
             print(f"navmesh: {'drawn (' + a.maps + ')' if state.mesh else 'not found (game install / soulstruct) — radar without floor'}")
     if a.replay:

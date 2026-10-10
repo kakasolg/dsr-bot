@@ -101,6 +101,8 @@ def main() -> None:
                          "Laya 추론·행동 반영 없음, 패드·규칙엔 반영 안 함. outcome proxy, not human-verified tactical label, not a safety validation")
     ap.add_argument("--ctl", action="store_true",
                     help="P1: controller timing events → data/runs/<시각>_<명령>.ctl.jsonl (ctl.py) — 기본 꺼짐. 기록만, 패드·규칙엔 반영 안 함")
+    ap.add_argument("--ctl-frames", action="store_true",
+                    help="P1-D: --ctl 과 함께, 피드 프레임마다 한 줄 → data/runs/<시각>_<명령>.frames.jsonl (~9 KB/s) — 기본 꺼짐. 기록만")
     ap.add_argument("--ctl-scenes", action="store_true",
                     help="--ctl 에 더해 싸움 결정마다 그 순간의 입력을 .ctl.jsonl 에 'scene' 으로 (scenes.py) — python scene_replay.py 로 다시 돌림. 기록만")
     ap.add_argument("--ground", action="store_true",
@@ -151,6 +153,11 @@ def main() -> None:
         ctl.start(str(log.path).replace(".jsonl", ".ctl.jsonl"), run=log.path.stem, argv=sys.argv, cmd=a.cmd)
         ctl.emit("life", ev="start", cmd=a.cmd, args=vars(a))
         log(f"ctl: 기록만 → {str(log.path).replace('.jsonl', '.ctl.jsonl')}")
+        if a.ctl_frames:
+            ctl.start_frames(str(log.path).replace(".jsonl", ".frames.jsonl"), run=log.path.stem)
+            log(f"ctl: 프레임 기록 → {str(log.path).replace('.jsonl', '.frames.jsonl')}")
+    elif a.ctl_frames:
+        log("   ⚠ --ctl-frames 는 --ctl 과 함께만 — 프레임 기록 안 함")
     scene_tap = None
     if a.ctl_scenes:
         import scenes

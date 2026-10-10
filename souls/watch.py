@@ -11,6 +11,7 @@ import threading
 import time
 from pathlib import Path
 
+import ctl
 import env
 import navmesh
 import quitout
@@ -172,13 +173,17 @@ class Escape:
         input is dropped meanwhile (guard included — [MoKa] accepted the guard being down for NUDGE_S); nav.Mover presses
         it again after unfreeze (Pad.epoch). False = a quit-out holds the pad, no nudge."""
         if not self.pad.freeze(take=False):
+            ctl.emit("esc", ev="nudge_yield")              # P1-D: record only
             return False
+        t0 = time.perf_counter()
+        ctl.emit("esc", ev="nudge_start", stick=[round(st[0], 3), round(st[1], 3)])
         try:
             self.pad.move(st[0], st[1])
             time.sleep(self.NUDGE_S)
         finally:
             self.pad.neutral()
             self.pad.unfreeze()
+            ctl.emit("esc", ev="nudge_end", dt_ms=round((time.perf_counter() - t0) * 1000, 1))
         return True
 
     def fire(self, why: str, kind: str, tm=None, p=None) -> dict:
@@ -186,6 +191,7 @@ class Escape:
         if not self.quit_ok:
             # user 2026-09-26: quit-outs in the video make it unfit for YouTube — when disabled, just log and keep fighting
             self.log(f"   (퀵 종료 꺼짐) {why} — 나가지 않고 계속")
+            ctl.emit("esc", ev="fire_skipped", kind=kind, why=why)          # P1-D: record only
             self.last_crowd = self.last_fall = time.time()   # keep the cooldown — so the same line isn't printed every tick
             return {"why": why, "kind": kind, "skipped": True}
         with self._lock:
@@ -196,6 +202,8 @@ class Escape:
             pos0 = None if p is None else [round(p.x, 2), round(p.y, 2), round(p.z, 2)]
             self.log(f"   ⚠ 퀵 종료: {why} @ {pos0}")
             self.escaping = True
+            t_fire = time.perf_counter()
+            ctl.emit("esc", ev="fire_start", kind=kind, why=why, pos0=pos0)  # P1-D: record only
             self.pad.freeze()
             res: dict = {"why": why, "kind": kind, "pos0": pos0}
             try:
@@ -208,6 +216,7 @@ class Escape:
                     q = quitout.quit_out(tm, self.pad, gap=quitout.MENU_GAP, settle=0.03, ready_wait=0.05)
                     res["quit_steps"] = dict(quitout.LAST_STEPS)
                 res["quit_s"] = None if q is None else round(q, 2)
+                ctl.emit("esc", ev="quit", how=res["how"], ok=q is not None, quit_s=res["quit_s"])
                 if q is None:
                     quitout.close_menu(tm, self.pad)
                 else:
@@ -233,6 +242,8 @@ class Escape:
             self._y.clear()
             self.gen += 1
             self.escaping = False
+            ctl.emit("esc", ev="fire_end", kind=kind, gen=self.gen, dt_ms=round((time.perf_counter() - t_fire) * 1000, 1),
+                     how=res.get("how"), quit_s=res.get("quit_s"), reload_s=res.get("reload_s"), back=res.get("back"))
             self.log(f"   ⚠ 퀵 종료 결과: {res}")
             if self.events:
                 self.events("escape", **res)
