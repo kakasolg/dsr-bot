@@ -74,6 +74,15 @@ def main() -> None:
     check("Field._walk keeps the 'check floor at all?' call on the NavMesh (Ground.nm)",
           getattr(g, "nm", g).floor_at(1.1, 0.0, 0.0) == (-16.0, 0) and getattr(Nm(), "nm", None) is None)
 
+    from souls import field as F
+    check("fights / recover / reflex unwrap Ground to the plain NavMesh (field.plain_nm, GROUND_IN_FIGHTS off — P-56)",
+          F.plain_nm(g) is g.nm and F.plain_nm(g.nm) is g.nm and not F.GROUND_IN_FIGHTS)
+    F.GROUND_IN_FIGHTS = True
+    try:
+        check("… and keep it when GROUND_IN_FIGHTS is on", F.plain_nm(g) is g)
+    finally:
+        F.GROUND_IN_FIGHTS = False
+
     import scenes
     rec = {"nm": getattr(g, "map_id", None), "ground": type(g).__name__ == "Ground"}
     check("scenes record whether the run read floor through Ground (--ground)", rec == {"nm": "fake", "ground": True})

@@ -199,6 +199,18 @@ WALL_OFF_S = 20.0        # after backing to a wall (or finding none), fight wher
 CROWD_OFF_S = 60.0       # …then fight in place this long (the old 45 % HP retreat still applies) before trying again
 
 
+GROUND_IN_FIGHTS = False   # run.py --ground: walks read floor through ground.Ground; fights / recover / wall-back keep the plain
+                           # NavMesh — the A/B on-run death at the P-49 ledge (P-56) changed 109 toward-foe floor answers there
+
+
+def plain_nm(nm):
+    """The NavMesh under a ground.Ground (run.py --ground) — for fight-side floor checks while GROUND_IN_FIGHTS is off."""
+    if GROUND_IN_FIGHTS:
+        return nm
+    base = getattr(nm, "nm", None)
+    return base if hasattr(base, "floor_at") else nm
+
+
 def awake(c) -> bool:
     return c.hp > 0 and not (9000 <= (c.anim or 0) < 9100)
 
@@ -457,6 +469,7 @@ class Field:
         """Three or more on us (duel wall_back) — walk with the guard up to the nearest wall spot that isn't toward them and has no drop
         close, so they can only come from the front, one or two at a time. Corners first. Then the caller fights the nearest.
         No spot / no path → fight where we stand (WALL_OFF_S)."""
+        nm = plain_nm(nm)
         t0 = time.time()
         self._wall_off_until = t0 + WALL_OFF_S
         s = self.mv.snap(WALL_BACK_R + 2.0)
@@ -518,6 +531,7 @@ class Field:
           · foe close and HP low: retreat toward the bonfire, drink once safe
           · no quit-out to shake off — it restarted in the same place and re-engaged immediately (repeated 5 times, HP 659 → 24, user:
             "this spot is bad for force-quitting")"""
+        nm = plain_nm(nm)
         s = self.mv.snap(15.0)
         if s is None:
             return False
@@ -582,6 +596,7 @@ class Field:
          싸움이 안전 자리에서 TETHER_R 넘게 벗어나면 그 틱에 끊고, 가드 든 채 안전 자리로 물러나 거기서 다시 받는다(wait_far).
          TETHER_TRIES번 끊은 뒤엔 묶지 않고 끝까지 — 안 따라오는 놈과 끊고 물러나기만 되풀이하지 않게.
          원거리 적(foes.ranged — 석궁·화염병)은 묶지 않음: 10-06c 구역 1 석궁 255002가 안 따라와 3번 끊고 돌아오기만 15 s."""
+        nm = plain_nm(nm)                                  # run.py --ground: fights keep the plain NavMesh (GROUND_IN_FIGHTS)
         self._fight_n = getattr(self, "_fight_n", 0) + 1     # one id per fight() — a tether cut and re-taken stays the same fight
         self.fight_id = f"{getattr(self, 'run_id', 'run')}#f{self._fight_n:03d}"   # run.py sets run_id (runinfo, ROADMAP 1-i)
         spot = getattr(self, "tether", None)
@@ -1509,7 +1524,7 @@ class Field:
                                    smashed={},         # smashed: prop name → swings this walk (props_.blocking)
                                    fogged=set(),       # FOG_WALLS already tried this walk (fog_ahead)
                                    doored=set())       # DOORS already opened this walk (one A each — a second A shuts it)
-        self.reflex.nm = nm
+        self.reflex.nm = plain_nm(nm)                        # reflex rolls / backsteps: plain NavMesh (GROUND_IN_FIGHTS)
         mover = nav.Mover(self.mv.pad)
         no_obs = control.NoObs(self.mv.pad, on_full=mover.stop)   # no snapshot: stick off now, everything off after a while (P0-C)
         try:

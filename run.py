@@ -106,8 +106,8 @@ def main() -> None:
     ap.add_argument("--ctl-scenes", action="store_true",
                     help="--ctl 에 더해 싸움 결정마다 그 순간의 입력을 .ctl.jsonl 에 'scene' 으로 (scenes.py) — python scene_replay.py 로 다시 돌림. 기록만")
     ap.add_argument("--ground", action="store_true",
-                    help="걷기·싸움의 바닥 확인에 NavMesh + 걸어 본 자리(ground.py, data/walked/) — 통로·다리 아치처럼 NavMesh가 빈 곳을 낭떠러지로 안 봄. "
-                         "낙하 감지·턱 되돌림(watch)은 NavMesh 그대로. 기본 꺼짐 (A/B용)")
+                    help="걷기의 바닥 확인에 NavMesh + 걸어 본 자리(ground.py, data/walked/) — 통로·다리 아치처럼 NavMesh가 빈 곳을 낭떠러지로 안 봄. "
+                         "싸움·물러남·낙하 감지는 NavMesh 그대로 (field.GROUND_IN_FIGHTS, P-56). 기본 꺼짐 (A/B용)")
     ap.add_argument("--note", default=None, help="한 줄 메모 — 실행 설정 기록(<run>.settings.json)과 로그 첫 줄에 남음 (예: 세이브 이름)")
     ap.add_argument("--no-lure", action="store_true", help="나이프로 한 놈씩 깨우지 않고 예전처럼 걸어가 붙는다 (비교용)")
     ap.add_argument("--style", choices=["guard", "backstep", "rush"], default="guard",
@@ -237,8 +237,8 @@ def main() -> None:
     if a.ground:                                            # walks and fights read floor through the walked-cell map (design-floor-check §3-C)
         import ground
         nms = {k: ground.for_map(v) for k, v in nms.items()}
-        log("ground: 바닥 확인 = NavMesh + 걸어 본 자리 (" + ", ".join(f"{k} {len(g.walked)}칸" for k, g in nms.items())
-            + ") — 낙하 감지는 NavMesh 그대로")
+        log("ground: 걷기의 바닥 확인 = NavMesh + 걸어 본 자리 (" + ", ".join(f"{k} {len(g.walked)}칸" for k, g in nms.items())
+            + ") — 싸움·물러남·낙하 감지는 NavMesh 그대로")
     esc.quit_ok = not a.no_quit
     if a.no_quit:
         import os
