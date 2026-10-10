@@ -20,6 +20,8 @@ data/routes/*
 !data/routes/asylum-fresh.json
 !data/gamefiles/
 !data/samples/
+# floor map: positions where the bot / demos stood (ground.py build — rebuilt from data/samples, small npz)
+!data/walked/
 data/samples/*.diff
 # ↑ a run's uncommitted diff (runinfo) stays local — sample.py doesn't copy it; this keeps a hand copy out too
 *.out

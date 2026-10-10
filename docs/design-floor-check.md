@@ -136,6 +136,17 @@ P-47) · `passage-drill`(지도 C가 통로 입구 멈칫을 줄이는지). 비�
 4. [cloud] B 2단계(표의 거리) → golden·하네스 → [win] A/B.
 5. [MoKa] 켤지 결정 → `rule_edge`·`_no_void` 지움.
 
+### 구현 상태 — C 바닥 지도 (2026-10-10 [cloud], [MoKa] "제안 3 바닥 지도부터")
+- `ground.py`: `python ground.py build` → `data/walked/<map>.npz` (봇 track + 레이더 걷기, 낙하·착지·사망 프레임과 떨어지기 직전·중 프레임 뺌, 위치마다 NavMesh가 가까운 맵으로):
+  m10_01 16,298곳(43 실행, 1,846칸) · m10_02 12,347곳(47, 717칸) · m18_01 9,953곳(22, 1,597칸), 합계 160 KB.
+  `Ground(nm, walked)`: `floor_at`은 이 높이(±0.6 m)의 NavMesh 바닥 → 없으면 0.35 m 안 걸어 본 자리 → 없으면 NavMesh 답 그대로(아래 바닥 = 낭떠러지).
+  `on_mesh`·`nearest_walkable`도 같은 순서, 나머지(`find_path`·`wall_dist`·`drop_dist` …)는 NavMesh 그대로.
+- 확인(`experiments/floor_map_check.py`, 실행 하나씩 빼고 만든 지도로): 실제로 걸어간 9,437걸음 중 "바닥 없음" **197 (2.1 %) → 50 (0.5 %)** —
+  남은 것은 비밀 통로 (−48,−34,−11)·(−43,−34,−5)와 수용소 몇 곳(2 Hz 기록이라 칸 사이가 빔). 진짜 낙하 5번은 **5/5 그대로 "바닥 없음"**.
+  경사로 턱 밀리는 방향(P-49) 32/35 → 31/35 (한 건은 다른 실행에서 봇이 실제로 선 자리). `tests/ground_test.py`.
+- **봇엔 아직 안 연결** ([win]이 제안 4·5 확인 중 — 동작 바뀌는 것을 섞지 않음). 다음: `run.py --ground`(걷기·싸움의 `terrain`/`nm` = `Ground`, 기본 꺼짐) → [win] `passage-drill` A/B(통로 입구 멈칫 §2-d),
+  그 뒤 A `rule_footing`(§7 결정 필요). 새 기록이 쌓이면 `python ground.py build`로 다시.
+
 ## 7. [MoKa] 결정할 것
 1. 발밑이 위험하면 **적이 휘두르는 중에도** 방패 든 채 한 걸음 옮기는 것 — 그 걸음 동안 맞을 수 있음 (지금은 공격 중엔 안 움직임).
 2. `rule_footing`의 순서: 제안은 `rule_after_swing`(휘두름 끝나면 무조건 공격, 10-06) **앞** — 턱 끝에선 치기보다 자리 먼저. 뒤로 미루면 턱 끝에서도 먼저 침.
