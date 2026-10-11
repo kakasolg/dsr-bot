@@ -16,6 +16,7 @@ Short on purpose: **only open work, one line each**. Full history (Korean, verba
 | `docs/design-scene-expectations.md` | design for proposal 4 (human-checked scenes as test expectations: `duel_expect_test`, exact-input scenes) |
 | `docs/design-run-settings.md` | design for proposal 5 (run settings record: `<run>.settings.json`, first log line, `fight_id`/`zone`, `sample.py`, `ab.py`) |
 | `docs/review-v2-2026-10-11.md` | v1.0 → v2.0 review: last 7 days, structure problems, 2.0 features and order (not decided) |
+| `docs/research-control-priority-2026-10-11.md` | consistency research (MoKa 10-11): conditions vs principles, who holds the pad; rulebooks, RSS, Simplex, SOTIF, arbitration; proposals (not decided) |
 
 Rules for keeping this file small (CLAUDE.md has the full working rules):
 - An item lives here while it is `[ ]` / `[~]` / `[!]`. When it becomes `[x]` or `[-]`, move the line (with its one-line
@@ -189,6 +190,8 @@ to the bottom of `docs/roadmap/relay.md`.
 (handled entries: `docs/roadmap/relay.md`, last moved 2026-10-11)
 
 - 2026-10-11 [board→cloud] **Your `dd1e31e`… list handled** (`f78d762`): (4) `risk_report` re-run — 071213 / 072424 위험 → 주의, 072043 stays 위험 (real 8 %); the table mode crashed on `.track` / `.ctl` jsonl (no `ev`) — fixed. **`--footing` A/B 3+3 done**: 6/6 passage end, 0 deaths / falls / quit-outs; off low 65/68/25 %, on 67/35/57 %; `발밑 위험` on #1 1×, #2 0×, #3 4× (42/33/50/58 %), no big hit during a step — but no ramp-ledge push happened, so it can't show the P-58 fix yet. P-57: path-find fired once (on #1, 4.5 m from A0 → passage 15 s, no stall); off #3 ended 6.0 m off and walked straight, no stall. P-56 '원거리부터': on #1 switched at exactly 2.0 m ("원래 목표 2.0 m") — `< 2` lets it through, `≤` intended? New **P-64** passage-exit stall (−26,−33.7,8.5) 2/27 runs (on #3: 3× 4.5 s, passage 33 s) — same spot as your P-63 missing-floor note. **MoKa 10-11: target · character · camera alignment is high priority** (section 1 top) — **P-65**: camera not steered outside duels (leave_fire, escape.pick back-off, body pull run in `Field` after `cam_target` is cleared), and `LOOK_SIGN` learned backwards from one pulse in `060748` (camera 158° off all run). Zone 8 check waits for MoKa (needs the before-Taurus save; the loaded character has the Parish lit).
+
+- 2026-10-11 [board→cloud] **Research for MoKa (read before changing control code)**: `docs/research-control-priority-2026-10-11.md`. MoKa 10-11: fixing today's problem with a specific condition makes later problems hard to trace once the condition goes away — wants one consistent way the bot decides and fixes. Counted: `P-n` fix markers 80 places / 25 problems, 248 threshold constants, 12 on/off switches, 11 zone branches; only `Pad.freeze` is a real priority, the rest is call order + RULES order; camera has no owner outside duels and keeps the old target after `_sense` switches `F.ptr`. Outside: rulebooks (ordered violation metrics), RSS, Simplex (small safety layer), SOTIF (failures → scenario set), one owner per actuator, focus priority for the look channel. Proposals only — **MoKa decides direction (§4)**; until then please avoid adding new situation-specific conditions where a general change would do.
 
 ## 6. Change log (newest first; older entries in `docs/roadmap/changelog.md`)
 
