@@ -41,8 +41,8 @@ z8 = zones[7]
 lad = z8["before"][1]["ladder"]
 p = nm.find_path(tuple(zones[6]["safe"]), tuple(lad["approach"][0]))
 check(f"zone 8: top of the stairs → foot of the stairs ({length(p):.0f} m)", len(p) >= 2 and length(p) < 15)
-check("zone 8: fog wall first, then the ladder ([MoKa] '안개벽 처리 않해?')",
-      [next(iter(s)) for s in z8["before"]] == ["fog", "ladder"])
+check("zone 8: fog wall first, then the ladder ([MoKa] '안개벽 처리 않해?'), then two rolls (P-47)",
+      [next(iter(s)) for s in z8["before"]] == ["fog", "ladder", "roll"])
 p = nm.find_path(tuple(z8["safe"]), tuple(z8["kills"][0][1]))
 check(f"zone 8: ladder top → first crossbowman ({length(p):.0f} m)", len(p) >= 2 and length(p) < 10)
 check("zone 8: crossbowmen are attacked at once ([MoKa] '가자 마자 공격해')", all(k[2].get("attack") for k in z8["kills"]))
@@ -407,6 +407,59 @@ check("ranged foe (crossbow 255002) is not tethered — 10-06c cut it 3 times fo
       r.result == "killed" and log == [("fight", False, False, None)])
 r, log = tethered(["cancel", "killed"], (-7.67, -10.09, -86.5), npc=255001)
 check("melee foe (255001) still tethered", [x[0] for x in log] == ["fight", "retreat", "fight"])
+
+# P-47 zone 8 ladder top ([MoKa] 10-06: "구르기를 2번 해서 석궁병하고 간격을 벌려야 해") — the top is a ledge 0.2–0.5 m from the
+# NavMesh edge; east toward F9#8 the floor widens. Roll there twice, then the landing is the safe spot / tether
+roll = z8["before"][2]["roll"]
+check("zone 8 roll step: 2 rolls toward MoKa's F9#8, landing = safe spot", roll["n"] == 2 and roll["safe_after"]
+      and math.dist(tuple(roll["toward"]), (61.95, 23.7, -116.93)) < 0.1)
+import ground  # noqa: E402
+import nav  # noqa: E402
+g8 = ground.Ground(nm)
+top = (50.78, 24.73, -116.64)                              # recording 151317: where MoKa stepped off the ladder
+xb = [Chr(npc_param=255002, ptr=81, x=52.9, y=23.8, z=-119.8, hp=85, anim=3000),
+      Chr(npc_param=255002, ptr=82, x=52.6, y=23.8, z=-121.4, hp=85, anim=-1)]
+snap8 = lambda at: NS(player=NS(x=at[0], y=at[1], z=at[2]), hostile=lambda r: [c for c in xb if math.hypot(c.x - at[0], c.z - at[2]) < r])
+d = MS.Missions._roll_dir(g8, snap8(top), tuple(roll["toward"]))
+check(f"roll from the ladder top: east toward F9#8 has floor → that way ({d})", d is not None and d[2] and d[0] > 0.95)
+land = (top[0] + 2 * MS.ROLL_M * d[0], 23.7, top[2] + 2 * MS.ROLL_M * d[1])
+check(f"… two rolls land on wide floor: NavMesh edge {nm.border_dist(*top):.2f} m at the top → {nm.border_dist(*land):.1f} m",
+      nm.border_dist(*top) < 0.6 and nm.border_dist(*land) > 2.0 and nm.on_mesh(*land))
+d = MS.Missions._roll_dir(g8, snap8(top), (50.78, 24.7, -105.0))
+check(f"a planned way with no floor (north, over the edge) → a direction with floor, away from the crossbowmen ({d})",
+      d is not None and not d[2] and nav.ground_ahead(g8, NS(gx=top[0], gy=top[1], gz=top[2]), d[0], d[1], reach=MS.ROLL_M))
+
+at8 = {"p": top}
+rolled = []
+def roll_toward(s_, x, z):
+    p_ = at8["p"]
+    k = MS.ROLL_M / math.hypot(x - p_[0], z - p_[2])
+    rolled.append((x, z))
+    at8["p"] = (p_[0] + (x - p_[0]) * k, 23.7, p_[2] + (z - p_[2]) * k)
+m = MS.Missions.__new__(MS.Missions)
+m.log, m.f = (lambda *a: None), NS(alive=lambda: True)
+m.mv = NS(snap=lambda r=5.0: snap8(at8["p"]), roll_toward=roll_toward)
+r = m._roll_away(roll, nm, "t")
+check(f"_roll_away: two rolls east, landing recorded ({r}, {len(rolled)}, {tuple(round(v, 1) for v in m._landed)})",
+      r == "ok" and len(rolled) == 2 and m._landed[0] > top[0] + 4.5 and nm.border_dist(*m._landed) > 2.0)
+
+foe = Chr(npc_param=255002, ptr=83, x=52.9, y=23.8, z=-119.8, hp=85, anim=-1)
+m, f, calls, w = make(foe)
+landing = (55.9, 23.7, -116.8)
+def before8(step, nb_, tag):
+    calls.append(("before", next(iter(step))))
+    if "roll" in step:
+        m._landed = landing
+    return "ok"
+m._before, m._top_up = before8, (lambda *a: True)
+walked8, pulled8 = [], []
+f.careful_walk_to = lambda *a, **k: walked8.append(a) or "arrived"
+base_pull = m._pull_to_safe
+m._pull_to_safe = lambda npc, pos, safe_, nb_, tag, how=None: (pulled8.append((safe_, f.tether)), base_pull(npc, pos, safe_, nb_, tag, how))[1]
+zr = m.upper_zone(8)
+check(f"zone 8: fog → ladder → roll, then no walk back to the ladder top; fights use the landing as safe spot / tether ({zr})",
+      [c[1] for c in calls if c[0] == "before"] == ["fog", "ladder", "roll"] and walked8 == []
+      and pulled8 and all(sp == landing and t == landing for sp, t in pulled8) and f.tether != landing)
 
 print(f"\n{'all ok' if not fails else f'{fails} FAILED'}")
 sys.exit(1 if fails else 0)

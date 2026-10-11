@@ -39,7 +39,7 @@ Bot already clears cell → Undead Burg bonfire in one run (10-03e). `run.py bur
 10-06 bot runs cleared zones 1–8 one or a few at a time (zone 4 lowest HP 40 %); the `--seg 5-8` run died at the
 zone 8 crossbowmen (P-47).
 
-- [ ] [win] Zone 8: at the ladder top **roll twice** away from the two crossbowmen, then fight (MoKa 10-06) → P-47
+- [ ] [win] Zone 8: at the ladder top **roll twice** away from the two crossbowmen, then fight (MoKa 10-06) → P-47 — [cloud] done offline 10-11 (`roll` before-step: two rolls east toward F9#8, the landing = safe spot / tether); game check `run.py burg-upper --seg 8`, log `구르기 1/2 → +91° (F9 쪽)` · `구른 자리 … 를 안전 자리로`
 - [ ] [cloud]+[win] Taurus: bridge F9#7 calls the boss → run to ladder, climb → **gold pine resin** → plunge (~40 % of boss HP) → ~4 light attacks, keep stamina > 0; start with ≥ 1 Estus (MoKa 10-06)
 - [ ] [cloud]+[win] Boss fight default = two-handed + dodging (9-30 principle); Taurus is the first case (the general boss module is v2.0)
 - [ ] [cloud] Firebomb hollow "close in fast" rule — unless the way there is a fall-risk zone (ledge 254012 is ignored) → check with `duel_golden_test`
@@ -160,7 +160,7 @@ Full entries: `docs/roadmap/problems.md`. Status: **open** · **parked** · **de
 | 44 | Restoring a save does not restore the radar warp list | decide |
 | 45 | `burg-upper` zone 2: chaser caught the bot mid-walk, died 13 m from the safe spot | fixed (run back to safe spot) |
 | 46 | `burg-upper` zone 5: no rules for 255001 (shield + spear) | fixed (`foes.SHIELD`, wait/lure) |
-| 47 | "HP low" 0 s fight loops; zone 8 death; 'cleared' with survivors | partly fixed; zone 8 → section 1 |
+| 47 | "HP low" 0 s fight loops; zone 8 death; 'cleared' with survivors | verify — zone 8: two rolls off the ladder-top ledge, fight from the landing |
 | 48 | 6-a "48 % of sharp corners cut inside" is a 2 Hz sampling artifact (10 Hz: 20 %, two places) | open (measure fix) |
 | 49 | Ramp ledge (−22,−40,13): knocked off 3× fighting the axe hollow, standing off-mesh; `rule_edge` only raised the shield | verify — `--footing` A/B (P-58) |
 | 50 | `scene_replay` fake `face()` always True → a 42.5° scene replayed as `finish_first` (97 %) | fixed |
@@ -186,6 +186,8 @@ to the bottom of `docs/roadmap/relay.md`.
 (handled entries: `docs/roadmap/relay.md`, last moved 2026-10-11)
 
 - 2026-10-11 [cloud→board] **[cloud] since `dd1e31e` — `git pull` before the next run** (all offline, pytest 83): (1) **P-57** passage-start stall = the walk went straight at A0 (3.3 m up) from the top platform; now path-finds first (`꼭대기로`). For MoKa's `--ground` call: its "0 passage stalls" was this — both on runs that reached the passage started 21–24 m off. (2) **P-58 / P-49** `rule_footing` behind `--footing` (off; A/B item in section 2). (3) **P-56** "원거리부터" only to real throwers, and a foe < 2 m keeps the target (36 of 42 old switches gone). (4) **P-61 / P-62** fixed — re-run `risk_report` on 071213 / 072424 / 072043. (5) **`--pull` default: keep it off** (agree with [win]): real `came` 2 of 9, on runs +24 s mean, deaths / falls the same; 255010 often wakes 254002 or stays put (0.0 m in 2 s). Code stays for the town careful walk with no knives. Watch: `원거리 피격`, `원거리부터`, `꼭대기로` times, `발밑 위험` (with `--footing`).
+
+- 2026-10-11 [cloud→board] **P-47 zone 8 ladder top** (`git pull`; MoKa 10-06 "구르기를 2번"): the top is a ledge 0.2–0.5 m from the NavMesh edge — the 10-06 death fought there (2.4 m crossbowman, −228 ×2, slipped off the ledge 5×). Now after the ladder: two rolls east toward MoKa's F9#8 (floor checked 2.6 m ahead each; else away from the crossbowmen), and the landing (~5 m east, edge 3.6 m) becomes the safe spot / tether. Check: `burg-upper --seg 8` (section 1 item).
 
 ## 6. Change log (newest first; older entries in `docs/roadmap/changelog.md`)
 

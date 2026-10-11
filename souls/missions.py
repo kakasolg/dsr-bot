@@ -14,7 +14,7 @@ from pathlib import Path
 import nav
 
 from . import moves as M
-from .field import Field
+from .field import Field, plain_nm
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
@@ -86,6 +86,8 @@ def off_route(here, q) -> bool:
     """Route point q can't be walked to in a straight line from here: too far, or on another level → path-find to it first."""
     return math.dist(here, q) > ROUTE_NEAR_M or abs(q[1] - here[1]) > ROUTE_DY_M
 LADDER_CLIMB_S = 15.0    # …give one climb this long (souls/asylum CLIMB_S)
+ROLL_M = 2.6             # a 'roll' before-step: floor this far ahead for each roll (design-floor-check §3-B 'roll'; track max 2.5 m)
+ROLL_FOE_R = 10.0        # … foes this close are kept at a distance when the planned way has no floor
 UPPER_SIP_FRAC = 0.7     # back at the safe spot: drink only below this share (10-06g spent one on 713/742; [MoKa] 90 → 80 → 70 %)
 UPPER_SWING_R = 2.5      # …and not while a foe this close is mid-swing (10-06g: interrupted by a firebomb from 2.4 m)
 
@@ -315,13 +317,23 @@ class Missions:
         try:
             if z.get("before") and not self._top_up(nb, f"구역{n}"):   # fog wall · ladder ahead — no fighting there, drink first
                 return "no_estus"
+            landed = None
             for step in z.get("before", []):
+                self._landed = None
                 r = self._before(step, nb, f"구역{n}")
                 if r == "dead":
                     return "died"
                 if r != "ok":
                     return f"{next(iter(step))} {r}"
-            if no_safe:
+                if step.get("roll", {}).get("safe_after") and self._landed is not None:
+                    landed = self._landed
+            if landed is not None and not no_safe:
+                # P-47: the ladder top is the narrow ledge — the safe spot / tether is where the rolls landed, not back there
+                safe = landed
+                self.f.extra_zones, self.f.tether = (safe,), safe
+                self.log(f"   구역{n}: 구른 자리 ({safe[0]:.1f},{safe[1]:.1f},{safe[2]:.1f})를 안전 자리로")
+                r = "arrived"
+            elif no_safe:
                 r = "arrived"
             elif z.get("run_to_safe"):
                 r = self._sprint(safe, nb, None)
@@ -521,7 +533,11 @@ class Missions:
     def _before(self, step: dict, nb, tag: str) -> str:
         """A zone's 'before' step (구역 8, [MoKa] "안개벽 지나서, 사다리 타고 올라가서"). → 'ok' | 'dead' | 'fail' | walk result
           fog: walk to front, settle, fog_through toward beyond (known wall — A without the prompt check), as souls/asylum does
-          ladder: walk to bottom, face `face`, A, stick up until top_y, keep pushing to step off (souls/asylum._climb)"""
+          ladder: walk to bottom, face `face`, A, stick up until top_y, keep pushing to step off (souls/asylum._climb)
+          roll: roll n times toward `toward`, each only with floor ROLL_M ahead; 'safe_after' → where we land is the zone's
+                safe spot / tether from here on (P-47, [MoKa] 10-06: "구르기를 2번 해서 석궁병하고 간격을 벌려야 해")"""
+        if "roll" in step:
+            return self._roll_away(step["roll"], nb, tag)
         if "fog" in step:
             st = step["fog"]
             front, beyond = tuple(st["front"]), tuple(st["beyond"])
@@ -583,6 +599,64 @@ class Missions:
             self.log(f"   {tag}: 사다리 안 올라감 ({attempt + 1}/{LADDER_TRIES}, y {None if s is None else round(s.player.y, 1)})")
             self.f._settle(bottom, tol=0.4)
         return "fail"
+
+    def _roll_away(self, st: dict, nb, tag: str) -> str:
+        """
+        ── 사다리 꼭대기에서 구르기 두 번 (P-47, [MoKa] 2026-10-06) ─────────────────────────────
+         "구역 8 석궁병을 바로 공격하려고 하면 위치가 불리하니, 구르기를 2번 해서 석궁병하고 간격을 벌려야 해."
+         꼭대기 (50.8,24.7,−116.6)는 NavMesh 가장자리까지 0.2~0.5 m인 좁은 턱 — 10-06 사망 실행은 거기를 안전 자리로 두고 2.4 m 앞
+         석궁병 3004에 −228·−228, 턱에서 다섯 번 미끄러짐. 녹화에서 MoKa는 동쪽으로 달려 F9#8 (61.95,23.7,−116.93)에서 받음 —
+         동쪽 2~3 m부터 바닥이 넓어짐(가장자리 3~6 m). 그쪽(`toward`)으로 바닥이 ROLL_M 있으면 그쪽으로, 없으면 바닥 있는 방향 중
+         ROLL_FOE_R 안 적에게서 가장 먼 쪽으로 구름. 둘 다 없으면 구르지 않음. → 'ok' | 'dead'; self._landed = 마지막 자리
+        """
+        import ground
+        n, toward = int(st.get("n", 2)), tuple(st["toward"])
+        g = ground.for_map(plain_nm(nb)) if nb is not None else None   # --ground may already hand us a Ground
+        self._landed = None
+        for i in range(n):
+            s = self.mv.snap(15.0)
+            if s is None:
+                break
+            p = s.player
+            d = self._roll_dir(g, s, toward)
+            if d is None:
+                self.log(f"   {tag}: 구를 쪽에 바닥 없음 — 구르지 않음 ({i}/{n})")
+                break
+            self.log(f"   {tag}: 구르기 {i + 1}/{n} → {math.degrees(math.atan2(d[0], d[1])):+.0f}° "
+                     f"({'F9 쪽' if d[2] else '적에게서 먼 쪽'})")
+            self.mv.roll_toward(s, p.x + d[0] * 3.0, p.z + d[1] * 3.0)
+            if not self.f.alive():
+                return "dead"
+        s = self.mv.snap(15.0)
+        if s is not None:
+            self._landed = (s.player.x, s.player.y, s.player.z)
+        return "ok"
+
+    @staticmethod
+    def _roll_dir(g, s, toward):
+        """(dx, dz, toward?) for one roll: toward `toward` when that has floor ROLL_M ahead, else of 12 directions with floor the one
+        that lands farthest from awake foes within ROLL_FOE_R (ties: nearer the planned way). None = no floor anywhere."""
+        p = s.player
+        P = type("P", (), {})()
+        P.gx, P.gy, P.gz = p.x, p.y, p.z                       # m10_01: local = NavMesh coords (as find_path is given here)
+        ok = (lambda dx, dz: True) if g is None else (lambda dx, dz: nav.ground_ahead(g, P, dx, dz, reach=ROLL_M))
+        tx, tz = toward[0] - p.x, toward[2] - p.z
+        n = math.hypot(tx, tz)
+        if n > 0.5 and ok(tx / n, tz / n):
+            return tx / n, tz / n, True
+        foes = [c for c in s.hostile(ROLL_FOE_R) if c.hp > 0 and abs(c.y - p.y) < 3.0]
+        best = None
+        for k in range(12):
+            a = k * math.pi / 6
+            dx, dz = math.sin(a), math.cos(a)
+            if not ok(dx, dz):
+                continue
+            qx, qz = p.x + dx * ROLL_M, p.z + dz * ROLL_M
+            far = min((math.hypot(c.x - qx, c.z - qz) for c in foes), default=ROLL_FOE_R)
+            score = far + (0.5 * (dx * tx + dz * tz) / n if n > 0.5 else 0.0)
+            if best is None or score > best[0]:
+                best = (score, dx, dz)
+        return None if best is None else (best[1], best[2], False)
 
     def _wait_at_safe(self, ptr, safe, secs: float) -> bool:
         """Guard at the safe spot up to secs for the target (or anyone) to come within UPPER_COME_R of it. → it came"""
