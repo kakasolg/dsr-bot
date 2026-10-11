@@ -76,6 +76,15 @@ UPPER_TRIES = 4          # same target until dead, at most this many lure + figh
 UPPER_ENCOUNTER_R = 10.0 # running in: any awake, moving foe on our level this close → turn back to the safe spot
 UPPER_HEAL_FRAC = 0.7    # before each lure: below this share of max HP, Estus first
 LADDER_TRIES = 3         # zone 8 ladder: face + A + climb attempts
+ROUTE_NEAR_M = 6.0       # _to_merchant: the nearest route point is walked to straight only this close …
+ROUTE_DY_M = 1.5         # … and on our level — P-57: a ramp fight ending on the top platform (−20,−39.3,14.4) was 4.2 m from A0
+                         # (the stair top, 3.3 m higher, reached around the east side); the straight walk ran into the ledge — a 1.5–2.6 s
+                         # stall and a turn-around, in 4 of 15 seg 1-2 runs, and the same spot as the ramp-ledge falls (P-49 / P-58)
+
+
+def off_route(here, q) -> bool:
+    """Route point q can't be walked to in a straight line from here: too far, or on another level → path-find to it first."""
+    return math.dist(here, q) > ROUTE_NEAR_M or abs(q[1] - here[1]) > ROUTE_DY_M
 LADDER_CLIMB_S = 15.0    # …give one climb this long (souls/asylum CLIMB_S)
 UPPER_SIP_FRAC = 0.7     # back at the safe spot: drink only below this share (10-06g spent one on 713/742; [MoKa] 90 → 80 → 70 %)
 UPPER_SWING_R = 2.5      # …and not while a foe this close is mid-swing (10-06g: interrupted by a firebomb from 2.4 m)
@@ -661,7 +670,13 @@ class Missions:
         seg, k, d = min(((name, j, math.dist(q, here)) for name, pts in (("A", route), ("B", pb), ("C", pc))
                          for j, q in enumerate(pts)), key=lambda t: t[2])
         self.log(f"   상인 길: 가장 가까운 곳 {seg}{k} ({d:.1f} m)")
-        if d > 6.0:
+        if seg == "A" and d <= ROUTE_NEAR_M and off_route(here, route[k]):
+            # close but another level (P-57): path-find to that point, then go on from it
+            self.log(f"   상인 길: A{k}가 높이 {route[k][1] - here[1]:+.1f} m — 곧장 말고 길 찾아 감")
+            r = self.f.walk_to(route[k], na, "꼭대기로" if k == 0 else "길로")
+            if r != "arrived":
+                return f"{'꼭대기' if k == 0 else '길'}까지 {r}"
+        elif d > ROUTE_NEAR_M:
             if seg == "A":
                 r = self.f.walk_to(top, na, "꼭대기로")
                 if r != "arrived":

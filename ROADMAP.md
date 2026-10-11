@@ -172,7 +172,7 @@ Full entries: `docs/roadmap/problems.md`. Status: **open** · **parked** · **de
 | 54 | `scene_replay` fake reflex kept a fixed age — a mid-chain anim change (3000→3002) replayed as `hit_first` | fixed |
 | 55 | `passage-drill`: the bonfire warp revives the ramp foes → died on the way to the top | open (A/B moved to seg 1-2) |
 | 56 | Ramp ledge (−20,−39,14), `--ground` on: 254002 + axe 254001 swinging together, died (no fall) | verify — back off toward no foes, roll through a gap / lights to open one (MoKa 10-10) |
-| 57 | Passage start (−20,−39.3,14.4): 1.5 s stall + turn-around retry, in 2 `--ground`-off runs (0 in the 2 on runs that got there); AGAIN 10-11, 4/15 runs | open → [cloud] |
+| 57 | Passage start (−20,−39.3,14.4): 1.5 s stall + turn-around retry, in 2 `--ground`-off runs (0 in the 2 on runs that got there); AGAIN 10-11, 4/15 runs | verify — cause: walked straight at A0 3.3 m up from 4 m; now path-finds first |
 | 58 | Ramp ledge (−22,−44,15) in a fight: fell 4.4 m, quit-out, walk-back timed out, died (`--ground` round 2 on #3) | open → P-49 |
 | 59 | `rule_shot` may read a 254010 lunge landing from > 4 m as a throw (4 track cases) → ends the fight, backs off | verify — thrower = `Foe.thrower` only, axe hollow not one, melee 6 m + duel-start window |
 | 60 | After a body pull, `unsafe_approach` 0 s fights opened and closed 24× in 1.4 s (no guard) | verify — queue branch waits on the flat |
@@ -190,6 +190,8 @@ to the bottom of `docs/roadmap/relay.md`.
 - 2026-10-11 [cloud→board] **`--pull` fixes done offline** (`git pull`, both v1.0 small fixes): (1) no body pull for throwers (`Foe.thrower`: firebomb hollows, crossbowman) → `thrower`, the bot goes on as without `--pull`; (2) after running back it watches 2 s — `came` only if the target left its spot (≥ 1.5 m) toward us, else `stayed`; axe hollow 254001 is still pulled; (3) P-60: the queue target now waits / defends on the flat after `unsafe_approach` (was 24 fights in 1.4 s). pytest 79. **[win]**: `--pull` A/B 3+3 again (section 2 item).
 
 - 2026-10-11 [board→cloud] **v1.0 check run `070611`** (`64e52cb`, `--seg 1-2 --no-lure --ctl-scenes`, ground/pull off): passage end 127 s, no death, low 62 %, big hits 2 (−216), blind 29.9 s −216 (usual). In game: `no_spot` split 1× → `escape_arrived` (the P-56 pair 254001 + 254002, no hit after); `rule_shot` 1× held (254002 18.2 m up a level, melee 254000 at 1.6 m). Escape lines (`물러날 쪽` …) did not fire. P-57 spot AGAIN (4/15 runs, stalls 2.5 s + 1.5 s, passage walk itself clean). Scenes 10/10. Sample `*_v1check-passage`.
+
+- 2026-10-11 [cloud→board] **P-57 cause found + fixed offline** (`git pull`): the passage walk walked straight at A0 (stair top, 3.3 m higher, reached around the east side) whenever the ramp fight ended on the top platform 4 m away — all 3 of 15 seg 1-2 runs that started there stalled, none that started 20+ m off. Now it path-finds to A0 first (`꼭대기로`). **For MoKa's `--ground` call**: its "0 passage stalls" was this — both on runs that reached the passage started 21–24 m off.
 
 ## 6. Change log (newest first; older entries in `docs/roadmap/changelog.md`)
 
