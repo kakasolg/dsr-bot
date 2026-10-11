@@ -461,6 +461,15 @@ New problems still go here (append at the bottom) and get a one-line row in ROAD
 - 증상: `20261009_234512_burg-upper` (HP 742, `--seg 1`, 결과 cleared) 111.1 s 254010 애니 3005에 −109 (HP 501), 116.6 s "퀵 종료: 낙사 (바닥 모름, 0.8 s 에 4.0 m)" → 6.4 s 뒤 다시 불러와 0.5 m 옆에서 이어 감. 102.0 ~ 111.1 s 판단 줄 없음. 위험 판정 "위험 … 강종×1(fall)". `hotspots.py`는 걷기 문제로 안 잡음.
 - 원인: 미확인 — 구역 1 안전 자리 근처 턱에서 싸우다 밀렸을 가능성 (P-49와 같은 계열, 같은 실행에서 "뒤잡기 뒤 발밑 가장자리" 물러남도 있음).
 - 해결: 미해결. 다음 구역 1 실행에서 같은 자리면 문제 키움; `--ground` A/B 뒤 `rule_footing`(설계 3-A)과 같이 볼 것.
+- 2026-10-11 [cloud] 원인 찾음·고침 (오프라인): 싸움 중 밀린 게 아님 — 끌어온 254010에게 −109를 맞은 뒤(111.1 s) 안전 자리 (−0.8,−10,−62.5)로
+  **질주해 돌아오다** (−5.4,−9.9,−69.6)의 55° 모퉁이에서 꺾지 못하고 동쪽으로 3 m 지나쳐(115.1 s (−4.4,−69.8) NavMesh 밖, 115.6 s 낙하 애니 1550)
+  4 m 낙하. 모퉁이는 `CORNER_TOL` 0.5 m로 정확히 밟지만 질주(~5 m/s) 관성이 남음. 그 너머 NavMesh엔 19 m 위 지붕만 있어 `ground_ahead`(1.2 m)는
+  "바닥 있음"이라 답함 (→ P-63).
+  고침: `nav.brake_points` — 모퉁이(> `CORNER_DEG`)에서 들어온 방향으로 3 m 더 가면 **우리 높이의** 바닥이 없고(`_level_floor`) 낙차 가장자리가
+  3.5 m 안이면 그 점은 brake → `nav.follow`가 그 점 3.5 m 앞부터 'sprint'를 'walk'(B 안 누름, 뜀)로 (`nav.braked`). `mv.walk_path`를 쓰는 모든
+  질주(구역 안전 자리로 달려 돌아오기, 끌기 뒤 돌아가기 등). burg-upper 질주 경로 38개(656 m)에서 brake 모퉁이 71곳 — 구역 1 이 모퉁이, 경사면,
+  구역 4 나선 계단(거의 전부), 구역 6·8 계단. 확인: `tests/brake_test.py` (P-53 경로의 그 모퉁이 brake, 넓은 바닥·직선·지형 없음은 안 함,
+  follow가 brake 점에만 감속), pytest 84. [win]: 다음 burg-upper 실행에서 돌아오기 시간(특히 구역 4)과 따라붙는 적.
 
 ### P-54 `scene_replay.py` 가짜 반사가 나이를 고정 — 싸움 중 공격 애니가 바뀐(3000→3002) 장면이 다른 규칙으로 재생됨 (2026-10-10, [win])
 
@@ -568,4 +577,13 @@ New problems still go here (append at the bottom) and get a one-line row in ROAD
 - 원인: `souls/field.py:584`가 MoKa 10-10 물러나기(`물러날 쪽 …`)를 `self.events("escape", src, point, kept, cands)`로 남기는데, 퀵 종료(`souls/watch.py:271`)도 같은 이름 `escape`. `risk_report.py:64`가 `ev == "escape"`를 모두 강종으로 셈 → 판정 '위험'.
 - 해결 제안: [cloud] 물러나기 사건 이름을 바꿈 (예: `escape_pick`) 또는 `risk_report`가 `kind` 있는 것만 셈. OBSERVE.md 기록 형식도. 아직 안 고침.
 - 2026-10-11 [cloud] 고침 (오프라인): 둘 다 — `Field.escape_choice` 사건 이름 `escape_pick`, `risk_report.quit_out`은 `ev: escape`라도 `src`가 있으면(10-10~10-11 실행의 물러나기) 안 셈 → 이미 기록된 실행도 다시 돌리면 맞게 나옴. `experiments/style_report.py`도 같게. OBSERVE.md엔 봇 사건 이름 목록이 없어 그대로. 확인: `tests/risk_report_test.py` (옛 코드: 물러나기만 있는 실행이 '위험 강종×1(?)'), pytest 83.
+
+### P-63 `nav.ground_ahead`·`footing`·`safe_back`이 우리보다 한참 **위** 바닥을 발밑 바닥으로 셈 (2026-10-11, [cloud] P-53 분석 중)
+
+- 증상: P-53 모퉁이 (−5.4,−9.9,−69.6) 동쪽은 낭떠러지(4 m 아래)인데, 그 자리 NavMesh엔 우리 높이 바닥이 없고 19 m 위 지붕만 있음 → `floor_at`이 지붕을
+  돌려주고 "아래로 1.2 m 넘게 낮지 않으면 바닥"인 확인들이 "바닥 있음".
+- 원인: 아래쪽만 막고 위쪽 한도가 없음 (`nav.py` `ground_ahead`·`footing`·`safe_back`의 `hit[0] > p.gy - BACK_MAX_DROP`).
+- 전체를 고치지 않은 이유: 위쪽을 막으면(거리만큼, 최소 1.2 m) 봇이 실제로 걸은 걸음 17,795개 중 134개(0.75 %)가 "바닥 없음"으로 바뀜 — Firelink
+  (−31,−55,41)·비밀 통로 (−26,−34,7)처럼 NavMesh에 그 층 바닥이 빠져 있어 위층 바닥 덕에 걸을 수 있던 곳. 녹화된 낙하 11번은 어느 쪽이든 "바닥 없음".
+- 해결: 부분 — 질주 감속(`nav.brake_points`)만 엄격한 `_level_floor`. 나머지는 바닥 지도(걸어 본 자리)·충돌 메시로 그 층 바닥을 채운 뒤 (v2.0 "같은 바닥 확인").
 

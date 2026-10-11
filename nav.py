@@ -271,19 +271,74 @@ def path_tolerances(path: list, default: float = 1.0, steep: bool = True) -> lis
     return tols
 
 
+BRAKE_R = 3.5            # sprinting at a brake corner: jog (no B) for the last this many metres to it (P-53)
+BRAKE_OVERSHOOT_M = 3.0  # a corner brakes when running on past it this far leaves the floor …
+BRAKE_DROP_R = 3.5       # … and a drop edge (floor > 1.5 m below beyond it, not a wall) is this close to the corner
+
+
+def _level_floor(terrain, q, dx: float, dz: float, reach: float) -> bool:
+    """Floor at our level every metre out to reach (not lower than BACK_MAX_DROP, not higher than the distance — a slope).
+    Stricter than ground_ahead, which takes a floor far above as floor: past the P-53 corner the only NavMesh floor is a roof
+    19 m up. (ground_ahead keeps that: on 0.75 % of the steps the bot really took — the secret passage, Firelink stairs — the
+    level's own floor is missing from the NavMesh and the floor above is what lets it walk.)"""
+    n = math.hypot(dx, dz)
+    d = 1.0
+    while d <= reach + 1e-6:
+        h = terrain.floor_at(q[0] + dx / n * d, q[2] + dz / n * d, q[1])
+        if h is None or h[0] < q[1] - BACK_MAX_DROP or h[0] > q[1] + max(1.2, d):
+            return False
+        d += 1.0
+    return True
+
+
+def brake_points(path: list, terrain) -> list[bool]:
+    """
+    ── 낭떠러지 옆 모퉁이에선 질주를 멈춘다 (P-53, 2026-10-11 [cloud]) ──────────────────────────────
+     burg-upper 구역 1 (10-09 234512): 끌어온 254010에게서 안전 자리로 질주해 돌아오다 (−5.4,−9.9,−69.6)의 55° 모퉁이에서
+     꺾지 못하고 그대로 동쪽으로 3 m 지나쳐 4 m 낙하 → 퀵 종료. 모퉁이는 CORNER_TOL로 정확히 밟지만, 질주(~5 m/s)의 관성이 남음.
+     모퉁이(turn > CORNER_DEG)에서 들어온 방향으로 BRAKE_OVERSHOOT_M 계속 가면 바닥이 없고, 낙차 가장자리(벽이 아님)가
+     BRAKE_DROP_R 안이면 그 점은 brake — follow가 그 점 BRAKE_R 앞부터 'sprint'를 'walk'(B 안 누름, 뜀)로 바꿈.
+    """
+    out = []
+    for i, q in enumerate(path):
+        b = False
+        if (terrain is not None and hasattr(terrain, "drop_dist") and 0 < i < len(path) - 1 and len(q) > 2
+                and turn_deg(path, i) > CORNER_DEG):
+            k = i - 1
+            while k > 0 and math.dist((q[0], q[2]), (path[k][0], path[k][2])) < 0.3:
+                k -= 1
+            dx, dz = q[0] - path[k][0], q[2] - path[k][2]
+            b = (math.hypot(dx, dz) > 1e-6 and not _level_floor(terrain, q, dx, dz, BRAKE_OVERSHOOT_M)
+                 and terrain.drop_dist(q[0], q[1], q[2]) < BRAKE_DROP_R)
+        out.append(b)
+    return out
+
+
+def braked(mode_fn, q):
+    """mode_fn for one brake point q: whatever mode_fn says (goto's default when None), but 'sprint' → 'walk' within BRAKE_R of q."""
+    def fn(s):
+        p = s.player
+        d = math.hypot(q[0] - p.gx, q[2] - p.gz)
+        m = mode_fn(s) if mode_fn else ("sprint" if d > SPRINT_BEYOND else "walk")
+        return "walk" if m == "sprint" and d < BRAKE_R else m
+    return fn
+
+
 def follow(tm, pad, path: list, terrain=None, mode_fn=None, on_tick=None, default_tol: float = 1.0,
            timeout_per: float = 12.0, stop_fn=None, log=lambda *a: None) -> str:
     """Follow a path (the caller does the trim). Each point is judged with path_tolerances. If stop_fn(snapshot) is true, 'stopped'.
+    A corner with a drop past it (brake_points) is approached jogging, not sprinting (P-53).
     → 'arrived' | goto's failure value | 'stopped'. After 3 consecutive failures, that failure value."""
     tols = path_tolerances(path, default_tol)
+    brakes = brake_points(path, terrain)
     fails = 0
     # Keep one movement state (run B hold) for the whole path. Previously a new Mover per point pressed and released B —
     # with short gaps between points, a 'short B' = roll/backstep (jump if running) and it fell off ramps (2026-09-24 review)
     mover = Mover(pad)
     try:
-        for q, tol in zip(path, tols):
+        for q, tol, brake in zip(path, tols, brakes):
             r = goto(tm, pad, tuple(q), tolerance=tol, timeout=timeout_per, log=log, terrain=terrain,
-                     on_tick=on_tick, mode_fn=mode_fn, mover=mover)
+                     on_tick=on_tick, mode_fn=braked(mode_fn, q) if brake else mode_fn, mover=mover)
             if r in ("dead", "retreat"):
                 return r
             if stop_fn is not None:

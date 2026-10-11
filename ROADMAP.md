@@ -166,7 +166,7 @@ Full entries: `docs/roadmap/problems.md`. Status: **open** · **parked** · **de
 | 50 | `scene_replay` fake `face()` always True → a 42.5° scene replayed as `finish_first` (97 %) | fixed |
 | 51 | `burg-upper` zone 3 (5,−92): hit twice while backing off the edge after backstabs, −181 | open |
 | 52 | Dirty run: first log line's settings hash ≠ the record's (`code.diff_file` was hashed) | fixed |
-| 53 | `burg-upper` zone 1 (−1.9,−14,−70): fell 4 m right after a hit, quit-out recovered | open |
+| 53 | `burg-upper` zone 1 (−1.9,−14,−70): fell 4 m right after a hit, quit-out recovered | verify — sprint overshot a corner over a drop; now jogs into such corners (`nav.brake_points`) |
 | 54 | `scene_replay` fake reflex kept a fixed age — a mid-chain anim change (3000→3002) replayed as `hit_first` | fixed |
 | 55 | `passage-drill`: the bonfire warp revives the ramp foes → died on the way to the top | open (A/B moved to seg 1-2) |
 | 56 | Ramp ledge (−20,−39,14), `--ground` on: 254002 + axe 254001 swinging together, died (no fall) | verify — + 'ranged first' no longer turns to the axe hollow / away from a foe < 2 m |
@@ -176,6 +176,7 @@ Full entries: `docs/roadmap/problems.md`. Status: **open** · **parked** · **de
 | 60 | After a body pull, `unsafe_approach` 0 s fights opened and closed 24× in 1.4 s (no guard) | fixed — game 10-11: 1–2 per run, no loop |
 | 61 | `scene_replay` plays a `rule_shot` scene as `after_swing`: scenes keep chars ≤ 15 m, the thrower was 18–19 m (`SHOT_SCAN_R` 25) | fixed — `scenes.CHAR_R` 25 m (= `SHOT_SCAN_R`), next runs' scenes |
 | 62 | `risk_report` counts escape.pick back-offs (`ev: escape`) as quit-outs (강종) → clean runs read '위험' | fixed — back-off logs `escape_pick`; `risk_report` skips old `escape` rows with `src` |
+| 63 | `ground_ahead` / `footing` / `safe_back` take a floor far above (a roof) as floor | partly — strict only for sprint braking; rest → v2.0 floor check |
 
 ## 5. Relay — [cloud] ↔ board
 
@@ -188,6 +189,8 @@ to the bottom of `docs/roadmap/relay.md`.
 - 2026-10-11 [cloud→board] **[cloud] since `dd1e31e` — `git pull` before the next run** (all offline, pytest 83): (1) **P-57** passage-start stall = the walk went straight at A0 (3.3 m up) from the top platform; now path-finds first (`꼭대기로`). For MoKa's `--ground` call: its "0 passage stalls" was this — both on runs that reached the passage started 21–24 m off. (2) **P-58 / P-49** `rule_footing` behind `--footing` (off; A/B item in section 2). (3) **P-56** "원거리부터" only to real throwers, and a foe < 2 m keeps the target (36 of 42 old switches gone). (4) **P-61 / P-62** fixed — re-run `risk_report` on 071213 / 072424 / 072043. (5) **`--pull` default: keep it off** (agree with [win]): real `came` 2 of 9, on runs +24 s mean, deaths / falls the same; 255010 often wakes 254002 or stays put (0.0 m in 2 s). Code stays for the town careful walk with no knives. Watch: `원거리 피격`, `원거리부터`, `꼭대기로` times, `발밑 위험` (with `--footing`).
 
 - 2026-10-11 [cloud→board] **P-47 zone 8 ladder top** (`git pull`; MoKa 10-06 "구르기를 2번"): the top is a ledge 0.2–0.5 m from the NavMesh edge — the 10-06 death fought there (2.4 m crossbowman, −228 ×2, slipped off the ledge 5×). Now after the ladder: two rolls east toward MoKa's F9#8 (floor checked 2.6 m ahead each; else away from the crossbowmen), and the landing (~5 m east, edge 3.6 m) becomes the safe spot / tether. Check: `burg-upper --seg 8` (section 1 item).
+
+- 2026-10-11 [cloud→board] **P-53 zone 1 fall** (`git pull`): not a fight push — sprinting back to the safe spot, the bot overshot the 55° corner at (−5.4,−9.9,−69.6) by 3 m and fell 4 m. Now any `walk_path` sprint jogs (no B) the last 3.5 m into a corner that has a drop past it (71 such corners on the 38 burg-upper sprint paths — zone 1 here, slopes, zone 4 spiral stairs, zone 6/8 stairs). Watch run-back times (zone 4) and chasers catching up. New P-63: floor checks take a roof far above as floor (left as is outside braking: fixing it everywhere breaks 0.75 % of real steps).
 
 ## 6. Change log (newest first; older entries in `docs/roadmap/changelog.md`)
 
