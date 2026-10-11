@@ -73,7 +73,8 @@ def tally(fs: list[dict]) -> dict:
 def main() -> None:
     how = sys.argv[1] if len(sys.argv) > 1 else "byte"
     if how not in ("byte", "menu"):
-        raise SystemExit("usage: quit_revive_check.py byte|menu")
+        raise SystemExit("usage: quit_revive_check.py byte|menu [settle s]")
+    settle = float(sys.argv[2]) if len(sys.argv) > 2 else 0.1   # menu: rest before each cursor move (Escape.fire uses 0.03)
     lock = BotLock()
     for _ in range(10):
         if lock.acquire():
@@ -94,7 +95,7 @@ def main() -> None:
         if how == "byte":
             q = time.time() - t0 if tm.quit_to_title(timeout=3.0) else None
         else:
-            q = quitout.quit_out(tm, pad, gap=quitout.MENU_GAP, settle=0.1, ready_wait=0.05)
+            q = quitout.quit_out(tm, pad, gap=quitout.MENU_GAP, settle=settle, ready_wait=0.05)
         if q is None:
             quitout.close_menu(tm, pad)
             raise SystemExit(f"quit-out ({how}) failed — still in the world")
@@ -115,7 +116,7 @@ def main() -> None:
                    if ta[k]["alive"] > tb.get(k, {"alive": 0})["alive"]}
         print(f"after Continue ({'%.1f s' % r if r else 'reload failed'}): {ta}  save {sv2.get('mtime')} {sv2.get('sha1')}")
         print(f"more alive than before (revived?): {revived or 'none'}")
-        out = {"how": how, "quit_s": round(q, 2), "steps_ms": steps, "reload_s": None if r is None else round(r, 1),
+        out = {"how": how, "settle": settle if how == "menu" else None, "quit_s": round(q, 2), "steps_ms": steps, "reload_s": None if r is None else round(r, 1),
                "save": {"before": sv0, "after_exit": sv1, "after_continue": sv2},
                "before": before, "after": after, "tally_before": tb, "tally_after": ta, "revived": revived}
         dst = ROOT / "data" / "runs" / f"{time.strftime('%Y%m%d_%H%M%S')}_quit_check_{how}.json"
