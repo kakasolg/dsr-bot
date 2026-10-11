@@ -174,6 +174,9 @@ def replay(rec: dict) -> str | None:
     F = D.Fight.__new__(D.Fight)
     for k, v in rec["fight"].items():
         setattr(F, k, scenes.restore(v, now))
+    for k, v in (("shot_hp", None), ("shots", []), ("swung", {}), ("trail", [])):   # scenes before rule_shot (10-11); trail isn't kept
+        if not hasattr(F, k):
+            setattr(F, k, v)
     nm = _navmesh(rec.get("nm"))
     if nm is not None and rec.get("ground"):               # the run used --ground: the same floor map
         import ground

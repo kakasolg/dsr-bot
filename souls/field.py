@@ -23,6 +23,7 @@ from . import escape as escape_
 from . import foes as foes_
 from . import moves as M
 from . import props as props_
+from . import pull as pull_
 from .reflex import Reflex
 from . import style as style_
 from .watch import Blood
@@ -204,6 +205,8 @@ ESCAPE_PICK = True         # back off toward where the foes are not (souls/escap
                            # 파악 하고, 없는 쪽으로 … 보통 진입했던 반대 방향인데, 그것도 체크는 해야지") — False: the old way (path home, roll straight away)
 TRAIL_STEP = 1.0           # walk trail: a point every this many metres (the way we came, for escape)
 TRAIL_MAX = 80
+NOTICE_PULL = False        # run.py --pull: no knives → wake one foe by walking just into its notice range, run back (souls/pull.py,
+                           # [MoKa] 2026-10-11 "하나만 나를 인지하게 해서 유인을 하는데 이 과정이 지금 없는 것 같음") — off until the A/B
 GROUND_IN_FIGHTS = False   # run.py --ground: walks read floor through ground.Ground; fights / recover / wall-back keep the plain
                            # NavMesh — the A/B on-run death at the P-49 ledge (P-56) changed 109 toward-foe floor answers there
 
@@ -581,6 +584,32 @@ class Field:
         self.events("escape", src=ch.src, point=ch.point, kept=sum(1 for t in ch.table if t[2] is not None), cands=len(ch.table))
         return ch
 
+    def leave_fire(self, nm, shot_from, tag: str) -> str:
+        """duel 'shot' (a thrower hit us, nobody swinging near): back off to escape.pick's place beyond the thrower's reach
+        (duel.SHOT_REACH) — the way we came if it is out of reach, else the farthest from it (10-11 video review)."""
+        nm = plain_nm(nm)
+        s = self.mv.snap(escape_.SCAN_R + 2.0)
+        if s is None or shot_from is None or nm is None:
+            return "no_snapshot"
+        p = s.player
+        me = (p.x, p.y, p.z)
+        try:
+            foes = [(c.x, c.y, c.z, awake(c) and (c.anim not in (None, -1) or M.horiz(p, c) < 2.0))
+                    for c in s.hostile(escape_.SCAN_R + 2.0) if c.hp > 0]
+            home = nm.find_path(me, tuple(self.home)) if self.home else None
+            ch = escape_.pick(nm, me, foes, list(getattr(self, "trail", [])), home,
+                              avoid=[(shot_from[0], shot_from[1], shot_from[2], D.SHOT_REACH)])
+        except Exception as e:
+            self.log(f"   {tag}: 사선 밖 계산 실패 ({e!r})")
+            return "error"
+        self.log(f"   {tag}: {shot_from[3]}의 사선 밖으로 — {ch.line()}")
+        self.events("leave_fire", npc=shot_from[3], src=ch.src, point=ch.point)
+        if ch.point is None:
+            return "no_spot"
+        r = self.retreat(nm, None, choice=ch)
+        self.log(f"   {tag}: 사선 밖으로 물러남: {r}")
+        return r
+
     def recover(self, why: str, nm=None) -> bool:
         """When a fight goes wrong. → is it worth continuing
           · if safe, estus up to 90 %
@@ -731,7 +760,8 @@ class Field:
                        crowd_ok=CROWD_FALL_BACK and time.time() >= self._crowd_off_until,
                        wall_ok=WALL_BACK and time.time() >= getattr(self, "_wall_off_until", 0.0),
                        advisor=getattr(self, "advisor", None),   # run.py --laya-shadow: record-only (LAYA.md)
-                       tap=getattr(self, "tap", None))           # run.py --attack-audit: observation only (attack_audit.py)
+                       tap=getattr(self, "tap", None),           # run.py --attack-audit: observation only (attack_audit.py)
+                       trail=list(getattr(self, "trail", [])))   # a split with no straight-line spot backs off the way we came
         finally:
             self.mv.cam_target = None
         self.log(f"   {tag}{' (끝까지)' if desperate else ''}: {r.line()}")
@@ -743,6 +773,8 @@ class Field:
             pass                                           # too many in a row — fight in place (crowd_ok stays off for CROWD_OFF_S)
         elif r.result == "crowd":
             self.fall_back(nm)
+        elif r.result == "shot":
+            self.leave_fire(nm, r.shot_from, tag)
         if r.result == "killed":
             self.heal(0.7)
         return r
@@ -757,6 +789,123 @@ class Field:
         time.sleep(hold)
         c1 = self.mv.find(self.mv.snap(SEEK_R), ptr)
         return c1 is not None and c1.anim in (-1, None) and math.dist((c0.x, c0.y, c0.z), (c1.x, c1.y, c1.z)) < 0.3
+
+    def notice_pull(self, ptr, nm, back_to, tag: str) -> str:
+        """── 몸으로 끌기 ([MoKa] 2026-10-11, souls/pull.py) ──────────────────────────────
+         나이프 없이 하나만 깨운다: 그놈이 알아채는 거리(data/notice.json) 바로 안까지만 다가가되, 다른 잠잠한 적의 알아채는 거리
+         + MARGIN 안으로는 안 들어감. 알아채는 거리 + NEAR부터는 STEP만 걷고 LOOK_S 멈춰 지켜봄. 그놈이 움직이거나 애니가 생기면
+         (다른 놈이 깨도) 곧바로 back_to로 달려서 돌아감 — 깨어 있는 적이 NEAR_BACK_R 안이면 돌아서지 않음(P-45). 몸만 돌려 쳐다보면
+         더 다가가지 않고 WAIT_S 지켜봄(기록에서 그렇게 돈 104번 중 15번만 왔다). back_to None → escape.pick이 고른 쪽.
+        → 'came' | 'awake' (이미 깨어 있음, 아무것도 안 함) | 'no_reaction' | 'no_path' | 'gone' | 'dead' | 'no_snapshot'"""
+        nm = plain_nm(nm)
+        s = self.mv.snap(SEEK_R)
+        if s is None:
+            return "no_snapshot"
+        c = self.mv.find(s, ptr)
+        if c is None or c.hp <= 0:
+            return "gone"
+        calm = lambda x: x.anim in (None, -1) or 9000 <= x.anim < 9100
+        if not calm(c):
+            return "awake"
+        p = s.player
+        me = (p.x, p.y, p.z)
+        table = self.__dict__.get("_notice")
+        if table is None:
+            table = self._notice = pull_.load_table()
+        rf = lambda x: pull_.notice_r(table, x.npc_param, pull_.facing(getattr(x, "heading", None), x.x, x.z, p.x, p.z))
+        rt = rf(c)
+        quiet = [o for o in s.hostile(40.0) if o.ptr != ptr and calm(o)]
+        others = [(o.x, o.y, o.z, rf(o)) for o in quiet]
+        goal = (c.x, c.y, c.z)
+        path = nm.find_path(me, goal) if nm is not None else None
+        if not path:
+            return "no_path"
+        pts, why, reach = pull_.plan(path, goal, others, rt)
+        far, stops = pull_.split(pts, goal, rt)
+        self.log(f"   {tag}: 몸으로 끌기 — {c.npc_param} 알아채는 거리 {rt:.1f} m, 다가갈 수 있는 데까지 {reach:.1f} m "
+                 f"({ {'min_r': '최소 거리', 'other': '더 가면 다른 적도 깸', 'end': '길 끝'}[why] })")
+        self.events("pull", tag=tag, npc=c.npc_param, rt=rt, reach=round(reach, 2), why=why)
+        w = pull_.Watch(c)
+        watch_ids = {o.ptr for o in quiet}
+        st = {"why": None}
+
+        def check(sn, turn_counts=True) -> bool:
+            c2 = self.mv.find(sn, ptr)
+            if c2 is None or c2.hp <= 0:
+                st["why"] = "gone"
+                return True
+            r = w.update(c2, (sn.player.x, sn.player.y, sn.player.z), time.time())
+            if r in ("anim", "move") or (r == "turn" and turn_counts):
+                st["why"] = r
+                return True
+            o = next((o for o in sn.hostile(40.0) if o.ptr in watch_ids and not calm(o)), None)
+            if o is not None:
+                st["why"], st["other"] = "other", o.npc_param
+                return True
+            return False
+
+        def look(secs: float, turn_counts: bool) -> None:
+            t0 = time.time()
+            while time.time() - t0 < secs and self.alive():
+                sn = self.mv.snap(SEEK_R)
+                if sn is not None and check(sn, turn_counts):
+                    return
+                time.sleep(0.05)
+
+        if far:
+            self.mv.walk_path(far, nm, "walk", stop=check)
+        for q in stops:
+            if st["why"] is not None or not self.alive():
+                break
+            self.mv.walk_path([q], nm, "walk", stop=check, timeout_per=3.0)
+            self.mv.pad.move(0.0, 0.0)
+            if st["why"] is None:
+                look(pull_.LOOK_S, True)
+        if not self.alive():
+            return "dead"
+        if st["why"] in (None, "turn"):                     # end of the plan, or it looked at us: guard and watch
+            turned = st["why"] == "turn"
+            st["why"] = None
+            self.mv.guard(True)
+            look(pull_.WAIT_S, False)
+            self.mv.guard(False)
+            if st["why"] is None:
+                self.log(f"   {tag}: {'쳐다보기만 하고' if turned else '다가가도'} 안 옴 — {pull_.WAIT_S:.0f} s 기다림")
+                return "no_reaction"
+        if st["why"] == "gone":
+            return "gone"
+        who = f"다른 적 {st.get('other')}" if st["why"] == "other" else f"{c.npc_param}({ {'anim': '애니', 'move': '움직임'}[st['why']] })"
+        self.log(f"   {tag}: {who} 깸 — 돌아감")
+        return self._pull_back(nm, back_to, ptr, tag)
+
+    def _pull_back(self, nm, back_to, ptr, tag: str) -> str:
+        """Run back to back_to (or escape.pick's choice) after waking one — unless an awake foe is already close. → 'came' | 'dead'"""
+        s = self.mv.snap(SEEK_R)
+        if s is None:
+            return "came"
+        p = s.player
+        near = [x for x in s.hostile(pull_.NEAR_BACK_R + 1.0) if awake(x) and x.anim not in (None, -1) and M.horiz(p, x) < pull_.NEAR_BACK_R
+                and abs(x.y - p.y) < FOLLOW_DY]
+        if back_to is None:
+            ch = self.escape_choice(nm, s)
+            back_to = ch.point if ch is not None else None
+        if near:
+            self.log(f"   {tag}: {near[0].npc_param} {M.horiz(p, near[0]):.1f} m — 가까워 돌아서지 않고 그 자리에서 받음")
+        elif back_to is not None and math.hypot(p.x - back_to[0], p.z - back_to[2]) > 1.5:
+            path = nm.find_path((p.x, p.y, p.z), tuple(back_to)) if nm is not None else None
+            if path:
+                caught = lambda sn: (math.hypot(sn.player.x - back_to[0], sn.player.z - back_to[2]) < 1.5
+                                     or any(awake(x) and x.anim not in (None, -1) and M.horiz(sn.player, x) < 1.5 for x in sn.hostile(3.0)))
+                r = self.mv.walk_path(nav.trim_path(path[1:], tuple(back_to)), nm, "sprint", stop=caught)
+                self.log(f"   {tag}: 달려서 ({back_to[0]:.1f},{back_to[1]:.1f},{back_to[2]:.1f})로 돌아감: {r}")
+                if r == "dead" or not self.alive():
+                    return "dead"
+        s = self.mv.snap(SEEK_R)
+        c = self.mv.find(s, ptr) if s is not None else None
+        if c is not None:
+            self.mv.face(s, c, deg=20.0)
+        self.mv.guard(True)
+        return "came"
 
     def lure(self, ptr, spawn, nm, tag: str, arena=None, lure_at: dict | None = None) -> str:
         """Wake just one foe (user 2026-09-24: "best is to pull them one at a time and hit", "you have throwing knives, one at a time from afar").
@@ -1332,6 +1481,13 @@ class Field:
                 unreachable.append(f"#{i}")
                 pending.pop(0)
                 continue
+            if not lure and NOTICE_PULL and k == 0 and e.get("lure", True):
+                pr = self.notice_pull(c.ptr, nm, arena, f"#{i}")
+                self.log(f"   #{i} 몸으로 끌기: {pr}")
+                tried[i] = 1                               # came → the 'incoming foe' branch takes it; no_reaction → go to it next round
+                if pr == "dead":
+                    return "died"
+                continue
             if lure and k == 0 and e.get("lure", True) and not la.get("hold"):
                 lr = self.lure(c.ptr, e["pos"], nm, f"#{i}", arena=arena, lure_at=e.get("lure_at"))
                 self.log(f"   #{i} 끌어오기: {lr}")
@@ -1821,6 +1977,11 @@ class Field:
                 lured[c.ptr] = lured.get(c.ptr, 0) + 1
                 here = (p.x, p.y, p.z)
                 lr = self.lure(c.ptr, (c.x, c.y, c.z), nm, f"{tag}: {c.npc_param}", arena=here)
+                if lr == "no_knife" and NOTICE_PULL:
+                    pr = self.notice_pull(c.ptr, nm, here, f"{tag}: {c.npc_param}")
+                    lr = {"came": "lured"}.get(pr, pr)
+                    if pr == "no_reaction":
+                        lured[c.ptr] = 2                   # didn't come from here — walk on
                 self.log(f"   {tag}: {c.npc_param} 끌어오기 {lured[c.ptr]}번째 — {lr}")
                 if lr == "dead":
                     continue

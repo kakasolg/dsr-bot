@@ -23,9 +23,9 @@ SCHEMA = "dsr-run/0.1"
 ROOT = Path(__file__).resolve().parent              # the repo (git) — run.py's data folder may differ (tests)
 # fight / walk modules whose UPPER_CASE constants are recorded — after run.py has applied its flags (--basic etc.)
 SETTINGS_MODULES = ("souls.duel", "souls.field", "souls.missions", "souls.reflex", "souls.moves", "souls.camera",
-                    "souls.watch", "souls.props", "nav")
+                    "souls.watch", "souls.props", "souls.pull", "souls.escape", "nav")
 DATA_FILES = ("data/burg-upper-map.json", "data/burg-town-map.json", "data/safe-zones.json", "data/spots.json",
-              "data/enemy-map.json", "data/routes/*.json", "souls/foes.py", "souls/weapons.py")
+              "data/enemy-map.json", "data/routes/*.json", "data/notice.json", "souls/foes.py", "souls/weapons.py")
 GIT_TIMEOUT = 5.0
 
 

@@ -30,6 +30,9 @@ SEP_R = 4.0              # if the target and another awake foe are both within t
 SEP_RUN = 5.0            # run this far — hollows (slow) and the shield soldier lunge (3–4.5 m/s) arrive staggered in time
 SEP_COOLDOWN = 5.0       # so we don't just keep running
 SEP_MAX = 3              # at most this many per fight
+SEP_ESCAPE = True        # no straight-line spot → back off along the NavMesh toward where the foes are not (souls/escape.pick) —
+                         # 74 of 112 splits in data/samples ended 'no_spot' and stood there (10-11 video review, 10-03e stairs 255000 ×2)
+SEP_ESCAPE_M = 7.0       # … walking at most this much of its path
 OPEN_R = 3.0             # Estus 'opening' mid-fight: it is knocked down, or not swinging and at least this far away
 OTHERS_R, OTHERS_ATTACK_R = 5.0, 8.0   # and no other awake foe within 5 m, and none swinging within 8 m
 CARE_RETRY = 3.0
@@ -278,7 +281,7 @@ def _pair_close(s, p, ptr, h: float) -> list:
     return [x for x in near if x.ptr != ptr]
 
 
-def _separate(mv, s, ptr, others: list, nm, arena, cancel) -> str:
+def _separate(mv, s, ptr, others: list, nm, arena, cancel, trail=None) -> str:
     """Split two foes coming in together (user 2026-09-26 (a)) — run SEP_RUN m away from their midpoint so they come one at a time.
     A hollow swung beside a shield soldier for −161, meanwhile light attacks cost stamina −5 → guard broken by shield soldier 3210 for −103 (observe 092612).
     Destination: only on the navmesh and reachable in an unbroken straight line (clear_line). arena if it's that way. Otherwise don't run.
@@ -308,15 +311,47 @@ def _separate(mv, s, ptr, others: list, nm, arena, cancel) -> str:
             cands.append(w)
     here = (p.x, p.y, p.z)
     goal = next((g for g in cands if nm is not None and nm.clear_line(here, g)), None)
-    if goal is None:
-        return "no_spot"
-    r = mv.walk_path([goal], nm, "walk", stop=lambda sn: cancel(), timeout_per=2.5)   # run → walk (evidence-grade gate, 2026-09-26)
+    if goal is not None:
+        way, how = [goal], ""
+    else:
+        way = _escape_way(s, nm, here, trail)
+        if not way:
+            return "no_spot"
+        how = "escape_"
+    r = mv.walk_path(way, nm, "walk", stop=lambda sn: cancel(), timeout_per=2.5)   # run → walk (evidence-grade gate, 2026-09-26)
     mv.guard(True)
     s2 = mv.snap(10.0)
     c2 = mv.find(s2, ptr) if s2 else None
     if c2 is not None:
         mv.face(s2, c2, deg=20.0)
-    return r
+    return how + r
+
+
+def _escape_way(s, nm, here, trail) -> list:
+    """No straight-line split spot (narrow stairs, ramps): the first SEP_ESCAPE_M of escape.pick's path — toward where the foes
+    are not, usually the way we came. [] when off, no real NavMesh (golden's stand-in has no graph) or nothing better."""
+    if not SEP_ESCAPE or nm is None or not hasattr(nm, "graph"):
+        return []
+    from . import escape as E
+    try:
+        foes = [(x.x, x.y, x.z, x.anim not in (None, -1) and not (9000 <= x.anim < 9100))
+                for x in s.hostile(E.SCAN_R + 2.0) if x.hp > 0]
+        ch = E.pick(nm, here, foes, list(trail or []))
+    except Exception:
+        return []
+    if ch.point is None:
+        return []
+    way, acc, last = [], 0.0, here
+    for q in [*ch.path, ch.point]:
+        d = math.hypot(q[0] - last[0], q[2] - last[2])
+        if d < 0.8 and not way:
+            continue                                       # the centroid we stand on
+        if acc + d > SEP_ESCAPE_M:
+            break
+        acc += d
+        way.append(tuple(q))
+        last = q
+    return way
 
 
 GOAL_STALE_M = 3.0       # Patch E-2: while closing in, if it moves this far from where the path was planned, stop and re-decide
@@ -450,7 +485,7 @@ def _interloper(x, p, ptr, h: float) -> bool:
 
 @dataclass
 class DuelResult:
-    result: str                      # killed | me_dead | low_hp | losing | crowd | lost | stalemate | stuck | timeout | cancel
+    result: str                      # killed | me_dead | low_hp | losing | crowd | lost | stalemate | stuck | timeout | cancel | shot
     npc: int | None = None
     vs: int | None = None            # npc actually fought last, when it switched away from the target (interloper / ranged first)
     secs: float = 0.0
@@ -458,6 +493,7 @@ class DuelResult:
     taken: int = 0
     hits: list = field(default_factory=list)
     rules: dict = field(default_factory=dict)   # rule name → ticks it acted (RULES) — which rules drove this fight
+    shot_from: tuple | None = None   # result 'shot': (x, y, z, npc) of the thrower that hit us
     wall_back: bool = False          # 'crowd' because WALL_BACK_N were on us away from a wall — Field backs to a wall (not the way home)
 
     def line(self) -> str:
@@ -535,11 +571,13 @@ class Fight:
     """What one duel remembers across ticks (the old duel() locals). Rules read and change it."""
 
     def __init__(self, mv, weapon, ptr, nm, log, limit, low_hp, cancel, care, reflex, arena, style, wait_far, gen, events,
-                 may_approach, crowd_ok: bool = False, wall_ok: bool = False):
+                 may_approach, crowd_ok: bool = False, wall_ok: bool = False, trail=None):
         self.mv, self.weapon, self.ptr, self.nm, self.log, self.limit, self.low_hp = mv, weapon, ptr, nm, log, limit, low_hp
         self.cancel, self.care, self.reflex, self.arena, self.style = cancel, care, reflex, arena, style
         self.wait_far, self.may_approach = wait_far, may_approach
         self.crowd_ok = crowd_ok                           # True: 둘 이상에게 둘러싸이면 HP와 상관없이 싸움을 끝낸다 ('crowd') — Field 가 물러남
+        self.shot_hp, self.shots, self.swung = None, [], {}   # rule_shot: HP last tick, times hit from afar, ptr → last attack anim seen
+        self.trail = trail or []                           # where we walked (Field.trail) — escape.pick's 'way we came' for a split with no spot
         self.wall_ok = wall_ok                             # True: WALL_BACK_N 이상이 붙었는데 벽 옆이 아니면 끝낸다 ('crowd', wall_back) — Field 가 벽으로
         self.t0 = time.time()
         s0 = mv.snap()
@@ -739,13 +777,57 @@ def _asleep(F, c, now) -> bool:
 # or a DuelResult (duel over). "prep" steps only work something out for the rules after them. The order is the old duel()'s
 # if-chain order exactly (tests/duel_golden_test.py) — to change a priority, move the rule in RULES and re-record on purpose.
 
+SHOT_HP = 40             # rule_shot: one hit this big …
+SHOT_NEAR_R = 4.0        # … with no foe this close swinging (or done swinging under SHOT_NEAR_S ago) …
+SHOT_NEAR_S = 1.5
+SHOT_FAR_R = 5.0         # … but one at least this far that threw within SHOT_SEEN_S, or is a known thrower (foes.ranged)
+SHOT_SEEN_S = 3.0
+SHOT_SCAN_R = 25.0
+SHOT_HOLD_R = 2.5        # an awake melee foe this close (not staggered / down): stay and fight it (P-45: turning away 2 m from a foe
+                         # got us hit three times) — unless it is the second shot within SHOT_AGAIN_S
+SHOT_AGAIN_S = 10.0
+SHOT_REACH = 11.0        # a thrower reaches this far (thrown items fly ~10 m, field.LURE_R) — Field backs off beyond it
+
+
+def rule_shot(F, T):
+    """Hit from afar while waiting or fighting — leave its line of fire (10-11 video review: 10-03e 52–58 s, −113 ×2 at the ramp
+    flat while the shield soldier next to us was staggered — the ledge firebomb hollow). First in RULES so it sees every tick;
+    it only ends the duel ('shot', Field.fight backs off out of the thrower's reach), never moves the stick itself."""
+    s, p, now = T.s, T.p, T.now
+    for x in s.hostile(SHOT_SCAN_R):
+        if x.anim is not None and x.anim in M.ATTACK:
+            F.swung[x.ptr] = now
+    hp0, F.shot_hp = F.shot_hp, p.hp
+    if hp0 is None or p.hp is None or hp0 - p.hp < SHOT_HP:
+        return None
+    if any(M.horiz(p, x) < SHOT_NEAR_R and now - F.swung.get(x.ptr, -1e9) < SHOT_NEAR_S for x in s.hostile(SHOT_NEAR_R + 1.0)):
+        return None                                        # a melee hit
+    thr = [x for x in s.hostile(SHOT_SCAN_R) if M.horiz(p, x) >= SHOT_FAR_R
+           and (now - F.swung.get(x.ptr, -1e9) < SHOT_SEEN_S or foes_.of(x.npc_param).ranged)]
+    if not thr:
+        return None                                        # a fall, fire on the floor, someone we can't see — not a thrower
+    t = min(thr, key=lambda x: M.horiz(p, x))
+    F.shots.append(now)
+    again = sum(1 for t0 in F.shots if now - t0 < SHOT_AGAIN_S) >= 2
+    hold = [x for x in s.hostile(SHOT_HOLD_R + 1.0) if M.horiz(p, x) < SHOT_HOLD_R and x.anim not in (None, -1)
+            and not (9000 <= x.anim < 9100) and x.anim not in M.STAGGER and x.anim not in M.DOWNED and abs(x.y - p.y) < 1.2]
+    F.log(f"      원거리 피격 −{hp0 - p.hp}: {t.npc_param} {M.horiz(p, t):.1f} m (높이 {t.y - p.y:+.1f}, 애니 {t.anim})"
+          + (f" — {hold[0].npc_param} {M.horiz(p, hold[0]):.1f} m가 붙어 있어 버팀" if hold and not again else " — 사선 밖으로"))
+    if hold and not again:
+        F.note("원거리피격:버팀", s, T.c)
+        return None
+    F.note("원거리피격", s, T.c)
+    F.res.shot_from = (t.x, t.y, t.z, t.npc_param)
+    return F.done("shot")
+
+
 def rule_separate(F, T):
     """Two closed in together — split them and take one at a time (user 2026-09-26 (a)). Don't run during stagger/downed (openings) or from a one-hit kill."""
     pair = _pair_close(T.s, T.p, F.ptr, T.h)
     if (pair and F.nm is not None and F.sep_n < SEP_MAX and T.now - F.sep_t > SEP_COOLDOWN and T.a not in M.STAGGER
             and T.a not in M.DOWNED and T.c.hp > FINISH_HP):
         F.sep_t, F.sep_n = T.now, F.sep_n + 1
-        r = _separate(F.mv, T.s, F.ptr, pair, F.nm, F.arena, F.cancel)
+        r = _separate(F.mv, T.s, F.ptr, pair, F.nm, F.arena, F.cancel, F.trail)
         F.log(f"      떼어놓기 {F.sep_n}: {T.c.npc_param}({T.h:.1f} m) + " + ", ".join(f"{x.npc_param}({M.horiz(T.p, x):.1f} m, {x.anim})" for x in pair)
               + f" → {r}")
         F.note(f"떼어놓기:{r}", T.s, T.c)
@@ -1434,7 +1516,7 @@ def rule_attack(F, T):
     return F.killed_if(hit.dead)
 
 
-RULES = [rule_separate, rule_finish_first, prep_reflex, rule_after_swing, rule_face_first, rule_early_kick, rule_late_windup_block, prep_linger, rule_hit_first,
+RULES = [rule_shot, rule_separate, rule_finish_first, prep_reflex, rule_after_swing, rule_face_first, rule_early_kick, rule_late_windup_block, prep_linger, rule_hit_first,
          rule_backstab_swing, rule_reflex, rule_lure, rule_edge, rule_estus, rule_stagger_punish, rule_evade, rule_block,
          rule_downed, prep_backstab_chance, rule_wait_far, rule_approach, rule_finish, rule_stamina, prep_face, rule_backstab,
          rule_attack]
@@ -1484,7 +1566,7 @@ class _RuleRec:
 def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: float = 0.25,
          cancel=lambda: False, care=None, reflex=None, arena=None, style=None, wait_far: bool = False,
          gen=None, events=None, may_approach=None, crowd_ok: bool = False, wall_ok: bool = False,
-         advisor=None, tap=None) -> DuelResult:
+         advisor=None, tap=None, trail=None) -> DuelResult:
     """care: healing handler from layer 4 — care.wants(s) (wants to drink?), care.take(recheck) (drinks; recheck(s) rechecks the opening).
     Whether there's an opening is judged here (layer 3): opening(). If close, backstep to open distance and recheck next tick.
     reflex: reflex (souls/reflex.py) — first thing every tick. If it moved, this tick rests (it also blocks attacks from non-targets head-on).
@@ -1501,7 +1583,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
       (its payload goes only to the advisor), and it swallows its own errors."""
     from . import style as style_
     F = Fight(mv, weapon, ptr, nm, log, limit, low_hp, cancel, care, reflex, arena, style_.of(style or "guard"), wait_far, gen, events,
-              may_approach, crowd_ok, wall_ok)
+              may_approach, crowd_ok, wall_ok, trail)
     rr = _RuleRec() if ctl.on() else None              # P1-C: record only
     while True:
         T = _sense(F)

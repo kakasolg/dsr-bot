@@ -105,6 +105,9 @@ def main() -> None:
                     help="P1-D: --ctl 과 함께, 피드 프레임마다 한 줄 → data/runs/<시각>_<명령>.frames.jsonl (~9 KB/s) — 기본 꺼짐. 기록만")
     ap.add_argument("--ctl-scenes", action="store_true",
                     help="--ctl 에 더해 싸움 결정마다 그 순간의 입력을 .ctl.jsonl 에 'scene' 으로 (scenes.py) — python scene_replay.py 로 다시 돌림. 기록만")
+    ap.add_argument("--pull", action="store_true",
+                    help="나이프 없을 때 몸으로 끌기 — 알아채는 거리(data/notice.json) 바로 안까지만 다가가 하나만 깨우고 달려서 돌아옴 "
+                         "(souls/pull.py, field.NOTICE_PULL, [MoKa] 2026-10-11). 기본 꺼짐 (A/B용)")
     ap.add_argument("--ground", action="store_true",
                     help="걷기의 바닥 확인에 NavMesh + 걸어 본 자리(ground.py, data/walked/) — 통로·다리 아치처럼 NavMesh가 빈 곳을 낭떠러지로 안 봄. "
                          "싸움·물러남·낙하 감지는 NavMesh 그대로 (field.GROUND_IN_FIGHTS, P-56). 기본 꺼짐 (A/B용)")
@@ -135,6 +138,9 @@ def main() -> None:
     if a.basic:                                             # before the settings record, so it holds the constants this run uses
         from souls import duel as duel_
         duel_.BACKSTAB, duel_.HEAVY = False, False
+    if a.pull:                                              # same: before the settings record
+        from souls import field as field_
+        field_.NOTICE_PULL = True
     log = Log(a.cmd)
     import runinfo
     settings_path = Path(str(log.path).replace(".jsonl", ".settings.json"))
@@ -274,6 +280,8 @@ def main() -> None:
             log(f"attack audit 실행 목적: {purpose}")
     if a.basic:                                             # flags were set before the settings record (top of main)
         log("기본 플레이: 방패 + 약공만 (뒤잡기·강공 끔)")
+    if a.pull:
+        log("몸으로 끌기: 나이프 없으면 알아채는 거리 바로 안까지만 다가가 하나만 깨움 (souls/pull.py)")
     log.event("style", style=a.style)
     try:   # log character state each run — level-ups, rings (poise) and weapon change results, and without records batch comparisons got muddy (user 2026-09-25)
         st, eq = tm.char_stats(), tm.equipment()

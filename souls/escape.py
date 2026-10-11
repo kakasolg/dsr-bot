@@ -114,8 +114,10 @@ def candidates(nm, me, trail: list, home_path: list | None = None) -> list[tuple
     return cands
 
 
-def pick(nm, me, foes: list, trail: list | None = None, home_path: list | None = None) -> Choice:
-    """foes: [(x, y, z, awake)] — every live hostile; those beyond SCAN_R / SCAN_DY are ignored here."""
+def pick(nm, me, foes: list, trail: list | None = None, home_path: list | None = None, avoid: list | None = None) -> Choice:
+    """foes: [(x, y, z, awake)] — every live hostile; those beyond SCAN_R / SCAN_DY are ignored here.
+    avoid: [(x, y, z, r)] — a thrower and its reach (duel 'shot'): candidates within r of it are dropped ('in_fire'), unless
+    that drops them all (then the farthest from it wins on score as usual)."""
     me = tuple(me)
     near = [f for f in foes if _hd(f, me) <= SCAN_R and abs(f[1] - me[1]) <= SCAN_DY]
     awake = [f for f in near if f[3]]
@@ -139,6 +141,8 @@ def pick(nm, me, foes: list, trail: list | None = None, home_path: list | None =
         if why is None:
             if any(_hd(p, f) < PASS_R for p in path + [q] for f in blocking):
                 why = "through_foe"
+        if why is None and avoid and any(_hd(q, a) < a[3] for a in avoid):
+            why = "in_fire"
         if why is None:
             try:
                 if nm.drop_dist(*q) < DROP_R:
@@ -148,7 +152,7 @@ def pick(nm, me, foes: list, trail: list | None = None, home_path: list | None =
         if why is not None:
             table.append((src, q, None, why))
             continue
-        ca = min((_hd(q, f) for f in awake), default=SCAN_R)
+        ca = min([_hd(q, f) for f in awake] + [_hd(q, a) for a in (avoid or [])], default=SCAN_R)
         ci = min((_hd(q, f) for f in idle), default=SCAN_R)
         gain = ca - min((_hd(me, f) for f in awake), default=SCAN_R)   # how much farther from the awake ones than now
         score = min(ca, SCAN_R) + IDLE_W * min(ci, SCAN_R) + 0.5 * gain \
@@ -156,6 +160,9 @@ def pick(nm, me, foes: list, trail: list | None = None, home_path: list | None =
         table.append((src, q, score, None))
         if best is None or score > best[0]:
             best = (score, src, q, path)
+    if best is None and avoid and any(t[3] == "in_fire" for t in table):
+        ch = pick(nm, me, foes + [(a[0], a[1], a[2], True) for a in avoid], trail, home_path)   # nowhere out of its reach — as far as we can
+        return Choice(ch.point, ch.src, ch.path, table)
     if best is None:
         return Choice(None, table=table)
     return Choice(best[2], best[1], best[3], table)
