@@ -894,6 +894,106 @@ def prep_reflex(F, T):
     return None
 
 
+FOOTING = False          # run.py --footing: rule_footing on, rule_edge off (design-floor-check §3-A; [MoKa] 2026-10-11 answers to §7)
+FOOT_STEP_M = 1.0        # one guarded step toward better footing (design §3-B 'step') …
+FOOT_STEP_S = 0.4        # … this long on the stick (guarded walk ~2.5 m/s)
+FOOT_STALL_M = 0.3       # stepped the same way for FOOT_STALL_S and moved less than this → rubbing a wall, rest FOOT_REST_S
+FOOT_STALL_S = 1.0
+FOOT_REST_S = 2.0
+FOOT_CHECK_S = 0.1       # while the footing is fine, look again after this (danger: every tick)
+_FLOORS: dict = {}       # id(NavMesh) → ground.Ground (NavMesh + walked cells) — rule_footing's floor, built once per map
+
+
+def _floor(F):
+    """rule_footing's floor: NavMesh + walked cells ([MoKa] 10-11 ③ — the ramp ledge is off the NavMesh but real floor), whether
+    or not the rest of the fight reads the plain NavMesh (field.GROUND_IN_FIGHTS)."""
+    nm = F.nm
+    if nm is None or hasattr(nm, "walked"):
+        return nm
+    g = _FLOORS.get(id(nm))
+    if g is None or g.nm is not nm:
+        import ground
+        g = _FLOORS[id(nm)] = ground.for_map(nm)
+    return g
+
+
+class _P:
+    __slots__ = ("gx", "gy", "gz")
+
+    def __init__(self, gx, gy, gz):
+        self.gx, self.gy, self.gz = gx, gy, gz
+
+
+def _foot_dir(g, p, foes):
+    """Where to step: of 12 directions with floor FOOT_STEP_M out, the one whose landing has the best footing (on the floor map,
+    nav.footing), not into a foe's body. foes: [(gx, gy, gz)]. → (dx, dz) unit or None."""
+    best = None
+    for k in range(12):
+        a = k * math.pi / 6
+        dx, dz = math.sin(a), math.cos(a)
+        if not nav.ground_ahead(g, p, dx, dz, reach=FOOT_STEP_M):
+            continue
+        q = _P(p.gx + dx * FOOT_STEP_M, p.gy, p.gz + dz * FOOT_STEP_M)
+        body = min((math.hypot(q.gx - x, q.gz - z) for x, _y, z in foes), default=9.0)
+        if body < 0.8:
+            continue
+        st = nav.footing_state(g, q, foes)
+        score = st["foot"] + (0.0 if st["on"] else -1.0) - 0.3 * len(st["push"]) + 0.05 * min(body, 3.0)
+        if best is None or score > best[0]:
+            best = (score, dx, dz)
+    return None if best is None else (best[1], best[2])
+
+
+def rule_footing(F, T):
+    """
+    ── 턱 끝에선 치기보다 자리 먼저 (P-58 · P-49, docs/design-floor-check.md §3-A, [MoKa] 2026-10-11) ──────────
+     발밑이 위험하면(바닥 지도 = NavMesh + 걸어 본 자리에서 발밑에 바닥이 없음, 또는 발 디딜 곳이 좁은데(footing < 0.6) 3 m 안
+     적에게 밀리면 1.5 m 뒤에 바닥이 없음) 더 넓은 바닥 쪽으로 방패 든 채 한 걸음. MoKa 답:
+      ① 적이 휘두르는 중엔 막을 수 없는 공격(foes.unblockable — 도끼 망자 3009, P-58이 이것에 밀려 떨어짐)일 때만 움직임,
+        막을 수 있는 휘두름은 지금처럼 막고 끝나면 옮김 · ② rule_after_swing 앞 · ③ NavMesh + 걸어 본 자리 · ④ 구르기 없이 걸음만
+     같은 쪽으로 1 s 걸었는데 0.3 m도 못 가면(벽) 2 s 쉼. 기록(experiments/footing_probe.py): 싸움 중 낙하 7번 모두 2~2.5 s 전부터 위험.
+    """
+    if not FOOTING:
+        return None
+    p, now = T.p, T.now
+    g = _floor(F)
+    if g is None or p.gx is None or p.gy is None or now < max(F.__dict__.get("_foot_rest", 0.0), F.__dict__.get("_foot_next", 0.0)):
+        return None
+    ox, oz = p.gx - p.x, p.gz - p.z                        # local → the floor map's world coords (same offset as the player's)
+    near = [x for x in T.s.hostile(nav.PUSH_FOE_R + 1.0) if x.hp > 0 and M.horiz(p, x) < nav.PUSH_FOE_R and abs(x.y - p.y) < 1.2
+            and not (x.anim is not None and 9000 <= x.anim < 9100)]
+    foes = [(x.x + ox, x.y, x.z + oz) for x in near]
+    st = nav.footing_state(g, p, foes)
+    if not st["danger"]:
+        F._foot, F._foot_next = None, now + FOOT_CHECK_S   # ~2 ms on narrow ground (ramp) — not every tick while safe
+        return None
+    swinging = [x for x in near if (x.anim or -1) in M.ATTACK]
+    if swinging and not any(x.anim in foes_.of(x.npc_param).unblockable for x in swinging):
+        return None                                        # ① a blockable swing: block it (reflex / rule_block), step when it ends
+    d = _foot_dir(g, p, foes)
+    if d is None:
+        return None                                        # nowhere better within a step — fight on as before
+    dx, dz = d
+    run = F.__dict__.get("_foot")
+    if run is None or dx * run[0] + dz * run[1] < 0.7:     # a new direction (> ~45° off) — restart the stall watch
+        run = F._foot = (dx, dz, now, p.x, p.z)
+    elif now - run[2] > FOOT_STALL_S and math.hypot(p.x - run[3], p.z - run[4]) < FOOT_STALL_M:
+        F._foot, F._foot_rest = None, now + FOOT_REST_S
+        F.note("발밑:막힘", T.s, T.c)
+        return None
+    if now - F.__dict__.get("_foot_log", 0.0) > 2.0:
+        F._foot_log = now
+        why = "발밑 바닥 없음" if not st["on"] else f"발 디딜 곳 {st['foot']:.0%}, 밀리면 떨어짐 ({len(st['push'])}명)"
+        F.log(f"      발밑 위험 — {why} → {math.degrees(math.atan2(dx, dz)):+.0f}° 쪽으로 방패 든 채 한 걸음"
+              + (f" (막을 수 없는 공격 {swinging[0].anim})" if swinging else ""))
+    F.mv.guard(True)
+    F.mv.pad.move(*F.mv.stick_to(T.s, p.x + dx * FOOT_STEP_M, p.z + dz * FOOT_STEP_M, 0.8))
+    time.sleep(FOOT_STEP_S)
+    F.mv.pad.move(0.0, 0.0)
+    F.note("발밑", T.s, T.c)
+    return CONT
+
+
 def rule_after_swing(F, T):
     """
     ── 휘두름이 끝나면 무조건 친다 ([MoKa] 2026-10-06) ──────────────────────────────
@@ -1130,7 +1230,7 @@ def rule_edge(F, T):
     """Next to a cliff — go to a flat spot (it follows). Without arena, raise shield and face it:
     the NavMesh only blocks — it doesn't choose a step toward 'the wider ground' (evidence-grade gate, 2026-09-26)."""
     p, nm = T.p, F.nm
-    if (nm is not None and T.a not in M.ATTACK and T.now - F.move_t > 3.0 and p.gx is not None
+    if (not FOOTING and nm is not None and T.a not in M.ATTACK and T.now - F.move_t > 3.0 and p.gx is not None
             and nav.footing(nm, p)[0] < nav.FOOTING_MIN):
         F.move_t = T.now
         if F.arena is not None and not T.ledge and math.dist((p.x, p.y, p.z), tuple(F.arena)) > 1.5:
@@ -1521,7 +1621,7 @@ def rule_attack(F, T):
     return F.killed_if(hit.dead)
 
 
-RULES = [rule_shot, rule_separate, rule_finish_first, prep_reflex, rule_after_swing, rule_face_first, rule_early_kick, rule_late_windup_block, prep_linger, rule_hit_first,
+RULES = [rule_shot, rule_separate, rule_finish_first, prep_reflex, rule_footing, rule_after_swing, rule_face_first, rule_early_kick, rule_late_windup_block, prep_linger, rule_hit_first,
          rule_backstab_swing, rule_reflex, rule_lure, rule_edge, rule_estus, rule_stagger_punish, rule_evade, rule_block,
          rule_downed, prep_backstab_chance, rule_wait_far, rule_approach, rule_finish, rule_stamina, prep_face, rule_backstab,
          rule_attack]
@@ -1531,7 +1631,7 @@ RULES = [rule_shot, rule_separate, rule_finish_first, prep_reflex, rule_after_sw
 # Rules that only hold a stance tick after tick are run-length folded (same rule and target → one record with n). Every
 # other rule — attacks, backstab, estus, kicks, and any rule not listed here — is always written on its own.
 SCENE_TAP = None   # run.py --ctl-scenes: scenes.Tap — copies each decision's input for scene_replay.py (record only, never read back)
-FOLD_RULES = {"block", "wait_far", "approach", "face", "linger", "reflex", "stamina", "separate", "edge", "lure", "downed",
+FOLD_RULES = {"block", "wait_far", "approach", "face", "linger", "reflex", "stamina", "separate", "edge", "footing", "lure", "downed",
               "face_first", "backstab_chance", "late_windup_block"}
 
 

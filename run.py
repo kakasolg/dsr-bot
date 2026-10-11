@@ -111,6 +111,9 @@ def main() -> None:
     ap.add_argument("--ground", action="store_true",
                     help="걷기의 바닥 확인에 NavMesh + 걸어 본 자리(ground.py, data/walked/) — 통로·다리 아치처럼 NavMesh가 빈 곳을 낭떠러지로 안 봄. "
                          "싸움·물러남·낙하 감지는 NavMesh 그대로 (field.GROUND_IN_FIGHTS, P-56). 기본 꺼짐 (A/B용)")
+    ap.add_argument("--footing", action="store_true",
+                    help="싸움 중 발밑이 위험하면(바닥 지도에서 발밑 바닥 없음, 또는 좁은데 밀리면 떨어짐) 넓은 쪽으로 방패 든 채 한 걸음 — "
+                         "duel.rule_footing, rule_edge 대신 (P-58·P-49, [MoKa] 2026-10-11). 기본 꺼짐 (A/B용)")
     ap.add_argument("--note", default=None, help="한 줄 메모 — 실행 설정 기록(<run>.settings.json)과 로그 첫 줄에 남음 (예: 세이브 이름)")
     ap.add_argument("--no-lure", action="store_true", help="나이프로 한 놈씩 깨우지 않고 예전처럼 걸어가 붙는다 (비교용)")
     ap.add_argument("--style", choices=["guard", "backstep", "rush"], default="guard",
@@ -141,6 +144,9 @@ def main() -> None:
     if a.pull:                                              # same: before the settings record
         from souls import field as field_
         field_.NOTICE_PULL = True
+    if a.footing:                                           # same: before the settings record
+        from souls import duel as duel_f
+        duel_f.FOOTING = True
     log = Log(a.cmd)
     import runinfo
     settings_path = Path(str(log.path).replace(".jsonl", ".settings.json"))

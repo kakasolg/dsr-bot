@@ -170,6 +170,29 @@ def safe_heading(terrain, p, dx: float, dz: float, reach: float = 1.2):
     return None
 
 
+PUSH_M = 1.5              # footing_state: floor this far behind us, away from each foe close by (design-floor-check §2-c: hits and swings
+                          # move us 0.8 m in 0.5 s at the 90th percentile, up to 3.0 m)
+PUSH_FOE_R = 3.0          # … for foes this close (same level)
+
+
+def footing_state(terrain, p, foes) -> dict:
+    """Is where we stand dangerous to fight on (design-floor-check §3-A)? foes: [(x, y, z)] of awake foes near us.
+    → {'on': floor underfoot, 'foot': nav.footing fraction, 'push': [(x, z) of foes whose push ends with no floor], 'danger': bool}
+    danger = no floor underfoot, or thin footing (< FOOTING_MIN) with a foe that can push us over."""
+    base = getattr(terrain, "nm", terrain)                 # ground.Ground → its NavMesh
+    if (hasattr(base, "border_dist") and base.on_mesh(p.gx, p.gy, p.gz)
+            and base.border_dist(p.gx, p.gy, p.gz) > max(FOOTING_R, PUSH_M) + 0.2):
+        return {"on": True, "foot": 1.0, "push": [], "danger": False}   # on the mesh, no edge within reach: every probe has floor (~0.2 ms, else ~4)
+    on = terrain is None or terrain.on_mesh(p.gx, p.gy, p.gz)
+    foot, _ = footing(terrain, p)
+    push = []
+    for x, y, z in foes:
+        h = math.hypot(p.gx - x, p.gz - z)
+        if 0.05 < h < PUSH_FOE_R and abs(y - p.gy) < 1.2 and not ground_ahead(terrain, p, p.gx - x, p.gz - z, reach=PUSH_M):
+            push.append((x, z))
+    return {"on": on, "foot": foot, "push": push, "danger": (not on) or (foot < FOOTING_MIN and bool(push))}
+
+
 def safe_back(terrain, p, dx: float, dz: float):
     """Pick a direction to back away that fits the terrain — None (stay put) if there is none.
 

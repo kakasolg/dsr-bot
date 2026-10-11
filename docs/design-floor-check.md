@@ -158,6 +158,8 @@ P-47) · `passage-drill`(지도 C가 통로 입구 멈칫을 줄이는지). 비�
 - 테스트: `tests/ground_test.py`, `tests/run_stop_test.py`(`--ground`이면 미션은 Ground, Escape는 NavMesh, settings에 `args.ground`).
 
 ## 7. [MoKa] 결정할 것
+**답 (2026-10-11 [MoKa])**: ① 막을 수 없는 공격(foes.unblockable) 중에만 움직임, 막을 수 있는 휘두름은 막고 끝나면 옮김 · ② `rule_after_swing` 앞 ·
+③ NavMesh + 걸어 본 자리 (사람 녹화는 안 넣음) · ④ 구르기 없이 걸음만. → `duel.rule_footing`, `run.py --footing` (기본 꺼짐, A/B 뒤 결정).
 1. 발밑이 위험하면 **적이 휘두르는 중에도** 방패 든 채 한 걸음 옮기는 것 — 그 걸음 동안 맞을 수 있음 (지금은 공격 중엔 안 움직임).
 2. `rule_footing`의 순서: 제안은 `rule_after_swing`(휘두름 끝나면 무조건 공격, 10-06) **앞** — 턱 끝에선 치기보다 자리 먼저. 뒤로 미루면 턱 끝에서도 먼저 침.
 3. 걸어 본 자리를 바닥으로 믿는 것 — 봇이 한 번이라도 서 있던 곳. 낙하 중 프레임은 뺌. 사람 녹화(observe)도 넣을지.
