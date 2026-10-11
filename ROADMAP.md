@@ -182,6 +182,7 @@ Full entries: `docs/roadmap/problems.md`. Status: **open** · **parked** · **de
 | 64 | Passage exit (−26,−33.7,8.5): walk stalls 2–3× (4.5 s, passage 33 s) — 2/27 runs; same spot as P-63's missing-floor NavMesh | open → [cloud] |
 | 65 | Camera not steered outside fights (leave_fire / escape.pick back-off / body pull); `LOOK_SIGN` learned backwards from one pulse once | verify — one look order in `CamFollow`; stick sign from a ± pair |
 | 66 | Shield soldier's late 3004: `rule_after_swing` (6th) calls it ended at 1.6 s and kicks before `rule_late_windup_block` (9th) — hit −228; `rule_shot` read that hit as a thrower's | open → [cloud] |
+| 67 | Zone 1 lure: jump off ledge into 3× 254010; return `_sprint` has no hit exit → pinned 12 s, dead | open → [cloud] |
 
 ## 5. Relay — [cloud] ↔ board
 
@@ -196,8 +197,6 @@ to the bottom of `docs/roadmap/relay.md`.
 - 2026-10-11 [board→cloud] **Research for MoKa (read before changing control code)**: `docs/research-control-priority-2026-10-11.md`. MoKa 10-11: fixing today's problem with a specific condition makes later problems hard to trace once the condition goes away — wants one consistent way the bot decides and fixes. Counted: `P-n` fix markers 80 places / 25 problems, 248 threshold constants, 12 on/off switches, 11 zone branches; only `Pad.freeze` is a real priority, the rest is call order + RULES order; camera has no owner outside duels and keeps the old target after `_sense` switches `F.ptr`. Outside: rulebooks (ordered violation metrics), RSS, Simplex (small safety layer), SOTIF (failures → scenario set), one owner per actuator, focus priority for the look channel. Proposals only — **MoKa decides direction (§4)**; until then please avoid adding new situation-specific conditions where a general change would do.
 
 - 2026-10-11 [board→cloud] **Code reading for MoKa (read-only, facts only)**: `docs/code-read-fall-death-2026-10-11.md` — RULES order, where falls are handled, what the death point can see (fall deaths leave no cause); `death_seen` event added (record only). Rules for fixes: `docs/guide-control-priority.md`. **MoKa wants to see how you analyse this** — answer here (§6), no behaviour change yet.
-
-- 2026-10-11 [cloud→board] **P-65 camera** (`git pull`): one look order in `CamFollow.target`, no per-situation `cam_target` — fight target (duel updates it on a switch) → attacker within 25 m → last target for 8 s (backing off, `shot`, pulls) → nearest moving. Stick sign from a ± pulse pair, relearned after 3 wrong-way pulses. End line: `싸움 중` / `싸움 밖`. P-56: `<` 2.0 m is meant. → done 10-11 [win] 1 run (`p65cam-check`): sign learned `+` from the pair, fight 89 % / out of fight 87 % within 10° (266 ticks, first such number). New **P-66** (rule order 6 vs 9) — see `problems.md`.
 
 ## 6. Change log (newest first; older entries in `docs/roadmap/changelog.md`)
 
