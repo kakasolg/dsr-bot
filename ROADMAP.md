@@ -41,7 +41,7 @@ Bot already clears cell → Undead Burg bonfire in one run (10-03e). `run.py bur
 10-06 bot runs cleared zones 1–8 one or a few at a time (zone 4 lowest HP 40 %); the `--seg 5-8` run died at the
 zone 8 crossbowmen (P-47).
 
-- [ ] [cloud]+[win] **Alignment first (MoKa 10-11: high priority)** — attack target · character facing · camera in one line (also MoKa 10-01: "alignment decides whether a move works"). Now: the camera is steered only inside a duel — not during `leave_fire` / escape.pick back-offs / body pulls (P-65), and its stats count duel ticks only; facing |각| ≤ 30° in 75–95 % of fight status lines (10-09…11 samples), camera ≤ 10° 86–90 % (10-06 burg-upper 90–97 %). Next: [cloud] one alignment measure for the whole run (target–body–camera each tick, in and out of fights) + P-65 fixes; [win] measure it in runs
+- [ ] [cloud]+[win] **Alignment first (MoKa 10-11: high priority)** — attack target · character facing · camera in one line (MoKa 10-01: "alignment decides whether a move works"). Facing |각| ≤ 30° in 75–95 % of fight lines; P-65 one look order (`20dd7ae`): 1 run camera ≤ 10° fight 89 % / out of fight 87 %. Next: [cloud] one target–body–camera measure per tick; [win] more runs
 - [ ] [win] Zone 8: at the ladder top **roll twice** away from the two crossbowmen, then fight (MoKa 10-06) → P-47 — [cloud] done offline 10-11 (`roll` before-step: two rolls east toward F9#8, the landing = safe spot / tether); game check `run.py burg-upper --seg 8`, log `구르기 1/2 → +91° (F9 쪽)` · `구른 자리 … 를 안전 자리로`
 - [ ] [cloud]+[win] Taurus: bridge F9#7 calls the boss → run to ladder, climb → **gold pine resin** → plunge (~40 % of boss HP) → ~4 light attacks, keep stamina > 0; start with ≥ 1 Estus (MoKa 10-06)
 - [ ] [cloud]+[win] Boss fight default = two-handed + dodging (9-30 principle); Taurus is the first case (the general boss module is v2.0)
@@ -181,6 +181,7 @@ Full entries: `docs/roadmap/problems.md`. Status: **open** · **parked** · **de
 | 63 | `ground_ahead` / `footing` / `safe_back` take a floor far above (a roof) as floor | partly — strict only for sprint braking; rest → v2.0 floor check |
 | 64 | Passage exit (−26,−33.7,8.5): walk stalls 2–3× (4.5 s, passage 33 s) — 2/27 runs; same spot as P-63's missing-floor NavMesh | open → [cloud] |
 | 65 | Camera not steered outside fights (leave_fire / escape.pick back-off / body pull); `LOOK_SIGN` learned backwards from one pulse once | verify — one look order in `CamFollow`; stick sign from a ± pair |
+| 66 | Shield soldier's late 3004: `rule_after_swing` (6th) calls it ended at 1.6 s and kicks before `rule_late_windup_block` (9th) — hit −228; `rule_shot` read that hit as a thrower's | open → [cloud] |
 
 ## 5. Relay — [cloud] ↔ board
 
@@ -194,9 +195,9 @@ to the bottom of `docs/roadmap/relay.md`.
 
 - 2026-10-11 [board→cloud] **Research for MoKa (read before changing control code)**: `docs/research-control-priority-2026-10-11.md`. MoKa 10-11: fixing today's problem with a specific condition makes later problems hard to trace once the condition goes away — wants one consistent way the bot decides and fixes. Counted: `P-n` fix markers 80 places / 25 problems, 248 threshold constants, 12 on/off switches, 11 zone branches; only `Pad.freeze` is a real priority, the rest is call order + RULES order; camera has no owner outside duels and keeps the old target after `_sense` switches `F.ptr`. Outside: rulebooks (ordered violation metrics), RSS, Simplex (small safety layer), SOTIF (failures → scenario set), one owner per actuator, focus priority for the look channel. Proposals only — **MoKa decides direction (§4)**; until then please avoid adding new situation-specific conditions where a general change would do.
 
-- 2026-10-11 [board→cloud] **Code reading for MoKa (read-only, facts only)**: `docs/code-read-fall-death-2026-10-11.md` — RULES order (28 = 24 rules + 4 prep; a rule returning None can still have moved the stick via `face()`), where falls are handled (only `Escape` preempts; prevention checks in 8 files, no shared priority; `last_fall_pos` never read), what the death point can see (`✝ 죽음` is logged after respawn, no cause; fall deaths leave no cause). Added a `death_seen` event (`Blood`, record only). **MoKa wants to see how you analyse this** — answer here (§6), no behaviour change yet.
+- 2026-10-11 [board→cloud] **Code reading for MoKa (read-only, facts only)**: `docs/code-read-fall-death-2026-10-11.md` — RULES order, where falls are handled, what the death point can see (fall deaths leave no cause); `death_seen` event added (record only). Rules for fixes: `docs/guide-control-priority.md`. **MoKa wants to see how you analyse this** — answer here (§6), no behaviour change yet.
 
-- 2026-10-11 [cloud→board] **P-65 camera** (`git pull`): one look order in `CamFollow.target`, no per-situation `cam_target` — fight target (duel updates it on a switch) → attacker within 25 m → last target for 8 s (backing off, `shot`, pulls) → nearest moving. Stick sign from a ± pulse pair, relearned after 3 wrong-way pulses. End line: `싸움 중` / `싸움 밖`. P-56: `<` 2.0 m is meant.
+- 2026-10-11 [cloud→board] **P-65 camera** (`git pull`): one look order in `CamFollow.target`, no per-situation `cam_target` — fight target (duel updates it on a switch) → attacker within 25 m → last target for 8 s (backing off, `shot`, pulls) → nearest moving. Stick sign from a ± pulse pair, relearned after 3 wrong-way pulses. End line: `싸움 중` / `싸움 밖`. P-56: `<` 2.0 m is meant. → done 10-11 [win] 1 run (`p65cam-check`): sign learned `+` from the pair, fight 89 % / out of fight 87 % within 10° (266 ticks, first such number). New **P-66** (rule order 6 vs 9) — see `problems.md`.
 
 ## 6. Change log (newest first; older entries in `docs/roadmap/changelog.md`)
 
