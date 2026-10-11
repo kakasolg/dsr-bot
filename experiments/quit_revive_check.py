@@ -98,6 +98,9 @@ def main() -> None:
         if q is None:
             quitout.close_menu(tm, pad)
             raise SystemExit(f"quit-out ({how}) failed — still in the world")
+        steps = dict(quitout.LAST_STEPS)                  # menu: ms per step (ready, start, systab, system, quitsel, confirm_quit, ok_sel, gone)
+        if steps:
+            print(f"steps (ms): {steps}")
         time.sleep(3.0)                                   # a menu save would land by now
         sv1 = save_state()
         print(f"exited ({how}) in {q:.2f} s — save {sv1.get('mtime')} {sv1.get('sha1')}"
@@ -112,7 +115,7 @@ def main() -> None:
                    if ta[k]["alive"] > tb.get(k, {"alive": 0})["alive"]}
         print(f"after Continue ({'%.1f s' % r if r else 'reload failed'}): {ta}  save {sv2.get('mtime')} {sv2.get('sha1')}")
         print(f"more alive than before (revived?): {revived or 'none'}")
-        out = {"how": how, "quit_s": round(q, 2), "reload_s": None if r is None else round(r, 1),
+        out = {"how": how, "quit_s": round(q, 2), "steps_ms": steps, "reload_s": None if r is None else round(r, 1),
                "save": {"before": sv0, "after_exit": sv1, "after_continue": sv2},
                "before": before, "after": after, "tally_before": tb, "tally_after": ta, "revived": revived}
         dst = ROOT / "data" / "runs" / f"{time.strftime('%Y%m%d_%H%M%S')}_quit_check_{how}.json"
