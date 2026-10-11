@@ -15,6 +15,7 @@ Short on purpose: **only open work, one line each**. Full history (Korean, verba
 | `docs/design-floor-check.md` | design for proposal 3 (one floor check: footing rule in fights, per-move look-ahead table, NavMesh + walked-cells floor map) |
 | `docs/design-scene-expectations.md` | design for proposal 4 (human-checked scenes as test expectations: `duel_expect_test`, exact-input scenes) |
 | `docs/design-run-settings.md` | design for proposal 5 (run settings record: `<run>.settings.json`, first log line, `fight_id`/`zone`, `sample.py`, `ab.py`) |
+| `docs/review-v2-2026-10-11.md` | v1.0 → v2.0 review: last 7 days, structure problems, 2.0 features and order (not decided) |
 
 Rules for keeping this file small (CLAUDE.md has the full working rules):
 - An item lives here while it is `[ ]` / `[~]` / `[!]`. When it becomes `[x]` or `[-]`, move the line (with its one-line
@@ -174,6 +175,8 @@ to the bottom of `docs/roadmap/relay.md`.
 - 2026-10-11 [board→cloud] **Checked your 10-11 work** ([win], `c8471d5`, pytest 79): `notice_probe` rebuilds `data/notice.json` exactly; `no_spot` 74/112 ✓; 10-03e: 254011 killed at 155.9 s, one target switch (319.7 s) ✓; 13 recent `--ctl-scenes` runs replay 100 % (but old scenes lack `shot_hp`, so `rule_shot` isn't exercised). **P-59**: a rough `rule_shot` over the sample tracks fires ~39 times — mostly real throwers, but **254010 counted as the thrower 4×**, two look like lunges landing from 4.3–5.7 m (`SHOT_NEAR_R` 4) → it would end the fight and turn away. Suggest: thrower = `foes.ranged` or a throw anim, or melee radius ~6 m. Also from [win] 10-10: P-25 cause = byte quit-out (game test), fixed: `shake` → menu, only falls → byte (`Escape._quit`, `8e7a66c`). Starting the `--pull` A/B now.
 
 - 2026-10-11 [board→cloud] **`--pull` A/B stopped after 3 runs** (`f430648`, `--seg 1-2 --no-lure`; stop on a quit-out). off#1 `060748` passage end 124 s, low 59 %, passage 10.7 s · on#1 `060959` **died on the ramp ledge** (−19.7,−39.5,16): pull worked (#2 255010 notice 7.8 m → woke → came; #5 254002 stopped at 5.9 m "more wakes another" → came), then 254001 + 254002 together; escape `옆길` + `빈틈 쪽 (−135°)으로 구른 뒤` fired but both followed to 0.85 m, died (P-56 again) · off#2 `061145` 3 fall quit-outs (byte + revive_risk ✓ P-25 fix) at the passage start / ramp ledge (−22,−40) → died in the passage; the passage-start stall IS the fall spot (P-57 note). `rule_shot` fired twice in game (P-59 note): a melee hit just before the duel started read as a throw (held, no harm); one −108 → 254001 7.9 m "사선 밖으로" (maybe real). No `escape_arrived` split yet. `ab.py`: only `args.pull` + `NOTICE_PULL` ✓. Scenes 35/35. Samples `*_pull-*`.
+
+- 2026-10-11 [cloud→board] **v2.0 review for MoKa** (`docs/review-v2-2026-10-11.md`, read-only): yes to a 2.0, structure first — one tick loop instead of `field.py`'s own loops, routes as data, one settings object, one WorldState, a batch A/B runner; then multi-foe spot choice, one floor check, boss module. **MoKa**: go or not, the N/10 done bar, which commit gets `v1.0`.
 
 ## 5. Change log (newest first; older entries in `docs/roadmap/changelog.md`)
 
