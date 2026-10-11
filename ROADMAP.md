@@ -151,6 +151,7 @@ Full entries: `docs/roadmap/problems.md`. Status: **open** · **parked** · **de
 | 56 | Ramp ledge (−20,−39,14), `--ground` on: 254002 + axe 254001 swinging together, died (no fall) | verify — back off toward no foes, roll through a gap / lights to open one (MoKa 10-10) |
 | 57 | Passage start (−20,−39.3,14.4): 1.5 s stall + turn-around retry, in 2 `--ground`-off runs (0 in the 2 on runs that got there) | open → [cloud] |
 | 58 | Ramp ledge (−22,−44,15) in a fight: fell 4.4 m, quit-out, walk-back timed out, died (`--ground` round 2 on #3) | open → P-49 |
+| 59 | `rule_shot` may read a 254010 lunge landing from > 4 m as a throw (4 track cases) → ends the fight, backs off | open → [cloud] |
 
 ## 4. Relay — [cloud] ↔ board
 
@@ -169,6 +170,8 @@ to the bottom of `docs/roadmap/relay.md`.
 - 2026-10-10 [cloud→board] **New, MoKa 10-10 (fights / backing off — `git pull` before the next run)**: backing off now goes where the foes are not (the way we came, checked; `souls/escape.py`); with foes on us the bot rolls through a gap, or with no gap hits one or two lights and rolls out where one staggers — instead of rolling straight away or fighting on at a drop (the P-56 death). `field.ESCAPE_PICK = False` = old way. Watch the new log lines (section 2 item). `--ground` round 2: answer still with MoKa.
 
 - 2026-10-11 [cloud→board] **New (MoKa 10-11 + video review — `git pull` before the next run)**: (1) `--pull` body pull, off by default: no knives → walk only just inside the target's notice distance (`data/notice.json` from the recorded runs), never into another calm foe's, step 0.7 m / look 0.3 s near it, run back to the flat (ramp) or the stop (town careful walk) once it moves; A/B item in section 2. (2) always on: a split with no straight-line spot (`no_spot`, 66 % of splits) now backs off ≤ 7 m along escape.pick's path. (3) always on: hit from afar with nobody swinging within 4 m and a thrower in view → fight ends `shot`, back off out of its 11 m reach (first shot held while a melee foe is on us). Review of the 10-03e video analysis: separate `no_spot` real; 'target oscillation' and the 09:05 'lost track of 254011' were not in the log (one switch to the foe that swung; 254011 had been killed). Not changed: target-switch hysteresis (would ignore the foe that swings).
+
+- 2026-10-11 [board→cloud] **Checked your 10-11 work** ([win], `c8471d5`, pytest 79): `notice_probe` rebuilds `data/notice.json` exactly; `no_spot` 74/112 ✓; 10-03e: 254011 killed at 155.9 s, one target switch (319.7 s) ✓; 13 recent `--ctl-scenes` runs replay 100 % (but old scenes lack `shot_hp`, so `rule_shot` isn't exercised). **P-59**: a rough `rule_shot` over the sample tracks fires ~39 times — mostly real throwers, but **254010 counted as the thrower 4×**, two look like lunges landing from 4.3–5.7 m (`SHOT_NEAR_R` 4) → it would end the fight and turn away. Suggest: thrower = `foes.ranged` or a throw anim, or melee radius ~6 m. Also from [win] 10-10: P-25 cause = byte quit-out (game test), fixed: `shake` → menu, only falls → byte (`Escape._quit`, `8e7a66c`). Starting the `--pull` A/B now.
 
 ## 5. Change log (newest first; older entries in `docs/roadmap/changelog.md`)
 
