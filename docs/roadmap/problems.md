@@ -505,3 +505,9 @@ New problems still go here (append at the bottom) and get a one-line row in ROAD
   (c) 근접 판정 `SHOT_NEAR_R` 4 → 6 m (돌진이 4.3~5.7 m에서 닿음), 싸움 시작 뒤 첫 `SHOT_NEAR_S`(1.5 s)엔 그 전 휘두름을 모르므로 6 m 안에 깨어 있는(대기·휘청·넘어짐 아닌) 적이 있으면 근접으로 봄 (061145 35.3 s, 254000 0.87 m).
   확인: `tests/pull_test.py`에 P-59 장면 6개 + foes 확인 (옛 규칙에선 첫 장면부터 실패), `duel_golden_test` 그대로, `duel_expect_test` 48장면 그대로, `scene_replay_test`·`ctl_decision_test` 통과.
   남은 것: 10-01e 11.8 m(주변에 휘두른 적 없음)은 원인 불명 그대로. 진짜 투척을 덜 잡을 수 있는 쪽 — 6 m 안에서 막 휘두른 적이 있으면 그 사이 맞은 화염병도 근접으로 봄. [win] 게임에서 `원거리 피격` 줄의 상대·거리 확인.
+
+### P-60 몸으로 끌기 뒤 `unsafe_approach` 0 s 싸움이 1.4 s에 24번 열리고 닫힘 — 그동안 가드 없음 (2026-10-11, [cloud] `--pull` A/B 로그 검토)
+
+- 증상: `20261011_060959_burg-bonfire_pull-on1-died` 52.4~53.8 s. #2 255010을 몸으로 끌어 `came` 뒤, 255010이 평지(안전 구역) 밖 (−24.8,−49.8,18.9)에 서 있어 `다가가지 않음 — … 안전 구역 밖 (Patch E-2)` → `#2 255010 (2번째): unsafe_approach — 0 s`가 24번. 54.9 s에 '오는 놈' 갈래가 받아 죽임 (받은 피해 2) — 이번엔 피해 없이 회복.
+- 원인 (코드 읽기): `Field.clear`의 대기 목표 갈래(`souls/field.py` `if r.result in ("unsafe_approach", "crowd"): … continue`)는 '오는 놈' 갈래와 달리 `_arena_wait(UNSAFE_PAUSE)`를 안 거침. 주석은 "다음 바퀴에 E-1 평지 대기"라지만 깨어 있는데 '오는 놈'으로 안 잡히는 적이면 곧바로 같은 싸움을 다시 엶 (2026-09-26 134451 E-2 고리와 같은 모양).
+- 해결: [cloud] 대기 목표 갈래도 `unsafe_approach`면 평지 대기(방어 틱)를 거치게. 아직 안 고침.
