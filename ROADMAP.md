@@ -170,7 +170,7 @@ Full entries: `docs/roadmap/problems.md`. Status: **open** · **parked** · **de
 | 53 | `burg-upper` zone 1 (−1.9,−14,−70): fell 4 m right after a hit, quit-out recovered | open |
 | 54 | `scene_replay` fake reflex kept a fixed age — a mid-chain anim change (3000→3002) replayed as `hit_first` | fixed |
 | 55 | `passage-drill`: the bonfire warp revives the ramp foes → died on the way to the top | open (A/B moved to seg 1-2) |
-| 56 | Ramp ledge (−20,−39,14), `--ground` on: 254002 + axe 254001 swinging together, died (no fall) | verify — back off toward no foes, roll through a gap / lights to open one (MoKa 10-10) |
+| 56 | Ramp ledge (−20,−39,14), `--ground` on: 254002 + axe 254001 swinging together, died (no fall) | verify — + 'ranged first' no longer turns to the axe hollow / away from a foe < 2 m |
 | 57 | Passage start (−20,−39.3,14.4): 1.5 s stall + turn-around retry, in 2 `--ground`-off runs (0 in the 2 on runs that got there); AGAIN 10-11, 4/15 runs | verify — cause: walked straight at A0 3.3 m up from 4 m; now path-finds first |
 | 58 | Ramp ledge (−22,−44,15) in a fight: fell 4.4 m, quit-out, walk-back timed out, died (`--ground` round 2 on #3) | verify — `rule_footing` (`--footing`, off by default), A/B |
 | 59 | `rule_shot` may read a 254010 lunge landing from > 4 m as a throw (4 track cases) → ends the fight, backs off | verify — thrower = `Foe.thrower` only, axe hollow not one, melee 6 m + duel-start window |
@@ -193,6 +193,8 @@ to the bottom of `docs/roadmap/relay.md`.
 - 2026-10-11 [cloud→board] **P-57 cause found + fixed offline** (`git pull`): the passage walk walked straight at A0 (stair top, 3.3 m higher, reached around the east side) whenever the ramp fight ended on the top platform 4 m away — all 3 of 15 seg 1-2 runs that started there stalled, none that started 20+ m off. Now it path-finds to A0 first (`꼭대기로`). **For MoKa's `--ground` call**: its "0 passage stalls" was this — both on runs that reached the passage started 21–24 m off.
 
 - 2026-10-11 [cloud→board] **P-58 / P-49: `rule_footing` done offline, behind `run.py --footing`** (`git pull`; MoKa's §7 answers: move during a swing only if it can't be blocked · before `rule_after_swing` · floor = NavMesh + walked cells · steps only, no roll). On dangerous footing (no floor underfoot, or footing < 60 % with a foe that would push us over a drop) a guarded 1 m step toward wider floor; replaces `rule_edge` when on. Records: 7/7 fights that ended in a fall had it on 2–2.5 s before (P-58: from 81.5 s, step east, away from the drop); on in 12 % of fight frames, half of them that ramp ledge. **[win]**: A/B item in section 2.
+
+- 2026-10-11 [cloud→board] **P-56 (ramp ledge 2:1): the target flip-flop fixed** (`git pull`): "원거리부터" read `foes.ranged`, which the axe hollow carries for lure — so the bot turned to 254001 / away from it while it was 0.9–1.4 m in front (36 of 42 switches in the seg 1-2 runs; your pull r2 on#2 92.8 s → −226). Now only real throwers pull us away, and any awake foe < 2 m keeps us on it. Golden same. Low_hp roll → both follow stays (multi-foe spot, v2.0). P-61 / P-62 / `--pull` default: not looked at yet.
 
 ## 6. Change log (newest first; older entries in `docs/roadmap/changelog.md`)
 

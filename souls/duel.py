@@ -53,10 +53,11 @@ INTERRUPT_STARTUP_MAX = 0.45   # weapons with startup longer than this (claymore
 INTERRUPT_S = 0.35       # if its attack started within this, hit first instead of blocking (the light attack lands sooner)
 SWITCH_MARGIN, SWITCH_HOLD = 0.8, 3.0
 SWITCH_R = 2.5           # if an awake foe closer than the target is within this (horizontal, same height), take it first
-RANGED_SWITCH_R = 25.0   # if a thrower/shooter (foes.ranged) is swinging (throwing), take it first within this regardless of distance (user: "the one shooting arrows from above first")
+RANGED_SWITCH_R = 25.0   # if a thrower/shooter (foes.Foe.thrower) is swinging (throwing), take it first within this regardless of distance (user: "the one shooting arrows from above first")
 RANGED_REACHABLE_DY = 3.0   # height difference above this = spot unreachable on foot, excluded from ranged switching (successful switches were all ≤ +3.0;
                             # at 4.0 it switched to a crossbowman on a +3.6 ledge, stuck 8 s and got hit by a nearby hollow, 2026-09-25 164722)
-MELEE_BUSY_R = 2.0       # no ranged switch if a sword foe is within this (same height) — it went for a 15.8 m crossbowman with a hollow 0.9 m ahead
+MELEE_BUSY_R = 2.0       # no ranged switch if any awake foe is within this (same height) — it went for a 15.8 m crossbowman with a hollow 0.9 m ahead;
+                         # P-56: 'sword foe' read foes.ranged, so the axe hollow 0.9 m ahead didn't count and the bot turned to 254002
 WAIT_APPROACH_S = 3.0    # wait_far: if it doesn't come WAIT_CLOSE_M closer in this time it won't come — stop waiting and close in
 WAIT_CLOSE_M = 0.5
 WAIT_HURT_HP = 120.0    # if this much HP is lost while waiting via wait_far — being hit by something other than the tracked (non-swinging) target, stop waiting
@@ -721,15 +722,20 @@ def _sense(F: Fight):
         return F.done("stalemate")
     h, dy, a = M.horiz(p, c), c.y - p.y, (c.anim if c.anim is not None else -1)
     ranged_cut = [x for x in s.hostile(RANGED_SWITCH_R) if x.ptr != F.ptr and x.hp > 0
-                  and foes_.of(x.npc_param).ranged and (x.anim or -1) in M.ATTACK
+                  and foes_.of(x.npc_param).thrower and (x.anim or -1) in M.ATTACK
                   and abs(x.y - p.y) < RANGED_REACHABLE_DY]
     # shooters above (or far away), unlike close interlopers (cut, below), have no distance limit — we were getting hit while fighting only the
     # foe in front defensively (user 2026-09-25: "the arrow guy is attacking so it's set to defense-heavy — deal with him first").
     # But height difference is limited — switching to 254012 (terrace archer, height difference +6–8.5 m) made _approach() endlessly try to close
     # a distance unreachable on foot, taking only arrows for 30 s, HP 695→137 (2026-09-25, burg-loop 091110).
     # measured: successful ranged switches were all at height difference ≤ +3.0 m — above that, treat as unreachable and ignore.
-    # if a sword foe is right in front (MELEE_BUSY_R), take it first — turning your back to go for a distant shooter gets you hit by both
-    busy = any(x.hp > 0 and not foes_.of(x.npc_param).ranged and M.horiz(p, x) < MELEE_BUSY_R and abs(x.y - p.y) < 1.2
+    # if a foe is right in front (MELEE_BUSY_R), take it first — turning your back to go for a distant shooter gets you hit by both.
+    # P-56 (ramp ledge 2:1, 10-10..10-11): both checks read foes.ranged, which the axe hollow 254001 carries for lure / waiting
+    # (MoKa-approved, LAYA.md 13) — so a swinging axe hollow was 'a shooter' and didn't make us busy; the bot flipped between it and
+    # 254002 (42 'ranged first' switches in the seg 1-2 runs, 27 to the axe hollow, 9 away from a target < 2 m), turning 90–160°
+    # with both on it. Now: only real throwers (Foe.thrower) pull us away, and any awake foe within MELEE_BUSY_R — a thrower in
+    # melee too — keeps us on what is in front (the interloper rule below still takes a clearly closer one)
+    busy = any(x.hp > 0 and M.horiz(p, x) < MELEE_BUSY_R and abs(x.y - p.y) < 1.2
                and not (9000 <= (x.anim or 0) < 9100) for x in s.hostile(MELEE_BUSY_R + 1.0))
     if ranged_cut and not busy and now - F.switch_t > SWITCH_HOLD:
         x = min(ranged_cut, key=lambda y: M.horiz(p, y))
