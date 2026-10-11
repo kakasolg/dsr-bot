@@ -87,11 +87,12 @@ def pure() -> None:
     check("Watch: moved 1 m → 'move'", w2.update(c2, me, 0.2) == "move")
 
 
-def fake_world(wake_r: float, other=None, jump_to=None):
-    """Player at the origin, target 254010 at z 20 facing us; it wakes (anim 3000) once we're within wake_r and, with jump_to,
-    stands that far from us at once. The fake walk_path moves the player 0.25 m at a time and asks stop() each time."""
+def fake_world(wake_r: float, other=None, jump_to=None, chase: bool = True, npc: int = 254010):
+    """Player at the origin, target npc at z 20 facing us; it wakes (anim 3000) once we're within wake_r and, with jump_to,
+    stands that far from us at once; with chase it then comes 0.3 m toward us per look (else it stays on its spot).
+    The fake walk_path moves the player 0.25 m at a time and asks stop() each time."""
     world = FF.World(player=(0.0, 0.0, 0.0))
-    tgt = world.add(ptr=2, handle=0x1002, npc=254010, pos=(0.0, 0.0, 20.0))
+    tgt = world.add(ptr=2, handle=0x1002, npc=npc, pos=(0.0, 0.0, 20.0))
     tgt.heading = 0.0
     if other is not None:
         o = world.add(ptr=3, handle=0x1003, npc=254011, pos=other)
@@ -109,6 +110,10 @@ def fake_world(wake_r: float, other=None, jump_to=None):
             if jump_to is not None:
                 d = math.hypot(tgt.x - p.x, tgt.z - p.z)
                 tgt.x, tgt.z = p.x + (tgt.x - p.x) / d * jump_to, p.z + (tgt.z - p.z) / d * jump_to
+        elif chase and tgt.anim == 3000:
+            d = math.hypot(tgt.x - p.x, tgt.z - p.z)
+            if d > 1.0:
+                tgt.x, tgt.z = tgt.x + (p.x - tgt.x) / d * 0.3, tgt.z + (p.z - tgt.z) / d * 0.3
         return real_snap(within)
 
     def walk_path(path, nm, mode="walk", stop=None, **kw):
@@ -155,6 +160,18 @@ def field_pull() -> None:
     world, f, tgt, modes = fake_world(wake_r=7.0)
     tgt.anim = 3000
     check("notice_pull: already awake → 'awake', no walking", f.notice_pull(2, LineNm(), back, "#t") == "awake" and not modes)
+
+    P.COME_S = 0.2
+    world, f, tgt, modes = fake_world(wake_r=7.0, chase=False)
+    r = f.notice_pull(2, LineNm(), back, "#t")
+    check(f"notice_pull: woke but stays on its spot (10-11 on#1) → 'stayed', not 'came' ({r})",
+          r == "stayed" and any("안 옴" in ln for ln in f.logs))
+    world, f, tgt, modes = fake_world(wake_r=7.0, npc=254002)
+    r = f.notice_pull(2, LineNm(), back, "#t")
+    check(f"notice_pull: firebomb hollow 254002 (a thrower) → '{r}', no walking", r == "thrower" and not modes)
+    world, f, tgt, modes = fake_world(wake_r=7.0, npc=254001)
+    r = f.notice_pull(2, LineNm(), back, "#t")
+    check(f"notice_pull: axe hollow 254001 (ranged, not a thrower) is still pulled → {r}", r == "came")
 
 
 def escape_way() -> None:

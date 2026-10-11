@@ -31,6 +31,8 @@ CALM_M = 0.7           # the target moved this far from where it stood → awake
 TURN_FROM, TURN_TO = 45.0, 25.0
 NEAR_BACK_R = 4.0      # an awake foe this close → don't turn our back to run (P-45: hit three times running 2 m from the spot)
 DY_MAX = 3.0           # foes more than this above / below are another level — left out
+COME_S = 2.0           # back at the spot: watch this long for the woken one to come (10-11 on#1: firebomb 254002 woke and stayed)
+COME_M = 1.5           # … it came = this far off where it stood, and nearer to us than that spot
 
 
 def load_table(path: Path = TABLE_PATH) -> dict:

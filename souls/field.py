@@ -796,7 +796,9 @@ class Field:
          + MARGIN 안으로는 안 들어감. 알아채는 거리 + NEAR부터는 STEP만 걷고 LOOK_S 멈춰 지켜봄. 그놈이 움직이거나 애니가 생기면
          (다른 놈이 깨도) 곧바로 back_to로 달려서 돌아감 — 깨어 있는 적이 NEAR_BACK_R 안이면 돌아서지 않음(P-45). 몸만 돌려 쳐다보면
          더 다가가지 않고 WAIT_S 지켜봄(기록에서 그렇게 돈 104번 중 15번만 왔다). back_to None → escape.pick이 고른 쪽.
-        → 'came' | 'awake' (이미 깨어 있음, 아무것도 안 함) | 'no_reaction' | 'no_path' | 'gone' | 'dead' | 'no_snapshot'"""
+        던지는 적(foes.Foe.thrower — 화염병·석궁)은 깨워도 제자리에서 던지기만 하므로 끌지 않음 (10-11 on#1, 254002).
+        → 'came' | 'stayed' (깼지만 COME_S 안에 안 옴) | 'thrower' (아무것도 안 함) | 'awake' (이미 깨어 있음, 아무것도 안 함)
+          | 'no_reaction' | 'no_path' | 'gone' | 'dead' | 'no_snapshot'"""
         nm = plain_nm(nm)
         s = self.mv.snap(SEEK_R)
         if s is None:
@@ -807,6 +809,9 @@ class Field:
         calm = lambda x: x.anim in (None, -1) or 9000 <= x.anim < 9100
         if not calm(c):
             return "awake"
+        if foes_.of(c.npc_param).thrower:
+            self.log(f"   {tag}: {c.npc_param}는 던지는 적 — 깨워도 안 오므로 몸으로 끌지 않음")
+            return "thrower"
         p = s.player
         me = (p.x, p.y, p.z)
         table = self.__dict__.get("_notice")
@@ -876,10 +881,11 @@ class Field:
             return "gone"
         who = f"다른 적 {st.get('other')}" if st["why"] == "other" else f"{c.npc_param}({ {'anim': '애니', 'move': '움직임'}[st['why']] })"
         self.log(f"   {tag}: {who} 깸 — 돌아감")
-        return self._pull_back(nm, back_to, ptr, tag)
+        return self._pull_back(nm, back_to, ptr, tag, goal)
 
-    def _pull_back(self, nm, back_to, ptr, tag: str) -> str:
-        """Run back to back_to (or escape.pick's choice) after waking one — unless an awake foe is already close. → 'came' | 'dead'"""
+    def _pull_back(self, nm, back_to, ptr, tag: str, stood) -> str:
+        """Run back to back_to (or escape.pick's choice) after waking one — unless an awake foe is already close — then watch up to
+        pull.COME_S whether it comes (off where it stood, nearer to us). → 'came' | 'stayed' | 'dead'"""
         s = self.mv.snap(SEEK_R)
         if s is None:
             return "came"
@@ -905,7 +911,24 @@ class Field:
         if c is not None:
             self.mv.face(s, c, deg=20.0)
         self.mv.guard(True)
-        return "came"
+        t0, off = time.time(), 0.0
+        while True:
+            if s is not None:
+                c = self.mv.find(s, ptr)
+                if c is None or c.hp <= 0:
+                    return "came"                          # gone from the list / killed meanwhile — the queue sorts it out
+                p = s.player
+                off = math.hypot(c.x - stood[0], c.z - stood[2])
+                if off >= pull_.COME_M and M.horiz(p, c) < math.hypot(p.x - stood[0], p.z - stood[2]):
+                    return "came"
+            if time.time() - t0 >= pull_.COME_S:
+                break
+            if not self.alive():
+                return "dead"
+            time.sleep(0.05)
+            s = self.mv.snap(SEEK_R)
+        self.log(f"   {tag}: 깼지만 {pull_.COME_S:.0f} s 동안 안 옴 — 제자리 (선 자리에서 {off:.1f} m)")
+        return "stayed"
 
     def lure(self, ptr, spawn, nm, tag: str, arena=None, lure_at: dict | None = None) -> str:
         """Wake just one foe (user 2026-09-24: "best is to pull them one at a time and hit", "you have throwing knives, one at a time from afar").
@@ -1484,7 +1507,7 @@ class Field:
             if not lure and NOTICE_PULL and k == 0 and e.get("lure", True):
                 pr = self.notice_pull(c.ptr, nm, arena, f"#{i}")
                 self.log(f"   #{i} 몸으로 끌기: {pr}")
-                tried[i] = 1                               # came → the 'incoming foe' branch takes it; no_reaction → go to it next round
+                tried[i] = 1                               # came → the 'incoming foe' branch takes it; no_reaction / stayed / thrower → go to it next round
                 if pr == "dead":
                     return "died"
                 continue
@@ -1502,7 +1525,12 @@ class Field:
             r = self.fight(c.ptr, nm, f"#{i} {e['npc']}" + (f" ({tried[i]}번째)" if tried[i] > 1 else ""), arena=arena, desperate=desperate,
                            may_approach=self._approach_guard(arena, pending, binds))
             if r.result in ("unsafe_approach", "crowd"):
-                tried[i] = k                               # E-2: don't count as an attempt — E-1 arena wait next round (crowd: fell back, go again)
+                tried[i] = k                               # E-2: don't count as an attempt (crowd: fell back, go again)
+                if r.result == "unsafe_approach" and arena is not None:
+                    # P-60 (10-11 060959 52.4 s): an awake target standing still off the flat (anim −1, so not 'coming', same height,
+                    # so no E-1 wait) reopened this fight 24× in 1.4 s with no guard — wait / defend on the flat like the 'coming' branch
+                    if self._arena_wait(arena, nm, ignore, UNSAFE_PAUSE) == "died":
+                        return "died"
                 continue
             if r.result == "killed":
                 pending.pop(0)
@@ -1979,7 +2007,7 @@ class Field:
                 lr = self.lure(c.ptr, (c.x, c.y, c.z), nm, f"{tag}: {c.npc_param}", arena=here)
                 if lr == "no_knife" and NOTICE_PULL:
                     pr = self.notice_pull(c.ptr, nm, here, f"{tag}: {c.npc_param}")
-                    lr = {"came": "lured"}.get(pr, pr)
+                    lr = {"came": "lured", "stayed": "awake", "thrower": lr}.get(pr, pr)   # thrower: as before --pull (no knife)
                     if pr == "no_reaction":
                         lured[c.ptr] = 2                   # didn't come from here — walk on
                 self.log(f"   {tag}: {c.npc_param} 끌어오기 {lured[c.ptr]}번째 — {lr}")

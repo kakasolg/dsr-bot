@@ -56,7 +56,7 @@ zone 8 crossbowmen (P-47).
 - [ ] [win] Check MoKa's 10-10 escape rules in game (`souls/escape.py`, P-56): log lines `물러날 쪽: 온 길/옆길/화톳불 쪽 …`, `빈틈 쪽 (…°)으로 … 구른 뒤 물러남`, `빈틈 없음 — … 약공 (n/2)`. Ramp runs `burg-bonfire --seg 1-2`; a roll into a drop or back into a foe → stop and report to [cloud]
 - [~] [win] A/B `--ground` **round 2** (cloud answer 10-10, P-56; round 1 stopped at a ramp-ledge death): `--ground` now = walks only (fights / recover / reflex keep the NavMesh). `burg-bonfire --seg 1-2 --no-lure` ×3 without, ×3 with, same save, alternate off/on — **10-10 [win]: 6 runs done, report in relay.md; waits for the MoKa item above**
 - [~] [cloud] Body pull `notice_pull` (MoKa 10-11: no knives before the merchant) — offline done 10-11: `experiments/notice_probe.py` → `data/notice.json` (534 clean wakes: shield soldiers ~9 m, burg hollows ~7.5 m, ramp hollows ~5 m; a body turn alone came only 15/104), `souls/pull.py`, `Field.notice_pull`, `run.py --pull` (off), `tests/pull_test.py`
-- [!] [win] A/B `--pull`: `burg-bonfire --seg 1-2 --no-lure` ×3 without, ×3 with (`--pull`), same save; log `몸으로 끌기 — … 알아채는 거리 … m` / `… 깸 — 돌아감` / `달려서 … 돌아감`; report to [cloud] first — **[!] 10-11: stopped after 3 runs; [cloud] answer in relay.md: wait for the ranged-pull / P-60 fix, then 3+3 again**
+- [ ] [win] A/B `--pull`: `burg-bonfire --seg 1-2 --no-lure` ×3 without, ×3 with (`--pull`), same save; log `몸으로 끌기 — … 알아채는 거리 … m` / `… 깸 — 돌아감` / `달려서 … 돌아감`; report to [cloud] first — **10-11: stopped after 3 runs; [cloud] fixed the thrower pull + P-60 → run 3+3 again** (new log lines `던지는 적 — … 끌지 않음`, `깼지만 … 안 옴`)
 - [~] [cloud] Split `no_spot` (74 of 112 in data/samples) → first ≤ 7 m of `escape.pick`'s path (`duel._escape_way`, `SEP_ESCAPE`) — offline done 10-11, golden unchanged; [win]: log `떼어놓기 n: … → escape_arrived`
 - [~] [cloud] Hit by a thrower (no foe swinging within 4 m) → `duel.rule_shot` ends the fight 'shot' → `Field.leave_fire` backs off beyond 11 m of it (holds the first shot while a melee foe is on us) — offline done 10-11; [win]: log `원거리 피격 −…` / `사선 밖으로`
 - [~] [win] P-32 axe hollow `AXE_HOLLOW` guard — game check on the ramp (needs MoKa's go)
@@ -175,7 +175,7 @@ Full entries: `docs/roadmap/problems.md`. Status: **open** · **parked** · **de
 | 57 | Passage start (−20,−39.3,14.4): 1.5 s stall + turn-around retry, in 2 `--ground`-off runs (0 in the 2 on runs that got there) | open → [cloud] |
 | 58 | Ramp ledge (−22,−44,15) in a fight: fell 4.4 m, quit-out, walk-back timed out, died (`--ground` round 2 on #3) | open → P-49 |
 | 59 | `rule_shot` may read a 254010 lunge landing from > 4 m as a throw (4 track cases) → ends the fight, backs off | verify — thrower = `Foe.thrower` only, axe hollow not one, melee 6 m + duel-start window |
-| 60 | After a body pull, `unsafe_approach` 0 s fights opened and closed 24× in 1.4 s (no guard) | open → [cloud] |
+| 60 | After a body pull, `unsafe_approach` 0 s fights opened and closed 24× in 1.4 s (no guard) | verify — queue branch waits on the flat |
 
 ## 5. Relay — [cloud] ↔ board
 
@@ -185,7 +185,9 @@ to the bottom of `docs/roadmap/relay.md`.
 
 (empty — handled entries moved to `docs/roadmap/relay.md` 2026-10-11)
 
-- 2026-10-11 [board→cloud] **ROADMAP split into v1.0 / v2.0 (MoKa 10-11: keep them apart)**: sections 1–2 = v1.0 (today's structure: game checks, decisions, small fixes); new section 3 = v2.0 (settings object, WorldState, one tick loop, route data, batch runner, then multi-foe spots, `rule_footing` + collision mesh, walk follow, boss module, resume after death). A new item goes to v2.0 when it needs the tick loop / route data / settings object / WorldState. v2.0 go, the N/10 bar and the `v1.0` commit are still MoKa's (asked on the board). Section numbers moved: Problem index 4, Relay 5.
+- 2026-10-11 [board→cloud] **ROADMAP split into v1.0 / v2.0 (MoKa 10-11: keep them apart)**: sections 1–2 = v1.0 (today's structure: game checks, decisions, small fixes); new section 3 = v2.0 (settings object, WorldState, one tick loop, route data, batch runner, then multi-foe spots, `rule_footing` + collision mesh, walk follow, boss module, resume after death). A new item goes to v2.0 when it needs the tick loop / route data / settings object / WorldState. v2.0 go, the N/10 bar and the `v1.0` commit are still MoKa's (asked on the board). Section numbers moved: Problem index 4, Relay 5. → done (read; [cloud] files new items by that rule)
+
+- 2026-10-11 [cloud→board] **`--pull` fixes done offline** (`git pull`, both v1.0 small fixes): (1) no body pull for throwers (`Foe.thrower`: firebomb hollows, crossbowman) → `thrower`, the bot goes on as without `--pull`; (2) after running back it watches 2 s — `came` only if the target left its spot (≥ 1.5 m) toward us, else `stayed`; axe hollow 254001 is still pulled; (3) P-60: the queue target now waits / defends on the flat after `unsafe_approach` (was 24 fights in 1.4 s). pytest 79. **[win]**: `--pull` A/B 3+3 again (section 2 item).
 
 ## 6. Change log (newest first; older entries in `docs/roadmap/changelog.md`)
 

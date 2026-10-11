@@ -511,3 +511,7 @@ New problems still go here (append at the bottom) and get a one-line row in ROAD
 - 증상: `20261011_060959_burg-bonfire_pull-on1-died` 52.4~53.8 s. #2 255010을 몸으로 끌어 `came` 뒤, 255010이 평지(안전 구역) 밖 (−24.8,−49.8,18.9)에 서 있어 `다가가지 않음 — … 안전 구역 밖 (Patch E-2)` → `#2 255010 (2번째): unsafe_approach — 0 s`가 24번. 54.9 s에 '오는 놈' 갈래가 받아 죽임 (받은 피해 2) — 이번엔 피해 없이 회복.
 - 원인 (코드 읽기): `Field.clear`의 대기 목표 갈래(`souls/field.py` `if r.result in ("unsafe_approach", "crowd"): … continue`)는 '오는 놈' 갈래와 달리 `_arena_wait(UNSAFE_PAUSE)`를 안 거침. 주석은 "다음 바퀴에 E-1 평지 대기"라지만 깨어 있는데 '오는 놈'으로 안 잡히는 적이면 곧바로 같은 싸움을 다시 엶 (2026-09-26 134451 E-2 고리와 같은 모양).
 - 해결: [cloud] 대기 목표 갈래도 `unsafe_approach`면 평지 대기(방어 틱)를 거치게. 아직 안 고침.
+- 2026-10-11 [cloud] 고침 (오프라인): 대기 목표 갈래도 `unsafe_approach`면 `_arena_wait(UNSAFE_PAUSE)`(평지 기다림·방어 틱)를 거친 뒤 다시 봄 — '오는 놈' 갈래와 같음.
+  확인: `tests/field_approach_guard_test.py` `test_p60_pending_target_pause` (옛 코드: 세 싸움 간격 0.00001 s → 고친 뒤 0.4 s = UNSAFE_PAUSE), pytest 79 통과.
+  같은 실행의 다른 문제(#5 254002 끌기)도 함께 고침: 던지는 적(`Foe.thrower`)은 몸으로 끌지 않고(`thrower`), 깨운 뒤 `pull.COME_S`(2 s) 안에 선 자리에서
+  `COME_M`(1.5 m) 넘게 우리 쪽으로 오지 않으면 `came`이 아니라 `stayed` (`tests/pull_test.py`). [win] `--pull` A/B 3+3 다시.
