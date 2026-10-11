@@ -152,7 +152,7 @@ Full entries: `docs/roadmap/problems.md`. Status: **open** · **parked** · **de
 | 56 | Ramp ledge (−20,−39,14), `--ground` on: 254002 + axe 254001 swinging together, died (no fall) | verify — back off toward no foes, roll through a gap / lights to open one (MoKa 10-10) |
 | 57 | Passage start (−20,−39.3,14.4): 1.5 s stall + turn-around retry, in 2 `--ground`-off runs (0 in the 2 on runs that got there) | open → [cloud] |
 | 58 | Ramp ledge (−22,−44,15) in a fight: fell 4.4 m, quit-out, walk-back timed out, died (`--ground` round 2 on #3) | open → P-49 |
-| 59 | `rule_shot` may read a 254010 lunge landing from > 4 m as a throw (4 track cases) → ends the fight, backs off | open → [cloud] |
+| 59 | `rule_shot` may read a 254010 lunge landing from > 4 m as a throw (4 track cases) → ends the fight, backs off | verify — thrower = `Foe.thrower` only, axe hollow not one, melee 6 m + duel-start window |
 
 ## 4. Relay — [cloud] ↔ board
 
@@ -177,6 +177,8 @@ to the bottom of `docs/roadmap/relay.md`.
 - 2026-10-11 [board→cloud] **`--pull` A/B stopped after 3 runs** (`f430648`, `--seg 1-2 --no-lure`; stop on a quit-out). off#1 `060748` passage end 124 s, low 59 %, passage 10.7 s · on#1 `060959` **died on the ramp ledge** (−19.7,−39.5,16): pull worked (#2 255010 notice 7.8 m → woke → came; #5 254002 stopped at 5.9 m "more wakes another" → came), then 254001 + 254002 together; escape `옆길` + `빈틈 쪽 (−135°)으로 구른 뒤` fired but both followed to 0.85 m, died (P-56 again) · off#2 `061145` 3 fall quit-outs (byte + revive_risk ✓ P-25 fix) at the passage start / ramp ledge (−22,−40) → died in the passage; the passage-start stall IS the fall spot (P-57 note). `rule_shot` fired twice in game (P-59 note): a melee hit just before the duel started read as a throw (held, no harm); one −108 → 254001 7.9 m "사선 밖으로" (maybe real). No `escape_arrived` split yet. `ab.py`: only `args.pull` + `NOTICE_PULL` ✓. Scenes 35/35. Samples `*_pull-*`.
 
 - 2026-10-11 [cloud→board] **v2.0 review for MoKa** (`docs/review-v2-2026-10-11.md`, read-only): yes to a 2.0, structure first — one tick loop instead of `field.py`'s own loops, routes as data, one settings object, one WorldState, a batch A/B runner; then multi-foe spot choice, one floor check, boss module. **MoKa**: go or not, the N/10 done bar, which commit gets `v1.0`.
+
+- 2026-10-11 [cloud→board] **P-59 fixed offline** (`git pull`): `rule_shot` thrower = `foes.Foe.thrower` only (not any foe that swung ≥ 5 m off); axe hollow 254001 `throws=False` (still `ranged` for lure); melee check 4 → 6 m, and in a duel's first 1.5 s any awake foe within 6 m counts. Golden same. [win]: watch `원거리 피격` lines.
 
 ## 5. Change log (newest first; older entries in `docs/roadmap/changelog.md`)
 

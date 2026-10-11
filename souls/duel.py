@@ -778,15 +778,20 @@ def _asleep(F, c, now) -> bool:
 # if-chain order exactly (tests/duel_golden_test.py) — to change a priority, move the rule in RULES and re-record on purpose.
 
 SHOT_HP = 40             # rule_shot: one hit this big …
-SHOT_NEAR_R = 4.0        # … with no foe this close swinging (or done swinging under SHOT_NEAR_S ago) …
-SHOT_NEAR_S = 1.5
-SHOT_FAR_R = 5.0         # … but one at least this far that threw within SHOT_SEEN_S, or is a known thrower (foes.ranged)
-SHOT_SEEN_S = 3.0
+SHOT_NEAR_R = 6.0        # … with no foe this close swinging (or done swinging under SHOT_NEAR_S ago) — 6 m, not 4: a hollow's lunge
+                         # lands from 4.3–5.7 m (P-59) …
+SHOT_NEAR_S = 1.5        # (in a duel's first SHOT_NEAR_S nobody's earlier swings are known → any awake foe within SHOT_NEAR_R counts)
+SHOT_FAR_R = 5.0         # … but a thrower (foes.Foe.thrower) at least this far — a melee foe that swung far off is not one (P-59)
 SHOT_SCAN_R = 25.0
 SHOT_HOLD_R = 2.5        # an awake melee foe this close (not staggered / down): stay and fight it (P-45: turning away 2 m from a foe
                          # got us hit three times) — unless it is the second shot within SHOT_AGAIN_S
 SHOT_AGAIN_S = 10.0
 SHOT_REACH = 11.0        # a thrower reaches this far (thrown items fly ~10 m, field.LURE_R) — Field backs off beyond it
+
+
+def _awake_anim(a) -> bool:
+    """Up and able to hit: an anim, not idle/asleep (9000s), not staggered or down."""
+    return a not in (None, -1) and not (9000 <= a < 9100) and a not in M.STAGGER and a not in M.DOWNED
 
 
 def rule_shot(F, T):
@@ -800,17 +805,17 @@ def rule_shot(F, T):
     hp0, F.shot_hp = F.shot_hp, p.hp
     if hp0 is None or p.hp is None or hp0 - p.hp < SHOT_HP:
         return None
-    if any(M.horiz(p, x) < SHOT_NEAR_R and now - F.swung.get(x.ptr, -1e9) < SHOT_NEAR_S for x in s.hostile(SHOT_NEAR_R + 1.0)):
+    fresh = now - F.t0 < SHOT_NEAR_S    # the swing that hit may have started before this duel (P-59, 061145 35.3 s)
+    if any(M.horiz(p, x) < SHOT_NEAR_R and (now - F.swung.get(x.ptr, -1e9) < SHOT_NEAR_S or fresh and _awake_anim(x.anim))
+           for x in s.hostile(SHOT_NEAR_R + 1.0)):
         return None                                        # a melee hit
-    thr = [x for x in s.hostile(SHOT_SCAN_R) if M.horiz(p, x) >= SHOT_FAR_R
-           and (now - F.swung.get(x.ptr, -1e9) < SHOT_SEEN_S or foes_.of(x.npc_param).ranged)]
+    thr = [x for x in s.hostile(SHOT_SCAN_R) if M.horiz(p, x) >= SHOT_FAR_R and foes_.of(x.npc_param).thrower]
     if not thr:
-        return None                                        # a fall, fire on the floor, someone we can't see — not a thrower
+        return None                                        # a melee lunge, a fall, fire on the floor, someone we can't see — not a thrower
     t = min(thr, key=lambda x: M.horiz(p, x))
     F.shots.append(now)
     again = sum(1 for t0 in F.shots if now - t0 < SHOT_AGAIN_S) >= 2
-    hold = [x for x in s.hostile(SHOT_HOLD_R + 1.0) if M.horiz(p, x) < SHOT_HOLD_R and x.anim not in (None, -1)
-            and not (9000 <= x.anim < 9100) and x.anim not in M.STAGGER and x.anim not in M.DOWNED and abs(x.y - p.y) < 1.2]
+    hold = [x for x in s.hostile(SHOT_HOLD_R + 1.0) if M.horiz(p, x) < SHOT_HOLD_R and _awake_anim(x.anim) and abs(x.y - p.y) < 1.2]
     F.log(f"      원거리 피격 −{hp0 - p.hp}: {t.npc_param} {M.horiz(p, t):.1f} m (높이 {t.y - p.y:+.1f}, 애니 {t.anim})"
           + (f" — {hold[0].npc_param} {M.horiz(p, hold[0]):.1f} m가 붙어 있어 버팀" if hold and not again else " — 사선 밖으로"))
     if hold and not again:

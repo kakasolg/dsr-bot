@@ -26,6 +26,7 @@ import types
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
+from souls import foes as foes_
 from souls import duel as D
 from souls import field as F
 from souls import pull as P
@@ -177,9 +178,9 @@ def escape_way() -> None:
 def shot() -> None:
     C = lambda ptr, npc, x, z, anim, y=0.0: types.SimpleNamespace(ptr=ptr, npc_param=npc, x=x, y=y, z=z, anim=anim, hp=50)
 
-    def run(ticks):
-        """ticks: [(hp, [chars], now)] → what rule_shot returned on the last tick, and the fight."""
-        Fi = types.SimpleNamespace(shot_hp=None, shots=[], swung={}, log=lambda *a: None, note=lambda *a: None,
+    def run(ticks, t0=-10.0):
+        """ticks: [(hp, [chars], now)] → what rule_shot returned on the last tick, and the fight (started at t0)."""
+        Fi = types.SimpleNamespace(t0=t0, shot_hp=None, shots=[], swung={}, log=lambda *a: None, note=lambda *a: None,
                                    res=D.DuelResult("timeout"), done=lambda r: ("done", r))
         out = None
         for hp, chars, now in ticks:
@@ -196,6 +197,24 @@ def shot() -> None:
     check("rule_shot: the foe 1.5 m away is swinging → a melee hit, not a shot", out is None)
     out, _ = run([(616, [C(2, 255010, 0.0, 6.0, -1)], 0.0), (503, [C(2, 255010, 0.0, 6.0, -1)], 0.5)])
     check("rule_shot: nobody threw and no known thrower → a fall / unknown, not a shot", out is None)
+    # P-59: melee hollows that swung from beyond the old 4 m, a mislabelled axe hollow, a swing from before the duel
+    out, _ = run([(616, [C(2, 254010, 0.0, 5.7, 3004)], 0.0), (570, [C(2, 254010, 0.0, 7.0, -1)], 0.5)])
+    check("rule_shot P-59: a sword hollow's 3004 from 5.7 m, hit at 7.0 m → a lunge, not a shot (09-28z)", out is None)
+    out, _ = run([(616, [C(2, 254010, 0.0, 4.3, 3005), bomber(-1)], 0.0), (511, [C(2, 254010, 0.0, 5.2, 3005), bomber(-1)], 0.5)])
+    check("rule_shot P-59: a 3005 lunge landing from 5.2 m with a bomber in view → melee (10-01a)", out is None)
+    out, _ = run([(616, [C(2, 254010, 0.0, 7.4, 3008)], 0.0), (560, [C(2, 254010, 0.0, 7.4, -1)], 1.0)])
+    check("rule_shot P-59: a sword hollow that swung 7.4 m off is not a thrower (09-30b)", out is None)
+    out, _ = run([(616, [C(3, 254001, 0.0, 7.9, -1)], 0.0), (508, [C(3, 254001, 0.0, 7.9, -1)], 0.5)])
+    check("rule_shot P-59: axe hollow 254001 (ranged for lure, throws=False) is not a thrower (061145 60.6 s)", out is None)
+    near = C(4, 254000, 0.0, 0.9, 3006)
+    out, _ = run([(616, [near, bomber(-1)], 0.3), (505, [near, bomber(-1)], 0.8)], t0=0.0)
+    check("rule_shot P-59: 0.8 s into the duel, a hollow 0.9 m off mid-swing → melee (the swing started before the duel)", out is None)
+    idle = C(4, 254000, 0.0, 3.0, -1)
+    out, _ = run([(616, [idle, bomber(3008)], 0.3), (505, [idle, bomber(-1)], 0.8)], t0=0.0)
+    check(f"rule_shot P-59: … but an idle one 3 m off doesn't hide the bomber's throw → {out}", out == ("done", "shot"))
+    check("foes: AXE_HOLLOW still ranged (lure / waiting unchanged), not a thrower; bombers / crossbow are",
+          foes_.of(254001).ranged and not foes_.of(254001).thrower and foes_.of(254002).thrower and foes_.of(255002).thrower
+          and not foes_.of(254010).thrower)
     walk = C(2, 254010, 0.0, 2.0, 701)
     out, Fi = run([(616, [walk, bomber(3008)], 0.0), (520, [walk, bomber(-1)], 1.0)])
     check("rule_shot: an awake melee foe on us (2 m, not staggered) → hold the first shot", out is None and len(Fi.shots) == 1)

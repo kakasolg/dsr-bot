@@ -15,6 +15,8 @@ class Foe:
     kick_when_idle: bool = False    # raises shield when standing still (anim -1) → break it with a kick, then hit
     circle_behind: bool = False     # shield only blocks a frontal cone — if idle, circle behind and light attack (most effective, user 2026-09-25)
     ranged: bool = False            # throws from afar (firebomb) — won't come if we wait, keeps throwing → run in and close
+    throws: bool | None = None      # really throws (duel.rule_shot's thrower) — None = same as ranged. Separate because ranged also
+                                    # drives lure / waiting, where a wrong label is what MoKa approved (AXE_HOLLOW, P-59)
     avoid: bool = False             # don't fight at current level (route around)
     singles: tuple = ()             # single-hit attack anims — safe to counter right after blocking
     combos: tuple = ()              # start anims of chained attacks — block to the end, then counter
@@ -29,6 +31,10 @@ class Foe:
     #   "act"    — actually kick. No Foe data uses this value — enabling it needs a separately approved experiment-only change
     early_kick: str = "off"
     note: str = ""
+
+    @property
+    def thrower(self) -> bool:
+        return self.ranged if self.throws is None else self.throws
 
 
 # Hollow c2540 (Lua 2026-09-24): when close, half are single 3008, the rest 2–3 hit combos (3003→3004→3009, 3005~3007)
@@ -48,7 +54,9 @@ FIREBOMB_HOLLOW = Foe("망자(화염병)", ranged=True, **_HOLLOW,
 #  hit_first swung and took −118 both times. windup=(3004,), windup_act_s=1.0 → rule_late_windup_block keeps the shield up until it lands.
 #  ranged stays True for now: the lure/waiting the ramp runs do with it is what MoKa approved — the 'thrower' label is wrong
 #  (LAYA.md 13), fixing it changes those decisions and needs its own runs.
-AXE_HOLLOW = Foe("망자(도끼 양손)", ranged=True, windup=(3004,), windup_act_s=1.0, **_HOLLOW,
+#  throws=False (P-59, 2026-10-11): rule_shot no longer takes it for a thrower (game 10-11 061145: "원거리 피격 −108: 254001 7.9 m,
+#  애니 −1" while 255010 swung at 1.26 m); lure / waiting still see ranged=True.
+AXE_HOLLOW = Foe("망자(도끼 양손)", ranged=True, throws=False, windup=(3004,), windup_act_s=1.0, **_HOLLOW,
                  note="경사로 #4. 방패 없이 도끼를 양손으로 — 3003 뒤 3004가 1.7 s에 떨어짐, 1.0 s부터 그때까지 막기 유지 (MoKa 2026-10-01)")
 SHIELD = Foe("방패 병사", kind="shield", kick_when_idle=True, circle_behind=False, unblockable=(3009,), punish_hits=1,
              windup=(3004,), windup_act_s=1.2, kick_on_stagger=True, early_kick="shadow",
