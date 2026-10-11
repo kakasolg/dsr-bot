@@ -1,6 +1,7 @@
 """Layer 4 helper — watchers running separately from the decision loop: emergency escape (quit-out) and bloodstain tracking.
 
 Quit-out (menu → Quit Game → Continue) **resets only enemy positions/alertness; dead enemies stay dead** (user confirmed 2026-09-24).
+The fast byte quit-out (ChrClassWarp+0x19) does NOT keep them dead (P-25, game check 2026-10-10) — only falls use it (Escape._quit).
 Resting (bonfire) revives every enemy. So to shake enemies off, use this instead of resting.
 """
 from __future__ import annotations
@@ -186,6 +187,32 @@ class Escape:
             ctl.emit("esc", ev="nudge_end", dt_ms=round((time.perf_counter() - t0) * 1000, 1))
         return True
 
+    def _quit(self, tm, kind: str, res: dict) -> float | None:
+        """
+        ── 어느 퀵 종료로 나가나 (P-25) ──────────────────────────────
+         · byte (ChrClassWarp+0x19 = 1, 곧장 타이틀, 월드에서 1.1 s) — **그 지역에서 죽인 적이 되살아남**
+           (2026-10-10 게임 확인: byte → Continue 직후 255041·255042 셋이 다시 섬 / menu → 넷 번 모두 죽은 그대로. 세이브는 둘 다 씀)
+         · menu (Quit Game, 입력 0.94 s + 저장 1.0 s = 1.95 s) — 죽인 적은 그대로. 떨어지는 중엔 메뉴가 안 열린다고 봄
+         · 그래서 낙사(fall)만 byte, 나머지(shake …)는 menu. 첫 방식이 실패하면 다른 방식으로
+         · byte로 나갔으면 res["revive_risk"] = True — 위 층은 esc.gen 이 바뀌면 적을 새로 찾는다 (field 신원 묶기, pass_ramp 생존 확인)
+        """
+        byte = lambda: (lambda t0: time.time() - t0 if tm.quit_to_title(timeout=2.0) else None)(time.time())
+
+        def menu():
+            q = quitout.quit_out(tm, self.pad, gap=quitout.MENU_GAP, settle=0.03, ready_wait=0.05)
+            res["quit_steps"] = dict(quitout.LAST_STEPS)
+            return q
+        order = (("byte", byte), ("menu", menu)) if kind == "fall" else (("menu", menu), ("byte", byte))
+        for i, (how, go) in enumerate(order):
+            if i:
+                quitout.close_menu(tm, self.pad)          # a half-open menu from the first try
+            res["how"] = how
+            q = go()
+            if q is not None:
+                res["revive_risk"] = how == "byte"
+                return q
+        return None
+
     def fire(self, why: str, kind: str, tm=None, p=None) -> dict:
         """Quit to menu and come back. Upper layers also call this to shake off enemies (kind='shake'). → result"""
         if not self.quit_ok:
@@ -207,14 +234,7 @@ class Escape:
             self.pad.freeze()
             res: dict = {"why": why, "kind": kind, "pos0": pos0}
             try:
-                # straight to title without the menu (ChrClassWarp+0x19, 0.58 s) — the menu route takes 2~2.8 s and the menu wouldn't open mid-fall.
-                # fall back to the old menu route if that fails
-                t_q = time.time()
-                q = time.time() - t_q if tm.quit_to_title(timeout=2.0) else None
-                res["how"] = "byte" if q is not None else "menu"
-                if q is None:
-                    q = quitout.quit_out(tm, self.pad, gap=quitout.MENU_GAP, settle=0.03, ready_wait=0.05)
-                    res["quit_steps"] = dict(quitout.LAST_STEPS)
+                q = self._quit(tm, kind, res)
                 res["quit_s"] = None if q is None else round(q, 2)
                 ctl.emit("esc", ev="quit", how=res["how"], ok=q is not None, quit_s=res["quit_s"])
                 if q is None:
@@ -225,6 +245,8 @@ class Escape:
                     time.sleep(1.0)
                     if kind == "fall":
                         res["back"] = self._back_to_mesh()
+                    if res.get("revive_risk"):
+                        self.log("   ⚠ byte 퀵 종료 — 이 지역에서 죽인 적이 되살아났을 수 있음 (P-25)")
             finally:
                 self.pad.neutral()
                 self.pad.unfreeze()

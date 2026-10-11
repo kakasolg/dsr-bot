@@ -206,18 +206,21 @@ def escape_session(tmp: Path, rec_on: bool):
     esc.quit_ok = False
     skipped = esc.fire("test skip", "shake")
     esc.quit_ok = True
-    orig = (quitout.reload, watch.env.make_telemetry, watch.time.sleep)
+    orig = (quitout.reload, watch.env.make_telemetry, quitout.quit_out)
     quitout.reload = lambda p: 1.5
+    quitout.quit_out = lambda *a, **k: 0.94                    # menu quit-out (P-25: 'shake' goes through the menu)
     watch.env.make_telemetry = lambda *_: QuitTm()
+    esc._back_to_mesh = lambda *a: "0.0 m"
     try:
         fired = esc.fire("test", "shake", QuitTm(), player())
+        fell = esc.fire("test fall", "fall", QuitTm(), player())
     finally:
-        quitout.reload, watch.env.make_telemetry = orig[0], orig[1]
+        quitout.reload, watch.env.make_telemetry, quitout.quit_out = orig
     pad.close()
     if rec_on:
         ctl.stop()
-    return (nudged, yielded, skipped.get("skipped"), fired.get("how"), esc.gen), [list(d.sent) for d in vg.devices], \
-        (rows(path) if rec_on else [])
+    return (nudged, yielded, skipped.get("skipped"), fired.get("how"), fired.get("revive_risk"), fell.get("how"),
+            fell.get("revive_risk"), esc.gen), [list(d.sent) for d in vg.devices], (rows(path) if rec_on else [])
 
 
 def test_escape(tmp: Path) -> None:
@@ -225,17 +228,20 @@ def test_escape(tmp: Path) -> None:
     (tmp / "e1").mkdir()
     res0, sent0, _ = escape_session(tmp / "e0", False)
     res1, sent1, r = escape_session(tmp / "e1", True)
-    check("Escape: 켜기/끄기 결과 같음 (nudge 됨, 양보, 건너뜀, byte, gen 1)", res0 == res1 == (True, False, True, "byte", 1))
+    check("Escape: 켜기/끄기 결과 같음 (nudge 됨, 양보, 건너뜀, shake=menu, fall=byte+revive_risk, gen 2)",
+          res0 == res1 == (True, False, True, "menu", False, "byte", True, 2))
     strip = lambda sent: [[{k: v for k, v in s.items() if k != "th"} for s in d] for d in sent]
     check("Escape: 켜기/끄기 장치가 받은 보고 같음", strip(sent0) == strip(sent1))
     ev = [x["ev"] for x in r if x["k"] == "esc"]
     want = ["freeze", "nudge_start", "unfreeze", "nudge_end",       # nudge (Pad.freeze / unfreeze records from P1-B)
             "freeze", "freeze", "nudge_yield", "unfreeze",           # the holder's freeze, the nudge's refused freeze
-            "fire_skipped", "fire_start", "freeze", "quit", "unfreeze", "fire_end"]
+            "fire_skipped", "fire_start", "freeze", "quit", "unfreeze", "fire_end",
+            "fire_start", "freeze", "quit", "unfreeze", "fire_end"]
     check(f"esc 순서: {ev}", ev == want)
-    fe = [x for x in r if x["k"] == "esc" and x["ev"] == "fire_end"][0]
-    check("fire_end: kind·gen·dt_ms·how·quit_s·reload_s", fe["kind"] == "shake" and fe["gen"] == 1 and fe["dt_ms"] > 900
-          and fe["how"] == "byte" and fe["reload_s"] == 1.5)
+    fe = [x for x in r if x["k"] == "esc" and x["ev"] == "fire_end"]
+    check("fire_end: kind·gen·dt_ms·how·quit_s·reload_s (shake → menu, fall → byte)",
+          fe[0]["kind"] == "shake" and fe[0]["gen"] == 1 and fe[0]["dt_ms"] > 900 and fe[0]["how"] == "menu" and fe[0]["reload_s"] == 1.5
+          and fe[1]["kind"] == "fall" and fe[1]["gen"] == 2 and fe[1]["how"] == "byte")
     ne = [x for x in r if x["k"] == "esc" and x["ev"] == "nudge_end"][0]
     check("nudge_end: dt_ms ≥ NUDGE_S", ne["dt_ms"] >= 20)
 

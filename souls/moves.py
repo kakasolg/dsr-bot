@@ -735,14 +735,15 @@ class Moves:
         """Menu → Quit Game → Continue. Enemies return to their spawn spots and drop aggro. Dead enemies stay dead (user confirmed 2026-09-24).
         Resting (bonfire) revives all enemies, so use this when you only need to shake enemies off."""
         self.pad.neutral()
-        # Skip the menu — ChrClassWarp+0x19 = 1 sends the game straight to the title (2026-09-25, user: "No need to operate the menu
-        # to quit"). The menu way took 2~2.8 s and the menu won't open while falling, so it couldn't prevent fall deaths. Fall back to the menu if it fails.
-        t0, how = time.time(), "byte"
+        # Menu first: the byte quit-out (ChrClassWarp+0x19) brings killed foes back (P-25, game check 2026-10-10) — byte only if the
+        # menu fails. Falls don't come here (Escape._quit uses byte for them).
+        how = "menu"
         quitout.LAST_STEPS.clear()
-        q = time.time() - t0 if self.tm.quit_to_title(timeout=2.0) else None
+        q = quitout.quit_out(self.tm, self.pad, gap=quitout.MENU_GAP, settle=0.03, ready_wait=0.05)
         if q is None:
-            how = "menu"
-            q = quitout.quit_out(self.tm, self.pad, gap=quitout.MENU_GAP, settle=0.1, ready_wait=0.05)
+            quitout.close_menu(self.tm, self.pad)
+            t0, how = time.time(), "byte"
+            q = time.time() - t0 if self.tm.quit_to_title(timeout=2.0) else None
         if q is None:
             quitout.close_menu(self.tm, self.pad)
             return {"ok": False}

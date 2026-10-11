@@ -410,7 +410,7 @@ class Field:
             time.sleep(0.2)
 
     def shake_off(self, why: str) -> dict:
-        """Quit-out sends foes back to spawn (aggro reset, dead foes stay dead)."""
+        """Quit-out sends foes back to spawn (aggro reset, dead foes stay dead — menu quit-out; Escape._quit picks it for 'shake', P-25)."""
         return self.esc.fire(why, "shake")
 
     def retreat(self, nm, home, choice=None) -> str:
