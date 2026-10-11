@@ -94,8 +94,9 @@ def main_left(delays: list[float], n: int) -> None:
 
 
 def main() -> None:
-    if len(sys.argv) > 1 and sys.argv[1] == "left":
-        return main_left([0.08, 0.11, 0.14, 0.17, 0.20], int(sys.argv[2]) if len(sys.argv) > 2 else 5)
+    if len(sys.argv) > 1 and sys.argv[1] == "left":    # left [n] [delay ms …]
+        ds = [float(x) / 1000 for x in sys.argv[3:]] or [0.08, 0.11, 0.14, 0.17, 0.20]
+        return main_left(ds, int(sys.argv[2]) if len(sys.argv) > 2 else 5)
     n = int(sys.argv[1]) if len(sys.argv) > 1 else 5
     lock = BotLock()
     for _ in range(10):
