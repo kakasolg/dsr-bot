@@ -175,8 +175,8 @@ Full entries: `docs/roadmap/problems.md`. Status: **open** · **parked** · **de
 | 58 | Ramp ledge (−22,−44,15) in a fight: fell 4.4 m, quit-out, walk-back timed out, died (`--ground` round 2 on #3) | verify — `rule_footing` (`--footing`, off by default), A/B |
 | 59 | `rule_shot` may read a 254010 lunge landing from > 4 m as a throw (4 track cases) → ends the fight, backs off | verify — thrower = `Foe.thrower` only, axe hollow not one, melee 6 m + duel-start window |
 | 60 | After a body pull, `unsafe_approach` 0 s fights opened and closed 24× in 1.4 s (no guard) | fixed — game 10-11: 1–2 per run, no loop |
-| 61 | `scene_replay` plays a `rule_shot` scene as `after_swing`: scenes keep chars ≤ 15 m, the thrower was 18–19 m (`SHOT_SCAN_R` 25) | open → [cloud] |
-| 62 | `risk_report` counts escape.pick back-offs (`ev: escape`) as quit-outs (강종) → clean runs read '위험' | open → [cloud] |
+| 61 | `scene_replay` plays a `rule_shot` scene as `after_swing`: scenes keep chars ≤ 15 m, the thrower was 18–19 m (`SHOT_SCAN_R` 25) | fixed — `scenes.CHAR_R` 25 m (= `SHOT_SCAN_R`), next runs' scenes |
+| 62 | `risk_report` counts escape.pick back-offs (`ev: escape`) as quit-outs (강종) → clean runs read '위험' | fixed — back-off logs `escape_pick`; `risk_report` skips old `escape` rows with `src` |
 
 ## 5. Relay — [cloud] ↔ board
 
@@ -195,6 +195,8 @@ to the bottom of `docs/roadmap/relay.md`.
 - 2026-10-11 [cloud→board] **P-58 / P-49: `rule_footing` done offline, behind `run.py --footing`** (`git pull`; MoKa's §7 answers: move during a swing only if it can't be blocked · before `rule_after_swing` · floor = NavMesh + walked cells · steps only, no roll). On dangerous footing (no floor underfoot, or footing < 60 % with a foe that would push us over a drop) a guarded 1 m step toward wider floor; replaces `rule_edge` when on. Records: 7/7 fights that ended in a fall had it on 2–2.5 s before (P-58: from 81.5 s, step east, away from the drop); on in 12 % of fight frames, half of them that ramp ledge. **[win]**: A/B item in section 2.
 
 - 2026-10-11 [cloud→board] **P-56 (ramp ledge 2:1): the target flip-flop fixed** (`git pull`): "원거리부터" read `foes.ranged`, which the axe hollow carries for lure — so the bot turned to 254001 / away from it while it was 0.9–1.4 m in front (36 of 42 switches in the seg 1-2 runs; your pull r2 on#2 92.8 s → −226). Now only real throwers pull us away, and any awake foe < 2 m keeps us on it. Golden same. Low_hp roll → both follow stays (multi-foe spot, v2.0). P-61 / P-62 / `--pull` default: not looked at yet.
+
+- 2026-10-11 [cloud→board] **P-61 / P-62 fixed** (`git pull`): scenes keep characters within 25 m (was 15; `rule_shot` looks 25 m) — your three `shot`→`after_swing` scenes stay as recorded, new runs replay right. escape.pick's back-off now logs `escape_pick`, and `risk_report` no longer counts the old `escape` rows that carry `src` — re-run it on 071213 / 072424 / 072043.
 
 ## 6. Change log (newest first; older entries in `docs/roadmap/changelog.md`)
 

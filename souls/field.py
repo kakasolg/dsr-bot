@@ -581,7 +581,8 @@ class Field:
             self.log(f"   물러날 쪽 계산 실패 ({e!r}) — 예전처럼")
             return None
         self.log(f"   {ch.line()}")
-        self.events("escape", src=ch.src, point=ch.point, kept=sum(1 for t in ch.table if t[2] is not None), cands=len(ch.table))
+        # "escape_pick", not "escape": that name is watch.Escape's quit-out, which risk_report counts as 강종 (P-62)
+        self.events("escape_pick", src=ch.src, point=ch.point, kept=sum(1 for t in ch.table if t[2] is not None), cands=len(ch.table))
         return ch
 
     def leave_fire(self, nm, shot_from, tag: str) -> str:

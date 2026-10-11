@@ -16,7 +16,8 @@ import time
 from dataclasses import asdict
 
 SCHEMA = "dsr-scene-input/0.2"   # 0.2: reflex.anim (a fake reflex without _anim leaves it out)
-CHAR_R = 15.0                    # characters within this of us are kept (the rules look at most ~10 m)
+CHAR_R = 25.0                    # characters within this of us are kept — the farthest a rule looks is duel.SHOT_SCAN_R (25 m,
+                                 # a thrower on the ledge 18–19 m up); 15 m dropped it and rule_shot replayed as after_swing (P-61)
 ABS_T = 1e9                      # a float above this in the Fight's state is a wall-clock time → stored relative to now
 SKIP_F = {"mv", "nm", "log", "trail", "cancel", "care", "reflex", "style", "weapon", "foe", "last_seen", "shadow", "no_obs",
           "res", "may_approach", "acts", "note_t"}

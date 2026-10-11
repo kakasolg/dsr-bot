@@ -551,10 +551,12 @@ New problems still go here (append at the bottom) and get a one-line row in ROAD
 - 증상: `--pull` A/B 2차 off #1 `071213`·off #2 `071815`·on #3 `072731`의 `scene_replay.py`가 각 1장면 `then shot → now after_swing` (나머지 100 % 같음). 게임에선 `원거리 피격 −62: 254002 18.4~19.4 m (높이 +11) — 사선 밖으로`로 맞게 판단.
 - 원인: `scenes.CHAR_R = 15` m 안의 캐릭터만 장면에 저장하는데 `duel.SHOT_SCAN_R = 25` m. 기록된 장면(071213)엔 254000 두 마리(0.6 m·8.2 m)만 있고 254002(19.4 m)가 없음 → 재생에서 `thr` 비어 `rule_shot` None → 다음 규칙. `shot_hp` 742→680, `swung` 4.1 s 전은 제대로 들어 있음.
 - 해결 제안: [cloud] `CHAR_R`를 `SHOT_SCAN_R` 이상으로 (또는 장면에 `s.hostile(SHOT_SCAN_R)`만 더). 기록 크기 조금 늘어남. 아직 안 고침.
+- 2026-10-11 [cloud] 고침 (오프라인): `scenes.CHAR_R` 15 → 25 m (= `duel.SHOT_SCAN_R`, 규칙이 보는 가장 먼 거리). 확인: `tests/scene_replay_test.py` — 19.4 m(+11 m) 투척병에게 −62 맞는 장면을 탭으로 기록 → 투척병이 장면에 남고 재생도 `shot` (15 m면 실패), `CHAR_R ≥ SHOT_SCAN_R`. 이미 기록된 세 장면은 투척병이 없어 그대로 다름 — 다음 실행부터.
 
 ### P-62 `risk_report`가 escape.pick 물러나기(`ev: escape`)를 강종으로 셈 — 깨끗한 실행이 '위험' (2026-10-11, [win])
 
 - 증상: `--pull` A/B 2차 off #1 `071213` `강종×1(?)`, off #3 `072424` `강종×1(?)`, on #2 `072043` `강종×2(?)` — 세 실행 모두 퀵 종료 0, 낙하 0. `(?)` = 사건에 `kind` 없음.
 - 원인: `souls/field.py:584`가 MoKa 10-10 물러나기(`물러날 쪽 …`)를 `self.events("escape", src, point, kept, cands)`로 남기는데, 퀵 종료(`souls/watch.py:271`)도 같은 이름 `escape`. `risk_report.py:64`가 `ev == "escape"`를 모두 강종으로 셈 → 판정 '위험'.
 - 해결 제안: [cloud] 물러나기 사건 이름을 바꿈 (예: `escape_pick`) 또는 `risk_report`가 `kind` 있는 것만 셈. OBSERVE.md 기록 형식도. 아직 안 고침.
+- 2026-10-11 [cloud] 고침 (오프라인): 둘 다 — `Field.escape_choice` 사건 이름 `escape_pick`, `risk_report.quit_out`은 `ev: escape`라도 `src`가 있으면(10-10~10-11 실행의 물러나기) 안 셈 → 이미 기록된 실행도 다시 돌리면 맞게 나옴. `experiments/style_report.py`도 같게. OBSERVE.md엔 봇 사건 이름 목록이 없어 그대로. 확인: `tests/risk_report_test.py` (옛 코드: 물러나기만 있는 실행이 '위험 강종×1(?)'), pytest 83.
 

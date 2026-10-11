@@ -43,6 +43,12 @@ def _rows(path: Path) -> list:
     return out
 
 
+def quit_out(r: dict) -> bool:
+    """A watch.Escape quit-out (강종). Runs of 10-10 … 10-11 also logged escape.pick's back-off as ev "escape" (with src / point,
+    now "escape_pick") — not a quit-out (P-62)."""
+    return r.get("ev") == "escape" and "src" not in r
+
+
 def char_key(rows: list) -> str:
     c = next((r for r in rows if r["ev"] == "char"), None)
     if not c:
@@ -61,7 +67,7 @@ def score(path: Path) -> dict:
     res = next((r for r in rows if r["ev"] == "result"), None)
     style = next((r["style"] for r in rows if r["ev"] == "style"), "guard")
     duels = Counter(r["result"] for r in rows if r["ev"] == "duel")
-    esc = [r for r in rows if r["ev"] == "escape"]
+    esc = [r for r in rows if quit_out(r)]
     hits = [r for r in rows if r["ev"] == "hit"]
     vit = [(r["t"], r["hp"], r["max"]) for r in rows if r["ev"] == "vital" and r.get("max")]
 

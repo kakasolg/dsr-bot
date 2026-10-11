@@ -115,6 +115,30 @@ def main() -> None:
     back = scenes.restore(v, 100.0)
     check("restore: times shift to the new clock, sets and int keys come back",
           abs(back["t"] - 98.5) < 1e-9 and back["s"] == {3, 4} and abs(back["d"][7][1] - 99.8) < 1e-6 and abs(back["x"][0] - 102.0) < 1e-9)
+    # P-61 (pull r2 071213 · 071815 · 072731): the firebomb hollow 18–19 m up on the ledge hit us (−62) — the game said rule_shot,
+    # but scenes kept characters within 15 m only (duel.SHOT_SCAN_R is 25), so the replay had no thrower and picked after_swing
+    def thrower_hits(mv, w):
+        w.add(5, 0x1005, 254002, (0.0, -38.4, 19.4), anim=-1)     # ledge firebomb hollow, +11 m up, 19.4 m off
+        snap, n = mv.snap, {"k": 0}
+
+        def snap2(within=40.0):
+            n["k"] += 1
+            if n["k"] == 3:                                          # between the first and second tick: −62 from afar
+                w.player.hp -= 62
+            return snap(within)
+        mv.snap = snap2
+    shot: list = []
+    D.SCENE_TAP = scenes.Tap(sink=shot.append)
+    try:
+        trace = G.run(dict(foe="hollow", anim=-1, h=7.0, sp=90, low=False, back=False, room=False, other=False, wait=False,
+                           style="guard", reflex=False), mv_hook=thrower_hits)
+    finally:
+        D.SCENE_TAP = None
+    rec = next((r for r in shot if r["rule"] == "shot"), None)
+    check(f"P-61: CHAR_R {scenes.CHAR_R} m covers duel.SHOT_SCAN_R {D.SHOT_SCAN_R} m", scenes.CHAR_R >= D.SHOT_SCAN_R)
+    check(f"P-61: a thrower 19.4 m off hits us → the scene keeps it and replays to shot ({trace[-1]}, replay "
+          f"{R.replay(rec) if rec else None})", rec is not None and any(c["npc_param"] == 254002 for c in rec["snap"]["chars"])
+          and R.replay(rec) == "shot")
     print("scene_replay_test: 전부 통과")
 
 

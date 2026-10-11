@@ -55,7 +55,7 @@ def main() -> None:
                 if r["result"] == "killed" and r["secs"] > 0:
                     g["kills"] += 1
                     g["ksecs"].append(r["secs"])
-            elif r["ev"] == "escape":
+            elif r["ev"] == "escape" and "src" not in r:      # not escape.pick's back-off (P-62)
                 g["escapes"] += 1
             elif r["ev"] == "evade":
                 g["evade"] += 1
