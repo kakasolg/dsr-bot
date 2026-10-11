@@ -108,15 +108,19 @@ def main() -> None:
     import motion
     nms = motion.load_navmeshes()
     rows = C.falls()
-    seen = 0
+    seen = meshless = 0
     for run, t, a, b in rows:
         k, nm = C.mesh_at(nms, a["x"], a["y"], a["z"])
         if nm is None:                                     # standing off the mesh (the ramp ledge) — the map with walkable floor near
-            k, nm = next((k_, m) for k_, m in nms.items() if m.nearest_walkable(a["x"], a["y"], a["z"], r=8, dy=3))
+            k, nm = next(((k_, m) for k_, m in nms.items() if m.nearest_walkable(a["x"], a["y"], a["z"], r=8, dy=3)), (None, None))
+        if nm is None:                                     # no NavMesh within 8 m — a second drop below the ramp after a first fall
+            meshless += 1                                  # (061145 185.4 s at y −53): no floor answer to check
+            continue
         g_ = C.g_for(nm, k, run)
         seen += not nav.ground_ahead(g_, C.P(a["x"], a["y"], a["z"]), b["x"] - a["x"], b["z"] - a["z"], reach=1.2)
-    check(f"real maps: all {len(rows)} recorded falls still read 'no floor' toward the drop (own run left out)",
-          len(rows) >= 5 and seen == len(rows))
+    checked = len(rows) - meshless
+    check(f"real maps: all {checked} recorded falls still read 'no floor' toward the drop (own run left out; {meshless} with no NavMesh near)",
+          checked >= 5 and seen == checked)
     print("ground_test: 전부 통과")
 
 
