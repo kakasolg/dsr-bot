@@ -12,6 +12,8 @@ data/*
 !data/enemy-map.json
 !data/safe-zones.json
 !data/spots.json
+# notice distance per foe type (experiments/notice_probe.py --json data/notice.json — souls/pull.py reads it)
+!data/notice.json
 !data/routes/
 data/routes/*
 !data/routes/firelink-merchant-run.json
