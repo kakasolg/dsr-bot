@@ -139,7 +139,7 @@ def one_line(r: dict) -> str:
 def table(since: str, cmd: str | None) -> None:
     runs = []
     for js in sorted(RUNS.glob("2026*.jsonl")):
-        if js.stem < since or js.stem.endswith(".hits") or "_" not in js.stem[9:]:
+        if js.stem < since or "." in js.stem or "_" not in js.stem[9:]:    # .hits / .track / .ctl are not event logs
             continue
         r = score(js)
         if cmd and r["cmd"] != cmd:
