@@ -301,6 +301,7 @@ class Blood:
     def _run(self) -> None:
         tm = env.make_telemetry({})
         last, pending, prev_souls, last_attach = None, None, None, time.time()
+        seen_sent = False                                  # death_seen sent; re-armed only after HP > 0 is seen again
         while not self._stop:
             try:
                 s = tm.snapshot(within=1.0)
@@ -317,6 +318,7 @@ class Blood:
                 continue
             p = s.player
             if p.hp is not None and p.hp > 0:
+                seen_sent = False
                 souls = tm.souls() or 0
                 if pending is not None:                    # alive — did we really die?
                     if souls < pending["souls"] or (pending["souls"] == 0 and (tm.humanity() or 0) < pending["humanity"]):
@@ -336,6 +338,14 @@ class Blood:
                     last = {"pos": [round(p.x, 2), round(p.y, 2), round(p.z, 2)], "souls": souls, "humanity": tm.humanity() or 0}
             elif pending is None and last is not None and (last["souls"] > 0 or last["humanity"] > 0):
                 pending = dict(last)
+                ev = getattr(self.log, "event", None)      # run.py's Log has it; the default print does not
+                if ev is not None and not seen_sent:
+                    seen_sent = True
+                    try:                                   # record only — must not stop this thread
+                        ev("death_seen", hp=p.hp, max_hp=p.max_hp, anim=p.anim,
+                           pos=[None if v is None else round(v, 2) for v in (p.x, p.y, p.z)])
+                    except Exception:
+                        pass
             time.sleep(0.2)
 
     def start(self) -> "Blood":
