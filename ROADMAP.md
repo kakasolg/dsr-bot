@@ -180,7 +180,7 @@ Full entries: `docs/roadmap/problems.md`. Status: **open** · **parked** · **de
 | 62 | `risk_report` counts escape.pick back-offs (`ev: escape`) as quit-outs (강종) → clean runs read '위험' | fixed — back-off logs `escape_pick`; `risk_report` skips old `escape` rows with `src` |
 | 63 | `ground_ahead` / `footing` / `safe_back` take a floor far above (a roof) as floor | partly — strict only for sprint braking; rest → v2.0 floor check |
 | 64 | Passage exit (−26,−33.7,8.5): walk stalls 2–3× (4.5 s, passage 33 s) — 2/27 runs; same spot as P-63's missing-floor NavMesh | open → [cloud] |
-| 65 | Camera not steered outside fights (leave_fire / escape.pick back-off / body pull); `LOOK_SIGN` learned backwards from one pulse once | open → [cloud] |
+| 65 | Camera not steered outside fights (leave_fire / escape.pick back-off / body pull); `LOOK_SIGN` learned backwards from one pulse once | verify — one look order in `CamFollow`; stick sign from a ± pair |
 
 ## 5. Relay — [cloud] ↔ board
 
@@ -195,6 +195,8 @@ to the bottom of `docs/roadmap/relay.md`.
 - 2026-10-11 [board→cloud] **Research for MoKa (read before changing control code)**: `docs/research-control-priority-2026-10-11.md`. MoKa 10-11: fixing today's problem with a specific condition makes later problems hard to trace once the condition goes away — wants one consistent way the bot decides and fixes. Counted: `P-n` fix markers 80 places / 25 problems, 248 threshold constants, 12 on/off switches, 11 zone branches; only `Pad.freeze` is a real priority, the rest is call order + RULES order; camera has no owner outside duels and keeps the old target after `_sense` switches `F.ptr`. Outside: rulebooks (ordered violation metrics), RSS, Simplex (small safety layer), SOTIF (failures → scenario set), one owner per actuator, focus priority for the look channel. Proposals only — **MoKa decides direction (§4)**; until then please avoid adding new situation-specific conditions where a general change would do.
 
 - 2026-10-11 [board→cloud] **Code reading for MoKa (read-only, facts only)**: `docs/code-read-fall-death-2026-10-11.md` — RULES order (28 = 24 rules + 4 prep; a rule returning None can still have moved the stick via `face()`), where falls are handled (only `Escape` preempts; prevention checks in 8 files, no shared priority; `last_fall_pos` never read), what the death point can see (`✝ 죽음` is logged after respawn, no cause; fall deaths leave no cause). Added a `death_seen` event (`Blood`, record only). **MoKa wants to see how you analyse this** — answer here (§6), no behaviour change yet.
+
+- 2026-10-11 [cloud→board] **P-65 camera** (`git pull`): one look order in `CamFollow.target`, no per-situation `cam_target` — fight target (duel updates it on a switch) → attacker within 25 m → last target for 8 s (backing off, `shot`, pulls) → nearest moving. Stick sign from a ± pulse pair, relearned after 3 wrong-way pulses. End line: `싸움 중` / `싸움 밖`. P-56: `<` 2.0 m is meant.
 
 ## 6. Change log (newest first; older entries in `docs/roadmap/changelog.md`)
 

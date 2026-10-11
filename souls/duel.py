@@ -761,6 +761,8 @@ def _sense(F: Fight):
     if not (h > F.weapon.reach and F.wait_far):            # if not waiting, also clear the waiting HP baseline
         F.wait_hp0 = None
     _track_calm(F, c, a, now)
+    F.mv.cam_target = F.ptr                                # the camera follows whoever we fight now — after an interloper /
+    #                                                        'ranged first' switch it kept turning to the first target (P-65)
     return Tick(s=s, p=p, c=c, h=h, dy=dy, a=a, now=now)
 
 

@@ -5,8 +5,14 @@ camera … when I watch, the camera points elsewhere and I often can't tell what
 so camera direction doesn't matter to them, but it matters to the human watching the screen (and to R3 auto lock-on).
 
   cam = CamFollow(mv, esc, log).start()   # run.py
-  mv.cam_target = ptr                      # set by layer 4 (field.fight·lure). If None, the nearest awake enemy
+  mv.cam_target = ptr                      # set by layer 4 (field.fight·lure); duel keeps it = its current target each tick
 
+What to look at — one owner, one order (P-65, [MoKa] 10-11 "카메라가 다시 잘 따라 오지 못함" · "정렬이 우선순위 높음"):
+  1. mv.cam_target (the fight's current target — duel updates it when it switches)
+  2. a foe attacking now (anim 3000–3499) within FOCUS_R — the thrower 18 m up, whoever swings at us while we back off
+  3. the last fight target / attacker, for STICKY_S after it stopped being one, while alive, within FOCUS_R and not back
+     asleep — after a fight ends in 'shot' / 'low_hp' / a pull, the one we back away from (before P-65: nothing outside a fight)
+  4. the nearest moving foe within AUTO_R
 Hands off when:
   · locked on — the right stick switches the lock-on target
   · mv.cam_busy — layer 1 is using the camera directly (knife lock-on)
@@ -20,6 +26,8 @@ import time
 
 DEADBAND = 10.0      # don't turn within this (was 25 — the screen shook less, but the camera sat 20°+ off the foe during fights)
 AUTO_R = 12.0        # radius for awake enemies to look at when there's no cam_target
+FOCUS_R = 25.0       # attackers and the last followed foe are looked at this far (duel.SHOT_SCAN_R — a thrower on a ledge)
+STICKY_S = 8.0       # the last fight target / attacker stays in view this long after it stops being one (backing off, a pull)
 TICK = 0.05          # was 0.12
 # ── 카메라·캐릭터·적 정렬 ([MoKa] 2026-10-01) ─────────────────────────────
 #  "액션할 때 카메라 시점과 캐릭터와 적의 정렬이 잘되면 생각하는 플레이가 잘 나오는데, 아니면 안 될 확률이 높아 — 봇만이 아니라 이 게임을 하는
@@ -32,21 +40,30 @@ class CamFollow:
         self.mv, self.esc, self.log = mv, esc, log
         self._stop = False
         self.pulses = 0
-        self.errs: list[float] = []          # |camera − target| (°) each tick a target was set — stats() at the end
+        self.errs: list[float] = []          # |camera − target| (°) each tick a fight target was set — stats() at the end
+        self.errs_out: list[float] = []      # … each tick it followed a foe outside a fight (P-65: these went uncounted)
+        self.last, self.last_t = None, 0.0   # rule 3: the last fight target / attacker and when it last was one
+        self.had_sign = mv.LOOK_SIGN is not None
         self.th = threading.Thread(target=self._run, daemon=True)
 
     def start(self) -> "CamFollow":
         self.th.start()
         return self
 
-    def stats(self) -> str:
-        """Camera off the fight target: median / 90th percentile / share within DEADBAND (°)."""
-        e = sorted(self.errs)
+    @staticmethod
+    def _summary(errs: list) -> str | None:
+        e = sorted(errs)
         if not e:
-            return "카메라 정렬: 기록 없음"
+            return None
         q = lambda f: e[min(len(e) - 1, int(f * len(e)))]
-        return (f"카메라 정렬: 싸움 중 목표에서 중앙 {q(0.5):.0f}° · 90 % {q(0.9):.0f}° · {DEADBAND:.0f}° 안 "
-                f"{sum(1 for x in e if x <= DEADBAND) / len(e):.0%} ({len(e)}번)")
+        return f"중앙 {q(0.5):.0f}° · 90 % {q(0.9):.0f}° · {DEADBAND:.0f}° 안 {sum(1 for x in e if x <= DEADBAND) / len(e):.0%} ({len(e)}번)"
+
+    def stats(self) -> str:
+        """Camera off the followed foe: median / 90th percentile / share within DEADBAND (°), in fights and outside."""
+        a, b = self._summary(self.errs), self._summary(self.errs_out)
+        if a is None and b is None:
+            return "카메라 정렬: 기록 없음"
+        return "카메라 정렬: " + " | ".join(x for x in (a and f"싸움 중 목표에서 {a}", b and f"싸움 밖 {b}") if x)
 
     def stop(self) -> None:
         self._stop = True
@@ -54,36 +71,54 @@ class CamFollow:
         self.mv.pad.look(0.0, 0.0)
 
     def target(self, s):
-        """The cam_target if alive, otherwise the nearest moving (anim not -1) enemy within AUTO_R."""
+        """What to look at, in the order of the module docstring (1 cam_target · 2 attacker · 3 last followed · 4 nearest moving)."""
+        now = time.time()
         t = self.mv.find(s, self.mv.cam_target) if self.mv.cam_target is not None else None
         if t is not None and t.hp > 0:
+            self.last, self.last_t = t.ptr, now
             return t
-        awake = [c for c in s.hostile(AUTO_R) if c.anim not in (-1, None)]
+        near = [c for c in s.hostile(FOCUS_R) if c.hp > 0]
+        swinging = [c for c in near if c.anim is not None and 3000 <= c.anim < 3500]
+        if swinging:
+            t = min(swinging, key=lambda c: c.dist)
+            self.last, self.last_t = t.ptr, now
+            return t
+        last = next((c for c in near if c.ptr == self.last), None)
+        if last is not None and now - self.last_t < STICKY_S and not (last.anim is not None and 9000 <= last.anim < 9100):
+            return last
+        awake = [c for c in s.hostile(AUTO_R) if c.anim not in (-1, None) and not 9000 <= c.anim < 9100]   # not a dormant pose
         return min(awake, key=lambda c: c.dist, default=None)
 
     def _run(self) -> None:
-        had_sign = self.mv.LOOK_SIGN is not None
+        self.had_sign = self.mv.LOOK_SIGN is not None
         while not self._stop:
             time.sleep(TICK)
             try:
-                if self.mv.cam_busy or (self.esc is not None and self.esc.escaping):
-                    continue
-                if self.mv.tm.lock_target() not in (None, -1):
-                    continue
-                s = self.mv.snap(AUTO_R + 30.0)
-                c = self.target(s) if s is not None else None
-                if c is None:
-                    continue
-                err = self.mv.cam_err(s, c.x, c.z)
-                if err is not None and self.mv.cam_target is not None:
-                    self.errs.append(abs(err))
-                if err is None or abs(err) <= DEADBAND:
-                    continue
-                self.mv.look_pulse(err)                    # tap size from the measured turn speed (Moves.look_pulse)
-                self.pulses += 1
-                if not had_sign and self.mv.LOOK_SIGN is not None:
-                    had_sign = True
-                    self.log(f"   카메라: 오른스틱 +x → cam_yaw {'+' if self.mv.LOOK_SIGN > 0 else '−'} (첫 펄스로 배움)")
+                self.step()
             except Exception as ex:                        # don't stop the run because of the camera
                 self.log(f"   카메라 따라가기 오류: {type(ex).__name__}: {ex}")
                 time.sleep(1.0)
+
+    def step(self) -> None:
+        """One camera tick: pick what to look at, measure how far off it is, one pulse if beyond DEADBAND."""
+        if self.mv.cam_busy or (self.esc is not None and self.esc.escaping):
+            return
+        if self.mv.tm.lock_target() not in (None, -1):
+            return
+        s = self.mv.snap(FOCUS_R + 30.0)
+        c = self.target(s) if s is not None else None
+        if c is None:
+            return
+        err = self.mv.cam_err(s, c.x, c.z)
+        if err is not None:
+            (self.errs if self.mv.cam_target is not None else self.errs_out).append(abs(err))
+        if err is None or abs(err) <= DEADBAND:
+            return
+        self.mv.look_pulse(err)                            # tap size from the measured turn speed (Moves.look_pulse)
+        self.pulses += 1
+        if not self.had_sign and self.mv.LOOK_SIGN is not None:
+            self.had_sign = True
+            self.log(f"   카메라: 오른스틱 +x → cam_yaw {'+' if self.mv.LOOK_SIGN > 0 else '−'} (+/− 펄스 한 쌍으로 배움)")
+        if self.had_sign and self.mv.LOOK_SIGN is None:
+            self.had_sign = False                          # Moves.look_pulse found it backwards and will learn it again
+            self.log("   카메라: 오른스틱 방향이 거꾸로였음 — 다시 배움")

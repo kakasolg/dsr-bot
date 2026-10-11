@@ -99,8 +99,13 @@ class Moves:
     # ── Camera ───────────────────────────────────────────────
     # User 2026-09-26: "This game has auto lock-on, so … press the right stick again to release, point the camera at the enemy you want, press the stick".
     # R3 grabs the enemy nearest the camera center — turning only the body and pressing R3 twice still re-locked the neighbor (clear-ramp 090241, #3 instead of #2 shield soldier).
-    # Which way cam_yaw turns when pushing right stick x positive is not yet measured, so it is learned from the first pulse.
+    # Which way cam_yaw turns when pushing right stick x positive is not yet measured, so it is learned — from a +x / −x pulse pair
+    # (P-65: one +x pulse learned it backwards in 20261011_060748 while the camera was drifting on its own — the whole run turned the
+    # camera away, median 158° off). The pair cancels a steady drift; LOOK_WRONG pulses in a row that move the camera against the
+    # learned sign forget it, and the next pulse learns again.
     LOOK_SIGN: int | None = None
+    LOOK_WRONG = 3
+    _look_wrong = 0
 
     def cam_err(self, s, x: float, z: float) -> float | None:
         """Angle (°) from camera forward (cam_yaw + nav.YAW_OFFSET — same rule as world_to_stick) to (x, z)."""
@@ -112,16 +117,10 @@ class Moves:
     def look_pulse(self, err: float, dur: float = 0.06) -> None:
         """One short right-stick pulse toward err. If the sign is unknown, learn it from this pulse."""
         if Moves.LOOK_SIGN is None:
-            s0 = self.snap(5.0)
-            self.pad.look(0.6, 0.0)
-            time.sleep(0.08)
-            self.pad.look(0.0, 0.0)
-            time.sleep(0.12)
-            s1 = self.snap(5.0)
-            if s0 and s1 and s0.cam_yaw is not None and s1.cam_yaw is not None:
-                d = (s1.cam_yaw - s0.cam_yaw + math.pi) % (2 * math.pi) - math.pi
-                if abs(d) > math.radians(0.5):
-                    Moves.LOOK_SIGN = 1 if d > 0 else -1
+            d = [self._yaw_step(x, 0.08) for x in (0.6, -0.6)]
+            if None not in d and abs(d[0] - d[1]) > math.radians(1.0):
+                Moves.LOOK_SIGN = 1 if d[0] - d[1] > 0 else -1     # steady drift is in both and cancels
+                Moves._look_wrong = 0
             return
         # ── 오른스틱 세기·시간 → 카메라가 도는 양 (2026-10-01 실측, 마을 마당에 서서 한 방향으로 3번씩, 0.7 s 기다림) ──
         #  0.35 → 0°/s (데드존 — 예전 펄스는 오차 20° 밑에선 0.35~0.4라 카메라가 18° 어긋난 채 멈춤, 락온 실패 3번)
@@ -129,9 +128,30 @@ class Moves:
         e = abs(err)
         mag, rate = (1.0, 150.0) if e >= 20 else (0.7, 70.0) if e >= 8 else (0.6, 50.0)
         hold = max(0.03, min(LOOK_MAX_S, e / rate * 0.8))
-        self.pad.look(Moves.LOOK_SIGN * (1 if err > 0 else -1) * mag, 0.0)
+        want = 1 if err > 0 else -1                        # cam_err > 0: cam_yaw has to grow to reach the target (cam_err's sign rule)
+        y0 = self.snap(5.0)
+        self.pad.look(Moves.LOOK_SIGN * want * mag, 0.0)
         time.sleep(hold)
         self.pad.look(0.0, 0.0)
+        y1 = self.snap(5.0)
+        if y0 is not None and y1 is not None and y0.cam_yaw is not None and y1.cam_yaw is not None:
+            d = (y1.cam_yaw - y0.cam_yaw + math.pi) % (2 * math.pi) - math.pi
+            if abs(d) > math.radians(2.0):                 # it turned — the right way (err shrinks) or the wrong way
+                Moves._look_wrong = Moves._look_wrong + 1 if (d > 0) != (want > 0) else 0
+                if Moves._look_wrong >= Moves.LOOK_WRONG:
+                    Moves.LOOK_SIGN, Moves._look_wrong = None, 0
+
+    def _yaw_step(self, x: float, dur: float) -> float | None:
+        """Right stick x for dur, then let it settle → how much cam_yaw turned (rad), or None."""
+        s0 = self.snap(5.0)
+        self.pad.look(x, 0.0)
+        time.sleep(dur)
+        self.pad.look(0.0, 0.0)
+        time.sleep(0.12)
+        s1 = self.snap(5.0)
+        if not (s0 and s1 and s0.cam_yaw is not None and s1.cam_yaw is not None):
+            return None
+        return (s1.cam_yaw - s0.cam_yaw + math.pi) % (2 * math.pi) - math.pi
 
     def look_at(self, ptr, tol: float = 5.0, timeout: float = 1.5) -> float | None:
         """Turn the camera toward the target (right stick). While locked on the right stick switches targets, so unlock before calling. → last remaining offset (°)."""
