@@ -536,3 +536,17 @@ New problems still go here (append at the bottom) and get a one-line row in ROAD
   확인: `tests/field_approach_guard_test.py` `test_p60_pending_target_pause` (옛 코드: 세 싸움 간격 0.00001 s → 고친 뒤 0.4 s = UNSAFE_PAUSE), pytest 79 통과.
   같은 실행의 다른 문제(#5 254002 끌기)도 함께 고침: 던지는 적(`Foe.thrower`)은 몸으로 끌지 않고(`thrower`), 깨운 뒤 `pull.COME_S`(2 s) 안에 선 자리에서
   `COME_M`(1.5 m) 넘게 우리 쪽으로 오지 않으면 `came`이 아니라 `stayed` (`tests/pull_test.py`). [win] `--pull` A/B 3+3 다시.
+  2026-10-11 [win] 게임 확인 (`--pull` A/B 2차, `dd1e31e`): 켠 3번 모두 `unsafe_approach` 1~2번, 고리 없음. `thrower` 1번(on #2 #5 254002), `stayed` 2번(on #1·#3 #2 255010 — 깼지만 0.0 m) → 따라가지 않음 ✓.
+
+### P-61 `scene_replay`가 `rule_shot` 장면을 `after_swing`으로 재생 — 장면에 18~19 m 투척병이 빠짐 (2026-10-11, [win])
+
+- 증상: `--pull` A/B 2차 off #1 `071213`·off #2 `071815`·on #3 `072731`의 `scene_replay.py`가 각 1장면 `then shot → now after_swing` (나머지 100 % 같음). 게임에선 `원거리 피격 −62: 254002 18.4~19.4 m (높이 +11) — 사선 밖으로`로 맞게 판단.
+- 원인: `scenes.CHAR_R = 15` m 안의 캐릭터만 장면에 저장하는데 `duel.SHOT_SCAN_R = 25` m. 기록된 장면(071213)엔 254000 두 마리(0.6 m·8.2 m)만 있고 254002(19.4 m)가 없음 → 재생에서 `thr` 비어 `rule_shot` None → 다음 규칙. `shot_hp` 742→680, `swung` 4.1 s 전은 제대로 들어 있음.
+- 해결 제안: [cloud] `CHAR_R`를 `SHOT_SCAN_R` 이상으로 (또는 장면에 `s.hostile(SHOT_SCAN_R)`만 더). 기록 크기 조금 늘어남. 아직 안 고침.
+
+### P-62 `risk_report`가 escape.pick 물러나기(`ev: escape`)를 강종으로 셈 — 깨끗한 실행이 '위험' (2026-10-11, [win])
+
+- 증상: `--pull` A/B 2차 off #1 `071213` `강종×1(?)`, off #3 `072424` `강종×1(?)`, on #2 `072043` `강종×2(?)` — 세 실행 모두 퀵 종료 0, 낙하 0. `(?)` = 사건에 `kind` 없음.
+- 원인: `souls/field.py:584`가 MoKa 10-10 물러나기(`물러날 쪽 …`)를 `self.events("escape", src, point, kept, cands)`로 남기는데, 퀵 종료(`souls/watch.py:271`)도 같은 이름 `escape`. `risk_report.py:64`가 `ev == "escape"`를 모두 강종으로 셈 → 판정 '위험'.
+- 해결 제안: [cloud] 물러나기 사건 이름을 바꿈 (예: `escape_pick`) 또는 `risk_report`가 `kind` 있는 것만 셈. OBSERVE.md 기록 형식도. 아직 안 고침.
+
