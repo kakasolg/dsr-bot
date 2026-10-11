@@ -4,7 +4,7 @@
 - Work branch: `claude/dsr-bot-project-review-r3hh9f`. `git pull` first. If your session started on another branch
   (cloud sessions start from `main`, which lags far behind), bring the work branch in first:
   `git fetch origin claude/dsr-bot-project-review-r3hh9f && git merge --ff-only FETCH_HEAD`. The session-start hook warns when this is needed.
-- Read **ROADMAP.md** (short: open items, problem index, relay). History is in `docs/roadmap/` — look things up there
+- Read **ROADMAP.md** (short: open items split v1.0 / v2.0, problem index, relay). History is in `docs/roadmap/` — look things up there
   by id (`grep -n "P-29\|6-a\." docs/roadmap/*.md`), don't read it whole.
 - Roles: `[cloud]` (this cloud session, no game) · `[win]` (Windows + game) · `[MoKa]` (the human; old `[사람]` = MoKa).
 
@@ -20,7 +20,7 @@
 - [win], [MoKa] and Mac Claude use the private MCP board (`maswarm-watchlist`, `board_*`). **[cloud] cannot reach it**
   (network allow-list / env not set, checked 2026-09-29), so [cloud] talks only through repo files and commit messages.
   The repo is public: don't open GitHub issues (#2–#15 are old records).
-- [cloud] → board: add `- <date> [cloud→board] …` to ROADMAP "4. Relay". Board → [cloud]: the board side adds
+- [cloud] → board: add `- <date> [cloud→board] …` to ROADMAP "Relay". Board → [cloud]: the board side adds
   `[board→cloud]` there. Whoever handles an entry marks `→ moved` / `→ done`. Only settled things go into items or the problem log.
 - Direct MCP access for [cloud] (cloud-only service token) waits for MoKa's environment setup.
 
