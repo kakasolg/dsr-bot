@@ -619,7 +619,7 @@ class Field:
             "this spot is bad for force-quitting")"""
         nm = plain_nm(nm)
         s = self.mv.snap(15.0)
-        if s is None:
+        if s is None or not s.player.hp:                   # dead (P-68): nothing to recover — the caller's alive() ends it
             return False
         # 'losing' (duel: took 35 % of max HP, dealt under half the foe's) counts as low whatever the HP — it ends at ~65 % from a full
         # start, and with only the 60 % line we stood there, didn't drink (foe near) and opened a new fight at once (0 'losing' acted, 10-01)

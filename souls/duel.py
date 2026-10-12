@@ -655,12 +655,16 @@ def _sense(F: Fight):
     """Read the game, follow the target (re-found after a quit-out, interlopers / shooters first), end conditions.
     → DuelResult (over) | CONT (nothing to act on this tick) | Tick"""
     mv, res = F.mv, F.res
+    s = mv.snap(SEEK_R)
+    # 죽음이 먼저 (P-68): cancel(안전 자리 8 m 밖)을 먼저 봐서 HP 0인 채 'cancel' → 부른 쪽이 죽은 캐릭터로 물러남·약공·구르기를 이어 감
+    if s is not None and s.player.hp is not None and s.player.hp <= 0:
+        F.hp_min = 0
+        return F.done("me_dead")
     if F.cancel():
         return F.done("cancel")
     now = time.time()
     if now - F.t0 > F.limit:
         return F.done("timeout")
-    s = mv.snap(SEEK_R)
     if s is None:
         F.no_obs.missing()                                 # nothing seen → nothing held (P0-C)
         time.sleep(0.05)

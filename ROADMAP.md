@@ -183,7 +183,7 @@ Full entries: `docs/roadmap/problems.md`. Status: **open** · **parked** · **de
 | 65 | Camera not steered outside fights (leave_fire / escape.pick back-off / body pull); `LOOK_SIGN` learned backwards from one pulse once | verify — one look order in `CamFollow`; stick sign from a ± pair |
 | 66 | Shield soldier's late 3004: `rule_after_swing` (6th) calls it ended at 1.6 s and kicks before `rule_late_windup_block` (9th) — hit −228; `rule_shot` read that hit as a thrower's | open → [cloud] |
 | 67 | Zone 1 lure: B re-pressed at every sprint point → jump off ledge into 3× 254010; `_sprint` had no hit exit → dead | verify — game 10-11: zones 1–4 cleared, `threat` stop 6×, no jump; 3 short B holds left |
-| 68 | Zone 5: heavy into 255000's shield 0 dmg → low_hp, Estus refused 3×, 255001 joins → dead; bot kept acting after death → TypeError | open → [cloud] |
+| 68 | Zone 5: heavy into 255000's shield 0 dmg → low_hp, Estus refused 3×, 255001 joins → dead; bot kept acting after death (TypeError) | death part: verify (duel checks HP 0 before cancel); shield part open |
 
 ## 5. Relay — [cloud] ↔ board
 

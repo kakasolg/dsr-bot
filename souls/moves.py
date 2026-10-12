@@ -178,6 +178,8 @@ class Moves:
         return next((x for x in s.chars if x.ptr == ptr), None) if s else None
 
     def stick_to(self, s, x: float, z: float, scale: float = 1.0) -> tuple[float, float]:
+        if s.cam_yaw is None:                              # no camera yaw (death / loading, P-68) — can't steer, so don't move
+            return 0.0, 0.0
         st = control.world_to_stick(x - s.player.x, z - s.player.z, s.cam_yaw, nav.YAW_OFFSET, nav.FLIP_X)
         return st[0] * scale, st[1] * scale
 

@@ -674,3 +674,10 @@ New problems still go here (append at the bottom) and get a one-line row in ROAD
 - 해결 제안 (정하지 않음): (b)는 순위 1(복구 불가) — 이동/싸움 결과가 `'dead'`면 그 줄에서 끝내는 것을 한 곳(`_pull_to_safe` 회차 안 각 단계 뒤)에서;
   `stick_to`가 `cam_yaw` None이면 스틱 0. (a)는 방패병 강공 조건(벽 수직 강공이 방패에 막힘)을 golden/expect 장면으로 먼저 → [cloud] 분석.
 
+- 2026-10-11 [win] (b) 고침 (MoKa "P-68 죽음 못 알아채는 것부터"): 기록상 HP 0은 299.97 s(애니 6020), 화톳불 부활 309.99 s — 그 10 s 동안
+  유인 → 에스트 미룸 → 싸움 `cancel` → recover(물러날 쪽 · 약공 2번) → 구르기 → TypeError. 싸움이 `cancel`이 된 이유: `duel._sense`가
+  `F.cancel()`(안전 자리 8 m 밖 tether)을 HP 0 검사보다 먼저 봄. 순위 1(복구 불가)이 먼저라는 원칙대로:
+  `_sense`는 스냅숏을 먼저 읽어 HP 0이면 `me_dead`, 그 다음에 cancel · timeout. `_pull_to_safe`는 `_top_up` 뒤 `alive()`(화톳불 쪽 물러남 중 죽음).
+  `Field.recover`는 HP 0이면 바로 False. `Moves.stick_to`는 `cam_yaw` None이면 (0, 0) — 카메라 없으면 조종 안 함.
+  확인: `tests/death_order_test.py`(HP 0 + cancel → me_dead, 전 코드 'cancel'), `tests/burg_upper_test.py` P-68 장면(전 코드 FAIL), pytest 86,
+  golden 그대로, expect 그대로. (a) 방패병 강공은 그대로 열림.

@@ -231,6 +231,16 @@ r = m._pull_to_safe(254010, (-1.3, -11.5, -95.4), safe, LineNm(), "t")
 check("P-67: hit on the run back → the run stops ('threat') and the bot fights there (the fight's tether takes it home)",
       r == "killed" and kinds(calls) == ["sprint", "sprint", "fight"] and any("threat" in l for l in logs))
 
+# P-68: died while backing off toward the bonfire to drink (_top_up) — the zone carried on (lure, fight, recover) with HP 0
+foe = Chr(npc_param=255000, ptr=29, x=-1.3, y=-10.1, z=-95.4, hp=85, anim=-1)
+m, f, calls, w = make(foe, hp=300)
+w["near"] = True
+f.retreat = lambda nm_, home: (calls.append(("retreat", tuple(home))), w.__setitem__("hp", 0), "dead")[-1]
+f.alive = lambda: w["hp"] > 0
+r = m._pull_to_safe(255000, (-1.3, -10.1, -95.4), safe, LineNm(), "t")
+check("P-68: dead on the back-off → 'died' at once, no lure / fight after it",
+      r == "died" and "sprint" not in kinds(calls) and "fight" not in kinds(calls))
+
 # "무조건 에스트부터" — back at the spot with HP down (not low enough for _top_up), drink before fighting, foe near or not
 foe = Chr(npc_param=255001, ptr=24, x=-1.3, y=-10.1, z=-95.4, hp=85, anim=-1)
 m, f, calls, w = make(foe, hp=600, hit=100)

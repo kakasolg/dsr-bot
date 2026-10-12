@@ -403,6 +403,8 @@ class Missions:
                 return "died"
             if not self._top_up(nb, tag):
                 return "no_estus"
+            if not self.f.alive():                         # P-68: _top_up's back-off toward the bonfire can end in death
+                return "died"
             t = self.mv.find(self.mv.snap(200.0), ptr)
             if t is None or t.hp <= 0:
                 self.log(f"   {tag}: 죽음")
