@@ -4,7 +4,7 @@ Only open work, **one checked line per item**; everything else lives in `docs/ro
 `python roadmap.py check` (also `tests/roadmap_test.py`) · `tidy` (moves finished things out) · `queue win|cloud|MoKa` · `show <id>`.
 
 ```
-- [~] shop | win | verify | waits on the screen now (menu / list / qty masks, OK check; lines → A); `python -m souls.shop state`, then 3 buys | docs/shop-undead-merchant.md · plan:shop
+- [~] some-id | cloud | doing | what is true now and what comes next | docs/x.md · plan:some-id
   mark  id    who     stage   now / next (≤ 150 chars)                             where the details are
 ```
 mark `[ ]` `[~]` `[!]` blocked, `[x]` done / `[-]` dropped (→ `tidy`) · who = whose move it is now (`cloud` `win` `MoKa`, `+`)
@@ -46,7 +46,7 @@ plan.md "Open-item details". On a change: rewrite the line (now / next only); re
 - [~] route-recordings | MoKa | doing | route recordings (3 done, Taurus killed in the 3rd) — more only if a zone needs it | plan:route-recordings
 
 **Firebombs · bow from the Undead Merchant (MoKa 10-12: "난이도가 급격히 줄어"); the bot must buy them itself. In order:**
-- [~] shop | cloud | doing | game check 1 shop_fail: multi-line greeting shifts every press → wait on the screen state, not GREET_S | docs/shop-undead-merchant.md · plan:shop
+- [~] shop | win | verify | waits on the screen now (menu / list / qty masks, OK check; lines → A); `python -m souls.shop state`, then 3 buys | docs/shop-undead-merchant.md · plan:shop
 - [ ] firebomb-measure | win | todo | locked-on firebomb at 254010 from 5 · 8 · 12 · 15 m: hit, damage, others woken (67 held) | plan:firebomb-measure
 - [ ] firebomb-candidate | cloud | todo | firebomb as a candidate next to knife / melee (lure opener · 2+ foes · ledge); no limit, none = as now | plan:firebomb-candidate
 - [ ] bow | cloud+win | todo | bow: buy, switch shield ↔ bow, locked-on shot, measure — after the firebomb | plan:bow
