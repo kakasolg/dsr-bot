@@ -3,14 +3,18 @@
   python run.py taurus --radar          after `python savepoint.py restore backup-20261011-235526-zone8-top-taurus-start`
 
 Order (MoKa's 3rd recording 20261006_173431, 417.9–486.5 s, and the plan in problems.md P-47):
-  fog wall → bridge F9#7 (the boss jumps down at the far end) → run back east to the ladder, climb → two hands + Gold Pine
-  Resin at the top → plunge when it stands within PLUNGE_R below (recording: 3.8 m, −411) → stay right up against it and
-  light-attack while stamina allows (recording: 0.3–1.9 m from its center, in front, −91 each; the two −237 hits came when
-  stamina had gone below 0) → Estus when low and it isn't swinging.
+  fog wall → two hands + Gold Pine Resin → bridge F9#7 (the boss jumps down at the far end) → run back east to the ladder,
+  climb → plunge when it stands within PLUNGE_R below (recording: 3.8 m, −411).
+Then the plunge loop ([MoKa] 2026-10-12, a YouTube guide: "낙하 공격 루프만 유지하는 것이 안정적" — no stand-up fight on the
+narrow wall, knock-back off the sides): one light while it reels → back to the ladder (roll toward it when it starts a
+swing close by) → climb → Estus only up there, only when low → plunge again as soon as it stands below. 2–3 rounds.
+Every one of its attacks is written as a `taurus` what=attack event (AttackLog) — where we stood and whether it hit —
+for `taurus_report.py` ([MoKa] "이런 경우는 피해진다 / 반드시 피격 당한다는 데이타를 쌓아야 해").
 """
 from __future__ import annotations
 
 import math
+import threading
 import time
 
 import control
@@ -42,7 +46,96 @@ STICK_R = 1.2
 HIT_SP = 40
 HIT_SP2 = 80                        # two in a row only from here (two cost ~76)
 ESTUS_HP = 0.40
+PRE_HEAL = 0.80                     # before calling it: drink up to this (save point start is 680/742 = 0.92)
 FIGHT_LIMIT = 150.0
+CYCLES = 5                          # plunge rounds before falling back to the close fight
+PUNISH_R = 2.6                      # after landing: one light if it's this close
+BACK_S = 10.0                       # longest run back to the ladder
+DODGE_R = 4.5                       # on the way back: roll toward the ladder when it starts a swing this close
+TOP_HEAL = 0.50                     # Estus on the top only (YouTube guide), and only below this
+RESIN_S = 55.0                      # Gold Pine Resin lasts ~60 s — rub again on the top after this
+HIT_AFTER_S = 0.6                   # AttackLog: an HP drop this long after its anim ends still counts for that attack
+
+
+def my_kind(anim) -> str:
+    a = anim if anim is not None else -1
+    if a == -1:
+        return "서 있음/걷기"
+    if 300000 <= a < 310000:
+        return "공격 중"
+    if 700 <= a < 800:
+        return "구르기/백스텝"
+    if 7000 <= a < 7100:
+        return "사다리"
+    if 7580 <= a < 7590:
+        return "에스트"
+    if a in (1500, 1550) or 101500 <= a < 101800:
+        return "낙하"
+    if 2000 <= a < 2100 or 100000 <= a < 101500:
+        return "경직/막기"
+    return f"기타({a})"
+
+
+def ang_off(b, p) -> float:
+    """Where p stands off b's facing, degrees: 0 right in front, ±180 behind, + its right (raw heading: yaw = heading + π)."""
+    fwd = (b.heading or 0.0) + math.pi
+    a = math.atan2(p.x - b.x, p.z - b.z) - fwd
+    return math.degrees((a + math.pi) % (2 * math.pi) - math.pi)
+
+
+class AttackLog(threading.Thread):
+    """Read-only, its own thread (~30 Hz): each of its attacks (anim 3000–3099, start → anim change) → one event with where we
+    stood at its start and the HP we lost while it ran or within HIT_AFTER_S after. Never touches the pad."""
+
+    def __init__(self, tm, events, log):
+        super().__init__(name="taurus-attacks", daemon=True)
+        self.tm, self.events, self.log = tm, events, log
+        self.stop_ev = threading.Event()
+        self.n = 0
+
+    def run(self) -> None:
+        cur, pending, prev_hp = None, [], None
+        while not self.stop_ev.is_set():
+            try:
+                s = self.tm.snapshot(within=40.0)
+            except Exception:
+                s = None
+            now = time.time()
+            if s is None or s.player is None:
+                time.sleep(0.03)
+                continue
+            p = s.player
+            b = Taurus.boss(s)
+            hp = p.hp
+            if prev_hp is not None and hp is not None and hp < prev_hp:
+                target = cur or next((x for x in reversed(pending) if now - x["t_end"] <= HIT_AFTER_S), None)
+                if target is not None:
+                    target["dmg"] += prev_hp - hp
+            prev_hp = hp
+            for x in [x for x in pending if now - x["t_end"] > HIT_AFTER_S]:
+                pending.remove(x)
+                self._emit(x)
+            a = b.anim if b is not None and b.anim is not None else -1
+            if cur is not None and a != cur["anim"]:
+                cur["t_end"] = now
+                pending.append(cur)
+                cur = None
+            if cur is None and b is not None and 3000 <= a < 3100:
+                h = M.horiz(p, b)
+                cur = {"anim": a, "h": round(h, 2), "h_min": round(h, 2), "ang": round(ang_off(b, p)), "dy": round(p.y - b.y, 1),
+                       "me_anim": p.anim, "me": my_kind(p.anim), "my_hp": hp, "dmg": 0, "t0": now, "t_end": now}
+            elif cur is not None and b is not None:
+                cur["h_min"] = round(min(cur["h_min"], M.horiz(p, b)), 2)
+            time.sleep(0.03)
+        for x in pending + ([cur] if cur else []):
+            self._emit(x)
+
+    def _emit(self, x) -> None:
+        self.n += 1
+        self.events("taurus", what="attack", anim=x["anim"], h=x["h"], h_min=x["h_min"], ang=x["ang"], dy=x["dy"],
+                    me=x["me"], me_anim=x["me_anim"], my_hp=x["my_hp"], dmg=x["dmg"], dur=round(x["t_end"] - x["t0"], 2))
+        if x["dmg"]:
+            self.log(f"      보스 {x['anim']} 맞음 −{x['dmg']}: {x['h']} m, 정면에서 {x['ang']:+d}°, 나 {x['me']}")
 
 
 class Taurus:
@@ -80,11 +173,19 @@ class Taurus:
                 return "died" if r == "dead" else f"안개벽 {r}"
             # two hands and the resin here, before calling it — try 3 (2026-10-12): at the ladder top the two-hand toggle's RB
             # went out as a light attack (304000), its step carried us off the narrow top and we fell among its feet
+            # full run (MoKa 10-12 "화톳불 부터 보스 공략까지"): zones 1–8 can leave us low — drink up here while it still
+            # sleeps on its perch, keeping one for the fight ([MoKa] 10-06 "에스트는 1개만 있으면")
+            spare = self.mv.estus_left() - 1
+            if spare > 0:
+                self.f.heal(PRE_HEAL, sips=min(2, spare))
             self._two_hand()
             self._resin()
             r = self._call()
             if r != "ok":
                 return r
+            self.alog = AttackLog(self.tm, self.events, self.log)
+            self.alog.start()
+            self.g0 = getattr(esc, "gen", 0)
             r = self.ms._before({"ladder": {k: (list(v) if isinstance(v, tuple) else v) for k, v in LADDER.items()}},
                                 self.nm, "타우로스")
             if r == "dead":
@@ -98,8 +199,12 @@ class Taurus:
             esc.quit_ok = saved[0]                         # the ledge pull-back stays off: try 4 it fired twice on landing
             if r == "died":
                 return r
-            return self._fight()                           # plunge done, missed or knocked off the top — it's on us either way
+            return self._loop(r, saved[0])
         finally:
+            if getattr(self, "alog", None) is not None:
+                self.alog.stop_ev.set()
+                self.alog.join(2.0)
+                self.log(f"   타우로스 공격 기록: {self.alog.n}번")
             esc.quit_ok, esc.nudge_ok = saved
             self.f.ignore_npcs = set()
             self.f.grip_want = None
@@ -137,10 +242,10 @@ class Taurus:
             time.sleep(0.5)
         self.log(f"   타우로스: 양손 grip {self.tm.grip()}")
 
-    def _resin(self) -> None:
+    def _resin(self, wait: float = 1.0) -> None:
         """Select the resin, X, wait for the rub (~2 s); again once if the count didn't drop. Try 4 (2026-10-12): pressed right
         after the two-hand switch, the X was eaten (3 → 3)."""
-        time.sleep(1.0)
+        time.sleep(wait)
         self.resin_t = None
         for k in range(2):
             n0 = self.tm.goods_count(RESIN) or 0
@@ -220,6 +325,116 @@ class Taurus:
                  f"{'' if landed else ' — 안 떨어짐'}")
         self.events("taurus", what="plunge", boss_hp=[hp0, b2.hp if b2 else 0], landed=landed)
         return "ok" if landed else "낙하 실패"
+
+    def _over(self, s):
+        """Boss gone from the snapshot: 'killed' if no quit-out since it woke, else 'gone' (see _fight_loop). None = still there."""
+        if s is None or self.boss(s) is not None:
+            return None
+        dead = getattr(self.f.esc, "gen", 0) == getattr(self, "g0", 0) or any(c.npc_param == TAURUS and c.hp <= 0 for c in s.chars)
+        return "killed" if dead else "gone"
+
+    def _end(self, end: str, where: str, s) -> str:
+        self.log(f"   타우로스 {'처치' if end == 'killed' else '안 보임 (퀵 종료?)'} — {where}, 내 HP {s.player.hp}")
+        self.events("taurus", what=end, where=where, hp=s.player.hp)
+        return end
+
+    def _loop(self, first: str, quit_ok: bool) -> str:
+        """Plunge rounds: (one light while it reels) → back to the ladder → climb → (Estus / resin on top) → plunge."""
+        esc = self.f.esc
+        guard_ok, self.mv.guard_ok = getattr(self.mv, "guard_ok", True), False    # two hands: LB is a weapon block
+        self.pad.guard(False)
+        r = first
+        try:
+            for cycle in range(1, CYCLES + 1):
+                s = self.mv.snap(40.0)
+                if (end := self._over(s)):
+                    return self._end(end, f"낙하 {cycle - 1}번 뒤", s)
+                if r == "ok":
+                    self._punish()
+                if not self.f.alive():
+                    return "died"
+                r = self._back_up(cycle)
+                if r in ("died", "killed", "gone"):
+                    return r
+                if r != "ok":
+                    self.log(f"   타우로스: 사다리로 못 감 ({r}) — 붙어서 싸움")
+                    return self._fight()
+                self._on_top()
+                esc.quit_ok, esc.nudge_ok = False, False
+                r = self._plunge()
+                esc.quit_ok = quit_ok
+                if r == "died":
+                    return r
+            return self._fight()
+        finally:
+            self.mv.guard_ok = guard_ok
+
+    def _punish(self) -> None:
+        """Just landed and it reels: one light if it is close (YouTube guide [02:02])."""
+        s = self.mv.snap(40.0)
+        b = self.boss(s)
+        if s is None or b is None or M.horiz(s.player, b) > PUNISH_R or (s.player.sp or 0) < HIT_SP:
+            return
+        if self.mv.face(s, b, deg=35.0):
+            hit = self.mv.light(s, b, n=1, sp_second=999)
+            self.log(f"   타우로스 착지 뒤 약공: 피해 {hit.dmg}, 내 피해 {hit.taken}")
+            self.events("taurus", what="hit", dmg=hit.dmg, taken=hit.taken, h=round(M.horiz(s.player, b), 2), anim=b.anim,
+                        sp=s.player.sp)
+
+    def _back_up(self, cycle: int) -> str:
+        """Run to the ladder foot (roll toward it when it starts a swing within DODGE_R), then climb."""
+        bottom = LADDER["bottom"]
+        t0, prev_a, rolled = time.time(), None, 0.0
+        while time.time() - t0 < BACK_S:
+            if not self.f.alive():
+                return "died"
+            s = self.mv.snap(40.0)
+            if s is None:
+                time.sleep(0.05)
+                continue
+            if (end := self._over(s)):
+                return self._end(end, f"{cycle}회 뒤 사다리로 가는 중", s)
+            p, b = s.player, self.boss(s)
+            d = math.hypot(p.x - bottom[0], p.z - bottom[2])
+            if d <= 0.6:
+                break
+            a = b.anim if b.anim is not None else -1
+            started = 3000 <= a < 3100 and a != prev_a
+            prev_a = a
+            if started and M.horiz(p, b) < DODGE_R and time.time() - rolled > 1.2 and s.cam_yaw is not None:
+                self.log(f"   타우로스 {a} 시작 {M.horiz(p, b):.1f} m (정면에서 {ang_off(b, p):+.0f}°) — 사다리 쪽으로 구르기")
+                self.events("taurus", what="dodge", anim=a, h=round(M.horiz(p, b), 2), ang=round(ang_off(b, p)))
+                self.mv.roll_toward(s, bottom[0], bottom[2])
+                rolled = time.time()
+                continue
+            if s.cam_yaw is not None:
+                self.pad.sprint(d > 2.5)
+                self.pad.move(*self.mv.stick_to(s, bottom[0], bottom[2], 1.0 if d > 1.5 else 0.5))
+            self.pad.release_due()
+            time.sleep(0.03)
+        self.pad.sprint(False)
+        self.pad.neutral()
+        r = self.ms._before({"ladder": {"bottom": list(bottom), "face": list(LADDER["face"]), "top_y": LADDER["top_y"]}},
+                            self.nm, f"타우로스 {cycle}회 뒤")
+        return "died" if r == "dead" else ("ok" if r == "ok" else f"사다리 {r}")
+
+    def _on_top(self) -> None:
+        """On the top while it isn't below yet: Estus if low (YouTube guide [02:23]); the resin again once it has worn off."""
+        s = self.mv.snap(40.0)
+        if s is None:
+            return
+        b = self.boss(s)
+        clear = b is None or M.horiz(s.player, b) > PLUNGE_R + 1.0
+        if clear and s.player.hp < s.player.max_hp * TOP_HEAL and self.mv.estus_left() > 0:
+            r = self.mv.drink(lambda sn: True)
+            self.log(f"   타우로스: 꼭대기에서 에스트 {r}")
+            self.events("estus", **r)
+            s = self.mv.snap(40.0)
+            b = self.boss(s)
+            clear = s is not None and (b is None or M.horiz(s.player, b) > PLUNGE_R + 1.0)
+        rt = getattr(self, "resin_t", None)
+        if clear and (rt is None or time.time() - rt > RESIN_S) and (self.tm.goods_count(RESIN) or 0) > 0:
+            self._resin(wait=0.0)
 
     def _fight(self) -> str:
         """Stay right up against it ([MoKa] "바짝 붙어서 공격"): within HIT_R and stamina ≥ HIT_SP → one light; else step in to

@@ -19,6 +19,7 @@ _sys.path[:0] = [str(_pl.Path(__file__).resolve().parent.parent), str(_pl.Path(_
 import sys
 import tempfile
 import threading
+import time
 import types
 from pathlib import Path
 
@@ -130,7 +131,9 @@ def main() -> None:
     held = b[first:-1] if first is not None else []
     check("follow sprint: 넷 다 도착", r == "arrived")
     check(f"follow sprint: B 한 번 눌러 끝까지 유지 (점 사이에서 뗀 횟수 {held.count(False)})", first is not None and held and all(held))
-    check("follow sprint 끝: 중립", rec2.is_neutral())
+    time.sleep(control.SPRINT_MIN_HOLD_S)
+    pad.release_due()
+    check("follow sprint 끝: 중립 (P-70: 막 누른 B는 SPRINT_MIN_HOLD_S 뒤에 뗌)", rec2.is_neutral())
 
     # pads without epoch: never resync (walksim.SimPad)
     calls: list = []

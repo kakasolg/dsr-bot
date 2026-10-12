@@ -235,6 +235,7 @@ class Pad:
             self._frozen_by = me
             self.epoch += 1
             self._due.clear()
+            self._b_since = None
             if self._vpad is not None:
                 self._vpad.reset()
                 self._send("freeze", self._vpad)
@@ -258,6 +259,7 @@ class Pad:
 
     def __init__(self):
         self._due: dict = {}      # 버튼 → 뗄 시각 (tap 이 자지 않도록)
+        self._b_since = None      # 달리기 B를 누른 시각 (sprint) — SPRINT_MIN_HOLD_S 전엔 떼지 않는다
         # +1 whenever the report is wiped behind the callers' backs (neutral·freeze·unfreeze·reconnect·close) — nav.Mover sees
         # it change and forgets what it thinks it holds, so the next set() presses it again (P0-D)
         self.epoch = 0
@@ -291,6 +293,7 @@ class Pad:
         try:
             self.epoch += 1
             self._due.clear()
+            self._b_since = None
             self._note_stick(0.0, 0.0)
             v = self._vpad
             if v is not None:
@@ -416,6 +419,13 @@ class Pad:
             self.pad.reset()
             if self.force_guard:
                 self.pad.press_button(B.XUSB_GAMEPAD_LEFT_SHOULDER)
+            young = self._b_since is not None and time.time() - self._b_since < SPRINT_MIN_HOLD_S
+            self._due.pop(B.XUSB_GAMEPAD_B, None)
+            if young:                                    # P-70: still too fresh to let go — keep B (stick is 0: no move)
+                self.pad.press_button(B.XUSB_GAMEPAD_B)
+                self._due[B.XUSB_GAMEPAD_B] = self._b_since + SPRINT_MIN_HOLD_S
+            else:
+                self._b_since = None
             self._send("neutral")
             self._neutral_rec(why)
 
@@ -445,6 +455,8 @@ class Pad:
         if button == B.XUSB_GAMEPAD_RIGHT_SHOULDER and not stick_ok:
             self.release_stick()
         with self._lock:
+            if button == B.XUSB_GAMEPAD_B:
+                self._b_since = None                     # a deliberate B tap (dodge) — not a sprint hold any more
             self.pad.press_button(button)
             self._send("tap")
             self._due[button] = time.time() + hold
@@ -472,6 +484,8 @@ class Pad:
             for b in done:
                 self.pad.release_button(b)
                 del self._due[b]
+                if b == B.XUSB_GAMEPAD_B:
+                    self._b_since = None
             if done:
                 self._send("release_due")
 
@@ -549,7 +563,27 @@ class Pad:
             self._send("kick")
             self._due[B.XUSB_GAMEPAD_RIGHT_SHOULDER] = time.time() + 0.06
     def lock_on(self) -> None: self.tap(B.XUSB_GAMEPAD_RIGHT_THUMB, 0.06)
-    def sprint(self, on: bool) -> None: self.hold(B.XUSB_GAMEPAD_B, on)
+    def sprint(self, on: bool) -> None:
+        """Run = hold B. A hold released within SPRINT_MIN_HOLD_S reads as a tap — roll (walking), jump (running), backstep
+        (standing): 10-12 zone 1, a 0.1 s sprint leg between braked stair points rolled us off the stairs three runs in a
+        row (P-70; P-67 was the jump). So a release that comes too soon is put off to SPRINT_MIN_HOLD_S after the press,
+        and sprint(True) meanwhile cancels it (one continuous hold). Deliberate taps (dodge, backstep) go through tap()."""
+        b = B.XUSB_GAMEPAD_B
+        with self._lock:
+            if on:
+                self._due.pop(b, None)
+                if self._b_since is None:
+                    self._b_since = time.time()
+                    self.pad.press_button(b)
+                    self._send("hold")
+                return
+            left = (self._b_since + SPRINT_MIN_HOLD_S - time.time()) if self._b_since is not None else 0.0
+            if left > 0:
+                self._due[b] = time.time() + left
+                return
+            self._b_since = None
+            self.pad.release_button(b)
+            self._send("hold")
     def guard(self, on: bool) -> None: self.hold(B.XUSB_GAMEPAD_LEFT_SHOULDER, on)
 
     def two_hand_right(self) -> None:
@@ -565,6 +599,10 @@ class Pad:
 #  관측이 끊긴 동안 입력을 남기지 않는 안전 경로에서만 쓴다 — 전술 상수(nav·duel·reflex)가 아니다.
 #  0.25 s 는 feed.WAIT 를 빌린 값이고 실측 근거는 없다. 실제 게임 검증 전에는 정책 상수로 올리지 않는다
 NO_OBS_NEUTRAL_S = 0.25
+
+# ── 임시값 (P-70, 근거: 10-12 패드 기록 — 0.09·0.10 s B는 점프·구르기, 0.68 s는 아무 일 없음) ─────────────
+#  달리기 B를 누르고 이보다 빨리 떼면 탭으로 읽힌다. 경계값은 안 잼 (0.3 s 안팎으로 알려짐) — 여유를 둠
+SPRINT_MIN_HOLD_S = 0.45
 
 
 class NoObs:

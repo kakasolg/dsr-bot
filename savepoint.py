@@ -3,6 +3,8 @@
   python savepoint.py save <why>          menu quit-out to the title → copy the save folder to backup-<time>-<why> → Continue
   python savepoint.py restore <backup>    menu quit-out to the title → back up the live save (…-before-restore) →
                                           put <backup>'s DRAKS0005.sl2 back → Continue → check we stand where it was saved
+  python savepoint.py reload              menu quit-out to the title → Continue (no file change). Inside the Taurus fog a load
+                                          puts the character in front of the fog wall; killed foes stay dead (menu, not byte)
   python savepoint.py list                backups, newest first
 
 At the title the game has written the save ("Updating save data…"); we wait until DRAKS0005.sl2 stops changing before
@@ -166,6 +168,19 @@ def cmd_restore(name: str) -> None:
     pad.close()
 
 
+def cmd_reload() -> None:
+    import control
+    import env
+    control.focus_game()
+    tm, pad = env.make_telemetry({}), control.Pad()
+    print(f"지금: {where(tm)}")
+    if not to_title(tm, pad):
+        sys.exit(1)
+    tm2 = back_in(pad)
+    print(f"돌아옴: {where(tm2) if tm2 else None}")
+    pad.close()
+
+
 def cmd_list() -> None:
     for p in sorted(SAVE_ROOT.glob("backup-*"), key=lambda p: p.stat().st_mtime, reverse=True)[:15]:
         m = p / META
@@ -174,11 +189,13 @@ def cmd_list() -> None:
 
 
 def main() -> None:
-    if len(sys.argv) < 2 or sys.argv[1] not in ("save", "restore", "list"):
+    if len(sys.argv) < 2 or sys.argv[1] not in ("save", "restore", "reload", "list"):
         print(__doc__)
         sys.exit(2)
     if sys.argv[1] == "list":
         return cmd_list()
+    if sys.argv[1] == "reload":
+        sys.argv.append("-")
     if len(sys.argv) < 3:
         print(__doc__)
         sys.exit(2)
@@ -189,7 +206,10 @@ def main() -> None:
     if not lock.acquire():
         raise SystemExit("봇이 돌고 있음 (data/bot.lock) — 끝난 뒤에")
     try:
-        (cmd_save if sys.argv[1] == "save" else cmd_restore)(sys.argv[2])
+        if sys.argv[1] == "reload":
+            cmd_reload()
+        else:
+            (cmd_save if sys.argv[1] == "save" else cmd_restore)(sys.argv[2])
     finally:
         lock.release()
 

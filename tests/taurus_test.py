@@ -10,6 +10,7 @@ from __future__ import annotations
 import sys as _sys, pathlib as _pl  # repo root first (the bot's modules), then this folder
 _sys.path[:0] = [str(_pl.Path(__file__).resolve().parent.parent), str(_pl.Path(__file__).resolve().parent)]
 
+import math
 import sys
 from types import SimpleNamespace as NS
 
@@ -94,6 +95,27 @@ def _snap(r=40.0):
     return _s0(r)
 mv.snap = _snap
 check("fight: boss gone without HP 0 (quit-out) → 'gone', not 'killed'", t._fight() == "gone")
+
+# AttackLog ([MoKa] 10-12 "이런 경우는 피해진다 / 반드시 피격 당한다는 데이타"): idle → 3003 starts 2 m in front → HP drops →
+# anim ends → one event with where we stood, what we were doing and the damage
+import time as _time
+frames = [snap(boss(x=0.0, y=15.8, z=2.0, anim=-1), me=(0.0, 15.8, 0.0))] * 3     + [snap(boss(x=0.0, y=15.8, z=2.0, anim=3003), me=(0.0, 15.8, 0.0))] * 3     + [snap(boss(x=0.0, y=15.8, z=2.0, anim=3003), me=(0.0, 15.8, 0.0), hp=447)] * 2     + [snap(boss(x=0.0, y=15.8, z=2.0, anim=-1), me=(0.0, 15.8, 0.0), hp=447)] * 40
+for fr in frames:
+    fr.chars[0].heading = math.pi                     # world yaw = heading + π = 0 → it faces +z, away from us at z 0
+evs = []
+q = list(frames)
+alog = T.AttackLog(NS(snapshot=lambda within=40.0: q.pop(0) if len(q) > 1 else q[0]),
+                   lambda kind, **kw: evs.append((kind, kw)), lambda *a: None)
+alog.start()
+_time.sleep(1.2)
+alog.stop_ev.set()
+alog.join(2.0)
+att = [kw for k, kw in evs if k == "taurus" and kw.get("what") == "attack"]
+check(f"AttackLog: one 3003, −233, 2 m, our anim kind recorded ({att})",
+      len(att) == 1 and att[0]["anim"] == 3003 and att[0]["dmg"] == 233 and abs(att[0]["h"] - 2.0) < 0.01
+      and att[0]["me"] == "서 있음/걷기")
+check(f"AttackLog: angle = where we stand off its facing (it faces away from us here → behind, ±180)",
+      att and abs(abs(att[0]["ang"]) - 180) <= 1)
 
 print("all ok" if not fails else f"{fails} FAILED")
 sys.exit(1 if fails else 0)
