@@ -425,6 +425,8 @@ class Field:
     def retreat(self, nm, home, choice=None) -> str:
         """Back off — toward escape.pick's place when there is one (where the foes are not; usually the way we came), else
         along the path toward the bonfire — stop once safe (foes go back once out of their aggro range)."""
+        if getattr(self, "tether", None) is not None:
+            home = tuple(self.tether)                      # in a zone the safe spot is home, not the bonfire ([MoKa] 10-12, P-74)
         s = self.mv.snap(5.0)
         if s is None or (home is None and (choice is None or choice.point is None)):
             return "no_home"
@@ -572,6 +574,11 @@ class Field:
         ok = (lambda dx, dz: True) if nm is None else (lambda dx, dz: nav.can_move(nm, p, dx, dz, nav.ROLL_CHECK_M))   # P-73
         return escape_.gap_dir((p.x, p.y, p.z), close, ok, prefer)
 
+    def _zone(self):
+        """The zone's safe spot and TETHER_R while missions.upper_zone ties fights to it — back-offs stay inside ([MoKa] 10-12)."""
+        t = getattr(self, "tether", None)
+        return (t[0], t[1], t[2], TETHER_R) if t is not None else None
+
     def escape_choice(self, nm, s):
         """escape.pick for where we stand now (None when ESCAPE_PICK is off or it can't be worked out)."""
         if not ESCAPE_PICK or nm is None or s is None:
@@ -582,7 +589,7 @@ class Field:
             foes = [(c.x, c.y, c.z, awake(c) and (c.anim not in (None, -1) or M.horiz(p, c) < 2.0))
                     for c in s.hostile(escape_.SCAN_R + 2.0) if c.hp > 0]
             home = nm.find_path(me, tuple(self.home)) if self.home else None
-            ch = escape_.pick(nm, me, foes, list(getattr(self, "trail", [])), home)
+            ch = escape_.pick(nm, me, foes, list(getattr(self, "trail", [])), home, zone=self._zone())
         except Exception as e:
             self.log(f"   물러날 쪽 계산 실패 ({e!r}) — 예전처럼")
             return None
@@ -605,7 +612,7 @@ class Field:
                     for c in s.hostile(escape_.SCAN_R + 2.0) if c.hp > 0]
             home = nm.find_path(me, tuple(self.home)) if self.home else None
             ch = escape_.pick(nm, me, foes, list(getattr(self, "trail", [])), home,
-                              avoid=[(shot_from[0], shot_from[1], shot_from[2], D.SHOT_REACH)])
+                              avoid=[(shot_from[0], shot_from[1], shot_from[2], D.SHOT_REACH)], zone=self._zone())
         except Exception as e:
             self.log(f"   {tag}: 사선 밖 계산 실패 ({e!r})")
             return "error"

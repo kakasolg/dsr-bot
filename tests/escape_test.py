@@ -94,6 +94,23 @@ def main() -> None:
     check("no floor anywhere → no gap", E.gap_dir(o, [(0.0, 1.0, True)], lambda dx, dz: False) is None)
     gp = E.gap_dir(o, [(0.0, 1.0, True)], flat, prefer=(5.0, 0.0, 0.0))
     check("one in front, prefer to the right → roll right-ish (open and toward where we back off to)", gp is not None and gp[0] > 0.7)
+
+    # [MoKa] 10-12 "안전 자리 반경 안에서만 물러나게" — P-74 (075054 zone 2-1, 107.8 s): low_hp next to the safe spot picked the way
+    # we came, 13.2 m out; then two foes on us out there for 37 s. With the zone, only points within TETHER_R of the spot
+    nb = motion.load_navmeshes()["m10_01_00_00"]
+    me, foes, close, trail = scene("20261012_075054_burg-upper_lockkeep", 107.8)
+    old = E.pick(nb, me, foes, trail)
+    safe = (-7.0, -10.0, -73.5)
+    ch = E.pick(nb, me, foes, trail, zone=(*safe, 8.0))
+    check(f"P-74 without the zone: {old.line()} — {math.hypot(old.point[0] - safe[0], old.point[2] - safe[2]):.1f} m from the spot",
+          old.point is not None and math.hypot(old.point[0] - safe[0], old.point[2] - safe[2]) > 8.0)
+    check(f"P-74 with the zone: {ch.line()} — inside 8 m", ch.point is None
+          or math.hypot(ch.point[0] - safe[0], ch.point[2] - safe[2]) <= 8.0)
+    out = (0.1, -10.0, -62.1)                                  # 13 m out, as at 117.8 s
+    ch3 = E.pick(nb, out, [], [], zone=(*safe, 8.0))
+    check(f"13 m out, nobody near: the safe spot itself is a candidate and back there is the way ({ch3.line()})",
+          ch3.point is not None and math.hypot(ch3.point[0] - safe[0], ch3.point[2] - safe[2]) <= 8.0
+          and any(t[3] == "off_zone" for t in ch3.table))
     print("escape_test: 전부 통과")
 
 

@@ -846,6 +846,10 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
 - 고침 (2026-10-12 [cloud]): 묶기 끊기의 전제조건 — 같은 높이에 살아 있는 적이 `TETHER_CONTACT_R` 2.5 m 안이면 끊지 않음 (붙은 적은 싸움이 처리:
   빠져나가기 구르기 · 떼어내기). 복귀가 `arrived`가 아니면 그 싸움은 더 묶지 않고 그 자리에서 싸움. `tests/burg_upper_test.py` P-74 3줄
   (고치기 전 코드: 2 FAIL). 남은 것 (MoKa 결정거리): 묶기 중인 구역에서 low_hp 물러날 자리가 안전 자리 반경 밖이어도 되나. 상태: verify.
+- 2026-10-12 [MoKa] "안전 자리 반경 안에서만 물러나게 해줘" → [cloud]: 구역 동안 `escape.pick(zone=(안전 자리, TETHER_R 8 m))` — 반경 밖 후보는
+  `off_zone`으로 빼고 안전 자리 자체를 후보(`Z`, '안전 자리')로 넣음 (low_hp 물러나기 · 사선 밖으로 둘 다). `Field.retreat`도 구역 동안 home = 안전 자리
+  (예전: 화톳불 쪽 — 물러날 자리에 가도 안 깨끗하면 화톳불까지 걸어감). 075054 107.8 s 장면: 예전 '옆길' 12.4 m 밖 → 이제 안전 자리 6 m 안.
+  `tests/escape_test.py`, `tests/burg_upper_test.py`.
 
 ### P-75 구역 2-2: 30.5 m 밖 잠든 254011을 '만났다'로 읽어 끌어오기 달리기가 첫 틱에 멈춤 → 싸움이 걸어 나가다 묶기로 3번 되돌아옴, 35 s (2026-10-12, [win] 런 / [cloud] 분석)
 

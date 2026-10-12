@@ -471,6 +471,16 @@ check("P-74: 13 m out, nearest foe 4 m → cut as before", log[0][3] is True)
 r, log = tethered(["cancel", "killed"], (-0.3, -10.0, -62.2), move=False, back="timeout")
 check("P-74: the way back timed out → next fight untethered (not cut at its first tick again)",
       r.result == "killed" and [x[0] for x in log] == ["fight", "retreat", "fight"] and log[2][2] is False)
+# [MoKa] 10-12 "안전 자리 반경 안에서만 물러나게": in a zone a retreat with no escape.pick spot goes to the safe spot, not the bonfire
+walked = []
+rf = F.Field.__new__(F.Field)
+rf.tether, rf.log = tuple(z2["safe"]), (lambda *a: None)
+rf.mv = NS(snap=lambda r=5.0: NS(player=NS(x=-0.3, y=-10.0, z=-62.2), hostile=lambda rr: []),
+           walk_path=lambda path, nm_, mode, stop=None, **kw: walked.append(tuple(path[-1])) or "arrived")
+rf.safe = lambda sn: True
+F.Field.retreat(rf, LineNm(), (40.0, -10.0, -40.0))
+check("zone retreat: home = the safe spot, not the bonfire side", walked == [tuple(z2["safe"])])
+check("zone: escape.pick limited to TETHER_R around the safe spot", F.Field._zone(rf) == (*z2["safe"], F.TETHER_R))
 
 # P-47 zone 8 ladder top ([MoKa] 10-06: "구르기를 2번 해서 석궁병하고 간격을 벌려야 해") — the top is a ledge 0.2–0.5 m from the
 # NavMesh edge; east toward F9#8 the floor widens. Roll there twice, then the landing is the safe spot / tether

@@ -35,7 +35,7 @@ FIELD_R = OUT_MAX * 2.0  # Dijkstra bound (path cost; cliff-side faces cost more
 @dataclass
 class Choice:
     point: tuple | None              # where to back off to (None: nothing better than staying — the caller keeps its old way)
-    src: str = ""                    # T (trail) · R (radial) · H (home)
+    src: str = ""                    # T (trail) · R (radial) · H (home) · Z (the zone's safe spot)
     path: list = field(default_factory=list)   # centroid path from us to it
     table: list = field(default_factory=list)  # every candidate: (src, point, score or None, why dropped)
 
@@ -44,7 +44,7 @@ class Choice:
         if self.point is None:
             return f"물러날 쪽 없음 (후보 {len(self.table)}, 쓸 수 있는 것 {kept})"
         best = next(t for t in self.table if t[1] == self.point)
-        name = {"T": "온 길", "R": "옆길", "H": "화톳불 쪽"}[self.src]
+        name = {"T": "온 길", "R": "옆길", "H": "화톳불 쪽", "Z": "안전 자리"}[self.src]
         return f"물러날 쪽: {name} ({self.point[0]:.1f},{self.point[1]:.1f},{self.point[2]:.1f}), 점수 {best[2]:.1f} — 후보 {len(self.table)}, 쓸 수 있는 것 {kept}"
 
 
@@ -114,10 +114,13 @@ def candidates(nm, me, trail: list, home_path: list | None = None) -> list[tuple
     return cands
 
 
-def pick(nm, me, foes: list, trail: list | None = None, home_path: list | None = None, avoid: list | None = None) -> Choice:
+def pick(nm, me, foes: list, trail: list | None = None, home_path: list | None = None, avoid: list | None = None,
+         zone: tuple | None = None) -> Choice:
     """foes: [(x, y, z, awake)] — every live hostile; those beyond SCAN_R / SCAN_DY are ignored here.
     avoid: [(x, y, z, r)] — a thrower and its reach (duel 'shot'): candidates within r of it are dropped ('in_fire'), unless
-    that drops them all (then the farthest from it wins on score as usual)."""
+    that drops them all (then the farthest from it wins on score as usual).
+    zone: (x, y, z, r) — a zone's safe spot and radius ([MoKa] 10-12 "안전 자리 반경 안에서만 물러나게", P-74: a low_hp back-off
+    picked the way we came, 13 m out): candidates farther than r from it are dropped ('off_zone'), the spot itself is one."""
     me = tuple(me)
     near = [f for f in foes if _hd(f, me) <= SCAN_R and abs(f[1] - me[1]) <= SCAN_DY]
     awake = [f for f in near if f[3]]
@@ -126,8 +129,14 @@ def pick(nm, me, foes: list, trail: list | None = None, home_path: list | None =
     dist, prev = _field(nm, me, FIELD_R)
     start_tri = nm.nearest_tri(*me) if dist is not None else None
     table, best = [], None
-    for src, q in candidates(nm, me, trail or [], home_path):
+    cands = candidates(nm, me, trail or [], home_path)
+    if zone is not None and _hd(me, zone) >= 1.0:
+        cands.append(("Z", tuple(zone[:3])))
+    for src, q in cands:
         why = None
+        if zone is not None and _hd(q, zone) > zone[3]:
+            table.append((src, q, None, "off_zone"))
+            continue
         path = []
         if dist is not None:
             try:
@@ -161,7 +170,7 @@ def pick(nm, me, foes: list, trail: list | None = None, home_path: list | None =
         if best is None or score > best[0]:
             best = (score, src, q, path)
     if best is None and avoid and any(t[3] == "in_fire" for t in table):
-        ch = pick(nm, me, foes + [(a[0], a[1], a[2], True) for a in avoid], trail, home_path)   # nowhere out of its reach — as far as we can
+        ch = pick(nm, me, foes + [(a[0], a[1], a[2], True) for a in avoid], trail, home_path, zone=zone)   # nowhere out of its reach — as far as we can
         return Choice(ch.point, ch.src, ch.path, table)
     if best is None:
         return Choice(None, table=table)
