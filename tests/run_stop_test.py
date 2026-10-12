@@ -81,6 +81,8 @@ class FakeCam:
     def start(self): return self
     def stop(self): TRACE.append("cam.stop")
     def stats(self): return "cam"
+    def align_stats(self): return "align"
+    def on_attack(self, **row): pass
 
 
 class FakeLock:

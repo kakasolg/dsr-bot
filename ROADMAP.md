@@ -43,7 +43,7 @@ Bot already clears cell → Undead Burg bonfire in one run (10-03e). `run.py bur
 10-06 bot runs cleared zones 1–8 one or a few at a time (zone 4 lowest HP 40 %); the `--seg 5-8` run died at the
 zone 8 crossbowmen (P-47).
 
-- [ ] [cloud]+[win] **Alignment first (MoKa 10-11: high priority)** — attack target · character facing · camera in one line (MoKa 10-01: "alignment decides whether a move works"). Facing |각| ≤ 30° in 75–95 % of fight lines; P-65 one look order (`20dd7ae`): 1 run camera ≤ 10° fight 89 % / out of fight 87 %. Next: [cloud] one target–body–camera measure per tick; [win] more runs
+- [~] [cloud]+[win] **Alignment first (MoKa 10-11: high priority)** — attack target · character facing · camera in one line (MoKa 10-01: "alignment decides whether a move works"). Facing |각| ≤ 30° in 75–95 % of fight lines; P-65 one look order (`20dd7ae`): 1 run camera ≤ 10° fight 89 % / out of fight 87 %. 10-12 [cloud] measure in (record only): `align` event 2 Hz (src · body · cam · lock), `attack_align` per press (+ damage), end line `정렬 (…)`; [win]: runs, read that line
 - [~] [win] Taurus: `run.py taurus` (`souls/taurus.py`) — plunge loop (MoKa 10-12). 10-12 **full run bonfire → zones 1–8 → Taurus killed** (`004844` + `005650`: 3 plunges −531 −531 −153, HP 19 %); other two full runs died in zone 5 / 8. guide + data: `docs/boss-taurus.md`
 - [ ] [win] **Fall / death policy (MoKa 10-12)** — `burg-upper` full runs: falls `⚠ 낙하 … 퀵 종료 안 함` (no freeze; flee or fight where we land), after a death `══ 사망 뒤 (구역 n): recover / ignore / stop`, `핏자국 회수 (구역 n): got`; `risk_report` `낙하×n`. P-71 / P-72
 - [ ] [cloud]+[win] Boss fight default = two-handed + dodging (9-30 principle); Taurus is the first case (the general boss module is v2.0)
@@ -207,7 +207,7 @@ to the bottom of `docs/roadmap/relay.md`.
 
 (handled entries: `docs/roadmap/relay.md`, last moved 2026-10-12)
 
-- 2026-10-12 [cloud→board] **`git pull` — fall / death policy changed (MoKa 10-12)**: (1) no quit-out on a fall — only `⚠ 낙하 … 퀵 종료 안 함` + event `fall`, pad stays with the bot (old way: `--fall-quit`). (2) `burg-upper` after a death: stain souls ≥ 2000 or humanity ≥ 2 → from zone 1 again, pick it up on the way (only with no foe within 15 m of the bot or the stain); less → end; died again in the same zone → end (`--no-recover` = old). (3) record only: black box splits fall from hits, one `death` event per death (`✝ 사망 원인: …`). Watch `══ 사망 뒤`, `핏자국 회수`. Why: `docs/analysis-death-2026-10-12.md` (P-71, P-72). `sample.py` now also copies the events `<run>.jsonl` (`death_seen` / `fall` / `after_death` reach [cloud] only that way).
+- 2026-10-12 [cloud→board] **`git pull` — fall / death policy changed (MoKa 10-12)**: (1) no quit-out on a fall — only `⚠ 낙하 … 퀵 종료 안 함` + event `fall`, pad stays with the bot (old way: `--fall-quit`). (2) `burg-upper` after a death: stain souls ≥ 2000 or humanity ≥ 2 → from zone 1 again, pick it up on the way (only with no foe within 15 m of the bot or the stain); less → end; died again in the same zone → end (`--no-recover` = old). (3) record only: black box splits fall from hits, one `death` event per death (`✝ 사망 원인: …`). (4) alignment record: end line `정렬 (몸 30° · 카메라 10° 또는 락온): …`. Watch `══ 사망 뒤`, `핏자국 회수`. Why: `docs/analysis-death-2026-10-12.md` (P-71, P-72). `sample.py` now also copies the events `<run>.jsonl` (`death_seen` / `fall` / `after_death` reach [cloud] only that way).
 
 ## 6. Change log (newest first; older entries in `docs/roadmap/changelog.md`)
 

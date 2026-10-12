@@ -9,6 +9,7 @@ Rules that live only in this layer (not repeated elsewhere):
 """
 from __future__ import annotations
 
+import functools
 import math
 import time
 from dataclasses import dataclass, field
@@ -76,6 +77,34 @@ def rel_angle(p, c) -> float:
     return (math.atan2(c.x - p.x, c.z - p.z) - fwd + math.pi) % (2 * math.pi) - math.pi
 
 
+ALIGN_BODY_DEG = 30.0    # alignment record ([MoKa] 10-11 "공격 대상과 캐릭터 정렬, 카메라 방향 일치도 우선순위가 높은 작업"): body within this
+ALIGN_CAM_DEG = 10.0     # … and camera within this (= camera.DEADBAND) of the target = aligned
+
+
+def _aligned(si: int):
+    """Record target–body–camera at the moment an attack is pressed (args[si] = snapshot, args[si + 1] = target), then the
+    damage it did — Moves.align_sink(**row) if set (run.py → "attack_align" event). Record only; never changes the attack."""
+    def deco(fn):
+        @functools.wraps(fn)
+        def w(self, *a, **k):
+            sink = self.align_sink
+            if sink is None:
+                return fn(self, *a, **k)
+            try:
+                pre = self.align_of(a[si], a[si + 1])
+            except Exception:
+                pre = None
+            hit = fn(self, *a, **k)
+            if pre is not None:
+                try:
+                    sink(kind=getattr(hit, "kind", fn.__name__), dmg=getattr(hit, "dmg", None), **pre)
+                except Exception:
+                    pass
+            return hit
+        return w
+    return deco
+
+
 LOOK_MAX_S = 0.25         # longest single camera tap (≈ 37° at full stick)
 LOCK_BODY_DEG = 20.0     # before R3: body within this of the target …
 LOCK_CAM_DEG = 6.0       # … and camera within this (R3 grabs whatever is nearest camera centre)
@@ -91,6 +120,7 @@ class Moves:
         self.guard_ok = True     # False = never raise the shield (backstep style. User: "Don't guard when backstepping — dodge and attack, keep it simple")
         self.cam_target = None   # enemy ptr for the camera to face — set by layer 4 (field.fight·lure), followed by camera.CamFollow
         self.cam_busy = False    # this layer is using the camera directly (knife lock-on) — CamFollow stays hands off
+        self.align_sink = None   # callable(**row) — target–body–camera at each attack press (_aligned; run.py → "attack_align")
         # what layer 4 is doing, for viewers only (radar.py reads these; nothing in the bot reads them back)
         self.show_path = None    # (tag, [(x, y, z), ...]) while field.walk follows a path
         self.show_spot = None    # (tag, (x, y, z), time) — last spot field._hold_at held
@@ -113,6 +143,16 @@ class Moves:
             return None
         ang = math.atan2(x - s.player.x, z - s.player.z)
         return math.degrees((ang - (s.cam_yaw + nav.YAW_OFFSET) + math.pi) % (2 * math.pi) - math.pi)
+
+    def align_of(self, s, c) -> dict:
+        """Target–body–camera in one row: body / cam = how far (°, + right) the target is off my facing / the camera centre,
+        d / dy = distance / height to it, lock = locked on it, ok = body ≤ ALIGN_BODY_DEG and camera ≤ ALIGN_CAM_DEG."""
+        body = None if s.player.heading is None else math.degrees(rel_angle(s.player, c))
+        cam = self.cam_err(s, c.x, c.z)
+        lock = self.lock_state(c.ptr) == "target"
+        ok = body is not None and abs(body) <= ALIGN_BODY_DEG and (lock or (cam is not None and abs(cam) <= ALIGN_CAM_DEG))
+        return {"npc": c.npc_param, "d": round(horiz(s.player, c), 2), "dy": round(c.y - s.player.y, 2),
+                "body": None if body is None else round(body, 1), "cam": None if cam is None else round(cam, 1), "lock": lock, "ok": ok}
 
     def look_pulse(self, err: float, dur: float = 0.06) -> None:
         """One short right-stick pulse toward err. If the sign is unknown, learn it from this pulse."""
@@ -233,6 +273,7 @@ class Moves:
         hit.dmg, hit.dead, hit.taken = ehp0 - e_min, e_min <= 0, hp0 - my_min
         hit.others = sum(1 for k, v in side0.items() if side_min[k] < v)
 
+    @_aligned(0)
     def light(self, s, c, n: int = 1, sp_second: int = 40) -> Hit:
         """Light attack (R1) n times (1 or 2). The second at SECOND_R1_AT after the first R1, only if stamina exceeds sp_second.
         The shield goes up after the last attack anim starts (so the second R1 isn't overridden by guard)."""
@@ -284,6 +325,7 @@ class Moves:
         else:
             self._zero.pop(c.ptr, None)
 
+    @_aligned(0)
     def heavy(self, s, c) -> Hit:
         """Heavy attack (R2) — press with the stick released (forward+R2 is a jump attack). Called by upper layers only when the weapon uses heavies."""
         hit = Hit("heavy", presses=1)
@@ -299,6 +341,7 @@ class Moves:
                         lambda t, h: self.guard(True) if t > 0.9 else None)
         return hit
 
+    @_aligned(0)
     def kick(self, s, c) -> Hit:
         """Kick = stick toward the target + R1 in the same input (control.kick). Breaks a shield guard (wiki: guarding enemies stagger)."""
         hit = Hit("kick", presses=1)
@@ -314,6 +357,7 @@ class Moves:
         self._watch(hit, ptr, hp0, ehp0, 1.2)
         return hit
 
+    @_aligned(0)
     def kick_combo(self, s, c, n: int = 2) -> Hit:
         """Kick → n light hits right as the guard breaks (one move, bypasses the decision loop).
         User: "The gap between the kick and the attack is too long, the shield soldier guards again and it fails" — the kick lands and 9600 (guard broken)·9920
@@ -389,6 +433,7 @@ class Moves:
     }
     COMBO_WATCH = {"backstep_r1": BS_TO_R1 + 1.1, "roll_r1": 2.0, "jump_r2": 1.8}
 
+    @_aligned(1)
     def combo(self, name: str, s, c, nm=None, need_back: float = 0.0, need_front: float = 3.0) -> Hit:
         """One combo as one move. Floor check: need_back m behind·need_front m ahead (roll·jump move forward)."""
         hit = Hit(name, presses=0)

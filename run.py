@@ -270,7 +270,8 @@ def main() -> None:
     fld = Field(mv, w, esc, bonfires=[] if a.cmd == "asylum" else [missions.FIRELINK["stand"], missions.BURG_BONFIRE],
                 log=log, events=log.event, style=a.style)
     from souls.camera import CamFollow
-    cam = CamFollow(mv, esc, log=log).start()          # so a viewer can see what the bot is doing (user 2026-09-26)
+    cam = CamFollow(mv, esc, log=log, events=log.event).start()   # so a viewer can see what the bot is doing (user 2026-09-26)
+    mv.align_sink = cam.on_attack                          # target–body–camera at each attack press → "attack_align" ([MoKa] 10-11)
     log(f"스타일: {a.style}")
     laya_ch = None
     if a.laya_shadow:
@@ -421,6 +422,7 @@ def main() -> None:
                 pass
             cam.stop()
             log(cam.stats())
+            log(cam.align_stats())
             esc.stop()
             blood.stop()
             bbox.stop()
