@@ -16,21 +16,16 @@ plan.md "Open-item details". On a change: rewrite the line (now / next only); re
 | `docs/roadmap/plan.md` | sections 0 … 7, every done item, "Open-item details" (per id), "Done items" (from `tidy`) |
 | `docs/roadmap/problems.md` | problem log P-1 … (**new problems appended here**) + "Closed problem index" (fixed / won't fix) |
 | `docs/roadmap/relay.md` · `changelog.md` | handled relay entries · old change log |
-| `docs/analysis-2026-10-09.md` | problem analysis, public cases, proposals |
-| `docs/design-*.md` | multi-foe-spot · walk-follow · floor-check · scene-expectations · run-settings designs |
-| `docs/review-v2-2026-10-11.md` | v1.0 → v2.0 review: structure problems, 2.0 features and order |
-| `docs/research-control-priority-2026-10-11.md` · `guide-control-priority.md` | consistency research (MoKa 10-11) · rules for fixes |
-| `docs/code-read-fall-death-2026-10-11.md` · `analysis-death-2026-10-12.md` | fall / death code reading · 38-death analysis |
-| `docs/boss-taurus.md` · `shop-undead-merchant.md` | Taurus Demon guide · merchant menus + shop routine |
+| `docs/design-*.md` · `review-v2-2026-10-11.md` | designs · v2.0 review (structure problems, features, order) |
+| `docs/analysis-*.md` · `research-` / `guide-control-priority*` · `code-read-fall-death-*` | analyses (10-09, 38 deaths) · consistency rules · fall code |
+| `docs/boss-taurus.md` · `shop-undead-merchant.md` · `stages/` | Taurus · merchant · per-stage notes |
 
 ---
 
-## v1.0 / v2.0 (MoKa 2026-10-11: keep them apart)
+## v1.0 / v2.0 (MoKa 10-11: kept apart)
 
-- **v1.0** = today's structure (`souls/field.py`'s own loops, zones in `souls/missions.py`, module constants). Sections 1–2:
-  game checks of what is built, MoKa decisions, small fixes. No structure work here.
-- **v2.0** = section 3, the structure from `docs/review-v2-2026-10-11.md`. Starts after the `v1.0` tag (which commit: MoKa).
-- A new item goes to v2.0 when it needs the tick loop, route data, the settings object or WorldState; otherwise v1.0.
+Tag `v1.0` = `b234344` (MoKa 10-12). v1.0 structure (field.py loops, zones in code): sections 1–2. v2.0 (section 3) = items
+needing the tick loop, route data, settings object or WorldState.
 
 ## 1. Now (v1.0) — Undead Burg bonfire → Taurus Demon (1-m, MoKa 2026-10-06)
 
@@ -53,6 +48,13 @@ plan.md "Open-item details". On a change: rewrite the line (now / next only); re
 - [ ] firebomb-candidate | cloud | todo | firebomb as a candidate next to knife / melee (lure opener · 2+ foes · ledge); no limit, none = as now | plan:firebomb-candidate
 - [ ] bow | cloud+win | todo | bow: buy, switch shield ↔ bow, locked-on shot, measure — after the firebomb | plan:bow
 - [ ] npc-module | cloud | todo | NPC interaction as one module (talk / shop / quests); the merchant is the first case | souls/shop.py · plan:npc-module
+
+## 1-b. Taurus → Sunlight Altar, Claymore as main (MoKa 10-12)
+
+- [ ] altar-route-rec | MoKa | todo | record Taurus → Hellkite stairs → ladder kick → dash → altar | docs/stages/burg-to-altar.md
+- [ ] claymore-grip | MoKa | decide | STR now? one-hand + shield (as now) or two-hand; default → Claymore? | docs/stages/burg-to-altar.md
+- [ ] claymore-measure | win | todo | air swings light + thrust (`swing_probe.py`); reach from black box | docs/stages/burg-to-altar.md
+- [ ] altar-mission | cloud | todo | Claymore test sets (all axe now); `run.py altar`: dash, pick 51010210 | docs/stages/burg-to-altar.md
 
 ## 2. v1.0 — open by area
 
@@ -87,7 +89,7 @@ plan.md "Open-item details". On a change: rewrite the line (now / next only); re
 - [~] radar-upgrade | win | doing | radar upgrade check (navmesh drawn, pad slots, recording, `--replay`) | plan:radar-upgrade
 - [ ] radar-ai-ranges | win | todo | radar AI ranges (sight cone, hearing circle, leash) match the game | plan:radar-ai-ranges
 
-## 3. v2.0 — after the `v1.0` tag (`docs/review-v2-2026-10-11.md`; go, done bar N/10 and order: MoKa)
+## 3. v2.0 (`docs/review-v2-2026-10-11.md`; go, done bar N/10 and order: MoKa)
 
 **Structure (review §2; proposed order §4: settings → WorldState → tick loop → route data → spots → batch runner → boss)**
 - [ ] settings-object | cloud | todo | one settings object instead of ~228 module constants `run.py` overwrites; `runinfo` saves it | docs/review-v2-2026-10-11.md
