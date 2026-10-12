@@ -32,6 +32,7 @@ def main() -> None:
     ap.add_argument("--hold", type=float, default=0.1)
     ap.add_argument("--wait", type=float, default=0.8)
     ap.add_argument("--tag", default="")
+    ap.add_argument("--dir", default="", help="subfolder of data/shop/ (default: today's date)")
     a = ap.parse_args()
 
     import control
@@ -60,7 +61,7 @@ def main() -> None:
                 pad.press(names[btn], a.hold)
                 time.sleep(0.25 if i < a.n - 1 else 0.0)
         time.sleep(a.wait)
-        out = ROOT / "data" / "shop" / time.strftime("%Y%m%d")
+        out = ROOT / "data" / "shop" / (a.dir or time.strftime("%Y%m%d"))
         out.mkdir(parents=True, exist_ok=True)
         n = len(list(out.glob("*.jpg"))) + 1
         name = f"{n:02d}_{btn.lower()}{'x' + str(a.n) if a.n > 1 else ''}{'_' + a.tag if a.tag else ''}.jpg"

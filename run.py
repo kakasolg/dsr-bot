@@ -115,6 +115,8 @@ def main() -> None:
     ap.add_argument("--fall-quit", action="store_true", help="낙하 때 예전처럼 퀵 종료 (기본: 기록만 하고 계속, [MoKa] 2026-10-12)")
     ap.add_argument("--buy", default=None, help="상인에게서 살 것 '290:30,292:20' (goods:개수 — 290 투척 나이프, 292 화염병). "
                     "merchant-buy: 지금 선 곳에서 · burg-bonfire --seg …5: 상인 도착 뒤 (souls/shop.py)")
+    ap.add_argument("--throw", action="store_true", help="burg-upper: 투척 나이프로 유인 (달려가기 전), 화염병 — 둘 이상 다가올 때 · 턱 위 화염병 망자 "
+                    "(souls/missions.py FB_*; 퀵 슬롯에 290 · 292, [MoKa] 2026-10-12)")
     ap.add_argument("--shop-shots", action="store_true", help="상점 단계마다 스크린샷 data/shop/<날짜>/ (pad_step.py처럼)")
     ap.add_argument("--no-recover", action="store_true", help="burg-upper: 죽으면 그대로 끝 (기본: 핏자국이 값지면 화톳불부터 다시 가서 회수, souls/afterdeath.py)")
     ap.add_argument("--i", type=int, default=5, help="hunt-one: BURG_TOWN 몇 번째 (5 = 석궁병 255002)")
@@ -334,6 +336,7 @@ def main() -> None:
     runinfo.update(settings_path, game=runinfo.game(tm, mv, w))
     fld.run_id = log.path.stem                              # fight ids: <run>#f001 … (Field.fight)
     ms = missions.Missions(fld, nms, log=log, lure=not a.no_lure)
+    ms.throw = a.throw
     result = "exception"
     try:
         if a.cmd == "burg-bonfire" and a.seg:
