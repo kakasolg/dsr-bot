@@ -32,6 +32,8 @@ PERCH_Y = 15.0
 COVER_WAIT_S = 60.0
 TERRACE_WAIT_S = 25.0
 PICK_TRIES = 3
+LADDER_TRIES = 3
+LADDER_DOWN_S = 12.0
 
 
 def load_route(data_dir) -> dict:
@@ -145,6 +147,96 @@ class Altar:
                 return
             time.sleep(0.2)
         self.log(f"   ④ {TERRACE_WAIT_S:.0f} s 기다려도 다리 위 — {self._where(self.mv.snap(80.0))}, 그냥 감")
+
+    def back_to_burg(self) -> str:
+        """Altar → over the bridge → under it → down the kicked ladder → Undead Burg bonfire ([MoKa] 착지 안 하면 "숏컷으로 성안
+        화톳불로 가서 쉬고 다시 올라오면 됨"). → 'arrived' | 'died' | '<step> <result>'"""
+        if not self.f.alive():
+            return "died"
+        m, lad = self.R["markers"], self.R["ladder_shortcut"]
+        try:
+            s = self.mv.snap(80.0)
+            self.log(f"   시작: {self._where(s)}")
+            self.f.ignore_npcs = {DRAKE}
+            self.f.walk_heal = False                       # 다리 위에서 멈춰 마시지 않음
+            r = self.f.walk_to(tuple(m["2_stairs_bottom"]), self.nm, "다리 건너 계단 아래로", mode="sprint")
+            self.f.walk_heal = True
+            self.log(f"   계단 아래로: {r}")
+            if r == "dead" or not self.f.alive():
+                return "died"
+            r = self.f.walk_to(tuple(lad["top"]), self.nm, "사다리 위로")
+            self.log(f"   사다리 위로: {r}")
+            if r == "dead" or not self.f.alive():
+                return "died"
+            r = self._ladder_down(tuple(lad["top"]), tuple(lad["face"]), float(lad["bottom"][1]))
+            if r != "ok":
+                return f"사다리 {r}"
+            r = self.f.walk_to(tuple(self.R["burg_bonfire"]), self.nm, "성벽 마을 화톳불로")
+            self.log(f"   성벽 마을 화톳불로: {r}")
+            if r == "dead" or not self.f.alive():
+                return "died"
+            return "arrived" if r in ("arrived", "done") else f"화톳불 {r}"
+        finally:
+            self.f.ignore_npcs = set()
+            self.f.walk_heal = True
+            self.pad.sprint(False)
+            self.pad.neutral()
+
+    def _ladder_down(self, top, face, bottom_y: float) -> str:
+        """Demo 285.9 s: at the top facing the ladder (heading −2.63), A → 7020 gets on → 7005 / 7001 slide → 7002 at the bottom in 2 s.
+        Stick down only once a ladder anim (7000–7099) shows — 첫 시험(153818)은 A가 안 먹힌 채 스틱 아래(= 뒤로 걷기)로
+        사다리 구멍에 떨어짐 (10.1 m, −143), 턱 되돌림도 입구를 턱으로 읽고 끌어당김 → 사다리 동안 둘 다 끔."""
+        esc = self.f.esc
+        saved = (getattr(esc, "nudge_ok", True), getattr(esc, "planned", None))
+        try:
+            esc.nudge_ok, esc.planned = False, "사다리 내려가기"
+            return self._ladder_down_(top, face, bottom_y)
+        finally:
+            esc.nudge_ok, esc.planned = saved
+            self.pad.neutral()
+
+    def _on_ladder(self) -> bool:
+        s = self.mv.snap(5.0)
+        return s is not None and s.player.anim is not None and 7000 <= s.player.anim < 7100
+
+    def _ladder_down_(self, top, face, bottom_y: float) -> str:
+        self.f._settle(top, tol=0.4)
+        for attempt in range(LADDER_TRIES):
+            s = self.mv.snap(5.0)
+            if s is not None and s.cam_yaw is not None:
+                self.pad.move(*self.mv.stick_to(s, face[0], face[2], 0.35))
+                time.sleep(0.25)
+                self.pad.move(0.0, 0.0)
+                time.sleep(0.2)
+            self.pad.interact()
+            t1 = time.time()
+            while time.time() - t1 < 1.5 and not self._on_ladder():
+                time.sleep(0.05)
+            if not self._on_ladder():
+                s = self.mv.snap(5.0)
+                self.log(f"   사다리: A 뒤 안 탐 ({attempt + 1}/{LADDER_TRIES}, 애니 {None if s is None else s.player.anim})")
+                self.f._settle(top, tol=0.4)
+                continue
+            t0 = time.time()
+            while time.time() - t0 < LADDER_DOWN_S:
+                self.pad.move(0.0, -1.0)                    # stick down = climb down
+                time.sleep(0.1)
+                s = self.mv.snap(5.0)
+                if s is not None and s.player.y <= bottom_y + 0.5:
+                    break
+            self.pad.neutral()
+            time.sleep(0.8)
+            s = self.mv.snap(5.0)
+            if s is not None and s.player.y <= bottom_y + 0.6:
+                self.log(f"   사다리 내려감 (y {s.player.y:.1f})")
+                self.events("altar", what="ladder_down", ok=True, tries=attempt + 1)
+                return "ok"
+            self.log(f"   사다리 안 내려감 ({attempt + 1}/{LADDER_TRIES}, y {None if s is None else round(s.player.y, 1)})")
+            if s is not None and s.player.y < top[1] - 1.0:
+                return "stuck"                              # on the ladder but not down — don't walk off it
+            self.f._settle(top, tol=0.4)
+        self.events("altar", what="ladder_down", ok=False)
+        return "fail"
 
     def _claymore(self) -> str:
         c = self.R["claymore"]
