@@ -51,6 +51,12 @@ zone 8 crossbowmen (P-47).
 - [~] [win] Zone-by-zone bot runs; after each: `blind_report.py` · `hotspots.py` · `track_report.py`, logs to `data/samples/`
 - [~] [MoKa] Recordings of the route (3 done, Taurus killed in the 3rd) — more only if a zone needs it
 
+**Firebombs · bow from the Undead Merchant (MoKa 10-12: "난이도가 급격히 줄어"), in order:**
+- [ ] [MoKa] Buy firebombs (~20) into the test save (+ bow and arrows to try); souls budget per run?
+- [ ] [win] Locked-on firebomb at 254010 from 5 · 8 · 12 · 15 m: hit, damage, others woken (`throw_firebomb` result); confirm id 292
+- [ ] [cloud] Firebomb as a candidate (lure opener · 2+ foes · ledge 254012) next to knife / melee (count · distance · foes); golden + expect
+- [ ] [cloud]+[win] Bow: switch shield ↔ bow, locked-on shot, measure — after the firebomb
+
 ## 2. v1.0 — open by area
 
 **Fight rules / reflexes (1-j: "basic reflexes done right", MoKa 10-02)**
@@ -188,7 +194,7 @@ Full entries: `docs/roadmap/problems.md`. Status: **open** · **parked** · **de
 | 68 | Zone 5: heavy into 255000's shield 0 dmg → low_hp, Estus refused 3×, 255001 joins → dead; bot kept acting after death (TypeError) | death part: fixed — game 10-11 zone 8 death ended the zone at once, no error; shield part open |
 | 69 | Zone 1: the foe fell off the ledge mid-fight, the bot walked after it and fell (fall quit-out, recovered) | open → [cloud] |
 | 70 | Zone 1 stairs: 0.1 s sprint B between braked points = roll off the stairs; 3 runs dead | verify — `Pad.sprint` holds B ≥ 0.45 s; 10-12 3 full runs: zone 1 cleared 3/3, no roll |
-| 71 | Second fall right after a fall quit-out, where `Escape` is blind (inside `fire()` / cooldown); pad frozen vs a 1.6 m swing; black box blames the foe | verify — MoKa 10-12: no quit-out on falls (`fall_seen`) |
+| 71 | Fall deaths: a second fall right after a fall quit-out, `Escape` blind, pad frozen; black box blames the foe | verify — MoKa 10-12: no quit-out on falls (`fall_seen`) |
 | 72 | Deaths never fetched their bloodstain (38 deaths, 0 pickup trips) | verify — `souls/afterdeath.py`: worth it → back from zone 1 and pick; small / same zone → end |
 
 ## 5. Relay — [cloud] ↔ board
@@ -199,7 +205,7 @@ to the bottom of `docs/roadmap/relay.md`.
 
 (handled entries: `docs/roadmap/relay.md`, last moved 2026-10-12)
 
-- 2026-10-12 [cloud→board] **`git pull` — fall / death policy changed (MoKa 10-12)**: (1) no quit-out on a fall — only `⚠ 낙하 … 퀵 종료 안 함` + event `fall`, pad stays with the bot (old way: `--fall-quit`). (2) `burg-upper` after a death: stain souls ≥ 2000 or humanity ≥ 2 → from zone 1 again, pick it up on the way; less → end; died again in the same zone → end (`--no-recover` = old). Watch `══ 사망 뒤`, `핏자국 회수`. Why: `docs/analysis-death-2026-10-12.md` (answer to the code reading; P-71, P-72). `sample.py` now also copies the events `<run>.jsonl` (`death_seen` / `fall` / `after_death` reach [cloud] only that way).
+- 2026-10-12 [cloud→board] **`git pull` — fall / death policy changed (MoKa 10-12)**: (1) no quit-out on a fall — only `⚠ 낙하 … 퀵 종료 안 함` + event `fall`, pad stays with the bot (old way: `--fall-quit`). (2) `burg-upper` after a death: stain souls ≥ 2000 or humanity ≥ 2 → from zone 1 again, pick it up on the way; less → end; died again in the same zone → end (`--no-recover` = old). Watch `══ 사망 뒤`, `핏자국 회수`. Why: `docs/analysis-death-2026-10-12.md` (P-71, P-72). `sample.py` now also copies the events `<run>.jsonl` (`death_seen` / `fall` / `after_death` reach [cloud] only that way).
 
 ## 6. Change log (newest first; older entries in `docs/roadmap/changelog.md`)
 
