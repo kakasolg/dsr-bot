@@ -62,7 +62,8 @@ WAIT_APPROACH_S = 3.0    # wait_far: if it doesn't come WAIT_CLOSE_M closer in t
 WAIT_CLOSE_M = 0.5
 WAIT_HURT_HP = 120.0    # if this much HP is lost while waiting via wait_far — being hit by something other than the tracked (non-swinging) target, stop waiting
 LEDGE_DY = 3.0           # don't lure it if it is this much above or below arena (it won't follow)
-SWING_S = 1.6            # past this since the attack anim started, not considered swinging
+SWING_S = 1.6            # past this since the attack anim started, not considered swinging — except a windup that hasn't landed (swing_over)
+LAND_PAD = 0.2           # a windup (foes.Foe.windup_land_s) counts as landed this long after its measured landing time
 AFTER_SWING_S = 0.6      # rule_after_swing: right after its swing ends, this long to strike ([MoKa] '끝나면 무조건 공격')
 AFTER_SWING_DEG = 45.0   # …strike at once if aimed within this (turn first only beyond it)
 AFTER_SWING_STEP = 1.2   # …and step in if it's at most this much beyond our reach
@@ -577,7 +578,10 @@ class Fight:
         self.cancel, self.care, self.reflex, self.arena, self.style = cancel, care, reflex, arena, style
         self.wait_far, self.may_approach = wait_far, may_approach
         self.crowd_ok = crowd_ok                           # True: 둘 이상에게 둘러싸이면 HP와 상관없이 싸움을 끝낸다 ('crowd') — Field 가 물러남
-        self.shot_hp, self.shots, self.swung = None, [], {}   # rule_shot: HP last tick, times hit from afar, ptr → last attack anim seen
+        # rule_shot: HP last tick, times hit from afar, ptr → last time seen swinging — Moves.swung, kept by every snapshot read
+        # (also inside attack moves and by the camera), so a swing during a multi-second kick combo is not missed (P-66 b)
+        self.shot_hp, self.shots = None, []
+        self.swung = mv.__dict__.setdefault("swung", {}) if hasattr(mv, "__dict__") else {}
         self.trail = trail or []                           # where we walked (Field.trail) — escape.pick's 'way we came' for a split with no spot
         self.wall_ok = wall_ok                             # True: WALL_BACK_N 이상이 붙었는데 벽 옆이 아니면 끝낸다 ('crowd', wall_back) — Field 가 벽으로
         self.t0 = time.time()
@@ -806,6 +810,20 @@ def _awake_anim(a) -> bool:
     return a not in (None, -1) and not (9000 <= a < 9100) and a not in M.STAGGER and a not in M.DOWNED
 
 
+def swing_over(foe, a, age) -> bool:
+    """The foe's attack anim is over — it lingers in the 3000s 1.5–5.3 s after the hit, so past SWING_S it counts as standing.
+    A windup (foe.windup) is not over before it lands (foe.windup_land_s + LAND_PAD): P-66 — the shield soldier's 3004 lands at
+    2.0–2.1 s, rule_after_swing (6th) took it as ended at 1.6 s and kicked into it (−228) while rule_late_windup_block (9th),
+    which knows it lands later, never got its turn. One measure for rule_after_swing, prep_linger and prep_face."""
+    if a is None or a not in M.ATTACK or age is None:
+        return False
+    limit = SWING_S
+    land = getattr(foe, "windup_land_s", None)            # (getattr: test fakes carry only the Foe fields they need)
+    if land and a in getattr(foe, "windup", ()):
+        limit = max(SWING_S, land + LAND_PAD)
+    return age > limit
+
+
 def rule_shot(F, T):
     """Hit from afar while waiting or fighting — leave its line of fire (10-11 video review: 10-03e 52–58 s, −113 ×2 at the ramp
     flat while the shield soldier next to us was staggered — the ledge firebomb hollow). First in RULES so it sees every tick;
@@ -1011,7 +1029,8 @@ def rule_after_swing(F, T):
     ── 휘두름이 끝나면 무조건 친다 ([MoKa] 2026-10-06) ──────────────────────────────
      "상대가 휘두르는 애니 끝나면 무조건 공격해야해. 가끔 보면 타이밍 안 맞는다고 다음 기다리는데, 적들이 몰려오는데
       다음 텀 기다리면 다대일 되서 좋을게 없어."
-     · 끝 = 공격 애니(3000번대)에서 벗어난 틱, 또는 SWING_S 넘게 이어진 공격(prep_linger와 같은 기준). 그 뒤 AFTER_SWING_S 안
+     · 끝 = 공격 애니(3000번대)에서 벗어난 틱, 또는 swing_over(SWING_S 넘게 이어진 공격, 떨어지기 전 windup은 아님 — P-66;
+       prep_linger와 같은 기준). 그 뒤 AFTER_SWING_S 안
      · 전엔 rule_face_first(30° 넘으면 먼저 돌기)·rule_hit_first(방패병 제외, 닿는 거리 안만)·rule_wait_far(멀면 기다림)
        때문에 한 텀 쉬는 일이 있었다 → 여기선 AFTER_SWING_DEG 안이면 바로, 닿는 거리 + AFTER_SWING_STEP 안이면 한 걸음 들어가 친다
      · 방패병(kick_when_idle)은 발차기 → 약공(rule_attack과 같은 콤보), 옆에 다른 적이 있으면 한 번만 치고 방패(rule_hit_first와 같음)
@@ -1020,7 +1039,7 @@ def rule_after_swing(F, T):
     prev = F.__dict__.get("_aprev")
     F._aprev = a_raw
     started = getattr(F.reflex, "_start", {}).get(F.ptr) if F.reflex is not None else None   # identifies this one attack
-    if a_raw in M.ATTACK and T.age is not None and T.age > SWING_S and F.__dict__.get("_swing_aged") != started:
+    if swing_over(F.foe, a_raw, T.age) and F.__dict__.get("_swing_aged") != started:
         F._swing_aged = started
         F._swing_end_t = now
     elif prev in M.ATTACK and a_raw not in M.ATTACK:
@@ -1029,7 +1048,7 @@ def rule_after_swing(F, T):
     if end_t is None or now - end_t > AFTER_SWING_S:
         return None
     w, c, p = F.weapon, T.c, T.p
-    if (c is None or c.hp <= 0 or a_raw in M.ATTACK and not (T.age is not None and T.age > SWING_S) or abs(T.dy) > 1.0
+    if (c is None or c.hp <= 0 or a_raw in M.ATTACK and not swing_over(F.foe, a_raw, T.age) or abs(T.dy) > 1.0
             or T.h > w.reach + AFTER_SWING_STEP or (p.sp or 0) < w.sp_min or _other_swinging(T.s, F.ptr)
             or p.anim not in (None, -1) and not (100 <= p.anim < 200)):
         return None
@@ -1092,7 +1111,7 @@ def prep_linger(F, T):
     """If the 3000 series lasts beyond SWING_S it isn't swinging (it lingers 1.5–5.3 s after the attack ends — log analysis).
     The spear shield soldier (255002) stays in 3001 holding up its shield, so for 15 s we only blocked at 1.4 m and never kicked.
     Also: room for a backstab (wall / drop at its back → no backstab, normal rules)."""
-    if T.a in M.ATTACK and T.age is not None and T.age > SWING_S:
+    if swing_over(F.foe, T.a, T.age):
         T.a = -1
     foe = F.foe
     T.room = BACKSTAB and foe is not None and foe.circle_behind and T.now >= F.edge_until and _room_behind(F.nm, T.p, T.c)
@@ -1470,7 +1489,7 @@ def prep_face(F, T):
     if c is None:
         return CONT
     a = c.anim if c.anim is not None else -1
-    if a in M.ATTACK and F.reflex is not None and (F.reflex.attack_age(F.ptr) or 0.0) > SWING_S:
+    if a in M.ATTACK and F.reflex is not None and swing_over(F.foe, a, F.reflex.attack_age(F.ptr) or 0.0):
         a = -1                                             # 3000 series lingering in guard stance — treat as standing (kick)
     T.s, T.c, T.a = s, c, a
     T.behind_deg = abs(math.degrees(M.rel_angle(c, s.player))) if c.heading is not None else 0.0

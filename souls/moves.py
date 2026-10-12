@@ -120,6 +120,7 @@ class Moves:
         self.guard_ok = True     # False = never raise the shield (backstep style. User: "Don't guard when backstepping — dodge and attack, keep it simple")
         self.cam_target = None   # enemy ptr for the camera to face — set by layer 4 (field.fight·lure), followed by camera.CamFollow
         self.cam_busy = False    # this layer is using the camera directly (knife lock-on) — CamFollow stays hands off
+        self.swung: dict = {}    # ptr → last time seen in an attack anim (_note_swings, every snapshot) — duel.rule_shot
         self.align_sink = None   # callable(**row) — target–body–camera at each attack press (_aligned; run.py → "attack_align")
         # what layer 4 is doing, for viewers only (radar.py reads these; nothing in the bot reads them back)
         self.show_path = None    # (tag, [(x, y, z), ...]) while field.walk follows a path
@@ -211,7 +212,22 @@ class Moves:
 
     # ── Observing ────────────────────────────────────────────────
     def snap(self, within: float = 40.0):
-        return self.tm.snapshot(within=within)
+        s = self.tm.snapshot(within=within)
+        if s is not None:
+            self._note_swings(s)
+        return s
+
+    def _note_swings(self, s) -> None:
+        """Perception kept by every snapshot read through here, from any thread (the decision loop, an attack move's _watch, the
+        camera): ptr → last time seen in an attack anim. duel.rule_shot reads it — during a multi-second attack move the decision
+        loop doesn't tick, so a swing seen only there was missed and the hit taken for a thrower's (P-66 b, 161435 80.6 s)."""
+        sw = self.__dict__.get("swung")
+        if sw is None:
+            sw = self.__dict__.setdefault("swung", {})
+        now = time.time()
+        for c in getattr(s, "chars", ()):
+            if c.anim is not None and c.anim in ATTACK and c.hp > 0:
+                sw[c.ptr] = now
 
     @staticmethod
     def find(s, ptr):

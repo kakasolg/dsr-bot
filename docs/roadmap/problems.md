@@ -752,6 +752,14 @@ New problems still go here (append at the bottom) and get a one-line row in ROAD
   가는 길에 그 안으로 적이 들어오면 걷기를 멈춤 (A 안 누름). `tests/afterdeath_test.py`에 네 장면.
 - 2026-10-12 [cloud] 기록 쪽 (5) 고침 (동작 그대로): 블랙박스가 묶음 안 내 낙차로 낙하 몫을 가름 (`blackbox.fall_split`, 범인은 피격 몫에만),
   사망마다 `death` 이벤트 (`cause` fall | hit | unknown). 003442: `피격 -59 + 낙하 -610 (10.1 m)`, 10-06a: `낙하 -520`, 범인 없음. `tests/death_record_test.py`.
+- 2026-10-12 [cloud] 고침 (가이드 4절 '공통 특징량' — 새 조건 아님):
+  (a) `duel.swing_over(foe, anim, age)` 하나로 "휘두름이 끝났나"를 after_swing · prep_linger · prep_face가 같이 씀. SWING_S 1.6 s는 그대로,
+  다만 windup은 떨어지기 전엔 안 끝남 — `foes.Foe.windup_land_s` (방패병 3004 2.1 s, 도끼 망자 3004 1.7 s, 둘 다 블랙박스·관측으로 잰 값) + `LAND_PAD` 0.2 s.
+  그래서 1.6~2.3 s엔 after_swing이 안 맞고 late_windup_block(9번째)이 막음, 떨어진 뒤엔 after_swing이 바로 반격 (규칙 순서는 그대로).
+  (b) 휘두름 기록을 규칙 밖으로: `Moves.snap`이 읽는 모든 스냅샷(결정 루프 · 공격 동작의 `_watch` · 카메라 스레드)에서 공격 애니인 적을
+  `Moves.swung`에 남기고 `rule_shot`이 그걸 씀 → 발차기 콤보 동안 본 3004도 남음.
+  확인: `tests/expect/duel.jsonl` P-66 장면 3개 (방패병 1.8 s 막음 · 2.5 s 발차기 · 도끼 1.65 s 막음 — 고치기 전 코드로는 앞 둘 FAIL),
+  `tests/pull_test.py` (b) 두 줄, golden 40,320 상황 그대로. 상태: verify — 방패병·도끼 망자 게임 확인 ([win]).
 
 ### P-73 경사로 #5: 254001 + 254002 둘에게 low_hp → '빈틈 쪽으로 구르기'가 경사로 턱 밖으로 → 22.4 m 낙사 (낙사 퀵 종료 없음 정책 첫 실제 사례, 2026-10-12, [win])
 
