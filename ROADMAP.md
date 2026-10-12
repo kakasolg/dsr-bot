@@ -4,7 +4,7 @@ Only open work, **one checked line per item**; everything else lives in `docs/ro
 `python roadmap.py check` (also `tests/roadmap_test.py`) · `tidy` (moves finished things out) · `queue win|cloud|MoKa` · `show <id>`.
 
 ```
-- [~] shop | cloud | doing | greeting can run several lines — wait on the screen | docs/shop-undead-merchant.md · plan:shop
+- [~] shop | win | verify | waits on the screen now (menu / list / qty masks, OK check; lines → A); `python -m souls.shop state`, then 3 buys | docs/shop-undead-merchant.md · plan:shop
   mark  id    who     stage   now / next (≤ 150 chars)                             where the details are
 ```
 mark `[ ]` `[~]` `[!]` blocked, `[x]` done / `[-]` dropped (→ `tidy`) · who = whose move it is now (`cloud` `win` `MoKa`, `+`)
@@ -167,7 +167,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 [cloud] can't reach the board: `- date [cloud→board] …` / `- date [board→cloud] …`. Whoever handles an entry starts it with
 `→ done` / `→ moved` right after the tag; `tidy` then moves it to `docs/roadmap/relay.md`.
 
-- 2026-10-12 [board→cloud] **`shop` game check 1: shop_fail** — greeting can be several lines and A during a line = next line, so every press shifted ~3 steps (menu only at the 'qty' step, list opened by the 'buy' A). Wait on the screen, not GREET_S. Details + shots: end of `docs/shop-undead-merchant.md`.
+- 2026-10-12 [cloud→board] **shop fixed (`git pull`)**: steps wait on the screen (menu / list / qty), greeting lines → A until the menu, OK checked before A. Game check 2 = end of `docs/shop-undead-merchant.md`.
 
 - 2026-10-12 [cloud→board] **Stage analysis (MoKa 10-12)**: `python stage_report.py` → `data/stages/burg-upper.json` + auto block of `docs/stages/burg-upper.md` (terrain · foes · our runs per zone; hand-written intent / response above it). [win]: rerun it after `sample.py` of a burg-upper run.
 

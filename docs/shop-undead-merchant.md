@@ -116,3 +116,23 @@
 대사 중에도 `menu_open` True라 메모리로는 구분 못 함. 제안: 고정 시간 대신 **화면 확인 뒤 다음 입력** — `quitout._is_screen`처럼
 처음 메뉴(왼쪽 패널 · 주황 선택 막대), 구매 목록("Purchase" 제목), 수량 창(가운데 상자) 기준 이미지. 대사가 남아 있으면 A로 넘기되
 처음 메뉴가 보일 때까지만.
+
+## [cloud] 고침 (게임 확인 1 뒤, 2026-10-12): 시간 대신 화면을 보고 다음 입력
+
+- `souls/shop.py` `Screen`: 창의 세 영역을 `quitout._is_screen`과 같은 글자 마스크(회색 → 240×40 → 밝기 > 150)로 기준과 비교 —
+  `menu` "Purchase Item / Talk / Leave" (05), `list` "Purchase / Select item to purchase" (06, 수량 창 밑에서도 보임),
+  `qty` 수량 창 "OK  CANCEL" 줄 (08). 기준 = `data/shop/ui/{menu,list,qty}.npy`, 이 기록 스크린샷에서 만듦 (`python -m souls.shop refs`).
+  기록 스크린샷 22장에 돌리면 전부 맞음: 같은 화면 어긋남 0.00–0.13, 다른 화면 0.91–1.00 (기준 0.35); 대사·게임 화면(01–04, 19–23)은 어느 것도 아님.
+  OK / CANCEL은 주황 선택 막대가 수량 줄 왼쪽(OK)·오른쪽(CANCEL) 어디에 더 많은지로 (08·14·15 CANCEL, 09·11·16 OK — 전부 맞음).
+- 순서: A (말 걸기) → `menu_open` → **메뉴나 목록이 보일 때까지**: 2.5 s 안에 안 보이면 대사가 남은 것 → A로 다음 줄 (최대 8줄)
+  → 메뉴면 A (Purchase Item) → 목록 확인 → 품목마다: 목록 확인 → DOWN/UP → A → **수량 창 확인** → UP ×(n−1) → RIGHT →
+  **OK 선택 확인** (아니면 RIGHT 한 번 더, 그래도 아니면 B로 창 닫고 다시 말 걸기) → A → 목록으로 돌아옴 확인 → 메모리 확인.
+  기대한 화면이 아니면 다음 버튼을 누르지 않음 → 나갔다 다시 말 걸어 그 품목 한 번 더 (두 번째도 안 되면 `shop_fail`).
+- 화면 기준이 없으면 `no_screen` (버튼 안 누름). 스크린샷(960 px JPEG)으로 만든 기준이 실제 창 캡처와 안 맞으면(로그
+  `상점: … ({'qty': …, 'list': …, 'menu': …})`의 어긋남 값) 그 화면을 띄워 두고 `python -m souls.shop calibrate menu|list|qty`로 다시 찍음;
+  `python -m souls.shop state` = 지금 화면 판정.
+- 오프라인: `tests/shop_test.py` — 가짜 상인 인사 4줄(A 없이는 3 s씩) → A로 넘겨 메뉴 → 기록대로 삼; 짧은 줄은 스스로 넘어감(A 안 더 누름);
+  RIGHT 씹힘 → OK 확인으로 잡아 한 번에 삼; RIGHT 두 번 씹힘 → B로 닫고 다시 말 걸어 삼; 행 A 씹힘 → 목록에 UP/RIGHT 안 누름;
+  실제 `Screen`을 기록 스크린샷에 돌린 판정.
+- [win] 게임 확인 2: 같은 세이브에서 `python -m souls.shop state` (상인 앞, 메뉴 띄워서 · 목록 · 수량 창) → 맞으면
+  `run.py merchant-buy --buy 290:30,292:20 --shop-shots` 3번.
