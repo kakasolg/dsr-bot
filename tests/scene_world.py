@@ -116,7 +116,8 @@ def decide(sc: dict) -> dict:
 
 def judge(sc: dict, expect: dict) -> tuple[bool, str, dict]:
     """→ (meets the expectation, why not, decision). expect: acceptable / forbidden (the first tactic), first_rule, has_rule
-    (acts on some tick — e.g. after_swing on the tick the swing ends), not_rules (on no tick), trace_has (a Moves call)."""
+    (acts on some tick — e.g. after_swing on the tick the swing ends), not_rules (on no tick), trace_has (a Moves call),
+    trace_not (a Moves call that must not happen — e.g. kick against a foe without a shield)."""
     d = decide(sc)
     why = []
     acc, forb = expect.get("acceptable"), expect.get("forbidden") or []
@@ -133,6 +134,8 @@ def judge(sc: dict, expect: dict) -> tuple[bool, str, dict]:
         why.append(f"rule {bad[0]} must not act")
     if expect.get("trace_has") and not any(t and t[0] == expect["trace_has"] for t in d["trace"]):
         why.append(f"no {expect['trace_has']} in the trace")
+    if expect.get("trace_not") and any(t and t[0] == expect["trace_not"] for t in d["trace"]):
+        why.append(f"{expect['trace_not']} in the trace")
     if str(d["result"]).startswith("error"):
         why.append(d["result"])
     return not why, "; ".join(why), d

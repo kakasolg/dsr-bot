@@ -81,8 +81,11 @@ BY_NPC: dict[int, Foe] = {
     # 255002 is a crossbowman, not a shield soldier — 3000/3001 are firing motions, not a guard stance. Anim struct +0xA0 turns 1 and
     # 0.3–0.7 s later an impact hits my shield (my anim 140, SP −7) every 2.7 s (2026-09-25 measured, user "I'm getting hit by arrows, it's right in front").
     # As SHIELD, wait_far said "not approaching" and just blocked for 8 minutes. The fire motion number doesn't change, so anim changes don't reveal it.
-    255002: Foe("석궁 병사", kind="shield", ranged=True, kick_when_idle=True, unblockable=(3009,), punish_hits=1,
-                note="3000/3001 = 석궁 발사 (방패 들고 쏜다). 기다리지 말고 붙어 발차기 → 약공. 뒤잡기 안 됨 — 벽에 붙어 서 있음 (사용자 2026-09-28)"),
+    # [MoKa] 2026-10-11: "석궁병은 방패가 없는데 발차기 할 필요가 없음" — 구역 8에서 발차기+약공 콤보(2.5 s) 중 −228·−156 (P-66 다시 나옴).
+    # 방패병(kind shield · kick_when_idle)에서 뺌: 발차기 없이 약공, 방패 전제 판단(먼저 치기 금지·방패병 양손 전환)도 안 씀
+    255002: Foe("석궁 병사", kind="other", ranged=True, unblockable=(3009,), punish_hits=1,
+                note="3000/3001 = 석궁 발사. 기다리지 말고 붙어 약공 — 방패 없음, 발차기 안 함 ([MoKa] 2026-10-11). "
+                     "뒤잡기 안 됨 — 벽에 붙어 서 있음 (사용자 2026-09-28)"),
     # 254013·254014 (next to the Undead Burg bonfire, HP150): not shield soldiers but bodiless phantoms — user "there's nothing there, why is it swinging"
     # (2026-09-25). 254013 is filtered at layer 0 by its inactive flag, 254014 by body overlap (dsr_telemetry.PHANTOM_R). The entries below are kept.
     254013: SHIELD, 254014: SHIELD,

@@ -688,3 +688,6 @@ New problems still go here (append at the bottom) and get a one-line row in ROAD
   3004(1.3 m), 다른 하나 3500. 콤보 중 −228(내 애니 2006) · −156 → `low_hp` → 빈틈 쪽 구르기 중 −228 → 사망. **준 피해 0, 받은 피해 669 / 5 s.**
   `blind_report` 이 판 'other' 15× 40.9 s −606 (이전 판들 최대 −459). [MoKa] 10-06 지시는 구역 8 "가자 마자 공격해"인데 첫 3 s가 목표 바꿈 · 떼어놓기 ·
   다시 붙기. 오늘 세 판의 죽음 모두 2명 이상이 2.5 m 안 (구역 1 셋, 구역 5 255000 + 255001, 구역 8 둘).
+- 2026-10-11 [win] [MoKa] "석궁병은 방패가 없는데 발차기 할 필요가 없음" → `foes.BY_NPC[255002]`: `kind` shield → other, `kick_when_idle` 뺌
+  (발차기 없이 약공, 방패 전제 판단도 안 씀). 3004를 '끝'으로 보는 `after_swing` 순서 문제(P-66 본체)는 그대로 열림.
+  확인: `tests/expect/duel.jsonl` moka 장면 3개(`crossbow-*`, 새 키 `trace_not`) — 전 데이터 3/3 FAIL(kick), 지금 통과. golden 그대로(석궁병 장면 없음), pytest 86.
