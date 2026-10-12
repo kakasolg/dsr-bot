@@ -51,9 +51,9 @@ needing the tick loop, route data, settings object or WorldState.
 
 ## 1-b. Taurus → Sunlight Altar, Claymore as main (MoKa 10-12)
 
-- [ ] altar-route-rec | MoKa | todo | record Taurus → Hellkite stairs → ladder kick → dash → altar | docs/stages/burg-to-altar.md
-- [ ] claymore-grip | MoKa | decide | STR now? one-hand + shield (as now) or two-hand; default → Claymore? | docs/stages/burg-to-altar.md
-- [ ] claymore-measure | win | todo | air swings light + thrust (`swing_probe.py`); reach from black box | docs/stages/burg-to-altar.md
+- [ ] altar-route-rec | MoKa | todo | record Taurus → stairs → ladder kick → dash → altar | docs/stages/burg-to-altar.md
+- [ ] claymore-grip | MoKa | decide | STR now? one-hand + shield or two-hand; default → Claymore? | docs/stages/burg-to-altar.md
+- [ ] claymore-measure | win | todo | air swings light + thrust (`swing_probe.py`); reach: black box | docs/stages/burg-to-altar.md
 - [ ] altar-mission | cloud | todo | Claymore test sets (all axe now); `run.py altar`: dash, pick 51010210 | docs/stages/burg-to-altar.md
 
 ## 2. v1.0 — open by area
