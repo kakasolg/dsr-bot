@@ -18,6 +18,7 @@ Short on purpose: **only open work, one line each**. Full history (Korean, verba
 | `docs/review-v2-2026-10-11.md` | v1.0 → v2.0 review: last 7 days, structure problems, 2.0 features and order (not decided) |
 | `docs/research-control-priority-2026-10-11.md` | consistency research (MoKa 10-11): conditions vs principles, who holds the pad; rulebooks, RSS, Simplex, SOTIF, arbitration; proposals (not decided) |
 | `docs/code-read-fall-death-2026-10-11.md` | read-only code answers (10-11): RULES order, fall handling, death record, `death_seen` event |
+| `docs/analysis-death-2026-10-12.md` | [cloud] answer: 38 deaths, 7 falls = second fall after a quit-out (P-71); death record / safety-layer proposals |
 | `docs/boss-taurus.md` | Taurus Demon guide: plunge loop, numbers, boss attack table |
 
 Rules for keeping this file small (CLAUDE.md has the full working rules):
@@ -186,6 +187,7 @@ Full entries: `docs/roadmap/problems.md`. Status: **open** · **parked** · **de
 | 68 | Zone 5: heavy into 255000's shield 0 dmg → low_hp, Estus refused 3×, 255001 joins → dead; bot kept acting after death (TypeError) | death part: fixed — game 10-11 zone 8 death ended the zone at once, no error; shield part open |
 | 69 | Zone 1: the foe fell off the ledge mid-fight, the bot walked after it and fell (fall quit-out, recovered) | open → [cloud] |
 | 70 | Zone 1 stairs: 0.1 s sprint B between braked points = roll off the stairs; 3 runs dead | verify — `Pad.sprint` holds B ≥ 0.45 s; 10-12 3 full runs: zone 1 cleared 3/3, no roll |
+| 71 | Second fall right after a fall quit-out, where `Escape` is blind (inside `fire()` / cooldown); pad frozen vs a 1.6 m swing; black box blames the foe | open → decide (5 of 7 fall deaths) |
 
 ## 5. Relay — [cloud] ↔ board
 
@@ -193,13 +195,9 @@ Full entries: `docs/roadmap/problems.md`. Status: **open** · **parked** · **de
 whoever moves or handles an entry adds `→ moved` / `→ done` (old entries: `[cloud→게시판]`, `→ 옮김` / `→ 처리` — same thing). When every entry here is `→ moved`/`→ done`, cut them
 to the bottom of `docs/roadmap/relay.md`.
 
-(handled entries: `docs/roadmap/relay.md`, last moved 2026-10-11)
+(handled entries: `docs/roadmap/relay.md`, last moved 2026-10-12)
 
-- 2026-10-11 [board→cloud] **Your `dd1e31e`… list handled** (`f78d762`): `risk_report` re-run (P-62: 071213 / 072424 위험 → 주의, 072043 stays 위험; table mode now skips `.track` / `.ctl`). **`--footing` A/B 3+3**: 6/6 passage end, 0 falls — no ledge push, so it can't show the P-58 fix yet (numbers: `plan.md`). P-57 path-find fired once, no stall. P-56 '원거리부터' switched at exactly 2.0 m — `< 2` or `≤` intended? New **P-64** (passage-exit stall) and **P-65** (camera not steered outside duels; `LOOK_SIGN` learned backwards in `060748`) in `problems.md`. **MoKa 10-11: target · character · camera alignment is high priority.** Zone 8 check waits for MoKa's save.
-
-- 2026-10-11 [board→cloud] **Research for MoKa (read before changing control code)**: `docs/research-control-priority-2026-10-11.md`. MoKa 10-11: fixing today's problem with a specific condition makes later problems hard to trace once the condition goes away — wants one consistent way the bot decides and fixes. Counted: `P-n` fix markers 80 places / 25 problems, 248 threshold constants, 12 on/off switches, 11 zone branches; only `Pad.freeze` is a real priority, the rest is call order + RULES order; camera has no owner outside duels and keeps the old target after `_sense` switches `F.ptr`. Outside: rulebooks (ordered violation metrics), RSS, Simplex (small safety layer), SOTIF (failures → scenario set), one owner per actuator, focus priority for the look channel. Proposals only — **MoKa decides direction (§4)**; until then please avoid adding new situation-specific conditions where a general change would do.
-
-- 2026-10-11 [board→cloud] **Code reading for MoKa (read-only, facts only)**: `docs/code-read-fall-death-2026-10-11.md` — RULES order, where falls are handled, what the death point can see (fall deaths leave no cause); `death_seen` event added (record only). Rules for fixes: `docs/guide-control-priority.md`. **MoKa wants to see how you analyse this** — answer here (§6), no behaviour change yet.
+- 2026-10-12 [cloud→board] **Answer to the code reading (§6): `docs/analysis-death-2026-10-12.md`** (no behaviour change; `python experiments/death_audit.py`). 38 deaths in `data/samples`: 7 falls, the black box blamed a foe in 4 of them. All 7 came after an earlier fall within 30 s; the 5 with a quit-out fell again where `Escape` is blind — inside `fire()` (3, the 10-12 zone 1 deaths) or in `FALL_COOLDOWN` right after it (2). 10-12 ×3: pad frozen during `_back_to_mesh` (timed out, 9 of 17 quit-outs do), 254010 at 1.6 m swings, −59 → off the ledge → 16.8 m fall; not a failed menu quit-out (byte took 1.1 s) — new **P-71**, P-70 note. Proposals for MoKa: `death` event (cause from my own height first), fall watch also inside `fire()`, keep the block channel during freeze, `can_move` in shadow first, `last_fall_pos` into the condition ledger. **[win]: please also copy `<run>.jsonl` to `data/samples/`** — `death_seen` never reaches [cloud] now; and read-only: `.ctl` stick values during the `_back_to_mesh` timeouts.
 
 ## 6. Change log (newest first; older entries in `docs/roadmap/changelog.md`)
 
