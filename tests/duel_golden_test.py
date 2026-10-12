@@ -40,8 +40,19 @@ class Mv:
         self.w, self.t = w, trace
         self.tm = type("Tm", (), {"handle": staticmethod(lambda p: p + 0x1000)})()
         self.pad = type("Pad", (), {"move": lambda _s, x, y: trace.append(("move", round(x, 2), round(y, 2))),
-                                    "guard": lambda _s, on: trace.append(("pad_guard", on))})()
+                                    "guard": lambda _s, on: trace.append(("pad_guard", on)),
+                                    "lock_on": lambda _s: self._r3()})()
         self.cam_busy = False
+        self.cam_target, self.locked = None, None          # R3 locks whatever the camera follows (duel._sense sets cam_target)
+
+    def _r3(self):
+        self.locked = None if self.locked is not None else self.cam_target
+
+    def lock_state(self, ptr):
+        return "none" if self.locked is None else "target" if self.locked == ptr else "other"
+
+    def unlock(self):
+        self.locked = None
 
     def snap(self, within=40.0):
         return self.w.snapshot(within)

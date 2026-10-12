@@ -24,6 +24,10 @@ class Mv(DuelMv):
     def __init__(self, world, target_ptr):
         super().__init__(world, target_ptr)
         self.heavies = []
+        self.lock = "target"                     # a heavy needs lock-on ([MoKa] 2026-10-12) — here _keep_lock has taken it (lock_keep_test)
+
+    def lock_state(self, ptr):
+        return self.lock
 
     def heavy(self, s, c):
         self.heavies.append(c.ptr)
@@ -41,10 +45,11 @@ class Nm:
         return lambda *a, **k: None
 
 
-def run(weapon, wall, sp=90, ticks=8, npc=254000, hp=75, grip=3, anim=-1):
+def run(weapon, wall, sp=90, ticks=8, npc=254000, hp=75, grip=3, anim=-1, lock="target"):
     w = World(player=(0.0, -49.4, 0.0), sp=sp, max_sp=98, hp=698)
     w.add(2, 0x1018, npc, (0.0, -49.4, 1.2), anim=anim, hp=hp, max_hp=hp)
     mv = Mv(w, 2)
+    mv.lock = lock
     g = {"now": grip}
     mv.tm.grip = lambda: g["now"]                # 3 = two hands, 1 = one
     mv.pad.two_hand_right = lambda: (mv.pad.calls.append(("two_hand",)), g.update(now={1: 3, 3: 1}.get(g["now"], g["now"])))
@@ -63,6 +68,12 @@ def test_wall_heavy() -> None:
     assert mv.heavies and not mv.lights, (mv.heavies, mv.lights, logs[-5:])
     assert any("강공(수직)" in l for l in logs), logs[-5:]
     print(f"ok  Battle Axe, wall 0.6 m → heavy ×{len(mv.heavies)}, no light")
+
+
+def test_not_locked_light() -> None:
+    mv, logs = run(weapons.BATTLE_AXE, wall=0.6, lock="none")
+    assert mv.lights and not mv.heavies, (mv.heavies, mv.lights, logs[-5:])
+    print("ok  Battle Axe, wall 0.6 m but not locked on → light (MoKa 10-12: heavy only locked on)")
 
 
 def test_open_ground_light() -> None:
@@ -118,6 +129,7 @@ def test_other_weapon_unchanged() -> None:
 
 if __name__ == "__main__":
     test_wall_heavy()
+    test_not_locked_light()
     test_open_ground_light()
     test_low_sp_light()
     test_wall_before_backstab_and_kick()

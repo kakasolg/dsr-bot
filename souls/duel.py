@@ -77,6 +77,11 @@ BACKSTAB = True          # False (run.py --basic): no backstab tries at all — 
                          # 방패, 약공 플레이로 새로 시작해봐" — the backstab rules took over guarding: no guard while closing in on an idle foe,
                          # no block when it swung within 2 m; with the Battle Axe 8/8 swing-backstabs were normal hits)
 HEAVY = True             # False (run.py --basic): no wall heavy / two-hand switch either
+LOCK_KEEP = True         # False: no lock-on keeping in 1:1 fights (the old way — lock only for backstab / throws)
+LOCK_KEEP_R = 8.0        # keep lock-on on the target within this (horizontal) …
+LOCK_KEEP_DY = 2.0       # … and this height difference
+LOCK_RETRY_S = 1.0       # after an R3, wait this long before the next — the game needs ~0.3 s, and an R3 that finds nothing
+                         # resets the camera behind the body, so pressing every tick would spin the camera
 BACKSTAB_ONLY = False    # True: against hollows only the backstab (no hit-first, no stagger punish). Off: backstab when the checks allow it, else the usual rules (user 2026-09-28)
 # backstab — from 3 human demos (backstab_report.py, observe_backstab_*.jsonl, 2026-09-28): lock-on stays ON while circling (aim ≤ 6°),
 # circling at body contact 0.85–0.96 m with the stick full (≥ 1.0, 2.5–3.9 m/s), behind within 0.6–1.1 s; R1 at 130–180° behind with the
@@ -608,6 +613,7 @@ class Fight:
         self.note_t = self.t0
         self.shadow = ShadowKick(log=log, events=events, gen=gen)   # gen·events: supplied by Field.fight (for shadow kick events)
         self.no_obs = control.NoObs(mv.pad)                # no snapshot: stick off now, everything off after a while (P0-C)
+        self.lock_t, self.lock_n = 0.0, 0                  # last R3 from _keep_lock, presses made (lock on + release)
 
     def note(self, act: str, s_, c_) -> None:
         """Count what was done per tick, one line per 1 s — so we can see where it gets stuck (2026-09-24: didn't know why it couldn't hit for 18 s at 4 m)."""
@@ -634,6 +640,8 @@ class Fight:
         mv, res = self.mv, self.res
         getattr(mv.pad, "guard", lambda on: None)(False)
         mv.pad.move(0.0, 0.0)
+        if self.lock_n:
+            _lock_release(mv, self.ptr)                    # we locked on in this fight — the walk after it must not stay locked
         s_ = mv.snap(5.0)
         self.shadow.flush(time.time(), s_, cancelled=(result == "cancel"))
         if s_ and s_.player.hp is not None:
@@ -831,6 +839,52 @@ def swing_over(foe, a, age) -> bool:
     if land and a in getattr(foe, "windup", ()):
         limit = max(SWING_S, land + LAND_PAD)
     return age > limit
+
+
+def _keep_lock(F, T) -> None:
+    """
+    ── 1:1 싸움은 락온한 채로 ([MoKa] 2026-10-12) ──────────────────────
+     · "강공 할때는 락온이 필수야. 않그러면 동작이 느려서 상대가 먼저 피하는데, 강공하면 모션이 상대를 따라 가기 때문에
+       그래도 맞힐 확률이 올라가." → 강공 직전에만 락온 (0.5–1.5 s 늦음) 대신 "2번으로 해": 확실한 1:1이면 싸움 내내 락온
+     · 1:1 = ALONE_R 안에 깨어 있는 다른 적 없음 (양손 전환과 같은 기준). 둘째가 붙으면 풀고 (락온은 한 놈만 보게 함), 끝나면 푼다 (done)
+     · R3는 카메라 중앙에 가까운 놈을 잡는다 → 몸·카메라가 목표를 볼 때만 누름 (CamFollow가 싸움 중 카메라를 목표에 맞춰 둠).
+       못 잡은 R3는 카메라를 몸 뒤로 돌리므로 LOCK_RETRY_S에 한 번만. 시야가 막히면 안 걸림 (docs/throwables.md: 건물 사이 0/7)
+     · 매 틱 눌렀던 버튼을 뗌 (release_due): 싸움 루프는 스스로 떼지 않아 R3가 눌린 채 남으면 다음 R3가 안 먹음 (unlock 버그, 10-12)
+    """
+    mv = F.mv
+    getattr(mv.pad, "release_due", lambda: None)()
+    state, press = getattr(mv, "lock_state", None), getattr(mv.pad, "lock_on", None)
+    if not LOCK_KEEP or state is None or press is None or T.now - F.lock_t < LOCK_RETRY_S:
+        return
+    st = state(F.ptr)
+    want = T.h <= LOCK_KEEP_R and abs(T.dy) <= LOCK_KEEP_DY and not _others_near(T.s, F.ptr, ALONE_R)
+    if st == "other" or (st == "target" and not want):
+        press()                                            # R3 is a toggle: off now, on the right one next time if still wanted
+        F.lock_t, F.lock_n = T.now, F.lock_n + 1
+        F.note("락온풀기", T.s, T.c)
+        return
+    if st != "none" or not want:
+        return
+    body = abs(math.degrees(M.rel_angle(T.p, T.c))) if T.p.heading is not None else 0.0
+    cam_err = getattr(mv, "cam_err", None)
+    cam = cam_err(T.s, T.c.x, T.c.z) if cam_err is not None else 0.0
+    if body > M.LOCK_BODY_DEG or (cam is not None and abs(cam) > M.LOCK_CAM_DEG):
+        return
+    press()
+    F.lock_t, F.lock_n = T.now, F.lock_n + 1
+    F.note("락온", T.s, T.c)
+
+
+def _lock_release(mv, ptr) -> None:
+    state = getattr(mv, "lock_state", None)
+    if state is not None and state(ptr) != "none" and hasattr(mv, "unlock"):
+        mv.unlock()
+
+
+def _locked(F) -> bool:
+    """Locked on the target — every heavy needs it ([MoKa] 2026-10-12, _keep_lock). Moves without a lock reading → True."""
+    state = getattr(F.mv, "lock_state", None)
+    return True if state is None else state(F.ptr) == "target"
 
 
 def rule_shot(F, T):
@@ -1199,7 +1253,7 @@ def _sleeper_heavy(F, T) -> bool:
     """
     w = F.weapon
     return (HEAVY and w.heavy_vertical and T.a == -1 and T.c.hp <= SLEEPER_HEAVY_HP
-            and (T.p.sp or 0) >= SLEEPER_HEAVY_SP and _asleep(F, T.c, T.now))
+            and (T.p.sp or 0) >= SLEEPER_HEAVY_SP and _asleep(F, T.c, T.now) and _locked(F))
 
 
 def _do_backstab(F, T, s, c, label: str):
@@ -1310,7 +1364,7 @@ def rule_stagger_punish(F, T):
     if (a in M.STAGGER or a == M.GUARD_BROKEN) and not (BACKSTAB_ONLY and T.room) and T.h <= w.reach + 0.3 and abs(T.dy) <= 1.0 \
             and (p.sp or 0) >= w.sp_min and not _other_swinging(T.s, F.ptr):
         if F.mv.face(T.s, T.c, deg=30.0):
-            if w.heavy_punish and foe.kind == "shield" and (p.sp or 0) >= HEAVY_SP:
+            if w.heavy_punish and foe.kind == "shield" and (p.sp or 0) >= HEAVY_SP and _locked(F):
                 hit = F.mv.heavy(T.s, T.c)
             else:
                 hit = _strike(F, T.s, T.c, n=foe.punish_hits or w.combo, sp_second=w.sp_min)
@@ -1587,7 +1641,8 @@ def _slam(F, s, c, swinging: bool = False) -> float | None:
      · 양손 전환은 확실한 1:1에서만(ALONE_R 6 m 안 다른 적 없음), 3.5 m 안 다른 적이 있으면 벽 강공 안 함 ([MoKa] 2026-10-01, _heavy_ok)
      · 적이 휘두르는 중에 끊어 치기로는 안 씀 (강공은 느림)"""
     w = F.weapon
-    if not HEAVY or not w.heavy_vertical or swinging or (s.player.sp or 0) < WALL_HEAVY_SP or not _heavy_ok(F, s):
+    if (not HEAVY or not w.heavy_vertical or swinging or (s.player.sp or 0) < WALL_HEAVY_SP or not _heavy_ok(F, s)
+            or not _locked(F)):
         return None
     return _walled(F.nm, s.player, c)
 
@@ -1651,7 +1706,7 @@ def rule_attack(F, T):
     elif F.foe.kick_when_idle and a == -1 and T.behind_deg < 60 and T.now - F.kick_t > KICK_COOLDOWN:
         F.kick_t = T.now
         hit = F.mv.kick_combo(s, c, n=w.combo)
-    elif w.use_heavy:
+    elif w.use_heavy and _locked(F):
         hit = F.mv.heavy(s, c)
     else:
         hit = _strike(F, s, c, n=w.combo, sp_second=w.sp_min)
@@ -1746,6 +1801,7 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             tap.sensed(F, T)
         if SCENE_TAP is not None:
             SCENE_TAP.tick(F, T)                           # copies the input before the rules change F (scenes.py, record only)
+        _keep_lock(F, T)
         for rule in RULES:
             tok = tap.freeze(F, T) if tap is not None else None
             out = rule(F, T)

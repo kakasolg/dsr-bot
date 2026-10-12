@@ -29,7 +29,7 @@ from souls import moves as M
 from souls import weapons
 
 WEAPONS = {"battle_axe": weapons.BATTLE_AXE, "broadsword": weapons.BROADSWORD}
-FLAGS = ("BACKSTAB", "HEAVY")
+FLAGS = ("BACKSTAB", "HEAVY", "LOCK_KEEP")
 MAX_HP, MAX_SP = 85, 106
 
 
@@ -78,6 +78,8 @@ def decide(sc: dict) -> dict:
     trace, grab = [], Grab()
     mv = G.Mv(w, trace)
     mv.tm.grip = lambda: None
+    r3, locks = mv._r3, []
+    mv._r3 = lambda: (locks.append(mv.locked is None), r3())[1]   # True = an R3 that turned lock-on on (duel._keep_lock)
     tick = {"n": 0}
     ticks = sc.get("ticks", 4)
 
@@ -111,13 +113,14 @@ def decide(sc: dict) -> dict:
         D.time.sleep = sleep
     f = {"_shield": sc.get("style", "guard") == "guard", "_arena": None}
     tactic = next((t for t in (LS.policy_tactic(r_, f) for r_ in grab.rules) if t), None)
-    return {"tactic": tactic, "rules": grab.rules, "trace": trace, "result": result}
+    return {"tactic": tactic, "rules": grab.rules, "trace": trace, "result": result, "locked": any(locks)}
 
 
 def judge(sc: dict, expect: dict) -> tuple[bool, str, dict]:
     """→ (meets the expectation, why not, decision). expect: acceptable / forbidden (the first tactic), first_rule, has_rule
     (acts on some tick — e.g. after_swing on the tick the swing ends), not_rules (on no tick), trace_has (a Moves call),
-    trace_not (a Moves call that must not happen — e.g. kick against a foe without a shield)."""
+    trace_not (a Moves call that must not happen — e.g. kick against a foe without a shield), locked (lock-on taken during the
+    scene or not — duel._keep_lock)."""
     d = decide(sc)
     why = []
     acc, forb = expect.get("acceptable"), expect.get("forbidden") or []
@@ -136,6 +139,8 @@ def judge(sc: dict, expect: dict) -> tuple[bool, str, dict]:
         why.append(f"no {expect['trace_has']} in the trace")
     if expect.get("trace_not") and any(t and t[0] == expect["trace_not"] for t in d["trace"]):
         why.append(f"{expect['trace_not']} in the trace")
+    if "locked" in expect and d["locked"] != expect["locked"]:
+        why.append(f"lock-on {'never taken' if expect['locked'] else 'taken'}")
     if str(d["result"]).startswith("error"):
         why.append(d["result"])
     return not why, "; ".join(why), d
