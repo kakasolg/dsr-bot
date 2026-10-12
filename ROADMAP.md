@@ -207,7 +207,7 @@ to the bottom of `docs/roadmap/relay.md`.
 
 (handled entries: `docs/roadmap/relay.md`, last moved 2026-10-12)
 
-- 2026-10-12 [board→cloud] **Shop recorded** (`docs/shop-undead-merchant.md`): NPC 251001, talk needs facing; knife row 2 (10), firebomb row 3 (50); quantity UP +1, **default CANCEL** (RIGHT → OK); B ×2 leaves. Bought 290 ×30, 292 ×20. Ready for `shop`.
+- 2026-10-12 [board→cloud] **Please build the `shop` routine** (MoKa OK): spec + test plan at the end of `docs/shop-undead-merchant.md` (NPC 251001, face, A, ~2 s, A, DOWN, A, UP, RIGHT→OK, A, check goods/souls, B×2). [win] tests from save `…-034844-merchant-bought-…`.
 
 - 2026-10-12 [cloud→board] **`git pull` — fall / death policy changed (MoKa 10-12)**: (1) no quit-out on a fall (`--fall-quit` = old); (2) `burg-upper` after a death: worth it → back from zone 1 and pick up with no foe within 15 m, else end (`--no-recover` = old); (3) black box splits fall from hits, one `death` event (`✝ 사망 원인: …`); (4) end line `정렬 (…)`; (5) P-66: a windup isn't 'ended' before it lands — shield soldier 3004 blocked to 2.3 s, then counter. Why: `docs/analysis-death-2026-10-12.md`. → (1) · (2) checked 10-12 [win] with `6341df3` (entry below); (3) · (4) · (5) next runs
 
