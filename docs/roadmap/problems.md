@@ -654,3 +654,23 @@ New problems still go here (append at the bottom) and get a one-line row in ROAD
   가드 든 채 안전 자리로, 최대 3번). 조건 추가가 아니라 걷기에만 있던 검사를 빠져 있던 이동에도 거치게 한 것.
   확인: `tests/mover_epoch_test.py` sprint 4점 B 한 번도 안 뗌(전 코드: 10번 뗌), `tests/burg_upper_test.py` P-67 장면(전 코드 FAIL), pytest 85,
   golden 그대로, expect 그대로. 게임 확인 → 아래.
+- 2026-10-11 [win] 게임 확인 1판 (`20261011_170346_burg-upper_p67fix-zone5-death`, `09977ea`, 같은 캐릭터 · Burg 화톳불에서 휴식):
+  **구역 1~4 cleared** (1판 전엔 구역 1에서 34 s에 사망). 돌아오는 달리기 `… 달려서 안전 자리로 threat` 6번 → 곧바로 싸움, tether로 안전 자리 복귀
+  `arrived` 3번. 점프(애니 900) 0번. 패드 기록에서 0.3 s보다 짧은 B 누름 6번 중 3번은 일부러 한 탭(휴식 메뉴 `farm.press` · 백스텝 · 구르기),
+  남은 **3번은 Mover 모드 바뀜**(59.85 s 0.15 s sprint→walk, 252.13 s 0.02 s, 265.02 s 0.28 s 뒤 stop의 neutral) — 이번엔 점프 없음, 남은 일.
+  구역 5에서 사망 → P-68.
+
+### P-68 `burg-upper` 구역 5: 방패병 255000에 강공(벽 수직) 0 피해 → −179·−127 → low_hp, 에스트 3번 거절(적 가까움), 255001 합류 −208 → 사망; 죽은 뒤에도 봇이 계속 움직이다 TypeError (2026-10-11, [win])
+
+- 증상: `20261011_170346_burg-upper_p67fix-zone5-death` 265 s 구역 5. 255000이 안전 자리로 올라옴(기다림 15 s) → `벽 0.4 m — 강공(수직)`,
+  `방패병: 양손으로` → heavy+light×2 **준 피해 0**, 그 사이 −179(255000 3000) → `low_hp` 21 s → 구르고 물러남(`stopped`) → `에스트: 근처에 적 — 안 마심` ×3
+  → `_top_up`의 화톳불 쪽 물러남 중 255001 3005 −208 (HP 9) → 301.6 s HP 0. 그 뒤에도 `_lure` → `에스트 미룸` → `같이 온 놈: cancel`(죽은 뒤 싸움 2번)
+  → `recover`의 `roll_toward` → `stick_to`에서 `cam_yaw` None → **TypeError** (309.1 s) → 봇 오류 퀵 종료(byte, `revive_risk`) → 깨어 보니 마을 마당 #1~#3
+  (−47.9,−21.8,−35.6), 핏자국 구역 5 (868 소울). `blind_report`: 이 판 사각 45.9 s −372, 그중 heavy/grip 4× 11.6 s −144.
+- 원인 (코드 읽기, 일부 추측):
+  (a) 싸움: 방패병에 벽 옆 강공 → 방패에 막혀 0 피해, 그 뒤 반격을 그대로 맞음 (P-32·P-46 계열, 방패병 규칙). 에스트는 '근처에 적' 검사로 3번 미뤄짐.
+  (b) 죽음을 못 봄: `Missions._top_up`은 `retreat`가 `'dead'`를 돌려줘도 True를 돌려줌(`souls/missions.py` `_top_up` 끝) → `_pull_to_safe`가
+  같은 회차 안에서 `_lure`·`_drink_back`·`fight`·`recover`까지 진행. `f.alive()`는 회차 맨 앞에서만 봄. `recover`는 `cam_yaw` None(죽음/로딩)을 안 걸러 예외.
+- 해결 제안 (정하지 않음): (b)는 순위 1(복구 불가) — 이동/싸움 결과가 `'dead'`면 그 줄에서 끝내는 것을 한 곳(`_pull_to_safe` 회차 안 각 단계 뒤)에서;
+  `stick_to`가 `cam_yaw` None이면 스틱 0. (a)는 방패병 강공 조건(벽 수직 강공이 방패에 막힘)을 golden/expect 장면으로 먼저 → [cloud] 분석.
+
