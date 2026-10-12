@@ -701,8 +701,8 @@ class Moves:
 
     def unlock(self) -> None:
         if self.tm.lock_target() not in (None, -1):
-            self.pad.lock_on()                    # R3 is a toggle
-            time.sleep(0.15)
+            self._r3(0.15)                        # R3 is a toggle; _r3 also lets it go — a bare sleep left R3 down, so the next
+                                                  # lock_on() was the same press and never locked (2026-10-12 probe: 2nd try 0/2)
 
     def _r3(self, wait: float = 0.3) -> None:
         self.pad.lock_on()
