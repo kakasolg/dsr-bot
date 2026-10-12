@@ -162,14 +162,15 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 71 | Fall deaths: a second fall right after a fall quit-out, `Escape` blind, pad frozen; black box blames the foe | verify — MoKa 10-12: no quit-out on falls (`fall_seen`) |
 | 72 | Deaths never fetched their bloodstain (38 deaths, 0 pickup trips) | verify — `souls/afterdeath.py`: worth it → back from zone 1, pick only with no foe within 15 m; small / same zone → end |
 | 73 | Ramp #5: low_hp break-out roll went −126° instead of −30° (camera turned during the roll) → 22.4 m fall | verify — camera held during rolls, fresh stick, `nav.can_move` |
+| 74 | Zone 2-1: two foes on us 13 m out; tether cut at tick 0 three times, guard walk back timed out → 37 s, −1565 | verify — no cut with a foe < 2.5 m; failed way back ends it |
+| 75 | Zone 2-2: run-in read a target 30.5 m out as 'met' (30 m snapshot) → walk-out / tether loop 3×, 35 s | verify — missing target checked wide |
 
 ## 5. Relay — [cloud] ↔ board
 
 [cloud] can't reach the board: `- date [cloud→board] …` / `- date [board→cloud] …`. Whoever handles an entry starts it with
 `→ done` / `→ moved` right after the tag; `tidy` then moves it to `docs/roadmap/relay.md`.
 
-- 2026-10-12 [cloud→board] **Throw spots in sight (`git pull`, lock-sight)**: lure spot = first path point 6–10 m out with a clear line (`Navmesh.clear_sight`), walks on to one before a knife (`트인 자리로`); none → old spot, lock-on decides (`락온으로 확인`). No veto: your probe spot reads blocked (low prop = wall in the NavMesh).
-- 2026-10-12 [cloud→board] **Ramp on the shop run** = P-56 again (swarm hits, not falls; 033444 = P-73). Next Firelink → merchant try: today's code + `--pull`; if it still dies, shop tests stay on the merchant save.
-- 2026-10-12 [cloud→board] **P-73 / P-69 (`git pull`)**: rolls hold the camera, fresh stick, floor = `nav.can_move` 3 m; > 45° off → `구르기 방향 어긋남` (event `roll`). Target falling / > 2.5 m below → fight 'lost' (`목표 떨어짐`). Watch next ramp / zone 1 runs.
+- 2026-10-12 [cloud→board] **`git pull` (P-73 · P-69 · lock-sight · P-74 · P-75)**: rolls hold the camera (`구르기 방향 어긋남`); falling target ends the fight (`목표 떨어짐`); lure spot prefers a clear line (`트인 자리로` / `락온으로 확인`); 075054 zone 2-1 = tether, not P-66 (no cut with a foe < 2.5 m); zone 2-2 loop = 30.5 m target read as met.
+- 2026-10-12 [cloud→board] **Ramp on the shop run** = P-56 again (swarm hits). Next Firelink → merchant: today's code + `--pull` (knives now: lure on).
 
 - 2026-10-12 [cloud→board] **`git pull` — fall / death policy changed (MoKa 10-12)**: (1) no quit-out on a fall (`--fall-quit` = old); (2) `burg-upper` after a death: worth it → back from zone 1 and pick up with no foe within 15 m, else end (`--no-recover` = old); (3) black box splits fall from hits, one `death` event (`✝ 사망 원인: …`); (4) end line `정렬 (…)`; (5) P-66: a windup isn't 'ended' before it lands — shield soldier 3004 blocked to 2.3 s, then counter. (6) **shop routine ready**: `run.py merchant-buy --buy 290:30,292:20 --shop-shots` from the merchant save, test plan at the end of `docs/shop-undead-merchant.md`. Why: `docs/analysis-death-2026-10-12.md`. → (1) · (2) checked 10-12 [win] with `6341df3` (entry below); (3) · (4) · (5) next runs

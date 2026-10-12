@@ -564,12 +564,18 @@ class Missions:
             self.log(f"   {tag}: 안전 자리에서 기다리니 옴")
             return "here"
 
-        def met(sn) -> bool:
+        def target(sn):
+            # P-75: not in sn ≠ gone — a walk's snapshot reads 30 m (nav.goto) and zone 2-2's 254011 stood 30.5 m out, so the
+            # run in "met" it on its first tick and never left the safe spot; ask a wide snapshot before calling it dead
             c = self.mv.find(sn, ptr)
+            return c if c is not None else self.mv.find(self.mv.snap(200.0), ptr)
+
+        def met(sn) -> bool:
+            c = target(sn)
             return c is None or c.hp <= 0 or woke(c) or any(e.ptr != ptr for e in self._encounters(sn, ptr))
 
         def stop_in(sn) -> bool:
-            c = self.mv.find(sn, ptr)
+            c = target(sn)
             return met(sn) or (c is not None and M.horiz(sn.player, c) < UPPER_CLOSE_R)
 
         if getattr(self, "throw", False) and not how.get("lure_at") and self._has(M.ITEM_KNIFE):

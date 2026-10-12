@@ -264,6 +264,8 @@ ZONES = [tuple(z["pos"]) for z in json.loads((Path(__file__).resolve().parent.pa
                                               .read_text(encoding="utf-8"))["zones"]]
 TETHER_R = 8.0          # fight.tether: a fight this far (horizontal) from the zone's safe spot is cut and taken back there (P-45)
 TETHER_TRIES = 3        # …at most this many cuts per fight, then fight on where it is
+TETHER_CONTACT_R = 2.5  # …and no cut while a live foe is this close (same level): walking off guard-up with foes on us is
+                        # taking hits (P-74: 3 cuts at tick 0 with two foes at 0.8–2.4 m, 37 s, −1565, no attack) — the duel's job
 ZONE_REACH = 15.0       # before fighting a chaser, if a marked spot is within this (horizontal, same floor 1.5 m), retreat there and receive it
 UNSAFE_PAUSE = 5.0       # incoming foe not engaged due to E-2 — wait/defend ticks on flat ground this long, then re-check (user: "even 2 seconds is short, wait 5 seconds")
 CLOSE_MELEE_R = 3.0      # end a contact fight if another foe is within this (wider than duel.SWITCH_R 2.5 — cut before switching targets)
@@ -733,12 +735,22 @@ class Field:
             self.events("tether", tag=tag, result=zr, n=k + 1)
             if zr == "dead":
                 return r
+            if zr != "arrived":
+                # P-74: a way back that failed once (blocked, timeout) fails again — the next fight would be cut at its first
+                # tick and walk off again; fight where we are instead
+                self.log(f"   {tag}: 안전 자리로 못 감 ({zr}) — 묶지 않고 여기서 싸움")
+                spot = None
         return r
 
     def _tether_far(self, spot):
+        """Cut the fight: more than TETHER_R from the safe spot and nobody on us (TETHER_CONTACT_R, P-74)."""
         def far() -> bool:
             s = self.mv.snap(5.0)
-            return s is not None and math.hypot(s.player.x - spot[0], s.player.z - spot[2]) > TETHER_R
+            if s is None or math.hypot(s.player.x - spot[0], s.player.z - spot[2]) <= TETHER_R:
+                return False
+            p = s.player
+            return not any(c.hp > 0 and M.horiz(p, c) < TETHER_CONTACT_R and abs(c.y - p.y) < FOLLOW_DY
+                           for c in s.hostile(TETHER_CONTACT_R + 1.0))
         return far
 
     def _fight_once(self, ptr, nm, tag: str, arena, desperate: bool, limit: float, wait_far: bool, leash, may_approach,

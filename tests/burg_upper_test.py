@@ -174,6 +174,30 @@ r = m._pull_to_safe(254010, (2.9, -9.9, -98.3), safe, LineNm(), "t")
 check("still asleep 3 m from it → guard a moment, then run back anyway and take it at the spot",
       r == "killed" and kinds(calls) == ["sprint", "sprint", "fight"] and calls[1][1] == safe)
 
+# P-75 (075054 zone 2-2): 254011 asleep 30.5 m from the safe spot; a walk's snapshot reads 30 m (nav.goto), so the run in found
+# no target on its first tick, called it 'met' and never left — then the duel walked out 3× and was tethered back (35 s)
+foe = Chr(npc_param=254011, ptr=13, x=-7.3, y=-9.9, z=-104.0, hp=75, anim=-1)   # 30.5 m from the safe spot
+m, f, calls, w = make(foe, wake="asleep")
+snap0, ticks = m.mv.snap, []
+m.mv.snap = f.mv.snap = lambda r=5.0: NS(**vars(snap0(r)), r=r)
+m.mv.find = f.mv.find = lambda s, ptr: foe if foe.ptr == ptr and math.hypot(foe.x - s.player.x, foe.z - s.player.z) < getattr(s, "r", 999.0) else None
+walk0 = f.mv.walk_path
+
+
+def walk_far(path, nm_, mode="walk", stop=None, **kw):
+    if tuple(path[-1]) != safe:
+        ticks.append(stop(m.mv.snap(30.0)))                # goto's first tick, 30 m snapshot
+        if ticks[-1]:
+            calls.append(("sprint", tuple(path[-1]), mode))
+            return "stopped"
+    return walk0(path, nm_, mode, stop, **kw)
+
+
+m.mv.walk_path = f.mv.walk_path = walk_far
+r = m._pull_to_safe(254011, (-7.3, -9.9, -104.0), safe, LineNm(), "t")
+check("P-75: target 30.5 m out, beyond the walk's 30 m snapshot → the run in still goes (not 'met' on its first tick)",
+      ticks[:1] == [False] and r == "killed")
+
 foe = Chr(npc_param=254010, ptr=15, x=2.9, y=-9.9, z=-98.3, hp=75, anim=-1)
 m, f, calls, w = make(foe, wake="idle_anim")
 r = m._pull_to_safe(254010, (2.9, -9.9, -98.3), safe, LineNm(), "t")
@@ -390,10 +414,16 @@ check("…and not without it", F.Field._near_zone(NS(), here, nm) is None)
 
 
 # tether ([MoKa]: "적이 붙으면 그 다음에 안전 구역으로 가야 … 그냥 있으면 화염폭탄에 맞아서 죽지")
-def tethered(results, start, spot=tuple(z2["safe"]), move=True, npc=None):
-    """results: what each _fight_once returns; the player stands at `start` and is moved to the spot by a retreat."""
+def tethered(results, start, spot=tuple(z2["safe"]), move=True, npc=None, foes=(), back="arrived"):
+    """results: what each _fight_once returns; the player stands at `start` and is moved to the spot by a retreat.
+    foes: (dx, dz) offsets of live foes from the player · back: what each retreat returns."""
     pos = {"p": start}
     log = []
+
+    def snap(r=5.0):
+        p = pos["p"]
+        fs = [NS(x=p[0] + dx, y=p[1], z=p[2] + dz, hp=75) for dx, dz in foes]
+        return NS(player=NS(x=p[0], y=p[1], z=p[2]), hostile=lambda rr: [c for c in fs if math.hypot(c.x - p[0], c.z - p[2]) < rr])
 
     def once(ptr, nm_, tag, arena, desperate, limit, wait_far, leash, may_approach, far=None):
         log.append(("fight", wait_far, far is not None, far() if far else None))
@@ -401,13 +431,13 @@ def tethered(results, start, spot=tuple(z2["safe"]), move=True, npc=None):
 
     def retreat(zone, nm_):
         log.append(("retreat", tuple(zone)))
-        if move:
+        if move and back == "arrived":
             pos["p"] = zone
-        return "arrived"
+        return back
 
     me = NS(tether=spot, esc=NS(escaping=False), alive=lambda: True, log=lambda *a: None, events=lambda *a, **k: None,
             _fight_once=once, _retreat_to_zone=retreat,
-            mv=NS(snap=lambda r=5.0: NS(player=NS(x=pos["p"][0], y=pos["p"][1], z=pos["p"][2]))))
+            mv=NS(snap=snap))
     me._tether_far = lambda s: F.Field._tether_far(me, s)
     if npc is not None:
         me.mv.find = lambda s, ptr: NS(npc_param=npc)
@@ -431,6 +461,16 @@ check("ranged foe (crossbow 255002) is not tethered — 10-06c cut it 3 times fo
       r.result == "killed" and log == [("fight", False, False, None)])
 r, log = tethered(["cancel", "killed"], (-7.67, -10.09, -86.5), npc=255001)
 check("melee foe (255001) still tethered", [x[0] for x in log] == ["fight", "retreat", "fight"])
+# P-74 (075054 zone 2-1): low_hp retreat ended 13 m out; 255001 + 254011 on us at 0.8–2.4 m; the fight was cut at its first tick
+# three times, each guard walk back timed out (12 s) — 37 s of hits, no attack, HP 578 → 76
+r, log = tethered(["low_hp"], (-0.3, -10.0, -62.2), foes=[(-2.1, -1.0), (-2.9, -1.3)])
+check("P-74: 13 m out but a foe on us (< 2.5 m) → no cut, the fight goes on", r.result == "low_hp"
+      and log == [("fight", False, True, False)])
+r, log = tethered(["low_hp"], (-0.3, -10.0, -62.2), foes=[(-4.0, -1.0)])
+check("P-74: 13 m out, nearest foe 4 m → cut as before", log[0][3] is True)
+r, log = tethered(["cancel", "killed"], (-0.3, -10.0, -62.2), move=False, back="timeout")
+check("P-74: the way back timed out → next fight untethered (not cut at its first tick again)",
+      r.result == "killed" and [x[0] for x in log] == ["fight", "retreat", "fight"] and log[2][2] is False)
 
 # P-47 zone 8 ladder top ([MoKa] 10-06: "구르기를 2번 해서 석궁병하고 간격을 벌려야 해") — the top is a ledge 0.2–0.5 m from the
 # NavMesh edge; east toward F9#8 the floor widens. Roll there twice, then the landing is the safe spot / tether
