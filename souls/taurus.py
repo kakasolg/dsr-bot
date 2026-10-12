@@ -195,8 +195,9 @@ class Taurus:
                 esc.nudge_ok = False
                 return self._fight()
             esc.quit_ok, esc.nudge_ok = False, False      # top of the ladder and the drop: no fall quit-out / ledge pull-back
+            esc.planned = "타우로스 낙하 공격"               # …and not a fall (fall_seen)
             r = self._plunge()
-            esc.quit_ok = saved[0]                         # the ledge pull-back stays off: try 4 it fired twice on landing
+            esc.quit_ok, esc.planned = saved[0], None      # the ledge pull-back stays off: try 4 it fired twice on landing
             if r == "died":
                 return r
             return self._loop(r, saved[0])
@@ -206,6 +207,7 @@ class Taurus:
                 self.alog.join(2.0)
                 self.log(f"   타우로스 공격 기록: {self.alog.n}번")
             esc.quit_ok, esc.nudge_ok = saved
+            esc.planned = None
             self.f.ignore_npcs = set()
             self.f.grip_want = None
             self.pad.sprint(False)
@@ -361,8 +363,9 @@ class Taurus:
                     return self._fight()
                 self._on_top()
                 esc.quit_ok, esc.nudge_ok = False, False
+                esc.planned = "타우로스 낙하 공격"
                 r = self._plunge()
-                esc.quit_ok = quit_ok
+                esc.quit_ok, esc.planned = quit_ok, None
                 if r == "died":
                     return r
             return self._fight()

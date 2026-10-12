@@ -51,6 +51,7 @@ class Escape:
         # bot back on the same ledge, blind and with the pad frozen: 5 of 5 fall deaths after one came from that (P-71).
         # True = the old fall quit-out (run.py --fall-quit).
         self.fall_quit = False
+        self.planned = None           # a drop we mean to make (Taurus plunge, asylum plunge, the crow) → not a fall: logged, no "fall" event
         self.nudge_ok = True                               # False = no ledge nudge-back (a deliberate drop — souls/asylum plunge onto the demon)
         self.last_fall = self.last_crowd = 0.0
         self.last_fall_pos = None     # so upper layers back away from the edge right after a fatal-fall escape
@@ -119,8 +120,12 @@ class Escape:
         """A fall under the no-quit policy (fall_quit False): record it and keep the cooldown, nothing else — no freeze, no input,
         so the layers above keep the pad to flee or fight wherever we land. → the event row"""
         pos = None if p is None else [round(p.x, 2), round(p.y, 2), round(p.z, 2)]
-        self.log(f"   ⚠ 낙하: {why} @ {pos} — 퀵 종료 안 함, 계속")
         self.last_fall, self.last_fall_pos = time.time(), pos
+        if self.planned:                                   # [win] 10-12: Taurus plunges came out as 낙하×2 in risk_report
+            self.log(f"   (계획된 낙하: {self.planned}) {why} @ {pos}")
+            ctl.emit("esc", ev="fall_planned", why=why, planned=self.planned, pos0=pos)
+            return {"why": why, "kind": "fall", "pos0": pos, "planned": self.planned}
+        self.log(f"   ⚠ 낙하: {why} @ {pos} — 퀵 종료 안 함, 계속")
         row = {"why": why, "kind": "fall", "pos0": pos, "hp": None if p is None else p.hp}
         ctl.emit("esc", ev="fall_seen", why=why, pos0=pos)  # record only
         if self.events:

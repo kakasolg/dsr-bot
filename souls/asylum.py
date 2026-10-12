@@ -205,12 +205,14 @@ class Asylum:
                 esc = self.f.esc
                 saved = (esc.quit_ok, getattr(esc, "nudge_ok", True))
                 esc.quit_ok, esc.nudge_ok = False, False
+                esc.planned = "데몬 낙하 공격"
                 try:
                     r = self._plunge(f"{tag} {i + 1}/{len(steps)}")
                     if r == "ok":
                         r = self._demon(f"{tag} {i + 1}/{len(steps)}")
                 finally:
                     esc.quit_ok, esc.nudge_ok = saved
+                    esc.planned = None
                 skip_to = 1 + max((j for j in range(i, len(steps)) if steps[j]["type"] == "fight" and steps[j].get("npc") == DEMON),
                                   default=i)
             self.events("asylum_step", i=i, type=st["type"], label=st.get("label"), result=r)
@@ -508,11 +510,12 @@ class Asylum:
         # 까마귀가 옮기면 위치가 270 m 바뀜 → 낙사 감시가 "0.8 s 에 271 m 떨어짐" 으로 퀵 종료 (2026-09-29, 불의 제전에서) — 그동안 끔
         esc = self.f.esc
         saved, esc.quit_ok = esc.quit_ok, False
+        esc.planned = "까마귀"
         try:
             return self._wait_crow(st, tag, here0, t0)
         finally:
             time.sleep(3.0)                                # let the watcher's fall window pass the jump before re-arming
-            esc.quit_ok = saved
+            esc.quit_ok, esc.planned = saved, None
 
     def _wait_crow(self, st, tag, here0, t0) -> str:
         while time.time() - t0 < 45.0:

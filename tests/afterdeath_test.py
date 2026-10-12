@@ -80,6 +80,12 @@ def main() -> None:
     check("picked after zone 5, no picks before (too far → None)",
           [p for p in g.picks if p[2] is not None] == [(1, 5, "got")] and ("blood_pick", {"zone": 5, "result": "got", "souls": 3114, "humanity": 1}) in g.events)
     check("no picks after it was got", all(p[1] <= 5 for p in g.picks))
+    check("no pick tried before the death zone is cleared again ([win] 10-12: zones 1–3 were all foes_near)",
+          [p[1] for p in g.picks] == [5])
+    g = Game({(0, 5): 1}, [rich], pick_at={(1, 5): "foes_near", (1, 6): "got"})
+    g.run()
+    check("foes_near after the death zone → tried again after the next zone, got there",
+          [(z, r) for _l, z, r in g.picks] == [(5, "foes_near"), (6, "got")])
 
     # ignore: poor stain → the run ends where it died
     g = Game({(0, 3): 1}, [poor])
@@ -156,6 +162,12 @@ def main() -> None:
     check("a foe 5.8 m from me → foes_near, no walk", F.Field.pick_blood(near_me, None, near=40.0) == "foes_near" and not walked)
     came, walked = fake([], walk_snaps=[snap([]), snap([chr_at(6.0, 4.0, me=(5.0, 5.0))], me=(5.0, 5.0))])
     check("a foe comes during the walk → walk stops, foes_near, no A", F.Field.pick_blood(came, None, near=40.0) == "foes_near" and walked)
+    # a planned drop (Taurus / asylum plunge, the crow) is not a fall: logged, no "fall" event ([win] 10-12: 낙하×2 in risk_report)
+    rows.clear()
+    esc.planned = "타우로스 낙하 공격"
+    r = esc.fall_seen("낙사 (발밑 바닥 9 m 아래)", types.SimpleNamespace(x=48.94, y=24.62, z=-117.4, hp=742))
+    check("planned drop → no 'fall' event, logged as 계획된 낙하", rows == [] and r["planned"] and "계획된 낙하" in lines[-1])
+    esc.planned = None
     print("afterdeath: all ok")
 
 

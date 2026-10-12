@@ -760,3 +760,7 @@ New problems still go here (append at the bottom) and get a one-line row in ROAD
   `Moves.swung`에 남기고 `rule_shot`이 그걸 씀 → 발차기 콤보 동안 본 3004도 남음.
   확인: `tests/expect/duel.jsonl` P-66 장면 3개 (방패병 1.8 s 막음 · 2.5 s 발차기 · 도끼 1.65 s 막음 — 고치기 전 코드로는 앞 둘 FAIL),
   `tests/pull_test.py` (b) 두 줄, golden 40,320 상황 그대로. 상태: verify — 방패병·도끼 망자 게임 확인 ([win]).
+- 2026-10-12 [win] 게임 확인 3판 (`6341df3`): #1 구역 1~8 + 타우로스 처치; #2·#3 구역 5 사망 → `recover` → 가는 길 구역 4에서 또 사망, 핏자국 잃음 → `ignore`.
+  회수 시도가 구역 1~3 끝마다 나와 전부 `foes_near` → [cloud] 고침: 회수는 죽은 구역을 다시 정리한 뒤부터만 (`afterdeath.run_zones`,
+  [MoKa] "죽은 후 다음 시도에서 근처를 다 정리해서 쉽게 회수가 가능하다면 해도 되긴 해"). 그 뒤 `foes_near`면 다음 구역 끝에 다시.
+  타우로스 낙하 공격이 `fall`로 기록돼 `risk_report` 낙하×2 → `esc.planned`(타우로스·수용소 낙하 공격, 까마귀) 동안은 `계획된 낙하`로 로그만.

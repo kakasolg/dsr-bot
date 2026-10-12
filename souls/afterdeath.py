@@ -5,7 +5,8 @@
 
 Until now a death ended the run and the stain was never fetched (38 deaths in data/samples, 0 pickup trips). Now one of:
   recover — worth a trip: start over from the bonfire (burg-upper zone 1 rests there anyway; every foe is back after a death)
-            and pick the stain up after the zone that reaches it (`Field.pick_blood`)
+            and pick the stain up once the zone we died in is cleared again — not before ([win] 10-12: tried after zones 1–3,
+            all 'foes_near'; [MoKa] "죽은 후 다음 시도에서 근처를 다 정리해서 쉽게 회수가 가능하다면 해도 되긴 해") (`Field.pick_blood`)
   ignore  — too little to be worth the trip: end the run, the stain stays where it is
   stop    — died again in the zone of the last death: a retry won't fix level / weapon — end the run (that stain is lost)
 """
@@ -14,7 +15,7 @@ from __future__ import annotations
 RECOVER_SOULS = 2000      # 10-11/10-12 runs (SL 15-18) dropped 439-4,127 per death; the small ones are deaths early in a run
 RECOVER_HUMANITY = 2      # 1 humanity alone (most deaths carry it) is not worth a trip
 MAX_TRIPS = 2             # recovery trips per run — a run that keeps dying somewhere new still ends
-PICK_NEAR = 40.0          # after each zone of a recovery trip: walk to the stain if it is this close (m)
+PICK_NEAR = 40.0          # after the death zone (and later ones) of a recovery trip: walk to the stain if it is this close (m)
 
 
 def worth(stain: dict | None) -> bool:
@@ -55,11 +56,11 @@ def fresh_stain(read, before, wait_s: float = 5.0, sleep=None) -> dict | None:
 def run_zones(first: int, last: int, play, *, alive, respawn, read_stain, pick, log=print, event=None, set_zone=None,
               restart: int = 1, recover: bool = True, ends=("died", "no_estus", "휴식 실패"), label=None, sleep=None) -> str:
     """Zones first..last with play(n) → result. After a death: respawn(), then plan() on the new stain — 'recover' starts over at
-    `restart` and, after every zone of that trip, pick() (Field.pick_blood: None = no stain / too far, 'got', 'miss',
-    'near_bonfire', or a walk result) until it is got. recover=False = the old way: a death ends the run. → last zone result"""
+    `restart` and, after the zone we died in (and each later one) is cleared, pick() (Field.pick_blood: None = no stain / too far,
+    'got', 'miss', 'near_bonfire', 'foes_near', or a walk result) until it is got. recover=False = the old way: a death ends the run. → last zone result"""
     event = event or (lambda *a, **k: None)
     set_zone = set_zone or (lambda n: None)
-    trips, last_dead, start, target, r = 0, None, first, None, None
+    trips, last_dead, start, target, r = 0, None, first, None, None    # target: the stain we went back for, dropped in zone last_dead
     while True:
         died_in = None
         before = read_stain()
@@ -67,7 +68,7 @@ def run_zones(first: int, last: int, play, *, alive, respawn, read_stain, pick, 
             set_zone(n)
             r = play(n)
             log(f"══ 구역 {n} ({label(n)}) 끝: {r}" if label else f"══ 구역 {n} 끝: {r}")
-            if alive() and target is not None:
+            if alive() and target is not None and n >= last_dead:
                 got = pick()
                 if got is not None:
                     log(f"   핏자국 회수 (구역 {n}): {got}")
