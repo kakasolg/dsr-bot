@@ -93,6 +93,7 @@ class FakeBox:
 
     def __init__(self, *a, **k): pass
     def start(self): return self
+    def take_fatal(self): return None
 
     def stop(self):
         TRACE.append("bbox.stop")

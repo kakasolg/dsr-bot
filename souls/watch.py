@@ -306,8 +306,11 @@ class Blood:
     and going to pick one up and pressing A sat at the bonfire, reviving every killed enemy (measured twice, 2026-09-24).
     So it records **only when souls actually dropped after respawn**. While alive, a one-shot soul gain equal to the bloodstain counts as recovery and clears it."""
 
-    def __init__(self, log=print):
+    def __init__(self, log=print, context=None, cause=None):
         self.log = log
+        # death record ([cloud] 2026-10-12, docs/analysis-death-2026-10-12.md §3 a): context() at the death moment (escape state …),
+        # cause() after the respawn (BlackBox.take_fatal: fall / hit split of the killing bundle) → one "death" event per real death
+        self.context, self.cause = context, cause
         self._stop = False
         self.th = threading.Thread(target=self._run, daemon=True)
 
@@ -342,9 +345,11 @@ class Blood:
                 souls = tm.souls() or 0
                 if pending is not None:                    # alive — did we really die?
                     if souls < pending["souls"] or (pending["souls"] == 0 and (tm.humanity() or 0) < pending["humanity"]):
+                        ctx = pending.pop("ctx", None)
                         rec = {**pending, "t": time.strftime("%Y-%m-%d %H:%M:%S")}
                         BLOODSTAIN.write_text(json.dumps(rec, ensure_ascii=False), encoding="utf-8")
                         self.log(f"   ✝ 죽음 — 핏자국 {rec['pos']} (소울 {rec['souls']}, 인간성 {rec['humanity']})")
+                        self._death_event(rec, ctx)
                     pending = None
                     prev_souls = souls
                 rec = self.read()
@@ -358,6 +363,11 @@ class Blood:
                     last = {"pos": [round(p.x, 2), round(p.y, 2), round(p.z, 2)], "souls": souls, "humanity": tm.humanity() or 0}
             elif pending is None and last is not None and (last["souls"] > 0 or last["humanity"] > 0):
                 pending = dict(last)
+                if self.context is not None:
+                    try:                                   # record only — must not stop this thread
+                        pending["ctx"] = self.context()
+                    except Exception:
+                        pass
                 ev = getattr(self.log, "event", None)      # run.py's Log has it; the default print does not
                 if ev is not None and not seen_sent:
                     seen_sent = True
@@ -367,6 +377,25 @@ class Blood:
                     except Exception:
                         pass
             time.sleep(0.2)
+
+    def _death_event(self, rec: dict, ctx: dict | None) -> None:
+        """One "death" line: where / what was dropped, the state at the death moment, and the cause from the black box
+        (cause 'fall' | 'hit', or 'unknown' with no feed). Record only."""
+        ev = getattr(self.log, "event", None)
+        if ev is None:
+            return
+        try:
+            fatal = self.cause() if self.cause is not None else None
+            row = {"pos": rec["pos"], "souls": rec["souls"], "humanity": rec["humanity"], **(ctx or {})}
+            row.update({"cause": "unknown"} if not fatal else
+                       {"cause": fatal["cause"], "lost_hit": fatal.get("lost_hit"), "lost_fall": fatal.get("lost_fall"),
+                        "drop_m": fatal.get("drop_m"), "blame": fatal.get("blame"), "hit_n": fatal.get("n")})
+            ev("death", **row)
+            what = (f"낙하 {row.get('drop_m')} m (-{row.get('lost_fall')})" + (f" + 피격 -{row['lost_hit']}" if row.get("lost_hit") else "")
+                    if row["cause"] == "fall" else "피격" if row["cause"] == "hit" else "원인 모름 (블랙박스 없음)")
+            self.log(f"   ✝ 사망 원인: {what}")
+        except Exception:
+            pass
 
     def start(self) -> "Blood":
         self.th.start()

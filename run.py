@@ -264,6 +264,9 @@ def main() -> None:
     blood = Blood(log=log).start()
     from blackbox import BlackBox
     bbox = BlackBox(tm, log.path, events=log.event, log=log).start()
+    blood.cause = bbox.take_fatal                          # "death" event: fall / hit split of the killing bundle
+    blood.context = lambda: {"zone": log.zone, "escape": "busy" if esc.escaping else "idle",
+                             "since_fall_s": round(time.time() - esc.last_fall, 1) if esc.last_fall else None}
     fld = Field(mv, w, esc, bonfires=[] if a.cmd == "asylum" else [missions.FIRELINK["stand"], missions.BURG_BONFIRE],
                 log=log, events=log.event, style=a.style)
     from souls.camera import CamFollow

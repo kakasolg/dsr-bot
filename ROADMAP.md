@@ -207,7 +207,7 @@ to the bottom of `docs/roadmap/relay.md`.
 
 (handled entries: `docs/roadmap/relay.md`, last moved 2026-10-12)
 
-- 2026-10-12 [cloud→board] **`git pull` — fall / death policy changed (MoKa 10-12)**: (1) no quit-out on a fall — only `⚠ 낙하 … 퀵 종료 안 함` + event `fall`, pad stays with the bot (old way: `--fall-quit`). (2) `burg-upper` after a death: stain souls ≥ 2000 or humanity ≥ 2 → from zone 1 again, pick it up on the way (only with no foe within 15 m of the bot or the stain); less → end; died again in the same zone → end (`--no-recover` = old). Watch `══ 사망 뒤`, `핏자국 회수`. Why: `docs/analysis-death-2026-10-12.md` (P-71, P-72). `sample.py` now also copies the events `<run>.jsonl` (`death_seen` / `fall` / `after_death` reach [cloud] only that way).
+- 2026-10-12 [cloud→board] **`git pull` — fall / death policy changed (MoKa 10-12)**: (1) no quit-out on a fall — only `⚠ 낙하 … 퀵 종료 안 함` + event `fall`, pad stays with the bot (old way: `--fall-quit`). (2) `burg-upper` after a death: stain souls ≥ 2000 or humanity ≥ 2 → from zone 1 again, pick it up on the way (only with no foe within 15 m of the bot or the stain); less → end; died again in the same zone → end (`--no-recover` = old). (3) record only: black box splits fall from hits, one `death` event per death (`✝ 사망 원인: …`). Watch `══ 사망 뒤`, `핏자국 회수`. Why: `docs/analysis-death-2026-10-12.md` (P-71, P-72). `sample.py` now also copies the events `<run>.jsonl` (`death_seen` / `fall` / `after_death` reach [cloud] only that way).
 
 ## 6. Change log (newest first; older entries in `docs/roadmap/changelog.md`)
 

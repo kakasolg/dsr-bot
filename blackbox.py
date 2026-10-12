@@ -7,6 +7,8 @@
 남기는 것 (run.py 의 Log 와 같은 이름으로):
   · <run>.jsonl  "vital" 사건 VITAL_S 마다 — HP·최대 HP·가까운 적 수. 판 위험 채점(risk_report.py)의 재료.
   · <run>.jsonl  "hit" 사건 — 한 번의 피격 묶음 요약 (잃은 HP, 남은 HP, 범인 추정)
+    내가 그 묶음에서 FALL_M 넘게 내려갔으면 fall·drop_m·lost_hit·lost_fall 도 — 범인 추정은 낙하 전에 깎인 몫(lost_hit)에만
+    (2026-10-12). HP 0 으로 끝난 묶음은 last_fatal → watch.Blood 의 "death" 사건 (cause fall | hit | unknown).
   · <run>.hits.jsonl 한 줄 = 피격 묶음 하나의 전체 프레임 (앞 BUFFER_S 초 + 뒤 TAIL_S 초, 주변 NEAR_M 안 적 전부)
 
 피격 묶음: HP 가 줄기 시작해 GAP_S 동안 더 안 줄면 끝. 합이 HIT_HP 이상이거나 HP 가 LOW_FRAC 아래로 떨어진 묶음만 남긴다.
@@ -22,6 +24,7 @@ import json
 import math
 import queue
 import threading
+import time
 from pathlib import Path
 from typing import Optional
 
@@ -35,6 +38,9 @@ NEAR_M = 12.0
 VITAL_S = 0.5
 AWAKE_M = 5.0       # vital 의 "가까운 적" 반경
 HOSTILE = (6, 7, 24, 25, 27, 33)   # telemetry.Snapshot.hostile 과 같은 팀
+FALL_M = 3.0        # 묶음 안에서 내가 이만큼 넘게 내려갔으면 낙하 포함 (죽은 묶음은 HP 0 첫 프레임까지만 — 죽은 뒤 굴러떨어짐 제외)
+FALL_ONSET = 2.0    # 묶음 앞 FALL_LOOK 초 안 최고 높이보다 이만큼 내려간 첫 프레임 = 낙하 시작 — 그 전에 깎인 HP만 피격 몫
+FALL_LOOK = 3.0     # (2026-10-12 [cloud] 사망 38건: 낙사 7건 중 4건을 근처 적의 피격으로 적었다 — docs/analysis-death-2026-10-12.md)
 
 
 def _facing_me(c, p) -> Optional[float]:
@@ -69,6 +75,7 @@ class BlackBox:
         self._ep: Optional[dict] = None      # 진행 중인 피격 묶음
         self._t_vital = 0.0
         self.n_hits = 0
+        self.last_fatal: Optional[dict] = None   # HP 0 으로 끝난 마지막 묶음의 요약 — watch.Blood 의 death 사건이 가져감 (take_fatal)
 
     def start(self) -> "BlackBox":
         if not hasattr(self.feed, "listeners"):
@@ -132,15 +139,57 @@ class BlackBox:
                         continue
                     _, ep, lost, mx, frames = item
                     self.n_hits += 1
-                    who = blame(frames, ep["t0"])
+                    fall = fall_split(frames, ep)
+                    who = blame(frames, ep["t0"]) if fall is None or fall["lost_hit"] > 0 else []
                     dur = round(ep["t_last"] - ep["t0"], 2)
-                    self.events("hit", n=self.n_hits, lost=lost, hp=ep["lo"], max=mx, secs=dur, blame=who)
-                    self.log(f"   ▣ 블랙박스 #{self.n_hits}: {dur} s 동안 -{lost} → HP {ep['lo']}/{mx}, 추정 {fmt_blame(who)}")
+                    self.events("hit", n=self.n_hits, lost=lost, hp=ep["lo"], max=mx, secs=dur, blame=who,
+                                **({} if fall is None else fall))
+                    self.log(f"   ▣ 블랙박스 #{self.n_hits}: {dur} s 동안 -{lost} → HP {ep['lo']}/{mx}, " + fmt_hit(who, fall))
+                    if ep["lo"] <= 0:
+                        self.last_fatal = {"n": self.n_hits, "lost": lost, "secs": dur, "blame": who, "wall": time.time(),
+                                           "cause": "fall" if fall else "hit", **(fall or {"lost_hit": lost, "lost_fall": 0})}
                     fh.write(json.dumps({"n": self.n_hits, "t0": ep["t0"], "hp0": ep["hp0"], "lo": ep["lo"], "max": mx,
-                                         "blame": who, "frames": frames}, ensure_ascii=False) + "\n")
+                                         "blame": who, "fall": fall, "frames": frames}, ensure_ascii=False) + "\n")
                     fh.flush()
                 except Exception as ex:          # 기록기가 봇을 멈추게 하면 안 된다
                     self.log(f"   블랙박스 쓰기 실패: {ex!r}")
+
+
+    def take_fatal(self, max_age: float = 90.0) -> Optional[dict]:
+        """The last bundle that ended at HP 0, once, if it closed within max_age s (watch.Blood's death event comes after the
+        respawn; an older one — a loading-screen HP 0 — is not this death's)."""
+        f, self.last_fatal = self.last_fatal, None
+        return f if f and time.time() - f.pop("wall", 0.0) <= max_age else None
+
+
+def fall_split(frames: list, ep: dict) -> Optional[dict]:
+    """My own height inside a hit bundle. None = no fall (dropped < FALL_M). Else {fall: True, drop_m, lost_hit (HP gone before the
+    fall started — the only part a foe can be blamed for), lost_fall}. A bundle that ends at HP 0 counts the drop only up to its
+    first HP-0 frame (a dead body sliding down a slope is not a fall death)."""
+    t0, t_end = ep["t0"], ep["t_last"] + TAIL_S
+    look = [f for f in frames if t0 - FALL_LOOK <= f["t"] <= t_end]
+    if not look:
+        return None
+    dead_t = next((f["t"] for f in look if f["t"] >= t0 and (f["hp"] or 0) <= 0), None)
+    upto = [f for f in look if dead_t is None or f["t"] <= dead_t]
+    i_top = max(range(len(upto)), key=lambda i: upto[i]["pos"][1])
+    top = upto[i_top]["pos"][1]
+    low = min(f["pos"][1] for f in upto[i_top:])
+    if top - low < FALL_M:
+        return None
+    onset = next(f for f in upto[i_top:] if f["pos"][1] < top - FALL_ONSET)
+    before = [f for f in look if f["t"] < onset["t"]]
+    hp_at = before[-1]["hp"] if before and before[-1]["hp"] is not None else ep["hp0"]
+    lost_hit = max(0, ep["hp0"] - hp_at) if onset["t"] > t0 else 0
+    lost = ep["hp0"] - ep["lo"]
+    return {"fall": True, "drop_m": round(top - low, 1), "lost_hit": min(lost, lost_hit), "lost_fall": lost - min(lost, lost_hit)}
+
+
+def fmt_hit(who: list, fall: Optional[dict]) -> str:
+    if fall is None:
+        return "추정 " + fmt_blame(who)
+    hit = f"피격 -{fall['lost_hit']} (추정 {fmt_blame(who)}) + " if fall["lost_hit"] else ""
+    return f"{hit}낙하 -{fall['lost_fall']} ({fall['drop_m']} m)"
 
 
 def blame(frames: list, t0: float) -> list:
