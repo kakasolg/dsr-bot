@@ -18,6 +18,7 @@ Short on purpose: **only open work, one line each**. Full history (Korean, verba
 | `docs/review-v2-2026-10-11.md` | v1.0 → v2.0 review: last 7 days, structure problems, 2.0 features and order (not decided) |
 | `docs/research-control-priority-2026-10-11.md` | consistency research (MoKa 10-11): conditions vs principles, who holds the pad; rulebooks, RSS, Simplex, SOTIF, arbitration; proposals (not decided) |
 | `docs/code-read-fall-death-2026-10-11.md` | read-only code answers (10-11): RULES order, fall handling, death record, `death_seen` event |
+| `docs/boss-taurus.md` | Taurus Demon guide: plunge loop, numbers, boss attack table |
 
 Rules for keeping this file small (CLAUDE.md has the full working rules):
 - An item lives here while it is `[ ]` / `[~]` / `[!]`. When it becomes `[x]` or `[-]`, move the line (with its one-line
@@ -42,7 +43,7 @@ Bot already clears cell → Undead Burg bonfire in one run (10-03e). `run.py bur
 zone 8 crossbowmen (P-47).
 
 - [ ] [cloud]+[win] **Alignment first (MoKa 10-11: high priority)** — attack target · character facing · camera in one line (MoKa 10-01: "alignment decides whether a move works"). Facing |각| ≤ 30° in 75–95 % of fight lines; P-65 one look order (`20dd7ae`): 1 run camera ≤ 10° fight 89 % / out of fight 87 %. Next: [cloud] one target–body–camera measure per tick; [win] more runs
-- [~] [win] Taurus: `run.py taurus` (`souls/taurus.py`) — plunge loop (MoKa 10-12 YouTube guide): plunge → 1 light → ladder → climb → plunge. 10-12 **full run bonfire → zones 1–8 → Taurus killed** (`004844` + `005650`: 3 plunges −531 −531 −153, HP 19 %); other two full runs died in zone 5 / 8. Boss attacks per anim: `taurus_report.py`
+- [~] [win] Taurus: `run.py taurus` (`souls/taurus.py`) — plunge loop (MoKa 10-12). 10-12 **full run bonfire → zones 1–8 → Taurus killed** (`004844` + `005650`: 3 plunges −531 −531 −153, HP 19 %); other two full runs died in zone 5 / 8. guide + data: `docs/boss-taurus.md`
 - [ ] [cloud]+[win] Boss fight default = two-handed + dodging (9-30 principle); Taurus is the first case (the general boss module is v2.0)
 - [ ] [cloud] Firebomb hollow "close in fast" rule — unless the way there is a fall-risk zone (ledge 254012 is ignored) → check with `duel_golden_test`
 - [~] [win] Zone-by-zone bot runs; after each: `blind_report.py` · `hotspots.py` · `track_report.py`, logs to `data/samples/`
