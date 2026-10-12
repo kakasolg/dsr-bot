@@ -120,6 +120,42 @@ def main() -> None:
           rows == [("fall", {"why": "낙사 (바닥 모름, 0.8 s 에 4.3 m)", "kind": "fall", "pos0": [-10.31, -16.72, -66.43], "hp": 669})])
     check("fall_seen: pad untouched, cooldown + last_fall_pos set, gen unchanged",
           pad.froze == 0 and esc.last_fall > 0 and esc.last_fall_pos == [-10.31, -16.72, -66.43] and esc.gen == 0)
+    # Field.pick_blood: only with no foe near me or the stain; a foe coming during the walk stops it ([MoKa] 10-12)
+    from souls import field as F
+    stain = {"pos": [10.0, 0.0, 10.0], "souls": 3114, "humanity": 1, "t": "x"}
+    F.Blood.read = staticmethod(lambda: stain)
+
+    def chr_at(x, z, me=(0.0, 0.0)):
+        return types.SimpleNamespace(npc_param=254010, x=x, y=0.0, z=z, hp=75, team=6, dist=((x - me[0]) ** 2 + (z - me[1]) ** 2) ** 0.5)
+
+    def snap(chars, me=(0.0, 0.0)):
+        sn = types.SimpleNamespace(player=types.SimpleNamespace(x=me[0], y=0.0, z=me[1]), chars=chars)
+        sn.hostile = lambda within: [c for c in chars if c.hp > 0 and c.dist <= within]
+        return sn
+
+    def fake(chars, walk_snaps=()):
+        walked = []
+        souls = iter([100, 100, 3214])
+
+        def walk_to(pos, nm, tag, done=None):
+            walked.append(pos)
+            for sn in walk_snaps:
+                if done is not None and done(sn):
+                    return "arrived"
+            return "arrived"
+        mv = types.SimpleNamespace(snap=lambda w: snap(chars), press=lambda b: None,
+                                   tm=types.SimpleNamespace(souls=lambda: next(souls, 3214)))
+        return types.SimpleNamespace(bonfires=[], mv=mv, log=lambda *a: None, walk_to=walk_to, _foes_by=F.Field._foes_by), walked
+
+    F.time.sleep = lambda s: None
+    me_ok, walked = fake([chr_at(60.0, 60.0)])
+    check("no foe within 15 m of me or the stain → walk and pick", F.Field.pick_blood(me_ok, None, near=40.0) == "got" and walked)
+    near_stain, walked = fake([chr_at(14.0, 18.0)])
+    check("a sleeping foe 8.9 m from the stain → foes_near, no walk", F.Field.pick_blood(near_stain, None, near=40.0) == "foes_near" and not walked)
+    near_me, walked = fake([chr_at(-5.0, 3.0)])
+    check("a foe 5.8 m from me → foes_near, no walk", F.Field.pick_blood(near_me, None, near=40.0) == "foes_near" and not walked)
+    came, walked = fake([], walk_snaps=[snap([]), snap([chr_at(6.0, 4.0, me=(5.0, 5.0))], me=(5.0, 5.0))])
+    check("a foe comes during the walk → walk stops, foes_near, no A", F.Field.pick_blood(came, None, near=40.0) == "foes_near" and walked)
     print("afterdeath: all ok")
 
 

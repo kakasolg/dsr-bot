@@ -747,3 +747,6 @@ New problems still go here (append at the bottom) and get a one-line row in ROAD
   회수 여행 최대 2번. `run.py burg-upper`에만 (`--no-recover` = 예전). 이벤트 `after_death` · `blood_pick` · `blood_lost`.
   확인: `tests/afterdeath_test.py` (값 판정, 같은 구역 두 번 → stop, `--seg 5-8`에서 죽으면 1부터, 새 핏자국 없으면 옛 기록 안 씀,
   낙하 = `fall` 이벤트 · 패드 안 잠금). 상태: verify — 게임에서 회수 여행 한 번 ([win]).
+- 2026-10-12 [MoKa]: 지금까지 회수를 안 한 건 일부러 — "회수 하려다가 봇이 또다른 실수를 유발 할 까봐 무시". → "주변에 적이 없는 상황에서만 회수":
+  `Field.pick_blood`는 나·핏자국 15 m(`BLOOD_CLEAR_R`) 안에 산 적(자는 놈 포함)이 있으면 안 가고(`foes_near`, 다음 구역 끝에 다시 봄),
+  가는 길에 그 안으로 적이 들어오면 걷기를 멈춤 (A 안 누름). `tests/afterdeath_test.py`에 네 장면.

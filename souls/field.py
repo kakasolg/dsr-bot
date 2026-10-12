@@ -231,6 +231,8 @@ LURE_TRIES = 3
 LURE_DY = 1.5            # max height diff between throw spot and target / current spot — so we don't jump down to a foe below a cliff (2026-09-24 run 8)
 LURE_ABORT_R = 10.0              # abort throwing if another awake, moving foe is within this
 PICK_TRIES = 3           # A presses to pick up a bloodstain
+BLOOD_CLEAR_R = 15.0    # pick a stain up only with no living foe this close to me or to the stain, and stop the walk if one
+                        # comes this close ([MoKa] 2026-10-12: stains were left alone on purpose — fetching one must not cause a new mistake)
 CAREFUL_LEG = 4.0        # careful_walk_to: walk this far, then stop and look
 CAREFUL_LOOK_S = 1.5     # …stand this long (guard up) watching who comes
 CAREFUL_COME_R = 12.0    # an awake, moving foe this close (same level) → wait for it here and fight it alone
@@ -2058,7 +2060,9 @@ class Field:
 
     # ── Bloodstain────────────────────────────────────────────────
     def pick_blood(self, nm, near: float = 20.0, bonfire_ok: bool = False) -> str | None:
-        """bonfire_ok: we'll sit at this bonfire anyway, so A accidentally sitting is fine (bloodstain next to the Undead Burg bonfire)."""
+        """bonfire_ok: we'll sit at this bonfire anyway, so A accidentally sitting is fine (bloodstain next to the Undead Burg bonfire).
+        Only with no living foe within BLOOD_CLEAR_R of me or the stain, and the walk stops if one comes that close → 'foes_near'
+        (try again later). → None (no stain / too far) | 'near_bonfire' | 'foes_near' | 'got' | 'miss' | a walk result"""
         b = Blood.read()
         if not b:
             return None
@@ -2069,7 +2073,19 @@ class Field:
         s = self.mv.snap(5.0)
         if s is None or math.dist((s.player.x, s.player.y, s.player.z), pos) > near:
             return None
-        r = self.walk_to(pos, nm, "핏자국")
+        foes = self._foes_by(s, pos)
+        if foes:
+            self.log(f"   핏자국 {pos}: 근처에 적 {len(foes)} ({', '.join(foes[:3])}) — 안 감")
+            return "foes_near"
+        seen: list = []
+
+        def foe_came(sn) -> bool:                          # walk's done(): stop at once — a fight is not what we came for
+            seen[:] = self._foes_by(sn, pos)
+            return bool(seen)
+        r = self.walk_to(pos, nm, "핏자국", done=foe_came)
+        if seen:
+            self.log(f"   핏자국: 가는 길에 적 ({', '.join(seen[:3])}) — 멈춤")
+            return "foes_near"
         if r != "arrived":
             return r
         souls0 = self.mv.tm.souls() or 0
@@ -2084,6 +2100,14 @@ class Field:
                 break
         self.log(f"   핏자국: {'회수' if got else '못 주움'} (소울 {souls0} → {self.mv.tm.souls()})")
         return "got" if got else "miss"
+
+    @staticmethod
+    def _foes_by(s, pos, r: float = None) -> list[str]:
+        """Living foes within r of me or of pos (awake or not — walking up to a sleeping one wakes it). → 'npc d m' labels"""
+        r = BLOOD_CLEAR_R if r is None else r
+        me = (s.player.x, s.player.y, s.player.z)
+        return [f"{c.npc_param} {c.dist:.0f} m" for c in s.hostile(r + math.dist(me, pos))
+                if c.dist < r or math.dist((c.x, c.y, c.z), pos) < r]
 
     # ── Rest─────────────────────────────────────────────────
     def rest_at(self, nm, bonfire: dict) -> bool:

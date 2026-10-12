@@ -51,18 +51,20 @@ zone 8 crossbowmen (P-47).
 - [~] [win] Zone-by-zone bot runs; after each: `blind_report.py` · `hotspots.py` · `track_report.py`, logs to `data/samples/`
 - [~] [MoKa] Recordings of the route (3 done, Taurus killed in the 3rd) — more only if a zone needs it
 
-**Firebombs · bow from the Undead Merchant (MoKa 10-12: "난이도가 급격히 줄어"), in order:**
-- [ ] [MoKa] Buy firebombs (~20) into the test save (+ bow and arrows to try); souls budget per run?
-- [ ] [win] Locked-on firebomb at 254010 from 5 · 8 · 12 · 15 m: hit, damage, others woken (`throw_firebomb` result); confirm id 292
-- [ ] [cloud] Firebomb as a candidate (lure opener · 2+ foes · ledge 254012) next to knife / melee (count · distance · foes); golden + expect
-- [ ] [cloud]+[win] Bow: switch shield ↔ bow, locked-on shot, measure — after the firebomb
+**Firebombs · bow from the Undead Merchant (MoKa 10-12: "난이도가 급격히 줄어"); the bot must buy them itself. In order:**
+- [ ] [win] Record the merchant's menus (talk → shop list order · prices → quantity → confirm), video or radar + screenshots
+- [ ] [cloud] `shop` buy routine: talk, pick, quantity, confirm; checked by souls ↓ and count ↑ — then [win] tests it in game
+- [ ] [win] Locked-on firebomb at 254010 from 5 · 8 · 12 · 15 m: hit, damage, others woken; confirm id 292
+- [ ] [cloud] Firebomb as a candidate (lure opener · 2+ foes · ledge 254012) next to knife / melee; no limit — use while any are left, none = play as now; golden + expect
+- [ ] [cloud]+[win] Bow: buy, switch shield ↔ bow, locked-on shot, measure — after the firebomb
+- [ ] [cloud] NPC interaction (MoKa 10-12: getting important): talk / shop / later quests as one module; the merchant is the first case
 
 ## 2. v1.0 — open by area
 
 **Fight rules / reflexes (1-j: "basic reflexes done right", MoKa 10-02)**
-- [~] [cloud] Scene expectations (proposal 4, `docs/design-scene-expectations.md`) — steps 1–2 done 2026-10-09: `tests/scene_world.py`, `tests/duel_expect_test.py`, `tests/expect/duel.jsonl` 48 scenes (13 from MoKa instructions / P-31 / P-33, 35 from blind labels whose rebuild = the bot's own choice): pass 34 · known_fail P-33 9 · P-31 1 · review 4; catches 4/4 deliberate rule breaks. Step 3 done offline 2026-10-10: `scenes.py` (`duel.SCENE_TAP`, `run.py --ctl-scenes`), `scene_replay.py` — round trip 687/687 same rule, tap changes no decision, ~40 µs/tick, ~2–4 KB per kept decision; `label_pilot` takes commit + `--basic` flags from the run's settings record (`runinfo.covering`)
+- [~] [cloud] Scene expectations (proposal 4, `docs/design-scene-expectations.md`) — steps 1–3 done offline (48 scenes, `scene_replay` 687/687); details: `plan.md` "Open-item details"
 - [ ] [MoKa] Skim `tests/expect/duel.jsonl` label lines (10 min) and the 4 `review` scenes: idle hollow 8.7–8.9 m (you: hold/reposition, bot approached) ×2, swing at 2.2 m (you: reposition, bot guarded), 'other' anim 2.0 m (you: attack/guard, bot approached)
-- [~] [cloud] One floor check (proposal 3, P-49, `docs/design-floor-check.md`) — C floor map done offline 2026-10-10: `ground.py` (`Ground` = NavMesh + walked cells, `data/walked/<map>.npz` 38,598 positions / 160 KB); leave-one-run-out (`experiments/floor_map_check.py`): false "no floor" on real steps 2.1 % → 0.5 %, the 5 recorded falls still "no floor" 5/5; `tests/ground_test.py`. `run.py --ground` (off by default): walks and fights read floor through Ground, the fall / ledge watch keeps the plain NavMesh, and whether a walk checks floor at all stays the NavMesh's call. Walk harness, passage entrance pre-fix route: stall 11.6–13.7 s → 1.6–2.1 s (game 1.8–4.4 s), after-fix route unchanged. A `rule_footing`: fights only, done offline 10-11 behind `run.py --footing` (MoKa §7 answered; P-58); the same check everywhere stays v2.0
+- [~] [cloud] One floor check (proposal 3, P-49, `docs/design-floor-check.md`) — C floor map + `--ground` (walks only) + `rule_footing` (`--footing`) done offline; details: `plan.md` "Open-item details"
 - [ ] [MoKa] `--ground` (walks only) on by default, or more runs that reach the passage? (round 2 numbers on the board 2026-10-11)
 - [~] [win] A/B `--ground` **round 2** (cloud answer 10-10, P-56; round 1 stopped at a ramp-ledge death): `--ground` now = walks only (fights / recover / reflex keep the NavMesh). `burg-bonfire --seg 1-2 --no-lure` ×3 without, ×3 with, same save, alternate off/on — **10-10 [win]: 6 runs done, report in relay.md; waits for the MoKa item above**
 - [~] [cloud] Split `no_spot` (74 of 112 in data/samples) → first ≤ 7 m of `escape.pick`'s path (`duel._escape_way`, `SEP_ESCAPE`) — offline done 10-11, golden unchanged; [win]: log `떼어놓기 n: … → escape_arrived` — 10-11 `070611`: 1× in game (254001 1.4 m + 254002 1.1 m → escape_arrived, no hit after); round 2: 3 more (on #2 1, on #3 2: 254001 + 254002 → escape_arrived, 254000 ×2 → arrived)
@@ -195,7 +197,7 @@ Full entries: `docs/roadmap/problems.md`. Status: **open** · **parked** · **de
 | 69 | Zone 1: the foe fell off the ledge mid-fight, the bot walked after it and fell (fall quit-out, recovered) | open → [cloud] |
 | 70 | Zone 1 stairs: 0.1 s sprint B between braked points = roll off the stairs; 3 runs dead | verify — `Pad.sprint` holds B ≥ 0.45 s; 10-12 3 full runs: zone 1 cleared 3/3, no roll |
 | 71 | Fall deaths: a second fall right after a fall quit-out, `Escape` blind, pad frozen; black box blames the foe | verify — MoKa 10-12: no quit-out on falls (`fall_seen`) |
-| 72 | Deaths never fetched their bloodstain (38 deaths, 0 pickup trips) | verify — `souls/afterdeath.py`: worth it → back from zone 1 and pick; small / same zone → end |
+| 72 | Deaths never fetched their bloodstain (38 deaths, 0 pickup trips) | verify — `souls/afterdeath.py`: worth it → back from zone 1, pick only with no foe within 15 m; small / same zone → end |
 
 ## 5. Relay — [cloud] ↔ board
 
@@ -205,7 +207,7 @@ to the bottom of `docs/roadmap/relay.md`.
 
 (handled entries: `docs/roadmap/relay.md`, last moved 2026-10-12)
 
-- 2026-10-12 [cloud→board] **`git pull` — fall / death policy changed (MoKa 10-12)**: (1) no quit-out on a fall — only `⚠ 낙하 … 퀵 종료 안 함` + event `fall`, pad stays with the bot (old way: `--fall-quit`). (2) `burg-upper` after a death: stain souls ≥ 2000 or humanity ≥ 2 → from zone 1 again, pick it up on the way; less → end; died again in the same zone → end (`--no-recover` = old). Watch `══ 사망 뒤`, `핏자국 회수`. Why: `docs/analysis-death-2026-10-12.md` (P-71, P-72). `sample.py` now also copies the events `<run>.jsonl` (`death_seen` / `fall` / `after_death` reach [cloud] only that way).
+- 2026-10-12 [cloud→board] **`git pull` — fall / death policy changed (MoKa 10-12)**: (1) no quit-out on a fall — only `⚠ 낙하 … 퀵 종료 안 함` + event `fall`, pad stays with the bot (old way: `--fall-quit`). (2) `burg-upper` after a death: stain souls ≥ 2000 or humanity ≥ 2 → from zone 1 again, pick it up on the way (only with no foe within 15 m of the bot or the stain); less → end; died again in the same zone → end (`--no-recover` = old). Watch `══ 사망 뒤`, `핏자국 회수`. Why: `docs/analysis-death-2026-10-12.md` (P-71, P-72). `sample.py` now also copies the events `<run>.jsonl` (`death_seen` / `fall` / `after_death` reach [cloud] only that way).
 
 ## 6. Change log (newest first; older entries in `docs/roadmap/changelog.md`)
 
