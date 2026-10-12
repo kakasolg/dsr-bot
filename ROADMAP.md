@@ -44,7 +44,7 @@ Bot already clears cell → Undead Burg bonfire in one run (10-03e). `run.py bur
 zone 8 crossbowmen (P-47).
 
 - [~] [cloud]+[win] **Alignment first (MoKa 10-11: high priority)** — attack target · character facing · camera in one line (MoKa 10-01: "alignment decides whether a move works"). Facing |각| ≤ 30° in 75–95 % of fight lines; P-65 one look order (`20dd7ae`): 1 run camera ≤ 10° fight 89 % / out of fight 87 %. 10-12 [cloud] measure in (record only): `align` event 2 Hz (src · body · cam · lock), `attack_align` per press (+ damage), end line `정렬 (…)`; [win]: runs, read that line
-- [~] [win] Taurus: `run.py taurus` (`souls/taurus.py`) — plunge loop (MoKa 10-12). 10-12 **full run bonfire → zones 1–8 → Taurus killed** (`004844` + `005650`: 3 plunges −531 −531 −153, HP 19 %); other two full runs died in zone 5 / 8. guide + data: `docs/boss-taurus.md`
+- [~] [win] Taurus: `run.py taurus` — plunge loop (MoKa 10-12). Full runs bonfire → Taurus killed 2× (`005650`, `025057`); guide + data: `docs/boss-taurus.md`
 - [~] [win] **Fall / death policy (MoKa 10-12)** — 10-12 3 full runs: (1) · (2) seen, findings in Relay; (3) · (4) next runs. P-71 / P-72
 - [ ] [cloud]+[win] Boss fight default = two-handed + dodging (9-30 principle); Taurus is the first case (the general boss module is v2.0)
 - [ ] [cloud] Firebomb hollow "close in fast" rule — unless the way there is a fall-risk zone (ledge 254012 is ignored) → check with `duel_golden_test`
@@ -198,6 +198,7 @@ Full entries: `docs/roadmap/problems.md`. Status: **open** · **parked** · **de
 | 70 | Zone 1 stairs: 0.1 s sprint B between braked points = roll off the stairs; 3 runs dead | verify — `Pad.sprint` holds B ≥ 0.45 s; 10-12 3 full runs: zone 1 cleared 3/3, no roll |
 | 71 | Fall deaths: a second fall right after a fall quit-out, `Escape` blind, pad frozen; black box blames the foe | verify — MoKa 10-12: no quit-out on falls (`fall_seen`) |
 | 72 | Deaths never fetched their bloodstain (38 deaths, 0 pickup trips) | verify — `souls/afterdeath.py`: worth it → back from zone 1, pick only with no foe within 15 m; small / same zone → end |
+| 73 | Ramp #5: low_hp gap roll slid off the ledge → 22.4 m fall (no-quit policy) | open → [cloud] |
 
 ## 5. Relay — [cloud] ↔ board
 
