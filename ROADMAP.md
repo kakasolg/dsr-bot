@@ -42,7 +42,7 @@ Bot already clears cell → Undead Burg bonfire in one run (10-03e). `run.py bur
 zone 8 crossbowmen (P-47).
 
 - [ ] [cloud]+[win] **Alignment first (MoKa 10-11: high priority)** — attack target · character facing · camera in one line (MoKa 10-01: "alignment decides whether a move works"). Facing |각| ≤ 30° in 75–95 % of fight lines; P-65 one look order (`20dd7ae`): 1 run camera ≤ 10° fight 89 % / out of fight 87 %. Next: [cloud] one target–body–camera measure per tick; [win] more runs
-- [~] [win] Taurus: bridge F9#7 → ladder → resin → plunge → light attacks close (MoKa 10-06) — `run.py taurus` from save point `backup-20261011-235526-zone8-top-taurus-start` (`savepoint.py restore`). 10-12 tries 5–11: **2/7 killed** (plunge −531 in 5/7); deaths = its 3000–3006 in front at 1–5 m, Estus cut, once knocked off the bridge. Fixes for tries 1–4 in `souls/taurus.py` comments
+- [~] [win] Taurus: `run.py taurus` (`souls/taurus.py`) — plunge loop (MoKa 10-12 YouTube guide): plunge → 1 light → ladder → climb → plunge. 10-12 **full run bonfire → zones 1–8 → Taurus killed** (`004844` + `005650`: 3 plunges −531 −531 −153, HP 19 %); other two full runs died in zone 5 / 8. Boss attacks per anim: `taurus_report.py`
 - [ ] [cloud]+[win] Boss fight default = two-handed + dodging (9-30 principle); Taurus is the first case (the general boss module is v2.0)
 - [ ] [cloud] Firebomb hollow "close in fast" rule — unless the way there is a fall-risk zone (ledge 254012 is ignored) → check with `duel_golden_test`
 - [~] [win] Zone-by-zone bot runs; after each: `blind_report.py` · `hotspots.py` · `track_report.py`, logs to `data/samples/`
@@ -184,7 +184,7 @@ Full entries: `docs/roadmap/problems.md`. Status: **open** · **parked** · **de
 | 67 | Zone 1 lure: B re-pressed at every sprint point → jump off ledge into 3× 254010; `_sprint` had no hit exit → dead | verify — game 10-11: zones 1–4 cleared, `threat` stop 6×, no jump; 3 short B holds left |
 | 68 | Zone 5: heavy into 255000's shield 0 dmg → low_hp, Estus refused 3×, 255001 joins → dead; bot kept acting after death (TypeError) | death part: fixed — game 10-11 zone 8 death ended the zone at once, no error; shield part open |
 | 69 | Zone 1: the foe fell off the ledge mid-fight, the bot walked after it and fell (fall quit-out, recovered) | open → [cloud] |
-| 70 | Zone 1 stairs: 0.1 s sprint B between braked points = roll off the stairs; 3 runs dead | verify — `Pad.sprint` holds B ≥ 0.45 s |
+| 70 | Zone 1 stairs: 0.1 s sprint B between braked points = roll off the stairs; 3 runs dead | verify — `Pad.sprint` holds B ≥ 0.45 s; 10-12 3 full runs: zone 1 cleared 3/3, no roll |
 
 ## 5. Relay — [cloud] ↔ board
 
