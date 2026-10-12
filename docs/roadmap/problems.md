@@ -681,3 +681,10 @@ New problems still go here (append at the bottom) and get a one-line row in ROAD
   `Field.recover`는 HP 0이면 바로 False. `Moves.stick_to`는 `cam_yaw` None이면 (0, 0) — 카메라 없으면 조종 안 함.
   확인: `tests/death_order_test.py`(HP 0 + cancel → me_dead, 전 코드 'cancel'), `tests/burg_upper_test.py` P-68 장면(전 코드 FAIL), pytest 86,
   golden 그대로, expect 그대로. (a) 방패병 강공은 그대로 열림.
+  게임 확인 (`20261011_171918`, 구역 8 사망): 504.29 s HP 0 → 506.22 s `물러남: dead` → 곧바로 `구역 8 끝: died`, 죽은 뒤 행동·예외 없음. 같은 판 구역 5는 cleared.
+- 2026-10-11 [win] **다시 나옴 (AGAIN) — 구역 8 석궁병 255002 둘** (`20261011_171918_burg-upper_p68fix-zone8-death`, `eb45e13`, 처음으로 구역 1~7 + 안개벽 +
+  사다리 + 구르기 2번까지 한 판에): 구른 자리에 둘이 2.7~3.3 m로 따라옴 → `원거리부터` 목표 바꿈 → `떼어놓기` 3.3 → 6.7 m(1.7 s) → 다시 `붙는 중`
+  (둘이 같이 다시 붙음) → 반사 가드 ×42 → `after_swing`(ctl 결정 스냅숏 나이 2,477 ms = 2.5 s짜리 kick+light×2 콤보) — 그때 255002 하나는
+  3004(1.3 m), 다른 하나 3500. 콤보 중 −228(내 애니 2006) · −156 → `low_hp` → 빈틈 쪽 구르기 중 −228 → 사망. **준 피해 0, 받은 피해 669 / 5 s.**
+  `blind_report` 이 판 'other' 15× 40.9 s −606 (이전 판들 최대 −459). [MoKa] 10-06 지시는 구역 8 "가자 마자 공격해"인데 첫 3 s가 목표 바꿈 · 떼어놓기 ·
+  다시 붙기. 오늘 세 판의 죽음 모두 2명 이상이 2.5 m 안 (구역 1 셋, 구역 5 255000 + 255001, 구역 8 둘).

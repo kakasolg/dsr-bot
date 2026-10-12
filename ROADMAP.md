@@ -42,7 +42,6 @@ Bot already clears cell → Undead Burg bonfire in one run (10-03e). `run.py bur
 zone 8 crossbowmen (P-47).
 
 - [ ] [cloud]+[win] **Alignment first (MoKa 10-11: high priority)** — attack target · character facing · camera in one line (MoKa 10-01: "alignment decides whether a move works"). Facing |각| ≤ 30° in 75–95 % of fight lines; P-65 one look order (`20dd7ae`): 1 run camera ≤ 10° fight 89 % / out of fight 87 %. Next: [cloud] one target–body–camera measure per tick; [win] more runs
-- [ ] [win] Zone 8: at the ladder top **roll twice** away from the two crossbowmen, then fight (MoKa 10-06) → P-47 — [cloud] done offline 10-11 (`roll` before-step: two rolls east toward F9#8, the landing = safe spot / tether); game check `run.py burg-upper --seg 8`, log `구르기 1/2 → +91° (F9 쪽)` · `구른 자리 … 를 안전 자리로`
 - [ ] [cloud]+[win] Taurus: bridge F9#7 calls the boss → run to ladder, climb → **gold pine resin** → plunge (~40 % of boss HP) → ~4 light attacks, keep stamina > 0; start with ≥ 1 Estus (MoKa 10-06)
 - [ ] [cloud]+[win] Boss fight default = two-handed + dodging (9-30 principle); Taurus is the first case (the general boss module is v2.0)
 - [ ] [cloud] Firebomb hollow "close in fast" rule — unless the way there is a fall-risk zone (ledge 254012 is ignored) → check with `duel_golden_test`
@@ -181,9 +180,9 @@ Full entries: `docs/roadmap/problems.md`. Status: **open** · **parked** · **de
 | 63 | `ground_ahead` / `footing` / `safe_back` take a floor far above (a roof) as floor | partly — strict only for sprint braking; rest → v2.0 floor check |
 | 64 | Passage exit (−26,−33.7,8.5): walk stalls 2–3× (4.5 s, passage 33 s) — 2/27 runs; same spot as P-63's missing-floor NavMesh | open → [cloud] |
 | 65 | Camera not steered outside fights (leave_fire / escape.pick back-off / body pull); `LOOK_SIGN` learned backwards from one pulse once | verify — one look order in `CamFollow`; stick sign from a ± pair |
-| 66 | Shield soldier's late 3004: `rule_after_swing` (6th) calls it ended at 1.6 s and kicks before `rule_late_windup_block` (9th) — hit −228; `rule_shot` read that hit as a thrower's | open → [cloud] |
+| 66 | Shield soldier's late 3004: `rule_after_swing` (6th) calls it ended at 1.6 s and kicks before `rule_late_windup_block` (9th) — hit −228; `rule_shot` read that hit as a thrower's | open → [cloud]; AGAIN 10-11 zone 8 (2× 255002, dead) |
 | 67 | Zone 1 lure: B re-pressed at every sprint point → jump off ledge into 3× 254010; `_sprint` had no hit exit → dead | verify — game 10-11: zones 1–4 cleared, `threat` stop 6×, no jump; 3 short B holds left |
-| 68 | Zone 5: heavy into 255000's shield 0 dmg → low_hp, Estus refused 3×, 255001 joins → dead; bot kept acting after death (TypeError) | death part: verify (duel checks HP 0 before cancel); shield part open |
+| 68 | Zone 5: heavy into 255000's shield 0 dmg → low_hp, Estus refused 3×, 255001 joins → dead; bot kept acting after death (TypeError) | death part: fixed — game 10-11 zone 8 death ended the zone at once, no error; shield part open |
 
 ## 5. Relay — [cloud] ↔ board
 
