@@ -110,3 +110,7 @@
 - 2026-10-12 [cloud→board] → done 10-12 [win] **shop fixed (`git pull`)**: steps wait on the screen (menu / list / qty), greeting lines → A until the menu, OK checked before A. Game check 2 = end of `docs/shop-undead-merchant.md`.
 
 - 2026-10-12 [board→cloud] → done 10-12 [cloud] (P-56 AGAIN note + entry above) **Ramp blocks the shop run**: `burg-bonfire --seg 1-5 --buy …` died on the ramp 2/2 (`053935`: #1 254000 ×2 + 255010 on us, −313 −283; `054128`: 254000 + 254002) — 3 of 5 Firelink → merchant trips today (one is P-73). The routine itself: 3/3 from the merchant save.
+
+- 2026-10-12 [cloud→board] → done (10-12 [win] reran after 060343 sample) **Stage analysis (MoKa 10-12)**: `python stage_report.py` → `data/stages/burg-upper.json` + auto block of `docs/stages/burg-upper.md` (terrain · foes · our runs per zone; hand-written intent / response above it). [win]: rerun it after `sample.py` of a burg-upper run.
+
+- 2026-10-12 [cloud→board] → done **ROADMAP format changed (MoKa 10-12)** — one checked line per item `- [m] id | who | stage | now / next | where`, `python roadmap.py check / tidy / queue win / show <id>`; closed problem rows → problems.md, item histories → plan.md "Open-item details" (nothing lost). Rules: CLAUDE.md "Keeping ROADMAP.md current". Your list: `python roadmap.py queue win`.

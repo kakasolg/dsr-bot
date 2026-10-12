@@ -47,6 +47,8 @@ plan.md "Open-item details". On a change: rewrite the line (now / next only); re
 
 **Firebombs · bow from the Undead Merchant (MoKa 10-12: "난이도가 급격히 줄어"); the bot must buy them itself. In order:**
 - [~] shop | win | verify | merchant save 3/3 bought; from Firelink 0/2 — both died on the ramp before the merchant (3 of 5 Firelink trips today) | docs/shop-undead-merchant.md · plan:shop
+- [~] lock-sight | win | doing | bot lock-on fails on the way (2–10 m 6/41) — blocked line of sight (5/5), not aim; throw spots need a clear line | docs/throwables.md
+- [ ] heavy-lock | MoKa | decide | MoKa 10-12: heavy only locked on — lock just before the heavy, or all 1:1 fights? | docs/throwables.md
 - [ ] firebomb-measure | win | todo | locked-on firebomb at 254010 from 5 · 8 · 12 · 15 m: hit, damage, others woken (67 held) | plan:firebomb-measure
 - [ ] firebomb-candidate | cloud | todo | firebomb as a candidate next to knife / melee (lure opener · 2+ foes · ledge); no limit, none = as now | plan:firebomb-candidate
 - [ ] bow | cloud+win | todo | bow: buy, switch shield ↔ bow, locked-on shot, measure — after the firebomb | plan:bow
@@ -166,11 +168,9 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 [cloud] can't reach the board: `- date [cloud→board] …` / `- date [board→cloud] …`. Whoever handles an entry starts it with
 `→ done` / `→ moved` right after the tag; `tidy` then moves it to `docs/roadmap/relay.md`.
 
+- 2026-10-12 [board→cloud] **Throwables + lock-on (MoKa 10-12)**, `docs/throwables.md`: firebomb locked · same level · 5.8–10.1 m = 9/9 one-shot kills, unaware foes take bonus damage; MoKa wants 'walk slowly, firebomb just before notice' and **heavy only locked on**. Bot lock-on on the way 2–10 m 6/41: line of sight blocked (5/5), aim fine. Ask: throw spot = clear straight line on the NavMesh (else don't throw), offline + golden.
+
 - 2026-10-12 [cloud→board] **Ramp on the shop run** = P-56 again (swarm hits, not falls; 033444 = P-73). Next Firelink → merchant try: today's code + `--pull`; if it still dies, shop tests stay on the merchant save.
 - 2026-10-12 [cloud→board] **P-73 / P-69 (`git pull`)**: rolls hold the camera, fresh stick, floor = `nav.can_move` 3 m; > 45° off → `구르기 방향 어긋남` (event `roll`). Target falling / > 2.5 m below → fight 'lost' (`목표 떨어짐`). Watch next ramp / zone 1 runs.
-
-- 2026-10-12 [cloud→board] **Stage analysis (MoKa 10-12)**: `python stage_report.py` → `data/stages/burg-upper.json` + auto block of `docs/stages/burg-upper.md` (terrain · foes · our runs per zone; hand-written intent / response above it). [win]: rerun it after `sample.py` of a burg-upper run.
-
-- 2026-10-12 [cloud→board] **ROADMAP format changed (MoKa 10-12)** — one checked line per item `- [m] id | who | stage | now / next | where`, `python roadmap.py check / tidy / queue win / show <id>`; closed problem rows → problems.md, item histories → plan.md "Open-item details" (nothing lost). Rules: CLAUDE.md "Keeping ROADMAP.md current". Your list: `python roadmap.py queue win`.
 
 - 2026-10-12 [cloud→board] **`git pull` — fall / death policy changed (MoKa 10-12)**: (1) no quit-out on a fall (`--fall-quit` = old); (2) `burg-upper` after a death: worth it → back from zone 1 and pick up with no foe within 15 m, else end (`--no-recover` = old); (3) black box splits fall from hits, one `death` event (`✝ 사망 원인: …`); (4) end line `정렬 (…)`; (5) P-66: a windup isn't 'ended' before it lands — shield soldier 3004 blocked to 2.3 s, then counter. (6) **shop routine ready**: `run.py merchant-buy --buy 290:30,292:20 --shop-shots` from the merchant save, test plan at the end of `docs/shop-undead-merchant.md`. Why: `docs/analysis-death-2026-10-12.md`. → (1) · (2) checked 10-12 [win] with `6341df3` (entry below); (3) · (4) · (5) next runs
