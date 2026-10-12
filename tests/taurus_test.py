@@ -55,7 +55,7 @@ def make(snaps, alive=True):
     pad = Pad()
     mv = NS(tm=NS(), pad=pad, guard_ok=True, snap=lambda r=40.0: seq.pop(0) if len(seq) > 1 else seq[0],
             stick_to=lambda s, x, z, sc=1.0: (0.0, sc), face=lambda s, c, deg=20.0: True, estus_left=lambda: 4)
-    f = NS(mv=mv, alive=lambda: alive, esc=NS(quit_ok=True, nudge_ok=True))
+    f = NS(mv=mv, alive=lambda: alive, esc=NS(quit_ok=True, nudge_ok=True, gen=0))
     t = T.Taurus(f, None, None, log=lambda *a: None)
     return t, mv, pad
 
@@ -76,10 +76,24 @@ b = boss(x=47.0, y=15.8, z=-119.0, anim=-1)
 t, mv, pad = make([snap(b, me=(47.5, 15.8, -119.5), sp=98), snap(None, me=(47.5, 15.8, -119.5))])
 mv.light = light
 r = t._fight()
-check("fight: killed", r == "killed")
+check("fight: killed (it just drops out of the snapshot, no quit-out)", r == "killed")
 check("fight: two lights at full stamina, guard off while swinging", hits and hits[0] == (2, False))
 check("fight: guard_ok restored afterwards", mv.guard_ok is True)
 check("fight: LB released at the start", ("guard", (False,)) in pad.calls)
+
+# try 11: a fall quit-out reloaded us in front of the fog wall — the boss (HP 150) just dropped out of the snapshot
+t, mv, pad = make([snap(boss(x=47.0, y=15.8, z=-119.0, anim=3005, hp=150), me=(47.5, 15.8, -119.5), sp=10),
+                   snap(None, me=(51.9, 17.2, -118.6))])
+t.f.esc.gen = 0
+mv.snap_calls = 0
+_s0 = mv.snap
+def _snap(r=40.0):
+    mv.snap_calls += 1
+    if mv.snap_calls == 2:
+        t.f.esc.gen = 1                                # the quit-out happens between the two looks
+    return _s0(r)
+mv.snap = _snap
+check("fight: boss gone without HP 0 (quit-out) → 'gone', not 'killed'", t._fight() == "gone")
 
 print("all ok" if not fails else f"{fails} FAILED")
 sys.exit(1 if fails else 0)

@@ -29,7 +29,9 @@ LADDER = {"bottom": (49.16, 15.97, -117.1), "face": (50.5, 15.97, -117.1), "top_
 
 # ── 임시값 (녹화 한 번에서 잰 값 — 시도마다 다시 볼 것) ──────────────────────────────
 #  · 낙하: 꼭대기에서 보스가 수평 3.8 m일 때 뛰어 −411. 5.0 m 안이면 감
-#  · 붙기: 약공한 자리 0.3~1.9 m(보스 중심) — HIT_R 2.2 안이면 침, 밖이면 1.2 m까지 다가감
+#  · 붙기: 녹화에서 약공한 자리 0.3~1.9 m(보스 중심, 대부분 1.3 m 안). 10-12 시도 5~8: HIT_R 2.2였을 때 휘두름 19번 중
+#    피해 0이 12번 — 거의 다 2.05~2.16 m에서 보스 공격(3002~3005) 중에 침. 1.4 m / 0.8 m로 좁혀 본 시도 9~11은 0/3
+#    (2.2 m일 때 5~8은 2/4) → 거리만으로는 안 갈림, 2.2 / 1.2로 되돌림. 다음은 보스 공격 중 어디 서 있나(MoKa에게 물음)
 #  · 스태미나: 양손 약공 한 번 ~38 — 40 밑이면 안 치고 붙은 채 회복 (0 밑으로 간 뒤 −237 두 번)
 #  · 에스트: HP 40 % 밑, 보스가 공격 애니가 아닐 때 (녹화: 가까이서도 마심)
 APPEAR_S = 20.0
@@ -233,6 +235,7 @@ class Taurus:
             self.mv.guard_ok = guard_ok
 
     def _fight_loop(self, t0: float, hits: int) -> str:
+        g0 = getattr(self.f.esc, "gen", 0)
         while time.time() - t0 < FIGHT_LIMIT:
             if not self.f.alive():
                 self.log(f"   타우로스 싸움: 사망 — {time.time() - t0:.0f} s, 약공 {hits}번")
@@ -243,9 +246,15 @@ class Taurus:
                 continue
             b = self.boss(s)
             if b is None:
-                self.log(f"   타우로스 처치 — {time.time() - t0:.0f} s, 약공 {hits}번, 내 HP {s.player.hp}")
-                self.events("taurus", what="killed", secs=round(time.time() - t0, 1), hits=hits, hp=s.player.hp)
-                return "killed"
+                # gone after a quit-out = reloaded outside the fog, not dead (try 11, 2026-10-12: a fall quit-out at HP 33 put us
+                # in front of the fog wall, the boss at HP 150 dropped out and this said "killed"). A real kill also just drops
+                # out (tries 5·8: last seen HP 25 / 107, our hits summed to exactly its HP) — so judge by the quit-out, not HP 0
+                dead = getattr(self.f.esc, "gen", 0) == g0 or any(c.npc_param == TAURUS and c.hp <= 0 for c in s.chars)
+                what = "killed" if dead else "gone"
+                self.log(f"   타우로스 {'처치' if dead else '안 보임 (퀵 종료?)'} — {time.time() - t0:.0f} s, 약공 {hits}번, "
+                         f"내 HP {s.player.hp}, 위치 ({s.player.x:.1f},{s.player.y:.1f},{s.player.z:.1f})")
+                self.events("taurus", what=what, secs=round(time.time() - t0, 1), hits=hits, hp=s.player.hp)
+                return what
             p = s.player
             h = M.horiz(p, b)
             a = b.anim if b.anim is not None else -1
