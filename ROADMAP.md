@@ -55,9 +55,9 @@ plan.md "Open-item details". On a change: rewrite the line (now / next only); re
 ## 2. v1.0 — open by area
 
 **Fight rules / reflexes (1-j: "basic reflexes done right", MoKa 10-02)**
-- [~] scene-expectations | cloud | doing | steps 1–3 done offline (54 scenes, scene_replay 687/687) | docs/design-scene-expectations.md · plan:scene-expectations
+- [~] scene-expectations | MoKa | decide | steps 1–3 done offline (54 scenes, replay 687/687); step 4: label 30–50 scenes from `--ctl-scenes` runs | docs/design-scene-expectations.md · plan:scene-expectations
 - [ ] label-review | MoKa | decide | skim duel.jsonl label lines (10 min) + the 4 `review` scenes | tests/expect/duel.jsonl · plan:label-review
-- [~] floor-check | cloud | doing | floor map + `--ground` (walks) + `rule_footing` (`--footing`) done offline | docs/design-floor-check.md · P-49 · plan:floor-check
+- [~] floor-check | cloud | doing | steps 1–2 done; step 4 now: per-move look-ahead distances (roll / backstep on slopes) — with P-73 | docs/design-floor-check.md · P-49 · P-73 · plan:floor-check
 - [ ] ground-default | MoKa | decide | `--ground` (walks only) on by default, or more runs that reach the passage? | relay.md 10-11 · plan:ground-default
 - [!] ground-ab-2 | win | blocked | A/B `--ground` round 2: 6 runs done (report in relay.md); waits for ground-default | P-56 · plan:ground-ab-2
 - [~] no-spot-split | win | verify | `no_spot` → first ≤ 7 m of escape.pick's path; game so far 4× escape_arrived | plan:no-spot-split
@@ -76,7 +76,6 @@ plan.md "Open-item details". On a change: rewrite the line (now / next only); re
 
 **Instrumentation / run records**
 - [ ] p1e-tests | win | todo | P1-E ordering · queue overflow · write failure · on/off-equal tests (1-l) | plan:p1e-tests
-- [~] run-settings | cloud | doing | steps 1–2 done offline (`runinfo.py`, `sample.py`, `ab.py`, report headers) | docs/design-run-settings.md · plan:run-settings
 - [ ] laya | MoKa | decide | Laya: keep off / freeze; move the label tool's `why_not` out of `laya_shadow.py`? | plan:laya
 - [ ] ramp-labels | MoKa | todo | ramp 24-scene labels (review mode) → `label_pilot.py report --set ramp`; then size of the eval set | plan:ramp-labels
 
@@ -100,7 +99,7 @@ plan.md "Open-item details". On a change: rewrite the line (now / next only); re
 - [ ] floor-check-everywhere | cloud | todo | `rule_footing` onto the tick loop for walks / recover too, with collision-mesh edges | plan:floor-check-everywhere
 - [ ] collision-mesh | cloud | todo | read `map/*.hkxbhd` (soulstruct-havok); NavMesh edges wall / cliff → `EDGE_PENALTY` | plan:collision-mesh
 - [~] walk-follow | MoKa | decide | target walk rules inside `_follow` on layer 2, then [win] A/B — waits for MoKa (§7) | docs/design-walk-follow.md
-- [~] harness-trust | cloud | doing | harness layer-2 trust check: passage-entrance point 70 before / after (direction yes, size exaggerated) | plan:harness-trust
+- [ ] harness-trust | cloud | parked | layer-2 trust check: passage-entrance point 70 (direction yes, size exaggerated) — after the batch runner | plan:harness-trust
 - [ ] corner-1m | cloud | todo | 1-f C: at a stuck corner go 1 m further along the incoming direction before turning | plan:corner-1m
 - [ ] boss-module | cloud | todo | boss fight module (its own loop; Taurus first) | docs/boss-taurus.md
 - [ ] restart-segment | cloud | todo | after a death: save mission progress, restart from the broken segment (pickup is in v1.0, P-72) | plan:restart-segment
@@ -166,10 +165,6 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 
 [cloud] can't reach the board: `- date [cloud→board] …` / `- date [board→cloud] …`. Whoever handles an entry starts it with
 `→ done` / `→ moved` right after the tag; `tidy` then moves it to `docs/roadmap/relay.md`.
-
-- 2026-10-12 [board→cloud] **[win] changed `souls/shop.py` (MoKa OK)**: live refs `<k>_live.npy` next to the record refs (record ones read the live menu at 0.36); `ok_selected` = left > right (OK's bar is 0.007 live, `> 0.005` missed → 2nd RIGHT back to CANCEL); `LEAVE_S` 9 s (farewell 6.1 s). Merchant save 3/3 ok. Details: end of `docs/shop-undead-merchant.md`.
-
-- 2026-10-12 [cloud→board] → done 10-12 [win] **shop fixed (`git pull`)**: steps wait on the screen (menu / list / qty), greeting lines → A until the menu, OK checked before A. Game check 2 = end of `docs/shop-undead-merchant.md`.
 
 - 2026-10-12 [cloud→board] **Stage analysis (MoKa 10-12)**: `python stage_report.py` → `data/stages/burg-upper.json` + auto block of `docs/stages/burg-upper.md` (terrain · foes · our runs per zone; hand-written intent / response above it). [win]: rerun it after `sample.py` of a burg-upper run.
 

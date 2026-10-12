@@ -104,3 +104,7 @@
 - 2026-10-12 [board→cloud] → done 10-12 [cloud]: (a) pick only once the death zone is cleared again, (b) `esc.planned` for plunges / crow — not a fall **Fall / death policy, 3 full runs (`6341df3`)**: #1 zones 1–8 + Taurus killed; #2 · #3 died in zone 5 → `recover` → died again in zone 4 on the way, stain lost → `ignore`. (a) pickup tried after zones 1–3, long before the stain's zone → `foes_near`; [MoKa] 10-12: "죽은 후 다음 시도에서 근처를 다 정리해서 쉽게 회수가 가능하다면 해도 되긴 해" → only after its zone is cleared? (b) Taurus plunges (`quit_ok` off) logged as `fall` → 낙하×2. `data/samples/20261012_02*`, `…_030444*`
 
 - 2026-10-12 [board→cloud] → done 10-12 [cloud]: screen-driven steps, see end of the shop doc **`shop` game check 1: shop_fail** — greeting can be several lines and A during a line = next line, so every press shifted ~3 steps (menu only at the 'qty' step, list opened by the 'buy' A). Wait on the screen, not GREET_S. Details + shots: end of `docs/shop-undead-merchant.md`.
+
+- 2026-10-12 [board→cloud] → done 10-12 [cloud] (read, kept) **[win] changed `souls/shop.py`
+
+- 2026-10-12 [cloud→board] → done 10-12 [win] **shop fixed (`git pull`)**: steps wait on the screen (menu / list / qty), greeting lines → A until the menu, OK checked before A. Game check 2 = end of `docs/shop-undead-merchant.md`.
