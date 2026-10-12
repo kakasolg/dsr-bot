@@ -732,3 +732,18 @@ New problems still go here (append at the bottom) and get a one-line row in ROAD
   (5) 블랙박스 범인 추정은 적 애니만 보고 내 낙차는 안 봄, 피격과 낙하가 `GAP_S` 안이면 한 묶음.
 - 해결 제안 (정하지 않음, 가이드 4절 '우선순위'·'소유권'): 낙하 감시를 `fire()` 안에서도 돌리고 쿨다운은 높이를 되찾은 뒤의 새 낙하엔 안 씀;
   freeze 중에도 막기 채널은 반사 층에 남김; 기록만: `death` 이벤트 (`cause` = 내 낙차 먼저) + 블랙박스 '낙하 포함'. → MoKa 결정.
+- 2026-10-12 [MoKa] 정책 결정: "낙사시 퀵 종료 포기하고, 최대한 도망치던가 반격 하던가 하는 것으로 정책을 바꾸자" → 낙하는 기록만
+  (`Escape.fall_seen`: `⚠ 낙하 … — 퀵 종료 안 함, 계속`, 이벤트 `fall`, 패드 안 잠금, `risk_report` `낙하×n`). 예전 방식은 `--fall-quit`.
+  이 문제의 사슬(턱 위 리로드 · 패드 잠김 · `fire()` 안 맹점)은 낙하에선 더 안 생김. 죽으면 → P-72. 상태: verify (게임 확인 [win]).
+
+### P-72 죽은 뒤 핏자국을 한 번도 주우러 가지 않음 — 사망 38건, 회수 시도 0번 (2026-10-12, [MoKa] "죽으면 회수 하는 작업을 무시")
+
+- 증상: `data/samples` 사망 38건에 봇의 핏자국 줍기 0번 (`핏자국: ` 줄 0), 회수 1번(소울 180, 지나가다). 떨어뜨린 합 소울 ~9만 · 인간성 25.
+- 원인: `run.py`는 죽으면 그 실행을 끝냄 (`burg-upper` 루프 `break`), 부활은 핏자국 기록(`Blood`)을 위해서만 기다림. `Field.pick_blood`는
+  `burg-bonfire` 화톳불 도착 때 10 m 안일 때만 쓰임. v2.0 항목 "After a death … recover the bloodstain"으로만 남아 있었음.
+- 고침 ([MoKa] 10-12: "잃어버린 소울과 인간성을 평가해서 많으면 회수 하고, 너무 적으면 무시 … 연속으로 동일 지역에서 죽어도 … 재시도가
+  의미가 없음"): `souls/afterdeath.py` — 부활 뒤 새 핏자국 값을 보고 `recover`(소울 ≥ 2000 또는 인간성 ≥ 2: 구역 1(화톳불 휴식)부터
+  다시, 구역마다 끝난 뒤 40 m 안이면 `pick_blood`) · `ignore`(적음 → 끝) · `stop`(지난 사망과 같은 구역 → 끝, 그 핏자국은 잃음),
+  회수 여행 최대 2번. `run.py burg-upper`에만 (`--no-recover` = 예전). 이벤트 `after_death` · `blood_pick` · `blood_lost`.
+  확인: `tests/afterdeath_test.py` (값 판정, 같은 구역 두 번 → stop, `--seg 5-8`에서 죽으면 1부터, 새 핏자국 없으면 옛 기록 안 씀,
+  낙하 = `fall` 이벤트 · 패드 안 잠금). 상태: verify — 게임에서 회수 여행 한 번 ([win]).

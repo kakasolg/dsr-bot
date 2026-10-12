@@ -45,6 +45,7 @@ zone 8 crossbowmen (P-47).
 
 - [ ] [cloud]+[win] **Alignment first (MoKa 10-11: high priority)** — attack target · character facing · camera in one line (MoKa 10-01: "alignment decides whether a move works"). Facing |각| ≤ 30° in 75–95 % of fight lines; P-65 one look order (`20dd7ae`): 1 run camera ≤ 10° fight 89 % / out of fight 87 %. Next: [cloud] one target–body–camera measure per tick; [win] more runs
 - [~] [win] Taurus: `run.py taurus` (`souls/taurus.py`) — plunge loop (MoKa 10-12). 10-12 **full run bonfire → zones 1–8 → Taurus killed** (`004844` + `005650`: 3 plunges −531 −531 −153, HP 19 %); other two full runs died in zone 5 / 8. guide + data: `docs/boss-taurus.md`
+- [ ] [win] **Fall / death policy (MoKa 10-12)** — `burg-upper` full runs: falls `⚠ 낙하 … 퀵 종료 안 함` (no freeze; flee or fight where we land), after a death `══ 사망 뒤 (구역 n): recover / ignore / stop`, `핏자국 회수 (구역 n): got`; `risk_report` `낙하×n`. P-71 / P-72
 - [ ] [cloud]+[win] Boss fight default = two-handed + dodging (9-30 principle); Taurus is the first case (the general boss module is v2.0)
 - [ ] [cloud] Firebomb hollow "close in fast" rule — unless the way there is a fall-risk zone (ledge 254012 is ignored) → check with `duel_golden_test`
 - [~] [win] Zone-by-zone bot runs; after each: `blind_report.py` · `hotspots.py` · `track_report.py`, logs to `data/samples/`
@@ -187,7 +188,8 @@ Full entries: `docs/roadmap/problems.md`. Status: **open** · **parked** · **de
 | 68 | Zone 5: heavy into 255000's shield 0 dmg → low_hp, Estus refused 3×, 255001 joins → dead; bot kept acting after death (TypeError) | death part: fixed — game 10-11 zone 8 death ended the zone at once, no error; shield part open |
 | 69 | Zone 1: the foe fell off the ledge mid-fight, the bot walked after it and fell (fall quit-out, recovered) | open → [cloud] |
 | 70 | Zone 1 stairs: 0.1 s sprint B between braked points = roll off the stairs; 3 runs dead | verify — `Pad.sprint` holds B ≥ 0.45 s; 10-12 3 full runs: zone 1 cleared 3/3, no roll |
-| 71 | Second fall right after a fall quit-out, where `Escape` is blind (inside `fire()` / cooldown); pad frozen vs a 1.6 m swing; black box blames the foe | open → decide (5 of 7 fall deaths) |
+| 71 | Second fall right after a fall quit-out, where `Escape` is blind (inside `fire()` / cooldown); pad frozen vs a 1.6 m swing; black box blames the foe | verify — MoKa 10-12: no quit-out on falls (`fall_seen`) |
+| 72 | Deaths never fetched their bloodstain (38 deaths, 0 pickup trips) | verify — `souls/afterdeath.py`: worth it → back from zone 1 and pick; small / same zone → end |
 
 ## 5. Relay — [cloud] ↔ board
 
@@ -197,7 +199,7 @@ to the bottom of `docs/roadmap/relay.md`.
 
 (handled entries: `docs/roadmap/relay.md`, last moved 2026-10-12)
 
-- 2026-10-12 [cloud→board] **Answer to the code reading (§6): `docs/analysis-death-2026-10-12.md`** (no behaviour change; `python experiments/death_audit.py`). 38 deaths in `data/samples`: 7 falls, the black box blamed a foe in 4 of them. All 7 came after an earlier fall within 30 s; the 5 with a quit-out fell again where `Escape` is blind — inside `fire()` (3, the 10-12 zone 1 deaths) or in `FALL_COOLDOWN` right after it (2). 10-12 ×3: pad frozen during `_back_to_mesh` (timed out, 9 of 17 quit-outs do), 254010 at 1.6 m swings, −59 → off the ledge → 16.8 m fall; not a failed menu quit-out (byte took 1.1 s) — new **P-71**, P-70 note. Proposals for MoKa: `death` event (cause from my own height first), fall watch also inside `fire()`, keep the block channel during freeze, `can_move` in shadow first, `last_fall_pos` into the condition ledger. **[win]: please also copy `<run>.jsonl` to `data/samples/`** — `death_seen` never reaches [cloud] now; and read-only: `.ctl` stick values during the `_back_to_mesh` timeouts.
+- 2026-10-12 [cloud→board] **`git pull` — fall / death policy changed (MoKa 10-12)**: (1) no quit-out on a fall — only `⚠ 낙하 … 퀵 종료 안 함` + event `fall`, pad stays with the bot (old way: `--fall-quit`). (2) `burg-upper` after a death: stain souls ≥ 2000 or humanity ≥ 2 → from zone 1 again, pick it up on the way; less → end; died again in the same zone → end (`--no-recover` = old). Watch `══ 사망 뒤`, `핏자국 회수`. Why: `docs/analysis-death-2026-10-12.md` (answer to the code reading; P-71, P-72). `sample.py` now also copies the events `<run>.jsonl` (`death_seen` / `fall` / `after_death` reach [cloud] only that way).
 
 ## 6. Change log (newest first; older entries in `docs/roadmap/changelog.md`)
 

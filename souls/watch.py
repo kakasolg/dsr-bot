@@ -27,7 +27,7 @@ NO_GROUND = (1500, 1550, 121500, 1600, 6074, 6174)
 class Escape:
     """Emergency escape. Polls at 50 Hz; when firing, freezes the pad (Pad.freeze) so decision-loop input doesn't mix with menu input.
       · Fatal fall: falling (motion 1550, or dropped more than 2.5 m in 0.4 s) and the floor underfoot is more than 8 m below
-        → after quitting you stand again at the edge before the fall
+        → recorded only (fall_seen, MoKa 10-12); with fall_quit (--fall-quit) the old quit-out: you stand again at the edge before the fall
       · Imminent death: two or more within 3.5 m and **predicted HP 2.8 s ahead** below 15 % (once per 60 s — it restarts on the spot)
         — you keep getting hit during the 2.4~2.5 s of quit input (once ended 298 → 24). Hence it watches incoming damage rate
     gen is +1 on every quit-and-return — all enemy pointers change, so upper layers re-find enemies when gen changes."""
@@ -46,6 +46,11 @@ class Escape:
         self.escaping = False
         self.gen = 0
         self.quit_ok = True                                # False = never use quit-out (exit to menu and back) (for video recording, run.py --no-quit)
+        # [MoKa] 2026-10-12: "낙사시 퀵 종료 포기하고, 최대한 도망치던가 반격 하던가" — a fall is only recorded; the layers above
+        # keep running (flee / fight back) and a death is handled after respawn (souls/afterdeath.py). Quit-outs after falls put the
+        # bot back on the same ledge, blind and with the pad frozen: 5 of 5 fall deaths after one came from that (P-71).
+        # True = the old fall quit-out (run.py --fall-quit).
+        self.fall_quit = False
         self.nudge_ok = True                               # False = no ledge nudge-back (a deliberate drop — souls/asylum plunge onto the demon)
         self.last_fall = self.last_crowd = 0.0
         self.last_fall_pos = None     # so upper layers back away from the edge right after a fatal-fall escape
@@ -104,8 +109,23 @@ class Escape:
             # 시작해 같은 적 옆에서 이어 싸움 (Bandit Bot: 동시 피격 한 번에 피해 속도가 튀어 HP 65 %에서 걸림 → HP 441로 이어 싸우다 사망).
             # 둘러싸임은 duel 'crowd' → Field.fall_back 이 맡는다
             if why:
-                self.fire(why, kind, tm, p)
+                if kind == "fall" and not self.fall_quit:
+                    self.fall_seen(why, p)
+                else:
+                    self.fire(why, kind, tm, p)
             time.sleep(0.02)
+
+    def fall_seen(self, why: str, p=None) -> dict:
+        """A fall under the no-quit policy (fall_quit False): record it and keep the cooldown, nothing else — no freeze, no input,
+        so the layers above keep the pad to flee or fight wherever we land. → the event row"""
+        pos = None if p is None else [round(p.x, 2), round(p.y, 2), round(p.z, 2)]
+        self.log(f"   ⚠ 낙하: {why} @ {pos} — 퀵 종료 안 함, 계속")
+        self.last_fall, self.last_fall_pos = time.time(), pos
+        row = {"why": why, "kind": "fall", "pos0": pos, "hp": None if p is None else p.hp}
+        ctl.emit("esc", ev="fall_seen", why=why, pos0=pos)  # record only
+        if self.events:
+            self.events("fall", **row)                     # not "escape" — risk_report counts those as quit-outs
+        return row
 
     def _back_to_mesh(self, secs: float = 2.5) -> str | None:
         """After a fatal-fall quit-out: the game restarts at the spot just before the fall (on the ledge) — left alone it slides again,

@@ -4,7 +4,7 @@
   python sample.py 20261006_200335_burg-upper [zone5-8]
   python sample.py data/runs/20261006_200335_burg-upper.log
 
-Copies <run>.log → data/samples/<run>[_name].txt, <run>.track.jsonl and <run>.settings.json beside it. The uncommitted diff
+Copies <run>.log → data/samples/<run>[_name].txt, <run>.track.jsonl, <run>.settings.json and the events <run>.jsonl beside it. The uncommitted diff
 (<run>.diff) stays in data/runs/ — the repo is public; the settings file keeps the changed file names and the diff's hash.
 Older sample names (<what>-<date><letter>) are left as they are.
 """
@@ -21,7 +21,8 @@ if hasattr(sys.stdout, "reconfigure"):
 
 ROOT = Path(__file__).resolve().parent
 RUNS, SAMPLES = ROOT / "data" / "runs", ROOT / "data" / "samples"
-COPY = ((".log", ".txt"), (".track.jsonl", ".track.jsonl"), (".settings.json", ".settings.json"))
+COPY = ((".log", ".txt"), (".track.jsonl", ".track.jsonl"), (".settings.json", ".settings.json"),
+        (".jsonl", ".jsonl"))   # events (death_seen, fall, after_death, vital …) — [cloud] reads them only from here (2026-10-12)
 
 
 def newest(runs: Path = RUNS) -> str | None:
@@ -65,7 +66,7 @@ def main() -> None:
         return
     files = copy(run, a.name)
     if not files:
-        print(f"{run}: nothing to copy (no .log / .track.jsonl / .settings.json in data/runs/)")
+        print(f"{run}: nothing to copy (no .log / .track.jsonl / .settings.json / .jsonl in data/runs/)")
         return
     for f in files:
         print(f"  → {f.relative_to(ROOT)}")

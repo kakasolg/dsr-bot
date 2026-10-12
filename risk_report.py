@@ -68,6 +68,7 @@ def score(path: Path) -> dict:
     style = next((r["style"] for r in rows if r["ev"] == "style"), "guard")
     duels = Counter(r["result"] for r in rows if r["ev"] == "duel")
     esc = [r for r in rows if quit_out(r)]
+    falls = [r for r in rows if r.get("ev") == "fall"]           # a fall with no quit-out ([MoKa] 10-12: watch.Escape.fall_seen)
     hits = [r for r in rows if r["ev"] == "hit"]
     vit = [(r["t"], r["hp"], r["max"]) for r in rows if r["ev"] == "vital" and r.get("max")]
 
@@ -102,6 +103,8 @@ def score(path: Path) -> dict:
             flags.append(f"죽기직전×{near}")
         if esc:
             flags.append("강종×%d(%s)" % (len(esc), ",".join(sorted({e.get('kind', '?') for e in esc}))))
+        if falls:
+            flags.append(f"낙하×{len(falls)}")
         if desperate:
             flags.append(f"끝까지×{desperate}")
         if min_frac is not None and min_frac < 0.25:
@@ -124,7 +127,7 @@ def score(path: Path) -> dict:
     return {"run": path.stem, "cmd": res.get("cmd") if res else path.stem.split("_", 2)[-1],
             "result": res.get("result") if res else None, "verdict": verdict, "flags": flags,
             "style": style, "char": char_key(rows), "min_frac": min_frac, "near_death": near, "swing": swing,
-            "escapes": len(esc), "desperate": desperate, "duels": dict(duels),
+            "escapes": len(esc), "falls": len(falls), "desperate": desperate, "duels": dict(duels),
             "hits": len(hits), "hit_lost": sum(h["lost"] for h in hits), "blamed": dict(blamed),
             "secs": max((r["t"] for r in rows), default=0.0)}
 

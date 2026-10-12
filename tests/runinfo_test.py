@@ -103,12 +103,13 @@ def main() -> None:
               and runinfo.end(tmp / "nope.json", result="x") is None)
 
         (runs / "20261009_120000_burg-upper.track.jsonl").write_text('{"type": "run"}\n', encoding="utf-8")
+        (runs / "20261009_120000_burg-upper.jsonl").write_text('{"t": 1.0, "ev": "fall"}\n', encoding="utf-8")
         samples = tmp / "samples"
         out = sample.copy("20261009_120000_burg-upper", "zone5-8", runs=runs, samples=samples)
         names = sorted(p.name for p in out)
-        check("sample.py: stamp kept, log → .txt, track and settings copied", names == [
-            "20261009_120000_burg-upper_zone5-8.settings.json", "20261009_120000_burg-upper_zone5-8.track.jsonl",
-            "20261009_120000_burg-upper_zone5-8.txt"])
+        check("sample.py: stamp kept, log → .txt, track, settings and events copied", names == [
+            "20261009_120000_burg-upper_zone5-8.jsonl", "20261009_120000_burg-upper_zone5-8.settings.json",
+            "20261009_120000_burg-upper_zone5-8.track.jsonl", "20261009_120000_burg-upper_zone5-8.txt"])
         s2 = json.loads((samples / "20261009_120000_burg-upper_zone5-8.settings.json").read_text(encoding="utf-8"))
         check("sample.py: the diff stays in data/runs (not copied, name dropped, hash kept)",
               not list(samples.glob("*.diff")) and "diff_file" not in s2["code"] and s2["code"].get("diff_kept_local") is True)

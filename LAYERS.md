@@ -71,6 +71,7 @@ Examples: heavy attack was pressed in two places, estus after a kill was separat
 | Kill enemies chasing on the path first (user: "there's an enemy, why don't you respond") | `field.walk` chaser |
 | Quit-out only when about to die — two or more within 3.5 m and projected HP below 15 % in 2.8 s, once per 60 s (298 → 24 in 2.4 s) | `watch.Escape._dps` |
 | Record a bloodstain only if souls dropped after respawn; don't press A within 6 m of a bonfire (fake death → sat down, enemies revived; measured twice) | `watch.Blood`, `field.pick_blood` |
+| **After a death: fetch the stain only if it is worth it** ([MoKa] 2026-10-12) — souls ≥ 2000 or humanity ≥ 2 → from zone 1 again (it rests at the bonfire) and pick it up after the zone that reaches it (≤ 40 m); less → end the run; died again in the zone of the last death → end ("재시도가 의미가 없음" — level and weapon are the problem), at most 2 trips. Before this, 38 deaths, 0 pickup trips (P-72). `burg-upper` only; `--no-recover` = the old way | `souls/afterdeath.py` · `run.py burg-upper` |
 | Block with the attacker **in front** — blocking to the side/back took 74, in front 34 (log analysis). Also for enemies other than the opponent | `reflex.Reflex.tick` |
 | A threat is only the 1.3 s after an attack anim starts — 3000s linger for seconds, so the old reflex attacked just once in 87 s | `reflex.THREAT_S` |
 | Shield only on a threat — holding it cuts stamina regen by 80 % (wiki) | `reflex` · `duel` 1) 4) |
@@ -80,6 +81,7 @@ Examples: heavy attack was pressed in two places, estus after a kill was separat
 | Below 25 stamina, the reflex backs off instead of blocking, and the fight also backs off to recover instead of shielding (blocking at SP 12–22 got the guard broken, pushed off, fell to death) | `reflex.GUARD_SP` · `duel` 4) |
 | During a quit-out, layer 4 and the runner wait (without waiting, it 'cancelled' the five remaining enemies in 0.5 s, and the program exited mid-quit-out) | `field.wait_escape` · `run.py` finally |
 | Falls: also judge by fall speed (2.5 m in 0.4 s); quit-out if the ground is more than 8 m below (the 15 m threshold missed 10–12 m falls beside the ramp) | `watch.Escape.LETHAL_DROP`·`FALL_V` |
+| **No quit-out on a fall** ([MoKa] 2026-10-12: "낙사시 퀵 종료 포기하고, 최대한 도망치던가 반격") — the fall is only recorded (`⚠ 낙하`, event `fall`) and the layers above keep the pad to flee or fight wherever we land. The quit-out put the bot back on the same ledge, blind and with the pad frozen: 5 of 5 fall deaths after one (P-71). `--fall-quit` = the old way | `watch.Escape.fall_seen`·`fall_quit` |
 | Stagger (3500–3599) is not an attack but an **opening** — if it bounces off my block, light attack immediately (treating 3000–3599 as attacks, it blocked for 12 s straight) | `moves.ATTACK`/`STAGGER`, `duel` 1-) |
 | Estus mid-fight: HP below 50 %, only in an opening (enemy down, or not swinging and beyond 3 m, others beyond 5 m). If engaged, backstep (user: "drink when it's safe") | `duel.opening` (opening) · `field.Care` (whether to drink) |
 | While walking, if HP below 60 %, drink up to 70 % when safe (user) | `field.walk` |

@@ -88,6 +88,8 @@ def main() -> None:
     ap.add_argument("cmd", choices=["status", "watch", "burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt-one", "merchant", "light-burg", "burg-upper", "quit-test", "passage-drill", "asylum", "taurus"])
     ap.add_argument("--no-rest", action="store_true")
     ap.add_argument("--no-quit", action="store_true", help="퀵 종료(메뉴로 나갔다 오기) 안 씀 — 영상 촬영용")
+    ap.add_argument("--fall-quit", action="store_true", help="낙하 때 예전처럼 퀵 종료 (기본: 기록만 하고 계속, [MoKa] 2026-10-12)")
+    ap.add_argument("--no-recover", action="store_true", help="burg-upper: 죽으면 그대로 끝 (기본: 핏자국이 값지면 화톳불부터 다시 가서 회수, souls/afterdeath.py)")
     ap.add_argument("--i", type=int, default=5, help="hunt-one: BURG_TOWN 몇 번째 (5 = 석궁병 255002)")
     ap.add_argument("--seg", default=None, help="asylum: 구간 번호 또는 범위 (기본 1; 1 = 감방 → 사다리 → 첫 화톳불, 2-3 = 이어서, ROADMAP 1-h). "
                     "burg-bonfire: 구역 하나 또는 범위만 하고 멈춤 — 1 경사로 · 2 비밀 통로 · 3 마을 #1~#3 · 4 마을 #4~#6 · 5 상인 · 6 화톳불 (기본: 전부). burg-upper: 안전 자리 구역 1~7 (기본: 전부, 7 = 안개벽 앞)")
@@ -136,7 +138,7 @@ def main() -> None:
     import env
     import navmesh
     from botlock import BotLock
-    from souls import missions, moves, props, weapons
+    from souls import afterdeath, missions, moves, props, weapons
     from souls.field import Field
     from souls.watch import Blood, Escape
 
@@ -254,6 +256,7 @@ def main() -> None:
         log("ground: 걷기의 바닥 확인 = NavMesh + 걸어 본 자리 (" + ", ".join(f"{k} {len(g.walked)}칸" for k, g in nms.items())
             + ") — 싸움·물러남·낙하 감지는 NavMesh 그대로")
     esc.quit_ok = not a.no_quit
+    esc.fall_quit = a.fall_quit
     if a.no_quit:
         import os
         os.environ["BOT_NO_WARP"] = "1"                   # also disable farm.rest's warp to the bonfire
@@ -315,13 +318,12 @@ def main() -> None:
             r = ms.burg_bonfire()
         elif a.cmd == "burg-upper":
             lo, _, hi = (a.seg or f"1-{len(ms.UPPER_SEGMENTS)}").partition("-")
-            r = None
-            for n in range(int(lo), int(hi or lo) + 1):
-                log.zone = f"burg-upper:{n}"
-                r = ms.upper_segment(n)
-                log(f"══ 구역 {n} ({ms.UPPER_SEGMENTS[n]}) 끝: {r}")
-                if not fld.alive() or r in ("died", "no_estus", "휴식 실패"):
-                    break
+            # a death → respawn → worth the stain? then from zone 1 (rests at the bonfire) and pick it up on the way ([MoKa] 10-12)
+            r = afterdeath.run_zones(
+                int(lo), int(hi or lo), ms.upper_segment, alive=fld.alive, respawn=lambda: fld.wait_respawn(45.0),
+                read_stain=Blood.read, pick=lambda: fld.pick_blood(nms[missions.MAP_B], near=afterdeath.PICK_NEAR),
+                log=log, event=log.event, set_zone=lambda n: setattr(log, "zone", None if n is None else f"burg-upper:{n}"),
+                recover=not a.no_recover, label=lambda n: ms.UPPER_SEGMENTS[n])
         elif a.cmd == "burg-loop":
             r = ms.burg_bonfire_round_trip()
         elif a.cmd == "passage-drill":
