@@ -138,4 +138,4 @@
   (도망·반격은 지금 있는 싸움·물러나기 규칙 그대로, 새 조건 없음). 예전 방식 `--fall-quit`. 위 2절 1–3번(맹점·입력 독점)은 낙하에선 더 안 생김.
 - 사망: `souls/afterdeath.py` — 소울 ≥ 2000 또는 인간성 ≥ 2면 구역 1부터 다시 가서 줍고 계속, 적으면 끝, 지난 사망과 같은 구역이면 끝.
   `run.py burg-upper`만 (`--no-recover` = 예전). P-72.
-- 3절 (a)의 `death` 이벤트·블랙박스 '낙하 포함'은 아직 안 함 — 낙사가 퀵 종료 없이 그대로 죽음이 되니 더 쓸모 있어짐.
+- 3절 (a) 들어감 (기록만, 같은 날): 블랙박스 `fall_split` — 묶음 안 내 낙차 ≥ 3 m면 `fall`·`drop_m`·`lost_hit`·`lost_fall`, 범인 추정은 피격 몫에만 (로그 `피격 -59 (추정 …) + 낙하 -610 (10.1 m)`); `watch.Blood`가 부활 뒤 `death` 이벤트 한 줄 (`cause` fall | hit | unknown, 핏자국, 그 순간 `zone`·`escape`·`since_fall_s`) + 로그 `✝ 사망 원인: …`; `risk_report` 사망 판에 `원인:fall(10.1 m)`. `tests/death_record_test.py` (003442 · 10-06a · 010457 · 171918 track으로).

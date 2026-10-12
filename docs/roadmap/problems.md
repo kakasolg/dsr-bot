@@ -750,3 +750,5 @@ New problems still go here (append at the bottom) and get a one-line row in ROAD
 - 2026-10-12 [MoKa]: 지금까지 회수를 안 한 건 일부러 — "회수 하려다가 봇이 또다른 실수를 유발 할 까봐 무시". → "주변에 적이 없는 상황에서만 회수":
   `Field.pick_blood`는 나·핏자국 15 m(`BLOOD_CLEAR_R`) 안에 산 적(자는 놈 포함)이 있으면 안 가고(`foes_near`, 다음 구역 끝에 다시 봄),
   가는 길에 그 안으로 적이 들어오면 걷기를 멈춤 (A 안 누름). `tests/afterdeath_test.py`에 네 장면.
+- 2026-10-12 [cloud] 기록 쪽 (5) 고침 (동작 그대로): 블랙박스가 묶음 안 내 낙차로 낙하 몫을 가름 (`blackbox.fall_split`, 범인은 피격 몫에만),
+  사망마다 `death` 이벤트 (`cause` fall | hit | unknown). 003442: `피격 -59 + 낙하 -610 (10.1 m)`, 10-06a: `낙하 -520`, 범인 없음. `tests/death_record_test.py`.

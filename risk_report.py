@@ -98,6 +98,8 @@ def score(path: Path) -> dict:
     flags = []
     if dead:
         verdict = "사망"
+        flags += [f"원인:{d.get('cause')}" + (f"({d.get('drop_m')} m)" if d.get("cause") == "fall" else "")
+                  for d in rows if d.get("ev") == "death"]   # watch.Blood "death" (2026-10-12)
     else:
         if near:
             flags.append(f"죽기직전×{near}")
