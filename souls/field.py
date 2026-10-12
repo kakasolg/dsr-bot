@@ -229,6 +229,7 @@ COMING_LIMIT = 12.0      # an interloper not killed within this gets disengaged 
 LURE_R = 10.0            # knife throw distance — with lock-on, 11.9 and 11.4 m missed, 10.8 m hit (2026-09-24, thrown items fly ~10 m)
 LURE_TRIES = 3
 LURE_DY = 1.5            # max height diff between throw spot and target / current spot — so we don't jump down to a foe below a cliff (2026-09-24 run 8)
+SIGHT_STEP_M = 1.0       # throw spots: look for a clear line (Navmesh.clear_sight) this often along the path
 LURE_ABORT_R = 10.0              # abort throwing if another awake, moving foe is within this
 PICK_TRIES = 3           # A presses to pick up a bloodstain
 ROLL_OFF_DEG = 45.0     # a roll that went this far from where it was aimed is logged (P-73: −30° meant, −126° taken)
@@ -972,16 +973,24 @@ class Field:
         d_arena = math.dist(tuple(arena), goal) if arena is not None else None
         if lure_at and lure_at.get("spot"):
             spot = tuple(lure_at["spot"])
-        elif d_arena is not None and LURE_MIN <= d_arena <= LURE_MAX:
-            spot = tuple(arena)
         else:
-            # flat ground too close (#1: 5 m — walking there just wakes it) or too far → first point on the path within LURE_R
-            path = nm.find_path(here, goal)
-            if not path:
-                return "no_path"
-            spot = next((tuple(q) for q in path if math.dist(tuple(q), goal) <= LURE_R and abs(q[1] - goal[1]) <= LURE_DY), None)
+            # A clear line first (lock-on needs one): the arena if the target is in sight from there, else the first point along
+            # the path LURE_MIN–LURE_R out with it in sight. NavMesh sight is a preference, not a veto — it can't tell a low prop
+            # from a wall (10-12 probe: locked 1/1 over a no-mesh patch it calls blocked), so with no spot in sight the old one
+            # (arena in range, else the first point in range) stays and lock-on decides — no lock, no throw (throw_knife).
+            arena_ok = d_arena is not None and LURE_MIN <= d_arena <= LURE_MAX
+            spot = tuple(arena) if arena_ok and nav.in_sight(nm, tuple(arena), goal) else None
             if spot is None:
-                return "no_spot"                              # foes below/above a cliff have no throw spot — take the usual path (run 8: jumped down to #2 below the cliff)
+                path = nm.find_path(here, goal)
+                spot = self._sight_spot(nm, path or [], goal, LURE_R)
+                if spot is None:
+                    spot = tuple(arena) if arena_ok else self._sight_spot(nm, path or [], goal, LURE_R, sight=False)
+                    if spot is not None and hasattr(nm, "clear_sight"):
+                        self.log(f"   {tag}: 직선이 트인 던질 자리 없음 (NavMesh) — 락온으로 확인")
+                if spot is None:
+                    # flat ground too close (#1: 5 m — walking there just wakes it) or too far, or foes below/above a cliff —
+                    # take the usual path (run 8: jumped down to #2 below the cliff)
+                    return "no_spot" if path else "no_path"
         if math.dist(here, spot) > (HOLD_SPOT_TOL if lure_at else 1.5):
             r = self.walk_to(spot, nm, f"{tag} 던질 자리로", tol=HOLD_SPOT_TOL if lure_at else None) \
                 if math.dist(here, spot) > 1.5 else "arrived"
@@ -1015,6 +1024,9 @@ class Field:
                 return "interrupted"
             if not want and not self._asleep(ptr):
                 return "lured" if n > 1 else "awake"
+            r = self._into_sight(ptr, nm, tag, s, cn, lure_at)
+            if r:
+                return r
             if n > 1 and not locked_once and lure_at:
                 self.log(f"   {tag}: 락온 안 걸림 — 이 놈은 {lo:.0f} m 안으로 다가가지 않는다")
                 return "no_lock"
@@ -1024,12 +1036,12 @@ class Field:
                 if c is None:
                     return "dead"
                 path = nm.find_path((s.player.x, s.player.y, s.player.z), (c.x, c.y, c.z)) if (s := self.mv.snap(5.0)) else None
-                want = max(LURE_MIN, c.dist - 4.0)
-                nxt = next((tuple(q) for q in (path or []) if math.dist(tuple(q), (c.x, c.y, c.z)) <= want and abs(q[1] - c.y) <= LURE_DY
-                            and abs(q[1] - s.player.y) <= LURE_DY), None)
+                closer = max(LURE_MIN, c.dist - 4.0)       # (was `want` — the knife-hit count, which made the rest of the loop count hits)
+                nxt = next((q for sight in (True, False) for q in self._sight_spots(nm, path or [], (c.x, c.y, c.z), closer, sight)
+                            if abs(q[1] - s.player.y) <= LURE_DY), None)   # a point in sight if there is one
                 if nxt is None:
                     return "no_spot"
-                self.log(f"   {tag}: 락온 안 걸림 — {want:.0f} m 까지 다가감")
+                self.log(f"   {tag}: 락온 안 걸림 — {closer:.0f} m 까지 다가감")
                 if self.walk_to(nxt, nm, f"{tag} 더 가까이") == "dead":
                     return "dead"
                 if not self._asleep(ptr):
@@ -1060,6 +1072,41 @@ class Field:
             if not r.get("ok"):
                 time.sleep(0.5)
         return "lured" if hits else "no_reaction"
+
+    def _sight_spots(self, nm, path: list, goal, reach: float, sight: bool = True):
+        """Points along path every SIGHT_STEP_M LURE_MIN–reach from goal (closer, walking up wakes it anyway — a spot round the
+        corner 2 m from it is no throw spot), about its height (LURE_DY) and — with sight — with goal in sight from there.
+        The path's own points are far apart on straight stretches (simplified), so the line between is walked too."""
+        pts = [tuple(q) for q in path]
+        for a, b in zip(pts, pts[1:] + pts[-1:]):
+            k = max(1, int(math.dist(a, b) / SIGHT_STEP_M)) if a != b else 1
+            for i in range(k):
+                q = tuple(a[j] + (b[j] - a[j]) * i / k for j in range(3))
+                if LURE_MIN <= math.dist(q, goal) <= reach and abs(q[1] - goal[1]) <= LURE_DY and (not sight or nav.in_sight(nm, q, goal)):
+                    yield q
+
+    def _sight_spot(self, nm, path: list, goal, reach: float, sight: bool = True):
+        return next(self._sight_spots(nm, path, goal, reach, sight), None)
+
+    def _into_sight(self, ptr, nm, tag: str, s, c, lure_at) -> str | None:
+        """Right before a throw: target not in sight from here (it moved, or we stopped short) and a spot in sight along the
+        path → walk there first. Not from a preset lure_at spot (those never go closer). No such spot → throw from here and
+        let lock-on decide (NavMesh sight misses low props). → None (throw) | 'dead' | 'lured' (woke on the way)"""
+        here, at = (s.player.x, s.player.y, s.player.z), (c.x, c.y, c.z)
+        if lure_at or nm is None or nav.in_sight(nm, here, at):
+            return None
+        nxt = self._sight_spot(nm, nm.find_path(here, at) or [], at, LURE_R)
+        if nxt is None or math.dist(nxt, here) < 1.0:
+            self.log(f"   {tag}: {c.dist:.1f} m 직선이 막힘 (NavMesh), 트인 자리 없음 — 락온으로 확인")
+            return None
+        self.log(f"   {tag}: {c.dist:.1f} m 직선이 막힘 (NavMesh) — 트인 자리로 {math.dist(nxt, here):.1f} m")
+        self.events("lure", tag=tag, dist=round(c.dist, 1), why="sight_move")
+        if self.walk_to(nxt, nm, f"{tag} 트인 자리로") == "dead":
+            return "dead"
+        c2 = self.mv.find(self.mv.snap(SEEK_R), ptr)
+        if c2 is None or c2.hp <= 0:
+            return "dead"
+        return None if self._asleep(ptr) else "lured"
 
     def _emergency(self) -> bool:
         """About to die — HP under 35 % and no estus (condition for firebombs, user: 'bombs are better than dying')."""

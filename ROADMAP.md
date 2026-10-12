@@ -47,7 +47,7 @@ plan.md "Open-item details". On a change: rewrite the line (now / next only); re
 
 **Firebombs · bow from the Undead Merchant (MoKa 10-12: "난이도가 급격히 줄어"); the bot must buy them itself. In order:**
 - [~] shop | win | verify | merchant save 3/3 bought; from Firelink 0/2 — both died on the ramp before the merchant (3 of 5 Firelink trips today) | docs/shop-undead-merchant.md · plan:shop
-- [~] lock-sight | win | doing | game test: building between 0/7 (aimed), clear 1/1; unlock left R3 down (fixed); next: a sight check good enough to pick throw spots | docs/throwables.md
+- [~] lock-sight | win | verify | lure spot prefers a clear line (`clear_sight`: 30/31 locked, 5/6 failed); none → lock-on decides as before; next: `--throw` lock rate 2–10 m | docs/throwables.md · plan:lock-sight
 - [~] heavy-lock | win | doing | MoKa 10-12: heavy only locked on → stay locked on through clear 1:1 fights (option 2) | docs/throwables.md
 - [ ] firebomb-measure | win | todo | locked-on firebomb at 254010 from 5 · 8 · 12 · 15 m: hit, damage, others woken (67 held) | plan:firebomb-measure
 - [ ] firebomb-candidate | cloud | todo | firebomb as a candidate next to knife / melee (lure opener · 2+ foes · ledge); no limit, none = as now | plan:firebomb-candidate
@@ -168,8 +168,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 [cloud] can't reach the board: `- date [cloud→board] …` / `- date [board→cloud] …`. Whoever handles an entry starts it with
 `→ done` / `→ moved` right after the tag; `tidy` then moves it to `docs/roadmap/relay.md`.
 
-- 2026-10-12 [board→cloud] **Throwables + lock-on (MoKa 10-12)**, `docs/throwables.md`: firebomb locked · same level · 5.8–10.1 m = 9/9 one-shot kills, unaware foes take bonus damage; MoKa wants 'walk slowly, firebomb just before notice' and **heavy only locked on**. Bot lock-on on the way 2–10 m 6/41: line of sight blocked (5/5), aim fine. Ask: throw spot = clear straight line on the NavMesh (else don't throw), offline + golden.
-
+- 2026-10-12 [cloud→board] **Throw spots in sight (`git pull`, lock-sight)**: lure spot = first path point 6–10 m out with a clear line (`Navmesh.clear_sight`), walks on to one before a knife (`트인 자리로`); none → old spot, lock-on decides (`락온으로 확인`). No veto: your probe spot reads blocked (low prop = wall in the NavMesh).
 - 2026-10-12 [cloud→board] **Ramp on the shop run** = P-56 again (swarm hits, not falls; 033444 = P-73). Next Firelink → merchant try: today's code + `--pull`; if it still dies, shop tests stay on the merchant save.
 - 2026-10-12 [cloud→board] **P-73 / P-69 (`git pull`)**: rolls hold the camera, fresh stick, floor = `nav.can_move` 3 m; > 45° off → `구르기 방향 어긋남` (event `roll`). Target falling / > 2.5 m below → fight 'lost' (`목표 떨어짐`). Watch next ramp / zone 1 runs.
 

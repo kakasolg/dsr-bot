@@ -51,6 +51,8 @@ MAX_SIMPLIFY_SLOPE = 0.25
 PUSH_MAX_DY = 1.0           # if the floor height at the point keep_inside pushed changes by more than this, it's another level — don't push
 CLIFF_MARGIN = 2.2          # keep the path this far from measured cliff points (cliffscan.py)   # sections steeper than this are not simplified and keep original points (must follow stairs/slopes)
 CELL = 0.5
+SIGHT_EYE, SIGHT_CHEST = 1.5, 1.2   # clear_sight: line from our eyes to the target's chest (m above the feet)
+SIGHT_TOL = 0.3            # NavMesh floor sits a little off the real one; the closest locked throw had floor 0.6 m under the line
 
 
 class Navmesh:
@@ -496,6 +498,28 @@ class Navmesh:
             if hit[2] != prev_tri and prev_tri not in self.adj[hit[2]] and hit[2] not in self.adj[prev_tri]:
                 return False          # jumped to a non-neighbor face = a wall/step in between
             prev_y, prev_tri = hit[0], hit[2]
+        return True
+
+    def clear_sight(self, p0, p1, eye: float = SIGHT_EYE, chest: float = SIGHT_CHEST, step: float = 0.5) -> bool:
+        """Can p0 (feet) see p1 (feet) — what lock-on needs (docs/throwables.md: bot lock-on 2–10 m 6/41, every failure with a
+        position had the straight line blocked). The NavMesh has no walls, so: the eye→chest line must pass **over floor the
+        NavMesh knows** at every sample — some triangle (any level, any flags) at or below the line. No mesh at all under it =
+        inside a building or a wall; only floor above it = through a ledge or under a structure. Floor far below (a drop, the
+        ramp under the ledge) doesn't block. Unlike clear_line (can I walk it) a ledge 6 m up is in sight.
+        Recorded knife throws with both positions (tests/sight_test.py, 12 runs): all 30 locked ones pass, 5 of the 6 failed
+        ones are blocked; the sixth (5 m, flat, floor all the way) is a railing or a prop. Wrong the other way too: [win]'s
+        10-12 probe locked on (1/1) over a 3.5 m no-mesh patch between two floors at our level — a low prop reads the same as
+        a wall. So it picks spots (field._lure), it doesn't forbid throws; the real answer is the collision mesh."""
+        p0, p1 = np.asarray(p0, float), np.asarray(p1, float)
+        d = float(np.linalg.norm(p1[[0, 2]] - p0[[0, 2]]))
+        n = max(2, int(d / step))
+        y0, y1 = p0[1] + eye, p1[1] + chest
+        for k in range(1, n):
+            f = k / n
+            ray = y0 + (y1 - y0) * f
+            q = p0 + (p1 - p0) * f
+            if not any(y <= ray + SIGHT_TOL for y, _, _ in self.tris_at(float(q[0]), float(q[2]))):
+                return False
         return True
 
     def keep_inside(self, path: list, margin: float = 1.2) -> list:
