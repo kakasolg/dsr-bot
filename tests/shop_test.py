@@ -230,6 +230,12 @@ def main() -> None:
     check(f"Screen.state() on {len(want)} record shots: menu / list / qty / dialogue-or-game all right {bad or ''}", not bad)
     check("ok_selected: CANCEL on 08 / 14 / 15, OK on 09 / 11 / 16",
           [got[k][1] for k in ("08", "14", "15")] == [False] * 3 and [got[k][1] for k in ("09", "11", "16")] == [True] * 3)
+    # [win] game check 2 (10-12): the bot's own full-size shots — RIGHT did put OK on (60) but `l > 0.005` missed it and a
+    # second RIGHT went back to CANCEL (61); the live menu (55) and list (56) with both refs
+    check("ok_selected on the bot's shots: CANCEL 59 / 61, OK 60 (OK's bar is only 0.007 there)",
+          [got[k][1] for k in ("59", "60", "61")] == [False, True, False])
+    check("Screen.state() on the bot's full-size shots: 55 menu, 56 list, 59 qty",
+          [got[k][0] for k in ("55", "56", "59")] == ["menu", "list", "qty"])
 
     # run.py wiring: --buy parsed and handed to Shop.buy with Field.walk_to for the approach
     import run

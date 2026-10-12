@@ -1,0 +1,17 @@
+[    0.1] run 20261012_052551_merchant-buy · code 189af51+dirty(3) · merchant-buy --buy 290:30,292:20 --shop-shots --radar --note shop game check 2 run 3 (189af51, refs re-calibrated live) · settings 25c28d2a · note shop game check 2 run 3 (189af51, refs re-calibrated live)
+[    0.3] radar: sending — python radar_server.py -> http://127.0.0.1:47801, python overlay.py
+[    6.9]    물건 비켜 가기 (지난 실행에서 2번 이상 부숨): o1132_06 o1150_01 o1321_0021
+[    7.8] 무기: 배틀 액스 (약공 2연타, 닿는 거리 1.6 m, 강공 안 씀)
+[    7.9] 스타일: guard
+[    7.9] 캐릭터: SL 18 VIT 18 END 14 STR 14 DEX 17 | 반지 147,-1 왼손 1462000
+[   14.2]    상점: 망자 상인 1.88 m, 몸 0°
+[   42.3]    상점: OK로 안 옮겨짐 — 수량 창 닫음 (B)
+[   42.9]    상점: 290 ×30 — 개수·소울 그대로 (1번째) — 나갔다 다시 말 걸기
+[   49.2]    상점: 290 ×30 → shop_fail (개수 30→30, 소울 2742→2742, 1번)
+[   49.2] ── 상점: shop_fail — 290 0/30
+[   49.2] ══ 결과: shop shop_fail
+[   49.2] 카메라 정렬: 기록 없음
+[   49.2] 정렬 (몸 30° · 카메라 10° 또는 락온): 기록 없음
+[   49.2] ══ 위험 판정: 깨끗  (결과 shop shop_fail, 최저 HP 90%, 큰 피격 0번 -0)  
+[   49.2] 실행 설정 기록: 20261012_052551_merchant-buy.settings.json
+[   49.2] 텔레메트리 피드: {'frames': 2499, 'read_ms': 3.3, 'fresh': 2084, 'waited': 15, 'direct': 687, 'none': 0, 'stale': 0}

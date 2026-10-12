@@ -47,7 +47,7 @@ MOVE_S = 0.5          # a cursor step on the list / OK↔CANCEL
 QTY_GAP = 0.25        # UP × 28 at this spacing all went in (record 11)
 BUY_S = 1.0           # A on OK → bought, back on the list
 CHECK_S = 1.5         # poll memory this long for the purchase to show
-LEAVE_S = 5.0         # B, B, then wait for menu_open to go False
+LEAVE_S = 9.0         # B, B, then wait for menu_open to go False — [win] 10-12: the farewell line keeps it True 6.1 s after the B on the menu
 HOLD = 0.1
 POLL = 0.1
 
@@ -57,6 +57,7 @@ UI_DIR = ROOT / "data" / "shop" / "ui"
 UI_BOX = {"menu": (0.104, 0.285, 0.380, 0.400),   # "Purchase Item / Talk / Leave" (05)
           "list": (0.140, 0.105, 0.310, 0.180),   # "Purchase / Select item to purchase" (06) — also under the quantity window
           "qty": (0.395, 0.595, 0.640, 0.635)}    # "OK  CANCEL" row of the quantity window (08)
+OK_BAR_MIN = 0.002    # orange_sides: below this in both halves = no selection bar seen (record bar 0.007–0.019)
 UI_MATCH = 0.35       # text-pixel mismatch below this = that screen (record: same 0.00–0.13, others 0.91–1.00)
 REF_SHOTS = {"menu": "05_none_after-greeting.jpg", "list": "06_a_purchase-item.jpg", "qty": "08_a_knife-select.jpg"}
 
@@ -90,7 +91,11 @@ class Screen:
     def __init__(self, grab=None, ui_dir: Path = UI_DIR):
         import numpy as np
         self.grab = grab or _grab_window
-        self.refs = {k: np.load(ui_dir / f"{k}.npy") for k in UI_BOX if (ui_dir / f"{k}.npy").exists()}
+        # every reference of a screen: <k>.npy (from the record shots) and <k>_*.npy (e.g. <k>_live.npy, `calibrate`) —
+        # [win] game check 2 (10-12): the record refs (960 px JPEGs) read the live menu at 0.36 > UI_MATCH, live refs read
+        # the record shots the same way; a screen counts when any of its references matches
+        self.refs = {k: [np.load(f) for f in sorted(ui_dir.glob(f"{k}*.npy"))] for k in UI_BOX}
+        self.refs = {k: v for k, v in self.refs.items() if v}
         self.last: dict = {}
 
     def ready(self) -> bool:
@@ -103,18 +108,25 @@ class Screen:
         except Exception:
             return None
         for k in ("qty", "list", "menu"):                 # the quantity window sits on the list: look at it first
-            d = mismatch(self.refs[k], mask_of(img, UI_BOX[k]))
+            cur = mask_of(img, UI_BOX[k])
+            d = min(mismatch(r, cur) for r in self.refs[k])
             self.last[k] = round(d, 2)
             if d < UI_MATCH:
                 return k
         return None
 
     def ok_selected(self) -> bool | None:
+        """True = OK has the orange bar, False = CANCEL has it, None = no bar seen (between frames / not this window).
+        By which half has more, not a fixed share: [win] game check 2 (10-12) — live, OK's bar reads 0.007 in UI_BOX["qty"]
+        (it starts left of the box) against the record's 0.012, so `l > 0.005` failed now and then; the second RIGHT then
+        moved the bar back onto CANCEL. Record + bot shots: OK 0.007–0.012 / 0, CANCEL 0 / 0.018–0.019."""
         try:
             l, r = orange_sides(self.grab())
         except Exception:
             return None
-        return l > r and l > 0.005
+        if max(l, r) < OK_BAR_MIN:
+            return None
+        return l > r
 
 
 def _grab_window():
@@ -141,7 +153,7 @@ def make_refs(shots_dir: Path = ROOT / "data" / "shop" / "20261012", ui_dir: Pat
         if only and k != only:
             continue
         img = grab() if grab else Image.open(shots_dir / f)
-        np.save(ui_dir / f"{k}.npy", mask_of(img, UI_BOX[k]))
+        np.save(ui_dir / f"{k}{'_live' if grab else ''}.npy", mask_of(img, UI_BOX[k]))   # live: kept next to the record ref
         out.append(k)
     return out
 
@@ -299,6 +311,9 @@ class Shop:
             self._press(UP, MOVE_S, f"qty-{n}", n=n - 1)
         self._press(RIGHT, MOVE_S, "ok")                   # the window opens on CANCEL (record 08 → 09)
         ok = self.screen.ok_selected()
+        if ok is None:                                     # no bar seen this frame — look once more before pressing again
+            time.sleep(0.3)
+            ok = self.screen.ok_selected()
         if ok is False:
             self._press(RIGHT, MOVE_S, "ok-again")
             ok = self.screen.ok_selected()

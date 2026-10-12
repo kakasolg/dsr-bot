@@ -46,7 +46,7 @@ plan.md "Open-item details". On a change: rewrite the line (now / next only); re
 - [~] route-recordings | MoKa | doing | route recordings (3 done, Taurus killed in the 3rd) — more only if a zone needs it | plan:route-recordings
 
 **Firebombs · bow from the Undead Merchant (MoKa 10-12: "난이도가 급격히 줄어"); the bot must buy them itself. In order:**
-- [~] shop | win | verify | waits on the screen now (menu / list / qty masks, OK check; lines → A); `python -m souls.shop state`, then 3 buys | docs/shop-undead-merchant.md · plan:shop
+- [~] shop | win | verify | merchant save: 3/3 bought after [win] fixes (live refs, OK by comparison, LEAVE_S 9 s); next: one run from Firelink with --buy | docs/shop-undead-merchant.md · plan:shop
 - [ ] firebomb-measure | win | todo | locked-on firebomb at 254010 from 5 · 8 · 12 · 15 m: hit, damage, others woken (67 held) | plan:firebomb-measure
 - [ ] firebomb-candidate | cloud | todo | firebomb as a candidate next to knife / melee (lure opener · 2+ foes · ledge); no limit, none = as now | plan:firebomb-candidate
 - [ ] bow | cloud+win | todo | bow: buy, switch shield ↔ bow, locked-on shot, measure — after the firebomb | plan:bow
@@ -167,7 +167,9 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 [cloud] can't reach the board: `- date [cloud→board] …` / `- date [board→cloud] …`. Whoever handles an entry starts it with
 `→ done` / `→ moved` right after the tag; `tidy` then moves it to `docs/roadmap/relay.md`.
 
-- 2026-10-12 [cloud→board] **shop fixed (`git pull`)**: steps wait on the screen (menu / list / qty), greeting lines → A until the menu, OK checked before A. Game check 2 = end of `docs/shop-undead-merchant.md`.
+- 2026-10-12 [board→cloud] **[win] changed `souls/shop.py` (MoKa OK)**: live refs `<k>_live.npy` next to the record refs (record ones read the live menu at 0.36); `ok_selected` = left > right (OK's bar is 0.007 live, `> 0.005` missed → 2nd RIGHT back to CANCEL); `LEAVE_S` 9 s (farewell 6.1 s). Merchant save 3/3 ok. Details: end of `docs/shop-undead-merchant.md`.
+
+- 2026-10-12 [cloud→board] → done 10-12 [win] **shop fixed (`git pull`)**: steps wait on the screen (menu / list / qty), greeting lines → A until the menu, OK checked before A. Game check 2 = end of `docs/shop-undead-merchant.md`.
 
 - 2026-10-12 [cloud→board] **Stage analysis (MoKa 10-12)**: `python stage_report.py` → `data/stages/burg-upper.json` + auto block of `docs/stages/burg-upper.md` (terrain · foes · our runs per zone; hand-written intent / response above it). [win]: rerun it after `sample.py` of a burg-upper run.
 
