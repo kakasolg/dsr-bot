@@ -67,6 +67,30 @@ class Log:
             self.ev.flush()
 
 
+def _shop(a, mv, nm, fld, log) -> str:
+    """At the Undead Merchant: buy a.buy (souls/shop.py). → 'shop ok' | 'shop partial' | 'shop <why>'"""
+    from souls import shop as shop_
+    items = shop_.parse_items(a.buy or "")
+    if not items:
+        return "shop: --buy 없음"
+    shoot = None
+    if a.shop_shots:
+        import shot
+        out = Path(__file__).resolve().parent / "data" / "shop" / time.strftime("%Y%m%d")
+        out.mkdir(parents=True, exist_ok=True)
+
+        def shoot(tag: str) -> None:                       # same files as pad_step.py: <nn>_<tag>.jpg, 960 px JPEG
+            n = len(list(out.glob("*.jpg"))) + 1
+            png = out / f"{n:02d}_bot_{tag}.png"
+            shot.shot(png)
+            from PIL import Image
+            Image.open(png).convert("RGB").save(png.with_suffix(".jpg"), quality=70)
+            png.unlink()
+    res = shop_.Shop(mv, nm, log=log, events=log.event, shoot=shoot, walk_to=fld.walk_to).buy(items)
+    log(f"── 상점: {res['result']} — " + ", ".join(f"{x['goods']} {x.get('bought', 0)}/{x['want']}" for x in res["items"]))
+    return f"shop {res['result']}"
+
+
 def status() -> None:
     import env
     from souls import moves, weapons
@@ -85,10 +109,13 @@ LURE_CMDS = {"burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["status", "watch", "burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt-one", "merchant", "light-burg", "burg-upper", "quit-test", "passage-drill", "asylum", "taurus"])
+    ap.add_argument("cmd", choices=["status", "watch", "burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt-one", "merchant", "light-burg", "burg-upper", "quit-test", "passage-drill", "asylum", "taurus", "merchant-buy"])
     ap.add_argument("--no-rest", action="store_true")
     ap.add_argument("--no-quit", action="store_true", help="퀵 종료(메뉴로 나갔다 오기) 안 씀 — 영상 촬영용")
     ap.add_argument("--fall-quit", action="store_true", help="낙하 때 예전처럼 퀵 종료 (기본: 기록만 하고 계속, [MoKa] 2026-10-12)")
+    ap.add_argument("--buy", default=None, help="상인에게서 살 것 '290:30,292:20' (goods:개수 — 290 투척 나이프, 292 화염병). "
+                    "merchant-buy: 지금 선 곳에서 · burg-bonfire --seg …5: 상인 도착 뒤 (souls/shop.py)")
+    ap.add_argument("--shop-shots", action="store_true", help="상점 단계마다 스크린샷 data/shop/<날짜>/ (pad_step.py처럼)")
     ap.add_argument("--no-recover", action="store_true", help="burg-upper: 죽으면 그대로 끝 (기본: 핏자국이 값지면 화톳불부터 다시 가서 회수, souls/afterdeath.py)")
     ap.add_argument("--i", type=int, default=5, help="hunt-one: BURG_TOWN 몇 번째 (5 = 석궁병 255002)")
     ap.add_argument("--seg", default=None, help="asylum: 구간 번호 또는 범위 (기본 1; 1 = 감방 → 사다리 → 첫 화톳불, 2-3 = 이어서, ROADMAP 1-h). "
@@ -318,6 +345,8 @@ def main() -> None:
                 log(f"══ 구역 {n} ({ms.BURG_SEGMENTS[n]}) 끝: {r}")
                 if not fld.alive():
                     break
+                if a.buy and ms.BURG_SEGMENTS[n] == "merchant" and r == "상인 도착":
+                    r = _shop(a, mv, nms[missions.MAP_B], fld, log)   # then on to 6 if asked
         elif a.cmd == "burg-bonfire":
             r = ms.burg_bonfire()
         elif a.cmd == "burg-upper":
@@ -340,6 +369,8 @@ def main() -> None:
             r = ms.clear_burg_town()
         elif a.cmd == "hunt-one":
             r = ms.hunt_one(a.i)
+        elif a.cmd == "merchant-buy":
+            r = _shop(a, mv, nms[missions.MAP_B], fld, log)
         elif a.cmd == "merchant":
             r = ms.to_merchant()
         elif a.cmd == "taurus":

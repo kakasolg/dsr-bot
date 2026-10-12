@@ -77,3 +77,21 @@
 3. 오프라인 테스트: 버튼 순서 (가짜 패드) · 확인 실패 시 재시도 1번 · CANCEL 기본값 처리 · 커서가 남는 것
 4. [win] 게임 확인: 세이브 `backup-20261012-034844-merchant-bought-knife30-firebomb67` (상인 앞, 소울 2742)에서
    `savepoint.py restore` → 루틴만 3번 → 그다음 불의 제전부터 끝까지 1번. 버튼마다 `pad_step.py`처럼 스크린샷을 남길지는 [cloud]가 정함
+
+## [cloud] 구현 (2026-10-12) — `souls/shop.py`
+
+- `Shop(mv, nm, log, events, shoot=None, walk_to=None).buy([(goods, 개수), …])` — 위 순서 그대로. 행·가격 표 `shop.UNDEAD_MERCHANT`
+  (280 → 1행 500, 290 → 2행 10, 292 → 3행 50; 4행 로이드 부적은 id 기록 없음이라 빠짐).
+- 다가가기: NPC 251001이 4 m보다 멀면 `Field.walk_to`, 그다음 짧은 걸음으로 1.7 m 안, `Moves.aim`(걷지 않고 짧은 탭으로 돌기)으로 12° 안.
+  말 걸기 A 뒤 1.5 s 안에 `menu_open`이 안 켜지면 다시 조준해 한 번 더, 그래도 안 되면 `no_talk`.
+- 품목마다: 지금 커서 행에서 차이만큼 DOWN/UP → A → UP ×(개수−1) 0.25 s 간격 → RIGHT → A → 메모리 확인 (1.5 s 동안).
+  개수·소울 둘 다 그대로면: B B로 나가고 다시 말 걸어(커서 1행) 그 품목 한 번 더, 두 번째도 그대로면 `shop_fail`로 멈춤.
+  소울이 모자라면 살 수 있는 만큼(0이면 `no_souls`, 버튼 안 누름). 이벤트 `shop` (개수·소울 전후, tries, result).
+- 실행: `python run.py merchant-buy --buy 290:30,292:20` (상인 앞에서) ·
+  `python run.py burg-bonfire --seg 1-5 --no-lure --buy 290:30,292:20` (5 상인 도착 뒤; `--seg 1-6`이면 산 뒤 6으로).
+  `--shop-shots`: 단계마다 스크린샷 `data/shop/<날짜>/<nn>_bot_<단계>.jpg` (pad_step.py와 같은 960 px JPEG) — 첫 게임 확인 때 켜는 걸 권함.
+- 오프라인: `tests/shop_test.py` — 가짜 상인(인사 2 s, 목록, CANCEL 기본, 커서 유지, 입력 씹힘)에서 기록 그대로 사면
+  4042 → 2742 소울·나이프 30·화염병 67, 버튼 순서가 위 표와 같음; RIGHT가 씹히면 다시 말 걸어 두 번째에 삼; 두 번 다 씹히면 `shop_fail`;
+  소울 300 → 화염병 6개; 목록에 없는 id → `not_sold`; 말 걸기 안 됨 → `no_talk`.
+- 미확인 (게임): 목록 UP(위로) 이동 (지금 표 순서로는 안 씀), 최대 수량, 소울 모자랄 때 화면, 대사 중 A를 누르면 넘어가는지.
+

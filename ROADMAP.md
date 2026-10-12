@@ -52,7 +52,7 @@ zone 8 crossbowmen (P-47).
 - [~] [MoKa] Recordings of the route (3 done, Taurus killed in the 3rd) — more only if a zone needs it
 
 **Firebombs · bow from the Undead Merchant (MoKa 10-12: "난이도가 급격히 줄어"); the bot must buy them itself. In order:**
-- [ ] [cloud] `shop` buy routine: talk, pick, quantity, confirm; checked by souls ↓ and count ↑ — then [win] tests it in game
+- [~] [cloud]+[win] `shop` buy routine — [cloud] done offline 10-12 (`souls/shop.py`, `run.py merchant-buy --buy 290:30,292:20`, docs end of `docs/shop-undead-merchant.md`); [win]: game check per that doc
 - [ ] [win] Locked-on firebomb at 254010 from 5 · 8 · 12 · 15 m: hit, damage, others woken; id 292 = Firebomb (shop, 10-12); 67 held
 - [ ] [cloud] Firebomb as a candidate (lure opener · 2+ foes · ledge 254012) next to knife / melee; no limit — use while any are left, none = play as now; golden + expect
 - [ ] [cloud]+[win] Bow: buy, switch shield ↔ bow, locked-on shot, measure — after the firebomb
@@ -205,13 +205,9 @@ Full entries: `docs/roadmap/problems.md`. Status: **open** · **parked** · **de
 whoever moves or handles an entry adds `→ moved` / `→ done` (old entries: `[cloud→게시판]`, `→ 옮김` / `→ 처리` — same thing). When every entry here is `→ moved`/`→ done`, cut them
 to the bottom of `docs/roadmap/relay.md`.
 
-(handled entries: `docs/roadmap/relay.md`, last moved 2026-10-12)
+(handled entries: `docs/roadmap/relay.md`, last moved 2026-10-12 — handled entries move there one by one)
 
-- 2026-10-12 [board→cloud] **Please build the `shop` routine** (MoKa OK): spec + test plan at the end of `docs/shop-undead-merchant.md` (NPC 251001, face, A, ~2 s, A, DOWN, A, UP, RIGHT→OK, A, check goods/souls, B×2). [win] tests from save `…-034844-merchant-bought-…`.
-
-- 2026-10-12 [cloud→board] **`git pull` — fall / death policy changed (MoKa 10-12)**: (1) no quit-out on a fall (`--fall-quit` = old); (2) `burg-upper` after a death: worth it → back from zone 1 and pick up with no foe within 15 m, else end (`--no-recover` = old); (3) black box splits fall from hits, one `death` event (`✝ 사망 원인: …`); (4) end line `정렬 (…)`; (5) P-66: a windup isn't 'ended' before it lands — shield soldier 3004 blocked to 2.3 s, then counter. Why: `docs/analysis-death-2026-10-12.md`. → (1) · (2) checked 10-12 [win] with `6341df3` (entry below); (3) · (4) · (5) next runs
-
-- 2026-10-12 [board→cloud] → done 10-12 [cloud]: (a) pick only once the death zone is cleared again, (b) `esc.planned` for plunges / crow — not a fall **Fall / death policy, 3 full runs (`6341df3`)**: #1 zones 1–8 + Taurus killed; #2 · #3 died in zone 5 → `recover` → died again in zone 4 on the way, stain lost → `ignore`. (a) pickup tried after zones 1–3, long before the stain's zone → `foes_near`; [MoKa] 10-12: "죽은 후 다음 시도에서 근처를 다 정리해서 쉽게 회수가 가능하다면 해도 되긴 해" → only after its zone is cleared? (b) Taurus plunges (`quit_ok` off) logged as `fall` → 낙하×2. `data/samples/20261012_02*`, `…_030444*`
+- 2026-10-12 [cloud→board] **`git pull` — fall / death policy changed (MoKa 10-12)**: (1) no quit-out on a fall (`--fall-quit` = old); (2) `burg-upper` after a death: worth it → back from zone 1 and pick up with no foe within 15 m, else end (`--no-recover` = old); (3) black box splits fall from hits, one `death` event (`✝ 사망 원인: …`); (4) end line `정렬 (…)`; (5) P-66: a windup isn't 'ended' before it lands — shield soldier 3004 blocked to 2.3 s, then counter. (6) **shop routine ready**: `run.py merchant-buy --buy 290:30,292:20 --shop-shots` from the merchant save, test plan at the end of `docs/shop-undead-merchant.md`. Why: `docs/analysis-death-2026-10-12.md`. → (1) · (2) checked 10-12 [win] with `6341df3` (entry below); (3) · (4) · (5) next runs
 
 ## 6. Change log (newest first; older entries in `docs/roadmap/changelog.md`)
 
