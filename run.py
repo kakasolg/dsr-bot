@@ -9,6 +9,8 @@
   python run.py merchant                 from here to the merchant (no rest)
   python run.py light-burg               from here (Undead Burg), just light the bonfire
   python run.py burg-upper [--seg 1-7]   Undead Burg bonfire → Taurus fog wall, MoKa's safe-spot zones (ROADMAP 1-m; zone 1 rests first)
+  python run.py taurus                   Taurus Demon from in front of its fog wall: bridge → ladder → resin → plunge → fight close
+                                         (start: `python savepoint.py restore backup-20261011-235526-zone8-top-taurus-start`)
   python run.py quit-test                kill #1 and compare ramp enemy survival before/after quit-out (does quit-out revive dead enemies?)
 
   python run.py watch --radar            no bot: read-only radar while you play by hand (no pad input, no memory writes;
@@ -83,7 +85,7 @@ LURE_CMDS = {"burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["status", "watch", "burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt-one", "merchant", "light-burg", "burg-upper", "quit-test", "passage-drill", "asylum"])
+    ap.add_argument("cmd", choices=["status", "watch", "burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt-one", "merchant", "light-burg", "burg-upper", "quit-test", "passage-drill", "asylum", "taurus"])
     ap.add_argument("--no-rest", action="store_true")
     ap.add_argument("--no-quit", action="store_true", help="퀵 종료(메뉴로 나갔다 오기) 안 씀 — 영상 촬영용")
     ap.add_argument("--i", type=int, default=5, help="hunt-one: BURG_TOWN 몇 번째 (5 = 석궁병 255002)")
@@ -334,6 +336,11 @@ def main() -> None:
             r = ms.hunt_one(a.i)
         elif a.cmd == "merchant":
             r = ms.to_merchant()
+        elif a.cmd == "taurus":
+            from souls import taurus
+            log.zone = "taurus"
+            r = taurus.Taurus(fld, nms[missions.MAP_B], ms, log=log, events=log.event).run()
+            log(f"══ 타우로스: {r}")
         elif a.cmd == "asylum":
             lo, _, hi = (a.seg or "1").partition("-")
             segs = list(range(int(lo), int(hi or lo) + 1))

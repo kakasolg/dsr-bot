@@ -42,7 +42,7 @@ Bot already clears cell → Undead Burg bonfire in one run (10-03e). `run.py bur
 zone 8 crossbowmen (P-47).
 
 - [ ] [cloud]+[win] **Alignment first (MoKa 10-11: high priority)** — attack target · character facing · camera in one line (MoKa 10-01: "alignment decides whether a move works"). Facing |각| ≤ 30° in 75–95 % of fight lines; P-65 one look order (`20dd7ae`): 1 run camera ≤ 10° fight 89 % / out of fight 87 %. Next: [cloud] one target–body–camera measure per tick; [win] more runs
-- [ ] [cloud]+[win] Taurus: bridge F9#7 calls the boss → run to ladder, climb → **gold pine resin** → plunge (~40 % of boss HP) → ~4 light attacks, keep stamina > 0; start with ≥ 1 Estus (MoKa 10-06)
+- [~] [win] Taurus: bridge F9#7 → ladder → gold pine resin → plunge → light attacks close (MoKa 10-06) — `run.py taurus` (`souls/taurus.py`) from save point `backup-20261011-235526-zone8-top-taurus-start` (`savepoint.py restore`): 10-12 try 5 **killed** (plunge −531 with resin, 7 lights, 15 s, HP 51 %); tries 1–4 fixed (perch anim 9001 ≠ called, two-hand/resin before the call, fight after any plunge outcome, no LB while two-handed). Next: more tries for a pass rate
 - [ ] [cloud]+[win] Boss fight default = two-handed + dodging (9-30 principle); Taurus is the first case (the general boss module is v2.0)
 - [ ] [cloud] Firebomb hollow "close in fast" rule — unless the way there is a fall-risk zone (ledge 254012 is ignored) → check with `duel_golden_test`
 - [~] [win] Zone-by-zone bot runs; after each: `blind_report.py` · `hotspots.py` · `track_report.py`, logs to `data/samples/`
