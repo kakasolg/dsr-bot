@@ -40,6 +40,7 @@ plan.md "Open-item details". On a change: rewrite the line (now / next only); re
 - [~] taurus | win | doing | `run.py taurus` plunge loop; bonfire → Taurus killed 2× (005650, 025057) | docs/boss-taurus.md · plan:taurus
 - [~] fall-death-policy | win | verify | no fall quit-out + after-death pickup: (1)(2) seen in 3 runs; (3) death record, (4) alignment next runs | P-71 · P-72 · plan:fall-death-policy
 - [ ] boss-two-hand-dodge | cloud+win | todo | boss default = two-handed + dodging (9-30); Taurus first, general boss module is v2.0 | plan:boss-two-hand-dodge
+- [~] stage-analysis | MoKa | decide | burg-upper zones 1–8 analysed (auto + hand draft); MoKa: fix intent / response, zone 4 safe spot 0.5 m from a drop | docs/stages/burg-upper.md · plan:stage-analysis
 - [ ] firebomb-hollow-close-in | cloud | todo | firebomb hollow: close in fast unless the way is a fall-risk zone (ledge 254012 ignored); golden | plan:firebomb-hollow-close-in
 - [~] zone-runs | win | doing | zone-by-zone runs; after each the three reports + `sample.py` (CLAUDE.md) | plan:zone-runs
 - [~] route-recordings | MoKa | doing | route recordings (3 done, Taurus killed in the 3rd) — more only if a zone needs it | plan:route-recordings
@@ -167,6 +168,8 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 `→ done` / `→ moved` right after the tag; `tidy` then moves it to `docs/roadmap/relay.md`.
 
 - 2026-10-12 [board→cloud] **`shop` game check 1: shop_fail** — greeting can be several lines and A during a line = next line, so every press shifted ~3 steps (menu only at the 'qty' step, list opened by the 'buy' A). Wait on the screen, not GREET_S. Details + shots: end of `docs/shop-undead-merchant.md`.
+
+- 2026-10-12 [cloud→board] **Stage analysis (MoKa 10-12)**: `python stage_report.py` → `data/stages/burg-upper.json` + auto block of `docs/stages/burg-upper.md` (terrain · foes · our runs per zone; hand-written intent / response above it). [win]: rerun it after `sample.py` of a burg-upper run.
 
 - 2026-10-12 [cloud→board] **ROADMAP format changed (MoKa 10-12)** — one checked line per item `- [m] id | who | stage | now / next | where`, `python roadmap.py check / tidy / queue win / show <id>`; closed problem rows → problems.md, item histories → plan.md "Open-item details" (nothing lost). Rules: CLAUDE.md "Keeping ROADMAP.md current". Your list: `python roadmap.py queue win`.
 

@@ -1,0 +1,1516 @@
+{
+ "area": "burg-upper",
+ "title": "성벽 마을 위쪽 — 화톳불 → 타우로스 (구역 1–8)",
+ "map": "m10_01_00_00",
+ "made_by": "stage_report.py",
+ "runs_read": 34,
+ "zones": [
+  {
+   "n": 1,
+   "notes": {},
+   "terrain": {
+    "safe": [
+     -0.8,
+     -10.0,
+     -62.5
+    ],
+    "safe_drop_m": 10.8,
+    "safe_wall_m": 1.9,
+    "drops_near_safe": 0,
+    "to_foes": [
+     {
+      "npc": 254010,
+      "dist_m": 11.0,
+      "dy_m": -1.5,
+      "path_m": 14.3,
+      "edge_m": 4.1
+     },
+     {
+      "npc": 255002,
+      "dist_m": 15.2,
+      "dy_m": 0.2,
+      "path_m": 18.2,
+      "edge_m": 4.4
+     },
+     {
+      "npc": 254010,
+      "dist_m": 16.5,
+      "dy_m": -3.4,
+      "path_m": 27.0,
+      "edge_m": 9.0
+     },
+     {
+      "npc": 254010,
+      "dist_m": 15.9,
+      "dy_m": -3.3,
+      "path_m": 31.9,
+      "edge_m": 9.2
+     }
+    ]
+   },
+   "foes": {
+    "kills": [
+     {
+      "npc": 254010,
+      "name": "망자(칼)",
+      "kind": "hollow",
+      "ranged": false,
+      "shield": false,
+      "pos": [
+       -10.1,
+       -11.5,
+       -68.1
+      ],
+      "how": null,
+      "notice_m": 7.1,
+      "sight_m": 30,
+      "hearing_m": 10,
+      "help_group": null,
+      "patrol": false
+     },
+     {
+      "npc": 255002,
+      "name": "석궁 병사",
+      "kind": "other",
+      "ranged": true,
+      "shield": false,
+      "pos": [
+       -13.3,
+       -9.8,
+       -71.2
+      ],
+      "how": null,
+      "notice_m": 4.1,
+      "sight_m": 30,
+      "hearing_m": 10,
+      "help_group": null,
+      "patrol": false
+     },
+     {
+      "npc": 254010,
+      "name": "망자(칼)",
+      "kind": "hollow",
+      "ranged": false,
+      "shield": false,
+      "pos": [
+       -16.9,
+       -13.4,
+       -64.0
+      ],
+      "how": null,
+      "notice_m": 7.1,
+      "sight_m": 30,
+      "hearing_m": 10,
+      "help_group": null,
+      "patrol": false
+     },
+     {
+      "npc": 254010,
+      "name": "망자(칼)",
+      "kind": "hollow",
+      "ranged": false,
+      "shield": false,
+      "pos": [
+       -15.9,
+       -13.3,
+       -58.7
+      ],
+      "how": null,
+      "notice_m": 7.1,
+      "sight_m": 30,
+      "hearing_m": 10,
+      "help_group": null,
+      "patrol": false
+     }
+    ],
+    "together": [
+     {
+      "a": 1,
+      "b": 2,
+      "d_m": 4.8,
+      "help_group": false
+     },
+     {
+      "a": 3,
+      "b": 4,
+      "d_m": 5.4,
+      "help_group": false
+     }
+    ],
+    "others": [
+     {
+      "npc": 254014,
+      "d_m": 16.0,
+      "dy_m": -3.4,
+      "ignored": false,
+      "killed_in": null
+     },
+     {
+      "npc": 255040,
+      "d_m": 19.6,
+      "dy_m": 19.5,
+      "ignored": false,
+      "killed_in": null
+     }
+    ]
+   },
+   "runs": {
+    "runs": 22,
+    "tries": 24,
+    "cleared": 20,
+    "results": {
+     "cleared": 20,
+     "died": 4
+    },
+    "deaths": [
+     {
+      "run": "20261011_165111_burg-upper_taurus-retry-zone1-death",
+      "cause": "hit",
+      "by": 254010
+     },
+     {
+      "run": "20261012_003442_burg-upper",
+      "cause": "fall",
+      "by": null
+     },
+     {
+      "run": "20261012_003639_burg-upper",
+      "cause": "fall",
+      "by": null
+     },
+     {
+      "run": "20261012_003844_burg-upper",
+      "cause": "fall",
+      "by": null
+     }
+    ],
+    "falls": 6,
+    "big_hits": 35,
+    "big_hit_lost": 4964,
+    "blamed": {
+     "254010": 32,
+     "255002": 3
+    },
+    "secs_median": 90,
+    "files": [
+     "20261009_230500_burg-upper_check-hp742",
+     "20261009_234512_burg-upper_dirty-check",
+     "20261011_165111_burg-upper_taurus-retry-zone1-death",
+     "20261011_170346_burg-upper_p67fix-zone5-death",
+     "20261011_171918_burg-upper_p68fix-zone8-death",
+     "20261011_174753_burg-upper_zones1-8-cleared",
+     "20261012_003442_burg-upper",
+     "20261012_003639_burg-upper",
+     "20261012_003844_burg-upper",
+     "20261012_004844_burg-upper",
+     "20261012_005843_burg-upper",
+     "20261012_010457_burg-upper",
+     "20261012_024340_burg-upper",
+     "20261012_025301_burg-upper",
+     "20261012_030444_burg-upper",
+     "burg-upper-radar-2026-10-06-195804",
+     "burg-upper-radar-2026-10-06-201550",
+     "burg-upper-radar-2026-10-06a",
+     "burg-upper-radar-2026-10-06c",
+     "burg-upper-radar-2026-10-06d",
+     "burg-upper-radar-2026-10-06e",
+     "burg-upper-radar-2026-10-06i"
+    ]
+   },
+   "problems": [
+    "P-53",
+    "P-67",
+    "P-69",
+    "P-70"
+   ]
+  },
+  {
+   "n": 2,
+   "notes": {},
+   "terrain": {
+    "safe": [
+     -7.0,
+     -10.0,
+     -73.5
+    ],
+    "safe_drop_m": 2.6,
+    "safe_wall_m": 1.7,
+    "drops_near_safe": 4,
+    "to_foes": [
+     {
+      "npc": 255001,
+      "dist_m": 22.6,
+      "dy_m": -0.1,
+      "path_m": 32.0,
+      "edge_m": 10.0
+     },
+     {
+      "npc": 254011,
+      "dist_m": 28.8,
+      "dy_m": 0.1,
+      "path_m": 29.0,
+      "edge_m": 7.8
+     },
+     {
+      "npc": 254011,
+      "dist_m": 26.0,
+      "dy_m": 0.1,
+      "path_m": 26.3,
+      "edge_m": 7.9
+     }
+    ]
+   },
+   "foes": {
+    "kills": [
+     {
+      "npc": 255001,
+      "name": "방패 병사",
+      "kind": "shield",
+      "ranged": false,
+      "shield": true,
+      "pos": [
+       -1.3,
+       -10.1,
+       -95.4
+      ],
+      "how": null,
+      "notice_m": 9.0,
+      "sight_m": 30,
+      "hearing_m": 10,
+      "help_group": null,
+      "patrol": false
+     },
+     {
+      "npc": 254011,
+      "name": "망자(칼)",
+      "kind": "hollow",
+      "ranged": false,
+      "shield": false,
+      "pos": [
+       -7.3,
+       -9.9,
+       -102.3
+      ],
+      "how": null,
+      "notice_m": 8.0,
+      "sight_m": 30,
+      "hearing_m": 10,
+      "help_group": null,
+      "patrol": false
+     },
+     {
+      "npc": 254011,
+      "name": "망자(칼)",
+      "kind": "hollow",
+      "ranged": false,
+      "shield": false,
+      "pos": [
+       -10.1,
+       -9.9,
+       -99.3
+      ],
+      "how": null,
+      "notice_m": 8.0,
+      "sight_m": 30,
+      "hearing_m": 10,
+      "help_group": null,
+      "patrol": false
+     }
+    ],
+    "together": [
+     {
+      "a": 1,
+      "b": 2,
+      "d_m": 9.1,
+      "help_group": false
+     },
+     {
+      "a": 1,
+      "b": 3,
+      "d_m": 9.6,
+      "help_group": false
+     },
+     {
+      "a": 2,
+      "b": 3,
+      "d_m": 4.1,
+      "help_group": false
+     }
+    ],
+    "others": [
+     {
+      "npc": 254013,
+      "d_m": 4.8,
+      "dy_m": -0.1,
+      "ignored": false,
+      "killed_in": null
+     },
+     {
+      "npc": 254010,
+      "d_m": 6.4,
+      "dy_m": -1.5,
+      "ignored": false,
+      "killed_in": 1
+     },
+     {
+      "npc": 255002,
+      "d_m": 6.7,
+      "dy_m": 0.2,
+      "ignored": false,
+      "killed_in": 1
+     },
+     {
+      "npc": 254014,
+      "d_m": 9.8,
+      "dy_m": -3.4,
+      "ignored": false,
+      "killed_in": null
+     },
+     {
+      "npc": 254010,
+      "d_m": 14.1,
+      "dy_m": -3.4,
+      "ignored": false,
+      "killed_in": 1
+     },
+     {
+      "npc": 254010,
+      "d_m": 17.6,
+      "dy_m": -3.3,
+      "ignored": false,
+      "killed_in": 1
+     },
+     {
+      "npc": 254012,
+      "d_m": 18.1,
+      "dy_m": 8.2,
+      "ignored": true,
+      "killed_in": null
+     },
+     {
+      "npc": 254012,
+      "d_m": 18.4,
+      "dy_m": 8.2,
+      "ignored": true,
+      "killed_in": null
+     },
+     {
+      "npc": 254012,
+      "d_m": 19.2,
+      "dy_m": 6.0,
+      "ignored": true,
+      "killed_in": null
+     },
+     {
+      "npc": 255040,
+      "d_m": 19.8,
+      "dy_m": 19.5,
+      "ignored": false,
+      "killed_in": null
+     }
+    ]
+   },
+   "runs": {
+    "runs": 16,
+    "tries": 18,
+    "cleared": 16,
+    "results": {
+     "cleared": 16,
+     "died": 2
+    },
+    "deaths": [
+     {
+      "run": "burg-upper-radar-2026-10-06b",
+      "cause": "hit",
+      "by": 255001
+     },
+     {
+      "run": "burg-upper-radar-2026-10-06d",
+      "cause": "hit",
+      "by": 254011
+     }
+    ],
+    "falls": 0,
+    "big_hits": 40,
+    "big_hit_lost": 8713,
+    "blamed": {
+     "255001": 23,
+     "254011": 11,
+     "254010": 6
+    },
+    "secs_median": 58,
+    "files": [
+     "20261009_230500_burg-upper_check-hp742",
+     "20261011_170346_burg-upper_p67fix-zone5-death",
+     "20261011_171918_burg-upper_p68fix-zone8-death",
+     "20261011_174753_burg-upper_zones1-8-cleared",
+     "20261012_004844_burg-upper",
+     "20261012_005843_burg-upper",
+     "20261012_010457_burg-upper",
+     "20261012_024340_burg-upper",
+     "20261012_025301_burg-upper",
+     "20261012_030444_burg-upper",
+     "burg-upper-radar-2026-10-06-195804",
+     "burg-upper-radar-2026-10-06-201550",
+     "burg-upper-radar-2026-10-06b",
+     "burg-upper-radar-2026-10-06d",
+     "burg-upper-radar-2026-10-06e",
+     "burg-upper-radar-2026-10-06i"
+    ]
+   },
+   "problems": [
+    "P-45"
+   ]
+  },
+  {
+   "n": 3,
+   "notes": {
+    "note": "[MoKa] 2026-10-06: \"3구역에서 안전 구역으로 설정한 데가 화염병 터지는 곳\" · \"구역 3은 적이 하나씩 만나니깐 그냥 공격하면 됨. 안전 구역 자체가 필요 없어. 그리고 구역 4로 이동\" → no_safe(안전 자리로 안 감·묶기 없음), 둘 다 attack. safe 좌표는 기록용(F9#3, 쓰지 않음)",
+    "no_safe": true
+   },
+   "terrain": {
+    "safe": [
+     3.6,
+     -10.9,
+     -90.6
+    ],
+    "safe_drop_m": 2.4,
+    "safe_wall_m": 0.9,
+    "drops_near_safe": 7,
+    "to_foes": [
+     {
+      "npc": 254010,
+      "dist_m": 7.8,
+      "dy_m": 1.0,
+      "path_m": 12.1,
+      "edge_m": 0.0
+     },
+     {
+      "npc": 254010,
+      "dist_m": 11.7,
+      "dy_m": 1.0,
+      "path_m": 15.9,
+      "edge_m": 4.9
+     }
+    ]
+   },
+   "foes": {
+    "kills": [
+     {
+      "npc": 254010,
+      "name": "망자(칼)",
+      "kind": "hollow",
+      "ranged": false,
+      "shield": false,
+      "pos": [
+       2.9,
+       -9.9,
+       -98.3
+      ],
+      "how": {
+       "attack": true
+      },
+      "notice_m": 7.1,
+      "sight_m": 30,
+      "hearing_m": 10,
+      "help_group": null,
+      "patrol": false
+     },
+     {
+      "npc": 254010,
+      "name": "망자(칼)",
+      "kind": "hollow",
+      "ranged": false,
+      "shield": false,
+      "pos": [
+       2.6,
+       -9.9,
+       -102.2
+      ],
+      "how": {
+       "attack": true
+      },
+      "notice_m": 7.1,
+      "sight_m": 30,
+      "hearing_m": 10,
+      "help_group": null,
+      "patrol": false
+     }
+    ],
+    "together": [
+     {
+      "a": 1,
+      "b": 2,
+      "d_m": 3.9,
+      "help_group": false
+     }
+    ],
+    "others": [
+     {
+      "npc": 255001,
+      "d_m": 6.9,
+      "dy_m": 0.8,
+      "ignored": false,
+      "killed_in": 2
+     },
+     {
+      "npc": 254012,
+      "d_m": 7.7,
+      "dy_m": 6.9,
+      "ignored": true,
+      "killed_in": null
+     },
+     {
+      "npc": 254012,
+      "d_m": 10.1,
+      "dy_m": 9.2,
+      "ignored": true,
+      "killed_in": null
+     },
+     {
+      "npc": 254012,
+      "d_m": 11.3,
+      "dy_m": 9.1,
+      "ignored": true,
+      "killed_in": null
+     },
+     {
+      "npc": 254014,
+      "d_m": 13.4,
+      "dy_m": 6.4,
+      "ignored": false,
+      "killed_in": null
+     },
+     {
+      "npc": 254011,
+      "d_m": 16.1,
+      "dy_m": 1.0,
+      "ignored": false,
+      "killed_in": 2
+     },
+     {
+      "npc": 254011,
+      "d_m": 16.2,
+      "dy_m": 1.0,
+      "ignored": false,
+      "killed_in": 2
+     },
+     {
+      "npc": 254010,
+      "d_m": 18.4,
+      "dy_m": 5.2,
+      "ignored": false,
+      "killed_in": 4
+     }
+    ]
+   },
+   "runs": {
+    "runs": 14,
+    "tries": 16,
+    "cleared": 16,
+    "results": {
+     "cleared": 16
+    },
+    "deaths": [],
+    "falls": 0,
+    "big_hits": 18,
+    "big_hit_lost": 2543,
+    "blamed": {
+     "254010": 13,
+     "254012": 3,
+     "255001": 1,
+     "254011": 1
+    },
+    "secs_median": 27,
+    "files": [
+     "20261009_230500_burg-upper_check-hp742",
+     "20261011_170346_burg-upper_p67fix-zone5-death",
+     "20261011_171918_burg-upper_p68fix-zone8-death",
+     "20261011_174753_burg-upper_zones1-8-cleared",
+     "20261012_004844_burg-upper",
+     "20261012_005843_burg-upper",
+     "20261012_010457_burg-upper",
+     "20261012_024340_burg-upper",
+     "20261012_025301_burg-upper",
+     "20261012_030444_burg-upper",
+     "burg-upper-radar-2026-10-06-195804",
+     "burg-upper-radar-2026-10-06-201550",
+     "burg-upper-radar-2026-10-06f",
+     "burg-upper-radar-2026-10-06i"
+    ]
+   },
+   "problems": [
+    "P-51"
+   ]
+  },
+  {
+   "n": 4,
+   "notes": {},
+   "terrain": {
+    "safe": [
+     11.2,
+     -6.6,
+     -92.8
+    ],
+    "safe_drop_m": 0.5,
+    "safe_wall_m": 1.7,
+    "drops_near_safe": 5,
+    "to_foes": [
+     {
+      "npc": 254010,
+      "dist_m": 11.7,
+      "dy_m": 0.9,
+      "path_m": 15.8,
+      "edge_m": 6.8
+     },
+     {
+      "npc": 254012,
+      "dist_m": 14.6,
+      "dy_m": 0.9,
+      "path_m": 18.5,
+      "edge_m": 6.7
+     },
+     {
+      "npc": 254011,
+      "dist_m": 12.8,
+      "dy_m": 0.9,
+      "path_m": 16.6,
+      "edge_m": 6.8
+     },
+     {
+      "npc": 255002,
+      "dist_m": 14.1,
+      "dy_m": 6.4,
+      "path_m": 33.5,
+      "edge_m": 17.0
+     }
+    ]
+   },
+   "foes": {
+    "kills": [
+     {
+      "npc": 254010,
+      "name": "망자(칼)",
+      "kind": "hollow",
+      "ranged": false,
+      "shield": false,
+      "pos": [
+       15.5,
+       -5.7,
+       -103.6
+      ],
+      "how": null,
+      "notice_m": 7.1,
+      "sight_m": 30,
+      "hearing_m": 10,
+      "help_group": null,
+      "patrol": false
+     },
+     {
+      "npc": 254012,
+      "name": "망자(화염병)",
+      "kind": "hollow",
+      "ranged": true,
+      "shield": false,
+      "pos": [
+       18.3,
+       -5.7,
+       -105.5
+      ],
+      "how": null,
+      "notice_m": 7.5,
+      "sight_m": 40,
+      "hearing_m": 10,
+      "help_group": null,
+      "patrol": false
+     },
+     {
+      "npc": 254011,
+      "name": "망자(칼)",
+      "kind": "hollow",
+      "ranged": false,
+      "shield": false,
+      "pos": [
+       17.8,
+       -5.7,
+       -103.7
+      ],
+      "how": null,
+      "notice_m": 8.0,
+      "sight_m": 30,
+      "hearing_m": 10,
+      "help_group": null,
+      "patrol": false
+     },
+     {
+      "npc": 255002,
+      "name": "석궁 병사",
+      "kind": "other",
+      "ranged": true,
+      "shield": false,
+      "pos": [
+       23.1,
+       -0.2,
+       -96.8
+      ],
+      "how": null,
+      "notice_m": 4.1,
+      "sight_m": 30,
+      "hearing_m": 10,
+      "help_group": null,
+      "patrol": false
+     }
+    ],
+    "together": [
+     {
+      "a": 1,
+      "b": 2,
+      "d_m": 3.4,
+      "help_group": false
+     },
+     {
+      "a": 1,
+      "b": 3,
+      "d_m": 2.3,
+      "help_group": false
+     },
+     {
+      "a": 2,
+      "b": 3,
+      "d_m": 1.9,
+      "help_group": false
+     }
+    ],
+    "others": [
+     {
+      "npc": 254010,
+      "d_m": 10.5,
+      "dy_m": -3.3,
+      "ignored": false,
+      "killed_in": 3
+     },
+     {
+      "npc": 254014,
+      "d_m": 10.7,
+      "dy_m": 2.1,
+      "ignored": false,
+      "killed_in": null
+     },
+     {
+      "npc": 254012,
+      "d_m": 11.2,
+      "dy_m": 4.8,
+      "ignored": true,
+      "killed_in": null
+     },
+     {
+      "npc": 254012,
+      "d_m": 11.6,
+      "dy_m": 2.6,
+      "ignored": true,
+      "killed_in": null
+     },
+     {
+      "npc": 254012,
+      "d_m": 11.6,
+      "dy_m": 4.8,
+      "ignored": true,
+      "killed_in": null
+     },
+     {
+      "npc": 254010,
+      "d_m": 13.2,
+      "dy_m": -3.3,
+      "ignored": false,
+      "killed_in": 3
+     },
+     {
+      "npc": 255001,
+      "d_m": 13.2,
+      "dy_m": -3.5,
+      "ignored": false,
+      "killed_in": 2
+     }
+    ]
+   },
+   "runs": {
+    "runs": 13,
+    "tries": 15,
+    "cleared": 13,
+    "results": {
+     "cleared": 13,
+     "died": 2
+    },
+    "deaths": [
+     {
+      "run": "20261012_025301_burg-upper",
+      "cause": "hit",
+      "by": 254011
+     },
+     {
+      "run": "20261012_030444_burg-upper",
+      "cause": "hit",
+      "by": 254010
+     }
+    ],
+    "falls": 0,
+    "big_hits": 47,
+    "big_hit_lost": 6732,
+    "blamed": {
+     "254011": 23,
+     "254010": 15,
+     "254012": 8,
+     "255002": 1
+    },
+    "secs_median": 76,
+    "files": [
+     "20261011_170346_burg-upper_p67fix-zone5-death",
+     "20261011_171918_burg-upper_p68fix-zone8-death",
+     "20261011_174753_burg-upper_zones1-8-cleared",
+     "20261012_004844_burg-upper",
+     "20261012_005843_burg-upper",
+     "20261012_010457_burg-upper",
+     "20261012_024340_burg-upper",
+     "20261012_025301_burg-upper",
+     "20261012_030444_burg-upper",
+     "burg-upper-radar-2026-10-06-195804",
+     "burg-upper-radar-2026-10-06-201910",
+     "burg-upper-radar-2026-10-06g",
+     "burg-upper-radar-2026-10-06i"
+    ]
+   },
+   "problems": []
+  },
+  {
+   "n": 5,
+   "notes": {
+    "note": "[MoKa] 2026-10-06: 계단으로 내려가지 않고 처음에 난간으로 가면 255001이 순찰 돌아 옴 → 안전 자리에서 해결. 난간 = [MoKa] F9 (30.57,−7.5,−109.83) (observe 20261006_190154) — 그 밑엔 NavMesh 바닥이 없어 1.9 m 옆 바닥 (29.91,−7.34,−111.59). 안전 자리에서 서·남쪽 통로로 32 m, 계단 안 내려감(가장 낮은 y −7.3). 녹화에선 F9 뒤 34 s 동안 255001이 안 움직임 → notice 15 s 기다린 뒤 돌아와 다시. 255000은 안전 자리에서 기다리면 스스로 올라옴(173431 257~265 s). kills 셋째 칸: wait = 안전 자리에서 기다림, lure_at = 스폰 대신 여기까지만, notice = 거기서 기다리는 시간 · [MoKa] 2026-10-06 \"기다리지 말고\" → 255000도 안전 자리에서 기다리지 않고 곧바로 난간으로 유인 · [MoKa] \"바로 돌아 가야지\" → 난간에선 기다리지 않음(notice 0.3 s), 곧바로 안전 자리로 돌아가 거기서 순찰 오는 놈을 받음"
+   },
+   "terrain": {
+    "safe": [
+     24.1,
+     -5.7,
+     -99.0
+    ],
+    "safe_drop_m": 3.9,
+    "safe_wall_m": 1.1,
+    "drops_near_safe": 3,
+    "to_foes": [
+     {
+      "npc": 255000,
+      "dist_m": 15.0,
+      "dy_m": -3.4,
+      "path_m": 20.6,
+      "edge_m": 0.0
+     },
+     {
+      "npc": 255001,
+      "dist_m": 16.6,
+      "dy_m": -3.1,
+      "path_m": 18.5,
+      "edge_m": 0.0
+     },
+     {
+      "npc": 255001,
+      "dist_m": 14.9,
+      "dy_m": -3.2,
+      "path_m": 16.3,
+      "edge_m": 0.0
+     }
+    ]
+   },
+   "foes": {
+    "kills": [
+     {
+      "npc": 255000,
+      "name": "방패 병사",
+      "kind": "shield",
+      "ranged": false,
+      "shield": true,
+      "pos": [
+       36.3,
+       -9.1,
+       -107.0
+      ],
+      "how": {
+       "lure_at": [
+        29.91,
+        -7.34,
+        -111.59
+       ],
+       "notice": 0.3
+      },
+      "notice_m": 8.9,
+      "sight_m": 30,
+      "hearing_m": 10,
+      "help_group": null,
+      "patrol": false
+     },
+     {
+      "npc": 255001,
+      "name": "방패 병사",
+      "kind": "shield",
+      "ranged": false,
+      "shield": true,
+      "pos": [
+       40.0,
+       -8.8,
+       -102.4
+      ],
+      "how": {
+       "lure_at": [
+        29.91,
+        -7.34,
+        -111.59
+       ],
+       "notice": 0.3
+      },
+      "notice_m": 9.0,
+      "sight_m": 30,
+      "hearing_m": 10,
+      "help_group": null,
+      "patrol": false
+     },
+     {
+      "npc": 255001,
+      "name": "방패 병사",
+      "kind": "shield",
+      "ranged": false,
+      "shield": true,
+      "pos": [
+       38.5,
+       -8.9,
+       -100.8
+      ],
+      "how": {
+       "lure_at": [
+        29.91,
+        -7.34,
+        -111.59
+       ],
+       "notice": 0.3
+      },
+      "notice_m": 9.0,
+      "sight_m": 30,
+      "hearing_m": 10,
+      "help_group": null,
+      "patrol": false
+     }
+    ],
+    "together": [
+     {
+      "a": 1,
+      "b": 2,
+      "d_m": 5.9,
+      "help_group": false
+     },
+     {
+      "a": 1,
+      "b": 3,
+      "d_m": 6.6,
+      "help_group": false
+     },
+     {
+      "a": 2,
+      "b": 3,
+      "d_m": 2.2,
+      "help_group": false
+     }
+    ],
+    "others": [
+     {
+      "npc": 255002,
+      "d_m": 5.9,
+      "dy_m": 5.4,
+      "ignored": false,
+      "killed_in": 4
+     },
+     {
+      "npc": 255044,
+      "d_m": 6.9,
+      "dy_m": 5.5,
+      "ignored": false,
+      "killed_in": null
+     },
+     {
+      "npc": 254011,
+      "d_m": 7.9,
+      "dy_m": -0.0,
+      "ignored": false,
+      "killed_in": 4
+     },
+     {
+      "npc": 254012,
+      "d_m": 8.7,
+      "dy_m": -0.0,
+      "ignored": false,
+      "killed_in": 4
+     },
+     {
+      "npc": 254010,
+      "d_m": 9.8,
+      "dy_m": -0.0,
+      "ignored": false,
+      "killed_in": 4
+     },
+     {
+      "npc": 254014,
+      "d_m": 18.1,
+      "dy_m": 1.2,
+      "ignored": false,
+      "killed_in": null
+     }
+    ]
+   },
+   "runs": {
+    "runs": 14,
+    "tries": 12,
+    "cleared": 8,
+    "results": {
+     "cleared": 8,
+     "died": 4
+    },
+    "deaths": [
+     {
+      "run": "20261012_005843_burg-upper",
+      "cause": "hit",
+      "by": 255001
+     },
+     {
+      "run": "20261012_025301_burg-upper",
+      "cause": "hit",
+      "by": 255001
+     },
+     {
+      "run": "20261012_030444_burg-upper",
+      "cause": "hit",
+      "by": 255001
+     },
+     {
+      "run": "burg-upper-radar-2026-10-06h",
+      "cause": "hit",
+      "by": 255001
+     }
+    ],
+    "falls": 0,
+    "big_hits": 28,
+    "big_hit_lost": 4709,
+    "blamed": {
+     "255001": 18,
+     "255000": 8,
+     "254012": 2
+    },
+    "secs_median": 79,
+    "files": [
+     "20261011_170346_burg-upper_p67fix-zone5-death",
+     "20261011_171918_burg-upper_p68fix-zone8-death",
+     "20261011_174753_burg-upper_zones1-8-cleared",
+     "20261012_004844_burg-upper",
+     "20261012_005843_burg-upper",
+     "20261012_010457_burg-upper",
+     "20261012_024340_burg-upper",
+     "20261012_025301_burg-upper",
+     "20261012_030444_burg-upper",
+     "burg-upper-radar-2026-10-06-195804",
+     "burg-upper-radar-2026-10-06-200335",
+     "burg-upper-radar-2026-10-06-202244",
+     "burg-upper-radar-2026-10-06h",
+     "burg-upper-radar-2026-10-06k"
+    ]
+   },
+   "problems": [
+    "P-46",
+    "P-68"
+   ]
+  },
+  {
+   "n": 6,
+   "notes": {
+    "note": "녹화 자리 (37.5,-9.1,-104.8) 밑에 NavMesh 바닥이 없음(상자·턱 위로 보임) → 가장 가까운 바닥 1.1 m 옆으로"
+   },
+   "terrain": {
+    "safe": [
+     36.73,
+     -9.14,
+     -103.96
+    ],
+    "safe_drop_m": 2.9,
+    "safe_wall_m": 0.9,
+    "drops_near_safe": 2,
+    "to_foes": [
+     {
+      "npc": 255001,
+      "dist_m": 19.9,
+      "dy_m": 10.0,
+      "path_m": 28.0,
+      "edge_m": 2.7
+     }
+    ]
+   },
+   "foes": {
+    "kills": [
+     {
+      "npc": 255001,
+      "name": "방패 병사",
+      "kind": "shield",
+      "ranged": false,
+      "shield": true,
+      "pos": [
+       51.3,
+       0.9,
+       -113.0
+      ],
+      "how": null,
+      "notice_m": 9.0,
+      "sight_m": 30,
+      "hearing_m": 10,
+      "help_group": null,
+      "patrol": false
+     }
+    ],
+    "together": [],
+    "others": [
+     {
+      "npc": 255000,
+      "d_m": 3.1,
+      "dy_m": -0.0,
+      "ignored": false,
+      "killed_in": 5
+     },
+     {
+      "npc": 255001,
+      "d_m": 3.6,
+      "dy_m": 0.3,
+      "ignored": false,
+      "killed_in": 5
+     },
+     {
+      "npc": 255001,
+      "d_m": 3.7,
+      "dy_m": 0.3,
+      "ignored": false,
+      "killed_in": 5
+     },
+     {
+      "npc": 255043,
+      "d_m": 5.3,
+      "dy_m": -0.0,
+      "ignored": false,
+      "killed_in": null
+     },
+     {
+      "npc": 255002,
+      "d_m": 17.7,
+      "dy_m": 8.9,
+      "ignored": false,
+      "killed_in": 4
+     },
+     {
+      "npc": 254012,
+      "d_m": 18.8,
+      "dy_m": 3.4,
+      "ignored": false,
+      "killed_in": 4
+     },
+     {
+      "npc": 254011,
+      "d_m": 19.2,
+      "dy_m": 3.4,
+      "ignored": false,
+      "killed_in": 4
+     },
+     {
+      "npc": 255044,
+      "d_m": 19.8,
+      "dy_m": 8.9,
+      "ignored": false,
+      "killed_in": null
+     }
+    ]
+   },
+   "runs": {
+    "runs": 8,
+    "tries": 8,
+    "cleared": 8,
+    "results": {
+     "cleared": 8
+    },
+    "deaths": [],
+    "falls": 0,
+    "big_hits": 8,
+    "big_hit_lost": 1792,
+    "blamed": {
+     "255001": 8
+    },
+    "secs_median": 26,
+    "files": [
+     "20261011_171918_burg-upper_p68fix-zone8-death",
+     "20261011_174753_burg-upper_zones1-8-cleared",
+     "20261012_004844_burg-upper",
+     "20261012_010457_burg-upper",
+     "20261012_024340_burg-upper",
+     "burg-upper-radar-2026-10-06-200335",
+     "burg-upper-radar-2026-10-06-202244",
+     "burg-upper-radar-2026-10-06k"
+    ]
+   },
+   "problems": []
+  },
+  {
+   "n": 7,
+   "notes": {},
+   "terrain": {
+    "safe": [
+     52.1,
+     17.2,
+     -118.6
+    ],
+    "safe_drop_m": 1.1,
+    "safe_wall_m": 0.8,
+    "drops_near_safe": 11,
+    "to_foes": []
+   },
+   "foes": {
+    "kills": [],
+    "together": [],
+    "others": [
+     {
+      "npc": 255002,
+      "d_m": 6.7,
+      "dy_m": 6.5,
+      "ignored": false,
+      "killed_in": 8
+     },
+     {
+      "npc": 255002,
+      "d_m": 7.4,
+      "dy_m": 6.9,
+      "ignored": false,
+      "killed_in": 8
+     },
+     {
+      "npc": 255001,
+      "d_m": 17.3,
+      "dy_m": -16.3,
+      "ignored": false,
+      "killed_in": 6
+     }
+    ]
+   },
+   "runs": {
+    "runs": 8,
+    "tries": 8,
+    "cleared": 8,
+    "results": {
+     "cleared": 8
+    },
+    "deaths": [],
+    "falls": 0,
+    "big_hits": 0,
+    "big_hit_lost": 0,
+    "blamed": {},
+    "secs_median": 41,
+    "files": [
+     "20261011_171918_burg-upper_p68fix-zone8-death",
+     "20261011_174753_burg-upper_zones1-8-cleared",
+     "20261012_004844_burg-upper",
+     "20261012_010457_burg-upper",
+     "20261012_024340_burg-upper",
+     "burg-upper-radar-2026-10-06-200335",
+     "burg-upper-radar-2026-10-06-202244",
+     "burg-upper-radar-2026-10-06k"
+    ]
+   },
+   "problems": []
+  },
+  {
+   "n": 8,
+   "notes": {
+    "note": "[MoKa] 2026-10-06: \"이제 안개벽 지나서, 사다리 타고 올라가서 석궁병 2 처리 해야 해\". 녹화 151317 365~405 s: 안개벽 앞 (52.07,17.21,−118.55) → 서쪽으로 걸어 (49.9,16.96,−118.86)에서 통과(애니 1550) → (47.0,15.8,−119.1) → 사다리 아래 (49.16,15.97,−117.1), 동쪽 보고 A → 오르기(7010~7013) 385~393 s → 꼭대기 (50.78,24.73,−116.64) — 석궁 둘이 4~5 m에서 쏨(3002·3003) → 동쪽으로 11 m 달려 F9#8 (61.95,23.7,−116.93) → 석궁 둘이 따라와 (53,23.7,−120)에서 처치. before = 안전 자리 가기 전 순서, run_to_safe = 사다리 꼭대기에서 안전 자리까지 달림(천천히 걷기 아님) · 10-06l: 안개벽 앞을 벽 너머 (50.44,…)로 잡아 걷기가 벽을 밀다 timeout 2번(~45 s) 뒤에야 A — [MoKa] 'a 안누르고 가려고 해' → 앞 = [MoKa] F9#7 자리(벽 이쪽) · 10-06l 화면 확인: 하얀 안개벽은 계단 위 탑 문(아치)에 그대로 — 녹화에서도 안 지나감(1550은 계단에서 내려선 것). [MoKa] \"계단에서 내려 와서, 옆으로 붙어서 사다리 타야해\" → 안개벽 단계 빼고, 계단 아래 (46,−118.3)에서 벽 따라 z −117.2로 사다리까지(녹화 점 그대로). 그 길로 손으로 걸어 A → 꼭대기 (49.96,24.81,−116.86) 확인 · [MoKa] \"가자 마자 공격해\" → 안전 자리 = 사다리 꼭대기, 석궁 둘은 attack(유인·기다림 없이 곧바로 붙어 싸움) · [MoKa] \"안개벽 처리 않해?\" — 안개벽(아치)은 구역 7 자리와 사다리로 내려가는 계단 사이에 있음(스크린샷은 지난 뒤에 찍힘). 안개벽 단계를 되살림: 앞 = F9#7 (52.07,17.21,−118.55), 너머 = 10-06l에 봇이 A로 통과한 뒤 선 자리 (49.62,16.79,−118.74) · P-47 [MoKa] 10-06 \"구르기를 2번 해서 석궁병하고 간격을 벌려야 해\": 사다리 뒤 roll 2번 — 꼭대기는 가장자리 0.2~0.5 m 좁은 턱, 동쪽 F9#8 (61.95,23.7,−116.93) 쪽으로 2~3 m부터 바닥이 넓음(녹화에서 MoKa가 달려간 쪽) → 구른 자리가 안전 자리(safe_after)",
+    "before": [
+     {
+      "fog": {
+       "front": [
+        52.07,
+        17.21,
+        -118.55
+       ],
+       "beyond": [
+        49.62,
+        16.79,
+        -118.74
+       ]
+      }
+     },
+     {
+      "ladder": {
+       "approach": [
+        [
+         46.0,
+         15.83,
+         -118.31
+        ],
+        [
+         47.31,
+         15.91,
+         -117.51
+        ],
+        [
+         48.94,
+         15.96,
+         -117.2
+        ],
+        [
+         49.16,
+         15.97,
+         -117.1
+        ]
+       ],
+       "bottom": [
+        49.16,
+        15.97,
+        -117.1
+       ],
+       "face": [
+        50.5,
+        15.97,
+        -117.1
+       ],
+       "top_y": 24.5
+      }
+     },
+     {
+      "roll": {
+       "n": 2,
+       "toward": [
+        61.95,
+        23.7,
+        -116.93
+       ],
+       "safe_after": true
+      }
+     }
+    ]
+   },
+   "terrain": {
+    "safe": [
+     49.96,
+     24.81,
+     -116.86
+    ],
+    "safe_drop_m": 0.5,
+    "safe_wall_m": 0.4,
+    "drops_near_safe": 5,
+    "to_foes": [
+     {
+      "npc": 255002,
+      "dist_m": 4.3,
+      "dy_m": -1.0,
+      "path_m": 6.0,
+      "edge_m": 6.0
+     },
+     {
+      "npc": 255002,
+      "dist_m": 5.3,
+      "dy_m": -1.0,
+      "path_m": 7.3,
+      "edge_m": 7.3
+     }
+    ]
+   },
+   "foes": {
+    "kills": [
+     {
+      "npc": 255002,
+      "name": "석궁 병사",
+      "kind": "other",
+      "ranged": true,
+      "shield": false,
+      "pos": [
+       52.9,
+       23.8,
+       -119.8
+      ],
+      "how": {
+       "attack": true
+      },
+      "notice_m": 4.1,
+      "sight_m": 40,
+      "hearing_m": 10,
+      "help_group": null,
+      "patrol": false
+     },
+     {
+      "npc": 255002,
+      "name": "석궁 병사",
+      "kind": "other",
+      "ranged": true,
+      "shield": false,
+      "pos": [
+       52.6,
+       23.8,
+       -121.4
+      ],
+      "how": {
+       "attack": true
+      },
+      "notice_m": 4.1,
+      "sight_m": 40,
+      "hearing_m": 10,
+      "help_group": null,
+      "patrol": false
+     }
+    ],
+    "together": [
+     {
+      "a": 1,
+      "b": 2,
+      "d_m": 1.6,
+      "help_group": false
+     }
+    ],
+    "others": []
+   },
+   "runs": {
+    "runs": 7,
+    "tries": 7,
+    "cleared": 5,
+    "results": {
+     "died": 2,
+     "cleared": 5
+    },
+    "deaths": [
+     {
+      "run": "20261011_171918_burg-upper_p68fix-zone8-death",
+      "cause": "hit",
+      "by": 255002
+     },
+     {
+      "run": "20261012_010457_burg-upper",
+      "cause": "hit",
+      "by": 255002
+     }
+    ],
+    "falls": 0,
+    "big_hits": 11,
+    "big_hit_lost": 2071,
+    "blamed": {
+     "255002": 11
+    },
+    "secs_median": 32,
+    "files": [
+     "20261011_171918_burg-upper_p68fix-zone8-death",
+     "20261011_174753_burg-upper_zones1-8-cleared",
+     "20261012_004844_burg-upper",
+     "20261012_010457_burg-upper",
+     "20261012_024340_burg-upper",
+     "burg-upper-radar-2026-10-06-200729",
+     "burg-upper-radar-2026-10-06-202244"
+    ]
+   },
+   "problems": [
+    "P-47"
+   ]
+  }
+ ]
+}

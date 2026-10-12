@@ -53,7 +53,7 @@ Run `python hotspots.py` (this run vs earlier: NEW · AGAIN · GONE), `python tr
 stall spots) and `python blind_report.py` (decision gaps in fights — status line silent > 2 s and the damage taken
 meanwhile, by cause; if this grows while the average tick stays the same, the bot got slower). Copy the run with
 `python sample.py [<run>] [name]` (newest run by default: log → `.txt`, track, `.settings.json`, events `.jsonl`, timestamp kept in the name;
-the uncommitted `.diff` stays in `data/runs/`) and commit. Every run writes `data/runs/<time>_<name>.settings.json` (commit,
+the uncommitted `.diff` stays in `data/runs/`), for a `burg-upper` run also `python stage_report.py` (per-zone stage data), and commit. Every run writes `data/runs/<time>_<name>.settings.json` (commit,
 uncommitted changes, arguments, constants, character) and puts it in short on the log's first line; `python ab.py <run> <run>`
 compares two runs' settings before their results. `--note "…"` adds a line (e.g. the save used). An AGAIN, the same stall spot in 2+ runs,
 or decision-gap damage clearly above earlier runs goes into the problem log even if the bot recovered (a mistake that
