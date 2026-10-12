@@ -1878,7 +1878,8 @@ class Field:
                 if done is not None and done(s):
                     mover.stop()
                     return "arrived"                       # caller-defined 'no need to go further'
-                if s.player.hp < s.player.max_hp * WALK_HEAL and self.safe(s) and self.estus_left() > 0:
+                if (s.player.hp < s.player.max_hp * WALK_HEAL and getattr(self, "walk_heal", True) and self.safe(s)
+                        and self.estus_left() > 0):
                     mover.stop()                           # damage taken while walking (firebombs etc.) — don't defer until the next fight
                     self.heal(0.7)
                 fog = fog_ahead((s.player.x, s.player.y, s.player.z), q)

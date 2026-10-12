@@ -54,7 +54,7 @@ needing the tick loop, route data, settings object or WorldState.
 - [~] altar-route-rec | MoKa | doing | demo 1 read (§2-b); next: does leaving ③ call the landing? | docs/stages/burg-to-altar.md
 - [ ] claymore-grip | MoKa | decide | STR now? one-hand + shield or two-hand; default → Claymore? | docs/stages/burg-to-altar.md
 - [ ] claymore-measure | win | todo | air swings light + thrust (`swing_probe.py`); reach: black box | docs/stages/burg-to-altar.md
-- [ ] altar-mission | cloud | todo | Claymore test sets (all axe now); `run.py altar`: dash, pick 51010210 | docs/stages/burg-to-altar.md
+- [~] altar-mission | win | verify | `run.py altar` run 1 ok (land 21.5 s, away 7.6 s); Claymore tests | docs/stages/burg-to-altar.md
 
 ## 2. v1.0 — open by area
 
