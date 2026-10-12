@@ -67,6 +67,13 @@ BURG_CAREFUL = {1, 2, 3, 4, 5, 6}   # BURG_TOWN walks done slowly, stopping to p
 UPPER = json.loads((DATA / "burg-upper-map.json").read_text(encoding="utf-8"))
 UPPER_IGNORE = [tuple(p) for _n, p in UPPER["ignore"]]
 UPPER_IGNORE_R = 4.0     # a foe this close to an ignored ledge spot is one of the ledge firebomb hollows — never a target
+# ── 던지기 (run.py --throw, [MoKa] 2026-10-12 "투척 아이템 구매했으니 … 소머리데몬 가는 길에 적들에게 사용") ─────────────
+#  임시값 — 첫 시험용. 나이프: 달려가 깨우기 전에 Field.lure(안전 자리에서 / 길 따라 10 m 안까지 가서 락온 투척).
+#  화염병: 안전 자리로 깨어 오는 적이 둘 이상이고 가장 가까운 놈이 FB_MIN_R~FB_MAX_R → 그놈에게 (범위 피해),
+#  구역 시작 때 턱 위 화염병 망자(UPPER_IGNORE 자리)가 FB_LEDGE_R 안 → 그놈에게. 각각 FB_MAX_THROWS개까지
+FB_MIN_R, FB_MAX_R = 4.0, 10.0
+FB_LEDGE_R = 12.0
+FB_MAX_THROWS = 2
 UPPER_MOVED_M = 0.5      # a target counts as awake once it has an anim and is this far off where it stood
 UPPER_CLOSE_R = 3.0      # running in: stop this close even if it hasn't woken…
 UPPER_NOTICE_S = 2.0     # …and stand guarding this long for it to notice, then run back anyway
@@ -146,6 +153,7 @@ class Missions:
     def __init__(self, fld: Field, nms: dict, log=print, lure: bool = True):
         self.f, self.nms, self.log = fld, nms, log
         self.lure = lure                                  # False = --no-lure (every mission that clears the ramp, not just clear-ramp)
+        self.throw = False                                # run.py --throw: knives / firebombs on the way to the Taurus (burg-upper)
         self.mv: M.Moves = fld.mv
 
     # ── Pieces ───────────────────────────────────────────────
@@ -344,6 +352,7 @@ class Missions:
                 return "died"
             if r != "arrived":
                 self.log(f"   구역{n} 안전 자리까지 {r} — 지금 자리에서 이어감")
+            self._firebomb_ledge(f"구역{n}")
             left = []
             for i, k in enumerate(z["kills"], 1):
                 if not self.f.alive():
@@ -412,6 +421,7 @@ class Missions:
             if self._lure(t, ptr, safe, nb, tag, how or {}) == "died":
                 return "died"
             self._drink_back(tag)
+            self._firebomb_group(tag)
             foe = self._first_foe(ptr)
             ftag = tag if foe == ptr else f"{tag}: 같이 온 놈"
             res = self.f.fight(foe, nb, ftag, wait_far=True)
@@ -467,6 +477,58 @@ class Missions:
             if not r.get("ok"):
                 return
 
+    def _has(self, item: int) -> bool:
+        """Held and in a quick slot (the bot can only pick quick-slot items)."""
+        quick = getattr(self.mv.tm, "quick_items", None)
+        return (self.mv.tm.goods_count(item) or 0) > 0 and (not callable(quick) or item in (quick() or []))
+
+    def _firebomb(self, ptr, tag: str, why: str) -> dict:
+        r = self.mv.throw_firebomb(ptr)
+        self.log(f"   {tag}: 화염병 ({why}) — {r.get('dist')} m, 락온 {r.get('locked')} → 피해 {r.get('hit')}"
+                 f"{' | ' + r['why'] if r.get('why') else ''}")
+        self.f.events("throw", item="firebomb", why=why, **{k: r.get(k) for k in ("dist", "locked", "hit", "woke", "knives")})
+        return r
+
+    def _firebomb_group(self, tag: str) -> None:
+        """At the safe spot: two or more awake foes coming and the nearest FB_MIN_R–FB_MAX_R away → firebomb the nearest."""
+        if not getattr(self, "throw", False):
+            return
+        for _ in range(FB_MAX_THROWS):
+            if not self._has(M.ITEM_FIREBOMB):
+                return
+            s = self.mv.snap(FB_MAX_R + 4.0)
+            if s is None:
+                return
+            p = s.player
+            come = sorted((c for c in s.hostile(FB_MAX_R + 1.0) if c.hp > 0 and c.anim not in (None, -1)
+                           and not 9000 <= (c.anim or 0) < 9100 and abs(c.y - p.y) < 2.5 and M.horiz(p, c) <= FB_MAX_R),
+                          key=lambda c: M.horiz(p, c))
+            if len(come) < 2 or M.horiz(p, come[0]) < FB_MIN_R:
+                return
+            r = self._firebomb(come[0].ptr, tag, f"{len(come)}명 다가옴, 가장 가까운 {come[0].npc_param} {M.horiz(p, come[0]):.1f} m")
+            if not r.get("ok"):
+                return
+
+    def _firebomb_ledge(self, tag: str) -> None:
+        """Zone start: a ledge firebomb hollow (UPPER_IGNORE spots — out of reach) within FB_LEDGE_R → firebombs at it."""
+        if not getattr(self, "throw", False):
+            return
+        for _ in range(FB_MAX_THROWS):
+            if not self._has(M.ITEM_FIREBOMB):
+                return
+            s = self.mv.snap(FB_LEDGE_R + 6.0)
+            if s is None:
+                return
+            p = s.player
+            led = [c for c in s.hostile(FB_LEDGE_R + 6.0) if c.hp > 0 and M.horiz(p, c) <= FB_LEDGE_R
+                   and any(math.dist((c.x, c.y, c.z), q) < UPPER_IGNORE_R for q in UPPER_IGNORE)]
+            if not led:
+                return
+            c = min(led, key=lambda c: M.horiz(p, c))
+            r = self._firebomb(c.ptr, tag, f"턱 위 {c.npc_param} {M.horiz(p, c):.1f} m, 높이 {c.y - p.y:+.1f}")
+            if not r.get("ok"):
+                return
+
     def _encounters(self, sn, ptr) -> list:
         """Awake, moving foes on our level within UPPER_ENCOUNTER_R — the target or anyone else ([MoKa]: "적을 조우하면 안전구역으로")."""
         p = sn.player
@@ -510,6 +572,20 @@ class Missions:
             c = self.mv.find(sn, ptr)
             return met(sn) or (c is not None and M.horiz(sn.player, c) < UPPER_CLOSE_R)
 
+        if getattr(self, "throw", False) and not how.get("lure_at") and self._has(M.ITEM_KNIFE):
+            lr = self.f.lure(ptr, here0, nb, tag, arena=safe)     # from the safe spot, or up to 10 m along the path, locked on
+            self.log(f"   {tag}: 나이프 유인 → {lr}")
+            if not self.f.alive():
+                return "died"
+            if lr in ("lured", "awake", "dead", "interrupted"):
+                s = self.mv.snap(5.0)
+                if s is not None and math.hypot(s.player.x - safe[0], s.player.z - safe[2]) > UPPER_NEAR_SAFE_R:
+                    back = self._sprint(safe, nb, lambda sn: math.hypot(sn.player.x - safe[0], sn.player.z - safe[2]) < 1.5)
+                    self.log(f"   {tag}: 나이프 뒤 안전 자리로 {back}")
+                    if back == "dead":
+                        return "died"
+                return "here"
+            # no_knife / no_path / no_spot / too_far / no_reaction / no_lock → the body run below
         goal = tuple(how["lure_at"]) if how.get("lure_at") else here0
         if self._sprint(goal, nb, stop_in) == "dead":
             return "died"

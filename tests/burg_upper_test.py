@@ -485,5 +485,49 @@ check(f"zone 8: fog → ladder → roll, then no walk back to the ladder top; fi
       [c[1] for c in calls if c[0] == "before"] == ["fog", "ladder", "roll"] and walked8 == []
       and pulled8 and all(sp == landing and t == landing for sp, t in pulled8) and f.tether != landing)
 
+# --throw ([MoKa] 2026-10-12: "투척 아이템 구매했으니 … 소머리데몬 가는 길에 적들에게 사용"): knife lure before the body run,
+# firebomb when two or more come at the safe spot
+def throw_rig(lure_result):
+    foe = Chr(npc_param=254010, ptr=51, x=-1.3, y=-10.1, z=-95.4, hp=75, anim=-1)
+    m, f, calls, w = make(foe)
+    m.throw = True
+    m.mv.tm = NS(goods_count=lambda g: {290: 30, 292: 67}.get(g, 0), quick_items=lambda: [205, 311, 290, 292, -1])
+    f.lure = lambda ptr, spawn, nm, tag, arena=None, lure_at=None: (calls.append(("knife", ptr, tuple(arena))), lure_result)[1]
+    return m, f, calls, w, foe
+
+
+m, f, calls, w, foe = throw_rig("lured")
+r = m._lure(foe, 51, safe, LineNm(), "t")
+check("--throw: knife lure from the safe spot, no run in (it comes to us)", r == "here" and kinds(calls) == ["knife"]
+      and calls[0][2] == safe)
+m, f, calls, w, foe = throw_rig("no_spot")
+r = m._lure(foe, 51, safe, LineNm(), "t")
+check("--throw: no throw spot → the old body run", kinds(calls)[:2] == ["knife", "sprint"])
+m, f, calls, w, foe = throw_rig("lured")
+m.throw = False
+m._lure(foe, 51, safe, LineNm(), "t")
+check("no --throw: body run as before, no knife", "knife" not in kinds(calls) and kinds(calls)[0] == "sprint")
+
+thrown = []
+m, f, calls, w, foe = throw_rig("lured")
+m.mv.throw_firebomb = lambda ptr, watch=2.2: (thrown.append(ptr), {"ok": True, "dist": 6.0, "locked": True, "hit": 60})[1]
+f.events = lambda *a, **k: None
+two = [Chr(npc_param=254010, ptr=61, x=-7.0, y=-10.0, z=-79.5, hp=75, anim=3000),
+       Chr(npc_param=254011, ptr=62, x=-6.0, y=-10.0, z=-81.5, hp=75, anim=3000)]
+pl = NS(x=safe[0], y=safe[1], z=safe[2], hp=742, max_hp=742)
+m.mv.snap = lambda r=5.0: NS(player=pl, hostile=lambda rr: two)
+m._firebomb_group("t")
+check(f"--throw: two coming at 6 / 8 m → firebombs at the nearest ({thrown})", thrown and set(thrown) == {61})
+thrown.clear()
+m.mv.snap = lambda r=5.0: NS(player=pl, hostile=lambda rr: two[:1])
+m._firebomb_group("t")
+check("--throw: only one coming → no firebomb", thrown == [])
+thrown.clear()
+close = [Chr(npc_param=254010, ptr=63, x=-7.0, y=-10.0, z=-75.0, hp=75, anim=3000), two[1]]
+m.mv.snap = lambda r=5.0: NS(player=pl, hostile=lambda rr: close)
+m._firebomb_group("t")
+check("--throw: nearest already inside 4 m (1.5 m) → no firebomb (it would hit us too)", thrown == [])
+
+
 print(f"\n{'all ok' if not fails else f'{fails} FAILED'}")
 sys.exit(1 if fails else 0)
