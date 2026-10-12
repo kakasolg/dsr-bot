@@ -1,31 +1,27 @@
 # ROADMAP — what is open now
 
-Short on purpose: **only open work, one line each**. Full history (Korean, verbatim, nothing deleted) lives in
-`docs/roadmap/` — find any section id (`1-m`, `6-a`, `P-29` …) there with `grep -n "1-m\." docs/roadmap/*.md`.
+Only open work, **one checked line per item**; everything else lives in `docs/roadmap/` (Korean, verbatim, nothing deleted).
+`python roadmap.py check` (also `tests/roadmap_test.py`) · `tidy` (moves finished things out) · `queue win|cloud|MoKa` · `show <id>`.
+
+```
+- [~] shop | cloud | doing | greeting can run several lines — wait on the screen | docs/shop-undead-merchant.md · plan:shop
+  mark  id    who     stage   now / next (≤ 150 chars)                             where the details are
+```
+mark `[ ]` `[~]` `[!]` blocked, `[x]` done / `[-]` dropped (→ `tidy`) · who = whose move it is now (`cloud` `win` `MoKa`, `+`)
+· stage `todo` `doing` `verify` (built, waits for a game check) `decide` (MoKa) `blocked` `parked` · `plan:<id>` = history in
+plan.md "Open-item details". On a change: rewrite the line (now / next only); results, numbers and quotes go to the details.
 
 | File | Holds |
 |---|---|
-| `docs/roadmap/plan.md` | sections 0 … 7 in full (old rules, every `[x]` item with its check result, measurements, MoKa quotes) |
-| `docs/roadmap/problems.md` | section 8 problem log P-1 … in full — **new problems are appended here** |
-| `docs/roadmap/relay.md` | old section 10 board relay (2026-09-30 … 10-01) |
-| `docs/roadmap/changelog.md` | old section 9 change log |
-| `docs/analysis-2026-10-09.md` | problem analysis, public cases that solved similar problems, proposals (not decided) |
-| `docs/design-multi-foe-spot.md` | design for proposal 1 (multi-foe = spot choice): measurements, design, steps, questions for MoKa |
-| `docs/design-walk-follow.md` | design for proposal 2 (walking: progress check → replan, pass-through arrival, curvature slow-down deferred) |
-| `docs/design-floor-check.md` | design for proposal 3 (one floor check: footing rule in fights, per-move look-ahead table, NavMesh + walked-cells floor map) |
-| `docs/design-scene-expectations.md` | design for proposal 4 (human-checked scenes as test expectations: `duel_expect_test`, exact-input scenes) |
-| `docs/design-run-settings.md` | design for proposal 5 (run settings record: `<run>.settings.json`, first log line, `fight_id`/`zone`, `sample.py`, `ab.py`) |
-| `docs/review-v2-2026-10-11.md` | v1.0 → v2.0 review: last 7 days, structure problems, 2.0 features and order (not decided) |
-| `docs/research-control-priority-2026-10-11.md` | consistency research (MoKa 10-11): conditions vs principles, who holds the pad; rulebooks, RSS, Simplex, SOTIF, arbitration; proposals (not decided) |
-| `docs/code-read-fall-death-2026-10-11.md` | read-only code answers (10-11): RULES order, fall handling, death record, `death_seen` event |
-| `docs/analysis-death-2026-10-12.md` | [cloud] answer: 38 deaths, 7 falls = second fall after a quit-out (P-71); death record / safety-layer proposals |
-| `docs/boss-taurus.md` | Taurus Demon guide: plunge loop, numbers, boss attack table |
-
-Rules for keeping this file small (CLAUDE.md has the full working rules):
-- An item lives here while it is `[ ]` / `[~]` / `[!]`. When it becomes `[x]` or `[-]`, move the line (with its one-line
-  check result) to the matching section of `docs/roadmap/plan.md` and delete it here.
-- Details, run logs and numbers go in the archive or in `data/samples/`; here one line + a pointer.
-- Status marks: `[ ]` todo · `[~]` in progress · `[!]` blocked · `[x]` done · `[-]` cancelled. Roles: `[cloud]` `[win]` `[MoKa]` (old `[사람]` = MoKa).
+| `docs/roadmap/plan.md` | sections 0 … 7, every done item, "Open-item details" (per id), "Done items" (from `tidy`) |
+| `docs/roadmap/problems.md` | problem log P-1 … (**new problems appended here**) + "Closed problem index" (fixed / won't fix) |
+| `docs/roadmap/relay.md` · `changelog.md` | handled relay entries · old change log |
+| `docs/analysis-2026-10-09.md` | problem analysis, public cases, proposals |
+| `docs/design-*.md` | multi-foe-spot · walk-follow · floor-check · scene-expectations · run-settings designs |
+| `docs/review-v2-2026-10-11.md` | v1.0 → v2.0 review: structure problems, 2.0 features and order |
+| `docs/research-control-priority-2026-10-11.md` · `guide-control-priority.md` | consistency research (MoKa 10-11) · rules for fixes |
+| `docs/code-read-fall-death-2026-10-11.md` · `analysis-death-2026-10-12.md` | fall / death code reading · 38-death analysis |
+| `docs/boss-taurus.md` · `shop-undead-merchant.md` | Taurus Demon guide · merchant menus + shop routine |
 
 ---
 
@@ -38,155 +34,121 @@ Rules for keeping this file small (CLAUDE.md has the full working rules):
 
 ## 1. Now (v1.0) — Undead Burg bonfire → Taurus Demon (1-m, MoKa 2026-10-06)
 
-Bot already clears cell → Undead Burg bonfire in one run (10-03e). `run.py burg-upper` = MoKa's safe-spot zones 1–8
-(`data/burg-upper-map.json`). Test save: `backup-20261006-155749-burg-bonfire-hp742-before-taurus`.
-10-06 bot runs cleared zones 1–8 one or a few at a time (zone 4 lowest HP 40 %); the `--seg 5-8` run died at the
-zone 8 crossbowmen (P-47).
+`run.py burg-upper` = MoKa's safe-spot zones 1–8 (`data/burg-upper-map.json`); test save `backup-20261006-155749-…-before-taurus`.
 
-- [~] [cloud]+[win] **Alignment first (MoKa 10-11: high priority)** — attack target · character facing · camera in one line (MoKa 10-01: "alignment decides whether a move works"). Facing |각| ≤ 30° in 75–95 % of fight lines; P-65 one look order (`20dd7ae`): 1 run camera ≤ 10° fight 89 % / out of fight 87 %. 10-12 [cloud] measure in (record only): `align` event 2 Hz (src · body · cam · lock), `attack_align` per press (+ damage), end line `정렬 (…)`; [win]: runs, read that line
-- [~] [win] Taurus: `run.py taurus` — plunge loop (MoKa 10-12). Full runs bonfire → Taurus killed 2× (`005650`, `025057`); guide + data: `docs/boss-taurus.md`
-- [~] [win] **Fall / death policy (MoKa 10-12)** — 10-12 3 full runs: (1) · (2) seen, findings in Relay; (3) · (4) next runs. P-71 / P-72
-- [ ] [cloud]+[win] Boss fight default = two-handed + dodging (9-30 principle); Taurus is the first case (the general boss module is v2.0)
-- [ ] [cloud] Firebomb hollow "close in fast" rule — unless the way there is a fall-risk zone (ledge 254012 is ignored) → check with `duel_golden_test`
-- [~] [win] Zone-by-zone bot runs; after each: `blind_report.py` · `hotspots.py` · `track_report.py`, logs to `data/samples/`
-- [~] [MoKa] Recordings of the route (3 done, Taurus killed in the 3rd) — more only if a zone needs it
+- [~] alignment | win | verify | target–body–camera record in (10-12); runs → end line `정렬 (…)`, then decide what to fix (MoKa: high priority) | plan:alignment
+- [~] taurus | win | doing | `run.py taurus` plunge loop; bonfire → Taurus killed 2× (005650, 025057) | docs/boss-taurus.md · plan:taurus
+- [~] fall-death-policy | win | verify | no fall quit-out + after-death pickup: (1)(2) seen in 3 runs; (3) death record, (4) alignment next runs | P-71 · P-72 · plan:fall-death-policy
+- [ ] boss-two-hand-dodge | cloud+win | todo | boss default = two-handed + dodging (9-30); Taurus first, general boss module is v2.0 | plan:boss-two-hand-dodge
+- [ ] firebomb-hollow-close-in | cloud | todo | firebomb hollow: close in fast unless the way is a fall-risk zone (ledge 254012 ignored); golden | plan:firebomb-hollow-close-in
+- [~] zone-runs | win | doing | zone-by-zone runs; after each the three reports + `sample.py` (CLAUDE.md) | plan:zone-runs
+- [~] route-recordings | MoKa | doing | route recordings (3 done, Taurus killed in the 3rd) — more only if a zone needs it | plan:route-recordings
 
 **Firebombs · bow from the Undead Merchant (MoKa 10-12: "난이도가 급격히 줄어"); the bot must buy them itself. In order:**
-- [~] [cloud]+[win] `shop` buy routine — [cloud] done offline 10-12 (`souls/shop.py`, `run.py merchant-buy --buy 290:30,292:20`, docs end of `docs/shop-undead-merchant.md`); [win]: game check per that doc
-- [ ] [win] Locked-on firebomb at 254010 from 5 · 8 · 12 · 15 m: hit, damage, others woken; id 292 = Firebomb (shop, 10-12); 67 held
-- [ ] [cloud] Firebomb as a candidate (lure opener · 2+ foes · ledge 254012) next to knife / melee; no limit — use while any are left, none = play as now; golden + expect
-- [ ] [cloud]+[win] Bow: buy, switch shield ↔ bow, locked-on shot, measure — after the firebomb
-- [ ] [cloud] NPC interaction (MoKa 10-12: getting important): talk / shop / later quests as one module; the merchant is the first case
+- [~] shop | cloud | doing | game check 1 shop_fail: multi-line greeting shifts every press → wait on the screen state, not GREET_S | docs/shop-undead-merchant.md · plan:shop
+- [ ] firebomb-measure | win | todo | locked-on firebomb at 254010 from 5 · 8 · 12 · 15 m: hit, damage, others woken (67 held) | plan:firebomb-measure
+- [ ] firebomb-candidate | cloud | todo | firebomb as a candidate next to knife / melee (lure opener · 2+ foes · ledge); no limit, none = as now | plan:firebomb-candidate
+- [ ] bow | cloud+win | todo | bow: buy, switch shield ↔ bow, locked-on shot, measure — after the firebomb | plan:bow
+- [ ] npc-module | cloud | todo | NPC interaction as one module (talk / shop / quests); the merchant is the first case | souls/shop.py · plan:npc-module
 
 ## 2. v1.0 — open by area
 
 **Fight rules / reflexes (1-j: "basic reflexes done right", MoKa 10-02)**
-- [~] [cloud] Scene expectations (proposal 4, `docs/design-scene-expectations.md`) — steps 1–3 done offline (48 scenes, `scene_replay` 687/687); details: `plan.md` "Open-item details"
-- [ ] [MoKa] Skim `tests/expect/duel.jsonl` label lines (10 min) and the 4 `review` scenes: idle hollow 8.7–8.9 m (you: hold/reposition, bot approached) ×2, swing at 2.2 m (you: reposition, bot guarded), 'other' anim 2.0 m (you: attack/guard, bot approached)
-- [~] [cloud] One floor check (proposal 3, P-49, `docs/design-floor-check.md`) — C floor map + `--ground` (walks only) + `rule_footing` (`--footing`) done offline; details: `plan.md` "Open-item details"
-- [ ] [MoKa] `--ground` (walks only) on by default, or more runs that reach the passage? (round 2 numbers on the board 2026-10-11)
-- [~] [win] A/B `--ground` **round 2** (cloud answer 10-10, P-56; round 1 stopped at a ramp-ledge death): `--ground` now = walks only (fights / recover / reflex keep the NavMesh). `burg-bonfire --seg 1-2 --no-lure` ×3 without, ×3 with, same save, alternate off/on — **10-10 [win]: 6 runs done, report in relay.md; waits for the MoKa item above**
-- [~] [cloud] Split `no_spot` (74 of 112 in data/samples) → first ≤ 7 m of `escape.pick`'s path (`duel._escape_way`, `SEP_ESCAPE`) — offline done 10-11, golden unchanged; [win]: log `떼어놓기 n: … → escape_arrived` — 10-11 `070611`: 1× in game (254001 1.4 m + 254002 1.1 m → escape_arrived, no hit after); round 2: 3 more (on #2 1, on #3 2: 254001 + 254002 → escape_arrived, 254000 ×2 → arrived)
-- [~] [cloud] Hit by a thrower (no foe swinging within 4 m) → `duel.rule_shot` ends the fight 'shot' → `Field.leave_fire` backs off beyond 11 m of it (holds the first shot while a melee foe is on us) — offline done 10-11; [win]: log `원거리 피격 −…` / `사선 밖으로` — 10-11 `070611`: 1× `버팀` (254002 18.2 m, +10.8 m up, 254000 at 1.6 m), no `사선 밖으로` yet; round 2: `사선 밖으로` 4× (254002 18–19 m up the ledge, and 7.5 m firebomb on #3) → `arrived` 4/4. Replay mismatch → P-61
-- [~] [win] P-32 axe hollow `AXE_HOLLOW` guard — game check on the ramp (needs MoKa's go)
-- [ ] [MoKa] P-31 decide: `rule_finish` only within `reach + 0.3` (re-record golden)
-- [ ] [MoKa] P-33 decide: no `stagger_punish` right after a block; [win] first checks per-foe stagger anims in old logs (read-only)
-- [ ] [win] Read-only: `control.Pad` stuck-input detection; reflex order inside a walk tick
-- [ ] [win] Read-only: retreat/Estus decisions when ≥ 2 foes were close, from old runs
-- [ ] [win] #4 `ranged` (thrower) classification fix — changes lure/wait, compare in its own runs
-- [~] [win] Battle-axe vertical heavy against walls (two-handed only; shield soldiers: heavy → light) — game checks
+- [~] scene-expectations | cloud | doing | steps 1–3 done offline (54 scenes, scene_replay 687/687) | docs/design-scene-expectations.md · plan:scene-expectations
+- [ ] label-review | MoKa | decide | skim duel.jsonl label lines (10 min) + the 4 `review` scenes | tests/expect/duel.jsonl · plan:label-review
+- [~] floor-check | cloud | doing | floor map + `--ground` (walks) + `rule_footing` (`--footing`) done offline | docs/design-floor-check.md · P-49 · plan:floor-check
+- [ ] ground-default | MoKa | decide | `--ground` (walks only) on by default, or more runs that reach the passage? | relay.md 10-11 · plan:ground-default
+- [!] ground-ab-2 | win | blocked | A/B `--ground` round 2: 6 runs done (report in relay.md); waits for ground-default | P-56 · plan:ground-ab-2
+- [~] no-spot-split | win | verify | `no_spot` → first ≤ 7 m of escape.pick's path; game so far 4× escape_arrived | plan:no-spot-split
+- [~] rule-shot | win | verify | hit by a thrower → 'shot' → leave_fire beyond 11 m; game: `사선 밖으로` 4× → arrived 4/4 | P-61 · plan:rule-shot
+- [!] axe-guard | win | blocked | P-32 axe hollow guard — game check on the ramp, needs MoKa's go | P-32 · plan:axe-guard
+- [ ] p31-finish-reach | MoKa | decide | P-31: `rule_finish` only within reach + 0.3 (re-record golden) | P-31
+- [ ] p33-stagger-after-block | MoKa | decide | P-33: no `stagger_punish` right after a block; [win] checks stagger anims in old logs first | P-33
+- [ ] pad-stuck-read | win | todo | read-only: `control.Pad` stuck-input detection; reflex order inside a walk tick | plan:pad-stuck-read
+- [ ] multi-foe-retreat-read | win | todo | read-only: retreat / Estus decisions when ≥ 2 foes were close, old runs | plan:multi-foe-retreat-read
+- [ ] ranged-class-fix | win | todo | #4 `ranged` (thrower) classification fix — changes lure / wait, compare in its own runs | P-59 · plan:ranged-class-fix
+- [~] axe-wall-heavy | win | doing | battle-axe vertical heavy against walls (two-handed only; shield soldiers heavy → light) — game checks | plan:axe-wall-heavy
 
 **Walking / navigation (1-f)**
-- [ ] [win] [urgent since 09-30] "almost arrived" rule check in game (`거의 도착 … 다음 점으로` lines, asylum 1 m-short spots)
-- [~] [win] 1-f A: early-turn / rubbing at corners reduced? (`hotspots.py`)
+- [ ] almost-arrived | win | todo | "almost arrived" rule check in game (`거의 도착 … 다음 점으로`, asylum 1 m-short spots) — urgent since 09-30 | plan:almost-arrived
+- [~] corner-early-turn | win | doing | 1-f A: early turn / rubbing at corners reduced? (`hotspots.py`) | plan:corner-early-turn
 
 **Instrumentation / run records**
-- [ ] [win] P1-E ordering · queue overflow · write failure · on/off-equal tests (1-l)
-- [~] [cloud] Run settings record (proposal 5, `docs/design-run-settings.md`) — steps 1–2 done offline 2026-10-09: `runinfo.py` (`<run>.settings.json` + first log line + track `run` line), `fight_id`/`zone` in events, `sample.py`, `ab.py`, report headers; `tests/runinfo_test.py` + `run_stop_test` 20/20 checks, golden same
-- [ ] [MoKa] Laya: keep off / freeze; move label tool's `why_not` out of `laya_shadow.py`?
-- [ ] [MoKa] Ramp 24-scene labels (review mode) → `python label_pilot.py report --set ramp`; then size of the 300-label eval set
+- [ ] p1e-tests | win | todo | P1-E ordering · queue overflow · write failure · on/off-equal tests (1-l) | plan:p1e-tests
+- [~] run-settings | cloud | doing | steps 1–2 done offline (`runinfo.py`, `sample.py`, `ab.py`, report headers) | docs/design-run-settings.md · plan:run-settings
+- [ ] laya | MoKa | decide | Laya: keep off / freeze; move the label tool's `why_not` out of `laya_shadow.py`? | plan:laya
+- [ ] ramp-labels | MoKa | todo | ramp 24-scene labels (review mode) → `label_pilot.py report --set ramp`; then size of the eval set | plan:ramp-labels
 
 **Game files · radar · overlay (2, 4, 5)**
-- [~] [win] Re-run `msb_extract.py m10_02_00_00 m10_01_00_00` for `treasures`
-- [~] [win] Borderless overlay + bot: overlay visible, clicks pass through, bot does not stop
-- [~] [win] Radar upgrade check (navmesh drawn, pad slots, recording, `--replay`)
-- [ ] [win] Radar AI ranges (sight cone, hearing circle, leash) match the game
+- [~] msb-treasures | win | doing | re-run `msb_extract.py m10_02_00_00 m10_01_00_00` for `treasures` | plan:msb-treasures
+- [~] overlay-borderless | win | doing | borderless overlay + bot: overlay visible, clicks pass through, bot keeps going | plan:overlay-borderless
+- [~] radar-upgrade | win | doing | radar upgrade check (navmesh drawn, pad slots, recording, `--replay`) | plan:radar-upgrade
+- [ ] radar-ai-ranges | win | todo | radar AI ranges (sight cone, hearing circle, leash) match the game | plan:radar-ai-ranges
 
 ## 3. v2.0 — after the `v1.0` tag (`docs/review-v2-2026-10-11.md`; go, done bar N/10 and order: MoKa)
 
 **Structure (review §2; proposed order §4: settings → WorldState → tick loop → route data → spots → batch runner → boss)**
-- [ ] [cloud] Settings object: one object passed in instead of ~228 module constants that `run.py` overwrites; `runinfo` saves that object
-- [ ] [cloud] WorldState: who is alive / where after a bonfire rest, quit-out (byte/menu) or warp, fixed in one place (P-18, P-25, P-44, P-55)
-- [ ] [cloud] One tick loop (read → update state → pick one action → input) instead of `field.py`'s own loops; walking first, one part at a time, guarded by `scene_replay` + `duel_golden_test`; v1.0 keeps running meanwhile
-- [ ] [cloud] Route data (walk / careful walk / safe spot / pull / fight / ladder / fog wall / Estus bar) + one runner; `burg-upper` moved first, then new segments without zone code
-- [ ] [cloud]+[win] Batch A/B runner: save restore · warp · N runs · `ab.py` report → "pass rate n/10 per segment"
+- [ ] settings-object | cloud | todo | one settings object instead of ~228 module constants `run.py` overwrites; `runinfo` saves it | docs/review-v2-2026-10-11.md
+- [ ] worldstate | cloud | todo | WorldState: who is alive / where after a rest, quit-out or warp, in one place (P-18 · P-25 · P-44 · P-55) | docs/review-v2-2026-10-11.md
+- [ ] tick-loop | cloud | todo | one tick loop (read → state → one action → input) instead of field.py's loops; walking first | docs/review-v2-2026-10-11.md · plan:tick-loop
+- [ ] route-data | cloud | todo | route data (walk / safe spot / pull / fight / ladder / fog wall …) + one runner; `burg-upper` first | docs/review-v2-2026-10-11.md · plan:route-data
+- [ ] batch-ab | cloud+win | todo | batch A/B runner: save restore · warp · N runs · `ab.py` → pass rate n/10 per segment | docs/review-v2-2026-10-11.md
 
 **Features (review §3)**
-- [~] [cloud] Multi-foe = spot choice (analysis proposal 1): design drafted `docs/design-multi-foe-spot.md`; step 1 (measure only) waits for MoKa's answers (§8)
-- [ ] [cloud] Same floor check everywhere: `rule_footing` (fights, v1.0 `--footing` since 10-11) moved onto the one tick loop for walks / recover too, with collision-mesh edges (below)
-- [ ] [cloud] Collision mesh: read `map/*.hkxbhd` with soulstruct-havok; classify NavMesh edges wall/cliff → `EDGE_PENALTY`
-- [~] [cloud] Compare target walk rules inside `_follow` on layer 2, then [win] A/B — design drafted `docs/design-walk-follow.md` (proposal 2); waits for MoKa (§7)
-- [~] [cloud] Harness layer-2 trust check: reproduces the passage-entrance point-70 before/after (direction yes, size exaggerated)
-- [ ] [cloud] 1-f C: at a stuck corner go 1 m further along the incoming direction before turning
-- [ ] [cloud] Boss fight module (its own loop; Taurus from section 1 as the first case)
-- [ ] [cloud] After a death: save mission progress, recover the bloodstain, restart from the broken segment
-- [ ] [cloud] Feed a recording back into the bot's decision code ("what would the bot have done")
-- [ ] [MoKa] Town entry: zone-boundary F9 walk plan · B-hit design (not approved) — as route data
+- [~] multi-foe-spot | MoKa | decide | multi-foe = spot choice: design drafted; step 1 (measure only) waits for MoKa's answers (§8) | docs/design-multi-foe-spot.md
+- [ ] floor-check-everywhere | cloud | todo | `rule_footing` onto the tick loop for walks / recover too, with collision-mesh edges | plan:floor-check-everywhere
+- [ ] collision-mesh | cloud | todo | read `map/*.hkxbhd` (soulstruct-havok); NavMesh edges wall / cliff → `EDGE_PENALTY` | plan:collision-mesh
+- [~] walk-follow | MoKa | decide | target walk rules inside `_follow` on layer 2, then [win] A/B — waits for MoKa (§7) | docs/design-walk-follow.md
+- [~] harness-trust | cloud | doing | harness layer-2 trust check: passage-entrance point 70 before / after (direction yes, size exaggerated) | plan:harness-trust
+- [ ] corner-1m | cloud | todo | 1-f C: at a stuck corner go 1 m further along the incoming direction before turning | plan:corner-1m
+- [ ] boss-module | cloud | todo | boss fight module (its own loop; Taurus first) | docs/boss-taurus.md
+- [ ] restart-segment | cloud | todo | after a death: save mission progress, restart from the broken segment (pickup is in v1.0, P-72) | plan:restart-segment
+- [ ] recording-feedback | cloud | todo | feed a recording into the decision code ("what would the bot have done") | plan:recording-feedback
+- [ ] town-entry | MoKa | decide | town entry: zone-boundary F9 walk plan · B-hit design (not approved) — as route data | plan:town-entry
 
 **Later / parked (not in 2.0)**
 - 1-g learning (MoKa 09-28/09-30): step 1 motion model = 6-a layer 2 (done); step 2 imitation policy after layer-2 trust check — needs the batch runner first
-- [ ] [cloud] 2D simulator: enemy sense/chase/leash from NavMesh + ThinkParam, plug `souls/field.py` in, separate/lure strategy experiments
-- [ ] [cloud] Explore mode (offline only, invincible + invisible), Lua decompile, TAE timing → attack prediction; foe reaction table from game data (review ⑥)
+- [ ] sim-2d | cloud | parked | 2D simulator: sense / chase / leash from NavMesh + ThinkParam, plug `souls/field.py` in | plan:sim-2d
+- [ ] explore-mode | cloud | parked | explore mode (offline), Lua decompile, TAE timing → attack prediction; foe reaction table | plan:explore-mode
 
 ## 4. Problem index
 
-Full entries: `docs/roadmap/problems.md`. Status: **open** · **parked** · **decide** (waits for MoKa) ·
-**verify** (fixed offline, game check pending) · **fixed** · **won't fix**.
+Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tidy`). Status: open · parked · decide (MoKa) · verify.
 
 | P | Problem | Status |
 |---|---|---|
-| 1 | Offline tests failed on Linux (Windows-only imports, `TEMP`) | fixed |
-| 2 | Python 3.11 f-string syntax error | fixed (3.12) |
-| 3 | soulstruct import fails on Linux (missing JSON) | fixed (stub modules) |
-| 4 | `msb_extract` summary counts / missing ObjectParam rows | fixed |
-| 5 | `.gitignore` let local run files show as untracked | fixed (allow-list) |
 | 6 | Burg: stuck behind a ledge foe; path through crates | verify |
 | 7 | Two shield soldiers: no separation spot (`no_spot`), late reaction to the side foe | open → same family as P-29 |
 | 8 | Died to two shield soldiers (light attacks into raised shields) | open → P-29 family |
-| 9 | Overlay mini-radar marks unreadable; restored items stayed hidden | fixed |
 | 10 | Late on a shield soldier's advancing first attack (3009) | open, low priority |
 | 11 | Real controller ignored after bot runs / save swaps (ViGEm) | workaround: reboot |
 | 12 | Same stalls every run (`#3 이동` (−52.2,−22.8,−26.9), crates `o1150_01`, `o1132_06`, `o1321_0021`) | open |
-| 13 | Web radar hid the human pad (bot slot stayed) | fixed |
 | 14 | Fell off the ramp edge right after a backstab | verify |
-| 15 | Bot imported a moved experiment module mid-run | fixed (see P-43) |
 | 16 | Fell through a gap while circling for a backstab | verify |
 | 17 | Secret-passage exit: stuck / fell | parked → 1-g |
 | 18 | Ramp `left #N?` after a quit-out ended the mission | verify (`pass_ramp`) |
 | 19 | `experiments/reach.py direct` walked off a railing | open, low priority |
-| 20 | Two radar servers bound the same port | fixed (exclusive bind) |
 | 21 | steam.exe outside connection right after restart (CDN) | decide (a/b/c) |
-| 22 | Throwing knife not in a quick slot → lure always fails | fixed (start check) |
-| 23 | Read weapon slot 1 instead of the held weapon | fixed |
-| 24 | `--no-lure` ignored by `burg-bonfire`; `no_knife` retried | fixed |
 | 25 | Killed foes come back after a quit-out — cause: the byte quit-out (game test) | verify — `shake` now uses the menu, only falls use byte (+ revive_risk) |
 | 26 | Crowd retreat broke every 1–2 s, 16 times, 0 attacks | open (`CROWD_FALL_BACK` off, capped) |
-| 27 | Asylum: bot idle between segments got hit; died beside a foe | fixed |
 | 28 | Asylum: same 3 stall spots (self-recovered) | open |
 | 29 | Burg `#4 이동`: three 254010 at once, 0 attacks, died (twice) | open — top cause of deaths |
 | 30 | Ignored foe hit for 10 s, then fell 5 m through a gap; lock-on blocked by line of sight | partly fixed |
 | 31 | `rule_finish` swings from 2.2–4.0 m | decide |
 | 32 | Dropped guard too early vs axe hollow 254001 | verify |
 | 33 | `stagger_punish` right after a block (should keep blocking) | decide |
-| 34 | Radar-rebuilt features ≠ bot's real features (audit gate failed) | won't fix (audit frozen 10-02) |
-| 35 | Audit: unobserved outcome window classified primary | fixed |
-| 36 | Audit checker double-counted exclusion reasons | fixed |
-| 37 | Audit can't attribute an outcome to one foe (no projectile data) | fixed; frozen at schema 0.3 |
 | 38 | Mover didn't re-press guard/sprint after a neutral | verify (P0-D) |
-| 39 | Asylum ④: light instead of wall heavy vs two hollows | fixed |
-| 40 | Asylum ② menu: DOWN eaten before the equip screen opened | fixed |
-| 41 | Burg fog wall before `#4 이동` not passed | fixed |
-| 42 | `careful_walk` back-and-forth at one spot | fixed (verified 10-03d) |
-| 43 | CI red 22 times (Linux pipe size, `vgamepad` via legacy import) | fixed |
 | 44 | Restoring a save does not restore the radar warp list | decide |
-| 45 | `burg-upper` zone 2: chaser caught the bot mid-walk, died 13 m from the safe spot | fixed (run back to safe spot) |
-| 46 | `burg-upper` zone 5: no rules for 255001 (shield + spear) | fixed (`foes.SHIELD`, wait/lure) |
 | 47 | "HP low" 0 s fight loops; zone 8 death; 'cleared' with survivors | verify — zone 8: two rolls off the ladder-top ledge, fight from the landing |
 | 48 | 6-a "48 % of sharp corners cut inside" is a 2 Hz sampling artifact (10 Hz: 20 %, two places) | open (measure fix) |
 | 49 | Ramp ledge (−22,−40,13): knocked off 3× fighting the axe hollow, standing off-mesh; `rule_edge` only raised the shield | verify — `--footing` A/B (P-58) |
-| 50 | `scene_replay` fake `face()` always True → a 42.5° scene replayed as `finish_first` (97 %) | fixed |
 | 51 | `burg-upper` zone 3 (5,−92): hit twice while backing off the edge after backstabs, −181 | open |
-| 52 | Dirty run: first log line's settings hash ≠ the record's (`code.diff_file` was hashed) | fixed |
 | 53 | `burg-upper` zone 1 (−1.9,−14,−70): fell 4 m right after a hit, quit-out recovered | verify — sprint overshot a corner over a drop; now jogs into such corners (`nav.brake_points`) |
-| 54 | `scene_replay` fake reflex kept a fixed age — a mid-chain anim change (3000→3002) replayed as `hit_first` | fixed |
 | 55 | `passage-drill`: the bonfire warp revives the ramp foes → died on the way to the top | open (A/B moved to seg 1-2) |
 | 56 | Ramp ledge (−20,−39,14), `--ground` on: 254002 + axe 254001 swinging together, died (no fall) | verify — + 'ranged first' no longer turns to the axe hollow / away from a foe < 2 m |
 | 57 | Passage start (−20,−39.3,14.4): 1.5 s stall + turn-around retry, in 2 `--ground`-off runs (0 in the 2 on runs that got there); AGAIN 10-11, 4/15 runs | verify — cause: walked straight at A0 3.3 m up from 4 m; now path-finds first |
 | 58 | Ramp ledge (−22,−44,15) in a fight: fell 4.4 m, quit-out, walk-back timed out, died (`--ground` round 2 on #3) | verify — `rule_footing` (`--footing`, off by default), A/B |
 | 59 | `rule_shot` may read a 254010 lunge landing from > 4 m as a throw (4 track cases) → ends the fight, backs off | verify — thrower = `Foe.thrower` only, axe hollow not one, melee 6 m + duel-start window |
-| 60 | After a body pull, `unsafe_approach` 0 s fights opened and closed 24× in 1.4 s (no guard) | fixed — game 10-11: 1–2 per run, no loop |
-| 61 | `scene_replay` plays a `rule_shot` scene as `after_swing`: scenes keep chars ≤ 15 m, the thrower was 18–19 m (`SHOT_SCAN_R` 25) | fixed — `scenes.CHAR_R` 25 m (= `SHOT_SCAN_R`), next runs' scenes |
-| 62 | `risk_report` counts escape.pick back-offs (`ev: escape`) as quit-outs (강종) → clean runs read '위험' | fixed — back-off logs `escape_pick`; `risk_report` skips old `escape` rows with `src` |
 | 63 | `ground_ahead` / `footing` / `safe_back` take a floor far above (a roof) as floor | partly — strict only for sprint braking; rest → v2.0 floor check |
 | 64 | Passage exit (−26,−33.7,8.5): walk stalls 2–3× (4.5 s, passage 33 s) — 2/27 runs; same spot as P-63's missing-floor NavMesh | open → [cloud] |
 | 65 | Camera not steered outside fights (leave_fire / escape.pick back-off / body pull); `LOOK_SIGN` learned backwards from one pulse once | verify — one look order in `CamFollow`; stick sign from a ± pair |
@@ -201,16 +163,11 @@ Full entries: `docs/roadmap/problems.md`. Status: **open** · **parked** · **de
 
 ## 5. Relay — [cloud] ↔ board
 
-[cloud] cannot reach the private MCP board (CLAUDE.md). Format: `- date [cloud→board] text` / `- date [board→cloud] text`;
-whoever moves or handles an entry adds `→ moved` / `→ done` (old entries: `[cloud→게시판]`, `→ 옮김` / `→ 처리` — same thing). When every entry here is `→ moved`/`→ done`, cut them
-to the bottom of `docs/roadmap/relay.md`.
-
-(handled entries: `docs/roadmap/relay.md`, last moved 2026-10-12 — handled entries move there one by one)
+[cloud] can't reach the board: `- date [cloud→board] …` / `- date [board→cloud] …`. Whoever handles an entry starts it with
+`→ done` / `→ moved` right after the tag; `tidy` then moves it to `docs/roadmap/relay.md`.
 
 - 2026-10-12 [board→cloud] **`shop` game check 1: shop_fail** — greeting can be several lines and A during a line = next line, so every press shifted ~3 steps (menu only at the 'qty' step, list opened by the 'buy' A). Wait on the screen, not GREET_S. Details + shots: end of `docs/shop-undead-merchant.md`.
 
+- 2026-10-12 [cloud→board] **ROADMAP format changed (MoKa 10-12)** — one checked line per item `- [m] id | who | stage | now / next | where`, `python roadmap.py check / tidy / queue win / show <id>`; closed problem rows → problems.md, item histories → plan.md "Open-item details" (nothing lost). Rules: CLAUDE.md "Keeping ROADMAP.md current". Your list: `python roadmap.py queue win`.
+
 - 2026-10-12 [cloud→board] **`git pull` — fall / death policy changed (MoKa 10-12)**: (1) no quit-out on a fall (`--fall-quit` = old); (2) `burg-upper` after a death: worth it → back from zone 1 and pick up with no foe within 15 m, else end (`--no-recover` = old); (3) black box splits fall from hits, one `death` event (`✝ 사망 원인: …`); (4) end line `정렬 (…)`; (5) P-66: a windup isn't 'ended' before it lands — shield soldier 3004 blocked to 2.3 s, then counter. (6) **shop routine ready**: `run.py merchant-buy --buy 290:30,292:20 --shop-shots` from the merchant save, test plan at the end of `docs/shop-undead-merchant.md`. Why: `docs/analysis-death-2026-10-12.md`. → (1) · (2) checked 10-12 [win] with `6341df3` (entry below); (3) · (4) · (5) next runs
-
-## 6. Change log (newest first; older entries in `docs/roadmap/changelog.md`)
-
-- (moved to `docs/roadmap/changelog.md` 2026-10-11 to keep this file under its size limit)

@@ -13,6 +13,43 @@ New problems still go here (append at the bottom) and get a one-line row in ROAD
 - 해결: (해결되면 작성, 미해결이면 "미해결")
 ```
 
+## Closed problem index
+
+Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python roadmap.py tidy`). The full entries are below.
+
+| P | Problem | Status |
+|---|---|---|
+| 1 | Offline tests failed on Linux (Windows-only imports, `TEMP`) | fixed |
+| 2 | Python 3.11 f-string syntax error | fixed (3.12) |
+| 3 | soulstruct import fails on Linux (missing JSON) | fixed (stub modules) |
+| 4 | `msb_extract` summary counts / missing ObjectParam rows | fixed |
+| 5 | `.gitignore` let local run files show as untracked | fixed (allow-list) |
+| 9 | Overlay mini-radar marks unreadable; restored items stayed hidden | fixed |
+| 13 | Web radar hid the human pad (bot slot stayed) | fixed |
+| 15 | Bot imported a moved experiment module mid-run | fixed (see P-43) |
+| 20 | Two radar servers bound the same port | fixed (exclusive bind) |
+| 22 | Throwing knife not in a quick slot → lure always fails | fixed (start check) |
+| 23 | Read weapon slot 1 instead of the held weapon | fixed |
+| 24 | `--no-lure` ignored by `burg-bonfire`; `no_knife` retried | fixed |
+| 27 | Asylum: bot idle between segments got hit; died beside a foe | fixed |
+| 34 | Radar-rebuilt features ≠ bot's real features (audit gate failed) | won't fix (audit frozen 10-02) |
+| 35 | Audit: unobserved outcome window classified primary | fixed |
+| 36 | Audit checker double-counted exclusion reasons | fixed |
+| 37 | Audit can't attribute an outcome to one foe (no projectile data) | fixed; frozen at schema 0.3 |
+| 39 | Asylum ④: light instead of wall heavy vs two hollows | fixed |
+| 40 | Asylum ② menu: DOWN eaten before the equip screen opened | fixed |
+| 41 | Burg fog wall before `#4 이동` not passed | fixed |
+| 42 | `careful_walk` back-and-forth at one spot | fixed (verified 10-03d) |
+| 43 | CI red 22 times (Linux pipe size, `vgamepad` via legacy import) | fixed |
+| 45 | `burg-upper` zone 2: chaser caught the bot mid-walk, died 13 m from the safe spot | fixed (run back to safe spot) |
+| 46 | `burg-upper` zone 5: no rules for 255001 (shield + spear) | fixed (`foes.SHIELD`, wait/lure) |
+| 50 | `scene_replay` fake `face()` always True → a 42.5° scene replayed as `finish_first` (97 %) | fixed |
+| 52 | Dirty run: first log line's settings hash ≠ the record's (`code.diff_file` was hashed) | fixed |
+| 54 | `scene_replay` fake reflex kept a fixed age — a mid-chain anim change (3000→3002) replayed as `hit_first` | fixed |
+| 60 | After a body pull, `unsafe_approach` 0 s fights opened and closed 24× in 1.4 s (no guard) | fixed — game 10-11: 1–2 per run, no loop |
+| 61 | `scene_replay` plays a `rule_shot` scene as `after_swing`: scenes keep chars ≤ 15 m, the thrower was 18–19 m (`SHOT_SCAN_R` 25) | fixed — `scenes.CHAR_R` 25 m (= `SHOT_SCAN_R`), next runs' scenes |
+| 62 | `risk_report` counts escape.pick back-offs (`ev: escape`) as quit-outs (강종) → clean runs read '위험' | fixed — back-off logs `escape_pick`; `risk_report` skips old `escape` rows with `src` |
+
 ### P-1 오프라인 테스트가 Linux에서 실행 안 됨 (2026-09-27, [cloud], 1번)
 - 증상: `field_*_test.py` 등이 `ModuleNotFoundError: pymem`, 이어서 `vgamepad`, `KeyError: 'TEMP'`로 실패
 - 원인 (확인): Windows 전용 import가 모듈 맨 위에 있었고, `TEMP` 환경변수에 의존함
