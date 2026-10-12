@@ -182,7 +182,7 @@ Full entries: `docs/roadmap/problems.md`. Status: **open** · **parked** · **de
 | 64 | Passage exit (−26,−33.7,8.5): walk stalls 2–3× (4.5 s, passage 33 s) — 2/27 runs; same spot as P-63's missing-floor NavMesh | open → [cloud] |
 | 65 | Camera not steered outside fights (leave_fire / escape.pick back-off / body pull); `LOOK_SIGN` learned backwards from one pulse once | verify — one look order in `CamFollow`; stick sign from a ± pair |
 | 66 | Shield soldier's late 3004: `rule_after_swing` (6th) calls it ended at 1.6 s and kicks before `rule_late_windup_block` (9th) — hit −228; `rule_shot` read that hit as a thrower's | open → [cloud] |
-| 67 | Zone 1 lure: jump off ledge into 3× 254010; return `_sprint` has no hit exit → pinned 12 s, dead | open → [cloud] |
+| 67 | Zone 1 lure: B re-pressed at every sprint point → jump off ledge into 3× 254010; `_sprint` had no hit exit → dead | verify — goto keeps B on arrival; `_sprint` stops on `threat_now` |
 
 ## 5. Relay — [cloud] ↔ board
 

@@ -115,6 +115,9 @@ def make(foe, wake="moves", hp=742, results=("killed",), estus=5, other=None, hi
                 foe.anim = 7000
             me["p"] = (foe.x, foe.y, foe.z - (6.0 if wake == "moves" else 2.0))
             return "stopped" if stop(snap()) else "arrived"
+        if world.get("pinned"):                            # P-67: fell among foes below — every tick on the way back is a hit
+            world["threat"] = True
+            return "stopped" if stop(snap()) else "timeout"
         me["p"] = goal
         if world["other"] is not None and world["other"].hp > 0 and world["other"].anim != -1:
             o = world["other"]                             # it followed us back
@@ -146,7 +149,8 @@ def make(foe, wake="moves", hp=742, results=("killed",), estus=5, other=None, hi
 
     f = NS(home=(0.0, 0.0, 0.0), find_at=find_at, fight=fight, careful_walk_to=lambda *a, **k: "arrived",
            recover=lambda *a, **k: calls.append(("recover",)) or True, estus_left=lambda: estus, alive=lambda: True,
-           heal=heal, retreat=retreat, events=lambda *a, **k: None)
+           heal=heal, retreat=retreat, events=lambda *a, **k: None,
+           reflex=NS(threat_now=lambda s: world.get("threat", False)))
     mv = NS(snap=snap, walk_path=walk_path, pad=NS(guard=lambda on: None), drink=drink,
             find=lambda s, ptr: world["foe"] if world["foe"] and world["foe"].ptr == ptr else None)
     f.mv = mv
@@ -216,6 +220,16 @@ r = m._pull_to_safe(255001, (-1.3, -10.1, -95.4), safe, LineNm(), "t")
 fp = [c[1] for c in calls if c[0] == "fight"]
 check("another foe wakes on the way in → run back, fight it at the safe spot first, then the target",
       r == "killed" and fp == [23, 22] and calls[1] == ("sprint", safe, "sprint"))
+
+# P-67: the lure ended below the ledge among three 254010 — the run back stood 12 s taking hits (stop was 'arrived' only)
+foe = Chr(npc_param=254010, ptr=28, x=-1.3, y=-11.5, z=-95.4, hp=75, anim=-1)
+m, f, calls, w = make(foe)
+w["pinned"] = True
+logs = []
+m.log = lambda *a: logs.append(" ".join(map(str, a)))
+r = m._pull_to_safe(254010, (-1.3, -11.5, -95.4), safe, LineNm(), "t")
+check("P-67: hit on the run back → the run stops ('threat') and the bot fights there (the fight's tether takes it home)",
+      r == "killed" and kinds(calls) == ["sprint", "sprint", "fight"] and any("threat" in l for l in logs))
 
 # "무조건 에스트부터" — back at the spot with HP down (not low enough for _top_up), drink before fighting, foe near or not
 foe = Chr(npc_param=255001, ptr=24, x=-1.3, y=-10.1, z=-95.4, hp=85, anim=-1)

@@ -678,14 +678,27 @@ class Missions:
             guard(False)
 
     def _sprint(self, goal, nb, stop) -> str:
-        """Run along the NavMesh path to goal (no guard) until stop(snapshot). → 'arrived' | 'stopped' | 'dead' | 'no_path' | …"""
+        """Run along the NavMesh path to goal (no guard) until stop(snapshot), or until a foe is hitting / swinging at us
+        (reflex.threat_now — the same check Field's walks stop on) → 'threat', and the caller fights from where it stands.
+        → 'arrived' | 'stopped' | 'threat' | 'dead' | 'no_path' | …"""
         s = self.mv.snap(5.0)
         if s is None:
             return "no_snapshot"
         path = nb.find_path((s.player.x, s.player.y, s.player.z), tuple(goal))
         if not path:
             return "no_path"
-        return self.mv.walk_path(nav.trim_path(path[1:], tuple(goal)), nb, "sprint", stop=stop)
+        # P-67: 돌아가는 달리기가 적 셋에게 막혀 12 s 맞기만 함 — 멈춤 조건이 '도착'뿐이었다. 걷기와 같은 피격 검사를 거친다
+        why = []
+
+        def stop2(sn) -> bool:
+            if stop is not None and stop(sn):
+                return True
+            if self.f.reflex.threat_now(sn):
+                why.append("threat")
+                return True
+            return False
+        r = self.mv.walk_path(nav.trim_path(path[1:], tuple(goal)), nb, "sprint", stop=stop2)
+        return "threat" if r == "stopped" and why else r
 
     UPPER_SEGMENTS = {n: f"zone{n}" for n in range(1, len(UPPER["zones"]) + 1)}
 

@@ -7,7 +7,9 @@ Checks:
   · freeze from another thread: what the Mover pressed meanwhile went nowhere → after unfreeze set() presses it for real
   · reconnect: the new device gets the mode's buttons on the next set()
   · Mover.stop(): its own neutral — no extra presses afterwards
-  · nav.follow over two points in guard mode: goto's arrival neutral drops LB, the second point holds it again
+  · nav.follow over two points in guard mode: LB held on the way to the second point
+  · nav.follow sprinting over several points: B held from the first press to the end — no release between points (P-67:
+    goto's arrival neutral + resync re-pressed B at every point → 0.09 s B taps while running = jump, anim 900)
   · a pad without epoch (walksim.SimPad shape) never resyncs
 """
 from __future__ import annotations
@@ -118,6 +120,17 @@ def main() -> None:
     check("follow: 둘 다 도착", r == "arrived")
     check("follow: 두 번째 점으로 가는 동안 LB 다시 듦 (도착 neutral 뒤)", second and second[-1])
     check("follow 끝: 중립", rec2.is_neutral())
+
+    # P-67: sprint over four points — B never released between them (a release + re-press while running is a jump)
+    path = [(0.0, 0.0, 0.0), (0.0, 0.0, 1.0), (0.0, 0.0, 2.0), (0.0, 0.0, 3.0)]
+    n0 = len(rec2.sent)
+    r = nav.follow(WalkTm(path), pad, path, mode_fn=lambda s: "sprint")
+    b = [BB in x["buttons"] for x in rec2.sent[n0:]]
+    first = b.index(True) if True in b else None
+    held = b[first:-1] if first is not None else []
+    check("follow sprint: 넷 다 도착", r == "arrived")
+    check(f"follow sprint: B 한 번 눌러 끝까지 유지 (점 사이에서 뗀 횟수 {held.count(False)})", first is not None and held and all(held))
+    check("follow sprint 끝: 중립", rec2.is_neutral())
 
     # pads without epoch: never resync (walksim.SimPad)
     calls: list = []

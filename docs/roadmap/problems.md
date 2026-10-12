@@ -645,3 +645,12 @@ New problems still go here (append at the bottom) and get a one-line row in ROAD
 - 해결 제안 (정하지 않음, `docs/guide-control-priority.md` 2절 순위 1 '교착'): 상황별 조건 대신 (1) 공통 — 모든 이동(달리기 포함)이 같은
   `threat_now` / 진행 없음 검사를 지나게 해서, 맞으면서 0.5 s 넘게 못 가면 그 이동은 실패 → 싸움(가드)으로 넘김; (2) 달리기 멈춤에 B 재입력 금지
   (점프 후보를 지움). 실패 모델 표 '교착' 줄의 첫 예. 보고서 쪽: `track_report`가 `sprint` 이동도 걷기로 세도록.
+- 2026-10-11 [win] 고침 (MoKa "P-67 고치고 다시 돌리기"):
+  (a) 점프의 진짜 원인 — `.ctl.jsonl` 패드 기록: 달리기 경로의 **점마다** `nav.goto` 도착 `pad.neutral()`(B 뗌) → 다음 점 `Mover.set`이 B 다시 누름
+  (18.30 / 18.98 / 19.07 / 19.43 s, B 누른 시간 0.68 · 0.09 · 0.36 · 0.10 s). 0.09 s 짧은 B = 달리는 중 탭 = 점프. `nav.follow` 주석은 이미
+  "경로 내내 B 한 번 유지"인데, 10-02 P0-D(`ab16654`, neutral 뒤 Mover가 다시 누름) 이후 도착 neutral이 그 의도를 깼다(그 전엔 첫 점 뒤 B 없이 뜀).
+  → `goto`는 넘겨받은 mover(follow·`Field._walk`)일 땐 도착에서 neutral 안 함, 멈추는 건 부른 쪽(`mover.stop`). 모든 경로 걷기에 같이 적용.
+  (b) `Missions._sprint`의 멈춤에 `Field` 걷기와 같은 `reflex.threat_now`(맞는 중 / 붙은 적이 휘두름) → `'threat'` → 그 자리 싸움(싸움의 tether가
+  가드 든 채 안전 자리로, 최대 3번). 조건 추가가 아니라 걷기에만 있던 검사를 빠져 있던 이동에도 거치게 한 것.
+  확인: `tests/mover_epoch_test.py` sprint 4점 B 한 번도 안 뗌(전 코드: 10번 뗌), `tests/burg_upper_test.py` P-67 장면(전 코드 FAIL), pytest 85,
+  golden 그대로, expect 그대로. 게임 확인 → 아래.

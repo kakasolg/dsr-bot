@@ -438,7 +438,10 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
             if on_tick:
                 on_tick(s, dist)
             if dist <= tolerance and (ty is None or abs(p.gy - ty) <= ARRIVE_DY):
-                pad.neutral()
+                # a passed-in mover (follow / Field._walk) keeps its B hold into the next point; the caller stops it.
+                # P-67: a neutral here bumped pad.epoch → Mover re-pressed B at every point → 0.09 s B taps while running = jump (anim 900)
+                if own_mover:
+                    pad.neutral()
                 return _end(rec, "arrived")
 
             # stuck detection
