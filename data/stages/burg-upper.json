@@ -3,7 +3,7 @@
  "title": "성벽 마을 위쪽 — 화톳불 → 타우로스 (구역 1–8)",
  "map": "m10_01_00_00",
  "made_by": "stage_report.py",
- "runs_read": 38,
+ "runs_read": 40,
  "zones": [
   {
    "n": 1,
@@ -155,11 +155,11 @@
     ]
    },
    "runs": {
-    "runs": 26,
-    "tries": 28,
-    "cleared": 24,
+    "runs": 28,
+    "tries": 30,
+    "cleared": 26,
     "results": {
-     "cleared": 24,
+     "cleared": 26,
      "died": 4
     },
     "deaths": [
@@ -185,13 +185,13 @@
      }
     ],
     "falls": 6,
-    "big_hits": 41,
-    "big_hit_lost": 5609,
+    "big_hits": 42,
+    "big_hit_lost": 5759,
     "blamed": {
-     "254010": 37,
+     "254010": 38,
      "255002": 3
     },
-    "secs_median": 93,
+    "secs_median": 91,
     "files": [
      "20261009_230500_burg-upper_check-hp742",
      "20261009_234512_burg-upper_dirty-check",
@@ -212,6 +212,8 @@
      "20261012_071717_burg-upper_lockprobe",
      "20261012_072136_burg-upper_lockprobe",
      "20261012_072503_burg-upper_lockprobe",
+     "20261012_074829_burg-upper_lockkeep",
+     "20261012_075054_burg-upper_lockkeep",
      "burg-upper-radar-2026-10-06-195804",
      "burg-upper-radar-2026-10-06-201550",
      "burg-upper-radar-2026-10-06a",
@@ -415,11 +417,11 @@
     ]
    },
    "runs": {
-    "runs": 17,
-    "tries": 19,
-    "cleared": 17,
+    "runs": 18,
+    "tries": 20,
+    "cleared": 18,
     "results": {
-     "cleared": 17,
+     "cleared": 18,
      "died": 2
     },
     "deaths": [
@@ -435,14 +437,14 @@
      }
     ],
     "falls": 0,
-    "big_hits": 40,
-    "big_hit_lost": 8713,
+    "big_hits": 48,
+    "big_hit_lost": 10278,
     "blamed": {
-     "255001": 23,
-     "254011": 11,
+     "255001": 30,
+     "254011": 12,
      "254010": 6
     },
-    "secs_median": 59,
+    "secs_median": 60,
     "files": [
      "20261009_230500_burg-upper_check-hp742",
      "20261011_170346_burg-upper_p67fix-zone5-death",
@@ -455,6 +457,7 @@
      "20261012_025301_burg-upper",
      "20261012_030444_burg-upper",
      "20261012_060343_burg-upper_throw",
+     "20261012_075054_burg-upper_lockkeep",
      "burg-upper-radar-2026-10-06-195804",
      "burg-upper-radar-2026-10-06-201550",
      "burg-upper-radar-2026-10-06b",

@@ -3,7 +3,8 @@ clear 1:1 fight). Fakes from duel_golden_test (R3 locks whatever the camera foll
 
 Checks:
   · 1:1 within LOCK_KEEP_R, body on it → R3 → locked; a second R3 within LOCK_RETRY_S never comes
-  · body 60° off → no R3 (R3 grabs whatever is nearest the camera centre)
+  · body 60° off → no R3 (R3 grabs whatever is nearest the camera centre); camera 12° → R3, 25° → none
+  · a backstab try leaves a lock-on that was already on the target
   · a second awake foe within ALONE_R → released; locked on another foe → released
   · every tick lets tapped buttons go (release_due) — R3 left down made the next R3 the same press (unlock bug 10-12)
   · heavies: wall heavy (_slam), sleeper heavy, the weapon's default heavy only while locked on the target
@@ -74,6 +75,29 @@ def main() -> None:
     w, mv, F, presses, _ = rig(facing_err=60.0)
     tick(w, F, 100.0)
     check("몸이 60° 어긋남 → R3 안 누름 (카메라 중앙 놈을 잡음)", not presses)
+
+    w, mv, F, presses, _ = rig()
+    mv.cam_err = lambda s, x, z: 12.0
+    tick(w, F, 100.0)
+    check(f"카메라 12° (≤ LOCK_KEEP_CAM_DEG {D.LOCK_KEEP_CAM_DEG:.0f}°) → 누름 — 1:1이라 옆 놈을 잡을 일 없음", len(presses) == 1)
+    w, mv, F, presses, _ = rig()
+    mv.cam_err = lambda s, x, z: 25.0
+    tick(w, F, 100.0)
+    check("카메라 25° → 안 누름", not presses)
+
+    # a backstab try leaves _keep_lock's lock-on alone (074829 zone 1-3: it released it, the next hit went out unlocked)
+    w, mv, F, presses, _ = rig()
+    mv.locked = 2
+    mv.pad.attack = lambda: None
+    s = w.snapshot()
+    c = next(x for x in s.chars if x.ptr == 2)
+    sleep = D.time.sleep
+    D.time.sleep = lambda t: None
+    try:
+        D._backstab(mv, s, c, cancel=lambda: True)
+    finally:
+        D.time.sleep = sleep
+    check("뒤잡기 시도 뒤: 이미 걸려 있던 락온은 그대로", mv.lock_state(2) == "target")
 
     w, mv, F, presses, _ = rig(dist=D.LOCK_KEEP_R + 1.0)
     tick(w, F, 100.0)

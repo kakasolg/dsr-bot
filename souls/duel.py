@@ -80,6 +80,9 @@ HEAVY = True             # False (run.py --basic): no wall heavy / two-hand swit
 LOCK_KEEP = True         # False: no lock-on keeping in 1:1 fights (the old way — lock only for backstab / throws)
 LOCK_KEEP_R = 8.0        # keep lock-on on the target within this (horizontal) …
 LOCK_KEEP_DY = 2.0       # … and this height difference
+LOCK_KEEP_CAM_DEG = 15.0 # R3 when the camera is within this of the target — wider than a throw's M.LOCK_CAM_DEG (6°): in 1:1 there is
+                         # no neighbour for R3 to grab, and CamFollow keeps the fight camera within ~10° (9 of 10 ticks); at 6° the
+                         # keeper never pressed again after a backstab try (074829 zone 1-3: camera 13°, the hit went out unlocked)
 LOCK_RETRY_S = 1.0       # after an R3, wait this long before the next — the game needs ~0.3 s, and an R3 that finds nothing
                          # resets the camera behind the body, so pressing every tick would spin the camera
 BACKSTAB_ONLY = False    # True: against hollows only the backstab (no hit-first, no stagger punish). Off: backstab when the checks allow it, else the usual rules (user 2026-09-28)
@@ -116,8 +119,10 @@ def backstab_stick(c, p, side: float | None = None) -> tuple[float, float, float
 
 def _backstab(mv, s, c, cancel, nm=None, log=None) -> str:
     """Lock on, strafe round at body contact, R1 once behind. → 'stabbed' | 'hit' (R1 landed but no kill) | 'moved' (it stopped
-    being idle) | 'not_behind' (time out) | 'no_lock' | 'lost'. Always leaves the stick centered and lock-on off."""
+    being idle) | 'not_behind' (time out) | 'no_lock' | 'lost'. Always leaves the stick centered; lock-on off unless it was
+    already on the target when we came in (_keep_lock's — releasing it cost the next hit its lock, 074829 zone 1-3)."""
     ptr, hp0 = c.ptr, c.hp
+    held = getattr(mv, "lock_state", lambda p: "none")(ptr) == "target"
 
     def wait(t: float) -> None:                            # sleep but let Pad release the tapped buttons (R3/R1 are only scheduled to lift —
         t1 = time.time() + t                               # 27j: R3 left held after a no_lock try broke every later lock-on, 10 knife lures 'no_lock')
@@ -191,8 +196,9 @@ def _backstab(mv, s, c, cancel, nm=None, log=None) -> str:
     finally:
         mv.pad.move(0.0, 0.0)
         wait(0.1)
-        mv.unlock()
-        wait(0.1)
+        if not held:
+            mv.unlock()
+            wait(0.1)
         mv.cam_busy = busy0
 
 
@@ -868,7 +874,7 @@ def _keep_lock(F, T) -> None:
     body = abs(math.degrees(M.rel_angle(T.p, T.c))) if T.p.heading is not None else 0.0
     cam_err = getattr(mv, "cam_err", None)
     cam = cam_err(T.s, T.c.x, T.c.z) if cam_err is not None else 0.0
-    if body > M.LOCK_BODY_DEG or (cam is not None and abs(cam) > M.LOCK_CAM_DEG):
+    if body > M.LOCK_BODY_DEG or (cam is not None and abs(cam) > LOCK_KEEP_CAM_DEG):
         return
     press()
     F.lock_t, F.lock_n = T.now, F.lock_n + 1
