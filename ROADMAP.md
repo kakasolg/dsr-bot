@@ -57,7 +57,7 @@ plan.md "Open-item details". On a change: rewrite the line (now / next only); re
 **Fight rules / reflexes (1-j: "basic reflexes done right", MoKa 10-02)**
 - [~] scene-expectations | MoKa | decide | steps 1–3 done offline (54 scenes, replay 687/687); step 4: label 30–50 scenes from `--ctl-scenes` runs | docs/design-scene-expectations.md · plan:scene-expectations
 - [ ] label-review | MoKa | decide | skim duel.jsonl label lines (10 min) + the 4 `review` scenes | tests/expect/duel.jsonl · plan:label-review
-- [~] floor-check | cloud | doing | steps 1–2 done; step 4 now: per-move look-ahead distances (roll / backstep on slopes) — with P-73 | docs/design-floor-check.md · P-49 · P-73 · plan:floor-check
+- [~] floor-check | cloud | doing | `nav.can_move` in break-out rolls (P-73); next: backstep / reflex / walks onto it, then drop `rule_edge` (step 4–5) | docs/design-floor-check.md · P-49 · P-73 · plan:floor-check
 - [ ] ground-default | MoKa | decide | `--ground` (walks only) on by default, or more runs that reach the passage? | relay.md 10-11 · plan:ground-default
 - [!] ground-ab-2 | win | blocked | A/B `--ground` round 2: 6 runs done (report in relay.md); waits for ground-default | P-56 · plan:ground-ab-2
 - [~] no-spot-split | win | verify | `no_spot` → first ≤ 7 m of escape.pick's path; game so far 4× escape_arrived | plan:no-spot-split
@@ -155,18 +155,19 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 66 | Shield soldier's late 3004: `rule_after_swing` (6th) called it ended at 1.6 s and kicked before `rule_late_windup_block` (9th) — hit −228; `rule_shot` read that hit as a thrower's | verify — `duel.swing_over` (windup ends when it lands) + `Moves.swung` from every snapshot |
 | 67 | Zone 1 lure: B re-pressed at every sprint point → jump off ledge into 3× 254010; `_sprint` had no hit exit → dead | verify — game 10-11: zones 1–4 cleared, `threat` stop 6×, no jump; 3 short B holds left |
 | 68 | Zone 5: heavy into 255000's shield 0 dmg → low_hp, Estus refused 3×, 255001 joins → dead; bot kept acting after death (TypeError) | death part: fixed — game 10-11 zone 8 death ended the zone at once, no error; shield part open |
-| 69 | Zone 1: the foe fell off the ledge mid-fight, the bot walked after it and fell (fall quit-out, recovered) | open → [cloud] |
+| 69 | Zone 1: the foe fell off the ledge mid-fight, the bot walked after it and fell | verify — falling / > 2.5 m below target ends the duel 'lost' before face() walks |
 | 70 | Zone 1 stairs: 0.1 s sprint B between braked points = roll off the stairs; 3 runs dead | verify — `Pad.sprint` holds B ≥ 0.45 s; 10-12 3 full runs: zone 1 cleared 3/3, no roll |
 | 71 | Fall deaths: a second fall right after a fall quit-out, `Escape` blind, pad frozen; black box blames the foe | verify — MoKa 10-12: no quit-out on falls (`fall_seen`) |
 | 72 | Deaths never fetched their bloodstain (38 deaths, 0 pickup trips) | verify — `souls/afterdeath.py`: worth it → back from zone 1, pick only with no foe within 15 m; small / same zone → end |
-| 73 | Ramp #5: low_hp gap roll slid off the ledge → 22.4 m fall (no-quit policy) | open → [cloud] |
+| 73 | Ramp #5: low_hp break-out roll went −126° instead of −30° (camera turned during the roll) → 22.4 m fall | verify — camera held during rolls, fresh stick, `nav.can_move` |
 
 ## 5. Relay — [cloud] ↔ board
 
 [cloud] can't reach the board: `- date [cloud→board] …` / `- date [board→cloud] …`. Whoever handles an entry starts it with
 `→ done` / `→ moved` right after the tag; `tidy` then moves it to `docs/roadmap/relay.md`.
 
-- 2026-10-12 [board→cloud] **Ramp blocks the shop run**: `burg-bonfire --seg 1-5 --buy …` died on the ramp 2/2 (`053935`: #1 254000 ×2 + 255010 on us, −313 −283; `054128`: 254000 + 254002) — 3 of 5 Firelink → merchant trips today (one is P-73). The routine itself: 3/3 from the merchant save.
+- 2026-10-12 [cloud→board] **Ramp on the shop run** = P-56 again (swarm hits, not falls; 033444 = P-73). Next Firelink → merchant try: today's code + `--pull`; if it still dies, shop tests stay on the merchant save.
+- 2026-10-12 [cloud→board] **P-73 / P-69 (`git pull`)**: rolls hold the camera, fresh stick, floor = `nav.can_move` 3 m; > 45° off → `구르기 방향 어긋남` (event `roll`). Target falling / > 2.5 m below → fight 'lost' (`목표 떨어짐`). Watch next ramp / zone 1 runs.
 
 - 2026-10-12 [cloud→board] **Stage analysis (MoKa 10-12)**: `python stage_report.py` → `data/stages/burg-upper.json` + auto block of `docs/stages/burg-upper.md` (terrain · foes · our runs per zone; hand-written intent / response above it). [win]: rerun it after `sample.py` of a burg-upper run.
 

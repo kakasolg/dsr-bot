@@ -156,6 +156,35 @@ def ground_ahead(terrain, p, dx: float, dz: float, reach: float = 1.2) -> bool:
     return True
 
 
+MOVE_STEP = 0.5           # can_move: look at the floor this often along the way …
+MOVE_STEP_DROP = 0.8      # … each point at most this much below the last one (a ramp goes down ~0.2 per 0.5 m; a ledge is a jump)
+MOVE_STEP_UP = 1.0
+ROLL_CHECK_M = 3.0        # a roll covers ≤ 2.5 m (design-floor-check §2-c) once the stick is let go at its start (Moves.roll_toward)
+
+
+def can_move(terrain, p, dx: float, dz: float, dist: float) -> bool:
+    """Floor all the way for a move of `dist` m in direction (dx, dz): every MOVE_STEP, following ramps — each floor point within
+    MOVE_STEP_DROP below / MOVE_STEP_UP above the one before. The guide's can_move(direction, distance)
+    (docs/guide-control-priority.md §5-3). Unlike ground_ahead (two points, a fixed drop from where we stand) it neither misses a
+    gap between its points nor calls a long ramp a drop (P-73: a roll checked at 1.25 / 2.5 m from just off the ramp's mesh;
+    design-floor-check: "3.0 m almost always fails on the ramp"). True if terrain is None."""
+    if terrain is None:
+        return True
+    n = math.hypot(dx, dz)
+    if n < 1e-6:
+        return True
+    ux, uz, y = dx / n, dz / n, p.gy
+    k = 1
+    while k * MOVE_STEP <= dist + 1e-6:
+        d = k * MOVE_STEP
+        hit = terrain.floor_at(p.gx + ux * d, p.gz + uz * d, y)
+        if hit is None or hit[0] < y - MOVE_STEP_DROP or hit[0] > y + MOVE_STEP_UP:
+            return False
+        y = hit[0]
+        k += 1
+    return True
+
+
 def safe_heading(terrain, p, dx: float, dz: float, reach: float = 1.2):
     """If (dx, dz) has floor, use it; otherwise try turning ±30°/±60°. If none, None (stop).
     Also used when heading straight for a path point — after being pushed off the path in a fight, the straight line to the path point may cross a cliff

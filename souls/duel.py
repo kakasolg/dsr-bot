@@ -62,6 +62,7 @@ WAIT_APPROACH_S = 3.0    # wait_far: if it doesn't come WAIT_CLOSE_M closer in t
 WAIT_CLOSE_M = 0.5
 WAIT_HURT_HP = 120.0    # if this much HP is lost while waiting via wait_far — being hit by something other than the tracked (non-swinging) target, stop waiting
 LEDGE_DY = 3.0           # don't lure it if it is this much above or below arena (it won't follow)
+TARGET_DROP_DY = 2.5     # a target more than this below us (or falling) ends the duel 'lost' — = field.FOLLOW_DY (P-69)
 SWING_S = 1.6            # past this since the attack anim started, not considered swinging — except a windup that hasn't landed (swing_over)
 LAND_PAD = 0.2           # a windup (foes.Foe.windup_land_s) counts as landed this long after its measured landing time
 AFTER_SWING_S = 0.6      # rule_after_swing: right after its swing ends, this long to strike ([MoKa] '끝나면 무조건 공격')
@@ -729,6 +730,14 @@ def _sense(F: Fight):
     if now - F.last_dmg_t > STALEMATE_S:
         return F.done("stalemate")
     h, dy, a = M.horiz(p, c), c.y - p.y, (c.anim if c.anim is not None else -1)
+    # ── a target that falls off / is now on a lower level is not one to move toward (P-69) ──
+    #  10-11 174753 zone 1: 254010 fell off the ledge mid-fight (anim 1500, −1.1 → −4.6 m); rule_face_first turned us to it — face()
+    #  turns by pushing the stick, so it walked us over the same ledge (4 m, quit-out; with no fall quit-out now, possibly a death).
+    #  Same reach as Field's chasers (FOLLOW_DY): 'lost' → Field leaves it out for the rest of this walk.
+    if a in M.FALLING or dy < -TARGET_DROP_DY:
+        F.log(f"      {c.npc_param}가 아래로 떨어짐 (높이 {dy:+.1f} m, 애니 {a}) — 따라가지 않음")
+        F.note("목표 떨어짐", s, c)
+        return F.done("lost")
     ranged_cut = [x for x in s.hostile(RANGED_SWITCH_R) if x.ptr != F.ptr and x.hp > 0
                   and foes_.of(x.npc_param).thrower and (x.anim or -1) in M.ATTACK
                   and abs(x.y - p.y) < RANGED_REACHABLE_DY]

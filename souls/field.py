@@ -231,6 +231,7 @@ LURE_TRIES = 3
 LURE_DY = 1.5            # max height diff between throw spot and target / current spot — so we don't jump down to a foe below a cliff (2026-09-24 run 8)
 LURE_ABORT_R = 10.0              # abort throwing if another awake, moving foe is within this
 PICK_TRIES = 3           # A presses to pick up a bloodstain
+ROLL_OFF_DEG = 45.0     # a roll that went this far from where it was aimed is logged (P-73: −30° meant, −126° taken)
 BLOOD_CLEAR_R = 15.0    # pick a stain up only with no living foe this close to me or to the stain, and stop the walk if one
                         # comes this close ([MoKa] 2026-10-12: stains were left alone on purpose — fetching one must not cause a new mistake)
 CAREFUL_LEG = 4.0        # careful_walk_to: walk this far, then stop and look
@@ -565,7 +566,7 @@ class Field:
         p = s.player
         close = [(c.x, c.z, (c.anim or -1) not in M.STAGGER and (c.anim or -1) not in M.DOWNED)
                  for c in s.hostile(escape_.GAP_R + 1.0) if awake(c) and M.horiz(p, c) < escape_.GAP_R and abs(c.y - p.y) < FOLLOW_DY]
-        ok = (lambda dx, dz: True) if nm is None else (lambda dx, dz: nav.ground_ahead(nm, p, dx, dz, reach=2.5))
+        ok = (lambda dx, dz: True) if nm is None else (lambda dx, dz: nav.can_move(nm, p, dx, dz, nav.ROLL_CHECK_M))   # P-73
         return escape_.gap_dir((p.x, p.y, p.z), close, ok, prefer)
 
     def escape_choice(self, nm, s):
@@ -660,7 +661,10 @@ class Field:
             self.log(f"   {why}: {len(stuck_on)}명 붙어 있음 — 빈틈 쪽 ({math.degrees(math.atan2(dx, dz)):+.0f}°)"
                      + (f"으로 약공 {hits}번 뒤" if hits else "으로") + " 구른 뒤 물러남")
             self.events("break_out", hits=hits, foes=len(stuck_on), dir=round(math.degrees(math.atan2(dx, dz))))
-            self.mv.roll_toward(s, p.x + dx * 3.0, p.z + dz * 3.0)
+            rr = self.mv.roll_toward(s, p.x + dx * 3.0, p.z + dz * 3.0) or {}
+            self.events("roll", why="break_out", **rr)
+            if rr.get("off") is not None and rr["off"] > ROLL_OFF_DEG:
+                self.log(f"   {why}: 구르기 방향 어긋남 — {rr['want']}° 대신 {rr['got']}° ({rr['off']}°)")
             s = self.mv.snap(15.0) or s
         if not self.safe(s) and low and not why.endswith("crowd"):   # crowd: fall_back already split them — fight the one that followed
             # no Darksign — like resting it revives every killed foe (user 2026-09-24) and also loses souls and humanity.

@@ -21,6 +21,8 @@ import quitout
 
 ATTACK = range(3000, 3500)       # enemy attack anims (common to DS1 humanoids)
 GUARD_BROKEN = 9600              # guard broken, staggered (after kicking a shield soldier) — an opening
+FALLING = (1500, 1550, 121500)  # falling: 1500 a foe going off a ledge (P-69), 1550 / 121500 our own (watch.FALL_ANIMS)
+HIT_STUN = range(2000, 2100)     # my own hit reactions (2004 in P-73) — a roll pressed in one comes out late
 STAGGER = range(3500, 3600)      # stagger — bounced off my shield etc. **An opening, not an attack** (2026-09-24: treating this as an attack made it just guard for 12 s)
 DOWNED = range(9900, 10000)      # knocked down·lying·getting up (9920 = getting up)
 GETTING_UP = 9920
@@ -511,17 +513,50 @@ class Moves:
         self.pad.move(0.0, 0.0)
         return hit
 
-    def roll_toward(self, s, x: float, z: float) -> None:
-        """Stick that way + tap B = roll (breaking boxes etc.)."""
-        self.pad.move(*self.stick_to(s, x, z))
-        time.sleep(0.3)                                      # time to turn the body
-        self.pad.dodge()
-        t0 = time.time()
-        while time.time() - t0 < 1.2:
-            self.pad.release_due()
-            time.sleep(0.02)
-        self.pad.move(0.0, 0.0)
-        time.sleep(0.2)
+    def roll_toward(self, s, x: float, z: float) -> dict:
+        """Stick that way + tap B = roll. → {'want', 'got', 'off'} — the direction meant and the one taken (degrees, atan2(dx, dz)).
+
+        P-73 (20261012_033444 68.0 s): the stick is camera-relative and was worked out from a snapshot taken before the roll;
+        the camera thread kept turning toward an attacker (−70° → −10° in 0.6 s) while the stick was held, so the roll went
+        −126° instead of −30° — off the ramp, 22.4 m. Now: the camera holds still (cam_busy, as for knife throws) from before
+        the stick is worked out until the roll is under way; the stick comes from a fresh snapshot; wait out a hit stagger
+        first (the 0.3 s turn is lost in it); let go of the stick once the roll starts — the old 1.2 s hold walked ~1 m on
+        after it, past where the floor was checked (nav.ROLL_CHECK_M)."""
+        busy, self.cam_busy = self.cam_busy, True
+        try:
+            time.sleep(0.06)                                 # a camera pulse already going finishes (CamFollow ticks 0.05 s)
+            t0 = time.time()
+            s1 = self.snap(10.0) or s
+            while s1 is not None and (s1.player.anim or -1) in HIT_STUN and time.time() - t0 < 0.8:
+                time.sleep(0.05)
+                s1 = self.snap(10.0) or s1
+            p0 = (s1.player.x, s1.player.z)
+            want = math.degrees(math.atan2(x - p0[0], z - p0[1]))
+            self.pad.move(*self.stick_to(s1, x, z))
+            time.sleep(0.3)                                  # time to turn the body
+            self.pad.dodge()
+            t0 = time.time()
+            while time.time() - t0 < 1.2:
+                self.pad.release_due()
+                s2 = self.snap(10.0)
+                if s2 is not None and s2.player.anim is not None and 700 <= s2.player.anim < 800 and time.time() - t0 > 0.1:
+                    break                                    # rolling — its direction is set
+                time.sleep(0.02)
+            self.pad.move(0.0, 0.0)
+            t0 = time.time()
+            while time.time() - t0 < 0.9:                    # the roll plays out
+                self.pad.release_due()
+                time.sleep(0.03)
+            s3 = self.snap(10.0)
+        finally:
+            self.cam_busy = busy
+        if s3 is None:
+            return {"want": round(want), "got": None, "off": None}
+        dx, dz = s3.player.x - p0[0], s3.player.z - p0[1]
+        if math.hypot(dx, dz) < 0.5:
+            return {"want": round(want), "got": None, "off": None}
+        got = math.degrees(math.atan2(dx, dz))
+        return {"want": round(want), "got": round(got), "off": round(abs((got - want + 180) % 360 - 180))}
 
     # ── Items ───────────────────────────────────────────────
     def estus_id(self) -> int | None:
