@@ -483,6 +483,15 @@ class Missions:
         return (self.mv.tm.goods_count(item) or 0) > 0 and (not callable(quick) or item in (quick() or []))
 
     def _firebomb(self, ptr, tag: str, why: str) -> dict:
+        """One firebomb at ptr — only with the line to it clear: no lock-on without it, and an unlocked firebomb did 0 (8/8,
+        docs/throwables.md). → throw_firebomb's dict, or {"ok": False, "why"} when the line is blocked."""
+        s = self.mv.snap(FB_LEDGE_R + 6.0)
+        c = self.mv.find(s, ptr) if s is not None else None
+        if c is not None and not nav.in_sight((getattr(self, "nms", None) or {}).get(MAP_B),
+                                              (s.player.x, s.player.y, s.player.z), (c.x, c.y, c.z)):
+            self.log(f"   {tag}: 화염병 안 던짐 ({why}) — 직선이 막힘")
+            self.f.events("throw", item="firebomb", why=why, dist=round(M.horiz(s.player, c), 1), blocked="sight")
+            return {"ok": False, "why": "직선이 막힘"}
         r = self.mv.throw_firebomb(ptr)
         self.log(f"   {tag}: 화염병 ({why}) — {r.get('dist')} m, 락온 {r.get('locked')} → 피해 {r.get('hit')}"
                  f"{' | ' + r['why'] if r.get('why') else ''}")

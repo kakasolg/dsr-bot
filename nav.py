@@ -185,6 +185,14 @@ def can_move(terrain, p, dx: float, dz: float, dist: float) -> bool:
     return True
 
 
+def in_sight(terrain, a, b) -> bool:
+    """Point b (feet) in sight from a (feet) — Navmesh.clear_sight. Lock-on needs it: bot lock-on 2–10 m on the way 6/41, every
+    failure with a position had the straight line blocked (docs/throwables.md). True if terrain has no NavMesh geometry
+    (None, test stubs) — not checked."""
+    f = getattr(terrain, "clear_sight", None)
+    return True if f is None else f(a, b)
+
+
 def safe_heading(terrain, p, dx: float, dz: float, reach: float = 1.2):
     """If (dx, dz) has floor, use it; otherwise try turning ±30°/±60°. If none, None (stop).
     Also used when heading straight for a path point — after being pushed off the path in a fight, the straight line to the path point may cross a cliff
