@@ -95,3 +95,24 @@
   소울 300 → 화염병 6개; 목록에 없는 id → `not_sold`; 말 걸기 안 됨 → `no_talk`.
 - 미확인 (게임): 목록 UP(위로) 이동 (지금 표 순서로는 안 씀), 최대 수량, 소울 모자랄 때 화면, 대사 중 A를 누르면 넘어가는지.
 
+
+## [win] 게임 확인 1 (`dc4c0a0`, 2026-10-12): shop_fail — 인사가 여러 줄, 대사 중 A = 다음 줄
+
+`20261012_041218_merchant-buy`, 상인 앞 세이브, `--buy 290:30,292:20 --shop-shots`. 다가가기·바라보기는 됨 (1.88 m, 0°).
+루틴 스크린샷 `data/shop/20261012/20~27_bot_*.jpg`:
+
+| 루틴 단계 | 실제 화면 |
+|---|---|
+| 20 after-greeting (A 뒤 GREET_S 2 s) | 인사 대사 아직 ("Still keeping your marbles all together?") |
+| 21 purchase-item (A) | A가 **다음 대사로 넘김** — "Then, go ahead, don't be a nitwit." |
+| 22 to-290 (DOWN) | "Never hurts to splurge when your days are numbered!" |
+| 23 select-290 (A) | "Nee hee hee hee hee!" |
+| 24 qty-30 (UP ×29) | 이제야 처음 메뉴 (Purchase Item / Talk / Leave) |
+| 25 ok (RIGHT) | 처음 메뉴 그대로 |
+| 26 buy-290 (A) | 이 A로 **구매 목록**이 열림 (커서 1행) |
+| 27 close-shop | 처음 메뉴 |
+
+→ 개수·소울 그대로 → 나갔다 다시 말 걸기 → 두 번째도 그대로 → `shop_fail`. 처음 기록(04 → 05)은 인사 한 줄 + 3.5 s 기다림이라 우연히 맞았음.
+대사 중에도 `menu_open` True라 메모리로는 구분 못 함. 제안: 고정 시간 대신 **화면 확인 뒤 다음 입력** — `quitout._is_screen`처럼
+처음 메뉴(왼쪽 패널 · 주황 선택 막대), 구매 목록("Purchase" 제목), 수량 창(가운데 상자) 기준 이미지. 대사가 남아 있으면 A로 넘기되
+처음 메뉴가 보일 때까지만.

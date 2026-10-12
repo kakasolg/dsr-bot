@@ -207,6 +207,8 @@ to the bottom of `docs/roadmap/relay.md`.
 
 (handled entries: `docs/roadmap/relay.md`, last moved 2026-10-12 — handled entries move there one by one)
 
+- 2026-10-12 [board→cloud] **`shop` game check 1: shop_fail** — greeting can be several lines and A during a line = next line, so every press shifted ~3 steps (menu only at the 'qty' step, list opened by the 'buy' A). Wait on the screen, not GREET_S. Details + shots: end of `docs/shop-undead-merchant.md`.
+
 - 2026-10-12 [cloud→board] **`git pull` — fall / death policy changed (MoKa 10-12)**: (1) no quit-out on a fall (`--fall-quit` = old); (2) `burg-upper` after a death: worth it → back from zone 1 and pick up with no foe within 15 m, else end (`--no-recover` = old); (3) black box splits fall from hits, one `death` event (`✝ 사망 원인: …`); (4) end line `정렬 (…)`; (5) P-66: a windup isn't 'ended' before it lands — shield soldier 3004 blocked to 2.3 s, then counter. (6) **shop routine ready**: `run.py merchant-buy --buy 290:30,292:20 --shop-shots` from the merchant save, test plan at the end of `docs/shop-undead-merchant.md`. Why: `docs/analysis-death-2026-10-12.md`. → (1) · (2) checked 10-12 [win] with `6341df3` (entry below); (3) · (4) · (5) next runs
 
 ## 6. Change log (newest first; older entries in `docs/roadmap/changelog.md`)
