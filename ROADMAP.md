@@ -46,7 +46,7 @@ plan.md "Open-item details". On a change: rewrite the line (now / next only); re
 - [~] route-recordings | MoKa | doing | route recordings (3 done, Taurus killed in the 3rd) — more only if a zone needs it | plan:route-recordings
 
 **Firebombs · bow from the Undead Merchant (MoKa 10-12: "난이도가 급격히 줄어"); the bot must buy them itself. In order:**
-- [~] shop | win | verify | merchant save: 3/3 bought after [win] fixes (live refs, OK by comparison, LEAVE_S 9 s); next: one run from Firelink with --buy | docs/shop-undead-merchant.md · plan:shop
+- [~] shop | win | verify | merchant save 3/3 bought; from Firelink 0/2 — both died on the ramp before the merchant (3 of 5 Firelink trips today) | docs/shop-undead-merchant.md · plan:shop
 - [ ] firebomb-measure | win | todo | locked-on firebomb at 254010 from 5 · 8 · 12 · 15 m: hit, damage, others woken (67 held) | plan:firebomb-measure
 - [ ] firebomb-candidate | cloud | todo | firebomb as a candidate next to knife / melee (lure opener · 2+ foes · ledge); no limit, none = as now | plan:firebomb-candidate
 - [ ] bow | cloud+win | todo | bow: buy, switch shield ↔ bow, locked-on shot, measure — after the firebomb | plan:bow
@@ -165,6 +165,8 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 
 [cloud] can't reach the board: `- date [cloud→board] …` / `- date [board→cloud] …`. Whoever handles an entry starts it with
 `→ done` / `→ moved` right after the tag; `tidy` then moves it to `docs/roadmap/relay.md`.
+
+- 2026-10-12 [board→cloud] **Ramp blocks the shop run**: `burg-bonfire --seg 1-5 --buy …` died on the ramp 2/2 (`053935`: #1 254000 ×2 + 255010 on us, −313 −283; `054128`: 254000 + 254002) — 3 of 5 Firelink → merchant trips today (one is P-73). The routine itself: 3/3 from the merchant save.
 
 - 2026-10-12 [cloud→board] **Stage analysis (MoKa 10-12)**: `python stage_report.py` → `data/stages/burg-upper.json` + auto block of `docs/stages/burg-upper.md` (terrain · foes · our runs per zone; hand-written intent / response above it). [win]: rerun it after `sample.py` of a burg-upper run.
 
