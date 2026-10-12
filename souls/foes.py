@@ -24,6 +24,7 @@ class Foe:
     punish_hits: int | None = None  # light attacks in a stagger (bounced off guard) counter — None = per weapon. 1 for foes with short stagger
     windup: tuple = ()              # attacks that land long after starting — within windup_act_s, kick first to interrupt; beyond it, block
     windup_act_s: float = 1.2
+    windup_land_s: float | None = None   # when the windup lands (s after it starts) — before that duel.swing_over never calls it ended (P-66)
     kick_on_stagger: bool = False   # kick immediately on post-attack stagger (3500) — it soon backs out of reach
     # How to do the early kick under the windup·kick_on_stagger conditions above (Patch D, 2026-09-26):
     #   "off"    — do nothing
@@ -56,10 +57,10 @@ FIREBOMB_HOLLOW = Foe("망자(화염병)", ranged=True, **_HOLLOW,
 #  (LAYA.md 13), fixing it changes those decisions and needs its own runs.
 #  throws=False (P-59, 2026-10-11): rule_shot no longer takes it for a thrower (game 10-11 061145: "원거리 피격 −108: 254001 7.9 m,
 #  애니 −1" while 255010 swung at 1.26 m); lure / waiting still see ranged=True.
-AXE_HOLLOW = Foe("망자(도끼 양손)", ranged=True, throws=False, windup=(3004,), windup_act_s=1.0, **_HOLLOW,
+AXE_HOLLOW = Foe("망자(도끼 양손)", ranged=True, throws=False, windup=(3004,), windup_act_s=1.0, windup_land_s=1.7, **_HOLLOW,
                  note="경사로 #4. 방패 없이 도끼를 양손으로 — 3003 뒤 3004가 1.7 s에 떨어짐, 1.0 s부터 그때까지 막기 유지 (MoKa 2026-10-01)")
 SHIELD = Foe("방패 병사", kind="shield", kick_when_idle=True, circle_behind=False, unblockable=(3009,), punish_hits=1,
-             windup=(3004,), windup_act_s=1.2, kick_on_stagger=True, early_kick="shadow",
+             windup=(3004,), windup_act_s=1.2, windup_land_s=2.1, kick_on_stagger=True, early_kick="shadow",
              note="가만히 서면 방패를 들어 약공이 12 씩만 (6번 쳐도 못 잡음). 가드 올린 채면 발차기로 휘청 (위키). "
                   "내가 가드만 하면 가드 브레이크 3009 로 깨러 온다 (Lua IsTargetGuard) — 2026-09-24 실측: 3009 를 막다 가드가 깨져"
                   "(내 애니 160) 스태미나 42→14, 밀려나 경사로에서 낙사. 3009 는 막지 말고 피한다. "

@@ -240,6 +240,32 @@ def shot() -> None:
     check("rule_shot: … and leave on the second within SHOT_AGAIN_S", out == ("done", "shot") and len(Fi.shots) == 2)
     check("rule_shot is first in RULES (sees every tick)", D.RULES[0] is D.rule_shot)
 
+    # P-66 b (161435 77.3–80.6 s): the shield soldier swung 3004 from 77.3 s, the kick combo ran 78.1–80.6 s (no rule ticks), its
+    # 3004 hit −228 at 78.6 s; at 80.6 s it was staggered (2006) and the hit was read as the bomber's. The swing was seen only by
+    # snapshots read inside the combo — Moves.swung keeps those for rule_shot
+    import time as _time
+    from souls import moves as Mv
+    soldier = lambda a, z=1.7: C(2, 255010, 0.0, z, a)
+    far_bomber = C(5, 254002, 0.0, 16.5, -1, y=10.1)
+    base = _time.time() - 3.3
+
+    def combo_case(shared: bool):
+        m = Mv.Moves.__new__(Mv.Moves)
+        Fi = types.SimpleNamespace(t0=base - 8.0, shot_hp=None, shots=[], swung=m.__dict__.setdefault("swung", {}) if shared else {},
+                                   log=lambda *a: None, note=lambda *a: None, res=D.DuelResult("timeout"), done=lambda r: ("done", r))
+        tick = lambda hp, chars, now: D.rule_shot(Fi, types.SimpleNamespace(
+            s=types.SimpleNamespace(hostile=lambda r, cs=chars: [c for c in cs if math.hypot(c.x, c.z) <= r]),
+            p=types.SimpleNamespace(x=0.0, y=0.0, z=0.0, hp=hp), now=now, c=chars[0]))
+        tick(699, [soldier(3004, 2.4), far_bomber], base)                         # the last rule tick before the combo
+        _time.sleep(0.05)
+        m._note_swings(types.SimpleNamespace(chars=[soldier(3004, 1.5), far_bomber]))   # inside the combo's _watch
+        out = tick(471, [soldier(2006), far_bomber], _time.time() + 1.0)           # the next rule tick, after the combo
+        return out, Fi
+    out, Fi = combo_case(shared=False)
+    check("P-66 b before: a swing seen only inside the combo is lost → the −228 is counted as a shot", out is None and len(Fi.shots) == 1)
+    out, Fi = combo_case(shared=True)
+    check("P-66 b: Moves.swung (every snapshot) keeps it → a melee hit, no shot counted", out is None and Fi.shots == [])
+
 
 def main() -> None:
     pure()
