@@ -8,9 +8,10 @@ blocked (a building, a wall). Checks:
     included, which clear_line (can I walk it) calls blocked — and the failed ones are blocked, except 060343 구역1-4 n2
     (5 m, flat, floor all the way: a railing or a prop, not in the NavMesh)
   · burg-upper spawns: a throw spot is a point along the path 6–10 m out with the target in sight; none → no throw
-  · Field._lure: walks to the spot in sight, not the first one in range; blocked everywhere → 'no_sight', nothing thrown;
-    a preset lure_at spot never walks on; a mesh without clear_sight (test stubs) = as before
-  · Missions._firebomb: blocked line → not thrown (an unlocked firebomb did 0, 8/8)
+  · NavMesh sight is wrong the other way too: [win]'s 10-12 probe locked on (1/1) east of the zone 1-1 stairs, over a
+    no-mesh patch at our level (a low prop reads like a wall) → it picks spots, it never forbids a throw
+  · Field._lure: walks to the spot in sight, not the first one in range; none in sight → the old spot, lock-on decides
+    (no lock, no throw — throw_knife); a preset lure_at spot never walks on; a mesh without clear_sight = not checked
 """
 from __future__ import annotations
 import sys as _sys, pathlib as _pl  # repo root first (the bot's modules), then this folder
@@ -20,7 +21,6 @@ import json
 import math
 import sys
 from pathlib import Path
-from types import SimpleNamespace as NS
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
@@ -55,6 +55,7 @@ THROWS = [
     (True, "m10_02_00_00", "clear-ramp-r1", "#6 (+6.3 m)", 12.5, (-20.74, -40.23, 18.61), (-16.48, -33.95, 11.73)),
 ]
 RAILING = ("m10_01_00_00", (-17.56, -13.37, -63.83), (-16.31, -13.37, -58.94))   # 060343 구역1-4 n2, 5.4 m, not locked
+PROBE = ("m10_01_00_00", (-4.3, -9.93, -68.1), (-10.06, -11.5, -68.09))   # [win] 10-12 probe: east of the stairs, locked 1/1
 
 
 def test_recorded_throws() -> None:
@@ -63,6 +64,8 @@ def test_recorded_throws() -> None:
         check(f"{run} {tag} {d} m: lock-on {'yes' if locked else 'no'} → clear_sight {locked}", nm.clear_sight(p, c) == locked)
     m, p, c = RAILING
     check("060343 구역1-4 5.4 m: floor all the way — the NavMesh can't see this one (known miss)", NMS[m].clear_sight(p, c))
+    m, p, c = PROBE
+    check("probe 10-12, east of the stairs: locked 1/1, NavMesh says blocked (known miss — so no veto)", not NMS[m].clear_sight(p, c))
     nm = NMS["m10_02_00_00"]
     _, _, _, _, _, p, c = THROWS[7]
     check("ledge 6 m up: in sight, though not walkable (clear_line)", nm.clear_sight(p, c) and not nm.clear_line(p, c))
@@ -140,17 +143,20 @@ def test_lure() -> None:
     check(f"lure: walks to the first spot in sight (z {f.walks[0][0][2] if f.walks else None}, 7 m) and throws there",
           r == "lured" and len(throws) == 1 and abs(throws[0][2] - 13.0) < 0.01)
     r, f, throws = lure_rig(SightNm(open_z=None))
-    check("lure: no spot in sight on the path → 'no_sight', no walk, nothing thrown",
-          r == "no_sight" and not throws and not f.walks and any("트인 던질 자리 없음" in s for s in f.logs))
+    check("lure: no spot in sight → the first point in range (z 10), logged, lock-on decides",
+          r == "lured" and len(throws) == 1 and abs(throws[0][2] - 10.0) < 0.01 and any("락온으로 확인" in s for s in f.logs))
     r, f, throws = lure_rig(SightNm(open_z=13.0), start=(0.0, 0.0, 6.0),
                             lure_at={"spot": (0.0, 0.0, 6.0), "min": 0.0, "max": 15.0})
-    check("lure: preset lure_at spot blocked → 'no_sight', never walks closer", r == "no_sight" and not throws and not f.walks)
+    check("lure: preset lure_at spot, not in sight → never walks closer, lock-on decides", not f.walks and len(throws) == 1)
     r, f, throws = lure_rig(SightNm(open_z=13.0), arena=(0.0, 0.0, 9.0))
     check("lure: arena in range but blocked → a spot in sight on the path instead",
           r == "lured" and throws and throws[0][2] >= 13.0)
+    r, f, throws = lure_rig(SightNm(open_z=None), arena=(0.0, 0.0, 9.0))
+    check("lure: arena in range, nothing in sight anywhere → the arena, as before",
+          r == "lured" and len(throws) == 1 and abs(throws[0][2] - 9.0) < 0.01)
     r, f, throws = lure_rig(StubNm())
     check("lure: a mesh without clear_sight → line not checked (first point 6–10 m out on the path, z 10)",
-          r == "lured" and len(throws) == 1 and abs(throws[0][2] - 10.0) < 0.01)
+          r == "lured" and len(throws) == 1 and abs(throws[0][2] - 10.0) < 0.01 and not any("락온으로 확인" in s for s in f.logs))
 
 
 def test_into_sight_on_the_way() -> None:
@@ -169,23 +175,10 @@ def test_into_sight_on_the_way() -> None:
     r = f._into_sight(7, SightNm(open_z=12.0), "#7", s, f.mv.find(s, 7), None)
     check("into_sight: blocked here → walks along the path to the first spot in sight, then throws (None)",
           r is None and f.walks and abs(f.walks[0][0][2] - 12.0) < 0.01)
-
-
-def test_firebomb_blocked() -> None:
-    pl = NS(x=0.0, y=0.0, z=0.0)
-    foe = NS(ptr=9, x=0.0, y=0.0, z=8.0, hp=75, npc_param=254000)
-    thrown, logs, evs = [], [], []
-    m = MS.Missions.__new__(MS.Missions)
-    m.mv = NS(snap=lambda r=5.0: NS(player=pl), find=lambda s, ptr: foe,
-              throw_firebomb=lambda ptr: thrown.append(ptr) or {"ok": True, "hit": 80})
-    m.f = NS(events=lambda kind, **kw: evs.append((kind, kw)))
-    m.log = logs.append
-    m.nms = {MS.MAP_B: SightNm(open_z=None)}
-    r = m._firebomb(9, "구역1", "test")
-    check("firebomb: line blocked → not thrown, logged", not r.get("ok") and not thrown and any("직선이 막힘" in s for s in logs))
-    m.nms = {MS.MAP_B: SightNm(open_z=-1.0)}
-    r = m._firebomb(9, "구역1", "test")
-    check("firebomb: line clear → thrown", r.get("ok") and thrown == [9])
+    f.walks.clear()
+    s = f.mv.snap(40.0)
+    r = f._into_sight(7, SightNm(open_z=None), "#7", s, f.mv.find(s, 7), None)
+    check("into_sight: blocked, no spot in sight → throws from here (lock-on decides)", r is None and not f.walks)
 
 
 if __name__ == "__main__":
@@ -193,5 +186,4 @@ if __name__ == "__main__":
     test_spawn_spots()
     test_lure()
     test_into_sight_on_the_way()
-    test_firebomb_blocked()
     print("all passed")

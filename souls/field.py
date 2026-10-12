@@ -973,22 +973,24 @@ class Field:
         d_arena = math.dist(tuple(arena), goal) if arena is not None else None
         if lure_at and lure_at.get("spot"):
             spot = tuple(lure_at["spot"])
-        elif d_arena is not None and LURE_MIN <= d_arena <= LURE_MAX and nav.in_sight(nm, tuple(arena), goal):
-            spot = tuple(arena)
         else:
-            # flat ground too close (#1: 5 m — walking there just wakes it) or too far, or no line of sight from the arena →
-            # first point on the path within LURE_R with the target in sight
-            path = nm.find_path(here, goal)
-            if not path:
-                return "no_path"
-            spot = self._sight_spot(nm, path, goal, LURE_R)
+            # A clear line first (lock-on needs one): the arena if the target is in sight from there, else the first point along
+            # the path LURE_MIN–LURE_R out with it in sight. NavMesh sight is a preference, not a veto — it can't tell a low prop
+            # from a wall (10-12 probe: locked 1/1 over a no-mesh patch it calls blocked), so with no spot in sight the old one
+            # (arena in range, else the first point in range) stays and lock-on decides — no lock, no throw (throw_knife).
+            arena_ok = d_arena is not None and LURE_MIN <= d_arena <= LURE_MAX
+            spot = tuple(arena) if arena_ok and nav.in_sight(nm, tuple(arena), goal) else None
             if spot is None:
-                # foes below/above a cliff have no throw spot — take the usual path (run 8: jumped down to #2 below the cliff)
-                near = self._sight_spot(nm, path, goal, LURE_R, sight=False)
-                if near is not None:
-                    self.log(f"   {tag}: 길 위 {LURE_R:.0f} m 안에 직선이 트인 던질 자리 없음 — 안 던진다")
-                    return "no_sight"
-                return "no_spot"
+                path = nm.find_path(here, goal)
+                spot = self._sight_spot(nm, path or [], goal, LURE_R)
+                if spot is None:
+                    spot = tuple(arena) if arena_ok else self._sight_spot(nm, path or [], goal, LURE_R, sight=False)
+                    if spot is not None and hasattr(nm, "clear_sight"):
+                        self.log(f"   {tag}: 직선이 트인 던질 자리 없음 (NavMesh) — 락온으로 확인")
+                if spot is None:
+                    # flat ground too close (#1: 5 m — walking there just wakes it) or too far, or foes below/above a cliff —
+                    # take the usual path (run 8: jumped down to #2 below the cliff)
+                    return "no_spot" if path else "no_path"
         if math.dist(here, spot) > (HOLD_SPOT_TOL if lure_at else 1.5):
             r = self.walk_to(spot, nm, f"{tag} 던질 자리로", tol=HOLD_SPOT_TOL if lure_at else None) \
                 if math.dist(here, spot) > 1.5 else "arrived"
@@ -1035,7 +1037,8 @@ class Field:
                     return "dead"
                 path = nm.find_path((s.player.x, s.player.y, s.player.z), (c.x, c.y, c.z)) if (s := self.mv.snap(5.0)) else None
                 closer = max(LURE_MIN, c.dist - 4.0)       # (was `want` — the knife-hit count, which made the rest of the loop count hits)
-                nxt = next((q for q in self._sight_spots(nm, path or [], (c.x, c.y, c.z), closer) if abs(q[1] - s.player.y) <= LURE_DY), None)
+                nxt = next((q for sight in (True, False) for q in self._sight_spots(nm, path or [], (c.x, c.y, c.z), closer, sight)
+                            if abs(q[1] - s.player.y) <= LURE_DY), None)   # a point in sight if there is one
                 if nxt is None:
                     return "no_spot"
                 self.log(f"   {tag}: 락온 안 걸림 — {closer:.0f} m 까지 다가감")
@@ -1086,29 +1089,24 @@ class Field:
         return next(self._sight_spots(nm, path, goal, reach, sight), None)
 
     def _into_sight(self, ptr, nm, tag: str, s, c, lure_at) -> str | None:
-        """Right before a throw: target not in sight from here → walk along the path to the first spot it is (not from a preset
-        lure_at spot — those never go closer). → None (in sight, throw) | 'no_sight' | 'dead' | 'lured' (woke on the way)"""
+        """Right before a throw: target not in sight from here (it moved, or we stopped short) and a spot in sight along the
+        path → walk there first. Not from a preset lure_at spot (those never go closer). No such spot → throw from here and
+        let lock-on decide (NavMesh sight misses low props). → None (throw) | 'dead' | 'lured' (woke on the way)"""
         here, at = (s.player.x, s.player.y, s.player.z), (c.x, c.y, c.z)
-        if nav.in_sight(nm, here, at):
+        if lure_at or nm is None or nav.in_sight(nm, here, at):
             return None
-        nxt = None if lure_at or nm is None else self._sight_spot(nm, nm.find_path(here, at) or [], at, LURE_R)
+        nxt = self._sight_spot(nm, nm.find_path(here, at) or [], at, LURE_R)
         if nxt is None or math.dist(nxt, here) < 1.0:
-            self.log(f"   {tag}: {c.dist:.1f} m 직선이 막힘 — 락온이 안 걸리니 안 던진다")
-            self.events("lure", tag=tag, dist=round(c.dist, 1), why="no_sight")
-            return "no_sight"
-        self.log(f"   {tag}: {c.dist:.1f} m 직선이 막힘 — 트인 자리로 {math.dist(nxt, here):.1f} m")
+            self.log(f"   {tag}: {c.dist:.1f} m 직선이 막힘 (NavMesh), 트인 자리 없음 — 락온으로 확인")
+            return None
+        self.log(f"   {tag}: {c.dist:.1f} m 직선이 막힘 (NavMesh) — 트인 자리로 {math.dist(nxt, here):.1f} m")
+        self.events("lure", tag=tag, dist=round(c.dist, 1), why="sight_move")
         if self.walk_to(nxt, nm, f"{tag} 트인 자리로") == "dead":
             return "dead"
-        s2 = self.mv.snap(SEEK_R)
-        c2 = self.mv.find(s2, ptr)
+        c2 = self.mv.find(self.mv.snap(SEEK_R), ptr)
         if c2 is None or c2.hp <= 0:
             return "dead"
-        if not self._asleep(ptr):
-            return "lured"
-        if not nav.in_sight(nm, (s2.player.x, s2.player.y, s2.player.z), (c2.x, c2.y, c2.z)):
-            self.log(f"   {tag}: 트인 자리에서도 막힘 — 안 던진다")
-            return "no_sight"
-        return None
+        return None if self._asleep(ptr) else "lured"
 
     def _emergency(self) -> bool:
         """About to die — HP under 35 % and no estus (condition for firebombs, user: 'bombs are better than dying')."""

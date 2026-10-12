@@ -507,7 +507,9 @@ class Navmesh:
         inside a building or a wall; only floor above it = through a ledge or under a structure. Floor far below (a drop, the
         ramp under the ledge) doesn't block. Unlike clear_line (can I walk it) a ledge 6 m up is in sight.
         Recorded knife throws with both positions (tests/sight_test.py, 12 runs): all 30 locked ones pass, 5 of the 6 failed
-        ones are blocked; the sixth (5 m, flat, floor all the way) is a railing or a prop — not in the NavMesh (collision-mesh)."""
+        ones are blocked; the sixth (5 m, flat, floor all the way) is a railing or a prop. Wrong the other way too: [win]'s
+        10-12 probe locked on (1/1) over a 3.5 m no-mesh patch between two floors at our level — a low prop reads the same as
+        a wall. So it picks spots (field._lure), it doesn't forbid throws; the real answer is the collision mesh."""
         p0, p1 = np.asarray(p0, float), np.asarray(p1, float)
         d = float(np.linalg.norm(p1[[0, 2]] - p0[[0, 2]]))
         n = max(2, int(d / step))
