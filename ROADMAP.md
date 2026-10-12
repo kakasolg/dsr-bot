@@ -45,7 +45,7 @@ zone 8 crossbowmen (P-47).
 
 - [~] [cloud]+[win] **Alignment first (MoKa 10-11: high priority)** — attack target · character facing · camera in one line (MoKa 10-01: "alignment decides whether a move works"). Facing |각| ≤ 30° in 75–95 % of fight lines; P-65 one look order (`20dd7ae`): 1 run camera ≤ 10° fight 89 % / out of fight 87 %. 10-12 [cloud] measure in (record only): `align` event 2 Hz (src · body · cam · lock), `attack_align` per press (+ damage), end line `정렬 (…)`; [win]: runs, read that line
 - [~] [win] Taurus: `run.py taurus` (`souls/taurus.py`) — plunge loop (MoKa 10-12). 10-12 **full run bonfire → zones 1–8 → Taurus killed** (`004844` + `005650`: 3 plunges −531 −531 −153, HP 19 %); other two full runs died in zone 5 / 8. guide + data: `docs/boss-taurus.md`
-- [ ] [win] **Fall / death policy (MoKa 10-12)** — `burg-upper` full runs: falls `⚠ 낙하 … 퀵 종료 안 함` (no freeze; flee or fight where we land), after a death `══ 사망 뒤 (구역 n): recover / ignore / stop`, `핏자국 회수 (구역 n): got`; `risk_report` `낙하×n`. P-71 / P-72
+- [~] [win] **Fall / death policy (MoKa 10-12)** — 10-12 3 full runs: (1) · (2) seen, findings in Relay; (3) · (4) next runs. P-71 / P-72
 - [ ] [cloud]+[win] Boss fight default = two-handed + dodging (9-30 principle); Taurus is the first case (the general boss module is v2.0)
 - [ ] [cloud] Firebomb hollow "close in fast" rule — unless the way there is a fall-risk zone (ledge 254012 is ignored) → check with `duel_golden_test`
 - [~] [win] Zone-by-zone bot runs; after each: `blind_report.py` · `hotspots.py` · `track_report.py`, logs to `data/samples/`
@@ -207,7 +207,9 @@ to the bottom of `docs/roadmap/relay.md`.
 
 (handled entries: `docs/roadmap/relay.md`, last moved 2026-10-12)
 
-- 2026-10-12 [cloud→board] **`git pull` — fall / death policy changed (MoKa 10-12)**: (1) no quit-out on a fall — only `⚠ 낙하 … 퀵 종료 안 함` + event `fall`, pad stays with the bot (old way: `--fall-quit`). (2) `burg-upper` after a death: stain souls ≥ 2000 or humanity ≥ 2 → from zone 1 again, pick it up on the way (only with no foe within 15 m of the bot or the stain); less → end; died again in the same zone → end (`--no-recover` = old). (3) record only: black box splits fall from hits, one `death` event per death (`✝ 사망 원인: …`). (4) alignment record: end line `정렬 (몸 30° · 카메라 10° 또는 락온): …`. (5) P-66: a windup isn't 'ended' before it lands — shield soldier 3004 blocked to 2.3 s, then counter. Watch `══ 사망 뒤`, `핏자국 회수`. Why: `docs/analysis-death-2026-10-12.md` (P-71, P-72). `sample.py` now also copies the events `<run>.jsonl` (`death_seen` / `fall` / `after_death` reach [cloud] only that way).
+- 2026-10-12 [cloud→board] **`git pull` — fall / death policy changed (MoKa 10-12)**: (1) no quit-out on a fall (`--fall-quit` = old); (2) `burg-upper` after a death: worth it → back from zone 1 and pick up with no foe within 15 m, else end (`--no-recover` = old); (3) black box splits fall from hits, one `death` event (`✝ 사망 원인: …`); (4) end line `정렬 (…)`; (5) P-66: a windup isn't 'ended' before it lands — shield soldier 3004 blocked to 2.3 s, then counter. Why: `docs/analysis-death-2026-10-12.md`. → (1) · (2) checked 10-12 [win] with `6341df3` (entry below); (3) · (4) · (5) next runs
+
+- 2026-10-12 [board→cloud] **Fall / death policy, 3 full runs (`6341df3`)**: #1 zones 1–8 + Taurus killed; #2 · #3 died in zone 5 → `recover` → died again in zone 4 on the way, stain lost → `ignore`. (a) pickup tried after zones 1–3, long before the stain's zone → `foes_near`; [MoKa] 10-12: "죽은 후 다음 시도에서 근처를 다 정리해서 쉽게 회수가 가능하다면 해도 되긴 해" → only after its zone is cleared? (b) Taurus plunges (`quit_ok` off) logged as `fall` → 낙하×2. `data/samples/20261012_02*`, `…_030444*`
 
 ## 6. Change log (newest first; older entries in `docs/roadmap/changelog.md`)
 
