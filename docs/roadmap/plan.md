@@ -365,6 +365,7 @@ game에서만 확인할 수 있는 것 — 오프라인으로는 확인 못 함,
 
 캐릭터: 프로젝트 목표가 "레벨·장비 최소로 깨기"라 **레벨업을 적게 한 상태가 기본** — 2026-10-06 [MoKa] 결정: 10-03 성벽 마을 화톳불 세이브(레벨업 안 한 산적, 배틀 액스)로 한다. 레벨업 많이 한 캐릭터는 위 백업에 있음. 세이브 파일 하나에 모든 캐릭터가 있으니 바꾸기 전에 늘 백업.
 - [x] [win] Zone 8: at the ladder top **roll twice** away from the two crossbowmen, then fight (MoKa 10-06) → P-47 — [cloud] done offline 10-11 (`roll` before-step: two rolls east toward F9#8, the landing = safe spot / tether); game check `run.py burg-upper --seg 8`, log `구르기 1/2 → +91° (F9 쪽)` · `구른 자리 … 를 안전 자리로` — 2026-10-11 [win] 게임 확인 (`20261011_171918`): 사다리 꼭대기 y 24.8 → `구르기 1/2 → +90° (F9 쪽)` · `2/2` → `구른 자리 (55.8,23.7,-119.9)를 안전 자리로` 그대로 나옴. 석궁 둘은 2.7~3.3 m로 따라와 그 뒤 싸움에서 사망 → P-66 '다시 나옴'
+- [x] [win] Record the merchant's menus (talk → shop list order · prices → quantity → confirm), video or radar + screenshots — 2026-10-12 [win] `docs/shop-undead-merchant.md` + 19 screenshots `data/shop/20261012/`: knife 290 ×30, firebomb 292 ×20 bought, ids confirmed; quantity box defaults to CANCEL
 
 ## 1-f. 모퉁이에서 일찍 꺾기 · 제자리 비비기 · 뒤돌기 (2026-09-28 [사람] 관찰)
 

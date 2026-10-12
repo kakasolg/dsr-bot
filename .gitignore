@@ -22,6 +22,8 @@ data/routes/*
 !data/routes/asylum-fresh.json
 !data/gamefiles/
 !data/samples/
+# shop / menu screenshots (pad_step.py, docs/shop-undead-merchant.md) — 960 px JPEGs, the record [cloud] builds menu routines from
+!data/shop/
 # floor map: positions where the bot / demos stood (ground.py build — rebuilt from data/samples, small npz)
 !data/walked/
 data/samples/*.diff

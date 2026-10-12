@@ -52,9 +52,8 @@ zone 8 crossbowmen (P-47).
 - [~] [MoKa] Recordings of the route (3 done, Taurus killed in the 3rd) — more only if a zone needs it
 
 **Firebombs · bow from the Undead Merchant (MoKa 10-12: "난이도가 급격히 줄어"); the bot must buy them itself. In order:**
-- [ ] [win] Record the merchant's menus (talk → shop list order · prices → quantity → confirm), video or radar + screenshots
 - [ ] [cloud] `shop` buy routine: talk, pick, quantity, confirm; checked by souls ↓ and count ↑ — then [win] tests it in game
-- [ ] [win] Locked-on firebomb at 254010 from 5 · 8 · 12 · 15 m: hit, damage, others woken; confirm id 292
+- [ ] [win] Locked-on firebomb at 254010 from 5 · 8 · 12 · 15 m: hit, damage, others woken; id 292 = Firebomb (shop, 10-12); 67 held
 - [ ] [cloud] Firebomb as a candidate (lure opener · 2+ foes · ledge 254012) next to knife / melee; no limit — use while any are left, none = play as now; golden + expect
 - [ ] [cloud]+[win] Bow: buy, switch shield ↔ bow, locked-on shot, measure — after the firebomb
 - [ ] [cloud] NPC interaction (MoKa 10-12: getting important): talk / shop / later quests as one module; the merchant is the first case
@@ -207,6 +206,8 @@ whoever moves or handles an entry adds `→ moved` / `→ done` (old entries: `[
 to the bottom of `docs/roadmap/relay.md`.
 
 (handled entries: `docs/roadmap/relay.md`, last moved 2026-10-12)
+
+- 2026-10-12 [board→cloud] **Shop recorded** (`docs/shop-undead-merchant.md`): NPC 251001, talk needs facing; knife row 2 (10), firebomb row 3 (50); quantity UP +1, **default CANCEL** (RIGHT → OK); B ×2 leaves. Bought 290 ×30, 292 ×20. Ready for `shop`.
 
 - 2026-10-12 [cloud→board] **`git pull` — fall / death policy changed (MoKa 10-12)**: (1) no quit-out on a fall (`--fall-quit` = old); (2) `burg-upper` after a death: worth it → back from zone 1 and pick up with no foe within 15 m, else end (`--no-recover` = old); (3) black box splits fall from hits, one `death` event (`✝ 사망 원인: …`); (4) end line `정렬 (…)`; (5) P-66: a windup isn't 'ended' before it lands — shield soldier 3004 blocked to 2.3 s, then counter. Why: `docs/analysis-death-2026-10-12.md`. → (1) · (2) checked 10-12 [win] with `6341df3` (entry below); (3) · (4) · (5) next runs
 
