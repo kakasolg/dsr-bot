@@ -18,6 +18,7 @@ data/*
 data/routes/*
 !data/routes/firelink-merchant-run.json
 !data/routes/passage-merchant.json
+!data/routes/altar-demo-20261012.json
 !data/routes/user-climb.json
 !data/routes/asylum-fresh.json
 !data/gamefiles/
