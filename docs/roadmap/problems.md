@@ -49,6 +49,7 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
 | 60 | After a body pull, `unsafe_approach` 0 s fights opened and closed 24× in 1.4 s (no guard) | fixed — game 10-11: 1–2 per run, no loop |
 | 61 | `scene_replay` plays a `rule_shot` scene as `after_swing`: scenes keep chars ≤ 15 m, the thrower was 18–19 m (`SHOT_SCAN_R` 25) | fixed — `scenes.CHAR_R` 25 m (= `SHOT_SCAN_R`), next runs' scenes |
 | 62 | `risk_report` counts escape.pick back-offs (`ev: escape`) as quit-outs (강종) → clean runs read '위험' | fixed — back-off logs `escape_pick`; `risk_report` skips old `escape` rows with `src` |
+| 76 | `altar-burg`: ladder A missed, fell 10 m | fixed — 10-13 2/2 ladder down, no fall |
 
 ### P-1 오프라인 테스트가 Linux에서 실행 안 됨 (2026-09-27, [cloud], 1번)
 - 증상: `field_*_test.py` 등이 `ModuleNotFoundError: pymem`, 이어서 `vgamepad`, `KeyError: 'TEMP'`로 실패
@@ -885,6 +886,7 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
   '내려감'으로 판정해 낙하를 성공으로 셈. 턱 되돌림(`esc.nudge_ok`)도 사다리 입구를 턱으로 읽고 당김.
 - 고침 (2026-10-12 [win]): A 뒤 1.5 s 안에 사다리 애니(7000–7099)가 보일 때만 스틱 아래, 아니면 자리 다시 잡고 A (3번까지).
   사다리 동안 `esc.nudge_ok = False`, `esc.planned = "사다리 내려가기"`. 상태: verify (다음 `altar-burg` 런).
+- 2026-10-13 [win] 게임 확인: `altar-burg` 2번(043024 · 3번째) 모두 사다리 내려감 (y −10.0), 낙하 0, 위험 판정 깨끗, 최저 HP 100 %. 상태: fixed.
 
 ### P-77 걷기 중 몸이 아예 안 움직이는데 '거의 도착'으로 점을 넘기며 15 s timeout을 반복 — 100 s 넘게 같은 자리 (2026-10-12, [win] 기록 분석)
 

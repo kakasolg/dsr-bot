@@ -52,7 +52,7 @@ needing the tick loop, route data, settings object or WorldState.
 
 - [~] altar-route-rec | MoKa | doing | demo 1 read (§2-b); next: what calls the landing? | stages/burg-to-altar.md
 - [ ] claymore-grip | MoKa | decide | STR 16 = one-hand OK (154037); two-hand? default? | stages/burg-to-altar.md
-- [~] altar-mission | win | verify | `altar` 1/1 ok, `altar-burg` P-76; Claymore tests | stages/burg-to-altar.md
+- [~] altar-mission | win | verify | `altar` 3/3 arrived (Hellkite lands 21.5 s, leaves ~11 s; first breath −183 every run), `altar-burg` 2/2 clean after P-76 fix | stages/burg-to-altar.md
 
 ## 2. v1.0 — open by area
 
@@ -163,7 +163,6 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 73 | Ramp #5: low_hp break-out roll went −126° instead of −30° (camera turned during the roll) → 22.4 m fall | verify — camera held during rolls, fresh stick, `nav.can_move` |
 | 74 | Zone 2-1: two foes on us 13 m out; tether cut at tick 0 three times, guard walk back timed out → 37 s, −1565 | verify — no cut with a foe < 2.5 m; failed way back ends it; back-offs within 8 m |
 | 75 | Zone 2-2: run-in read a target 30.5 m out as 'met' (30 m snapshot) → walk-out / tether loop 3×, 35 s | verify — missing target checked wide |
-| 76 | `altar-burg`: ladder A missed, fell 10 m | verify |
 | 77 | Walk stalls with the body not moving (~160 s, ~110 s); almost-arrived skips can't help | open |
 | 78 | Zone 4-1: backstab try between 254010 + 254011 → not_behind, 6 s, −452, then no retreat spot → died | open |
 | 79 | Death on the walk to the bonfire (`화톳불로`): no stain decision, walks back into the same foes | open |

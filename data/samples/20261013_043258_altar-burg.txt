@@ -1,0 +1,22 @@
+[    0.0] run 20261013_043258_altar-burg · code d2341a1 · altar-burg --radar --ctl-scenes --note altar-burg run 3 · settings 3cdc0742 · note altar-burg run 3
+[    0.0] ctl: 기록만 → D:\dev\dsr-bot\data\runs\20261013_043258_altar-burg.ctl.jsonl
+[    0.0] ctl scenes: 싸움 결정마다 그 순간의 입력 기록 (scene_replay.py 로 다시 돌림, 판단엔 반영 안 함)
+[    0.3] radar: sending — python radar_server.py -> http://127.0.0.1:47801, python overlay.py
+[    7.9]    물건 비켜 가기 (지난 실행에서 2번 이상 부숨): o1130_13 o1132_06 o1150_01 o1321_0021
+[    8.9] 무기: 클레이모어 (약공 2연타, 닿는 거리 1.8 m, 강공 안 씀)
+[    8.9] 스타일: guard
+[    8.9] 캐릭터: SL 20 VIT 18 END 14 STR 16 DEX 17 | 반지 147,-1 왼손 1462000
+[    9.0]    시작: 헬카이트 (20.6, 18.9, -29.0) 애니 7006
+[   24.6]    계단 아래로: arrived
+[   29.7]    사다리 위로: arrived
+[   39.6]    사다리 내려감 (y -10.0)
+[   41.3]    성벽 마을 화톳불로: arrived
+[   41.3] ══ 제단 → 성벽 마을 화톳불: arrived
+[   41.3] ══ 결과: arrived
+[   41.3] 카메라 정렬: 기록 없음
+[   41.3] 정렬 (몸 30° 또는 락온): 기록 없음
+[   41.3] 가드 유지: 휘두르는 적 2.5 m 안에서 방패 직접 듦 0번
+[   41.4] ctl scenes: scenes kept 0, errors 0, capture 0 ms total
+[   41.4] ══ 위험 판정: 깨끗  (결과 arrived, 최저 HP 100%, 큰 피격 0번 -0)  
+[   41.4] 실행 설정 기록: 20261013_043258_altar-burg.settings.json
+[   41.4] 텔레메트리 피드: {'frames': 2095, 'read_ms': 5.3, 'fresh': 4384, 'waited': 16, 'direct': 535, 'none': 0, 'stale': 0}
