@@ -52,7 +52,6 @@ needing the tick loop, route data, settings object or WorldState.
 
 - [~] altar-route-rec | MoKa | doing | demo 1 read (§2-b); next: what calls the landing? | stages/burg-to-altar.md
 - [ ] claymore-grip | MoKa | decide | STR 16 = one-hand OK (154037); two-hand? default? | stages/burg-to-altar.md
-- [ ] claymore-measure | win | todo | air swings light + thrust (`swing_probe.py`); reach: black box | stages/burg-to-altar.md
 - [~] altar-mission | win | verify | `altar` 1/1 ok, `altar-burg` P-76; Claymore tests | stages/burg-to-altar.md
 
 ## 2. v1.0 — open by area

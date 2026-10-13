@@ -106,11 +106,16 @@ BATTLE_AXE = Weapon("배틀 액스", 701000, reach=1.6, combo=2, use_heavy=False
 # **not yet measured** — reach 1.8, combo 2, sp_min 60 are first values from the wiki. Re-measure with reach.py on whiffs.
 # air-swing measurement (2026-09-25, anim 253000→253001): blade connects (stamina −30) at 0.68 s, one swing ends at 1.46 s. Second R1 pressed at 0.45 s
 # was **ignored, only one swing** (user: "guard and attack timing are off"); at 0.8 s it chains, second connects 1.65 s, ends 2.40 s.
+# ── 실측 2026-10-13 [win] (experiments/swing_probe.py, 불의 제전 마당, LB 든 채 = 봇이 치는 방식) ──
+#  약공 6번: 스태미나 떨어짐 0.672–0.684 s (startup 0.68 그대로), 칼날(+0xA0 5/257) 0.675 → 0.845 s (active 0.17), idle 1.39–1.40 s
+#  → recovery 0.55 (예전 0.62는 LB 없이 잰 1.46 s 끝). 강공(찌르기) 4번: 칼날 0.76 → 0.95 s, 스태미나 0.795 s, 끝 1.50 s.
+#  한 번 휘두를 때마다 앞으로 꽤 나감 (8번에 바닥 끝까지 — 계단·턱 옆에서 휘두르기 조심).
+#  닿는 거리 (블랙박스 7런, experiments/knife_hits.py 253000–253999): 1.8 m 9/14 · 2.0 m 6/15 · 2.2 m 3/8 · 2.4 m 3/19 맞음 → 1.8 그대로
 CLAYMORE = Weapon("클레이모어", 301000, reach=1.8, combo=2, use_heavy=False, two_hand=False, str_req=16, sp_min=60,
-                  startup=0.68, active=0.16, recovery=0.62, max_dur=200, heavy_punish=False,
+                  startup=0.68, active=0.17, recovery=0.55, max_dur=200, heavy_punish=False,
                   # heavy_punish off (2026-09-25): 2 thrusts in a shield soldier's stagger window = 0 dmg (took 87) and 36 — kick + light in the same window 79~85.
                   # the stagger seems to wear off during the 0.76 s startup
-                  note="한손 약공 가로 베기 2연타(옆 적도 맞는다 — 사용자). 강공(찌르기)은 아직 안 씀. reach 는 실측 전")
+                  note="한손 약공 가로 베기 2연타(옆 적도 맞는다 — 사용자). 강공(찌르기)은 아직 안 씀. 타이밍·닿는 거리 실측 2026-10-13")
 
 # Bandit's Knife 103000 (dagger). user (2026-09-28): switched to it for backstabs/ripostes (big critical damage).
 # Wiki: STR 6 / DEX 12 required, light is a quick short slash, cheap on stamina, critical 110 (highest among daggers besides Priscilla's).
