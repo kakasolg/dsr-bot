@@ -167,6 +167,9 @@ RETREAT_GUARD_R = 4.0    # retreat: shield up while an awake foe is within this 
 SMASH_TRIES = 2          # swings (x2 attacks) per blocking prop per walk — a prop that won't break isn't hit forever
 SMASH_WALK_S = 2.0       # s to step up to it
 SMASH_R = 1.3            # m — light attack reach from the prop's origin
+SMASH_NPC_R = 3.0        # m — a non-hostile character (merchant …) this close to us or the prop: don't swing (P-82)
+# friendly NPCs by npc_param — team doesn't tell them apart: the Undead Merchant reads team 6 (= hostile) before anyone hits him
+FRIENDLY_NPCS = {251001}   # Undead Merchant (souls/shop.UNDEAD_MERCHANT)
 SMASH_FACE_S = 1.2       # s to turn toward it
 SMASH_SWING_S = 0.7      # s per light attack
 REPAIR_FRAC = 0.4        # repair powder when weapon durability is below this fraction of max (field.repair)
@@ -217,6 +220,18 @@ def plain_nm(nm):
         return nm
     base = getattr(nm, "nm", None)
     return base if hasattr(base, "floor_at") else nm
+
+
+def npc_near(s, me, pos):
+    """A live friendly NPC (FRIENDLY_NPCS — the merchant 251001 …) within SMASH_NPC_R of me or of pos, or None (P-82)."""
+    if s is None:
+        return None
+    for c in getattr(s, "chars", ()):
+        if c.npc_param not in FRIENDLY_NPCS or (c.hp or 0) <= 0:
+            continue
+        if min(math.hypot(c.x - me[0], c.z - me[2]), math.hypot(c.x - pos[0], c.z - pos[2])) < SMASH_NPC_R:
+            return c
+    return None
 
 
 def awake(c) -> bool:
@@ -1931,6 +1946,14 @@ class Field:
         prop = next((o for o in props_.blocking(getattr(nm, "map_id", None), me, goal)
                      if smashed.get(o["name"], 0) < SMASH_TRIES), None)
         if prop is None:
+            return False
+        npc = npc_near(self.mv.snap(10.0), me, prop["pos"])
+        if npc is not None:
+            # ── NPC 옆에선 휘두르지 않음 (P-82, 2026-10-13 상인 사망) ──────────────────────
+            #  merchant-buy: 망자 상인(251001) 몸에 막힌 걸 옆 상자 o1129 탓으로 읽고 약공 → 상인이 맞고 적대 → 봇이 상인을 죽임 (되돌릴 수 없음).
+            #  아는 NPC(FRIENDLY_NPCS — 팀 값으론 구분 안 됨, 상인도 team 6)가 나나 그 물건 SMASH_NPC_R 안이면 부수지 않음 — 막힌 건 대개 그 몸
+            self.log(f"      {tag}: 앞길 {prop['model']} 옆에 NPC {npc.npc_param} ({npc.dist:.1f} m) — 부수지 않음")
+            smashed[prop["name"]] = SMASH_TRIES
             return False
         smashed[prop["name"]] = smashed.get(prop["name"], 0) + 1
         self.log(f"      {tag}: {why or '막힘'} — 앞길에 {prop['model']} ({prop['name']}, {math.dist(me, prop['pos']):.1f} m)")

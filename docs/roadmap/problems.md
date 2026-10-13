@@ -933,3 +933,12 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
 - 원인: P-69 고침(`f2333dc`)의 `dy < −TARGET_DROP_DY` — 처음부터 아래층에 선 적도 '떨어짐'. 10-12 전 구역 5는 cleared 5/9.
 - 고침 (2026-10-13 [win]): 떨어짐 = 그 적 자신의 높이가 싸움에서 처음 본 뒤 2.5 m 넘게 내려감(또는 낙하 애니). expect `p69-target-below` 라벨을
   바꿈(cloud 라벨 → 처음부터 아래면 싸움 계속). 상태: verify. 턱 되돌림 반복(싸움 중 1 s마다, 가드 내림)은 따로 남음 — open.
+
+### P-82 상점 가는 길: 상인 몸에 막힌 걸 옆 상자 탓으로 읽고 휘둘러 상인을 때림 → 적대 → 봇이 망자 상인을 죽임 (2026-10-13, [win])
+
+- 증상: `data/samples/20261013_023316_merchant-buy_merchant-killed.txt` — 구역 1 정리 뒤 `merchant-buy --buy 290:30`. 37.5 s `막힘 감지 — 앞길에 o1129
+  (0.8 m)` → 39.1 s `길 막은 o1129 부숨 시도 (−38.6,−19.8,−67.3)` — 상인 251001이 (−38.0,−19.8,−66.5)에 서 있었음 → 상인 적대(3002) −122 →
+  `따라온 251001: killed`(준 피해 277) → 상점 `no_talk`. 망자 상인은 이 회차에서 다시 안 나옴 — 되돌릴 수 없음 (세이브 복원은 MoKa 결정).
+- 원인: `Field._smash_blocking`이 막힘을 앞길 부서지는 물건 탓으로만 봄. NPC 몸이 막은 경우를 몰랐음. 상인은 맞기 전에도 team 6(적과 같은 값)이라 팀으로는 구분 안 됨.
+- 고침 (2026-10-13 [win]): `field.npc_near` — 아는 NPC(`FRIENDLY_NPCS = {251001}`)가 나나 그 물건 3 m 안이면 부수지 않음(`tests/smash_npc_test.py`).
+  남은 것: 다른 NPC id 추가, 싸움 목표 고르기에서도 NPC 빼기(지금은 맞기 전엔 깨어 있지 않아 안 노렸던 것뿐). 상태: verify.
