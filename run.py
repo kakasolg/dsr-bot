@@ -127,6 +127,7 @@ def main() -> None:
     ap.add_argument("--shop-shots", action="store_true", help="상점 단계마다 스크린샷 data/shop/<날짜>/ (pad_step.py처럼)")
     ap.add_argument("--no-guard-keep", action="store_true", help="가드 유지 스레드 끔 (souls/guardkeep.py — 2.5 m 안 적이 휘두르는 동안 LB 유지; A/B 비교용)")
     ap.add_argument("--dists", default="5,8,12,15", help="firebomb-probe: 254010까지 거리들 (m)")
+    ap.add_argument("--fb-target", default="hollow", choices=["hollow", "crossbow"], help="firebomb-probe: 구역 1 첫 망자 또는 석궁병 255002")
     ap.add_argument("--no-recover", action="store_true", help="burg-upper: 죽으면 그대로 끝 (기본: 핏자국이 값지면 화톳불부터 다시 가서 회수, souls/afterdeath.py)")
     ap.add_argument("--i", type=int, default=5, help="hunt-one: BURG_TOWN 몇 번째 (5 = 석궁병 255002)")
     ap.add_argument("--seg", default=None, help="asylum: 구간 번호 또는 범위 (기본 1; 1 = 감방 → 사다리 → 첫 화톳불, 2-3 = 이어서, ROADMAP 1-h). "
@@ -402,7 +403,7 @@ def main() -> None:
         elif a.cmd == "firebomb-probe":
             from souls import firebomb_probe
             log.zone = "firebomb-probe"
-            r = firebomb_probe.run(ms, [float(x) for x in a.dists.split(",")], log)
+            r = firebomb_probe.run(ms, [float(x) for x in a.dists.split(",")], log, target=a.fb_target)
         elif a.cmd == "taurus":
             from souls import taurus
             log.zone = "taurus"

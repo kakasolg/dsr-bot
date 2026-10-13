@@ -1915,10 +1915,17 @@ class Field:
                     return self._smash_blocking(nm, (p.x, p.y, p.z), q, st.smashed, tag, mover,
                                                 why=f"막힘 감지 ({nav.STUCK_WINDOW:.0f} s 동안 {nav.STUCK_MIN_PROGRESS} m 미만)")
 
+                # done() every tick, not only between points (10-13 firebomb-probe: "stop 8 m from it" walked on to 4.9 m — the next
+                # point was 3 m further): goto's mode_fn sees each snapshot, 'retreat' ends goto at once, then it's 'arrived' here
                 r = self._follow(q, t, terr, mover, on_stuck,
-                                 mode_fn=lambda sn: self._walk_mode(sn, st, g0, mode))
+                                 mode_fn=lambda sn: "retreat" if done is not None and done(sn) else self._walk_mode(sn, st, g0, mode))
                 if r == "dead":
                     return "dead"
+                if r == "retreat" and done is not None:
+                    s_done = self.mv.snap(40.0)
+                    if s_done is not None and done(s_done):
+                        mover.stop()
+                        return "arrived"
                 if self.esc.gen != g0:                     # left and returned via quit-out — restart from the nearest point
                     self._resync_plan(plan, nm, window=False)
                     continue

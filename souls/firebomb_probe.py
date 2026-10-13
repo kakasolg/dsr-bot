@@ -19,7 +19,11 @@ import time
 
 from . import moves as M
 
-TARGET = {"npc": 254010, "pos": (-10.1, -11.5, -68.1)}
+TARGETS = {                                   # burg-upper zone 1 — reachable from the Burg bonfire without passing other zones
+    "hollow": {"npc": 254010, "pos": (-10.1, -11.5, -68.1)},     # 255002 stands 4.1 m from it
+    "crossbow": {"npc": 255002, "pos": (-13.3, -9.8, -71.2)},    # the hollow above stands 4.1 m from it
+}
+TARGET = TARGETS["hollow"]
 OTHERS_R = 15.0
 MOVED_M = 0.8
 WATCH_S = 3.0
@@ -93,7 +97,9 @@ def trial(ms, d: float, log) -> dict:
     return res
 
 
-def run(ms, dists, log) -> str:
+def run(ms, dists, log, target: str = "hollow") -> str:
+    global TARGET
+    TARGET = TARGETS[target]
     rows = []
     for d in dists:
         if not ms.f.alive():
