@@ -139,6 +139,7 @@ def _report(dev) -> dict:
 # machine-wide: one virtual pad at a time. Two pads (watchdog's rescue pad next to a live bot's) mix inputs in the game.
 # Every script gets it through Pad(); the OS drops it when the holder dies (botlock.BotLock, its own file)
 PAD_LOCK_PATH = Path(__file__).resolve().parent / "data" / "pad.lock"
+LB_BIT = 0x0100            # XUSB_GAMEPAD_LEFT_SHOULDER in the XInput report (fixed by XInput, same as vgamepad's value)
 
 
 class PadBusy(RuntimeError):
@@ -523,7 +524,8 @@ class Pad:
                 self._send("unkeep")
 
     def guard_held(self) -> bool:
-        return bool(self.pad.report.wButtons & B.XUSB_GAMEPAD_LEFT_SHOULDER) if self.pad else False
+        # XInput's LB bit — not B.XUSB_GAMEPAD_LEFT_SHOULDER: without vgamepad (cloud, offline tests) B gives names, and int & str raised
+        return bool(self.pad.report.wButtons & LB_BIT) if self.pad else False
 
     def hold(self, button, on: bool) -> None:
         with self._lock:
