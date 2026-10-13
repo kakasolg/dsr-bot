@@ -43,7 +43,7 @@ needing the tick loop, route data, settings object or WorldState.
 - [~] shop | win | verify | merchant save 3/3 bought; from Firelink 0/2 — both died on the ramp before the merchant (3 of 5 Firelink trips today) | docs/shop-undead-merchant.md · plan:shop
 - [~] lock-sight | win | verify | lure spot prefers a clear line (`clear_sight`: 30/31 locked, 5/6 failed); none → lock-on decides as before; next: `--throw` lock rate 2–10 m | docs/throwables.md · plan:lock-sight
 - [~] heavy-lock | win | verify | `duel._keep_lock` + heavies only locked; zones 1–2: locks in 1:1, lets go for a 2nd foe; watch more runs | docs/throwables.md
-- [~] firebomb-measure | win | verify | ~5 m locked: 2/2 one-shot hollow (75), crossbowman 4 m away didn't wake; 9.6 · 14 m lock failed → not thrown. Next: 7–9 m | plan:firebomb-measure
+- [~] firebomb-measure | win | verify | hollow ~5 m: 75 one-shot 2/2 · 7 m: 18 · ≥ 9 m: no lock. Crossbow 5 m: throw cut by bolts, died (P-83) | plan:firebomb-measure
 - [ ] firebomb-candidate | cloud | todo | firebomb as a candidate next to knife / melee (lure opener · 2+ foes · ledge); no limit, none = as now | plan:firebomb-candidate
 - [ ] bow | cloud+win | todo | bow: buy, switch shield ↔ bow, locked-on shot, measure — after the firebomb | plan:bow
 - [ ] npc-module | cloud | todo | NPC interaction as one module (talk / shop / quests); the merchant is the first case | souls/shop.py · plan:npc-module
@@ -170,6 +170,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 80 | Stagger counter pressed 0.9 s into a shield soldier's stagger (waited for SP) → hit first, died | verify — `Foe.stagger_s`; 10-13 same scene → shield, then killed it, 0 taken |
 | 81 | Zone 5: foes standing 3 m below read as 'fell' (P-69) → never pulled, both came in zone 6, died; ledge nudge 23× mid-fight | verify (fall = its own drop); nudge loop open |
 | 82 | Shop walk: merchant's body read as a prop block → swung at the crate beside him → he turned hostile, bot killed the Undead Merchant | verify — no prop swing within 3 m of a known NPC; restore = MoKa |
+| 83 | Firebomb probe in the crossbow's line: throw cut, then no-lock backstabs ×2 with the foe behind → died; bloodstain not where `Blood` recorded it | open |
 
 ## 5. Relay — [cloud] ↔ board
 

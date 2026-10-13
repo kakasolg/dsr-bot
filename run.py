@@ -116,7 +116,7 @@ LURE_CMDS = {"burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["status", "watch", "burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt-one", "merchant", "light-burg", "burg-upper", "quit-test", "passage-drill", "asylum", "taurus", "merchant-buy", "altar", "altar-burg", "firebomb-probe"])
+    ap.add_argument("cmd", choices=["status", "watch", "burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt-one", "merchant", "light-burg", "burg-upper", "quit-test", "passage-drill", "asylum", "taurus", "merchant-buy", "altar", "altar-burg", "firebomb-probe", "pick-blood"])
     ap.add_argument("--no-rest", action="store_true")
     ap.add_argument("--no-quit", action="store_true", help="퀵 종료(메뉴로 나갔다 오기) 안 씀 — 영상 촬영용")
     ap.add_argument("--fall-quit", action="store_true", help="낙하 때 예전처럼 퀵 종료 (기본: 기록만 하고 계속, [MoKa] 2026-10-12)")
@@ -400,6 +400,13 @@ def main() -> None:
             r = _shop(a, mv, nms[missions.MAP_B], fld, log)
         elif a.cmd == "merchant":
             r = ms.to_merchant()
+        elif a.cmd == "pick-blood":
+            # bloodstain in burg-upper zone 1 (10-13 firebomb-probe death): clear zone 1 first — pick_blood needs no live foe near it
+            log.zone = "pick-blood"
+            z = ms.upper_segment(1)
+            log(f"══ 구역 1: {z}")
+            r = fld.pick_blood(nms[missions.MAP_B], near=60.0)
+            log(f"══ 핏자국: {r}")
         elif a.cmd == "firebomb-probe":
             from souls import firebomb_probe
             log.zone = "firebomb-probe"
