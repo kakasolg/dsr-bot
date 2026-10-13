@@ -101,7 +101,6 @@ class Altar:
             self.log(f"   ② → ③: {r}")
             if r == "dead" or not self.f.alive():
                 return "died"
-            self._pick_here()
             r = self._wait_landing()
             if r == "died":
                 return r
@@ -138,7 +137,6 @@ class Altar:
                 r = self._fight_here(c)
                 if r == "died":
                     return "died"
-                self._pick_here()
                 continue
             if landed(s):
                 self.log(f"   ③ 헬카이트 착지 {time.time() - t0:.1f} s: {self._where(s)}")
@@ -179,7 +177,9 @@ class Altar:
         return "left"
 
     def _pick_here(self) -> None:
-        """A bloodstain close by (a death here last time) — pick it up when no foe is near (Field.pick_blood checks that)."""
+        """A bloodstain close by — NOT called any more: ── ③ 밖은 헬카이트 브레스 줄 (10-13 burg-altar 5번째) ──
+        ③에서 핏자국 (0.2, 9.47, −63.71)으로 걸어 나가다 브레스 −224 → −742 한 방, 사망 (전 핏자국 소울 8362 · 인간성 2 잃음).
+        엄폐 밖으로 나가는 줍기는 헬카이트가 횃대에 있을 때만 — 그 조건을 정하기 전엔 안 씀."""
         r = self.f.pick_blood(self.nm, near=COVER_PICK_R)
         if r is not None:
             self.log(f"   핏자국 (③ 근처): {r}")

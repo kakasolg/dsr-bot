@@ -52,7 +52,7 @@ needing the tick loop, route data, settings object or WorldState.
 
 - [~] altar-route-rec | MoKa | doing | demo 1 read (§2-b); next: what calls the landing? | stages/burg-to-altar.md
 - [ ] claymore-grip | MoKa | decide | STR 16 = one-hand OK (154037); two-hand? default? | stages/burg-to-altar.md
-- [~] altar-mission | win | verify | `altar` 3/3, `altar-burg` 3/3, `burg-altar` 2/3 (1 died at ③ → P-85 fixed, next run clean + stain back); first breath unavoidable | stages/burg-to-altar.md
+- [~] altar-mission | win | verify | `altar` 3/3, `altar-burg` 3/3, `burg-altar` 2/5 (3 deaths at ③, P-85); first breath unavoidable | stages/burg-to-altar.md
 
 ## 2. v1.0 — open by area
 
@@ -171,7 +171,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 82 | Shop walk: merchant's body read as a prop block → swung at the crate beside him → he turned hostile, bot killed the Undead Merchant | verify — no prop swing within 3 m of a known NPC; restore = MoKa |
 | 83 | Firebomb probe in the crossbow's line: throw cut, then no-lock backstabs ×2 with the foe behind → died; bloodstain not where `Blood` recorded it | open |
 | 84 | Altar bonfire approach sticks 1.9 m short of (27.4, 9.7, −25.4) every run, 4–5 s, recovers | open |
-| 85 | `burg-altar`: bridge hollow lunged twice at ③ while the bot only watched the Hellkite → died (5432 souls) | verify — fight at ③, guard lunges to 5.5 m |
+| 85 | `burg-altar` dies at ③: bridge hollows follow (lunges, 2 at once), and a stain pickup walked into the breath line | open — 2/5 arrived; fight + recover at ③, pickup removed |
 
 ## 5. Relay — [cloud] ↔ board
 
