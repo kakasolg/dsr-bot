@@ -774,6 +774,10 @@ class Moves:
         self.last_lock = {}
         if self.lock_state(ptr) == "target":
             return True
+        # ── 락온 시도는 서서 (P-70 다시, 10-13 staggerfix1) ──────────────────────
+        #  face()가 계단 위에서 스틱을 0.55로 밀어 둔 채 _backstab이 여기로 와서 R3 2번(~2.5 s) 하는 동안 아무도 스틱을 안 놓아
+        #  3.9 m 걸어 계단 옆으로 낙사. 락온 시도 동안 스틱은 가운데
+        self.pad.move(0.0, 0.0)
         for _ in range(tries):
             if self.lock_state(ptr) == "none":
                 self.last_lock = self._lock_align(ptr, aim)
