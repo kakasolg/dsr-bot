@@ -31,6 +31,7 @@ LAND_Z = (-58.0, -38.0)
 PERCH_Y = 15.0
 COVER_WAIT_S = 60.0
 COVER_FOE_R = 8.0        # at ③: an awake foe this close (same level) is fought before waiting on (10-13: bridge hollow lunged twice)
+COVER_LEASH_R = 3.0      # at ③: a fight that takes us further than this from the cover is cut and taken back (breath line ~7 m off)
 COVER_PICK_R = 15.0      # at ③: pick up a bloodstain this close (10-13 death at ③: 5432 souls)
 TERRACE_WAIT_S = 25.0
 PICK_TRIES = 3
@@ -85,6 +86,8 @@ class Altar:
         if not self.f.alive():
             return "died"
         m = self.R["markers"]
+        # after burg-altar's zones 1–7, Field still holds zone 7's safe spot as tether / extra zone — not ours any more
+        self.f.tether, self.f.extra_zones = None, ()
         try:
             s = self.mv.snap(80.0)
             self.log(f"   시작: {self._where(s)}")
@@ -157,23 +160,43 @@ class Altar:
         return min(cs, key=lambda c: M.horiz(p, c), default=None)
 
     def _fight_here(self, c) -> str:
-        """Fight a foe that reached ③ the way zone fights do: a low_hp / losing end → Field.recover (back off, drink), then again;
-        recover failing → the next fight is desperate (P-47: fighting again at once with no drink = 0 s fights until dead —
-        10-13 burg-altar round 4 died that way here, 'low_hp — 0 s' × 30)."""
+        """
+        ── ③는 엄폐 자리 — 싸워도 거기서 ([MoKa] 2026-10-13 "안전 자리 있어야 하는데 굳이 나와서 화염을 맞고 있네") ──────────
+         · 4번째: ③ 싸움이 망자를 쫓아 (2.0, −65.7) 쪽으로 붙으러 나가 공격자 없는 −170(브레스). 5번째: 엄폐 밖 핏자국 줍기 → 브레스 −742
+         · 싸움은 ③에서 COVER_LEASH_R 넘게 벗어나면 그 틱에 끊고(leash) 가드 든 채 ③로 돌아와 다시 받음(wait_far — 멀면 안 나감)
+         · HP 낮음: Field.recover는 쓰지 않음 — escape.pick이 '온 길'(엄폐 밖, 브레스 줄)로 물러남. 3 m 안에 적이 없으면 ③에서 마시고,
+           있으면 ③에서 계속 싸움(desperate). P-47(마시지 않고 0 s 싸움 반복)도 이렇게 피함
+        """
+        cover = tuple(self.R["markers"]["3_stairs_cover"])
         tag = f"③ 기다리다 {c.npc_param}"
+
+        def off_cover() -> bool:
+            s = self.mv.snap(5.0)
+            return s is not None and math.hypot(s.player.x - cover[0], s.player.z - cover[2]) > COVER_LEASH_R
+
         desperate = False
-        for _ in range(4):
+        self.f.tether, self.f.extra_zones = cover, (cover,)   # Field.fight's tether / retreat home = the cover, not a zone spot
+        for _ in range(6):
             if not self.f.alive():
                 return "died"
-            d = self.f.fight(c.ptr, self.nm, tag, desperate=desperate)
+            d = self.f.fight(c.ptr, self.nm, tag, desperate=desperate, wait_far=True, leash=off_cover)
             self.log(f"   {tag}: {d.result}")
             if d.result == "me_dead" or not self.f.alive():
                 return "died"
             t = self.mv.find(self.mv.snap(80.0), c.ptr)
             if d.result == "killed" or t is None or t.hp <= 0:
                 return "killed"
-            ok = self.f.recover(f"{tag} {d.result}", self.nm)
-            desperate = not ok
+            if off_cover():
+                r = self.f.walk_to(cover, self.nm, "③ 엄폐로 돌아옴", tol=0.6)
+                self.log(f"   {tag}: ③ 밖으로 밀림 — 엄폐로: {r}")
+            s = self.mv.snap(10.0)
+            if s is not None and s.player.hp < s.player.max_hp * 0.6:
+                near = [x for x in s.hostile(4.0) if x.hp > 0 and M.horiz(s.player, x) < 3.0]
+                if not near and self.f.estus_left() > 0:
+                    self.f.heal(0.9, sips=3)
+                    desperate = False
+                else:
+                    desperate = True
         return "left"
 
     def _pick_here(self) -> None:

@@ -979,3 +979,7 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
   헬카이트 브레스 줄(계단 입구). 전 핏자국 소울 8362 · 인간성 2 잃음, 새 핏자국 (3.69, 9.46, −61.56) 소울 1726.
   **내가 넣은 ③ 핏자국 줍기가 원인** → 뺌 (`_pick_here` 안 부름). 엄폐 밖 줍기는 헬카이트가 횃대에 있을 때만 — 조건 정하기 전엔 안 함.
   오늘 `burg-altar` 5번: arrived 2 · ③ 사망 3 (다리 망자 돌진 · 0 s 싸움 반복 · 브레스 줄 줍기). 상태: open.
+- 2026-10-13 [win] MoKa "안전 자리 있어야 하는데 굳이 나와서 화염을 맞고 있네" → ③ 싸움을 엄폐에 묶음 (`Altar._fight_here`): ③에서 3 m 넘게
+  벗어나면 그 틱에 끊고(leash) 엄폐로 돌아와 다시 받음(wait_far), Field.tether·extra_zones = ③ (구역 7 안전 자리가 남아 있던 것도 지움),
+  HP 낮으면 `recover` 대신 — escape.pick이 '온 길'(브레스 줄)로 물러나므로 — 3 m 안 적 없을 때 ③에서 마시고, 있으면 ③에서 desperate.
+  4번째 기록에서도 싸움이 (2.0, −65.7) 쪽으로 붙으러 나가 공격자 없는 −170(브레스)을 맞았음. 게임 확인 전.

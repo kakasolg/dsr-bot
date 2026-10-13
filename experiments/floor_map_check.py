@@ -88,6 +88,7 @@ def falls():
             a, b = snaps[i - 1]["player"], snaps[i]["player"]
             if (0 < snaps[i]["rt"] - snaps[i - 1]["rt"] <= 1.5 and a["y"] - b["y"] > 2.5
                     and math.hypot(b["x"] - a["x"], b["z"] - a["z"]) < 6
+                    and (a.get("hp") is None or a["hp"] > 0)       # respawn after a death, not a fall (10-13 burg-altar-5: Hellkite bridge ③ is above the Burg bonfire)
                     and not (i >= 2 and snaps[i - 2]["player"]["y"] - a["y"] > 2.5)):
                 out.append((_pl.Path(path).name.split(".")[0], snaps[i - 1]["rt"], a, b))
     return out
