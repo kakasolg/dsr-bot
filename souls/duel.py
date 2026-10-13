@@ -1045,7 +1045,7 @@ def _foot_dir(g, p, foes):
     for k in range(12):
         a = k * math.pi / 6
         dx, dz = math.sin(a), math.cos(a)
-        if not nav.ground_ahead(g, p, dx, dz, reach=FOOT_STEP_M):
+        if not nav.can_move(g, p, dx, dz, FOOT_STEP_M):
             continue
         q = _P(p.gx + dx * FOOT_STEP_M, p.gy, p.gz + dz * FOOT_STEP_M)
         body = min((math.hypot(q.gx - x, q.gz - z) for x, _y, z in foes), default=9.0)
@@ -1369,7 +1369,7 @@ def rule_estus(F, T):
             F.note("에스트", T.s, T.c)
             return CONT
         if (T.a not in M.ATTACK and T.h < OPEN_R and T.now - F.backstep_t > 2.0 and p.heading is not None and _others_quiet(T.s, ptr)
-                and nav.ground_ahead(F.nm, p, math.sin(p.heading), math.cos(p.heading), reach=2.2)):
+                and nav.can_move(F.nm, p, math.sin(p.heading), math.cos(p.heading), 2.2)):
             F.backstep_t = T.now
             F.mv.backstep()
             F.note("백스텝", T.s, T.c)
@@ -1434,7 +1434,7 @@ def rule_block(F, T):
     if F.style.shield and a in M.ATTACK and h < NEAR and not bs_swing:
         F.mv.guard(True)
         if h > w.reach + 0.3 and abs(T.dy) <= 1.0 and s.cam_yaw is not None and (
-                nm is None or nav.ground_ahead(nm, p, c.x - p.x, c.z - p.z, reach=0.8)):
+                nm is None or nav.can_move(nm, p, c.x - p.x, c.z - p.z, 0.8)):
             F.mv.pad.move(*F.mv.stick_to(s, c.x, c.z, 0.6))
             F.note("막으며다가감", s, c)
         elif M.quiet_aim(p, c, T.age):
@@ -1477,7 +1477,7 @@ def prep_backstab_chance(F, T):
     T.foe_still = True
     T.backstab_chance = (T.room and (a == -1 or a in M.ATTACK or a in M.STAGGER) and T.foe_still and F.circle_n < CIRCLE_MAX_SWEEPS
                          and T.bs_near and abs(T.dy) <= 1.0)
-    if T.backstab_chance and not (not _other_swinging(s, F.ptr) and (F.nm is None or nav.ground_ahead(F.nm, p, c.x - p.x, c.z - p.z, reach=1.0))):
+    if T.backstab_chance and not (not _other_swinging(s, F.ptr) and (F.nm is None or nav.can_move(F.nm, p, c.x - p.x, c.z - p.z, 1.0))):
         F.note("뒤잡기안함:" + ("옆공격" if _other_swinging(s, F.ptr) else "바닥"), s, c)
     if not T.backstab_chance and F.foe is not None and F.foe.circle_behind and a == -1 and h <= BACKSTAB_REACH + 0.5:
         why = (f"안멈춤({now - still[3]:.1f}s)" if not T.foe_still else "횟수" if F.circle_n >= CIRCLE_MAX_SWEEPS else "멀다" if h > BACKSTAB_REACH
@@ -1585,7 +1585,7 @@ def rule_backstab(F, T):
     s, c, p, a = T.s, T.c, T.p, T.a
     if (T.room and (a == -1 or a in M.ATTACK or a in M.STAGGER) and T.foe_still and F.circle_n < CIRCLE_MAX_SWEEPS and T.bs_near
             and abs(T.dy) <= 1.0 and not _other_swinging(s, F.ptr)
-            and (F.nm is None or nav.ground_ahead(F.nm, p, c.x - p.x, c.z - p.z, reach=1.0))):
+            and (F.nm is None or nav.can_move(F.nm, p, c.x - p.x, c.z - p.z, 1.0))):
         return _do_backstab(F, T, s, c, "뒤잡기")
     F.circle_n = 0
     return None

@@ -723,7 +723,7 @@ class Missions:
         p = s.player
         P = type("P", (), {})()
         P.gx, P.gy, P.gz = p.x, p.y, p.z                       # m10_01: local = NavMesh coords (as find_path is given here)
-        ok = (lambda dx, dz: True) if g is None else (lambda dx, dz: nav.ground_ahead(g, P, dx, dz, reach=ROLL_M))
+        ok = (lambda dx, dz: True) if g is None else (lambda dx, dz: nav.can_move(g, P, dx, dz, ROLL_M))
         tx, tz = toward[0] - p.x, toward[2] - p.z
         n = math.hypot(tx, tz)
         if n > 0.5 and ok(tx / n, tz / n):

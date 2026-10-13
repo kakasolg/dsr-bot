@@ -61,7 +61,7 @@ needing the tick loop, route data, settings object or WorldState.
 **Fight rules / reflexes (1-j: "basic reflexes done right", MoKa 10-02)**
 - [~] scene-expectations | MoKa | decide | steps 1–3 done offline (54 scenes, replay 687/687); step 4: label 30–50 scenes from `--ctl-scenes` runs | docs/design-scene-expectations.md · plan:scene-expectations
 - [ ] label-review | MoKa | decide | skim duel.jsonl label lines (10 min) + the 4 `review` scenes | tests/expect/duel.jsonl · plan:label-review
-- [~] floor-check | cloud | doing | `nav.can_move` in break-out rolls (P-73); next: backstep / reflex / walks onto it, then drop `rule_edge` (step 4–5) | docs/design-floor-check.md · P-49 · P-73 · plan:floor-check
+- [~] floor-check | win | verify | backstep / reflex / combos / rolls → `nav.can_move` (10-13); [win]: `뒤에 바닥 없음` count + falls in runs; walks wait for ground-default | docs/design-floor-check.md · P-49 · P-73 · plan:floor-check
 - [ ] ground-default | MoKa | decide | `--ground` (walks only) on by default, or more runs that reach the passage? | relay.md 10-11 · plan:ground-default
 - [!] ground-ab-2 | win | blocked | A/B `--ground` round 2: 6 runs done (report in relay.md); waits for ground-default | P-56 · plan:ground-ab-2
 - [~] no-spot-split | win | verify | `no_spot` → first ≤ 7 m of escape.pick's path; game so far 4× escape_arrived | plan:no-spot-split

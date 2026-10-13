@@ -429,10 +429,10 @@ class Moves:
             return hit
         if nm is not None:
             back = (math.sin(p.heading), math.cos(p.heading))
-            if not nav.ground_ahead(nm, p, back[0], back[1], reach=2.6):
+            if not nav.can_move(nm, p, back[0], back[1], 2.6):
                 hit.skipped = "뒤에 바닥 없음"
                 return hit
-            if not nav.ground_ahead(nm, p, -back[0], -back[1], reach=2.2):
+            if not nav.can_move(nm, p, -back[0], -back[1], 2.2):
                 hit.skipped = "앞에 바닥 없음"
                 return hit
         if abs(math.degrees(rel_angle(p, c))) > 40:
@@ -461,10 +461,10 @@ class Moves:
             return hit
         if nm is not None:
             back = (math.sin(p.heading), math.cos(p.heading))
-            if need_back and not nav.ground_ahead(nm, p, back[0], back[1], reach=need_back):
+            if need_back and not nav.can_move(nm, p, back[0], back[1], need_back):
                 hit.skipped = "뒤에 바닥 없음"
                 return hit
-            if need_front and not nav.ground_ahead(nm, p, c.x - p.x, c.z - p.z, reach=need_front):
+            if need_front and not nav.can_move(nm, p, c.x - p.x, c.z - p.z, need_front):
                 hit.skipped = "앞에 바닥 없음"
                 return hit
         if abs(math.degrees(rel_angle(p, c))) > 40:

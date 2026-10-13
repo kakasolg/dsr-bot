@@ -501,7 +501,7 @@ check(f"… two rolls land on wide floor: NavMesh edge {nm.border_dist(*top):.2f
       nm.border_dist(*top) < 0.6 and nm.border_dist(*land) > 2.0 and nm.on_mesh(*land))
 d = MS.Missions._roll_dir(g8, snap8(top), (50.78, 24.7, -105.0))
 check(f"a planned way with no floor (north, over the edge) → a direction with floor, away from the crossbowmen ({d})",
-      d is not None and not d[2] and nav.ground_ahead(g8, NS(gx=top[0], gy=top[1], gz=top[2]), d[0], d[1], reach=MS.ROLL_M))
+      d is not None and not d[2] and nav.can_move(g8, NS(gx=top[0], gy=top[1], gz=top[2]), d[0], d[1], MS.ROLL_M))
 
 at8 = {"p": top}
 rolled = []
