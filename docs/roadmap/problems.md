@@ -912,3 +912,6 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
   먼저 들어옴 −126 (`휘청 → light×1 피해 0, 내 피해 357`) → 254011 3006 돌진까지 겹쳐 4.75 s에 −767 사망.
 - 원인: `rule_stagger_punish`에 휘청 경과 시간 조건이 없음 — SP가 차는 순간 휘청 끝물이어도 침. 방패병 휘청은 0.8–1.3 s (foes.SHIELD 메모).
 - 고침 제안: 휘청 시작 뒤 경과 + 무기 startup(클레이모어 0.68 · 액스 0.64) > 휘청 최소 길이(방패병 0.8 s)면 안 침. 상태: open.
+- 고침 (2026-10-13 [win] `93dce7b`): `Foe.stagger_s`(블랙박스 60 Hz 중앙값 — 망자 1.5 · 방패병·석궁 1.35), `prep_reflex`가 휘청 경과를 잼,
+  `_stagger_late`: 경과 + startup + 0.1 > stagger_s면 방패 들고 정면(`휘청늦음`). `tests/stagger_late_test.py`. 게임 `staggerfix2`(구역 1–4 cleared, 깨끗,
+  최저 HP 77 %): 구역 2-1 255001이 같은 장면(휘청 중 SP 45) → 휘청늦음 → 3003 막고 `휘두름 끝` kick+light로 처치, 받은 피해 0. 상태: verify.
