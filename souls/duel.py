@@ -442,6 +442,16 @@ CROWD_R = 4.0            # awake foes within this count as "surrounded" for the 
 CROWD_LOW_HP = 0.45      # retreat line with ≥2 awake foes that close: two shield soldiers took 262 → 22 → dead in one exchange (P-8)
 
 
+def free_or_blocking(anim) -> bool:
+    """
+    ── 내 동작: 빈손(-1) 또는 방패로 막는 중 ──────────────────────────────
+     · 방패에 맞은 동작은 무기 종류가 앞자리에 붙는다: 배틀 액스 140 · 클레이모어 20140 (공격도 303000 / 253000)
+     · 예전엔 100–199만 봐서 클레이모어로 막는 중을 '내 공격·구르기 중'으로 읽고 rule_after_swing·rule_face_first를 건너뜀
+       (10-12 클레이모어 3런: 막은 뒤 반격 3/10, 배틀 액스 65/151)
+    """
+    return anim in (None, -1) or (0 <= anim < 100000 and 100 <= anim % 10000 < 200)
+
+
 def _other_swinging(s, ptr) -> bool:
     """A foe other than ptr is mid-attack within OTHER_SWING_R."""
     p = s.player
@@ -968,7 +978,7 @@ def rule_face_first(F, T):
     s, c, p = T.s, T.c, T.p
     if c is None or p.heading is None or s.cam_yaw is None or T.h > FACE_FIRST_R:
         return None
-    if p.anim not in (None, -1) and not (100 <= p.anim < 200):   # own swing / roll etc. — guard-block (1xx) can still turn
+    if not free_or_blocking(p.anim):   # own swing / roll etc. — guard-block (140 · 20140) can still turn
         return None
     if abs(math.degrees(M.rel_angle(p, c))) <= FACE_FIRST_DEG:
         return None
@@ -1119,7 +1129,7 @@ def rule_after_swing(F, T):
     w, c, p = F.weapon, T.c, T.p
     if (c is None or c.hp <= 0 or a_raw in M.ATTACK and not swing_over(F.foe, a_raw, T.age) or abs(T.dy) > 1.0
             or T.h > w.reach + AFTER_SWING_STEP or (p.sp or 0) < w.sp_min or _other_swinging(T.s, F.ptr)
-            or p.anim not in (None, -1) and not (100 <= p.anim < 200)):
+            or not free_or_blocking(p.anim)):
         return None
     if not F.mv.face(T.s, c, deg=AFTER_SWING_DEG):
         time.sleep(0.02)
