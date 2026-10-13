@@ -31,7 +31,7 @@ needing the tick loop, route data, settings object or WorldState.
 
 `run.py burg-upper` = MoKa's safe-spot zones 1–8 (`data/burg-upper-map.json`); test save `backup-20261006-155749-…-before-taurus`.
 
-- [~] alignment | win | verify | target–body–camera record in (10-12); runs → end line `정렬 (…)`, then decide what to fix (MoKa: high priority) | plan:alignment
+- [~] alignment | MoKa | decide | 3 Claymore runs, 18 presses: body ≤ 25° at all; 6 'off' = camera only (11–54°), 6/6 hit → no camera fix, judge by body/lock? | plan:alignment
 - [~] taurus | win | doing | `run.py taurus` plunge loop; bonfire → Taurus killed 2× (005650, 025057) | docs/boss-taurus.md · plan:taurus
 - [~] fall-death-policy | win | verify | no fall quit-out + after-death pickup: (1)(2) seen in 3 runs; (3) death record, (4) alignment next runs | P-71 · P-72 · plan:fall-death-policy
 - [ ] boss-two-hand-dodge | cloud+win | todo | boss default = two-handed + dodging (9-30); Taurus first, general boss module is v2.0 | plan:boss-two-hand-dodge
@@ -166,14 +166,14 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 74 | Zone 2-1: two foes on us 13 m out; tether cut at tick 0 three times, guard walk back timed out → 37 s, −1565 | verify — no cut with a foe < 2.5 m; failed way back ends it; back-offs within 8 m |
 | 75 | Zone 2-2: run-in read a target 30.5 m out as 'met' (30 m snapshot) → walk-out / tether loop 3×, 35 s | verify — missing target checked wide |
 | 76 | `altar-burg`: ladder A missed, fell 10 m | verify |
-| 77 | Walk stalls with the body not moving (`#6 이동` (−14.2,−13.5,−68.4) ~160 s, `화톳불로` (−48.8,−60.1,55.1) ~110 s); almost-arrived skips can't help | open |
+| 77 | Walk stalls with the body not moving (~160 s, ~110 s); almost-arrived skips can't help | open |
+| 78 | Zone 4-1: backstab try between 254010 + 254011 → not_behind, 6 s, −452, then no retreat spot → died | open |
+| 79 | Death on the walk to the bonfire (`화톳불로`): no stain decision, walks back into the same foes | open |
 
 ## 5. Relay — [cloud] ↔ board
 
 [cloud] can't reach the board: `- date [cloud→board] …` / `- date [board→cloud] …`. Whoever handles an entry starts it with
 `→ done` / `→ moved` right after the tag; `tidy` then moves it to `docs/roadmap/relay.md`.
 
-- 2026-10-12 [cloud→board] **`git pull` (P-73 · P-69 · lock-sight · P-74 · P-75)**: rolls hold the camera (`구르기 방향 어긋남`); falling target ends the fight (`목표 떨어짐`); lure spot prefers a clear line (`트인 자리로` / `락온으로 확인`); 075054 zone 2-1 = tether, not P-66 (no cut with a foe < 2.5 m); zone 2-2 loop = 30.5 m target read as met.
 - 2026-10-12 [cloud→board] **Ramp on the shop run** = P-56 again (swarm hits). Next Firelink → merchant: today's code + `--pull` (knives now: lure on).
 
-- 2026-10-12 [cloud→board] **`git pull` — fall / death policy changed (MoKa 10-12)**: (1) no quit-out on a fall (`--fall-quit` = old); (2) `burg-upper` after a death: worth it → back from zone 1 and pick up with no foe within 15 m, else end (`--no-recover` = old); (3) black box splits fall from hits, one `death` event (`✝ 사망 원인: …`); (4) end line `정렬 (…)`; (5) P-66: a windup isn't 'ended' before it lands — shield soldier 3004 blocked to 2.3 s, then counter. (6) **shop routine ready**: `run.py merchant-buy --buy 290:30,292:20 --shop-shots` from the merchant save, test plan at the end of `docs/shop-undead-merchant.md`. Why: `docs/analysis-death-2026-10-12.md`. → (1) · (2) checked 10-12 [win] with `6341df3` (entry below); (3) · (4) · (5) next runs
