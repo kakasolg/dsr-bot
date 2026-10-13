@@ -157,7 +157,8 @@ def ground_ahead(terrain, p, dx: float, dz: float, reach: float = 1.2) -> bool:
 
 
 MOVE_STEP = 0.5           # can_move: look at the floor this often along the way …
-MOVE_STEP_DROP = 0.8      # … each point at most this much below the last one (a ramp goes down ~0.2 per 0.5 m; a ledge is a jump)
+MOVE_STEP_DROP = BACK_MAX_DROP   # … each point at most this much below the last one (a ramp goes down ~0.2 per 0.5 m). Was 0.8: it
+                          # blocked real stair steps down (asylum (34,193,−24)) the old 1.2 m-from-here check let through
 MOVE_STEP_UP = 1.0
 ROLL_CHECK_M = 3.0        # a roll covers ≤ 2.5 m (design-floor-check §2-c) once the stick is let go at its start (Moves.roll_toward)
 
@@ -174,14 +175,14 @@ def can_move(terrain, p, dx: float, dz: float, dist: float) -> bool:
     if n < 1e-6:
         return True
     ux, uz, y = dx / n, dz / n, p.gy
-    k = 1
-    while k * MOVE_STEP <= dist + 1e-6:
-        d = k * MOVE_STEP
+    ds = [k * MOVE_STEP for k in range(1, int(dist / MOVE_STEP + 1e-6) + 1)]
+    if not ds or ds[-1] < dist - 1e-6:
+        ds.append(dist)                                    # the end point itself (2.6 m: 0.5 … 2.5 and 2.6)
+    for d in ds:
         hit = terrain.floor_at(p.gx + ux * d, p.gz + uz * d, y)
         if hit is None or hit[0] < y - MOVE_STEP_DROP or hit[0] > y + MOVE_STEP_UP:
             return False
         y = hit[0]
-        k += 1
     return True
 
 

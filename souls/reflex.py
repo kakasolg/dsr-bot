@@ -136,7 +136,7 @@ class Reflex:
             self.acted += 1
             return self._act("face", c, s, start)
         self.mv.pad.guard(True)
-        safe_turn = self.nm is None or nav.ground_ahead(self.nm, p, c.x - p.x, c.z - p.z, reach=0.8)
+        safe_turn = self.nm is None or nav.can_move(self.nm, p, c.x - p.x, c.z - p.z, 0.8)
         if safe_turn and not M.quiet_aim(p, c, self.attack_age(c.ptr)):   # swing about to end, aimed → stick stays off (proposal A)
             self.mv.face(s, c, deg=25.0)
         else:
@@ -171,8 +171,8 @@ class Reflex:
         p = s.player
         if p.heading is not None and self.nm is not None:
             back = (math.sin(p.heading), math.cos(p.heading))          # heading direction = behind the body (same convention as hunt.backstep_attack)
-            if nav.ground_ahead(self.nm, p, back[0], back[1], reach=2.6):
-                if attack and self.bs_ok(c) and nav.ground_ahead(self.nm, p, -back[0], -back[1], reach=2.2):   # first hit lands near the start spot; 3.0 almost always fails on the ramp
+            if nav.can_move(self.nm, p, back[0], back[1], 2.6):
+                if attack and self.bs_ok(c) and nav.can_move(self.nm, p, -back[0], -back[1], 2.2):   # first hit lands near the start spot; 3.0 almost always fails on the ramp
                     h = self.mv.backstep_attack(s, c, self.nm)     # backstep + R1 as one move (user)
                     if h.presses:
                         self.last_hit = h

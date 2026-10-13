@@ -8,6 +8,9 @@ checked against a map built WITHOUT that run (leave-one-run-out), so a run's own
   2 real drops still seen: the unintended falls (experiments/floor_probe.py, asylum's deliberate drops left out) — from the last
     frame before the fall, toward where it fell, ground_ahead must still say "no floor"
   3 the ramp-ledge pushes (P-49, 10-06a 84–91 s and 09-28 bandit-c 93–95 s): foe → me, 1.5 m — "no floor" must stay
+
+  python experiments/floor_map_check.py --can-move   the same three with nav.can_move (floor every 0.5 m, following ramps)
+                                                      in place of nav.ground_ahead (guide-control-priority §5-3)
 """
 from __future__ import annotations
 import sys as _sys, pathlib as _pl
@@ -27,6 +30,10 @@ import walk_replay as WR
 ROOT = _pl.Path(__file__).resolve().parent.parent
 SAMPLES = ROOT / "data" / "samples"
 _CACHE: dict = {}
+
+
+def ahead(terrain, p, dx, dz, reach):
+    return nav.ground_ahead(terrain, p, dx, dz, reach=reach)
 
 
 def g_for(nm, map_id: str, run: str):
@@ -59,8 +66,8 @@ def false_voids(nms: dict) -> None:
             if nm is None:
                 continue
             n += 1
-            bad_nav = not nav.ground_ahead(nm, P(x, y, z), dx, dz, reach=1.2)
-            bad_map = not nav.ground_ahead(g_for(nm, k, run), P(x, y, z), dx, dz, reach=1.2)
+            bad_nav = not ahead(nm, P(x, y, z), dx, dz, 1.2)
+            bad_map = not ahead(g_for(nm, k, run), P(x, y, z), dx, dz, 1.2)
             nav_no += bad_nav
             map_no += bad_map
             if bad_map:
@@ -96,7 +103,7 @@ def real_drops(nms: dict) -> None:
             continue
         dx, dz = b["x"] - a["x"], b["z"] - a["z"]
         p = P(a["x"], a["y"], a["z"])
-        rows.append((run, t, not nav.ground_ahead(nm, p, dx, dz, reach=1.2), not nav.ground_ahead(g_for(nm, k, run), p, dx, dz, reach=1.2)))
+        rows.append((run, t, not ahead(nm, p, dx, dz, 1.2), not ahead(g_for(nm, k, run), p, dx, dz, 1.2)))
     print(f"2 real drops seen as 'no floor' toward the fall: NavMesh {sum(r[2] for r in rows)}/{len(rows)} · NavMesh + walked {sum(r[3] for r in rows)}/{len(rows)}")
     for run, t, a_, b_ in rows:
         print(f"    {run[:38]:38} {t:6.1f} s  NavMesh {'no floor' if a_ else 'floor'} · + walked {'no floor' if b_ else 'floor'}")
@@ -117,12 +124,16 @@ def ledge_pushes(nms: dict) -> None:
                     continue
                 ux, uz = (p["x"] - c["x"]) / h, (p["z"] - c["z"]) / h
                 n += 1
-                nav_no += not nav.ground_ahead(nm, P(p["x"], p["y"], p["z"]), ux, uz, reach=1.5)
-                map_no += not nav.ground_ahead(g, P(p["x"], p["y"], p["z"]), ux, uz, reach=1.5)
+                nav_no += not ahead(nm, P(p["x"], p["y"], p["z"]), ux, uz, 1.5)
+                map_no += not ahead(g, P(p["x"], p["y"], p["z"]), ux, uz, 1.5)
     print(f"3 ramp-ledge pushes (foe → me, 1.5 m) seen as 'no floor': NavMesh {nav_no}/{n} · NavMesh + walked {map_no}/{n}")
 
 
 if __name__ == "__main__":
+    if "--can-move" in _sys.argv:
+        def ahead(terrain, p, dx, dz, reach):
+            return nav.can_move(terrain, p, dx, dz, reach)
+        print("check: nav.can_move")
     nms = motion.load_navmeshes()
     false_voids(nms)
     real_drops(nms)

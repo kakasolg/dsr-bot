@@ -59,7 +59,7 @@ needing the tick loop, route data, settings object or WorldState.
 **Fight rules / reflexes (1-j: "basic reflexes done right", MoKa 10-02)**
 - [~] scene-expectations | MoKa | decide | steps 1–3 done offline (54 scenes, replay 687/687); step 4: label 30–50 scenes from `--ctl-scenes` runs | docs/design-scene-expectations.md · plan:scene-expectations
 - [ ] label-review | MoKa | decide | skim duel.jsonl label lines (10 min) + the 4 `review` scenes | tests/expect/duel.jsonl · plan:label-review
-- [~] floor-check | cloud | doing | `nav.can_move` in break-out rolls (P-73); next: backstep / reflex / walks onto it, then drop `rule_edge` (step 4–5) | docs/design-floor-check.md · P-49 · P-73 · plan:floor-check
+- [~] floor-check | win | verify | backstep / reflex / combos / rolls → `nav.can_move` (10-13); [win]: `뒤에 바닥 없음` count + falls in runs; walks wait for ground-default | docs/design-floor-check.md · P-49 · P-73 · plan:floor-check
 - [ ] ground-default | MoKa | decide | `--ground` (walks only) on by default, or more runs that reach the passage? | relay.md 10-11 · plan:ground-default
 - [!] ground-ab-2 | win | blocked | A/B `--ground` round 2: 6 runs done (report in relay.md); waits for ground-default | P-56 · plan:ground-ab-2
 - [~] no-spot-split | win | verify | `no_spot` → first ≤ 7 m of escape.pick's path; game so far 4× escape_arrived | plan:no-spot-split
@@ -157,7 +157,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 67 | Zone 1 lure: B re-pressed at every sprint point → jump off ledge into 3× 254010; `_sprint` had no hit exit → dead | verify — game 10-11: zones 1–4 cleared, `threat` stop 6×, no jump; 3 short B holds left |
 | 68 | Zone 5: heavy into 255000's shield 0 dmg → low_hp, Estus refused 3×, 255001 joins → dead; bot kept acting after death (TypeError) | death part: fixed — game 10-11 zone 8 death ended the zone at once, no error; shield part open |
 | 69 | Zone 1: the foe fell off the ledge mid-fight, the bot walked after it and fell | verify — falling / > 2.5 m below target ends the duel 'lost' before face() walks |
-| 70 | Zone 1 stairs: falls off the stair side (short-B rolls; 10-13 a stick left pushed through lock-on tries) | verify — `Pad.sprint` B ≥ 0.45 s; `lock_target` centers the stick (`b29d59a`) |
+| 70 | Zone 1 stairs: fall off the stair side on the sprint back to the safe spot | verify — 10-13 death was the stick left pushed while `lock_target` turned the camera (not the sprint); `b29d59a` centers it |
 | 71 | Fall deaths: a second fall right after a fall quit-out, `Escape` blind, pad frozen; black box blames the foe | verify — MoKa 10-12: no quit-out on falls (`fall_seen`) |
 | 72 | Deaths never fetched their bloodstain (38 deaths, 0 pickup trips) | verify — `souls/afterdeath.py`: worth it → back from zone 1, pick only with no foe within 15 m; small / same zone → end |
 | 73 | Ramp #5: low_hp break-out roll went −126° instead of −30° (camera turned during the roll) → 22.4 m fall | verify — camera held during rolls, fresh stick, `nav.can_move` |

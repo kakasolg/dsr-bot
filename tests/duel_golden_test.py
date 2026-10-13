@@ -191,9 +191,9 @@ def run(sc, advisor=None, tap=None, mv_hook=None) -> list:
 
     rec = lambda name, ret: (lambda *a, **k: (trace.append((name,)), ret)[1])
     saved = {k: getattr(D, k) for k in ("_backstab", "_back_to_safe", "_separate", "_approach", "_room_behind")}
-    nav_saved = (D.nav.footing, D.nav.ground_ahead)
+    nav_saved = (D.nav.footing, D.nav.ground_ahead, D.nav.can_move)
     D.nav.footing = lambda nm_, p, r=1.0: (0.2 if sc.get("edge") else 3.0,)
-    D.nav.ground_ahead = lambda *a, **k: bool(sc.get("ground", True))
+    D.nav.ground_ahead = D.nav.can_move = lambda *a, **k: bool(sc.get("ground", True))
     sleep = D.time.sleep
     D._backstab, D._back_to_safe = rec("backstab", "not_behind"), rec("back_to_safe", None)
     D._separate, D._approach = rec("separate", "no_spot"), rec("approach", "stopped")
@@ -210,7 +210,7 @@ def run(sc, advisor=None, tap=None, mv_hook=None) -> list:
         for k, v in saved.items():
             setattr(D, k, v)
         D.time.sleep = sleep
-        D.nav.footing, D.nav.ground_ahead = nav_saved
+        D.nav.footing, D.nav.ground_ahead, D.nav.can_move = nav_saved
     return [list(x) for x in trace]
 
 

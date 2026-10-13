@@ -773,6 +773,15 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
   (처음엔 달리기로 적었으나 프레임으로 정정) 뒤잡기 전 `moves.face`가 스틱을 (0.41, −0.37)로 밀어 둔 채 `_backstab` → `lock_target`(R3 2번, ~2.5 s)이
   스틱을 안 놓음 → 3.9 m 걸어 계단 옆 (−10.45,−12.48,−66.62)에서 1550 → 7.8 m −696 사망. 적·가드 유지와 무관.
   고침 `b29d59a`: `Moves.lock_target`이 R3 전에 스틱 가운데 (`tests/lock_stick_test.py`). 상태: verify.
+- 2026-10-13 [cloud] 원인 바로잡기 (기록 확인, `b29d59a` [win] 고침 확인): **달리기가 아니라 싸움 중 락온 시도**. `달려서 안전 자리로 threat`는
+  46.2 s에 이미 끝났고(적 2.2 m) 그 뒤 46.7–51 s는 `fight` — `_backstab` → `lock_target`(2번, `aim=False`) → `_lock_align`이 `look_at`으로
+  카메라만 돌림. 그동안 `face()`가 밀어 둔 왼스틱 0.55가 그대로 → 스틱은 카메라 기준이라 카메라가 돌자(이벤트 `align` cam 148° → 5° → −47° → −7°)
+  걷는 세계 방향도 같이 돎 = P-73(구르는 중 카메라가 돎)과 같은 꼴. 적은 등 뒤로 (body −140°) 거리 1.1 → 5.0 m, 3.9 m 걸어 계단 옆으로.
+  NavMesh 확인: 안전 자리로 가는 경로(`find_path`)는 계단 위 메시 안 — 경로가 턱을 스친 게 아님. 실제 걸은 쪽은 48.7 s부터 메시 밖(1 m 북쪽),
+  `ground_ahead`·`can_move` 둘 다 "바닥 없음"이었지만 락온 중엔 아무도 바닥을 안 봄. 지붕(P-63) 문제도 아님.
+  [win] 고침 `b29d59a`: `lock_target`이 R3 전에 스틱을 가운데로. `look_at`을 부르는 곳은 `_lock_align` 하나뿐(→ `lock_target`만)이라 같은 꼴 다른 자리 없음.
+  남는 것: `_lock_align`의 `aim=True`(나이프 등)는 몸 돌리기로 스틱 0.6을 바닥 확인 없이 씀(적 쪽으로 ~1 m) — 적 쪽이라 위험 낮음, 기록만.
+  상태: verify (구역 1 계단 3판 이상, 락온 중 위치 이동 ≤ 0.5 m).
 
 ### P-71 낙사 퀵 종료 직후 `Escape`가 못 보는 구간에서 두 번째 낙하 → 사망 (낙사 7건 중 5건; 2026-10-12, [cloud])
 
