@@ -168,7 +168,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 78 | Zone 4-1: backstab try between 254010 + 254011 → not_behind, 6 s, −452, then no retreat spot → died | open |
 | 79 | Death on the walk to the bonfire (`화톳불로`): no stain decision, walks back into the same foes | open |
 | 80 | Stagger counter pressed 0.9 s into a shield soldier's stagger (waited for SP) → hit first, died | verify — `Foe.stagger_s`; 10-13 same scene → shield, then killed it, 0 taken |
-| 81 | Zone 5: foes standing 3 m below read as 'fell' (P-69) → never pulled, both came in zone 6, died; ledge nudge 23× mid-fight | verify (fall = its own drop); nudge loop open |
+| 81 | Zone 5: foes standing 3 m below read as 'fell' (P-69) → never pulled, both came in zone 6, died; ledge nudge 23× mid-fight | verify (fall = its own drop; nudges stop after 2 that leave us in place) |
 
 ## 5. Relay — [cloud] ↔ board
 
