@@ -80,7 +80,7 @@ def rel_angle(p, c) -> float:
 
 
 ALIGN_BODY_DEG = 30.0    # alignment record ([MoKa] 10-11 "공격 대상과 캐릭터 정렬, 카메라 방향 일치도 우선순위가 높은 작업"): body within this
-ALIGN_CAM_DEG = 10.0     # … and camera within this (= camera.DEADBAND) of the target = aligned
+ALIGN_CAM_DEG = 10.0     # camera within this (= camera.DEADBAND) — recorded only, not part of 'ok' (below)
 
 
 def _aligned(si: int):
@@ -149,11 +149,14 @@ class Moves:
 
     def align_of(self, s, c) -> dict:
         """Target–body–camera in one row: body / cam = how far (°, + right) the target is off my facing / the camera centre,
-        d / dy = distance / height to it, lock = locked on it, ok = body ≤ ALIGN_BODY_DEG and camera ≤ ALIGN_CAM_DEG."""
+        d / dy = distance / height to it, lock = locked on it, ok = body ≤ ALIGN_BODY_DEG or locked.
+        ── 카메라는 정렬 판정에서 뺌 ([MoKa] 2026-10-13 "카메라 어긋남 상관 없으면 닫아줘") ──
+         10-12/13 클레이모어 런: 공격 순간 몸은 늘 |25°| 안, '어긋남'은 전부 락온 없는 카메라 11–54°뿐이고 대부분 맞음
+         (3런 6/6, blockfix1 2/2, guardkeep1 2/2) → 카메라는 맞힘을 안 깎음. cam 값은 기록으로 남김"""
         body = None if s.player.heading is None else math.degrees(rel_angle(s.player, c))
         cam = self.cam_err(s, c.x, c.z)
         lock = self.lock_state(c.ptr) == "target"
-        ok = body is not None and abs(body) <= ALIGN_BODY_DEG and (lock or (cam is not None and abs(cam) <= ALIGN_CAM_DEG))
+        ok = lock or (body is not None and abs(body) <= ALIGN_BODY_DEG)
         return {"npc": c.npc_param, "d": round(horiz(s.player, c), 2), "dy": round(c.y - s.player.y, 2),
                 "body": None if body is None else round(body, 1), "cam": None if cam is None else round(cam, 1), "lock": lock, "ok": ok}
 

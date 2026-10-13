@@ -626,3 +626,4 @@ The items are still open in ROADMAP.md (one line each); their full text as it st
 Items as they left ROADMAP.md (mark, id, who, stage, result, where). Older done items are in the sections above.
 - 2026-10-12 [x] run-settings | cloud | doing | in use since 10-11: every sample has `.settings.json`, CLAUDE.md copies runs with `sample.py`, `ab.py` compares | docs/design-run-settings.md
 - 2026-10-12 [x] almost-arrived | win | done | 13× in 8 sampled runs (09-30..10-12): skips work; asylum2 (34.3, 193.2) 1.2 m → next step clean, asylum4 fog (−7.8, 208.4) 1.6 m → fog wall 7.7 s later, not delayed. Weak spot: body pinned → skip just burns 15 s timeouts (P-77) | P-77 · plan:almost-arrived
+- 2026-10-13 [x] alignment | MoKa | done | 7 Claymore runs: body ≤ 25° at every press, camera-only misses still hit → 'ok' = body 30° or lock (camera dropped, MoKa 10-13) | plan:alignment

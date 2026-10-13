@@ -31,7 +31,6 @@ needing the tick loop, route data, settings object or WorldState.
 
 `run.py burg-upper` = MoKa's safe-spot zones 1–8 (`data/burg-upper-map.json`); test save `backup-20261006-155749-…-before-taurus`.
 
-- [~] alignment | MoKa | decide | 3 Claymore runs, 18 presses: body ≤ 25° at all; 6 'off' = camera only (11–54°), 6/6 hit → no camera fix, judge by body/lock? | plan:alignment
 - [~] taurus | win | doing | `run.py taurus` plunge loop; bonfire → Taurus killed 2× (005650, 025057) | docs/boss-taurus.md · plan:taurus
 - [~] fall-death-policy | win | verify | no fall quit-out + after-death pickup: (1)(2) seen in 3 runs; (3) death record, (4) alignment next runs | P-71 · P-72 · plan:fall-death-policy
 - [ ] boss-two-hand-dodge | cloud+win | todo | boss default = two-handed + dodging (9-30); Taurus first, general boss module is v2.0 | plan:boss-two-hand-dodge

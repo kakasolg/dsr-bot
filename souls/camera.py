@@ -93,7 +93,7 @@ class CamFollow:
             return None
         n = len(rows)
         return (f"몸 중앙 {body[len(body) // 2]:.0f}° · 30° 안 {sum(1 for b in body if b <= 30) / len(body):.0%} · "
-                f"몸·카메라 둘 다 {sum(1 for r in rows if r[3]) / n:.0%} ({n}틱)")
+                f"정렬 {sum(1 for r in rows if r[3]) / n:.0%} ({n}틱)")
 
     def align_stats(self) -> str:
         """End-of-run line: per-tick alignment in / out of fights, and at attack presses (aligned or not, and how often each hit)."""
@@ -104,7 +104,7 @@ class CamFollow:
             bad = [a for a in self.attacks if not a.get("ok")]
             rate = lambda xs: "-" if not xs else f"{sum(1 for a in xs if (a.get('dmg') or 0) > 0)}/{len(xs)}"
             parts.append(f"공격 {len(self.attacks)}번: 정렬 {len(ok) / len(self.attacks):.0%} · 맞힘 정렬 {rate(ok)} / 어긋남 {rate(bad)}")
-        return "정렬 (몸 30° · 카메라 10° 또는 락온): " + (" | ".join(parts) if parts else "기록 없음")
+        return "정렬 (몸 30° 또는 락온): " + (" | ".join(parts) if parts else "기록 없음")
 
     def stats(self) -> str:
         """Camera off the followed foe: median / 90th percentile / share within DEADBAND (°), in fights and outside."""
