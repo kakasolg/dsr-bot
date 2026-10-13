@@ -171,6 +171,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 82 | Shop walk: merchant's body read as a prop block → swung at the crate beside him → he turned hostile, bot killed the Undead Merchant | verify — no prop swing within 3 m of a known NPC; restore = MoKa |
 | 83 | Firebomb probe in the crossbow's line: throw cut, then no-lock backstabs ×2 with the foe behind → died; bloodstain not where `Blood` recorded it | open |
 | 84 | Altar bonfire approach sticks 1.9 m short of (27.4, 9.7, −25.4) every run, 4–5 s, recovers | open |
+| 85 | `burg-altar`: bridge hollow lunged twice at ③ while the bot only watched the Hellkite → died (5432 souls) | verify — fight at ③, guard lunges to 5.5 m |
 
 ## 5. Relay — [cloud] ↔ board
 

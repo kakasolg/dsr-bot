@@ -30,6 +30,8 @@ LAND_Y = 12.0
 LAND_Z = (-58.0, -38.0)
 PERCH_Y = 15.0
 COVER_WAIT_S = 60.0
+COVER_FOE_R = 8.0        # at ③: an awake foe this close (same level) is fought before waiting on (10-13: bridge hollow lunged twice)
+COVER_PICK_R = 15.0      # at ③: pick up a bloodstain this close (10-13 death at ③: 5432 souls)
 TERRACE_WAIT_S = 25.0
 PICK_TRIES = 3
 LADDER_TRIES = 3
@@ -99,6 +101,7 @@ class Altar:
             self.log(f"   ② → ③: {r}")
             if r == "dead" or not self.f.alive():
                 return "died"
+            self._pick_here()
             r = self._wait_landing()
             if r == "died":
                 return r
@@ -128,6 +131,16 @@ class Altar:
                 return "died"
             s = self.mv.snap(80.0)
             seen = seen or drake(s) is not None
+            # ── ③에서 기다리는 동안 따라온 적은 싸움 (10-13 burg-altar 2번째 사망) ──────────────────────
+            #  다리 망자 255040이 ③까지 따라와 3.7 · 5.1 m에서 돌진(3005) 두 번 −335 · −407 → 사망, 봇은 착지만 기다림
+            c = self._foe_here(s)
+            if c is not None:
+                d = self.f.fight(c.ptr, self.nm, f"③ 기다리다 {c.npc_param}")
+                self.log(f"   ③ 기다리다 {c.npc_param}: {d.result}")
+                if d.result == "me_dead" or not self.f.alive():
+                    return "died"
+                self._pick_here()
+                continue
             if landed(s):
                 self.log(f"   ③ 헬카이트 착지 {time.time() - t0:.1f} s: {self._where(s)}")
                 self.events("altar", what="landed", wait=round(time.time() - t0, 1))
@@ -136,6 +149,21 @@ class Altar:
         self.log(f"   ③ {COVER_WAIT_S:.0f} s 안에 착지 안 함 ({'보였음' if seen else '한 번도 안 보임'}) — 그냥 감")
         self.events("altar", what="no_landing", seen=seen)
         return "timeout"
+
+    def _foe_here(self, s):
+        """An awake foe (not the Hellkite) within COVER_FOE_R on our level, nearest first, or None."""
+        if s is None:
+            return None
+        p = s.player
+        cs = [c for c in s.hostile(COVER_FOE_R + 2.0) if c.npc_param != DRAKE and c.hp > 0 and c.anim not in (None, -1)
+              and not (9000 <= (c.anim or 0) < 9100) and abs(c.y - p.y) < 2.5 and M.horiz(p, c) < COVER_FOE_R]
+        return min(cs, key=lambda c: M.horiz(p, c), default=None)
+
+    def _pick_here(self) -> None:
+        """A bloodstain close by (a death here last time) — pick it up when no foe is near (Field.pick_blood checks that)."""
+        r = self.f.pick_blood(self.nm, near=COVER_PICK_R)
+        if r is not None:
+            self.log(f"   핏자국 (③ 근처): {r}")
 
     def _wait_away(self) -> None:
         """At ④: wait until it is off the bridge (perch / out of range) — [MoKa] "테라스쪽으로 뛰어가서 기다리면 다른 곳으로 날아감"."""

@@ -963,3 +963,11 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
   `돌아서`도 같은 점에서 stuck → 그 뒤 arrived (`hotspots` AGAIN). 매번 스스로 풀림, 피해 없음.
 - 원인 (추정): 경로(NavMesh `find_path` → (22.4, 9.4, −25.5))가 제단 앞 단·난간 같은 걸림돌을 스침. 화면 확인 전.
 - 고침 후보: `altar_bonfire` 앞에 우회 점 하나 (경로 데이터) 또는 거의 도착 반경 1.7 → 2.0 m. 상태: open.
+
+### P-85 `burg-altar`: ③ 엄폐 자리에서 착지만 기다리다 따라온 다리 망자 255040의 돌진 두 번에 사망 (2026-10-13, [win])
+
+- 증상: `data/samples/20261013_055418_burg-altar_burg-altar-2-died.txt` — 구역 1–7 cleared, ①→②→③ arrived, ③ 대기 중 354 s 255040 `3005`(3.7 m에서 시작, 0.8 s 뒤 2.2 m) −335,
+  358 s 같은 돌진(5.1 m에서) −407 → 사망. 핏자국 (7.38, 9.6, −63.02) 소울 5432 · 인간성 2.
+- 원인: (1) `Altar._wait_landing`이 착지만 봄 — 다른 적을 안 봄. (2) 가드 유지가 2.5 m 안만 봐서 3.7 · 5.1 m에서 시작한 돌진엔 방패가 0.1 s 전 / 안 올라감.
+- 고침 (2026-10-13 [win]): ③ 대기 중 8 m 안 같은 층 깨어 있는 적 → `Field.fight` 뒤 다시 대기 · ③에 오면 15 m 안 핏자국 줍기(`pick_blood`) ·
+  가드 유지가 돌진(3005·3006)은 5.5 m까지 (`guardkeep.LUNGE_R`, 테스트). 상태: verify.

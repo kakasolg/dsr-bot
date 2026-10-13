@@ -105,8 +105,29 @@ def test_not_raised():
             pad.close()
 
 
+def test_lunge_from_further_out():
+    """10-13 burg-altar: 255040 lunged (3005) from 3.7 m — the shield goes up for a lunge out to LUNGE_R, not for a plain swing."""
+    with tempfile.TemporaryDirectory() as tmp:
+        pad_fakes.install(Path(tmp))
+        pad, gk = fresh(tmp)
+        try:
+            now = time.time()
+            gk.step(snap(-1, d=3.7), now)
+            assert gk.step(snap(3005, d=3.7), now + 0.05) and held(pad)
+        finally:
+            pad.close()
+        pad, gk = fresh(tmp)
+        try:
+            now = time.time()
+            gk.step(snap(-1, d=3.7), now)
+            assert not gk.step(snap(3000, d=3.7), now + 0.05) and not held(pad)
+        finally:
+            pad.close()
+
+
 if __name__ == "__main__":
     test_keeps_guard_through_callers()
     test_callers_own_guard_is_kept()
     test_not_raised()
+    test_lunge_from_further_out()
     print("ok")

@@ -22,14 +22,20 @@ from .duel import free_or_blocking
 from .reflex import GUARD_SP, THREAT_R, THREAT_S
 
 
+LUNGES = (3005, 3006)   # hollow lunge / running attack — land ~0.8–1.0 s after starting from 3.5–5 m (foes.py 3005 note)
+LUNGE_R = 5.5           # 10-13 burg-altar: 255040's 3005 from 3.7 m and 5.1 m, −335 · −407, shield came up 0.1 s before / never
+
+
 def threat_until(s, starts: dict, now: float, unblockable) -> float | None:
-    """Latest 'keep the shield up until' time from foes within THREAT_R that started a blockable attack < THREAT_S ago, or None."""
+    """Latest 'keep the shield up until' time from foes within THREAT_R (LUNGE_R for a lunge) that started a blockable attack
+    < THREAT_S ago, or None."""
     p = s.player
     until = None
-    for c in s.hostile(THREAT_R + 2.0):
+    for c in s.hostile(LUNGE_R + 2.0):
         a = c.anim if c.anim is not None else -1
         st = starts.get(c.ptr)
-        if (c.hp <= 0 or a not in M.ATTACK or st is None or now - st >= THREAT_S or M.horiz(p, c) >= THREAT_R
+        r = LUNGE_R if a in LUNGES else THREAT_R
+        if (c.hp <= 0 or a not in M.ATTACK or st is None or now - st >= THREAT_S or M.horiz(p, c) >= r
                 or unblockable(c)):
             continue
         until = max(until or 0.0, st + THREAT_S)
