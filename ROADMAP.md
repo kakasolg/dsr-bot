@@ -52,7 +52,7 @@ needing the tick loop, route data, settings object or WorldState.
 
 - [~] altar-route-rec | MoKa | doing | demo 1 read (§2-b); next: what calls the landing? | stages/burg-to-altar.md
 - [ ] claymore-grip | MoKa | decide | STR 16 = one-hand OK (154037); two-hand? default? | stages/burg-to-altar.md
-- [~] altar-mission | win | verify | `altar` 3/3 arrived (Hellkite lands 21.5 s, leaves ~11 s; first breath −183 every run), `altar-burg` 2/2 clean after P-76 fix | stages/burg-to-altar.md
+- [~] altar-mission | win | verify | `altar` 3/3 arrived (Hellkite lands 21.5 s, leaves ~11 s; first breath −183 = unavoidable, MoKa), `altar-burg` 2/2 clean after P-76 fix | stages/burg-to-altar.md
 
 ## 2. v1.0 — open by area
 
