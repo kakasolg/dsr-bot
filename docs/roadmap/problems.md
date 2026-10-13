@@ -899,3 +899,11 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
   `화톳불로` 다시 같은 길 → 194 s 같은 두 놈과 다시 싸움, −260. 로그에 `사망 뒤` 판단 줄 없음.
 - 원인: `souls/afterdeath.run_zones`는 구역 런 안의 사망만 다룸. `Field.rest_at`의 걷기 사망은 `wait_respawn` 뒤 다시 걷기만 함.
 - 고침 제안 [cloud]: `rest_at` 걷기 중 사망 → 런 끝(또는 같은 자리 두 번째 사망이면 끝), 시작 위치가 화톳불에서 멀면 시작 전에 경고. 상태: open.
+
+### P-80 휘청 반격(`rule_stagger_punish`)이 휘청 끝물에 나감 — 스태미나 기다리다 0.9 s 늦게 눌러 방패병 반격에 맞음 → 사망 (2026-10-12, [win])
+
+- 증상: `data/samples/20261012_225154_burg-upper_burg-upper-tradefix1.txt` 90–98 s, 구역 2-1 255001(창 방패병). 3005를 막음 → 255001 휘청(3500) →
+  내 방패 밀림(20140) 0.43 s → SP 47 < 클레이모어 `sp_min` 60이라 기다림 → 휘청 0.89 s째에 약공 → 칼날(0.68 s) 닿기 전에 휘청이 끝나고 3000이
+  먼저 들어옴 −126 (`휘청 → light×1 피해 0, 내 피해 357`) → 254011 3006 돌진까지 겹쳐 4.75 s에 −767 사망.
+- 원인: `rule_stagger_punish`에 휘청 경과 시간 조건이 없음 — SP가 차는 순간 휘청 끝물이어도 침. 방패병 휘청은 0.8–1.3 s (foes.SHIELD 메모).
+- 고침 제안: 휘청 시작 뒤 경과 + 무기 startup(클레이모어 0.68 · 액스 0.64) > 휘청 최소 길이(방패병 0.8 s)면 안 침. 상태: open.

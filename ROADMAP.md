@@ -169,6 +169,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 77 | Walk stalls with the body not moving (~160 s, ~110 s); almost-arrived skips can't help | open |
 | 78 | Zone 4-1: backstab try between 254010 + 254011 → not_behind, 6 s, −452, then no retreat spot → died | open |
 | 79 | Death on the walk to the bonfire (`화톳불로`): no stain decision, walks back into the same foes | open |
+| 80 | Stagger counter pressed 0.9 s into a shield soldier's stagger (waited for SP) → hit first, died | open |
 
 ## 5. Relay — [cloud] ↔ board
 
