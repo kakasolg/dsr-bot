@@ -942,3 +942,6 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
 - 원인: `Field._smash_blocking`이 막힘을 앞길 부서지는 물건 탓으로만 봄. NPC 몸이 막은 경우를 몰랐음. 상인은 맞기 전에도 team 6(적과 같은 값)이라 팀으로는 구분 안 됨.
 - 고침 (2026-10-13 [win]): `field.npc_near` — 아는 NPC(`FRIENDLY_NPCS = {251001}`)가 나나 그 물건 3 m 안이면 부수지 않음(`tests/smash_npc_test.py`).
   남은 것: 다른 NPC id 추가, 싸움 목표 고르기에서도 NPC 빼기(지금은 맞기 전엔 깨어 있지 않아 안 노렸던 것뿐). 상태: verify.
+- 2026-10-13 [win] 세이브 복원 (MoKa "사망 했으면 세이브 복원 해야지"): `savepoint.py restore backup-20261012-152651-altar-bridge-entry-no-drake`
+  → 제단 다리 입구, HP 586/742, 클레이모어, 소울 2514, 화염병 47, 나이프 0, 마지막 화톳불 태양의 제단. 상인 죽은 세이브는
+  `backup-20261013-024407-before-restore-…`로 남음. 잃은 것: SL 21 → 20.
