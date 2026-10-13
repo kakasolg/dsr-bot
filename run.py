@@ -26,6 +26,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import sys
 import threading
 import time
@@ -33,6 +34,9 @@ from pathlib import Path
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
+
+# run.py는 DSR 전용 — env.py 기본값(er)은 옛 엘든링 루프용이라 여기서 덮음
+os.environ.setdefault("BOT_GAME", "dsr")
 
 ROOT = Path(__file__).resolve().parent
 
