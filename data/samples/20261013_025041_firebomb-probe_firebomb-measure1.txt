@@ -1,0 +1,33 @@
+[    0.0] run 20261013_025041_firebomb-probe · code 2725d01 · firebomb-probe --dists 5,8,12,15 --radar --ctl-scenes --note firebomb measure 1 (2725d01) · settings c71a83eb · note firebomb measure 1 (2725d01)
+[    0.0] ctl: 기록만 → D:\dev\dsr-bot\data\runs\20261013_025041_firebomb-probe.ctl.jsonl
+[    0.0] ctl scenes: 싸움 결정마다 그 순간의 입력 기록 (scene_replay.py 로 다시 돌림, 판단엔 반영 안 함)
+[    0.3] radar: sending — python radar_server.py -> http://127.0.0.1:47801, python overlay.py
+[    0.3]    화염병(292)을 3번째 빈 칸에 넣음 (가진 수 47) → 슬롯 [205, 311, 292, -1, -1]
+[    7.2]    물건 비켜 가기 (지난 실행에서 2번 이상 부숨): o1130_13 o1132_06 o1150_01 o1321_0021
+[    8.5] 무기: 클레이모어 (약공 2연타, 닿는 거리 1.8 m, 강공 안 씀)
+[    8.5] 스타일: guard
+[    8.5] 캐릭터: SL 20 VIT 18 END 14 STR 16 DEX 17 | 반지 147,-1 왼손 1462000
+[   13.9] ── 화염병 5 m: 성벽 마을 휴식 됨
+[   22.5]    화염병 5 m (선 자리 4.96 m): 락온 True · 피해 75 · 목표 깸 True · 옆에 깬 적 없음 · 남은 46 
+[   26.5]    화톳불로: arrived
+[   30.2]    카메라: 오른스틱 +x → cam_yaw + (+/− 펄스 한 쌍으로 배움)
+[   30.4] ── 화염병 8 m: 성벽 마을 휴식 됨
+[   37.7]    화염병 8 m (선 자리 4.94 m): 락온 True · 피해 75 · 목표 깸 True · 옆에 깬 적 없음 · 남은 45 
+[   41.6]    화톳불로: arrived
+[   45.6] ── 화염병 12 m: 성벽 마을 휴식 됨
+[   50.4]    화염병 12 m (선 자리 9.65 m): 락온 False · 피해 None · 목표 깸 None · 옆에 깬 적 없음 · 남은 None · 락온 안 걸림 — 안 던짐 (락온 없는 나이프는 오늘 0/5) · R3 때 몸 10° 카메라 2° 높이 -1.5 m
+[   56.1] ── 화염병 15 m: 성벽 마을 휴식 됨
+[   60.1]    화염병 15 m (선 자리 14.26 m): 락온 False · 피해 None · 목표 깸 None · 옆에 깬 적 없음 · 남은 None · 락온 안 걸림 — 안 던짐 (락온 없는 나이프는 오늘 0/5) · R3 때 몸 0° 카메라 1° 높이 -1.5 m
+[   60.1] ══ 화염병 측정: 거리 · 선 자리 · 락온 · 피해 · 목표 깸 · 옆에 깬 적
+[   60.1]       5 m · 4.96 · True · 75 · True · [] · thrown
+[   60.1]       8 m · 4.94 · True · 75 · True · [] · thrown
+[   60.1]      12 m · 9.65 · False · None · None · [] · not_thrown
+[   60.1]      15 m · 14.26 · False · None · None · [] · not_thrown
+[   60.1] ══ 결과: done
+[   60.1] 카메라 정렬: 싸움 밖 중앙 10° · 90 % 10° · 10° 안 85% (131번)
+[   60.1] 정렬 (몸 30° 또는 락온): 싸움 밖 몸 중앙 82° · 30° 안 21% · 정렬 21% (271틱)
+[   60.1] 가드 유지: 휘두르는 적 2.5 m 안에서 방패 직접 듦 1번
+[   60.1] ctl scenes: scenes kept 0, errors 0, capture 0 ms total
+[   60.1] ══ 위험 판정: 깨끗  (결과 done, 최저 HP 100%, 큰 피격 0번 -0)  
+[   60.1] 실행 설정 기록: 20261013_025041_firebomb-probe.settings.json
+[   60.1] 텔레메트리 피드: {'frames': 3123, 'read_ms': 4.5, 'fresh': 6351, 'waited': 30, 'direct': 801, 'none': 0, 'stale': 0}

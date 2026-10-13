@@ -575,6 +575,7 @@ The items are still open in ROADMAP.md (one line each); their full text as it st
 - `route-recordings` (moved 2026-10-12): [~] [MoKa] Recordings of the route (3 done, Taurus killed in the 3rd) — more only if a zone needs it
 - `shop` (moved 2026-10-12): [~] [cloud]+[win] `shop` buy routine — [cloud] done offline 10-12 (`souls/shop.py`, `run.py merchant-buy --buy 290:30,292:20`, docs end of `docs/shop-undead-merchant.md`); [win]: game check per that doc
 - `firebomb-measure` (moved 2026-10-12): [ ] [win] Locked-on firebomb at 254010 from 5 · 8 · 12 · 15 m: hit, damage, others woken; id 292 = Firebomb (shop, 10-12); 67 held
+  - 2026-10-13 [win] `run.py firebomb-probe` (`2725d01`, 샘플 `firebomb-measure1`, MoKa "앞으로 화염병 위주로"): 목표 구역 1 첫 254010, 4.1 m 옆 석궁병 255002. 4.96 m · 4.94 m(8 m 자리로 걷다 지나침): 락온 · **75 = 한 방 처치** · 옆에 깬 적 없음 (2/2). 9.65 m · 14.26 m: 락온 안 걸림(R3 때 몸 10° · 0°) → 락온 없이는 안 던짐(나이프 0/5 규칙). → 화염병은 끌어오기가 아니라 '락온 거리 안 망자 한 방'. 남은 것: 7–9 m (걷기가 거리에서 안 멈춤 — done 체크 사이 3 m 지나침), 방패병·석궁병 피해.
 - `firebomb-candidate` (moved 2026-10-12): [ ] [cloud] Firebomb as a candidate (lure opener · 2+ foes · ledge 254012) next to knife / melee; no limit — use while any are left, none = play as now; golden + expect
 - `bow` (moved 2026-10-12): [ ] [cloud]+[win] Bow: buy, switch shield ↔ bow, locked-on shot, measure — after the firebomb
 - `npc-module` (moved 2026-10-12): [ ] [cloud] NPC interaction (MoKa 10-12: getting important): talk / shop / later quests as one module; the merchant is the first case

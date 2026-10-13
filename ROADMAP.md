@@ -43,7 +43,7 @@ needing the tick loop, route data, settings object or WorldState.
 - [~] shop | win | verify | merchant save 3/3 bought; from Firelink 0/2 — both died on the ramp before the merchant (3 of 5 Firelink trips today) | docs/shop-undead-merchant.md · plan:shop
 - [~] lock-sight | win | verify | lure spot prefers a clear line (`clear_sight`: 30/31 locked, 5/6 failed); none → lock-on decides as before; next: `--throw` lock rate 2–10 m | docs/throwables.md · plan:lock-sight
 - [~] heavy-lock | win | verify | `duel._keep_lock` + heavies only locked; zones 1–2: locks in 1:1, lets go for a 2nd foe; watch more runs | docs/throwables.md
-- [ ] firebomb-measure | win | todo | locked-on firebomb at 254010 from 5 · 8 · 12 · 15 m: hit, damage, others woken (67 held) | plan:firebomb-measure
+- [~] firebomb-measure | win | verify | ~5 m locked: 2/2 one-shot hollow (75), crossbowman 4 m away didn't wake; 9.6 · 14 m lock failed → not thrown. Next: 7–9 m | plan:firebomb-measure
 - [ ] firebomb-candidate | cloud | todo | firebomb as a candidate next to knife / melee (lure opener · 2+ foes · ledge); no limit, none = as now | plan:firebomb-candidate
 - [ ] bow | cloud+win | todo | bow: buy, switch shield ↔ bow, locked-on shot, measure — after the firebomb | plan:bow
 - [ ] npc-module | cloud | todo | NPC interaction as one module (talk / shop / quests); the merchant is the first case | souls/shop.py · plan:npc-module
