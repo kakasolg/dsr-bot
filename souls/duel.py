@@ -758,7 +758,11 @@ def _sense(F: Fight):
     #  10-11 174753 zone 1: 254010 fell off the ledge mid-fight (anim 1500, −1.1 → −4.6 m); rule_face_first turned us to it — face()
     #  turns by pushing the stick, so it walked us over the same ledge (4 m, quit-out; with no fall quit-out now, possibly a death).
     #  Same reach as Field's chasers (FOLLOW_DY): 'lost' → Field leaves it out for the rest of this walk.
-    if a in M.FALLING or dy < -TARGET_DROP_DY:
+    #  ── 처음부터 아래층에 서 있던 적은 '떨어짐'이 아님 (10-13 Claymore 구역 1–8) ──
+    #   구역 5의 창 방패병 255001 둘은 안전 자리보다 3 m 아래에 서 있음 → 싸움 첫 틱에 'lost' 8번(17 s씩, 140 s), 둘 다 못 잡고 구역 6에서
+    #   같이 와서 사망. 떨어짐 = 그 적 자신의 높이가 싸움에서 처음 본 뒤 TARGET_DROP_DY 넘게 내려감 (내가 계단을 오르내린 건 안 셈)
+    y0 = F.__dict__.setdefault("_foe_y0", {}).setdefault(c.ptr, c.y)
+    if a in M.FALLING or (dy < -TARGET_DROP_DY and c.y < y0 - TARGET_DROP_DY):
         F.log(f"      {c.npc_param}가 아래로 떨어짐 (높이 {dy:+.1f} m, 애니 {a}) — 따라가지 않음")
         F.note("목표 떨어짐", s, c)
         return F.done("lost")

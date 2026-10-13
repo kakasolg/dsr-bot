@@ -915,3 +915,12 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
 - 고침 (2026-10-13 [win] `93dce7b`): `Foe.stagger_s`(블랙박스 60 Hz 중앙값 — 망자 1.5 · 방패병·석궁 1.35), `prep_reflex`가 휘청 경과를 잼,
   `_stagger_late`: 경과 + startup + 0.1 > stagger_s면 방패 들고 정면(`휘청늦음`). `tests/stagger_late_test.py`. 게임 `staggerfix2`(구역 1–4 cleared, 깨끗,
   최저 HP 77 %): 구역 2-1 255001이 같은 장면(휘청 중 SP 45) → 휘청늦음 → 3003 막고 `휘두름 끝` kick+light로 처치, 받은 피해 0. 상태: verify.
+
+### P-81 구역 5: 3 m 아래 서 있는 창 방패병을 '떨어짐'으로 읽어 8번 포기 → 구역 6에서 둘이 같이 와 사망; 턱 되돌림 23번 (2026-10-13, [win])
+
+- 증상: `data/samples/20261013_005647_burg-upper_burg-upper-clay18-1.txt` (클레이모어 구역 1–8 첫 런). 구역 1–4 cleared. 구역 5-2·5-3 255001:
+  `아래로 떨어짐 (높이 -3.0 m, 애니 -1) — 따라가지 않음` → lost 8번(17 s씩, 207–366 s) → `left #2 #3`. 구역 6에서 255001 둘이 같이 옴 →
+  안전 자리 턱에서 `⤺ 턱 위 미끄러짐 — 안전 자리로 되돌림` 23번(1 s마다, 되돌림 동안 패드 얼림·가드 내림) → 3004·3009(막을 수 없음) −1197 사망.
+- 원인: P-69 고침(`f2333dc`)의 `dy < −TARGET_DROP_DY` — 처음부터 아래층에 선 적도 '떨어짐'. 10-12 전 구역 5는 cleared 5/9.
+- 고침 (2026-10-13 [win]): 떨어짐 = 그 적 자신의 높이가 싸움에서 처음 본 뒤 2.5 m 넘게 내려감(또는 낙하 애니). expect `p69-target-below` 라벨을
+  바꿈(cloud 라벨 → 처음부터 아래면 싸움 계속). 상태: verify. 턱 되돌림 반복(싸움 중 1 s마다, 가드 내림)은 따로 남음 — open.
