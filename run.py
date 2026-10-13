@@ -116,7 +116,7 @@ LURE_CMDS = {"burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["status", "watch", "burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt-one", "merchant", "light-burg", "burg-upper", "quit-test", "passage-drill", "asylum", "taurus", "merchant-buy", "altar", "altar-burg"])
+    ap.add_argument("cmd", choices=["status", "watch", "burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt-one", "merchant", "light-burg", "burg-upper", "quit-test", "passage-drill", "asylum", "taurus", "merchant-buy", "altar", "altar-burg", "firebomb-probe"])
     ap.add_argument("--no-rest", action="store_true")
     ap.add_argument("--no-quit", action="store_true", help="퀵 종료(메뉴로 나갔다 오기) 안 씀 — 영상 촬영용")
     ap.add_argument("--fall-quit", action="store_true", help="낙하 때 예전처럼 퀵 종료 (기본: 기록만 하고 계속, [MoKa] 2026-10-12)")
@@ -126,6 +126,7 @@ def main() -> None:
                     "(souls/missions.py FB_*; 퀵 슬롯에 290 · 292, [MoKa] 2026-10-12)")
     ap.add_argument("--shop-shots", action="store_true", help="상점 단계마다 스크린샷 data/shop/<날짜>/ (pad_step.py처럼)")
     ap.add_argument("--no-guard-keep", action="store_true", help="가드 유지 스레드 끔 (souls/guardkeep.py — 2.5 m 안 적이 휘두르는 동안 LB 유지; A/B 비교용)")
+    ap.add_argument("--dists", default="5,8,12,15", help="firebomb-probe: 254010까지 거리들 (m)")
     ap.add_argument("--no-recover", action="store_true", help="burg-upper: 죽으면 그대로 끝 (기본: 핏자국이 값지면 화톳불부터 다시 가서 회수, souls/afterdeath.py)")
     ap.add_argument("--i", type=int, default=5, help="hunt-one: BURG_TOWN 몇 번째 (5 = 석궁병 255002)")
     ap.add_argument("--seg", default=None, help="asylum: 구간 번호 또는 범위 (기본 1; 1 = 감방 → 사다리 → 첫 화톳불, 2-3 = 이어서, ROADMAP 1-h). "
@@ -257,6 +258,16 @@ def main() -> None:
                 run_end("no_knife_slot")
                 return
             log(f"   투척 나이프(290)가 퀵 슬롯에 없어서 {slot + 1}번째 빈 칸에 넣음 (가진 수 {have}) → 슬롯 {tm.quick_items()}")
+    if a.cmd == "firebomb-probe" and moves.ITEM_FIREBOMB not in tm.quick_items():
+        import steam_state
+        have = tm.goods_count(moves.ITEM_FIREBOMB) or 0
+        slot = tm.equip_quick_item(moves.ITEM_FIREBOMB) if have and steam_state.check().get("offline") is True else None
+        if slot is None:
+            log(f"   ⚠ 화염병(292)을 퀵 슬롯에 못 넣음 (슬롯 {tm.quick_items()}, 가진 수 {have}) — 멈춤 (게임 입력 없음)")
+            ctl.emit("life", ev="normal_exit", result="no_firebomb_slot")
+            run_end("no_firebomb_slot")
+            return
+        log(f"   화염병(292)을 {slot + 1}번째 빈 칸에 넣음 (가진 수 {have}) → 슬롯 {tm.quick_items()}")
     # one virtual pad per machine (P0-A): refuse before any input — focus_game already sends ALT / a title-bar click
     busy = "다른 프로세스가 가상 패드를 쥐고 있음" if control.pad_lock_held() else None
     if busy is None:
@@ -388,6 +399,10 @@ def main() -> None:
             r = _shop(a, mv, nms[missions.MAP_B], fld, log)
         elif a.cmd == "merchant":
             r = ms.to_merchant()
+        elif a.cmd == "firebomb-probe":
+            from souls import firebomb_probe
+            log.zone = "firebomb-probe"
+            r = firebomb_probe.run(ms, [float(x) for x in a.dists.split(",")], log)
         elif a.cmd == "taurus":
             from souls import taurus
             log.zone = "taurus"
