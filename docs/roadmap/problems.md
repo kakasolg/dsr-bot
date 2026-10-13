@@ -971,3 +971,4 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
 - 원인: (1) `Altar._wait_landing`이 착지만 봄 — 다른 적을 안 봄. (2) 가드 유지가 2.5 m 안만 봐서 3.7 · 5.1 m에서 시작한 돌진엔 방패가 0.1 s 전 / 안 올라감.
 - 고침 (2026-10-13 [win]): ③ 대기 중 8 m 안 같은 층 깨어 있는 적 → `Field.fight` 뒤 다시 대기 · ③에 오면 15 m 안 핏자국 줍기(`pick_blood`) ·
   가드 유지가 돌진(3005·3006)은 5.5 m까지 (`guardkeep.LUNGE_R`, 테스트). 상태: verify.
+- 2026-10-13 [win] 게임 확인 `burg-altar-3`: ③ 도착 즉시 핏자국 회수 (소울 1738 → 7170, 인간성 2), ③ 착지 19.2 s, 제단 arrived, 위험 판정 깨끗 · 최저 HP 51 %.
