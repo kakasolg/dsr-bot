@@ -81,6 +81,8 @@ UPPER_COME_R = 8.0       # a target already this close to the safe spot (or alre
 UPPER_NEAR_SAFE_R = 4.0  # within this of the safe spot, don't turn our back to run there — fight (10-06d died 2–3 m from it)
 UPPER_TRIES = 4          # same target until dead, at most this many lure + fight rounds (a round may go to a foe that came along)
 UPPER_ENCOUNTER_R = 10.0 # running in: any awake, moving foe on our level this close → turn back to the safe spot
+UPPER_LURE_CROWD_R = 4.0 # a target with another live foe this close (same level) is lured with a knife, not by running in (below)
+UPPER_LURE_CROWD_DY = 2.0
 UPPER_HEAL_FRAC = 0.7    # before each lure: below this share of max HP, Estus first
 LADDER_TRIES = 3         # zone 8 ladder: face + A + climb attempts
 ROUTE_NEAR_M = 6.0       # _to_merchant: the nearest route point is walked to straight only this close …
@@ -147,6 +149,18 @@ def _with_entry_corner(pts: list) -> list:
             out[i + 1:i + 1] = [ENTRY_CORNER] + ENTRY_WALK
             break
     return out
+
+
+def crowd_near(s, t, ptr) -> list:
+    """
+    ── 붙어 선 적은 몸으로 안 끌어옴 ([MoKa] 2026-10-12 "적이 다수가 있는데, 거기에 가서 불리한 싸움을 하는 이유는?") ──
+     · 10-12 align2 구역 4: 254010 · 254012 · 254011이 1.9–3.4 m 붙어 섬 → 몸으로 달려가 셋 다 깨움 → 1:2 사망 (P-78)
+     · 목표에서 UPPER_LURE_CROWD_R 안, 같은 층(UPPER_LURE_CROWD_DY)에 살아 있는 다른 적 → 나이프 유인 (Field.lure, --throw 없이도)
+    """
+    if s is None or not hasattr(s, "hostile"):
+        return []
+    return [o for o in s.hostile(60.0) if o.ptr != ptr and o.hp > 0 and abs(o.y - t.y) < UPPER_LURE_CROWD_DY
+            and math.hypot(o.x - t.x, o.z - t.z) < UPPER_LURE_CROWD_R]
 
 
 class Missions:
@@ -578,7 +592,10 @@ class Missions:
             c = target(sn)
             return met(sn) or (c is not None and M.horiz(sn.player, c) < UPPER_CLOSE_R)
 
-        if getattr(self, "throw", False) and not how.get("lure_at") and self._has(M.ITEM_KNIFE):
+        crowd = crowd_near(self.mv.snap(200.0), t, ptr)
+        if (getattr(self, "throw", False) or crowd) and not how.get("lure_at") and self._has(M.ITEM_KNIFE):
+            if crowd and not getattr(self, "throw", False):
+                self.log(f"   {tag}: 옆에 {len(crowd)}명 붙어 있음 ({', '.join(f'{o.npc_param} {math.hypot(o.x - t.x, o.z - t.z):.1f} m' for o in crowd)}) — 몸 대신 나이프로")
             lr = self.f.lure(ptr, here0, nb, tag, arena=safe)     # from the safe spot, or up to 10 m along the path, locked on
             self.log(f"   {tag}: 나이프 유인 → {lr}")
             if not self.f.alive():
@@ -636,6 +653,14 @@ class Missions:
                 return "dead"
             self.f._settle(front, tol=0.5)
             ok = self.f.fog_through(beyond, known=True)
+            if not ok:
+                # ── 보스를 이미 잡았으면 안개벽이 없음 (10-13 클레이모어 구역 1–8 둘째 런) ──
+                #  타우로스를 잡은 캐릭터: A 두 번에 1.1 · 1.6 m만 움직이고(스틱 0.3 s씩) 'fog fail' — 벽이 없으면 그냥 걸어가면 됨.
+                #  벽이 있으면 걷기가 막혀 그대로 실패
+                r = self.f.walk_to(beyond, nb, f"{tag} 안개벽 자리 걸어서")
+                ok = r == "arrived"
+                if ok:
+                    self.log(f"   {tag}: 안개벽 없음 (보스 처치 뒤?) — 걸어서 지나감")
             self.log(f"   {tag}: 안개벽 {'통과' if ok else '못 지나감'}")
             return "ok" if ok else "fail"
         st = step["ladder"]

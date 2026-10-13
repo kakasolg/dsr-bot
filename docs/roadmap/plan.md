@@ -570,6 +570,7 @@ The items are still open in ROADMAP.md (one line each); their full text as it st
 - `boss-two-hand-dodge` (moved 2026-10-12): [ ] [cloud]+[win] Boss fight default = two-handed + dodging (9-30 principle); Taurus is the first case (the general boss module is v2.0)
 - `firebomb-hollow-close-in` (moved 2026-10-12): [ ] [cloud] Firebomb hollow "close in fast" rule — unless the way there is a fall-risk zone (ledge 254012 is ignored) → check with `duel_golden_test`
 - `zone-runs` (moved 2026-10-12): [~] [win] Zone-by-zone bot runs; after each: `blind_report.py` · `hotspots.py` · `track_report.py`, logs to `data/samples/`
+  - 2026-10-13 [win] **클레이모어 구역 1–8**: 1번째 `clay18-1` 구역 1–4 cleared, 구역 5 '떨어짐' 8번 포기 → 구역 6 사망 (P-81, `5ba6854`로 고침). 2번째 `clay18-2`: **구역 1–7 cleared, 깨끗, 최저 HP 69 %, 큰 피격 2번 −166**, 구역 8 `fog fail` — 타우로스를 이미 잡은 캐릭터라 안개벽이 없어 A로 1.1·1.6 m만 움직임 → A 안 먹으면 'beyond'까지 걸어가기로 고침. 붙어 선 적은 --throw 없이도 나이프 유인(`missions.crowd_near`, 4 m·같은 층). 공격 18번 정렬 94 %, 맞힘 15/17.
 - `route-recordings` (moved 2026-10-12): [~] [MoKa] Recordings of the route (3 done, Taurus killed in the 3rd) — more only if a zone needs it
 - `shop` (moved 2026-10-12): [~] [cloud]+[win] `shop` buy routine — [cloud] done offline 10-12 (`souls/shop.py`, `run.py merchant-buy --buy 290:30,292:20`, docs end of `docs/shop-undead-merchant.md`); [win]: game check per that doc
 - `firebomb-measure` (moved 2026-10-12): [ ] [win] Locked-on firebomb at 254010 from 5 · 8 · 12 · 15 m: hit, damage, others woken; id 292 = Firebomb (shop, 10-12); 67 held
