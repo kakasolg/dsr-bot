@@ -125,6 +125,7 @@ def main() -> None:
     ap.add_argument("--throw", action="store_true", help="burg-upper: 투척 나이프로 유인 (달려가기 전), 화염병 — 둘 이상 다가올 때 · 턱 위 화염병 망자 "
                     "(souls/missions.py FB_*; 퀵 슬롯에 290 · 292, [MoKa] 2026-10-12)")
     ap.add_argument("--shop-shots", action="store_true", help="상점 단계마다 스크린샷 data/shop/<날짜>/ (pad_step.py처럼)")
+    ap.add_argument("--no-guard-keep", action="store_true", help="가드 유지 스레드 끔 (souls/guardkeep.py — 2.5 m 안 적이 휘두르는 동안 LB 유지; A/B 비교용)")
     ap.add_argument("--no-recover", action="store_true", help="burg-upper: 죽으면 그대로 끝 (기본: 핏자국이 값지면 화톳불부터 다시 가서 회수, souls/afterdeath.py)")
     ap.add_argument("--i", type=int, default=5, help="hunt-one: BURG_TOWN 몇 번째 (5 = 석궁병 255002)")
     ap.add_argument("--seg", default=None, help="asylum: 구간 번호 또는 범위 (기본 1; 1 = 감방 → 사다리 → 첫 화톳불, 2-3 = 이어서, ROADMAP 1-h). "
@@ -308,6 +309,10 @@ def main() -> None:
     from souls.camera import CamFollow
     cam = CamFollow(mv, esc, log=log, events=log.event).start()   # so a viewer can see what the bot is doing (user 2026-09-26)
     mv.align_sink = cam.on_attack                          # target–body–camera at each attack press → "attack_align" ([MoKa] 10-11)
+    gk = None
+    if not a.no_guard_keep:
+        from souls.guardkeep import GuardKeep
+        gk = GuardKeep(pad, shield=lambda: mv.guard_ok, log=log, events=log.event).start()   # [MoKa] 10-12 "미리 방패를 내리잖아"
     log(f"스타일: {a.style}")
     laya_ch = None
     if a.laya_shadow:
@@ -474,6 +479,9 @@ def main() -> None:
             cam.stop()
             log(cam.stats())
             log(cam.align_stats())
+            if gk is not None:
+                gk.stop()
+                log(gk.stats())
             esc.stop()
             blood.stop()
             bbox.stop()

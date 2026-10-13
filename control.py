@@ -267,7 +267,10 @@ class Pad:
         self._stick_off_t = 0.0   # 왼스틱을 마지막으로 놓은 시각
         # 반사 스레드(reflex.py)와 판단 루프가 같이 누른다 — 보고서(report)를 동시에 고치지 않게 잠근다
         self._lock = threading.RLock()
-        self.force_guard = False  # 반사 스레드가 켜면 판단 루프가 가드를 내려도 무시한다 (적 공격 중)
+        # 가드 유지 (souls/guardkeep.py): 이 시각까지는 판단 루프가 가드를 내려도 무시한다 (2.5 m 안 적이 휘두르는 중)
+        self._force_until = 0.0
+        self._kept = False        # LB was pressed by keep_guard, not by a caller
+        self._guard_want = False  # what the callers last asked for LB
         self._closed = False
         self._pad_lock = None
         if vg is None:
@@ -417,6 +420,7 @@ class Pad:
             self.epoch += 1
             self._note_stick(0.0, 0.0)
             self.pad.reset()
+            self._guard_want = False
             if self.force_guard:
                 self.pad.press_button(B.XUSB_GAMEPAD_LEFT_SHOULDER)
             young = self._b_since is not None and time.time() - self._b_since < SPRINT_MIN_HOLD_S
@@ -489,13 +493,46 @@ class Pad:
             if done:
                 self._send("release_due")
 
+    @property
+    def force_guard(self) -> bool:
+        return time.time() < self._force_until
+
+    @force_guard.setter
+    def force_guard(self, on: bool) -> None:
+        self._force_until = float("inf") if on else 0.0
+
+    def keep_guard(self, until: float) -> bool:
+        """Hold LB until `until` whatever the callers do (guard(False) / neutral() are ignored meanwhile). → pressed it now."""
+        with self._lock:
+            self._force_until = max(self._force_until, until)
+            if self.guard_held():
+                return False
+            self.pad.press_button(B.XUSB_GAMEPAD_LEFT_SHOULDER)
+            self._send("keep_guard")
+            self._kept = True
+            return True
+
+    def unkeep(self) -> None:
+        """After the hold ran out: let LB go again if keep_guard pressed it and no caller has asked for it since."""
+        with self._lock:
+            if not self._kept or self.force_guard:
+                return
+            self._kept = False
+            if not self._guard_want and self.guard_held():
+                self.pad.release_button(B.XUSB_GAMEPAD_LEFT_SHOULDER)
+                self._send("unkeep")
+
     def guard_held(self) -> bool:
         return bool(self.pad.report.wButtons & B.XUSB_GAMEPAD_LEFT_SHOULDER) if self.pad else False
 
     def hold(self, button, on: bool) -> None:
         with self._lock:
-            if not on and button == B.XUSB_GAMEPAD_LEFT_SHOULDER and self.force_guard:
-                return
+            if button == B.XUSB_GAMEPAD_LEFT_SHOULDER:
+                self._guard_want = on
+                if on:
+                    self._kept = False
+                elif self.force_guard:
+                    return
             (self.pad.press_button if on else self.pad.release_button)(button)
             self._send("hold")
 
