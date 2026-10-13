@@ -26,6 +26,9 @@ class Foe:
     windup_act_s: float = 1.2
     windup_land_s: float | None = None   # when the windup lands (s after it starts) — before that duel.swing_over never calls it ended (P-66)
     kick_on_stagger: bool = False   # kick immediately on post-attack stagger (3500) — it soon backs out of reach
+    # 3500 길이 (s) — rule_stagger_punish는 휘청 경과 + 무기 startup이 이걸 넘으면 안 침 (P-80). 10-12 블랙박스 60 Hz 중앙값:
+    # 망자 254010 1.54 (n 360) · 254000 1.54 · 254011 1.55 / 방패병 255001 1.38 (n 31) · 255010 1.06 · 255000 0.85 · 석궁 255002 1.37
+    stagger_s: float = 1.5
     # How to do the early kick under the windup·kick_on_stagger conditions above (Patch D, 2026-09-26):
     #   "off"    — do nothing
     #   "shadow" — no kick, only log candidate events (duel.ShadowKick). Default, since the meaning of raw anims 3004·3500 is unverified
@@ -62,7 +65,7 @@ FIREBOMB_HOLLOW = Foe("망자(화염병)", ranged=True, windup=(3008,), windup_a
 #  애니 −1" while 255010 swung at 1.26 m); lure / waiting still see ranged=True.
 AXE_HOLLOW = Foe("망자(도끼 양손)", ranged=True, throws=False, windup=(3004,), windup_act_s=1.0, windup_land_s=1.7, **_HOLLOW,
                  note="경사로 #4. 방패 없이 도끼를 양손으로 — 3003 뒤 3004가 1.7 s에 떨어짐, 1.0 s부터 그때까지 막기 유지 (MoKa 2026-10-01)")
-SHIELD = Foe("방패 병사", kind="shield", kick_when_idle=True, circle_behind=False, unblockable=(3009,), punish_hits=1,
+SHIELD = Foe("방패 병사", kind="shield", kick_when_idle=True, circle_behind=False, unblockable=(3009,), punish_hits=1, stagger_s=1.35,
              windup=(3004,), windup_act_s=1.2, windup_land_s=2.1, kick_on_stagger=True, early_kick="shadow",
              note="가만히 서면 방패를 들어 약공이 12 씩만 (6번 쳐도 못 잡음). 가드 올린 채면 발차기로 휘청 (위키). "
                   "내가 가드만 하면 가드 브레이크 3009 로 깨러 온다 (Lua IsTargetGuard) — 2026-09-24 실측: 3009 를 막다 가드가 깨져"
@@ -87,7 +90,7 @@ BY_NPC: dict[int, Foe] = {
     # As SHIELD, wait_far said "not approaching" and just blocked for 8 minutes. The fire motion number doesn't change, so anim changes don't reveal it.
     # [MoKa] 2026-10-11: "석궁병은 방패가 없는데 발차기 할 필요가 없음" — 구역 8에서 발차기+약공 콤보(2.5 s) 중 −228·−156 (P-66 다시 나옴).
     # 방패병(kind shield · kick_when_idle)에서 뺌: 발차기 없이 약공, 방패 전제 판단(먼저 치기 금지·방패병 양손 전환)도 안 씀
-    255002: Foe("석궁 병사", kind="other", ranged=True, unblockable=(3009,), punish_hits=1,
+    255002: Foe("석궁 병사", kind="other", ranged=True, unblockable=(3009,), punish_hits=1, stagger_s=1.35,
                 note="3000/3001 = 석궁 발사. 기다리지 말고 붙어 약공 — 방패 없음, 발차기 안 함 ([MoKa] 2026-10-11). "
                      "뒤잡기 안 됨 — 벽에 붙어 서 있음 (사용자 2026-09-28)"),
     # 254013·254014 (next to the Undead Burg bonfire, HP150): not shield soldiers but bodiless phantoms — user "there's nothing there, why is it swinging"

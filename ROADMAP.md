@@ -31,7 +31,6 @@ needing the tick loop, route data, settings object or WorldState.
 
 `run.py burg-upper` = MoKa's safe-spot zones 1–8 (`data/burg-upper-map.json`); test save `backup-20261006-155749-…-before-taurus`.
 
-- [~] alignment | MoKa | decide | 3 Claymore runs, 18 presses: body ≤ 25° at all; 6 'off' = camera only (11–54°), 6/6 hit → no camera fix, judge by body/lock? | plan:alignment
 - [~] taurus | win | doing | `run.py taurus` plunge loop; bonfire → Taurus killed 2× (005650, 025057) | docs/boss-taurus.md · plan:taurus
 - [~] fall-death-policy | win | verify | no fall quit-out + after-death pickup: (1)(2) seen in 3 runs; (3) death record, (4) alignment next runs | P-71 · P-72 · plan:fall-death-policy
 - [ ] boss-two-hand-dodge | cloud+win | todo | boss default = two-handed + dodging (9-30); Taurus first, general boss module is v2.0 | plan:boss-two-hand-dodge
@@ -159,7 +158,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 67 | Zone 1 lure: B re-pressed at every sprint point → jump off ledge into 3× 254010; `_sprint` had no hit exit → dead | verify — game 10-11: zones 1–4 cleared, `threat` stop 6×, no jump; 3 short B holds left |
 | 68 | Zone 5: heavy into 255000's shield 0 dmg → low_hp, Estus refused 3×, 255001 joins → dead; bot kept acting after death (TypeError) | death part: fixed — game 10-11 zone 8 death ended the zone at once, no error; shield part open |
 | 69 | Zone 1: the foe fell off the ledge mid-fight, the bot walked after it and fell | verify — falling / > 2.5 m below target ends the duel 'lost' before face() walks |
-| 70 | Zone 1 stairs: 0.1 s sprint B between braked points = roll off the stairs; 3 runs dead | verify — `Pad.sprint` holds B ≥ 0.45 s; 10-12 3 full runs: zone 1 cleared 3/3, no roll |
+| 70 | Zone 1 stairs: fall off the stair side on the sprint back to the safe spot | open — short-B rolls fixed, but 10-13 a plain sprint walked off the same edge (4th death there) |
 | 71 | Fall deaths: a second fall right after a fall quit-out, `Escape` blind, pad frozen; black box blames the foe | verify — MoKa 10-12: no quit-out on falls (`fall_seen`) |
 | 72 | Deaths never fetched their bloodstain (38 deaths, 0 pickup trips) | verify — `souls/afterdeath.py`: worth it → back from zone 1, pick only with no foe within 15 m; small / same zone → end |
 | 73 | Ramp #5: low_hp break-out roll went −126° instead of −30° (camera turned during the roll) → 22.4 m fall | verify — camera held during rolls, fresh stick, `nav.can_move` |
@@ -169,7 +168,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 77 | Walk stalls with the body not moving (~160 s, ~110 s); almost-arrived skips can't help | open |
 | 78 | Zone 4-1: backstab try between 254010 + 254011 → not_behind, 6 s, −452, then no retreat spot → died | open |
 | 79 | Death on the walk to the bonfire (`화톳불로`): no stain decision, walks back into the same foes | open |
-| 80 | Stagger counter pressed 0.9 s into a shield soldier's stagger (waited for SP) → hit first, died | open |
+| 80 | Stagger counter pressed 0.9 s into a shield soldier's stagger (waited for SP) → hit first, died | verify — `Foe.stagger_s`; 10-13 same scene → shield, then killed it, 0 taken |
 
 ## 5. Relay — [cloud] ↔ board
 

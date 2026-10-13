@@ -769,6 +769,11 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
 - 2026-10-12 [cloud] track 재확인 (`docs/analysis-death-2026-10-12.md`): 세 판 모두 `how: byte, quit_s 1.1` — byte가 바로 됐고 메뉴는 안 씀.
   ~11 s = byte 1.1 + 리로드 6.4 + 대기 1.0 + `_back_to_mesh` 2.5 (시간 초과). 그 동안 HP 그대로, 사망은 마지막 −59 피격 → 16.8 m 두 번째 낙하. 그 사슬 → P-71.
 
+- 2026-10-13 [win] **다시 (구르기 없이)**: `data/samples/20261013_003435_burg-upper_burg-upper-staggerfix1.txt` 46–53 s, 구역1-3 254010 `조우 — 달려서 안전 자리로`.
+  `nav.goto` 달리기(B 계속 누름 0x2000, 짧은 B·710 없음) 스틱 (0.35, −0.94)로 계단 옆 (−9.1,−10.0,−69.0)에서 그대로 걸어 나감 → (−9.9,−16.5,−66.0) 낙하 −696 사망
+  (적은 10 m 밖, 공격 안 함, LB 안 누름 — 가드 유지·휘청 고침과 무관). 같은 자리 4번째 낙사 → P-70 고침(짧은 B)만으론 안 막힘: 안전 자리로 가는
+  달리기 경로가 계단 옆 턱을 스침. 상태: open.
+
 ### P-71 낙사 퀵 종료 직후 `Escape`가 못 보는 구간에서 두 번째 낙하 → 사망 (낙사 7건 중 5건; 2026-10-12, [cloud])
 
 - 증상: `data/samples` 사망 38건 중 낙사 7건 (`python experiments/death_audit.py`). 7건 모두 30 s 안에 먼저 낙하가 감지됨 — 퀵 종료 5, 꺼짐 2.
@@ -907,3 +912,6 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
   먼저 들어옴 −126 (`휘청 → light×1 피해 0, 내 피해 357`) → 254011 3006 돌진까지 겹쳐 4.75 s에 −767 사망.
 - 원인: `rule_stagger_punish`에 휘청 경과 시간 조건이 없음 — SP가 차는 순간 휘청 끝물이어도 침. 방패병 휘청은 0.8–1.3 s (foes.SHIELD 메모).
 - 고침 제안: 휘청 시작 뒤 경과 + 무기 startup(클레이모어 0.68 · 액스 0.64) > 휘청 최소 길이(방패병 0.8 s)면 안 침. 상태: open.
+- 고침 (2026-10-13 [win] `93dce7b`): `Foe.stagger_s`(블랙박스 60 Hz 중앙값 — 망자 1.5 · 방패병·석궁 1.35), `prep_reflex`가 휘청 경과를 잼,
+  `_stagger_late`: 경과 + startup + 0.1 > stagger_s면 방패 들고 정면(`휘청늦음`). `tests/stagger_late_test.py`. 게임 `staggerfix2`(구역 1–4 cleared, 깨끗,
+  최저 HP 77 %): 구역 2-1 255001이 같은 장면(휘청 중 SP 45) → 휘청늦음 → 3003 막고 `휘두름 끝` kick+light로 처치, 받은 피해 0. 상태: verify.

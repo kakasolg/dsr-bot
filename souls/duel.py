@@ -1005,6 +1005,12 @@ def prep_reflex(F, T):
     F.shadow.note_anim(F.ptr, T.a, T.now)
     F.shadow.tick(T.now, T.s)
     T.near45 = [x for x in T.s.hostile(4.5) if x.ptr != F.ptr]
+    if T.a in M.STAGGER:                                  # how long the target has been staggered (rule_stagger_punish, P-80)
+        if F.__dict__.get("_stag_ptr") != F.ptr:
+            F._stag_ptr, F._stag_t = F.ptr, T.now
+        T.stag_age = T.now - F._stag_t
+    else:
+        F._stag_ptr, T.stag_age = None, None
     return None
 
 
@@ -1377,11 +1383,33 @@ def rule_estus(F, T):
     return None
 
 
+STAGGER_PAD = 0.1        # rule_stagger_punish: the blade must land this long before the foe's stagger (foes.Foe.stagger_s) ends
+
+
+def _stagger_late(foe, w, stag_age) -> bool:
+    """
+    ── 휘청 끝물엔 안 침 (P-80, [MoKa] 2026-10-12 "가드와 공격이 미묘하게 안 맞아") ──────────────────
+     · tradefix1 92 s: 255001 휘청 0.89 s째에야 SP 60이 차서 약공 → 칼날(클레이모어 startup 0.68 s) 전에 휘청이 끝나 3000이 먼저 −126 → 사망
+     · 경과 + startup + STAGGER_PAD > foe.stagger_s 면 늦음 → 방패 들고 정면 유지 (다음 빈틈은 rule_after_swing 등이 잡음)
+     · 9600(발차기 뒤 가드 깨짐)은 길이를 안 재서 그대로 침
+    """
+    if stag_age is None or w.startup is None:
+        return False
+    return stag_age + w.startup + STAGGER_PAD > getattr(foe, "stagger_s", 1.5)
+
+
 def rule_stagger_punish(F, T):
     """Stagger = opening. If facing is right, hit at once. Not while another foe is swinging next to us — punishing the staggered shield soldier
     took -115 from a hollow's 3003 1.2 m away (dealt 4, 2026-09-27 27c P-8); the reflex blocks that swing instead and the stagger is taken next time.
     Heavy in a shield soldier's stagger opening (user 2026-09-25: "guard·heavy·guard") costs 90 stamina, so only when full (HEAVY_SP)."""
     a, w, p, foe = T.a, F.weapon, T.p, F.foe
+    if _stagger_late(foe, w, getattr(T, "stag_age", None)) and T.h <= w.reach + 0.3 and abs(T.dy) <= 1.0:
+        if F.style.shield:
+            F.mv.guard(True)
+        F.mv.face(T.s, T.c, deg=30.0)
+        F.note("휘청늦음", T.s, T.c)
+        time.sleep(0.02)
+        return CONT
     if (a in M.STAGGER or a == M.GUARD_BROKEN) and not (BACKSTAB_ONLY and T.room) and T.h <= w.reach + 0.3 and abs(T.dy) <= 1.0 \
             and (p.sp or 0) >= w.sp_min and not _other_swinging(T.s, F.ptr):
         if F.mv.face(T.s, T.c, deg=30.0):

@@ -3,7 +3,7 @@
 
   python tests/align_test.py
 
-  · Moves.align_of: one row — body / camera off the target (°), distance, lock, ok (body ≤ 30° and camera ≤ 10° or locked)
+  · Moves.align_of: one row — body / camera off the target (°), distance, lock, ok (body ≤ 30° or locked)
   · @_aligned: an attack press is recorded once (with its damage) when Moves.align_sink is set, and costs nothing when it isn't
   · CamFollow.measure / on_attack / align_stats: per-tick rows in / out of fights, an "align" event every ALIGN_EVERY s,
     the end-of-run line with "hit when aligned vs not"
@@ -52,11 +52,11 @@ def main() -> None:
     s, c = snap(-45.0, 4.0)
     check("align_of: body −45° → not ok", m.align_of(s, c)["ok"] is False and m.align_of(s, c)["body"] < -44)
     s, c = snap(10.0, 35.0)
-    check("align_of: camera 35° off → not ok", m.align_of(s, c)["ok"] is False)
+    check("align_of: camera 35° off, body +10° → ok (camera not judged, MoKa 10-13)", m.align_of(s, c)["ok"] is True)
     lm = moves(lock_on=70)
     check("align_of: camera 35° off but locked on it → ok (lock-on holds the camera)", lm.align_of(s, c)["ok"] and lm.align_of(s, c)["lock"])
     s.player.heading = None
-    check("align_of: no heading → body None, not ok", m.align_of(s, c)["body"] is None and not m.align_of(s, c)["ok"])
+    check("align_of: no heading → body None, not ok (not locked)", m.align_of(s, c)["body"] is None and not m.align_of(s, c)["ok"])
 
     # the decorator: one row per press, with the damage; nothing when no sink
     class Fake(M.Moves):
