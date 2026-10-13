@@ -75,7 +75,6 @@ needing the tick loop, route data, settings object or WorldState.
 - [~] axe-wall-heavy | win | doing | battle-axe vertical heavy against walls (two-handed only; shield soldiers heavy → light) — game checks | plan:axe-wall-heavy
 
 **Walking / navigation (1-f)**
-- [ ] almost-arrived | win | todo | "almost arrived" rule check in game (`거의 도착 … 다음 점으로`, asylum 1 m-short spots) — urgent since 09-30 | plan:almost-arrived
 - [~] corner-early-turn | win | doing | 1-f A: early turn / rubbing at corners reduced? (`hotspots.py`) | plan:corner-early-turn
 
 **Instrumentation / run records**
@@ -167,6 +166,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 74 | Zone 2-1: two foes on us 13 m out; tether cut at tick 0 three times, guard walk back timed out → 37 s, −1565 | verify — no cut with a foe < 2.5 m; failed way back ends it; back-offs within 8 m |
 | 75 | Zone 2-2: run-in read a target 30.5 m out as 'met' (30 m snapshot) → walk-out / tether loop 3×, 35 s | verify — missing target checked wide |
 | 76 | `altar-burg`: ladder A missed, fell 10 m | verify |
+| 77 | Walk stalls with the body not moving (`#6 이동` (−14.2,−13.5,−68.4) ~160 s, `화톳불로` (−48.8,−60.1,55.1) ~110 s); almost-arrived skips can't help | open |
 
 ## 5. Relay — [cloud] ↔ board
 
