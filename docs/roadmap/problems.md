@@ -769,10 +769,10 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
 - 2026-10-12 [cloud] track 재확인 (`docs/analysis-death-2026-10-12.md`): 세 판 모두 `how: byte, quit_s 1.1` — byte가 바로 됐고 메뉴는 안 씀.
   ~11 s = byte 1.1 + 리로드 6.4 + 대기 1.0 + `_back_to_mesh` 2.5 (시간 초과). 그 동안 HP 그대로, 사망은 마지막 −59 피격 → 16.8 m 두 번째 낙하. 그 사슬 → P-71.
 
-- 2026-10-13 [win] **다시 (구르기 없이)**: `data/samples/20261013_003435_burg-upper_burg-upper-staggerfix1.txt` 46–53 s, 구역1-3 254010 `조우 — 달려서 안전 자리로`.
-  `nav.goto` 달리기(B 계속 누름 0x2000, 짧은 B·710 없음) 스틱 (0.35, −0.94)로 계단 옆 (−9.1,−10.0,−69.0)에서 그대로 걸어 나감 → (−9.9,−16.5,−66.0) 낙하 −696 사망
-  (적은 10 m 밖, 공격 안 함, LB 안 누름 — 가드 유지·휘청 고침과 무관). 같은 자리 4번째 낙사 → P-70 고침(짧은 B)만으론 안 막힘: 안전 자리로 가는
-  달리기 경로가 계단 옆 턱을 스침. 상태: open.
+- 2026-10-13 [win] **다시 (구르기 없이)**: `data/samples/20261013_003435_burg-upper_burg-upper-staggerfix1.txt` 구역1-3 254010과 계단 위 싸움.
+  (처음엔 달리기로 적었으나 프레임으로 정정) 뒤잡기 전 `moves.face`가 스틱을 (0.41, −0.37)로 밀어 둔 채 `_backstab` → `lock_target`(R3 2번, ~2.5 s)이
+  스틱을 안 놓음 → 3.9 m 걸어 계단 옆 (−10.45,−12.48,−66.62)에서 1550 → 7.8 m −696 사망. 적·가드 유지와 무관.
+  고침 `b29d59a`: `Moves.lock_target`이 R3 전에 스틱 가운데 (`tests/lock_stick_test.py`). 상태: verify.
 
 ### P-71 낙사 퀵 종료 직후 `Escape`가 못 보는 구간에서 두 번째 낙하 → 사망 (낙사 7건 중 5건; 2026-10-12, [cloud])
 
