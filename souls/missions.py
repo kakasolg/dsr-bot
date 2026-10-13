@@ -811,6 +811,17 @@ class Missions:
 
     UPPER_SEGMENTS = {n: f"zone{n}" for n in range(1, len(UPPER["zones"]) + 1)}
 
+    def to_altar_bridge(self) -> str:
+        """
+        ── 구역 7 끝 → 타우로스 다리 → 헬카이트 다리 입구 (전체 연결, [MoKa] 2026-10-13 "진행해줘") ──────────────────
+         · 타우로스를 이미 잡은 캐릭터: 구역 8의 안개벽(탑 문)만 지나고, 사다리로 탑에 오르지 않고 다리를 서쪽으로 건넘 —
+           NavMesh 길 (49.4,16.3,−117.1) → (14.2,15.8,−118.3) → (−3.3,16.8,−112.5) → 계단 → 다리 입구 (−21.3,9.47,−101.77), 약 75 m.
+           다리 입구까지 걷기는 altar.run()이 함 (① 4 m 밖이면 walk_to)
+         · 탑 위 석궁병 둘(구역 8 kills)은 안 잡음 — 다리를 건널 때 쏘는지는 첫 런에서 봄
+        → 'ok' | 'dead' | 'fail' | walk result"""
+        fog = next(st for st in UPPER["zones"][7].get("before", []) if "fog" in st)
+        return self._before(fog, self.nms[MAP_B], "구역8 안개벽")
+
     def upper_segment(self, n: int) -> str:
         """One safe-spot zone, then stop (same as burg_segment). Zone 1 rests at the Undead Burg bonfire first — every foe revives,
         HP·Estus full, so each try starts the same; later zones go on from where the character stands, without resting."""

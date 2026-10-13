@@ -116,7 +116,7 @@ LURE_CMDS = {"burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["status", "watch", "burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt-one", "merchant", "light-burg", "burg-upper", "quit-test", "passage-drill", "asylum", "taurus", "merchant-buy", "altar", "altar-burg", "firebomb-probe", "pick-blood"])
+    ap.add_argument("cmd", choices=["status", "watch", "burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt-one", "merchant", "light-burg", "burg-upper", "quit-test", "passage-drill", "asylum", "taurus", "merchant-buy", "altar", "altar-burg", "firebomb-probe", "pick-blood", "burg-altar"])
     ap.add_argument("--no-rest", action="store_true")
     ap.add_argument("--no-quit", action="store_true", help="퀵 종료(메뉴로 나갔다 오기) 안 씀 — 영상 촬영용")
     ap.add_argument("--fall-quit", action="store_true", help="낙하 때 예전처럼 퀵 종료 (기본: 기록만 하고 계속, [MoKa] 2026-10-12)")
@@ -384,6 +384,24 @@ def main() -> None:
                 read_stain=Blood.read, pick=lambda: fld.pick_blood(nms[missions.MAP_B], near=afterdeath.PICK_NEAR),
                 log=log, event=log.event, set_zone=lambda n: setattr(log, "zone", None if n is None else f"burg-upper:{n}"),
                 recover=not a.no_recover, label=lambda n: ms.UPPER_SEGMENTS[n])
+        elif a.cmd == "burg-altar":
+            # whole chain ([MoKa] 10-13): Burg bonfire → zones 1–7 → zone 8's fog wall → Taurus bridge → Hellkite bridge → altar bonfire
+            lo, _, hi = (a.seg or "1-7").partition("-")
+            r = afterdeath.run_zones(
+                int(lo), int(hi or lo), ms.upper_segment, alive=fld.alive, respawn=lambda: fld.wait_respawn(45.0),
+                read_stain=Blood.read, pick=lambda: fld.pick_blood(nms[missions.MAP_B], near=afterdeath.PICK_NEAR),
+                log=log, event=log.event, set_zone=lambda n: setattr(log, "zone", None if n is None else f"burg-upper:{n}"),
+                recover=not a.no_recover, label=lambda n: ms.UPPER_SEGMENTS[n])
+            if fld.alive() and r not in ("died", "no_estus", "휴식 실패"):
+                log.zone = "altar"
+                fg = ms.to_altar_bridge()
+                log(f"══ 구역 8 안개벽: {fg}")
+                if fg == "ok":
+                    from souls import altar
+                    r = altar.Altar(fld, nms[missions.MAP_B], missions.DATA, log=log, events=log.event).run()
+                    log(f"══ 제단: {r}")
+                else:
+                    r = f"fog {fg}"
         elif a.cmd == "burg-loop":
             r = ms.burg_bonfire_round_trip()
         elif a.cmd == "passage-drill":
