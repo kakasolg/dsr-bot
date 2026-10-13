@@ -850,6 +850,11 @@ def swing_over(foe, a, age) -> bool:
     which knows it lands later, never got its turn. One measure for rule_after_swing, prep_linger and prep_face."""
     if a is None or a not in M.ATTACK or age is None:
         return False
+    if a in getattr(foe, "unblockable", ()):
+        # ── 막을 수 없는 공격은 나이로 안 끝낸다 ([MoKa] 10-12 "가드와 공격이 미묘하게 안 맞아") ──
+        #  10-12 guardkeep1 85 s: 망자 3009가 4.4 s 이어졌는데 1.6 s 넘었다고 '끝' → rule_after_swing 약공 → −208 (준 피해 0).
+        #  애니가 바뀌어야 끝 (rule_after_swing의 3000번대 벗어남 경로는 그대로)
+        return False
     limit = SWING_S
     land = getattr(foe, "windup_land_s", None)            # (getattr: test fakes carry only the Foe fields they need)
     if land and a in getattr(foe, "windup", ()):

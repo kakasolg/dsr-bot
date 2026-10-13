@@ -43,7 +43,10 @@ class Foe:
 # not just SHIELD, the hollow combo's 3009 must not be blocked either (same anim number, same danger). Added to unblockable.
 _HOLLOW = dict(kind="hollow", circle_behind=True, singles=(3008,), combos=(3003, 3005), unblockable=(3009,))
 HOLLOW = Foe("망자(칼)", **_HOLLOW)
-FIREBOMB_HOLLOW = Foe("망자(화염병)", ranged=True, **_HOLLOW,
+# 3008 = 던지기: 10-12 guardkeep1 170 s, 6.1 m에서 3008 시작 → 다가오며 1.65 s에 1.67 m에서 −104. 그 전 1.63 s에 rule_after_swing이
+# SWING_S(1.6) 넘었다고 '끝'으로 보고 약공 → 맞교환 (준 피해 0). windup으로 두면 swing_over가 1.7 + LAND_PAD 전엔 끝으로 안 봄,
+# rule_late_windup_block이 1.0 s부터 떨어질 때까지 막음 (AXE_HOLLOW 3004와 같은 방식). early_kick은 off 그대로
+FIREBOMB_HOLLOW = Foe("망자(화염병)", ranged=True, windup=(3008,), windup_act_s=1.0, windup_land_s=1.7, **_HOLLOW,
                       note="위 턱에서 안 내려오고 화염병만 — 방패로 받아도 56~224. 경사로에선 #5(254002)가 던진다 — 시범 140708: 스폰 자리에서 3.5 s 마다 3008, 나이프 두 번(75→31→0)으로 죽음")
 # 2026-09-26 observation recordings (observe 090241·091308·092141), ramp #2 255010, user: "the kick has to come in one beat earlier":
 #  · 3004 lands 2.0–2.1 s after start regardless of approach speed (0.1–1.3 m/s) (4 times). Two hits after 1.6 s took −220·−323,
