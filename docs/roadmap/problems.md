@@ -972,3 +972,6 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
 - 고침 (2026-10-13 [win]): ③ 대기 중 8 m 안 같은 층 깨어 있는 적 → `Field.fight` 뒤 다시 대기 · ③에 오면 15 m 안 핏자국 줍기(`pick_blood`) ·
   가드 유지가 돌진(3005·3006)은 5.5 m까지 (`guardkeep.LUNGE_R`, 테스트). 상태: verify.
 - 2026-10-13 [win] 게임 확인 `burg-altar-3`: ③ 도착 즉시 핏자국 회수 (소울 1738 → 7170, 인간성 2), ③ 착지 19.2 s, 제단 arrived, 위험 판정 깨끗 · 최저 HP 51 %.
+- 2026-10-13 [win] `burg-altar-4` 다시 사망 (③): 다리 망자 255040 **둘**(HP 102)이 옴 → 내가 넣은 ③ 싸움이 `low_hp`로 끝나자 물러남·에스트 없이
+  곧바로 다시 싸움 — `low_hp — 0 s` ×30 → 사망 (P-47과 같은 꼴). 소울 8362 · 인간성 2 (0.2, 9.47, −63.71). 고침: `Altar._fight_here` — 구역 싸움처럼
+  low_hp · losing 뒤 `Field.recover`(물러나 마시기), 실패하면 다음 싸움 desperate, 최대 4번.

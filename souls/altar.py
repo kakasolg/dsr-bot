@@ -135,9 +135,8 @@ class Altar:
             #  다리 망자 255040이 ③까지 따라와 3.7 · 5.1 m에서 돌진(3005) 두 번 −335 · −407 → 사망, 봇은 착지만 기다림
             c = self._foe_here(s)
             if c is not None:
-                d = self.f.fight(c.ptr, self.nm, f"③ 기다리다 {c.npc_param}")
-                self.log(f"   ③ 기다리다 {c.npc_param}: {d.result}")
-                if d.result == "me_dead" or not self.f.alive():
+                r = self._fight_here(c)
+                if r == "died":
                     return "died"
                 self._pick_here()
                 continue
@@ -158,6 +157,26 @@ class Altar:
         cs = [c for c in s.hostile(COVER_FOE_R + 2.0) if c.npc_param != DRAKE and c.hp > 0 and c.anim not in (None, -1)
               and not (9000 <= (c.anim or 0) < 9100) and abs(c.y - p.y) < 2.5 and M.horiz(p, c) < COVER_FOE_R]
         return min(cs, key=lambda c: M.horiz(p, c), default=None)
+
+    def _fight_here(self, c) -> str:
+        """Fight a foe that reached ③ the way zone fights do: a low_hp / losing end → Field.recover (back off, drink), then again;
+        recover failing → the next fight is desperate (P-47: fighting again at once with no drink = 0 s fights until dead —
+        10-13 burg-altar round 4 died that way here, 'low_hp — 0 s' × 30)."""
+        tag = f"③ 기다리다 {c.npc_param}"
+        desperate = False
+        for _ in range(4):
+            if not self.f.alive():
+                return "died"
+            d = self.f.fight(c.ptr, self.nm, tag, desperate=desperate)
+            self.log(f"   {tag}: {d.result}")
+            if d.result == "me_dead" or not self.f.alive():
+                return "died"
+            t = self.mv.find(self.mv.snap(80.0), c.ptr)
+            if d.result == "killed" or t is None or t.hp <= 0:
+                return "killed"
+            ok = self.f.recover(f"{tag} {d.result}", self.nm)
+            desperate = not ok
+        return "left"
 
     def _pick_here(self) -> None:
         """A bloodstain close by (a death here last time) — pick it up when no foe is near (Field.pick_blood checks that)."""
