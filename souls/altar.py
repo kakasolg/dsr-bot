@@ -20,6 +20,7 @@ DRAKE = 343000
 ROUTE = "altar-demo-20261012.json"
 CLAYMORE_FLAG = 51010210
 BRIDGE_FOES = {255040}                # the two hollows on the bridge — MoKa ran past them 0.85 m away
+BRIDGE_ALL = {255040, 255041, 255042}   # bridge / under-bridge hollows — dashes past ③ don't stop for them (MoKa demo 2: passed at 6–7 m)
 
 # ── 임시값 (시연 한 번에서 잰 값) ──────────────────────────────
 #  · 착지: 다리 위 (8.9, 9.5, −48.0) — y 12 밑, z −38 ~ −58이면 '앉음'
@@ -29,7 +30,7 @@ BRIDGE_FOES = {255040}                # the two hollows on the bridge — MoKa r
 LAND_Y = 12.0
 LAND_Z = (-58.0, -38.0)
 PERCH_Y = 15.0
-COVER_WAIT_S = 60.0
+COVER_WAIT_S = 35.0     # landed after 19–21.5 s in 5 bot runs, MoKa waited ~17 s; not by then → run straight to the bonfire
 COVER_FOE_R = 8.0        # at ③: an awake foe this close (same level) is fought before waiting on (10-13: bridge hollow lunged twice)
 LOW_WAIT_S = 15.0        # at ② (lower ledge): drink and wait until no awake foe is within LOW_CLEAR_R, at most this long
 LOW_CLEAR_R = 10.0
@@ -112,22 +113,34 @@ class Altar:
             r = self._wait_landing()
             if r == "died":
                 return r
-            r = self._leg(self.R["sprint_3_to_4"], "③ → ④ 테라스 (질주)", "sprint")
+            if r == "timeout":
+                # ── 안 내려오면 화톳불로 바로 ([MoKa] 2026-10-13 "카라미트가 않나타네. 화톳불로 바로 달려") ──
+                #  10-13 171039: 60 s 기다리며 ③에서 다리 망자와 끊고 돌아오기 6번 → 그 뒤 ④로 가며 따라온 망자와 싸우다 사망
+                self.log("   ③ 헬카이트 안 내려옴 — 화톳불로 바로 달림")
+                r = self._leg(self.R["sprint_3_to_4"], "③ → ④ (안 내려옴, 질주)", "sprint", BRIDGE_ALL)
+                if r == "dead" or not self.f.alive():
+                    return "died"
+                return self._to_bonfire(BRIDGE_ALL)
+            r = self._leg(self.R["sprint_3_to_4"], "③ → ④ 테라스 (질주)", "sprint", BRIDGE_ALL)
             if r == "dead" or not self.f.alive():
                 return "died"
             self._wait_away()
             r = self._claymore()
             if r == "died":
                 return r
-            r = self.f.walk_to(tuple(self.R["altar_bonfire"]), self.nm, "제단 화톳불로")
-            self.log(f"   제단 화톳불로: {r}")
-            if r == "dead" or not self.f.alive():
-                return "died"
-            return "arrived" if r in ("arrived", "done") else f"화톳불 {r}"
+            return self._to_bonfire()
         finally:
             self.f.ignore_npcs = set()
             self.pad.sprint(False)
             self.pad.neutral()
+
+    def _to_bonfire(self, ignore: set = frozenset()) -> str:
+        self.f.ignore_npcs = {DRAKE} | set(ignore)
+        r = self.f.walk_to(tuple(self.R["altar_bonfire"]), self.nm, "제단 화톳불로", mode="sprint" if ignore else "walk")
+        self.log(f"   제단 화톳불로: {r}")
+        if r == "dead" or not self.f.alive():
+            return "died"
+        return "arrived" if r in ("arrived", "done") else f"화톳불 {r}"
 
     def _settle_low(self) -> None:
         """
