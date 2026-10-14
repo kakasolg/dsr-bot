@@ -86,26 +86,26 @@ def slot0_taken() -> bool:
 
 
 def to_title(tm, pad, log=print) -> bool:
-    import quitout
-    q = quitout.quit_out(tm, pad, gap=quitout.MENU_GAP, settle=0.1, ready_wait=0.3)
-    if q is None:
-        quitout.close_menu(tm, pad)
-        log("  메뉴 퀵 종료 실패 — 그대로 둠")
+    """Menus by keyboard ([MoKa] 2026-10-13 "앞으로 메뉴는 키보드로 해", docs/keyboard-menus.md) — the pad quit-out failed 3× that day."""
+    import keys
+    t0 = time.time()
+    if not keys.to_title(tm, log=log):
+        log("  키보드 타이틀로 실패 — 그대로 둠")
         return False
-    log(f"  타이틀로 ({q:.1f} s)")
+    log(f"  타이틀로 (키보드, {time.time() - t0:.1f} s)")
     return True
 
 
 def back_in(pad, log=print):
     import env
-    import quitout
-    r = quitout.reload(pad)
-    if r is None:
-        log("  이어하기 실패 (40 s)")
+    import keys
+    tm = env.make_telemetry({})
+    t0 = time.time()
+    if not keys.continue_(tm, log=log):
+        log("  이어하기 실패 (키보드, 40 s)")
         return None
-    time.sleep(1.0)
-    log(f"  이어하기 ({r:.1f} s)")
-    return env.make_telemetry({})
+    log(f"  이어하기 (키보드, {time.time() - t0:.1f} s)")
+    return tm
 
 
 def backup(why: str, log=print) -> Path:
