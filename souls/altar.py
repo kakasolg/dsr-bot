@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import time
 
 from . import moves as M
@@ -32,6 +33,7 @@ LAND_Z = (-58.0, -38.0)
 PERCH_Y = 15.0
 COVER_WAIT_S = 35.0     # landed after 19–21.5 s in 5 bot runs, MoKa waited ~17 s; not by then → run straight to the bonfire
 COVER_FOE_R = 8.0        # at ③: an awake foe this close (same level) is fought before waiting on (10-13: bridge hollow lunged twice)
+REST_RETRIES = 2         # no landing at ③: shortcut → rest at the Burg bonfire → back to ③, at most this many times, then run straight
 LOW_WAIT_S = 15.0        # at ② (lower ledge): drink and wait until no awake foe is within LOW_CLEAR_R, at most this long
 LOW_CLEAR_R = 10.0
 COVER_LEASH_R = 3.0      # at ③: a fight that takes us further than this from the cover is cut and taken back (breath line ~7 m off)
@@ -113,10 +115,25 @@ class Altar:
             r = self._wait_landing()
             if r == "died":
                 return r
+            for k in range(REST_RETRIES):
+                if r != "timeout":
+                    break
+                # ── 안 내려오면 밑의 길 → 숏컷(사다리) → 성안 화톳불에서 쉬고 → 다시 ③ ([MoKa] 2026-10-13 시연 3) ──
+                #  "카라미트가 다리에 있는 병사들을 태워 버려야 하는데, 않나타나면 오히려 꼬여" · "밑에 있는 길로 가서 숏컷으로 해서 성안 화톳불 가서 쉬어야 해"
+                #  시연 3 (data/observe/20261013_172318.jsonl): ② 아래층 → 서쪽 (−1.8, 4.5, −56.7) → 사다리 위 → 내려감 → 화톳불 쉼 →
+                #  사다리 올라옴 (7010–7013) → 아래층 → 계단 → ③ → 21.8 s 뒤 착지
+                self.log(f"   ③ 헬카이트 안 내려옴 — 숏컷으로 성안 화톳불 가서 쉬고 다시 ③ ({k + 1}/{REST_RETRIES})")
+                rr = self._rest_and_return()
+                self.log(f"   숏컷 쉬고 돌아오기: {rr}")
+                if rr == "died":
+                    return "died"
+                if rr != "ok":
+                    break
+                r = self._wait_landing()
+                if r == "died":
+                    return r
             if r == "timeout":
-                # ── 안 내려오면 화톳불로 바로 ([MoKa] 2026-10-13 "카라미트가 않나타네. 화톳불로 바로 달려") ──
-                #  10-13 171039: 60 s 기다리며 ③에서 다리 망자와 끊고 돌아오기 6번 → 그 뒤 ④로 가며 따라온 망자와 싸우다 사망
-                self.log("   ③ 헬카이트 안 내려옴 — 화톳불로 바로 달림")
+                self.log("   ③ 헬카이트 계속 안 내려옴 — 화톳불로 바로 달림")
                 r = self._leg(self.R["sprint_3_to_4"], "③ → ④ (안 내려옴, 질주)", "sprint", BRIDGE_ALL)
                 if r == "dead" or not self.f.alive():
                     return "died"
@@ -132,6 +149,85 @@ class Altar:
         finally:
             self.f.ignore_npcs = set()
             self.pad.sprint(False)
+            self.pad.neutral()
+
+    def _rest_and_return(self) -> str:
+        """③ → ② lower ledge → ladder top → down → rest at the Undead Burg bonfire → up the ladder → ③. → 'ok' | 'died' | '<step> <result>'"""
+        from .missions import SPOTS
+        m, lad = self.R["markers"], self.R["ladder_shortcut"]
+        self.f.ignore_npcs = {DRAKE} | BRIDGE_ALL
+        try:
+            for goal, tag in ((m["2_stairs_bottom"], "③ → ② 아래층"), (lad["top"], "사다리 위로")):
+                r = self.f.walk_to(tuple(goal), self.nm, tag)
+                if r == "dead" or not self.f.alive():
+                    return "died"
+                if r not in ("arrived", "done"):
+                    return f"{tag} {r}"
+            r = self._ladder_down(tuple(lad["top"]), tuple(lad["face"]), float(lad["bottom"][1]))
+            if r != "ok":
+                return f"사다리 내려가기 {r}"
+            ok = self.f.rest_at(self.nm, SPOTS["burg-bonfire"])
+            self.log(f"   성안 화톳불 휴식: {'됨' if ok else '안 됨'}")
+            if not self.f.alive():
+                return "died"
+            r = self._ladder_up(tuple(lad["bottom"]), tuple(lad["top"]))
+            if r != "ok":
+                return f"사다리 올라가기 {r}"
+            r = self.f.walk_to(tuple(m["3_stairs_cover"]), self.nm, "사다리 위 → ③")
+            if r == "dead" or not self.f.alive():
+                return "died"
+            return "ok" if r in ("arrived", "done") else f"③ {r}"
+        finally:
+            self.f.ignore_npcs = {DRAKE}
+            self.pad.neutral()
+
+    def _ladder_up(self, bottom, top) -> str:
+        """Demo 3 202.9 s: walking west into the ladder bottom (−2.9, −10.0, −62.6) → 7010 → 7011/7012 climbing → 7013 at the top →
+        steps off by itself at (−3.4, −0.3, −63.5). On the ladder the body faces the top's x/z (heading 0.51). Stick up only on a ladder anim."""
+        esc = self.f.esc
+        saved = (getattr(esc, "nudge_ok", True), getattr(esc, "planned", None))
+        try:
+            esc.nudge_ok, esc.planned = False, "사다리 올라가기"
+            dx, dz = bottom[0] - top[0], bottom[2] - top[2]          # stand 0.6 m in front of the bottom, on the side we come from
+            n = math.hypot(dx, dz) or 1.0
+            front = (bottom[0] + dx / n * 0.6, bottom[1], bottom[2] + dz / n * 0.6)
+            for attempt in range(LADDER_TRIES):
+                self.f._settle(front, tol=0.3)
+                s = self.mv.snap(5.0)
+                if s is not None and s.cam_yaw is not None:
+                    self.pad.move(*self.mv.stick_to(s, top[0], top[2], 0.35))
+                    time.sleep(0.25)
+                    self.pad.move(0.0, 0.0)
+                    time.sleep(0.2)
+                self.pad.interact()
+                t1 = time.time()
+                while time.time() - t1 < 1.5 and not self._on_ladder():
+                    time.sleep(0.05)
+                if not self._on_ladder():
+                    s = self.mv.snap(5.0)
+                    self.log(f"   사다리 (올라가기): A 뒤 안 탐 ({attempt + 1}/{LADDER_TRIES}, 애니 {None if s is None else s.player.anim})")
+                    continue
+                t0 = time.time()
+                while time.time() - t0 < LADDER_DOWN_S:
+                    self.pad.move(0.0, 1.0)                 # stick up = climb up
+                    time.sleep(0.1)
+                    s = self.mv.snap(5.0)
+                    if s is not None and s.player.y >= top[1] - 0.4 and not self._on_ladder():
+                        break
+                self.pad.neutral()
+                time.sleep(0.6)
+                s = self.mv.snap(5.0)
+                if s is not None and s.player.y >= top[1] - 0.6:
+                    self.log(f"   사다리 올라감 (y {s.player.y:.1f})")
+                    self.events("altar", what="ladder_up", ok=True, tries=attempt + 1)
+                    return "ok"
+                self.log(f"   사다리 안 올라감 ({attempt + 1}/{LADDER_TRIES}, y {None if s is None else round(s.player.y, 1)})")
+                if s is not None and s.player.y > bottom[1] + 1.0:
+                    return "stuck"
+            self.events("altar", what="ladder_up", ok=False)
+            return "fail"
+        finally:
+            esc.nudge_ok, esc.planned = saved
             self.pad.neutral()
 
     def _to_bonfire(self, ignore: set = frozenset()) -> str:
@@ -175,10 +271,14 @@ class Altar:
         self.log(f"   ② 아래층 {time.time() - t0:.1f} s — HP {s.player.hp if s else '?'}")
 
     def _wait_landing(self) -> str:
-        """At ③: wait for it to land on the bridge. Not within COVER_WAIT_S → go anyway (for now)."""
+        """At ③: wait for it to land on the bridge. Not within COVER_WAIT_S → 'timeout'.
+        ALTAR_TEST_REST=1 (env): the first wait gives up after 1 s — to try the shortcut-rest fallback without a real no-landing."""
         t0 = time.time()
         seen = False
-        while time.time() - t0 < COVER_WAIT_S:
+        limit = COVER_WAIT_S
+        if os.environ.get("ALTAR_TEST_REST") == "1" and not getattr(self, "_tested_rest", False):
+            self._tested_rest, limit = True, 1.0
+        while time.time() - t0 < limit:
             if not self.f.alive():
                 return "died"
             s = self.mv.snap(80.0)
@@ -196,7 +296,7 @@ class Altar:
                 self.events("altar", what="landed", wait=round(time.time() - t0, 1))
                 return "landed"
             time.sleep(0.1)
-        self.log(f"   ③ {COVER_WAIT_S:.0f} s 안에 착지 안 함 ({'보였음' if seen else '한 번도 안 보임'}) — 그냥 감")
+        self.log(f"   ③ {limit:.0f} s 안에 착지 안 함 ({'보였음' if seen else '한 번도 안 보임'}) — 그냥 감")
         self.events("altar", what="no_landing", seen=seen)
         return "timeout"
 
