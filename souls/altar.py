@@ -38,6 +38,7 @@ REST_RETRIES = 2         # no landing at ③: shortcut → rest at the Burg bonf
 LADDER_A_R = 0.45         # ladder up: press A while walking in, this close to the bottom (demo 3: A at ~0.35 m)
 LOW_WAIT_S = 15.0        # at ② (lower ledge): drink and wait until no awake foe is within LOW_CLEAR_R, at most this long
 LOW_CLEAR_R = 10.0
+COVER_HOME_R = 1.0       # at ③ with no foe close: further than this from the cover → walk back in
 COVER_LEASH_R = 3.0      # at ③: a fight that takes us further than this from the cover is cut and taken back (breath line ~7 m off)
 COVER_PICK_R = 15.0      # at ③: pick up a bloodstain this close (10-13 death at ③: 5432 souls)
 TERRACE_WAIT_S = 25.0
@@ -327,6 +328,7 @@ class Altar:
                 if r == "died":
                     return "died"
                 continue
+            self._back_to_cover()                  # drifted out (a fight, a push) — the breath line starts a few metres away
             if landed(s):
                 self.log(f"   ③ 헬카이트 착지 {time.time() - t0:.1f} s: {self._where(s)}")
                 self.events("altar", what="landed", wait=round(time.time() - t0, 1))
@@ -371,6 +373,9 @@ class Altar:
                 return "died"
             t = self.mv.find(self.mv.snap(80.0), c.ptr)
             if d.result == "killed" or t is None or t.hp <= 0:
+                # back into cover after a kill too — 10-13 chain 183926: killed it 3.7 m out, stood there 12 s in the breath line
+                # (−170 every ~3 s, the Hellkite out of reading range) → dead
+                self._back_to_cover(cover)
                 return "killed"
             if off_cover():
                 r = self.f.walk_to(cover, self.nm, "③ 엄폐로 돌아옴", tol=0.6)
@@ -384,6 +389,13 @@ class Altar:
                 else:
                     desperate = True
         return "left"
+
+    def _back_to_cover(self, cover=None) -> None:
+        cover = cover or tuple(self.R["markers"]["3_stairs_cover"])
+        s = self.mv.snap(5.0)
+        if s is not None and math.hypot(s.player.x - cover[0], s.player.z - cover[2]) > COVER_HOME_R:
+            r = self.f.walk_to(cover, self.nm, "③ 엄폐로", tol=0.6)
+            self.log(f"   ③ 엄폐로 돌아옴: {r}")
 
     def _pick_here(self) -> None:
         """A bloodstain close by — NOT called any more: ── ③ 밖은 헬카이트 브레스 줄 (10-13 burg-altar 5번째) ──
