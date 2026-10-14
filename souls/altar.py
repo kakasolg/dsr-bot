@@ -128,7 +128,7 @@ class Altar:
                 if rr == "died":
                     return "died"
                 if rr != "ok":
-                    break
+                    return f"숏컷 {rr}"            # stuck below / at the ladder — no straight run from there (10-13: no_path from the bonfire level)
                 r = self._wait_landing()
                 if r == "died":
                     return r
@@ -170,7 +170,7 @@ class Altar:
             self.log(f"   성안 화톳불 휴식: {'됨' if ok else '안 됨'}")
             if not self.f.alive():
                 return "died"
-            r = self._ladder_up(tuple(lad["bottom"]), tuple(lad["top"]))
+            r = self._ladder_up(tuple(lad["bottom"]), tuple(lad["top"]), tuple(lad["up_from"]), tuple(lad["up_face"]))
             if r != "ok":
                 return f"사다리 올라가기 {r}"
             r = self.f.walk_to(tuple(m["3_stairs_cover"]), self.nm, "사다리 위 → ③")
@@ -181,21 +181,25 @@ class Altar:
             self.f.ignore_npcs = {DRAKE}
             self.pad.neutral()
 
-    def _ladder_up(self, bottom, top) -> str:
+    def _ladder_up(self, bottom, top, up_from=None, up_face=None) -> str:
         """Demo 3 202.9 s: walking west into the ladder bottom (−2.9, −10.0, −62.6) → 7010 → 7011/7012 climbing → 7013 at the top →
         steps off by itself at (−3.4, −0.3, −63.5). On the ladder the body faces the top's x/z (heading 0.51). Stick up only on a ladder anim."""
         esc = self.f.esc
         saved = (getattr(esc, "nudge_ok", True), getattr(esc, "planned", None))
         try:
             esc.nudge_ok, esc.planned = False, "사다리 올라가기"
-            dx, dz = bottom[0] - top[0], bottom[2] - top[2]          # stand 0.6 m in front of the bottom, on the side we come from
-            n = math.hypot(dx, dz) or 1.0
-            front = (bottom[0] + dx / n * 0.6, bottom[1], bottom[2] + dz / n * 0.6)
+            # MoKa's spot and facing (route data up_from / up_face — demo 3: A at 0.3 m from the bottom facing heading 1.0);
+            # 10-13 first try stood 0.6 m off facing the top's x/z (heading ~0.47) — A ×3, no ladder anim
+            if up_from is None:
+                dx, dz = bottom[0] - top[0], bottom[2] - top[2]
+                n = math.hypot(dx, dz) or 1.0
+                up_from = (bottom[0] + dx / n * 0.6, bottom[1], bottom[2] + dz / n * 0.6)
+            face_to = up_face or top
             for attempt in range(LADDER_TRIES):
-                self.f._settle(front, tol=0.3)
+                self.f._settle(up_from, tol=0.25)
                 s = self.mv.snap(5.0)
                 if s is not None and s.cam_yaw is not None:
-                    self.pad.move(*self.mv.stick_to(s, top[0], top[2], 0.35))
+                    self.pad.move(*self.mv.stick_to(s, face_to[0], face_to[2], 0.35))
                     time.sleep(0.25)
                     self.pad.move(0.0, 0.0)
                     time.sleep(0.2)
