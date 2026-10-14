@@ -31,6 +31,8 @@ LAND_Z = (-58.0, -38.0)
 PERCH_Y = 15.0
 COVER_WAIT_S = 60.0
 COVER_FOE_R = 8.0        # at ③: an awake foe this close (same level) is fought before waiting on (10-13: bridge hollow lunged twice)
+LOW_WAIT_S = 15.0        # at ② (lower ledge): drink and wait until no awake foe is within LOW_CLEAR_R, at most this long
+LOW_CLEAR_R = 10.0
 COVER_LEASH_R = 3.0      # at ③: a fight that takes us further than this from the cover is cut and taken back (breath line ~7 m off)
 COVER_PICK_R = 15.0      # at ③: pick up a bloodstain this close (10-13 death at ③: 5432 souls)
 TERRACE_WAIT_S = 25.0
@@ -100,6 +102,9 @@ class Altar:
             r = self._leg(self.R["sprint_1_to_2"], "① → ② 계단 아래 (질주)", "sprint", BRIDGE_FOES)
             if r == "dead" or not self.f.alive():
                 return "died"
+            self._settle_low()
+            if not self.f.alive():
+                return "died"
             r = self.f.walk_to(tuple(m["3_stairs_cover"]), self.nm, "② → ③ 엄폐 자리")
             self.log(f"   ② → ③: {r}")
             if r == "dead" or not self.f.alive():
@@ -123,6 +128,38 @@ class Altar:
             self.f.ignore_npcs = set()
             self.pad.sprint(False)
             self.pad.neutral()
+
+    def _settle_low(self) -> None:
+        """
+        ── ② 아래층에서 마시고, 쫓아오던 망자가 떨어질 때까지 ([MoKa] 시연 2, 2026-10-13) ──────────────────
+         · 시연: 첫 브레스(−183) 뒤 굴러 ② 아래층(y 4.5)으로 → 에스트 403 → 742 → ~10 s 뒤 ③로. 다리 망자 255040 · 255041은 ③에 안 옴
+         · 봇(5번 중 3번 사망): ②에 닿자마자 ③로 올라가 마심 → 다리 망자가 ③까지 따라와 돌진 (P-85)
+         · 여기서 HP 90 %까지 마시고(3 m 안 적 없을 때), 10 m 안 깨어 있는 적이 없어질 때까지 최대 LOW_WAIT_S 가드 든 채 기다림.
+           붙는 적은 여기서 싸움 (아래층은 브레스 줄 밖)
+        """
+        t0 = time.time()
+        while time.time() - t0 < LOW_WAIT_S and self.f.alive():
+            s = self.mv.snap(30.0)
+            if s is None:
+                break
+            p = s.player
+            awake = [c for c in s.hostile(LOW_CLEAR_R + 2.0) if c.npc_param != DRAKE and c.hp > 0 and c.anim not in (None, -1)
+                     and not (9000 <= (c.anim or 0) < 9100) and M.horiz(p, c) < LOW_CLEAR_R]
+            close = [c for c in awake if M.horiz(p, c) < 3.0 and abs(c.y - p.y) < 2.5]
+            if close:
+                d = self.f.fight(close[0].ptr, self.nm, f"② 아래층 {close[0].npc_param}", wait_far=True)
+                self.log(f"   ② 아래층 {close[0].npc_param}: {d.result}")
+                continue
+            if p.hp < p.max_hp * 0.9 and self.f.estus_left() > 0 and self.f.safe(s):
+                self.f.heal(0.9, sips=3)
+                continue
+            if not awake and p.hp >= p.max_hp * 0.9:
+                break
+            self.mv.guard(True)
+            time.sleep(0.2)
+        self.mv.guard(False)
+        s = self.mv.snap(5.0)
+        self.log(f"   ② 아래층 {time.time() - t0:.1f} s — HP {s.player.hp if s else '?'}")
 
     def _wait_landing(self) -> str:
         """At ③: wait for it to land on the bridge. Not within COVER_WAIT_S → go anyway (for now)."""
