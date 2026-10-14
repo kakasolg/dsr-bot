@@ -52,7 +52,7 @@ needing the tick loop, route data, settings object or WorldState.
 
 - [~] altar-route-rec | MoKa | doing | demo 1 read (§2-b); next: what calls the landing? | stages/burg-to-altar.md
 - [ ] claymore-grip | MoKa | decide | STR 16 = one-hand OK (154037); two-hand? default? | stages/burg-to-altar.md
-- [~] altar-mission | win | verify | shortcuts save: lower-ledge stop + straight run if no landing → 1/1 clean; drake lands ~20 s after standing still at ③ (7/7) | stages/burg-to-altar.md
+- [~] altar-mission | win | verify | shortcuts save: `altar` 4/4; no-landing fallback (ladder → rest → back to ③) practised 3/3 clean | stages/burg-to-altar.md
 - [ ] keyboard-menus | win | todo | menus by keyboard scancodes (MoKa 10-13: more exact than the pad) — quitout / savepoint / shop | docs/keyboard-menus.md
 
 ## 2. v1.0 — open by area
