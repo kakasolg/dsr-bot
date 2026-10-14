@@ -4,6 +4,7 @@
   python keys.py title             in the world → save and back to the title
   python keys.py quit              title → close the game
   python keys.py cycle [n]         n × (continue → title), timed
+  python keys.py fallwatch [min]   watch; at the first sign of a fall → keys to the title at once (timed)
 
 Keys go as scancodes (KEYEVENTF_SCANCODE; arrows also EXTENDEDKEY) to the focused game. Each step waits on the game's own
 state (player readable = in the world, menu_open) instead of fixed sleeps, and re-sends a key the game ate (10-13: the
@@ -109,6 +110,60 @@ def quit_game(log=print) -> None:
     seq(["down"] * 5 + ["e"], gap=0.3)
 
 
+FALL_ANIMS = (1500, 1550, 121500)   # = souls/watch.FALL_ANIMS + 1500 (falling)
+FALL_DY = 1.0                      # or the height dropped this much within FALL_WINDOW_S
+FALL_WINDOW_S = 0.3
+
+
+def fall_watch(tm, minutes: float = 10.0, log=print) -> None:
+    """[MoKa] 2026-10-13 "낙사 할때, 타이틀 화면 가는것 시도 할꺼야": at the first sign of a fall, ESC + the quit-to-title keys at once.
+    Logs fall start (anim / height), keys done, left the world, and where we stand after coming back in (Continue by hand or
+    `keys.py continue`). Watches only — sends keys only when it fires, once."""
+    import collections
+    ys = collections.deque()
+    t_end = time.time() + minutes * 60
+    log(f"낙하 감시 시작 ({minutes:.0f}분) — 낙하 애니 {FALL_ANIMS} 또는 {FALL_WINDOW_S} s에 {FALL_DY} m 넘게 내려가면 타이틀로")
+    while time.time() < t_end:
+        try:
+            s = tm.snapshot(within=3.0)
+        except Exception:
+            s = None
+        if s is None or s.player is None or s.player.hp is None:
+            time.sleep(0.03)
+            continue
+        p, now = s.player, time.time()
+        ys.append((now, p.y))
+        while ys and now - ys[0][0] > FALL_WINDOW_S:
+            ys.popleft()
+        drop = max(y for _, y in ys) - p.y
+        if (p.anim in FALL_ANIMS) or drop > FALL_DY:
+            pos0 = (round(p.x, 2), round(p.y, 2), round(p.z, 2))
+            why = f"애니 {p.anim}" if p.anim in FALL_ANIMS else f"{drop:.1f} m / {FALL_WINDOW_S} s"
+            control.focus_game()
+            t0 = time.time()
+            press("esc")
+            wait(lambda: menu_open(tm) is True, 0.6, step=0.02)
+            time.sleep(GAP_S)
+            seq(["left", "e", "up", "e", "left", "e"])
+            t_keys = time.time() - t0
+            hp_at, y_at, out = None, None, None
+            while time.time() - t0 < 8.0:
+                try:
+                    s2 = tm.snapshot(within=3.0)
+                except Exception:
+                    s2 = None
+                if s2 is None or s2.player is None or s2.player.hp is None:
+                    out = time.time() - t0
+                    break
+                hp_at, y_at = s2.player.hp, round(s2.player.y, 2)
+                time.sleep(0.02)
+            log(f"낙하 감지 ({why}) @ {pos0}, HP {p.hp} → 키 끝 {t_keys:.2f} s → "
+                + (f"게임 밖 {out:.2f} s (마지막으로 읽힌 HP {hp_at}, y {y_at})" if out else "게임 밖으로 안 나감 (8 s)"))
+            return
+        time.sleep(0.03)
+    log("낙하 없음 — 감시 끝")
+
+
 def main() -> None:
     cmd = sys.argv[1] if len(sys.argv) > 1 else "cycle"
     tm = env.make_telemetry({})
@@ -118,6 +173,8 @@ def main() -> None:
         print("title" if to_title(tm) else "failed")
     elif cmd == "quit":
         quit_game()
+    elif cmd == "fallwatch":
+        fall_watch(tm, float(sys.argv[2]) if len(sys.argv) > 2 else 10.0)
     elif cmd == "cycle":
         n = int(sys.argv[2]) if len(sys.argv) > 2 else 3
         for k in range(n):
