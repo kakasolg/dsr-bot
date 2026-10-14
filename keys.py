@@ -110,12 +110,13 @@ def quit_game(log=print) -> None:
     seq(["down"] * 5 + ["e"], gap=0.3)
 
 
+FALL_GAP_S = 0.15        # 10-13: 0.15 s (with the same pause after ESC) left the world 2.30 s after ESC, 2/2 · 0.2 s 2.60 s · 0.25 s 2.89 s
 FALL_ANIMS = (1500, 1550, 121500)   # = souls/watch.FALL_ANIMS + 1500 (falling)
 FALL_DY = 1.0                      # or the height dropped this much within FALL_WINDOW_S
 FALL_WINDOW_S = 0.3
 
 
-def fall_watch(tm, minutes: float = 10.0, log=print) -> None:
+def fall_watch(tm, minutes: float = 10.0, log=print, gap: float = None) -> None:
     """[MoKa] 2026-10-13 "낙사 할때, 타이틀 화면 가는것 시도 할꺼야": at the first sign of a fall, ESC + the quit-to-title keys at once.
     Logs fall start (anim / height), keys done, left the world, and where we stand after coming back in (Continue by hand or
     `keys.py continue`). Watches only — sends keys only when it fires, once."""
@@ -143,8 +144,9 @@ def fall_watch(tm, minutes: float = 10.0, log=print) -> None:
             t0 = time.time()
             press("esc")
             wait(lambda: menu_open(tm) is True, 0.6, step=0.02)
-            time.sleep(GAP_S)
-            seq(["left", "e", "up", "e", "left", "e"])
+            g = FALL_GAP_S if gap is None else gap
+            time.sleep(g)
+            seq(["left", "e", "up", "e", "left", "e"], gap=g)
             t_keys = time.time() - t0
             hp_at, y_at, out = None, None, None
             while time.time() - t0 < 8.0:
