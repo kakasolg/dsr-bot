@@ -33,6 +33,7 @@ LAND_Z = (-58.0, -38.0)
 PERCH_Y = 15.0
 COVER_WAIT_S = 35.0     # landed after 19–21.5 s in 5 bot runs, MoKa waited ~17 s; not by then → run straight to the bonfire
 COVER_FOE_R = 8.0        # at ③: an awake foe this close (same level) is fought before waiting on (10-13: bridge hollow lunged twice)
+DRAKE_AWAY_WAIT_S = 30.0  # no landing: before leaving ③ for the shortcut, wait this long at most for the Hellkite to be away
 REST_RETRIES = 2         # no landing at ③: shortcut → rest at the Burg bonfire → back to ③, at most this many times, then run straight
 LOW_WAIT_S = 15.0        # at ② (lower ledge): drink and wait until no awake foe is within LOW_CLEAR_R, at most this long
 LOW_CLEAR_R = 10.0
@@ -108,6 +109,15 @@ class Altar:
             self._settle_low()
             if not self.f.alive():
                 return "died"
+            if os.environ.get("ALTAR_TEST_REST") == "1" and not getattr(self, "_tested_rest", False):
+                # practice the shortcut the way MoKa demo 3 did it: from ② straight to the ladder (never back up through the breath line)
+                self._tested_rest = True
+                rr = self._rest_and_return(from_cover=False)
+                self.log(f"   (시험) ②에서 숏컷 쉬고 돌아오기: {rr}")
+                if rr == "died":
+                    return "died"
+                if rr != "ok":
+                    return f"숏컷 {rr}"
             r = self.f.walk_to(tuple(m["3_stairs_cover"]), self.nm, "② → ③ 엄폐 자리")
             self.log(f"   ② → ③: {r}")
             if r == "dead" or not self.f.alive():
@@ -151,13 +161,25 @@ class Altar:
             self.pad.sprint(False)
             self.pad.neutral()
 
-    def _rest_and_return(self) -> str:
-        """③ → ② lower ledge → ladder top → down → rest at the Undead Burg bonfire → up the ladder → ③. → 'ok' | 'died' | '<step> <result>'"""
+    def _rest_and_return(self, from_cover: bool = True) -> str:
+        """③ (or ②) → ② lower ledge → ladder top → down → rest at the Undead Burg bonfire → up the ladder → ③.
+        From ③ only once the Hellkite is away (perch / off the bridge): 10-13 practice 2 left ③ while it still flew over and the
+        stair top (breath line) cost −975 → dead. → 'ok' | 'died' | '<step> <result>'"""
         from .missions import SPOTS
         m, lad = self.R["markers"], self.R["ladder_shortcut"]
         self.f.ignore_npcs = {DRAKE} | BRIDGE_ALL
         try:
-            for goal, tag in ((m["2_stairs_bottom"], "③ → ② 아래층"), (lad["top"], "사다리 위로")):
+            if from_cover:
+                t0 = time.time()
+                while time.time() - t0 < DRAKE_AWAY_WAIT_S and not away(self.mv.snap(80.0)):
+                    if not self.f.alive():
+                        return "died"
+                    self.mv.guard(True)
+                    time.sleep(0.2)
+                self.mv.guard(False)
+                self.log(f"   ③ 떠나기 전 헬카이트 {'떠남' if away(self.mv.snap(80.0)) else '아직 다리 위/근처'} ({time.time() - t0:.1f} s)")
+            legs = ((m["2_stairs_bottom"], "③ → ② 아래층"), (lad["top"], "사다리 위로")) if from_cover else ((lad["top"], "② → 사다리 위로"),)
+            for goal, tag in legs:
                 r = self.f.walk_to(tuple(goal), self.nm, tag)
                 if r == "dead" or not self.f.alive():
                     return "died"
@@ -280,8 +302,6 @@ class Altar:
         t0 = time.time()
         seen = False
         limit = COVER_WAIT_S
-        if os.environ.get("ALTAR_TEST_REST") == "1" and not getattr(self, "_tested_rest", False):
-            self._tested_rest, limit = True, 1.0
         while time.time() - t0 < limit:
             if not self.f.alive():
                 return "died"
