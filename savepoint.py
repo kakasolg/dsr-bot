@@ -124,6 +124,7 @@ def cmd_save(why: str) -> None:
     import env
     control.focus_game()                               # 2026-10-11: no focus → START ×5 not taken (MoKa)
     tm, pad = env.make_telemetry({}), control.Pad()
+    pad.reconnect()                                    # 10-13: right after another pad was unplugged ('컨트롤러 연결 해제' ×2) the game ignored a fresh pad — quit-out failed 3×
     here = where(tm)
     log = print
     log(f"지금: {here}")
@@ -148,6 +149,7 @@ def cmd_restore(name: str) -> None:
     want = sha(src / SL2)
     control.focus_game()
     tm, pad = env.make_telemetry({}), control.Pad()
+    pad.reconnect()                                    # 10-13: right after another pad was unplugged ('컨트롤러 연결 해제' ×2) the game ignored a fresh pad — quit-out failed 3×
     log = print
     log(f"복원할 것: {src.name} (sl2 {want[:8]}) {meta.get('pos')} · 지금 {where(tm)}")
     if not to_title(tm, pad, log):
@@ -173,6 +175,7 @@ def cmd_reload() -> None:
     import env
     control.focus_game()
     tm, pad = env.make_telemetry({}), control.Pad()
+    pad.reconnect()                                    # 10-13: right after another pad was unplugged ('컨트롤러 연결 해제' ×2) the game ignored a fresh pad — quit-out failed 3×
     print(f"지금: {where(tm)}")
     if not to_title(tm, pad):
         sys.exit(1)
