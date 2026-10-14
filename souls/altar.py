@@ -425,6 +425,11 @@ class Altar:
         try:
             s = self.mv.snap(80.0)
             self.log(f"   시작: {self._where(s)}")
+            # 마시고 출발 — 10-13 chain3b 3번째: 앞 런이 제단에 HP 41 %로 도착(쉬지 않음) → 그대로 다리로 나가 횃대 헬카이트 −186 · −83 → 사망
+            if s is not None and s.player.hp < s.player.max_hp * 0.9 and self.f.estus_left() > 0:
+                self.f.heal(0.9, sips=4)
+                s2 = self.mv.snap(5.0)
+                self.log(f"   출발 전 에스트: HP {s.player.hp} → {s2.player.hp if s2 else '?'}")
             self.f.ignore_npcs = {DRAKE}
             self.f.walk_heal = False                       # 다리 위에서 멈춰 마시지 않음
             r = self.f.walk_to(tuple(m["2_stairs_bottom"]), self.nm, "다리 건너 계단 아래로", mode="sprint")

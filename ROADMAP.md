@@ -52,7 +52,7 @@ needing the tick loop, route data, settings object or WorldState.
 
 - [~] altar-route-rec | MoKa | doing | demo 1 read (§2-b); next: what calls the landing? | stages/burg-to-altar.md
 - [ ] claymore-grip | MoKa | decide | STR 16 = one-hand OK (154037); two-hand? default? | stages/burg-to-altar.md
-- [~] altar-mission | win | verify | shortcuts save: `altar` 4/4; no-landing fallback (ladder → rest → back to ③) practised 3/3 clean | stages/burg-to-altar.md
+- [~] altar-mission | win | verify | full chain today 3/5 arrived (incl. a real no-landing → shortcut → arrived); P-86 altar-burg left low HP | stages/burg-to-altar.md
 - [ ] keyboard-menus | win | todo | menus by keyboard scancodes (MoKa 10-13: more exact than the pad) — quitout / savepoint / shop | docs/keyboard-menus.md
 
 ## 2. v1.0 — open by area
@@ -148,13 +148,13 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 53 | `burg-upper` zone 1 (−1.9,−14,−70): fell 4 m right after a hit, quit-out recovered | verify — sprint overshot a corner over a drop; now jogs into such corners (`nav.brake_points`) |
 | 55 | `passage-drill`: the bonfire warp revives the ramp foes → died on the way to the top | open (A/B moved to seg 1-2) |
 | 56 | Ramp ledge (−20,−39,14), `--ground` on: 254002 + axe 254001 swinging together, died (no fall) | verify — + 'ranged first' no longer turns to the axe hollow / away from a foe < 2 m |
-| 57 | Passage start (−20,−39.3,14.4): 1.5 s stall + turn-around retry, in 2 `--ground`-off runs (0 in the 2 on runs that got there); AGAIN 10-11, 4/15 runs | verify — cause: walked straight at A0 3.3 m up from 4 m; now path-finds first |
+| 57 | Passage start (−20,−39.3,14.4): 1.5 s stall + retry, AGAIN 10-11 4/15 runs | verify — path-finds first |
 | 58 | Ramp ledge (−22,−44,15) in a fight: fell 4.4 m, quit-out, walk-back timed out, died (`--ground` round 2 on #3) | verify — `rule_footing` (`--footing`, off by default), A/B |
 | 59 | `rule_shot` may read a 254010 lunge landing from > 4 m as a throw (4 track cases) → ends the fight, backs off | verify — thrower = `Foe.thrower` only, axe hollow not one, melee 6 m + duel-start window |
 | 63 | `ground_ahead` / `footing` / `safe_back` take a floor far above (a roof) as floor | partly — strict only for sprint braking; rest → v2.0 floor check |
 | 64 | Passage exit (−26,−33.7,8.5): walk stalls 2–3× (4.5 s, passage 33 s) — 2/27 runs; same spot as P-63's missing-floor NavMesh | open → [cloud] |
 | 65 | Camera not steered outside fights (leave_fire / escape.pick back-off / body pull); `LOOK_SIGN` learned backwards from one pulse once | verify — one look order in `CamFollow`; stick sign from a ± pair |
-| 66 | Shield soldier's late 3004: `rule_after_swing` (6th) called it ended at 1.6 s and kicked before `rule_late_windup_block` (9th) — hit −228; `rule_shot` read that hit as a thrower's | verify — `duel.swing_over` (windup ends when it lands) + `Moves.swung` from every snapshot |
+| 66 | Shield soldier's late 3004 called over at 1.6 s → kicked into it (−228); read as a thrower's hit | verify — `swing_over` (windup lands) + `Moves.swung` |
 | 67 | Zone 1 lure: B re-pressed at every sprint point → jump off ledge into 3× 254010; `_sprint` had no hit exit → dead | verify — game 10-11: zones 1–4 cleared, `threat` stop 6×, no jump; 3 short B holds left |
 | 68 | Zone 5: heavy into 255000's shield 0 dmg → low_hp, Estus refused 3×, 255001 joins → dead; bot kept acting after death (TypeError) | death part: fixed — game 10-11 zone 8 death ended the zone at once, no error; shield part open |
 | 69 | Zone 1: the foe fell off the ledge mid-fight, the bot walked after it and fell | verify — falling / > 2.5 m below target ends the duel 'lost' before face() walks |
@@ -173,6 +173,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 83 | Firebomb probe in the crossbow's line: throw cut, then no-lock backstabs ×2 with the foe behind → died; bloodstain not where `Blood` recorded it | open |
 | 84 | Altar bonfire approach sticks 1.9 m short of (27.4, 9.7, −25.4) every run, 4–5 s, recovers | open |
 | 85 | `burg-altar` dies at ③: bridge hollows follow (lunges, 2 at once), and a stain pickup walked into the breath line | open — 2/5 arrived; fight + recover at ③, pickup removed |
+| 86 | `altar-burg` left the altar at HP 41 % (no rest) → perched Hellkite + bridge soldier → died | open — Estus before leaving; rest at the altar = MoKa |
 
 ## 5. Relay — [cloud] ↔ board
 

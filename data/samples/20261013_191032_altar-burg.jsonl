@@ -1,0 +1,71 @@
+{"t": 8.11, "ev": "style", "style": "guard"}
+{"t": 8.11, "ev": "char", "stats": {"VIT": 20, "ATN": 8, "END": 15, "STR": 16, "DEX": 17, "INT": 8, "FTH": 10, "RES": 11, "SL": 23, "소울": 3768, "누적소울": 60154, "인간성": 0}, "equip": {"왼손1": 1474000, "오른손1": 301005, "왼손2": 900000, "오른손2": 900000, "화살": 50000, "머리": 51000, "몸": 52000, "팔": 53000, "반지1": 147, "반지2": 146}}
+{"t": 8.11, "ev": "vital", "hp": 328, "max": 793, "near": 0}
+{"t": 8.39, "ev": "align", "zone": "altar", "src": "attacker", "fight": false, "npc": 255042, "d": 19.82, "dy": 0.11, "body": 63.0, "cam": -3.4, "lock": false, "ok": false}
+{"t": 8.62, "ev": "vital", "zone": "altar", "hp": 328, "max": 793, "near": 0}
+{"t": 8.92, "ev": "align", "zone": "altar", "src": "attacker", "fight": false, "npc": 255042, "d": 19.83, "dy": 0.1, "body": 73.5, "cam": 7.1, "lock": false, "ok": false}
+{"t": 9.13, "ev": "vital", "zone": "altar", "hp": 142, "max": 793, "near": 0}
+{"t": 9.43, "ev": "align", "zone": "altar", "src": "attacker", "fight": false, "npc": 255042, "d": 19.79, "dy": 0.1, "body": 19.5, "cam": 7.1, "lock": false, "ok": true}
+{"t": 9.65, "ev": "vital", "zone": "altar", "hp": 142, "max": 793, "near": 0}
+{"t": 10.16, "ev": "vital", "zone": "altar", "hp": 142, "max": 793, "near": 0}
+{"t": 10.37, "ev": "align", "zone": "altar", "src": "attacker", "fight": false, "npc": 255042, "d": 16.9, "dy": 0.18, "body": -56.3, "cam": 10.3, "lock": false, "ok": false}
+{"t": 10.41, "ev": "hit", "zone": "altar", "n": 1, "lost": 186, "hp": 142, "max": 793, "secs": 0.02, "blame": [{"npc": 250000, "ptr": 475592496, "anim": 9008, "d": 8.42, "dy": 0.2, "face": 56}, {"npc": 250000, "ptr": 475559216, "anim": 9005, "d": 7.24, "dy": 0.23, "face": 109}]}
+{"t": 10.67, "ev": "vital", "zone": "altar", "hp": 142, "max": 793, "near": 0}
+{"t": 10.89, "ev": "align", "zone": "altar", "src": "attacker", "fight": false, "npc": 255042, "d": 15.3, "dy": 0.12, "body": 54.5, "cam": -0.2, "lock": false, "ok": false}
+{"t": 11.17, "ev": "vital", "zone": "altar", "hp": 59, "max": 793, "near": 0}
+{"t": 11.43, "ev": "align", "zone": "altar", "src": "attacker", "fight": false, "npc": 255042, "d": 12.75, "dy": 0.04, "body": 18.7, "cam": 8.3, "lock": false, "ok": true}
+{"t": 11.68, "ev": "vital", "zone": "altar", "hp": 59, "max": 793, "near": 0}
+{"t": 12.03, "ev": "align", "zone": "altar", "src": "attacker", "fight": false, "npc": 255042, "d": 9.99, "dy": 0.02, "body": 2.6, "cam": -1.1, "lock": false, "ok": true}
+{"t": 12.19, "ev": "vital", "zone": "altar", "hp": 59, "max": 793, "near": 0}
+{"t": 12.61, "ev": "hit", "zone": "altar", "n": 2, "lost": 83, "hp": 59, "max": 793, "secs": 0.0, "blame": [{"npc": 250000, "ptr": 475592496, "anim": 9008, "d": 7.87, "dy": 0.19, "face": 96}, {"npc": 250000, "ptr": 475559216, "anim": 9005, "d": 11.11, "dy": 0.22, "face": 83}]}
+{"t": 12.68, "ev": "align", "zone": "altar", "src": "attacker", "fight": false, "npc": 255042, "d": 7.82, "dy": 0.08, "body": 9.0, "cam": -2.6, "lock": false, "ok": true}
+{"t": 12.7, "ev": "vital", "zone": "altar", "hp": 59, "max": 793, "near": 0}
+{"t": 13.2, "ev": "vital", "zone": "altar", "hp": 59, "max": 793, "near": 1}
+{"t": 13.23, "ev": "align", "zone": "altar", "src": "attacker", "fight": false, "npc": 255042, "d": 5.25, "dy": 0.1, "body": 13.5, "cam": 3.4, "lock": false, "ok": true}
+{"t": 13.4, "ev": "result", "cmd": "altar-burg", "result": "died"}
+{"t": 13.42, "ev": "death_seen", "hp": 0, "max_hp": 793, "anim": 6020, "pos": [14.06, 9.45, -38.41]}
+{"t": 13.71, "ev": "vital", "hp": 0, "max": 793, "near": 2}
+{"t": 13.78, "ev": "align", "src": "attacker", "fight": false, "npc": 255042, "d": 4.56, "dy": 0.1, "body": 15.8, "cam": 7.3, "lock": false, "ok": true}
+{"t": 14.22, "ev": "vital", "hp": 0, "max": 793, "near": 2}
+{"t": 14.32, "ev": "align", "src": "attacker", "fight": false, "npc": 255042, "d": 4.53, "dy": 0.1, "body": 15.8, "cam": 7.5, "lock": false, "ok": true}
+{"t": 14.73, "ev": "vital", "hp": 0, "max": 793, "near": 2}
+{"t": 14.87, "ev": "align", "src": "attacker", "fight": false, "npc": 255042, "d": 4.52, "dy": 0.1, "body": 15.8, "cam": 7.5, "lock": false, "ok": true}
+{"t": 14.88, "ev": "hit", "n": 3, "lost": 59, "hp": 0, "max": 793, "secs": 0.0, "blame": [{"npc": 255042, "ptr": 467611616, "anim": 3002, "d": 4.58, "dy": 0.1, "face": 6}, {"npc": 255042, "ptr": 467618272, "anim": 3001, "d": 5.21, "dy": 0.11, "face": 8}, {"npc": 250000, "ptr": 475592496, "anim": 9008, "d": 11.96, "dy": 0.18, "face": 124}]}
+{"t": 15.23, "ev": "vital", "hp": 0, "max": 793, "near": 2}
+{"t": 15.41, "ev": "align", "src": "attacker", "fight": false, "npc": 255042, "d": 4.51, "dy": 0.1, "body": 15.8, "cam": 7.5, "lock": false, "ok": true}
+{"t": 15.74, "ev": "vital", "hp": 0, "max": 793, "near": 2}
+{"t": 15.96, "ev": "align", "src": "attacker", "fight": false, "npc": 255042, "d": 4.51, "dy": 0.1, "body": 15.8, "cam": 7.5, "lock": false, "ok": true}
+{"t": 16.25, "ev": "vital", "hp": 0, "max": 793, "near": 2}
+{"t": 16.51, "ev": "align", "src": "attacker", "fight": false, "npc": 255042, "d": 4.5, "dy": 0.1, "body": 15.8, "cam": 7.5, "lock": false, "ok": true}
+{"t": 16.76, "ev": "vital", "hp": 0, "max": 793, "near": 2}
+{"t": 17.05, "ev": "align", "src": "attacker", "fight": false, "npc": 255042, "d": 4.47, "dy": 0.1, "body": 15.9, "cam": 7.6, "lock": false, "ok": true}
+{"t": 17.27, "ev": "vital", "hp": 0, "max": 793, "near": 2}
+{"t": 17.6, "ev": "align", "src": "attacker", "fight": false, "npc": 255042, "d": 4.38, "dy": 0.1, "body": 13.8, "cam": 5.5, "lock": false, "ok": true}
+{"t": 17.77, "ev": "vital", "hp": 0, "max": 793, "near": 2}
+{"t": 18.12, "ev": "align", "src": "attacker", "fight": false, "npc": 255042, "d": 5.14, "dy": 0.11, "body": -27.7, "cam": -9.8, "lock": false, "ok": true}
+{"t": 18.28, "ev": "vital", "hp": 0, "max": 793, "near": 2}
+{"t": 18.66, "ev": "align", "src": "attacker", "fight": false, "npc": 255042, "d": 5.14, "dy": 0.11, "body": -27.7, "cam": -9.8, "lock": false, "ok": true}
+{"t": 18.79, "ev": "vital", "hp": 0, "max": 793, "near": 2}
+{"t": 19.21, "ev": "align", "src": "attacker", "fight": false, "npc": 255042, "d": 5.14, "dy": 0.11, "body": -27.7, "cam": -9.8, "lock": false, "ok": true}
+{"t": 19.3, "ev": "vital", "hp": 0, "max": 793, "near": 2}
+{"t": 19.71, "ev": "align", "src": "attacker", "fight": false, "npc": 255042, "d": 5.14, "dy": 0.11, "body": -27.7, "cam": -1.8, "lock": false, "ok": true}
+{"t": 19.81, "ev": "vital", "hp": 0, "max": 793, "near": 2}
+{"t": 20.25, "ev": "align", "src": "attacker", "fight": false, "npc": 255042, "d": 5.14, "dy": 0.11, "body": -27.4, "cam": -1.5, "lock": false, "ok": true}
+{"t": 20.31, "ev": "vital", "hp": 0, "max": 793, "near": 2}
+{"t": 20.8, "ev": "align", "src": "attacker", "fight": false, "npc": 255042, "d": 5.06, "dy": 0.11, "body": -28.0, "cam": -2.1, "lock": false, "ok": true}
+{"t": 20.82, "ev": "vital", "hp": 0, "max": 793, "near": 2}
+{"t": 21.33, "ev": "vital", "hp": 0, "max": 793, "near": 2}
+{"t": 21.35, "ev": "align", "src": "last", "fight": false, "npc": 255042, "d": 5.06, "dy": 0.11, "body": -27.9, "cam": -2.0, "lock": false, "ok": true}
+{"t": 21.84, "ev": "vital", "hp": 0, "max": 793, "near": 2}
+{"t": 21.89, "ev": "align", "src": "last", "fight": false, "npc": 255042, "d": 5.06, "dy": 0.11, "body": -27.9, "cam": -2.0, "lock": false, "ok": true}
+{"t": 22.35, "ev": "vital", "hp": 0, "max": 793, "near": 2}
+{"t": 22.44, "ev": "align", "src": "last", "fight": false, "npc": 255042, "d": 5.06, "dy": 0.11, "body": -27.9, "cam": -2.0, "lock": false, "ok": true}
+{"t": 22.85, "ev": "vital", "hp": 0, "max": 793, "near": 2}
+{"t": 22.98, "ev": "align", "src": "last", "fight": false, "npc": 255042, "d": 5.06, "dy": 0.11, "body": -27.9, "cam": -2.0, "lock": false, "ok": true}
+{"t": 24.34, "ev": "vital", "hp": 793, "max": 793, "near": 0}
+{"t": 24.47, "ev": "death", "pos": [14.47, 9.44, -37.66], "souls": 3768, "humanity": 0, "zone": null, "escape": "idle", "since_fall_s": null, "cause": "hit", "lost_hit": 59, "lost_fall": 0, "drop_m": null, "blame": [{"npc": 255042, "ptr": 467611616, "anim": 3002, "d": 4.58, "dy": 0.1, "face": 6}, {"npc": 255042, "ptr": 467618272, "anim": 3001, "d": 5.21, "dy": 0.11, "face": 8}, {"npc": 250000, "ptr": 475592496, "anim": 9008, "d": 11.96, "dy": 0.18, "face": 124}], "hit_n": 3}
+{"t": 24.85, "ev": "vital", "hp": 793, "max": 793, "near": 0}
+{"t": 25.36, "ev": "vital", "hp": 793, "max": 793, "near": 0}
+{"t": 25.86, "ev": "vital", "hp": 793, "max": 793, "near": 0}
+{"t": 26.37, "ev": "vital", "hp": 793, "max": 793, "near": 0}
+{"t": 26.88, "ev": "vital", "hp": 793, "max": 793, "near": 0}
