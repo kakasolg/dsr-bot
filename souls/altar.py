@@ -35,6 +35,7 @@ COVER_WAIT_S = 35.0     # landed after 19–21.5 s in 5 bot runs, MoKa waited ~1
 COVER_FOE_R = 8.0        # at ③: an awake foe this close (same level) is fought before waiting on (10-13: bridge hollow lunged twice)
 DRAKE_AWAY_WAIT_S = 30.0  # no landing: before leaving ③ for the shortcut, wait this long at most for the Hellkite to be away
 REST_RETRIES = 2         # no landing at ③: shortcut → rest at the Burg bonfire → back to ③, at most this many times, then run straight
+LADDER_A_R = 0.45         # ladder up: press A while walking in, this close to the bottom (demo 3: A at ~0.35 m)
 LOW_WAIT_S = 15.0        # at ② (lower ledge): drink and wait until no awake foe is within LOW_CLEAR_R, at most this long
 LOW_CLEAR_R = 10.0
 COVER_LEASH_R = 3.0      # at ③: a fight that takes us further than this from the cover is cut and taken back (breath line ~7 m off)
@@ -216,18 +217,29 @@ class Altar:
                 dx, dz = bottom[0] - top[0], bottom[2] - top[2]
                 n = math.hypot(dx, dz) or 1.0
                 up_from = (bottom[0] + dx / n * 0.6, bottom[1], bottom[2] + dz / n * 0.6)
-            face_to = up_face or top
+            # walk in and press A on the move, like MoKa (A at ~0.35 m from the bottom while still walking) — standing still
+            # 0.4–2.3 m off with heading 1.33 got no ladder 3/3 (practice 3: _settle stopped short, the turn pulse didn't turn)
+            back = (up_from[0] - (bottom[0] - up_from[0]) * 4.0, up_from[1], up_from[2] - (bottom[2] - up_from[2]) * 4.0)
             for attempt in range(LADDER_TRIES):
-                self.f._settle(up_from, tol=0.25)
-                s = self.mv.snap(5.0)
-                if s is not None and s.cam_yaw is not None:
-                    self.pad.move(*self.mv.stick_to(s, face_to[0], face_to[2], 0.35))
-                    time.sleep(0.25)
-                    self.pad.move(0.0, 0.0)
-                    time.sleep(0.2)
-                self.pad.interact()
+                self.f._settle(back, tol=0.5)                         # ~1.5 m back on MoKa's line
                 t1 = time.time()
-                while time.time() - t1 < 1.5 and not self._on_ladder():
+                pressed = False
+                while time.time() - t1 < 4.0 and not self._on_ladder():
+                    s = self.mv.snap(5.0)
+                    if s is None or s.cam_yaw is None:
+                        time.sleep(0.03)
+                        continue
+                    d = math.hypot(bottom[0] - s.player.x, bottom[2] - s.player.z)
+                    self.pad.move(*self.mv.stick_to(s, bottom[0], bottom[2], 0.5))
+                    if d < LADDER_A_R and not pressed:
+                        self.pad.interact()
+                        pressed = True
+                    elif pressed and d < 0.15:
+                        break
+                    time.sleep(0.03)
+                self.pad.move(0.0, 0.0)
+                t1 = time.time()
+                while time.time() - t1 < 1.0 and not self._on_ladder():
                     time.sleep(0.05)
                 if not self._on_ladder():
                     s = self.mv.snap(5.0)
