@@ -37,6 +37,11 @@ class Escape:
     LEDGE_DROP = 3.0          # floor underfoot lower than this but not yet falling = on a cliff ledge
     LEDGE_SLIDE = 0.6         # (tuned 0.4~0.7 on 2 falls + a human recording: 0.6/0.5 fire 1.1~1.2 s before the fall, 1 false alarm) dropped this far below the last safe spot = sliding (bridges keep the same height, so they don't trigger)
     NUDGE_COOLDOWN = 0.6
+    NUDGE_FUTILE = 2          # P-81: this many nudges in a row that leave us where the last one started → stop until we move or stand
+                              # on floor again (clay18-1 zone 6: 23 nudges, 1 s apart, standing 1 m down on solid ground off the mesh;
+                              # pull-off2 ramp ledge: 22 at 3.5 m down — no nudge moved us, each froze the pad and dropped the guard)
+    NUDGE_SAME_R = 0.5        # … "where it started": within this (horizontal) and NUDGE_SAME_DY (height)
+    NUDGE_SAME_DY = 0.15      # standing: ±0.1 m in both runs; a 0.35 m/s slide (152400) drops ≥ 0.2 m between nudges
     LEDGE_CREEP = 0.5         # descending while moving less than this in 1 s = sliding (stairs move faster)
     CROWD_COOLDOWN = 60.0     # avoid repeating at the same spot
     QUIT_S = 2.8
@@ -58,6 +63,8 @@ class Escape:
         self.safe_pos = None          # last spot with floor directly underfoot (_ledge)
         self.last_nudge = 0.0
         self.nudges = 0
+        self._nudge_at = None         # where the last nudge started (x, y, z) — P-81: same spot again = it didn't work
+        self._futile = 0              # nudges in a row that left us where the one before started
         self._pos = collections.deque(maxlen=120)
         self._lock = threading.Lock()
         self._stop = False
@@ -170,6 +177,7 @@ class Escape:
         drop = self.floor_drop(p)
         if drop is not None and drop < 0.6:
             self.safe_pos = (p.x, p.y, p.z)
+            self._nudge_at, self._futile = None, 0
             return
         # no walkable floor underfoot (None — below that ledge were only inactive tiles) or more than 3 m below.
         # descending stairs also leaves the mesh empty and y dropping — but then we move fast sideways. Ledge sliding moved under 0.8 m in 1 s
@@ -181,16 +189,40 @@ class Escape:
         old = [q for q in self._pos if now - q[0] <= 1.0]
         if len(old) < 3 or ((p.x - old[0][1]) ** 2 + (p.z - old[0][2]) ** 2) ** 0.5 > self.LEDGE_CREEP:
             return
+        if not self._nudge_worth(p):
+            return
         import control
         import nav
         st = control.world_to_stick(sp[0] - p.x, sp[2] - p.z, s.cam_yaw, nav.YAW_OFFSET, nav.FLIP_X)
         if not self._nudge(st):
             return
+        self._nudge_at = (p.x, p.y, p.z)
         self.last_nudge = time.time()
         self.nudges += 1
         self.log(f"   ⤺ 턱 위 미끄러짐 (바닥 {'없음' if drop is None else f'{drop:.0f} m 아래'}, {sp[1] - p.y:.1f} m 내려옴) — 안전 자리로 되돌림")
         if self.events:
             self.events("ledge", drop=None if drop is None else round(drop, 1), slide=round(sp[1] - p.y, 2), pos=[round(p.x, 2), round(p.y, 2), round(p.z, 2)])
+
+    def _nudge_worth(self, p) -> bool:
+        """P-81: False once NUDGE_FUTILE nudges in a row left us where the one before started — we stand there (solid floor the
+        NavMesh doesn't have, or held against foes), so another nudge only freezes the pad and drops the guard again. Moving away from
+        that spot or standing on floor again (_ledge) re-arms it."""
+        q = self._nudge_at
+        same = (q is not None and ((p.x - q[0]) ** 2 + (p.z - q[2]) ** 2) ** 0.5 <= self.NUDGE_SAME_R
+                and abs(p.y - q[1]) <= self.NUDGE_SAME_DY)
+        if not same:
+            self._futile = 0
+            return True
+        if self._futile >= self.NUDGE_FUTILE:
+            return False
+        self._futile += 1
+        if self._futile < self.NUDGE_FUTILE:
+            return True
+        self.log(f"   ⤺ 턱 되돌림 {self.NUDGE_FUTILE}번째도 제자리 ({p.x:.1f},{p.y:.1f},{p.z:.1f}) — 움직이거나 바닥에 설 때까지 그만")
+        ctl.emit("esc", ev="nudge_futile", pos=[round(p.x, 2), round(p.y, 2), round(p.z, 2)])
+        if self.events:
+            self.events("ledge_futile", pos=[round(p.x, 2), round(p.y, 2), round(p.z, 2)])
+        return False
 
     NUDGE_S = 0.35
 
