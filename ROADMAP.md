@@ -86,7 +86,7 @@ needing the tick loop, route data, settings object or WorldState.
 - [~] overlay-borderless | win | doing | borderless overlay + bot: overlay visible, clicks pass through, bot keeps going | plan:overlay-borderless
 - [~] radar-upgrade | win | doing | radar upgrade check (navmesh drawn, pad slots, recording, `--replay`) | plan:radar-upgrade
 - [ ] radar-ai-ranges | win | todo | radar AI ranges (sight cone, hearing circle, leash) match the game | plan:radar-ai-ranges
-- [~] combat-table | win | doing | TAE type 1 re-check 0 diffs; next: `ai_extract.py c2540` (+ probe) | docs/tae-verify.md · plan:combat-table
+- [~] combat-table | cloud | doing | sim link resumed, type 1 only (MoKa); AI Lua c2540 26/26 → next: sim slice | docs/tae-verify.md · plan:combat-table
 
 ## 3. v2.0 (`docs/review-v2-2026-10-11.md`; go, done bar N/10 and order: MoKa)
 
