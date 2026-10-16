@@ -633,3 +633,4 @@ Items as they left ROADMAP.md (mark, id, who, stage, result, where). Older done 
 - 2026-10-12 [x] almost-arrived | win | done | 13× in 8 sampled runs (09-30..10-12): skips work; asylum2 (34.3, 193.2) 1.2 m → next step clean, asylum4 fog (−7.8, 208.4) 1.6 m → fog wall 7.7 s later, not delayed. Weak spot: body pinned → skip just burns 15 s timeouts (P-77) | P-77 · plan:almost-arrived
 - 2026-10-13 [x] alignment | MoKa | done | 7 Claymore runs: body ≤ 25° at every press, camera-only misses still hit → 'ok' = body 30° or lock (camera dropped, MoKa 10-13) | plan:alignment
 - 2026-10-13 [x] claymore-measure | win | done | light: blade 0.68–0.85 s, idle 1.39 s with LB (recovery 0.62 → 0.55); thrust 0.76–0.95, 1.50 s; reach 1.8 kept (hits to ~2.1 m) | stages/burg-to-altar.md
+- 2026-10-16 [x] rea-trial | cloud | verify | done: dump + analyzers off, B 5/5 + 10 new flags → `DBG_*` | docs/rea-trial.md

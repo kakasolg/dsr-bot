@@ -194,3 +194,15 @@ ROADMAP `rea-trial` → `cloud | verify` 로 바꾸고 push.
 **[win] 의견**: 보호된 exe는 **덤프 + 분석기 끄기**면 REA가 3분 안에 열리고, 답을 아는 문제는 증거와 함께 다 맞힘. 디버그 메뉴 이름표 같은 게임 속
 문자열을 따라가면 강함. 약점: CLI는 질문마다 Ghidra 재시작(3분), 게임 데이터 파일(TAE 등)은 못 다룸. 쓸 곳 = 메모리 값의 뜻 찾기(새 디버그 플래그 ·
 구조체 필드). 이번에 나온 +0x8 All No Dead · +0xA All No Hit · +0xC All No Move · +0xD All No Update Ai는 오프라인 시험(적 멈추기 등)에 바로 쓸 만함.
+
+**[cloud] 판단 (2026-10-16, 2차)**
+- 결론: **쓸 만함, 단 용도는 좁게** — "메모리 값의 뜻 찾기"(디버그 플래그, 구조체 필드). 덤프(`exe_dump.py`) + `REA_GHIDRA_DISABLED_ANALYZERS`가 이 게임에서의 사용법.
+  답을 아는 문제 5/5, 근거는 게임 자체의 메뉴 문자열이라 지어낸 것 0. 1차 실패는 REA가 아니라 디스크 exe의 암호화 때문이었음.
+- 반영: `dsr_telemetry.DSRTelemetry.DBG_*` 에 16바이트 중 15개 이름 (게임 메뉴 이름표 그대로; legacy가 쓰던 `0xB` = `DBG_ALL_NO_ATTACK`).
+  `kill_player`도 상수를 씀. 쓰기는 여전히 오프라인 전용.
+- 못 한 것과 다음 후보 (지금 항목은 닫음 — 필요해질 때 새 항목으로):
+  - 시험 C(피해 계산식): MCP 세션(Ghidra 유지)으로 `FUN_140322925`(+0x9 AllNoDamage를 읽는 곳)에서 시작. 또는 Cheat Engine "이 주소에 쓰는 코드"를
+    플레이어 HP에 걸고 한 대 맞기 — 피해 함수 주소가 바로 나옴. 결과는 combat.json 위력 vs 실제 피해로 [cloud]가 대조.
+  - TAE는 REA 밖: soulstruct엔 TAE 읽기가 없으니 [cloud]가 읽는 코드를 짜고, [win]이 DSAnimStudio로 c2540 공격 한두 개 타이밍을 정답표로.
+  - 적 AI: soulstruct에 DSR AI Lua 디컴파일러(`DSLuaDecompiler.exe`, Windows)가 들어 있음 → 적의 공격 고르는 규칙.
+  - `All No Update Ai`(+0xD) · `All No Move`(+0xC): 적을 세워 두고 재는 오프라인 측정(사거리 · 타이밍)에 바로 쓸 수 있음.

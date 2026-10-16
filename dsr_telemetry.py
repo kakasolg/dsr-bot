@@ -528,8 +528,13 @@ class DSRTelemetry:
         return self.i32(w + OFF_LASTBONFIRE) if w else None
 
     # ── writes (for resets) ──
-    # ChrDbg byte flags (DSR-Gadget order — +0x1 PlayerExterminate confirmed by measurement with kill_player)
-    DBG_PLAYER_NO_DEAD, DBG_PLAYER_HIDE, DBG_ALL_NO_DAMAGE = 0x0, 0x6, 0x9
+    # ChrDbg byte flags. Names = the game's own "CHR DBG" debug-menu labels, read from a memory dump (rea-trial round 2,
+    # 2026-10-16); +0x0 / +0x1 also measured in play. +0xE has no label. Writes are for offline use only.
+    DBG_PLAYER_NO_DEAD, DBG_PLAYER_EXTERMINATE = 0x0, 0x1
+    DBG_ALL_NO_STAMINA_CONSUME, DBG_ALL_NO_MP_CONSUME, DBG_ALL_NO_ARROW_CONSUME, DBG_ALL_NO_MAGIC_QTY_CONSUME = 0x2, 0x3, 0x4, 0x5
+    DBG_PLAYER_HIDE, DBG_PLAYER_SILENCE = 0x6, 0x7
+    DBG_ALL_NO_DEAD, DBG_ALL_NO_DAMAGE, DBG_ALL_NO_HIT, DBG_ALL_NO_ATTACK = 0x8, 0x9, 0xA, 0xB
+    DBG_ALL_NO_MOVE, DBG_ALL_NO_UPDATE_AI, DBG_ALL_QUIET = 0xC, 0xD, 0xF
 
     def set_dbg(self, off: int, on: bool) -> None:
         """Turn a debug flag on/off (offline only). User: "make the character invincible and have it climb up in that state"."""
@@ -540,7 +545,7 @@ class DSRTelemetry:
 
     def kill_player(self) -> None:
         """ChrDbg.PlayerExterminate — turn on, then off after confirming death (if left on, it dies again right after respawning)."""
-        a = self.static["ChrDbg"] + 0x1
+        a = self.static["ChrDbg"] + self.DBG_PLAYER_EXTERMINATE
         self.pm.write_uchar(a, 1)
         for _ in range(40):
             time.sleep(0.1)
