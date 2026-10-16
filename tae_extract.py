@@ -63,6 +63,8 @@ def read_tae(b: bytes) -> dict:
     """{"tae_id", "animations": {anim_id: {"events": [...], "other_types": {type: n}, "ref": id | None}}}."""
     if b[:4] != b"TAE ":
         raise TAEError("not a TAE file")
+    if b[7] == 0 and _i(b, 8) == 0x1000B:
+        return _read_tae32(b)
     if b[7] != 0xFF:
         raise TAEError("not a 64-bit TAE (DSR)")
     version = _i(b, 8)
@@ -92,6 +94,38 @@ def read_tae(b: bytes) -> dict:
             ref = _i(b, file_off + 0x18)
         anims[int(anim_id)] = {"events": sorted(events, key=lambda ev: (ev["start"], ev["type"])),
                                "other_types": {str(t): n for t, n in sorted(other.items())}, "ref": ref}
+    return {"tae_id": tae_id, "animations": anims}
+
+
+def _read_tae32(b: bytes) -> dict:
+    """32-bit TAE (version 0x1000B) — what DSR's chr/*.anibnd.dcx actually hold (10-16 [win]: all 66 models).
+
+    Same fields as the 64-bit reader, every offset an i32: animation entry {id, data} (8 bytes), animation data
+    {n_events, event_headers, …, file @0x18}, event header {start, end, data} (12 bytes), event data {type, params}.
+    Borrowed animation: file {1, …, …, ref id @0xC}."""
+    tae_id, count, anims_off = _i(b, 0x50), _i(b, 0x54), _i(b, 0x58)
+    if not (0 <= count < 100000) or not (0 < anims_off < len(b)):
+        raise TAEError(f"bad header: count {count}, animations at 0x{anims_off:X}")
+    anims = {}
+    for k in range(count):
+        e = anims_off + 8 * k
+        anim_id, a = _i(b, e), _i(b, e + 4)
+        n_events, events_off, file_off = _i(b, a), _i(b, a + 4), _i(b, a + 0x18)
+        events, other = [], {}
+        for j in range(n_events):
+            h = events_off + 12 * j
+            start, end, data = _f(b, _i(b, h)), _f(b, _i(b, h + 4)), _i(b, h + 8)
+            etype, params = _i(b, data), _i(b, data + 4)
+            if etype in KEEP:
+                p = list(struct.unpack_from("<4i", b, params)) if params + 16 <= len(b) else []
+                events.append({"type": etype, "start": round(start, 4), "end": round(end, 4), "p": p})
+            else:
+                other[etype] = other.get(etype, 0) + 1
+        ref = None
+        if not events and 0 < file_off < len(b) and _i(b, file_off) == 1:
+            ref = _i(b, file_off + 0xC)
+        anims[anim_id] = {"events": sorted(events, key=lambda ev: (ev["start"], ev["type"])),
+                          "other_types": {str(t): n for t, n in sorted(other.items())}, "ref": ref}
     return {"tae_id": tae_id, "animations": anims}
 
 

@@ -78,6 +78,42 @@ def test_read_tae_rejects():
         raise AssertionError("bad TAE accepted")
 
 
+def build_tae32(anims: dict, tae_id=0, borrow: dict | None = None) -> bytes:
+    """32-bit layout (version 0x1000B) — what the real chr/*.anibnd.dcx hold (10-16 [win] run, c2540 bytes)."""
+    borrow = borrow or {}
+    ids = sorted(set(anims) | set(borrow))
+    buf = bytearray(0xC0)
+    buf[0:4] = b"TAE "
+    struct.pack_into("<ii", buf, 8, 0x1000B, 0)
+    anims_off = len(buf)
+    struct.pack_into("<iii", buf, 0x50, tae_id, len(ids), anims_off)
+    buf += bytes(8 * len(ids))
+    for k, aid in enumerate(ids):
+        a = len(buf)
+        struct.pack_into("<ii", buf, anims_off + 8 * k, aid, a)
+        buf += bytes(0x1C)
+        evs = anims.get(aid, [])
+        ev_off = len(buf)
+        buf += bytes(12 * len(evs))
+        for j, (etype, start, end, p) in enumerate(evs):
+            ts = len(buf)
+            buf += struct.pack("<ff", start, end)
+            data = len(buf)
+            buf += struct.pack("<ii", etype, data + 8) + struct.pack(f"<{len(p)}i", *p) + bytes(4 * (4 - len(p)))
+            struct.pack_into("<iii", buf, ev_off + 12 * j, ts, ts + 4, data)
+        f = len(buf)
+        buf += struct.pack("<iiii", 1 if aid in borrow else 0, f + 16, f + 16, borrow.get(aid, 0)) + bytes(16)
+        struct.pack_into("<ii", buf, a, len(evs), ev_off)
+        struct.pack_into("<i", buf, a + 0x18, f)
+    struct.pack_into("<i", buf, 12, len(buf))
+    return bytes(buf)
+
+
+def test_read_tae32_same_as_64():
+    assert X.read_tae(build_tae32(HOLLOW, tae_id=7, borrow={3009: 3000})) == \
+        X.read_tae(build_tae(HOLLOW, tae_id=7, borrow={3009: 3000}))
+
+
 def test_extract_attacks_and_check():
     entries = [SimpleNamespace(name="c2540.tae", data=build_tae(HOLLOW)), SimpleNamespace(name="c2540.hkxbnd", data=b"")]
     d = X.extract("c2540", entries, known={100, 101, 180, 400})
