@@ -1,0 +1,104 @@
+"""tae_extract offline test — a fake DSR TAE built byte by byte in the layout tae_extract reads, no game files.
+
+This checks the reader against that layout; whether the layout (and p[2] = BehaviorJudgeID) matches the real files is
+what the [win] run's judge_check shows.
+
+  python tests/tae_extract_test.py
+"""
+from __future__ import annotations
+import sys as _sys, pathlib as _pl  # repo root first (the bot's modules), then this folder
+_sys.path[:0] = [str(_pl.Path(__file__).resolve().parent.parent), str(_pl.Path(__file__).resolve().parent)]
+
+import json
+import struct
+import tempfile
+from pathlib import Path
+from types import SimpleNamespace
+
+import tae_extract as X
+
+
+def build_tae(anims: dict, tae_id=0, borrow: dict | None = None) -> bytes:
+    """anims: {anim_id: [(type, start, end, [i32 params])]}; borrow: {anim_id: other id} (no events, file type 1)."""
+    borrow = borrow or {}
+    ids = sorted(set(anims) | set(borrow))
+    buf = bytearray(0xC0)
+    buf[0:4] = b"TAE "
+    buf[4:8] = bytes([0, 0, 0, 0xFF])
+    struct.pack_into("<ii", buf, 8, 0x1000C, 0)
+    struct.pack_into("<ii", buf, 0x50, tae_id, len(ids))
+    anims_off = len(buf)
+    struct.pack_into("<q", buf, 0x58, anims_off)
+    buf += bytes(16 * len(ids))
+    for k, aid in enumerate(ids):
+        a = len(buf)
+        struct.pack_into("<qq", buf, anims_off + 16 * k, aid, a)
+        buf += bytes(0x30)
+        evs = anims.get(aid, [])
+        ev_off = len(buf)
+        buf += bytes(24 * len(evs))
+        for j, (etype, start, end, p) in enumerate(evs):
+            ts = len(buf)
+            buf += struct.pack("<ff", start, end)
+            data = len(buf)
+            buf += struct.pack("<qq", etype, data + 16) + struct.pack(f"<{len(p)}i", *p) + bytes(4 * (4 - len(p)))
+            struct.pack_into("<qqq", buf, ev_off + 24 * j, ts, ts + 4, data)
+        f = len(buf)
+        buf += struct.pack("<qqqii", 1 if aid in borrow else 0, f + 16, 0, borrow.get(aid, 0), 0) + bytes(16)
+        struct.pack_into("<qqqq", buf, a, ev_off, 0, 0, f)
+        struct.pack_into("<iii", buf, a + 0x20, len(evs), 0, 0)
+    struct.pack_into("<i", buf, 12, len(buf))
+    return bytes(buf)
+
+
+HOLLOW = {
+    3000: [(1, 0.5, 0.7, [0, 0, 100, 0]), (128, 0.4, 0.5, [1, 2]), (0, 0.0, 1.2, [4])],
+    3001: [(1, 0.9333, 1.1, [0, 0, 101, 0]), (2, 1.2, 1.3, [0, 0, 180, 0])],
+    3005: [(1, 0.3, 0.4, [0, 0, 999, 0])],                    # judge id not in combat.json → shows in judge_check
+}
+
+
+def test_read_tae():
+    t = X.read_tae(build_tae(HOLLOW, tae_id=7, borrow={3009: 3000}))
+    assert t["tae_id"] == 7 and list(t["animations"]) == [3000, 3001, 3005, 3009]
+    a = t["animations"][3000]
+    assert a["events"] == [{"type": 1, "start": 0.5, "end": 0.7, "p": [0, 0, 100, 0]}]   # time-sorted, kept types only
+    assert a["other_types"] == {"0": 1, "128": 1} and a["ref"] is None
+    assert t["animations"][3001]["events"][0]["start"] == 0.9333
+    assert t["animations"][3009] == {"events": [], "other_types": {}, "ref": 3000}
+
+
+def test_read_tae_rejects():
+    good = build_tae(HOLLOW)
+    for bad in (b"XXXX" + good[4:], good[:7] + b"\x00" + good[8:], good[:8] + struct.pack("<i", 0x1000B) + good[12:]):
+        try:
+            X.read_tae(bad)
+        except X.TAEError:
+            continue
+        raise AssertionError("bad TAE accepted")
+
+
+def test_extract_attacks_and_check():
+    entries = [SimpleNamespace(name="c2540.tae", data=build_tae(HOLLOW)), SimpleNamespace(name="c2540.hkxbnd", data=b"")]
+    d = X.extract("c2540", entries, known={100, 101, 180, 400})
+    assert d["attacks"]["100"] == [{"anim": 3000, "type": "attack", "start": 0.5, "end": 0.7}]
+    assert d["attacks"]["180"] == [{"anim": 3001, "type": "bullet", "start": 1.2, "end": 1.3}]
+    assert d["animations"]["3000"]["tae"] == "c2540.tae"
+    assert d["judge_check"] == {"type1_events": 3, "in_combat_json": 2, "share": 0.667, "unknown_values": [999]}
+    json.dumps(d)
+
+
+def test_models_from_combat():
+    with tempfile.TemporaryDirectory() as t:
+        p = Path(t) / "combat.json"
+        p.write_text(json.dumps({"foes": {"254010": {"model": "c2540", "behaviors": {"0": {}, "100": {}}},
+                                          "254001": {"model": "c2540", "behaviors": {"180": {}}},
+                                          "999": {"behaviors": {"1": {}}}}}), encoding="utf-8")
+        assert X.models_from_combat(p) == {"c2540": {0, 100, 180}}
+
+
+if __name__ == "__main__":
+    for name, fn in list(globals().items()):
+        if name.startswith("test_"):
+            fn()
+            print("ok", name)
