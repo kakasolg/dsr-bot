@@ -63,7 +63,7 @@ def test_read_tae():
     t = X.read_tae(build_tae(HOLLOW, tae_id=7, borrow={3009: 3000}))
     assert t["tae_id"] == 7 and list(t["animations"]) == [3000, 3001, 3005, 3009, 3500]
     a = t["animations"][3000]
-    assert a["events"] == [{"type": 1, "start": 0.5, "end": 0.7, "p": [0, 0, 100, 0]}]   # time-sorted, kept types only
+    assert a["events"] == [{"type": 1, "start": 0.5, "end": 0.7, "p": [0, 0, 100]}]   # time-sorted, kept types only, 3 params
     assert a["other_types"] == {"0": 1, "128": 1} and a["ref"] is None
     assert t["animations"][3001]["events"][0]["start"] == 0.9333
     assert t["animations"][3009] == {"events": [], "other_types": {}, "ref": 3000}
@@ -126,7 +126,8 @@ def test_extract_attacks_and_check():
     assert d["counts"] == {"animations": 4, "borrowed": 0, "events": {"attack": 3, "bullet": 1, "common": 1}, "other_events": 2}
     assert d["judge_check"] == {
         "attack": {"n": 3, "in_combat_json": 2, "share": 0.667, "mismatch": [{"anim": 3005, "value": 999}]},
-        "bullet": {"n": 1, "in_combat_json": 1, "share": 1.0, "mismatch": []}}, d["judge_check"]
+        "bullet": {"n": 1, "in_combat_json": 1, "share": 1.0, "mismatch": []},
+        "common": {"n": 1, "in_combat_json": 0, "share": 0.0, "mismatch": [{"anim": 3500, "value": 16}]}}, d["judge_check"]
     json.dumps(d)
 
 
@@ -137,6 +138,24 @@ def test_models_from_combat():
                                           "254001": {"model": "c2540", "behaviors": {"180": {}}},
                                           "999": {"behaviors": {"1": {}}}}}), encoding="utf-8")
         assert X.models_from_combat(p) == {"c2540": {0, 100, 180}}
+
+
+def test_params_stop_at_the_event():
+    """10-16 [win] DSAnimStudio check: type 1 is 3 × s32. A fourth value written right after it (as the next event's bytes
+    are in the real file) must not be read; type 2 has a u8 · s8 · s16 tail, type 5 two s32."""
+    t = X.read_tae(build_tae32({3000: [(1, 0.8667, 1.0333, [0, 0, 100, 128])],
+                                3008: [(2, 1.4667, 1.5, [1, 0, 180, 0x00FF0102])],
+                                3500: [(5, 0.0, 0.2, [3, 16, 77, 77])]}))
+    ev = lambda a: t["animations"][a]["events"][0]["p"]
+    assert ev(3000) == [0, 0, 100] and ev(3008) == [1, 0, 180, 2, 1, 255] and ev(3500) == [3, 16]
+    assert X.judge({"type": 5, "p": [3, 16]}) == 16 and X.judge({"type": 1, "p": [0, 0, 100]}) == 100
+
+
+def test_migrate_old_p():
+    assert X.migrate_p(1, [0, 0, 100, 128]) == [0, 0, 100]
+    assert X.migrate_p(2, [1, 0, 180, 0x00FF0102]) == [1, 0, 180, 2, 1, 255]
+    assert X.migrate_p(5, [3, 16, 0, 0]) == [3, 16]
+    assert X.migrate_p(1, [0, 0, 100]) == [0, 0, 100]                     # already new: unchanged
 
 
 def test_rebuild_matches_extract():

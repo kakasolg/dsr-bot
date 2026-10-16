@@ -44,8 +44,13 @@ if hasattr(sys.stdout, "reconfigure"):
 
 OUT_DIR = Path(__file__).parent / "data" / "gamefiles"
 KEEP = {1: "attack", 2: "bullet", 5: "common"}          # DS1 behavior-invoking event types (see docstring)
-JUDGE_PARAM = 2                                          # p[2] = BehaviorJudgeID? — checked by judge_check
-JUDGE_TYPES = (1, 2)                                     # event types whose p[2] is read as a judge id
+# Params per type, as DSAnimStudio's TAE.Template.DS1.xml lays them out (10-16 [win] check: type 1 is 12 bytes — reading a
+# fixed 4 × s32 took the next event's first bytes as p[3]). type 1 InvokeAttackBehavior: AttackType · AttackIndex ·
+# BehaviorJudgeID; type 2 InvokeBulletBehavior: s32 ×3 · u8 · s8 · s16; type 5 InvokeCommonBehavior: AttackIndex · BehaviorJudgeID.
+PARAMS = {1: "<3i", 2: "<3iBbh", 5: "<2i"}
+JUDGE_INDEX = {1: 2, 2: 2, 5: 1}                         # where BehaviorJudgeID sits in p, per type
+JUDGE_PARAM = 2                                          # (kept for tae.json readers: types 1 and 2)
+JUDGE_TYPES = (1, 2)                                     # event types whose judge goes into `attacks`
 
 
 class TAEError(ValueError):
@@ -62,6 +67,25 @@ def _i(b: bytes, o: int) -> int:
 
 def _f(b: bytes, o: int) -> float:
     return struct.unpack_from("<f", b, o)[0]
+
+
+def _params(b: bytes, at: int, etype: int) -> list[int]:
+    fmt = PARAMS[etype]
+    return list(struct.unpack_from(fmt, b, at)) if at + struct.calcsize(fmt) <= len(b) else []
+
+
+def migrate_p(etype: int, p: list[int]) -> list[int]:
+    """tae.json written before the per-type fix held 4 × s32 for every kept type. The first values are the same bytes;
+    type 2's fourth s32 is its u8 · s8 · s16 tail (inside the event), types 1 and 5 drop what lay past the event."""
+    n = struct.calcsize(PARAMS[etype]) // 4 if etype != 2 else 3
+    if etype == 2 and len(p) == 4:
+        return p[:3] + list(struct.unpack("<Bbh", struct.pack("<i", p[3])))
+    return p[:n] if len(p) == 4 else p
+
+
+def judge(ev: dict) -> int | None:
+    i = JUDGE_INDEX.get(ev["type"])
+    return ev["p"][i] if i is not None and len(ev["p"]) > i else None
 
 
 def read_tae(b: bytes) -> dict:
@@ -90,7 +114,7 @@ def read_tae(b: bytes) -> dict:
             start, end, data = _f(b, _q(b, h)), _f(b, _q(b, h + 8)), _q(b, h + 16)
             etype = _q(b, data)
             if etype in KEEP:
-                p = list(struct.unpack_from("<4i", b, data + 16)) if data + 32 <= len(b) else []
+                p = _params(b, data + 16, etype)
                 events.append({"type": etype, "start": round(start, 4), "end": round(end, 4), "p": p})
             else:
                 other[etype] = other.get(etype, 0) + 1
@@ -122,7 +146,7 @@ def _read_tae32(b: bytes) -> dict:
             start, end, data = _f(b, _i(b, h)), _f(b, _i(b, h + 4)), _i(b, h + 8)
             etype, params = _i(b, data), _i(b, data + 4)
             if etype in KEEP:
-                p = list(struct.unpack_from("<4i", b, params)) if params + 16 <= len(b) else []
+                p = _params(b, params, etype)
                 events.append({"type": etype, "start": round(start, 4), "end": round(end, 4), "p": p})
             else:
                 other[etype] = other.get(etype, 0) + 1
@@ -147,28 +171,28 @@ def model_animations(binder_entries) -> dict:
 
 
 def attacks_by_judge(anims: dict, types=JUDGE_TYPES) -> dict:
-    """{judge id: [{anim, type, active_start, active_end}]} from events of `types` only (type 5 'common' carries no
-    judge id in p[2] — its 0 / 1 / 5 / 16 values are something else).
+    """{judge id: [{anim, type, active_start, active_end}]} from attack (1) and bullet (2) events.
 
     active_start / active_end = the TAE event's window: when the game *runs* that attack behavior (hitbox live). Not the
-    time the player is hit — that is a runtime fact (tae_runtime_probe.py), kept apart on purpose."""
+    time the player is hit — that is a runtime fact (tae_verify.py timing), kept apart on purpose. Type 5 (common) has its
+    judge in p[1] but refers to shared behaviors, not this foe's attacks — counted in judge_check only."""
     out: dict[int, list] = {}
     for aid, a in anims.items():
         for ev in a["events"]:
-            if ev["type"] in types and len(ev["p"]) > JUDGE_PARAM:
-                out.setdefault(ev["p"][JUDGE_PARAM], []).append(
+            j = judge(ev)
+            if ev["type"] in types and j is not None:
+                out.setdefault(j, []).append(
                     {"anim": int(aid), "type": KEEP[ev["type"]], "active_start": ev["start"], "active_end": ev["end"]})
     return {str(j): v for j, v in sorted(out.items())}
 
 
 def judge_check(anims: dict, known: set[int]) -> dict:
-    """Per event type 1 / 2: how many p[JUDGE_PARAM] values are judge ids of this model in combat.json (numerator /
-    denominator) and the values that are not (mismatch samples). A high share supports p[2] = BehaviorJudgeID — it does
-    not by itself prove the layout or the times (docs/tae-verify.md)."""
+    """Per event type: how many judge values are judge ids of this model in combat.json (numerator / denominator) and
+    the ones that are not (mismatch samples). Supports the judge field; does not by itself verify layout or times."""
     out = {}
-    for t in JUDGE_TYPES:
-        rows = [(int(aid), ev["p"][JUDGE_PARAM]) for aid, a in anims.items() for ev in a["events"]
-                if ev["type"] == t and len(ev["p"]) > JUDGE_PARAM]
+    for t in KEEP:
+        rows = [(int(aid), judge(ev)) for aid, a in anims.items() for ev in a["events"]
+                if ev["type"] == t and judge(ev) is not None]
         miss = [(aid, v) for aid, v in rows if v not in known]
         out[KEEP[t]] = {"n": len(rows), "in_combat_json": len(rows) - len(miss),
                         "share": round((len(rows) - len(miss)) / len(rows), 3) if rows else None,
@@ -215,15 +239,15 @@ def line(m: dict) -> str:
 
 
 def write(path: Path, out: dict, failed: dict) -> None:
-    data = {"evidence": "file", "source": "chr/<model>.anibnd.dcx (.tae)", "judge_param": JUDGE_PARAM,
-            "judge_types": list(JUDGE_TYPES), "times": "attacks: active_start / active_end = TAE event window (s), not hit time",
+    data = {"evidence": "file", "source": "chr/<model>.anibnd.dcx (.tae)", "params": {str(t): f for t, f in PARAMS.items()},
+            "judge_index": {str(t): i for t, i in JUDGE_INDEX.items()}, "judge_types": list(JUDGE_TYPES), "times": "attacks: active_start / active_end = TAE event window (s), not hit time",
             "counts": {"models": len(out), "failed": len(failed)}, "failed": failed, "models": out}
     path.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
     for m in out.values():
         print(line(m))
-    num = sum(v["in_combat_json"] for m in out.values() for v in m["judge_check"].values())
-    den = sum(v["n"] for m in out.values() for v in m["judge_check"].values())
-    print(f"모델 {len(out)} 파싱, 실패 {len(failed)} {list(failed)[:5]} — judge {num}/{den} → {path}")
+    num = sum(m["judge_check"][KEEP[t]]["in_combat_json"] for m in out.values() for t in JUDGE_TYPES)
+    den = sum(m["judge_check"][KEEP[t]]["n"] for m in out.values() for t in JUDGE_TYPES)
+    print(f"모델 {len(out)} 파싱, 실패 {len(failed)} {list(failed)[:5]} — judge (attack + bullet) {num}/{den} → {path}")
 
 
 def main() -> None:
@@ -237,6 +261,10 @@ def main() -> None:
     judges = models_from_combat(a.combat) if a.combat.exists() else {}
     if a.rebuild:
         old = json.loads(a.out.read_text(encoding="utf-8"))
+        for d in old["models"].values():
+            for an in d["animations"].values():
+                for ev in an["events"]:
+                    ev["p"] = migrate_p(ev["type"], ev["p"])
         out = {m: summarize(m, {int(k): v for k, v in d["animations"].items()}, judges.get(m, set()))
                for m, d in old["models"].items() if not a.models or m in a.models}
         write(a.out, out, old.get("failed", {}))

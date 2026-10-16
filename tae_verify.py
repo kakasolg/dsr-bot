@@ -6,6 +6,7 @@
   3 runtime          in the game: the foe's animation id when the player is hit, and how long into it.
 
   python tae_verify.py sheet c2540 3000 3003 3008   level 2: what to compare in DSAnimStudio (seconds and 30 fps frames)
+  python tae_verify.py dsas [tae_check_c2540_dsas.json]  level 2 re-check: tae.json vs DSAnimStudio's own reading
   python tae_verify.py blame [c2540]                level 3a: recorded hits (data/samples `hit` events) — was the
                                                     hitting foe's animation one with a TAE attack event? (ids only)
   python tae_verify.py probe [secs]                 level 3b, [win], game running: record player HP + nearby foes'
@@ -75,6 +76,49 @@ def sheet(model: dict, anim_ids: list[int]) -> list[str]:
         if not a["events"]:
             out.append("   (공격·투사체·공통 이벤트 없음)")
     return out
+
+
+def _num(v):
+    """DSAnimStudio's dump writes param values as text ("300")."""
+    try:
+        return int(v)
+    except (TypeError, ValueError):
+        return v
+
+
+def dsas_compare(model: dict, dsas: dict, tol: float = 5e-5) -> dict:
+    """Level 2 re-check against DSAnimStudio's own reading (tae_check_<model>_dsas.json, collected by [win] with
+    experiments/dsas_tae.ps1). Per animation: total event count, other-type counts, and every kept event (type, start,
+    end within `tol` — ours is rounded to 4 decimals —, params in template order). Returns rows + every difference."""
+    rows, diffs = [], []
+    for an in dsas["anims"]:
+        aid, theirs = an["anim"], an["events"]
+        ours = model["animations"].get(str(aid))
+        if ours is None:
+            diffs.append({"anim": aid, "what": "missing in tae.json"})
+            continue
+        n_ours = len(ours["events"]) + sum(ours["other_types"].values())
+        if n_ours != len(theirs):
+            diffs.append({"anim": aid, "what": "event count", "ours": n_ours, "theirs": len(theirs)})
+        other_theirs: dict[str, int] = {}
+        for e in theirs:
+            if e["type"] not in TYPE_NAME:
+                other_theirs[str(e["type"])] = other_theirs.get(str(e["type"]), 0) + 1
+        if other_theirs != ours["other_types"]:
+            diffs.append({"anim": aid, "what": "other types", "ours": ours["other_types"], "theirs": other_theirs})
+        kept = sorted((e for e in theirs if e["type"] in TYPE_NAME), key=lambda e: (round(e["start"], 4), e["type"]))
+        if len(kept) != len(ours["events"]):
+            diffs.append({"anim": aid, "what": "kept count", "ours": len(ours["events"]), "theirs": len(kept)})
+        for o, t in zip(ours["events"], kept):
+            vals = [_num(v) for v in t["params"].values()]
+            for what, ok in (("type", o["type"] == t["type"]),
+                             ("start", abs(o["start"] - t["start"]) <= tol),
+                             ("end", abs(o["end"] - t["end"]) <= tol),
+                             ("params", o["p"] == vals)):
+                if not ok:
+                    diffs.append({"anim": aid, "what": what, "ours": o, "theirs": {k: t[k] for k in ("type", "start", "end", "params")}})
+        rows.append({"anim": aid, "events": len(theirs), "kept": len(kept)})
+    return {"rows": rows, "diffs": diffs, "pass": not diffs}
 
 
 # ── level 3a: animation ids of recorded hits ──
@@ -187,6 +231,7 @@ def main() -> None:
     p = sub.add_parser("blame"); p.add_argument("model", nargs="?")
     p = sub.add_parser("probe"); p.add_argument("secs", nargs="?", type=float, default=120.0)
     p = sub.add_parser("timing"); p.add_argument("file", type=Path)
+    p = sub.add_parser("dsas"); p.add_argument("file", type=Path, nargs="?", default=ROOT / "data" / "gamefiles" / "tae_check_c2540_dsas.json")
     a = ap.parse_args()
     if a.cmd == "probe":
         out = SAMPLES / f"{time.strftime('%Y%m%d_%H%M%S')}_tae-probe.jsonl"
@@ -197,6 +242,12 @@ def main() -> None:
         print("\n".join(sheet(tae["models"][a.model], a.anims)))
     elif a.cmd == "blame":
         print(json.dumps(blame_check(tae, combat, hit_rows_from_samples(), a.model), ensure_ascii=False, indent=1))
+    elif a.cmd == "dsas":
+        d = load(a.file)
+        model = d["files"][0]["name"].replace("\\", "/").rsplit("/", 1)[-1].rsplit(".", 1)[0]
+        r = dsas_compare(tae["models"][model], d)
+        print(json.dumps(r, ensure_ascii=False, indent=1))
+        print(f"{model}: {'통과' if r['pass'] else '다름'} — 애니 {len(r['rows'])}, 차이 {len(r['diffs'])}")
     elif a.cmd == "timing":
         frames = [json.loads(l) for l in a.file.read_text(encoding="utf-8").splitlines() if l.strip()]
         r = timing(tae, combat, frames)

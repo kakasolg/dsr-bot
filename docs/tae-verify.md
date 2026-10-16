@@ -13,7 +13,7 @@ c2540 애니메이션 2–3개 DSAnimStudio 대조는 **필수**. 결과는 세 
 | 단계 | 뜻 | c2540 | 전체 |
 |---|---|---|---|
 | 1 파싱 성공 | 파일을 읽었고 개수 · judge 분자/분모가 나옴 | **통과** — 애니 170 (빌림 13), attack 27 · bullet 1 · common 28, 그 밖 2234; judge attack 27/27 · bullet 1/1 | **통과** — 66/66 모델, 실패 0; judge 1241/1245 |
-| 2 독립 도구 대조 | DSAnimStudio에서 같은 애니의 id · 종류 · 시작/끝 · 숫자가 같음 | **보류** (10-16 [win]) — 3000·3003·3010 id·개수·시각·judge 같음, type 1 매개변수 개수 다름 (우리 4 · DSAS 3) → 아래 결과 A | — |
+| 2 독립 도구 대조 | DSAnimStudio에서 같은 애니의 id · 종류 · 시작/끝 · 숫자가 같음 | **type 1 통과** (재대조 10-16, 3000 · 3003 · 3010, 차이 0) — type 2 · 5는 대조 안 됨 | — |
 | 3a 런타임 애니 id | 기록된 피격 순간 적의 애니에 TAE 공격 이벤트가 있나 | 224건 중 198 (0.884) — 아래 | 382건 중 309 (0.81) |
 | 3b 런타임 타이밍 | 피격 시각 − 애니 시작 = 활성 구간 안인가 | **안 함 — [win] probe** | — |
 
@@ -96,3 +96,27 @@ MoKa 10-16 지시: "하나라도 다르면 독립 대조 통과를 보류하고 
 
 **판정**: 2단계 **통과 보류**. 시뮬레이터 연결(AI Lua · 수직 슬라이스) **중단** — type 1 매개변수 길이를 고친 뒤 다시 대조.
 3b(런타임 타이밍 probe)는 이번에 안 함.
+
+### A-2. 2단계 재대조 — 2026-10-16 [cloud]: **type 1 통과**
+
+- 고친 것 (`tae_extract.py`): 매개변수를 type별 길이로 읽음 — DSAnimStudio `TAE.Template.DS1.xml` 기준 type 1 = s32 ×3 (AttackType ·
+  AttackIndex · BehaviorJudgeID), type 2 = s32 ×3 · u8 · s8 · s16, type 5 = s32 ×2 (AttackIndex · BehaviorJudgeID → judge는 p[1]).
+  tae.json은 `--rebuild`로 다시 씀 (옛 4 × s32 값에서 앞부분만 남기고, type 2는 넷째 값을 u8 · s8 · s16으로 풂). 결과 그대로 66/66, judge (attack + bullet) 1241/1245.
+- 대조: `python tae_verify.py dsas` — [win]이 모은 `data/gamefiles/tae_check_c2540_dsas.json`(DSAnimStudio 파서가 읽은 값)과 tae.json을 비교.
+  3000 · 3003 · 3010: 이벤트 총수 · 그 밖 type별 개수 · type 1의 시작/끝(±0.00005 s) · 매개변수 3개 모두 같음 → **차이 0**.
+- 이 대조가 예전 잘못을 잡는지: 옛 읽기(넷째 값 붙이기)로 되돌리면 [win]이 찾은 8건이 그대로 나옴 (`tests/tae_verify_test.py`).
+- 범위 밖 (아직 독립 대조 없음): **type 2 (bullet)** 와 **type 5 (common)** — 세 애니에 없었음. 길이는 템플릿만 따름.
+  type 5의 judge (p[1]) 741개는 그 적 자신의 BehaviorParam에 하나도 없음(0/741) → 공용 behavior를 가리키는 것으로 보고 `attacks`에서 뺌 (그대로).
+- 화면 확인은 아님: [win]이 DSAnimStudio의 파서를 PowerShell로 불러 읽은 값 (GUI 조작은 거절됨). 같은 코드이지만 그렇게 적어 둠.
+
+## 다음 (10-16 [cloud])
+
+시뮬레이터 연결 조건(MoKa): 이 검증이 통과하면 c2540 하나로 AI Lua와 연결. 2단계는 type 1만 통과, 3b(런타임 타이밍)는 아직.
+첫 수직 슬라이스는 c2540의 **근접 공격(type 1)만** 쓰고, 투사체(254012의 3008 화염병 = type 2)는 대조 전이라 빼고 시작한다.
+
+**[win] 할 일**
+1. (필수) AI Lua: `python ai_extract.py c2540` → `data/gamefiles/ai/*.lua` + `index.json` 커밋. c2540의 goal = battle 254000 · 254001 · 254002, logic 10000.
+   `index.json`의 `calls_outside`에 aiCommon 함수가 많으면 `python ai_extract.py c2540 --common`도 한 번 (공용 함수 전부).
+   못 찾은 goal (`missing`)이나 실패 (`ok: false`)는 그대로 적기.
+2. (가능하면) 3b 런타임 타이밍: 위 "B" 그대로 (`tae_verify.py probe` → `timing`).
+3. (가능하면) type 2 대조: `experiments/dsas_tae.ps1`로 c2540 3008 (bullet) 한 개 더 → `tae_check_c2540_dsas.json`에 추가, `python tae_verify.py dsas`.

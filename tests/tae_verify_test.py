@@ -66,6 +66,33 @@ def test_timing_unknown_start():
     assert V.timing(TAE, COMBAT, fr)["rows"][0]["status"] == "unknown_start"      # anim already running at frame 0
 
 
+def test_dsas_compare_real_c2540():
+    """Level 2 on the committed data: tae.json vs DSAnimStudio's reading of c2540 3000 / 3003 / 3010 ([win] 10-16).
+    Passes now; the old fixed 4 × s32 read (p[3] from the next event) gives the 8 differences [win] found."""
+    import copy, json
+    tae = json.loads(V.TAE.read_text(encoding="utf-8"))["models"]["c2540"]
+    dsas = json.loads((V.ROOT / "data" / "gamefiles" / "tae_check_c2540_dsas.json").read_text(encoding="utf-8"))
+    r = V.dsas_compare(tae, dsas)
+    assert r["pass"] and [x["anim"] for x in r["rows"]] == [3000, 3003, 3010], r["diffs"][:3]
+    old = copy.deepcopy(tae)
+    for a in ("3000", "3003", "3010"):
+        for ev in old["animations"][a]["events"]:
+            if ev["type"] == 1:
+                ev["p"] = ev["p"] + [128]
+    bad = V.dsas_compare(old, dsas)["diffs"]
+    assert len(bad) == 8 and {d["what"] for d in bad} == {"params"}, bad
+
+
+def test_dsas_compare_catches_time_and_count():
+    dsas = {"anims": [{"anim": 3000, "events": [
+        {"type": 1, "start": 0.8666667, "end": 1.04, "params": {"AttackType": "0", "AttackIndex": "0", "BehaviorJudgeID": "100"}},
+        {"type": 0, "start": 0.0, "end": 1.0, "params": {}}]}, {"anim": 4000, "events": []}]}
+    r = V.dsas_compare(TAE["models"]["c2540"], dsas)
+    whats = [d["what"] for d in r["diffs"]]
+    assert not r["pass"] and "end" in whats and "event count" in whats and "other types" in whats
+    assert "missing in tae.json" in whats and "start" not in whats            # 0.8667 vs 0.8666667 is within tol
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):
