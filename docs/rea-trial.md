@@ -67,4 +67,33 @@ REA가 `chr/c2540.anibnd.dcx` 같은 게임 데이터 파일을 다루는지 한
 
 ## 결과
 
-(아직 없음)
+2026-10-16 [win] 12:37–13:50 (73분). **시험 A 실패 — Ghidra 첫 분석이 60분 안에 안 끝남. 시험 B · C · TAE 못 함.**
+
+**설치 (12:37–12:40 + setup, 약 15분 — 문제 없음)**
+- rea-agents **6.5.0** (npm 2026-10-14 게시, 설치 스크립트 없음, 178 패키지). 디스어셈블러: **Ghidra 12.1.4** (NSA GitHub 릴리스, SHA-256
+  `ddac49f9…d4db` 릴리스 노트와 같음) + **Temurin JDK 21.0.12** (winget). 이 PC의 기존 Java는 17이라 Ghidra에 안 맞았음.
+- `rea doctor`: Ghidra 9개 점검 모두 통과 (win32/x64, headless, native decompiler, JDK 21, Job Object 격리).
+- `rea setup --client claude_code`: 바뀐 파일 `C:\Users\moka\.claude.json` (MCP 서버 `rea` 추가, 백업 `.claude.json.rea.backup`)
+  + `C:\Users\moka\.claude\skills\reverse-engineer-anything` (스킬). Claude는 자기 설정이라 못 바꿔서(자동 모드 거부) MoKa가 직접 실행.
+  주의: setup은 실행한 셸의 `GHIDRA_INSTALL_DIR` · `JAVA_HOME`만 MCP 등록에 적음 — MoKa 셸엔 없어서 빠짐 → 사용자 환경 변수(setx)로 넣어야 함.
+- CLI 명령 153개. [cloud]가 "공식 페이지에 없다"고 한 `build-reconstruction-obligation-ledger` · `evaluate-reconstruction-coverage`는 **6.5.0 CLI에 있음**.
+  시뮬레이션 명령은 없음. Claude Code 재시작 전이라 MCP 툴 수는 못 셈 (CLI로 대신 시험).
+
+**시험 A — 열리기는 하나**
+- exe 복사본 `D:\tools\rea-target\` (원본과 SHA-256 같음, 게임 꺼진 상태). `rea analyze <exe> --provider ghidra`.
+- 1회: 기본 상한 330 s에서 `provider_timeout` (operation `list_documents`). README대로 `REA_GHIDRA_STARTUP_TIMEOUT_MS=3600000` →
+  2회: **60분 뒤 같은 `provider_timeout`**. Ghidra는 PE64 `x86:LE:64:default:windows`로 불러와 import(d3d11, dinput8, dxgi, XInput1_3, ws2_32 …)까지
+  잡았지만 자동 분석 단계에서 안 끝남. 로그: 예외 처리 표 해석 실패 2087번(`EHDataTypeUtilities`), `CreateEHFuncInfo` 375번, 디컴파일
+  "Unable to read bytes" 193번, "body contains referring thunk" — 난독화된 코드에서 보이는 꼴. REA는 분석이 끝나야 답을 주므로 형식 · import · 문자열 결과 0.
+- 남긴 것 없음: REA 임시 폴더(`%TEMP%\rea-ghidra-*`)는 스스로 지움, Ghidra 프로세스 종료됨.
+
+**시험 B를 미리 대 본 것 (REA 아님, Python으로 exe 바이트 직접)**
+- 패턴 `80 3D ? ? ? ? 00 48 8B 8F ? ? ? ? 0F B6 DB` — **파일에 0번**. 앞부분 `80 3D ? ? ? ? 00`은 1632번, 뒷부분 `48 8B 8F ? ? ? ? 0F B6 DB`는 0번.
+  `dsr_telemetry.py`는 실행 중 메모리에서 찾음 → 이 코드는 **디스크에선 암호화돼 있다가 실행 중에 풀림**(Arxan 계열 보호로 추정; `.text` 두 개,
+  첫 `.text` 엔트로피 6.90). 그러니 시험 B는 정적 분석으로는 원래 못 푸는 문제 — REA가 끝까지 돌았다면 "못 찾음"이라 했는지 지어냈는지가 시험이 됐을 것.
+
+**토큰 · 비용**: REA CLI 자체는 모델 호출 없음. 이 세션 토큰 외 추가 비용 없음.
+
+**[win] 의견**: 이 exe에는 쓸 만하지 않음 — 정적으로는 보호된 코드가 안 보이고, Ghidra 전체 분석이 1시간 넘게 걸림. 다시 해 본다면
+(1) Ghidra를 REA 밖에서 headless로 끝까지 한 번 분석해 프로젝트를 만들고 REA에 그 DB를 주거나, (2) 실행 중 덤프(게임 메모리 — 이번 규칙상 금지,
+MoKa 결정)가 있어야 시험 B가 의미 있음. 지금의 메모리 패턴 + DSR-Gadget 방식이 더 빠름.

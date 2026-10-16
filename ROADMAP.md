@@ -87,7 +87,7 @@ needing the tick loop, route data, settings object or WorldState.
 - [~] radar-upgrade | win | doing | radar upgrade check (navmesh drawn, pad slots, recording, `--replay`) | plan:radar-upgrade
 - [ ] radar-ai-ranges | win | todo | radar AI ranges (sight cone, hearing circle, leash) match the game | plan:radar-ai-ranges
 - [~] combat-table | cloud | doing | params done (148 foes, combat.json); TAE next | plan:combat-table
-- [ ] rea-trial | win | todo | try REA + Ghidra on an exe copy, static, 2 h max | docs/rea-trial.md
+- [!] rea-trial | cloud | blocked | Ghidra > 60 min (protected exe); A failed, B/C not run | docs/rea-trial.md
 
 ## 3. v2.0 (`docs/review-v2-2026-10-11.md`; go, done bar N/10 and order: MoKa)
 
