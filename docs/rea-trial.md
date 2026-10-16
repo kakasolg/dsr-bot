@@ -92,6 +92,10 @@ REA가 `chr/c2540.anibnd.dcx` 같은 게임 데이터 파일을 다루는지 한
   `dsr_telemetry.py`는 실행 중 메모리에서 찾음 → 이 코드는 **디스크에선 암호화돼 있다가 실행 중에 풀림**(Arxan 계열 보호로 추정; `.text` 두 개,
   첫 `.text` 엔트로피 6.90). 그러니 시험 B는 정적 분석으로는 원래 못 푸는 문제 — REA가 끝까지 돌았다면 "못 찾음"이라 했는지 지어냈는지가 시험이 됐을 것.
 
+**재시작 뒤 MCP 확인 (2026-10-16 [win])**: MoKa가 `setx GHIDRA_INSTALL_DIR` · `JAVA_HOME` 후 Claude Code 재시작 → `rea` MCP 툴 약 230개 보임,
+`rea doctor` Ghidra 점검 모두 healthy. Ghidra 없이 도는 `inspect_pe_resources`는 몇 초에 끝남: PE32+ x86-64, 리소스 122개(문자열 표 99 · 아이콘 그룹 11 ·
+`DATA` 10), coverage complete. Ghidra를 쓰는 툴(`open_binary` · `search_bytes`)은 위 1시간+ 분석에 같이 걸리므로 다시 안 돌림.
+
 **토큰 · 비용**: REA CLI 자체는 모델 호출 없음. 이 세션 토큰 외 추가 비용 없음.
 
 **[win] 의견**: 이 exe에는 쓸 만하지 않음 — 정적으로는 보호된 코드가 안 보이고, Ghidra 전체 분석이 1시간 넘게 걸림. 다시 해 본다면
