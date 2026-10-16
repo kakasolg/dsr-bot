@@ -86,7 +86,7 @@ needing the tick loop, route data, settings object or WorldState.
 - [~] overlay-borderless | win | doing | borderless overlay + bot: overlay visible, clicks pass through, bot keeps going | plan:overlay-borderless
 - [~] radar-upgrade | win | doing | radar upgrade check (navmesh drawn, pad slots, recording, `--replay`) | plan:radar-upgrade
 - [ ] radar-ai-ranges | win | todo | radar AI ranges (sight cone, hearing circle, leash) match the game | plan:radar-ai-ranges
-- [~] combat-table | win | doing | run `combat_extract.py`, commit its combat.json; TAE next | plan:combat-table
+- [~] combat-table | cloud | doing | params done (148 foes, combat.json); TAE next | plan:combat-table
 
 ## 3. v2.0 (`docs/review-v2-2026-10-11.md`; go, done bar N/10 and order: MoKa)
 
@@ -169,7 +169,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 78 | Zone 4-1: backstab try between 254010 + 254011 → not_behind, 6 s, −452, then no retreat spot → died | open |
 | 79 | Death on the walk to the bonfire (`화톳불로`): no stain decision, walks back into the same foes | open |
 | 80 | Stagger counter pressed 0.9 s into a shield soldier's stagger (waited for SP) → hit first, died | verify — `Foe.stagger_s`; 10-13 same scene → shield, then killed it, 0 taken |
-| 81 | Zone 5: foes standing 3 m below read as 'fell' (P-69) → never pulled, both came in zone 6, died; ledge nudge 23× mid-fight | verify (fall = its own drop; nudges stop after 2 that leave us in place) |
+| 81 | Zone 5: foes standing 3 m below read as 'fell' (P-69) → never pulled, both came in zone 6, died; ledge nudge 23× mid-fight | verify (fall = own drop; nudge stops after 2 in place) |
 | 82 | Shop walk: merchant's body read as a prop block → swung at the crate beside him → he turned hostile, bot killed the Undead Merchant | verify — no prop swing within 3 m of a known NPC; restore = MoKa |
 | 83 | Firebomb probe in the crossbow's line: throw cut, then no-lock backstabs ×2 with the foe behind → died; bloodstain not where `Blood` recorded it | open |
 | 84 | Altar bonfire approach sticks 1.9 m short of (27.4, 9.7, −25.4) every run, 4–5 s, recovers | open |
