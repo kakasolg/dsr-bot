@@ -18,11 +18,15 @@ may borrow another's (file entry type 1, `ref` = the other id) — kept as `ref`
 
 Event types kept with their first four i32 params (`p`): 1 · 2 · 5 — in DS1 these invoke a behavior (attack / bullet /
 common). Which param is the BehaviorJudgeID is not certain from documentation: soulstruct names type 1's third i32
-"condition". So the run checks it: `judge_check` counts how many type-1 p[2] values are judge ids of that model's foes in
-combat.json. Near 100 % = confirmed; then `attacks` (judge → animation, start, end) is right. Other event types are only
-counted (`other_types`).
+"condition". `judge_check` counts, per type 1 and 2, how many p[2] values are judge ids of that model's foes in
+combat.json (numerator / denominator, mismatch samples). A high share supports p[2] = judge id; it does not verify the
+layout or the times — that is DSAnimStudio and runtime (tae_verify.py, docs/tae-verify.md). Type 5's p[2] is no judge id,
+so `attacks` (judge → animation + active window) uses types 1 and 2 only. Other event types are only counted.
 
-Evidence grade: "file" (LAYERS.md). Times are seconds from the animation start, as the game data says.
+`python tae_extract.py --rebuild` recomputes counts / attacks / judge_check from the raw animations in tae.json (no game).
+
+Evidence grade: "file" (LAYERS.md). Times are seconds from the animation start, as the game data says — the "active
+window" of the attack behavior, not the time the player is hit.
 """
 from __future__ import annotations
 
@@ -41,6 +45,7 @@ if hasattr(sys.stdout, "reconfigure"):
 OUT_DIR = Path(__file__).parent / "data" / "gamefiles"
 KEEP = {1: "attack", 2: "bullet", 5: "common"}          # DS1 behavior-invoking event types (see docstring)
 JUDGE_PARAM = 2                                          # p[2] = BehaviorJudgeID? — checked by judge_check
+JUDGE_TYPES = (1, 2)                                     # event types whose p[2] is read as a judge id
 
 
 class TAEError(ValueError):
@@ -141,23 +146,50 @@ def model_animations(binder_entries) -> dict:
     return dict(sorted(out.items()))
 
 
-def attacks_by_judge(anims: dict) -> dict:
-    """{judge id: [{anim, type, start, end}]} from the kept events' p[JUDGE_PARAM]."""
+def attacks_by_judge(anims: dict, types=JUDGE_TYPES) -> dict:
+    """{judge id: [{anim, type, active_start, active_end}]} from events of `types` only (type 5 'common' carries no
+    judge id in p[2] — its 0 / 1 / 5 / 16 values are something else).
+
+    active_start / active_end = the TAE event's window: when the game *runs* that attack behavior (hitbox live). Not the
+    time the player is hit — that is a runtime fact (tae_runtime_probe.py), kept apart on purpose."""
     out: dict[int, list] = {}
     for aid, a in anims.items():
         for ev in a["events"]:
-            if len(ev["p"]) > JUDGE_PARAM:
+            if ev["type"] in types and len(ev["p"]) > JUDGE_PARAM:
                 out.setdefault(ev["p"][JUDGE_PARAM], []).append(
-                    {"anim": aid, "type": KEEP[ev["type"]], "start": ev["start"], "end": ev["end"]})
+                    {"anim": int(aid), "type": KEEP[ev["type"]], "active_start": ev["start"], "active_end": ev["end"]})
     return {str(j): v for j, v in sorted(out.items())}
 
 
 def judge_check(anims: dict, known: set[int]) -> dict:
-    """How many type-1 events' p[JUDGE_PARAM] are judge ids of this model in combat.json (the param guess's test)."""
-    vals = [ev["p"][JUDGE_PARAM] for a in anims.values() for ev in a["events"] if ev["type"] == 1 and len(ev["p"]) > JUDGE_PARAM]
-    hit = sum(1 for v in vals if v in known)
-    return {"type1_events": len(vals), "in_combat_json": hit, "share": round(hit / len(vals), 3) if vals else None,
-            "unknown_values": sorted({v for v in vals if v not in known})[:20]}
+    """Per event type 1 / 2: how many p[JUDGE_PARAM] values are judge ids of this model in combat.json (numerator /
+    denominator) and the values that are not (mismatch samples). A high share supports p[2] = BehaviorJudgeID — it does
+    not by itself prove the layout or the times (docs/tae-verify.md)."""
+    out = {}
+    for t in JUDGE_TYPES:
+        rows = [(int(aid), ev["p"][JUDGE_PARAM]) for aid, a in anims.items() for ev in a["events"]
+                if ev["type"] == t and len(ev["p"]) > JUDGE_PARAM]
+        miss = [(aid, v) for aid, v in rows if v not in known]
+        out[KEEP[t]] = {"n": len(rows), "in_combat_json": len(rows) - len(miss),
+                        "share": round((len(rows) - len(miss)) / len(rows), 3) if rows else None,
+                        "mismatch": [{"anim": aid, "value": v} for aid, v in miss[:20]]}
+    return out
+
+
+def counts(anims: dict) -> dict:
+    by_type = {}
+    for a in anims.values():
+        for ev in a["events"]:
+            by_type[KEEP[ev["type"]]] = by_type.get(KEEP[ev["type"]], 0) + 1
+    return {"animations": len(anims), "borrowed": sum(1 for a in anims.values() if a.get("ref") is not None),
+            "events": by_type, "other_events": sum(sum(a["other_types"].values()) for a in anims.values())}
+
+
+def summarize(model: str, anims: dict, known: set[int]) -> dict:
+    """Everything derived from the raw animations — rerun offline with `--rebuild` (no game files needed)."""
+    return {"model": model, "status": "parsed", "counts": counts(anims),
+            "animations": {str(k): v for k, v in anims.items()},
+            "attacks": attacks_by_judge(anims), "judge_check": judge_check(anims, known)}
 
 
 def models_from_combat(path: Path) -> dict[str, set[int]]:
@@ -172,9 +204,26 @@ def models_from_combat(path: Path) -> dict[str, set[int]]:
 
 
 def extract(model: str, entries, known: set[int]) -> dict:
-    anims = model_animations(entries)
-    return {"model": model, "animations": {str(k): v for k, v in anims.items()},
-            "attacks": attacks_by_judge(anims), "judge_check": judge_check(anims, known)}
+    return summarize(model, model_animations(entries), known)
+
+
+def line(m: dict) -> str:
+    c, j = m["counts"], m["judge_check"]
+    ev = " ".join(f"{k} {n}" for k, n in sorted(c["events"].items()))
+    jc = " · ".join(f"{k} {v['in_combat_json']}/{v['n']}" for k, v in j.items() if v["n"])
+    return f"{m['model']}: 애니 {c['animations']} (빌림 {c['borrowed']}), 이벤트 {ev or '-'} (그 밖 {c['other_events']}), judge {jc or '-'}"
+
+
+def write(path: Path, out: dict, failed: dict) -> None:
+    data = {"evidence": "file", "source": "chr/<model>.anibnd.dcx (.tae)", "judge_param": JUDGE_PARAM,
+            "judge_types": list(JUDGE_TYPES), "times": "attacks: active_start / active_end = TAE event window (s), not hit time",
+            "counts": {"models": len(out), "failed": len(failed)}, "failed": failed, "models": out}
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
+    for m in out.values():
+        print(line(m))
+    num = sum(v["in_combat_json"] for m in out.values() for v in m["judge_check"].values())
+    den = sum(v["n"] for m in out.values() for v in m["judge_check"].values())
+    print(f"모델 {len(out)} 파싱, 실패 {len(failed)} {list(failed)[:5]} — judge {num}/{den} → {path}")
 
 
 def main() -> None:
@@ -182,9 +231,17 @@ def main() -> None:
     ap.add_argument("models", nargs="*", help="e.g. c2540 (default: every model in combat.json)")
     ap.add_argument("--combat", type=Path, default=OUT_DIR / "combat.json")
     ap.add_argument("--out", type=Path, default=OUT_DIR / "tae.json")
+    ap.add_argument("--rebuild", action="store_true",
+                    help="no game files: recompute counts / attacks / judge_check from the raw animations already in --out")
     a = ap.parse_args()
-    from soulstruct.containers import Binder
     judges = models_from_combat(a.combat) if a.combat.exists() else {}
+    if a.rebuild:
+        old = json.loads(a.out.read_text(encoding="utf-8"))
+        out = {m: summarize(m, {int(k): v for k, v in d["animations"].items()}, judges.get(m, set()))
+               for m, d in old["models"].items() if not a.models or m in a.models}
+        write(a.out, out, old.get("failed", {}))
+        return
+    from soulstruct.containers import Binder
     models = a.models or sorted(judges)
     if not models:
         raise SystemExit("모델 없음 — combat.json 이 없으면 모델 이름을 주세요 (예: c2540)")
@@ -195,16 +252,7 @@ def main() -> None:
             out[m] = extract(m, Binder.from_path(path).entries, judges.get(m, set()))
         except Exception as ex:            # one bad file must not stop the rest — reported below and in the json
             failed[m] = f"{type(ex).__name__}: {ex}"
-            continue
-        c = out[m]["judge_check"]
-        print(f"{m}: 애니 {len(out[m]['animations'])}, 공격 judge {len(out[m]['attacks'])}, "
-              f"type1 {c['type1_events']} 중 combat.json 에 있는 judge {c['in_combat_json']} ({c['share']})")
-    data = {"evidence": "file", "source": "chr/<model>.anibnd.dcx (.tae)", "judge_param": JUDGE_PARAM,
-            "counts": {"models": len(out), "failed": len(failed)}, "failed": failed, "models": out}
-    a.out.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
-    shares = [v["judge_check"]["share"] for v in out.values() if v["judge_check"]["share"] is not None]
-    print(f"모델 {len(out)} (실패 {len(failed)}: {list(failed)[:5]}) — judge 일치율 평균 "
-          f"{sum(shares) / len(shares):.2f}" if shares else "judge 일치율: 비교할 type1 없음", f"→ {a.out}")
+    write(a.out, out, failed)
 
 
 if __name__ == "__main__":

@@ -55,12 +55,13 @@ HOLLOW = {
     3000: [(1, 0.5, 0.7, [0, 0, 100, 0]), (128, 0.4, 0.5, [1, 2]), (0, 0.0, 1.2, [4])],
     3001: [(1, 0.9333, 1.1, [0, 0, 101, 0]), (2, 1.2, 1.3, [0, 0, 180, 0])],
     3005: [(1, 0.3, 0.4, [0, 0, 999, 0])],                    # judge id not in combat.json → shows in judge_check
+    3500: [(5, 0.0, 0.2, [0, 16])],                           # 'common': p[2] is not a judge id → not in attacks
 }
 
 
 def test_read_tae():
     t = X.read_tae(build_tae(HOLLOW, tae_id=7, borrow={3009: 3000}))
-    assert t["tae_id"] == 7 and list(t["animations"]) == [3000, 3001, 3005, 3009]
+    assert t["tae_id"] == 7 and list(t["animations"]) == [3000, 3001, 3005, 3009, 3500]
     a = t["animations"][3000]
     assert a["events"] == [{"type": 1, "start": 0.5, "end": 0.7, "p": [0, 0, 100, 0]}]   # time-sorted, kept types only
     assert a["other_types"] == {"0": 1, "128": 1} and a["ref"] is None
@@ -117,10 +118,15 @@ def test_read_tae32_same_as_64():
 def test_extract_attacks_and_check():
     entries = [SimpleNamespace(name="c2540.tae", data=build_tae(HOLLOW)), SimpleNamespace(name="c2540.hkxbnd", data=b"")]
     d = X.extract("c2540", entries, known={100, 101, 180, 400})
-    assert d["attacks"]["100"] == [{"anim": 3000, "type": "attack", "start": 0.5, "end": 0.7}]
-    assert d["attacks"]["180"] == [{"anim": 3001, "type": "bullet", "start": 1.2, "end": 1.3}]
+    assert d["status"] == "parsed"
+    assert d["attacks"]["100"] == [{"anim": 3000, "type": "attack", "active_start": 0.5, "active_end": 0.7}]
+    assert d["attacks"]["180"] == [{"anim": 3001, "type": "bullet", "active_start": 1.2, "active_end": 1.3}]
+    assert "0" not in d["attacks"] and "16" not in d["attacks"]           # type 5 left out
     assert d["animations"]["3000"]["tae"] == "c2540.tae"
-    assert d["judge_check"] == {"type1_events": 3, "in_combat_json": 2, "share": 0.667, "unknown_values": [999]}
+    assert d["counts"] == {"animations": 4, "borrowed": 0, "events": {"attack": 3, "bullet": 1, "common": 1}, "other_events": 2}
+    assert d["judge_check"] == {
+        "attack": {"n": 3, "in_combat_json": 2, "share": 0.667, "mismatch": [{"anim": 3005, "value": 999}]},
+        "bullet": {"n": 1, "in_combat_json": 1, "share": 1.0, "mismatch": []}}, d["judge_check"]
     json.dumps(d)
 
 
@@ -131,6 +137,14 @@ def test_models_from_combat():
                                           "254001": {"model": "c2540", "behaviors": {"180": {}}},
                                           "999": {"behaviors": {"1": {}}}}}), encoding="utf-8")
         assert X.models_from_combat(p) == {"c2540": {0, 100, 180}}
+
+
+def test_rebuild_matches_extract():
+    """--rebuild (no game files) gives the same as a fresh extract from the raw animations it stored."""
+    entries = [SimpleNamespace(name="c2540.tae", data=build_tae32(HOLLOW, borrow={3009: 3000}))]
+    d = json.loads(json.dumps(X.extract("c2540", entries, known={100, 101, 180})))
+    again = X.summarize("c2540", {int(k): v for k, v in d["animations"].items()}, {100, 101, 180})
+    assert json.loads(json.dumps(again)) == d and d["counts"]["borrowed"] == 1
 
 
 if __name__ == "__main__":
