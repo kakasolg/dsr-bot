@@ -141,4 +141,56 @@ ROADMAP `rea-trial` → `cloud | verify` 로 바꾸고 push.
 
 ## 2차 결과
 
-(아직 없음)
+2026-10-16 [win] 14:38–15:20 (약 40분). **시험 B 5/5 맞힘 + 모르던 위치 10개 이름까지. 시험 C 안 함, TAE 못 함.**
+
+**1. 덤프** — 게임 켜기(키보드로 이어하기) 14:39 → `exe_dump.py --out D:\tools\rea-target\dsr.dump.exe` → 타이틀 → 종료.
+- 52,015,104 바이트, 못 읽은 페이지 **0 / 12699**, AOB 6개 **모두 1번** (`OK`). base 0x140000000. sha256 `88d8d84e…e5cf`.
+- Steam은 오프라인 설정이지만 켤 때 steam.exe 바깥 연결 2개(80 · 443) 잡힘. 게임은 바깥 연결 0.
+- `keys.py quit`가 타이틀 바로 뒤엔 안 먹음 — 3 s 뒤 한 번 더 보내니 꺼짐.
+
+**2. Ghidra에 넣기 — 2-a로 됨 (REA 안에서, 2분 41초)**
+- REA에 "분석 없이 열기"는 없음. 대신 **`REA_GHIDRA_DISABLED_ANALYZERS`** (쉼표로 이름, 최대 32개, 모르는 이름이면 바로 멈춤)로 1차에서 오류를 쏟던
+  분석기를 끔: Windows x86 PE Exception Handling · PE RTTI Analyzer · Decompiler Switch Analysis · Call Convention ID · Function ID · Demangler Microsoft ·
+  Non-Returning Functions - Discovered · Create Address Tables · Embedded Media · Apply Data Archives · Shared Return Calls · x86 Constant Reference Analyzer ·
+  PDB Universal · Stack · ASCII Strings. 그 상태로 `rea analyze` = **2분 41초**, 함수 97,863 · 문자열 16,453 · 섹션 11.
+- REA CLI는 부를 때마다 Ghidra를 새로 띄움(덤프 기준 한 번에 약 2.5–3분). 그래서 질문은 4개씩 병렬로 보냄 (RAM 2 GB/개).
+  MCP 서버는 사용자 환경 변수로 뜨므로, MCP로 같은 걸 하려면 `REA_GHIDRA_DISABLED_ANALYZERS`도 setx로 넣고 재시작해야 함 (이번엔 CLI만).
+- 2-b(Ghidra 직접) · 2-c(밤새 전체 분석)는 필요 없어서 안 함.
+
+**3. 시험 B — 5/5, 지어낸 것 0**
+- `search-bytes` 패턴 → **1개, 0x1403358c1** (`FUN_140335890` 안) — 우리가 덤프에서 직접 계산한 값과 같음.
+- `instructions` → `CMP byte ptr [0x141c77e59], 0x0` → 배열 **0x141c77e59** — 맞음 (같은 체계: `dsr_telemetry`가 실행 중 찾는 주소).
+- `xrefs` 바이트 16개 각각 → 1–5곳씩. `0x1403744xx`–`0x1403748xx`에 모든 바이트가 몰림 → `decompile` 하니 게임 안 디버그 메뉴 **`L"CHR DBG"`**를 만드는 함수,
+  바이트마다 이름표를 달아 등록 (`FUN_140469010(menu, &label, &DAT_141c77e59+n, 1)`). 이름표는 `read-bytes`(UTF-16)로 읽음:
+
+| 위치 | 게임 속 이름표 | 정답표 |
+|---|---|---|
+| +0x0 | Player No Dead | ✔ PlayerNoDead |
+| +0x1 | Player Exterminate | ✔ PlayerExterminate |
+| +0x2 | All No Stamina Consume | (새로 앎) |
+| +0x3 | All No MP Consume | (새로 앎) |
+| +0x4 | All No Arrow Consume | (새로 앎) |
+| +0x5 | All No MagicQty Consume | (새로 앎) |
+| +0x6 | Player Hide | ✔ PlayerHide |
+| +0x7 | Player Silence | (새로 앎) |
+| +0x8 | All No Dead | (새로 앎) |
+| +0x9 | All No Damage | ✔ AllNoDamage |
+| +0xA | All No Hit | (새로 앎) |
+| +0xB | All No Attack | ✔ AllNoAttack |
+| +0xC | All No Move | (새로 앎) |
+| +0xD | All No Update Ai | (새로 앎) |
+| +0xE | — (이 함수에선 이름표 못 찾음, xref 1곳 0x140375465) | |
+| +0xF | (All's quiet mode) 全員省略モード | (새로 앎) |
+
+- 근거가 게임 자체의 메뉴 문자열이라 추측이 없음. 같은 함수 위쪽은 이 바이트들을 다른 함수(`FUN_14018c4f0` …)로 고쳐 쓰는 블록(조건 `DAT_141c77e6c`) — 뜻은 안 봄.
+- 쓰는 곳 디컴파일도 받아 둠(+0 `FUN_140335890` 26줄, +1 `0x1402fc4a0` 188줄, +6 `0x1403258d4` 47줄, +9 `0x140322925` 48줄, +B `0x140392f81` · `0x14039342d`) — 표는 메뉴 이름표만으로 채움.
+- 덤프 · 디컴파일 결과는 `D:\tools\rea-target\` · 스크래치에만, 커밋 안 함.
+
+**4. 시험 C — 안 함.** 피해 계산 함수로 들어갈 실마리(문자열 · 알려진 패턴)가 없어, 한 번에 3분 걸리는 CLI 질문을 수십 번 해야 함. 하려면 MCP 세션
+(한 번 열면 Ghidra 유지)으로, 또는 `FUN_140322925`(+9 AllNoDamage를 읽는 곳 = 피해 처리 근처일 가능성)에서 시작하는 게 빠름.
+
+**5. TAE** — `rea analyze c2540.anibnd.dcx` → `unsupported binary format` (1 s). 못 함.
+
+**[win] 의견**: 보호된 exe는 **덤프 + 분석기 끄기**면 REA가 3분 안에 열리고, 답을 아는 문제는 증거와 함께 다 맞힘. 디버그 메뉴 이름표 같은 게임 속
+문자열을 따라가면 강함. 약점: CLI는 질문마다 Ghidra 재시작(3분), 게임 데이터 파일(TAE 등)은 못 다룸. 쓸 곳 = 메모리 값의 뜻 찾기(새 디버그 플래그 ·
+구조체 필드). 이번에 나온 +0x8 All No Dead · +0xA All No Hit · +0xC All No Move · +0xD All No Update Ai는 오프라인 시험(적 멈추기 등)에 바로 쓸 만함.
