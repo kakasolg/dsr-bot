@@ -86,7 +86,7 @@ needing the tick loop, route data, settings object or WorldState.
 - [~] overlay-borderless | win | doing | borderless overlay + bot: overlay visible, clicks pass through, bot keeps going | plan:overlay-borderless
 - [~] radar-upgrade | win | doing | radar upgrade check (navmesh drawn, pad slots, recording, `--replay`) | plan:radar-upgrade
 - [ ] radar-ai-ranges | win | todo | radar AI ranges (sight cone, hearing circle, leash) match the game | plan:radar-ai-ranges
-- [~] combat-table | cloud | doing | probe 2: 144/164 in window (any hollow) but 2 attackers overlap → fix timing, probe 3 one hollow | docs/tae-verify.md · plan:combat-table
+- [~] combat-table | win | doing | probe 3 ready (3000 only, one isolated hollow, pre-check) → [win] `tae_verify.py probe3` | docs/tae-verify.md · plan:combat-table
 
 ## 3. v2.0 (`docs/review-v2-2026-10-11.md`; go, done bar N/10 and order: MoKa)
 

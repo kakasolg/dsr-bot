@@ -112,6 +112,86 @@ def test_dsas_compare_catches_time_and_count():
     assert "missing in tae.json" in whats and "start" not in whats            # 0.8667 vs 0.8666667 is within tol
 
 
+# ── probe 3 (c2540 3000, one isolated hollow) ──
+def f3(t, hp, foes, gap=0.003, **kw):
+    """A probe3 line: read ran t−0.001 … t, the previous read began `gap` before t."""
+    return {"t0": t - 0.001, "t": t, "pt0": t - gap, "hp": hp, "dbg": "01" + "00" * 15,
+            "foes": [{"ptr": p, "npc": n, "anim": a, "d": d} for p, n, a, d in foes], **kw}
+
+
+def run3(t0, hit_age, anim=3000, end=1.2, hp=(500, 420), others=(), extra_hit=None):
+    """One 3000 run starting at t0 (from 7000), one HP drop at hit_age, back to 7000 after `end` s."""
+    me = lambda a: [(1, 254010, a, 1.5), *others]
+    out = [f3(t0 - 0.5, hp[0], me(7000)), f3(t0, hp[0], me(anim)), f3(t0 + hit_age, hp[1], me(anim))]
+    if extra_hit is not None:
+        out.append(f3(t0 + extra_hit, hp[1] - 10, me(anim)))
+    return out + [f3(t0 + end, out[-1]["hp"], me(7000))]
+
+
+def test_timing3_match_mismatch_and_bounds():
+    lines = [{"kind": "header", "probe": 3}] + run3(10, 0.95) + run3(20, 0.30) + run3(30, 1.06) + run3(40, 1.10)
+    r = V.timing3(TAE, COMBAT, lines)
+    assert r["samples"] == 4 and r["valid"] == 4 and r["match"] == 2 and r["mismatch"] == 2, r
+    early, late = r["rows_mismatch"]
+    assert early["age_since_seen"] == [0.297, 0.303] and early["offset"] == -0.5304   # before 0.8667 − 1 frame
+    assert late["offset"] == 0.0304                                                   # after 1.0333 + 1 frame
+    edge = [h for h in r["rows_match"] if h["t"] == 31.06][0]                         # within the 1-frame allowance
+    assert edge["obs_width"] == 0.003 and r["verdict"] == "불일치" and r["runs"]["closed"] == 4
+
+
+def test_timing3_exclusions():
+    hollow2 = (2, 254010, 7000, 3.0)
+    crossbow = (3, 255002, -1, 11.9)
+    friend = (4, 100000, -1, 15.0)
+    lines = (run3(10, 0.95, others=(hollow2,))                 # second hollow → not_isolated
+             + run3(20, 0.95, others=(crossbow,))              # crossbow, even at anim −1 → not_isolated
+             + run3(30, 0.95, others=(friend,))                # friendly NPC does not count → valid
+             + run3(40, 0.95, anim=3001)                       # other animation: out of scope
+             + run3(50, 0.90, extra_hit=0.95)                  # two drops in one run: restart not ruled out
+             + run3(60, 0.95) + run3(70, 0.95))
+    lines[-1:-1] = [f3(70.5, 420, [(1, 254010, 3000, 1.5)], gap=0.05)]
+    r = V.timing3(TAE, COMBAT, lines)
+    assert r["excluded"] == {"not_isolated": 2, "other_anim": 1, "multi_hit_in_run": 2}, r["excluded"]
+    assert r["valid"] == 3 and r["verdict"] == "표본 부족"
+    lines = [f3(0.0, 500, [(1, 254010, 3000, 1.5)]), f3(0.9, 400, [(1, 254010, 3000, 1.5)]), f3(1.2, 400, [(1, 254010, 7000, 1.5)])]
+    assert V.timing3(TAE, COMBAT, lines)["excluded"] == {"start_unseen": 1}     # running when the record began
+    lines = run3(10, 0.95)
+    lines[1]["pt0"] = 10 - 0.2                                                   # start bounded only within 0.2 s
+    lines[2]["pt0"] = lines[2]["t"] - 0.05
+    assert V.timing3(TAE, COMBAT, lines)["rows_excluded"][0]["reasons"][:2] == ["start_gap", "restart_unchecked"]
+    lines = run3(10, 0.95)[:3]                                                   # recording ends inside the run
+    assert V.timing3(TAE, COMBAT, lines)["excluded"] == {"run_open": 1}
+    lines = run3(10, 0.95)
+    lines[2]["refill"] = 793
+    assert "refill_in_run" in V.timing3(TAE, COMBAT, lines)["rows_excluded"][0]["reasons"]
+
+
+def test_timing3_restart_possible():
+    lines = run3(10, 0.9) + run3(20, 0.9) + run3(30, 0.9) + run3(40, 0.9, end=2.5)  # 2.5 s > 1.5 × median 1.2
+    r = V.timing3(TAE, COMBAT, lines)
+    assert r["valid"] == 3 and r["excluded"] == {"restart_possible": 1}
+
+
+def test_precheck():
+    good = [{"kind": "header"}] + [f3(i * 0.5, 700, [(1, 254010, 3000 if i % 2 else 7000, 1.5), (4, 100000, -1, 9.0)])
+                                    for i in range(10)]
+    pc = V.precheck(good, 5, 120)
+    assert pc["ok"], pc
+    bad = [f3(i * 0.5, 1, [(1, 254010, -1, 1.5), (2, 254010, -1, 2.0), (3, 255002, -1, 12.0)], dbg="01" + "00" * 11 + "01" + "00" * 3)
+           for i in range(10)]
+    pc = V.precheck(bad, 5, 120, max_lines=100)
+    failed = {c["check"] for c in pc["checks"] if not c["ok"]}
+    assert failed == {"hp", "target_one", "target_awake", "isolated", "dbg_flags", "volume"}, pc
+    assert "AllNoMove" in [c for c in pc["checks"] if c["check"] == "dbg_flags"][0]["detail"]
+    assert V.dbg_on("01" + "00" * 15) == ["PlayerNoDead"]
+
+
+def test_anim_runs_restart_after_leaving():
+    fr = [f3(0, 500, [(1, 254010, 3000, 1.0)]), f3(1, 500, []), f3(2, 500, [(1, 254010, 3000, 1.0)])]
+    runs = V.anim_runs(fr)[1]
+    assert [(r["start"], r["end"]) for r in runs] == [(None, None), (None, None)]   # gone then back: neither end is seen
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):
