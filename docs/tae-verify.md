@@ -137,3 +137,17 @@ MoKa 10-16 지시: "하나라도 다르면 독립 대조 통과를 보류하고 
    못 찾은 goal (`missing`)이나 실패 (`ok: false`)는 그대로 적기.
 2. (가능하면) 3b 런타임 타이밍: 위 "B" 그대로 (`tae_verify.py probe` → `timing`).
 3. (가능하면) type 2 대조: `experiments/dsas_tae.ps1`로 c2540 3008 (bullet) 한 개 더 → `tae_check_c2540_dsas.json`에 추가, `python tae_verify.py dsas`.
+
+### B-2. probe 고침 — 2026-10-17 [cloud] (probe 1이 판정을 못 낸 까닭)
+
+- **같은 줄 1690만 개**: `probe`가 `env.make_telemetry`를 썼는데, 그건 백그라운드 feed라 `snapshot()`이 캐시된 같은 프레임을 돌려줌 —
+  초당 14만 번 같은 값을 씀. 이제 `dsr_telemetry.DSRTelemetry`를 직접 읽고, **HP나 어떤 적의 애니가 바뀔 때만** (+ 0.5 s마다 한 줄) 씀.
+  줄마다 `dt` = 그 앞 읽기 간격 = 타이밍 해상도. 끝에 읽기 횟수와 평균 간격을 찍음.
+- **범위**: 기본 `within` 8 → 25 m (사수까지 기록). 팀 0 · 1(비활성 · 플레이어 쪽)은 뺌.
+- **anim −1**: `timing`이 이제 `anim_unknown`으로 따로 셈 (손 닿는 거리에 −1인 적이 있음 = 깨지 않았거나 안 읽힘). probe 1을 다시 돌리면 13/13 `anim_unknown`.
+  probe는 5 s마다 가까운 적의 `npc:anim@거리`를 화면에 찍음 — **−1이면 멈추고 망자를 먼저 깨울 것** (다가가서 한 번 공격받기 등).
+
+**[win] probe 2**
+1. 깨어 있는 검 망자 254010 한 마리 (먼저 `anim ≠ −1` 확인). 다른 적, 특히 사수가 25 m 안에 없는 자리면 더 좋음.
+2. `DBG_PLAYER_NO_DEAD` 켜고 `python tae_verify.py probe 120` → 가만히 서서 맞기. 화면에 찍히는 줄에서 254010의 애니가 3000번대로 바뀌는지 보기.
+3. `python tae_verify.py timing data/samples/<파일>` → 결과와 `mean_dt`를 "결과"에, 기록 파일 커밋. 끄기 · HP 되돌리기는 probe 1처럼.

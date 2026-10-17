@@ -162,9 +162,11 @@ def hit_rows_from_samples(folder: Path = SAMPLES) -> list[dict]:
 
 # ── level 3b: timing from a probe recording ──
 def timing(tae: dict, combat: dict, frames: list[dict]) -> dict:
-    """frames: [{t, hp, foes: [{ptr, npc, anim, d}]}] in time order. For each HP drop: the nearest foe within HIT_REACH
-    whose current animation has a TAE attack window; its age = t − first frame of that animation (continuous).
-    Resolution = the gap between frames (`dt`), reported per hit."""
+    """frames: [{t, dt?, hp, foes: [{ptr, npc, anim, d}]}] in time order. For each HP drop: the nearest foe within
+    HIT_REACH whose current animation has a TAE attack window; its age = t − first frame of that animation (continuous).
+    Resolution `dt` = the read interval before that frame (the probe writes it; old recordings: gap to the previous line).
+    Statuses: inside / outside the active window (± dt) · unknown_start (animation already running when recording began)
+    · anim_unknown (a foe in reach reads anim −1 — asleep / not loaded) · no_attacker (nobody in reach with an attack)."""
     models = npc_models(combat)
     start: dict[int, tuple[int, float]] = {}       # ptr → (anim, first t seen)
     hits = []
@@ -175,23 +177,24 @@ def timing(tae: dict, combat: dict, frames: list[dict]) -> dict:
             if s is None or s[0] != f["anim"]:
                 start[f["ptr"]] = (f["anim"], fr["t"])
         if prev is not None and fr["hp"] < prev["hp"]:
+            near = [f for f in sorted(fr["foes"], key=lambda f: f["d"]) if f["d"] <= HIT_REACH]
             cands = []
-            for f in sorted(fr["foes"], key=lambda f: f["d"]):
+            for f in near:
                 m = models.get(f["npc"])
-                if f["d"] > HIT_REACH or m not in tae["models"]:
-                    continue
-                w = windows(tae["models"][m]["animations"], f["anim"])
-                if w:
-                    cands.append((f, m, w))
-            row = {"t": fr["t"], "lost": prev["hp"] - fr["hp"], "dt": round(fr["t"] - prev["t"], 4)}
+                if m in tae["models"]:
+                    w = windows(tae["models"][m]["animations"], f["anim"])
+                    if w:
+                        cands.append((f, m, w))
+            dt = fr.get("dt", fr["t"] - prev["t"])
+            row = {"t": fr["t"], "lost": prev["hp"] - fr["hp"], "dt": round(dt, 4)}
             if not cands:
-                row["status"] = "no_attacker"
-                row["foes"] = [(f["npc"], f["anim"], f["d"]) for f in fr["foes"] if f["d"] <= HIT_REACH]
+                row["status"] = "anim_unknown" if any(f["anim"] in (None, -1) for f in near) else "no_attacker"
+                row["foes"] = [(f["npc"], f["anim"], f["d"]) for f in fr["foes"]]
             else:
                 f, m, w = cands[0]
                 age = fr["t"] - start[f["ptr"]][1]
                 first_seen_late = start[f["ptr"]][1] == frames[0]["t"]
-                inside = [ev for ev in w if ev["start"] - row["dt"] <= age <= ev["end"] + row["dt"]]
+                inside = [ev for ev in w if ev["start"] - dt <= age <= ev["end"] + dt]
                 row.update({"npc": f["npc"], "model": m, "anim": f["anim"], "d": f["d"], "age": round(age, 4),
                             "windows": [(ev["start"], ev["end"]) for ev in w],
                             "status": "unknown_start" if first_seen_late else ("inside" if inside else "outside")})
@@ -200,28 +203,48 @@ def timing(tae: dict, combat: dict, frames: list[dict]) -> dict:
     by = {}
     for h in hits:
         by[h["status"]] = by.get(h["status"], 0) + 1
-    return {"frames": len(frames), "mean_dt": round((frames[-1]["t"] - frames[0]["t"]) / max(1, len(frames) - 1), 4) if frames else None,
+    dts = [fr["dt"] for fr in frames if "dt" in fr]
+    return {"frames": len(frames), "mean_dt": round(sum(dts) / len(dts), 4) if dts else (
+        round((frames[-1]["t"] - frames[0]["t"]) / max(1, len(frames) - 1), 4) if frames else None),
             "hits": len(hits), "status": by, "rows": hits}
 
 
-def probe(secs: float, out: Path, within: float = 8.0) -> None:
-    """[win]: poll the game and write frames for `timing`. Read-only. Stand near a hollow and let it hit you
-    (offline; `tm.set_dbg(tm.DBG_PLAYER_NO_DEAD, True)` first if you want to stay alive)."""
-    import env
-    tm = env.make_telemetry({})
-    n = 0
-    t_end = time.time() + secs
+def frame_key(hp: int, foes: list[dict]) -> tuple:
+    """What makes a frame worth writing: HP, and each foe's (ptr, anim). Distance alone does not (heartbeat lines do)."""
+    return hp, tuple(sorted((f["ptr"], f["anim"]) for f in foes))
+
+
+def probe(secs: float, out: Path, within: float = 25.0, heartbeat: float = 0.5, say_every: float = 5.0) -> None:
+    """[win]: read the game directly (not env.make_telemetry — that is the background feed, whose snapshot is cached:
+    probe 1 wrote the same frame 16.9 M times) and write a line when HP or any foe's animation changes, plus one every
+    `heartbeat` s. Each line has `dt` = the read interval before it (the timing resolution). Read-only.
+    Every `say_every` s it prints the nearby foes' animations — anim −1 = asleep / not loaded, wake it first."""
+    import dsr_telemetry
+    tm = dsr_telemetry.DSRTelemetry({})
+    n = written = 0
+    last_key, last_write, last_say, last_read = None, 0.0, 0.0, None
+    t_end = time.perf_counter() + secs
     with out.open("w", encoding="utf-8") as fh:
-        while time.time() < t_end:
+        while (now := time.perf_counter()) < t_end:
             s = tm.snapshot(within=within)
             if s is None:
                 continue
             t = time.perf_counter()
-            fh.write(json.dumps({"t": round(t, 4), "hp": s.player.hp, "foes": [
-                {"ptr": c.ptr, "npc": c.npc_param, "anim": c.anim, "d": round(c.dist, 2)}
-                for c in s.chars if c.hp > 0 and c.anim is not None]}) + "\n")
+            dt = t - last_read if last_read is not None else 0.0
+            last_read = t
             n += 1
-    print(f"{n} 프레임, {secs:.0f} s (평균 {secs / max(1, n) * 1000:.1f} ms) → {out}")
+            foes = [{"ptr": c.ptr, "npc": c.npc_param, "anim": c.anim, "d": round(c.dist, 2)}
+                    for c in s.chars if c.hp > 0 and c.team not in (0, 1)]
+            key = frame_key(s.player.hp, foes)
+            if key != last_key or t - last_write >= heartbeat:
+                fh.write(json.dumps({"t": round(t, 4), "dt": round(dt, 4), "hp": s.player.hp, "foes": foes}) + "\n")
+                written += 1
+                last_key, last_write = key, t
+            if t - last_say >= say_every:
+                print(f"{secs - (t_end - now):5.0f}s  hp {s.player.hp}  " +
+                      "  ".join(f"{f['npc']}:{f['anim']}@{f['d']}m" for f in foes[:4]), flush=True)
+                last_say = t
+    print(f"읽기 {n}번 ({secs / max(1, n) * 1000:.1f} ms 마다), 기록 {written}줄 → {out}")
 
 
 def main() -> None:

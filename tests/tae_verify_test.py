@@ -66,6 +66,25 @@ def test_timing_unknown_start():
     assert V.timing(TAE, COMBAT, fr)["rows"][0]["status"] == "unknown_start"      # anim already running at frame 0
 
 
+def test_timing_anim_unknown_and_dt():
+    """Probe 1 (10-16): both hollows in reach read anim −1 the whole time → anim_unknown, not no_attacker.
+    A line's own `dt` (read interval) is the resolution, not the gap to the previous written line."""
+    fr = [frame(0.0, 500, [(1, 254010, -1, 1.9)]), frame(3.1, 430, [(1, 254010, -1, 1.9)])]
+    r = V.timing(TAE, COMBAT, fr)
+    assert r["status"] == {"anim_unknown": 1} and r["rows"][0]["foes"] == [(254010, -1, 1.9)]
+    fr = [frame(0.0, 500, [(1, 254010, 7000, 2.0)]), dict(frame(0.10, 500, [(1, 254010, 3000, 2.0)]), dt=0.004),
+          dict(frame(1.05, 420, [(1, 254010, 3000, 1.5)]), dt=0.004)]
+    row = V.timing(TAE, COMBAT, fr)["rows"][0]
+    assert row["dt"] == 0.004 and row["status"] == "inside" and row["age"] == 0.95
+
+
+def test_frame_key():
+    a = V.frame_key(500, [{"ptr": 2, "anim": 3000, "d": 1.0}, {"ptr": 1, "anim": -1, "d": 4.0}])
+    assert a == V.frame_key(500, [{"ptr": 1, "anim": -1, "d": 4.2}, {"ptr": 2, "anim": 3000, "d": 1.1}])   # distance alone: same
+    assert a != V.frame_key(430, [{"ptr": 1, "anim": -1, "d": 4.0}, {"ptr": 2, "anim": 3000, "d": 1.0}])
+    assert a != V.frame_key(500, [{"ptr": 1, "anim": -1, "d": 4.0}, {"ptr": 2, "anim": 3001, "d": 1.0}])
+
+
 def test_dsas_compare_real_c2540():
     """Level 2 on the committed data: tae.json vs DSAnimStudio's reading of c2540 3000 / 3003 / 3010 ([win] 10-16).
     Passes now; the old fixed 4 × s32 read (p[3] from the next event) gives the 8 differences [win] found."""
