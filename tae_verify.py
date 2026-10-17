@@ -15,7 +15,7 @@
                                                     and its TAE active window
   python tae_verify.py probe3 [secs] [--refill 150 793]  probe 3, [win]: c2540 3000 only, one isolated hollow — short
                                                     pre-record + automatic pre-check, then the real record
-  python tae_verify.py check3 <probe3.jsonl>        probe 3, offline: samples, valid, exclusion reasons, match / mismatch
+  python tae_verify.py check3 <probe3.jsonl> [--anim 3001]  probe 3, offline: samples, valid, exclusion reasons, match / mismatch
 
 Names: TAE times are the "active window" (`active_start` / `active_end`, when the attack behavior runs). The time the
 player's HP drops is the "hit time". The two are compared here, never merged.
@@ -518,7 +518,8 @@ def record3(tm, secs: float, out: Path, header: dict, within: float = ISO_R, hea
 
 
 def probe3(secs: float, pre: float, refill: tuple[int, int] | None, allow: set, force: bool, max_lines: int) -> None:
-    """[win]: pre-record `pre` s → precheck → only if every check passes (or --force) the real record."""
+    """[win]: pre-record `pre` s → precheck → only if every check passes (or --force) the real record.
+    Refill threshold: ≥ HP_MIN + the foe's biggest hit (c2540: 181 → 400, probe 3), or the hp check fails."""
     import dsr_telemetry
     tm = dsr_telemetry.DSRTelemetry({})
     stamp = time.strftime('%Y%m%d_%H%M%S')
@@ -550,6 +551,7 @@ def main() -> None:
     p.add_argument("--allow", nargs="*", default=[]); p.add_argument("--force", action="store_true")
     p.add_argument("--max-lines", type=int, default=MAX_LINES)
     p = sub.add_parser("check3"); p.add_argument("file", type=Path); p.add_argument("--pre", action="store_true")
+    p.add_argument("--anim", type=int, default=P3_ANIM)
     p = sub.add_parser("dsas"); p.add_argument("file", type=Path, nargs="?", default=ROOT / "data" / "gamefiles" / "tae_check_c2540_dsas.json")
     a = ap.parse_args()
     if a.cmd == "probe":
@@ -582,7 +584,7 @@ def main() -> None:
             for c in precheck(lines, 0, 0)["checks"]:
                 print(f"  {'OK ' if c['ok'] else 'FAIL'} {c['check']:13} {c['detail']}")
             return
-        r = timing3(tae, combat, lines)
+        r = timing3(tae, combat, lines, anim=a.anim)
         for k in ("rows_match", "rows_mismatch", "rows_excluded"):
             print(f"── {k} ({len(r[k])})")
             for h in r[k]:

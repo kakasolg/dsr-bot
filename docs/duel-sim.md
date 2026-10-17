@@ -22,7 +22,7 @@ Left out: type 2 bullets, type 5 common behaviors (steps as movement only), the 
 | Guard blocks all physical damage | 100 % | `guard_on_swing` takes **0** — the result is the assumption | shield cut %, guard stamina, guard break (player param + runtime) |
 | Walk speed (foe = player) | 1.5 m/s | `back_off` takes ~0 — the foe can never catch up | foe walk / dash speed from tracks or the probe |
 | Dash speed | 3.5 m/s | approach time from far | same |
-| Hit rule | once per window / once per AttackIndex | 3010: 6 hits (588) / 3 hits (294); records: one 3010 = 192 (~2) | runtime: probe a 3010 on a still target |
+| Hit rule | once per window / once per AttackIndex | 3010: 6 hits (588) / 3 hits (294); records: one 3010 = 192 (~2) | probe 3 (still target, reference only): 6 · 6 · 5 hits, one per window → `window` rule; 45 per hit, not 98 (damage not checked) |
 | Reach = the AI's attack distance | 1.6–2.2 m, lunges 2.0 m | whether a window connects | runtime hit vs distance (probe has distance) |
 | Animation length / combo link | last window + 0.5 s / + 0.25 s | tempo of combos and how often the AI re-picks | runtime anim durations (probe) |
 | Lunge speed | 3.5 m/s | 3005–3007 reach | duel.py note (3–4.5 m/s); probe |
