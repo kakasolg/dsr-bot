@@ -15,8 +15,9 @@
                                                     and its TAE active window
   python tae_verify.py probe3 [secs] [--refill 150 793]  probe 3, [win]: c2540 3000 only, one isolated hollow — short
                                                     pre-record + automatic pre-check, then the real record
-  python tae_verify.py probe4 [secs] --refill 400 793   probe 4, [win]: the END of 3000's window — a no-hit flag on at the
-                                                    3000's start, off at a planned age τ (controls in the same record)
+  python tae_verify.py probe4 [secs] --refill 400 793   probe 4, [win]: the END of 3000's window — at the 3000's start warp
+                                                    out of reach, back at a planned age τ (controls in the same record;
+                                                    --gate flag = try 1, AllNoHit: the blocked hit is used up)
   python tae_verify.py check4 <probe4.jsonl>        probe 4, offline: controls, end bracket vs the TAE end
   python tae_verify.py check3 <probe3.jsonl> [--anim 3001]  probe 3, offline: samples, valid, exclusion reasons, match / mismatch
 
@@ -502,12 +503,13 @@ def record3(tm, secs: float, out: Path, header: dict, within: float = ISO_R, hea
                 foes = [{"ptr": c.ptr, "npc": c.npc_param, "anim": c.anim, "d": round(c.dist, 2)}
                         for c in s.chars if c.hp > 0 and c.team not in (0, 1)]
                 line = {"t0": round(t0, 5), "t": round(t, 5), "pt0": round(pt0 if pt0 is not None else t0, 5),
-                        "hp": s.player.hp, "foes": foes, "dbg": dbg}
+                        "hp": s.player.hp, "foes": foes, "dbg": dbg,
+                        "p": [round(s.player.x, 3), round(s.player.y, 3), round(s.player.z, 3)]}
                 pt0 = t0
                 if refill and s.player.hp < refill[0]:
                     tm.set_hp(refill[1])
                     line["refill"] = refill[1]
-                event = gate(t, foes, line) if gate else False
+                event = gate(t, foes, line, s) if gate else False
                 key = (frame_key(s.player.hp, foes), dbg)
                 if key != last_key or t - last_write >= heartbeat or "refill" in line or event:
                     fh.write(json.dumps(line) + "\n")
@@ -559,6 +561,38 @@ def probe3(secs: float, pre: float, refill: tuple[int, int] | None, allow: set, 
 P4_TAUS = (0.5, None, 0.90, 0.97, 1.00, 1.02, 1.04, 1.06, 1.10)   # None = hold
 P4_FLAG = "AllNoHit"
 QUANT = 1 / 60          # game frame (60 fps): hit and miss releases may overlap by this much and still count as consistent
+# probe 4 try 2 (10-16 [win]: AllNoHit uses the blocked hit up → "method not verified"): gate by distance instead — warp the
+# player out of reach along the foe → player line at the 3000's first read, back to the same spot at τ.
+OUT_D = 3.0             # how far out (m) — 0.85 m + 3.0 m, well past the AI's 3000 distance (1.6 m); leaks show if not enough
+ARRIVE_R = 0.3          # the player counts as arrived (out / back) within this of the warp target (m, x-z)
+MAX_WARP = 0.05         # back at p_in later than this past the plan → release_late (s)
+
+
+def _dxz(a, b) -> float:
+    return ((a[0] - b[0]) ** 2 + (a[2] - b[2]) ** 2) ** 0.5
+
+
+class WarpAct:
+    """EndGate action for probe 4 try 2: on → remember the player's spot, warp OUT_D further along foe → player (same
+    height, same heading); off → warp back. Returns the targets for the line (p_in, p_out). Game-memory write, offline only."""
+
+    def __init__(self, tm, out_d: float = OUT_D):
+        self.tm, self.out_d, self.p_in, self.heading = tm, out_d, None, 0.0
+
+    def __call__(self, on: bool, s, ptr) -> dict:
+        if on:
+            pl = s.player
+            foe = next(c for c in s.chars if c.ptr == ptr)
+            dx, dz = pl.x - foe.x, pl.z - foe.z
+            n = max((dx * dx + dz * dz) ** 0.5, 1e-6)
+            self.p_in, self.heading = (pl.x, pl.y, pl.z), pl.heading
+            p_out = (pl.x + dx / n * self.out_d, pl.y, pl.z + dz / n * self.out_d)
+            self.tm.pos_warp(*p_out, self.heading)
+            return {"p_in": [round(v, 3) for v in self.p_in], "p_out": [round(v, 3) for v in p_out]}
+        if self.p_in is not None:
+            self.tm.pos_warp(*self.p_in, self.heading)
+            self.p_in = None
+        return {}
 
 
 def dbg_offset(name: str) -> int:
@@ -566,19 +600,23 @@ def dbg_offset(name: str) -> int:
 
 
 class EndGate:
-    """record3 hook: flag on at the target's first read in `anim` (after a read in another anim), off at that read's
-    end + τ (first read past it) or when the run ends. Marks lines with gate_on / gate_off (write times), tau, gate_why."""
+    """record3 hook: gate on at the target's first read in `anim` (after a read in another anim), off at that read's
+    end + τ (first read past it) or when the run ends. `act(on, snapshot, target ptr)` does it (flag: set the CHR DBG
+    byte; warp: `WarpAct`) and may return fields for the line. Marks lines with gate_on / gate_off (write times), tau, gate_why."""
 
-    def __init__(self, set_flag, taus=P4_TAUS, anim=P3_ANIM, target=P3_TARGET, iso_r=ISO_R, clock=time.perf_counter):
-        self.set_flag, self.taus, self.anim, self.target, self.iso_r, self.clock = set_flag, list(taus), anim, target, iso_r, clock
-        self.k, self.on, self.ptr, self.release_at, self.prev = 0, False, None, None, {}
+    def __init__(self, act, taus=P4_TAUS, anim=P3_ANIM, target=P3_TARGET, iso_r=ISO_R, clock=time.perf_counter):
+        self.act, self.taus, self.anim, self.target, self.iso_r, self.clock = act, list(taus), anim, target, iso_r, clock
+        self.k, self.on, self.ptr, self.release_at, self.prev, self.s = 0, False, None, None, {}, None
 
-    def _switch(self, on: bool) -> float:
-        self.set_flag(on)
+    def _switch(self, on: bool, line: dict | None = None) -> float:
+        extra = self.act(on, self.s, self.ptr) or {}
+        if line is not None:
+            line.update(extra)
         self.on = on
         return round(self.clock(), 5)
 
-    def __call__(self, t: float, foes: list[dict], line: dict) -> bool:
+    def __call__(self, t: float, foes: list[dict], line: dict, s=None) -> bool:
+        self.s = s
         tg = [f for f in foes if f["npc"] in self.target and f["d"] <= self.iso_r]
         f = tg[0] if len(tg) == 1 else None
         event = False
@@ -594,12 +632,14 @@ class EndGate:
                 and not self.on and "gate_off" not in line):
             tau = self.taus[self.k % len(self.taus)]
             self.k += 1
-            line.update(gate_on=self._switch(True), tau=tau)
-            self.ptr, self.release_at, event = f["ptr"], (t + tau if tau is not None else None), True
+            self.ptr = f["ptr"]
+            line.update(gate_on=self._switch(True, line), tau=tau)
+            self.release_at, event = (t + tau if tau is not None else None), True
         self.prev = {x["ptr"]: x["anim"] for x in foes}
         return event
 
     def close(self) -> None:
+        self.s = None
         self._switch(False)
 
 
@@ -621,6 +661,7 @@ def timing_end(tae: dict, combat: dict, lines: list[dict], anim: int = P3_ANIM, 
     its plan. Then: hold / early controls, the defer check, and the end bracket = (latest release age that still got a
     hit, earliest that did not) against the TAE window end ± tol."""
     head, frames = _frames(lines)
+    mode = head.get("gate", "flag")
     flag = head.get("gate_flag", P4_FLAG)
     off = dbg_offset(flag)
     models = npc_models(combat)
@@ -674,17 +715,45 @@ def timing_end(tae: dict, combat: dict, lines: list[dict], anim: int = P3_ANIM, 
         rel = next(((j, s) for j, s in enumerate(seg) if "gate_off" in s), None)
         if rel is None and r["i1"] is not None and "gate_off" in frames[r["i1"]]:
             rel = (len(seg), frames[r["i1"]])
-        on_until = rel[0] if rel else len(seg)
-        if any(not bytes.fromhex(s["dbg"])[off] for s in seg[1:on_until] if s.get("dbg")):
-            why.append("flag_not_on")
+        # eff = (frame index, (lo, hi)) when the release takes effect: flag → its write time; warp → the first read with
+        # the player back at p_in (the warp itself takes a frame or more)
+        eff = None
+        if mode == "flag":
+            on_until = rel[0] if rel else len(seg)
+            if any(not bytes.fromhex(x["dbg"])[off] for x in seg[1:on_until] if x.get("dbg")):
+                why.append("flag_not_on")
+            if rel is not None:
+                eff = (r["i0"] + rel[0], (rel[1]["gate_off"], rel[1]["gate_off"]))
+        else:
+            p_in, p_out = fr.get("p_in"), fr.get("p_out")
+            if not p_in or any("p" not in x for x in seg):
+                why.append("no_position")
+            else:
+                out_j = next((j for j in range(1, len(seg)) if _dxz(seg[j]["p"], p_out) <= ARRIVE_R), None)
+                back_from = rel[0] if rel else len(seg)
+                if out_j is None or out_j >= back_from:
+                    why.append("not_out")
+                else:
+                    if _bounds(seg[out_j - 1], seg[out_j])[1] - r["start"][0] > start - tol:
+                        why.append("out_late")
+                    if any(_dxz(x["p"], p_in) < 0.5 * _dxz(p_out, p_in) for x in seg[out_j:back_from]):
+                        why.append("not_out_whole")
+                if rel is not None:
+                    k = next((k for k in range(r["i0"] + rel[0], min(i1 + 1, len(frames)))
+                              if "p" in frames[k] and _dxz(frames[k]["p"], p_in) <= ARRIVE_R), None)
+                    if k is not None:
+                        eff = (k, _bounds(frames[k - 1], frames[k]))
+                        row["warp_delay"] = round(eff[1][1] - rel[1]["gate_off"], 4)
         if rel is not None and rel[1].get("gate_why") == "tau":
-            tw = rel[1]["gate_off"]
-            row["release_age"] = [round(tw - r["start"][1], 4), round(tw - r["start"][0], 4)]
-            if tw - (fr["t"] + row["tau"]) > MAX_GAP:
-                why.append("release_late")
+            if eff is None:
+                why.append("not_returned")
+            else:
+                row["release_age"] = [round(eff[1][0] - r["start"][1], 4), round(eff[1][1] - r["start"][0], 4)]
+                if eff[1][1] - (fr["t"] + row["tau"]) > (MAX_GAP if mode == "flag" else MAX_WARP):
+                    why.append("release_late")
         elif row["kind"] != "hold":
             why.append("not_released")
-        leak = [j for j, _ in hs if rel is None or j <= r["i0"] + rel[0]]   # dropped while the flag was still on
+        leak = [j for j, _ in hs if eff is None or j < eff[0] or (mode == "flag" and j == eff[0])]   # dropped while gated
         if leak:
             row["leak"] = True
         if len(hs) == 1:
@@ -692,7 +761,7 @@ def timing_end(tae: dict, combat: dict, lines: list[dict], anim: int = P3_ANIM, 
             lo, hi = _bounds(frames[j - 1], frames[j])
             row.update(hit=True, lost=lost, hit_age=[round(lo - r["start"][1], 4), round(hi - r["start"][0], 4)])
             if "release_age" in row:
-                row["lag"] = round((lo + hi) / 2 - rel[1]["gate_off"], 4)
+                row["lag"] = round((lo + hi) / 2 - eff[1][1], 4)
         else:
             row["hit"] = bool(hs)
         row["reasons"] = why
@@ -712,8 +781,12 @@ def timing_end(tae: dict, combat: dict, lines: list[dict], anim: int = P3_ANIM, 
     consistent = None if None in bracket else bracket[0] - bracket[1] <= QUANT
     if not valid_method:
         verdict = "방법 미검증" if (hold and early) else "표본 부족"
-    elif (bracket[0] is not None and bracket[0] > end + tol + QUANT) or (bracket[1] is not None and bracket[1] < end - tol):
-        verdict = "불일치"            # one side alone already lies outside the TAE end ± tol
+    elif bracket[0] is not None and bracket[0] > end + tol + QUANT:
+        verdict = "불일치"            # a hit after the TAE end: the window is longer than the file says
+    elif bracket[1] is not None and bracket[1] < end - tol:
+        # a miss before the TAE end does not contradict it: the hitbox moves with the blade, and a spot it has already
+        # swept stays clear while the window is still live — "window ended" and "blade passed" can't be told apart here
+        verdict = "이른 끝 (보류)"
     elif None in bracket:
         verdict = "표본 부족"
     elif not consistent:
@@ -725,7 +798,7 @@ def timing_end(tae: dict, combat: dict, lines: list[dict], anim: int = P3_ANIM, 
         if x["reasons"]:
             excluded[x["reasons"][0]] = excluded.get(x["reasons"][0], 0) + 1
     lags = sorted(x["lag"] for x in sweep if x.get("lag") is not None)
-    return {"anim": anim, "windows": w, "tae_end": end, "tol": round(tol, 4), "flag": flag,
+    return {"anim": anim, "windows": w, "tae_end": end, "tol": round(tol, 4), "gate": mode, "flag": flag if mode == "flag" else None,
             "age": "age_since_seen (play position not read)", "instances": len(inst), "valid": len(ok), "excluded": excluded,
             "controls": controls, "method_valid": valid_method, "end_bracket": bracket, "consistent": consistent,
             "lag_after_release": {"median": lags[len(lags) // 2], "max": lags[-1]} if lags else None,
@@ -734,23 +807,28 @@ def timing_end(tae: dict, combat: dict, lines: list[dict], anim: int = P3_ANIM, 
             "verdict": verdict, "header": head, "rows": inst}
 
 
-def probe4(secs: float, pre: float, refill: tuple[int, int] | None, flag: str, taus: list, force: bool, max_lines: int) -> None:
-    """[win]: flag read/write check → pre-record + precheck (flag off) → the gated record."""
+def probe4(secs: float, pre: float, refill: tuple[int, int] | None, flag: str, taus: list, force: bool, max_lines: int,
+           mode: str = "warp", out_d: float = OUT_D) -> None:
+    """[win]: (flag) read/write check → pre-record + precheck → the gated record. mode warp (default since try 1): warp out
+    / back instead of the flag; the flag must stay off."""
     import dsr_telemetry
     tm = dsr_telemetry.DSRTelemetry({})
     off = dbg_offset(flag)
     rw = []
-    for v in (True, False):
-        tm.set_dbg(off, v)
-        rw.append(tm.get_dbg(off))
+    if mode == "flag":
+        for v in (True, False):
+            tm.set_dbg(off, v)
+            rw.append(tm.get_dbg(off))
     stamp = time.strftime('%Y%m%d_%H%M%S')
-    header = {"probe": 4, "anim": P3_ANIM, "target": list(P3_TARGET), "iso_r": ISO_R, "refill": refill, "gate_flag": flag,
-              "gate_offset": off, "gate_rw": rw, "taus": taus, "age": "age_since_seen (play position not read)"}
+    header = {"probe": 4, "gate": mode, "anim": P3_ANIM, "target": list(P3_TARGET), "iso_r": ISO_R, "refill": refill,
+              "taus": taus, "age": "age_since_seen (play position not read)",
+              **({"gate_flag": flag, "gate_offset": off, "gate_rw": rw} if mode == "flag" else {"out_d": out_d})}
     pre_out = SAMPLES / f"{stamp}_tae-probe4-pre.jsonl"
     record3(tm, pre, pre_out, {**header, "pre": True}, refill=refill, max_lines=max_lines)
     pc = precheck([json.loads(l) for l in pre_out.read_text(encoding="utf-8").splitlines() if l.strip()],
                   pre, secs, max_lines=max_lines)
-    pc["checks"].append({"check": "gate_rw", "ok": rw == [1, 0], "detail": f"{flag} write on/off → read back {rw} (want [1, 0])"})
+    if mode == "flag":
+        pc["checks"].append({"check": "gate_rw", "ok": rw == [1, 0], "detail": f"{flag} write on/off → read back {rw} (want [1, 0])"})
     pc["ok"] = all(c["ok"] for c in pc["checks"])
     for c in pc["checks"]:
         print(f"  {'OK ' if c['ok'] else 'FAIL'} {c['check']:13} {c['detail']}")
@@ -758,7 +836,7 @@ def probe4(secs: float, pre: float, refill: tuple[int, int] | None, flag: str, t
         print(f"예비 점검 실패 — 본 기록 안 함 ({pre_out}).")
         return
     out = SAMPLES / f"{stamp}_tae-probe4.jsonl"
-    gate = EndGate(lambda on: tm.set_dbg(off, on), taus)
+    gate = EndGate((lambda on, _s, _p: tm.set_dbg(off, on)) if mode == "flag" else WarpAct(tm, out_d), taus)
     r = record3(tm, secs, out, {**header, "precheck": pc["checks"], "forced": not pc["ok"]}, refill=refill,
                 max_lines=max_lines, gate=gate)
     print(f"읽기 {r['reads']}번, 기록 {r['written']}줄 ({r['stopped']}), 3000 게이트 {gate.k}번 → {out}\n"
@@ -780,6 +858,7 @@ def main() -> None:
     p.add_argument("--anim", type=int, default=P3_ANIM)
     p = sub.add_parser("probe4"); p.add_argument("secs", nargs="?", type=float, default=300.0)
     p.add_argument("--pre", type=float, default=5.0); p.add_argument("--refill", type=int, nargs=2, metavar=("BELOW", "TO"))
+    p.add_argument("--gate", choices=("warp", "flag"), default="warp"); p.add_argument("--out", type=float, default=OUT_D)
     p.add_argument("--flag", default=P4_FLAG); p.add_argument("--force", action="store_true")
     p.add_argument("--taus", nargs="*", default=[("hold" if t is None else str(t)) for t in P4_TAUS])
     p.add_argument("--max-lines", type=int, default=MAX_LINES)
@@ -792,7 +871,7 @@ def main() -> None:
         return
     if a.cmd == "probe4":
         probe4(a.secs, a.pre, tuple(a.refill) if a.refill else None, a.flag,
-               [None if t == "hold" else float(t) for t in a.taus], a.force, a.max_lines)
+               [None if t == "hold" else float(t) for t in a.taus], a.force, a.max_lines, a.gate, a.out)
         return
     if a.cmd == "probe3":
         probe3(a.secs, a.pre, tuple(a.refill) if a.refill else None, set(a.allow), a.force, a.max_lines)

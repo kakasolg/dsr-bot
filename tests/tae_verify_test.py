@@ -193,31 +193,50 @@ def test_anim_runs_restart_after_leaving():
 
 
 # ── probe 4 (end of 3000's window): the real EndGate against a small fake game ──
-def fake_game(taus, end=1.0333, consumes=False, blocks=True, step=0.005, lag=0.017):
-    """Hollow 254010 loops 7000 (0.5 s) → 3000 (1.2 s). The 3000's hitbox is live on [0.8667, end]; the player is hit at
-    the first game moment in it when the flag is off (seen `lag` after it is written). consumes: a hit blocked by the flag
-    uses the attack up. blocks=False: the flag does nothing."""
+def fake_game(taus, end=1.0333, consumes=False, blocks=True, step=0.005, lag=0.017, mode="flag", out_d=3.0, reach=2.0):
+    """Hollow 254010 loops 7000 (0.5 s) → 3000 (1.2 s), 0.85 m from the player. The 3000's hitbox is live on [0.8667, end];
+    the player is hit at the first game moment in it when hittable. flag mode: hittable = flag off, seen `lag` after the
+    write; consumes: a blocked hit uses the attack up; blocks=False: the flag does nothing. warp mode: hittable = within
+    `reach` of the hollow; a warp lands `lag` after it is written (the player is somewhere in between until then)."""
     flag = {"on": False, "since": -9.0}
+    pos = {"at": (0.0, 0.0, 0.85), "to": None, "when": 0.0}
     clock = {"t": 0.0}
-    gate = V.EndGate(lambda on: flag.update(on=on, since=clock["t"]), taus, clock=lambda: clock["t"])
-    lines, hp, t, pt0, n = [{"kind": "header", "probe": 4, "gate_flag": "AllNoHit"}], 700, 0.0, None, len(taus)
+
+    def act(on, snap, ptr):
+        if mode == "flag":
+            flag.update(on=on, since=clock["t"])
+            return {}
+        if on:
+            pos.update(to=(0.0, 0.0, 0.85 + out_d), when=clock["t"] + lag)
+            return {"p_in": [0.0, 0.0, 0.85], "p_out": [0.0, 0.0, 0.85 + out_d]}
+        pos.update(to=(0.0, 0.0, 0.85), when=clock["t"] + lag)
+        return {}
+
+    gate = V.EndGate(act, taus, clock=lambda: clock["t"])
+    head = {"kind": "header", "probe": 4, "gate": mode, **({"gate_flag": "AllNoHit"} if mode == "flag" else {})}
+    lines, hp, t, pt0, n = [head], 700, 0.0, None, len(taus)
     for k in range(n):
         t_start = k * 1.7 + 0.5
         used = False
         while t < t_start + 1.2 + 0.5 - 1e-9 and t < n * 1.7 + 0.5:
+            if pos["to"] is not None and t >= pos["when"]:
+                pos.update(at=pos["to"], to=None)
             age = t - t_start
             in3000 = 0 <= age < 1.2
-            off_seen = (not flag["on"]) and t - flag["since"] >= lag
+            if mode == "flag":
+                hittable = ((not flag["on"]) and t - flag["since"] >= lag) or not blocks
+            else:
+                hittable = pos["at"][2] <= reach
             if in3000 and not used and 0.8667 <= age <= end:
-                if off_seen or not blocks:
+                if hittable:
                     hp -= 45
                     used = True
                 elif consumes:
                     used = True
             clock["t"] = t
             line = {"t0": round(t - 0.001, 5), "t": round(t, 5), "pt0": round(pt0 if pt0 is not None else t - 0.001, 5),
-                    "hp": hp, "dbg": ("0" * 20 + ("01" if flag["on"] else "00") + "0" * 10),
-                    "foes": [{"ptr": 1, "npc": 254010, "anim": 3000 if in3000 else 7000, "d": 0.85}]}
+                    "hp": hp, "dbg": ("0" * 20 + ("01" if flag["on"] else "00") + "0" * 10), "p": list(pos["at"]),
+                    "foes": [{"ptr": 1, "npc": 254010, "anim": 3000 if in3000 else 7000, "d": round(pos["at"][2], 2)}]}
             pt0 = t - 0.001
             gate(t, line["foes"], line)
             lines.append(line)
@@ -247,6 +266,39 @@ def test_end_gate_other_end_and_broken_flags():
     assert not r["method_valid"] and r["controls"]["defer"][0] == 0 and r["verdict"] == "방법 미검증"
     r = V.timing_end(TAE, COMBAT, fake_game(TAUS, blocks=False))       # flag does nothing: hits while on
     assert not r["method_valid"] and r["controls"]["leaks"] > 0 and r["verdict"] == "방법 미검증"
+
+
+def test_end_gate_warp():
+    """Try 2: distance gate. Being out of reach does not use the attack up, so late returns still hit and the bracket finds
+    the end (here one warp delay early, like the flag's read delay)."""
+    r = V.timing_end(TAE, COMBAT, fake_game(TAUS, mode="warp"))
+    assert r["gate"] == "warp" and r["method_valid"] and r["controls"]["defer"][0] >= 3, r["controls"]
+    assert r["verdict"] == "통과" and 1.0 <= r["end_bracket"][0] < r["end_bracket"][1] <= 1.05, r["end_bracket"]
+    assert all(x.get("warp_delay", 0.017) >= 0.015 for x in r["rows"])
+    r = V.timing_end(TAE, COMBAT, fake_game(TAUS, mode="warp", out_d=0.5))     # not far enough: hit while "out"
+    assert not r["method_valid"] and r["controls"]["leaks"] > 0
+    r = V.timing_end(TAE, COMBAT, fake_game(TAUS, mode="warp", end=1.15))
+    assert r["verdict"] == "불일치"
+
+
+def test_end_gate_flag_try1_record():
+    """[win]'s probe 4 try 1 (10-16, AllNoHit): the blocked hit is used up → method not verified, as reported."""
+    import json, pathlib
+    f = pathlib.Path(V.SAMPLES) / "20261016_203016_tae-probe4.jsonl"
+    r = V.timing_end(V.load(V.TAE), V.load(V.COMBAT), [json.loads(l) for l in f.read_text(encoding="utf-8").splitlines() if l.strip()])
+    assert r["verdict"] == "방법 미검증" and r["controls"]["defer"] == [0, 13] and r["controls"]["leaks"] == 0
+
+
+
+
+def test_end_gate_early_end_is_held_not_failed():
+    """A miss before the TAE end (blade already past that spot, or a shorter window) is held, never a TAE mismatch."""
+    taus = [0.5, None, 0.94, 0.97, 1.00, 1.04] * 3
+    r = V.timing_end(TAE, COMBAT, fake_game(taus, mode="warp", end=0.975))
+    assert r["method_valid"] and r["verdict"] == "이른 끝 (보류)", (r["verdict"], r["end_bracket"], r["controls"])
+    # nothing late hits at all (end 0.95): same picture as a used-up attack → method not verified, nothing said
+    r = V.timing_end(TAE, COMBAT, fake_game(TAUS, mode="warp", end=0.95))
+    assert r["verdict"] == "방법 미검증" and r["controls"]["defer"][0] == 0
 
 
 if __name__ == "__main__":
