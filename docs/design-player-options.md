@@ -92,6 +92,33 @@ killed it on the start spot. A has to be woken at run time without hitting it (B
 - The home spot is the first rep's spot: fine if the run starts on the start spot (same issue as probe 4 try 2 otherwise).
 - 255040–42 on the wall (y +9.5, 20.6 m) were team 6 at one read and team 0 at others — they can break the 25 m isolation.
 
+### Pilot run 1 — 2026-10-17 [win]: **표본 부족**, and the circle reps did not test circling
+
+Records `data/samples/20261017_003758_options(-pre).jsonl` (120 s, 12 reps) + `20261017_004056_options(-pre).jsonl` (900 s, 88 reps); the
+first 900 s try `20261017_004023_options-pre.jsonl` stopped at the precheck (HP 1: A kept hitting between runs with PlayerNoDead on).
+Setup: save `backup-20261016-234951-options-pilot-ready-A-only`; A woken by whiffs at 3.5 m (3rd swing), PlayerNoDead on, `--refill 500 793`.
+Pooled `check` (`data/samples/20261017_options_check_pooled.txt`): 100 reps, valid 51, excluded not_isolated 30 · refill_in_run 10 ·
+restart_possible 7 · run_open 2 → verdict 표본 부족 (rule: ≥ 16 valid per option).
+stand 7 / 7 hit · circle_cw 13 / 13 · circle_ccw 14 / 14 · roll_cw 0 / 17 (roll anim seen 17 / 17).
+
+[win] 2중 점검 (raw lines):
+1. **The 900 s run stood stuck in one place**: its home (= first rep spot) was (8.38, −10.02, −60.53) — A had pushed the player there
+   between runs. In the 0.3 s after the input the player moved 0.01 m (circle_cw median) · 0.02 m (circle_ccw) · 0.02 m (roll, though
+   roll anims show). The 120 s run (home (2.13, −10.02, −57.34)) moved 0.34 m (circles) and 1.74 m (roll). A stick test on the start spot
+   right after: 0.6 s of full stick = 1.72–1.84 m in all four directions → the pad works; the 900 s spot is wedged. No input
+   had a hit in the 1 s before it (not hit-stun). → the 900 s circle reps measure "standing", not circling. Its rolls avoided 0 / 17 while
+   barely moving — roll i-frames alone, not the displacement.
+2. **`turn` was not the player circling**: the short run's ±22° came mostly from A moving (player 0.34 m). Read `turn` with the player's
+   own displacement.
+3. **Isolation broken by two sleeping 254012** at 22.5–24.7 m (anim −1 throughout, at (5.1, −1.8, −84.1) / (3.5, −1.8, −86.5)) —
+   30 of 100 reps excluded for them.
+4. In the 120 s run (where moving worked) circles at τ 0.6 still got hit 6 / 6 (3 valid) — 0.34 m in 0.3 s is not enough to leave 3000.
+
+What this says (scope: c2540 3000, τ 0.6 s, start 0.85–2.3 m, one hollow): rolling avoided it every time (17 / 17 stuck + 4 / 4 moving),
+standing and walking in a circle never did. Not a verdict under the rule (too few valid, the circle reps mostly invalid).
+Before a rerun: home = a fixed tested spot (like probe 4 `--home`), drop the sleeping-foe isolation breaks (or kill the two 254012),
+a moved-distance check per rep (e.g. "circle moved < 0.2 m → excluded"), refill so it does not land inside a 3000 (10 lost).
+
 ## Step 2 — the table (only if step 1 passes)
 
 foe anim × option × τ (× distance band) → hit rate, damage, counter-attack landed (foe HP), what the foe did next. Then into
