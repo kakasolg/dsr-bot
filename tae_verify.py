@@ -483,7 +483,8 @@ def record3(tm, secs: float, out: Path, header: dict, within: float = ISO_R, hea
             refill: tuple[int, int] | None = None, max_lines: int = MAX_LINES, say_every: float = 5.0, gate=None) -> dict:
     """[win]: like `probe`, plus each line's read bounds (`t0` start, `t` end, `pt0` previous read's start), the 16 CHR DBG
     bytes (`dbg`, hex), and the HP refill this recorder did itself (`refill`: the value written after this read).
-    Writes on HP / foe anim / flag change + heartbeat; stops at max_lines. Writes nothing but HP (refill, offline) —
+    Writes on HP / foe anim / flag change + heartbeat, and every read while `gate.dense()` (the player position is not in
+    the change key, so a warp alone would wait for the heartbeat — 10-16 [win] B-11); stops at max_lines. Writes nothing but HP (refill, offline) —
     and, with `gate` (probe 4, `EndGate`), one CHR DBG flag; the gate is always switched off at the end."""
     n = written = 0
     last_key, last_write, last_say, pt0 = None, 0.0, 0.0, None
@@ -511,7 +512,8 @@ def record3(tm, secs: float, out: Path, header: dict, within: float = ISO_R, hea
                     line["refill"] = refill[1]
                 event = gate(t, foes, line, s) if gate else False
                 key = (frame_key(s.player.hp, foes), dbg)
-                if key != last_key or t - last_write >= heartbeat or "refill" in line or event:
+                dense = gate is not None and getattr(gate, "dense", lambda: False)()
+                if key != last_key or t - last_write >= heartbeat or "refill" in line or event or dense:
                     fh.write(json.dumps(line) + "\n")
                     written += 1
                     last_key, last_write = key, t
@@ -566,6 +568,10 @@ QUANT = 1 / 60          # game frame (60 fps): hit and miss releases may overlap
 OUT_D = 3.0             # how far out (m) — 0.85 m + 3.0 m, well past the AI's 3000 distance (1.6 m); leaks show if not enough
 ARRIVE_R = 0.3          # the player counts as arrived (out / back) within this of the warp target (m, x-z)
 MAX_WARP = 0.05         # back at p_in later than this past the plan → release_late (s)
+TAIL = 10               # reads still written one by one after the gate goes off (the return and what the foe does next)
+FALL_DY = 0.3           # the player this far below p_out while out → no floor there: gate off at once, instance excluded (m)
+HOME_R = 0.5            # between gates, the player pushed further than this from the first gate's spot → warp back (m)
+HOME_EVERY = 1.0        # at most one home warp per this many s
 
 
 def _dxz(a, b) -> float:
@@ -578,6 +584,7 @@ class WarpAct:
 
     def __init__(self, tm, out_d: float = OUT_D):
         self.tm, self.out_d, self.p_in, self.heading = tm, out_d, None, 0.0
+        self.home, self.home_t = None, -1e9
 
     def __call__(self, on: bool, s, ptr) -> dict:
         if on:
@@ -586,6 +593,8 @@ class WarpAct:
             dx, dz = pl.x - foe.x, pl.z - foe.z
             n = max((dx * dx + dz * dz) ** 0.5, 1e-6)
             self.p_in, self.heading = (pl.x, pl.y, pl.z), pl.heading
+            if self.home is None:
+                self.home = (self.p_in, self.heading)
             p_out = (pl.x + dx / n * self.out_d, pl.y, pl.z + dz / n * self.out_d)
             self.tm.pos_warp(*p_out, self.heading)
             return {"p_in": [round(v, 3) for v in self.p_in], "p_out": [round(v, 3) for v in p_out]}
@@ -593,6 +602,19 @@ class WarpAct:
             self.tm.pos_warp(*self.p_in, self.heading)
             self.p_in = None
         return {}
+
+    def rehome(self, s, t: float) -> dict:
+        """Between gates: the foe pushes the player around (try 2 drifted ~6 m, over a ledge and next to sleeping foes —
+        B-11) → warp back to the first gate's spot, whose floor was checked. Returns the line fields when it warped."""
+        if self.home is None or self.p_in is not None or t - self.home_t < HOME_EVERY:
+            return {}
+        pl = s.player
+        (hx, hy, hz), hh = self.home
+        if _dxz((pl.x, pl.y, pl.z), (hx, hy, hz)) <= HOME_R and abs(pl.y - hy) <= FALL_DY:
+            return {}
+        self.tm.pos_warp(hx, hy, hz, hh)
+        self.home_t = t
+        return {"home": [round(hx, 3), round(hy, 3), round(hz, 3)]}
 
 
 def dbg_offset(name: str) -> int:
@@ -607,12 +629,19 @@ class EndGate:
     def __init__(self, act, taus=P4_TAUS, anim=P3_ANIM, target=P3_TARGET, iso_r=ISO_R, clock=time.perf_counter):
         self.act, self.taus, self.anim, self.target, self.iso_r, self.clock = act, list(taus), anim, target, iso_r, clock
         self.k, self.on, self.ptr, self.release_at, self.prev, self.s = 0, False, None, None, {}, None
+        self.tail, self.p_out = 0, None
+
+    def dense(self) -> bool:
+        """record3: write every read while gated and TAIL reads after."""
+        return self.on or self.tail > 0
 
     def _switch(self, on: bool, line: dict | None = None) -> float:
         extra = self.act(on, self.s, self.ptr) or {}
         if line is not None:
             line.update(extra)
-        self.on = on
+        self.on, self.p_out = on, extra.get("p_out") if on else None
+        if not on:
+            self.tail = TAIL
         return round(self.clock(), 5)
 
     def __call__(self, t: float, foes: list[dict], line: dict, s=None) -> bool:
@@ -620,9 +649,14 @@ class EndGate:
         tg = [f for f in foes if f["npc"] in self.target and f["d"] <= self.iso_r]
         f = tg[0] if len(tg) == 1 else None
         event = False
+        if self.tail > 0 and not self.on:
+            self.tail -= 1
         if self.on:
             mine = next((x for x in foes if x["ptr"] == self.ptr), None)
-            if mine is None or mine["anim"] != self.anim:
+            if self.p_out is not None and "p" in line and line["p"][1] < self.p_out[1] - FALL_DY:
+                line.update(gate_off=self._switch(False), gate_why="fell")
+                self.release_at, event = None, True
+            elif mine is None or mine["anim"] != self.anim:
                 line.update(gate_off=self._switch(False), gate_why="run_end")
                 self.release_at, event = None, True
             elif self.release_at is not None and t >= self.release_at:
@@ -635,6 +669,11 @@ class EndGate:
             self.ptr = f["ptr"]
             line.update(gate_on=self._switch(True, line), tau=tau)
             self.release_at, event = (t + tau if tau is not None else None), True
+        elif not self.on and s is not None and hasattr(self.act, "rehome") and self.tail == 0 and "gate_off" not in line:
+            home = self.act.rehome(s, t)
+            if home:
+                line.update(home)
+                event = True
         self.prev = {x["ptr"]: x["anim"] for x in foes}
         return event
 
@@ -738,12 +777,18 @@ def timing_end(tae: dict, combat: dict, lines: list[dict], anim: int = P3_ANIM, 
                         why.append("out_late")
                     if any(_dxz(x["p"], p_in) < 0.5 * _dxz(p_out, p_in) for x in seg[out_j:back_from]):
                         why.append("not_out_whole")
+                    if (any(x["p"][1] < p_out[1] - FALL_DY for x in seg[out_j:back_from + 1])
+                            or (rel and rel[1].get("gate_why") == "fell")):
+                        why.append("fell")    # no floor at p_out (B-11: 6 of 34, one 20 m); the foe reacts to it
                 if rel is not None:
                     k = next((k for k in range(r["i0"] + rel[0], min(i1 + 1, len(frames)))
                               if "p" in frames[k] and _dxz(frames[k]["p"], p_in) <= ARRIVE_R), None)
                     if k is not None:
                         eff = (k, _bounds(frames[k - 1], frames[k]))
                         row["warp_delay"] = round(eff[1][1] - rel[1]["gate_off"], 4)
+                        d = [x["d"] for x in frames[k]["foes"] if x["ptr"] == ptr]
+                        if d:
+                            row["d_back"] = d[0]      # the foe moves during 3000: the spot it meets is not 0.85 m
         if rel is not None and rel[1].get("gate_why") == "tau":
             if eff is None:
                 why.append("not_returned")
@@ -751,7 +796,7 @@ def timing_end(tae: dict, combat: dict, lines: list[dict], anim: int = P3_ANIM, 
                 row["release_age"] = [round(eff[1][0] - r["start"][1], 4), round(eff[1][1] - r["start"][0], 4)]
                 if eff[1][1] - (fr["t"] + row["tau"]) > (MAX_GAP if mode == "flag" else MAX_WARP):
                     why.append("release_late")
-        elif row["kind"] != "hold":
+        elif row["kind"] != "hold" and "fell" not in why:
             why.append("not_released")
         leak = [j for j, _ in hs if eff is None or j < eff[0] or (mode == "flag" and j == eff[0])]   # dropped while gated
         if leak:

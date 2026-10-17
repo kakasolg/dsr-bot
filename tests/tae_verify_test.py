@@ -7,6 +7,8 @@ import sys as _sys, pathlib as _pl  # repo root first (the bot's modules), then 
 _sys.path[:0] = [str(_pl.Path(__file__).resolve().parent.parent), str(_pl.Path(__file__).resolve().parent)]
 
 import tae_verify as V
+import json
+from types import SimpleNamespace
 
 ANIMS = {
     "3000": {"tae": "c2540.tae", "events": [{"type": 1, "start": 0.8667, "end": 1.0333, "p": [0, 0, 100, 128]}],
@@ -193,11 +195,13 @@ def test_anim_runs_restart_after_leaving():
 
 
 # ── probe 4 (end of 3000's window): the real EndGate against a small fake game ──
-def fake_game(taus, end=1.0333, consumes=False, blocks=True, step=0.005, lag=0.017, mode="flag", out_d=3.0, reach=2.0):
+def fake_game(taus, end=1.0333, consumes=False, blocks=True, step=0.005, lag=0.017, mode="flag", out_d=3.0, reach=2.0,
+              fall=()):
     """Hollow 254010 loops 7000 (0.5 s) → 3000 (1.2 s), 0.85 m from the player. The 3000's hitbox is live on [0.8667, end];
     the player is hit at the first game moment in it when hittable. flag mode: hittable = flag off, seen `lag` after the
     write; consumes: a blocked hit uses the attack up; blocks=False: the flag does nothing. warp mode: hittable = within
-    `reach` of the hollow; a warp lands `lag` after it is written (the player is somewhere in between until then)."""
+    `reach` of the hollow; a warp lands `lag` after it is written (the player is somewhere in between until then);
+    gates whose index is in `fall` have no floor at p_out (the player sinks 5 cm per read there)."""
     flag = {"on": False, "since": -9.0}
     pos = {"at": (0.0, 0.0, 0.85), "to": None, "when": 0.0}
     clock = {"t": 0.0}
@@ -221,6 +225,8 @@ def fake_game(taus, end=1.0333, consumes=False, blocks=True, step=0.005, lag=0.0
         while t < t_start + 1.2 + 0.5 - 1e-9 and t < n * 1.7 + 0.5:
             if pos["to"] is not None and t >= pos["when"]:
                 pos.update(at=pos["to"], to=None)
+            if k in fall and pos["at"][2] > reach:
+                pos["at"] = (0.0, round(pos["at"][1] - 0.05, 3), pos["at"][2])
             age = t - t_start
             in3000 = 0 <= age < 1.2
             if mode == "flag":
@@ -299,6 +305,70 @@ def test_end_gate_early_end_is_held_not_failed():
     # nothing late hits at all (end 0.95): same picture as a used-up attack → method not verified, nothing said
     r = V.timing_end(TAE, COMBAT, fake_game(TAUS, mode="warp", end=0.95))
     assert r["verdict"] == "방법 미검증" and r["controls"]["defer"][0] == 0
+
+
+def test_end_gate_fell_goes_off_and_is_excluded():
+    # B-11: the player drifted to where p_out had no floor; the gate now goes off as soon as the player sinks FALL_DY
+    lines = fake_game(TAUS, mode="warp", fall={2, 3})
+    offs = [x for x in lines if x.get("gate_why") == "fell"]
+    assert len(offs) == 2
+    r = V.timing_end(TAE, COMBAT, lines)
+    assert r["excluded"].get("fell") == 2, r["excluded"]
+    assert all("d_back" in x for x in r["rows"] if "warp_delay" in x)
+
+
+class _FakeTm:
+    """Just enough of DSRTelemetry for record3 / WarpAct: one hollow, the player warps where pos_warp says."""
+
+    class _Pm:
+        def read_bytes(self, addr, n):
+            return bytes(n)
+
+    def __init__(self):
+        self.pm, self.static, self.t = self._Pm(), {"ChrDbg": 0}, 0
+        self.player = SimpleNamespace(x=0.0, y=0.0, z=0.85, hp=700, heading=0.0)
+        self.foe = SimpleNamespace(ptr=1, npc_param=254010, anim=7000, dist=0.85, hp=100, team=6, x=0.0, z=0.0)
+        self.warps = []
+
+    def snapshot(self, within=25.0):
+        self.t += 1
+        self.foe.anim = 3000 if self.t % 300 >= 100 else 7000     # 3000 from read 100 to 299 of every 300
+        self.foe.dist = ((self.player.x - self.foe.x) ** 2 + (self.player.z - self.foe.z) ** 2) ** 0.5
+        return SimpleNamespace(player=self.player, chars=[self.foe])
+
+    def pos_warp(self, x, y, z, h):
+        self.warps.append((x, y, z))
+        self.player.x, self.player.y, self.player.z = x, y, z
+
+
+def test_record3_writes_every_read_while_gated(tmp_path):
+    # B-11: a warp alone changed no write key, so the return showed up only at the next 0.5 s heartbeat
+    tm = _FakeTm()
+    act = V.WarpAct(tm)
+    gate = V.EndGate(act, [0.0005], clock=lambda: 0.0)
+    out = tmp_path / "r.jsonl"
+    V.record3(tm, 0.3, out, {"probe": 4, "gate": "warp"}, gate=gate, max_lines=100_000)
+    lines = [json.loads(x) for x in out.read_text().splitlines()][1:-1]
+    i = next(j for j, x in enumerate(lines) if "gate_off" in x)
+    back = lines[i + 1]
+    assert abs(back["p"][2] - 0.85) < 1e-6           # the read right after the warp back is written
+    assert all(x["t"] >= lines[j - 1]["t"] for j, x in enumerate(lines) if j)
+
+
+def test_warp_rehome_between_gates():
+    tm = _FakeTm()
+    act = V.WarpAct(tm)
+    s = tm.snapshot()
+    tm.foe.x = 0.0
+    act(True, s, 1)
+    act(False, s, 1)
+    assert act.home[0] == (0.0, 0.0, 0.85)
+    tm.player.x = 2.0                                  # pushed 2 m between gates
+    assert act.rehome(s, 10.0) == {"home": [0.0, 0.0, 0.85]} and tm.player.x == 0.0
+    tm.player.x = 2.0
+    assert act.rehome(s, 10.5) == {}                   # at most one home warp per HOME_EVERY
+    tm.player.x = 0.3
+    assert act.rehome(s, 20.0) == {}                   # within HOME_R: left alone
 
 
 if __name__ == "__main__":
