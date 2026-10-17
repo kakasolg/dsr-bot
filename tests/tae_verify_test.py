@@ -326,7 +326,7 @@ class _FakeTm:
 
     def __init__(self):
         self.pm, self.static, self.t = self._Pm(), {"ChrDbg": 0}, 0
-        self.player = SimpleNamespace(x=0.0, y=0.0, z=0.85, hp=700, heading=0.0)
+        self.player = SimpleNamespace(x=0.0, y=0.0, z=0.85, hp=700, heading=0.0, anim=0)
         self.foe = SimpleNamespace(ptr=1, npc_param=254010, anim=7000, dist=0.85, hp=100, team=6, x=0.0, z=0.0)
         self.warps = []
 

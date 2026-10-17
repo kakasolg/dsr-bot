@@ -479,6 +479,10 @@ def precheck(lines: list[dict], secs: float, plan_secs: float, target: tuple = P
     return {"ok": all(c["ok"] for c in checks), "checks": checks, "header": head}
 
 
+def _r3(v):
+    return None if v is None else round(v, 3)
+
+
 def record3(tm, secs: float, out: Path, header: dict, within: float = ISO_R, heartbeat: float = 0.5,
             refill: tuple[int, int] | None = None, max_lines: int = MAX_LINES, say_every: float = 5.0, gate=None) -> dict:
     """[win]: like `probe`, plus each line's read bounds (`t0` start, `t` end, `pt0` previous read's start), the 16 CHR DBG
@@ -501,11 +505,13 @@ def record3(tm, secs: float, out: Path, header: dict, within: float = ISO_R, hea
                 dbg = tm.pm.read_bytes(tm.static["ChrDbg"], 16).hex()
                 t = time.perf_counter()
                 n += 1
-                foes = [{"ptr": c.ptr, "npc": c.npc_param, "anim": c.anim, "d": round(c.dist, 2)}
+                foes = [{"ptr": c.ptr, "npc": c.npc_param, "anim": c.anim, "d": round(c.dist, 2),
+                         "x": round(c.x, 3), "z": round(c.z, 3), "h": _r3(getattr(c, "heading", None))}
                         for c in s.chars if c.hp > 0 and c.team not in (0, 1)]
                 line = {"t0": round(t0, 5), "t": round(t, 5), "pt0": round(pt0 if pt0 is not None else t0, 5),
                         "hp": s.player.hp, "foes": foes, "dbg": dbg,
-                        "p": [round(s.player.x, 3), round(s.player.y, 3), round(s.player.z, 3)]}
+                        "p": [round(s.player.x, 3), round(s.player.y, 3), round(s.player.z, 3)],
+                        "pa": s.player.anim, "ph": _r3(s.player.heading), "cam": _r3(getattr(s, "cam_yaw", None))}
                 pt0 = t0
                 if refill and s.player.hp < refill[0]:
                     tm.set_hp(refill[1])

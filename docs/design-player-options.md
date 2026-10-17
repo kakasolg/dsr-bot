@@ -57,6 +57,27 @@ Question: with the bot's inputs fixed, do the options give **consistent, differe
   least one pair of options differs clearly. Fail = the same input gives scattered results → something not in state values matters.
 - Out of scope for the pilot: counter-attack success, shield, back-off, other anims, other foes.
 
+### Pilot tool — `options_pilot.py` (2026-10-17 [cloud]; built, fake-game tests only, not run in the game)
+
+- Options in turn, one per 3000: `stand` (control) · `circle_cw` · `circle_ccw` · `roll_cw`. τ = 0.6 s after the 3000's first read
+  (first read past it). Circles: stick along the tangent around the foe, re-aimed every read for 1.0 s. Roll: tangent stick + B, stick
+  let go after 0.15 s. No lock-on. **cw / ccw = clockwise / counter-clockwise seen from above in world x-z (x right, z up)** — which one
+  is "the foe's right" (MoKa's wording) is not assumed: each row's `turn` (player's angle moved around the foe, + = clockwise) shows it.
+- Lines (tae_verify `record3`, now also player anim `pa` / heading `ph`, camera `cam`, each foe's `x` `z` heading `h`): every read
+  from the 3000's start to 10 reads after; `rep` / `opt`, `pad` (input) / `pad_t`, `pad_stop`, `rep_end`, `home`.
+- After each 3000 the player is warped back to the first rep's spot (offline game-memory write) — try 2 of probe 4 drifted ~6 m.
+- `check`: probe 3's exclusions (isolation 25 m, start bound, run open, same-ID restart, refill, HP floor) + `no_input`,
+  `input_late` (> τ + 0.05 s), `no_stick`, `multi_hit_in_run`. Per rep: hit, damage, hit age, `d_hit`, `angle_hit` (foe front → player,
+  assumes the foe's heading has the player's convention), `foe_turn`, `turn`, `roll_seen`.
+- Verdict (rule **proposed**, MoKa may change): every option ≥ 16 valid; each option's two halves within 0.3 of each other (else
+  **흩어짐**); some pair at Fisher p < 0.01 → **상태값으로 갈림 (이 조건만)**; else 차이 없음. `stand` below 0.8 = setup not like probe 3 (reported).
+
+[win] steps (same spot as probe 3 / 4, hollow awake without hitting it, nothing else within 25 m, 4 m of flat floor around):
+1. `python options_pilot.py run 900 --refill 500 793` (~80 reps if the hollow uses 3000 as often as in probe 4; hands off the pad).
+   Short first if unsure: `run 120` and look at a few reps (did the circle / roll happen — `pa` 7xx, `turn`).
+2. `python options_pilot.py check <file> [more files]` — all output + the records committed. Hand-check a few reps against the lines.
+3. Not enough reps → run again and pool the files in one `check`.
+
 ## Step 2 — the table (only if step 1 passes)
 
 foe anim × option × τ (× distance band) → hit rate, damage, counter-attack landed (foe HP), what the foe did next. Then into
