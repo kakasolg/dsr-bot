@@ -86,7 +86,7 @@ needing the tick loop, route data, settings object or WorldState.
 - [~] overlay-borderless | win | doing | borderless overlay + bot: overlay visible, clicks pass through, bot keeps going | plan:overlay-borderless
 - [~] radar-upgrade | win | doing | radar upgrade check (navmesh drawn, pad slots, recording, `--replay`) | plan:radar-upgrade
 - [ ] radar-ai-ranges | win | todo | radar AI ranges (sight cone, hearing circle, leash) match the game | plan:radar-ai-ranges
-- [~] combat-table | win | doing | 3b: 3000 start passes (12/12); window end: probe 4 ready (no-hit flag on → off at τ, controls) → [win] `probe4` | docs/tae-verify.md · plan:combat-table
+- [~] combat-table | MoKa | decide | probe 4 not run: [win] killed the target hollow waking it; respawn or new spot? | docs/tae-verify.md · plan:combat-table
 
 ## 3. v2.0 (`docs/review-v2-2026-10-11.md`; go, done bar N/10 and order: MoKa)
 
