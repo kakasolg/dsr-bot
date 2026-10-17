@@ -78,6 +78,20 @@ Question: with the bot's inputs fixed, do the options give **consistent, differe
 2. `python options_pilot.py check <file> [more files]` — all output + the records committed. Hand-check a few reps against the lines.
 3. Not enough reps → run again and pool the files in one `check`.
 
+**[win] 2026-10-16 setup saved (MoKa: "준비만 하고 세이브 해 놔")** — `savepoint.py restore backup-20261016-234951-options-pilot-ready-A-only`:
+standing on the start spot (0.07, −10.02, −58.88), HP 793/793, estus 8, knives 90, last bonfire 1012961. Only hollow A
+(254010 at (−15.9, −13.4, −58.7), HP 75, asleep) is alive within 25 m. B, the stair hollow and the crossbowman are dead, and stay dead
+through the menu reload (checked). Steps taken: restored the 10-13 save (MoKa) → A was dead there too → byte quit-out revived all →
+killed the crossbowman and the stair hollow (each one swing beside it, PlayerNoDead on the whole time, P-87) → B woke and followed →
+killed it on the start spot. A has to be woken at run time without hitting it (B-11: whiffs at 3.5 m).
+[win] notes on the tool before the run (not fixed):
+- A 3000 that starts far away still counts as a rep. Probe 4 try 2's 3000 starts were 0.39–1.21 m, plus 4 of 35 at 1.73–1.75 m. `d_start` is
+  in each row, but no rule drops these reps yet.
+- Nothing guards against falls (probe 4 has `fell`). Circles and rolls move the player 2–3 m, and the floor ends east between x 4.3 and 5.4 → run with PlayerNoDead on
+  (the precheck allows it).
+- The home spot is the first rep's spot: fine if the run starts on the start spot (same issue as probe 4 try 2 otherwise).
+- 255040–42 on the wall (y +9.5, 20.6 m) were team 6 at one read and team 0 at others — they can break the 25 m isolation.
+
 ## Step 2 — the table (only if step 1 passes)
 
 foe anim × option × τ (× distance band) → hit rate, damage, counter-attack landed (foe HP), what the foe did next. Then into
