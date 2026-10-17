@@ -371,6 +371,17 @@ def test_warp_rehome_between_gates():
     assert act.rehome(s, 20.0) == {}                   # within HOME_R: left alone
 
 
+def test_warp_home_given_beats_first_gate():
+    # 10-16 [win]: try 2's first gate spot had no floor at its own p_out → home = the pre-tested start spot instead
+    tm = _FakeTm()
+    act = V.WarpAct(tm, home=(0.26, -10.02, -58.89))
+    s = tm.snapshot()
+    act(True, s, 1)
+    act(False, s, 1)
+    assert act.home == ((0.26, -10.02, -58.89), 0.0)    # the first gate does not replace it
+    assert act.rehome(s, 10.0) == {"home": [0.26, -10.02, -58.89]} and tm.warps[-1] == (0.26, -10.02, -58.89)
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

@@ -582,9 +582,11 @@ class WarpAct:
     """EndGate action for probe 4 try 2: on → remember the player's spot, warp OUT_D further along foe → player (same
     height, same heading); off → warp back. Returns the targets for the line (p_in, p_out). Game-memory write, offline only."""
 
-    def __init__(self, tm, out_d: float = OUT_D):
+    def __init__(self, tm, out_d: float = OUT_D, home: tuple | None = None):
+        # home: a spot whose floor reaches out_d all round (10-16 [win]: try 2's first gate spot x 2.51 fell at its own p_out,
+        # the floor ends east between x 4.26 and 5.37) — None = the first gate's spot
         self.tm, self.out_d, self.p_in, self.heading = tm, out_d, None, 0.0
-        self.home, self.home_t = None, -1e9
+        self.home, self.home_t = ((tuple(home[:3]), home[3] if len(home) > 3 else 0.0) if home else None), -1e9
 
     def __call__(self, on: bool, s, ptr) -> dict:
         if on:
@@ -853,7 +855,7 @@ def timing_end(tae: dict, combat: dict, lines: list[dict], anim: int = P3_ANIM, 
 
 
 def probe4(secs: float, pre: float, refill: tuple[int, int] | None, flag: str, taus: list, force: bool, max_lines: int,
-           mode: str = "warp", out_d: float = OUT_D) -> None:
+           mode: str = "warp", out_d: float = OUT_D, home: tuple | None = None) -> None:
     """[win]: (flag) read/write check → pre-record + precheck → the gated record. mode warp (default since try 1): warp out
     / back instead of the flag; the flag must stay off."""
     import dsr_telemetry
@@ -867,7 +869,7 @@ def probe4(secs: float, pre: float, refill: tuple[int, int] | None, flag: str, t
     stamp = time.strftime('%Y%m%d_%H%M%S')
     header = {"probe": 4, "gate": mode, "anim": P3_ANIM, "target": list(P3_TARGET), "iso_r": ISO_R, "refill": refill,
               "taus": taus, "age": "age_since_seen (play position not read)",
-              **({"gate_flag": flag, "gate_offset": off, "gate_rw": rw} if mode == "flag" else {"out_d": out_d})}
+              **({"gate_flag": flag, "gate_offset": off, "gate_rw": rw} if mode == "flag" else {"out_d": out_d, "home": list(home) if home else None})}
     pre_out = SAMPLES / f"{stamp}_tae-probe4-pre.jsonl"
     record3(tm, pre, pre_out, {**header, "pre": True}, refill=refill, max_lines=max_lines)
     pc = precheck([json.loads(l) for l in pre_out.read_text(encoding="utf-8").splitlines() if l.strip()],
@@ -881,7 +883,7 @@ def probe4(secs: float, pre: float, refill: tuple[int, int] | None, flag: str, t
         print(f"예비 점검 실패 — 본 기록 안 함 ({pre_out}).")
         return
     out = SAMPLES / f"{stamp}_tae-probe4.jsonl"
-    gate = EndGate((lambda on, _s, _p: tm.set_dbg(off, on)) if mode == "flag" else WarpAct(tm, out_d), taus)
+    gate = EndGate((lambda on, _s, _p: tm.set_dbg(off, on)) if mode == "flag" else WarpAct(tm, out_d, home), taus)
     r = record3(tm, secs, out, {**header, "precheck": pc["checks"], "forced": not pc["ok"]}, refill=refill,
                 max_lines=max_lines, gate=gate)
     print(f"읽기 {r['reads']}번, 기록 {r['written']}줄 ({r['stopped']}), 3000 게이트 {gate.k}번 → {out}\n"
@@ -907,6 +909,8 @@ def main() -> None:
     p.add_argument("--flag", default=P4_FLAG); p.add_argument("--force", action="store_true")
     p.add_argument("--taus", nargs="*", default=[("hold" if t is None else str(t)) for t in P4_TAUS])
     p.add_argument("--max-lines", type=int, default=MAX_LINES)
+    p.add_argument("--home", type=float, nargs="+", metavar="X Y Z [HEADING]",
+                   help="warp gate: spot to return to between gates (default: the first gate's spot)")
     p = sub.add_parser("check4"); p.add_argument("file", type=Path)
     p = sub.add_parser("dsas"); p.add_argument("file", type=Path, nargs="?", default=ROOT / "data" / "gamefiles" / "tae_check_c2540_dsas.json")
     a = ap.parse_args()
@@ -916,7 +920,8 @@ def main() -> None:
         return
     if a.cmd == "probe4":
         probe4(a.secs, a.pre, tuple(a.refill) if a.refill else None, a.flag,
-               [None if t == "hold" else float(t) for t in a.taus], a.force, a.max_lines, a.gate, a.out)
+               [None if t == "hold" else float(t) for t in a.taus], a.force, a.max_lines, a.gate, a.out,
+               tuple(a.home) if a.home else None)
         return
     if a.cmd == "probe3":
         probe3(a.secs, a.pre, tuple(a.refill) if a.refill else None, set(a.allow), a.force, a.max_lines)
