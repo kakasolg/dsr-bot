@@ -22,6 +22,14 @@
 - `tests/roadmap_test.py` (= `python roadmap.py check`) fails on a malformed line, ROADMAP.md over 20 KB, or a P-number
   without exactly one index row.
 
+## How to state results (MoKa 2026-10-16)
+In reports, summaries, ROADMAP lines and commit messages, say exactly what was built and how far it is verified — no
+more. Separate "extracted / built" from "verified (by what: parser · independent tool · runtime)" from "still being
+verified", and name the scope ("some", "melee only", "c2540 only"). Don't write "works", "confirmed" or "done" for a
+pipeline whose output hasn't passed the check that matters. MoKa's model wording:
+> 적의 기본 능력치·공격 파라미터·일부 공격 이벤트 시간과 AI 스크립트를 추출하는 파이프라인을 구축했다. 근접 공격 이벤트는 독립 파서 대조를
+> 통과했지만, 실제 공격 선택·피격 타이밍·피해량으로 연결되는 과정은 아직 검증 중이다.
+
 ## Board
 - [win], [MoKa] and Mac Claude use the private MCP board (`maswarm-watchlist`, `board_*`). **[cloud] cannot reach it**
   (network allow-list / env not set, checked 2026-09-29), so [cloud] talks only through repo files and commit messages.
