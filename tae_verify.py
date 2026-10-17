@@ -15,6 +15,9 @@
                                                     and its TAE active window
   python tae_verify.py probe3 [secs] [--refill 150 793]  probe 3, [win]: c2540 3000 only, one isolated hollow — short
                                                     pre-record + automatic pre-check, then the real record
+  python tae_verify.py probe4 [secs] --refill 400 793   probe 4, [win]: the END of 3000's window — a no-hit flag on at the
+                                                    3000's start, off at a planned age τ (controls in the same record)
+  python tae_verify.py check4 <probe4.jsonl>        probe 4, offline: controls, end bracket vs the TAE end
   python tae_verify.py check3 <probe3.jsonl> [--anim 3001]  probe 3, offline: samples, valid, exclusion reasons, match / mismatch
 
 Names: TAE times are the "active window" (`active_start` / `active_end`, when the attack behavior runs). The time the
@@ -476,44 +479,50 @@ def precheck(lines: list[dict], secs: float, plan_secs: float, target: tuple = P
 
 
 def record3(tm, secs: float, out: Path, header: dict, within: float = ISO_R, heartbeat: float = 0.5,
-            refill: tuple[int, int] | None = None, max_lines: int = MAX_LINES, say_every: float = 5.0) -> dict:
+            refill: tuple[int, int] | None = None, max_lines: int = MAX_LINES, say_every: float = 5.0, gate=None) -> dict:
     """[win]: like `probe`, plus each line's read bounds (`t0` start, `t` end, `pt0` previous read's start), the 16 CHR DBG
     bytes (`dbg`, hex), and the HP refill this recorder did itself (`refill`: the value written after this read).
-    Writes on HP / foe anim / flag change + heartbeat; stops at max_lines. Writes nothing but HP (refill, offline)."""
+    Writes on HP / foe anim / flag change + heartbeat; stops at max_lines. Writes nothing but HP (refill, offline) —
+    and, with `gate` (probe 4, `EndGate`), one CHR DBG flag; the gate is always switched off at the end."""
     n = written = 0
     last_key, last_write, last_say, pt0 = None, 0.0, 0.0, None
     t_end = time.perf_counter() + secs
     stopped = "secs"
     with out.open("w", encoding="utf-8") as fh:
-        fh.write(json.dumps({"kind": "header", **header}) + "\n")
-        while time.perf_counter() < t_end:
-            t0 = time.perf_counter()
-            s = tm.snapshot(within=within)
-            if s is None:
-                continue
-            dbg = tm.pm.read_bytes(tm.static["ChrDbg"], 16).hex()
-            t = time.perf_counter()
-            n += 1
-            foes = [{"ptr": c.ptr, "npc": c.npc_param, "anim": c.anim, "d": round(c.dist, 2)}
-                    for c in s.chars if c.hp > 0 and c.team not in (0, 1)]
-            line = {"t0": round(t0, 5), "t": round(t, 5), "pt0": round(pt0 if pt0 is not None else t0, 5),
-                    "hp": s.player.hp, "foes": foes, "dbg": dbg}
-            pt0 = t0
-            if refill and s.player.hp < refill[0]:
-                tm.set_hp(refill[1])
-                line["refill"] = refill[1]
-            key = (frame_key(s.player.hp, foes), dbg)
-            if key != last_key or t - last_write >= heartbeat or "refill" in line:
-                fh.write(json.dumps(line) + "\n")
-                written += 1
-                last_key, last_write = key, t
-                if written >= max_lines:
-                    stopped = "max_lines"
-                    break
-            if t - last_say >= say_every:
-                print(f"hp {s.player.hp}  " + "  ".join(f"{f['npc']}:{f['anim']}@{f['d']}m" for f in foes[:4]), flush=True)
-                last_say = t
-        fh.write(json.dumps({"kind": "end", "reads": n, "written": written, "stopped": stopped}) + "\n")
+        try:
+            fh.write(json.dumps({"kind": "header", **header}) + "\n")
+            while time.perf_counter() < t_end:
+                t0 = time.perf_counter()
+                s = tm.snapshot(within=within)
+                if s is None:
+                    continue
+                dbg = tm.pm.read_bytes(tm.static["ChrDbg"], 16).hex()
+                t = time.perf_counter()
+                n += 1
+                foes = [{"ptr": c.ptr, "npc": c.npc_param, "anim": c.anim, "d": round(c.dist, 2)}
+                        for c in s.chars if c.hp > 0 and c.team not in (0, 1)]
+                line = {"t0": round(t0, 5), "t": round(t, 5), "pt0": round(pt0 if pt0 is not None else t0, 5),
+                        "hp": s.player.hp, "foes": foes, "dbg": dbg}
+                pt0 = t0
+                if refill and s.player.hp < refill[0]:
+                    tm.set_hp(refill[1])
+                    line["refill"] = refill[1]
+                event = gate(t, foes, line) if gate else False
+                key = (frame_key(s.player.hp, foes), dbg)
+                if key != last_key or t - last_write >= heartbeat or "refill" in line or event:
+                    fh.write(json.dumps(line) + "\n")
+                    written += 1
+                    last_key, last_write = key, t
+                    if written >= max_lines:
+                        stopped = "max_lines"
+                        break
+                if t - last_say >= say_every:
+                    print(f"hp {s.player.hp}  " + "  ".join(f"{f['npc']}:{f['anim']}@{f['d']}m" for f in foes[:4]), flush=True)
+                    last_say = t
+        finally:
+            if gate:
+                gate.close()
+            fh.write(json.dumps({"kind": "end", "reads": n, "written": written, "stopped": stopped}) + "\n")
     return {"reads": n, "written": written, "stopped": stopped}
 
 
@@ -539,6 +548,223 @@ def probe3(secs: float, pre: float, refill: tuple[int, int] | None, allow: set, 
     print(f"읽기 {r['reads']}번, 기록 {r['written']}줄 ({r['stopped']}) → {out}\n다음: python tae_verify.py check3 {out}")
 
 
+# ── level 3b, probe 4: the END of 3000's active window (docs/tae-verify.md B-7, MoKa 10-17 "구간 끝 실험부터") ──
+# Standing, the hit lands as soon as the window opens (probe 3: age 0.89–0.92), so the end is never reached. Here a CHR DBG
+# flag that should make the player unhittable is switched ON when the target's 3000 is first seen and OFF at a planned
+# age τ: released while the window is still live → hit right after τ; released after it closed → no hit in that 3000.
+# The flag's effect is not assumed from its name — the same record carries controls that must come out right first:
+#   hold   (never released inside the 3000)          → no hit: the flag blocks hits
+#   early  (released before the window opens, 0.5)  → hit as in probe 3: switching it off restores normal hits
+#   defer  (a release ≥ 2 frames after the window opens that still gets a hit) → the flag defers the hit, does not use it up
+P4_TAUS = (0.5, None, 0.90, 0.97, 1.00, 1.02, 1.04, 1.06, 1.10)   # None = hold
+P4_FLAG = "AllNoHit"
+QUANT = 1 / 60          # game frame (60 fps): hit and miss releases may overlap by this much and still count as consistent
+
+
+def dbg_offset(name: str) -> int:
+    return {v: k for k, v in dbg_names().items()}[name]
+
+
+class EndGate:
+    """record3 hook: flag on at the target's first read in `anim` (after a read in another anim), off at that read's
+    end + τ (first read past it) or when the run ends. Marks lines with gate_on / gate_off (write times), tau, gate_why."""
+
+    def __init__(self, set_flag, taus=P4_TAUS, anim=P3_ANIM, target=P3_TARGET, iso_r=ISO_R, clock=time.perf_counter):
+        self.set_flag, self.taus, self.anim, self.target, self.iso_r, self.clock = set_flag, list(taus), anim, target, iso_r, clock
+        self.k, self.on, self.ptr, self.release_at, self.prev = 0, False, None, None, {}
+
+    def _switch(self, on: bool) -> float:
+        self.set_flag(on)
+        self.on = on
+        return round(self.clock(), 5)
+
+    def __call__(self, t: float, foes: list[dict], line: dict) -> bool:
+        tg = [f for f in foes if f["npc"] in self.target and f["d"] <= self.iso_r]
+        f = tg[0] if len(tg) == 1 else None
+        event = False
+        if self.on:
+            mine = next((x for x in foes if x["ptr"] == self.ptr), None)
+            if mine is None or mine["anim"] != self.anim:
+                line.update(gate_off=self._switch(False), gate_why="run_end")
+                self.release_at, event = None, True
+            elif self.release_at is not None and t >= self.release_at:
+                line.update(gate_off=self._switch(False), gate_why="tau")
+                self.release_at, event = None, True
+        if (f is not None and f["anim"] == self.anim and self.prev.get(f["ptr"], self.anim) != self.anim
+                and not self.on and "gate_off" not in line):
+            tau = self.taus[self.k % len(self.taus)]
+            self.k += 1
+            line.update(gate_on=self._switch(True), tau=tau)
+            self.ptr, self.release_at, event = f["ptr"], (t + tau if tau is not None else None), True
+        self.prev = {x["ptr"]: x["anim"] for x in foes}
+        return event
+
+    def close(self) -> None:
+        self._switch(False)
+
+
+def _drops(frames: list[dict]) -> list[tuple[int, int]]:
+    """(frame index, HP lost) of every HP drop, against the previous line's HP or the refill written after it."""
+    out, base = [], None
+    for i, fr in enumerate(frames):
+        if base is not None and fr["hp"] < base:
+            out.append((i, base - fr["hp"]))
+        base = fr.get("refill", fr["hp"])
+    return out
+
+
+def timing_end(tae: dict, combat: dict, lines: list[dict], anim: int = P3_ANIM, target: tuple = P3_TARGET,
+               iso_r: float = ISO_R, tol: float = TOL) -> dict:
+    """One instance per gated run. Excluded (reason kept): not isolated in any read of the run, start not seen / bound >
+    MAX_GAP, run open, possible same-ID restart, refill or HP floor in the run, more than one drop, a drop in the read
+    where the run ends, the flag read back (`dbg`) not on between gate_on and gate_off, gate_off later than MAX_GAP past
+    its plan. Then: hold / early controls, the defer check, and the end bracket = (latest release age that still got a
+    hit, earliest that did not) against the TAE window end ± tol."""
+    head, frames = _frames(lines)
+    flag = head.get("gate_flag", P4_FLAG)
+    off = dbg_offset(flag)
+    models = npc_models(combat)
+    w = [(ev["start"], ev["end"]) for ev in windows(tae["models"][models[target[0]]]["animations"], anim, (1,))]
+    start, end = w[0][0], w[-1][1]
+    runs = anim_runs(frames)
+    closed = [r for rs in runs.values() for r in rs if r["anim"] == anim and r["start"] and r["end"]]
+    lens = sorted((r["end"][0] + r["end"][1] - r["start"][0] - r["start"][1]) / 2 for r in closed)
+    median = lens[len(lens) // 2] if lens else None
+    drops = _drops(frames)
+    inst = []
+    for i, fr in enumerate(frames):
+        if "gate_on" not in fr:
+            continue
+        tg = _near(fr, iso_r, target)[0]
+        ptr = tg[0]["ptr"] if len(tg) == 1 else None
+        r = _run_at(runs.get(ptr, []), i) if ptr else None
+        row = {"t": fr["t"], "tau": fr.get("tau"), "kind": "hold" if fr.get("tau") is None else
+               "early" if fr["tau"] < start - tol else "sweep"}
+        why = []
+        if r is None or r["start"] is None:
+            why.append("start_unseen")
+            row["reasons"] = why
+            inst.append(row)
+            continue
+        i1 = r["i1"] if r["i1"] is not None else len(frames)
+        seg = frames[r["i0"]:i1]
+        row.update(start_obs=[round(r["start"][0], 4), round(r["start"][1], 4)])
+        if r["start"][1] - r["start"][0] > MAX_GAP:
+            why.append("start_gap")
+        if any(len(_near(s, iso_r, target)[0]) != 1 or _near(s, iso_r, target)[1] for s in seg):
+            why.append("not_isolated")
+        if r["end"] is None:
+            why.append("run_open")
+        else:
+            ln = (r["end"][0] + r["end"][1] - r["start"][0] - r["start"][1]) / 2
+            row["run_len"] = round(ln, 4)
+            if median is None or len(lens) < 3:
+                why.append("restart_unchecked")
+            elif ln > RESTART_FACTOR * median:
+                why.append("restart_possible")
+        if any("refill" in s for s in seg):
+            why.append("refill_in_run")
+        if any(s["hp"] <= 1 for s in seg):
+            why.append("hp_floor_in_run")
+        hs = [(j, lost) for j, lost in drops if r["i0"] < j < i1]
+        if len(hs) > 1:
+            why.append("multi_hit_in_run")
+        if any(j == i1 for j, _ in drops) and r["i1"] is not None:
+            why.append("hit_at_run_end")
+        rel = next(((j, s) for j, s in enumerate(seg) if "gate_off" in s), None)
+        if rel is None and r["i1"] is not None and "gate_off" in frames[r["i1"]]:
+            rel = (len(seg), frames[r["i1"]])
+        on_until = rel[0] if rel else len(seg)
+        if any(not bytes.fromhex(s["dbg"])[off] for s in seg[1:on_until] if s.get("dbg")):
+            why.append("flag_not_on")
+        if rel is not None and rel[1].get("gate_why") == "tau":
+            tw = rel[1]["gate_off"]
+            row["release_age"] = [round(tw - r["start"][1], 4), round(tw - r["start"][0], 4)]
+            if tw - (fr["t"] + row["tau"]) > MAX_GAP:
+                why.append("release_late")
+        elif row["kind"] != "hold":
+            why.append("not_released")
+        leak = [j for j, _ in hs if rel is None or j <= r["i0"] + rel[0]]   # dropped while the flag was still on
+        if leak:
+            row["leak"] = True
+        if len(hs) == 1:
+            j, lost = hs[0]
+            lo, hi = _bounds(frames[j - 1], frames[j])
+            row.update(hit=True, lost=lost, hit_age=[round(lo - r["start"][1], 4), round(hi - r["start"][0], 4)])
+            if "release_age" in row:
+                row["lag"] = round((lo + hi) / 2 - rel[1]["gate_off"], 4)
+        else:
+            row["hit"] = bool(hs)
+        row["reasons"] = why
+        inst.append(row)
+    ok = [x for x in inst if not x["reasons"]]
+    by = lambda k: [x for x in ok if x["kind"] == k]
+    hold, early, sweep = by("hold"), by("early"), by("sweep")
+    leaks = sum(1 for x in inst if x.get("leak"))     # counted over every instance, excluded or not
+    controls = {"leaks": leaks, "hold_no_hit": [sum(not x["hit"] for x in hold), len(hold)],
+                "early_hit": [sum(x["hit"] for x in early), len(early)],
+                "defer": [sum(x["hit"] for x in sweep if x["release_age"][0] >= start + 2 * TOL), sum(1 for x in sweep if x["release_age"][0] >= start + 2 * TOL)]}
+    valid_method = (not leaks and len(hold) >= 2 and all(not x["hit"] for x in hold) and len(early) >= 2 and all(x["hit"] for x in early)
+                    and controls["defer"][0] >= 1)
+    hit_rel = [x["release_age"][1] for x in sweep if x["hit"] and not x.get("leak")]
+    miss_rel = [x["release_age"][0] for x in sweep if not x["hit"]]
+    bracket = [round(max(hit_rel), 4) if hit_rel else None, round(min(miss_rel), 4) if miss_rel else None]
+    consistent = None if None in bracket else bracket[0] - bracket[1] <= QUANT
+    if not valid_method:
+        verdict = "방법 미검증" if (hold and early) else "표본 부족"
+    elif (bracket[0] is not None and bracket[0] > end + tol + QUANT) or (bracket[1] is not None and bracket[1] < end - tol):
+        verdict = "불일치"            # one side alone already lies outside the TAE end ± tol
+    elif None in bracket:
+        verdict = "표본 부족"
+    elif not consistent:
+        verdict = "겹침"
+    else:
+        verdict = "통과" if end - tol <= bracket[0] and bracket[1] <= end + tol + QUANT else "불일치"
+    excluded: dict[str, int] = {}
+    for x in inst:
+        if x["reasons"]:
+            excluded[x["reasons"][0]] = excluded.get(x["reasons"][0], 0) + 1
+    lags = sorted(x["lag"] for x in sweep if x.get("lag") is not None)
+    return {"anim": anim, "windows": w, "tae_end": end, "tol": round(tol, 4), "flag": flag,
+            "age": "age_since_seen (play position not read)", "instances": len(inst), "valid": len(ok), "excluded": excluded,
+            "controls": controls, "method_valid": valid_method, "end_bracket": bracket, "consistent": consistent,
+            "lag_after_release": {"median": lags[len(lags) // 2], "max": lags[-1]} if lags else None,
+            "per_tau": {str(t): [sum(x["hit"] for x in ok if x["tau"] == t), sum(1 for x in ok if x["tau"] == t)]
+                        for t in sorted({x["tau"] for x in ok}, key=lambda v: -1 if v is None else v)},
+            "verdict": verdict, "header": head, "rows": inst}
+
+
+def probe4(secs: float, pre: float, refill: tuple[int, int] | None, flag: str, taus: list, force: bool, max_lines: int) -> None:
+    """[win]: flag read/write check → pre-record + precheck (flag off) → the gated record."""
+    import dsr_telemetry
+    tm = dsr_telemetry.DSRTelemetry({})
+    off = dbg_offset(flag)
+    rw = []
+    for v in (True, False):
+        tm.set_dbg(off, v)
+        rw.append(tm.get_dbg(off))
+    stamp = time.strftime('%Y%m%d_%H%M%S')
+    header = {"probe": 4, "anim": P3_ANIM, "target": list(P3_TARGET), "iso_r": ISO_R, "refill": refill, "gate_flag": flag,
+              "gate_offset": off, "gate_rw": rw, "taus": taus, "age": "age_since_seen (play position not read)"}
+    pre_out = SAMPLES / f"{stamp}_tae-probe4-pre.jsonl"
+    record3(tm, pre, pre_out, {**header, "pre": True}, refill=refill, max_lines=max_lines)
+    pc = precheck([json.loads(l) for l in pre_out.read_text(encoding="utf-8").splitlines() if l.strip()],
+                  pre, secs, max_lines=max_lines)
+    pc["checks"].append({"check": "gate_rw", "ok": rw == [1, 0], "detail": f"{flag} write on/off → read back {rw} (want [1, 0])"})
+    pc["ok"] = all(c["ok"] for c in pc["checks"])
+    for c in pc["checks"]:
+        print(f"  {'OK ' if c['ok'] else 'FAIL'} {c['check']:13} {c['detail']}")
+    if not pc["ok"] and not force:
+        print(f"예비 점검 실패 — 본 기록 안 함 ({pre_out}).")
+        return
+    out = SAMPLES / f"{stamp}_tae-probe4.jsonl"
+    gate = EndGate(lambda on: tm.set_dbg(off, on), taus)
+    r = record3(tm, secs, out, {**header, "precheck": pc["checks"], "forced": not pc["ok"]}, refill=refill,
+                max_lines=max_lines, gate=gate)
+    print(f"읽기 {r['reads']}번, 기록 {r['written']}줄 ({r['stopped']}), 3000 게이트 {gate.k}번 → {out}\n"
+          f"다음: python tae_verify.py check4 {out}")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -552,11 +778,21 @@ def main() -> None:
     p.add_argument("--max-lines", type=int, default=MAX_LINES)
     p = sub.add_parser("check3"); p.add_argument("file", type=Path); p.add_argument("--pre", action="store_true")
     p.add_argument("--anim", type=int, default=P3_ANIM)
+    p = sub.add_parser("probe4"); p.add_argument("secs", nargs="?", type=float, default=300.0)
+    p.add_argument("--pre", type=float, default=5.0); p.add_argument("--refill", type=int, nargs=2, metavar=("BELOW", "TO"))
+    p.add_argument("--flag", default=P4_FLAG); p.add_argument("--force", action="store_true")
+    p.add_argument("--taus", nargs="*", default=[("hold" if t is None else str(t)) for t in P4_TAUS])
+    p.add_argument("--max-lines", type=int, default=MAX_LINES)
+    p = sub.add_parser("check4"); p.add_argument("file", type=Path)
     p = sub.add_parser("dsas"); p.add_argument("file", type=Path, nargs="?", default=ROOT / "data" / "gamefiles" / "tae_check_c2540_dsas.json")
     a = ap.parse_args()
     if a.cmd == "probe":
         out = SAMPLES / f"{time.strftime('%Y%m%d_%H%M%S')}_tae-probe.jsonl"
         probe(a.secs, out)
+        return
+    if a.cmd == "probe4":
+        probe4(a.secs, a.pre, tuple(a.refill) if a.refill else None, a.flag,
+               [None if t == "hold" else float(t) for t in a.taus], a.force, a.max_lines)
         return
     if a.cmd == "probe3":
         probe3(a.secs, a.pre, tuple(a.refill) if a.refill else None, set(a.allow), a.force, a.max_lines)
@@ -592,6 +828,14 @@ def main() -> None:
         print(json.dumps({k: v for k, v in r.items() if not k.startswith("rows_")}, ensure_ascii=False, indent=1))
         print(f"{r['anim']}: {r['verdict']} — 표본 {r['samples']}, 유효 {r['valid']} (일치 {r['match']} · 불일치 {r['mismatch']}), "
               f"제외 {r['excluded']}")
+    elif a.cmd == "check4":
+        lines = [json.loads(l) for l in a.file.read_text(encoding="utf-8").splitlines() if l.strip()]
+        r = timing_end(tae, combat, lines)
+        for x in r["rows"]:
+            print(" ", x)
+        print(json.dumps({k: v for k, v in r.items() if k != "rows"}, ensure_ascii=False, indent=1))
+        print(f"{r['anim']} 구간 끝: {r['verdict']} — 게이트 {r['instances']}, 유효 {r['valid']}, 제외 {r['excluded']}, "
+              f"대조 {r['controls']}, 끝 괄호 {r['end_bracket']} (TAE {r['tae_end']} ± {r['tol']})")
 
 
 if __name__ == "__main__":

@@ -192,6 +192,63 @@ def test_anim_runs_restart_after_leaving():
     assert [(r["start"], r["end"]) for r in runs] == [(None, None), (None, None)]   # gone then back: neither end is seen
 
 
+# ── probe 4 (end of 3000's window): the real EndGate against a small fake game ──
+def fake_game(taus, end=1.0333, consumes=False, blocks=True, step=0.005, lag=0.017):
+    """Hollow 254010 loops 7000 (0.5 s) → 3000 (1.2 s). The 3000's hitbox is live on [0.8667, end]; the player is hit at
+    the first game moment in it when the flag is off (seen `lag` after it is written). consumes: a hit blocked by the flag
+    uses the attack up. blocks=False: the flag does nothing."""
+    flag = {"on": False, "since": -9.0}
+    clock = {"t": 0.0}
+    gate = V.EndGate(lambda on: flag.update(on=on, since=clock["t"]), taus, clock=lambda: clock["t"])
+    lines, hp, t, pt0, n = [{"kind": "header", "probe": 4, "gate_flag": "AllNoHit"}], 700, 0.0, None, len(taus)
+    for k in range(n):
+        t_start = k * 1.7 + 0.5
+        used = False
+        while t < t_start + 1.2 + 0.5 - 1e-9 and t < n * 1.7 + 0.5:
+            age = t - t_start
+            in3000 = 0 <= age < 1.2
+            off_seen = (not flag["on"]) and t - flag["since"] >= lag
+            if in3000 and not used and 0.8667 <= age <= end:
+                if off_seen or not blocks:
+                    hp -= 45
+                    used = True
+                elif consumes:
+                    used = True
+            clock["t"] = t
+            line = {"t0": round(t - 0.001, 5), "t": round(t, 5), "pt0": round(pt0 if pt0 is not None else t - 0.001, 5),
+                    "hp": hp, "dbg": ("0" * 20 + ("01" if flag["on"] else "00") + "0" * 10),
+                    "foes": [{"ptr": 1, "npc": 254010, "anim": 3000 if in3000 else 7000, "d": 0.85}]}
+            pt0 = t - 0.001
+            gate(t, line["foes"], line)
+            lines.append(line)
+            t = round(t + step, 6)
+    gate.close()
+    return lines
+
+
+TAUS = [0.5, None, 0.90, 0.97, 1.00, 1.02, 1.04, 1.06, 1.10] * 3
+
+
+def test_end_gate_pass_on_tae_end():
+    r = V.timing_end(TAE, COMBAT, fake_game(TAUS))
+    assert r["method_valid"] and r["controls"]["leaks"] == 0, r["controls"]
+    assert r["controls"]["hold_no_hit"] == [3, 3] and r["controls"]["early_hit"] == [3, 3]
+    # the game sees the release 17 ms late: 1.00 still hits, 1.02 (seen at 1.037 > 1.0333) does not — the bracket is on
+    # release time, so it sits up to one game frame before the true end
+    assert r["per_tau"]["1.0"] == [3, 3] and r["per_tau"]["1.02"] == [0, 3], r["per_tau"]
+    assert r["verdict"] == "통과" and 1.0 <= r["end_bracket"][0] < r["end_bracket"][1] <= 1.03, r["end_bracket"]
+    assert 0.017 <= r["lag_after_release"]["median"] <= 0.03
+
+
+def test_end_gate_other_end_and_broken_flags():
+    r = V.timing_end(TAE, COMBAT, fake_game(TAUS, end=1.15))           # window really ends later than the TAE says
+    assert r["verdict"] == "불일치" and r["end_bracket"][0] > 1.06, r["end_bracket"]
+    r = V.timing_end(TAE, COMBAT, fake_game(TAUS, consumes=True))      # flag uses the hit up: no defer
+    assert not r["method_valid"] and r["controls"]["defer"][0] == 0 and r["verdict"] == "방법 미검증"
+    r = V.timing_end(TAE, COMBAT, fake_game(TAUS, blocks=False))       # flag does nothing: hits while on
+    assert not r["method_valid"] and r["controls"]["leaks"] > 0 and r["verdict"] == "방법 미검증"
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):
