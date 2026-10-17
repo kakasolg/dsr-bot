@@ -86,8 +86,8 @@ needing the tick loop, route data, settings object or WorldState.
 - [~] overlay-borderless | win | doing | borderless overlay + bot: overlay visible, clicks pass through, bot keeps going | plan:overlay-borderless
 - [~] radar-upgrade | win | doing | radar upgrade check (navmesh drawn, pad slots, recording, `--replay`) | plan:radar-upgrade
 - [ ] radar-ai-ranges | win | todo | radar AI ranges (sight cone, hearing circle, leash) match the game | plan:radar-ai-ranges
-- [~] combat-table | win | doing | probe4: setup died P-87 | docs/tae-verify.md
-- [ ] player-options | cloud | todo | 5 options: pilot | docs/design-player-options.md
+- [ ] combat-table | MoKa | parked | 3000 start ok, end not | docs/tae-verify.md
+- [~] player-options | win | verify | pilot → [win] run | docs/design-player-options.md
 
 ## 3. v2.0 (`docs/review-v2-2026-10-11.md`; go, done bar N/10 and order: MoKa)
 
@@ -149,7 +149,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 51 | `burg-upper` zone 3 (5,−92): hit twice while backing off the edge after backstabs, −181 | open |
 | 53 | `burg-upper` zone 1 (−1.9,−14,−70): fell 4 m right after a hit, quit-out recovered | verify — sprint overshot a corner over a drop; now jogs into such corners (`nav.brake_points`) |
 | 55 | `passage-drill`: the bonfire warp revives the ramp foes → died on the way to the top | open (A/B moved to seg 1-2) |
-| 87 | probe prep: fell off stairs | open |
+| 87 | probe prep: fell, died | open |
 | 56 | Ramp ledge (−20,−39,14), `--ground` on: 254002 + axe 254001 swinging together, died (no fall) | verify — + 'ranged first' no longer turns to the axe hollow / away from a foe < 2 m |
 | 57 | Passage start (−20,−39.3,14.4): 1.5 s stall + retry, AGAIN 10-11 4/15 runs | verify — path-finds first |
 | 58 | Ramp ledge (−22,−44,15) in a fight: fell 4.4 m, quit-out, walk-back timed out, died (`--ground` round 2 on #3) | verify — `rule_footing` (`--footing`, off by default), A/B |
