@@ -14,6 +14,8 @@ ROADMAP `rea-anim-time`. 1 · 2차 시험 기록(설치, 덤프, 시험 B 5/5)�
 3. **이 문서가 원장.** Windows Ghidra P0는 Ghidra DB에 이름 · 주석을 저장하지 못한다. 함수 주소 · 오프셋 · Evidence ID는 아래 "원장"에.
 - 못 하는 것: 게임 데이터 파일(TAE 등 — `unsupported binary format`, TAE는 `tae_extract.py`). Frida는 REA 문서상 검증이 Linux만, Windows 미확인 ·
   게임 프로세스에 코드를 넣는 일이라 쓰려면 MoKa 결정. Cheat Engine "쓰는 코드 찾기"도 디버거를 붙이므로 같음.
+- **남이 이미 역분석한 것부터 찾는다.** DSR은 DS1 Overhaul(`OverhaulDLL/include/PlayerInsStruct.h`: ChrIns · ChrCtrl · 애니 큐 · HitIns 오프셋),
+  DSR-Gadget(우리 포인터 맵의 출처), SoulMemory/SoulSplitter(이벤트 플래그)가 있다. 거기서 닻을 얻고, REA는 그 뜻을 확인하는 데 쓴다.
 - 결과는 CLAUDE.md "How to state results"대로: 후보 / 정적으로 읽음(Evidence ID) / 게임에서 확인(n/n)을 나눠 적는다.
 
 ## 원장 (찾은 것)
@@ -23,63 +25,102 @@ ROADMAP `rea-anim-time`. 1 · 2차 시험 기록(설치, 덤프, 시험 B 5/5)�
 | ChrDbg 플래그 배열 16바이트 이름 | `0x141c77e59` +0x0…+0xF | 게임 디버그 메뉴 `CHR DBG` 이름표 (rea-trial 2차 표) | 정적으로 읽음, 15개 `dsr_telemetry.DBG_*`; +0xA AllNoHit 효과는 tae-verify probe 4 |
 | CHR DBG 메뉴를 만드는 함수 | `0x1403744xx`–`0x1403748xx` | 2차 decompile | 정적으로 읽음 |
 | AllNoDamage(+0x9)를 읽는 곳 | `FUN_140322925` | 2차 xrefs | 정적으로 읽음 — 피해 계산식(시험 C)의 출발점 후보 |
-| 애니 재생 시간 | ? | 3차 | 아직 |
+| 애니 재생 시간 | 후보: `[ChrIns+0x68]+0x18` → 엔트리 `+0x8` → `hkaDefaultAnimationControl +0x10` | Overhaul 경로 + Havok 배치(추론) | 아직 — 3차 |
 
-## 3차 지시문 — 애니 재생 시간 필드, MCP 세션으로 ([cloud] 2026-10-19, MoKa: "애니 재생 시간 필드부터 MCP 세션 방식으로")
+## 3차 지시문 — 애니 재생 시간 필드, Overhaul 구조체 경로를 닻으로 ([cloud] 2026-10-19 개정)
+
+MoKa: "애니 재생 시간 필드부터 MCP 세션 방식으로" → "Overhaul의 ChrCtrl→AnimationQueue→hkaDefaultAnimationControl 경로를 기준점으로".
 
 목적: `docs/design-player-options.md` "Known blind spots" 1 — **같은 ID 재시작**. 지금은 애니 ID(`[ChrIns+0x68]+0x48 → +0x80`)만 읽어서,
 할로우가 3000을 두 번 이어 휘두르면 하나로 보이고 `restart_possible`로 버린다(probe 3 · options pilot에서 7/100). 게임이 들고 있는
 **애니 재생 시간**을 읽으면 두 번째 3000이 보이고 "age"가 게임 자신의 값이 된다.
 
-방법은 위 "쓰는 법" 1–3 그대로 (MCP 세션 · 런타임 닻 · 이 문서의 원장). Frida · Cheat Engine은 쓰지 않는다. 찾은 것은 "원장" 표에도 한 줄.
+### 닻: DS1 Overhaul의 DSR 구조체 (읽기만, 코드는 가져오지 않음)
+
+출처: [metal-crow/Dark-Souls-1-Overhaul](https://github.com/metal-crow/Dark-Souls-1-Overhaul) `OverhaulDLL/include/PlayerInsStruct.h`
+(그 파일의 마지막 커밋 `1c900fdf9a`, 2026-04-01). DSR용 PvP 모드가 롤백 넷코드를 위해 캐릭터 상태를 통째로 복사하려고 적어 둔 구조체로,
+`static_assert`로 오프셋이 고정돼 있다. 저장소 라이선스가 명시돼 있지 않으니(GitHub `NOASSERTION`) **코드를 복사하지 않고** 오프셋 사실만 쓴다.
+이 구조체는 어디를 **복사할지**만 적었지 필드 이름은 거의 없다(`data_0[16]` 같은 덩어리) — 시간 필드는 거기 이름으로 적혀 있지 않다.
+
+우리 체인과 맞대 본 것 ([cloud], 문서끼리만 대조함 — 게임에선 아직):
+
+| Overhaul | 오프셋 | 우리 쪽 (`dsr_telemetry.py` 머리말) |
+|---|---|---|
+| `ChrIns.playerCtrl` → `ChrCtrl` (PlayerCtrl의 첫 멤버) | ChrIns +0x68 | "ChrMapData" — 같은 오프셋 |
+| `ChrCtrl.havokChara` | +0x28 | ChrPosData (+0x10 x …) — 같은 오프셋 |
+| `ChrCtrl.actionctrl` | +0x48 | 애니 ID를 읽는 객체 (+0x80) — 같은 오프셋 |
+| `ChrIns.curHp` · `maxHp` · `curSp` | +0x3E8 · +0x3EC · +0x3F8 | 같음 |
+| `ChrCtrl.chrins` (부모 ChrIns를 다시 가리킴) | +0x10 | 우리는 안 읽음 → 1의 점검에 씀 |
+
+시간 후보로 가는 경로 (Overhaul 오프셋):
+
+```
+ChrIns +0x68 → ChrCtrl
+  +0x18 → ChrCtrl_AnimationQueue     (+0x0 array_length u32, +0x8 arry, +0x18 → hkaAnimatedSkeleton)
+            arry[i]  (엔트리 0x78바이트):  +0x8 → hkaDefaultAnimationControl (0xC0바이트),  +0x20 → 애니 정보(animbnd 쪽, 상수 포인터)
+            hkaAnimatedSkeleton: +0x20 → animCtrl_list,  +0x28 animCtrl_list_len   ← 같은 컨트롤들로 가는 둘째 길
+  +0x20 → AnimationMediator           (states_list[31], 0xA8바이트씩, 각 +0x0 = animationId — Overhaul의 dev_scripts/DSR_AnimationMediator.CT)
+```
+
+**추론 (Overhaul에는 없음):** `hkaDefaultAnimationControl`은 Havok 애니메이션 SDK의 클래스 이름 그대로다. Havok의 `hkaAnimationControl`은
+`hkReferencedObject`(vtable + 참조 수, 0x10바이트) 다음에 `m_localTime`(float) · `m_weight`(float)를 두는 꼴로 알려져 있다 → **+0x10 = 재생 시간,
++0x14 = 섞는 무게** 일 가능성이 높다. Overhaul의 `data_0[16]`(+0x8–+0x18)이 그 자리를 덮는다는 것과도 맞는다. 하지만 SDK 판마다 배치가 달라질 수 있으니
+1 · 2에서 확인하기 전엔 "후보"다. 같은 ID 재시작 쪽에도 단서가 있다: 새로 재생할 때마다 컨트롤 객체가 새로 생기면 **포인터가 바뀌는 것만으로도** 재시작이 보인다.
 
 ### 지킬 것
 - 게임 메모리는 **읽기만**. ChrDbg 플래그 쓰기도 이번엔 필요 없음. Steam 오프라인, 봇 실행 중이 아닐 때.
 - 덤프 · 디컴파일 결과는 커밋하지 않는다(`D:\tools\rea-target\` · 스크래치에만). 커밋하는 건 이 문서의 결과 글과 `experiments/` 스크립트.
-- 시간 상한 **2.5시간**. 아래 각 단계의 멈춤 조건을 지킨다.
+- Frida · Cheat Engine은 쓰지 않는다 (위 "쓰는 법").
+- 시간 상한 **2시간** (닻이 있어서 2.5시간에서 줄임). 아래 각 단계의 멈춤 조건을 지킨다.
 
 ### 0. 준비 (15분)
 - 사용자 환경 변수 두 개를 넣고 Claude Code 재시작 (MCP 서버는 사용자 환경 변수로 뜬다 — 2차 메모):
   `setx REA_GHIDRA_DISABLED_ANALYZERS "Windows x86 PE Exception Handling,PE RTTI Analyzer,Decompiler Switch Analysis,Call Convention ID,Function ID,Demangler Microsoft,Non-Returning Functions - Discovered,Create Address Tables,Embedded Media,Apply Data Archives,Shared Return Calls,x86 Constant Reference Analyzer,PDB Universal,Stack,ASCII Strings"`
   (2차 결과 2.의 15개 그대로 — 2차에 쓴 문자열과 한 글자라도 다르면 REA가 바로 멈추니, 2차 셸 기록이 있으면 그걸 쓴다) ·
-  `setx REA_GHIDRA_STARTUP_TIMEOUT_MS 900000`.
-  Claude는 자기 설정을 못 바꾸므로 MoKa가 실행할 수 있다.
-- 재시작 뒤 `binary_session` `{}` → `result.tool_availability`에서 `open_binary` · `search_bytes` · `xrefs` · `read_bytes` ·
+  `setx REA_GHIDRA_STARTUP_TIMEOUT_MS 900000`. Claude는 자기 설정을 못 바꾸므로 MoKa가 실행할 수 있다.
+- 재시작 뒤 `binary_session` `{}` → `result.tool_availability`에서 `open_binary` · `search_strings` · `xrefs` · `read_bytes` ·
   `procedure_pseudo_code` · `procedure_callers`가 available인지. 아니면 reason · remediation을 적고 멈춘다.
-- 덤프: 지금 `DarkSoulsRemastered.exe`의 SHA-256이 10-16과 같으면(게임 업데이트 없음) 2차 덤프 `D:\tools\rea-target\dsr.dump.exe`
-  (sha256 `88d8d84e…e5cf`)를 그대로 쓴다. 다르면 `python exe_dump.py --out …`로 새로 뜨고 `OK`(AOB 6개 모두 1번) 확인.
-- `open_binary`(덤프, provider ghidra) **한 번**. 걸린 시간을 적는다(2차 CLI `rea analyze` 2분 41초와 비교). 10분 넘으면 멈춘다.
+- 덤프: 지금 `DarkSoulsRemastered.exe`의 SHA-256이 10-16과 같으면 2차 덤프 `D:\tools\rea-target\dsr.dump.exe`(sha256 `88d8d84e…e5cf`)를
+  그대로 쓴다. 다르면 `python exe_dump.py --out …`로 새로 뜨고 `OK`(AOB 6개 모두 1번) 확인.
+- REA는 2에서만 쓴다. 1에서 후보가 3 조건을 다 통과하면 2는 "확인용"이라 짧게 끝낸다.
 
-### 1. 런타임 후보 찾기 — 읽기 전용 Python (30분)
-`experiments/anim_time_scan.py`를 새로 짠다(봇은 import 안 함). 플레이어 ChrIns에서:
-- 애니 상태 구조체 `A = [[ChrIns+0x68]+0x48]`의 `+0x000…+0x400`을 약 60 Hz로 읽어 float32 / int32로 jsonl에 기록. 같은 줄에 `A+0x80`
-  (애니 ID)과 QPC 시각. `A`의 첫 8바이트(vtable 후보, base 상대값)도 한 번 적는다. 선택: ChrIns 자체 `+0x000…+0x1000`.
-- 동작(`control.Pad`): 서 있기 5 s → 구르기 1 → 서 있기 3 s → 약공 1 → 서 있기 3 s → **구르기 2번 연속**(같은 ID 재시작) → 서 있기.
-- 후보 조건: (a) 애니 ID가 바뀔 때 0 근처로 돌아감, (b) 애니 동안 기울기 ≈ 1.0 (게임 시간 / 실제 시간; 30 fps 계단 가능),
-  (c) **같은 ID 연속 재시작에서도 0으로 돌아감** — 이게 핵심. 덤으로 "애니 길이" 후보(애니 동안 상수, 애니마다 다름).
-- 적을 것: 후보 표(오프셋 · 형식 · 기울기 · ID 변경 시 리셋 n/n · 같은 ID 재시작 리셋 n/n · 길이 후보면 그 값).
-- 후보가 0개면 시간 값이 이 구조체 밖(예: 애니 상태가 가리키는 다른 객체)에 있다는 뜻 → 2에서 vtable로 시작해 찾는다.
+### 1. Overhaul 경로를 게임에서 읽기 — 읽기 전용 Python (30분)
+`experiments/anim_time_scan.py`를 새로 짠다(봇은 import 안 함, `dsr_telemetry`의 읽기 함수만 씀).
+- **a. 경로 점검 (먼저, 2분):** 플레이어와 할로우 하나에서 `[ChrCtrl+0x10] == ChrIns` · `[ChrCtrl+0x28] == 우리 posd` · `[ChrCtrl+0x48] == 우리 animst`.
+  `ChrCtrl_AnimationQueue.array_length`가 작은 수(대략 1–10)인지, `arry[i]+0x8`이 0이 아닌 포인터인지.
+  **하나라도 어긋나면 멈추고** 어긋난 값을 적는다 — Overhaul의 판과 우리 판이 다르다는 뜻(우리 module size 0x319B000).
+- **b. 기록:** 약 60 Hz로 각 엔트리 i에 대해 `hkaDefaultAnimationControl` 포인터 값 + 그 객체 `+0x00…+0xC0`(float32 · u32 둘 다), 엔트리 `+0x20`
+  (애니 정보 포인터), 그리고 `ActionCtrl+0x80`(지금 애니 ID)과 QPC 시각. 덤으로 `AnimationMediator` states_list에서 `animationId`가 지금 애니 ID와
+  같은 칸의 `+0x00…+0xA8`.
+- **c. 동작**(`control.Pad`): 서 있기 5 s → 구르기 1 → 서 있기 3 s → 약공 1 → 서 있기 3 s → **구르기 2번 연속**(같은 ID 재시작) → 서 있기.
+- **d. 판정:** 컨트롤 `+0x10`(먼저) — 그 밖의 오프셋은 그다음 — 이 (1) 애니가 바뀔 때 0 근처로, (2) 애니 동안 기울기 ≈ 1.0 (게임 시간 / 실제 시간,
+  30 fps 계단 가능), (3) **같은 ID 연속 재시작에서도 0으로** 가는가. 함께 볼 것: 재시작 때 컨트롤 **포인터가 바뀌는가**, `+0x14`(무게 후보)가
+  여러 컨트롤 중 지금 애니 쪽에서 가장 큰가(섞임 중엔 컨트롤이 둘 이상일 수 있다 — 어느 엔트리가 "지금 애니"인지 고르는 규칙도 적는다).
+- 적을 것: 오프셋별 표(형식 · 기울기 · ID 변경 시 리셋 n/n · 같은 ID 재시작 리셋 n/n · 포인터 변경 n/n).
 
-### 2. REA로 확인 — 한 MCP 세션 안에서 (60분)
-- a. **vtable 닻**: 1에서 읽은 `A`의 vtable 주소를 덤프에서 `read_bytes` → 메서드 포인터 목록 → 각 메서드를 `procedure_pseudo_code`.
-  "필드 X에 dt를 더함", "X = 0", "새 애니로 바꿀 때 부르는 경로"를 찾는다. 1에서 후보가 있으면 그 오프셋을 쓰는 줄부터.
-- b. 같은 ID 재시작이 **리셋 경로를 지나는지**: 애니를 정하는 함수에 "이전 ID와 같으면 건너뜀" 같은 비교가 있는지. 있으면 이 필드로도 재시작이
-  안 보일 수 있다는 뜻 — 그대로 적는다.
-- c. (닻이 안 잡힐 때만) `search_strings`로 애니 · TAE 관련 문자열(`TimeAct`, `hkb`, `Anim` …) → `xrefs` → 디컴파일.
-- 결론마다 **관찰 / 추론 / 모름**을 나누고 REA Evidence ID를 단다. 60분에 닻이 하나도 안 잡히면 멈추고 무엇을 해 봤는지 적는다.
+### 2. REA로 확인 — 한 MCP 세션 안에서 (45분)
+- `open_binary`(덤프) **한 번** — 걸린 시간 적기(2차 CLI `rea analyze` 2분 41초와 비교). 10분 넘으면 멈춘다.
+- **a. 클래스 이름 닻:** Havok 클래스 이름 문자열 `hkaDefaultAnimationControl`을 `search_strings` → `xrefs`로 그 클래스 정보 · vtable 근처로.
+  1에서 읽은 컨트롤 객체의 첫 8바이트(vtable)와 같은 주소인지 대 본다. 못 찾으면(문자열이 없거나 xref 0) 1의 vtable 값으로 바로 시작.
+- **b. vtable 메서드:** vtable을 `read_bytes` → 메서드 포인터 → `procedure_pseudo_code`. "+0x10에 dt(× 속도)를 더함", "+0x10 = 0 / 값 대입"(새 재생 ·
+  `setLocalTime` 꼴)을 찾는다. 1에서 다른 오프셋이 이겼으면 그 오프셋으로.
+- **c. 재시작 경로:** 그 리셋 · 생성 함수의 호출자(`procedure_callers`)를 거슬러 `ActionCtrl` 쪽까지 — "이전 ID와 같으면 건너뜀" 비교가 있는지.
+  있으면 이 필드로도 재시작이 안 보일 수 있다 — 그대로 적는다.
+- 결론마다 **관찰 / 추론 / 모름**을 나누고 REA Evidence ID를 단다. 45분에 b가 안 나오면 멈추고 무엇을 해 봤는지 적는다 (1의 결과만으로도 3은 할 수 있음).
+- 끝에 `close_binary`.
 
-### 3. 게임에서 다시 확인 (20분)
-- 플레이어: 같은 ID 구르기 연속 재시작 **3/3** 리셋.
-- 적: options pilot 세이브(`backup-20261016-234951-options-pilot-ready-A-only`, 할로우 A만)에서 할로우의 같은 필드(EnemyIns도 같은 ChrIns 구조)를
-  읽는다. 3000 **5번 이상**에서 시작값 ≈ 0, 끝값 ≈ `data/gamefiles/tae.json`의 c2540 3000 길이(±0.05 s), 이어 휘두른 3000이 있으면 리셋되는지.
+### 3. 적에서 다시 확인 (20분)
+- options pilot 세이브(`backup-20261016-234951-options-pilot-ready-A-only`, 할로우 A만)에서 할로우의 같은 경로(EnemyIns도 같은 ChrIns · ChrCtrl —
+  위치 · 애니를 이미 같은 체인으로 읽음)를 1과 같은 스크립트로 읽는다.
+- 3000 **5번 이상**에서 시작값 ≈ 0, 끝값 ≈ `data/gamefiles/tae.json`의 c2540 3000 길이(±0.05 s), 이어 휘두른 3000이 있으면 리셋 · 포인터 변경.
 - 이 단계를 통과하지 못하면 "후보"로만 적는다(확인됐다고 쓰지 않는다 — CLAUDE.md "How to state results").
 
 ### 4. 결과 (아래 "3차 결과"에) · ROADMAP
-- 0의 `open_binary` 시간 · 질문 수 · 총 시간(2차 CLI 방식과 비교 — MCP 세션이 실제로 얼마나 빨랐나).
-- 1의 후보 표, 2의 함수 주소 · 오프셋 · Evidence ID 표, 3의 n/n.
-- [win] 한 줄 의견: MCP 세션 방식이 다음 질문(시험 C 피해 계산식 · 3000 판정 끝)에도 쓸 만한가.
-- 확인되면 [cloud]가 `dsr_telemetry`에 재생 시간 읽기를 넣고 `tae_verify.py` · `options_pilot.py`의 `restart_possible`(1.5 × 중앙값 추정)을
-  이 값으로 바꾼다 — 그 전엔 바꾸지 않는다.
+- 1-a 경로 점검 결과, 1-d 표, 2의 함수 주소 · Evidence ID 표, 3의 n/n.
+- 0 · 2의 시간: `open_binary` 시간 · 질문 수 · 총 시간 (2차 CLI 방식과 비교). 닻이 시간을 얼마나 줄였는지.
+- [win] 한 줄 의견: Overhaul 구조체 + MCP 세션 방식이 다음 질문(시험 C 피해 계산식 · 3000 판정 끝 · `HitIns`)에도 쓸 만한가.
+- 확인되면 위 "원장" 표에 한 줄, ROADMAP `rea-anim-time` 줄 갱신. [cloud]가 `dsr_telemetry`에 재생 시간 읽기를 넣고 `tae_verify.py` ·
+  `options_pilot.py`의 `restart_possible`(1.5 × 중앙값 추정)을 이 값으로 바꾼다 — 그 전엔 바꾸지 않는다.
 
 ## 3차 결과
 
