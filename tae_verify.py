@@ -29,8 +29,10 @@ from __future__ import annotations
 import argparse
 import glob
 import json
+import math
 import sys
 import time
+from types import SimpleNamespace
 from pathlib import Path
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -614,11 +616,19 @@ class WarpAct:
     """EndGate action for probe 4 try 2: on → remember the player's spot, warp OUT_D further along foe → player (same
     height, same heading); off → warp back. Returns the targets for the line (p_in, p_out). Game-memory write, offline only."""
 
-    def __init__(self, tm, out_d: float = OUT_D, home: tuple | None = None):
+    def __init__(self, tm, out_d: float = OUT_D, home: tuple | None = None, front: float | None = None, locker=None):
         # home: a spot whose floor reaches out_d all round (10-16 [win]: try 2's first gate spot x 2.51 fell at its own p_out,
         # the floor ends east between x 4.26 and 5.37) — None = the first gate's spot
         self.tm, self.out_d, self.p_in, self.heading = tm, out_d, None, 0.0
         self.home, self.home_t = ((tuple(home[:3]), home[3] if len(home) > 3 else 0.0) if home else None), -1e9
+        # front (MoKa 10-19, after try 3: "락온 하고 방향을 일치시켜봐"): on release, put the player `front` m straight ahead of the
+        # foe's body as it is now, facing it — try 3 came back to its old spot while the foe had walked in and turned (d_back
+        # 0.10–0.91 m). locker(ptr) → bool: keep lock-on on the foe between gates (Moves.lock_target)
+        self.front, self.locker, self.ptr, self.lock_t = front, locker, None, -1e9
+
+    def _locked(self, ptr) -> bool | None:
+        h = self.tm.lock_target() if hasattr(self.tm, "lock_target") else None
+        return None if h is None else (h != -1 and h == self.tm.handle(ptr))
 
     def __call__(self, on: bool, s, ptr) -> dict:
         if on:
@@ -631,17 +641,32 @@ class WarpAct:
                 self.home = (self.p_in, self.heading)
             p_out = (pl.x + dx / n * self.out_d, pl.y, pl.z + dz / n * self.out_d)
             self.tm.pos_warp(*p_out, self.heading)
-            return {"p_in": [round(v, 3) for v in self.p_in], "p_out": [round(v, 3) for v in p_out]}
+            self.ptr = ptr
+            return {"p_in": [round(v, 3) for v in self.p_in], "p_out": [round(v, 3) for v in p_out], "lock": self._locked(ptr)}
+        out = {}
         if self.p_in is not None:
-            self.tm.pos_warp(*self.p_in, self.heading)
+            foe = next((c for c in s.chars if c.ptr == ptr), None) if (self.front and s is not None) else None
+            if foe is not None and getattr(foe, "heading", None) is not None:
+                # the body faces heading + π in atan2(dx, dz) (dsr_telemetry.face; checked on hits: angle_hit ≈ 0 in front)
+                fx, fz = math.sin(foe.heading + math.pi), math.cos(foe.heading + math.pi)
+                bx, bz = foe.x + self.front * fx, foe.z + self.front * fz
+                hb = math.atan2(foe.x - bx, foe.z - bz) - math.pi
+                self.tm.pos_warp(bx, self.p_in[1], bz, hb)
+                out = {"p_back": [round(bx, 3), round(self.p_in[1], 3), round(bz, 3)], "lock": self._locked(ptr)}
+            else:
+                self.tm.pos_warp(*self.p_in, self.heading)
             self.p_in = None
-        return {}
+        return out
 
     def rehome(self, s, t: float) -> dict:
         """Between gates: the foe pushes the player around (try 2 drifted ~6 m, over a ledge and next to sleeping foes —
         B-11) → warp back to the first gate's spot, whose floor was checked. Returns the line fields when it warped."""
         if self.home is None or self.p_in is not None or t - self.home_t < HOME_EVERY:
             return {}
+        if self.locker and self.ptr and t - self.lock_t >= 2.0 and self._locked(self.ptr) is False:
+            self.lock_t = t
+            ok = self.locker(self.ptr)
+            return {"relock": bool(ok)}
         pl = s.player
         (hx, hy, hz), hh = self.home
         if _dxz((pl.x, pl.y, pl.z), (hx, hy, hz)) <= HOME_R and abs(pl.y - hy) <= FALL_DY:
@@ -688,13 +713,13 @@ class EndGate:
         if self.on:
             mine = next((x for x in foes if x["ptr"] == self.ptr), None)
             if self.p_out is not None and "p" in line and line["p"][1] < self.p_out[1] - FALL_DY:
-                line.update(gate_off=self._switch(False), gate_why="fell")
+                line.update(gate_off=self._switch(False, line), gate_why="fell")
                 self.release_at, event = None, True
             elif mine is None or mine["anim"] != self.anim:
-                line.update(gate_off=self._switch(False), gate_why="run_end")
+                line.update(gate_off=self._switch(False, line), gate_why="run_end")
                 self.release_at, event = None, True
             elif self.release_at is not None and self._due(mine, t):
-                line.update(gate_off=self._switch(False), gate_why="tau", gate_off_at=mine.get("at"))
+                line.update(gate_off=self._switch(False, line), gate_why="tau", gate_off_at=mine.get("at"))
                 self.release_at, event = None, True
         if (f is not None and f["anim"] == self.anim and self.prev.get(f["ptr"], self.anim) != self.anim
                 and not self.on and "gate_off" not in line):
@@ -827,8 +852,9 @@ def timing_end(tae: dict, combat: dict, lines: list[dict], anim: int = P3_ANIM, 
                             or (rel and rel[1].get("gate_why") == "fell")):
                         why.append("fell")    # no floor at p_out (B-11: 6 of 34, one 20 m); the foe reacts to it
                 if rel is not None:
+                    back_to = rel[1].get("p_back") or p_in       # front mode: a spot ahead of the foe, not the old one
                     k = next((k for k in range(r["i0"] + rel[0], min(i1 + 1, len(frames)))
-                              if "p" in frames[k] and _dxz(frames[k]["p"], p_in) <= ARRIVE_R), None)
+                              if "p" in frames[k] and _dxz(frames[k]["p"], back_to) <= ARRIVE_R), None)
                     if k is not None:
                         eff = (k, _bounds(frames[k - 1], frames[k]))
                         row["warp_delay"] = round(eff[1][1] - rel[1]["gate_off"], 4)
@@ -911,7 +937,8 @@ def timing_end(tae: dict, combat: dict, lines: list[dict], anim: int = P3_ANIM, 
 
 
 def probe4(secs: float, pre: float, refill: tuple[int, int] | None, flag: str, taus: list, force: bool, max_lines: int,
-           mode: str = "warp", out_d: float = OUT_D, home: tuple | None = None) -> None:
+           mode: str = "warp", out_d: float = OUT_D, home: tuple | None = None, front: float | None = None,
+           lock: bool = False) -> None:
     """[win]: (flag) read/write check → pre-record + precheck → the gated record. mode warp (default since try 1): warp out
     / back instead of the flag; the flag must stay off."""
     import dsr_telemetry
@@ -925,7 +952,8 @@ def probe4(secs: float, pre: float, refill: tuple[int, int] | None, flag: str, t
     stamp = time.strftime('%Y%m%d_%H%M%S')
     header = {"probe": 4, "gate": mode, "anim": P3_ANIM, "target": list(P3_TARGET), "iso_r": ISO_R, "refill": refill,
               "taus": taus, "age": "age_since_seen (play position not read)",
-              **({"gate_flag": flag, "gate_offset": off, "gate_rw": rw} if mode == "flag" else {"out_d": out_d, "home": list(home) if home else None})}
+              **({"gate_flag": flag, "gate_offset": off, "gate_rw": rw} if mode == "flag" else
+                 {"out_d": out_d, "home": list(home) if home else None, "front": front, "lock": lock})}
     pre_out = SAMPLES / f"{stamp}_tae-probe4-pre.jsonl"
     record3(tm, pre, pre_out, {**header, "pre": True}, refill=refill, max_lines=max_lines)
     pc = precheck([json.loads(l) for l in pre_out.read_text(encoding="utf-8").splitlines() if l.strip()],
@@ -939,7 +967,17 @@ def probe4(secs: float, pre: float, refill: tuple[int, int] | None, flag: str, t
         print(f"예비 점검 실패 — 본 기록 안 함 ({pre_out}).")
         return
     out = SAMPLES / f"{stamp}_tae-probe4.jsonl"
-    gate = EndGate((lambda on, _s, _p: tm.set_dbg(off, on)) if mode == "flag" else WarpAct(tm, out_d, home), taus)
+    locker = None
+    if lock:
+        import control
+        import env
+        from souls import moves as M
+        mv = M.Moves(env.make_telemetry({}), control.Pad())
+        target = next((c for c in (tm.snapshot(ISO_R) or SimpleNamespace(chars=[])).chars if c.npc_param in P3_TARGET), None)
+        if target is not None:
+            print(f"lock-on: {mv.lock_target(target.ptr)} ({mv.lock_state(target.ptr)})")
+        locker = lambda ptr: mv.lock_target(ptr)
+    gate = EndGate((lambda on, _s, _p: tm.set_dbg(off, on)) if mode == "flag" else WarpAct(tm, out_d, home, front, locker), taus)
     r = record3(tm, secs, out, {**header, "precheck": pc["checks"], "forced": not pc["ok"]}, refill=refill,
                 max_lines=max_lines, gate=gate)
     print(f"읽기 {r['reads']}번, 기록 {r['written']}줄 ({r['stopped']}), 3000 게이트 {gate.k}번 → {out}\n"
@@ -965,6 +1003,8 @@ def main() -> None:
     p.add_argument("--flag", default=P4_FLAG); p.add_argument("--force", action="store_true")
     p.add_argument("--taus", nargs="*", default=[("hold" if t is None else str(t)) for t in P4_TAUS])
     p.add_argument("--max-lines", type=int, default=MAX_LINES)
+    p.add_argument("--front", type=float, help="warp back to this many m straight ahead of the foe, facing it (try 4)")
+    p.add_argument("--lock", action="store_true", help="lock on to the target and keep it locked between gates (try 4)")
     p.add_argument("--home", type=float, nargs="+", metavar="X Y Z [HEADING]",
                    help="warp gate: spot to return to between gates (default: the first gate's spot)")
     p = sub.add_parser("check4"); p.add_argument("file", type=Path)
@@ -977,7 +1017,7 @@ def main() -> None:
     if a.cmd == "probe4":
         probe4(a.secs, a.pre, tuple(a.refill) if a.refill else None, a.flag,
                [None if t == "hold" else float(t) for t in a.taus], a.force, a.max_lines, a.gate, a.out,
-               tuple(a.home) if a.home else None)
+               tuple(a.home) if a.home else None, a.front, a.lock)
         return
     if a.cmd == "probe3":
         probe3(a.secs, a.pre, tuple(a.refill) if a.refill else None, set(a.allow), a.force, a.max_lines)

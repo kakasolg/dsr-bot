@@ -426,6 +426,31 @@ def test_warp_home_given_beats_first_gate():
     assert act.rehome(s, 10.0) == {"home": [0.26, -10.02, -58.89]} and tm.warps[-1] == (0.26, -10.02, -58.89)
 
 
+def test_warp_front_puts_the_player_ahead_of_the_foe():
+    # MoKa 10-19 after try 3: come back straight ahead of the foe as it stands now, facing it — not to the old spot
+    import math
+    tm = _FakeTm()
+    act = V.WarpAct(tm, front=0.9)
+    s = tm.snapshot()
+    act(True, s, 1)                                   # out along foe → player
+    tm.foe.x, tm.foe.z, tm.foe.heading = 1.0, 0.5, -math.pi / 2     # walked in and turned: body faces heading + π → +x
+    out = act(False, tm.snapshot(), 1)
+    assert out["p_back"] == [1.9, 0.0, 0.5] and tm.warps[-1] == (1.9, 0.0, 0.5), out
+
+
+def test_front_return_is_on_the_line(tmp_path):
+    # 10-19 try 4: the front warp ran but p_back never reached the line (gate_off switched without it) → "not returned"
+    import math
+    tm = _FakeTm()
+    tm.foe.heading = math.pi
+    gate = V.EndGate(V.WarpAct(tm, front=0.9), [0.0005], clock=lambda: 0.0)
+    out = tmp_path / "r.jsonl"
+    V.record3(tm, 0.3, out, {"probe": 4, "gate": "warp"}, gate=gate, max_lines=100_000)
+    lines = [json.loads(x) for x in out.read_text().splitlines()][1:-1]
+    offs = [x for x in lines if x.get("gate_why") == "tau"]
+    assert offs and all(x.get("p_back") == [0.0, 0.0, 0.9] for x in offs), offs[:1]
+
+
 if __name__ == "__main__":
     import inspect
     import tempfile

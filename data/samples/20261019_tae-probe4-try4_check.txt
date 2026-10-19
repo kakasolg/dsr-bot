@@ -1,0 +1,186 @@
+  {'t': 91999.75371, 'tau': 0.5, 'kind': 'early', 'start_obs': [91999.7488, 91999.7537], 'run_len': 1.1994, 'warp_delay': 0.0159, 'd_back': 0.88, 'release_anim': [0.5167, 0.5167], 'release_age': [0.5167, 0.5167], 'release_wall': [0.5079, 0.5286], 'hit': True, 'lost': 57, 'hit_age': [0.5667, 0.9], 'hit_wall': [0.8931, 0.9075], 'lag': 0.3741, 'reasons': ['not_isolated', 'refill_in_run']}
+  {'t': 92017.37991, 'tau': None, 'kind': 'hold', 'start_obs': [92017.3642, 92017.3799], 'run_len': 1.1984, 'hit': False, 'reasons': ['not_isolated']}
+  {'t': 92023.70932, 'tau': 0.9, 'kind': 'sweep', 'start_obs': [92023.6979, 92023.7093], 'run_len': 1.1982, 'warp_delay': 0.3049, 'd_back': 0.54, 'release_anim': [0.95, 1.2], 'release_age': [0.95, 1.2], 'release_wall': [1.1863, 1.2101], 'leak': True, 'hit': True, 'lost': 57, 'hit_age': [0.9333, 0.9333], 'hit_wall': [0.9242, 0.9433], 'lag': -0.2706, 'reasons': ['refill_in_run', 'release_late']}
+  {'t': 92028.99558, 'tau': 0.97, 'kind': 'sweep', 'start_obs': [92028.9827, 92028.9956], 'run_len': 2.4275, 'hit': False, 'reasons': ['not_returned']}
+  {'t': 92031.99579, 'tau': 1.0, 'kind': 'sweep', 'start_obs': [92031.9779, 92031.9958], 'run_len': 2.4762, 'warp_delay': 0.5627, 'd_back': 0.63, 'release_anim': [1.05, 1.5667], 'release_age': [1.05, 1.5667], 'release_wall': [1.5443, 1.5753], 'hit': False, 'reasons': ['release_late']}
+  {'t': 92053.51503, 'tau': 1.02, 'kind': 'sweep', 'start_obs': [92053.4878, 92053.515], 'run_len': 2.4859, 'warp_delay': 0.5555, 'd_back': 0.75, 'release_anim': [1.0833, 1.5833], 'release_age': [1.0833, 1.5833], 'release_wall': [1.5663, 1.6072], 'hit': False, 'reasons': ['start_gap', 'release_late']}
+  {'t': 92056.89885, 'tau': 1.04, 'kind': 'sweep', 'start_obs': [92056.8805, 92056.8988], 'run_len': 2.4735, 'warp_delay': 0.5678, 'd_back': 0.63, 'release_anim': [1.1, 1.6167], 'release_age': [1.1, 1.6167], 'release_wall': [1.5945, 1.6273], 'hit': False, 'reasons': ['release_late']}
+  {'t': 92066.52371, 'tau': 1.06, 'kind': 'sweep', 'start_obs': [92066.5102, 92066.5237], 'run_len': 2.4813, 'hit': False, 'reasons': ['not_isolated', 'not_returned']}
+  {'t': 92073.45351, 'tau': 1.1, 'kind': 'sweep', 'start_obs': [92073.4437, 92073.4535], 'run_len': 2.4905, 'warp_delay': 0.5648, 'd_back': 0.48, 'release_anim': [1.1667, 1.6667], 'release_age': [1.1667, 1.6667], 'release_wall': [1.6555, 1.6809], 'hit': False, 'reasons': ['not_isolated', 'release_late']}
+  {'t': 92086.3957, 'tau': 0.5, 'kind': 'early', 'start_obs': [92086.3789, 92086.3957], 'run_len': 1.194, 'leak': True, 'hit': True, 'lost': 57, 'hit_age': [0.55, 0.9], 'hit_wall': [0.8829, 0.9137], 'reasons': ['not_isolated', 'refill_in_run', 'not_returned']}
+  {'t': 92117.31016, 'tau': None, 'kind': 'hold', 'start_obs': [92117.2986, 92117.3102], 'run_len': 1.1938, 'hit': False, 'reasons': ['not_isolated']}
+  {'t': 92123.30607, 'tau': 0.9, 'kind': 'sweep', 'start_obs': [92123.2993, 92123.3061], 'run_len': 1.2004, 'warp_delay': 0.0171, 'd_back': 0.87, 'release_anim': [0.9167, 0.9167], 'release_age': [0.9167, 0.9167], 'release_wall': [0.9072, 0.9311], 'hit': True, 'lost': 57, 'hit_age': [0.9333, 0.9333], 'hit_wall': [0.9245, 0.9459], 'lag': 0.0075, 'reasons': ['not_isolated']}
+  {'t': 92126.76346, 'tau': 0.97, 'kind': 'sweep', 'start_obs': [92126.7498, 92126.7635], 'run_len': 2.4111, 'hit': False, 'reasons': ['not_isolated', 'not_returned']}
+  {'t': 92140.71756, 'tau': 1.0, 'kind': 'sweep', 'start_obs': [92140.6956, 92140.7176], 'run_len': 2.4828, 'hit': False, 'reasons': ['start_gap', 'not_isolated', 'not_returned']}
+  {'t': 92150.50414, 'tau': 1.02, 'kind': 'sweep', 'start_obs': [92150.498, 92150.5041], 'run_len': 2.3943, 'hit': False, 'reasons': ['not_isolated', 'not_returned']}
+  {'t': 92165.67687, 'tau': 1.04, 'kind': 'sweep', 'start_obs': [92165.6614, 92165.6769], 'run_len': 2.4357, 'hit': False, 'reasons': ['not_isolated', 'not_returned']}
+  {'t': 92175.31995, 'tau': 1.06, 'kind': 'sweep', 'start_obs': [92175.3148, 92175.32], 'run_len': 2.4181, 'hit': False, 'reasons': ['not_isolated', 'not_returned']}
+  {'t': 92183.44245, 'tau': 1.1, 'kind': 'sweep', 'start_obs': [92183.4263, 92183.4425], 'run_len': 2.4812, 'hit': False, 'reasons': ['not_isolated', 'not_returned']}
+  {'t': 92186.82043, 'tau': 0.5, 'kind': 'early', 'start_obs': [92186.808, 92186.8204], 'run_len': 1.2081, 'leak': True, 'hit': True, 'lost': 57, 'hit_age': [0.5667, 0.9], 'hit_wall': [0.8923, 0.9179], 'reasons': ['not_isolated', 'not_returned']}
+  {'t': 92192.10374, 'tau': None, 'kind': 'hold', 'start_obs': [92192.0986, 92192.1037], 'run_len': 1.1995, 'hit': False, 'reasons': ['not_isolated']}
+  {'t': 92198.9092, 'tau': 0.9, 'kind': 'sweep', 'start_obs': [92198.8961, 92198.9092], 'run_len': 2.4195, 'leak': True, 'hit': True, 'lost': 57, 'hit_age': [0.9333, 0.9333], 'hit_wall': [0.9249, 0.9439], 'reasons': ['not_isolated', 'refill_in_run', 'not_returned']}
+  {'t': 92204.87195, 'tau': 0.97, 'kind': 'sweep', 'start_obs': [92204.8569, 92204.872], 'run_len': 2.4873, 'warp_delay': 0.0675, 'd_back': 0.36, 'release_anim': [1.0333, 1.05], 'release_age': [1.0333, 1.05], 'release_wall': [1.0431, 1.0682], 'hit': False, 'reasons': ['not_isolated', 'release_late']}
+  {'t': 92215.84261, 'tau': 1.0, 'kind': 'sweep', 'start_obs': [92215.8276, 92215.8426], 'run_len': 1.1939, 'warp_delay': 0.1925, 'd_back': 0.27, 'release_anim': [1.0667, 1.2], 'release_age': [1.0667, 1.2], 'release_wall': [1.1794, 1.2085], 'hit': False, 'reasons': ['not_isolated', 'release_late']}
+  {'t': 92221.12077, 'tau': 1.02, 'kind': 'sweep', 'start_obs': [92221.1154, 92221.1208], 'run_len': 2.4843, 'hit': False, 'reasons': ['not_isolated', 'not_returned']}
+  {'t': 92242.93572, 'tau': 1.04, 'kind': 'sweep', 'start_obs': [92242.9245, 92242.9357], 'run_len': 2.4329, 'hit': False, 'reasons': ['not_isolated', 'not_returned']}
+  {'t': 92246.29331, 'tau': 1.06, 'kind': 'sweep', 'start_obs': [92246.2805, 92246.2933], 'run_len': 2.4775, 'warp_delay': 0.5539, 'd_back': 0.63, 'release_anim': [1.1167, 1.6167], 'release_age': [1.1167, 1.6167], 'release_wall': [1.6012, 1.6299], 'hit': False, 'reasons': ['not_isolated', 'release_late']}
+  {'t': 92249.67282, 'tau': 1.1, 'kind': 'sweep', 'start_obs': [92249.6589, 92249.6728], 'run_len': 2.4856, 'warp_delay': 0.5667, 'd_back': 0.66, 'release_anim': [1.1667, 1.6667], 'release_age': [1.1667, 1.6667], 'release_wall': [1.6509, 1.6871], 'hit': False, 'reasons': ['not_isolated', 'release_late']}
+  {'t': 92262.88312, 'tau': 0.5, 'kind': 'early', 'start_obs': [92262.8641, 92262.8831], 'run_len': 1.1907, 'leak': True, 'hit': True, 'lost': 57, 'hit_age': [0.5667, 1.0], 'hit_wall': [0.9798, 1.0142], 'reasons': ['not_isolated', 'not_returned']}
+  {'t': 92274.49406, 'tau': None, 'kind': 'hold', 'start_obs': [92274.479, 92274.4941], 'run_len': 1.1967, 'hit': False, 'reasons': ['not_isolated']}
+  {'t': 92280.82655, 'tau': 0.9, 'kind': 'sweep', 'start_obs': [92280.8135, 92280.8265], 'run_len': 1.2016, 'warp_delay': 0.3086, 'd_back': 0.47, 'release_anim': [0.95, 1.2], 'release_age': [0.95, 1.2], 'release_wall': [1.1873, 1.2159], 'leak': True, 'hit': True, 'lost': 57, 'hit_age': [0.9333, 0.95], 'hit_wall': [0.9273, 0.9548], 'lag': -0.2683, 'reasons': ['not_isolated', 'release_late']}
+  {'t': 92291.28822, 'tau': 0.97, 'kind': 'sweep', 'start_obs': [92291.27, 92291.2882], 'run_len': 2.4937, 'warp_delay': 0.5626, 'd_back': 0.7, 'release_anim': [1.0333, 1.55], 'release_age': [1.0333, 1.55], 'release_wall': [1.5353, 1.5689], 'hit': False, 'reasons': ['not_isolated', 'release_late']}
+  {'t': 92298.22381, 'tau': 1.0, 'kind': 'sweep', 'start_obs': [92298.2137, 92298.2238], 'run_len': 2.485, 'warp_delay': 0.5554, 'd_back': 0.49, 'release_anim': [1.05, 1.55], 'release_age': [1.05, 1.55], 'release_wall': [1.5471, 1.569], 'hit': False, 'reasons': ['not_isolated', 'release_late']}
+  {'t': 92301.42783, 'tau': 1.02, 'kind': 'sweep', 'start_obs': [92301.4152, 92301.4278], 'run_len': 2.4812, 'warp_delay': 0.5585, 'd_back': 0.68, 'release_anim': [1.0833, 1.5833], 'release_age': [1.0833, 1.5833], 'release_wall': [1.5703, 1.5983], 'hit': False, 'reasons': ['not_isolated', 'release_late']}
+  {'t': 92304.65797, 'tau': 1.04, 'kind': 'sweep', 'start_obs': [92304.6439, 92304.658], 'run_len': 2.4814, 'warp_delay': 0.575, 'd_back': 0.63, 'release_anim': [1.1333, 1.6333], 'release_age': [1.1333, 1.6333], 'release_wall': [1.6108, 1.6402], 'hit': False, 'reasons': ['not_isolated', 'release_late']}
+  {'t': 92311.42824, 'tau': 1.06, 'kind': 'sweep', 'start_obs': [92311.4129, 92311.4282], 'run_len': 2.4828, 'warp_delay': 0.5656, 'd_back': 0.49, 'release_anim': [1.1167, 1.6333], 'release_age': [1.1167, 1.6333], 'release_wall': [1.6149, 1.6434], 'hit': False, 'reasons': ['not_isolated', 'release_late']}
+  {'t': 92314.62235, 'tau': 1.1, 'kind': 'sweep', 'start_obs': [92314.6081, 92314.6224], 'run_len': 2.487, 'warp_delay': 0.5594, 'd_back': 0.68, 'release_anim': [1.15, 1.65], 'release_age': [1.15, 1.65], 'release_wall': [1.6419, 1.674], 'hit': False, 'reasons': ['not_isolated', 'release_late']}
+  {'t': 92356.08714, 'tau': 0.5, 'kind': 'early', 'start_obs': [92356.073, 92356.0871], 'run_len': 1.2077, 'warp_delay': 0.0166, 'd_back': 0.87, 'release_anim': [0.5167, 0.5167], 'release_age': [0.5167, 0.5167], 'release_wall': [0.5098, 0.5346], 'hit': True, 'lost': 57, 'hit_age': [0.55, 0.9], 'hit_wall': [0.8886, 0.92], 'lag': 0.3767, 'reasons': ['not_isolated']}
+  {'t': 92361.38111, 'tau': None, 'kind': 'hold', 'start_obs': [92361.3609, 92361.3811], 'run_len': 1.2003, 'hit': False, 'reasons': ['start_gap', 'not_isolated']}
+  {'t': 92367.71121, 'tau': 0.9, 'kind': 'sweep', 'start_obs': [92367.6957, 92367.7112], 'run_len': 1.1959, 'leak': True, 'hit': True, 'lost': 57, 'hit_age': [0.9333, 0.9333], 'hit_wall': [0.9231, 0.9473], 'reasons': ['not_isolated', 'not_returned']}
+  {'t': 92383.19813, 'tau': 0.97, 'kind': 'sweep', 'start_obs': [92383.1822, 92383.1981], 'run_len': 1.1972, 'warp_delay': 0.0303, 'd_back': 0.87, 'release_anim': [1.0, 1.0167], 'release_age': [1.0, 1.0167], 'release_wall': [0.9838, 1.0183], 'hit': False, 'reasons': ['not_isolated']}
+  {'t': 92386.6399, 'tau': 1.0, 'kind': 'sweep', 'start_obs': [92386.6238, 92386.6399], 'run_len': 2.4796, 'warp_delay': 0.0881, 'd_back': 0.55, 'release_anim': [1.05, 1.0833], 'release_age': [1.05, 1.0833], 'release_wall': [1.0764, 1.1029], 'hit': False, 'reasons': ['not_isolated', 'release_late']}
+  {'t': 92405.87233, 'tau': 1.02, 'kind': 'sweep', 'start_obs': [92405.8582, 92405.8723], 'run_len': 1.2055, 'warp_delay': 0.0177, 'd_back': 0.89, 'release_anim': [1.05, 1.05], 'release_age': [1.05, 1.05], 'release_wall': [1.0445, 1.0638], 'hit': False, 'reasons': ['not_isolated']}
+  {'t': 92411.15841, 'tau': 1.04, 'kind': 'sweep', 'start_obs': [92411.1432, 92411.1584], 'run_len': 2.4839, 'warp_delay': 0.5485, 'd_back': 0.65, 'release_anim': [1.1, 1.6], 'release_age': [1.1, 1.6], 'release_wall': [1.5882, 1.6102], 'hit': False, 'reasons': ['not_isolated', 'release_late']}
+  {'t': 92414.54198, 'tau': 1.06, 'kind': 'sweep', 'start_obs': [92414.5265, 92414.542], 'run_len': 2.482, 'warp_delay': 0.5726, 'd_back': 0.65, 'release_anim': [1.1333, 1.65], 'release_age': [1.1333, 1.65], 'release_wall': [1.6324, 1.6577], 'hit': False, 'reasons': ['not_isolated', 'release_late']}
+  {'t': 92457.65879, 'tau': 1.1, 'kind': 'sweep', 'start_obs': [92457.6449, 92457.6588], 'run_len': 2.4173, 'hit': False, 'reasons': ['not_isolated', 'not_returned']}
+  {'t': 92463.61926, 'tau': 0.5, 'kind': 'early', 'start_obs': [92463.6067, 92463.6193], 'run_len': 1.2072, 'warp_delay': 0.025, 'd_back': 0.87, 'release_anim': [0.5167, 0.5167], 'release_age': [0.5167, 0.5167], 'release_wall': [0.5137, 0.541], 'hit': True, 'lost': 57, 'hit_age': [0.5667, 0.9], 'hit_wall': [0.8982, 0.9231], 'lag': 0.3759, 'reasons': ['not_isolated']}
+  {'t': 92468.91005, 'tau': None, 'kind': 'hold', 'start_obs': [92468.8974, 92468.9101], 'run_len': 1.1976, 'hit': False, 'reasons': ['not_isolated']}
+  {'t': 92483.13724, 'tau': 0.9, 'kind': 'sweep', 'start_obs': [92483.1303, 92483.1372], 'run_len': 1.2008, 'leak': True, 'hit': True, 'lost': 57, 'hit_age': [0.9333, 0.9333], 'hit_wall': [0.9266, 0.9474], 'reasons': ['not_isolated', 'not_returned']}
+  {'t': 92487.53611, 'tau': 0.97, 'kind': 'sweep', 'start_obs': [92487.5286, 92487.5361], 'run_len': 1.2007, 'warp_delay': 0.2101, 'd_back': 0.42, 'release_anim': [1.05, 1.2], 'release_age': [1.05, 1.2], 'release_wall': [1.1924, 1.209], 'hit': False, 'reasons': ['not_isolated', 'release_late']}
+  {'t': 92496.37594, 'tau': 1.0, 'kind': 'sweep', 'start_obs': [92496.3639, 92496.3759], 'run_len': 2.476, 'warp_delay': 0.5661, 'd_back': 0.53, 'release_anim': [1.0667, 1.5667], 'release_age': [1.0667, 1.5667], 'release_wall': [1.5576, 1.5752], 'hit': False, 'reasons': ['not_isolated', 'release_late']}
+  {'t': 92499.59199, 'tau': 1.02, 'kind': 'sweep', 'start_obs': [92499.5767, 92499.592], 'run_len': 2.4801, 'warp_delay': 0.087, 'd_back': 0.63, 'release_anim': [1.1, 1.1167], 'release_age': [1.1, 1.1167], 'release_wall': [1.1033, 1.1341], 'hit': False, 'reasons': ['not_isolated', 'release_late']}
+  {'t': 92502.82278, 'tau': 1.04, 'kind': 'sweep', 'start_obs': [92502.805, 92502.8228], 'run_len': 2.4866, 'warp_delay': 0.5396, 'd_back': 0.63, 'release_anim': [1.0833, 1.5833], 'release_age': [1.0833, 1.5833], 'release_wall': [1.5768, 1.6081], 'hit': False, 'reasons': ['not_isolated', 'release_late']}
+  {'t': 92512.17568, 'tau': 1.06, 'kind': 'sweep', 'start_obs': [92512.1607, 92512.1757], 'run_len': 2.4812, 'hit': False, 'reasons': ['not_isolated', 'not_returned']}
+  {'t': 92521.68773, 'tau': 1.1, 'kind': 'sweep', 'start_obs': [92521.6773, 92521.6877], 'run_len': 1.1973, 'hit': False, 'reasons': ['not_isolated', 'not_returned']}
+  {'t': 92528.02513, 'tau': 0.5, 'kind': 'early', 'start_obs': [92528.0119, 92528.0251], 'run_len': 1.1989, 'warp_delay': 0.0202, 'd_back': 0.88, 'release_anim': [0.5167, 0.5167], 'release_age': [0.5167, 0.5167], 'release_wall': [0.5037, 0.5344], 'hit': True, 'lost': 57, 'hit_age': [0.5667, 0.9], 'hit_wall': [0.8816, 0.9103], 'lag': 0.3682, 'reasons': ['not_isolated']}
+  {'t': 92531.47315, 'tau': None, 'kind': 'hold', 'start_obs': [92531.462, 92531.4732], 'run_len': 1.1975, 'hit': False, 'reasons': ['not_isolated']}
+  {'t': 92537.815, 'tau': 0.9, 'kind': 'sweep', 'start_obs': [92537.7991, 92537.815], 'run_len': 1.1952, 'warp_delay': 0.0222, 'd_back': 0.85, 'release_anim': [0.9167, 0.9167], 'release_age': [0.9167, 0.9167], 'release_wall': [0.9011, 0.9278], 'hit': True, 'lost': 57, 'hit_age': [0.9333, 0.9333], 'hit_wall': [0.9123, 0.9399], 'lag': 0.0063, 'reasons': ['not_isolated', 'refill_in_run']}
+  {'t': 92547.95536, 'tau': 0.97, 'kind': 'sweep', 'start_obs': [92547.9404, 92547.9554], 'run_len': 2.4818, 'warp_delay': 0.559, 'd_back': 0.64, 'release_anim': [1.0333, 1.55], 'release_age': [1.0333, 1.55], 'release_wall': [1.5194, 1.5605], 'hit': False, 'reasons': ['not_isolated', 'release_late']}
+  {'t': 92554.89563, 'tau': 1.0, 'kind': 'sweep', 'start_obs': [92554.8821, 92554.8956], 'run_len': 2.4816, 'warp_delay': 0.5558, 'd_back': 0.48, 'release_anim': [1.05, 1.55], 'release_age': [1.05, 1.55], 'release_wall': [1.5401, 1.568], 'hit': False, 'reasons': ['not_isolated', 'release_late']}
+  {'t': 92558.11426, 'tau': 1.02, 'kind': 'sweep', 'start_obs': [92558.0995, 92558.1143], 'run_len': 2.4802, 'warp_delay': 0.5651, 'd_back': 0.68, 'release_anim': [1.0833, 1.6], 'release_age': [1.0833, 1.6], 'release_wall': [1.574, 1.6033], 'hit': False, 'reasons': ['not_isolated', 'release_late']}
+  {'t': 92561.33584, 'tau': 1.04, 'kind': 'sweep', 'start_obs': [92561.3221, 92561.3358], 'run_len': 2.4835, 'warp_delay': 0.5713, 'd_back': 0.64, 'release_anim': [1.1167, 1.6167], 'release_age': [1.1167, 1.6167], 'release_wall': [1.6104, 1.6381], 'hit': False, 'reasons': ['not_isolated', 'release_late']}
+  {'t': 92564.55317, 'tau': 1.06, 'kind': 'sweep', 'start_obs': [92564.5377, 92564.5532], 'run_len': 2.4914, 'warp_delay': 0.6048, 'd_back': 0.65, 'release_anim': [1.1667, 1.6667], 'release_age': [1.1667, 1.6667], 'release_wall': [1.6558, 1.6898], 'hit': False, 'reasons': ['not_isolated', 'release_late']}
+  {'t': 92567.79512, 'tau': 1.1, 'kind': 'sweep', 'start_obs': [92567.7826, 92567.7951], 'run_len': 2.4808, 'warp_delay': 0.5724, 'd_back': 0.64, 'release_anim': [1.1667, 1.6667], 'release_age': [1.1667, 1.6667], 'release_wall': [1.6568, 1.6847], 'hit': False, 'reasons': ['not_isolated', 'release_late']}
+  {'t': 92576.77079, 'tau': 0.5, 'kind': 'early', 'start_obs': [92576.7553, 92576.7708], 'run_len': 1.2063, 'warp_delay': 0.4076, 'd_back': 1.1, 'release_anim': [0.55, 0.9], 'release_age': [0.55, 0.9], 'release_wall': [0.8955, 0.9231], 'hit': True, 'lost': 57, 'hit_age': [0.55, 0.9], 'hit_wall': [0.8955, 0.9231], 'lag': -0.006, 'reasons': ['not_isolated', 'release_late']}
+  {'t': 92590.90745, 'tau': None, 'kind': 'hold', 'start_obs': [92590.8946, 92590.9074], 'hit': False, 'reasons': ['not_isolated', 'run_open']}
+{
+ "anim": 3000,
+ "windows": [
+  [
+   0.8667,
+   1.0333
+  ]
+ ],
+ "tae_end": 1.0333,
+ "tol": 0.0333,
+ "gate": "warp",
+ "flag": null,
+ "age": "the foe's anim time where recorded (release_anim / hit_age), else age_since_seen",
+ "instances": 65,
+ "valid": 0,
+ "excluded": {
+  "not_isolated": 58,
+  "refill_in_run": 1,
+  "not_returned": 1,
+  "release_late": 2,
+  "start_gap": 3
+ },
+ "controls": {
+  "leaks": 8,
+  "hold_no_hit": [
+   0,
+   0
+  ],
+  "early_hit": [
+   0,
+   0
+  ],
+  "defer": [
+   0,
+   0
+  ]
+ },
+ "method_valid": false,
+ "end_bracket": [
+  null,
+  null
+ ],
+ "consistent": null,
+ "lag_after_release": null,
+ "per_tau": {},
+ "verdict": "표본 부족",
+ "header": {
+  "kind": "header",
+  "probe": 4,
+  "gate": "warp",
+  "anim": 3000,
+  "target": [
+   254010
+  ],
+  "iso_r": 25.0,
+  "refill": [
+   500,
+   793
+  ],
+  "taus": [
+   0.5,
+   null,
+   0.9,
+   0.97,
+   1.0,
+   1.02,
+   1.04,
+   1.06,
+   1.1
+  ],
+  "age": "age_since_seen (play position not read)",
+  "out_d": 3.0,
+  "home": [
+   -0.014,
+   -10.02,
+   -58.817,
+   -0.956
+  ],
+  "front": 0.9,
+  "lock": true,
+  "precheck": [
+   {
+    "check": "hp",
+    "ok": true,
+    "detail": "min 625 (≥ 200; NoDead holds HP at 1 and hides hits)"
+   },
+   {
+    "check": "target_one",
+    "ok": true,
+    "detail": "target (254010,) within 25.0 m per read: [1]"
+   },
+   {
+    "check": "target_awake",
+    "ok": true,
+    "detail": "anims seen [3000, 3001, 3002] (−1 = asleep: wake it; one ID only = not acting)"
+   },
+   {
+    "check": "isolated",
+    "ok": true,
+    "detail": "other foes within 25.0 m: []"
+   },
+   {
+    "check": "read_bounds",
+    "ok": true,
+    "detail": "pt0 ≤ t0 ≤ t on every line: True; bound median 0.005 s (≤ 0.02)"
+   },
+   {
+    "check": "dbg_flags",
+    "ok": true,
+    "detail": "CHR DBG read ['01000000000000000000000000000000'] → on [['PlayerNoDead']]; not allowed [] (check their effect first, then --allow)"
+   },
+   {
+    "check": "volume",
+    "ok": true,
+    "detail": "13 lines in 5.0 s → ~1560 for 600.0 s (cap 100000)"
+   }
+  ],
+  "forced": false
+ }
+}
+3000 구간 끝: 표본 부족 — 게이트 65, 유효 0, 제외 {'not_isolated': 58, 'refill_in_run': 1, 'not_returned': 1, 'release_late': 2, 'start_gap': 3}, 대조 {'leaks': 8, 'hold_no_hit': [0, 0], 'early_hit': [0, 0], 'defer': [0, 0]}, 끝 괄호 [None, None] (TAE 1.0333 ± 0.0333)
