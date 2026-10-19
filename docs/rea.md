@@ -224,3 +224,15 @@ A가 3000을 벗어나면 제자리로(15번). 기록 `data/samples/20261019_113
 **[cloud]에 제안 (결정 아님):** `tae_verify.py` · `options_pilot.py`의 `restart_possible`(3000이 1.5 × 중앙값보다 길면 버림)을 애니 시간으로 바꿀 수 있다 —
 기록에 3000 컨트롤의 `+0x10`을 같이 쓰고, 시간이 끊기면(뒤로 가면) 재시작, 이어지면 한 번 재생으로 보고 "age" = `+0x10`. 이번 25번에선 이 규칙이면 버릴 3000이 0.
 재시작 쪽 갈래는 실제로 본 적이 없으니 "끊기면 버림"으로 두면 안전하다.
+
+### 3차 반영 — `restart_possible`을 애니 시간으로 (2026-10-19, MoKa: "restart_possible을 애니 시간(+0x10) 기준으로 바꿔 줘")
+
+- `dsr_telemetry.DSRTelemetry.anim_time(p)`: 가장 최근에 시작한 애니의 `+0x10` (무게 > 0.01인 엔트리 중 가장 작은 시간 — 새 애니가 섞여 들어오는 동안에도 새 쪽).
+- `tae_verify.record3`: 적마다 `at`(애니 시간)을 같이 씀 → probe 3 / 4와 `options_pilot.py run` 기록에 들어감. 실시간 시험 4 s: 104 / 104 적 줄에 값 있음.
+- `tae_verify.restart_reason` (timing3 · timing_end · options_pilot `rep_rows`가 같이 씀): `at`이 한 런에 2줄 이상이면, 두 줄 사이에서 애니 시간이 벽시계보다
+  `TIME_SLACK` 0.15 s 넘게 뒤처지면 `restart_seen`, 아니면 길이와 상관없이 한 번 재생. 런 시작 직후 앞 애니 컨트롤의 값(ID가 바뀐 뒤 지난 시간 + 0.15보다 큰 시간)은 뺌.
+  `at`이 없는 옛 기록은 예전 길이 규칙 그대로(`restart_possible` · `restart_unchecked`) — 옛 기록의 판정은 안 바뀜.
+- timing3의 유효 줄에 `age_anim`(피격 앞뒤 읽기의 애니 시간)을 참고로 붙임. 판정은 여전히 `age_since_seen`.
+- 검증: 오프라인 테스트만 (`tests/tae_verify_test.py` 새 2개, `tests/anim_time_test.py`, 기존 28개 그대로 통과). 새 기록으로 probe / pilot을 게임에서 돌린 적은 아직 없음.
+  `restart_seen` 갈래는 게임에서 본 적이 없는 꼴(재시작 0/25)이라 테스트 데이터로만 확인됨.
+

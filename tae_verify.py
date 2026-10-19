@@ -264,7 +264,9 @@ ISO_R = 25.0            # any other living foe this close (prev or this read) �
 ATTRIB_R = 6.0          # the target farther than this cannot have hit — an attribution sanity bound, not a reach measurement
 MAX_GAP = 0.02          # a read bound wider than this is too coarse (s)
 TOL = 1 / 30            # allowance each side of the active window (one game frame), reported with every row
-RESTART_FACTOR = 1.5    # a 3000 run longer than this × the median closed run → a same-ID restart cannot be ruled out
+RESTART_FACTOR = 1.5    # records without anim time: a run longer than this × the median closed run → a restart cannot be ruled out
+TIME_SLACK = 0.15       # anim time may fall behind the wall clock by this much inside one run (read jitter, hit-stop) before
+                        # it counts as a restart (s)
 N_MIN = 10              # valid samples needed before "pass" (proposal)
 HP_MIN = 200            # pre-check: HP must stay above this (NoDead clamps at 1 and hides hits)
 MAX_LINES = 100_000     # record cap (lines); the recorder stops at it
@@ -336,6 +338,24 @@ def _run_at(runs: list[dict], i: int) -> dict | None:
     return next((r for r in runs if r["i0"] <= i and (r["i1"] is None or i < r["i1"])), None)
 
 
+def restart_reason(seg: list[dict], ptr: int, start: tuple, run_len: float, median: float | None, n_closed: int) -> str | None:
+    """Can a same-ID restart hide in this run? With the foe's anim time (`at`, `DSRTelemetry.anim_time`) on ≥ 2 lines: a
+    restart is the time falling behind the wall clock by more than TIME_SLACK between two lines → 'restart_seen'; unbroken
+    time = one play, however long (10-19, docs/rea.md 3차: 25 × 3000, 0 restarts, one uncut 2.4 s play). Points whose time is
+    larger than the wall time since the ID change (+ slack) still belong to the previous anim's control and are skipped.
+    Records without `at`: the length rule (> RESTART_FACTOR × median → 'restart_possible', < 3 closed runs → 'restart_unchecked')."""
+    pts = [(x["t"], f["at"]) for x in seg for f in x["foes"] if f["ptr"] == ptr and f.get("at") is not None]
+    pts = [(tt, a) for tt, a in pts if a <= tt - start[0] + TIME_SLACK]
+    if len(pts) >= 2:
+        for (t1, a1), (t2, a2) in zip(pts, pts[1:]):
+            if a2 < a1 + (t2 - t1) - TIME_SLACK:
+                return "restart_seen"
+        return None
+    if median is None or n_closed < 3:
+        return "restart_unchecked"
+    return "restart_possible" if run_len > RESTART_FACTOR * median else None
+
+
 def timing3(tae: dict, combat: dict, lines: list[dict], anim: int = P3_ANIM, target: tuple = P3_TARGET,
             iso_r: float = ISO_R, tol: float = TOL, n_min: int = N_MIN) -> dict:
     """Every HP drop is a sample. Valid only if: the target is the one living foe within iso_r in this and the previous
@@ -391,11 +411,12 @@ def timing3(tae: dict, combat: dict, lines: list[dict], anim: int = P3_ANIM, tar
                 else:
                     ln = (r["end"][0] + r["end"][1] - r["start"][0] - r["start"][1]) / 2
                     row["run_len"] = round(ln, 4)
-                    if median is None or len(lens) < 3:
-                        why.append("restart_unchecked")
-                    elif ln > RESTART_FACTOR * median:
-                        why.append("restart_possible")
                 seg = frames[r["i0"]:(r["i1"] if r["i1"] is not None else len(frames))]
+                if r["end"] is not None and (rr := restart_reason(seg, f["ptr"], r["start"], ln, median, len(lens))):
+                    why.append(rr)
+                pa, fa = (pf or {}).get("at"), f.get("at")
+                if pa is not None and fa is not None:
+                    row["age_anim"] = [pa, fa]          # the game's anim time at the two reads around the drop (reference)
                 if any("refill" in s for s in seg):      # a hit between the read and the refill write would be hidden
                     why.append("refill_in_run")
                 if any(s["hp"] <= 1 for s in seg) or prev["hp"] <= 1:
@@ -483,6 +504,10 @@ def _r3(v):
     return None if v is None else round(v, 3)
 
 
+def _r4(v):
+    return None if v is None else round(v, 4)
+
+
 def record3(tm, secs: float, out: Path, header: dict, within: float = ISO_R, heartbeat: float = 0.5,
             refill: tuple[int, int] | None = None, max_lines: int = MAX_LINES, say_every: float = 5.0, gate=None) -> dict:
     """[win]: like `probe`, plus each line's read bounds (`t0` start, `t` end, `pt0` previous read's start), the 16 CHR DBG
@@ -506,7 +531,8 @@ def record3(tm, secs: float, out: Path, header: dict, within: float = ISO_R, hea
                 t = time.perf_counter()
                 n += 1
                 foes = [{"ptr": c.ptr, "npc": c.npc_param, "anim": c.anim, "d": round(c.dist, 2),
-                         "x": round(c.x, 3), "z": round(c.z, 3), "h": _r3(getattr(c, "heading", None))}
+                         "x": round(c.x, 3), "z": round(c.z, 3), "h": _r3(getattr(c, "heading", None)),
+                         "at": _r4(tm.anim_time(c.ptr)) if hasattr(tm, "anim_time") else None}
                         for c in s.chars if c.hp > 0 and c.team not in (0, 1)]
                 line = {"t0": round(t0, 5), "t": round(t, 5), "pt0": round(pt0 if pt0 is not None else t0, 5),
                         "hp": s.player.hp, "foes": foes, "dbg": dbg,
@@ -746,10 +772,8 @@ def timing_end(tae: dict, combat: dict, lines: list[dict], anim: int = P3_ANIM, 
         else:
             ln = (r["end"][0] + r["end"][1] - r["start"][0] - r["start"][1]) / 2
             row["run_len"] = round(ln, 4)
-            if median is None or len(lens) < 3:
-                why.append("restart_unchecked")
-            elif ln > RESTART_FACTOR * median:
-                why.append("restart_possible")
+            if rr := restart_reason(seg, ptr, r["start"], ln, median, len(lens)):
+                why.append(rr)
         if any("refill" in s for s in seg):
             why.append("refill_in_run")
         if any(s["hp"] <= 1 for s in seg):

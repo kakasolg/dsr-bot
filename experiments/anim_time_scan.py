@@ -252,6 +252,11 @@ def foe(tm, secs: float, refill: tuple[int, int] = (500, 793), npc: int = 254010
         print(f"{n} rows → {out}")
     finally:
         pad.release_all()
+        # 10-19 (P-88): switching PlayerNoDead off next to an awake A killed the player twice after the record ended (respawn at
+        # the bonfire, souls lost) — leave through the menu with the flag still on; Continue puts A back asleep at its spot
+        import savepoint
+        if savepoint.to_title(feed, pad):
+            savepoint.back_in(pad)
         tm.set_dbg(tm.DBG_PLAYER_NO_DEAD, bool(nodead))
 
 

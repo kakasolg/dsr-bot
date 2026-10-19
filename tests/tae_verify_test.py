@@ -3,6 +3,7 @@
   python tests/tae_verify_test.py
 """
 from __future__ import annotations
+from pathlib import Path
 import sys as _sys, pathlib as _pl  # repo root first (the bot's modules), then this folder
 _sys.path[:0] = [str(_pl.Path(__file__).resolve().parent.parent), str(_pl.Path(__file__).resolve().parent)]
 
@@ -172,6 +173,37 @@ def test_timing3_restart_possible():
     lines = run3(10, 0.9) + run3(20, 0.9) + run3(30, 0.9) + run3(40, 0.9, end=2.5)  # 2.5 s > 1.5 × median 1.2
     r = V.timing3(TAE, COMBAT, lines)
     assert r["valid"] == 3 and r["excluded"] == {"restart_possible": 1}
+
+
+def with_at(lines, ats):
+    """Put the target's anim time (`at`, DSRTelemetry.anim_time) on lines: {line index: time}."""
+    for i, a in ats.items():
+        lines[i]["foes"][0]["at"] = a
+    return lines
+
+
+def test_timing3_restart_by_anim_time():
+    # four runs with anim time: a long one whose time never breaks is one play (kept); one whose time falls back is a restart
+    long_ok = with_at(run3(40, 0.9, end=2.5), {1: 0.017, 2: 0.9})
+    long_ok[3:3] = [f3(42.0, 420, [(1, 254010, 3000, 1.5)])]
+    long_ok[3]["foes"][0]["at"] = 2.0
+    broken = with_at(run3(50, 0.9, end=2.5), {1: 0.017, 2: 0.9})
+    broken[3:3] = [f3(51.5, 420, [(1, 254010, 3000, 1.5)])]
+    broken[3]["foes"][0]["at"] = 0.3                     # 0.6 s after the hit read the time is 0.3, not ~1.5 → restarted
+    lines = (with_at(run3(10, 0.9), {1: 0.017, 2: 0.9}) + with_at(run3(20, 0.9), {1: 0.017, 2: 0.9})
+             + with_at(run3(30, 0.9), {1: 0.017, 2: 0.9}) + long_ok + broken)
+    r = V.timing3(TAE, COMBAT, lines)
+    assert r["valid"] == 4 and r["excluded"] == {"restart_seen": 1}, r["excluded"]
+    assert [h for h in r["rows_match"] if h["t"] == 40.9][0]["age_anim"] == [0.017, 0.9]
+
+
+def test_restart_reason_skips_the_old_control_and_falls_back():
+    seg = [f3(10.0, 500, [(1, 254010, 3000, 1.5)]), f3(10.3, 500, [(1, 254010, 3000, 1.5)]), f3(11.0, 500, [(1, 254010, 3000, 1.5)])]
+    with_at(seg, {0: 2.88, 1: 0.3, 2: 1.0})       # first read: the previous anim's control (2.88 > 0 s since the ID change)
+    assert V.restart_reason(seg, 1, (9.999, 10.0), 1.2, 1.2, 3) is None
+    plain = [f3(10.0, 500, [(1, 254010, 3000, 1.5)])]
+    assert V.restart_reason(plain, 1, (9.999, 10.0), 2.5, 1.2, 3) == "restart_possible"     # no anim time: length rule
+    assert V.restart_reason(plain, 1, (9.999, 10.0), 1.2, 1.2, 2) == "restart_unchecked"
 
 
 def test_precheck():
@@ -383,7 +415,13 @@ def test_warp_home_given_beats_first_gate():
 
 
 if __name__ == "__main__":
+    import inspect
+    import tempfile
     for name, fn in list(globals().items()):
         if name.startswith("test_"):
-            fn()
+            if "tmp_path" in inspect.signature(fn).parameters:        # pytest's fixture, run as a script
+                with tempfile.TemporaryDirectory() as d:
+                    fn(Path(d))
+            else:
+                fn()
             print("ok", name)

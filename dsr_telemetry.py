@@ -286,6 +286,26 @@ class DSRTelemetry:
         pp = self.player_ptr()
         return self.i32(pp + OFF_LOCK_TARGET) if pp else None
 
+    def anim_time(self, p: int) -> Optional[float]:
+        """Play time (s) of the character's most recently started animation — the game's own clock for the current anim.
+        Path from DS1 Overhaul's PlayerInsStruct.h, checked in game 10-19 (docs/rea.md 3차): ChrIns +0x68 ChrCtrl → +0x18 anim
+        queue (+0x0 count, +0x8 entries of 0x78) → entry +0x8 FrpgDefaultAnimationControl: +0x10 time, +0x14 blend weight.
+        A new anim starts another entry at one frame (0.017) while the old one fades out, so the newest = the smallest time
+        among entries with weight > 0. Looping anims (idle) wrap to 0."""
+        ctrl = self.q(p + OFF_MAPDATA) if p else None
+        q = self.q(ctrl + 0x18) if ctrl else None
+        n, arr = (self.i32(q), self.q(q + 0x8)) if q else (None, None)
+        if not (arr and n and 0 < n <= 32):
+            return None
+        best = None
+        for i in range(n):
+            c = self.q(arr + i * 0x78 + 0x8)
+            w = self.f32(c + 0x14) if c else None
+            t = self.f32(c + 0x10) if w else None
+            if w and w > 0.01 and t is not None and (best is None or t < best):
+                best = t
+        return best
+
     def last_grace(self) -> Optional[int]:
         return self.last_bonfire()
 

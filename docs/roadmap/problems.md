@@ -1013,3 +1013,12 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
   NavMesh / 앞쪽 바닥 (`nav.ground_ahead`)을 안 봄.
 - 고칠 것: 오프라인 정리 (워프해서 치기)는 끝날 때까지 PlayerNoDead 켜기, 서는 자리는 NavMesh 안쪽 + 공격 방향 2.2 m 바닥 확인 (`nav.ground_ahead`).
   세이브 종료는 메뉴 종료인지 확인 (`keys.py title`은 이번에 적이 되살아난 쪽이었음 — 원인 확인 필요).
+
+### P-88 `anim_time_scan.py foe`: 기록이 끝나며 PlayerNoDead를 끈 뒤 깨어 있는 할로우 A 옆에서 사망 — 두 번 (2026-10-19, [win] 자리 세션)
+- 증상: 07:50 `foe 150` 뒤, 11:33 `foe 180 --warpout` 뒤 둘 다, 다음에 읽어 보니 플레이어가 (21.84, 9.5, −23.67) — 마지막 화톳불 1012961(태양의 제단) 곁,
+  소울 0, 주변에 A 대신 제단 쪽 적. 죽는 순간은 기록 밖이라 직접 보지 못함 (자리 · 소울 0으로 본 것).
+- 원인: 스크립트가 `finally`에서 PlayerNoDead를 원래 값(꺼짐)으로 돌리고 끝남 → 플레이어는 깨어 있는 A에게서 1–3 m에 그대로 → A가 계속 침.
+  P-87과 같은 꼴(플래그를 너무 일찍 돌림).
+- 고침 (2026-10-19): `foe` 끝에서 플래그가 켜진 채 메뉴로 타이틀 → 이어하기(`savepoint.to_title` · `back_in`; 이어하기 뒤 A는 제자리에서 다시 잠듦, tae-verify B-8),
+  그다음에 플래그를 돌림. 고친 뒤 게임에서 아직 안 돌림. 세이브는 두 번 다 시험 전에 options pilot 세이브로 복원했고 그 전 상태는 `…-before-restore-…`로 백업됨.
+

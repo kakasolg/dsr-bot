@@ -177,7 +177,8 @@ def fisher_p(a: int, n1: int, b: int, n2: int) -> float:
 
 def rep_rows(lines: list[dict], anim: int = V.P3_ANIM, target: tuple = V.P3_TARGET, iso_r: float = V.ISO_R) -> list[dict]:
     """One row per rep. Excluded (reasons kept, first one counted): start not seen / bound > MAX_GAP, not isolated in any read of
-    the run, run open, possible same-ID restart (> 1.5 × median closed run), refill or HP floor in the run, no input or input later
+    the run, run open, possible same-ID restart (`tae_verify.restart_reason`: anim time broken, or > 1.5 × median closed run in records
+    without anim time), refill or HP floor in the run, no input or input later
     than τ + INPUT_LATE, no stick (camera yaw unread), more than one HP drop. Per rep (reference): hit, damage, hit age, distance and
     foe-to-player angle at the hit, foe turn and player's angle moved around the foe (+ = clockwise) start → hit or run end, roll seen."""
     head, frames = V._frames(lines)
@@ -211,10 +212,8 @@ def rep_rows(lines: list[dict], anim: int = V.P3_ANIM, target: tuple = V.P3_TARG
         else:
             ln = (r["end"][0] + r["end"][1] - st[0] - st[1]) / 2
             row["run_len"] = round(ln, 4)
-            if median is None or len(lens) < 3:
-                why.append("restart_unchecked")
-            elif ln > V.RESTART_FACTOR * median:
-                why.append("restart_possible")
+            if rr := V.restart_reason(seg, ptr, st, ln, median, len(lens)):
+                why.append(rr)
         if any("refill" in x for x in seg):
             why.append("refill_in_run")
         if any(x["hp"] <= 1 for x in seg):
