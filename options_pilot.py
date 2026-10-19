@@ -41,6 +41,8 @@ ROLL_ANIMS = range(700, 800)   # player roll animations (souls/moves.py roll_tow
 N_MIN = 16              # valid reps per option for a verdict (of the planned 20)
 HALF_DIFF = 0.3         # an option is "stable" if its two halves' hit rates differ by at most this (proposed, MoKa may change)
 PAIR_P = 0.01           # a pair "differs clearly" at Fisher exact two-sided p below this (proposed)
+MOVED_MIN = 0.2         # a circle / roll rep whose player moved less than this (m) in MOVED_S after the input → excluded:
+MOVED_S = 0.3           # the player was wedged, the rep measured standing (run 1, 10-17: 0.01–0.02 m on the 900 s home)
 STAND_MIN = 0.8         # stand below this hit rate → the setup is not probe 3's (reported, not a verdict on the options)
 
 
@@ -54,9 +56,9 @@ def _tangent(px, pz, fx, fz, cw: bool) -> tuple[float, float]:
 class PadAct:
     """The game side of the pilot: pad inputs (control.Pad) and the home warp. Game-memory write (warp), offline only."""
 
-    def __init__(self, tm, pad, world_to_stick, yaw_offset: float, flip_x: bool):
+    def __init__(self, tm, pad, world_to_stick, yaw_offset: float, flip_x: bool, home: tuple | None = None):
         self.tm, self.pad, self.w2s, self.yaw_offset, self.flip_x = tm, pad, world_to_stick, yaw_offset, flip_x
-        self.home = None
+        self.home = home        # (x, y, z, heading) given (`--home`, a tested spot) or the first rep's spot
 
     def _stick(self, s, ptr, cw: bool):
         foe = next((c for c in s.chars if c.ptr == ptr), None)
@@ -118,6 +120,10 @@ class OptionGate:
     def dense(self) -> bool:
         return self.active or self.tail > 0
 
+    def hold_refill(self) -> bool:
+        """No HP refill inside a rep (run 1: 10 reps lost to `refill_in_run`) — record3 refills between reps."""
+        return self.active
+
     def __call__(self, t: float, foes: list[dict], line: dict, s=None) -> bool:
         self.act.tick()
         event = False
@@ -129,8 +135,8 @@ class OptionGate:
                 self.act.stop()
                 line.update(rep_end=round(self.clock(), 5))
                 self.active, self.tail, self.need_home, event = False, TAIL, True, True
-            elif self.sent is None and t - self.t0 >= self.tau:
-                line.update(pad=self.act.start(self.opt, s, self.ptr), pad_t=round(self.clock(), 5))
+            elif self.sent is None and self._age(mine, t) >= self.tau:
+                line.update(pad=self.act.start(self.opt, s, self.ptr), pad_t=round(self.clock(), 5), pad_at=mine.get("at"))
                 self.sent, event = t, True
             elif self.sent is not None and not self.stopped:
                 hold = CIRCLE_S if self.opt.startswith("circle") else ROLL_HOLD if self.opt.startswith("roll") else 0.0
@@ -158,6 +164,12 @@ class OptionGate:
         self.prev = {x["ptr"]: x["anim"] for x in foes}
         return event
 
+    def _age(self, mine: dict, t: float) -> float:
+        """The 3000's age for τ: the game's anim time (`at`) once it belongs to this run (≤ the wall time since the ID
+        change + slack — before that it is still the previous anim's control), else the wall time since the first read."""
+        at, wall = mine.get("at"), t - self.t0
+        return at if at is not None and at <= wall + V.TIME_SLACK else wall
+
     def close(self) -> None:
         self.act.close()
 
@@ -179,7 +191,7 @@ def rep_rows(lines: list[dict], anim: int = V.P3_ANIM, target: tuple = V.P3_TARG
     """One row per rep. Excluded (reasons kept, first one counted): start not seen / bound > MAX_GAP, not isolated in any read of
     the run, run open, possible same-ID restart (`tae_verify.restart_reason`: anim time broken, or > 1.5 × median closed run in records
     without anim time), refill or HP floor in the run, no input or input later
-    than τ + INPUT_LATE, no stick (camera yaw unread), more than one HP drop. Per rep (reference): hit, damage, hit age, distance and
+    than τ + INPUT_LATE, no stick (camera yaw unread), a circle / roll that moved < MOVED_MIN in MOVED_S, more than one HP drop. Per rep (reference): hit, damage, hit age, distance and
     foe-to-player angle at the hit, foe turn and player's angle moved around the foe (+ = clockwise) start → hit or run end, roll seen."""
     head, frames = V._frames(lines)
     runs = V.anim_runs(frames)
@@ -218,10 +230,16 @@ def rep_rows(lines: list[dict], anim: int = V.P3_ANIM, target: tuple = V.P3_TARG
             why.append("refill_in_run")
         if any(x["hp"] <= 1 for x in seg):
             why.append("hp_floor_in_run")
-        sent = next((x for x in seg if "pad_t" in x), None)
+        k_sent = next((k for k, x in enumerate(seg) if "pad_t" in x), None)
+        sent = seg[k_sent] if k_sent is not None else None
         if sent is None:
             why.append("no_input")
         else:
+            later = next((x for x in frames[r["i0"] + k_sent:] if x["t"] >= sent["t"] + MOVED_S), None)
+            if later is not None and "p" in sent and "p" in later:
+                row["moved"] = round(V._dxz(sent["p"], later["p"]), 3)
+                if row["opt"] != "stand" and row["moved"] < MOVED_MIN:
+                    why.append("not_moved")
             row["input_age"] = [round(sent["pad_t"] - st[1], 4), round(sent["pad_t"] - st[0], 4)]
             if sent["pad_t"] - st[1] > (row["tau"] or TAU) + INPUT_LATE:
                 why.append("input_late")
@@ -301,7 +319,7 @@ def summarize(rows: list[dict], tau: float = TAU, anim: int = V.P3_ANIM, target:
             "verdict": verdict, "rows": rows}
 
 
-def run(secs: float, pre: float, refill, options: list, tau: float, force: bool, max_lines: int) -> None:
+def run(secs: float, pre: float, refill, options: list, tau: float, force: bool, max_lines: int, home: tuple | None = None) -> None:
     import control
     import dsr_telemetry
     import nav
@@ -313,7 +331,8 @@ def run(secs: float, pre: float, refill, options: list, tau: float, force: bool,
     stamp = time.strftime('%Y%m%d_%H%M%S')
     header = {"probe": "options", "anim": V.P3_ANIM, "target": list(V.P3_TARGET), "iso_r": V.ISO_R, "refill": refill,
               "options": options, "tau": tau, "circle_s": CIRCLE_S, "roll_hold": ROLL_HOLD,
-              "age": "age_since_seen (play position not read)", "tangent": "cw = clockwise from above, world x right / z up"}
+              "age": "τ by the foe's anim time `at` when it belongs to the run, else age_since_seen", "home": home,
+              "refill_rule": "between reps only", "tangent": "cw = clockwise from above, world x right / z up"}
     pre_out = V.SAMPLES / f"{stamp}_options-pre.jsonl"
     V.record3(tm, pre, pre_out, {**header, "pre": True}, refill=refill, max_lines=max_lines)
     pc = V.precheck([json.loads(l) for l in pre_out.read_text(encoding="utf-8").splitlines() if l.strip()], pre, secs, max_lines=max_lines)
@@ -325,7 +344,7 @@ def run(secs: float, pre: float, refill, options: list, tau: float, force: bool,
         return
     control.focus_game()
     pad = control.Pad()
-    gate = OptionGate(PadAct(tm, pad, control.world_to_stick, nav.YAW_OFFSET, nav.FLIP_X), options, tau)
+    gate = OptionGate(PadAct(tm, pad, control.world_to_stick, nav.YAW_OFFSET, nav.FLIP_X, home), options, tau)
     out = V.SAMPLES / f"{stamp}_options.jsonl"
     try:
         r = V.record3(tm, secs, out, {**header, "precheck": pc["checks"], "forced": not pc["ok"]}, refill=refill,
@@ -348,6 +367,8 @@ def main() -> None:
     p.add_argument("--tau", type=float, default=TAU)
     p.add_argument("--force", action="store_true")
     p.add_argument("--max-lines", type=int, default=V.MAX_LINES)
+    p.add_argument("--home", type=float, nargs=4, metavar=("X", "Y", "Z", "HEADING"),
+                   help="tested spot every rep starts from (run 1 used the first rep's spot, which was wedged)")
     p = sub.add_parser("check")
     p.add_argument("files", type=Path, nargs="+")
     a = ap.parse_args()
@@ -356,7 +377,7 @@ def main() -> None:
         bad = [o for o in opts if o not in OPTIONS]
         if bad:
             raise SystemExit(f"모르는 선택지 {bad} — {', '.join(OPTIONS)}")
-        run(a.secs, a.pre, tuple(a.refill) if a.refill else None, opts, a.tau, a.force, a.max_lines)
+        run(a.secs, a.pre, tuple(a.refill) if a.refill else None, opts, a.tau, a.force, a.max_lines, tuple(a.home) if a.home else None)
         return
     rows, tau = [], TAU
     for f in a.files:     # several records pooled: exclusions are decided per record, the summary over all rows

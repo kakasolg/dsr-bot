@@ -3,6 +3,7 @@
   python experiments/anim_time_scan.py check            step 1-a: is DS1 Overhaul's struct path valid in our game build?
   python experiments/anim_time_scan.py record [secs]    step 1-b: log the anim controls of the player at ~60 Hz (jsonl)
   python experiments/anim_time_scan.py drill [--restart] record while the pad acts (--restart: chained backsteps / light attacks)
+  python experiments/anim_time_scan.py pilot-prep   PlayerNoDead on (stays on), wake A, back to the start spot, print --home
   python experiments/anim_time_scan.py foe [secs=90] [--warpout]   hollow A's 3000 (PlayerNoDead on, walk to 3.5 m, whiff to wake,
         record; --warpout: warp 3 m out at 3000's 0.3 s, back when it ends — same-ID restart hunt)
 
@@ -260,6 +261,60 @@ def foe(tm, secs: float, refill: tuple[int, int] = (500, 793), npc: int = 254010
         tm.set_dbg(tm.DBG_PLAYER_NO_DEAD, bool(nodead))
 
 
+def pilot_prep(tm, npc: int = 254010, wait_s: float = 60.0) -> None:
+    """Before `options_pilot.py run --home …`: PlayerNoDead on (left ON — the pilot runs with it; switch it off only after a menu
+    quit-out, P-88), remember the start spot, walk to 3.5 m of the sleeping A, whiff facing away until it wakes, warp back to
+    the start spot facing A's side, wait until A is within 4 m and acting. Prints the --home arguments."""
+    import math
+    import control
+    import env
+    import navmesh
+    from souls import moves as M
+    feed = env.make_telemetry({})
+    pad = control.Pad()
+    tm.set_dbg(tm.DBG_PLAYER_NO_DEAD, True)
+    try:
+        s = tm.snapshot(40)
+        home = (s.player.x, s.player.y, s.player.z, s.player.heading or 0.0)
+        a = next((c for c in s.hostile(40) if c.npc_param == npc), None)
+        if not a:
+            print(f"no {npc} within 40 m")
+            return
+        aptr = a.ptr
+        d = math.hypot(s.player.x - a.x, s.player.z - a.z) or 1.0
+        goal = (a.x + 3.5 * (s.player.x - a.x) / d, a.y, a.z + 3.5 * (s.player.z - a.z) / d)
+        nm = navmesh.Navmesh("m10_01_00_00")
+        mv = M.Moves(feed, pad)
+        r = mv.walk_path(nm.find_path((s.player.x, s.player.y, s.player.z), goal), nm,
+                         stop=lambda sn: (lambda cc: cc is not None and M.horiz(sn.player, cc) <= 3.5)(mv.find(sn, aptr)))
+        pad.move(0.0, 0.0)
+        a = tm.read_chr(aptr)
+        x0, z0 = a.x, a.z
+        for k in range(6):
+            s = tm.snapshot(40)
+            a = tm.read_chr(aptr)
+            if a.anim not in (-1, None) or math.hypot(a.x - x0, a.z - z0) > 0.5:
+                break
+            tm.face(pad, _heading_to(s.player.x, s.player.z, a.x, a.z) + math.pi)   # away from A (P-88 notes: facing it killed it)
+            pad.attack()
+            time.sleep(1.6)
+        print(f"walk {r}; A awake={a.anim not in (-1, None) or math.hypot(a.x - x0, a.z - z0) > 0.5} after {k} whiffs, hp {a.hp}")
+        time.sleep(1.0)
+        tm.pos_warp(*home)
+        t0 = time.perf_counter()
+        while time.perf_counter() - t0 < wait_s:
+            s = tm.snapshot(40)
+            a = tm.read_chr(aptr)
+            dd = math.hypot(s.player.x - a.x, s.player.z - a.z)
+            if dd <= 4.0 and a.anim not in (-1, None):
+                break
+            time.sleep(0.1)
+        print(f"A {dd:.1f} m, anim {a.anim}, after {time.perf_counter() - t0:.1f} s")
+        print("--home " + " ".join(f"{v:.3f}" for v in home))
+    finally:
+        pad.release_all()
+
+
 def main() -> None:
     tm = dsr_telemetry.DSRTelemetry()
     cmd = sys.argv[1] if len(sys.argv) > 1 else "check"
@@ -269,6 +324,8 @@ def main() -> None:
         record(tm, float(sys.argv[2]) if len(sys.argv) > 2 else 20.0)
     elif cmd == "drill":
         drill(tm, restart="--restart" in sys.argv)
+    elif cmd == "pilot-prep":
+        pilot_prep(tm)
     elif cmd == "foe":
         foe(tm, float(sys.argv[2]) if len(sys.argv) > 2 and not sys.argv[2].startswith("-") else 90.0, warpout="--warpout" in sys.argv)
 

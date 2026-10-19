@@ -235,4 +235,6 @@ A가 3000을 벗어나면 제자리로(15번). 기록 `data/samples/20261019_113
 - timing3의 유효 줄에 `age_anim`(피격 앞뒤 읽기의 애니 시간)을 참고로 붙임. 판정은 여전히 `age_since_seen`.
 - 검증: 오프라인 테스트만 (`tests/tae_verify_test.py` 새 2개, `tests/anim_time_test.py`, 기존 28개 그대로 통과). 새 기록으로 probe / pilot을 게임에서 돌린 적은 아직 없음.
   `restart_seen` 갈래는 게임에서 본 적이 없는 꼴(재시작 0/25)이라 테스트 데이터로만 확인됨.
+- 2026-10-19 options pilot run 2 (`docs/design-player-options.md`): 게임에서 **같은 ID 재시작을 처음 봄** — 끝까지 재생된 3000(약 2.42 s) 뒤 ID 그대로 애니 시간이 0.017로
+  돌아가 새 3000, 두 번째 피격은 애니 시간 0.90(TAE 구간 안). `restart_seen` 1/1로 잡힘. "재시작이면 새 재생이 0부터"를 공격에서도 봄 (1건).
 

@@ -87,8 +87,8 @@ needing the tick loop, route data, settings object or WorldState.
 - [~] radar-upgrade | win | doing | radar upgrade check (navmesh drawn, pad slots, recording, `--replay`) | plan:radar-upgrade
 - [ ] radar-ai-ranges | win | todo | radar AI ranges (sight cone, hearing circle, leash) match the game | plan:radar-ai-ranges
 - [ ] combat-table | MoKa | parked | 3000 start ok, end not | docs/tae-verify.md
-- [~] player-options | cloud | doing | run 1: too few, stuck | docs/design-player-options.md
-- [~] rea-anim-time | win | verify | restart check by anim time (`at`) in tae_verify / options_pilot, offline tests; next: one game record | docs/rea.md
+- [~] player-options | MoKa | decide | run 2: roll 0/17 hit, stand / circles 60/60 (c2540 3000, τ 0.6, 0.9 m) → step 2 table? | docs/design-player-options.md
+- [~] rea-anim-time | cloud | decide | `at` + restart_reason in game (pilot run 2: 1 real restart caught); next: verdicts by anim time? | docs/rea.md
 
 ## 3. v2.0 (`docs/review-v2-2026-10-11.md`; go, done bar N/10 and order: MoKa)
 
@@ -151,7 +151,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 53 | `burg-upper` zone 1 (−1.9,−14,−70): fell 4 m right after a hit, quit-out recovered | verify — sprint overshot a corner over a drop; now jogs into such corners (`nav.brake_points`) |
 | 55 | `passage-drill`: the bonfire warp revives the ramp foes → died on the way to the top | open (A/B moved to seg 1-2) |
 | 87 | probe prep: fell, died | open |
-| 88 | `anim_time_scan foe`: NoDead switched off next to awake A → died ×2 | verify — leaves via the menu first |
+| 88 | `anim_time_scan foe`: NoDead switched off next to awake A → died ×2 | verify — menu exit first; worked after pilot run 2 (1/1) |
 | 56 | Ramp ledge (−20,−39,14), `--ground` on: 254002 + axe 254001 swinging together, died (no fall) | verify — + 'ranged first' no longer turns to the axe hollow / away from a foe < 2 m |
 | 57 | Passage start (−20,−39.3,14.4): 1.5 s stall + retry, AGAIN 10-11 4/15 runs | verify — path-finds first |
 | 58 | Ramp ledge (−22,−44,15) in a fight: fell 4.4 m, quit-out, walk-back timed out, died (`--ground` round 2 on #3) | verify — `rule_footing` (`--footing`, off by default), A/B |

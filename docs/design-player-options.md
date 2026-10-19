@@ -119,6 +119,30 @@ standing and walking in a circle never did. Not a verdict under the rule (too fe
 Before a rerun: home = a fixed tested spot (like probe 4 `--home`), drop the sleeping-foe isolation breaks (or kill the two 254012),
 a moved-distance check per rep (e.g. "circle moved < 0.2 m → excluded"), refill so it does not land inside a 3000 (10 lost).
 
+### Pilot run 2 — 2026-10-19 [win 자리 세션]: **상태값으로 갈림 (이 조건만)** — 구르기만 피함
+
+MoKa: "1 부터 시작해줘" (= options pilot 다시). 고친 것 (run 1의 네 원인): `--home`으로 시작 자리 고정 (−0.014, −10.02, −58.817, 방향 −0.956) ·
+반복 안에서는 HP 채우기 안 함 (`OptionGate.hold_refill`) · 원 돌기 / 구르기가 입력 뒤 0.3 s에 0.2 m 못 움직이면 `not_moved`로 뺌 · τ를 할로우의 애니 시간(`at`,
+docs/rea.md 3차)으로 잼 · 재시작 판정도 애니 시간(`restart_reason`). 준비: 세이브 복원 → `experiments/anim_time_scan.py pilot-prep` (PlayerNoDead 켬, A를 반대쪽 헛스윙
+1번에 깨움, 시작 자리로 워프, A가 올라와 1 m에서 공격) → `options_pilot.py run 900 --refill 500 793 --home …` → 끝나고 PlayerNoDead 켠 채 메뉴 종료 · 이어하기 → 끔
+(P-88: 고친 대로 됨 — A는 제자리에서 다시 잠들고 플레이어 살아 있음). 예비 점검 7/7 OK.
+기록 `data/samples/20261019_135454_options(-pre).jsonl`, check 전체 `data/samples/20261019_options_check_run2.txt`.
+
+반복 86, 유효 77, 제외 not_isolated 6 (구르기 쪽으로 가면 24–25 m의 254012가 들어옴) · not_moved 2 · restart_seen 1.
+
+| 선택지 | 유효 | 맞음 | 입력 뒤 0.3 s 이동 (중앙값) | 앞 / 뒤 절반 |
+|---|---|---|---|---|
+| stand | 21 | 21 | 0.00 m | 10/10 · 11/11 |
+| circle_cw | 18 | 18 | 0.34 m | 9/9 · 9/9 |
+| circle_ccw | 21 | 21 | 0.30 m | 10/10 · 11/11 |
+| roll_cw | 17 | **0** | 1.63 m (구르기 애니 17/17) | 0/8 · 0/9 |
+
+- 규칙(제안값: 선택지마다 유효 ≥ 16, 두 절반 차이 ≤ 0.3, 짝 Fisher p < 0.01)대로 판정 = **상태값으로 갈림 (이 조건만)**: 구르기 ↔ 나머지 셋 p ≈ 0, 서기 ↔ 원 돌기 p = 1.
+- 이 조건 = c2540 할로우 1마리의 3000, 시작 거리 약 0.9 m, τ 0.6 s(게임 애니 시간), 원 돌기는 스틱 1.0 s(0.3 s에 약 0.3 m), 구르기는 시계 방향 접선, 락온 없음.
+  "원 돌기는 3000을 못 피한다"는 이 거리 · 이 τ에서만. 더 일찍(τ 작게) 돌거나 더 멀리서 시작하면 다를 수 있음 — 안 재 봄.
+- **같은 ID 재시작 처음 봄 (rep 62)**: 3000이 끊기지 않고 끝까지(애니 시간 약 2.42 s) 재생된 뒤, ID는 3000 그대로 애니 시간만 0.017로 돌아가 새 3000 → 두 번째 피격은
+  애니 시간 0.90 (TAE 구간 안). ID만 보던 `age_since_seen`이었으면 이 피격은 3.3 s로 읽혀 불일치였음. 새 `restart_reason`이 잡아서 뺐다 (1/1).
+
 ## Step 2 — the table (only if step 1 passes)
 
 foe anim × option × τ (× distance band) → hit rate, damage, counter-attack landed (foe HP), what the foe did next. Then into

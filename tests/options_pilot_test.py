@@ -122,6 +122,39 @@ def test_late_input_excluded():
     assert r["valid"] == 0 and r["excluded"] == {"input_late": 8}
 
 
+def test_wedged_rep_is_excluded():
+    lines, _act = fake(reps=8)
+    k = next(i for i, x in enumerate(lines) if x.get("opt") == "circle_cw")
+    s = next(i for i in range(k, len(lines)) if "pad_t" in lines[i])
+    for x in lines[s:s + 200]:
+        x["p"] = list(lines[s]["p"])                  # the player does not move after the input (run 1's 900 s home)
+    rows = O.rep_rows(lines)
+    bad = [r for r in rows if r["opt"] == "circle_cw" and r["rep"] == lines[k]["rep"]][0]
+    assert "not_moved" in bad["reasons"] and bad["moved"] == 0.0
+    ok = [r for r in rows if r["opt"] == "circle_ccw"][0]
+    assert "not_moved" not in ok["reasons"] and ok["moved"] > 0.2
+
+
+def test_tau_by_anim_time_and_refill_hold():
+    g = {"t": 0.0, "p": [0.0, 0.0, 0.85], "mode": "stand", "since": 0.0}
+    act = FakeAct(g)
+    gate = O.OptionGate(act, options=["circle_cw"], clock=lambda: g["t"])
+    foe = lambda a, at: [{"ptr": 1, "npc": 254010, "anim": a, "d": 0.85, "x": 0.0, "z": 0.0, "h": math.pi, "at": at}]
+    assert not gate.hold_refill()
+    gate(1.0, foe(7000, 1.5), {}, g)
+    gate(1.01, foe(3000, 2.88), {}, g)                # first 3000 read: the old control's time — not this run's
+    assert gate.hold_refill()                         # inside a rep: record3 does not refill
+    line = {}
+    gate(1.59, foe(3000, 0.62), line, g)             # wall age 0.58 < τ 0.6 (first read came after the change), anim time past τ
+    assert line.get("pad_at") == 0.62 and "pad_t" in line
+    gate2 = O.OptionGate(FakeAct(g), options=["stand"], clock=lambda: g["t"])
+    gate2(1.0, foe(7000, 1.5), {}, g)
+    gate2(1.01, foe(3000, 2.88), {}, g)
+    line = {}
+    gate2(1.40, foe(3000, 2.88), line, g)            # time not this run's (2.88 > 0.39 + slack) → wall age 0.39 < τ → wait
+    assert "pad_t" not in line
+
+
 def test_fisher():
     assert O.fisher_p(20, 20, 0, 20) < 1e-9
     assert O.fisher_p(10, 20, 10, 20) == 1.0

@@ -539,7 +539,7 @@ def record3(tm, secs: float, out: Path, header: dict, within: float = ISO_R, hea
                         "p": [round(s.player.x, 3), round(s.player.y, 3), round(s.player.z, 3)],
                         "pa": s.player.anim, "ph": _r3(s.player.heading), "cam": _r3(getattr(s, "cam_yaw", None))}
                 pt0 = t0
-                if refill and s.player.hp < refill[0]:
+                if refill and s.player.hp < refill[0] and not (gate and getattr(gate, "hold_refill", lambda: False)()):
                     tm.set_hp(refill[1])
                     line["refill"] = refill[1]
                 event = gate(t, foes, line, s) if gate else False
