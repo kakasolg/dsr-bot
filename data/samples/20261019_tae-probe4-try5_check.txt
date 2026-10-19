@@ -1,0 +1,232 @@
+  {'t': 92915.38635, 'tau': 0.5, 'kind': 'early', 'start_obs': [92915.3809, 92915.3864], 'run_len': 1.1977, 'warp_delay': 0.0132, 'd_back': 0.88, 'release_anim': [0.5167, 0.5167], 'release_age': [0.5167, 0.5167], 'release_wall': [0.5043, 0.523], 'hit': True, 'lost': 57, 'hit_age': [0.55, 0.9], 'hit_wall': [0.8961, 0.9136], 'lag': 0.3846, 'reasons': []}
+  {'t': 92927.77033, 'tau': None, 'kind': 'hold', 'start_obs': [92927.7549, 92927.7703], 'run_len': 2.422, 'hit': False, 'reasons': []}
+  {'t': 92935.07416, 'tau': 0.9, 'kind': 'sweep', 'start_obs': [92935.0631, 92935.0742], 'run_len': 3.6174, 'warp_delay': 0.0138, 'd_back': 0.87, 'release_anim': [0.9167, 0.9167], 'release_age': [0.9167, 0.9167], 'release_wall': [0.9008, 0.9257], 'hit': True, 'reasons': ['restart_seen', 'refill_in_run', 'multi_hit_in_run']}
+  {'t': 92942.77827, 'tau': 0.97, 'kind': 'sweep', 'start_obs': [92942.7642, 92942.7783], 'run_len': 2.48, 'warp_delay': 0.0186, 'd_back': 0.88, 'release_anim': [1.0, 1.0], 'release_age': [1.0, 1.0], 'release_wall': [0.9839, 1.0139], 'hit': False, 'reasons': []}
+  {'t': 92949.70271, 'tau': 1.0, 'kind': 'sweep', 'start_obs': [92949.6948, 92949.7027], 'run_len': 2.4887, 'warp_delay': 0.0202, 'd_back': 0.88, 'release_anim': [1.0167, 1.0167], 'release_age': [1.0167, 1.0167], 'release_wall': [1.009, 1.0296], 'hit': False, 'reasons': []}
+  {'t': 92952.89516, 'tau': 1.02, 'kind': 'sweep', 'start_obs': [92952.8783, 92952.8952], 'run_len': 2.4853, 'warp_delay': 0.0167, 'd_back': 0.9, 'release_anim': [1.05, 1.05], 'release_age': [1.05, 1.05], 'release_wall': [1.0319, 1.0654], 'hit': False, 'reasons': []}
+  {'t': 92956.12282, 'tau': 1.04, 'kind': 'sweep', 'start_obs': [92956.1143, 92956.1228], 'run_len': 2.4868, 'warp_delay': 0.0192, 'd_back': 0.9, 'release_anim': [1.0667, 1.0667], 'release_age': [1.0667, 1.0667], 'release_wall': [1.0596, 1.0785], 'hit': False, 'reasons': []}
+  {'t': 92959.34354, 'tau': 1.06, 'kind': 'sweep', 'start_obs': [92959.3306, 92959.3435], 'run_len': 2.4773, 'warp_delay': 0.0193, 'd_back': 0.9, 'release_anim': [1.0833, 1.0833], 'release_age': [1.0833, 1.0833], 'release_wall': [1.0665, 1.0935], 'hit': False, 'reasons': []}
+  {'t': 92962.57255, 'tau': 1.1, 'kind': 'sweep', 'start_obs': [92962.5596, 92962.5725], 'run_len': 2.4904, 'warp_delay': 0.0224, 'd_back': 0.9, 'release_anim': [1.1167, 1.1167], 'release_age': [1.1167, 1.1167], 'release_wall': [1.1067, 1.1335], 'hit': False, 'reasons': []}
+  {'t': 92965.80903, 'tau': 0.5, 'kind': 'early', 'start_obs': [92965.7963, 92965.809], 'run_len': 3.6169, 'warp_delay': 0.0184, 'd_back': 0.87, 'release_anim': [0.5, 0.5167], 'release_age': [0.5, 0.5167], 'release_wall': [0.5017, 0.5273], 'hit': True, 'reasons': ['restart_seen', 'multi_hit_in_run']}
+  {'t': 92973.51255, 'tau': None, 'kind': 'hold', 'start_obs': [92973.4952, 92973.5125], 'run_len': 1.195, 'hit': False, 'reasons': []}
+  {'t': 92979.84065, 'tau': 0.9, 'kind': 'sweep', 'start_obs': [92979.8291, 92979.8406], 'run_len': 1.1984, 'warp_delay': 0.0181, 'd_back': 0.87, 'release_anim': [0.9167, 0.9167], 'release_age': [0.9167, 0.9167], 'release_wall': [0.9071, 0.9295], 'hit': True, 'lost': 57, 'hit_age': [0.9333, 0.9333], 'hit_wall': [0.9185, 0.9426], 'lag': 0.0068, 'reasons': []}
+  {'t': 92985.12463, 'tau': 0.97, 'kind': 'sweep', 'start_obs': [92985.1118, 92985.1246], 'run_len': 2.4331, 'warp_delay': 0.0177, 'd_back': 0.89, 'release_anim': [1.0, 1.0], 'release_age': [1.0, 1.0], 'release_wall': [0.9886, 1.0146], 'hit': False, 'reasons': []}
+  {'t': 92988.35247, 'tau': 1.0, 'kind': 'sweep', 'start_obs': [92988.3431, 92988.3525], 'run_len': 2.4865, 'warp_delay': 0.0173, 'd_back': 0.89, 'release_anim': [1.0167, 1.0167], 'release_age': [1.0167, 1.0167], 'release_wall': [1.0133, 1.0373], 'hit': False, 'reasons': []}
+  {'t': 92991.74255, 'tau': 1.02, 'kind': 'sweep', 'start_obs': [92991.7278, 92991.7425], 'run_len': 2.4857, 'warp_delay': 0.0073, 'd_back': 0.9, 'release_anim': [1.05, 1.05], 'release_age': [1.05, 1.05], 'release_wall': [1.0391, 1.0611], 'hit': False, 'reasons': []}
+  {'t': 93005.98675, 'tau': 1.04, 'kind': 'sweep', 'start_obs': [93005.9818, 93005.9867], 'run_len': 2.4869, 'warp_delay': 0.0156, 'd_back': 0.9, 'release_anim': [1.0667, 1.0667], 'release_age': [1.0667, 1.0667], 'release_wall': [1.063, 1.0782], 'hit': False, 'reasons': []}
+  {'t': 93022.17801, 'tau': 1.06, 'kind': 'sweep', 'start_obs': [93022.1626, 93022.178], 'run_len': 2.4827, 'warp_delay': 0.0207, 'd_back': 0.9, 'release_anim': [1.0833, 1.0833], 'release_age': [1.0833, 1.0833], 'release_wall': [1.0692, 1.0966], 'hit': False, 'reasons': []}
+  {'t': 93064.49961, 'tau': 1.1, 'kind': 'sweep', 'start_obs': [93064.4772, 93064.4996], 'run_len': 2.4839, 'warp_delay': 0.013, 'd_back': 0.9, 'release_anim': [1.1167, 1.1167], 'release_age': [1.1167, 1.1167], 'release_wall': [1.0942, 1.1296], 'hit': False, 'reasons': ['start_gap']}
+  {'t': 93071.41939, 'tau': 0.5, 'kind': 'early', 'start_obs': [93071.4141, 93071.4194], 'run_len': 1.2037, 'warp_delay': 0.0173, 'd_back': 0.88, 'release_anim': [0.5167, 0.5167], 'release_age': [0.5167, 0.5167], 'release_wall': [0.5099, 0.5299], 'hit': True, 'lost': 57, 'hit_age': [0.55, 0.9], 'hit_wall': [0.8973, 0.9167], 'lag': 0.3797, 'reasons': []}
+  {'t': 93076.7062, 'tau': None, 'kind': 'hold', 'start_obs': [93076.6867, 93076.7062], 'run_len': 1.2, 'hit': False, 'reasons': []}
+  {'t': 93110.07694, 'tau': 0.9, 'kind': 'sweep', 'start_obs': [93110.0655, 93110.0769], 'run_len': 1.1994, 'warp_delay': 0.02, 'd_back': 0.85, 'release_anim': [0.9167, 0.9167], 'release_age': [0.9167, 0.9167], 'release_wall': [0.9044, 0.9279], 'hit': True, 'lost': 57, 'hit_age': [0.9333, 0.95], 'hit_wall': [0.922, 0.9545], 'lag': 0.016, 'reasons': []}
+  {'t': 93124.17569, 'tau': 0.97, 'kind': 'sweep', 'start_obs': [93124.1642, 93124.1757], 'run_len': 1.1962, 'warp_delay': 0.0208, 'd_back': 0.87, 'release_anim': [1.0, 1.0], 'release_age': [1.0, 1.0], 'release_wall': [0.9852, 1.0123], 'hit': False, 'reasons': []}
+  {'t': 93141.77415, 'tau': 1.0, 'kind': 'sweep', 'start_obs': [93141.7587, 93141.7741], 'run_len': 2.4813, 'warp_delay': 0.024, 'd_back': 0.88, 'release_anim': [1.0167, 1.0167], 'release_age': [1.0167, 1.0167], 'release_wall': [1.0084, 1.0415], 'hit': False, 'reasons': []}
+  {'t': 93145.15561, 'tau': 1.02, 'kind': 'sweep', 'start_obs': [93145.144, 93145.1556], 'run_len': 2.4902, 'warp_delay': 0.0193, 'd_back': 0.9, 'release_anim': [1.05, 1.05], 'release_age': [1.05, 1.05], 'release_wall': [1.0433, 1.0671], 'hit': False, 'reasons': []}
+  {'t': 93148.38866, 'tau': 1.04, 'kind': 'sweep', 'start_obs': [93148.3759, 93148.3887], 'run_len': 2.4875, 'warp_delay': 0.0188, 'd_back': 0.9, 'release_anim': [1.0667, 1.0667], 'release_age': [1.0667, 1.0667], 'release_wall': [1.0603, 1.0822], 'hit': False, 'reasons': []}
+  {'t': 93151.62645, 'tau': 1.06, 'kind': 'sweep', 'start_obs': [93151.6113, 93151.6264], 'run_len': 2.4845, 'warp_delay': 0.0247, 'd_back': 0.9, 'release_anim': [1.0833, 1.0833], 'release_age': [1.0833, 1.0833], 'release_wall': [1.0728, 1.1004], 'hit': False, 'reasons': []}
+  {'t': 93168.56988, 'tau': 1.1, 'kind': 'sweep', 'start_obs': [93168.5582, 93168.5699], 'run_len': 2.4903, 'warp_delay': 0.015, 'd_back': 0.9, 'release_anim': [1.1167, 1.1167], 'release_age': [1.1167, 1.1167], 'release_wall': [1.105, 1.1317], 'hit': False, 'reasons': []}
+  {'t': 93171.95625, 'tau': 0.5, 'kind': 'early', 'start_obs': [93171.9427, 93171.9563], 'run_len': 1.2026, 'warp_delay': 0.0145, 'd_back': 0.88, 'release_anim': [0.5, 0.5167], 'release_age': [0.5, 0.5167], 'release_wall': [0.5052, 0.5332], 'hit': True, 'lost': 57, 'hit_age': [0.55, 0.9], 'hit_wall': [0.8926, 0.9197], 'lag': 0.3797, 'reasons': []}
+  {'t': 93177.23917, 'tau': None, 'kind': 'hold', 'start_obs': [93177.2257, 93177.2392], 'run_len': 1.2007, 'hit': False, 'reasons': []}
+  {'t': 93183.57225, 'tau': 0.9, 'kind': 'sweep', 'start_obs': [93183.5643, 93183.5722], 'run_len': 1.1996, 'warp_delay': 0.0169, 'd_back': 0.85, 'release_anim': [0.9167, 0.9167], 'release_age': [0.9167, 0.9167], 'release_wall': [0.9073, 0.9296], 'hit': True, 'lost': 57, 'hit_age': [0.9333, 0.9333], 'hit_wall': [0.9273, 0.9484], 'lag': 0.0122, 'reasons': []}
+  {'t': 93197.29256, 'tau': 0.97, 'kind': 'sweep', 'start_obs': [93197.2801, 93197.2926], 'run_len': 2.4778, 'warp_delay': 0.0216, 'd_back': 0.87, 'release_anim': [1.0, 1.0], 'release_age': [1.0, 1.0], 'release_wall': [0.9891, 1.0131], 'hit': False, 'reasons': []}
+  {'t': 93200.67076, 'tau': 1.0, 'kind': 'sweep', 'start_obs': [93200.6591, 93200.6708], 'run_len': 2.4874, 'warp_delay': 0.0203, 'd_back': 0.88, 'release_anim': [1.0167, 1.0167], 'release_age': [1.0167, 1.0167], 'release_wall': [1.012, 1.0353], 'hit': False, 'reasons': []}
+  {'t': 93203.90309, 'tau': 1.02, 'kind': 'sweep', 'start_obs': [93203.8895, 93203.9031], 'run_len': 2.4931, 'warp_delay': 0.017, 'd_back': 0.89, 'release_anim': [1.05, 1.05], 'release_age': [1.05, 1.05], 'release_wall': [1.0454, 1.0655], 'hit': False, 'reasons': []}
+  {'t': 93207.13316, 'tau': 1.04, 'kind': 'sweep', 'start_obs': [93207.1136, 93207.1332], 'run_len': 2.4808, 'warp_delay': 0.0116, 'd_back': 0.9, 'release_anim': [1.0667, 1.0667], 'release_age': [1.0667, 1.0667], 'release_wall': [1.0428, 1.0739], 'hit': False, 'reasons': []}
+  {'t': 93213.90858, 'tau': 1.06, 'kind': 'sweep', 'start_obs': [93213.899, 93213.9086], 'run_len': 2.4844, 'warp_delay': 0.0189, 'd_back': 0.9, 'release_anim': [1.0833, 1.0833], 'release_age': [1.0833, 1.0833], 'release_wall': [1.0694, 1.0955], 'hit': False, 'reasons': []}
+  {'t': 93217.10838, 'tau': 1.1, 'kind': 'sweep', 'start_obs': [93217.0981, 93217.1084], 'run_len': 2.4771, 'warp_delay': 0.016, 'd_back': 0.9, 'release_anim': [1.1167, 1.1167], 'release_age': [1.1167, 1.1167], 'release_wall': [1.1033, 1.1224], 'hit': False, 'reasons': []}
+  {'t': 93220.34773, 'tau': 0.5, 'kind': 'early', 'start_obs': [93220.3263, 93220.3477], 'run_len': 1.2015, 'warp_delay': 0.0204, 'd_back': 0.87, 'release_anim': [0.5167, 0.5167], 'release_age': [0.5167, 0.5167], 'release_wall': [0.4977, 0.5346], 'hit': True, 'lost': 57, 'hit_age': [0.55, 0.9], 'hit_wall': [0.8788, 0.9115], 'lag': 0.3713, 'reasons': ['start_gap']}
+  {'t': 93229.17613, 'tau': None, 'kind': 'hold', 'start_obs': [93229.161, 93229.1761], 'run_len': 1.1965, 'hit': False, 'reasons': []}
+  {'t': 93235.50298, 'tau': 0.9, 'kind': 'sweep', 'start_obs': [93235.498, 93235.503], 'run_len': 2.4153, 'warp_delay': 0.0152, 'd_back': 0.87, 'release_anim': [0.9167, 0.9167], 'release_age': [0.9167, 0.9167], 'release_wall': [0.9125, 0.9231], 'hit': True, 'lost': 57, 'hit_age': [0.9333, 0.9333], 'hit_wall': [0.9281, 0.9488], 'lag': 0.0178, 'reasons': []}
+  {'t': 93244.34213, 'tau': 0.97, 'kind': 'sweep', 'start_obs': [93244.3298, 93244.3421], 'run_len': 2.4354, 'warp_delay': 0.0291, 'd_back': 0.88, 'release_anim': [1.0, 1.0167], 'release_age': [1.0, 1.0167], 'release_wall': [0.9904, 1.0272], 'hit': False, 'reasons': []}
+  {'t': 93249.92421, 'tau': 1.0, 'kind': 'sweep', 'start_obs': [93249.9133, 93249.9242], 'run_len': 2.4832, 'warp_delay': 0.0094, 'd_back': 0.89, 'release_anim': [1.0167, 1.0167], 'release_age': [1.0167, 1.0167], 'release_wall': [1.0061, 1.0263], 'hit': False, 'reasons': []}
+  {'t': 93253.1601, 'tau': 1.02, 'kind': 'sweep', 'start_obs': [93253.1473, 93253.1601], 'run_len': 2.4837, 'warp_delay': 0.0123, 'd_back': 0.9, 'release_anim': [1.05, 1.05], 'release_age': [1.05, 1.05], 'release_wall': [1.0387, 1.0568], 'hit': False, 'reasons': []}
+  {'t': 93265.39191, 'tau': 1.04, 'kind': 'sweep', 'start_obs': [93265.3774, 93265.3919], 'run_len': 2.4847, 'warp_delay': 0.0187, 'd_back': 0.89, 'release_anim': [1.0667, 1.0667], 'release_age': [1.0667, 1.0667], 'release_wall': [1.0496, 1.0779], 'hit': False, 'reasons': []}
+  {'t': 93268.77405, 'tau': 1.06, 'kind': 'sweep', 'start_obs': [93268.762, 93268.7741], 'run_len': 2.4853, 'warp_delay': 0.0198, 'd_back': 0.9, 'release_anim': [1.0833, 1.0833], 'release_age': [1.0833, 1.0833], 'release_wall': [1.0745, 1.1021], 'hit': False, 'reasons': []}
+  {'t': 93278.38812, 'tau': 1.1, 'kind': 'sweep', 'start_obs': [93278.3789, 93278.3881], 'run_len': 2.4841, 'warp_delay': 0.016, 'd_back': 0.9, 'release_anim': [1.1167, 1.1167], 'release_age': [1.1167, 1.1167], 'release_wall': [1.1086, 1.1249], 'hit': False, 'reasons': []}
+  {'t': 93286.64146, 'tau': 0.5, 'kind': 'early', 'start_obs': [93286.6278, 93286.6415], 'run_len': 1.2007, 'warp_delay': 0.0271, 'd_back': 0.87, 'release_anim': [0.5167, 0.5167], 'release_age': [0.5167, 0.5167], 'release_wall': [0.5079, 0.538], 'hit': True, 'lost': 57, 'hit_age': [0.55, 0.9], 'hit_wall': [0.8933, 0.9224], 'lag': 0.3767, 'reasons': []}
+  {'t': 93291.97654, 'tau': None, 'kind': 'hold', 'start_obs': [93291.9622, 93291.9765], 'run_len': 1.2023, 'hit': False, 'reasons': []}
+  {'t': 93302.12482, 'tau': 0.9, 'kind': 'sweep', 'start_obs': [93302.1105, 93302.1248], 'run_len': 1.197, 'warp_delay': 0.0165, 'd_back': 0.85, 'release_anim': [0.9167, 0.9167], 'release_age': [0.9167, 0.9167], 'release_wall': [0.9003, 0.9284], 'hit': True, 'lost': 57, 'hit_age': [0.9333, 0.9333], 'hit_wall': [0.9211, 0.9493], 'lag': 0.014, 'reasons': ['refill_in_run']}
+  {'t': 93310.97882, 'tau': 0.97, 'kind': 'sweep', 'start_obs': [93310.9624, 93310.9788], 'run_len': 1.1924, 'warp_delay': 0.0309, 'd_back': 0.87, 'release_anim': [1.0, 1.0167], 'release_age': [1.0, 1.0167], 'release_wall': [0.9872, 1.0249], 'hit': False, 'reasons': []}
+  {'t': 93331.1479, 'tau': 1.0, 'kind': 'sweep', 'start_obs': [93331.1281, 93331.1479], 'run_len': 2.4317, 'warp_delay': 0.0228, 'd_back': 0.89, 'release_anim': [1.0167, 1.0167], 'release_age': [1.0167, 1.0167], 'release_wall': [1.0007, 1.036], 'hit': False, 'reasons': []}
+  {'t': 93334.2592, 'tau': 1.02, 'kind': 'sweep', 'start_obs': [93334.2436, 93334.2592], 'run_len': 2.485, 'warp_delay': 0.0171, 'd_back': 0.89, 'release_anim': [1.05, 1.05], 'release_age': [1.05, 1.05], 'release_wall': [1.0408, 1.0618], 'hit': False, 'reasons': []}
+  {'t': 93342.5061, 'tau': 1.04, 'kind': 'sweep', 'start_obs': [93342.4945, 93342.5061], 'run_len': 2.4861, 'warp_delay': 0.0177, 'd_back': 0.9, 'release_anim': [1.0667, 1.0667], 'release_age': [1.0667, 1.0667], 'release_wall': [1.0598, 1.0864], 'hit': False, 'reasons': []}
+  {'t': 93361.83876, 'tau': 1.06, 'kind': 'sweep', 'start_obs': [93361.8213, 93361.8388], 'run_len': 2.4926, 'warp_delay': 0.0254, 'd_back': 0.9, 'release_anim': [1.0833, 1.0833], 'release_age': [1.0833, 1.0833], 'release_wall': [1.0785, 1.1085], 'hit': False, 'reasons': []}
+  {'t': 93365.2271, 'tau': 1.1, 'kind': 'sweep', 'start_obs': [93365.2129, 93365.2271], 'run_len': 2.4866, 'warp_delay': 0.0157, 'd_back': 0.9, 'release_anim': [1.1167, 1.1167], 'release_age': [1.1167, 1.1167], 'release_wall': [1.105, 1.1247], 'hit': False, 'reasons': []}
+  {'t': 93374.87531, 'tau': 0.5, 'kind': 'early', 'start_obs': [93374.8644, 93374.8753], 'run_len': 1.1969, 'warp_delay': 0.0148, 'd_back': 0.88, 'release_anim': [0.5167, 0.5167], 'release_age': [0.5167, 0.5167], 'release_wall': [0.5022, 0.5279], 'hit': True, 'lost': 57, 'hit_age': [0.55, 0.9], 'hit_wall': [0.8812, 0.9112], 'lag': 0.3737, 'reasons': []}
+  {'t': 93382.69008, 'tau': None, 'kind': 'hold', 'start_obs': [93382.6754, 93382.6901], 'run_len': 1.2038, 'hit': False, 'reasons': []}
+  {'t': 93387.98222, 'tau': 0.9, 'kind': 'sweep', 'start_obs': [93387.9628, 93387.9822], 'run_len': 1.1978, 'warp_delay': 0.017, 'd_back': 0.85, 'release_anim': [0.9167, 0.9167], 'release_age': [0.9167, 0.9167], 'release_wall': [0.8989, 0.9304], 'hit': True, 'lost': 57, 'hit_age': [0.9333, 0.9333], 'hit_wall': [0.9172, 0.9501], 'lag': 0.0129, 'reasons': []}
+  {'t': 93394.29324, 'tau': 0.97, 'kind': 'sweep', 'start_obs': [93394.2817, 93394.2932], 'run_len': 1.1971, 'warp_delay': 0.0149, 'd_back': 0.88, 'release_anim': [1.0, 1.0], 'release_age': [1.0, 1.0], 'release_wall': [0.9838, 1.0103], 'hit': False, 'reasons': []}
+  {'t': 93402.60986, 'tau': 1.0, 'kind': 'sweep', 'start_obs': [93402.5977, 93402.6099], 'run_len': 2.4768, 'warp_delay': 0.0219, 'd_back': 0.88, 'release_anim': [1.0167, 1.0167], 'release_age': [1.0167, 1.0167], 'release_wall': [1.0053, 1.032], 'hit': False, 'reasons': []}
+  {'t': 93405.84952, 'tau': 1.02, 'kind': 'sweep', 'start_obs': [93405.8312, 93405.8495], 'run_len': 2.4779, 'warp_delay': 0.0215, 'd_back': 0.89, 'release_anim': [1.05, 1.05], 'release_age': [1.05, 1.05], 'release_wall': [1.0336, 1.0657], 'hit': False, 'reasons': []}
+  {'t': 93409.07028, 'tau': 1.04, 'kind': 'sweep', 'start_obs': [93409.0612, 93409.0703], 'run_len': 2.4846, 'warp_delay': 0.0233, 'd_back': 0.89, 'release_anim': [1.0667, 1.0667], 'release_age': [1.0667, 1.0667], 'release_wall': [1.0613, 1.0852], 'hit': False, 'reasons': []}
+  {'t': 93420.70738, 'tau': 1.06, 'kind': 'sweep', 'start_obs': [93420.6897, 93420.7074], 'run_len': 2.4879, 'warp_delay': 0.0164, 'd_back': 0.9, 'release_anim': [1.0833, 1.0833], 'release_age': [1.0833, 1.0833], 'release_wall': [1.0741, 1.0969], 'hit': False, 'reasons': []}
+  {'t': 93433.62138, 'tau': 1.1, 'kind': 'sweep', 'start_obs': [93433.6116, 93433.6214], 'run_len': 2.4838, 'warp_delay': 0.0314, 'd_back': 0.9, 'release_anim': [1.1167, 1.1333], 'release_age': [1.1167, 1.1333], 'release_wall': [1.1091, 1.1429], 'hit': False, 'reasons': []}
+  {'t': 93436.84688, 'tau': 0.5, 'kind': 'early', 'start_obs': [93436.8287, 93436.8469], 'run_len': 1.1979, 'warp_delay': 0.0199, 'd_back': 0.87, 'release_anim': [0.5167, 0.5167], 'release_age': [0.5167, 0.5167], 'release_wall': [0.4986, 0.531], 'hit': True, 'lost': 57, 'hit_age': [0.5333, 0.9], 'hit_wall': [0.8838, 0.9175], 'lag': 0.3788, 'reasons': []}
+  {'t': 93442.12621, 'tau': None, 'kind': 'hold', 'start_obs': [93442.1146, 93442.1262], 'run_len': 2.4141, 'hit': False, 'reasons': []}
+  {'t': 93452.40809, 'tau': 0.9, 'kind': 'sweep', 'start_obs': [93452.3909, 93452.4081], 'run_len': 1.2023, 'warp_delay': 0.0213, 'd_back': 0.85, 'release_anim': [0.9167, 0.9167], 'release_age': [0.9167, 0.9167], 'release_wall': [0.9069, 0.9398], 'hit': True, 'lost': 57, 'hit_age': [0.9333, 0.9333], 'hit_wall': [0.9228, 0.9528], 'lag': 0.0066, 'reasons': []}
+  {'t': 93457.69215, 'tau': 0.97, 'kind': 'sweep', 'start_obs': [93457.6778, 93457.6922], 'run_len': 2.436, 'warp_delay': 0.0184, 'd_back': 0.86, 'release_anim': [1.0, 1.0], 'release_age': [1.0, 1.0], 'release_wall': [0.9873, 1.0144], 'hit': False, 'reasons': []}
+  {'t': 93467.10417, 'tau': 1.0, 'kind': 'sweep', 'start_obs': [93467.0974, 93467.1042], 'run_len': 2.4324, 'warp_delay': 0.012, 'd_back': 0.89, 'release_anim': [1.0167, 1.0167], 'release_age': [1.0167, 1.0167], 'release_wall': [1.0081, 1.0268], 'hit': False, 'reasons': []}
+  {'t': 93470.35318, 'tau': 1.02, 'kind': 'sweep', 'start_obs': [93470.3434, 93470.3532], 'run_len': 2.4882, 'warp_delay': 0.0134, 'd_back': 0.9, 'release_anim': [1.05, 1.05], 'release_age': [1.05, 1.05], 'release_wall': [1.0454, 1.0661], 'hit': False, 'reasons': []}
+  {'t': 93478.4435, 'tau': 1.04, 'kind': 'sweep', 'start_obs': [93478.4293, 93478.4435], 'run_len': 2.4835, 'warp_delay': 0.0213, 'd_back': 0.89, 'release_anim': [1.0667, 1.0667], 'release_age': [1.0667, 1.0667], 'release_wall': [1.0544, 1.0843], 'hit': False, 'reasons': []}
+  {'t': 93481.82576, 'tau': 1.06, 'kind': 'sweep', 'start_obs': [93481.8048, 93481.8258], 'run_len': 2.4843, 'warp_delay': 0.0175, 'd_back': 0.9, 'release_anim': [1.0833, 1.0833], 'release_age': [1.0833, 1.0833], 'release_wall': [1.0696, 1.1006], 'hit': False, 'reasons': ['start_gap']}
+  {'t': 93485.05631, 'tau': 1.1, 'kind': 'sweep', 'start_obs': [93485.0468, 93485.0563], 'run_len': 2.4821, 'warp_delay': 0.0195, 'd_back': 0.9, 'release_anim': [1.1167, 1.1167], 'release_age': [1.1167, 1.1167], 'release_wall': [1.11, 1.1278], 'hit': False, 'reasons': []}
+  {'t': 93488.28064, 'tau': 0.5, 'kind': 'early', 'start_obs': [93488.261, 93488.2806], 'run_len': 1.1979, 'warp_delay': 0.016, 'd_back': 0.88, 'release_anim': [0.5167, 0.5167], 'release_age': [0.5167, 0.5167], 'release_wall': [0.5014, 0.5285], 'hit': True, 'lost': 57, 'hit_age': [0.55, 0.9], 'hit_wall': [0.8784, 0.9149], 'lag': 0.378, 'reasons': []}
+{
+ "anim": 3000,
+ "windows": [
+  [
+   0.8667,
+   1.0333
+  ]
+ ],
+ "tae_end": 1.0333,
+ "tol": 0.0333,
+ "gate": "warp",
+ "flag": null,
+ "age": "the foe's anim time where recorded (release_anim / hit_age), else age_since_seen",
+ "instances": 73,
+ "valid": 67,
+ "excluded": {
+  "restart_seen": 2,
+  "start_gap": 3,
+  "refill_in_run": 1
+ },
+ "controls": {
+  "leaks": 0,
+  "hold_no_hit": [
+   8,
+   8
+  ],
+  "early_hit": [
+   7,
+   7
+  ],
+  "defer": [
+   0,
+   46
+  ]
+ },
+ "method_valid": false,
+ "end_bracket": [
+  0.9167,
+  1.0
+ ],
+ "consistent": true,
+ "lag_after_release": {
+  "median": 0.0129,
+  "max": 0.0178
+ },
+ "per_tau": {
+  "None": [
+   0,
+   8
+  ],
+  "0.5": [
+   7,
+   7
+  ],
+  "0.9": [
+   6,
+   6
+  ],
+  "0.97": [
+   0,
+   8
+  ],
+  "1.0": [
+   0,
+   8
+  ],
+  "1.02": [
+   0,
+   8
+  ],
+  "1.04": [
+   0,
+   8
+  ],
+  "1.06": [
+   0,
+   7
+  ],
+  "1.1": [
+   0,
+   7
+  ]
+ },
+ "verdict": "방법 미검증",
+ "header": {
+  "kind": "header",
+  "probe": 4,
+  "gate": "warp",
+  "anim": 3000,
+  "target": [
+   254010
+  ],
+  "iso_r": 25.0,
+  "refill": [
+   500,
+   793
+  ],
+  "taus": [
+   0.5,
+   null,
+   0.9,
+   0.97,
+   1.0,
+   1.02,
+   1.04,
+   1.06,
+   1.1
+  ],
+  "age": "age_since_seen (play position not read)",
+  "out_d": 3.0,
+  "home": [
+   -0.014,
+   -10.02,
+   -58.817,
+   -0.956
+  ],
+  "front": 0.9,
+  "lock": true,
+  "precheck": [
+   {
+    "check": "hp",
+    "ok": true,
+    "detail": "min 625 (≥ 200; NoDead holds HP at 1 and hides hits)"
+   },
+   {
+    "check": "target_one",
+    "ok": true,
+    "detail": "target (254010,) within 25.0 m per read: [1]"
+   },
+   {
+    "check": "target_awake",
+    "ok": true,
+    "detail": "anims seen [3000, 3001, 3002, 3005] (−1 = asleep: wake it; one ID only = not acting)"
+   },
+   {
+    "check": "isolated",
+    "ok": true,
+    "detail": "other foes within 25.0 m: []"
+   },
+   {
+    "check": "read_bounds",
+    "ok": true,
+    "detail": "pt0 ≤ t0 ≤ t on every line: True; bound median 0.0051 s (≤ 0.02)"
+   },
+   {
+    "check": "dbg_flags",
+    "ok": true,
+    "detail": "CHR DBG read ['01000000000000000000000000000000'] → on [['PlayerNoDead']]; not allowed [] (check their effect first, then --allow)"
+   },
+   {
+    "check": "volume",
+    "ok": true,
+    "detail": "12 lines in 5.0 s → ~1440 for 600.0 s (cap 100000)"
+   }
+  ],
+  "forced": false
+ }
+}
+3000 구간 끝: 방법 미검증 — 게이트 73, 유효 67, 제외 {'restart_seen': 2, 'start_gap': 3, 'refill_in_run': 1}, 대조 {'leaks': 0, 'hold_no_hit': [8, 8], 'early_hit': [7, 7], 'defer': [0, 46]}, 끝 괄호 [0.9167, 1.0] (TAE 1.0333 ± 0.0333)

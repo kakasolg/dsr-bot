@@ -263,6 +263,8 @@ def probe(secs: float, out: Path, within: float = 25.0, heartbeat: float = 0.5, 
 P3_ANIM = 3000
 P3_TARGET = (254010,)   # c2540 sword hollow
 ISO_R = 25.0            # any other living foe this close (prev or this read) → ambiguous (m)
+ISO_DY = 5.0            # … unless it is more than this above / below the player (MoKa 10-19: 255040 on the wall, ~20 m up, broke
+                        # 58 of 65 try-4 gates); needs the foe's height `y` on the line (record3 since 10-19) — older lines: no exemption
 ATTRIB_R = 6.0          # the target farther than this cannot have hit — an attribution sanity bound, not a reach measurement
 MAX_GAP = 0.02          # a read bound wider than this is too coarse (s)
 TOL = 1 / 30            # allowance each side of the active window (one game frame), reported with every row
@@ -307,11 +309,14 @@ def _frames(lines: list[dict]) -> tuple[dict, list[dict]]:
     return head, [l for l in lines if "kind" not in l]
 
 
-def _near(fr: dict, iso_r: float, target: tuple) -> tuple[list[dict], list[dict]]:
-    """(targets, others) within iso_r; friendly NPCs (dsr_telemetry.FRIENDLY) never attack and are left out."""
+def _near(fr: dict, iso_r: float, target: tuple, iso_dy: float = ISO_DY) -> tuple[list[dict], list[dict]]:
+    """(targets, others) within iso_r; friendly NPCs (dsr_telemetry.FRIENDLY) never attack and are left out, and so are
+    others more than iso_dy above / below the player (when the line has both heights)."""
     from dsr_telemetry import FRIENDLY
     fs = [f for f in fr["foes"] if f["d"] <= iso_r and f["npc"] not in FRIENDLY]
-    return [f for f in fs if f["npc"] in target], [f for f in fs if f["npc"] not in target]
+    py = fr["p"][1] if "p" in fr else None
+    level = lambda f: f.get("y") is None or py is None or abs(f["y"] - py) <= iso_dy
+    return [f for f in fs if f["npc"] in target], [f for f in fs if f["npc"] not in target and level(f)]
 
 
 def anim_runs(frames: list[dict]) -> dict[int, list[dict]]:
@@ -533,7 +538,7 @@ def record3(tm, secs: float, out: Path, header: dict, within: float = ISO_R, hea
                 t = time.perf_counter()
                 n += 1
                 foes = [{"ptr": c.ptr, "npc": c.npc_param, "anim": c.anim, "d": round(c.dist, 2),
-                         "x": round(c.x, 3), "z": round(c.z, 3), "h": _r3(getattr(c, "heading", None)),
+                         "x": round(c.x, 3), "y": _r3(getattr(c, "y", None)), "z": round(c.z, 3), "h": _r3(getattr(c, "heading", None)),
                          "at": _r4(tm.anim_time(c.ptr)) if hasattr(tm, "anim_time") else None}
                         for c in s.chars if c.hp > 0 and c.team not in (0, 1)]
                 line = {"t0": round(t0, 5), "t": round(t, 5), "pt0": round(pt0 if pt0 is not None else t0, 5),

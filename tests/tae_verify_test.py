@@ -206,6 +206,17 @@ def test_restart_reason_skips_the_old_control_and_falls_back():
     assert V.restart_reason(plain, 1, (9.999, 10.0), 1.2, 1.2, 2) == "restart_unchecked"
 
 
+def test_isolation_ignores_foes_far_above():
+    # MoKa 10-19: a foe on the wall ~20 m up (255040) is not a second attacker; same level (< 5 m) still is
+    fr = {"p": [0.0, -10.0, 0.0], "foes": [{"ptr": 1, "npc": 254010, "anim": 3000, "d": 0.9, "y": -10.0},
+                                           {"ptr": 2, "npc": 255040, "anim": -1, "d": 20.5, "y": 9.5},
+                                           {"ptr": 3, "npc": 254012, "anim": -1, "d": 24.0, "y": -6.0}]}
+    tg, ot = V._near(fr, 25.0, (254010,))
+    assert [f["ptr"] for f in tg] == [1] and [f["ptr"] for f in ot] == [3]
+    del fr["foes"][1]["y"]                            # older records have no height: no exemption
+    assert [f["ptr"] for f in V._near(fr, 25.0, (254010,))[1]] == [2, 3]
+
+
 def test_precheck():
     good = [{"kind": "header"}] + [f3(i * 0.5, 700, [(1, 254010, 3000 if i % 2 else 7000, 1.5), (4, 100000, -1, 9.0)])
                                     for i in range(10)]
