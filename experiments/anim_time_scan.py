@@ -3,7 +3,8 @@
   python experiments/anim_time_scan.py check            step 1-a: is DS1 Overhaul's struct path valid in our game build?
   python experiments/anim_time_scan.py record [secs]    step 1-b: log the anim controls of the player at ~60 Hz (jsonl)
   python experiments/anim_time_scan.py drill [--restart] record while the pad acts (--restart: chained backsteps / light attacks)
-  python experiments/anim_time_scan.py foe [secs=90]     hollow A's 3000 (PlayerNoDead on, walk to 3.5 m, whiff to wake, record)
+  python experiments/anim_time_scan.py foe [secs=90] [--warpout]   hollow A's 3000 (PlayerNoDead on, walk to 3.5 m, whiff to wake,
+        record; --warpout: warp 3 m out at 3000's 0.3 s, back when it ends — same-ID restart hunt)
 
 Path (Overhaul OverhaulDLL/include/PlayerInsStruct.h, offsets only):
   ChrIns +0x68 → ChrCtrl:  +0x10 ChrIns (back pointer)  +0x18 ChrCtrl_AnimationQueue  +0x20 AnimationMediator
@@ -140,10 +141,12 @@ def _heading_to(px, pz, tx, tz) -> float:
     return math.atan2(tx - px, tz - pz) - math.pi
 
 
-def foe(tm, secs: float, refill: tuple[int, int] = (500, 793), npc: int = 254010) -> None:
+def foe(tm, secs: float, refill: tuple[int, int] = (500, 793), npc: int = 254010, warpout: bool = False) -> None:
     """Hollow A's 3000: PlayerNoDead on (game-memory write, offline only; restored at the end), walk to 3.5 m of A
     (NavMesh path + Moves.walk_path), whiff light attacks facing away from A until A wakes (B-11), then record A's anim controls at ~60 Hz for `secs`.
-    First half: stand. Second half: backstep 0.3 s into each 3000 (out of reach → B-11 saw A repeat 3000 with one ID)."""
+    First half: stand. Second half: backstep 0.3 s into each 3000 (out of reach → B-11 saw A repeat 3000 with one ID).
+    warpout: the whole run, at 3000 +0x10 0.30–0.45 the player is warped 3 m further from A (NavMesh floor, no drop within 1 m;
+    game-memory write, offline only) and back home when A leaves 3000 or after 3 s — B-11's setup that showed long 3000s."""
     import math
     import control
     import env
@@ -165,9 +168,10 @@ def foe(tm, secs: float, refill: tuple[int, int] = (500, 793), npc: int = 254010
         import navmesh
         from souls import moves as M
         nm = navmesh.Navmesh("m10_01_00_00")
-        path = nm.find_path((s.player.x, s.player.y, s.player.z), goal)
+        near = math.hypot(s.player.x - a.x, s.player.z - a.z) <= 6.0 and a.anim not in (-1, None)
+        path = [] if near else nm.find_path((s.player.x, s.player.y, s.player.z), goal)
         mv = M.Moves(feed, pad)
-        r = mv.walk_path(path, nm, stop=lambda sn: (lambda cc: cc is not None and M.horiz(sn.player, cc) <= 3.5)(mv.find(sn, aptr)))
+        r = "near" if near else mv.walk_path(path, nm, stop=lambda sn: (lambda cc: cc is not None and M.horiz(sn.player, cc) <= 3.5)(mv.find(sn, aptr)))
         pad.move(0.0, 0.0)
         s = tm.snapshot(40)
         a = tm.read_chr(aptr)
@@ -186,10 +190,26 @@ def foe(tm, secs: float, refill: tuple[int, int] = (500, 793), npc: int = 254010
         else:
             print("A did not wake after 6 whiffs")
         ctrl = tm.q(aptr + 0x68)
+        s = tm.snapshot(40)
+        home = (s.player.x, s.player.y, s.player.z)
+        out_at = None           # time of the warp out, None = home
+
+        def out_spot(px, py, pz, ax, az):
+            d = math.hypot(px - ax, pz - az) or 1.0
+            ux, uz = (px - ax) / d, (pz - az) / d
+            for turn in (0, 60, -60, 90, -90):
+                c, s_ = math.cos(math.radians(turn)), math.sin(math.radians(turn))
+                vx, vz = ux * c - uz * s_, ux * s_ + uz * c
+                q = (px + 3.0 * vx, py, pz + 3.0 * vz)
+                if nm.on_mesh(*q) and nm.drop_dist(*q) > 1.0:
+                    return q
+            return None
+
         t0 = time.perf_counter()
         n, last_bs = 0, -9.0
         with out.open("w", encoding="utf-8") as f:
-            f.write(json.dumps({"head": {"npc": npc, "secs": secs, "refill": refill, "half": "stand / backstep 0.3 s into 3000"}}) + "\n")
+            f.write(json.dumps({"head": {"npc": npc, "secs": secs, "refill": refill, "home": [round(v, 2) for v in home],
+                                         "mode": "warpout 3 m at 3000 0.30-0.45" if warpout else "stand / backstep 0.3 s into 3000"}}) + "\n")
             while (t := time.perf_counter() - t0) < secs:
                 s = tm.snapshot(40)
                 a = tm.read_chr(aptr)
@@ -203,7 +223,22 @@ def foe(tm, secs: float, refill: tuple[int, int] = (500, 793), npc: int = 254010
                 if refill and s.player.hp < refill[0]:
                     tm.set_hp(refill[1])
                     row["refill"] = refill[1]
-                if t > secs / 2 and a and a.anim == 3000 and t - last_bs > 1.5:
+                if warpout and a:
+                    act = [c for c in row["ctrls"] if c["w"] > 0.5]
+                    if out_at is None and a.anim == 3000 and act and 0.30 <= act[0]["t"] <= 0.45 and t - last_bs > 1.5:
+                        q = out_spot(s.player.x, s.player.y, s.player.z, a.x, a.z)
+                        if q:
+                            tm.pos_warp(*q, _heading_to(q[0], q[2], a.x, a.z))
+                            row["warp_out"] = [round(v, 2) for v in q]
+                            out_at = last_bs = t
+                        else:
+                            row["warp_out"] = None
+                            last_bs = t
+                    elif out_at is not None and (a.anim != 3000 or t - out_at > 3.0):
+                        tm.pos_warp(*home, _heading_to(home[0], home[2], a.x, a.z))
+                        row["warp_home"] = True
+                        out_at = None
+                elif t > secs / 2 and a and a.anim == 3000 and t - last_bs > 1.5:
                     act = [c for c in row["ctrls"] if c["w"] > 0.5]
                     if act and 0.3 <= act[0]["t"] <= 0.4:
                         pad.dodge()
@@ -212,6 +247,8 @@ def foe(tm, secs: float, refill: tuple[int, int] = (500, 793), npc: int = 254010
                 f.write(json.dumps(row) + "\n")
                 n += 1
                 time.sleep(1 / 60)
+        if out_at is not None:
+            tm.pos_warp(*home, 0.0)
         print(f"{n} rows → {out}")
     finally:
         pad.release_all()
@@ -228,7 +265,7 @@ def main() -> None:
     elif cmd == "drill":
         drill(tm, restart="--restart" in sys.argv)
     elif cmd == "foe":
-        foe(tm, float(sys.argv[2]) if len(sys.argv) > 2 else 90.0)
+        foe(tm, float(sys.argv[2]) if len(sys.argv) > 2 and not sys.argv[2].startswith("-") else 90.0, warpout="--warpout" in sys.argv)
 
 
 if __name__ == "__main__":
