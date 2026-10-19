@@ -33,7 +33,7 @@ PLAN = ROOT / "docs" / "roadmap" / "plan.md"
 PROBLEMS = ROOT / "docs" / "roadmap" / "problems.md"
 RELAY = ROOT / "docs" / "roadmap" / "relay.md"
 
-MAX_BYTES = 20_000      # was 24,000 with closed problems and item histories inside — now those live in the archive
+MAX_BYTES = 30_000      # MoKa 10-19: raised from 20,000 (it sat at the limit); was 24,000 before the archive split
 TEXT_MAX = 150          # the "now / next" field
 ROLES = ("cloud", "win", "MoKa")
 STAGES = ("todo", "doing", "verify", "decide", "blocked", "parked")

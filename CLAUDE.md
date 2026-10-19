@@ -19,7 +19,7 @@
 - Problems (blocked, unexpected, or a mistake the bot recovered from): append a full entry `### P-<n> …` (symptom /
   cause / fix) to the bottom of `docs/roadmap/problems.md` and add one row to the ROADMAP "Problem index". Never delete
   entries; when fixed, write the fix under the entry and set the row's status (`fixed …` rows leave with `tidy`).
-- `tests/roadmap_test.py` (= `python roadmap.py check`) fails on a malformed line, ROADMAP.md over 20 KB, or a P-number
+- `tests/roadmap_test.py` (= `python roadmap.py check`) fails on a malformed line, ROADMAP.md over 30 KB, or a P-number
   without exactly one index row.
 
 ## How to state results (MoKa 2026-10-16)
