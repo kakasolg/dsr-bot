@@ -3,6 +3,7 @@
   python experiments/anim_time_scan.py check            step 1-a: is DS1 Overhaul's struct path valid in our game build?
   python experiments/anim_time_scan.py record [secs]    step 1-b: log the anim controls of the player at ~60 Hz (jsonl)
   python experiments/anim_time_scan.py drill [--restart] record while the pad acts (--restart: chained backsteps / light attacks)
+  python experiments/anim_time_scan.py foe [secs=90]     hollow A's 3000 (PlayerNoDead on, walk to 3.5 m, whiff to wake, record)
 
 Path (Overhaul OverhaulDLL/include/PlayerInsStruct.h, offsets only):
   ChrIns +0x68 → ChrCtrl:  +0x10 ChrIns (back pointer)  +0x18 ChrCtrl_AnimationQueue  +0x20 AnimationMediator
@@ -133,6 +134,90 @@ def drill(tm, restart: bool = False) -> None:
     print("marks (s from start):", [(n, round(v - t0, 2) if isinstance(v, float) else v) for n, v in marks])
 
 
+def _heading_to(px, pz, tx, tz) -> float:
+    """+0x4 heading that faces (tx, tz): world yaw = heading + π, direction (sin yaw, cos yaw) in x-z (dsr_telemetry.face)."""
+    import math
+    return math.atan2(tx - px, tz - pz) - math.pi
+
+
+def foe(tm, secs: float, refill: tuple[int, int] = (500, 793), npc: int = 254010) -> None:
+    """Hollow A's 3000: PlayerNoDead on (game-memory write, offline only; restored at the end), walk to 3.5 m of A
+    (NavMesh path + Moves.walk_path), whiff light attacks facing away from A until A wakes (B-11), then record A's anim controls at ~60 Hz for `secs`.
+    First half: stand. Second half: backstep 0.3 s into each 3000 (out of reach → B-11 saw A repeat 3000 with one ID)."""
+    import math
+    import control
+    import env
+
+    feed = env.make_telemetry({})
+    pad = control.Pad()
+    nodead = tm.get_dbg(tm.DBG_PLAYER_NO_DEAD)
+    tm.set_dbg(tm.DBG_PLAYER_NO_DEAD, True)
+    out = Path(__file__).resolve().parent.parent / "data" / "samples" / time.strftime("%Y%m%d_%H%M%S_anim-time-foe.jsonl")
+    try:
+        s = tm.snapshot(40)
+        a = next((c for c in s.hostile(40) if c.npc_param == npc), None)
+        if not a:
+            print(f"no {npc} within 40 m")
+            return
+        aptr = a.ptr
+        d = math.hypot(s.player.x - a.x, s.player.z - a.z) or 1.0
+        goal = (a.x + 3.5 * (s.player.x - a.x) / d, a.y, a.z + 3.5 * (s.player.z - a.z) / d)
+        import navmesh
+        from souls import moves as M
+        nm = navmesh.Navmesh("m10_01_00_00")
+        path = nm.find_path((s.player.x, s.player.y, s.player.z), goal)
+        mv = M.Moves(feed, pad)
+        r = mv.walk_path(path, nm, stop=lambda sn: (lambda cc: cc is not None and M.horiz(sn.player, cc) <= 3.5)(mv.find(sn, aptr)))
+        pad.move(0.0, 0.0)
+        s = tm.snapshot(40)
+        a = tm.read_chr(aptr)
+        print(f"goto {r}: player ({s.player.x:.2f}, {s.player.y:.2f}, {s.player.z:.2f}), A {math.hypot(s.player.x - a.x, s.player.z - a.z):.2f} m")
+        x0, z0 = a.x, a.z
+        for k in range(6):
+            s = tm.snapshot(40)
+            a = tm.read_chr(aptr)
+            if a.anim not in (-1, None) or math.hypot(a.x - x0, a.z - z0) > 0.5:
+                print(f"A awake after {k} whiffs (anim {a.anim}, moved {math.hypot(a.x - x0, a.z - z0):.2f} m)")
+                break
+            # 10-19: facing A, the first whiff killed it (75 → 0, as B-8) — swing facing away from A
+            tm.face(pad, _heading_to(s.player.x, s.player.z, a.x, a.z) + math.pi)
+            pad.attack()
+            time.sleep(1.6)
+        else:
+            print("A did not wake after 6 whiffs")
+        ctrl = tm.q(aptr + 0x68)
+        t0 = time.perf_counter()
+        n, last_bs = 0, -9.0
+        with out.open("w", encoding="utf-8") as f:
+            f.write(json.dumps({"head": {"npc": npc, "secs": secs, "refill": refill, "half": "stand / backstep 0.3 s into 3000"}}) + "\n")
+            while (t := time.perf_counter() - t0) < secs:
+                s = tm.snapshot(40)
+                a = tm.read_chr(aptr)
+                row = {"t": round(t, 4), "hp": s.player.hp, "p": [round(s.player.x, 2), round(s.player.y, 2), round(s.player.z, 2)],
+                       "a": [round(a.x, 2), round(a.y, 2), round(a.z, 2)] if a else None, "aanim": a.anim if a else None,
+                       "ahp": a.hp if a else None, "ctrls": []}
+                for i, (e, c) in enumerate(controls(tm, ctrl)):
+                    w = tm.f32(c + 0x14) if c else None
+                    if w:
+                        row["ctrls"].append({"i": i, "c": c, "t": round(tm.f32(c + 0x10), 4), "w": round(w, 3), "info": tm.q(e + 0x20) or 0})
+                if refill and s.player.hp < refill[0]:
+                    tm.set_hp(refill[1])
+                    row["refill"] = refill[1]
+                if t > secs / 2 and a and a.anim == 3000 and t - last_bs > 1.5:
+                    act = [c for c in row["ctrls"] if c["w"] > 0.5]
+                    if act and 0.3 <= act[0]["t"] <= 0.4:
+                        pad.dodge()
+                        row["backstep"] = True
+                        last_bs = t
+                f.write(json.dumps(row) + "\n")
+                n += 1
+                time.sleep(1 / 60)
+        print(f"{n} rows → {out}")
+    finally:
+        pad.release_all()
+        tm.set_dbg(tm.DBG_PLAYER_NO_DEAD, bool(nodead))
+
+
 def main() -> None:
     tm = dsr_telemetry.DSRTelemetry()
     cmd = sys.argv[1] if len(sys.argv) > 1 else "check"
@@ -142,6 +227,8 @@ def main() -> None:
         record(tm, float(sys.argv[2]) if len(sys.argv) > 2 else 20.0)
     elif cmd == "drill":
         drill(tm, restart="--restart" in sys.argv)
+    elif cmd == "foe":
+        foe(tm, float(sys.argv[2]) if len(sys.argv) > 2 else 90.0)
 
 
 if __name__ == "__main__":
