@@ -24,8 +24,9 @@ ROADMAP `rea-anim-time`. 1 · 2차 시험 기록(설치, 덤프, 시험 B 5/5)�
 |---|---|---|---|
 | ChrDbg 플래그 배열 16바이트 이름 | `0x141c77e59` +0x0…+0xF | 게임 디버그 메뉴 `CHR DBG` 이름표 (rea-trial 2차 표) | 정적으로 읽음, 15개 `dsr_telemetry.DBG_*`; +0xA AllNoHit 효과는 tae-verify probe 4 |
 | CHR DBG 메뉴를 만드는 함수 | `0x1403744xx`–`0x1403748xx` | 2차 decompile | 정적으로 읽음 |
+| 클래스 vtable (RTTI) | PlayerCtrl `0x14132c258` · EnemyCtrl `0x14132bea8` · ActionCtrl `0x14132d318` · FrpgDefaultAnimationControl `0x1413460d0` · hkaDefaultAnimationControl `0x141412728` | 덤프의 MSVC RTTI `.?AV…@@` → COL → vtable (Python, 10-19) | PlayerIns · EnemyIns vtable이 `dsr_telemetry`의 값과 같음 (2/2) |
 | AllNoDamage(+0x9)를 읽는 곳 | `FUN_140322925` | 2차 xrefs | 정적으로 읽음 — 피해 계산식(시험 C)의 출발점 후보 |
-| 애니 재생 시간 | 후보: `[ChrIns+0x68]+0x18` → 엔트리 `+0x8` → `hkaDefaultAnimationControl +0x10` | Overhaul 경로 + Havok 배치(추론) | 아직 — 3차 |
+| 애니 재생 시간 | `[ChrIns+0x68]+0x18` 큐 → 엔트리(0x78) `+0x8` → `FrpgDefaultAnimationControl` `+0x10` 시간 · `+0x14` 무게 · 엔트리 `+0x20` 애니 정보 | Overhaul 경로 + 게임에서 읽음 (10-19, 플레이어 · 적 9) | 플레이어 시간 증가 · 재생 시 0부터: 게임에서 봄. 공격 같은 ID 재시작 · 적 3000: 아직 |
 
 ## 3차 지시문 — 애니 재생 시간 필드, Overhaul 구조체 경로를 닻으로 ([cloud] 2026-10-19 개정)
 
@@ -124,4 +125,35 @@ ChrIns +0x68 → ChrCtrl
 
 ## 3차 결과
 
-(아직 없음)
+2026-10-19 07:30–07:45, 이 세션([win] 자리에서 Windows Claude Code)이 직접 함. 게임은 MoKa가 켬, `keys.py continue`로 들어감 → 세이브는 options pilot 자리
+(플레이어 (−1.3, −10.0, −62.7), 할로우 254010 15.5 m). 게임 메모리는 읽기만, 입력은 패드(백스텝 · 약공). 도구 `experiments/anim_time_scan.py`,
+기록 `data/samples/20261019_073848_anim-time-scan.jsonl`(drill) · `20261019_073938_anim-time-scan.jsonl`(drill --restart).
+
+**0. 준비 — REA는 이번에 거의 안 씀.** `REA_GHIDRA_DISABLED_ANALYZERS`가 사용자 환경 변수에 없어서 MCP 세션은 안 열었고(열면 전체 분석 1시간+), CLI에
+환경 변수를 그 자리에서 주고 `rea decompile` 4개를 병렬로 보냈더니 **34초 만에 4개 모두 `execution_failure`** — 원인은 안 봄(병렬 Ghidra 4개 ·
+같은 시각 게임 시작이 겹침). 대신 Python으로 덤프를 직접 읽음:
+- 덤프에 MSVC RTTI 이름(`.?AVhkaDefaultAnimationControl@@`, `.?AVFrpgDefaultAnimationControl@NS_FRPG@@`, `.?AVChrCtrl@NS_FRPG@@` …)이 있음 →
+  TypeDescriptor → CompleteObjectLocator → vtable로 10개 클래스의 vtable을 구함 (위 "원장"). **PlayerIns `0x1413251f0` · EnemyIns `0x141322e68`이
+  `dsr_telemetry`가 쓰던 값과 같아서(2/2)** 이 방법은 믿을 만함. 이 방법은 Ghidra 없이 몇 초.
+- 실제 애니 컨트롤의 클래스는 `FrpgDefaultAnimationControl`(FromSoft가 Havok의 `hkaDefaultAnimationControl`을 이어받은 것; vtable 17개 중 15개가 같은 함수).
+
+**1-a. 경로 점검 — 통과 (플레이어 1, 적 9).**
+- 플레이어: `ChrIns+0x68`의 vtable = PlayerCtrl, `+0x10` = 그 ChrIns(역포인터 맞음), `+0x48` = ActionCtrl, `+0x28` = 우리 위치 데이터. 애니 큐 길이 16, 엔트리 16개 모두
+  `FrpgDefaultAnimationControl`.
+- 적 9명(254010 · 254011 · 254012 ×3 · 255000 ×2 · 255001 · 251001): 모두 EnemyIns / EnemyCtrl, 역포인터 맞음, 큐 길이 12. → Overhaul의 오프셋은 **우리 판(module size
+  0x319B000)에서도 맞다** (이 10명 범위).
+
+**1-b/d. `+0x10`은 재생 시간으로 보임 — 플레이어, 백스텝 · 약공 · 대기 범위.**
+- 무게 `+0x14`가 1.0인 동안 `+0x10`의 기울기 **0.987–1.007 (게임 초 / 실제 초)**, 17구간 중 16구간 (첫 구간 0.922는 기록 시작 직후 구간).
+- 새 애니가 시작되면 **다른 엔트리**의 컨트롤이 `0.017`(1프레임)부터 세고, `+0x14`가 0.04 → 1.0으로 넘어감(섞임 약 0.1–0.4 s). 엔트리 `+0x20`(애니 정보 포인터)이 애니마다
+  다름: 대기 `…ae37f0`, 백스텝(690) `…ad8e30`, 약공(253000) `…aef930`.
+- 끝값: 백스텝 1.833, 약공 2.633 (2번 모두 같음). 애니 ID가 −1로 돌아가는 순간의 값.
+- 대기 애니는 2.000에서 0.017로 **돌아감**(고리) → 고리 애니에선 "재생 시작부터의 시간"이 아니라 "고리 안 위치".
+- **같은 애니를 다시 재생하면 0부터**: 백스텝 · 약공 뒤 대기 애니(같은 정보 포인터)가 다시 시작될 때 0.017 — 4/4 (두 기록 × 2).
+
+**못 한 것 (다음)**
+- **공격의 같은 ID 재시작은 시험 못 함.** 이어 누르기가 안 먹음: 백스텝 뒤 0.4–1.0 s에 백스텝 9번 → 0번 나감, 약공 뒤 0.5–1.6 s에 약공 8번 → 0번 나감(입력이 취소 구간보다
+  이름; 언제 받는지 모름). 같은 ID가 다른 엔트리로 가는지, 같은 엔트리에서 0으로 가는지는 아직 모름.
+- **적 3000은 안 함.** 적에서도 같은 필드가 오른다는 것만 봄(254010 0.5 s에 1.117 → 1.617, 대기). 3000 길이를 `tae.json`과 대 보는 것, 이어 휘두른 3000은 options pilot 준비
+  (A 깨우기, PlayerNoDead)가 필요.
+- REA 2단계(디컴파일로 `+0x10`에 dt를 더하는 코드 확인)는 안 함 — 위 CLI 실패.
