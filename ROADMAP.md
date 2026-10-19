@@ -88,7 +88,7 @@ needing the tick loop, route data, settings object or WorldState.
 - [ ] radar-ai-ranges | win | todo | radar AI ranges (sight cone, hearing circle, leash) match the game | plan:radar-ai-ranges
 - [ ] combat-table | MoKa | parked | 3000 start ok, end not | docs/tae-verify.md
 - [~] player-options | cloud | doing | run 1: too few, stuck | docs/design-player-options.md
-- [~] rea-anim-time | win | doing | ctrl +0x10 = anim time; A's 3000 hit at 0.88–0.93 (TAE window) 10/10, no restart seen; next: a real restart | docs/rea.md
+- [~] rea-anim-time | cloud | decide | ctrl +0x10 = anim time; A's 7 attacks 83/83 hits in TAE windows; 3000 restart 0/25; next: use it for restart_possible? | docs/rea.md
 
 ## 3. v2.0 (`docs/review-v2-2026-10-11.md`; go, done bar N/10 and order: MoKa)
 
