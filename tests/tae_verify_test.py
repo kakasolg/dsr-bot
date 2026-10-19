@@ -228,12 +228,13 @@ def test_anim_runs_restart_after_leaving():
 
 # ── probe 4 (end of 3000's window): the real EndGate against a small fake game ──
 def fake_game(taus, end=1.0333, consumes=False, blocks=True, step=0.005, lag=0.017, mode="flag", out_d=3.0, reach=2.0,
-              fall=()):
+              fall=(), anim_time=False):
     """Hollow 254010 loops 7000 (0.5 s) → 3000 (1.2 s), 0.85 m from the player. The 3000's hitbox is live on [0.8667, end];
     the player is hit at the first game moment in it when hittable. flag mode: hittable = flag off, seen `lag` after the
     write; consumes: a blocked hit uses the attack up; blocks=False: the flag does nothing. warp mode: hittable = within
     `reach` of the hollow; a warp lands `lag` after it is written (the player is somewhere in between until then);
-    gates whose index is in `fall` have no floor at p_out (the player sinks 5 cm per read there)."""
+    gates whose index is in `fall` have no floor at p_out (the player sinks 5 cm per read there). anim_time: foes carry the
+    game's anim time `at` (= the true age; the 3000 starts 0.012 s before the read that first sees it)."""
     flag = {"on": False, "since": -9.0}
     pos = {"at": (0.0, 0.0, 0.85), "to": None, "when": 0.0}
     clock = {"t": 0.0}
@@ -259,7 +260,7 @@ def fake_game(taus, end=1.0333, consumes=False, blocks=True, step=0.005, lag=0.0
                 pos.update(at=pos["to"], to=None)
             if k in fall and pos["at"][2] > reach:
                 pos["at"] = (0.0, round(pos["at"][1] - 0.05, 3), pos["at"][2])
-            age = t - t_start
+            age = t - t_start + (0.012 if anim_time else 0.0)
             in3000 = 0 <= age < 1.2
             if mode == "flag":
                 hittable = ((not flag["on"]) and t - flag["since"] >= lag) or not blocks
@@ -274,7 +275,8 @@ def fake_game(taus, end=1.0333, consumes=False, blocks=True, step=0.005, lag=0.0
             clock["t"] = t
             line = {"t0": round(t - 0.001, 5), "t": round(t, 5), "pt0": round(pt0 if pt0 is not None else t - 0.001, 5),
                     "hp": hp, "dbg": ("0" * 20 + ("01" if flag["on"] else "00") + "0" * 10), "p": list(pos["at"]),
-                    "foes": [{"ptr": 1, "npc": 254010, "anim": 3000 if in3000 else 7000, "d": round(pos["at"][2], 2)}]}
+                    "foes": [{"ptr": 1, "npc": 254010, "anim": 3000 if in3000 else 7000, "d": round(pos["at"][2], 2),
+                              **({"at": round(age if in3000 else age + 0.5, 4)} if anim_time else {})}]}
             pt0 = t - 0.001
             gate(t, line["foes"], line)
             lines.append(line)
@@ -295,6 +297,16 @@ def test_end_gate_pass_on_tae_end():
     assert r["per_tau"]["1.0"] == [3, 3] and r["per_tau"]["1.02"] == [0, 3], r["per_tau"]
     assert r["verdict"] == "통과" and 1.0 <= r["end_bracket"][0] < r["end_bracket"][1] <= 1.03, r["end_bracket"]
     assert 0.017 <= r["lag_after_release"]["median"] <= 0.03
+
+
+def test_end_gate_by_anim_time():
+    # the game's clock runs 0.012 s ahead of the first read: the gate releases by it and the bracket is on it
+    r = V.timing_end(TAE, COMBAT, fake_game(TAUS, mode="warp", anim_time=True))
+    sweep = [x for x in r["rows"] if x["kind"] == "sweep" and not x["reasons"]]
+    assert sweep and all("release_anim" in x and "release_wall" in x for x in sweep)
+    assert all(x["release_anim"][0] >= x["tau"] for x in sweep), [(x["tau"], x["release_anim"]) for x in sweep]
+    assert r["verdict"] == "통과" and r["end_bracket"][0] <= 1.0333 + 1 / 30 <= r["end_bracket"][1] + 1 / 30, r["end_bracket"]
+    assert all(x["hit_age"][1] >= 0.8667 for x in r["rows"] if x.get("hit") and "hit_wall" in x)
 
 
 def test_end_gate_other_end_and_broken_flags():

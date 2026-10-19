@@ -663,7 +663,7 @@ class EndGate:
     def __init__(self, act, taus=P4_TAUS, anim=P3_ANIM, target=P3_TARGET, iso_r=ISO_R, clock=time.perf_counter):
         self.act, self.taus, self.anim, self.target, self.iso_r, self.clock = act, list(taus), anim, target, iso_r, clock
         self.k, self.on, self.ptr, self.release_at, self.prev, self.s = 0, False, None, None, {}, None
-        self.tail, self.p_out = 0, None
+        self.tail, self.p_out, self.t_on, self.tau_now = 0, None, None, None
 
     def dense(self) -> bool:
         """record3: write every read while gated and TAIL reads after."""
@@ -693,8 +693,8 @@ class EndGate:
             elif mine is None or mine["anim"] != self.anim:
                 line.update(gate_off=self._switch(False), gate_why="run_end")
                 self.release_at, event = None, True
-            elif self.release_at is not None and t >= self.release_at:
-                line.update(gate_off=self._switch(False), gate_why="tau")
+            elif self.release_at is not None and self._due(mine, t):
+                line.update(gate_off=self._switch(False), gate_why="tau", gate_off_at=mine.get("at"))
                 self.release_at, event = None, True
         if (f is not None and f["anim"] == self.anim and self.prev.get(f["ptr"], self.anim) != self.anim
                 and not self.on and "gate_off" not in line):
@@ -702,7 +702,7 @@ class EndGate:
             self.k += 1
             self.ptr = f["ptr"]
             line.update(gate_on=self._switch(True, line), tau=tau)
-            self.release_at, event = (t + tau if tau is not None else None), True
+            self.release_at, self.t_on, self.tau_now, event = (t + tau if tau is not None else None), t, tau, True
         elif not self.on and s is not None and hasattr(self.act, "rehome") and self.tail == 0 and "gate_off" not in line:
             home = self.act.rehome(s, t)
             if home:
@@ -711,9 +711,23 @@ class EndGate:
         self.prev = {x["ptr"]: x["anim"] for x in foes}
         return event
 
+    def _due(self, mine: dict, t: float) -> bool:
+        """τ reached: by the foe's anim time (`at`) once it belongs to this run (≤ wall time since the gate went on + slack),
+        else by the wall clock since the 3000's first read (records / builds without anim time)."""
+        at = mine.get("at")
+        if at is not None and at <= t - self.t_on + TIME_SLACK:
+            return at >= self.tau_now
+        return t >= self.release_at
+
     def close(self) -> None:
         self.s = None
         self._switch(False)
+
+
+def _at(fr: dict, ptr: int, start: tuple) -> float | None:
+    """The foe's anim time on this line if it belongs to the run that started at `start` (not the previous anim's control)."""
+    a = next((f.get("at") for f in fr["foes"] if f["ptr"] == ptr), None)
+    return a if a is not None and a <= fr["t"] - start[0] + TIME_SLACK else None
 
 
 def _drops(frames: list[dict]) -> list[tuple[int, int]]:
@@ -821,12 +835,20 @@ def timing_end(tae: dict, combat: dict, lines: list[dict], anim: int = P3_ANIM, 
                         d = [x["d"] for x in frames[k]["foes"] if x["ptr"] == ptr]
                         if d:
                             row["d_back"] = d[0]      # the foe moves during 3000: the spot it meets is not 0.85 m
+                        a0, a1 = _at(frames[k - 1], ptr, r["start"]), _at(frames[k], ptr, r["start"])
+                        if a0 is not None and a1 is not None:
+                            row["release_anim"] = [a0, a1]    # the foe's anim time around the first read back at p_in
         if rel is not None and rel[1].get("gate_why") == "tau":
             if eff is None:
                 why.append("not_returned")
             else:
                 row["release_age"] = [round(eff[1][0] - r["start"][1], 4), round(eff[1][1] - r["start"][0], 4)]
-                if eff[1][1] - (fr["t"] + row["tau"]) > (MAX_GAP if mode == "flag" else MAX_WARP):
+                if "release_anim" in row:     # the game's own clock: the bracket and the lateness use it (docs/rea.md 3차)
+                    row["release_wall"], row["release_age"] = row["release_age"], row["release_anim"]
+                    late = row["release_anim"][1] - row["tau"]
+                else:
+                    late = eff[1][1] - (fr["t"] + row["tau"])
+                if late > (MAX_GAP if mode == "flag" else MAX_WARP):
                     why.append("release_late")
         elif row["kind"] != "hold" and "fell" not in why:
             why.append("not_released")
@@ -837,6 +859,9 @@ def timing_end(tae: dict, combat: dict, lines: list[dict], anim: int = P3_ANIM, 
             j, lost = hs[0]
             lo, hi = _bounds(frames[j - 1], frames[j])
             row.update(hit=True, lost=lost, hit_age=[round(lo - r["start"][1], 4), round(hi - r["start"][0], 4)])
+            h0, h1 = _at(frames[j - 1], ptr, r["start"]), _at(frames[j], ptr, r["start"])
+            if h0 is not None and h1 is not None:
+                row["hit_wall"], row["hit_age"] = row["hit_age"], [h0, h1]
             if "release_age" in row:
                 row["lag"] = round((lo + hi) / 2 - eff[1][1], 4)
         else:
@@ -876,7 +901,8 @@ def timing_end(tae: dict, combat: dict, lines: list[dict], anim: int = P3_ANIM, 
             excluded[x["reasons"][0]] = excluded.get(x["reasons"][0], 0) + 1
     lags = sorted(x["lag"] for x in sweep if x.get("lag") is not None)
     return {"anim": anim, "windows": w, "tae_end": end, "tol": round(tol, 4), "gate": mode, "flag": flag if mode == "flag" else None,
-            "age": "age_since_seen (play position not read)", "instances": len(inst), "valid": len(ok), "excluded": excluded,
+            "age": "the foe's anim time where recorded (release_anim / hit_age), else age_since_seen", "instances": len(inst),
+            "valid": len(ok), "excluded": excluded,
             "controls": controls, "method_valid": valid_method, "end_bracket": bracket, "consistent": consistent,
             "lag_after_release": {"median": lags[len(lags) // 2], "max": lags[-1]} if lags else None,
             "per_tau": {str(t): [sum(x["hit"] for x in ok if x["tau"] == t), sum(1 for x in ok if x["tau"] == t)]
