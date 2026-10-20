@@ -33,16 +33,16 @@
 
 == 20261019_212954_parish-group1: bundle n2, HP 611 → 354, blame [{'npc': 255041, 'ptr': 472005904, 'anim': 3004, 'd': 0.85, 'dy': 0.0, 'face': 2}, {'npc': 255042, 'ptr': 471999248, 'anim': 3004, 'd': 1.11, 'dy': 0.0, 'face': 6}]
    drop at t0 = 1792470696.430
-   -3.577  scene  rule reflex → continue · tick target 255042@99248 anim 3500 h 1.52 · swung(s ago) {99248: -0.65, 5904: 0.0}
-   -3.503  scene  rule face_first → continue · tick target 255042@99248 anim 3500 h 1.50 · swung(s ago) {99248: -0.73, 5904: 0.0}
-   -3.397  scene  rule reflex → continue · tick target 255042@99248 anim 3500 h 1.42 · swung(s ago) {99248: -0.83, 5904: 0.0}
-   -3.292  scene  rule face_first → continue · tick target 255042@99248 anim 3500 h 1.34 · swung(s ago) {99248: -0.94, 5904: 0.0}
-   -3.187  scene  rule reflex → continue · tick target 255042@99248 anim 3500 h 1.36 · swung(s ago) {99248: -1.04, 5904: 0.0}
-   -3.118  scene  rule face_first → continue · tick target 255042@99248 anim 3500 h 1.28 · swung(s ago) {99248: -1.11, 5904: 0.0}
-   -3.049  scene  rule reflex → continue · tick target 255042@99248 anim 3500 h 0.97 · swung(s ago) {99248: -1.18, 5904: 0.0}
-   -3.013  scene  rule face_first → continue · tick target 255042@99248 anim 3500 h 0.82 · swung(s ago) {99248: -1.22, 5904: 0.0}
-   -2.979  scene  rule reflex → continue · tick target 255042@99248 anim 3500 h 0.82 · swung(s ago) {99248: -1.25, 5904: 0.0}
-   -2.874  scene  rule face_first → continue · tick target 255042@99248 anim 3500 h 0.83 · swung(s ago) {99248: -1.36, 5904: 0.0}
+   -3.577  scene  rule reflex → continue · tick target 255042@99248 anim 3500 h 1.52 · body hd +2.71, foe off my facing: 255041@5904 -164° 255042@99248 +0° · swung(s ago) {99248: -0.65, 5904: 0.0}
+   -3.503  scene  rule face_first → continue · tick target 255042@99248 anim 3500 h 1.50 · body hd -0.16, foe off my facing: 255041@5904 -1° 255042@99248 +165° · swung(s ago) {99248: -0.73, 5904: 0.0}
+   -3.397  scene  rule reflex → continue · tick target 255042@99248 anim 3500 h 1.42 · body hd +2.72, foe off my facing: 255041@5904 -168° 255042@99248 +0° · swung(s ago) {99248: -0.83, 5904: 0.0}
+   -3.292  scene  rule face_first → continue · tick target 255042@99248 anim 3500 h 1.34 · body hd -0.23, foe off my facing: 255041@5904 -0° 255042@99248 +170° · swung(s ago) {99248: -0.94, 5904: 0.0}
+   -3.187  scene  rule reflex → continue · tick target 255042@99248 anim 3500 h 1.36 · body hd +2.76, foe off my facing: 255041@5904 -172° 255042@99248 +0° · swung(s ago) {99248: -1.04, 5904: 0.0}
+   -3.118  scene  rule face_first → continue · tick target 255042@99248 anim 3500 h 1.28 · body hd -0.25, foe off my facing: 255041@5904 -0° 255042@99248 +174° · swung(s ago) {99248: -1.11, 5904: 0.0}
+   -3.049  scene  rule reflex → continue · tick target 255042@99248 anim 3500 h 0.97 · body hd +2.79, foe off my facing: 255042@99248 -2° 255041@5904 -174° · swung(s ago) {99248: -1.18, 5904: 0.0}
+   -3.013  scene  rule face_first → continue · tick target 255042@99248 anim 3500 h 0.82 · body hd -0.26, foe off my facing: 255042@99248 +170° 255041@5904 +1° · swung(s ago) {99248: -1.22, 5904: 0.0}
+   -2.979  scene  rule reflex → continue · tick target 255042@99248 anim 3500 h 0.82 · body hd +2.71, foe off my facing: 255042@99248 -3° 255041@5904 -167° · swung(s ago) {99248: -1.25, 5904: 0.0}
+   -2.874  scene  rule face_first → continue · tick target 255042@99248 anim 3500 h 0.83 · body hd -0.17, foe off my facing: 255042@99248 +153° 255041@5904 +3° · swung(s ago) {99248: -1.36, 5904: 0.0}
    -2.598  frame  me hp 613 sp 97 anim 20140 | 255042@99248:3003 0.89m +17° 255041@5904:3009 1.39m +8°
    -2.572  reflex guard vs 255042 anim 3003 age 0.27
    -2.572  rule   reflex → continue (target 255042@99248)
@@ -51,35 +51,35 @@
    -1.915  frame  me hp 611 sp 90 anim -1 | 255042@99248:3003 0.85m +2° 255041@5904:3004 0.96m +0°
    -1.898  frame  me hp 611 sp 91 anim 20140 | 255042@99248:3500 0.85m +3° 255041@5904:3004 0.96m +0°
    -1.892  reflex guard vs 255041 anim 3004 age 0.164
-   -1.892  scene  rule reflex → continue · tick target 255042@99248 anim 3500 h 0.85 · swung(s ago) {99248: -0.03, 5904: 0.0}
+   -1.892  scene  rule reflex → continue · tick target 255042@99248 anim 3500 h 0.85 · body hd +2.47, foe off my facing: 255042@99248 +2° 255041@5904 -141° · swung(s ago) {99248: -0.03, 5904: 0.0}
    -1.852  frame  me hp 611 sp 91 anim 20140 | 255041@5904:3004 0.95m +1° 255042@99248:3500 1.01m +1°
    -1.561  frame  me hp 611 sp 91 anim -1 | 255041@5904:3004 0.85m +7° 255042@99248:3500 1.45m +4°
-   -1.503  scene  rule face_first → continue · tick target 255042@99248 anim 3500 h 1.45 · swung(s ago) {99248: -0.42, 5904: 0.0}
+   -1.503  scene  rule face_first → continue · tick target 255042@99248 anim 3500 h 1.45 · body hd +0.13, foe off my facing: 255041@5904 -0° 255042@99248 +130° · swung(s ago) {99248: -0.42, 5904: 0.0}
    -1.503  rule   face_first → continue (target 255042@99248)
    -1.435  rule   reflex → continue (target 255042@99248)
-   -1.434  scene  rule reflex → continue · tick target 255042@99248 anim 3500 h 1.44 · swung(s ago) {99248: -0.49, 5904: 0.0}
-   -1.337  scene  rule face_first → continue · tick target 255042@99248 anim 3500 h 1.42 · swung(s ago) {99248: -0.58, 5904: 0.0}
+   -1.434  scene  rule reflex → continue · tick target 255042@99248 anim 3500 h 1.44 · body hd +2.39, foe off my facing: 255041@5904 -131° 255042@99248 +0° · swung(s ago) {99248: -0.49, 5904: 0.0}
+   -1.337  scene  rule face_first → continue · tick target 255042@99248 anim 3500 h 1.42 · body hd +0.09, foe off my facing: 255041@5904 -0° 255042@99248 +133° · swung(s ago) {99248: -0.58, 5904: 0.0}
    -1.337  rule   face_first → continue (target 255042@99248)
    -1.268  rule   reflex → continue (target 255042@99248)
-   -1.266  scene  rule reflex → continue · tick target 255042@99248 anim 3500 h 1.41 · swung(s ago) {99248: -0.65, 5904: -0.0}
-   -1.234  scene  rule face_first → continue · tick target 255042@99248 anim 3500 h 1.40 · swung(s ago) {99248: -0.69, 5904: 0.0}
+   -1.266  scene  rule reflex → continue · tick target 255042@99248 anim 3500 h 1.41 · body hd +2.41, foe off my facing: 255041@5904 -133° 255042@99248 +0° · swung(s ago) {99248: -0.65, 5904: -0.0}
+   -1.234  scene  rule face_first → continue · tick target 255042@99248 anim 3500 h 1.40 · body hd +0.09, foe off my facing: 255041@5904 -0° 255042@99248 +133° · swung(s ago) {99248: -0.69, 5904: 0.0}
    -1.234  rule   face_first → continue (target 255042@99248)
-   -1.119  scene  rule reflex → continue · tick target 255042@99248 anim 3500 h 1.32 · swung(s ago) {99248: -0.8, 5904: 0.0}
+   -1.119  scene  rule reflex → continue · tick target 255042@99248 anim 3500 h 1.32 · body hd +2.42, foe off my facing: 255041@5904 -136° 255042@99248 +0° · swung(s ago) {99248: -0.8, 5904: 0.0}
    -1.119  rule   reflex → continue (target 255042@99248)
-   -0.993  scene  rule face_first → continue · tick target 255042@99248 anim 3500 h 1.27 · swung(s ago) {99248: -0.93, 5904: 0.0}
+   -0.993  scene  rule face_first → continue · tick target 255042@99248 anim 3500 h 1.27 · body hd -0.00, foe off my facing: 255041@5904 -0° 255042@99248 +142° · swung(s ago) {99248: -0.93, 5904: 0.0}
    -0.993  rule   face_first → continue (target 255042@99248)
    -0.904  rule   reflex → continue (target 255042@99248)
-   -0.903  scene  rule reflex → continue · tick target 255042@99248 anim 3500 h 1.24 · swung(s ago) {99248: -1.02, 5904: 0.0}
-   -0.808  scene  rule face_first → continue · tick target 255042@99248 anim 3500 h 1.19 · swung(s ago) {99248: -1.11, 5904: 0.0}
+   -0.903  scene  rule reflex → continue · tick target 255042@99248 anim 3500 h 1.24 · body hd +2.49, foe off my facing: 255041@5904 -143° 255042@99248 +1° · swung(s ago) {99248: -1.02, 5904: 0.0}
+   -0.808  scene  rule face_first → continue · tick target 255042@99248 anim 3500 h 1.19 · body hd -0.04, foe off my facing: 255041@5904 +0° 255042@99248 +147° · swung(s ago) {99248: -1.11, 5904: 0.0}
    -0.808  rule   face_first → continue (target 255042@99248)
    -0.722  rule   stagger_punish → continue (target 255042@99248)
-   -0.722  scene  rule stagger_punish → continue · tick target 255042@99248 anim 3500 h 1.18 · swung(s ago) {99248: -1.2, 5904: 0.0}
+   -0.722  scene  rule stagger_punish → continue · tick target 255042@99248 anim 3500 h 1.18 · body hd +2.55, foe off my facing: 255041@5904 -148° 255042@99248 +0° · swung(s ago) {99248: -1.2, 5904: 0.0}
    -0.654  rule   stagger_punish → continue (target 255042@99248)
-   -0.654  scene  rule stagger_punish → continue · tick target 255042@99248 anim 3500 h 1.15 · swung(s ago) {99248: -1.27, 5904: 0.0}
+   -0.654  scene  rule stagger_punish → continue · tick target 255042@99248 anim 3500 h 1.15 · body hd +2.54, foe off my facing: 255041@5904 -149° 255042@99248 +0° · swung(s ago) {99248: -1.27, 5904: 0.0}
    -0.620  rule   stagger_punish → continue (target 255042@99248)
-   -0.620  scene  rule stagger_punish → continue · tick target 255042@99248 anim 3500 h 1.15 · swung(s ago) {99248: -1.3, 5904: 0.0}
+   -0.620  scene  rule stagger_punish → continue · tick target 255042@99248 anim 3500 h 1.15 · body hd +2.54, foe off my facing: 255041@5904 -149° 255042@99248 +1° · swung(s ago) {99248: -1.3, 5904: 0.0}
    -0.575  rule   stagger_punish → continue (target 255042@99248)
-   -0.575  scene  rule stagger_punish → continue · tick target 255042@99248 anim 3500 h 1.15 · swung(s ago) {99248: -1.34, 5904: 0.0}
+   -0.575  scene  rule stagger_punish → continue · tick target 255042@99248 anim 3500 h 1.15 · body hd +2.54, foe off my facing: 255041@5904 -149° 255042@99248 +1° · swung(s ago) {99248: -1.34, 5904: 0.0}
    -0.506  frame  me hp 611 sp 100 anim -1 | 255041@5904:3004 0.90m +0° 255042@99248:3004 1.15m +5°
    -0.502  reflex guard vs 255042 anim 3004 age 0.001
    -0.502  rule   reflex → continue (target 255042@99248)

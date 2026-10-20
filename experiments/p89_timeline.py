@@ -10,6 +10,7 @@ scene lines (decision inputs: tick target, rule, Fight.swung). Read-only.
 from __future__ import annotations
 
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -24,6 +25,11 @@ def arg(name, default):
 
 def btns(b):
     return "+".join(n for k, n in BTN.items() if b & k) or "-"
+
+
+def rel_deg(p, c) -> float:
+    """How far c is off my facing (deg, + right) — souls/moves.rel_angle (world yaw = heading + π)."""
+    return math.degrees((math.atan2(c["x"] - p["x"], c["z"] - p["z"]) - (p["heading"] + math.pi) + math.pi) % (2 * math.pi) - math.pi)
 
 
 def run(name, before, after, every=False):
@@ -68,8 +74,12 @@ def one(name, base, big, before, after):
                 ev.append((x["snap_t"], "reflex", f"{x['act']} vs {x.get('npc')} anim {x.get('eanim')} age {x.get('age')}"))
         elif k == "scene" and lo - 1 <= x["t_wall"] <= hi:
             sw = {p % 100000: round(v["_t"], 2) for p, v in x["fight"]["swung"]["_dict"]}
+            pl = x["snap"]["player"]
+            body = " ".join(f"{c['npc_param']}@{c['ptr'] % 100000} {rel_deg(pl, c):+.0f}°" for c in x["snap"]["chars"]
+                            if c["npc_param"] in (255041, 255042) and c["hp"] > 0 and math.dist((pl["x"], pl["z"]), (c["x"], c["z"])) < 6)
             ev.append((x["t_wall"], "scene", f"rule {x['rule']} → {x['out']} · tick target {ptr_npc.get(x['tick']['ptr'])}@{x['tick']['ptr'] % 100000} "
-                                              f"anim {x['tick']['a']} h {x['tick']['h']:.2f} · swung(s ago) {sw}"))
+                                              f"anim {x['tick']['a']} h {x['tick']['h']:.2f} · body hd {pl['heading']:+.2f}, foe off my facing: {body} "
+                                              f"· swung(s ago) {sw}"))
     pb = None
     for x in ctl:
         if x.get("k") != "pad":
