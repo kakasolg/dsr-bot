@@ -85,6 +85,15 @@ BY_NPC: dict[int, Foe] = {
     # 255001: [MoKa] 2026-10-06 "255000은 방패, 롱소드 망자이고, 255001은 방패, 창 망자" — 성벽 마을 위쪽(구역 2·5). 등록 전엔 기본값이라
     # 3004(창 찌르기) 중 '먼저 치기' 두 번에 −232씩, 친 건 방패에 0 (P-46, 10-06h)
     255001: SHIELD,
+    # 255041 (교구 앞 무리, P-89): windup 값만 — SHIELD 전체(발차기·kind shield)는 아님. 다른 필드는 UNKNOWN과 같다.
+    #  · windup_land_s 2.1 · windup_act_s 1.2: SHIELD 값 그대로. 출처 = 255010 관찰 녹화 2026-09-26(10 Hz, 3004가 시작 2.0~2.1 s 뒤 닿음 4번,
+    #    0.4~0.7 s 발차기는 끊음 → act 1.2는 그 사이에서 고른 설계값, 경계를 잰 값 아님) · P-66(0aa4dac).
+    #  · 255041에 맞는 근거: 10-19 parish run2·run3 블랙박스 2.08·2.09 s 피격(−257), 시범 10 Hz 2.1 s. 255010·255001과 NpcParam
+    #    AnimationIDOffset 10000 · DefaultAI 255001 · ModelDisplayMask · BehaviorVariation 25500이 같음. 다른 것: SpEffect 7003(레벨3:
+    #    공격 ×1.25 · 방어 ×1.27 · HP ×1.2 · 스태미나 ×1.1) 대 7002(×1.125 · 1.0 · 1.0 · 1.05) — 시간 필드 차이는 목록에 없음, 피해량은 다름.
+    #  · 13004(offset 적용 TAE, 2.03–2.17 s)로 읽는 것은 런타임 미확인 가설 (P-89).
+    255041: Foe("망자 병사(255041)", kind="other", windup=(3004,), windup_act_s=1.2, windup_land_s=2.1,
+                note="3004가 시작 ~2.1 s 뒤에 닿음 — 1.6 s에 '끝'으로 보고 치지 않고 1.2 s부터 닿을 때까지 막음 (P-89, 런타임 확인 전)"),
     # 255002 is a crossbowman, not a shield soldier — 3000/3001 are firing motions, not a guard stance. Anim struct +0xA0 turns 1 and
     # 0.3–0.7 s later an impact hits my shield (my anim 140, SP −7) every 2.7 s (2026-09-25 measured, user "I'm getting hit by arrows, it's right in front").
     # As SHIELD, wait_far said "not approaching" and just blocked for 8 minutes. The fire motion number doesn't change, so anim changes don't reveal it.

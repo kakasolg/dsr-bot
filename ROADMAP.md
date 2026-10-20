@@ -153,7 +153,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 55 | `passage-drill`: the bonfire warp revives the ramp foes → died on the way to the top | open (A/B moved to seg 1-2) |
 | 87 | probe prep: fell, died | open |
 | 88 | `anim_time_scan foe`: NoDead switched off next to awake A → died ×2 | verify — menu exit first; worked after pilot run 2 (1/1) |
-| 89 | `parish-*`: 255041 cuts into the 255042 fight, its fast 3004 lands big (−85 · −359 · −257, 3/3 runs) | open — analysed: 3004 lands ~2.1 s (offset 10000, hypothesis), after_swing ends it at 1.6 s; fix = MoKa |
+| 89 | `parish-*`: 255041 cuts into the 255042 fight, its fast 3004 lands big (−85 · −359 · −257, 3/3 runs) | verify — 255041 windup entry (offline: 4 decisions → block); game A/B = MoKa; 255042 bolts open |
 | 90 | `parish-*` way back: stairs stall 6 s at (88.2, 22.0, 111.2), 3/3 runs, recovered | open |
 | 56 | Ramp ledge (−20,−39,14), `--ground` on: 254002 + axe 254001 swinging together, died (no fall) | verify — + 'ranged first' no longer turns to the axe hollow / away from a foe < 2 m |
 | 57 | Passage start (−20,−39.3,14.4): 1.5 s stall + retry, AGAIN 10-11 4/15 runs | verify — path-finds first |
