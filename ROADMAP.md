@@ -86,7 +86,7 @@ needing the tick loop, route data, settings object or WorldState.
 - [~] overlay-borderless | win | doing | borderless overlay + bot: overlay visible, clicks pass through, bot keeps going | plan:overlay-borderless
 - [~] radar-upgrade | win | doing | radar upgrade check (navmesh drawn, pad slots, recording, `--replay`) | plan:radar-upgrade
 - [ ] radar-ai-ranges | win | todo | radar AI ranges (sight cone, hearing circle, leash) match the game | plan:radar-ai-ranges
-- [~] combat-table | MoKa | decide | hitbox state +0x2E0 judges probes (7 attacks pass, B-20); DSAS: 3000 sweeps right→front→left, front at 0.93–0.97 (B-21, by eye); next? | docs/tae-verify.md
+- [~] combat-table | MoKa | decide | DSAS hitbox path for 3000 reproduced (AtkParam 254000, DmyPoly 1→11, r 0.2): fits 16 hits / 30 misses, player shape unknown (B-22); next? | docs/tae-verify.md
 - [~] player-options | MoKa | decide | run 2: roll 0/17 hit, stand / circles 60/60 (c2540 3000, τ 0.6, 0.9 m) → step 2 table? | docs/design-player-options.md
 - [~] rea-anim-time | cloud | decide | `at` + restart_reason in game (pilot run 2: 1 real restart caught); next: verdicts by anim time? | docs/rea.md
 

@@ -530,8 +530,71 @@ MoKa: "1번 먼저 시도 해보자" (DSAS GUI로 hitbox 보기). DSAnimStudio 4
   몸을 돌리는 것(TurnVelocity 180)은 없음. 판정 상태가 1프레임 늦는 것(B-19)이 칼 위치에도 해당하는지는 모름.
 - 봇에 주는 뜻 (가설, 게임 확인 전): 같은 거리라면 할로우의 **오른쪽**(마주 볼 때 우리 왼쪽)에 선 쪽이 가장 일찍(~0.87–0.90), **왼쪽**이 가장 늦게(~0.97–1.0) 맞음.
   숫자로 뽑으려면 명령줄 방식(SoulsFormats DummyPoly + SoulsAssetPipeline 애니 재생)이 필요.
+- (B-22에서 숫자로 다시 봄 — 위 각도는 눈대중이라 프레임 28은 "약간 오른쪽"이 아니라 거의 정면 ~ 약간 왼쪽.)
 - GUI 조작 메모: 스플래시는 클릭 · Esc 뒤 넘어감. ImGui 메뉴는 마우스 누름 · 뗌 사이에 0.3 s 간격이 있어야 열림. 타임라인 눈금 0 → 1 s = 145 px(이 창 크기),
   → / ← 키 = 한 프레임. 처음 여는 창에서 Game Data Directory = 게임 폴더로 Apply.
+
+### B-22. DSAS가 쓰는 히트박스 계산 경로를 숫자로 재현 (3000만) — 2026-10-19 [win 자리 세션]
+
+MoKa: "공격 3000만 대상으로, DSAS가 실제로 사용하는 히트박스 계산 경로를 확인해 줘. 먼저 CLI를 새로 만들지 말고 기존 코드에서 좌표를 추출할 수 있는지 조사해."
+
+**조사 — 기존 코드로 되나**
+- `DS ANIM STUDIO.dll`의 히트박스 코드(`NewDummyPolyManager.UpdateHitPrim`, `ParamData.AtkParam.Hit`)는 리플렉션으로 보이지만, `Model` · `DummyPolyManager`가
+  MonoGame 그래픽 장치와 GUI 상태를 필요로 해서 **창 없이 직접 부를 수 없음**. 디컴파일러(.NET SDK · ILSpy)도 이 PC에 없음.
+- 대신 같은 버전의 소스(GitHub `Meowmaritus/DSAnimStudio` 태그 `ver4.9.9`, DLL 리플렉션의 클래스 · 필드 이름과 같음)를 읽고, DSAS가 함께 싣는
+  **`SoulsFormats.dll`(FLVER · BND) · `SoulsAssetPipeline.dll`(HKX tagfile 읽기, spline 애니 샘플, 루트 모션)을 그대로 불러** DSAS의 행렬 순서를
+  옮긴 스크립트를 씀: `experiments/dsas_hitbox.ps1` (새 CLI가 아니라 `dsas_tae.ps1`과 같은 꼴의 실험 스크립트 — 각 단계에 DSAS 소스 file:line 주석).
+  우리 쪽 기존 코드: GameParam은 `combat_extract.py`(soulstruct)로 읽음. 우리 코드에 FLVER · HKX 애니를 읽는 것은 없었음.
+
+**DSAS의 경로 (소스로 읽음, 4.9.9)**
+1. ID: `TaeEventSimulationEnvironment.GetBehaviorParamFromEvBox` — NPC면 BehaviorParam ID = **200,000,000 + NpcParam.BehaviorVariationID × 1000 + TAE BehaviorJudgeID**,
+   그 행의 RefType이 Attack이면 `AtkParam_Npc[RefID]`.
+2. 캡슐: `AtkParam.Hits[0–3]`마다 DmyPoly1 · DmyPoly2 · Radius. 둘 다 ≥ 0이고 다르면 캡슐(`IsCapsule`), 아니면 DmyPoly1 위 구.
+3. DummyPoly 행렬: `CurrentMatrix = Reference · Attach` (XNA 행 벡터). Reference = CreateWorld(0, dmy.Forward, dmy.Up) · Translate(dmy.Position) · (follow 플래그면
+   skin[ParentBone]), Attach = follow면 skin[AttachBone]. skin[i] = inverse(FLVER 뼈 i의 기준 행렬) · HKX 뼈의 현재 행렬
+   (`NewAnimSkeleton_FLVER.CopyFromHavokSkeleton`, FLVER 기준 행렬은 scale · rotX · rotZ · rotY · translate를 루트까지).
+4. HKX 뼈 현재 행렬: 프레임 = 시간 / 1/30, `HavokAnimationData.GetTransformOnFrameByBone`(프레임 사이 보간) → local · parent로 루트부터 곱함.
+5. 그리기: 모델 공간의 끝점 × `MODEL.CurrentTransform.WorldMatrix`(루트 모션 포함). DSR의 .hkx는 Havok 2015 tagfile → `HKX.GenFakeFromTagFile`.
+
+**관찰 (파일 · 계산 결과)** — `data/samples/20261019_dsas-hitbox-c2540-3000.csv`(1/60 s, 0.8333–1.0667, 15줄) · `…_info.json`
+- 해석된 ID: NpcParam 254000 · 254010 모두 BehaviorVariationID **25400** → TAE 3000의 BehaviorJudgeID 100 → **BehaviorParam 225400100** (RefType 0 = Attack)
+  → **AtkParam_Npc 254000**. Hit0 = DummyPoly **1 → 11**, 반경 **0.2**; Hit1–3 = (0, 0, 반경 0) — DSAS는 반경 0인 구로 만듦(보이지 않음), CSV에서 뺌.
+- DummyPoly 1: 부모 뼈 42 `Model_Dmy`, 붙는 뼈 20 `R Hand`, follow. DummyPoly 11: 부모 42, 붙는 뼈 27 `R_Weapon`, follow. → 캡슐 = 손에서 칼끝까지.
+- 좌표계 · 단위: Havok 모델 공간, **m**, **Y 위**. **전방 = −Z** (3000의 루트 모션이 끝까지 (0, 0, −1.364) — 앞으로 내딛는 공격; 참조 프레임의 `forward` 필드는
+  (0,0,1)이라 그 필드로는 정하지 않음). **오른쪽 = −X** (`R Hand` DummyPoly가 바인드 자세에서 x = −0.76). 루트 모션의 회전(w)은 0.
+- 루트 모션: CSV의 `ax…bz`는 **루트 모션 빼고**(그 순간 할로우 원점 기준), `awx…bwz`는 **루트 모션 포함**(애니 시작 자리 기준, 0.8333에 이미 −0.94 m 전진).
+- 캡슐 방향 (중심 · 칼끝, 0° = 정면, + = 할로우 오른쪽, 원점에서 수평 거리):
+
+| 시간 | 프레임 | 중심 각도 · 거리 | 칼끝 각도 · 거리 | 높이(손 → 칼끝) |
+|---|---|---|---|---|
+| 0.8667 | 26 | +131° · 0.30 m | +168° · 0.43 m | 1.80 → 1.59 |
+| 0.9000 | 27 | +41° · 0.65 | +65° · 0.55 | 1.16 → 1.33 |
+| 0.9333 | 28 | −12° · 0.97 | +1° · 1.07 | 0.40 → 0.68 |
+| 0.9667 | 29 | −46° · 0.90 | −30° · 1.01 | 0.23 → 0.27 |
+| 1.0000 | 30 | −73° · 0.91 | −57° · 1.03 | 0.23 → 0.19 |
+| 1.0333 | 31 | −89° · 0.94 | −75° · 1.08 | (DSAS는 안 그림 — 구간 끝) |
+
+  → 머리 위 오른쪽 뒤에서 시작해 **정면을 0.93 무렵 무릎 높이로 지나고** 왼쪽 바닥 쪽으로 내려가는 사선 베기.
+
+**GUI와 대조 (프레임 26 · 28 · 30)** — 같은 카메라로 찍은 B-21 화면 3장에서 캡슐 양 끝의 화소를 눈으로 찍고, 계산한 루트 모션 포함 좌표를 2D 닮음 변환(+ 높이 기울기)
+으로 맞춤: 잔차 RMS **3.8 px**(배율 86 px/m → 약 4 cm). 두 프레임으로 맞추고 셋째를 예측하면 8–15 px. 프레임 순서를 바꾸면 모두 더 나빠지지만 **28 ↔ 30을 바꾼 것은
+조금만 나빠짐**(4.1 px / 11–25 px) → 화면 대조는 "같은 경로를 그린다"는 정도로 지지하고, 프레임 하나하나의 숫자 일치를 증명하지는 않음(원근 · 화소 읽기 오차).
+DSAS 내부 값과의 숫자 대조는 안 함(창 없이 그 코드를 못 부름).
+
+**게임 기록과 비교 (정면 0.9 m, 락온: B-17 시도 5 · B-20)** — `experiments/dsas_hitbox_gap.py` → `data/samples/20261019_dsas-hitbox-vs-probe4.txt`
+- 플레이어 위치를 기록된 할로우 위치 · heading으로 할로우 모델 공간에 옮김(모델 → 세계가 거울 없는 회전이라고 가정). "틈" = 캡슐 축과 플레이어 자리의 수직선(0–1.7 m) 사이
+  최단 거리 − 0.2.
+- 맞은 16번: HP가 줄어든 읽기의 애니 시간에서 틈 **−0.03 ~ 0.14 m** (뒤로 돌아온 0.917 → 0.933에 맞음: 틈 ~0; 서 있다 맞음: 0.9에 0.14, 그 앞 읽기 0.883엔 0.39).
+- 안 맞은 30번(1.00 · 1.017 · 1.05에 돌아옴): 돌아온 뒤 틈 최소 **0.74 ~ 1.11 m** — 칼은 이미 왼쪽 아래로 지나감.
+- → 모든 행이 "플레이어 피격 형상의 수평 반경이 대략 0.14 m 이상 0.74 m 미만"이면 설명됨. **피격 형상을 모르므로 점 충돌로 확정하지 않음**
+  (점이면 0.9의 맞음이 0.14 m 떨어져서 설명 안 됨 — 그 맞음이 0.9 프레임에서 판정됐다면).
+
+**정리**
+- 관찰: ID 경로(225400100 → 254000), DummyPoly 1 → 11, 반경 0.2, 뼈 R Hand · R_Weapon, 루트 모션 (0,0,−1.364).
+- 계산: 위 표와 CSV — DSAS 소스 4.9.9의 순서를 옮긴 스크립트의 결과. DSAS 프로그램 자신이 낸 숫자는 아님.
+- 게임 검증: 정면 0.85–0.90 m의 맞음 16 · 안 맞음 30과 모순 없음(위 반경 범위 안에서). B-19의 판정 상태 시각과도 맞음(0.88–1.05에 캡슐이 있음).
+- 미검증 가설: 게임이 DSAS와 같은 경로(같은 DummyPoly · 뼈 · 보간)로 판정을 놓는다 · 모델 → 세계가 거울 없는 회전 · 플레이어 피격 형상(반경 · 높이) ·
+  AI가 공격 중 몸을 돌리는 것(heading 기록으로는 반영했지만 3000 도중의 회전 영향은 따로 안 봄) · 판정 상태의 1프레임 늦음이 위치에도 해당하는지.
 
 ## 다음 (10-16 [cloud])
 
