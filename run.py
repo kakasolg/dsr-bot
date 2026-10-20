@@ -116,7 +116,7 @@ LURE_CMDS = {"burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["status", "watch", "burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt-one", "merchant", "light-burg", "burg-upper", "quit-test", "passage-drill", "asylum", "taurus", "merchant-buy", "altar", "altar-burg", "firebomb-probe", "pick-blood", "burg-altar"])
+    ap.add_argument("cmd", choices=["status", "watch", "burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt-one", "merchant", "light-burg", "burg-upper", "quit-test", "passage-drill", "asylum", "taurus", "merchant-buy", "altar", "altar-burg", "firebomb-probe", "pick-blood", "burg-altar", "parish-group1", "parish-route"])
     ap.add_argument("--no-rest", action="store_true")
     ap.add_argument("--no-quit", action="store_true", help="퀵 종료(메뉴로 나갔다 오기) 안 씀 — 영상 촬영용")
     ap.add_argument("--fall-quit", action="store_true", help="낙하 때 예전처럼 퀵 종료 (기본: 기록만 하고 계속, [MoKa] 2026-10-12)")
@@ -434,6 +434,13 @@ def main() -> None:
             log.zone = "taurus"
             r = taurus.Taurus(fld, nms[missions.MAP_B], ms, log=log, events=log.event).run()
             log(f"══ 타우로스: {r}")
+        elif a.cmd in ("parish-group1", "parish-route"):
+            # MoKa demo 10-19: Andre's bonfire → first c2550 group (docs/stages/new-route-20261019.md §5)
+            from souls import parish
+            log.zone = "parish"
+            r = parish.Group1(fld, nms[missions.MAP_B], missions.DATA, missions.SPOTS["andre-bonfire"],
+                              log=log, events=log.event).run(walkway=a.cmd == "parish-route")
+            log(f"══ {a.cmd}: {r}")
         elif a.cmd == "altar":
             from souls import altar
             log.zone = "altar"
