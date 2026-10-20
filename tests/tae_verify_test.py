@@ -513,6 +513,25 @@ def test_warp_spots_ahead_and_to_the_right():
     assert out["spot"] == [2.0, -1.0] and out["p_back"] == [-1.0, 0.0, 2.0], out
 
 
+def test_spot_tau_and_terrain_skip(tmp_path):
+    # B-22d: (F, L, τ) spots set the gate's τ at gate-on (spot and τ stay paired); a failed terrain check skips the warp back
+    import math
+    tm = _FakeTm()
+    tm.foe.heading = math.pi
+    seen = []
+    act = V.WarpAct(tm, spots=[(1.0, 0.5, 0.0004), (2.0, -1.0, 0.0006)],
+                    terrain=lambda x, z, y: (seen.append((round(x, 3), round(z, 3))) or ("wall" if x < 0 else None)))
+    gate = V.EndGate(act, [0.5], clock=lambda: 0.0)
+    out = tmp_path / "r.jsonl"
+    V.record3(tm, 0.6, out, {"probe": 4, "gate": "warp"}, gate=gate, max_lines=100_000)
+    lines = [json.loads(x) for x in out.read_text().splitlines()][1:-1]
+    ons = [x["tau"] for x in lines if "gate_on" in x]
+    assert ons[:2] == [0.0004, 0.0006], ons
+    offs = [x for x in lines if x.get("gate_why") == "tau"]
+    assert offs[0]["spot"] == [1.0, 0.5] and "p_back" in offs[0]
+    assert offs[1]["spot"] == [2.0, -1.0] and offs[1]["terrain"] == "wall" and "p_back" not in offs[1]
+
+
 def test_no_home_warp_until_the_gated_run_ends(tmp_path):
     # B-22c first run (10-19): the home warp fired ~10 reads after a placed return, mid-swing, in 30 of 30 trials
     import math

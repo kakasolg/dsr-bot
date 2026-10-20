@@ -628,12 +628,38 @@ def _dxz(a, b) -> float:
     return ((a[0] - b[0]) ** 2 + (a[2] - b[2]) ** 2) ** 0.5
 
 
+TERRAIN_DY, TERRAIN_FLAT, TERRAIN_R, TERRAIN_WALL = 0.15, 0.10, 0.3, 0.5
+
+
+def terrain_guard(map_id: str):
+    """B-22d: a placement spot must have NavMesh floor within TERRAIN_DY of the foe's height, floor within TERRAIN_FLAT of it
+    TERRAIN_R m to all four sides, and no wall within TERRAIN_WALL — B-22c placed two players inside geometry (pushed up 1.8 /
+    2.7 m). → callable(x, z, y) → None (ok) or the reason."""
+    import navmesh
+    nm = navmesh.Navmesh(map_id)
+
+    def check(x: float, z: float, y: float) -> str | None:
+        f = nm.floor_at(x, z, y)
+        if f is None:
+            return "off_mesh"
+        if abs(f[0] - y) > TERRAIN_DY:
+            return f"dy {f[0] - y:+.2f}"
+        for dx, dz in ((TERRAIN_R, 0), (-TERRAIN_R, 0), (0, TERRAIN_R), (0, -TERRAIN_R)):
+            g = nm.floor_at(x + dx, z + dz, f[0])
+            if g is None or abs(g[0] - f[0]) > TERRAIN_FLAT:
+                return "not_flat"
+        if nm.wall_dist(x, f[0], z) < TERRAIN_WALL:
+            return "wall"
+        return None
+    return check
+
+
 class WarpAct:
     """EndGate action for probe 4 try 2: on → remember the player's spot, warp OUT_D further along foe → player (same
     height, same heading); off → warp back. Returns the targets for the line (p_in, p_out). Game-memory write, offline only."""
 
     def __init__(self, tm, out_d: float = OUT_D, home: tuple | None = None, front: float | None = None, locker=None,
-                 spots: list | None = None):
+                 spots: list | None = None, terrain=None):
         # home: a spot whose floor reaches out_d all round (10-16 [win]: try 2's first gate spot x 2.51 fell at its own p_out,
         # the floor ends east between x 4.26 and 5.37) — None = the first gate's spot
         self.tm, self.out_d, self.p_in, self.heading = tm, out_d, None, 0.0
@@ -645,7 +671,10 @@ class WarpAct:
         # spots (B-22c, MoKa 10-19 "좌우·거리 경계에서 독립 공격 시행으로 검증"): each release goes to the next (F, L) — F m along the
         # foe's facing, L m to its right (L < 0: its left), from its pose at that moment; right = (cos yaw, −sin yaw), checked
         # against 3000's root motion (B-22b: game lateral −0.21…−0.30 vs anim −0.224 when the heading held)
-        self.spots, self.k_spot = list(spots or []), 0
+        self.spots, self.k_spot, self.cur_spot, self.cur_tau = list(spots or []), 0, None, None
+        # B-22d: a spot (F, L, τ) also sets that gate's τ — picked when the gate goes ON so spot and τ never drift apart;
+        # terrain(x, z, y) → None if the floor there is flat and clear, else a reason: the warp is skipped (player stays out)
+        self.terrain = terrain
 
     def _locked(self, ptr) -> bool | None:
         h = self.tm.lock_target() if hasattr(self.tm, "lock_target") else None
@@ -663,6 +692,10 @@ class WarpAct:
             p_out = (pl.x + dx / n * self.out_d, pl.y, pl.z + dz / n * self.out_d)
             self.tm.pos_warp(*p_out, self.heading)
             self.ptr = ptr
+            if self.spots:
+                sp = self.spots[self.k_spot % len(self.spots)]
+                self.k_spot += 1
+                self.cur_spot, self.cur_tau = (sp[0], sp[1]), (sp[2] if len(sp) > 2 else None)
             return {"p_in": [round(v, 3) for v in self.p_in], "p_out": [round(v, 3) for v in p_out], "lock": self._locked(ptr)}
         out = {}
         if self.p_in is not None:
@@ -672,16 +705,18 @@ class WarpAct:
                 # the body faces heading + π in atan2(dx, dz) (dsr_telemetry.face; checked on hits: angle_hit ≈ 0 in front)
                 yaw = foe.heading + math.pi
                 fx, fz = math.sin(yaw), math.cos(yaw)
-                if self.spots:
-                    F, L = self.spots[self.k_spot % len(self.spots)]
-                    self.k_spot += 1
-                else:
-                    F, L = self.front, 0.0
+                F, L = self.cur_spot if self.spots else (self.front, 0.0)
                 bx, bz = foe.x + F * fx + L * math.cos(yaw), foe.z + F * fz - L * math.sin(yaw)
                 hb = math.atan2(foe.x - bx, foe.z - bz) - math.pi
+                why = self.terrain(bx, bz, getattr(foe, "y", self.p_in[1])) if self.terrain else None
+                extra = ({"spot": [F, L], "foe_at_place": [round(foe.x, 3), round(getattr(foe, "y", 0.0), 3), round(foe.z, 3),
+                                                            round(foe.heading, 4)]} if self.spots else {})
+                if why:
+                    out = {"terrain": why, **extra}          # not placed: the player stays out, the trial is excluded
+                    self.p_in = None
+                    return out
                 self.tm.pos_warp(bx, self.p_in[1], bz, hb)
-                out = {"p_back": [round(bx, 3), round(self.p_in[1], 3), round(bz, 3)], "lock": self._locked(ptr),
-                       **({"spot": [F, L], "foe_at_place": [round(foe.x, 3), round(foe.z, 3), round(foe.heading, 4)]} if self.spots else {})}
+                out = {"p_back": [round(bx, 3), round(self.p_in[1], 3), round(bz, 3)], "lock": self._locked(ptr), **extra}
             else:
                 self.tm.pos_warp(*self.p_in, self.heading)
             self.p_in = None
@@ -762,7 +797,10 @@ class EndGate:
             tau = self.taus[self.k % len(self.taus)]
             self.k += 1
             self.ptr = f["ptr"]
-            line.update(gate_on=self._switch(True, line), tau=tau)
+            line.update(gate_on=self._switch(True, line))
+            if getattr(self.act, "cur_tau", None) is not None:
+                tau = self.act.cur_tau
+            line["tau"] = tau
             self.release_at, self.t_on, self.tau_now, event = (t + tau if tau is not None else None), t, tau, True
         elif (not self.on and not self.in_run and s is not None and hasattr(self.act, "rehome") and self.tail == 0
               and "gate_off" not in line):
@@ -1095,7 +1133,7 @@ def timing_end(tae: dict, combat: dict, lines: list[dict], anim: int = P3_ANIM, 
 
 def probe4(secs: float, pre: float, refill: tuple[int, int] | None, flag: str, taus: list, force: bool, max_lines: int,
            mode: str = "warp", out_d: float = OUT_D, home: tuple | None = None, front: float | None = None,
-           lock: bool = False, prep: str | None = None, spots: list | None = None) -> None:
+           lock: bool = False, prep: str | None = None, spots: list | None = None, terrain: bool = False) -> None:
     """[win]: (flag) read/write check → pre-record + precheck → the gated record. mode warp (default since try 1): warp out
     / back instead of the flag; the flag must stay off."""
     import dsr_telemetry
@@ -1106,14 +1144,15 @@ def probe4(secs: float, pre: float, refill: tuple[int, int] | None, flag: str, t
             import probe_setup
             setup = probe_setup.prep(tm, prep)
             home = home or setup.get("home")
-        _probe4(tm, secs, pre, refill, flag, taus, force, max_lines, mode, out_d, home, front, lock, setup, spots)
+        _probe4(tm, secs, pre, refill, flag, taus, force, max_lines, mode, out_d, home, front, lock, setup, spots, terrain)
     finally:
         if setup is not None:
             import probe_setup
             probe_setup.finish(tm, setup["nodead_before"])
 
 
-def _probe4(tm, secs, pre, refill, flag, taus, force, max_lines, mode, out_d, home, front, lock, setup, spots=None) -> None:
+def _probe4(tm, secs, pre, refill, flag, taus, force, max_lines, mode, out_d, home, front, lock, setup, spots=None,
+            terrain=False) -> None:
     off = dbg_offset(flag)
     rw = []
     if mode == "flag":
@@ -1124,7 +1163,7 @@ def _probe4(tm, secs, pre, refill, flag, taus, force, max_lines, mode, out_d, ho
     header = {"probe": 4, "gate": mode, "anim": P3_ANIM, "target": list(P3_TARGET), "iso_r": ISO_R, "refill": refill,
               "taus": taus, "age": "age_since_seen (play position not read)",
               **({"gate_flag": flag, "gate_offset": off, "gate_rw": rw} if mode == "flag" else
-                 {"out_d": out_d, "home": list(home) if home else None, "front": front, "lock": lock, "spots": spots}),
+                 {"out_d": out_d, "home": list(home) if home else None, "front": front, "lock": lock, "spots": spots, "terrain": terrain}),
               **({"prep": {k: v for k, v in setup.items() if k != "home"}} if setup else {})}
     pre_out = SAMPLES / f"{stamp}_tae-probe4-pre.jsonl"
     record3(tm, pre, pre_out, {**header, "pre": True}, refill=refill, max_lines=max_lines)
@@ -1148,7 +1187,8 @@ def _probe4(tm, secs, pre, refill, flag, taus, force, max_lines, mode, out_d, ho
         if target is not None:
             print(f"lock-on: {mv.lock_target(target.ptr)} ({mv.lock_state(target.ptr)})")
         locker = lambda ptr: mv.lock_target(ptr)
-    gate = EndGate((lambda on, _s, _p: tm.set_dbg(off, on)) if mode == "flag" else WarpAct(tm, out_d, home, front, locker, spots), taus)
+    gate = EndGate((lambda on, _s, _p: tm.set_dbg(off, on)) if mode == "flag" else WarpAct(tm, out_d, home, front, locker, spots,
+                                                                                        terrain_guard("m10_01_00_00") if terrain else None), taus)
     r = record3(tm, secs, out, {**header, "precheck": pc["checks"], "forced": not pc["ok"]}, refill=refill,
                 max_lines=max_lines, gate=gate)
     print(f"읽기 {r['reads']}번, 기록 {r['written']}줄 ({r['stopped']}), 3000 게이트 {gate.k}번 → {out}\n"
@@ -1177,7 +1217,8 @@ def main() -> None:
     p.add_argument("--front", type=float, help="warp back to this many m straight ahead of the foe, facing it (try 4)")
     p.add_argument("--lock", action="store_true", help="lock on to the target and keep it locked between gates (try 4)")
     p.add_argument("--prep", metavar="BACKUP", help="probe_setup: restore this save, wake A, … and the menu exit at the end")
-    p.add_argument("--spots", nargs="+", metavar="F,L", help="warp gate: back to these spots in turn — F m ahead, L m to the foe's right (B-22c)")
+    p.add_argument("--spots", nargs="+", metavar="F,L[,TAU]", help="warp gate: back to these spots in turn — F m ahead, L m to the foe's right (B-22c); TAU sets that gate's τ (B-22d)")
+    p.add_argument("--terrain", action="store_true", help="skip a placement whose floor is not flat and clear (NavMesh, B-22d)")
     p.add_argument("--home", type=float, nargs="+", metavar="X Y Z [HEADING]",
                    help="warp gate: spot to return to between gates (default: the first gate's spot)")
     p = sub.add_parser("check4"); p.add_argument("file", type=Path)
@@ -1192,7 +1233,7 @@ def main() -> None:
         probe4(a.secs, a.pre, tuple(a.refill) if a.refill else None, a.flag,
                [None if t == "hold" else float(t) for t in a.taus], a.force, a.max_lines, a.gate, a.out,
                tuple(a.home) if a.home else None, a.front, a.lock, a.prep,
-               [tuple(float(v) for v in x.split(",")) for x in a.spots] if a.spots else None)
+               [tuple(float(v) for v in x.split(",")) for x in a.spots] if a.spots else None, a.terrain)
         return
     if a.cmd == "probe3":
         probe3(a.secs, a.pre, tuple(a.refill) if a.refill else None, set(a.allow), a.force, a.max_lines)
