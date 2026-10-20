@@ -498,6 +498,21 @@ def test_warp_front_puts_the_player_ahead_of_the_foe():
     assert out["p_back"] == [1.9, 0.0, 0.5] and tm.warps[-1] == (1.9, 0.0, 0.5), out
 
 
+def test_warp_spots_ahead_and_to_the_right():
+    # B-22c: back to F m ahead and L m to the foe's right, from its pose at release, in turn; right = (cos yaw, −sin yaw)
+    import math
+    tm = _FakeTm()
+    act = V.WarpAct(tm, spots=[(1.0, 0.5), (2.0, -1.0)])
+    s = tm.snapshot()
+    tm.foe.heading = math.pi                          # yaw = 2π: facing +z, right = +x
+    act(True, s, 1)
+    out = act(False, tm.snapshot(), 1)
+    assert out["spot"] == [1.0, 0.5] and out["p_back"] == [0.5, 0.0, 1.0], out
+    act(True, tm.snapshot(), 1)
+    out = act(False, tm.snapshot(), 1)
+    assert out["spot"] == [2.0, -1.0] and out["p_back"] == [-1.0, 0.0, 2.0], out
+
+
 def test_front_return_is_on_the_line(tmp_path):
     # 10-19 try 4: the front warp ran but p_back never reached the line (gate_off switched without it) → "not returned"
     import math

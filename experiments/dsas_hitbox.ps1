@@ -106,6 +106,19 @@ function Dmy-Matrix($d, $hkCur) {
   $ref * $att
 }
 
+if ($env:DSAS_BONES) {
+  # root-motion double-count check (B-22b): model-space position of the top bones over the whole anim — if they drift with the
+  # root motion, the bone poses already carry it and adding root motion again would count it twice
+  $names = $env:DSAS_BONES -split ','
+  $idx = $names | ForEach-Object { $n = $_; [array]::FindIndex([object[]]$hk, [Predicate[object]]{ param($x) $x.Name -eq $n }) }
+  "bones: " + (($hk | Select-Object -First 6 | ForEach-Object { "$($_.Name)(p$($_.Parent))" }) -join ' ')
+  foreach ($t in 0, 0.4, 0.8, 0.9, 1.0, 1.2, 1.6, 2.0, 2.4) {
+    $c = Pose $t
+    "t=$t " + (($idx | ForEach-Object { $p = [System.Numerics.Vector3]::Transform([System.Numerics.Vector3]::Zero, $c[$_]); "$($hk[$_].Name)=($([Math]::Round($p.X,3)), $([Math]::Round($p.Y,3)), $([Math]::Round($p.Z,3)))" }) -join '  ') +
+      "  rm=" + $data.RootMotion.GetSampleClamped([single]$t)
+  }
+  return
+}
 $rm = $data.RootMotion
 $rm0 = if ($rm) { $rm.GetSampleClamped(0) } else { [System.Numerics.Vector4]::Zero }
 $info = [ordered]@{

@@ -1,74 +1,19 @@
-144513 early 0.5 HIT at [0.55, 0.9]   reads around: [(0.9, 0.14, 0.851, 0.023)]
-144513 sweep 0.97 miss  back [1.0, 1.0]  min gap 0.737 at 1.0 fwd/lat 0.883 0.008  min gap while hb on: None
-144513 sweep 1.0 miss  back [1.0167, 1.0167]  min gap 0.877 at 1.0167 fwd/lat 0.875 0.012  min gap while hb on: None
-144513 sweep 1.02 miss  back [1.05, 1.05]  min gap 1.114 at 1.05 fwd/lat 0.898 0.003  min gap while hb on: None
-144513 sweep 1.04 no capsule overlap in time
-144513 sweep 1.06 no capsule overlap in time
-144513 sweep 1.1 no capsule overlap in time
-144513 sweep 0.9 HIT at [0.9333, 0.9333]   reads around: [(0.9333, -0.0, 0.849, 0.024), (0.9333, -0.0, 0.849, 0.024), (0.95, 0.138, 0.849, 0.037)]
-144513 sweep 0.97 miss  back [1.0, 1.0]  min gap 0.737 at 1.0 fwd/lat 0.893 0.004  min gap while hb on: None
-144513 sweep 1.0 miss  back [1.0167, 1.0167]  min gap 0.877 at 1.0167 fwd/lat 0.892 0.004  min gap while hb on: None
-144513 sweep 1.02 miss  back [1.05, 1.05]  min gap 1.113 at 1.05 fwd/lat 0.897 0.002  min gap while hb on: None
-144513 sweep 1.04 no capsule overlap in time
-144513 sweep 1.06 no capsule overlap in time
-144513 early 0.5 HIT at [0.55, 0.9]   reads around: [(0.9, 0.14, 0.849, 0.023)]
-144513 sweep 0.9 HIT at [0.9333, 0.95]   reads around: [(0.9333, 0.005, 0.849, 0.036), (0.95, 0.137, 0.849, 0.036), (0.95, 0.148, 0.848, 0.049)]
-144513 sweep 0.97 miss  back [1.0, 1.0]  min gap 0.739 at 1.0 fwd/lat 0.866 0.016  min gap while hb on: None
-144513 sweep 1.0 miss  back [1.0167, 1.0167]  min gap 0.877 at 1.0167 fwd/lat 0.876 0.012  min gap while hb on: None
-144513 sweep 1.02 miss  back [1.05, 1.05]  min gap 1.114 at 1.05 fwd/lat 0.897 0.003  min gap while hb on: None
-144513 sweep 1.04 no capsule overlap in time
-144513 sweep 1.06 no capsule overlap in time
-144513 sweep 1.1 no capsule overlap in time
-144513 early 0.5 HIT at [0.55, 0.9]   reads around: [(0.9, 0.14, 0.85, 0.023)]
-144513 sweep 0.9 HIT at [0.9333, 0.9333]   reads around: [(0.9333, 0.006, 0.849, 0.036), (0.9333, 0.006, 0.849, 0.036), (0.95, 0.137, 0.849, 0.036)]
-144513 sweep 0.97 miss  back [1.0, 1.0]  min gap 0.738 at 1.0 fwd/lat 0.866 0.016  min gap while hb on: None
-144513 sweep 1.0 miss  back [1.0167, 1.0167]  min gap 0.877 at 1.0167 fwd/lat 0.876 0.012  min gap while hb on: None
-144513 sweep 1.02 miss  back [1.05, 1.05]  min gap 1.113 at 1.05 fwd/lat 0.89 0.006  min gap while hb on: None
-144513 sweep 1.04 no capsule overlap in time
-144513 sweep 1.06 no capsule overlap in time
-144513 sweep 1.1 no capsule overlap in time
-144513 sweep 0.9 HIT at [0.9333, 0.9333]   reads around: [(0.9333, -0.001, 0.85, 0.024), (0.95, 0.138, 0.849, 0.037), (0.95, 0.138, 0.849, 0.037)]
-144513 sweep 0.97 miss  back [1.0, 1.0167]  min gap 0.876 at 1.0167 fwd/lat 0.882 0.008  min gap while hb on: None
-144513 sweep 1.0 miss  back [1.0167, 1.0167]  min gap 0.877 at 1.0167 fwd/lat 0.893 0.004  min gap while hb on: None
-144513 sweep 1.02 miss  back [1.05, 1.05]  min gap 1.114 at 1.05 fwd/lat 0.897 0.003  min gap while hb on: None
-144513 sweep 1.04 no capsule overlap in time
-144513 sweep 1.06 no capsule overlap in time
-144513 sweep 1.1 no capsule overlap in time
-144513 early 0.5 HIT at [0.55, 0.9]   reads around: [(0.9, 0.14, 0.85, 0.022)]
-144513 sweep 0.97 miss  back [1.0, 1.0167]  min gap 0.875 at 1.0167 fwd/lat 0.866 0.015  min gap while hb on: None
-144513 sweep 1.0 miss  back [1.0167, 1.0167]  min gap 0.877 at 1.0167 fwd/lat 0.893 0.004  min gap while hb on: None
-144513 sweep 1.02 miss  back [1.05, 1.05]  min gap 1.113 at 1.05 fwd/lat 0.89 0.007  min gap while hb on: None
-144513 sweep 1.04 no capsule overlap in time
-144513 sweep 1.06 no capsule overlap in time
-144513 sweep 1.1 no capsule overlap in time
-144513 early 0.5 HIT at [0.55, 0.9]   reads around: [(0.9, 0.14, 0.85, 0.023)]
-144513 sweep 0.9 HIT at [0.9333, 0.9333]   reads around: [(0.9333, 0.006, 0.85, 0.037), (0.9333, 0.006, 0.85, 0.037), (0.95, 0.138, 0.85, 0.037)]
-144513 sweep 0.97 miss  back [1.0, 1.0]  min gap 0.737 at 1.0 fwd/lat 0.883 0.008  min gap while hb on: None
-144513 sweep 1.0 miss  back [1.0167, 1.0167]  min gap 0.876 at 1.0167 fwd/lat 0.876 0.011  min gap while hb on: None
-144513 sweep 1.02 miss  back [1.05, 1.05]  min gap 1.113 at 1.05 fwd/lat 0.889 0.007  min gap while hb on: None
-144513 sweep 1.04 no capsule overlap in time
-144513 sweep 1.06 no capsule overlap in time
-144513 sweep 1.1 no capsule overlap in time
-144513 early 0.5 HIT at [0.5333, 0.9]   reads around: [(0.9, 0.14, 0.85, 0.022)]
-144513 sweep 0.9 HIT at [0.9333, 0.9333]   reads around: [(0.9333, 0.006, 0.849, 0.036), (0.95, 0.149, 0.849, 0.05), (0.95, 0.149, 0.849, 0.05)]
-144513 sweep 0.97 miss  back [1.0, 1.0]  min gap 0.74 at 1.0 fwd/lat 0.863 0.018  min gap while hb on: None
-144513 sweep 1.0 miss  back [1.0167, 1.0167]  min gap 0.876 at 1.0167 fwd/lat 0.892 0.003  min gap while hb on: None
-144513 sweep 1.02 miss  back [1.05, 1.05]  min gap 1.114 at 1.05 fwd/lat 0.898 0.002  min gap while hb on: None
-144513 sweep 1.04 no capsule overlap in time
-144513 sweep 1.1 no capsule overlap in time
-144513 early 0.5 HIT at [0.55, 0.9]   reads around: [(0.9, 0.14, 0.85, 0.023)]
-173608 early 0.5 HIT at [0.9, 0.9]   reads around: [(0.8833, 0.389, 0.85, 0.01), (0.9, 0.151, 0.85, 0.012), (0.9, 0.139, 0.85, 0.023)]
-173608 sweep 0.9 HIT at [0.9333, 0.9333]   reads around: [(0.9167, -0.118, 0.876, 0.015), (0.9333, -0.028, 0.876, 0.015), (0.9333, -0.004, 0.856, 0.028)]
-173608 sweep 0.97 miss  back [1.0, 1.0]  min gap 0.739 at 1.0 fwd/lat 0.867 0.016  min gap while hb on: 0.739
-173608 sweep 1.0 miss  back [1.0167, 1.0167]  min gap 0.75 at 1.05 fwd/lat -0.466 0.143  min gap while hb on: 0.75
-173608 sweep 1.02 miss  back [1.05, 1.05]  min gap 1.113 at 1.05 fwd/lat 0.891 0.006  min gap while hb on: 1.113
-173608 sweep 1.04 no capsule overlap in time
-173608 sweep 1.06 no capsule overlap in time
-173608 sweep 1.1 no capsule overlap in time
-173608 sweep 0.9 HIT at [0.9333, 0.9333]   reads around: [(0.9167, -0.097, 0.849, 0.024), (0.9333, -0.0, 0.849, 0.024), (0.9333, 0.571, 0.272, 0.156)]
-173608 sweep 0.97 miss  back [1.0, 1.0]  min gap 0.739 at 1.0 fwd/lat 0.866 0.016  min gap while hb on: 0.739
-173608 sweep 1.0 miss  back [1.0167, 1.0167]  min gap 0.831 at 1.05 fwd/lat -0.817 0.107  min gap while hb on: 0.831
-173608 sweep 1.02 miss  back [1.05, 1.05]  min gap 1.112 at 1.05 fwd/lat 0.89 0.006  min gap while hb on: 1.112
-173608 sweep 1.04 no capsule overlap in time
-173608 sweep 1.06 no capsule overlap in time
-173608 sweep 1.1 no capsule overlap in time
+trials (B-22's rows): 46 — distinct (record, hollow, run start): 46
+  player relocated after the return, before the run ended: 30 trials (home warp 30, other 0; at anim time [0.9333, 1.05, 1.0667, 1.5333, 1.55, 1.5667, 1.5833, 1.6, 1.6167]) — reads from there on are left out
+  unknown_active    37  hit 13 / miss 24  records ['144513']  kinds ['early', 'sweep']
+  valid              9  hit 3 / miss 6  records ['173608']  kinds ['early', 'sweep']
+segment distance vs brute force (400×400 samples): max |diff| 0.0000 m over 177 pairs
+
+time shift of the capsule pose vs the record's anim time (game frames of 1/60 s); gaps in m
+shift | class          | hits: max hit_gap | misses: min live_gap | separable | interval    | + live frames before a hit (no drop yet): min | interval with them
+-2    | valid          | n  3 max  0.705 | n  6 min  0.324 | NO  | —              | n  3 min 0.377 | — (not separable)
+-1    | valid          | n  3 max  0.378 | n  6 min  0.531 | yes | [0.378, 0.531) | n  3 min 0.138 | — (not separable)
++0    | valid          | n  3 max  0.139 | n  6 min  0.739 | yes | [0.139, 0.739) | n  3 min -0.117 | — (not separable)
++1    | valid          | n  3 max  0.126 | n  6 min  0.876 | yes | [0.126, 0.876) | n  3 min -0.027 | — (not separable)
++2    | valid          | n  3 max  0.331 | n  6 min  1.009 | yes | [0.331, 1.009) | n  3 min -0.091 | — (not separable)
+-2    | valid+unknown_active | n 16 max  0.706 | n 30 min  0.313 | NO  | —              | n  9 min 0.127 | — (not separable)
+-1    | valid+unknown_active | n 16 max  0.379 | n 30 min  0.525 | yes | [0.379, 0.525) | n  9 min -0.102 | — (not separable)
++0    | valid+unknown_active | n 16 max  0.140 | n 30 min  0.737 | yes | [0.140, 0.737) | n  9 min -0.117 | — (not separable)
++1    | valid+unknown_active | n 16 max  0.138 | n 30 min  0.875 | yes | [0.138, 0.875) | n  9 min -0.027 | — (not separable)
++2    | valid+unknown_active | n 16 max  0.345 | n 30 min  1.009 | yes | [0.345, 1.009) | n  9 min -0.091 | — (not separable)
+→ data\samples\20261019_dsas-hitbox-trials.csv

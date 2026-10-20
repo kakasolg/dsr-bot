@@ -632,7 +632,8 @@ class WarpAct:
     """EndGate action for probe 4 try 2: on → remember the player's spot, warp OUT_D further along foe → player (same
     height, same heading); off → warp back. Returns the targets for the line (p_in, p_out). Game-memory write, offline only."""
 
-    def __init__(self, tm, out_d: float = OUT_D, home: tuple | None = None, front: float | None = None, locker=None):
+    def __init__(self, tm, out_d: float = OUT_D, home: tuple | None = None, front: float | None = None, locker=None,
+                 spots: list | None = None):
         # home: a spot whose floor reaches out_d all round (10-16 [win]: try 2's first gate spot x 2.51 fell at its own p_out,
         # the floor ends east between x 4.26 and 5.37) — None = the first gate's spot
         self.tm, self.out_d, self.p_in, self.heading = tm, out_d, None, 0.0
@@ -641,6 +642,10 @@ class WarpAct:
         # foe's body as it is now, facing it — try 3 came back to its old spot while the foe had walked in and turned (d_back
         # 0.10–0.91 m). locker(ptr) → bool: keep lock-on on the foe between gates (Moves.lock_target)
         self.front, self.locker, self.ptr, self.lock_t = front, locker, None, -1e9
+        # spots (B-22c, MoKa 10-19 "좌우·거리 경계에서 독립 공격 시행으로 검증"): each release goes to the next (F, L) — F m along the
+        # foe's facing, L m to its right (L < 0: its left), from its pose at that moment; right = (cos yaw, −sin yaw), checked
+        # against 3000's root motion (B-22b: game lateral −0.21…−0.30 vs anim −0.224 when the heading held)
+        self.spots, self.k_spot = list(spots or []), 0
 
     def _locked(self, ptr) -> bool | None:
         h = self.tm.lock_target() if hasattr(self.tm, "lock_target") else None
@@ -661,14 +666,22 @@ class WarpAct:
             return {"p_in": [round(v, 3) for v in self.p_in], "p_out": [round(v, 3) for v in p_out], "lock": self._locked(ptr)}
         out = {}
         if self.p_in is not None:
-            foe = next((c for c in s.chars if c.ptr == ptr), None) if (self.front and s is not None) else None
+            want = (self.front or self.spots) and s is not None
+            foe = next((c for c in s.chars if c.ptr == ptr), None) if want else None
             if foe is not None and getattr(foe, "heading", None) is not None:
                 # the body faces heading + π in atan2(dx, dz) (dsr_telemetry.face; checked on hits: angle_hit ≈ 0 in front)
-                fx, fz = math.sin(foe.heading + math.pi), math.cos(foe.heading + math.pi)
-                bx, bz = foe.x + self.front * fx, foe.z + self.front * fz
+                yaw = foe.heading + math.pi
+                fx, fz = math.sin(yaw), math.cos(yaw)
+                if self.spots:
+                    F, L = self.spots[self.k_spot % len(self.spots)]
+                    self.k_spot += 1
+                else:
+                    F, L = self.front, 0.0
+                bx, bz = foe.x + F * fx + L * math.cos(yaw), foe.z + F * fz - L * math.sin(yaw)
                 hb = math.atan2(foe.x - bx, foe.z - bz) - math.pi
                 self.tm.pos_warp(bx, self.p_in[1], bz, hb)
-                out = {"p_back": [round(bx, 3), round(self.p_in[1], 3), round(bz, 3)], "lock": self._locked(ptr)}
+                out = {"p_back": [round(bx, 3), round(self.p_in[1], 3), round(bz, 3)], "lock": self._locked(ptr),
+                       **({"spot": [F, L], "foe_at_place": [round(foe.x, 3), round(foe.z, 3), round(foe.heading, 4)]} if self.spots else {})}
             else:
                 self.tm.pos_warp(*self.p_in, self.heading)
             self.p_in = None
@@ -1074,7 +1087,7 @@ def timing_end(tae: dict, combat: dict, lines: list[dict], anim: int = P3_ANIM, 
 
 def probe4(secs: float, pre: float, refill: tuple[int, int] | None, flag: str, taus: list, force: bool, max_lines: int,
            mode: str = "warp", out_d: float = OUT_D, home: tuple | None = None, front: float | None = None,
-           lock: bool = False, prep: str | None = None) -> None:
+           lock: bool = False, prep: str | None = None, spots: list | None = None) -> None:
     """[win]: (flag) read/write check → pre-record + precheck → the gated record. mode warp (default since try 1): warp out
     / back instead of the flag; the flag must stay off."""
     import dsr_telemetry
@@ -1085,14 +1098,14 @@ def probe4(secs: float, pre: float, refill: tuple[int, int] | None, flag: str, t
             import probe_setup
             setup = probe_setup.prep(tm, prep)
             home = home or setup.get("home")
-        _probe4(tm, secs, pre, refill, flag, taus, force, max_lines, mode, out_d, home, front, lock, setup)
+        _probe4(tm, secs, pre, refill, flag, taus, force, max_lines, mode, out_d, home, front, lock, setup, spots)
     finally:
         if setup is not None:
             import probe_setup
             probe_setup.finish(tm, setup["nodead_before"])
 
 
-def _probe4(tm, secs, pre, refill, flag, taus, force, max_lines, mode, out_d, home, front, lock, setup) -> None:
+def _probe4(tm, secs, pre, refill, flag, taus, force, max_lines, mode, out_d, home, front, lock, setup, spots=None) -> None:
     off = dbg_offset(flag)
     rw = []
     if mode == "flag":
@@ -1103,7 +1116,7 @@ def _probe4(tm, secs, pre, refill, flag, taus, force, max_lines, mode, out_d, ho
     header = {"probe": 4, "gate": mode, "anim": P3_ANIM, "target": list(P3_TARGET), "iso_r": ISO_R, "refill": refill,
               "taus": taus, "age": "age_since_seen (play position not read)",
               **({"gate_flag": flag, "gate_offset": off, "gate_rw": rw} if mode == "flag" else
-                 {"out_d": out_d, "home": list(home) if home else None, "front": front, "lock": lock}),
+                 {"out_d": out_d, "home": list(home) if home else None, "front": front, "lock": lock, "spots": spots}),
               **({"prep": {k: v for k, v in setup.items() if k != "home"}} if setup else {})}
     pre_out = SAMPLES / f"{stamp}_tae-probe4-pre.jsonl"
     record3(tm, pre, pre_out, {**header, "pre": True}, refill=refill, max_lines=max_lines)
@@ -1127,7 +1140,7 @@ def _probe4(tm, secs, pre, refill, flag, taus, force, max_lines, mode, out_d, ho
         if target is not None:
             print(f"lock-on: {mv.lock_target(target.ptr)} ({mv.lock_state(target.ptr)})")
         locker = lambda ptr: mv.lock_target(ptr)
-    gate = EndGate((lambda on, _s, _p: tm.set_dbg(off, on)) if mode == "flag" else WarpAct(tm, out_d, home, front, locker), taus)
+    gate = EndGate((lambda on, _s, _p: tm.set_dbg(off, on)) if mode == "flag" else WarpAct(tm, out_d, home, front, locker, spots), taus)
     r = record3(tm, secs, out, {**header, "precheck": pc["checks"], "forced": not pc["ok"]}, refill=refill,
                 max_lines=max_lines, gate=gate)
     print(f"읽기 {r['reads']}번, 기록 {r['written']}줄 ({r['stopped']}), 3000 게이트 {gate.k}번 → {out}\n"
@@ -1156,6 +1169,7 @@ def main() -> None:
     p.add_argument("--front", type=float, help="warp back to this many m straight ahead of the foe, facing it (try 4)")
     p.add_argument("--lock", action="store_true", help="lock on to the target and keep it locked between gates (try 4)")
     p.add_argument("--prep", metavar="BACKUP", help="probe_setup: restore this save, wake A, … and the menu exit at the end")
+    p.add_argument("--spots", nargs="+", metavar="F,L", help="warp gate: back to these spots in turn — F m ahead, L m to the foe's right (B-22c)")
     p.add_argument("--home", type=float, nargs="+", metavar="X Y Z [HEADING]",
                    help="warp gate: spot to return to between gates (default: the first gate's spot)")
     p = sub.add_parser("check4"); p.add_argument("file", type=Path)
@@ -1169,7 +1183,8 @@ def main() -> None:
     if a.cmd == "probe4":
         probe4(a.secs, a.pre, tuple(a.refill) if a.refill else None, a.flag,
                [None if t == "hold" else float(t) for t in a.taus], a.force, a.max_lines, a.gate, a.out,
-               tuple(a.home) if a.home else None, a.front, a.lock, a.prep)
+               tuple(a.home) if a.home else None, a.front, a.lock, a.prep,
+               [tuple(float(v) for v in x.split(",")) for x in a.spots] if a.spots else None)
         return
     if a.cmd == "probe3":
         probe3(a.secs, a.pre, tuple(a.refill) if a.refill else None, set(a.allow), a.force, a.max_lines)
