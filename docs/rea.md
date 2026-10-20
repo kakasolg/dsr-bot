@@ -26,6 +26,7 @@ ROADMAP `rea-anim-time`. 1 · 2차 시험 기록(설치, 덤프, 시험 B 5/5)�
 | CHR DBG 메뉴를 만드는 함수 | `0x1403744xx`–`0x1403748xx` | 2차 decompile | 정적으로 읽음 |
 | 클래스 vtable (RTTI) | PlayerCtrl `0x14132c258` · EnemyCtrl `0x14132bea8` · ActionCtrl `0x14132d318` · FrpgDefaultAnimationControl `0x1413460d0` · hkaDefaultAnimationControl `0x141412728` | 덤프의 MSVC RTTI `.?AV…@@` → COL → vtable (Python, 10-19) | PlayerIns · EnemyIns vtable이 `dsr_telemetry`의 값과 같음 (2/2) |
 | AllNoDamage(+0x9)를 읽는 곳 | `FUN_140322925` | 2차 xrefs | 정적으로 읽음 — 피해 계산식(시험 C)의 출발점 후보 |
+| 공격 판정 상태 (AttackIndex 0) | ChrIns `+0x2E0` int32: −1 = 꺼짐, 그 밖 = 켜짐(공격마다 다른 번호) | 덤프 비교, TAE 구간과 대조 (10-19, docs/tae-verify.md B-19) | 게임에서 봄: c2540 공격 7가지 첫 구간 · type 5 하나, 모두 TAE + 1프레임. 3010의 2번째 이후 구간은 안 켜짐 |
 | 애니 재생 시간 | `[ChrIns+0x68]+0x18` 큐 → 엔트리(0x78) `+0x8` → `FrpgDefaultAnimationControl` `+0x10` 시간 · `+0x14` 무게 · 엔트리 `+0x20` 애니 정보 | Overhaul 경로 + 게임에서 읽음 (10-19, 플레이어 · 적 9 · A의 3000 10번) | 게임에서 봄: 새 재생 0.017부터, 맞는 시각이 TAE 구간 안 10/10. A의 7개 공격 피격 83/83 TAE 구간 안. 같은 ID 재시작: 3000 25번 중 0 (워프로 밖에 나가도 0/15) |
 
 ## 3차 지시문 — 애니 재생 시간 필드, Overhaul 구조체 경로를 닻으로 ([cloud] 2026-10-19 개정)
