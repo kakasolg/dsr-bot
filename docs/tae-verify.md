@@ -442,6 +442,18 @@ MoKa: "높이 차가 큰 적(예: 5 m 넘게 위아래)은 격리 판정에서 �
   구간이 일찍 끝나는지, 칼이 그 자리를 먼저 지나는지는 여전히 못 가름.
 - 같은 ID 재시작 2건 더(이번 기록) — 판정에서 빠짐.
 
+### B-18. 도구: 한 명령 준비 · 끝 처리, 락온 중 읽기 속도 — 2026-10-19 [win 자리 세션]
+
+MoKa: "4·6번부터 시작" (10-19 분석의 4 = 읽기 속도, 6 = 준비를 한 명령으로).
+- `probe_setup.py` (새 모듈): `prep(tm, save)` = 세이브 복원 → PlayerNoDead 켬 → NavMesh로 A 3.5 m까지 → A **반대쪽** 보고 헛스윙으로 깨움 → 시작 자리로 워프 →
+  A가 3 m 안에서 움직일 때까지 기다림 → HP 793. `finish(tm)` = PlayerNoDead 켠 채 메뉴 종료 · 이어하기 → 플래그 원래대로 (P-88).
+  `tae_verify.py probe4 … --prep BACKUP`, `options_pilot.py run … --prep BACKUP` — `--home`을 안 주면 복원 직후 자리를 씀. 실패해도(예외) 끝 처리는 함.
+- 읽기 속도: `env.make_telemetry()`가 띄우는 읽기 스레드(Feed)가 프로세스 끝까지 돌며 probe의 읽기를 빼앗았음 (savepoint 복원 · 락온용 `Moves`).
+  락온은 스레드 없는 텔레메트리로 `Moves`를 만들고, 준비 단계 뒤 `probe_setup.stop_feed()`로 멈춤.
+- 게임 확인 (60 s, `probe4 60 --front 0.9 --lock --prep backup-20261016-234951-options-pilot-ready-A-only`): 준비 전 단계 됨(헛스윙 1번, A 12.4 s 뒤 2.1 m), 예비 점검 7/7,
+  락온 됨, **읽기 초당 380번** (시도 4 158번, 락온 없던 시도 3 388번), 끝 처리 됨(PlayerNoDead 0, HP 617, 10 m 안 깬 적 없음). 게이트 9번 — 판정용 아님.
+  기록 `data/samples/20261019_171121_tae-probe4(-pre).jsonl`.
+
 ## 다음 (10-16 [cloud])
 
 시뮬레이터 연결 조건(MoKa): 이 검증이 통과하면 c2540 하나로 AI Lua와 연결. 2단계는 type 1만 통과, 3b(런타임 타이밍)는 아직.

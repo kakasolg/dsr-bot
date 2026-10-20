@@ -943,11 +943,25 @@ def timing_end(tae: dict, combat: dict, lines: list[dict], anim: int = P3_ANIM, 
 
 def probe4(secs: float, pre: float, refill: tuple[int, int] | None, flag: str, taus: list, force: bool, max_lines: int,
            mode: str = "warp", out_d: float = OUT_D, home: tuple | None = None, front: float | None = None,
-           lock: bool = False) -> None:
+           lock: bool = False, prep: str | None = None) -> None:
     """[win]: (flag) read/write check → pre-record + precheck → the gated record. mode warp (default since try 1): warp out
     / back instead of the flag; the flag must stay off."""
     import dsr_telemetry
     tm = dsr_telemetry.DSRTelemetry({})
+    setup = None
+    try:
+        if prep:                # one command (probe_setup): restore, PlayerNoDead, wake A, start spot, wait, HP full
+            import probe_setup
+            setup = probe_setup.prep(tm, prep)
+            home = home or setup.get("home")
+        _probe4(tm, secs, pre, refill, flag, taus, force, max_lines, mode, out_d, home, front, lock, setup)
+    finally:
+        if setup is not None:
+            import probe_setup
+            probe_setup.finish(tm, setup["nodead_before"])
+
+
+def _probe4(tm, secs, pre, refill, flag, taus, force, max_lines, mode, out_d, home, front, lock, setup) -> None:
     off = dbg_offset(flag)
     rw = []
     if mode == "flag":
@@ -958,7 +972,8 @@ def probe4(secs: float, pre: float, refill: tuple[int, int] | None, flag: str, t
     header = {"probe": 4, "gate": mode, "anim": P3_ANIM, "target": list(P3_TARGET), "iso_r": ISO_R, "refill": refill,
               "taus": taus, "age": "age_since_seen (play position not read)",
               **({"gate_flag": flag, "gate_offset": off, "gate_rw": rw} if mode == "flag" else
-                 {"out_d": out_d, "home": list(home) if home else None, "front": front, "lock": lock})}
+                 {"out_d": out_d, "home": list(home) if home else None, "front": front, "lock": lock}),
+              **({"prep": {k: v for k, v in setup.items() if k != "home"}} if setup else {})}
     pre_out = SAMPLES / f"{stamp}_tae-probe4-pre.jsonl"
     record3(tm, pre, pre_out, {**header, "pre": True}, refill=refill, max_lines=max_lines)
     pc = precheck([json.loads(l) for l in pre_out.read_text(encoding="utf-8").splitlines() if l.strip()],
@@ -975,9 +990,8 @@ def probe4(secs: float, pre: float, refill: tuple[int, int] | None, flag: str, t
     locker = None
     if lock:
         import control
-        import env
         from souls import moves as M
-        mv = M.Moves(env.make_telemetry({}), control.Pad())
+        mv = M.Moves(tm, control.Pad())        # the plain reader: a Feed thread here cut the read rate to ~40 % (10-19 try 4)
         target = next((c for c in (tm.snapshot(ISO_R) or SimpleNamespace(chars=[])).chars if c.npc_param in P3_TARGET), None)
         if target is not None:
             print(f"lock-on: {mv.lock_target(target.ptr)} ({mv.lock_state(target.ptr)})")
@@ -1010,6 +1024,7 @@ def main() -> None:
     p.add_argument("--max-lines", type=int, default=MAX_LINES)
     p.add_argument("--front", type=float, help="warp back to this many m straight ahead of the foe, facing it (try 4)")
     p.add_argument("--lock", action="store_true", help="lock on to the target and keep it locked between gates (try 4)")
+    p.add_argument("--prep", metavar="BACKUP", help="probe_setup: restore this save, wake A, … and the menu exit at the end")
     p.add_argument("--home", type=float, nargs="+", metavar="X Y Z [HEADING]",
                    help="warp gate: spot to return to between gates (default: the first gate's spot)")
     p = sub.add_parser("check4"); p.add_argument("file", type=Path)
@@ -1022,7 +1037,7 @@ def main() -> None:
     if a.cmd == "probe4":
         probe4(a.secs, a.pre, tuple(a.refill) if a.refill else None, a.flag,
                [None if t == "hold" else float(t) for t in a.taus], a.force, a.max_lines, a.gate, a.out,
-               tuple(a.home) if a.home else None, a.front, a.lock)
+               tuple(a.home) if a.home else None, a.front, a.lock, a.prep)
         return
     if a.cmd == "probe3":
         probe3(a.secs, a.pre, tuple(a.refill) if a.refill else None, set(a.allow), a.force, a.max_lines)

@@ -319,7 +319,8 @@ def summarize(rows: list[dict], tau: float = TAU, anim: int = V.P3_ANIM, target:
             "verdict": verdict, "rows": rows}
 
 
-def run(secs: float, pre: float, refill, options: list, tau: float, force: bool, max_lines: int, home: tuple | None = None) -> None:
+def run(secs: float, pre: float, refill, options: list, tau: float, force: bool, max_lines: int, home: tuple | None = None,
+        prep: str | None = None) -> None:
     import control
     import dsr_telemetry
     import nav
@@ -328,11 +329,29 @@ def run(secs: float, pre: float, refill, options: list, tau: float, force: bool,
     if not lock.acquire():
         raise SystemExit("봇이 돌고 있음 (data/bot.lock)")
     tm = dsr_telemetry.DSRTelemetry({})
+    setup = None
+    try:
+        if prep:                # one command (probe_setup): restore, PlayerNoDead, wake A, start spot, wait, HP full
+            import probe_setup
+            setup = probe_setup.prep(tm, prep)
+            home = home or setup.get("home")
+        _run(tm, lock, secs, pre, refill, options, tau, force, max_lines, home, setup)
+    finally:
+        lock.release()          # no-op when _run already let it go
+        if setup is not None:
+            import probe_setup
+            probe_setup.finish(tm, setup["nodead_before"])
+
+
+def _run(tm, lock, secs, pre, refill, options, tau, force, max_lines, home, setup) -> None:
+    import control
+    import nav
     stamp = time.strftime('%Y%m%d_%H%M%S')
     header = {"probe": "options", "anim": V.P3_ANIM, "target": list(V.P3_TARGET), "iso_r": V.ISO_R, "refill": refill,
               "options": options, "tau": tau, "circle_s": CIRCLE_S, "roll_hold": ROLL_HOLD,
               "age": "τ by the foe's anim time `at` when it belongs to the run, else age_since_seen", "home": home,
-              "refill_rule": "between reps only", "tangent": "cw = clockwise from above, world x right / z up"}
+              "refill_rule": "between reps only", "tangent": "cw = clockwise from above, world x right / z up",
+              **({"prep": {k: v for k, v in setup.items() if k != "home"}} if setup else {})}
     pre_out = V.SAMPLES / f"{stamp}_options-pre.jsonl"
     V.record3(tm, pre, pre_out, {**header, "pre": True}, refill=refill, max_lines=max_lines)
     pc = V.precheck([json.loads(l) for l in pre_out.read_text(encoding="utf-8").splitlines() if l.strip()], pre, secs, max_lines=max_lines)
@@ -367,6 +386,7 @@ def main() -> None:
     p.add_argument("--tau", type=float, default=TAU)
     p.add_argument("--force", action="store_true")
     p.add_argument("--max-lines", type=int, default=V.MAX_LINES)
+    p.add_argument("--prep", metavar="BACKUP", help="probe_setup: restore this save, wake A, … and the menu exit at the end")
     p.add_argument("--home", type=float, nargs=4, metavar=("X", "Y", "Z", "HEADING"),
                    help="tested spot every rep starts from (run 1 used the first rep's spot, which was wedged)")
     p = sub.add_parser("check")
@@ -377,7 +397,8 @@ def main() -> None:
         bad = [o for o in opts if o not in OPTIONS]
         if bad:
             raise SystemExit(f"모르는 선택지 {bad} — {', '.join(OPTIONS)}")
-        run(a.secs, a.pre, tuple(a.refill) if a.refill else None, opts, a.tau, a.force, a.max_lines, tuple(a.home) if a.home else None)
+        run(a.secs, a.pre, tuple(a.refill) if a.refill else None, opts, a.tau, a.force, a.max_lines, tuple(a.home) if a.home else None,
+            a.prep)
         return
     rows, tau = [], TAU
     for f in a.files:     # several records pooled: exclusions are decided per record, the summary over all rows

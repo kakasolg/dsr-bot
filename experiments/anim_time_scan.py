@@ -262,54 +262,29 @@ def foe(tm, secs: float, refill: tuple[int, int] = (500, 793), npc: int = 254010
 
 
 def pilot_prep(tm, npc: int = 254010, wait_s: float = 60.0) -> None:
-    """Before `options_pilot.py run --home …`: PlayerNoDead on (left ON — the pilot runs with it; switch it off only after a menu
-    quit-out, P-88), remember the start spot, walk to 3.5 m of the sleeping A, whiff facing away until it wakes, warp back to
-    the start spot facing A's side, wait until A is within 4 m and acting. Prints the --home arguments."""
+    """Without a restore: PlayerNoDead on (left ON — switch it off only after a menu quit-out, P-88), wake A, back to the
+    start spot, wait for A. The full one-command version is `--prep BACKUP` on tae_verify probe4 / options_pilot run
+    (probe_setup.py); this stays for the 10-19 notes that name it."""
     import math
     import control
-    import env
-    import navmesh
-    from souls import moves as M
-    feed = env.make_telemetry({})
+    import probe_setup as P
     pad = control.Pad()
     tm.set_dbg(tm.DBG_PLAYER_NO_DEAD, True)
     try:
         s = tm.snapshot(40)
         home = (s.player.x, s.player.y, s.player.z, s.player.heading or 0.0)
-        a = next((c for c in s.hostile(40) if c.npc_param == npc), None)
-        if not a:
-            print(f"no {npc} within 40 m")
+        ptr = P.wake(tm, pad, npc)
+        P.stop_feed()
+        if ptr is None:
             return
-        aptr = a.ptr
-        d = math.hypot(s.player.x - a.x, s.player.z - a.z) or 1.0
-        goal = (a.x + 3.5 * (s.player.x - a.x) / d, a.y, a.z + 3.5 * (s.player.z - a.z) / d)
-        nm = navmesh.Navmesh("m10_01_00_00")
-        mv = M.Moves(feed, pad)
-        r = mv.walk_path(nm.find_path((s.player.x, s.player.y, s.player.z), goal), nm,
-                         stop=lambda sn: (lambda cc: cc is not None and M.horiz(sn.player, cc) <= 3.5)(mv.find(sn, aptr)))
-        pad.move(0.0, 0.0)
-        a = tm.read_chr(aptr)
-        x0, z0 = a.x, a.z
-        for k in range(6):
-            s = tm.snapshot(40)
-            a = tm.read_chr(aptr)
-            if a.anim not in (-1, None) or math.hypot(a.x - x0, a.z - z0) > 0.5:
-                break
-            tm.face(pad, _heading_to(s.player.x, s.player.z, a.x, a.z) + math.pi)   # away from A (P-88 notes: facing it killed it)
-            pad.attack()
-            time.sleep(1.6)
-        print(f"walk {r}; A awake={a.anim not in (-1, None) or math.hypot(a.x - x0, a.z - z0) > 0.5} after {k} whiffs, hp {a.hp}")
         time.sleep(1.0)
         tm.pos_warp(*home)
         t0 = time.perf_counter()
         while time.perf_counter() - t0 < wait_s:
-            s = tm.snapshot(40)
-            a = tm.read_chr(aptr)
-            dd = math.hypot(s.player.x - a.x, s.player.z - a.z)
-            if dd <= 4.0 and a.anim not in (-1, None):
+            s, a = tm.snapshot(40), tm.read_chr(ptr)
+            if math.hypot(s.player.x - a.x, s.player.z - a.z) <= P.WAIT_D and a.anim not in (-1, None):
                 break
             time.sleep(0.1)
-        print(f"A {dd:.1f} m, anim {a.anim}, after {time.perf_counter() - t0:.1f} s")
         print("--home " + " ".join(f"{v:.3f}" for v in home))
     finally:
         pad.release_all()
