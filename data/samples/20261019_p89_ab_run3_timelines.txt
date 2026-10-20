@@ -1,0 +1,103 @@
+== 20261019_212954_parish-group1: bundle n1, HP 792 → 611, blame [{'npc': 255042, 'ptr': 471999248, 'anim': 3000, 'd': 1.93, 'dy': 0.0, 'face': 4}, {'npc': 255041, 'ptr': 472005904, 'anim': 3003, 'd': 1.99, 'dy': 0.0, 'face': 0}]
+   drop at t0 = 1792470691.653
+   -2.587  frame  me hp 793 sp 100 anim -1 | 255042@99248:3002 4.21m +0° 255041@5904:-1 5.24m +2° 255041@12560:-1 11.07m +21°
+   -2.508  pad    - (nav.py:goto:573)
+   -2.473  pad    LB (moves.py:guard:261)
+   -2.472  rule   block → continue (target 255042@99248)
+   -2.077  frame  me hp 792 sp 90 anim -1 | 255042@99248:3002 3.27m +0° 255041@5904:-1 4.20m +2° 255041@12560:-1 11.72m +16°
+   -2.030  frame  me hp 792 sp 91 anim 20140 | 255042@99248:3002 3.24m +0° 255041@5904:-1 4.16m +3° 255041@12560:-1 11.74m +16°
+   -1.816  frame  me hp 792 sp 91 anim 20140 | 255041@5904:-1 3.26m +3° 255042@99248:3002 3.31m +0° 255041@12560:-1 11.70m +10°
+   -1.720  reflex guard vs 255041 anim -1 age None
+   -1.720  rule   reflex → continue (target 255042@99248)
+   -1.715  frame  me hp 792 sp 91 anim -1 | 255041@5904:-1 2.89m +3° 255042@99248:3002 3.31m +0° 255041@12560:-1 11.69m +7°
+   -1.676  rule   face_first → continue (target 255042@99248)
+   -1.617  frame  me hp 792 sp 92 anim -1 | 255041@5904:9920 2.52m +4° 255042@99248:3002 3.31m +0° 255041@12560:-1 11.69m +5°
+   -1.604  pad    LB+RS (duel.py:_keep_lock:898)
+   -1.603  rule   block → continue (target 255042@99248)
+   -1.571  frame  me hp 792 sp 92 anim -1 | 255041@5904:3003 2.55m +0° 255042@99248:3002 3.29m +0° 255041@12560:-1 11.71m +4°
+   -1.540  pad    LB (duel.py:_keep_lock:880)
+   -1.402  frame  me hp 792 sp 94 anim -1 | 255042@99248:3002 2.90m +0° 255041@5904:3003 2.93m +2° 255041@12560:-1 11.96m +3°
+   -1.336  frame  me hp 792 sp 95 anim -1 | 255042@99248:3002 2.79m +0° 255041@5904:3003 3.01m +2°
+   -1.192  reflex guard vs 255042 anim 3002 age 1.282
+   -1.192  rule   reflex → continue (target 255042@99248)
+   -1.162  rule   block → continue (target 255042@99248)
+   -0.924  frame  me hp 792 sp 99 anim -1 | 255042@99248:3011 2.18m +4° 255041@5904:3003 3.50m +5°
+   -0.920  reflex guard vs 255042 anim 3011 age 0.001
+   -0.920  rule   reflex → continue (target 255042@99248)
+   -0.593  pad    LB+RS (duel.py:_keep_lock:887)
+   -0.508  pad    LB (duel.py:_keep_lock:880)
+   -0.366  frame  me hp 792 sp 100 anim -1 | 255042@99248:3000 2.12m +4° 255041@5904:3003 2.84m +0°
+   +0.000  frame  me hp 618 sp 100 anim -1 | 255042@99248:3000 1.93m +4° 255041@5904:3003 1.99m +0°
+   +0.124  frame  me hp 618 sp 100 anim -1 | 255041@5904:3003 1.85m +2° 255042@99248:3000 1.85m +0°
+   +0.149  frame  me hp 618 sp 100 anim -1 | 255042@99248:3000 1.83m +0° 255041@5904:3003 1.84m +2°
+
+== 20261019_212954_parish-group1: bundle n2, HP 611 → 354, blame [{'npc': 255041, 'ptr': 472005904, 'anim': 3004, 'd': 0.85, 'dy': 0.0, 'face': 2}, {'npc': 255042, 'ptr': 471999248, 'anim': 3004, 'd': 1.11, 'dy': 0.0, 'face': 6}]
+   drop at t0 = 1792470696.430
+   -3.577  scene  rule reflex → continue · tick target 255042@99248 anim 3500 h 1.52 · swung(s ago) {99248: -0.65, 5904: 0.0}
+   -3.503  scene  rule face_first → continue · tick target 255042@99248 anim 3500 h 1.50 · swung(s ago) {99248: -0.73, 5904: 0.0}
+   -3.397  scene  rule reflex → continue · tick target 255042@99248 anim 3500 h 1.42 · swung(s ago) {99248: -0.83, 5904: 0.0}
+   -3.292  scene  rule face_first → continue · tick target 255042@99248 anim 3500 h 1.34 · swung(s ago) {99248: -0.94, 5904: 0.0}
+   -3.187  scene  rule reflex → continue · tick target 255042@99248 anim 3500 h 1.36 · swung(s ago) {99248: -1.04, 5904: 0.0}
+   -3.118  scene  rule face_first → continue · tick target 255042@99248 anim 3500 h 1.28 · swung(s ago) {99248: -1.11, 5904: 0.0}
+   -3.049  scene  rule reflex → continue · tick target 255042@99248 anim 3500 h 0.97 · swung(s ago) {99248: -1.18, 5904: 0.0}
+   -3.013  scene  rule face_first → continue · tick target 255042@99248 anim 3500 h 0.82 · swung(s ago) {99248: -1.22, 5904: 0.0}
+   -2.979  scene  rule reflex → continue · tick target 255042@99248 anim 3500 h 0.82 · swung(s ago) {99248: -1.25, 5904: 0.0}
+   -2.874  scene  rule face_first → continue · tick target 255042@99248 anim 3500 h 0.83 · swung(s ago) {99248: -1.36, 5904: 0.0}
+   -2.598  frame  me hp 613 sp 97 anim 20140 | 255042@99248:3003 0.89m +17° 255041@5904:3009 1.39m +8°
+   -2.572  reflex guard vs 255042 anim 3003 age 0.27
+   -2.572  rule   reflex → continue (target 255042@99248)
+   -2.267  frame  me hp 613 sp 100 anim -1 | 255042@99248:3003 0.88m +17° 255041@5904:3009 1.23m +12°
+   -2.079  frame  me hp 613 sp 100 anim -1 | 255042@99248:3003 0.85m +20° 255041@5904:3004 0.98m +0°
+   -1.915  frame  me hp 611 sp 90 anim -1 | 255042@99248:3003 0.85m +2° 255041@5904:3004 0.96m +0°
+   -1.898  frame  me hp 611 sp 91 anim 20140 | 255042@99248:3500 0.85m +3° 255041@5904:3004 0.96m +0°
+   -1.892  reflex guard vs 255041 anim 3004 age 0.164
+   -1.892  scene  rule reflex → continue · tick target 255042@99248 anim 3500 h 0.85 · swung(s ago) {99248: -0.03, 5904: 0.0}
+   -1.852  frame  me hp 611 sp 91 anim 20140 | 255041@5904:3004 0.95m +1° 255042@99248:3500 1.01m +1°
+   -1.561  frame  me hp 611 sp 91 anim -1 | 255041@5904:3004 0.85m +7° 255042@99248:3500 1.45m +4°
+   -1.503  scene  rule face_first → continue · tick target 255042@99248 anim 3500 h 1.45 · swung(s ago) {99248: -0.42, 5904: 0.0}
+   -1.503  rule   face_first → continue (target 255042@99248)
+   -1.435  rule   reflex → continue (target 255042@99248)
+   -1.434  scene  rule reflex → continue · tick target 255042@99248 anim 3500 h 1.44 · swung(s ago) {99248: -0.49, 5904: 0.0}
+   -1.337  scene  rule face_first → continue · tick target 255042@99248 anim 3500 h 1.42 · swung(s ago) {99248: -0.58, 5904: 0.0}
+   -1.337  rule   face_first → continue (target 255042@99248)
+   -1.268  rule   reflex → continue (target 255042@99248)
+   -1.266  scene  rule reflex → continue · tick target 255042@99248 anim 3500 h 1.41 · swung(s ago) {99248: -0.65, 5904: -0.0}
+   -1.234  scene  rule face_first → continue · tick target 255042@99248 anim 3500 h 1.40 · swung(s ago) {99248: -0.69, 5904: 0.0}
+   -1.234  rule   face_first → continue (target 255042@99248)
+   -1.119  scene  rule reflex → continue · tick target 255042@99248 anim 3500 h 1.32 · swung(s ago) {99248: -0.8, 5904: 0.0}
+   -1.119  rule   reflex → continue (target 255042@99248)
+   -0.993  scene  rule face_first → continue · tick target 255042@99248 anim 3500 h 1.27 · swung(s ago) {99248: -0.93, 5904: 0.0}
+   -0.993  rule   face_first → continue (target 255042@99248)
+   -0.904  rule   reflex → continue (target 255042@99248)
+   -0.903  scene  rule reflex → continue · tick target 255042@99248 anim 3500 h 1.24 · swung(s ago) {99248: -1.02, 5904: 0.0}
+   -0.808  scene  rule face_first → continue · tick target 255042@99248 anim 3500 h 1.19 · swung(s ago) {99248: -1.11, 5904: 0.0}
+   -0.808  rule   face_first → continue (target 255042@99248)
+   -0.722  rule   stagger_punish → continue (target 255042@99248)
+   -0.722  scene  rule stagger_punish → continue · tick target 255042@99248 anim 3500 h 1.18 · swung(s ago) {99248: -1.2, 5904: 0.0}
+   -0.654  rule   stagger_punish → continue (target 255042@99248)
+   -0.654  scene  rule stagger_punish → continue · tick target 255042@99248 anim 3500 h 1.15 · swung(s ago) {99248: -1.27, 5904: 0.0}
+   -0.620  rule   stagger_punish → continue (target 255042@99248)
+   -0.620  scene  rule stagger_punish → continue · tick target 255042@99248 anim 3500 h 1.15 · swung(s ago) {99248: -1.3, 5904: 0.0}
+   -0.575  rule   stagger_punish → continue (target 255042@99248)
+   -0.575  scene  rule stagger_punish → continue · tick target 255042@99248 anim 3500 h 1.15 · swung(s ago) {99248: -1.34, 5904: 0.0}
+   -0.506  frame  me hp 611 sp 100 anim -1 | 255041@5904:3004 0.90m +0° 255042@99248:3004 1.15m +5°
+   -0.502  reflex guard vs 255042 anim 3004 age 0.001
+   -0.502  rule   reflex → continue (target 255042@99248)
+   +0.000  frame  me hp 354 sp 100 anim -1 | 255041@5904:3004 0.85m +2° 255042@99248:3004 1.11m +6°
+   +0.127  frame  me hp 354 sp 100 anim 2007 | 255041@5904:3004 0.83m +3° 255042@99248:3004 1.10m +6°
+   +0.150  frame  me hp 354 sp 100 anim 2007 | 255042@99248:3004 0.88m +6° 255041@5904:3004 1.05m +4°
+
+== 20261019_212954_parish-group1: bundle n3, HP 793 → 645, blame [{'npc': 255042, 'ptr': 471999248, 'anim': 3000, 'd': 1.67, 'dy': 0.0, 'face': 0}]
+   drop at t0 = 1792470709.389
+   -2.590  frame  me hp 350 sp 100 anim -1 | 255042@99248:-1 6.12m +58° 255041@5904:3004 8.58m +2°
+   -2.451  frame  me hp 350 sp 100 anim -1 | 255042@99248:-1 6.33m +52° 255041@5904:-1 8.94m +3°
+   -2.006  pad    X (moves.py:drink:600)
+   -1.994  frame  me hp 350 sp 100 anim 7585 | 255042@99248:-1 6.81m +1° 255041@5904:-1 9.88m +65°
+   -1.905  pad    - (moves.py:drink:603)
+   -1.153  frame  me hp 350 sp 100 anim 7586 | 255042@99248:-1 3.76m +2° 255041@5904:-1 9.01m +82°
+   -0.908  frame  me hp 350 sp 100 anim 7586 | 255042@99248:3000 2.84m +3° 255041@5904:-1 8.93m +67°
+   -0.872  frame  me hp 793 sp 100 anim 7586 | 255042@99248:3000 2.83m +0° 255041@5904:-1 8.91m +61°
+   -0.140  frame  me hp 793 sp 100 anim 7587 | 255042@99248:3000 2.01m +0° 255041@5904:-1 7.30m +2°
+   +0.000  frame  me hp 646 sp 100 anim 7587 | 255042@99248:3000 1.67m +0° 255041@5904:-1 6.75m +2°
+   +0.292  pad    LB (reflex.py:tick:138)
+   +0.293  rule   reflex → continue (target 255042@99248)

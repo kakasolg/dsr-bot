@@ -1,6 +1,7 @@
 """P-89: the big hit while 255041 cuts into the 255042 fight — one timeline per run from existing records only.
 
-  python experiments/p89_timeline.py [--before 3.0] [--after 0.6]
+  python experiments/p89_timeline.py [RUN …] [--all] [--before 3.0] [--after 0.6]   (default: the three 10-19 parish runs;
+                                                    --all: every blackbox bundle, not only the biggest)
 
 Sources per run (data/runs/<run>.*): hits.jsonl (blackbox bundle around the HP drop, ~60 Hz: my hp · sp · anim, foes' anim · d ·
 face), ctl.jsonl (dec.rule / dec.reflex with the snapshot wall time; pad lines with the caller, wall = wall0 + (pc − sync_pc)),
@@ -25,12 +26,17 @@ def btns(b):
     return "+".join(n for k, n in BTN.items() if b & k) or "-"
 
 
-def run(name, before, after):
+def run(name, before, after, every=False):
     base = ROOT / "data" / "runs" / name
     bundles = [json.loads(x) for x in (base.with_suffix(".hits.jsonl")).read_text(encoding="utf-8").splitlines() if x.strip()]
-    big = max(bundles, key=lambda b: b["hp0"] - b["lo"])
+    if every:
+        return "\n\n".join(one(name, base, b, before, after) for b in bundles)
+    return one(name, base, max(bundles, key=lambda b: b["hp0"] - b["lo"]), before, after)
+
+
+def one(name, base, big, before, after):
     fr = big["frames"]
-    drop_t = next(f["t"] for a, f in zip(fr, fr[1:]) if f["hp"] < a["hp"] and a["hp"] - f["hp"] > 20)
+    drop_t = max(zip(fr, fr[1:]), key=lambda af: af[0]["hp"] - af[1]["hp"])[1]["t"]   # the biggest single drop (bundles overlap)
     lo, hi = drop_t - before, drop_t + after
     ptr_npc = {}
     for f in fr:
@@ -81,7 +87,8 @@ def run(name, before, after):
 
 def main():
     before, after = arg("--before", 3.0), arg("--after", 0.6)
-    text = "\n\n".join(run(r, before, after) for r in RUNS)
+    runs = [a for a in sys.argv[1:] if a.startswith("2026")] or RUNS
+    text = "\n\n".join(run(r, before, after, every="--all" in sys.argv) for r in runs)
     print(text)
     if "--out" in sys.argv:
         Path(sys.argv[sys.argv.index("--out") + 1]).write_text(text + "\n", encoding="utf-8")
