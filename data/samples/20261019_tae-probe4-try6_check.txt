@@ -1,0 +1,216 @@
+  {'t': 103157.20453, 'tau': 0.5, 'kind': 'early', 'start_obs': [103157.1997, 103157.2045], 'run_len': 1.1996, 'warp_delay': 0.0161, 'd_back': 0.87, 'release_anim': [0.5167, 0.5167], 'hb_back': False, 'release_age': [0.5167, 0.5167], 'release_wall': [0.5105, 0.5208], 'hit': True, 'lost': 57, 'hit_age': [0.9, 0.9], 'hit_wall': [0.894, 0.9042], 'lag': 0.3807, 'reasons': []}
+  {'t': 103167.3547, 'tau': None, 'kind': 'hold', 'start_obs': [103167.3491, 103167.3547], 'run_len': 1.1983, 'hit': False, 'reasons': []}
+  {'t': 103182.53601, 'tau': 0.9, 'kind': 'sweep', 'start_obs': [103182.5311, 103182.536], 'run_len': 1.201, 'warp_delay': 0.0179, 'd_back': 0.88, 'release_anim': [0.9167, 0.9167], 'hb_back': True, 'hb_left': 0.1333, 'release_age': [0.9167, 0.9167], 'release_wall': [0.9144, 0.9245], 'hit': True, 'lost': 57, 'hit_age': [0.9333, 0.9333], 'hit_wall': [0.9297, 0.9397], 'lag': 0.0126, 'reasons': []}
+  {'t': 103199.33837, 'tau': 0.97, 'kind': 'sweep', 'start_obs': [103199.3327, 103199.3384], 'run_len': 2.4828, 'warp_delay': 0.0162, 'd_back': 0.87, 'release_anim': [1.0, 1.0], 'hb_back': True, 'hb_left': 0.0667, 'release_age': [1.0, 1.0], 'release_wall': [0.9937, 1.005], 'hit': False, 'reasons': []}
+  {'t': 103209.15407, 'tau': 1.0, 'kind': 'sweep', 'start_obs': [103209.1488, 103209.1541], 'run_len': 2.4849, 'warp_delay': 0.0177, 'd_back': 0.88, 'release_anim': [1.0167, 1.0167], 'hb_back': True, 'hb_left': 0.0333, 'release_age': [1.0167, 1.0167], 'release_wall': [1.0122, 1.0225], 'hit': False, 'reasons': []}
+  {'t': 103212.53655, 'tau': 1.02, 'kind': 'sweep', 'start_obs': [103212.5311, 103212.5366], 'run_len': 2.485, 'warp_delay': 0.0161, 'd_back': 0.89, 'release_anim': [1.05, 1.05], 'hb_back': True, 'hb_left': 0.0, 'release_age': [1.05, 1.05], 'release_wall': [1.046, 1.0568], 'hit': False, 'reasons': []}
+  {'t': 103225.06993, 'tau': 1.04, 'kind': 'sweep', 'start_obs': [103225.0648, 103225.0699], 'run_len': 2.4833, 'warp_delay': 0.0183, 'd_back': 0.89, 'release_anim': [1.0667, 1.0667], 'hb_back': False, 'release_age': [1.0667, 1.0667], 'release_wall': [1.0629, 1.0735], 'hit': False, 'reasons': []}
+  {'t': 103239.73796, 'tau': 1.06, 'kind': 'sweep', 'start_obs': [103239.7324, 103239.738], 'run_len': 2.4316, 'warp_delay': 0.0163, 'd_back': 0.9, 'release_anim': [1.0833, 1.0833], 'hb_back': False, 'release_age': [1.0833, 1.0833], 'release_wall': [1.0786, 1.0896], 'hit': False, 'reasons': []}
+  {'t': 103243.00432, 'tau': 1.1, 'kind': 'sweep', 'start_obs': [103242.9988, 103243.0043], 'run_len': 2.4834, 'warp_delay': 0.015, 'd_back': 0.9, 'release_anim': [1.1167, 1.1167], 'hb_back': False, 'release_age': [1.1167, 1.1167], 'release_wall': [1.1107, 1.1213], 'hit': False, 'reasons': []}
+  {'t': 103249.77124, 'tau': 0.5, 'kind': 'early', 'start_obs': [103249.7658, 103249.7712], 'run_len': 1.1999, 'warp_delay': 0.0179, 'd_back': 0.87, 'release_anim': [0.5167, 0.5167], 'hb_back': False, 'release_age': [0.5167, 0.5167], 'release_wall': [0.5112, 0.522], 'hit': True, 'lost': 57, 'hit_age': [0.9, 0.9], 'hit_wall': [0.8941, 0.9048], 'lag': 0.3801, 'reasons': ['refill_in_run']}
+  {'t': 103255.0536, 'tau': None, 'kind': 'hold', 'start_obs': [103255.0486, 103255.0536], 'run_len': 1.1988, 'hit': False, 'reasons': []}
+  {'t': 103261.38705, 'tau': 0.9, 'kind': 'sweep', 'start_obs': [103261.3801, 103261.3871], 'run_len': 2.4185, 'warp_delay': 0.0164, 'd_back': 0.85, 'release_anim': [0.9167, 0.9167], 'hb_back': True, 'hb_left': 0.1333, 'release_age': [0.9167, 0.9167], 'release_wall': [0.9113, 0.9239], 'hit': True, 'lost': 57, 'hit_age': [0.9333, 0.9333], 'hit_wall': [0.929, 0.9414], 'lag': 0.0148, 'reasons': []}
+  {'t': 103276.63797, 'tau': 0.97, 'kind': 'sweep', 'start_obs': [103276.6329, 103276.638], 'run_len': 2.4835, 'warp_delay': 0.0171, 'd_back': 0.87, 'release_anim': [1.0, 1.0], 'hb_back': True, 'hb_left': 0.05, 'release_age': [1.0, 1.0], 'release_wall': [0.9946, 1.0055], 'hit': False, 'reasons': []}
+  {'t': 103292.87118, 'tau': 1.0, 'kind': 'sweep', 'start_obs': [103292.8658, 103292.8712], 'run_len': 2.4837, 'warp_delay': 0.0178, 'd_back': 0.89, 'release_anim': [1.0167, 1.0167], 'hb_back': True, 'hb_left': 0.0333, 'release_age': [1.0167, 1.0167], 'release_wall': [1.0122, 1.0238], 'hit': False, 'reasons': []}
+  {'t': 103296.27169, 'tau': 1.02, 'kind': 'sweep', 'start_obs': [103296.2655, 103296.2717], 'run_len': 2.4813, 'warp_delay': 0.0166, 'd_back': 0.89, 'release_anim': [1.05, 1.05], 'hb_back': True, 'hb_left': 0.0, 'release_age': [1.05, 1.05], 'release_wall': [1.0441, 1.0558], 'hit': False, 'reasons': []}
+  {'t': 103317.18788, 'tau': 1.04, 'kind': 'sweep', 'start_obs': [103317.1827, 103317.1879], 'run_len': 2.433, 'warp_delay': 0.0152, 'd_back': 0.89, 'release_anim': [1.0667, 1.0667], 'hb_back': False, 'release_age': [1.0667, 1.0667], 'release_wall': [1.0608, 1.0712], 'hit': False, 'reasons': []}
+  {'t': 103320.1864, 'tau': 1.06, 'kind': 'sweep', 'start_obs': [103320.1807, 103320.1864], 'run_len': 2.4841, 'warp_delay': 0.019, 'd_back': 0.9, 'release_anim': [1.0833, 1.0833], 'hb_back': False, 'release_age': [1.0833, 1.0833], 'release_wall': [1.0804, 1.0915], 'hit': False, 'reasons': []}
+  {'t': 103323.57126, 'tau': 1.1, 'kind': 'sweep', 'start_obs': [103323.5652, 103323.5713], 'run_len': 2.4832, 'warp_delay': 0.0164, 'd_back': 0.9, 'release_anim': [1.1167, 1.1167], 'hb_back': False, 'release_age': [1.1167, 1.1167], 'release_wall': [1.1115, 1.1236], 'hit': False, 'reasons': []}
+{
+ "verdict_hitbox": "통과",
+ "hitbox": {
+  "windows": [
+   [
+    0.8667,
+    1.0333
+   ]
+  ],
+  "runs": 18,
+  "valid": 18,
+  "excluded": {},
+  "unlit": {},
+  "lit": 18,
+  "outside": [],
+  "d_start": [
+   0.0166,
+   0.0166,
+   0.0166
+  ],
+  "d_end": [
+   0.0167,
+   0.0167,
+   0.0334
+  ],
+  "verdict": "통과"
+ },
+ "anim": 3000,
+ "windows": [
+  [
+   0.8667,
+   1.0333
+  ]
+ ],
+ "tae_end": 1.0333,
+ "tol": 0.0333,
+ "gate": "warp",
+ "flag": null,
+ "age": "the foe's anim time where recorded (release_anim / hit_age), else age_since_seen",
+ "instances": 18,
+ "valid": 17,
+ "excluded": {
+  "refill_in_run": 1
+ },
+ "controls": {
+  "leaks": 0,
+  "hold_no_hit": [
+   2,
+   2
+  ],
+  "early_hit": [
+   1,
+   1
+  ],
+  "defer": [
+   0,
+   12
+  ],
+  "hitbox": {
+   "miss_while_live": 4,
+   "miss_last_frame": 2,
+   "hit_while_live": 2,
+   "hit_after_off": 0,
+   "miss_after_off": 6
+  }
+ },
+ "method_valid": false,
+ "end_bracket": [
+  0.9167,
+  1.0
+ ],
+ "consistent": true,
+ "lag_after_release": {
+  "median": 0.0148,
+  "max": 0.0148
+ },
+ "per_tau": {
+  "None": [
+   0,
+   2
+  ],
+  "0.5": [
+   1,
+   1
+  ],
+  "0.9": [
+   2,
+   2
+  ],
+  "0.97": [
+   0,
+   2
+  ],
+  "1.0": [
+   0,
+   2
+  ],
+  "1.02": [
+   0,
+   2
+  ],
+  "1.04": [
+   0,
+   2
+  ],
+  "1.06": [
+   0,
+   2
+  ],
+  "1.1": [
+   0,
+   2
+  ]
+ },
+ "verdict": "방법 미검증",
+ "header": {
+  "kind": "header",
+  "probe": 4,
+  "gate": "warp",
+  "anim": 3000,
+  "target": [
+   254010
+  ],
+  "iso_r": 25.0,
+  "refill": [
+   400,
+   793
+  ],
+  "taus": [
+   0.5,
+   null,
+   0.9,
+   0.97,
+   1.0,
+   1.02,
+   1.04,
+   1.06,
+   1.1
+  ],
+  "age": "age_since_seen (play position not read)",
+  "out_d": 3.0,
+  "home": [
+   -0.014094122685492039,
+   -10.019896507263184,
+   -58.81689453125,
+   -0.9563780426979065
+  ],
+  "front": 0.9,
+  "lock": true,
+  "prep": {
+   "save": "backup-20261016-234951-options-pilot-ready-A-only",
+   "nodead_before": 0,
+   "ok": true,
+   "why": "",
+   "wait_s": 14.7
+  },
+  "precheck": [
+   {
+    "check": "hp",
+    "ok": true,
+    "detail": "min 625 (≥ 200; NoDead holds HP at 1 and hides hits)"
+   },
+   {
+    "check": "target_one",
+    "ok": true,
+    "detail": "target (254010,) within 25.0 m per read: [1]"
+   },
+   {
+    "check": "target_awake",
+    "ok": true,
+    "detail": "anims seen [3000, 3001, 3002] (−1 = asleep: wake it; one ID only = not acting)"
+   },
+   {
+    "check": "isolated",
+    "ok": true,
+    "detail": "other foes within 25.0 m: []"
+   },
+   {
+    "check": "read_bounds",
+    "ok": true,
+    "detail": "pt0 ≤ t0 ≤ t on every line: True; bound median 0.005 s (≤ 0.02)"
+   },
+   {
+    "check": "dbg_flags",
+    "ok": true,
+    "detail": "CHR DBG read ['01000000000000000000000000000000'] → on [['PlayerNoDead']]; not allowed [] (check their effect first, then --allow)"
+   },
+   {
+    "check": "volume",
+    "ok": true,
+    "detail": "27 lines in 5.0 s → ~972 for 180.0 s (cap 100000)"
+   }
+  ],
+  "forced": false
+ }
+}
+3000 판정 상태(+0x2E0) 기준: 통과 — 켜진 구간 18, 시작 차 [0.0166, 0.0166, 0.0166], 끝 차 [0.0167, 0.0167, 0.0334], 복귀 때 {'miss_while_live': 4, 'miss_last_frame': 2, 'hit_while_live': 2, 'hit_after_off': 0, 'miss_after_off': 6}
+3000 위치 기준(칼이 그 자리를 지나는 시각): 방법 미검증 — 게이트 18, 유효 17, 제외 {'refill_in_run': 1}, 끝 괄호 [0.9167, 1.0] (TAE 1.0333 ± 0.0333)

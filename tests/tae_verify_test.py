@@ -86,6 +86,7 @@ def test_frame_key():
     assert a == V.frame_key(500, [{"ptr": 1, "anim": -1, "d": 4.2}, {"ptr": 2, "anim": 3000, "d": 1.1}])   # distance alone: same
     assert a != V.frame_key(430, [{"ptr": 1, "anim": -1, "d": 4.0}, {"ptr": 2, "anim": 3000, "d": 1.0}])
     assert a != V.frame_key(500, [{"ptr": 1, "anim": -1, "d": 4.0}, {"ptr": 2, "anim": 3001, "d": 1.0}])
+    assert a != V.frame_key(500, [{"ptr": 1, "anim": -1, "d": 4.0}, {"ptr": 2, "anim": 3000, "d": 1.0, "hb": 5}])   # hitbox on
 
 
 def test_dsas_compare_real_c2540():
@@ -239,13 +240,14 @@ def test_anim_runs_restart_after_leaving():
 
 # ── probe 4 (end of 3000's window): the real EndGate against a small fake game ──
 def fake_game(taus, end=1.0333, consumes=False, blocks=True, step=0.005, lag=0.017, mode="flag", out_d=3.0, reach=2.0,
-              fall=(), anim_time=False):
+              fall=(), anim_time=False, hb_end=None):
     """Hollow 254010 loops 7000 (0.5 s) → 3000 (1.2 s), 0.85 m from the player. The 3000's hitbox is live on [0.8667, end];
     the player is hit at the first game moment in it when hittable. flag mode: hittable = flag off, seen `lag` after the
     write; consumes: a blocked hit uses the attack up; blocks=False: the flag does nothing. warp mode: hittable = within
     `reach` of the hollow; a warp lands `lag` after it is written (the player is somewhere in between until then);
     gates whose index is in `fall` have no floor at p_out (the player sinks 5 cm per read there). anim_time: foes carry the
-    game's anim time `at` (= the true age; the 3000 starts 0.012 s before the read that first sees it)."""
+    game's anim time `at` (= the true age; the 3000 starts 0.012 s before the read that first sees it) and the hitbox
+    state `hb` (ChrIns +0x2E0: 5 on [0.8667, end] one game frame late, as B-19; hb_end: where it says the window ends)."""
     flag = {"on": False, "since": -9.0}
     pos = {"at": (0.0, 0.0, 0.85), "to": None, "when": 0.0}
     clock = {"t": 0.0}
@@ -287,7 +289,9 @@ def fake_game(taus, end=1.0333, consumes=False, blocks=True, step=0.005, lag=0.0
             line = {"t0": round(t - 0.001, 5), "t": round(t, 5), "pt0": round(pt0 if pt0 is not None else t - 0.001, 5),
                     "hp": hp, "dbg": ("0" * 20 + ("01" if flag["on"] else "00") + "0" * 10), "p": list(pos["at"]),
                     "foes": [{"ptr": 1, "npc": 254010, "anim": 3000 if in3000 else 7000, "d": round(pos["at"][2], 2),
-                              **({"at": round(age if in3000 else age + 0.5, 4)} if anim_time else {})}]}
+                              **({"at": round(age if in3000 else age + 0.5, 4),
+                                  "hb": 5 if in3000 and 0.8667 + 1 / 60 <= age <= (hb_end or end) + 1 / 60 else -1}
+                                 if anim_time else {})}]}
             pt0 = t - 0.001
             gate(t, line["foes"], line)
             lines.append(line)
@@ -372,6 +376,39 @@ def test_end_gate_fell_goes_off_and_is_excluded():
     assert all("d_back" in x for x in r["rows"] if "warp_delay" in x)
 
 
+def test_hitbox_check_reads_the_window_off_the_foe():
+    # 10-19: +0x2E0 on from TAE start + 1 frame to TAE end + 1 frame — within tol of the window at both ends
+    lines = fake_game(TAUS, mode="warp", anim_time=True)
+    r = V.hitbox_check(TAE, COMBAT, lines)
+    x = r["anims"][3000]
+    assert x["verdict"] == "통과" and x["lit"] == x["valid"] >= 20, x
+    assert 0 < x["d_start"][1] <= 1 / 60 + 0.006 and 0 < x["d_end"][1] <= 1 / 60 + 0.006, (x["d_start"], x["d_end"])
+    r = V.hitbox_check(TAE, COMBAT, fake_game(TAUS, mode="warp", anim_time=True, hb_end=1.15))    # longer than the TAE says
+    assert r["anims"][3000]["verdict"] == "불일치" and r["anims"][3000]["d_end"][1] > 0.1
+
+
+def test_hitbox_check_unlit_and_coarse_edges():
+    lines = fake_game(TAUS, mode="warp", anim_time=True)
+    dark = [{**l, "foes": [{**f, "hb": -1} for f in l["foes"]]} if "foes" in l else l for l in lines]
+    x = V.hitbox_check(TAE, COMBAT, dark)["anims"][3000]
+    assert x["verdict"] == "표본 없음" and sum(x["unlit"].values()) == x["valid"]    # listed, not failed (AttackIndex ≠ 0)
+    coarse = [l for i, l in enumerate(lines) if "foes" not in l or i % 6 == 0]      # 30 ms between reads > one game frame
+    x = V.hitbox_check(TAE, COMBAT, coarse)["anims"][3000]
+    assert x["excluded"].get("edge_gap") and x["lit"] == 0, x
+
+
+def test_end_gate_judged_by_hitbox():
+    # the position bracket sits ~1 frame before the end; the hitbox state gives the end itself, and every return while it
+    # was live hit (the fake's blade covers the whole spot)
+    r = V.timing_end(TAE, COMBAT, fake_game(TAUS, mode="warp", anim_time=True))
+    assert r["verdict_hitbox"] == "통과" and r["hitbox"]["lit"] >= 20, r["hitbox"]
+    c = r["controls"]["hitbox"]
+    assert c["hit_after_off"] == 0 and c["miss_while_live"] == 0 and c["hit_while_live"] > 0, c
+    assert c["miss_last_frame"] == 3, c                # τ 1.04: back in the hitbox's last frame, already gone in the game
+    r = V.timing_end(TAE, COMBAT, fake_game(TAUS, mode="warp"))            # old records: no hb → the position verdict only
+    assert r["verdict_hitbox"] == "표본 없음" and r["verdict"] == "통과"
+
+
 class _FakeTm:
     """Just enough of DSRTelemetry for record3 / WarpAct: one hollow, the player warps where pos_warp says."""
 
@@ -408,6 +445,18 @@ def test_record3_writes_every_read_while_gated(tmp_path):
     back = lines[i + 1]
     assert abs(back["p"][2] - 0.85) < 1e-6           # the read right after the warp back is written
     assert all(x["t"] >= lines[j - 1]["t"] for j, x in enumerate(lines) if j)
+
+
+def test_record3_writes_both_sides_of_a_change(tmp_path):
+    # the last read with the hitbox on must be on file (the window's end), not only the first read with it off
+    tm = _FakeTm()
+    tm.hitbox = lambda p: 5 if 150 <= tm.t < 200 else -1
+    out = tmp_path / "r.jsonl"
+    V.record3(tm, 0.2, out, {"probe": 3}, heartbeat=10.0)
+    lines = [json.loads(x) for x in out.read_text().splitlines()][1:-1]
+    on = [i for i, x in enumerate(lines) if x["foes"][0]["hb"] == 5]
+    assert on and len(on) == 2, [x["foes"][0]["hb"] for x in lines]        # first and last read with it on
+    assert lines[on[0] - 1]["foes"][0]["hb"] == -1 and lines[on[-1] + 1]["foes"][0]["hb"] == -1
 
 
 def test_warp_rehome_between_gates():

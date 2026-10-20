@@ -86,7 +86,7 @@ needing the tick loop, route data, settings object or WorldState.
 - [~] overlay-borderless | win | doing | borderless overlay + bot: overlay visible, clicks pass through, bot keeps going | plan:overlay-borderless
 - [~] radar-upgrade | win | doing | radar upgrade check (navmesh drawn, pad slots, recording, `--replay`) | plan:radar-upgrade
 - [ ] radar-ai-ranges | win | todo | radar AI ranges (sight cone, hearing circle, leash) match the game | plan:radar-ai-ranges
-- [~] combat-table | MoKa | decide | hitbox state ChrIns+0x2E0 = TAE window +1 frame (7 attacks); front-0.9 m miss = blade passed; next? | docs/tae-verify.md
+- [~] combat-table | MoKa | decide | probes now judge by hitbox state +0x2E0 (`checkhb`, check4 `verdict_hitbox`): 7 hollow attacks pass, +1 frame (B-20); next? | docs/tae-verify.md
 - [~] player-options | MoKa | decide | run 2: roll 0/17 hit, stand / circles 60/60 (c2540 3000, τ 0.6, 0.9 m) → step 2 table? | docs/design-player-options.md
 - [~] rea-anim-time | cloud | decide | `at` + restart_reason in game (pilot run 2: 1 real restart caught); next: verdicts by anim time? | docs/rea.md
 

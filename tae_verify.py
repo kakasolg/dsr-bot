@@ -20,6 +20,8 @@
                                                     --gate flag = try 1, AllNoHit: the blocked hit is used up)
   python tae_verify.py check4 <probe4.jsonl>        probe 4, offline: controls, end bracket vs the TAE end
   python tae_verify.py check3 <probe3.jsonl> [--anim 3001]  probe 3, offline: samples, valid, exclusion reasons, match / mismatch
+  python tae_verify.py checkhb <probe.jsonl>        any record3 file with `hb` (10-19 on): every target attack's window read
+                                                    off its hitbox state (ChrIns +0x2E0) vs TAE — no hit or position needed
 
 Names: TAE times are the "active window" (`active_start` / `active_end`, when the attack behavior runs). The time the
 player's HP drops is the "hit time". The two are compared here, never merged.
@@ -219,8 +221,9 @@ def timing(tae: dict, combat: dict, frames: list[dict]) -> dict:
 
 
 def frame_key(hp: int, foes: list[dict]) -> tuple:
-    """What makes a frame worth writing: HP, and each foe's (ptr, anim). Distance alone does not (heartbeat lines do)."""
-    return hp, tuple(sorted((f["ptr"], f["anim"]) for f in foes))
+    """What makes a frame worth writing: HP, and each foe's (ptr, anim, hitbox state). Distance alone does not (heartbeat
+    lines do)."""
+    return hp, tuple(sorted((f["ptr"], f["anim"], f.get("hb")) for f in foes))
 
 
 def probe(secs: float, out: Path, within: float = 25.0, heartbeat: float = 0.5, say_every: float = 5.0) -> None:
@@ -519,11 +522,11 @@ def record3(tm, secs: float, out: Path, header: dict, within: float = ISO_R, hea
             refill: tuple[int, int] | None = None, max_lines: int = MAX_LINES, say_every: float = 5.0, gate=None) -> dict:
     """[win]: like `probe`, plus each line's read bounds (`t0` start, `t` end, `pt0` previous read's start), the 16 CHR DBG
     bytes (`dbg`, hex), and the HP refill this recorder did itself (`refill`: the value written after this read).
-    Writes on HP / foe anim / flag change + heartbeat, and every read while `gate.dense()` (the player position is not in
+    Writes on HP / foe anim / hitbox (`hb`) / flag change (and the read just before it) + heartbeat, and every read while `gate.dense()` (the player position is not in
     the change key, so a warp alone would wait for the heartbeat — 10-16 [win] B-11); stops at max_lines. Writes nothing but HP (refill, offline) —
     and, with `gate` (probe 4, `EndGate`), one CHR DBG flag; the gate is always switched off at the end."""
     n = written = 0
-    last_key, last_write, last_say, pt0 = None, 0.0, 0.0, None
+    last_key, last_write, last_say, pt0, held = None, 0.0, 0.0, None, None
     t_end = time.perf_counter() + secs
     stopped = "secs"
     with out.open("w", encoding="utf-8") as fh:
@@ -539,7 +542,8 @@ def record3(tm, secs: float, out: Path, header: dict, within: float = ISO_R, hea
                 n += 1
                 foes = [{"ptr": c.ptr, "npc": c.npc_param, "anim": c.anim, "d": round(c.dist, 2),
                          "x": round(c.x, 3), "y": _r3(getattr(c, "y", None)), "z": round(c.z, 3), "h": _r3(getattr(c, "heading", None)),
-                         "at": _r4(tm.anim_time(c.ptr)) if hasattr(tm, "anim_time") else None}
+                         "at": _r4(tm.anim_time(c.ptr)) if hasattr(tm, "anim_time") else None,
+                         "hb": tm.hitbox(c.ptr) if hasattr(tm, "hitbox") else None}
                         for c in s.chars if c.hp > 0 and c.team not in (0, 1)]
                 line = {"t0": round(t0, 5), "t": round(t, 5), "pt0": round(pt0 if pt0 is not None else t0, 5),
                         "hp": s.player.hp, "foes": foes, "dbg": dbg,
@@ -553,12 +557,19 @@ def record3(tm, secs: float, out: Path, header: dict, within: float = ISO_R, hea
                 key = (frame_key(s.player.hp, foes), dbg)
                 dense = gate is not None and getattr(gate, "dense", lambda: False)()
                 if key != last_key or t - last_write >= heartbeat or "refill" in line or event or dense:
+                    if key != last_key and held is not None:
+                        # the read before a change too: both sides of every edge are on file (hitbox_check: the last
+                        # read with the hitbox on is the window's end, 10-19)
+                        fh.write(json.dumps(held) + "\n")
+                        written += 1
                     fh.write(json.dumps(line) + "\n")
                     written += 1
-                    last_key, last_write = key, t
+                    last_key, last_write, held = key, t, None
                     if written >= max_lines:
                         stopped = "max_lines"
                         break
+                else:
+                    held = line
                 if t - last_say >= say_every:
                     print(f"hp {s.player.hp}  " + "  ".join(f"{f['npc']}:{f['anim']}@{f['d']}m" for f in foes[:4]), flush=True)
                     last_say = t
@@ -770,6 +781,97 @@ def _drops(frames: list[dict]) -> list[tuple[int, int]]:
     return out
 
 
+def _hb_on(v) -> bool | None:
+    return None if v is None else v != -1
+
+
+def hitbox_check(tae: dict, combat: dict, lines: list[dict], target: tuple = P3_TARGET, tol: float = TOL,
+                 anims: set | None = None) -> dict:
+    """The window read straight off the foe (MoKa 10-19 "probe 판정 기준 바꿔봐"): ChrIns +0x2E0 (`hb`, record3 since
+    10-19) is −1 except while AttackIndex 0's hitbox is live (B-19). For every closed run of a target anim that has TAE
+    attack windows: each stretch with the hitbox on → (first on, last on) in the foe's anim time, matched to the TAE window
+    whose start is nearest; delay = observed − TAE (B-19: +1 frame both ends). No player position, no hit, no isolation:
+    the foe's own state. Excluded runs: start unseen, still open, restart seen (anim time), no `at` / `hb` read, an edge
+    whose two reads are more than one game frame apart in anim time (the edge is not pinned to a frame).
+    Verdict per anim: 통과 = every interval within ± tol of its window at both ends; 불일치 = any outside; windows with no
+    hitbox at all are listed (`unlit`: AttackIndex ≠ 0 is not on this value — 3010 windows 2–6), not failed."""
+    head, frames = _frames(lines)
+    models = npc_models(combat)
+    runs = anim_runs(frames)
+    frame = 1 / 60
+    per: dict[int, dict] = {}
+    for ptr, rs in runs.items():
+        npc = next((f["npc"] for fr in frames for f in fr["foes"] if f["ptr"] == ptr), None)
+        if npc not in target:
+            continue
+        an = tae["models"][models[npc]]["animations"]
+        for r in rs:
+            w = [(ev["start"], ev["end"]) for ev in windows(an, r["anim"], (1, 2))]
+            if not w or (anims and r["anim"] not in anims):
+                continue
+            row = per.setdefault(r["anim"], {"windows": w, "runs": 0, "valid": 0, "excluded": {}, "intervals": [],
+                                             "unlit": {}})
+            row["runs"] += 1
+            why = None
+            if r["start"] is None:
+                why = "start_unseen"
+            elif r["end"] is None:
+                why = "run_open"
+            seg = frames[r["i0"]:r["i1"] if r["i1"] is not None else len(frames)]
+            pts = []
+            if why is None:
+                for x in seg:
+                    f = next((f for f in x["foes"] if f["ptr"] == ptr), None)
+                    a = _at(x, ptr, r["start"])
+                    if f is not None and a is not None and f.get("hb") is not None:
+                        pts.append((a, _hb_on(f["hb"])))
+                ln = (r["end"][0] + r["end"][1] - r["start"][0] - r["start"][1]) / 2
+                if len(pts) < 2:
+                    why = "no_hitbox_read"
+                elif restart_reason(seg, ptr, r["start"], ln, None, 0) == "restart_seen":
+                    why = "restart_seen"
+            ivs = []
+            if why is None:
+                cur = None
+                for (a0, h0), (a1, h1) in zip(pts, pts[1:]):
+                    if h0 == h1:
+                        continue
+                    if a1 - a0 > frame + 1e-3:
+                        why = "edge_gap"
+                        break
+                    if h1:
+                        cur = [a1, None]
+                    elif cur is not None:
+                        cur[1] = a0
+                        ivs.append(tuple(cur))
+                        cur = None
+                if why is None and (cur is not None or pts[0][1]):
+                    why = "lit_at_run_edge"     # on at the first read (start not pinned) or still on when the run ended
+            if why:
+                row["excluded"][why] = row["excluded"].get(why, 0) + 1
+                continue
+            row["valid"] += 1
+            last = pts[-1][0]
+            for s0, e0 in w:
+                mine = [iv for iv in ivs if min(w, key=lambda se: abs(se[0] - iv[0])) == (s0, e0)]
+                if not mine and last > e0 + tol:
+                    row["unlit"][f"{s0}-{e0}"] = row["unlit"].get(f"{s0}-{e0}", 0) + 1
+                for on, off in mine:
+                    row["intervals"].append({"window": [s0, e0], "on": on, "last_on": off,
+                                             "d_start": round(on - s0, 4), "d_end": round(off - e0, 4)})
+    out = {}
+    for anim, row in sorted(per.items()):
+        iv = row["intervals"]
+        bad = [x for x in iv if abs(x["d_start"]) > tol + 1e-4 or abs(x["d_end"]) > tol + 1e-4]
+        ds, de = sorted(x["d_start"] for x in iv), sorted(x["d_end"] for x in iv)
+        out[anim] = {**{k: v for k, v in row.items() if k != "intervals"}, "lit": len(iv), "outside": bad,
+                     "d_start": [ds[0], ds[len(ds) // 2], ds[-1]] if ds else None,
+                     "d_end": [de[0], de[len(de) // 2], de[-1]] if de else None,
+                     "verdict": "불일치" if bad else "통과" if iv else "표본 없음"}
+    return {"value": "ChrIns +0x2E0 (hb) — AttackIndex 0 only, c2540 checked (B-19)", "tol": round(tol, 4),
+            "anims": out, "header": head}
+
+
 def timing_end(tae: dict, combat: dict, lines: list[dict], anim: int = P3_ANIM, target: tuple = P3_TARGET,
                iso_r: float = ISO_R, tol: float = TOL) -> dict:
     """One instance per gated run. Excluded (reason kept): not isolated in any read of the run, start not seen / bound >
@@ -869,6 +971,20 @@ def timing_end(tae: dict, combat: dict, lines: list[dict], anim: int = P3_ANIM, 
                         a0, a1 = _at(frames[k - 1], ptr, r["start"]), _at(frames[k], ptr, r["start"])
                         if a0 is not None and a1 is not None:
                             row["release_anim"] = [a0, a1]    # the foe's anim time around the first read back at p_in
+                        hb = [_hb_on(x.get("hb")) for x in frames[k]["foes"] if x["ptr"] == ptr]
+                        if hb and hb[0] is not None:
+                            row["hb_back"] = hb[0]            # hitbox live when the player got back (hitbox_check)
+                        if hb and hb[0] and a1 is not None:
+                            # how much longer it stayed on: the value runs one frame behind the TAE (B-19), so a return
+                            # in its last frame may meet a hitbox already gone in the game
+                            last = a1
+                            for x in frames[k:i1]:
+                                f = next((f for f in x["foes"] if f["ptr"] == ptr), None)
+                                a = _at(x, ptr, r["start"])
+                                if f is None or a is None or not _hb_on(f.get("hb")):
+                                    break
+                                last = a
+                            row["hb_left"] = round(last - a1, 4)
         if rel is not None and rel[1].get("gate_why") == "tau":
             if eff is None:
                 why.append("not_returned")
@@ -931,7 +1047,22 @@ def timing_end(tae: dict, combat: dict, lines: list[dict], anim: int = P3_ANIM, 
         if x["reasons"]:
             excluded[x["reasons"][0]] = excluded.get(x["reasons"][0], 0) + 1
     lags = sorted(x["lag"] for x in sweep if x.get("lag") is not None)
-    return {"anim": anim, "windows": w, "tae_end": end, "tol": round(tol, 4), "gate": mode, "flag": flag if mode == "flag" else None,
+    # the hitbox state (+0x2E0) as the judge (10-19): the window comes from the foe itself; the gates only say whether a
+    # spot is still swept — a miss back while the hitbox is live = the blade has passed (B-17), a hit back after it went
+    # off = something this value does not cover
+    hbc = hitbox_check(tae, combat, lines, target, tol, {anim})
+    hb = hbc["anims"].get(anim)
+    seen = [x for x in sweep if "hb_back" in x]
+    last_frame = lambda x: x.get("hb_left", 1.0) < 1 / 60 - 1e-3
+    controls["hitbox"] = {"miss_while_live": sum(1 for x in seen if x["hb_back"] and not x["hit"] and not last_frame(x)),
+                          "miss_last_frame": sum(1 for x in seen if x["hb_back"] and not x["hit"] and last_frame(x)),
+                          "hit_while_live": sum(1 for x in seen if x["hb_back"] and x["hit"]),
+                          "hit_after_off": sum(1 for x in seen if not x["hb_back"] and x["hit"] and not x.get("leak")),
+                          "miss_after_off": sum(1 for x in seen if not x["hb_back"] and not x["hit"])}
+    verdict_hitbox = hb["verdict"] if hb else "표본 없음"
+    if hb and controls["hitbox"]["hit_after_off"]:
+        verdict_hitbox = "불일치"      # a hit with the hitbox read off: the value is not the whole story
+    return {"verdict_hitbox": verdict_hitbox, "hitbox": hb,"anim": anim, "windows": w, "tae_end": end, "tol": round(tol, 4), "gate": mode, "flag": flag if mode == "flag" else None,
             "age": "the foe's anim time where recorded (release_anim / hit_age), else age_since_seen", "instances": len(inst),
             "valid": len(ok), "excluded": excluded,
             "controls": controls, "method_valid": valid_method, "end_bracket": bracket, "consistent": consistent,
@@ -1028,6 +1159,7 @@ def main() -> None:
     p.add_argument("--home", type=float, nargs="+", metavar="X Y Z [HEADING]",
                    help="warp gate: spot to return to between gates (default: the first gate's spot)")
     p = sub.add_parser("check4"); p.add_argument("file", type=Path)
+    p = sub.add_parser("checkhb"); p.add_argument("file", type=Path)
     p = sub.add_parser("dsas"); p.add_argument("file", type=Path, nargs="?", default=ROOT / "data" / "gamefiles" / "tae_check_c2540_dsas.json")
     a = ap.parse_args()
     if a.cmd == "probe":
@@ -1079,8 +1211,19 @@ def main() -> None:
         for x in r["rows"]:
             print(" ", x)
         print(json.dumps({k: v for k, v in r.items() if k != "rows"}, ensure_ascii=False, indent=1))
-        print(f"{r['anim']} 구간 끝: {r['verdict']} — 게이트 {r['instances']}, 유효 {r['valid']}, 제외 {r['excluded']}, "
-              f"대조 {r['controls']}, 끝 괄호 {r['end_bracket']} (TAE {r['tae_end']} ± {r['tol']})")
+        print(f"{r['anim']} 판정 상태(+0x2E0) 기준: {r['verdict_hitbox']} — "
+              + (f"켜진 구간 {r['hitbox']['lit']}, 시작 차 {r['hitbox']['d_start']}, 끝 차 {r['hitbox']['d_end']}"
+                 if r["hitbox"] else "hb 기록 없음") + f", 복귀 때 {r['controls']['hitbox']}")
+        print(f"{r['anim']} 위치 기준(칼이 그 자리를 지나는 시각): {r['verdict']} — 게이트 {r['instances']}, 유효 {r['valid']}, "
+              f"제외 {r['excluded']}, 끝 괄호 {r['end_bracket']} (TAE {r['tae_end']} ± {r['tol']})")
+    elif a.cmd == "checkhb":
+        lines = [json.loads(l) for l in a.file.read_text(encoding="utf-8").splitlines() if l.strip()]
+        r = hitbox_check(tae, combat, lines)
+        for anim, x in r["anims"].items():
+            print(f"{anim}: {x['verdict']} — run {x['runs']}, 유효 {x['valid']}, 켜진 구간 {x['lit']}, 시작 차 {x['d_start']}, "
+                  f"끝 차 {x['d_end']} (TAE {x['windows']} ± {r['tol']}), 안 켜진 구간 {x['unlit']}, 제외 {x['excluded']}")
+            for o in x["outside"]:
+                print("   밖:", o)
 
 
 if __name__ == "__main__":

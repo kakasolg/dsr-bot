@@ -306,6 +306,12 @@ class DSRTelemetry:
                 best = t
         return best
 
+    def hitbox(self, p: int) -> Optional[int]:
+        """ChrIns +0x2E0 (int32): −1 off, another value (per attack) while the attack hitbox of AttackIndex 0 is live.
+        Found 10-19 (docs/tae-verify.md B-19, hit_flag_scan): on from TAE start + 1 frame to TAE end + 1 frame, 7 hollow
+        attacks + one type-5 event; c2540 only. NOT set for AttackIndex 1 / 2 windows (3010 windows 2–6)."""
+        return self.i32(p + 0x2E0) if p else None
+
     def last_grace(self) -> Optional[int]:
         return self.last_bonfire()
 
