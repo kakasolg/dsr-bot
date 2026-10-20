@@ -1,0 +1,75 @@
+all gates 47 · scored 37 · excluded 10
+exclusion reasons (all reasons, a trial can have several): {'timing_end': 9, 'not_placed': 1, 'height': 1}
+
+every trial:
+  g 0 left  (1.2,-1.2) τ0.8  out -     prior None  recon None (s0 None s1 None)  turn None° errR2 None errR2' None  EXCL timing_end:not_returned,not_placed
+  g 1 left  (1.2,-1.2) τ0.75  out HIT   prior HIT  recon HIT (s0 0.117 s1 0.102)  turn -20.81° errR2 0.19 errR2' 8.81  
+  g 2 left  (1.2,-1.4) τ0.8  out HIT   prior DISC  recon DISC (s0 0.226 s1 0.243)  turn -11.66° errR2 0.34 errR2' 0.34  
+  g 3 left  (1.2,-1.4) τ0.75  out HIT   prior DISC  recon DISC (s0 0.257 s1 0.187)  turn -20.7° errR2 0.3 errR2' 8.7  
+  g 4 left  (1.2,-1.6) τ0.8  out MISS  prior DISC  recon DISC (s0 0.424 s1 0.443)  turn -11.83° errR2 0.17 errR2' 0.17  
+  g 5 left  (1.2,-1.6) τ0.75  out HIT   prior DISC  recon DISC (s0 0.289 s1 0.308)  turn -20.72° errR2 0.28 errR2' 8.72  
+  g 6 left  (1.2,-1.8) τ0.8  out MISS  prior MISS  recon MISS (s0 0.552 s1 0.569)  turn -11.63° errR2 0.37 errR2' 0.37  
+  g 7 left  (1.2,-1.8) τ0.75  out HIT   prior MISS  recon HIT (s0 0.14 s1 -0.096)  turn -61.42° errR2 40.42 errR2' 49.42  EXCL timing_end:restart_seen
+  g 8 right (1.0,0.8) τ0.8  out HIT   prior HIT  recon HIT (s0 0.138 s1 0.07)  turn 12.17° errR2 0.17 errR2' 0.17  EXCL timing_end:restart_seen
+  g 9 right (1.0,0.8) τ0.75  out HIT   prior HIT  recon HIT (s0 0.023 s1 -0.044)  turn 21.11° errR2 0.11 errR2' 9.11  
+  g10 right (1.0,1.0) τ0.8  out HIT   prior DISC  recon DISC (s0 0.278 s1 0.273)  turn 12.4° errR2 0.4 errR2' 0.4  EXCL timing_end:refill_in_run
+  g11 right (1.0,1.0) τ0.75  out HIT   prior DISC  recon DISC (s0 0.225 s1 0.157)  turn 21.33° errR2 0.33 errR2' 9.33  
+  g12 right (1.0,1.2) τ0.8  out MISS  prior DISC  recon DISC (s0 0.467 s1 0.467)  turn 12.18° errR2 0.18 errR2' 0.18  
+  g13 right (1.0,1.2) τ0.75  out HIT   prior DISC  recon DISC (s0 0.358 s1 0.359)  turn 21.28° errR2 0.28 errR2' 9.28  
+  g14 right (1.0,1.4) τ0.8  out MISS  prior MISS  recon MISS (s0 0.666 s1 0.667)  turn 12.2° errR2 0.2 errR2' 0.2  
+  g15 right (1.0,1.4) τ0.75  out MISS  prior MISS  recon MISS (s0 0.55 s1 0.552)  turn 21.15° errR2 0.15 errR2' 9.15  
+  g16 left  (1.2,-1.2) τ0.8  out HIT   prior HIT  recon DISC (s0 0.162 s1 0.12)  turn -11.79° errR2 0.21 errR2' 0.21  
+  g17 left  (1.2,-1.2) τ0.75  out HIT   prior HIT  recon HIT (s0 0.117 s1 0.102)  turn -20.84° errR2 0.16 errR2' 8.84  
+  g18 left  (1.2,-1.4) τ0.8  out HIT   prior DISC  recon DISC (s0 0.225 s1 0.243)  turn -11.63° errR2 0.37 errR2' 0.37  
+  g19 left  (1.2,-1.4) τ0.75  out HIT   prior DISC  recon DISC (s0 0.159 s1 0.165)  turn -20.78° errR2 0.22 errR2' 8.78  EXCL timing_end:refill_in_run
+  g20 left  (1.2,-1.6) τ0.8  out MISS  prior DISC  recon MISS (s0 1.255 s1 1.302)  turn -11.79° errR2 0.21 errR2' 0.21  EXCL height
+  g21 left  (1.2,-1.6) τ0.75  out HIT   prior DISC  recon DISC (s0 0.289 s1 0.308)  turn -20.82° errR2 0.18 errR2' 8.82  EXCL timing_end:refill_in_run
+  g22 left  (1.2,-1.8) τ0.8  out MISS  prior MISS  recon MISS (s0 0.551 s1 0.569)  turn -11.64° errR2 0.36 errR2' 0.36  
+  g23 left  (1.2,-1.8) τ0.75  out MISS  prior MISS  recon DISC (s0 0.462 s1 0.479)  turn -20.7° errR2 0.3 errR2' 8.7  
+  g24 right (1.0,0.8) τ0.8  out HIT   prior HIT  recon HIT (s0 0.137 s1 0.07)  turn 12.19° errR2 0.19 errR2' 0.19  
+  g25 right (1.0,0.8) τ0.75  out HIT   prior HIT  recon HIT (s0 0.024 s1 -0.044)  turn 21.17° errR2 0.17 errR2' 9.17  
+  g26 right (1.0,1.0) τ0.8  out HIT   prior DISC  recon DISC (s0 0.269 s1 0.269)  turn 12.18° errR2 0.18 errR2' 0.18  
+  g27 right (1.0,1.0) τ0.75  out HIT   prior DISC  recon DISC (s0 0.161 s1 0.161)  turn 21.15° errR2 0.15 errR2' 9.15  EXCL timing_end:refill_in_run
+  g28 right (1.0,1.2) τ0.8  out MISS  prior DISC  recon DISC (s0 0.468 s1 0.468)  turn 12.15° errR2 0.15 errR2' 0.15  
+  g29 right (1.0,1.2) τ0.75  out HIT   prior DISC  recon DISC (s0 0.357 s1 0.358)  turn 21.29° errR2 0.29 errR2' 9.29  EXCL timing_end:refill_in_run
+  g30 right (1.0,1.4) τ0.8  out MISS  prior MISS  recon MISS (s0 0.676 s1 0.676)  turn 12.27° errR2 0.27 errR2' 0.27  
+  g31 right (1.0,1.4) τ0.75  out MISS  prior MISS  recon MISS (s0 0.557 s1 0.558)  turn 21.29° errR2 0.29 errR2' 9.29  
+  g32 left  (1.2,-1.2) τ0.8  out HIT   prior HIT  recon DISC (s0 0.243 s1 0.187)  turn -11.84° errR2 0.16 errR2' 0.16  
+  g33 left  (1.2,-1.2) τ0.75  out HIT   prior HIT  recon HIT (s0 0.119 s1 0.104)  turn -20.67° errR2 0.33 errR2' 8.67  
+  g34 left  (1.2,-1.4) τ0.8  out HIT   prior DISC  recon DISC (s0 0.25 s1 0.267)  turn -11.83° errR2 0.17 errR2' 0.17  
+  g35 left  (1.2,-1.4) τ0.75  out HIT   prior DISC  recon DISC (s0 0.18 s1 0.199)  turn -20.82° errR2 0.18 errR2' 8.82  
+  g36 left  (1.2,-1.6) τ0.8  out MISS  prior DISC  recon DISC (s0 0.392 s1 0.411)  turn -11.81° errR2 0.19 errR2' 0.19  
+  g37 left  (1.2,-1.6) τ0.75  out MISS  prior DISC  recon DISC (s0 0.316 s1 0.335)  turn -20.8° errR2 0.2 errR2' 8.8  
+  g38 left  (1.2,-1.8) τ0.8  out MISS  prior MISS  recon MISS (s0 0.551 s1 0.569)  turn -11.69° errR2 0.31 errR2' 0.31  
+  g39 left  (1.2,-1.8) τ0.75  out MISS  prior MISS  recon DISC (s0 0.461 s1 0.479)  turn -20.68° errR2 0.32 errR2' 8.68  
+  g40 right (1.0,0.8) τ0.8  out HIT   prior HIT  recon HIT (s0 0.139 s1 0.073)  turn 12.43° errR2 0.43 errR2' 0.43  EXCL timing_end:refill_in_run
+  g41 right (1.0,0.8) τ0.75  out HIT   prior HIT  recon HIT (s0 0.027 s1 -0.041)  turn 21.25° errR2 0.25 errR2' 9.25  
+  g42 right (1.0,1.0) τ0.8  out HIT   prior DISC  recon DISC (s0 0.273 s1 0.273)  turn 12.42° errR2 0.42 errR2' 0.42  
+  g43 right (1.0,1.0) τ0.75  out HIT   prior DISC  recon DISC (s0 0.149 s1 0.153)  turn 21.15° errR2 0.15 errR2' 9.15  
+  g44 right (1.0,1.2) τ0.8  out MISS  prior DISC  recon DISC (s0 0.479 s1 0.474)  turn 12.38° errR2 0.38 errR2' 0.38  
+  g45 right (1.0,1.2) τ0.75  out MISS  prior DISC  recon DISC (s0 0.358 s1 0.359)  turn 21.25° errR2 0.25 errR2' 9.25  
+  g46 right (1.0,1.4) τ0.8  out MISS  prior MISS  recon MISS (s0 0.671 s1 0.667)  turn 12.2° errR2 0.2 errR2' 0.2  
+
+A. turn model (scored trials): max |error| ≤ 1.0° →
+  τ 0.8: R2 pass 19/19 · R2' pass 19/19 · recorded turn [-11.84, -11.83, -11.81, -11.79, -11.69, -11.66, -11.64, -11.63, 12.15, 12.18, 12.19, 12.2, 12.27, 12.38, 12.42]
+  τ 0.75: R2 pass 18/18 · R2' pass 0/18 · recorded turn [-20.84, -20.82, -20.81, -20.8, -20.72, -20.7, -20.68, -20.67, 21.11, 21.15, 21.17, 21.25, 21.28, 21.29, 21.33]
+
+B. reconstruction (recorded heading):
+  left : 6/6 agree   [HIT: 3/3]   [MISS: 3/3]
+  right: 9/9 agree   [HIT: 4/4]   [MISS: 5/5]
+
+C. prior (placement-time info + R2):
+  left : 10/10 agree   [HIT: 5/5]   [MISS: 5/5]
+  right: 9/9 agree   [HIT: 4/4]   [MISS: 5/5]
+
+shift-differ spots (prior raw class differs between shift 0 and +1):
+  g2 (1.2,-1.4) τ0.8: s0 DISC / s1 HIT → outcome HIT (recon s0 0.226 s1 0.243)
+  g18 (1.2,-1.4) τ0.8: s0 DISC / s1 HIT → outcome HIT (recon s0 0.225 s1 0.243)
+  g26 (1.0,1.0) τ0.8: s0 DISC / s1 HIT → outcome HIT (recon s0 0.269 s1 0.269)
+  g34 (1.2,-1.4) τ0.8: s0 DISC / s1 HIT → outcome HIT (recon s0 0.25 s1 0.267)
+  g42 (1.0,1.0) τ0.8: s0 DISC / s1 HIT → outcome HIT (recon s0 0.273 s1 0.273)
+
+threshold evidence from DISC trials (recorded geometry):
+  shift +0: hits max 0.358 · misses min 0.316 · frozen interval (0.199, 0.398)
+  shift +1: hits max 0.359 · misses min 0.335 · frozen interval (0.337, 0.431)
+→ data\samples\20261019_b22d_score.csv
