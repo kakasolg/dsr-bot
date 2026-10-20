@@ -759,6 +759,11 @@ class EndGate:
         """record3: write every read while gated, until the gated run ends, and TAIL reads after."""
         return self.on or self.in_run or self.tail > 0
 
+    def hold_refill(self) -> bool:
+        """record3: no HP refill inside the measured run (gate on → the gated run's end) — B-22d lost 6 of 47 trials to
+        `refill_in_run` (the 400 threshold tripped right after a hit); the refill now waits until the run is over."""
+        return self.on or self.in_run
+
     def _switch(self, on: bool, line: dict | None = None) -> float:
         extra = self.act(on, self.s, self.ptr) or {}
         if line is not None:

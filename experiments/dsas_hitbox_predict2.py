@@ -3,6 +3,7 @@
   python experiments/dsas_hitbox_predict2.py fit            check the turn candidates and the prior simulator on run 184031
   python experiments/dsas_hitbox_predict2.py map TAU         prior min-gap map (shift 0 / +1) for spot candidates
   python experiments/dsas_hitbox_predict2.py freeze OUT     write the frozen rules + spot table (commit BEFORE the run)
+  python experiments/dsas_hitbox_predict2.py predict F L TAU   HIT / MISS / UNKNOWN (+ reason) — the predictor after B-22d
 
 TURN model (candidates from run 184031's 20 side trials — to be checked, not taken as known):
   R1 rate     at most RATE = 3.0° per game frame (1/60 s)                              [184031: 80 steps of 2.98–3.04°]
@@ -187,8 +188,52 @@ def freeze(out: Path):
               f"{'  shift-differ' if r['shift_differ'] else ''}  turn R2 {r['turn_deg']:+.0f}° R2′ {r['R2prime_turn_deg']:+.0f}°")
 
 
+# ── predictor output after B-22d (MoKa 10-19): HIT / MISS / UNKNOWN only — UNKNOWN is never forced into hit or miss ──
+NPC_OK, ANIM_OK = (254000, 254010), 3000          # c2540 hollow, BehaviorVariationID 25400 (A = 254010 is what was played)
+TAU_OK = (0.75, 0.80)                             # placement times the turn model was checked at (B-22d)
+
+
+def in_validated_range(F: float, L: float, tau: float) -> bool:
+    """Where B-22c / B-22d actually checked the predictions: front L = 0, F 1.4–2.4 at τ 0.80 (B-22c), sides F 1.0–1.2,
+    |L| 0.8–1.8 at τ 0.75 / 0.80 (B-22d). Anything else → UNKNOWN (out of range), even if the numbers look clear."""
+    if not (TAU_OK[0] - 1e-6 <= tau <= TAU_OK[1] + 1e-6):
+        return False
+    if abs(L) < 1e-6:
+        return abs(tau - 0.80) < 1e-6 and 1.4 - 1e-6 <= F <= 2.4 + 1e-6
+    return 1.0 - 1e-6 <= F <= 1.2 + 1e-6 and 0.8 - 1e-6 <= abs(L) <= 1.8 + 1e-6
+
+
+def predict(F: float, L: float, tau: float, npc: int = 254010, anim: int = 3000, player_moves: bool = False) -> dict:
+    """→ {"label": HIT | MISS | UNKNOWN, "reason", "gap_s0", "gap_s1"}. UNKNOWN reasons: out_of_range (NPC, attack, τ,
+    position not validated), assumption (player moves · body contact · turn stops on the bearing before 0.8833 — R3's cap
+    was only seen at the front), discriminating (min gap inside the threshold band ± margin under shift 0 or +1)."""
+    out = {"F": F, "L": L, "tau": tau}
+    if npc not in NPC_OK or anim != ANIM_OK or not in_validated_range(F, L, tau):
+        return {**out, "label": "UNKNOWN", "reason": "out_of_range"}
+    if player_moves:
+        return {**out, "label": "UNKNOWN", "reason": "assumption: the player stands still"}
+    sim = simulate(F, L, tau)
+    if min(math.hypot(m[0], m[2]) for m, _h in sim.values()) < 0.8:
+        return {**out, "label": "UNKNOWN", "reason": "assumption: no body contact (closer than 0.8 m)"}
+    full = (round((TURN_END - round((round(tau * 60) + 1) / 60, 4)) * 60)) * RATE
+    if abs(L) > 0 and abs(sim[LIVE[0]][1]) < full - 0.5:
+        return {**out, "label": "UNKNOWN", "reason": "assumption: turn capped by the bearing (R3 cap not checked at the sides)"}
+    g = {s: min(prior_gaps(F, L, tau, s)) for s in (0, 1)}
+    c = {}
+    for s in (0, 1):
+        lo, hi = THR[s]
+        c[s] = "HIT" if g[s] < lo - MARGIN else "MISS" if g[s] >= hi + MARGIN else "UNKNOWN"
+    label = c[0] if c[0] == c[1] and c[0] != "UNKNOWN" else "UNKNOWN"
+    reason = None if label != "UNKNOWN" else ("discriminating" if "UNKNOWN" in c.values() else "shift 0 / +1 disagree")
+    return {**out, "label": label, "reason": reason, "gap_s0": round(g[0], 3), "gap_s1": round(g[1], 3)}
+
+
 def main():
     cmd = sys.argv[1] if len(sys.argv) > 1 else "fit"
+    if cmd == "predict":
+        F, L, tau = (float(v) for v in sys.argv[2:5])
+        print(predict(F, L, tau))
+        return
     if cmd == "freeze":
         freeze(Path(sys.argv[2]))
         return

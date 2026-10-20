@@ -86,7 +86,7 @@ needing the tick loop, route data, settings object or WorldState.
 - [~] overlay-borderless | win | doing | borderless overlay + bot: overlay visible, clicks pass through, bot keeps going | plan:overlay-borderless
 - [~] radar-upgrade | win | doing | radar upgrade check (navmesh drawn, pad slots, recording, `--replay`) | plan:radar-upgrade
 - [ ] radar-ai-ranges | win | todo | radar AI ranges (sight cone, hearing circle, leash) match the game | plan:radar-ai-ranges
-- [~] combat-table | MoKa | decide | B-22d: turn model 37/37, prior 19/19 & recon 15/15 (sides); one threshold fails across sides (L~0.30, R~0.36); next? | docs/tae-verify.md
+- [~] combat-table | MoKa | decide | B-22 closed at B-22d: 47 trials, 19 verification (C 19/19, B 15/15 of them), turn 37/37; open: one threshold across sides; next? | docs/tae-verify.md
 - [~] player-options | MoKa | decide | run 2: roll 0/17 hit, stand / circles 60/60 (c2540 3000, τ 0.6, 0.9 m) → step 2 table? | docs/design-player-options.md
 - [~] rea-anim-time | cloud | decide | `at` + restart_reason in game (pilot run 2: 1 real restart caught); next: verdicts by anim time? | docs/rea.md
 

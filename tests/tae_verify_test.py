@@ -532,6 +532,31 @@ def test_spot_tau_and_terrain_skip(tmp_path):
     assert offs[1]["spot"] == [2.0, -1.0] and offs[1]["terrain"] == "wall" and "p_back" not in offs[1]
 
 
+def test_refill_waits_until_the_gated_run_ends(tmp_path):
+    # B-22d: 6 of 47 trials excluded as refill_in_run — the refill must happen outside the measured run, not be dropped
+    import math
+    tm = _FakeTm()
+    tm.foe.heading = math.pi
+    tm.set_hp = lambda v: setattr(tm.player, "hp", v)
+    real = tm.snapshot
+
+    def snap(within=25.0):
+        s = real(within)
+        if tm.t % 300 == 150:                         # a hit in the middle of every gated 3000 run (reads 100–299)
+            tm.player.hp = 300
+        return s
+    tm.snapshot = snap
+    gate = V.EndGate(V.WarpAct(tm, spots=[(2.4, 0.0)]), [0.0005], clock=lambda: 0.0)
+    out = tmp_path / "r.jsonl"
+    V.record3(tm, 0.6, out, {"probe": 4, "gate": "warp"}, refill=(400, 793), gate=gate, max_lines=100_000)
+    lines = [json.loads(x) for x in out.read_text().splitlines()][1:-1]
+    on = next(i for i, x in enumerate(lines) if "gate_on" in x)
+    end = next(i for i in range(on, len(lines)) if lines[i]["foes"][0]["anim"] != 3000)
+    assert not any("refill" in x for x in lines[on:end]), "refilled inside the measured run"
+    assert any(x["hp"] == 300 for x in lines[on:end])                    # the drop itself is on file
+    assert any("refill" in x for x in lines[end:end + 5]), "refill must follow right after the run"
+
+
 def test_no_home_warp_until_the_gated_run_ends(tmp_path):
     # B-22c first run (10-19): the home warp fired ~10 reads after a placed return, mid-swing, in 30 of 30 trials
     import math
