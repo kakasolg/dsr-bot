@@ -718,10 +718,11 @@ class EndGate:
         self.act, self.taus, self.anim, self.target, self.iso_r, self.clock = act, list(taus), anim, target, iso_r, clock
         self.k, self.on, self.ptr, self.release_at, self.prev, self.s = 0, False, None, None, {}, None
         self.tail, self.p_out, self.t_on, self.tau_now = 0, None, None, None
+        self.in_run = False         # the gated run is still going (target still in `anim`) after the gate went off
 
     def dense(self) -> bool:
-        """record3: write every read while gated and TAIL reads after."""
-        return self.on or self.tail > 0
+        """record3: write every read while gated, until the gated run ends, and TAIL reads after."""
+        return self.on or self.in_run or self.tail > 0
 
     def _switch(self, on: bool, line: dict | None = None) -> float:
         extra = self.act(on, self.s, self.ptr) or {}
@@ -737,7 +738,13 @@ class EndGate:
         tg = [f for f in foes if f["npc"] in self.target and f["d"] <= self.iso_r]
         f = tg[0] if len(tg) == 1 else None
         event = False
-        if self.tail > 0 and not self.on:
+        if self.in_run and not self.on:
+            # B-22c (10-19): the home warp fired ~10 reads after a placed return and moved the player next to the hollow
+            # mid-swing (30 of 30 trials) — no home warp, and every read written, until the gated run is over
+            mine = next((x for x in foes if x["ptr"] == self.ptr), None)
+            if mine is None or mine["anim"] != self.anim:
+                self.in_run = False
+        elif self.tail > 0 and not self.on:
             self.tail -= 1
         if self.on:
             mine = next((x for x in foes if x["ptr"] == self.ptr), None)
@@ -749,7 +756,7 @@ class EndGate:
                 self.release_at, event = None, True
             elif self.release_at is not None and self._due(mine, t):
                 line.update(gate_off=self._switch(False, line), gate_why="tau", gate_off_at=mine.get("at"))
-                self.release_at, event = None, True
+                self.release_at, event, self.in_run = None, True, True
         if (f is not None and f["anim"] == self.anim and self.prev.get(f["ptr"], self.anim) != self.anim
                 and not self.on and "gate_off" not in line):
             tau = self.taus[self.k % len(self.taus)]
@@ -757,7 +764,8 @@ class EndGate:
             self.ptr = f["ptr"]
             line.update(gate_on=self._switch(True, line), tau=tau)
             self.release_at, self.t_on, self.tau_now, event = (t + tau if tau is not None else None), t, tau, True
-        elif not self.on and s is not None and hasattr(self.act, "rehome") and self.tail == 0 and "gate_off" not in line:
+        elif (not self.on and not self.in_run and s is not None and hasattr(self.act, "rehome") and self.tail == 0
+              and "gate_off" not in line):
             home = self.act.rehome(s, t)
             if home:
                 line.update(home)

@@ -513,6 +513,22 @@ def test_warp_spots_ahead_and_to_the_right():
     assert out["spot"] == [2.0, -1.0] and out["p_back"] == [-1.0, 0.0, 2.0], out
 
 
+def test_no_home_warp_until_the_gated_run_ends(tmp_path):
+    # B-22c first run (10-19): the home warp fired ~10 reads after a placed return, mid-swing, in 30 of 30 trials
+    import math
+    tm = _FakeTm()
+    tm.foe.heading = math.pi
+    gate = V.EndGate(V.WarpAct(tm, spots=[(2.4, 0.0)]), [0.0005], clock=lambda: 0.0)
+    out = tmp_path / "r.jsonl"
+    V.record3(tm, 0.3, out, {"probe": 4, "gate": "warp"}, gate=gate, max_lines=100_000)
+    lines = [json.loads(x) for x in out.read_text().splitlines()][1:-1]
+    off = next(i for i, x in enumerate(lines) if x.get("gate_why") == "tau")
+    end = next(i for i in range(off, len(lines)) if lines[i]["foes"][0]["anim"] != 3000)
+    assert not any("home" in x for x in lines[off:end]), [i for i in range(off, end) if "home" in lines[i]]
+    assert any("home" in x for x in lines[end:]), "the home warp still runs between gates"
+    assert all(lines[i]["foes"][0]["anim"] == 3000 for i in range(off, end)) and end - off > 50    # every read written
+
+
 def test_front_return_is_on_the_line(tmp_path):
     # 10-19 try 4: the front warp ran but p_back never reached the line (gate_off switched without it) → "not returned"
     import math
