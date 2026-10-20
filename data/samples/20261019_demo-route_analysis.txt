@@ -1,0 +1,93 @@
+# record 20261019_201734.jsonl
+w 1679 lines, 0.0–167.8 s; interval median 94.6 ms, max 113.1 ms, gaps >150 ms 0; read_ms median 4.16 max 13.21
+e_fail total 0; epochs [0]; player None fields {}
+pad 5349 lines (on change, 120 Hz poll); markers [(1, 60.3)]; sys {'pad_found': 1, 'sync': 17}
+fields NOT in this format: anim time (ChrIns anim queue), hitbox state +0x2E0, map id, stamina of foes, video
+  marker 1 at 60.3 s, player [36.931, 26.6, 107.439]
+
+# foes in the record (radius 30 m)
+h:1000400a#0 npc 100000 c1000 team 26 seen 0.0–51.8 s · dmin 0.9 m @ 30.0 s (dy +0.5) · hp 999→999/999 · anims [-1 only] · foes.py — 
+h:10004089#0 npc 264000 c2640 team 6 seen 0.0–51.2 s · dmin 9.7 m @ 24.4 s (dy -9.6) · hp 1065→1065/1065 · anims [9000] · foes.py — 
+h:1000407c#0 npc 255041 c2550 team 6 seen 51.7–116.2 s · dmin 0.2 m @ 90.7 s (dy +0.0) · hp 102→0/102 · anims [701, 703, 2100, 2250, 2511, 2512, 3003, 3004, 3005, 3500, 9910, 9920] · foes.py — ENGAGED
+h:1000407b#0 npc 255042 c2550 team 6 seen 51.8–115.2 s · dmin 0.1 m @ 67.2 s (dy +0.0) · hp 102→0/102 · anims [2205, 2255, 3002, 3003] · foes.py — ENGAGED
+h:1000407d#0 npc 255041 c2550 team 6 seen 52.7–118.4 s · dmin 0.2 m @ 106.4 s (dy +0.0) · hp 102→0/102 · anims [2100, 2250, 2511, 2512, 3003, 3004, 3500, 9910, 9920] · foes.py — ENGAGED
+h:1000409e#0 npc 349002 c3490 team 0 seen 54.2–114.6 s · dmin 4.8 m @ 80.9 s (dy +0.0) · hp 74→74/74 · anims [-1 only] · foes.py — 
+h:10004082#0 npc 256002 c2560 team 0 seen 57.1–111.2 s · dmin 15.5 m @ 80.9 s (dy +11.6) · hp 151→151/151 · anims [-1 only] · foes.py — 
+h:10004035#0 npc 250050 c2500 team 0 seen 57.5–121.3 s · dmin 16.2 m @ 111.5 s (dy +8.5) · hp 63→63/63 · anims [-1 only] · foes.py — 
+h:10004087#0 npc 257001 c2570 team 0 seen 58.0–111.5 s · dmin 13.8 m @ 80.9 s (dy +2.7) · hp 0→0/372 · anims [-1 only] · foes.py — 
+h:10004084#0 npc 256000 c2560 team 6 seen 62.3–119.4 s · dmin 18.1 m @ 111.3 s (dy +1.4) · hp 129→129/129 · anims [-1 only] · foes.py — 
+h:100040a3#0 npc 349102 c3491 team 0 seen 62.8–110.2 s · dmin 18.5 m @ 80.9 s (dy +2.7) · hp 88→88/88 · anims [-1 only] · foes.py — 
+h:100040a8#0 npc 349202 c3491 team 0 seen 62.8–110.2 s · dmin 18.5 m @ 80.9 s (dy +2.7) · hp 177→177/177 · anims [-1 only] · foes.py — 
+h:10004012#0 npc 237000 c2370 team 0 seen 62.9–118.1 s · dmin 20.9 m @ 111.3 s (dy +8.5) · hp 0→0/186 · anims [-1 only] · foes.py — 
+h:1000402f#0 npc 250050 c2500 team 0 seen 63.0–121.5 s · dmin 19.7 m @ 111.5 s (dy +8.5) · hp 63→63/63 · anims [-1 only] · foes.py — 
+h:100040a9#0 npc 535000 c5350 team 0 seen 63.4–111.5 s · dmin 27.1 m @ 80.9 s (dy +22.3) · hp 0→0/999 · anims [-1 only] · foes.py — 
+h:10004088#0 npc 257002 c2570 team 0 seen 64.5–85.9 s · dmin 25.8 m @ 80.9 s (dy +1.9) · hp 744→744/744 · anims [-1 only] · foes.py — 
+h:100040ac#0 npc 535200 c5352 team 0 seen 80.6–84.1 s · dmin 29.7 m @ 80.9 s (dy +26.3) · hp 0→0/1 · anims [-1 only] · foes.py — 
+h:100040ad#0 npc 535200 c5352 team 0 seen 80.6–84.1 s · dmin 29.7 m @ 80.9 s (dy +26.3) · hp 0→0/1 · anims [-1 only] · foes.py — 
+h:1000402c#0 npc 250050 c2500 team 6 seen 95.5–114.1 s · dmin 23.3 m @ 111.2 s (dy +8.5) · hp 63→63/63 · anims [-1 only] · foes.py — 
+h:10004085#0 npc 256000 c2560 team 6 seen 95.6–119.6 s · dmin 21.7 m @ 111.5 s (dy +1.4) · hp 129→129/129 · anims [-1 only] · foes.py — 
+h:10004030#0 npc 250050 c2500 team 6 seen 96.7–118.2 s · dmin 23.7 m @ 111.5 s (dy +8.5) · hp 63→63/63 · anims [-1 only] · foes.py — 
+h:10004033#0 npc 250050 c2500 team 6 seen 96.8–147.3 s · dmin 22.3 m @ 111.7 s (dy +8.5) · hp 63→63/63 · anims [-1 only] · foes.py — 
+h:1000402d#0 npc 250050 c2500 team 6 seen 97.2–146.5 s · dmin 23.0 m @ 111.6 s (dy +8.5) · hp 63→63/63 · anims [-1 only] · foes.py — 
+h:1000407f#0 npc 256004 c2560 team 0 seen 109.1–167.8 s · dmin 21.9 m @ 118.0 s (dy -1.9) · hp 259→259/259 · anims [-1 only] · foes.py — 
+h:1000402e#0 npc 250050 c2500 team 6 seen 110.9–167.8 s · dmin 20.4 m @ 119.5 s (dy +5.3) · hp 63→63/63 · anims [-1 only] · foes.py — 
+h:10004034#0 npc 250050 c2500 team 6 seen 111.4–167.8 s · dmin 18.9 m @ 144.0 s (dy +5.4) · hp 63→63/63 · anims [-1 only] · foes.py — 
+h:10004081#0 npc 256000 c2560 team 6 seen 114.9–167.8 s · dmin 0.2 m @ 141.0 s (dy +0.0) · hp 129→0/129 · anims [2100, 2250, 2511, 3003, 3004, 3006, 9910, 9920] · foes.py — ENGAGED
+h:1000407e#0 npc 255040 c2550 team 6 seen 116.7–167.8 s · dmin 17.6 m @ 152.8 s (dy +2.7) · hp 102→102/102 · anims [-1 only] · foes.py — 
+h:1000406f#0 npc 255040 c2550 team 6 seen 119.0–167.8 s · dmin 0.8 m @ 153.7 s (dy +0.0) · hp 102→0/102 · anims [2205, 2255, 3000, 3500, 9600, 9910, 9920] · foes.py — ENGAGED
+h:1000402b#0 npc 250050 c2500 team 6 seen 119.2–144.2 s · dmin 29.7 m @ 144.0 s (dy +7.3) · hp 63→63/63 · anims [-1 only] · foes.py — 
+h:10004080#0 npc 256002 c2560 team 6 seen 147.4–167.8 s · dmin 28.2 m @ 155.3 s (dy -2.4) · hp 151→151/151 · anims [-1 only] · foes.py — 
+
+# attack runs of engaged foes (anim 3000–3499; start = first 10 Hz sample, true start up to ~0.1 s earlier)
+foe npc anim | start | TAE type-1 window (abs, s) | judge→AtkParam phys radius | d at start → min d in window | player in window: anims · held · new presses | HP drop in window(+0.2 s)
+1000407b 255042 3002 |   62.7 | 1.267–1.433 → [63.88, 64.14] judge 120→255002 169 r[0.2] | d 6.46 → 3.57 | ['기본'] · held ['LB'] · ['LB@+0.11'] | no HP loss
+1000407c 255041 3005 |   64.2 | 0.700–0.867 → [64.81, 65.08] judge 150→255005 210 r[0.2] | d 7.23 → 6.61 | ['기본'] · held ['LB'] · ['RS@+0.39'] | no HP loss
+1000407b 255042 3003 |   64.6 | 0.867–1.033 → [65.37, 65.64] judge 130→255003 159 r[0.2] | d 3.50 → 1.32 | ['약공(클레이모어)'] · held [] · ['RS@-0.00', 'RB@+0.57', 'RB@+1.03'] | no HP loss
+1000407c 255041 3005 |   71.6 | 0.700–0.867 → [72.22, 72.48] judge 150→255005 210 r[0.2] | d 4.36 → 0.85 | ['기본'] · held ['LB'] · [] | HP −2
+1000407c 255041 3003 |   74.4 | 0.867–1.033 → [75.17, 75.44] judge 130→255003 159 r[0.2] | d 1.22 → 0.85 | [485102] · held ['LT'] · ['LT@+0.53'] | HP −174
+1000407c 255041 3004 |   76.9 | 0.367–0.533 → [77.18, 77.45] judge 140→255004 164 r[0.2] | d 1.26 → 0.85 | ['기본'] · held [] · [] | no HP loss
+1000407c 255041 3005 |   82.4 | 0.700–0.867 → [83.01, 83.27] judge 150→255005 210 r[0.2] | d 4.77 → 1.47 | ['기본', '에스트'] · held ['LB'] · ['LB@-0.19'] | no HP loss
+1000407c 255041 3003 |   85.7 | 0.867–1.033 → [86.47, 86.74] judge 130→255003 159 r[0.2] | d 2.30 → 0.85 | [485102] · held ['LT'] · ['LT@+0.59'] | parry anim 485102
+1000407d 255041 3003 |   97.9 | 0.867–1.033 → [98.67, 98.94] judge 130→255003 159 r[0.2] | d 2.12 → 1.72 | ['기본', '방패에 막음(클레이모어)'] · held ['LB'] · ['LB@+0.49'] | HP −2
+1000407d 255041 3004 |  100.2 | 0.367–0.533 → [100.48, 100.75] judge 140→255004 164 r[0.2] | d 1.05 → 1.00 | ['기본'] · held [] · [] | no HP loss
+10004081 256000 3003 |  123.9 | 1.033–1.167 → [124.84, 125.07] judge 130→256003 240 r[0.2] | d 2.60 → 0.85 | ['기본', 485102] · held ['LT'] · ['LB@-0.34', 'LT@+1.06'] | HP −216
+10004081 256000 3003 |  128.9 | 1.033–1.167 → [129.84, 130.07] judge 130→256003 240 r[0.2] | d 3.11 → 5.08 | ['기본'] · held [] · ['LB@-0.37', 'LB@+0.42'] | no HP loss
+10004081 256000 3004 |  132.0 | 1.067–1.267 → [132.97, 133.27] judge 140→256004 220 r[0.2] | d 3.31 → 0.85 | ['기본'] · held ['LB'] · ['LB@-0.40'] | no HP loss
+10004081 256000 3006 |  134.2 | 0.433–0.567 → [134.54, 134.77] judge 160→256006 110 r[0.4] | d 1.34 → 0.85 | ['기본', '피격 경직'] · held [] · [] | HP −66
+10004081 256000 3003 |  135.5 | 1.033–1.167 → [136.45, 136.68] judge 130→256003 240 r[0.2] | d 2.05 → 1.22 | ['기본', 485102] · held ['LT'] · ['LB@-0.05', 'LT@+0.95'] | parry anim 485102
+1000406f 255040 3000 |  150.7 | 0.867–0.967 → [151.47, 151.67] judge 100→255000 165 r[0.2] | d 0.85 → 0.85 | ['기본', '방패에 막음(클레이모어)'] · held ['LB'] · ['LB@+0.39'] | HP −1
+
+# player HP changes and the attack runs whose window (+0.2 s) holds them
+  72.6 s −   2 at [28.539, 26.6, 112.288] anim 20140 | windows: ['255041/3005'] | within 6 m: 255041/3500 0.9 m
+  75.3 s − 174 at [27.9, 26.6, 112.388] anim 485102 | windows: ['255041/3003'] | within 6 m: 255041/3003 0.8 m
+  76.0 s − 174 at [27.899, 26.6, 112.388] anim 2002 | windows: — | within 6 m: 255041/3003 0.8 m
+  79.0 s − 257 at [27.895, 26.6, 112.52] anim 485102 | windows: — | within 6 m: 255041/3004 0.8 m
+  83.5 s −   2 at [24.206, 26.6, 114.39] anim 20140 | windows: — | within 6 m: 255041/3500 1.1 m, 255042/2255 2.2 m, 349002/-1 5.6 m
+  98.8 s −   2 at [28.745, 26.6, 103.702] anim 20140 | windows: ['255041/3003'] | within 6 m: 255041/3500 1.4 m
+ 125.0 s − 216 at [37.992, 29.811, 62.725] anim 485102 | windows: ['256000/3003'] | within 6 m: 256000/3003 0.8 m
+ 134.7 s −  66 at [38.182, 29.811, 66.07] anim 2052 | windows: ['256000/3006'] | within 6 m: 256000/3006 0.8 m
+ 151.5 s −   1 at [37.615, 29.811, 60.267] anim -1 | windows: ['255040/3000'] | within 6 m: 255040/3000 0.8 m
+HP gains: 82.0 s +500 (anim 7586), 131.3 s +327 (anim 7586)
+
+# kills (foe hp → 0) and the player's last inputs / anims before it
+1000407c 255041 dead at 88.4 s | foe anim/hp: 85.5:9910/102 85.7:3003/102 86.6:2100/102 87.5:-1/102 88.4:-1/0 | pad ['LT@86.3', 'RB@87.4'] | player anims ['86.3:485102', '87.3:-1']
+1000407b 255042 dead at 65.9 s | foe anim/hp: 64.6:3003/102 65.9:2205/0 | pad ['RS@64.6', 'RB@65.2', 'RB@65.6', 'RB@65.8'] | player anims ['65.2:253000']
+1000407d 255041 dead at 104.1 s | foe anim/hp: 102.3:2100/102 103.2:-1/102 104.1:-1/0 | pad ['LT@102.0', 'RB@103.1'] | player anims ['102.1:485102', '103.1:-1']
+10004081 256000 dead at 138.7 s | foe anim/hp: 136.6:2100/129 137.9:-1/129 138.7:-1/0 | pad ['LT@136.5', 'RB@137.8'] | player anims ['135.8:-1', '136.5:485102', '137.4:-1']
+1000406f 255040 dead at 152.6 s | foe anim/hp: 149.8:9600/79 150.6:9920/79 150.7:3000/79 151.6:3500/79 152.4:9910/79 152.6:2205/0 | pad ['LB@151.1', 'RB@151.9'] | player anims ['150.5:-1', '151.6:20140', '151.9:253000']
+
+# LT presses (with a shield: parry) → what followed within 1.2 s
+LT   74.9 | player [2002, 485102] | foes <3 m [(255041, 3003)] | HP −348 | 
+LT   76.0 | player [-1, 2002] | foes <3 m [(255041, 3003), (255041, 3004)] | HP −174 | 
+LT   78.3 | player [-1, 485102] | foes <3 m [(255041, 3004)] | HP −257 | 
+LT   86.3 | player [-1, 485102] | foes <3 m [(255041, 2100), (255041, 3003)] | HP −0 | foe 2100 follows (parried?)
+LT  102.0 | player [-1, 485102] | foes <3 m [(255041, -1), (255041, 2100), (255041, 3004)] | HP −0 | foe 2100 follows (parried?)
+LT  125.0 | player [485102] | foes <3 m [(256000, 3003)] | HP −216 | 
+LT  134.8 | player [-1, 2052] | foes <3 m [(256000, 3003), (256000, 3006)] | HP −0 | 
+LT  136.5 | player [-1, 485102] | foes <3 m [(256000, 2100), (256000, 3003)] | HP −0 | foe 2100 follows (parried?)
+
+# predictor (experiments/dsas_hitbox_predict2.predict): NPC_OK (254000, 254010), ANIM_OK 3000, τ (0.75, 0.8)
+attack runs 16 (distinct foes 5); applicable 0; reasons: {'npc + anim + no anim time (10 Hz anim id only)': 15, 'npc + no anim time (10 Hz anim id only)': 1}
+
+# route new-route-20261019.json: 40 points, 171.7 m, bonfires [{'id': 1012964, 'pos': [87.58, 14.97, 106.44]}]
+player track every 5 s: 0:(88,15.0,106) 5:(88,15.0,106) 10:(88,15.0,106) 15:(88,15.0,106) 20:(88,15.0,106) 25:(88,15.0,107) 30:(88,15.0,107) 35:(88,18.1,102) 40:(86,19.4,113) 45:(88,22.0,108) 50:(67,21.4,107) 55:(45,25.0,107) 60:(37,26.6,107) 65:(29,26.6,112) 70:(25,26.6,114) 75:(28,26.6,112) 80:(26,26.6,114) 85:(25,26.6,115) 90:(28,26.6,115) 95:(31,26.6,108) 100:(28,26.6,103) 105:(28,26.6,103) 110:(29,26.6,102) 115:(38,29.5,90) 120:(38,29.8,70) 125:(38,29.8,63) 130:(37,29.8,67) 135:(38,29.8,67) 140:(38,29.8,67) 145:(38,29.8,65) 150:(38,29.8,61) 155:(38,29.8,60) 160:(38,29.8,60) 165:(38,29.8,60)
