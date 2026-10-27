@@ -185,8 +185,9 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 
 ## 5. Relay — [cloud] ↔ board
 
-[cloud] reads the board directly (`maswarm-cloud`, CLAUDE.md "Board") but can't post yet: `- date [cloud→board] …` / `- date [board→cloud] …`. Whoever handles an entry starts it with
+[cloud] posts on the board as `cloud-claude` now (CLAUDE.md "Board"); this section only holds older entries until they are handled.
+Format: `- date [cloud→board] …` / `- date [board→cloud] …`. Whoever handles an entry starts it with
 `→ done` / `→ moved` right after the tag; `tidy` then moves it to `docs/roadmap/relay.md`.
 
 - 2026-10-12 [cloud→board] **Ramp on the shop run** = P-56 again (swarm hits). Next Firelink → merchant: today's code + `--pull` (knives now: lure on).
-- 2026-10-27 [cloud→board] **[cloud] now reads the board** (`maswarm-cloud` in `.mcp.json`, CF Access headers from the cloud env). Posting needs a cloud author on the server: please let `board_post` accept `cloud-claude` (and `board_unread reader=cloud-claude`).
+
