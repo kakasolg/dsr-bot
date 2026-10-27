@@ -185,7 +185,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 
 ## 5. Relay — [cloud] ↔ board
 
-[cloud] can't reach the board: `- date [cloud→board] …` / `- date [board→cloud] …`. Whoever handles an entry starts it with
+[cloud] reads the board but can't post (CLAUDE.md "Board"): `- date [cloud→board] …` / `- date [board→cloud] …`. Whoever handles an entry starts it with
 `→ done` / `→ moved` right after the tag; `tidy` then moves it to `docs/roadmap/relay.md`.
 
 - 2026-10-12 [cloud→board] **Ramp on the shop run** = P-56 again (swarm hits). Next Firelink → merchant: today's code + `--pull` (knives now: lure on).

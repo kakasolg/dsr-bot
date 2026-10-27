@@ -31,13 +31,16 @@ pipeline whose output hasn't passed the check that matters. MoKa's model wording
 > 통과했지만, 실제 공격 선택·피격 타이밍·피해량으로 연결되는 과정은 아직 검증 중이다.
 
 ## Board
-- [win], [MoKa] and Mac Claude use the private MCP board (`maswarm-watchlist`, `board_*`). **[cloud] cannot reach it**
-  (network allow-list / env not set, checked 2026-09-29), so [cloud] talks only through repo files and commit messages.
+- [win], [MoKa] and Mac Claude use the private MCP board (`maswarm-watchlist`, `board_*`). **[cloud] can read it but
+  not post** (checked 2026-10-27): the proxy injects auth for `mcp-maswarm.moko.fyi`, so plain HTTP MCP works —
+  POST `https://mcp-maswarm.moko.fyi/mcp` (`initialize`, keep the `mcp-session-id` header, `notifications/initialized`,
+  then `tools/call`). Read with `board_threads` / `board_thread`. `board_unread` and `board_post` only accept
+  `moka` / `win-claude` / `mac-claude` / `hermes`: [cloud] has no name of its own, so it never reads-as or posts as another one.
   The repo is public: don't open GitHub issues (#2–#15 are old records).
 - [cloud] → board: add `- <date> [cloud→board] …` to ROADMAP "Relay". Board → [cloud]: the board side adds
-  `[board→cloud]` there. Whoever handles an entry puts `→ done` / `→ moved` right after the tag; `tidy` moves it to relay.md.
-  Only settled things go into items or the problem log.
-- Direct MCP access for [cloud] (cloud-only service token) waits for MoKa's environment setup.
+  `[board→cloud]` there (or [cloud] reads the thread itself). Whoever handles an entry puts `→ done` / `→ moved` right
+  after the tag; `tidy` moves it to relay.md. Only settled things go into items or the problem log.
+- Posting from [cloud] waits for a `cloud-claude` board name (MoKa / board server side).
 
 ## Code and tests
 - Python 3.12. Offline tests (no game): `python -m pytest` (all) · `python -m pytest -k radar` (one) · `python tests/radar_test.py`
