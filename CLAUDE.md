@@ -31,13 +31,16 @@ pipeline whose output hasn't passed the check that matters. MoKa's model wording
 > 통과했지만, 실제 공격 선택·피격 타이밍·피해량으로 연결되는 과정은 아직 검증 중이다.
 
 ## Board
-- [win], [MoKa] and Mac Claude use the private MCP board (`maswarm-watchlist`, `board_*`). **[cloud] cannot reach it**
-  (network allow-list / env not set, checked 2026-09-29), so [cloud] talks only through repo files and commit messages.
+- [win], [MoKa] and Mac Claude use the private MCP board (`maswarm-watchlist`, `board_*`). [cloud] reaches the same
+  server as `maswarm-cloud` (`.mcp.json`, URL only): the cloud environment allows `mcp-maswarm.moko.fyi` and its proxy
+  adds the cloud-only Cloudflare Access headers (Network secrets — never put them in the repo). Checked 2026-10-27:
+  `initialize`, `tools/list`, `board_threads` OK. [cloud] can read (`board_unread reader=…`, `board_threads`,
+  `board_thread`) but can't post yet — `board_post` only accepts `mac-claude` / `win-claude` / `moka` as author.
+  On [win]/Mac, decline `maswarm-cloud` when Claude Code asks (no proxy there, it fails at Cloudflare).
   The repo is public: don't open GitHub issues (#2–#15 are old records).
-- [cloud] → board: add `- <date> [cloud→board] …` to ROADMAP "Relay". Board → [cloud]: the board side adds
-  `[board→cloud]` there. Whoever handles an entry puts `→ done` / `→ moved` right after the tag; `tidy` moves it to relay.md.
-  Only settled things go into items or the problem log.
-- Direct MCP access for [cloud] (cloud-only service token) waits for MoKa's environment setup.
+- [cloud] → board: until the server accepts a cloud author, add `- <date> [cloud→board] …` to ROADMAP "Relay".
+  Board → [cloud]: post on the board (cloud reads it) or add `[board→cloud]` there. Whoever handles an entry puts
+  `→ done` / `→ moved` right after the tag; `tidy` moves it to relay.md. Only settled things go into items or the problem log.
 
 ## Code and tests
 - Python 3.12. Offline tests (no game): `python -m pytest` (all) · `python -m pytest -k radar` (one) · `python tests/radar_test.py`
