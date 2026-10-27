@@ -20,6 +20,7 @@ import control
 import ctl
 import nav
 
+from . import counter_trace as CT
 from . import foes as foes_
 from . import moves as M
 
@@ -1130,36 +1131,108 @@ def rule_after_swing(F, T):
      · 방패병(kick_when_idle)은 발차기 → 약공(rule_attack과 같은 콤보), 옆에 다른 적이 있으면 한 번만 치고 방패(rule_hit_first와 같음)
     """
     a_raw, now = T.a, T.now
+    tr = ctl.on()                                         # counter trace (record only, souls/counter_trace.py) — never steers
     prev = F.__dict__.get("_aprev")
-    F._aprev = a_raw
+    prev_from = F.__dict__.get("_aprev_from", "unknown")  # 관측용 메타데이터: 그 값이 어느 목표의 애니였나 (정책은 안 읽음)
+    F._aprev, F._aprev_from = a_raw, F.ptr
     started = getattr(F.reflex, "_start", {}).get(F.ptr) if F.reflex is not None else None   # identifies this one attack
-    if swing_over(F.foe, a_raw, T.age) and F.__dict__.get("_swing_aged") != started:
-        F._swing_aged = started
-        F._swing_end_t = now
+    over = swing_over(F.foe, a_raw, T.age)               # (same call, same place as before — kept for the trace)
+    if over and F.__dict__.get("_swing_aged") != started:
+        F._swing_aged, F._swing_aged_from = started, F.ptr
+        F._swing_end_t, F._swing_end_from = now, F.ptr
+        if tr:
+            CT.window(F, T, "a", prev, prev_from, started)
     elif prev in M.ATTACK and a_raw not in M.ATTACK:
-        F._swing_end_t = now
+        F._swing_end_t, F._swing_end_from = now, F.ptr
+        if tr:
+            CT.window(F, T, "b", prev, prev_from, started)
     end_t = F.__dict__.get("_swing_end_t")
-    if end_t is None or now - end_t > AFTER_SWING_S:
+    if end_t is None:
+        return None
+    if now - end_t > AFTER_SWING_S:
+        if tr:
+            CT.expired(F, T, end_t)
         return None
     w, c, p = F.weapon, T.c, T.p
-    if (c is None or c.hp <= 0 or a_raw in M.ATTACK and not swing_over(F.foe, a_raw, T.age) or abs(T.dy) > 1.0
-            or T.h > w.reach + AFTER_SWING_STEP or (p.sp or 0) < w.sp_min or _other_swinging(T.s, F.ptr)
-            or not free_or_blocking(p.anim)):
+    # the old single `if (… or …)`, unrolled in the same order with the same short-circuit; `conds` keeps what was evaluated
+    NE = "not_evaluated"
+    conds = {"over_first": over, "target_alive": NE, "still_swinging": NE, "dy": NE, "h": NE, "reach_limit": round(w.reach + AFTER_SWING_STEP, 3),
+             "sp": NE, "sp_min": w.sp_min, "other_swinging": NE, "my_anim": NE, "my_free": NE} if tr else None
+    why = None
+    if c is None or c.hp <= 0:
+        why = "no_target"
+    else:
+        if tr:
+            conds["target_alive"] = True
+        if a_raw in M.ATTACK and not swing_over(F.foe, a_raw, T.age):
+            why = "still_swinging"
+        else:
+            if tr:
+                conds["still_swinging"] = False
+                conds["dy"] = round(T.dy, 3)
+            if abs(T.dy) > 1.0:
+                why = "dy"
+            else:
+                if tr:
+                    conds["h"] = round(T.h, 3)
+                if T.h > w.reach + AFTER_SWING_STEP:
+                    why = "too_far"
+                else:
+                    if tr:
+                        conds["sp"] = p.sp
+                    if (p.sp or 0) < w.sp_min:
+                        why = "sp"
+                    else:
+                        osw = _other_swinging(T.s, F.ptr)
+                        if tr:
+                            conds["other_swinging"] = osw
+                        if osw:
+                            why = "other_swinging"
+                        else:
+                            if tr:
+                                conds["my_anim"] = p.anim
+                            free = free_or_blocking(p.anim)
+                            if tr:
+                                conds["my_free"] = free
+                            if not free:
+                                why = "my_anim"
+    if why is not None:
+        if tr:
+            if why == "still_swinging":
+                conds["still_swinging"] = True
+            CT.blocked(F, T, why, conds)
         return None
     if not F.mv.face(T.s, c, deg=AFTER_SWING_DEG):
+        if tr:
+            conds["faced"] = False
+            CT.turn_only(F, T, conds)
         time.sleep(0.02)
         return CONT                                    # way off — this tick turns, the next one (still in the window) strikes
-    if T.h > w.reach and T.s.cam_yaw is not None:
+    stepped = bool(T.h > w.reach and T.s.cam_yaw is not None)
+    if stepped:
         F.mv.pad.move(*F.mv.stick_to(T.s, c.x, c.z, 0.8))
         time.sleep(min(0.35, 0.1 + (T.h - w.reach) * 0.2))
     F._swing_end_t = None
     s = F.mv.snap(10.0) or T.s
     c = F.mv.find(s, F.ptr) or c
     single = _others_near(s, F.ptr, SINGLE_HIT_R)
-    if F.foe.kick_when_idle:
-        hit = F.mv.kick_combo(s, c, n=1 if single else w.combo)
-    else:
-        hit = _strike(F, s, c, n=1 if single else w.combo, sp_second=w.sp_min)
+    n = 1 if single else w.combo
+    kick = F.foe.kick_when_idle
+    dec = None
+    if tr:
+        conds.update(faced=True, stepped=stepped, single=single)
+        dec = CT.intent(F, T, s, c, "kick_combo" if kick else "strike(light, or wall heavy via _slam)", n, conds)
+    try:
+        if kick:
+            hit = F.mv.kick_combo(s, c, n=n)
+        else:
+            hit = _strike(F, s, c, n=n, sp_second=w.sp_min)
+    except BaseException as ex:
+        if tr:
+            CT.outcome(F, dec, error=f"{type(ex).__name__}: {ex}")
+        raise
+    if tr:
+        CT.outcome(F, dec, hit)
     if single:
         F.mv.guard(True)
     F.record(hit)
@@ -1775,6 +1848,9 @@ RULES = [rule_shot, rule_separate, rule_finish_first, prep_reflex, rule_footing,
          rule_attack]
 
 
+_RULE_NAMES = [r.__name__.removeprefix("rule_").removeprefix("prep_") for r in RULES]   # counter trace: rule order
+
+
 # ── P1-C: which rule acted (only with run.py --ctl) ──────────────────────────
 # Rules that only hold a stance tick after tick are run-length folded (same rule and target → one record with n). Every
 # other rule — attacks, backstab, estus, kicks, and any rule not listed here — is always written on its own.
@@ -1838,11 +1914,14 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
     F = Fight(mv, weapon, ptr, nm, log, limit, low_hp, cancel, care, reflex, arena, style_.of(style or "guard"), wait_far, gen, events,
               may_approach, crowd_ok, wall_ok, trail)
     rr = _RuleRec() if ctl.on() else None              # P1-C: record only
+    if rr is not None:
+        CT.fight_start(F)                                  # counter trace (record only)
     while True:
         T = _sense(F)
         if isinstance(T, DuelResult):
             if rr is not None:
                 rr.flush()
+                CT.fight_end(F, T)
             if advisor is not None:
                 advisor.end(F, T)
             if tap is not None:
@@ -1855,12 +1934,15 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
         if SCENE_TAP is not None:
             SCENE_TAP.tick(F, T)                           # copies the input before the rules change F (scenes.py, record only)
         _keep_lock(F, T)
+        if rr is not None:
+            CT.tick(F, T)
+        picked = None
         for rule in RULES:
             tok = tap.freeze(F, T) if tap is not None else None
             out = rule(F, T)
             if out is None:
                 continue
-            name = rule.__name__.removeprefix("rule_").removeprefix("prep_")
+            name = picked = rule.__name__.removeprefix("rule_").removeprefix("prep_")
             F.res.rules[name] = F.res.rules.get(name, 0) + 1
             if rr is not None:
                 rr.add(F, T, name, out)
@@ -1875,7 +1957,11 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
             if isinstance(out, DuelResult):
                 if rr is not None:
                     rr.flush()
+                    CT.after_rules(F, T, picked, _RULE_NAMES)
+                    CT.fight_end(F, out)
                 if tap is not None:
                     tap.end(F, out)
                 return out
             break
+        if rr is not None:
+            CT.after_rules(F, T, picked, _RULE_NAMES)      # a window open but an earlier rule acted → after_swing not evaluated
