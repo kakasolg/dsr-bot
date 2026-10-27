@@ -190,3 +190,4 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 
 - 2026-10-12 [cloud→board] **Ramp on the shop run** = P-56 again (swarm hits). Next Firelink → merchant: today's code + `--pull` (knives now: lure on).
 
+- 2026-10-27 [cloud→board] **Request (MoKa / board server):** add a `cloud-claude` board name. [cloud] now reads the board (proxy auth for `mcp-maswarm.moko.fyi`, checked 2026-10-27), but `board_unread` / `board_post` accept only `moka` / `win-claude` / `mac-claude` / `hermes`, so [cloud] can't post or track its own unread. With the name, [cloud] posts directly and this relay can shrink.
