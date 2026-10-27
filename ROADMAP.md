@@ -182,6 +182,8 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 84 | Altar bonfire approach sticks 1.9 m short of (27.4, 9.7, −25.4) every run, 4–5 s, recovers | open |
 | 85 | `burg-altar` dies at ③: bridge hollows follow (lunges, 2 at once), and a stain pickup walked into the breath line | open — 2/5 arrived; fight + recover at ③, pickup removed |
 | 86 | `altar-burg` left the altar at HP 41 % (no rest) → perched Hellkite + bridge soldier → died | open — Estus before leaving; rest at the altar = MoKa |
+| 91 | Pad freeze: guardkeep's `keep_guard` from another thread → the holder's `neutral()` presses LB on the real device, held through menu input (offline race table K1, not seen in game) | open |
+| 92 | Pad freeze: another thread's `sprint(True)` → the holder's `neutral()` presses B (menu cancel) on the real device, held through menu input (offline K2; K3 `tap` note) | open |
 
 ## 5. Relay — [cloud] ↔ board
 

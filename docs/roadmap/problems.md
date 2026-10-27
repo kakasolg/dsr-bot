@@ -1130,3 +1130,25 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
 - 원인 (가설): 내려가는 계단에서 점 7이 한 층 위·아래로 붙어 있어(y 20.6 대 22.0) 그 점의 높이에 못 맞춤.
 - 고침: 아직 없음. 후보 — 돌아갈 때 그 점을 빼거나 NavMesh 경로(`walk_to`)로.
 
+### P-91 패드 freeze 중 guardkeep의 `keep_guard` → 홀더의 `neutral()`이 실제 장치에 LB를 누르고, 메뉴 입력 내내 남음 (2026-10-27, [win], 오프라인 경합표)
+- 증상 (오프라인만, 게임 미확인): `tests/pad_freeze_race_test.py` K1. 메인 스레드가 freeze → 다른 스레드(guardkeep)가 `keep_guard(now + 5)` →
+  홀더가 `neutral()` → 가짜 장치 보고에 LB. 이어진 홀더의 `press(A)` 두 보고(누름·뗌)에도 LB가 남음.
+- 원인: freeze는 **장치 쓰기**만 홀더로 제한하고 Pad의 공유 상태는 막지 않음. 다른 스레드의 `keep_guard`는 `_NullPad`에 누르지만
+  `_force_until`·`_kept`는 바꿈 → 홀더의 `neutral()`이 `force_guard`를 보고 실제 장치에 LB를 누름(`control.py` `neutral`).
+  떼는 `unkeep`은 guardkeep 스레드라 `_NullPad`로 버려짐 → 홀더가 끝에 `neutral()`·`unfreeze()` 할 때까지 LB가 눌린 채.
+- 게임에서 생길 수 있는 경로 (추정): `Escape.fire` → `quitout.quit_out`의 첫 `pad.neutral()`. 낙사(fall)는 byte 방식(최대 2 s)을 먼저 시도하고
+  실패하면 메뉴로 가는데, 그동안 guardkeep이 계속 돌면 이 상태가 됨. LB가 눌린 채 메뉴 입력이 어떻게 되는지는 게임에서 안 봄.
+- 고침: 아직 없음 (봇 코드 안 바꿈). 후보 — freeze 동안 홀더 아닌 스레드의 `keep_guard`가 공유 상태를 못 바꾸게, 또는 홀더의 `neutral()`이
+  가드 유지를 되살리지 않게. 고치면 K1 줄이 실패하므로 표의 확인 줄로 옮김.
+
+### P-92 패드 freeze 중 다른 스레드의 `sprint(True)` → 홀더의 `neutral()`이 실제 장치에 B를 누르고, 메뉴 입력 내내 남음 (2026-10-27, [win], 오프라인 경합표)
+- 증상 (오프라인만, 게임 미확인): `tests/pad_freeze_race_test.py` K2. freeze → 다른 스레드(nav)가 `sprint(True)` → 곧바로 홀더 `neutral()` →
+  가짜 장치 보고에 B. 이어진 홀더의 `press(A)` 두 보고에도 B가 남음.
+- 원인: P-91과 같은 고리. 다른 스레드의 `sprint(True)`는 `_b_since`를 적음 → 홀더의 `neutral()`이 '막 누른 달리기'(P-70,
+  `SPRINT_MIN_HOLD_S` 0.45 s 안)로 보고 실제 장치에 B를 다시 누르고 `_due`에 떼기 예약 → 예약을 처리하는 `release_due`는 판단 루프(다른 스레드)라
+  `_NullPad`로 버려짐. 메뉴에서 B는 취소라 퀵 종료 입력을 깨뜨릴 수 있음 (추정, 게임 미확인).
+- 경로: P-91과 같음 (`quit_out`의 첫 `neutral()`). 0.45 s보다 오래된 달리기는 홀더의 `neutral()`이 B를 끄고 `_b_since`를 비움 — 표 F9, 문제 없음.
+- 참고 (P 번호 없음, 지금 경로 없음): K3 — 홀더가 `tap`으로 누른 뒤 다른 스레드가 `release_due`를 부르면 `_NullPad`에서 떼고 `_due` 항목만
+  지워 A가 실제 장치에 눌린 채 남음. 지금 홀더(`fire`·`_nudge`)는 move·neutral·press만 써서 해당 없음. 홀더가 tap을 쓰게 되면 생김.
+- 고침: 아직 없음 (봇 코드 안 바꿈). P-91과 함께 정함.
+
