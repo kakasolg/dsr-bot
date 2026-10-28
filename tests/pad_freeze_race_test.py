@@ -15,16 +15,13 @@ The holder (the thread that froze) is always the main thread here; "other" = a s
   F8   main frozen · other release_all (exit path)                         device all off although main holds the freeze
   F9   main frozen · other sprint(True), aged past SPRINT_MIN_HOLD_S       main's closing neutral leaves B off and _b_since None
        · main neutral → unfreeze                                           (the holders' finally-neutral resyncs sprint state)
-
-  Known (current behaviour, a defect candidate — reported, bot code not changed; the row fails once the behaviour changes,
-  then move it up into the table above):
-  K1   main frozen · other keep_guard(now + 5) (souls/guardkeep thread)    main's neutral() presses LB on the REAL device, and LB
-  P-91 · main neutral() · main press(A)                                    stays in every later report of the holder (menu input)
-  K2   main frozen · other sprint(True) · main neutral() at once           main's neutral() presses B on the REAL device (a young
-  P-92 · main press(A)                                                     sprint hold) and B stays in the holder's reports
-  K3   main frozen · main tap(A) · other release_due() after the hold      other's release goes to _NullPad but deletes the _due
-  (P-92                                                                    entry → A stays down on the device. No holder taps
-   note)                                                                   today (fire / _nudge use move · neutral · press)
+  F10  main frozen · other keep_guard(now + 5) (souls/guardkeep thread)    no LB on the device in main's neutral or menu reports;
+  P-91 · main neutral() · main press(A)                                    keep_guard returns False (blocked)
+  F11  main frozen · other sprint(True) · main neutral() at once           no B on the device in main's reports; _b_since None
+  P-92 · main press(A)
+  F12  main frozen · main tap(A) · other release_due() after the hold      other's release_due is blocked: the _due entry stays,
+  (P-92 note)                                                              so main's own release_due lets A go
+  (F10–F12 were the known rows K1–K3 until the P-91/P-92 minimal patch; more rows: tests/pad_freeze_accept_test.py)
 """
 from __future__ import annotations
 import sys as _sys, pathlib as _pl  # repo root first (the bot's modules), then this folder
@@ -51,13 +48,6 @@ def check(name: str, ok: bool) -> None:
     print(("ok   " if ok else "FAIL ") + name)
     if not ok:
         FAILED.append(name)
-
-
-def known(name: str, still: bool) -> None:
-    """A known defect candidate: passes while the behaviour is still there; fails once it changes (then move the row)."""
-    print(("known " if still else "CHANGED ") + name)
-    if not still:
-        FAILED.append(name + " — behaviour changed: move this row into the checked table")
 
 
 def fresh():
@@ -208,44 +198,43 @@ def main() -> None:
         control.SPRINT_MIN_HOLD_S = keep_min
     pad.close()
 
-    # K1
+    # F10 (was K1, P-91)
     pad, rec = fresh()
     pad.freeze()
-    other(lambda: pad.keep_guard(time.time() + 5.0), name="guardkeep")
+    got = other(lambda: pad.keep_guard(time.time() + 5.0), name="guardkeep")
     pad.neutral()                             # quitout.quit_out's first call
     lb_after_neutral = LB_N in rec.last()["buttons"]
     pad.press(B.XUSB_GAMEPAD_A, 0.0)          # a menu press (quitout._press)
     menu_reports = rec.sent[-2:]
-    known("K1 (P-91) 얼린 동안 guardkeep의 keep_guard → 홀더의 neutral이 실제 장치에 LB를 누르고, 메뉴 입력 내내 LB 유지",
-          lb_after_neutral and all(LB_N in r["buttons"] for r in menu_reports))
-    pad.force_guard = False
+    check("F10 (P-91) 얼린 동안 guardkeep의 keep_guard → 막힘(False), 홀더 neutral·메뉴 보고에 LB 없음",
+          got is False and not lb_after_neutral and all(LB_N not in r["buttons"] for r in menu_reports))
     pad.neutral()
     pad.unfreeze()
     pad.close()
 
-    # K2
+    # F11 (was K2, P-92)
     pad, rec = fresh()
     pad.freeze()
     other(lambda: pad.sprint(True), name="nav")
     pad.neutral()
     b_after_neutral = BB in rec.last()["buttons"]
     pad.press(B.XUSB_GAMEPAD_A, 0.0)
-    known("K2 (P-92) 얼린 동안 다른 스레드 sprint(True) 직후 홀더 neutral → 실제 장치에 B를 누르고 메뉴 입력에도 B 유지",
-          b_after_neutral and all(BB in r["buttons"] for r in rec.sent[-2:]))
-    pad._b_since = None
-    pad._due.clear()
+    check("F11 (P-92) 얼린 동안 다른 스레드 sprint(True) → 막힘, 홀더 neutral·메뉴 보고에 B 없음, _b_since None",
+          not b_after_neutral and all(BB not in r["buttons"] for r in rec.sent[-2:]) and pad._b_since is None)
     pad.neutral()
     pad.unfreeze()
     pad.close()
 
-    # K3
+    # F12 (was K3, P-92 note)
     pad, rec = fresh()
     pad.freeze()
     pad.tap(B.XUSB_GAMEPAD_A, 0.01)
     time.sleep(0.03)
     other(pad.release_due)
-    known("K3 (P-92 참고) 홀더 tap 뒤 다른 스레드 release_due → 예약만 지워지고 실제 장치에 A가 눌린 채 남음",
-          A in rec.last()["buttons"] and not pad._due)
+    kept = A in rec.last()["buttons"] and B.XUSB_GAMEPAD_A in pad._due
+    pad.release_due()                         # the holder's own release
+    check("F12 (P-92 참고) 홀더 tap 뒤 다른 스레드 release_due → 막혀 예약이 남고, 홀더 release_due가 A를 뗌",
+          kept and A not in rec.last()["buttons"] and not pad._due)
     pad.neutral()
     pad.unfreeze()
     pad.close()
@@ -253,7 +242,7 @@ def main() -> None:
     if FAILED:
         print("\nFAILED:\n  " + "\n  ".join(FAILED))
         raise SystemExit(1)
-    print("pad_freeze_race_test: 전부 통과 (known 3줄은 현재 동작 기록)")
+    print("pad_freeze_race_test: 전부 통과")
 
 
 if __name__ == "__main__":

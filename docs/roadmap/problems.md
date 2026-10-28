@@ -1140,6 +1140,19 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
   실패하면 메뉴로 가는데, 그동안 guardkeep이 계속 돌면 이 상태가 됨. LB가 눌린 채 메뉴 입력이 어떻게 되는지는 게임에서 안 봄.
 - 고침: 아직 없음 (봇 코드 안 바꿈). 후보 — freeze 동안 홀더 아닌 스레드의 `keep_guard`가 공유 상태를 못 바꾸게, 또는 홀더의 `neutral()`이
   가드 유지를 되살리지 않게. 고치면 K1 줄이 실패하므로 표의 확인 줄로 옮김.
+- 2026-10-27 (커밋 안 함, 오프라인만): MoKa 승인으로 `docs/formal/pad_freeze/PATCH_PLAN.md`의 minimal 패치를 `control.py`에 적용 — freeze가
+  `_force_until`·`_kept`·`_guard_want`를 버리고, 홀더 아닌 스레드의 neutral·keep_guard·unkeep·hold/guard·sprint·tap·release_due·kick은 lock 안에서
+  아무것도 안 바꾸고 돌아감. 가짜 장치 테스트로만 확인: 경합표 K1 → F10(LB 없음), `tests/pad_freeze_accept_test.py` FAIL 0. 게임 미확인.
+- 2026-10-27 실기 1회, 제한된 범위 (quit-out만, 하네스 `experiments/freeze_probe_live.py quit --variant J`, 커밋 안 한 패치 control.py sha256 6492743e…):
+  run `20261027_191035_freeze_probe_quit`. 하네스가 freeze 직후 다른 스레드에서 keep_guard·guard·sprint·tap·hold·release_due·neutral·kick을
+  한 번씩 부른 뒤 소유자(Escape.fire, shake)가 메뉴 종료 + reload.
+  · 소프트웨어 출력 로그(`.ctl.jsonl`): 시험 호출 8개 모두 막힘(keep_guard False, epoch 2 그대로). freeze 구간 장치 보고는 예정 버튼
+    (START·LEFT·A·UP·A·LEFT·A, reload A×11)뿐, LB·B 등 예정 밖 버튼 없음.
+  · 메뉴 종료·reload: 프로그램 판정(메모리·화면 템플릿) 기준 성공 — quit 2.05 s, reload 5.7 s, 같은 자리 복귀.
+  · 화면·XInput 독립 확인: 미완료 (실행 시각의 녹화 파일을 찾지 못함).
+  · 86 µs = 이 하네스의 guard(True) 요청 → LB 출력 기록. 실제 guardkeep 재요청 지연과 게임 반응 시간은 미측정.
+  · 그 전 시도(게임 시작 19:09 전)는 게임 프로세스가 없어 ProcessNotFound로 시작 전 종료 — 사전 조건 미충족, 이 결과에 포함 안 함.
+  상세: `docs/formal/pad_freeze/GAME_CHECK_PLAN.md` "실행 기록". nudge·낙사·전투 경로는 실기 미확인.
 
 ### P-92 패드 freeze 중 다른 스레드의 `sprint(True)` → 홀더의 `neutral()`이 실제 장치에 B를 누르고, 메뉴 입력 내내 남음 (2026-10-27, [win], 오프라인 경합표)
 - 증상 (오프라인만, 게임 미확인): `tests/pad_freeze_race_test.py` K2. freeze → 다른 스레드(nav)가 `sprint(True)` → 곧바로 홀더 `neutral()` →
@@ -1151,4 +1164,20 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
 - 참고 (P 번호 없음, 지금 경로 없음): K3 — 홀더가 `tap`으로 누른 뒤 다른 스레드가 `release_due`를 부르면 `_NullPad`에서 떼고 `_due` 항목만
   지워 A가 실제 장치에 눌린 채 남음. 지금 홀더(`fire`·`_nudge`)는 move·neutral·press만 써서 해당 없음. 홀더가 tap을 쓰게 되면 생김.
 - 고침: 아직 없음 (봇 코드 안 바꿈). P-91과 함께 정함.
+- 2026-10-27 (커밋 안 함, 오프라인만): P-91과 같은 minimal 패치. 가짜 장치 테스트로만 확인: K2 → F11(B 없음), K3 → F12(예약 유지, 홀더가 뗌). 게임 미확인.
+- 2026-10-27 실기 1회, 제한된 범위: P-91과 같은 run `20261027_191035_freeze_probe_quit`. 비홀더 sprint(True)·tap·release_due가 막혔고(epoch 그대로),
+  quit-out 메뉴 입력 출력 기록에 B 없음 (소프트웨어 출력 로그 기준). 화면·XInput 독립 확인 미완료. 자세한 범위는 P-91 줄.
 
+### P-93 평상시(freeze 무관) LB 고아: `keep_guard` 중 `guard(True)` → `guard(False)` 뒤, 유지가 끝나도 LB가 눌린 채 (2026-10-27, [win], 오프라인 모델·테스트)
+- 증상 (오프라인만, 게임 미확인): `tests/pad_freeze_accept_test.py` S6-normal (VIOLATED known). guardkeep `keep_guard(t+1)` → 다른 스레드 `guard(True)`
+  → `guard(False)` → 시계 +2 s → `unkeep` → 장치에 LB가 남고 `_guard_want`·`_kept`·`force_guard`는 모두 거짓. TLA+ 모델 S6_NoOrphanLB(quit, m3/m4)도 위반.
+- 원인 (추정): `force_guard`가 켜진 동안 `guard(False)`는 LB를 떼지 않고 돌아가고, 그 사이 `_kept`가 정리돼 `unkeep`이 뗄 근거를 잃음.
+  `docs/formal/pad_freeze/REPORT.md` §5 "평상시 LB 고아", PATCH_PLAN 남는 위험 3.
+- 고침: 아직 없음. P-91/P-92 minimal 패치와 따로 정함 (MoKa 2026-10-27: 별도 추적, 이번에 수정하지 않음).
+
+### P-94 평상시 오래된 예약: 같은 버튼의 앞선 `tap` 해제 예약이 새 `hold(button, True)`를 뗌 (2026-10-27, [win], 오프라인 모델·테스트)
+- 증상 (오프라인만, 게임 미확인): `tests/pad_freeze_accept_test.py` S5-normal (VIOLATED known). `tap(Y)` → `hold(Y, True)` → 시계 +0.2 s →
+  `release_due` → hold 중인 Y가 떨어짐. TLA+ 모델 S5_StaleNoKill(NHold=TRUE)도 위반.
+- 원인: `hold(…, True)`와 `press`는 `_due[button]`을 지우지 않음 (`sprint(True)`는 `_due.pop(B)`를 함). 실제 겹치는 버튼은 Y
+  (`two_hand_toggle` tap, `two_hand_right` hold). 지금 게임에서 일어나는 경로는 못 찾음.
+- 고침: 아직 없음. 후보 — `hold(…, True)`가 `_due.pop(button)`. MoKa 2026-10-27: 별도 추적, 이번에 수정하지 않음.

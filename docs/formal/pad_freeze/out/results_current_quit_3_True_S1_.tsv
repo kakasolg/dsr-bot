@@ -1,0 +1,2 @@
+name	variant	script	maxops	nguard	prop	verdict	completed	generated	distinct	depth	trace
+current_quit_m3_S1_MenuClean	current	quit	3	True	S1_MenuClean	VIOLATED	False	3589	1426	8	5
