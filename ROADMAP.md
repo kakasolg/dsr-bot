@@ -87,7 +87,7 @@ needing the tick loop, route data, settings object or WorldState.
 - [~] radar-upgrade | win | doing | radar upgrade check (navmesh drawn, pad slots, recording, `--replay`) | plan:radar-upgrade
 - [ ] radar-ai-ranges | win | todo | radar AI ranges (sight cone, hearing circle, leash) match the game | plan:radar-ai-ranges
 - [~] combat-table | MoKa | decide | B-22 closed at B-22d: 47 trials, 19 verification (C 19/19, B 15/15 of them), turn 37/37; open: one threshold across sides; next? | docs/tae-verify.md
-- [~] parish-route | MoKa | decide | closed as reuse of existing layers (5/5 once, group 3/3 ×3); P-89 analysed (3004 lands ~2.1 s, hypothesis); fix + group A/B = MoKa | P-89 · P-90 · docs/stages/new-route-20261019.md
+- [~] parish-route | MoKa | decide | P-89 candidate analysis done: punish_hits=1 out; B-t/B compared offline, not wired, effect unverified; next check = MoKa | P-89 (problems.md 2026-10-27) · P-90 · docs/stages/new-route-20261019.md
 - [~] player-options | MoKa | decide | run 2: roll 0/17 hit, stand / circles 60/60 (c2540 3000, τ 0.6, 0.9 m) → step 2 table? | docs/design-player-options.md
 - [~] rea-anim-time | cloud | decide | `at` + restart_reason in game (pilot run 2: 1 real restart caught); next: verdicts by anim time? | docs/rea.md
 

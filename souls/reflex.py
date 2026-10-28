@@ -38,8 +38,12 @@ HIT_R = 3.0
 
 
 class Reflex:
-    def __init__(self, mv: M.Moves, nm=None, unblockable=lambda c: False, bs_ok=lambda c: True):
+    def __init__(self, mv: M.Moves, nm=None, unblockable=lambda c: False, bs_ok=lambda c: True,
+                 threat_s=lambda c: THREAT_S, lock_s=lambda c: THREAT_S):
         self.mv, self.nm, self.unblockable, self.bs_ok = mv, nm, unblockable, bs_ok
+        # threat_s(c) / lock_s(c): how long after c's attack starts it is a threat / stays locked. Both THREAT_S unless given
+        # (P-89 offline comparison only — tests/p89_reflex_window_test.py; nothing in the bot passes them)
+        self.threat_s, self.lock_s = threat_s, lock_s
         # bs_ok(c): may we backstep-attack this enemy — shield soldiers block the lunging axe, then their combo dealt 351 (2026-09-24 diagnosis)
         self.evade = False       # True = don't block; dodge **every** attack with backstep/roll (backstep style — two-handed, no shield)
         self.bs_attack = False   # append a backstep attack (B → R1) when dodging (Style.bs_attack)
@@ -85,7 +89,7 @@ class Reflex:
     def threats(self, s) -> list:
         now = time.time()
         return [c for c in s.hostile(THREAT_R + 2.0)
-                if c.hp > 0 and M.horiz(s.player, c) < THREAT_R and now - self._start.get(c.ptr, 0.0) < THREAT_S
+                if c.hp > 0 and M.horiz(s.player, c) < THREAT_R and now - self._start.get(c.ptr, 0.0) < self.threat_s(c)
                 and (c.anim if c.anim is not None else -1) in M.ATTACK]
 
     def threat_now(self, s) -> bool:
@@ -107,7 +111,7 @@ class Reflex:
         c = next((x for x in th if x.ptr == lock_ptr), None) if now < lock_until else None
         if c is None and th:
             c = next((x for x in th if x.ptr == self.prefer), None) or min(th, key=lambda x: M.horiz(s.player, x))
-            self._lock = (c.ptr, self._start.get(c.ptr, now) + THREAT_S)
+            self._lock = (c.ptr, self._start.get(c.ptr, now) + self.lock_s(c))
         if c is None and time.time() - self._hit_t < 0.4:
             c = self._nearest(s, HIT_R)                    # 2) hit from an unknown source — nearest enemy
         if c is None:
