@@ -57,6 +57,9 @@ pipeline whose output hasn't passed the check that matters. MoKa's model wording
 - `run.py --ctl-scenes` saves the exact input of each fight decision into the `.ctl.jsonl`; `python scene_replay.py <file>`
   replays them through today's RULES (same rule as then? — after a rule change, which real decisions would now differ).
 - Game-memory writes (invincible, invisible, warp) are for offline use only.
+- Changing `control.Pad` (freeze, neutral, guard, keep_guard, sprint, tap, hold, release_due, kick …) → `python -m pytest -k
+  "pad_freeze or freeze_probe"`; a new pad call or thread also goes into the race table and `PadFreeze.tla`
+  (`docs/formal/pad_freeze/README.md`).
 - Rule and number sources: LAYERS.md. Record formats: OBSERVE.md.
 
 ## [win] after every bot run
