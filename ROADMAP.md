@@ -87,7 +87,7 @@ needing the tick loop, route data, settings object or WorldState.
 - [~] radar-upgrade | win | doing | radar upgrade check (navmesh drawn, pad slots, recording, `--replay`) | plan:radar-upgrade
 - [ ] radar-ai-ranges | win | todo | radar AI ranges (sight cone, hearing circle, leash) match the game | plan:radar-ai-ranges
 - [~] combat-table | MoKa | decide | B-22 closed at B-22d: 47 trials, 19 verification (C 19/19, B 15/15 of them), turn 37/37; open: one threshold across sides; next? | docs/tae-verify.md
-- [~] parish-route | MoKa | decide | P-89 candidate analysis done: punish_hits=1 out; B-t/B compared offline, not wired, effect unverified; next check = MoKa | P-89 (problems.md 2026-10-27) · P-90 · docs/stages/new-route-20261019.md
+- [ ] parish-route | MoKa | parked | P-89 parked 10-27: claymore+5 one-shots each soldier, 3-at-once not seen in 9 runs; revisit with weaker gear | P-89 (problems.md 2026-10-27) · P-90 · docs/stages/new-route-20261019.md
 - [~] player-options | MoKa | decide | run 2: roll 0/17 hit, stand / circles 60/60 (c2540 3000, τ 0.6, 0.9 m) → step 2 table? | docs/design-player-options.md
 - [~] rea-anim-time | cloud | decide | `at` + restart_reason in game (pilot run 2: 1 real restart caught); next: verdicts by anim time? | docs/rea.md
 
@@ -153,7 +153,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 55 | `passage-drill`: the bonfire warp revives the ramp foes → died on the way to the top | open (A/B moved to seg 1-2) |
 | 87 | probe prep: fell, died | open |
 | 88 | `anim_time_scan foe`: NoDead switched off next to awake A → died ×2 | verify — menu exit first; worked after pilot run 2 (1/1) |
-| 89 | `parish-*`: 255041 cuts into the 255042 fight, its fast 3004 lands big (−85 · −359 · −257, 3/3 runs) | open — target-255041 early counter 0 in 3 game runs (was 2/3); hits while 255041 is not the target, guard held, open |
+| 89 | `parish-*`: 255041 cuts into the 255042 fight, its fast 3004 lands big (−85 · −359 · −257, 3/3 runs) | parked 10-27 — not reproducible with claymore+5 (one hit per soldier, 9 runs); B-t/B offline only; revisit with weaker gear |
 | 90 | `parish-*` way back: stairs stall 6 s at (88.2, 22.0, 111.2), 3/3 runs, recovered | open |
 | 56 | Ramp ledge (−20,−39,14), `--ground` on: 254002 + axe 254001 swinging together, died (no fall) | verify — + 'ranged first' no longer turns to the axe hollow / away from a foe < 2 m |
 | 57 | Passage start (−20,−39.3,14.4): 1.5 s stall + retry, AGAIN 10-11 4/15 runs | verify — path-finds first |
