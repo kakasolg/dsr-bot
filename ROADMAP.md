@@ -114,6 +114,8 @@ needing the tick loop, route data, settings object or WorldState.
 
 **Later / parked (not in 2.0)**
 - 1-g learning: after the batch runner (plan.md `1-g`)
+- [ ] clean-motion | MoKa | decide | MoKa 10-28 "clean" = circle-then-hit · stable backstab · shield parry; notes only, order? | docs/design-clean-motion.md
+- [ ] later-barriers | MoKa | parked | Blighttown (poison, ladders) · Sen's (narrow paths, swinging blades) need no-video answers; problems noted only | docs/stages/later-barriers.md
 - [ ] sim-2d | cloud | parked | 2D simulator: sense / chase / leash from NavMesh + ThinkParam, plug `souls/field.py` in | plan:sim-2d
 - [ ] explore-mode | cloud | parked | explore mode (offline), Lua decompile, TAE timing → attack prediction; foe reaction table | plan:explore-mode
 
