@@ -58,6 +58,7 @@ needing the tick loop, route data, settings object or WorldState.
 ## 2. v1.0 — open by area
 
 **Fight rules / reflexes (1-j: "basic reflexes done right", MoKa 10-02)**
+- [~] ctl-linkage | MoKa+win | verify | duel-loop spans + pad ids + run meta built; offline: trace same on/off, 0 wrong ids; next: ramp load on/off (MoKa OK) | docs/ctl-linkage.md · plan:ctl-linkage
 - [~] scene-expectations | MoKa | decide | steps 1–3 done offline (54 scenes, replay 687/687); step 4: label 30–50 scenes from `--ctl-scenes` runs | docs/design-scene-expectations.md · plan:scene-expectations
 - [ ] label-review | MoKa | decide | skim duel.jsonl label lines (10 min) + the 4 `review` scenes | tests/expect/duel.jsonl · plan:label-review
 - [~] floor-check | win | verify | backstep / reflex / combos / rolls → `nav.can_move` (10-13); [win]: `뒤에 바닥 없음` count + falls in runs; walks wait for ground-default | docs/design-floor-check.md · P-49 · P-73 · plan:floor-check

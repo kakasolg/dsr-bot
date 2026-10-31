@@ -5,7 +5,9 @@
 Checks: commit / branch / dirty / diff from a throwaway git repo · no git → None, nothing raises · constants after a flag
 (--basic) · settings_sha1 follows code / arguments / constants, not the character or the end, nor the dirty run's
 diff file name (so the first log line's hash stays the record's) · short() ↔ head_line() ·
-end() once · writes never raise · sample.py keeps the stamp and leaves the diff behind · ab.py lists only what differs.
+end() once · writes never raise · sample.py keeps the stamp and leaves the diff behind · ab.py lists only what differs ·
+diff_sha256 matches the kept .diff · inputs() (learned logs, cliffs cache, navmesh files) · save_file() · end_state()
+keeps end_read, last_valid_obs and end_state_known apart.
 """
 from __future__ import annotations
 import sys as _sys, pathlib as _pl  # repo root first (the bot's modules), then this folder
@@ -55,6 +57,17 @@ def main() -> None:
         c, diff = runinfo.code(repo)
         check("edited file: dirty True, file listed, diff text and hash", c["dirty"] is True and c["dirty_files"] == ["a.py"]
               and "+X = 2" in (diff or "") and len(c["diff_sha1"] or "") == 40)
+        import hashlib
+        dsp = tmp / "20261030_000000_x.settings.json"
+        runinfo.write(dsp, {"code": dict(c)}, diff)
+        kept = dsp.with_name("20261030_000000_x.diff")
+        check("diff body kept as <run>.diff; diff_sha256 = sha256 of that file's text",
+              kept.exists() and c["diff_sha256"] == hashlib.sha256(kept.read_text(encoding="utf-8").encode("utf-8")).hexdigest()
+              and runinfo.read(dsp)["code"]["diff_file"] == kept.name)
+        cc = dict(c)
+        cc.pop("diff_sha256")
+        check("settings_sha1 ignores diff_sha256 (same key as runs before it existed)",
+              runinfo.settings_sha1({"code": c}) == runinfo.settings_sha1({"code": cc}))
         nogit = tmp / "nogit"
         nogit.mkdir()
         c, diff = runinfo.code(nogit)
@@ -131,6 +144,59 @@ def main() -> None:
               and runinfo.covering(t0 + 3600.0, folders=(runs,)) is None and runinfo.covering(None) is None)
         check("flags(): duel flags from the constants", set(runinfo.flags(d2)) == {"BACKSTAB", "HEAVY"} and runinfo.flags(d2)["BACKSTAB"] is False)
         runinfo._ALL = None
+        # ── untracked inputs, save file, end state (10-30) ──
+        lg = tmp / "logs"
+        lg.mkdir()
+        for n, t in (("a.log", "one"), ("b.log", "two"), ("own.log", "running")):
+            (lg / n).write_text(t, encoding="utf-8")
+        logs = [str(lg / n) for n in ("b.log", "a.log", "own.log")]
+        mp = tmp / "m.nvmbnd.dcx"
+        mp.write_bytes(b"nvm")
+
+        class Nm:
+            map_id, src = "m_test_no_such_map", [str(mp), str(tmp / "missing.msb")]
+        i1 = runinfo.inputs({"m": Nm()}, logs, own_log=str(lg / "own.log"))
+        (lg / "own.log").write_text("running, longer now", encoding="utf-8")
+        i2 = runinfo.inputs({"m": Nm()}, list(reversed(logs)), own_log=str(lg / "own.log"))
+        check("inputs: learned logs counted, own log left out of the content hash (it is still written), order-free",
+              i1["learned_logs"]["n"] == 3 and i1["learned_logs"]["own_log_excluded"] and i1["learned_logs"] == i2["learned_logs"])
+        (lg / "a.log").write_text("changed", encoding="utf-8")
+        check("inputs: another log's content changes the content hash, not the list hash",
+              runinfo.inputs(None, logs, str(lg / "own.log"))["learned_logs"]["content_sha256"] != i1["learned_logs"]["content_sha256"]
+              and runinfo.inputs(None, logs, str(lg / "own.log"))["learned_logs"]["list_sha256"] == i1["learned_logs"]["list_sha256"])
+        check("inputs: navmesh files sha256 (missing one → None), absent cliffs cache → None",
+              i1["navmesh"] == {"m.nvmbnd.dcx": hashlib.sha256(b"nvm").hexdigest(), "missing.msb": None} and i1["cliffs"] == {"m": None})
+        check("inputs: nothing raises on junk", isinstance(runinfo.inputs({"x": object()}, [123]), dict))
+        sv = runinfo.save_file()
+        check("save_file: None or {path, sha256, mtime, size} (no raise)", sv is None or {"path", "sha256", "mtime", "size"} <= set(sv))
+        from telemetry import Chr, Snapshot
+
+        class Tm:
+            def __init__(self, s, lv):
+                self.s, self.last_valid = s, lv
+
+            def snapshot(self, within=5.0):
+                return self.s
+
+        class Mv:
+            def estus_left(self):
+                return 3
+        pl = Chr(ptr=1, npc_param=0, team=1, hp=500, max_hp=793, x=1.234, y=2.0, z=3.0)
+        lv = {"t": 9.0, "fseq": 7, "hp": 480, "max_hp": 793, "pos": [1.0, 2.0, 3.0]}
+        e1 = runinfo.end_state(Tm(Snapshot(t=10.0, player=pl, chars=[]), lv), Mv())
+        e2 = runinfo.end_state(Tm(None, lv), Mv())
+        e3 = runinfo.end_state(None, None)
+        check("end_state: read now → end_read with HP · Estus · pos, known True",
+              e1["end_read"] == {"t": 10.0, "hp": [500, 793], "estus": 3, "pos": [1.23, 2.0, 3.0]} and e1["end_state_known"] is True)
+        check("end_state: read failed → end_read None, known False, last_valid_obs kept apart (not used as the end)",
+              e2["end_read"] is None and e2["end_state_known"] is False and e2["last_valid_obs"] == lv)
+        check("end_state: no game → all empty, no raise", e3 == {"end_read": None, "last_valid_obs": None, "end_state_known": False})
+        ep = tmp / "e.settings.json"
+        runinfo.write(ep, {"code": {}})
+        runinfo.end(ep, result="x", secs=1.0, **e2)
+        en = runinfo.read(ep)["end"]
+        check("end(): the three fields stay dicts / null in the file", en["end_read"] is None and en["last_valid_obs"] == lv
+              and en["end_state_known"] is False)
         print("runinfo_test: 전부 통과")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)

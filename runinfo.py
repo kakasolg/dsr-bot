@@ -38,6 +38,17 @@ def _sha1(b: bytes) -> str:
     return hashlib.sha1(b).hexdigest()
 
 
+def _sha256_file(path) -> str | None:
+    try:
+        h = hashlib.sha256()
+        with open(path, "rb") as f:
+            for chunk in iter(lambda: f.read(1 << 20), b""):
+                h.update(chunk)
+        return h.hexdigest()
+    except Exception:
+        return None
+
+
 def _git(root: Path, *args) -> str | None:
     try:
         r = subprocess.run(["git", *args], cwd=root, capture_output=True, text=True, timeout=GIT_TIMEOUT,
@@ -68,9 +79,11 @@ def head(root: Path = ROOT) -> tuple[str | None, str | None]:
 
 
 def code(root: Path = ROOT) -> tuple[dict, str | None]:
-    """→ ({commit, branch, dirty, dirty_files, diff_sha1}, diff text or None). dirty None = couldn't ask git."""
+    """→ ({commit, branch, dirty, dirty_files, diff_sha1, diff_sha256}, diff text or None). dirty None = couldn't ask git.
+    The diff body itself goes to data/runs/<run>.diff (write(); data/ is gitignored, sample.py doesn't copy it) —
+    diff_sha256 is the hash of exactly that text, so a kept copy can be checked against the run."""
     commit, branch = head(root)
-    out = {"commit": commit, "branch": branch, "dirty": None, "dirty_files": None, "diff_sha1": None}
+    out = {"commit": commit, "branch": branch, "dirty": None, "dirty_files": None, "diff_sha1": None, "diff_sha256": None}
     st = _git(root, "status", "--porcelain", "--untracked-files=no")
     if st is None:
         return out, None
@@ -81,6 +94,7 @@ def code(root: Path = ROOT) -> tuple[dict, str | None]:
     diff = _git(root, "diff", "HEAD")
     if diff is not None:
         out["diff_sha1"] = _sha1(diff.encode("utf-8"))
+        out["diff_sha256"] = hashlib.sha256(diff.encode("utf-8")).hexdigest()
     return out, diff
 
 
@@ -89,6 +103,8 @@ def _plain(v):
         return v
     if isinstance(v, (tuple, list)):
         return [_plain(x) for x in v]
+    if isinstance(v, dict):
+        return {str(k): _plain(x) for k, x in v.items()}
     return repr(v)
 
 
@@ -119,8 +135,81 @@ def data_hashes(root: Path = ROOT, patterns=DATA_FILES) -> dict:
     return out
 
 
+def inputs(nms=None, logs=None, own_log=None) -> dict:
+    """Untracked files that steer the run (not in git, so neither commit nor diff covers them) — sha256 each, None if
+    unreadable. Not part of settings_sha1 (older runs have no such block; ab.py compares it separately).
+      learned_logs: the logs props.learned read (list hash + one hash over their contents in name order; the run's own
+                    log is in the list but left out of the content hash — it is still being written)
+      cliffs:       data/maps/<map>-cliffs.json per map (None = absent at this point: Navmesh.cliffs computes and writes it)
+      navmesh:      the game's .nvmbnd.dcx / .msb each Navmesh was built from"""
+    out: dict = {"learned_logs": None, "cliffs": {}, "navmesh": {}}
+    try:
+        if logs is not None:
+            names = sorted(Path(x).resolve().as_posix() for x in logs)
+            own = None if own_log is None else Path(own_log).resolve().as_posix()
+            h = hashlib.sha256()
+            for n in names:
+                if n != own:
+                    h.update(f"{Path(n).name} {_sha256_file(n)}\n".encode("utf-8"))
+            out["learned_logs"] = {"n": len(names), "own_log_excluded": own in names,
+                                   "list_sha256": hashlib.sha256("\n".join(Path(n).name for n in names).encode("utf-8")).hexdigest(),
+                                   "content_sha256": h.hexdigest()}
+    except Exception:
+        pass
+    for k, nm in (nms or {}).items():
+        try:
+            c = ROOT / "data" / "maps" / f"{getattr(nm, 'map_id', k)}-cliffs.json"
+            out["cliffs"][str(k)] = _sha256_file(c) if c.exists() else None
+            for f in getattr(nm, "src", None) or []:
+                out["navmesh"][Path(f).name] = _sha256_file(f)
+        except Exception:
+            continue
+    return out
+
+
+def save_file() -> dict | None:
+    """The save file on disk at this moment (savepoint.SAVE_ROOT/SAVE_ID/DRAKS0005.sl2): path, sha256, mtime. Only what is
+    on disk — the game may hold newer state it hasn't written; this does not prove what the game state is."""
+    try:
+        import savepoint
+        p = savepoint.SAVE_ROOT / savepoint.SAVE_ID / savepoint.SL2
+        st = p.stat()
+        return {"path": str(p), "sha256": _sha256_file(p), "mtime": datetime.fromtimestamp(st.st_mtime).astimezone()
+                .isoformat(timespec="seconds"), "size": st.st_size}
+    except Exception:
+        return None
+
+
+def end_state(tm=None, mv=None) -> dict:
+    """Three separate fields for the end block — never one standing in for another:
+      end_read        HP · Estus · position read now, at the end (None if the read failed / no game)
+      last_valid_obs  the feed's last frame that had a player, with its time (None without a feed)
+      end_state_known end_read got HP and position
+    A run killed from outside (console closed, process ended) may write no end block at all."""
+    rd = None
+    try:
+        s = tm.snapshot(within=5.0) if tm is not None else None
+        p = getattr(s, "player", None)
+        if p is not None and p.hp is not None:
+            est = None
+            try:
+                est = mv.estus_left() if mv is not None else None
+            except Exception:
+                pass
+            rd = {"t": s.t, "hp": [p.hp, p.max_hp], "estus": est, "pos": [round(p.x, 2), round(p.y, 2), round(p.z, 2)]}
+    except Exception:
+        rd = None
+    lv = None
+    try:
+        lv = dict(tm.last_valid) if tm is not None and isinstance(getattr(tm, "last_valid", None), dict) else None
+    except Exception:
+        lv = None
+    return {"end_read": rd, "last_valid_obs": lv, "end_state_known": rd is not None and rd.get("pos") is not None}
+
+
 def game(tm=None, mv=None, weapon=None) -> dict:
-    """The character at the start — each value None if it can't be read. Reads only (no pad)."""
+    """The character at the start — each value None if it can't be read. Reads only (no pad). save: the save file on disk
+    (save_file — not proof of the game state)."""
     def get(f):
         try:
             return f()
@@ -137,15 +226,16 @@ def game(tm=None, mv=None, weapon=None) -> dict:
             "humanity": get(lambda: tm.humanity()),
             "knives": get(lambda: tm.goods_count(290)),
             "quick_items": get(lambda: tm.quick_items()),
-            "last_bonfire": get(lambda: tm.last_bonfire())}
+            "last_bonfire": get(lambda: tm.last_bonfire()),
+            "save": save_file()}
 
 
 def settings_sha1(d: dict) -> str:
     """Hash of what decides behaviour — code, arguments, constants, data (not the time, the character or the end)."""
     key = {k: d.get(k) for k in ("code", "args", "constants", "data")}
     if isinstance(key["code"], dict):              # diff_file is the run's own file name (write() adds it after the first
-        key["code"] = {k: v for k, v in key["code"].items() if k != "diff_file"}   # line) — diff_sha1 already covers the diff
-    return _sha1(json.dumps(key, sort_keys=True, ensure_ascii=False).encode("utf-8"))
+        key["code"] = {k: v for k, v in key["code"].items() if k not in ("diff_file", "diff_sha256")}   # line) — diff_sha1
+        #                                                     already covers the diff (diff_sha256 added 10-30: same key as before)
     return _sha1(json.dumps(key, sort_keys=True, ensure_ascii=False).encode("utf-8"))
 
 

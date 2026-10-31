@@ -114,6 +114,21 @@
   ③ 게임 상태(HP·위치·소울·인간성·에스트·나이프·퀵 슬롯·마지막 화톳불)는 기록 ④ dirty는 막지 않고 기록만.
 - 남은 것: [win] §5-2…4 확인, `label_pilot.py build`가 settings를 읽는 것(제안 4 단계 2와 같이).
 
+### 보완 (2026-10-30, ROADMAP `ctl-linkage` 2단계)
+- `code.diff_sha256`: `<run>.diff`(data/runs, gitignore — 저장소에 안 들어감)에 쓴 텍스트 그대로의 sha256. `diff_sha1`은 그대로 두고
+  `settings_sha1` 키에서는 뺌 (예전 실행과 같은 키).
+- `inputs` (props.attach 뒤 `runinfo.update`): git이 덮지 않는데 행동을 바꾸는 파일 — `settings_sha1`에는 안 넣음.
+  - `learned_logs`: `props.learned`가 읽은 로그 목록(`props.LAST_LOGS`)의 개수·이름 목록 해시·내용 해시(이 실행 자신의 로그는 아직 쓰는 중이라 내용 해시에서 뺌, `own_log_excluded`).
+  - `cliffs`: 맵마다 `data/maps/<맵>-cliffs.json` sha256 — `null`이면 이 시점에 없음 (`Navmesh.cliffs`가 계산해 새로 씀).
+  - `navmesh`: 각 `Navmesh`를 만든 게임 파일(`.nvmbnd.dcx`, `.msb`)의 sha256 (`Navmesh.src`).
+- `game.save`: 시작 때 디스크의 `DRAKS0005.sl2` 경로·sha256·mtime·크기. **디스크 파일일 뿐** — 게임이 아직 안 쓴 상태가 있을 수 있어, 이것만으로 실제 게임 상태를 증명하지 않는다.
+- `end` 블록의 종료 상태는 세 칸으로 나눔 (`runinfo.end_state`):
+  - `end_read`: 끝날 때 새로 읽은 HP·에스트·위치 (`t` 포함). 읽지 못하면 `null`.
+  - `last_valid_obs`: 피드의 마지막 유효 프레임(플레이어가 있던 것) — `t`·`fseq`·HP·위치. 피드가 없으면 `null`.
+  - `end_state_known`: `end_read`가 HP와 위치를 얻었는가. **마지막 관측을 종료 상태로 대신 쓰지 않는다.**
+  - 콘솔 닫기·프로세스 강제 종료처럼 `run.py`의 finally가 돌지 않으면 `end` 블록 자체가 없을 수 있다 (지금 동작, 바꾸지 않음).
+    `ctl`의 `life`/`end` 기록 유무로 따로 본다.
+
 ## 7. [MoKa] 결정할 것
 1. **커밋 안 한 수정의 diff를 `<run>.diff`로 남기는 것** — 저장소가 공개라 samples로 복사하면 아직 다듬지 않은 코드가 그대로 올라감. 대안: diff는 `data/runs/`(로컬)에만,
    samples엔 바뀐 파일 이름과 해시만.

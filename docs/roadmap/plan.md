@@ -627,6 +627,25 @@ The items are still open in ROADMAP.md (one line each); their full text as it st
 - `shop` (2026-10-12, after game check 1): [win] `041218`: 4-line greeting, A during a line = next line → every fixed-time press shifted ~3 steps, shop_fail. [cloud] `Screen` (text masks menu / list / qty from the record shots, OK/CANCEL by the orange bar) — every step waits for its screen; lines → A until the menu. Record shots 22/22 classified right; `tests/shop_test.py`.
 - `shop` (moved from the ROADMAP line 2026-10-19): from Firelink 0/2 — both died on the ramp before the merchant (3 of 5 Firelink trips that day).
 - `lock-sight` (2026-10-12, [cloud] offline): `Navmesh.clear_sight` = the eye→chest line (1.5 / 1.2 m) passes over NavMesh floor (any level) at every 0.5 m; no mesh under it or only floor above it (through a ledge) = blocked. Recorded knife throws with both positions (12 runs): locked 30/30 in sight (ramp ledge +3–6 m too — `clear_line` called all 30 blocked), failed 5/6 blocked (the sixth, 060343 구역1-4 5.4 m, flat: a railing). But [win]'s probe the same day locked on (1/1) east of the 1-1 stairs over a 3.5 m no-mesh patch at our level that it calls blocked — a low prop and a wall look the same in the NavMesh (1-4 9.7 m failed over a 4.7 m patch). So sight **picks the spot, never forbids a throw** (no lock, no throw stays `throw_knife`'s job): `field._lure` takes the arena if in sight, else the first path point (every 1 m) 6–10 m out in sight, else the old spot (arena in range / first point in range) with `락온으로 확인`; before each knife, not in sight + a spot in sight along the path → walk there first (preset `lure_at` spots never). The 'no lock-on → 4 m closer' step prefers points in sight and no longer overwrites `want` (the knife-hit count). burg-upper spawns from the safe spot: a spot in sight for 9/19 (z1-2 z1-4 z2-2 z2-3 z3-1 z4-1 z4-2 z4-3 z5-2); MoKa's ramp spots #2 #4 #5 #6 all in sight. `tests/sight_test.py`. Real sight = collision mesh (`collision-mesh`). [win]: `--throw` run — lock rate 2–10 m against 6/41, `트인 자리로` / `락온으로 확인` lines.
+- `ctl-linkage` (2026-10-30, [MoKa] request "관측 → 사이클 → 규칙 → 동작 → 패드 출력 기록 연결 (기록만, 동작 변경 없음)"; [cloud] work done on [win]'s checkout, no game):
+  **step 0** (golden 40,320 situations / 80,640 ticks, fake Moves): rules writing the pad and returning None — `prep_face` 2,099 ticks (its `pad.move(0, 0)`
+  when aimed); `rule_separate` 384 was the fake's (real `_separate` returns `no_spot` before any input); by reading code: `rule_finish_first` ·
+  `rule_early_kick` · `rule_hit_first` · `rule_finish` call `face()` inside their condition (stick pushed, then None) — 0 in golden (foe always in front).
+  Before the rules: `_keep_lock` `release_due` + R3 (20,160 in golden). Other threads writing the pad: CamFollow (`look_pulse`, `look(0,0)`),
+  GuardKeep (`keep_guard` / `unkeep` / `force_guard`), Escape (`_nudge`, `fire` quit-out). [MoKa] 10-30: those outputs get "cycle에만 붙이기".
+  **Built (step 1)**: `ctlspan.py`, `run.py --ctl-spans`; `span.fight` / `span.cycle` (src feed/direct, radius, snap_t, fseq, picked, kind, none_n,
+  none_pad) / `span.rule` (chosen rule only: enter · first_action · first_pad · ret pc) / `span.action` (11 blocking Moves calls; end window ·
+  early · dead · gone · returned · exception; Hit copied); `pad` / `pad.drop` + the writing thread's own cycle_id / action_id (fold key includes them);
+  `pad.override` when keep_guard holds LB through guard(False) / neutral(). `dec.rule.snap_age_ms` meaning noted in `_RuleRec`. Format: `docs/ctl-linkage.md`.
+  **Built (step 2)**: settings `code.diff_sha256` (of the kept `data/runs/<run>.diff`), `inputs` (learned logs list / content hash, cliffs cache, navmesh
+  files), `game.save` (sl2 sha256 — disk file only), `end.end_read` / `last_valid_obs` / `end_state_known` kept apart; forced kill → no end block (noted).
+  **Verified offline (tests only, no game; scope: duel loop, main-thread outputs)**: `tests/duel_golden_test.py` same (spans off); `tests/ctl_spans_test.py`:
+  golden trace same with spans on / sink raising on every put / queue full on every put (542,343 dropped) / ctlspan ids broken; spans on: 40,320 fights
+  and 120,960 cycles paired, 80,640 span.rule all with a cycle parent = that cycle's picked rule; real Moves on the fake pad: span.action 3/3 with parent,
+  main-thread pad records with ids 9/10 (the 10th written after the fight, correctly none), other threads' records with a main id 0/215; Pad reports
+  same spans off / on. `tests/runinfo_test.py` +13 checks; `python -m pytest` 122 passed. Not checked: golden uses fake Moves (no real action / pad records there), timing in the game.
+  **Next**: [MoKa] OK → [win] ramp, same save, `--ctl --ctl-scenes` with `--ctl-spans` once and without once; compare cycle-interval p50 / p95 / max,
+  ctl gap / drop counts, feed served stats, scene capture time (load only, game outcome not compared). Raw `.ctl.jsonl` stay local (run ids + hashes only).
 
 ## Done items (moved out of ROADMAP.md by roadmap.py tidy)
 

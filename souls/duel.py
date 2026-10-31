@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 
 import control
 import ctl
+import ctlspan as CS
 import nav
 
 from . import counter_trace as CT
@@ -1860,7 +1861,11 @@ FOLD_RULES = {"block", "wait_far", "approach", "face", "linger", "reflex", "stam
 
 
 class _RuleRec:
-    """Records only: the duel loop never reads anything from here, and nothing here raises."""
+    """Records only: the duel loop never reads anything from here, and nothing here raises.
+    snap_age_ms = now − snap.t taken when add() runs, i.e. **after the rule returned** — it includes the rule's own action
+    time (a light attack: ~1 s), so it is not the snapshot's age when the rule decided. The record's pc is that moment too;
+    a folded run's record goes out when the next different rule returns. For when a rule was entered and first acted, see
+    span.rule (ctlspan.py, run.py --ctl-spans)."""
 
     def __init__(self):
         self.run: dict | None = None     # pending folded run
@@ -1916,9 +1921,26 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
     rr = _RuleRec() if ctl.on() else None              # P1-C: record only
     if rr is not None:
         CT.fight_start(F)                                  # counter trace (record only)
+    sp = CS.Fight(ptr) if CS.on() else None             # run.py --ctl-spans: span records (ctlspan.py, record only)
+    if sp is None:
+        return _duel_loop(F, rr, advisor, tap, None)
+    res = None
+    try:
+        res = _duel_loop(F, rr, advisor, tap, sp)
+        return res
+    finally:
+        sp.end(res)
+
+
+def _duel_loop(F, rr, advisor, tap, sp) -> DuelResult:
+    """duel()'s while loop. sp: ctlspan.Fight or None — its calls only write records."""
     while True:
+        if sp is not None:
+            sp.cycle_start()
         T = _sense(F)
         if isinstance(T, DuelResult):
+            if sp is not None:
+                sp.cycle_end("sense_result")
             if rr is not None:
                 rr.flush()
                 CT.fight_end(F, T)
@@ -1928,7 +1950,11 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
                 tap.end(F, T)
             return T
         if T is CONT:
+            if sp is not None:
+                sp.cycle_end("sense_cont")
             continue
+        if sp is not None:
+            sp.sensed(T, SEEK_R)
         if tap is not None:
             tap.sensed(F, T)
         if SCENE_TAP is not None:
@@ -1939,10 +1965,16 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
         picked = None
         for rule in RULES:
             tok = tap.freeze(F, T) if tap is not None else None
+            if sp is not None:
+                sp.rule_enter()
             out = rule(F, T)
             if out is None:
+                if sp is not None:
+                    sp.rule_none(rule.__name__.removeprefix("rule_").removeprefix("prep_"))
                 continue
             name = picked = rule.__name__.removeprefix("rule_").removeprefix("prep_")
+            if sp is not None:
+                sp.rule_return(name, out)
             F.res.rules[name] = F.res.rules.get(name, 0) + 1
             if rr is not None:
                 rr.add(F, T, name, out)
@@ -1961,7 +1993,11 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
                     CT.fight_end(F, out)
                 if tap is not None:
                     tap.end(F, out)
+                if sp is not None:
+                    sp.cycle_end("rule_result", picked, T)
                 return out
             break
         if rr is not None:
             CT.after_rules(F, T, picked, _RULE_NAMES)      # a window open but an earlier rule acted → after_swing not evaluated
+        if sp is not None:
+            sp.cycle_end("rule_cont" if picked is not None else "no_rule", picked, T)

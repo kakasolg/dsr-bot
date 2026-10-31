@@ -10,11 +10,13 @@ Rules that live only in this layer (not repeated elsewhere):
 from __future__ import annotations
 
 import functools
+import inspect
 import math
 import time
 from dataclasses import dataclass, field
 
 import control
+import ctlspan
 import farm
 import nav
 import quitout
@@ -105,6 +107,30 @@ def _aligned(si: int):
             return hit
         return w
     return deco
+
+
+def _span(fn):
+    """run.py --ctl-spans: a span.action start / end record around a blocking move, only inside the duel loop (a ctlspan
+    cycle open on this thread). Record only — the move runs the same with or without it (ctlspan.py)."""
+    sig = inspect.signature(fn)
+
+    @functools.wraps(fn)
+    def w(self, *a, **k):
+        if not ctlspan.active():
+            return fn(self, *a, **k)
+        try:
+            args = sig.bind(self, *a, **k).arguments
+        except Exception:
+            args = {}
+        aid = ctlspan.action_start(fn.__name__, args)
+        try:
+            ret = fn(self, *a, **k)
+        except BaseException as e:
+            ctlspan.action_end(aid, exc=e)
+            raise
+        ctlspan.action_end(aid, ret)
+        return ret
+    return w
 
 
 LOOK_MAX_S = 0.25         # longest single camera tap (≈ 37° at full stick)
@@ -199,6 +225,7 @@ class Moves:
             return None
         return (s1.cam_yaw - s0.cam_yaw + math.pi) % (2 * math.pi) - math.pi
 
+    @_span
     def look_at(self, ptr, tol: float = 5.0, timeout: float = 1.5) -> float | None:
         """Turn the camera toward the target (right stick). While locked on the right stick switches targets, so unlock before calling. → last remaining offset (°)."""
         t, err = time.time(), None
@@ -268,6 +295,7 @@ class Moves:
         side0 = {c.ptr: c.hp for c in s0.hostile(OTHERS_R)} if s0 else {}
         side0.pop(ptr, None)
         side_min = dict(side0)
+        why = "window"                                     # only for the span.action record (ctlspan.watch_end)
         while time.time() - t1 < secs:
             self.pad.release_due()
             if on_tick is not None:
@@ -285,15 +313,19 @@ class Moves:
                 if not hit.my_anims or hit.my_anims[-1][1] != s2.player.anim:
                     hit.my_anims.append((round(time.time() - t1, 2), s2.player.anim))
                 if e_min <= 0:
+                    why = "gone" if c2 is None else "dead"
                     break
                 # once an attack anim has played and returned to -1 (standing) with nothing left to press, finish — avoids waiting out the rest blind
                 if (early_exit is not None and early_exit(time.time() - t1, hit) and len(hit.my_anims) >= 2
                         and hit.my_anims[-1][1] in (-1, None)):
+                    why = "early"
                     break
             time.sleep(0.01)
         hit.dmg, hit.dead, hit.taken = ehp0 - e_min, e_min <= 0, hp0 - my_min
         hit.others = sum(1 for k, v in side0.items() if side_min[k] < v)
+        ctlspan.watch_end(why)
 
+    @_span
     @_aligned(0)
     def light(self, s, c, n: int = 1, sp_second: int = 40) -> Hit:
         """Light attack (R1) n times (1 or 2). The second at SECOND_R1_AT after the first R1, only if stamina exceeds sp_second.
@@ -346,6 +378,7 @@ class Moves:
         else:
             self._zero.pop(c.ptr, None)
 
+    @_span
     @_aligned(0)
     def heavy(self, s, c) -> Hit:
         """Heavy attack (R2) — press with the stick released (forward+R2 is a jump attack). Called by upper layers only when the weapon uses heavies."""
@@ -362,6 +395,7 @@ class Moves:
                         lambda t, h: self.guard(True) if t > 0.9 else None)
         return hit
 
+    @_span
     @_aligned(0)
     def kick(self, s, c) -> Hit:
         """Kick = stick toward the target + R1 in the same input (control.kick). Breaks a shield guard (wiki: guarding enemies stagger)."""
@@ -378,6 +412,7 @@ class Moves:
         self._watch(hit, ptr, hp0, ehp0, 1.2)
         return hit
 
+    @_span
     @_aligned(0)
     def kick_combo(self, s, c, n: int = 2) -> Hit:
         """Kick → n light hits right as the guard breaks (one move, bypasses the decision loop).
@@ -412,6 +447,7 @@ class Moves:
         self._phantom_check(s, c, hit)          # count kick combos too — counting only light attacks alternated with the phantom and stalled at 2
         return hit
 
+    @_span
     def backstep(self) -> None:
         """Stick neutral + tap B. DS1 registers on B release — press 0.1 s after releasing the stick (otherwise it rolls)."""
         self.pad.release_stick()
@@ -422,6 +458,7 @@ class Moves:
             self.pad.release_due()
             time.sleep(0.02)
 
+    @_span
     def backstep_attack(self, s, c, nm=None) -> Hit:
         """Backstep + R1 as **one move** (user 2026-09-24: "Backstep then attack must not be two moves, it has to be one").
         Stick neutral → B → R1 after BS_TO_R1. Needs floor 2.6 m behind·3.0 m ahead (it lunges forward). Body must face the target within 40°."""
@@ -454,6 +491,7 @@ class Moves:
     }
     COMBO_WATCH = {"backstep_r1": BS_TO_R1 + 1.1, "roll_r1": 2.0, "jump_r2": 1.8}
 
+    @_span
     @_aligned(1)
     def combo(self, name: str, s, c, nm=None, need_back: float = 0.0, need_front: float = 3.0) -> Hit:
         """One combo as one move. Floor check: need_back m behind·need_front m ahead (roll·jump move forward)."""
@@ -516,6 +554,7 @@ class Moves:
         self.pad.move(0.0, 0.0)
         return hit
 
+    @_span
     def roll_toward(self, s, x: float, z: float) -> dict:
         """Stick that way + tap B = roll. → {'want', 'got', 'off'} — the direction meant and the one taken (degrees, atan2(dx, dz)).
 
@@ -583,6 +622,7 @@ class Moves:
                 time.sleep(0.01)
         return self.tm.selected_item() == item
 
+    @_span
     def drink(self, safe) -> dict:
         """One sip of Estus. Only when safe(snapshot) is true — selecting the slot takes up to 3 s, so check **again after selecting**.
         → {"ok": did the count drop, "hp": [before, after], "left": remaining count, "why": reason it couldn't drink}"""
@@ -768,6 +808,7 @@ class Moves:
         return {"body": round(math.degrees(rel_angle(s.player, c))), "cam": None if cam is None else round(cam),
                 "dy": round(c.y - s.player.y, 1), "dist": round(horiz(s.player, c), 1)}
 
+    @_span
     def lock_target(self, ptr, tries: int = 3, aim: bool = True) -> bool:
         """Lock on to ptr the way the user does: body toward it, camera on it (R3 grabs the enemy nearest camera center), R3, check;
         a neighbour grabbed → release and retry. → True when locked on ptr. self.last_lock = alignment at the last R3 (log)."""

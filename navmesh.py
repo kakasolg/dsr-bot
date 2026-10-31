@@ -64,6 +64,7 @@ class Navmesh:
         if not path.exists():
             raise SystemExit(f"내비메시 없음: {path}")
         bnd = NVMBND.from_path(path)
+        self.src = [str(path), str(Path(game_dir) / "map" / "MapStudio" / f"{map_id}.msb")]   # record only (runinfo.inputs)
         # apply MSB placement (translate, Y rotation) per piece — Firelink Shrine/Undead Burg are all 0 so it went unnoticed, but in the Asylum (m18_01)
         # every piece sits at y +200, 200 m off from game coordinates (data 8.4 vs actual 184.7)
         place: dict[str, tuple] = {}

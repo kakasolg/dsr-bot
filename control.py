@@ -23,6 +23,7 @@ import ctypes
 import ctypes.wintypes
 
 import ctl
+import ctlspan
 
 # vgamepad (ViGEmBus) is Windows-only. Offline tests only need the button constants,
 # so fall back to a stand-in; creating a real pad still requires vgamepad.
@@ -409,15 +410,16 @@ class Pad:
         try:
             drop = d is _NULL_PAD
             rep = None if drop else _report(d)
-            key = ("drop", m) if drop else ("pad", tuple(rep.values()))
+            tg = ctlspan.pad_tags()                      # --ctl-spans: this thread's cycle / action ids ({} otherwise)
+            key = (("drop", m) if drop else ("pad", tuple(rep.values()))) + tuple(tg.values())
             if key == self._ctl_key:
                 self._ctl_fold += 1
                 return
             fold, self._ctl_fold, self._ctl_key = self._ctl_fold, 0, key
             if drop:
-                ctl.emit("pad.drop", m=m, caller=_site(), frz=self._frozen_by, closed=self._closed, dup=fold)
+                ctl.emit("pad.drop", m=m, caller=_site(), frz=self._frozen_by, closed=self._closed, dup=fold, **tg)
             else:
-                ctl.emit("pad", m=m, caller=_site(), **rep, frz=self._frozen_by, ep=self.epoch, up_us=up_us, dup=fold)
+                ctl.emit("pad", m=m, caller=_site(), **rep, frz=self._frozen_by, ep=self.epoch, up_us=up_us, dup=fold, **tg)
         except Exception:
             pass
 
@@ -428,6 +430,16 @@ class Pad:
         try:
             d = self.pad if dev is None else dev
             ctl.emit("neutral", why=why, site=_site(), ep=self.epoch, dropped=d is _NULL_PAD, report=_report(d))
+        except Exception:
+            pass
+
+    def _override_rec(self, m: str) -> None:
+        """--ctl-spans: keep_guard's hold kept LB down through this guard(False) / neutral() call — one 'pad.override'
+        record (who asked: caller + this thread's ids). Record only; never raises."""
+        if not ctlspan.on():
+            return
+        try:
+            ctl.emit("pad.override", m=m, kept="LB", caller=_site(), ep=self.epoch, **ctlspan.pad_tags(mark=False))
         except Exception:
             pass
 
@@ -442,6 +454,7 @@ class Pad:
             self._guard_want = False
             if self.force_guard:
                 self.pad.press_button(B.XUSB_GAMEPAD_LEFT_SHOULDER)
+                self._override_rec("neutral")
             young = self._b_since is not None and time.time() - self._b_since < SPRINT_MIN_HOLD_S
             self._due.pop(B.XUSB_GAMEPAD_B, None)
             if young:                                    # P-70: still too fresh to let go — keep B (stick is 0: no move)
@@ -560,6 +573,7 @@ class Pad:
                 if on:
                     self._kept = False
                 elif self.force_guard:
+                    self._override_rec("guard_off")
                     return
             (self.pad.press_button if on else self.pad.release_button)(button)
             self._send("hold")

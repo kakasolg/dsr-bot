@@ -46,6 +46,7 @@ class Feed:
         self.served = {"fresh": 0, "waited": 0, "direct": 0, "none": 0, "stale": 0}
         self.listeners: list = []               # 프레임마다 불림 (피드 스레드) — blackbox.py. 가볍게, 예외는 삼킨다
         self._obs: tuple | None = None          # P1-D: (kind, pc) of the open missing / stale stretch — records only
+        self.last_valid: dict | None = None     # last frame with a player: t, fseq, hp, max_hp, pos (runinfo.end_state)
 
     def start(self, first: float = 2.0) -> "Feed":
         self._th.start()
@@ -71,6 +72,9 @@ class Feed:
             self.read_ms = dt * 1000 if not self.frames else self.read_ms * 0.95 + dt * 1000 * 0.05
             if s is not None:                   # P1-D: which frame this is and when our read ended (nothing steers by them)
                 s.fseq, s.pc = self.frames + 1, pc
+                p = s.player                    # the last frame that had a player — runinfo.end_state only
+                self.last_valid = {"t": s.t, "fseq": s.fseq, "hp": getattr(p, "hp", None), "max_hp": getattr(p, "max_hp", None),
+                                   "pos": None if p is None else [round(p.x, 2), round(p.y, 2), round(p.z, 2)]}
             with self._cv:
                 self.latest = s
                 self.frames += 1

@@ -148,6 +148,8 @@ def main() -> None:
                     help="P1-D: --ctl 과 함께, 피드 프레임마다 한 줄 → data/runs/<시각>_<명령>.frames.jsonl (~9 KB/s) — 기본 꺼짐. 기록만")
     ap.add_argument("--ctl-scenes", action="store_true",
                     help="--ctl 에 더해 싸움 결정마다 그 순간의 입력을 .ctl.jsonl 에 'scene' 으로 (scenes.py) — python scene_replay.py 로 다시 돌림. 기록만")
+    ap.add_argument("--ctl-spans", action="store_true",
+                    help="--ctl 에 더해 싸움 루프의 관측→사이클→규칙→동작→패드 연결 기록 (span.*, 패드 기록에 cycle_id·action_id, ctlspan.py). 기록만")
     ap.add_argument("--pull", action="store_true",
                     help="나이프 없을 때 몸으로 끌기 — 알아채는 거리(data/notice.json) 바로 안까지만 다가가 하나만 깨우고 달려서 돌아옴 "
                          "(souls/pull.py, field.NOTICE_PULL, [MoKa] 2026-10-11). 기본 꺼짐 (A/B용)")
@@ -199,15 +201,25 @@ def main() -> None:
     if not runinfo.write(settings_path, info, diff):
         log(f"   ⚠ 실행 설정 기록 못 씀: {settings_path}")
 
+    end_ctx: dict = {}                                      # tm / mv once they exist — run_end reads the end state with them
+
     def run_end(result) -> None:                            # once; never raises (runinfo.end)
-        runinfo.end(settings_path, result=result, secs=round(time.time() - t_run, 1))
+        try:
+            st = runinfo.end_state(end_ctx.get("tm"), end_ctx.get("mv"))
+        except Exception:
+            st = {"end_read": None, "last_valid_obs": None, "end_state_known": False}
+        runinfo.end(settings_path, result=result, secs=round(time.time() - t_run, 1), **st)
     import ctl
-    if a.ctl_scenes:
-        a.ctl = True                                        # the scenes go into the .ctl.jsonl
+    if a.ctl_scenes or a.ctl_spans:
+        a.ctl = True                                        # the scenes / spans go into the .ctl.jsonl
     if a.ctl:                                               # before the Pad exists: atexit then closes the pad first, this after
         ctl.start(str(log.path).replace(".jsonl", ".ctl.jsonl"), run=log.path.stem, argv=sys.argv, cmd=a.cmd)
         ctl.emit("life", ev="start", cmd=a.cmd, args=vars(a))
         log(f"ctl: 기록만 → {str(log.path).replace('.jsonl', '.ctl.jsonl')}")
+        if a.ctl_spans:
+            import ctlspan
+            ctlspan.ON = True
+            log("ctl spans: 싸움 루프 관측→사이클→규칙→동작→패드 연결 기록 (판단엔 반영 안 함)")
         if a.ctl_frames:
             ctl.start_frames(str(log.path).replace(".jsonl", ".frames.jsonl"), run=log.path.stem)
             log(f"ctl: 프레임 기록 → {str(log.path).replace('.jsonl', '.frames.jsonl')}")
@@ -289,9 +301,11 @@ def main() -> None:
     else:
         nms = {missions.MAP_A: navmesh.Navmesh(missions.MAP_A), missions.MAP_B: navmesh.Navmesh(missions.MAP_B)}
     props.attach(nms, log)                                  # crates earlier runs had to smash twice: paths bend around them (on each Navmesh)
+    runinfo.update(settings_path, inputs=runinfo.inputs(nms, props.LAST_LOGS, own_log=str(log.path).replace(".jsonl", ".log")))
     for nm_ in nms.values():
         nm_.edge_kinds()                                    # sort wall/drop/seam edges now — the first wall check mid-fight took ~1 s (2026-09-30)
     mv = moves.Moves(tm, pad)
+    end_ctx.update(tm=tm, mv=mv)
     track_.follow(mv)
     if a.radar:
         radar_.follow(mv)                                   # target · path · held spot on the radar
