@@ -1,0 +1,107 @@
+{
+ "name": "g2-i1current-c3-c4-classweight-diagnostic-v1",
+ "date": "2026-10-31",
+ "question": "Same I1-current inputs/preprocessing/depth/seed; only class_weight differs (C3 None vs C4 balanced): how do rare-class over-prediction and major-class recall change? Diagnostic only — does not change the C4 selection.",
+ "refs": {
+  "data_commit": "6ccafc0",
+  "extract_sha256": "c0a31ceb8f8c733c0df043b076536c1d7045900ebec656a5ed44041527f3ea35",
+  "manifest_sha256": "3de0c325098b0358792b648aa1e1de5b079f591760ad94cfa3b39925e5eceec3",
+  "baseline_commit": "ca6b7f05d9f184c56d7fce97dab94b833e451fc9",
+  "baseline_results_sha256": "37b91a0a119c9a6c57ef673a52e3da1ed2aad6b0037e776d24cb322257f9db2e",
+  "rf_commit": "79742deb0237ebf79ebbad5580fef58ba6c5342b",
+  "rf_dir": "experiments/g2_i1current_rf_2026_10_31",
+  "rf_sha256": {
+   "config.json": "cb5c0d82a129dd9e904f9f41317282dd1d5dfc99f0637c85729a5ad2a7a1fa9e",
+   "selection.json": "a31e68bb6ce2079771c47d08339787c64b9d28e7c58fa3a65c2f8432f15b1783",
+   "rf_i1current.py": "461da1fa531be6db14a9c3b9b8cde91435e3dbaca3747e24cc650c0b6bf8347d",
+   "results.json": "98f0f5ff7b993c58ef53aa2097bfb315b3ecc742dcca414fb17a24f87b523e32",
+   "predictions.jsonl": "94880d62dc964a60f24924d2d38dfb5313f88c503a2450035714ab95a176a5cb",
+   "candidates.json": "fe8b7dc033dcd6875ea92ae874409e7d03accdfbe898800d038b72375833a083"
+  }
+ },
+ "conditions": {
+  "C3": {
+   "id": "C3",
+   "max_depth": 12,
+   "class_weight": null
+  },
+  "C4": {
+   "id": "C4",
+   "max_depth": 12,
+   "class_weight": "balanced"
+  },
+  "common": {
+   "n_estimators": 200,
+   "min_samples_leaf": 3,
+   "random_state": 20261031,
+   "criterion": "gini",
+   "max_features": "sqrt",
+   "bootstrap": true,
+   "n_jobs": 1
+  },
+  "only_difference": {
+   "class_weight": [
+    null,
+    "balanced"
+   ]
+  }
+ },
+ "reuse": {
+  "C4": "existing predictions.jsonl (variant base) for val/test/shift_zone/shift_ref; train/val C4 metrics from candidates.json",
+  "C3": "trained once on full train with rf_i1current.py functions (features, Encoder, make_model) imported from the committed script; no edits"
+ },
+ "reproduction_check": {
+  "C3": "train and val acc, macro_f1_all_true and per-class P/R/F1/n/pred_n vs candidates.json C3 (stored rounded: acc/macro 4 dp, per-class 3 dp — compare at that precision)",
+  "if_mismatch": "report; retrain C4 once in the same environment, compare to existing C4 predictions, keep both; never overwrite"
+ },
+ "splits": {
+  "eval": [
+   "val",
+   "test",
+   "shift_zone",
+   "shift_ref"
+  ],
+  "extra_eval": {
+   "shift_ref_no_dirty_duel": {
+    "from": "shift_ref",
+    "drop_runs": [
+     "20261019_232719_parish-group1"
+    ]
+   }
+  },
+  "exclude": [
+   "pending"
+  ],
+  "no_dirty_train_retrain": "not done in this diagnostic"
+ },
+ "metrics": {
+  "same_as": "rf_i1current.py metrics(): acc, per-class P/R/F1/n/pred_n/runs, macro_f1_all_true (labels = classes with >=1 true scene), macro_f1_baseline_set (labels = baseline A lookup primary_classes of that eval set), confusion, per_run acc + unweighted mean",
+  "labels_recorded": "every macro F1 stores its label list; prediction-only classes listed separately"
+ },
+ "paired": {
+  "per_scene": "both_correct / c3_only / c4_only / both_wrong / changed (C3 pred != C4 pred)",
+  "focus_classes": [
+   "after_swing",
+   "backstab_swing",
+   "reflex",
+   "stagger_punish",
+   "stamina",
+   "attack",
+   "lure"
+  ],
+  "rare_definition": "rule with train support <= 5 (full train, 730 scenes) — fixed before evaluation",
+  "rare_over_prediction": "pred_n vs true n per rare class per eval set",
+  "per_run": "changed scenes and acc C3/C4 per run"
+ },
+ "interpretation_limits": [
+  "C4 stays the pre-registered val-selected model; C3 is not promoted",
+  "test/shift were seen several times; not a blind test",
+  "single seed (20261031)",
+  "not game performance / decision quality / execution",
+  "does not decide whether I2 is needed"
+ ],
+ "env_expected": {
+  "python": "3.13.18",
+  "venv": "/tmp/rfexp/venv (same venv as the I1-current run; pip freeze identical to requirements-freeze.txt)"
+ }
+}

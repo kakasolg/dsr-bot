@@ -1,0 +1,16 @@
+# venv: same as the I1-current run (recreate if gone; venv itself is not preserved)
+/usr/local/bin/python3 -m venv /tmp/rfexp/venv
+/tmp/rfexp/venv/bin/pip install --only-binary=:all: -r experiments/g2_i1current_rf_2026_10_31/requirements-freeze.txt   # scikit-learn 1.9.1, numpy 2.5.4, scipy 1.18.1 ...
+
+# inputs (from git, not copied)
+git archive 6ccafc0 data/inventory/2026-10-31 | tar -x -C /tmp/inv3
+git show ca6b7f05d9f184c56d7fce97dab94b833e451fc9:experiments/g2_scene_baselines_2026_10_31/results.json > /tmp/rfexp/ref/baseline_results.json
+# RF dir = experiments/g2_i1current_rf_2026_10_31 at 79742deb (config, candidates, predictions, rf_i1current.py are read, never written)
+
+# run (from this directory). Note: importing rf_i1current.py by path writes a __pycache__ next to it unless PYTHONDONTWRITEBYTECODE=1
+PYTHONDONTWRITEBYTECODE=1 /tmp/rfexp/venv/bin/python c3_c4_diag.py --diag-config diag_config.json \
+  --rf-dir <repo>/experiments/g2_i1current_rf_2026_10_31 \
+  --extract /tmp/inv3/data/inventory/2026-10-31/g2_scene_extract.jsonl \
+  --manifest /tmp/inv3/data/inventory/2026-10-31/g2_scene_manifest_scenes.jsonl \
+  --baseline-results /tmp/rfexp/ref/baseline_results.json --out .
+# C3 model is not saved; the command retrains it (random_state 20261031, n_jobs 1). C4 is not retrained (existing predictions reused).
