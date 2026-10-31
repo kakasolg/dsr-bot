@@ -1,0 +1,30 @@
+{
+ "config_sha256": "cb5c0d82a129dd9e904f9f41317282dd1d5dfc99f0637c85729a5ad2a7a1fa9e",
+ "candidates_sha256": "fe8b7dc033dcd6875ea92ae874409e7d03accdfbe898800d038b72375833a083",
+ "selected": "C4",
+ "params": {
+  "id": "C4",
+  "max_depth": 12,
+  "class_weight": "balanced"
+ },
+ "common": {
+  "n_estimators": 200,
+  "min_samples_leaf": 3,
+  "random_state": 20261031,
+  "criterion": "gini",
+  "max_features": "sqrt",
+  "bootstrap": true,
+  "n_jobs": 1
+ },
+ "val_macro_f1_all_true": {
+  "C1": 0.3076,
+  "C2": 0.3783,
+  "C3": 0.3953,
+  "C4": 0.4182
+ },
+ "rule": {
+  "metric": "val macro F1 over all classes with >=1 true scene in val",
+  "tie": "compare rounded to 4 decimals; tie -> smaller max_depth; then candidate order C1..C4",
+  "uses": "train/val only; test/shift evaluated only after selection.json is written"
+ }
+}

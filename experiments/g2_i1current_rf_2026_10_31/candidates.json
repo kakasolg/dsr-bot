@@ -1,0 +1,2810 @@
+{
+ "config_sha256": "cb5c0d82a129dd9e904f9f41317282dd1d5dfc99f0637c85729a5ad2a7a1fa9e",
+ "encoder": {
+  "n_columns": 61,
+  "vocab": {
+   "my_anim": [
+    "140",
+    "20140",
+    "303000",
+    "idle"
+   ],
+   "tgt_anim": [
+    "2006",
+    "3000",
+    "3001",
+    "3003",
+    "3004",
+    "3005",
+    "3006",
+    "3007",
+    "3008",
+    "3010",
+    "3043",
+    "3500",
+    "idle"
+   ],
+   "tgt_anim_cat": [
+    "attack",
+    "hit_stun",
+    "idle",
+    "stagger"
+   ],
+   "weapon_id": [
+    "301000",
+    "701000"
+   ]
+  }
+ },
+ "val_unknown_categories": {
+  "tgt_anim": 1,
+  "my_anim": 1
+ },
+ "candidates": {
+  "C1": {
+   "params": {
+    "id": "C1",
+    "max_depth": 6,
+    "class_weight": null
+   },
+   "train": {
+    "n": 730,
+    "runs": 26,
+    "acc": 0.7479,
+    "macro_f1_all_true": 0.5251,
+    "all_true_classes": [
+     "after_swing",
+     "approach",
+     "attack",
+     "backstab",
+     "backstab_swing",
+     "block",
+     "edge",
+     "estus",
+     "face",
+     "face_first",
+     "finish",
+     "finish_first",
+     "hit_first",
+     "late_windup_block",
+     "lure",
+     "reflex",
+     "shot",
+     "stagger_punish",
+     "stamina",
+     "wait_far"
+    ],
+    "train_absent_true_classes": [],
+    "per_run": {
+     "20261011_144208_burg-bonfire": {
+      "n": 13,
+      "acc": 0.3846
+     },
+     "20261011_144434_burg-bonfire": {
+      "n": 13,
+      "acc": 0.9231
+     },
+     "20261011_144701_burg-bonfire": {
+      "n": 12,
+      "acc": 1.0
+     },
+     "20261011_145120_burg-bonfire": {
+      "n": 13,
+      "acc": 0.6923
+     },
+     "20261011_161435_burg-bonfire": {
+      "n": 18,
+      "acc": 0.7778
+     },
+     "20261011_170346_burg-upper": {
+      "n": 34,
+      "acc": 0.7059
+     },
+     "20261011_171918_burg-upper": {
+      "n": 47,
+      "acc": 0.7872
+     },
+     "20261011_174753_burg-upper": {
+      "n": 48,
+      "acc": 0.7917
+     },
+     "20261012_003442_burg-upper": {
+      "n": 7,
+      "acc": 0.8571
+     },
+     "20261012_004844_burg-upper": {
+      "n": 40,
+      "acc": 0.85
+     },
+     "20261012_010457_burg-upper": {
+      "n": 63,
+      "acc": 0.7143
+     },
+     "20261012_030444_burg-upper": {
+      "n": 76,
+      "acc": 0.75
+     },
+     "20261012_033810_burg-bonfire": {
+      "n": 46,
+      "acc": 0.6957
+     },
+     "20261012_054128_burg-bonfire": {
+      "n": 17,
+      "acc": 0.8824
+     },
+     "20261012_060343_burg-upper": {
+      "n": 62,
+      "acc": 0.7742
+     },
+     "20261012_074829_burg-upper": {
+      "n": 8,
+      "acc": 0.875
+     },
+     "20261012_075054_burg-upper": {
+      "n": 18,
+      "acc": 0.7222
+     },
+     "20261012_220230_burg-upper": {
+      "n": 9,
+      "acc": 0.6667
+     },
+     "20261012_220422_burg-upper": {
+      "n": 20,
+      "acc": 0.55
+     },
+     "20261012_225154_burg-upper": {
+      "n": 28,
+      "acc": 0.6786
+     },
+     "20261013_003435_burg-upper": {
+      "n": 4,
+      "acc": 0.75
+     },
+     "20261013_003654_burg-upper": {
+      "n": 35,
+      "acc": 0.8286
+     },
+     "20261013_005647_burg-upper": {
+      "n": 47,
+      "acc": 0.6809
+     },
+     "20261013_010935_burg-upper": {
+      "n": 30,
+      "acc": 0.8333
+     },
+     "20261013_171039_altar": {
+      "n": 8,
+      "acc": 0.875
+     },
+     "20261013_175209_clear-ramp": {
+      "n": 14,
+      "acc": 0.4286
+     }
+    },
+    "per_run_unweighted_mean_acc": 0.749,
+    "per_class": {
+     "after_swing": {
+      "n": 249,
+      "runs": 26,
+      "pred_n": 346,
+      "P": 0.647,
+      "R": 0.9,
+      "F1": 0.753,
+      "reference_only": false,
+      "in_train": true
+     },
+     "approach": {
+      "n": 15,
+      "runs": 9,
+      "pred_n": 10,
+      "P": 1.0,
+      "R": 0.667,
+      "F1": 0.8,
+      "reference_only": false,
+      "in_train": true
+     },
+     "attack": {
+      "n": 37,
+      "runs": 15,
+      "pred_n": 6,
+      "P": 1.0,
+      "R": 0.162,
+      "F1": 0.279,
+      "reference_only": false,
+      "in_train": true
+     },
+     "backstab": {
+      "n": 15,
+      "runs": 12,
+      "pred_n": 7,
+      "P": 1.0,
+      "R": 0.467,
+      "F1": 0.636,
+      "reference_only": false,
+      "in_train": true
+     },
+     "backstab_swing": {
+      "n": 113,
+      "runs": 25,
+      "pred_n": 146,
+      "P": 0.774,
+      "R": 1.0,
+      "F1": 0.873,
+      "reference_only": false,
+      "in_train": true
+     },
+     "block": {
+      "n": 3,
+      "runs": 3,
+      "pred_n": 0,
+      "P": 0.0,
+      "R": 0.0,
+      "F1": 0.0,
+      "reference_only": true,
+      "in_train": true
+     },
+     "edge": {
+      "n": 21,
+      "runs": 11,
+      "pred_n": 1,
+      "P": 1.0,
+      "R": 0.048,
+      "F1": 0.091,
+      "reference_only": false,
+      "in_train": true
+     },
+     "estus": {
+      "n": 10,
+      "runs": 5,
+      "pred_n": 7,
+      "P": 1.0,
+      "R": 0.7,
+      "F1": 0.824,
+      "reference_only": false,
+      "in_train": true
+     },
+     "face": {
+      "n": 1,
+      "runs": 1,
+      "pred_n": 0,
+      "P": 0.0,
+      "R": 0.0,
+      "F1": 0.0,
+      "reference_only": true,
+      "in_train": true
+     },
+     "face_first": {
+      "n": 20,
+      "runs": 8,
+      "pred_n": 14,
+      "P": 1.0,
+      "R": 0.7,
+      "F1": 0.824,
+      "reference_only": false,
+      "in_train": true
+     },
+     "finish": {
+      "n": 6,
+      "runs": 3,
+      "pred_n": 2,
+      "P": 1.0,
+      "R": 0.333,
+      "F1": 0.5,
+      "reference_only": true,
+      "in_train": true
+     },
+     "finish_first": {
+      "n": 48,
+      "runs": 16,
+      "pred_n": 53,
+      "P": 0.906,
+      "R": 1.0,
+      "F1": 0.95,
+      "reference_only": false,
+      "in_train": true
+     },
+     "hit_first": {
+      "n": 41,
+      "runs": 18,
+      "pred_n": 16,
+      "P": 0.938,
+      "R": 0.366,
+      "F1": 0.526,
+      "reference_only": false,
+      "in_train": true
+     },
+     "late_windup_block": {
+      "n": 14,
+      "runs": 8,
+      "pred_n": 6,
+      "P": 1.0,
+      "R": 0.429,
+      "F1": 0.6,
+      "reference_only": false,
+      "in_train": true
+     },
+     "lure": {
+      "n": 1,
+      "runs": 1,
+      "pred_n": 0,
+      "P": 0.0,
+      "R": 0.0,
+      "F1": 0.0,
+      "reference_only": true,
+      "in_train": true
+     },
+     "reflex": {
+      "n": 43,
+      "runs": 16,
+      "pred_n": 39,
+      "P": 0.718,
+      "R": 0.651,
+      "F1": 0.683,
+      "reference_only": false,
+      "in_train": true
+     },
+     "shot": {
+      "n": 7,
+      "runs": 5,
+      "pred_n": 0,
+      "P": 0.0,
+      "R": 0.0,
+      "F1": 0.0,
+      "reference_only": true,
+      "in_train": true
+     },
+     "stagger_punish": {
+      "n": 45,
+      "runs": 16,
+      "pred_n": 34,
+      "P": 1.0,
+      "R": 0.756,
+      "F1": 0.861,
+      "reference_only": false,
+      "in_train": true
+     },
+     "stamina": {
+      "n": 27,
+      "runs": 11,
+      "pred_n": 36,
+      "P": 0.722,
+      "R": 0.963,
+      "F1": 0.825,
+      "reference_only": false,
+      "in_train": true
+     },
+     "wait_far": {
+      "n": 14,
+      "runs": 11,
+      "pred_n": 7,
+      "P": 0.714,
+      "R": 0.357,
+      "F1": 0.476,
+      "reference_only": false,
+      "in_train": true
+     }
+    },
+    "confusion": {
+     "after_swing->after_swing": 224,
+     "backstab_swing->backstab_swing": 113,
+     "finish_first->finish_first": 48,
+     "stagger_punish->stagger_punish": 34,
+     "reflex->reflex": 28,
+     "attack->after_swing": 27,
+     "stamina->stamina": 26,
+     "hit_first->after_swing": 24,
+     "after_swing->backstab_swing": 23,
+     "hit_first->hit_first": 15,
+     "reflex->after_swing": 15,
+     "face_first->face_first": 14,
+     "stagger_punish->after_swing": 11,
+     "approach->approach": 10,
+     "late_windup_block->after_swing": 8,
+     "wait_far->after_swing": 8,
+     "backstab->backstab": 7,
+     "edge->after_swing": 7,
+     "estus->estus": 7,
+     "attack->attack": 6,
+     "backstab->after_swing": 6,
+     "late_windup_block->late_windup_block": 6,
+     "edge->reflex": 5,
+     "edge->stamina": 5,
+     "shot->after_swing": 5,
+     "wait_far->wait_far": 5,
+     "attack->reflex": 4,
+     "block->after_swing": 3,
+     "face_first->after_swing": 3,
+     "face_first->backstab_swing": 3,
+     "after_swing->finish_first": 2,
+     "approach->stamina": 2,
+     "backstab->backstab_swing": 2,
+     "edge->wait_far": 2,
+     "estus->stamina": 2,
+     "finish->backstab_swing": 2,
+     "finish->finish": 2,
+     "hit_first->backstab_swing": 2,
+     "approach->after_swing": 1,
+     "approach->backstab_swing": 1,
+     "approach->reflex": 1,
+     "edge->edge": 1,
+     "edge->finish_first": 1,
+     "estus->after_swing": 1,
+     "face->after_swing": 1,
+     "finish->after_swing": 1,
+     "finish->finish_first": 1,
+     "lure->after_swing": 1,
+     "shot->finish_first": 1,
+     "shot->hit_first": 1,
+     "stamina->reflex": 1,
+     "wait_far->stamina": 1
+    }
+   },
+   "val": {
+    "n": 134,
+    "runs": 5,
+    "acc": 0.5821,
+    "macro_f1_all_true": 0.3076,
+    "all_true_classes": [
+     "after_swing",
+     "approach",
+     "attack",
+     "backstab",
+     "backstab_swing",
+     "edge",
+     "estus",
+     "face_first",
+     "finish",
+     "finish_first",
+     "footing",
+     "hit_first",
+     "late_windup_block",
+     "reflex",
+     "shot",
+     "stagger_punish",
+     "stamina",
+     "wait_far"
+    ],
+    "train_absent_true_classes": [
+     "footing"
+    ],
+    "per_run": {
+     "20261011_145345_burg-bonfire": {
+      "n": 29,
+      "acc": 0.5862
+     },
+     "20261012_003844_burg-upper": {
+      "n": 4,
+      "acc": 1.0
+     },
+     "20261012_024340_burg-upper": {
+      "n": 57,
+      "acc": 0.4912
+     },
+     "20261012_053935_burg-bonfire": {
+      "n": 7,
+      "acc": 1.0
+     },
+     "20261012_223957_burg-upper": {
+      "n": 37,
+      "acc": 0.5946
+     }
+    },
+    "per_run_unweighted_mean_acc": 0.7344,
+    "per_class": {
+     "after_swing": {
+      "n": 38,
+      "runs": 5,
+      "pred_n": 66,
+      "P": 0.5,
+      "R": 0.868,
+      "F1": 0.635,
+      "reference_only": false,
+      "in_train": true
+     },
+     "approach": {
+      "n": 2,
+      "runs": 1,
+      "pred_n": 1,
+      "P": 0.0,
+      "R": 0.0,
+      "F1": 0.0,
+      "reference_only": true,
+      "in_train": true
+     },
+     "attack": {
+      "n": 9,
+      "runs": 3,
+      "pred_n": 0,
+      "P": 0.0,
+      "R": 0.0,
+      "F1": 0.0,
+      "reference_only": true,
+      "in_train": true
+     },
+     "backstab": {
+      "n": 2,
+      "runs": 1,
+      "pred_n": 1,
+      "P": 1.0,
+      "R": 0.5,
+      "F1": 0.667,
+      "reference_only": true,
+      "in_train": true
+     },
+     "backstab_swing": {
+      "n": 22,
+      "runs": 5,
+      "pred_n": 27,
+      "P": 0.815,
+      "R": 1.0,
+      "F1": 0.898,
+      "reference_only": false,
+      "in_train": true
+     },
+     "edge": {
+      "n": 3,
+      "runs": 2,
+      "pred_n": 0,
+      "P": 0.0,
+      "R": 0.0,
+      "F1": 0.0,
+      "reference_only": true,
+      "in_train": true
+     },
+     "estus": {
+      "n": 2,
+      "runs": 2,
+      "pred_n": 1,
+      "P": 1.0,
+      "R": 0.5,
+      "F1": 0.667,
+      "reference_only": true,
+      "in_train": true
+     },
+     "face_first": {
+      "n": 13,
+      "runs": 4,
+      "pred_n": 6,
+      "P": 1.0,
+      "R": 0.462,
+      "F1": 0.632,
+      "reference_only": false,
+      "in_train": true
+     },
+     "finish": {
+      "n": 1,
+      "runs": 1,
+      "pred_n": 0,
+      "P": 0.0,
+      "R": 0.0,
+      "F1": 0.0,
+      "reference_only": true,
+      "in_train": true
+     },
+     "finish_first": {
+      "n": 5,
+      "runs": 3,
+      "pred_n": 7,
+      "P": 0.714,
+      "R": 1.0,
+      "F1": 0.833,
+      "reference_only": true,
+      "in_train": true
+     },
+     "footing": {
+      "n": 3,
+      "runs": 1,
+      "pred_n": 0,
+      "P": 0.0,
+      "R": 0.0,
+      "F1": 0.0,
+      "reference_only": true,
+      "in_train": false
+     },
+     "hit_first": {
+      "n": 6,
+      "runs": 2,
+      "pred_n": 1,
+      "P": 1.0,
+      "R": 0.167,
+      "F1": 0.286,
+      "reference_only": true,
+      "in_train": true
+     },
+     "late_windup_block": {
+      "n": 1,
+      "runs": 1,
+      "pred_n": 0,
+      "P": 0.0,
+      "R": 0.0,
+      "F1": 0.0,
+      "reference_only": true,
+      "in_train": true
+     },
+     "reflex": {
+      "n": 16,
+      "runs": 4,
+      "pred_n": 11,
+      "P": 0.636,
+      "R": 0.438,
+      "F1": 0.519,
+      "reference_only": false,
+      "in_train": true
+     },
+     "shot": {
+      "n": 1,
+      "runs": 1,
+      "pred_n": 0,
+      "P": 0.0,
+      "R": 0.0,
+      "F1": 0.0,
+      "reference_only": true,
+      "in_train": true
+     },
+     "stagger_punish": {
+      "n": 2,
+      "runs": 2,
+      "pred_n": 8,
+      "P": 0.0,
+      "R": 0.0,
+      "F1": 0.0,
+      "reference_only": true,
+      "in_train": true
+     },
+     "stamina": {
+      "n": 5,
+      "runs": 2,
+      "pred_n": 5,
+      "P": 0.4,
+      "R": 0.4,
+      "F1": 0.4,
+      "reference_only": true,
+      "in_train": true
+     },
+     "wait_far": {
+      "n": 3,
+      "runs": 1,
+      "pred_n": 0,
+      "P": 0.0,
+      "R": 0.0,
+      "F1": 0.0,
+      "reference_only": true,
+      "in_train": true
+     }
+    },
+    "confusion": {
+     "after_swing->after_swing": 33,
+     "backstab_swing->backstab_swing": 22,
+     "reflex->reflex": 7,
+     "attack->after_swing": 6,
+     "face_first->face_first": 6,
+     "reflex->after_swing": 6,
+     "finish_first->finish_first": 5,
+     "hit_first->after_swing": 5,
+     "after_swing->backstab_swing": 4,
+     "face_first->stagger_punish": 4,
+     "face_first->after_swing": 3,
+     "reflex->stagger_punish": 3,
+     "stamina->after_swing": 3,
+     "attack->reflex": 2,
+     "footing->stamina": 2,
+     "stagger_punish->after_swing": 2,
+     "stamina->stamina": 2,
+     "wait_far->after_swing": 2,
+     "after_swing->stagger_punish": 1,
+     "approach->after_swing": 1,
+     "approach->reflex": 1,
+     "attack->finish_first": 1,
+     "backstab->after_swing": 1,
+     "backstab->backstab": 1,
+     "edge->after_swing": 1,
+     "edge->reflex": 1,
+     "edge->stamina": 1,
+     "estus->after_swing": 1,
+     "estus->estus": 1,
+     "finish->backstab_swing": 1,
+     "footing->after_swing": 1,
+     "hit_first->hit_first": 1,
+     "late_windup_block->after_swing": 1,
+     "shot->finish_first": 1,
+     "wait_far->approach": 1
+    }
+   }
+  },
+  "C2": {
+   "params": {
+    "id": "C2",
+    "max_depth": 6,
+    "class_weight": "balanced"
+   },
+   "train": {
+    "n": 730,
+    "runs": 26,
+    "acc": 0.5877,
+    "macro_f1_all_true": 0.63,
+    "all_true_classes": [
+     "after_swing",
+     "approach",
+     "attack",
+     "backstab",
+     "backstab_swing",
+     "block",
+     "edge",
+     "estus",
+     "face",
+     "face_first",
+     "finish",
+     "finish_first",
+     "hit_first",
+     "late_windup_block",
+     "lure",
+     "reflex",
+     "shot",
+     "stagger_punish",
+     "stamina",
+     "wait_far"
+    ],
+    "train_absent_true_classes": [],
+    "per_run": {
+     "20261011_144208_burg-bonfire": {
+      "n": 13,
+      "acc": 0.5385
+     },
+     "20261011_144434_burg-bonfire": {
+      "n": 13,
+      "acc": 0.4615
+     },
+     "20261011_144701_burg-bonfire": {
+      "n": 12,
+      "acc": 0.25
+     },
+     "20261011_145120_burg-bonfire": {
+      "n": 13,
+      "acc": 0.4615
+     },
+     "20261011_161435_burg-bonfire": {
+      "n": 18,
+      "acc": 0.5
+     },
+     "20261011_170346_burg-upper": {
+      "n": 34,
+      "acc": 0.5588
+     },
+     "20261011_171918_burg-upper": {
+      "n": 47,
+      "acc": 0.4894
+     },
+     "20261011_174753_burg-upper": {
+      "n": 48,
+      "acc": 0.6458
+     },
+     "20261012_003442_burg-upper": {
+      "n": 7,
+      "acc": 0.7143
+     },
+     "20261012_004844_burg-upper": {
+      "n": 40,
+      "acc": 0.6
+     },
+     "20261012_010457_burg-upper": {
+      "n": 63,
+      "acc": 0.619
+     },
+     "20261012_030444_burg-upper": {
+      "n": 76,
+      "acc": 0.5526
+     },
+     "20261012_033810_burg-bonfire": {
+      "n": 46,
+      "acc": 0.5217
+     },
+     "20261012_054128_burg-bonfire": {
+      "n": 17,
+      "acc": 0.8824
+     },
+     "20261012_060343_burg-upper": {
+      "n": 62,
+      "acc": 0.6452
+     },
+     "20261012_074829_burg-upper": {
+      "n": 8,
+      "acc": 0.75
+     },
+     "20261012_075054_burg-upper": {
+      "n": 18,
+      "acc": 0.6111
+     },
+     "20261012_220230_burg-upper": {
+      "n": 9,
+      "acc": 0.4444
+     },
+     "20261012_220422_burg-upper": {
+      "n": 20,
+      "acc": 0.6
+     },
+     "20261012_225154_burg-upper": {
+      "n": 28,
+      "acc": 0.5
+     },
+     "20261013_003435_burg-upper": {
+      "n": 4,
+      "acc": 0.75
+     },
+     "20261013_003654_burg-upper": {
+      "n": 35,
+      "acc": 0.7429
+     },
+     "20261013_005647_burg-upper": {
+      "n": 47,
+      "acc": 0.6596
+     },
+     "20261013_010935_burg-upper": {
+      "n": 30,
+      "acc": 0.5333
+     },
+     "20261013_171039_altar": {
+      "n": 8,
+      "acc": 0.625
+     },
+     "20261013_175209_clear-ramp": {
+      "n": 14,
+      "acc": 0.5714
+     }
+    },
+    "per_run_unweighted_mean_acc": 0.5857,
+    "per_class": {
+     "after_swing": {
+      "n": 249,
+      "runs": 26,
+      "pred_n": 39,
+      "P": 1.0,
+      "R": 0.157,
+      "F1": 0.271,
+      "reference_only": false,
+      "in_train": true
+     },
+     "approach": {
+      "n": 15,
+      "runs": 9,
+      "pred_n": 16,
+      "P": 0.938,
+      "R": 1.0,
+      "F1": 0.968,
+      "reference_only": false,
+      "in_train": true
+     },
+     "attack": {
+      "n": 37,
+      "runs": 15,
+      "pred_n": 20,
+      "P": 0.85,
+      "R": 0.459,
+      "F1": 0.596,
+      "reference_only": false,
+      "in_train": true
+     },
+     "backstab": {
+      "n": 15,
+      "runs": 12,
+      "pred_n": 22,
+      "P": 0.591,
+      "R": 0.867,
+      "F1": 0.703,
+      "reference_only": false,
+      "in_train": true
+     },
+     "backstab_swing": {
+      "n": 113,
+      "runs": 25,
+      "pred_n": 146,
+      "P": 0.678,
+      "R": 0.876,
+      "F1": 0.764,
+      "reference_only": false,
+      "in_train": true
+     },
+     "block": {
+      "n": 3,
+      "runs": 3,
+      "pred_n": 5,
+      "P": 0.6,
+      "R": 1.0,
+      "F1": 0.75,
+      "reference_only": true,
+      "in_train": true
+     },
+     "edge": {
+      "n": 21,
+      "runs": 11,
+      "pred_n": 24,
+      "P": 0.292,
+      "R": 0.333,
+      "F1": 0.311,
+      "reference_only": false,
+      "in_train": true
+     },
+     "estus": {
+      "n": 10,
+      "runs": 5,
+      "pred_n": 12,
+      "P": 0.833,
+      "R": 1.0,
+      "F1": 0.909,
+      "reference_only": false,
+      "in_train": true
+     },
+     "face": {
+      "n": 1,
+      "runs": 1,
+      "pred_n": 2,
+      "P": 0.5,
+      "R": 1.0,
+      "F1": 0.667,
+      "reference_only": true,
+      "in_train": true
+     },
+     "face_first": {
+      "n": 20,
+      "runs": 8,
+      "pred_n": 32,
+      "P": 0.625,
+      "R": 1.0,
+      "F1": 0.769,
+      "reference_only": false,
+      "in_train": true
+     },
+     "finish": {
+      "n": 6,
+      "runs": 3,
+      "pred_n": 20,
+      "P": 0.3,
+      "R": 1.0,
+      "F1": 0.462,
+      "reference_only": true,
+      "in_train": true
+     },
+     "finish_first": {
+      "n": 48,
+      "runs": 16,
+      "pred_n": 56,
+      "P": 0.821,
+      "R": 0.958,
+      "F1": 0.885,
+      "reference_only": false,
+      "in_train": true
+     },
+     "hit_first": {
+      "n": 41,
+      "runs": 18,
+      "pred_n": 77,
+      "P": 0.468,
+      "R": 0.878,
+      "F1": 0.61,
+      "reference_only": false,
+      "in_train": true
+     },
+     "late_windup_block": {
+      "n": 14,
+      "runs": 8,
+      "pred_n": 38,
+      "P": 0.368,
+      "R": 1.0,
+      "F1": 0.538,
+      "reference_only": false,
+      "in_train": true
+     },
+     "lure": {
+      "n": 1,
+      "runs": 1,
+      "pred_n": 4,
+      "P": 0.25,
+      "R": 1.0,
+      "F1": 0.4,
+      "reference_only": true,
+      "in_train": true
+     },
+     "reflex": {
+      "n": 43,
+      "runs": 16,
+      "pred_n": 37,
+      "P": 0.568,
+      "R": 0.488,
+      "F1": 0.525,
+      "reference_only": false,
+      "in_train": true
+     },
+     "shot": {
+      "n": 7,
+      "runs": 5,
+      "pred_n": 15,
+      "P": 0.4,
+      "R": 0.857,
+      "F1": 0.545,
+      "reference_only": true,
+      "in_train": true
+     },
+     "stagger_punish": {
+      "n": 45,
+      "runs": 16,
+      "pred_n": 114,
+      "P": 0.351,
+      "R": 0.889,
+      "F1": 0.503,
+      "reference_only": false,
+      "in_train": true
+     },
+     "stamina": {
+      "n": 27,
+      "runs": 11,
+      "pred_n": 38,
+      "P": 0.711,
+      "R": 1.0,
+      "F1": 0.831,
+      "reference_only": false,
+      "in_train": true
+     },
+     "wait_far": {
+      "n": 14,
+      "runs": 11,
+      "pred_n": 13,
+      "P": 0.615,
+      "R": 0.571,
+      "F1": 0.593,
+      "reference_only": false,
+      "in_train": true
+     }
+    },
+    "confusion": {
+     "backstab_swing->backstab_swing": 99,
+     "after_swing->stagger_punish": 64,
+     "finish_first->finish_first": 46,
+     "stagger_punish->stagger_punish": 40,
+     "after_swing->after_swing": 39,
+     "after_swing->backstab_swing": 38,
+     "after_swing->hit_first": 37,
+     "hit_first->hit_first": 36,
+     "stamina->stamina": 27,
+     "reflex->reflex": 21,
+     "face_first->face_first": 20,
+     "attack->attack": 17,
+     "approach->approach": 15,
+     "late_windup_block->late_windup_block": 14,
+     "backstab->backstab": 13,
+     "reflex->late_windup_block": 13,
+     "after_swing->edge": 11,
+     "after_swing->reflex": 11,
+     "estus->estus": 10,
+     "after_swing->face_first": 9,
+     "after_swing->finish_first": 9,
+     "after_swing->shot": 9,
+     "after_swing->late_windup_block": 8,
+     "wait_far->wait_far": 8,
+     "edge->edge": 7,
+     "edge->stamina": 7,
+     "finish->finish": 6,
+     "reflex->stagger_punish": 6,
+     "shot->shot": 6,
+     "attack->backstab_swing": 5,
+     "attack->reflex": 5,
+     "backstab_swing->backstab": 5,
+     "backstab_swing->finish": 5,
+     "after_swing->finish": 4,
+     "edge->wait_far": 4,
+     "hit_first->backstab_swing": 4,
+     "after_swing->backstab": 3,
+     "attack->hit_first": 3,
+     "block->block": 3,
+     "stagger_punish->edge": 3,
+     "after_swing->attack": 2,
+     "after_swing->estus": 2,
+     "after_swing->lure": 2,
+     "attack->edge": 2,
+     "attack->finish": 2,
+     "backstab_swing->late_windup_block": 2,
+     "edge->stagger_punish": 2,
+     "reflex->stamina": 2,
+     "after_swing->wait_far": 1,
+     "attack->backstab": 1,
+     "attack->finish_first": 1,
+     "attack->late_windup_block": 1,
+     "backstab->attack": 1,
+     "backstab->face": 1,
+     "backstab_swing->block": 1,
+     "backstab_swing->face_first": 1,
+     "edge->face_first": 1,
+     "face->face": 1,
+     "finish_first->finish": 1,
+     "finish_first->stamina": 1,
+     "hit_first->finish": 1,
+     "lure->lure": 1,
+     "reflex->finish": 1,
+     "shot->stagger_punish": 1,
+     "stagger_punish->hit_first": 1,
+     "stagger_punish->lure": 1,
+     "wait_far->approach": 1,
+     "wait_far->block": 1,
+     "wait_far->edge": 1,
+     "wait_far->face_first": 1,
+     "wait_far->stagger_punish": 1,
+     "wait_far->stamina": 1
+    }
+   },
+   "val": {
+    "n": 134,
+    "runs": 5,
+    "acc": 0.4851,
+    "macro_f1_all_true": 0.3783,
+    "all_true_classes": [
+     "after_swing",
+     "approach",
+     "attack",
+     "backstab",
+     "backstab_swing",
+     "edge",
+     "estus",
+     "face_first",
+     "finish",
+     "finish_first",
+     "footing",
+     "hit_first",
+     "late_windup_block",
+     "reflex",
+     "shot",
+     "stagger_punish",
+     "stamina",
+     "wait_far"
+    ],
+    "train_absent_true_classes": [
+     "footing"
+    ],
+    "per_run": {
+     "20261011_145345_burg-bonfire": {
+      "n": 29,
+      "acc": 0.6207
+     },
+     "20261012_003844_burg-upper": {
+      "n": 4,
+      "acc": 0.5
+     },
+     "20261012_024340_burg-upper": {
+      "n": 57,
+      "acc": 0.4211
+     },
+     "20261012_053935_burg-bonfire": {
+      "n": 7,
+      "acc": 0.2857
+     },
+     "20261012_223957_burg-upper": {
+      "n": 37,
+      "acc": 0.5135
+     }
+    },
+    "per_run_unweighted_mean_acc": 0.4682,
+    "per_class": {
+     "after_swing": {
+      "n": 38,
+      "runs": 5,
+      "pred_n": 10,
+      "P": 1.0,
+      "R": 0.263,
+      "F1": 0.417,
+      "reference_only": false,
+      "in_train": true
+     },
+     "approach": {
+      "n": 2,
+      "runs": 1,
+      "pred_n": 1,
+      "P": 0.0,
+      "R": 0.0,
+      "F1": 0.0,
+      "reference_only": true,
+      "in_train": true
+     },
+     "attack": {
+      "n": 9,
+      "runs": 3,
+      "pred_n": 2,
+      "P": 1.0,
+      "R": 0.222,
+      "F1": 0.364,
+      "reference_only": true,
+      "in_train": true
+     },
+     "backstab": {
+      "n": 2,
+      "runs": 1,
+      "pred_n": 2,
+      "P": 0.5,
+      "R": 0.5,
+      "F1": 0.5,
+      "reference_only": true,
+      "in_train": true
+     },
+     "backstab_swing": {
+      "n": 22,
+      "runs": 5,
+      "pred_n": 26,
+      "P": 0.692,
+      "R": 0.818,
+      "F1": 0.75,
+      "reference_only": false,
+      "in_train": true
+     },
+     "edge": {
+      "n": 3,
+      "runs": 2,
+      "pred_n": 2,
+      "P": 0.0,
+      "R": 0.0,
+      "F1": 0.0,
+      "reference_only": true,
+      "in_train": true
+     },
+     "estus": {
+      "n": 2,
+      "runs": 2,
+      "pred_n": 2,
+      "P": 1.0,
+      "R": 1.0,
+      "F1": 1.0,
+      "reference_only": true,
+      "in_train": true
+     },
+     "face": {
+      "n": 0,
+      "runs": 0,
+      "pred_n": 5,
+      "P": 0.0,
+      "R": 0.0,
+      "F1": 0.0,
+      "reference_only": true,
+      "in_train": true
+     },
+     "face_first": {
+      "n": 13,
+      "runs": 4,
+      "pred_n": 15,
+      "P": 0.733,
+      "R": 0.846,
+      "F1": 0.786,
+      "reference_only": false,
+      "in_train": true
+     },
+     "finish": {
+      "n": 1,
+      "runs": 1,
+      "pred_n": 5,
+      "P": 0.2,
+      "R": 1.0,
+      "F1": 0.333,
+      "reference_only": true,
+      "in_train": true
+     },
+     "finish_first": {
+      "n": 5,
+      "runs": 3,
+      "pred_n": 9,
+      "P": 0.556,
+      "R": 1.0,
+      "F1": 0.714,
+      "reference_only": true,
+      "in_train": true
+     },
+     "footing": {
+      "n": 3,
+      "runs": 1,
+      "pred_n": 0,
+      "P": 0.0,
+      "R": 0.0,
+      "F1": 0.0,
+      "reference_only": true,
+      "in_train": false
+     },
+     "hit_first": {
+      "n": 6,
+      "runs": 2,
+      "pred_n": 8,
+      "P": 0.5,
+      "R": 0.667,
+      "F1": 0.571,
+      "reference_only": true,
+      "in_train": true
+     },
+     "late_windup_block": {
+      "n": 1,
+      "runs": 1,
+      "pred_n": 4,
+      "P": 0.25,
+      "R": 1.0,
+      "F1": 0.4,
+      "reference_only": true,
+      "in_train": true
+     },
+     "reflex": {
+      "n": 16,
+      "runs": 4,
+      "pred_n": 13,
+      "P": 0.385,
+      "R": 0.312,
+      "F1": 0.345,
+      "reference_only": false,
+      "in_train": true
+     },
+     "shot": {
+      "n": 1,
+      "runs": 1,
+      "pred_n": 1,
+      "P": 0.0,
+      "R": 0.0,
+      "F1": 0.0,
+      "reference_only": true,
+      "in_train": true
+     },
+     "stagger_punish": {
+      "n": 2,
+      "runs": 2,
+      "pred_n": 18,
+      "P": 0.111,
+      "R": 1.0,
+      "F1": 0.2,
+      "reference_only": true,
+      "in_train": true
+     },
+     "stamina": {
+      "n": 5,
+      "runs": 2,
+      "pred_n": 9,
+      "P": 0.333,
+      "R": 0.6,
+      "F1": 0.429,
+      "reference_only": true,
+      "in_train": true
+     },
+     "wait_far": {
+      "n": 3,
+      "runs": 1,
+      "pred_n": 2,
+      "P": 0.0,
+      "R": 0.0,
+      "F1": 0.0,
+      "reference_only": true,
+      "in_train": true
+     }
+    },
+    "confusion": {
+     "backstab_swing->backstab_swing": 18,
+     "face_first->face_first": 11,
+     "after_swing->after_swing": 10,
+     "after_swing->stagger_punish": 9,
+     "after_swing->backstab_swing": 5,
+     "finish_first->finish_first": 5,
+     "reflex->reflex": 5,
+     "after_swing->hit_first": 4,
+     "hit_first->hit_first": 4,
+     "reflex->stagger_punish": 4,
+     "attack->reflex": 3,
+     "reflex->stamina": 3,
+     "stamina->stamina": 3,
+     "after_swing->face": 2,
+     "after_swing->face_first": 2,
+     "attack->attack": 2,
+     "attack->finish_first": 2,
+     "backstab_swing->finish": 2,
+     "edge->reflex": 2,
+     "estus->estus": 2,
+     "footing->stamina": 2,
+     "hit_first->backstab_swing": 2,
+     "stagger_punish->stagger_punish": 2,
+     "after_swing->edge": 1,
+     "after_swing->finish": 1,
+     "after_swing->finish_first": 1,
+     "after_swing->late_windup_block": 1,
+     "after_swing->reflex": 1,
+     "after_swing->shot": 1,
+     "approach->reflex": 1,
+     "approach->wait_far": 1,
+     "attack->backstab_swing": 1,
+     "attack->finish": 1,
+     "backstab->backstab": 1,
+     "backstab->stagger_punish": 1,
+     "backstab_swing->backstab": 1,
+     "backstab_swing->late_windup_block": 1,
+     "edge->stamina": 1,
+     "face_first->face": 1,
+     "face_first->stagger_punish": 1,
+     "finish->finish": 1,
+     "footing->face_first": 1,
+     "late_windup_block->late_windup_block": 1,
+     "reflex->edge": 1,
+     "reflex->face": 1,
+     "reflex->face_first": 1,
+     "reflex->late_windup_block": 1,
+     "shot->finish_first": 1,
+     "stamina->stagger_punish": 1,
+     "stamina->wait_far": 1,
+     "wait_far->approach": 1,
+     "wait_far->face": 1,
+     "wait_far->reflex": 1
+    }
+   }
+  },
+  "C3": {
+   "params": {
+    "id": "C3",
+    "max_depth": 12,
+    "class_weight": null
+   },
+   "train": {
+    "n": 730,
+    "runs": 26,
+    "acc": 0.889,
+    "macro_f1_all_true": 0.7465,
+    "all_true_classes": [
+     "after_swing",
+     "approach",
+     "attack",
+     "backstab",
+     "backstab_swing",
+     "block",
+     "edge",
+     "estus",
+     "face",
+     "face_first",
+     "finish",
+     "finish_first",
+     "hit_first",
+     "late_windup_block",
+     "lure",
+     "reflex",
+     "shot",
+     "stagger_punish",
+     "stamina",
+     "wait_far"
+    ],
+    "train_absent_true_classes": [],
+    "per_run": {
+     "20261011_144208_burg-bonfire": {
+      "n": 13,
+      "acc": 0.6154
+     },
+     "20261011_144434_burg-bonfire": {
+      "n": 13,
+      "acc": 1.0
+     },
+     "20261011_144701_burg-bonfire": {
+      "n": 12,
+      "acc": 1.0
+     },
+     "20261011_145120_burg-bonfire": {
+      "n": 13,
+      "acc": 0.7692
+     },
+     "20261011_161435_burg-bonfire": {
+      "n": 18,
+      "acc": 0.8889
+     },
+     "20261011_170346_burg-upper": {
+      "n": 34,
+      "acc": 0.8235
+     },
+     "20261011_171918_burg-upper": {
+      "n": 47,
+      "acc": 0.9574
+     },
+     "20261011_174753_burg-upper": {
+      "n": 48,
+      "acc": 0.8333
+     },
+     "20261012_003442_burg-upper": {
+      "n": 7,
+      "acc": 0.8571
+     },
+     "20261012_004844_burg-upper": {
+      "n": 40,
+      "acc": 0.95
+     },
+     "20261012_010457_burg-upper": {
+      "n": 63,
+      "acc": 0.9048
+     },
+     "20261012_030444_burg-upper": {
+      "n": 76,
+      "acc": 0.9211
+     },
+     "20261012_033810_burg-bonfire": {
+      "n": 46,
+      "acc": 0.8043
+     },
+     "20261012_054128_burg-bonfire": {
+      "n": 17,
+      "acc": 0.8824
+     },
+     "20261012_060343_burg-upper": {
+      "n": 62,
+      "acc": 0.9516
+     },
+     "20261012_074829_burg-upper": {
+      "n": 8,
+      "acc": 1.0
+     },
+     "20261012_075054_burg-upper": {
+      "n": 18,
+      "acc": 0.8889
+     },
+     "20261012_220230_burg-upper": {
+      "n": 9,
+      "acc": 0.6667
+     },
+     "20261012_220422_burg-upper": {
+      "n": 20,
+      "acc": 0.7
+     },
+     "20261012_225154_burg-upper": {
+      "n": 28,
+      "acc": 0.8929
+     },
+     "20261013_003435_burg-upper": {
+      "n": 4,
+      "acc": 1.0
+     },
+     "20261013_003654_burg-upper": {
+      "n": 35,
+      "acc": 0.9429
+     },
+     "20261013_005647_burg-upper": {
+      "n": 47,
+      "acc": 0.9362
+     },
+     "20261013_010935_burg-upper": {
+      "n": 30,
+      "acc": 0.9333
+     },
+     "20261013_171039_altar": {
+      "n": 8,
+      "acc": 0.875
+     },
+     "20261013_175209_clear-ramp": {
+      "n": 14,
+      "acc": 0.7143
+     }
+    },
+    "per_run_unweighted_mean_acc": 0.8734,
+    "per_class": {
+     "after_swing": {
+      "n": 249,
+      "runs": 26,
+      "pred_n": 288,
+      "P": 0.826,
+      "R": 0.956,
+      "F1": 0.886,
+      "reference_only": false,
+      "in_train": true
+     },
+     "approach": {
+      "n": 15,
+      "runs": 9,
+      "pred_n": 12,
+      "P": 1.0,
+      "R": 0.8,
+      "F1": 0.889,
+      "reference_only": false,
+      "in_train": true
+     },
+     "attack": {
+      "n": 37,
+      "runs": 15,
+      "pred_n": 37,
+      "P": 0.919,
+      "R": 0.919,
+      "F1": 0.919,
+      "reference_only": false,
+      "in_train": true
+     },
+     "backstab": {
+      "n": 15,
+      "runs": 12,
+      "pred_n": 11,
+      "P": 0.909,
+      "R": 0.667,
+      "F1": 0.769,
+      "reference_only": false,
+      "in_train": true
+     },
+     "backstab_swing": {
+      "n": 113,
+      "runs": 25,
+      "pred_n": 123,
+      "P": 0.919,
+      "R": 1.0,
+      "F1": 0.958,
+      "reference_only": false,
+      "in_train": true
+     },
+     "block": {
+      "n": 3,
+      "runs": 3,
+      "pred_n": 2,
+      "P": 1.0,
+      "R": 0.667,
+      "F1": 0.8,
+      "reference_only": true,
+      "in_train": true
+     },
+     "edge": {
+      "n": 21,
+      "runs": 11,
+      "pred_n": 10,
+      "P": 1.0,
+      "R": 0.476,
+      "F1": 0.645,
+      "reference_only": false,
+      "in_train": true
+     },
+     "estus": {
+      "n": 10,
+      "runs": 5,
+      "pred_n": 10,
+      "P": 1.0,
+      "R": 1.0,
+      "F1": 1.0,
+      "reference_only": false,
+      "in_train": true
+     },
+     "face": {
+      "n": 1,
+      "runs": 1,
+      "pred_n": 0,
+      "P": 0.0,
+      "R": 0.0,
+      "F1": 0.0,
+      "reference_only": true,
+      "in_train": true
+     },
+     "face_first": {
+      "n": 20,
+      "runs": 8,
+      "pred_n": 21,
+      "P": 0.905,
+      "R": 0.95,
+      "F1": 0.927,
+      "reference_only": false,
+      "in_train": true
+     },
+     "finish": {
+      "n": 6,
+      "runs": 3,
+      "pred_n": 4,
+      "P": 1.0,
+      "R": 0.667,
+      "F1": 0.8,
+      "reference_only": true,
+      "in_train": true
+     },
+     "finish_first": {
+      "n": 48,
+      "runs": 16,
+      "pred_n": 53,
+      "P": 0.906,
+      "R": 1.0,
+      "F1": 0.95,
+      "reference_only": false,
+      "in_train": true
+     },
+     "hit_first": {
+      "n": 41,
+      "runs": 18,
+      "pred_n": 31,
+      "P": 0.935,
+      "R": 0.707,
+      "F1": 0.806,
+      "reference_only": false,
+      "in_train": true
+     },
+     "late_windup_block": {
+      "n": 14,
+      "runs": 8,
+      "pred_n": 10,
+      "P": 1.0,
+      "R": 0.714,
+      "F1": 0.833,
+      "reference_only": false,
+      "in_train": true
+     },
+     "lure": {
+      "n": 1,
+      "runs": 1,
+      "pred_n": 0,
+      "P": 0.0,
+      "R": 0.0,
+      "F1": 0.0,
+      "reference_only": true,
+      "in_train": true
+     },
+     "reflex": {
+      "n": 43,
+      "runs": 16,
+      "pred_n": 41,
+      "P": 0.878,
+      "R": 0.837,
+      "F1": 0.857,
+      "reference_only": false,
+      "in_train": true
+     },
+     "shot": {
+      "n": 7,
+      "runs": 5,
+      "pred_n": 1,
+      "P": 1.0,
+      "R": 0.143,
+      "F1": 0.25,
+      "reference_only": true,
+      "in_train": true
+     },
+     "stagger_punish": {
+      "n": 45,
+      "runs": 16,
+      "pred_n": 36,
+      "P": 1.0,
+      "R": 0.8,
+      "F1": 0.889,
+      "reference_only": false,
+      "in_train": true
+     },
+     "stamina": {
+      "n": 27,
+      "runs": 11,
+      "pred_n": 28,
+      "P": 0.964,
+      "R": 1.0,
+      "F1": 0.982,
+      "reference_only": false,
+      "in_train": true
+     },
+     "wait_far": {
+      "n": 14,
+      "runs": 11,
+      "pred_n": 12,
+      "P": 0.833,
+      "R": 0.714,
+      "F1": 0.769,
+      "reference_only": false,
+      "in_train": true
+     }
+    },
+    "confusion": {
+     "after_swing->after_swing": 238,
+     "backstab_swing->backstab_swing": 113,
+     "finish_first->finish_first": 48,
+     "reflex->reflex": 36,
+     "stagger_punish->stagger_punish": 36,
+     "attack->attack": 34,
+     "hit_first->hit_first": 29,
+     "stamina->stamina": 27,
+     "face_first->face_first": 19,
+     "approach->approach": 12,
+     "hit_first->after_swing": 11,
+     "backstab->backstab": 10,
+     "edge->edge": 10,
+     "estus->estus": 10,
+     "late_windup_block->late_windup_block": 10,
+     "wait_far->wait_far": 10,
+     "stagger_punish->after_swing": 8,
+     "after_swing->backstab_swing": 7,
+     "reflex->after_swing": 6,
+     "edge->after_swing": 5,
+     "finish->finish": 4,
+     "late_windup_block->after_swing": 4,
+     "shot->after_swing": 4,
+     "backstab->after_swing": 3,
+     "after_swing->finish_first": 2,
+     "attack->after_swing": 2,
+     "backstab->backstab_swing": 2,
+     "block->block": 2,
+     "edge->wait_far": 2,
+     "wait_far->after_swing": 2,
+     "after_swing->attack": 1,
+     "after_swing->hit_first": 1,
+     "approach->after_swing": 1,
+     "approach->face_first": 1,
+     "approach->reflex": 1,
+     "attack->backstab": 1,
+     "block->reflex": 1,
+     "edge->attack": 1,
+     "edge->finish_first": 1,
+     "edge->reflex": 1,
+     "edge->stamina": 1,
+     "face->after_swing": 1,
+     "face_first->after_swing": 1,
+     "finish->after_swing": 1,
+     "finish->finish_first": 1,
+     "hit_first->backstab_swing": 1,
+     "lure->after_swing": 1,
+     "reflex->attack": 1,
+     "shot->finish_first": 1,
+     "shot->hit_first": 1,
+     "shot->shot": 1,
+     "stagger_punish->reflex": 1,
+     "wait_far->face_first": 1,
+     "wait_far->reflex": 1
+    }
+   },
+   "val": {
+    "n": 134,
+    "runs": 5,
+    "acc": 0.6791,
+    "macro_f1_all_true": 0.3953,
+    "all_true_classes": [
+     "after_swing",
+     "approach",
+     "attack",
+     "backstab",
+     "backstab_swing",
+     "edge",
+     "estus",
+     "face_first",
+     "finish",
+     "finish_first",
+     "footing",
+     "hit_first",
+     "late_windup_block",
+     "reflex",
+     "shot",
+     "stagger_punish",
+     "stamina",
+     "wait_far"
+    ],
+    "train_absent_true_classes": [
+     "footing"
+    ],
+    "per_run": {
+     "20261011_145345_burg-bonfire": {
+      "n": 29,
+      "acc": 0.6207
+     },
+     "20261012_003844_burg-upper": {
+      "n": 4,
+      "acc": 1.0
+     },
+     "20261012_024340_burg-upper": {
+      "n": 57,
+      "acc": 0.614
+     },
+     "20261012_053935_burg-bonfire": {
+      "n": 7,
+      "acc": 1.0
+     },
+     "20261012_223957_burg-upper": {
+      "n": 37,
+      "acc": 0.7297
+     }
+    },
+    "per_run_unweighted_mean_acc": 0.7929,
+    "per_class": {
+     "after_swing": {
+      "n": 38,
+      "runs": 5,
+      "pred_n": 51,
+      "P": 0.667,
+      "R": 0.895,
+      "F1": 0.764,
+      "reference_only": false,
+      "in_train": true
+     },
+     "approach": {
+      "n": 2,
+      "runs": 1,
+      "pred_n": 1,
+      "P": 0.0,
+      "R": 0.0,
+      "F1": 0.0,
+      "reference_only": true,
+      "in_train": true
+     },
+     "attack": {
+      "n": 9,
+      "runs": 3,
+      "pred_n": 3,
+      "P": 0.667,
+      "R": 0.222,
+      "F1": 0.333,
+      "reference_only": true,
+      "in_train": true
+     },
+     "backstab": {
+      "n": 2,
+      "runs": 1,
+      "pred_n": 1,
+      "P": 1.0,
+      "R": 0.5,
+      "F1": 0.667,
+      "reference_only": true,
+      "in_train": true
+     },
+     "backstab_swing": {
+      "n": 22,
+      "runs": 5,
+      "pred_n": 25,
+      "P": 0.88,
+      "R": 1.0,
+      "F1": 0.936,
+      "reference_only": false,
+      "in_train": true
+     },
+     "edge": {
+      "n": 3,
+      "runs": 2,
+      "pred_n": 0,
+      "P": 0.0,
+      "R": 0.0,
+      "F1": 0.0,
+      "reference_only": true,
+      "in_train": true
+     },
+     "estus": {
+      "n": 2,
+      "runs": 2,
+      "pred_n": 1,
+      "P": 1.0,
+      "R": 0.5,
+      "F1": 0.667,
+      "reference_only": true,
+      "in_train": true
+     },
+     "face_first": {
+      "n": 13,
+      "runs": 4,
+      "pred_n": 9,
+      "P": 1.0,
+      "R": 0.692,
+      "F1": 0.818,
+      "reference_only": false,
+      "in_train": true
+     },
+     "finish": {
+      "n": 1,
+      "runs": 1,
+      "pred_n": 0,
+      "P": 0.0,
+      "R": 0.0,
+      "F1": 0.0,
+      "reference_only": true,
+      "in_train": true
+     },
+     "finish_first": {
+      "n": 5,
+      "runs": 3,
+      "pred_n": 7,
+      "P": 0.714,
+      "R": 1.0,
+      "F1": 0.833,
+      "reference_only": true,
+      "in_train": true
+     },
+     "footing": {
+      "n": 3,
+      "runs": 1,
+      "pred_n": 0,
+      "P": 0.0,
+      "R": 0.0,
+      "F1": 0.0,
+      "reference_only": true,
+      "in_train": false
+     },
+     "hit_first": {
+      "n": 6,
+      "runs": 2,
+      "pred_n": 3,
+      "P": 1.0,
+      "R": 0.5,
+      "F1": 0.667,
+      "reference_only": true,
+      "in_train": true
+     },
+     "late_windup_block": {
+      "n": 1,
+      "runs": 1,
+      "pred_n": 0,
+      "P": 0.0,
+      "R": 0.0,
+      "F1": 0.0,
+      "reference_only": true,
+      "in_train": true
+     },
+     "reflex": {
+      "n": 16,
+      "runs": 4,
+      "pred_n": 14,
+      "P": 0.571,
+      "R": 0.5,
+      "F1": 0.533,
+      "reference_only": false,
+      "in_train": true
+     },
+     "shot": {
+      "n": 1,
+      "runs": 1,
+      "pred_n": 0,
+      "P": 0.0,
+      "R": 0.0,
+      "F1": 0.0,
+      "reference_only": true,
+      "in_train": true
+     },
+     "stagger_punish": {
+      "n": 2,
+      "runs": 2,
+      "pred_n": 9,
+      "P": 0.222,
+      "R": 1.0,
+      "F1": 0.364,
+      "reference_only": true,
+      "in_train": true
+     },
+     "stamina": {
+      "n": 5,
+      "runs": 2,
+      "pred_n": 10,
+      "P": 0.4,
+      "R": 0.8,
+      "F1": 0.533,
+      "reference_only": true,
+      "in_train": true
+     },
+     "wait_far": {
+      "n": 3,
+      "runs": 1,
+      "pred_n": 0,
+      "P": 0.0,
+      "R": 0.0,
+      "F1": 0.0,
+      "reference_only": true,
+      "in_train": true
+     }
+    },
+    "confusion": {
+     "after_swing->after_swing": 34,
+     "backstab_swing->backstab_swing": 22,
+     "face_first->face_first": 9,
+     "reflex->reflex": 8,
+     "finish_first->finish_first": 5,
+     "attack->after_swing": 4,
+     "stamina->stamina": 4,
+     "hit_first->after_swing": 3,
+     "hit_first->hit_first": 3,
+     "reflex->after_swing": 3,
+     "reflex->stagger_punish": 3,
+     "after_swing->backstab_swing": 2,
+     "attack->attack": 2,
+     "attack->reflex": 2,
+     "face_first->stagger_punish": 2,
+     "footing->stamina": 2,
+     "stagger_punish->stagger_punish": 2,
+     "wait_far->after_swing": 2,
+     "after_swing->reflex": 1,
+     "after_swing->stagger_punish": 1,
+     "approach->reflex": 1,
+     "approach->stamina": 1,
+     "attack->finish_first": 1,
+     "backstab->backstab": 1,
+     "backstab->stagger_punish": 1,
+     "edge->after_swing": 1,
+     "edge->reflex": 1,
+     "edge->stamina": 1,
+     "estus->after_swing": 1,
+     "estus->estus": 1,
+     "face_first->after_swing": 1,
+     "face_first->stamina": 1,
+     "finish->backstab_swing": 1,
+     "footing->after_swing": 1,
+     "late_windup_block->reflex": 1,
+     "reflex->attack": 1,
+     "reflex->stamina": 1,
+     "shot->finish_first": 1,
+     "stamina->after_swing": 1,
+     "wait_far->approach": 1
+    }
+   }
+  },
+  "C4": {
+   "params": {
+    "id": "C4",
+    "max_depth": 12,
+    "class_weight": "balanced"
+   },
+   "train": {
+    "n": 730,
+    "runs": 26,
+    "acc": 0.7384,
+    "macro_f1_all_true": 0.7432,
+    "all_true_classes": [
+     "after_swing",
+     "approach",
+     "attack",
+     "backstab",
+     "backstab_swing",
+     "block",
+     "edge",
+     "estus",
+     "face",
+     "face_first",
+     "finish",
+     "finish_first",
+     "hit_first",
+     "late_windup_block",
+     "lure",
+     "reflex",
+     "shot",
+     "stagger_punish",
+     "stamina",
+     "wait_far"
+    ],
+    "train_absent_true_classes": [],
+    "per_run": {
+     "20261011_144208_burg-bonfire": {
+      "n": 13,
+      "acc": 0.7692
+     },
+     "20261011_144434_burg-bonfire": {
+      "n": 13,
+      "acc": 0.6154
+     },
+     "20261011_144701_burg-bonfire": {
+      "n": 12,
+      "acc": 0.5833
+     },
+     "20261011_145120_burg-bonfire": {
+      "n": 13,
+      "acc": 0.6923
+     },
+     "20261011_161435_burg-bonfire": {
+      "n": 18,
+      "acc": 0.6111
+     },
+     "20261011_170346_burg-upper": {
+      "n": 34,
+      "acc": 0.7941
+     },
+     "20261011_171918_burg-upper": {
+      "n": 47,
+      "acc": 0.7872
+     },
+     "20261011_174753_burg-upper": {
+      "n": 48,
+      "acc": 0.75
+     },
+     "20261012_003442_burg-upper": {
+      "n": 7,
+      "acc": 0.8571
+     },
+     "20261012_004844_burg-upper": {
+      "n": 40,
+      "acc": 0.75
+     },
+     "20261012_010457_burg-upper": {
+      "n": 63,
+      "acc": 0.8254
+     },
+     "20261012_030444_burg-upper": {
+      "n": 76,
+      "acc": 0.6711
+     },
+     "20261012_033810_burg-bonfire": {
+      "n": 46,
+      "acc": 0.6304
+     },
+     "20261012_054128_burg-bonfire": {
+      "n": 17,
+      "acc": 0.9412
+     },
+     "20261012_060343_burg-upper": {
+      "n": 62,
+      "acc": 0.7742
+     },
+     "20261012_074829_burg-upper": {
+      "n": 8,
+      "acc": 0.75
+     },
+     "20261012_075054_burg-upper": {
+      "n": 18,
+      "acc": 0.8333
+     },
+     "20261012_220230_burg-upper": {
+      "n": 9,
+      "acc": 0.4444
+     },
+     "20261012_220422_burg-upper": {
+      "n": 20,
+      "acc": 0.6
+     },
+     "20261012_225154_burg-upper": {
+      "n": 28,
+      "acc": 0.7857
+     },
+     "20261013_003435_burg-upper": {
+      "n": 4,
+      "acc": 1.0
+     },
+     "20261013_003654_burg-upper": {
+      "n": 35,
+      "acc": 0.8
+     },
+     "20261013_005647_burg-upper": {
+      "n": 47,
+      "acc": 0.766
+     },
+     "20261013_010935_burg-upper": {
+      "n": 30,
+      "acc": 0.6667
+     },
+     "20261013_171039_altar": {
+      "n": 8,
+      "acc": 0.875
+     },
+     "20261013_175209_clear-ramp": {
+      "n": 14,
+      "acc": 0.5714
+     }
+    },
+    "per_run_unweighted_mean_acc": 0.7363,
+    "per_class": {
+     "after_swing": {
+      "n": 249,
+      "runs": 26,
+      "pred_n": 101,
+      "P": 1.0,
+      "R": 0.406,
+      "F1": 0.577,
+      "reference_only": false,
+      "in_train": true
+     },
+     "approach": {
+      "n": 15,
+      "runs": 9,
+      "pred_n": 16,
+      "P": 0.938,
+      "R": 1.0,
+      "F1": 0.968,
+      "reference_only": false,
+      "in_train": true
+     },
+     "attack": {
+      "n": 37,
+      "runs": 15,
+      "pred_n": 40,
+      "P": 0.85,
+      "R": 0.919,
+      "F1": 0.883,
+      "reference_only": false,
+      "in_train": true
+     },
+     "backstab": {
+      "n": 15,
+      "runs": 12,
+      "pred_n": 23,
+      "P": 0.652,
+      "R": 1.0,
+      "F1": 0.789,
+      "reference_only": false,
+      "in_train": true
+     },
+     "backstab_swing": {
+      "n": 113,
+      "runs": 25,
+      "pred_n": 136,
+      "P": 0.765,
+      "R": 0.92,
+      "F1": 0.835,
+      "reference_only": false,
+      "in_train": true
+     },
+     "block": {
+      "n": 3,
+      "runs": 3,
+      "pred_n": 4,
+      "P": 0.75,
+      "R": 1.0,
+      "F1": 0.857,
+      "reference_only": true,
+      "in_train": true
+     },
+     "edge": {
+      "n": 21,
+      "runs": 11,
+      "pred_n": 32,
+      "P": 0.438,
+      "R": 0.667,
+      "F1": 0.528,
+      "reference_only": false,
+      "in_train": true
+     },
+     "estus": {
+      "n": 10,
+      "runs": 5,
+      "pred_n": 12,
+      "P": 0.833,
+      "R": 1.0,
+      "F1": 0.909,
+      "reference_only": false,
+      "in_train": true
+     },
+     "face": {
+      "n": 1,
+      "runs": 1,
+      "pred_n": 2,
+      "P": 0.5,
+      "R": 1.0,
+      "F1": 0.667,
+      "reference_only": true,
+      "in_train": true
+     },
+     "face_first": {
+      "n": 20,
+      "runs": 8,
+      "pred_n": 27,
+      "P": 0.741,
+      "R": 1.0,
+      "F1": 0.851,
+      "reference_only": false,
+      "in_train": true
+     },
+     "finish": {
+      "n": 6,
+      "runs": 3,
+      "pred_n": 16,
+      "P": 0.375,
+      "R": 1.0,
+      "F1": 0.545,
+      "reference_only": true,
+      "in_train": true
+     },
+     "finish_first": {
+      "n": 48,
+      "runs": 16,
+      "pred_n": 55,
+      "P": 0.836,
+      "R": 0.958,
+      "F1": 0.893,
+      "reference_only": false,
+      "in_train": true
+     },
+     "hit_first": {
+      "n": 41,
+      "runs": 18,
+      "pred_n": 77,
+      "P": 0.506,
+      "R": 0.951,
+      "F1": 0.661,
+      "reference_only": false,
+      "in_train": true
+     },
+     "late_windup_block": {
+      "n": 14,
+      "runs": 8,
+      "pred_n": 33,
+      "P": 0.424,
+      "R": 1.0,
+      "F1": 0.596,
+      "reference_only": false,
+      "in_train": true
+     },
+     "lure": {
+      "n": 1,
+      "runs": 1,
+      "pred_n": 4,
+      "P": 0.25,
+      "R": 1.0,
+      "F1": 0.4,
+      "reference_only": true,
+      "in_train": true
+     },
+     "reflex": {
+      "n": 43,
+      "runs": 16,
+      "pred_n": 38,
+      "P": 0.789,
+      "R": 0.698,
+      "F1": 0.741,
+      "reference_only": false,
+      "in_train": true
+     },
+     "shot": {
+      "n": 7,
+      "runs": 5,
+      "pred_n": 17,
+      "P": 0.412,
+      "R": 1.0,
+      "F1": 0.583,
+      "reference_only": true,
+      "in_train": true
+     },
+     "stagger_punish": {
+      "n": 45,
+      "runs": 16,
+      "pred_n": 49,
+      "P": 0.796,
+      "R": 0.867,
+      "F1": 0.83,
+      "reference_only": false,
+      "in_train": true
+     },
+     "stamina": {
+      "n": 27,
+      "runs": 11,
+      "pred_n": 29,
+      "P": 0.931,
+      "R": 1.0,
+      "F1": 0.964,
+      "reference_only": false,
+      "in_train": true
+     },
+     "wait_far": {
+      "n": 14,
+      "runs": 11,
+      "pred_n": 19,
+      "P": 0.684,
+      "R": 0.929,
+      "F1": 0.788,
+      "reference_only": false,
+      "in_train": true
+     }
+    },
+    "confusion": {
+     "backstab_swing->backstab_swing": 104,
+     "after_swing->after_swing": 101,
+     "finish_first->finish_first": 46,
+     "hit_first->hit_first": 39,
+     "stagger_punish->stagger_punish": 39,
+     "after_swing->hit_first": 37,
+     "attack->attack": 34,
+     "after_swing->backstab_swing": 31,
+     "reflex->reflex": 30,
+     "stamina->stamina": 27,
+     "face_first->face_first": 20,
+     "approach->approach": 15,
+     "backstab->backstab": 15,
+     "edge->edge": 14,
+     "late_windup_block->late_windup_block": 14,
+     "wait_far->wait_far": 13,
+     "after_swing->edge": 12,
+     "after_swing->shot": 10,
+     "after_swing->stagger_punish": 10,
+     "estus->estus": 10,
+     "reflex->late_windup_block": 10,
+     "after_swing->finish_first": 9,
+     "after_swing->late_windup_block": 8,
+     "after_swing->reflex": 7,
+     "shot->shot": 7,
+     "finish->finish": 6,
+     "after_swing->attack": 5,
+     "after_swing->face_first": 5,
+     "edge->wait_far": 5,
+     "after_swing->backstab": 4,
+     "after_swing->finish": 4,
+     "backstab_swing->finish": 4,
+     "stagger_punish->edge": 4,
+     "backstab_swing->backstab": 3,
+     "block->block": 3,
+     "after_swing->estus": 2,
+     "after_swing->lure": 2,
+     "after_swing->face": 1,
+     "after_swing->wait_far": 1,
+     "attack->backstab": 1,
+     "attack->edge": 1,
+     "attack->hit_first": 1,
+     "backstab_swing->block": 1,
+     "backstab_swing->late_windup_block": 1,
+     "edge->face_first": 1,
+     "edge->stamina": 1,
+     "face->face": 1,
+     "finish_first->finish": 1,
+     "finish_first->stamina": 1,
+     "hit_first->backstab_swing": 1,
+     "hit_first->finish": 1,
+     "lure->lure": 1,
+     "reflex->approach": 1,
+     "reflex->attack": 1,
+     "reflex->edge": 1,
+     "stagger_punish->lure": 1,
+     "stagger_punish->reflex": 1,
+     "wait_far->face_first": 1
+    }
+   },
+   "val": {
+    "n": 134,
+    "runs": 5,
+    "acc": 0.5597,
+    "macro_f1_all_true": 0.4182,
+    "all_true_classes": [
+     "after_swing",
+     "approach",
+     "attack",
+     "backstab",
+     "backstab_swing",
+     "edge",
+     "estus",
+     "face_first",
+     "finish",
+     "finish_first",
+     "footing",
+     "hit_first",
+     "late_windup_block",
+     "reflex",
+     "shot",
+     "stagger_punish",
+     "stamina",
+     "wait_far"
+    ],
+    "train_absent_true_classes": [
+     "footing"
+    ],
+    "per_run": {
+     "20261011_145345_burg-bonfire": {
+      "n": 29,
+      "acc": 0.6207
+     },
+     "20261012_003844_burg-upper": {
+      "n": 4,
+      "acc": 0.75
+     },
+     "20261012_024340_burg-upper": {
+      "n": 57,
+      "acc": 0.5614
+     },
+     "20261012_053935_burg-bonfire": {
+      "n": 7,
+      "acc": 0.4286
+     },
+     "20261012_223957_burg-upper": {
+      "n": 37,
+      "acc": 0.5135
+     }
+    },
+    "per_run_unweighted_mean_acc": 0.5748,
+    "per_class": {
+     "after_swing": {
+      "n": 38,
+      "runs": 5,
+      "pred_n": 13,
+      "P": 1.0,
+      "R": 0.342,
+      "F1": 0.51,
+      "reference_only": false,
+      "in_train": true
+     },
+     "approach": {
+      "n": 2,
+      "runs": 1,
+      "pred_n": 1,
+      "P": 0.0,
+      "R": 0.0,
+      "F1": 0.0,
+      "reference_only": true,
+      "in_train": true
+     },
+     "attack": {
+      "n": 9,
+      "runs": 3,
+      "pred_n": 5,
+      "P": 1.0,
+      "R": 0.556,
+      "F1": 0.714,
+      "reference_only": true,
+      "in_train": true
+     },
+     "backstab": {
+      "n": 2,
+      "runs": 1,
+      "pred_n": 3,
+      "P": 0.333,
+      "R": 0.5,
+      "F1": 0.4,
+      "reference_only": true,
+      "in_train": true
+     },
+     "backstab_swing": {
+      "n": 22,
+      "runs": 5,
+      "pred_n": 24,
+      "P": 0.792,
+      "R": 0.864,
+      "F1": 0.826,
+      "reference_only": false,
+      "in_train": true
+     },
+     "edge": {
+      "n": 3,
+      "runs": 2,
+      "pred_n": 6,
+      "P": 0.0,
+      "R": 0.0,
+      "F1": 0.0,
+      "reference_only": true,
+      "in_train": true
+     },
+     "estus": {
+      "n": 2,
+      "runs": 2,
+      "pred_n": 1,
+      "P": 1.0,
+      "R": 0.5,
+      "F1": 0.667,
+      "reference_only": true,
+      "in_train": true
+     },
+     "face": {
+      "n": 0,
+      "runs": 0,
+      "pred_n": 2,
+      "P": 0.0,
+      "R": 0.0,
+      "F1": 0.0,
+      "reference_only": true,
+      "in_train": true
+     },
+     "face_first": {
+      "n": 13,
+      "runs": 4,
+      "pred_n": 14,
+      "P": 0.857,
+      "R": 0.923,
+      "F1": 0.889,
+      "reference_only": false,
+      "in_train": true
+     },
+     "finish": {
+      "n": 1,
+      "runs": 1,
+      "pred_n": 5,
+      "P": 0.2,
+      "R": 1.0,
+      "F1": 0.333,
+      "reference_only": true,
+      "in_train": true
+     },
+     "finish_first": {
+      "n": 5,
+      "runs": 3,
+      "pred_n": 8,
+      "P": 0.625,
+      "R": 1.0,
+      "F1": 0.769,
+      "reference_only": true,
+      "in_train": true
+     },
+     "footing": {
+      "n": 3,
+      "runs": 1,
+      "pred_n": 0,
+      "P": 0.0,
+      "R": 0.0,
+      "F1": 0.0,
+      "reference_only": true,
+      "in_train": false
+     },
+     "hit_first": {
+      "n": 6,
+      "runs": 2,
+      "pred_n": 10,
+      "P": 0.6,
+      "R": 1.0,
+      "F1": 0.75,
+      "reference_only": true,
+      "in_train": true
+     },
+     "late_windup_block": {
+      "n": 1,
+      "runs": 1,
+      "pred_n": 3,
+      "P": 0.333,
+      "R": 1.0,
+      "F1": 0.5,
+      "reference_only": true,
+      "in_train": true
+     },
+     "reflex": {
+      "n": 16,
+      "runs": 4,
+      "pred_n": 14,
+      "P": 0.429,
+      "R": 0.375,
+      "F1": 0.4,
+      "reference_only": false,
+      "in_train": true
+     },
+     "shot": {
+      "n": 1,
+      "runs": 1,
+      "pred_n": 1,
+      "P": 0.0,
+      "R": 0.0,
+      "F1": 0.0,
+      "reference_only": true,
+      "in_train": true
+     },
+     "stagger_punish": {
+      "n": 2,
+      "runs": 2,
+      "pred_n": 11,
+      "P": 0.182,
+      "R": 1.0,
+      "F1": 0.308,
+      "reference_only": true,
+      "in_train": true
+     },
+     "stamina": {
+      "n": 5,
+      "runs": 2,
+      "pred_n": 8,
+      "P": 0.375,
+      "R": 0.6,
+      "F1": 0.462,
+      "reference_only": true,
+      "in_train": true
+     },
+     "wait_far": {
+      "n": 3,
+      "runs": 1,
+      "pred_n": 5,
+      "P": 0.0,
+      "R": 0.0,
+      "F1": 0.0,
+      "reference_only": true,
+      "in_train": true
+     }
+    },
+    "confusion": {
+     "backstab_swing->backstab_swing": 19,
+     "after_swing->after_swing": 13,
+     "face_first->face_first": 12,
+     "hit_first->hit_first": 6,
+     "reflex->reflex": 6,
+     "after_swing->backstab_swing": 5,
+     "after_swing->edge": 5,
+     "attack->attack": 5,
+     "finish_first->finish_first": 5,
+     "reflex->stagger_punish": 5,
+     "after_swing->hit_first": 4,
+     "after_swing->wait_far": 3,
+     "stamina->stamina": 3,
+     "after_swing->reflex": 2,
+     "attack->reflex": 2,
+     "backstab_swing->finish": 2,
+     "edge->reflex": 2,
+     "footing->stamina": 2,
+     "reflex->stamina": 2,
+     "stagger_punish->stagger_punish": 2,
+     "after_swing->face_first": 1,
+     "after_swing->finish": 1,
+     "after_swing->finish_first": 1,
+     "after_swing->late_windup_block": 1,
+     "after_swing->shot": 1,
+     "after_swing->stagger_punish": 1,
+     "approach->reflex": 1,
+     "approach->wait_far": 1,
+     "attack->finish": 1,
+     "attack->finish_first": 1,
+     "backstab->backstab": 1,
+     "backstab->stagger_punish": 1,
+     "backstab_swing->backstab": 1,
+     "edge->stamina": 1,
+     "estus->backstab": 1,
+     "estus->estus": 1,
+     "face_first->stagger_punish": 1,
+     "finish->finish": 1,
+     "footing->face_first": 1,
+     "late_windup_block->late_windup_block": 1,
+     "reflex->edge": 1,
+     "reflex->face": 1,
+     "reflex->late_windup_block": 1,
+     "shot->finish_first": 1,
+     "stamina->stagger_punish": 1,
+     "stamina->wait_far": 1,
+     "wait_far->approach": 1,
+     "wait_far->face": 1,
+     "wait_far->reflex": 1
+    }
+   }
+  }
+ }
+}

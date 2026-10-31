@@ -1,0 +1,299 @@
+{
+ "name": "g2-i1current-rf-v1",
+ "date": "2026-10-31",
+ "question": "Does a small classifier on current world observation (I1-current) reproduce the past bot's selected_rule better than the preserved lookup baseline? Follow-up comparison, not a blind test (baseline test/shift results were already seen).",
+ "data": {
+  "extract": "data/inventory/2026-10-31/g2_scene_extract.jsonl @6ccafc0",
+  "extract_sha256": "c0a31ceb8f8c733c0df043b076536c1d7045900ebec656a5ed44041527f3ea35",
+  "manifest": "data/inventory/2026-10-31/g2_scene_manifest_scenes.jsonl @6ccafc0",
+  "manifest_sha256": "3de0c325098b0358792b648aa1e1de5b079f591760ad94cfa3b39925e5eceec3",
+  "baseline_results": "experiments/g2_scene_baselines_2026_10_31/results.json @ca6b7f05d9f184c56d7fce97dab94b833e451fc9",
+  "baseline_results_sha256": "37b91a0a119c9a6c57ef673a52e3da1ed2aad6b0037e776d24cb322257f9db2e"
+ },
+ "splits": {
+  "fit": "train",
+  "select": "val",
+  "eval": [
+   "val",
+   "test",
+   "shift_zone",
+   "shift_ref"
+  ],
+  "exclude": [
+   "pending"
+  ],
+  "extra_eval": {
+   "shift_ref_no_dirty_duel": {
+    "from": "shift_ref",
+    "drop_runs": [
+     "20261019_232719_parish-group1"
+    ]
+   }
+  },
+  "sensitivity": {
+   "no_dirty_duel_train": {
+    "drop_train_runs": [
+     "20261012_075054_burg-upper"
+    ],
+    "note": "same selected config, retrained once"
+   }
+  }
+ },
+ "target": {
+  "primary": "rule",
+  "aux": "tactic (mapping below), derived from true and predicted rule; not trained separately"
+ },
+ "tactic_map": {
+  "finish_first": "attack",
+  "after_swing": "attack",
+  "hit_first": "attack",
+  "stagger_punish": "attack",
+  "attack": "attack",
+  "finish": "attack",
+  "early_kick": "attack",
+  "backstab_swing": "backstab",
+  "backstab": "backstab",
+  "reflex": "guard",
+  "block": "guard",
+  "late_windup_block": "guard",
+  "downed": "guard",
+  "wait_far": "hold_position",
+  "stamina": "hold_position",
+  "approach": "approach",
+  "lure": "reposition",
+  "estus": "heal",
+  "edge": "reposition if fight.arena not null else guard (style guard in all 55 runs)",
+  "face_first": "unmapped",
+  "face": "unmapped",
+  "shot": "unmapped",
+  "footing": "unmapped"
+ },
+ "features": {
+  "target_lookup": "target = the snap.chars entry whose ptr == tick.ptr (found for 1475/1475); ptr itself is not an input",
+  "hostile": "snap.chars with team in {6,7,24,25,27,33} and hp>0 (telemetry.Snapshot.hostile teams); horizontal distance hd(c)=hypot(c.x-p.x, c.z-p.z) in m",
+  "rel_angle": "bot convention souls/moves.py rel_angle(a,b) = wrap(atan2(b.x-a.x, b.z-a.z) - (a.heading+pi)) in (-pi,pi]; used by the bot itself for enemies (duel.py:112,1581,1685)",
+  "numeric": [
+   [
+    "my_hp",
+    "snap.player.hp",
+    "HP points"
+   ],
+   [
+    "my_max_hp",
+    "snap.player.max_hp",
+    "HP points"
+   ],
+   [
+    "my_hp_ratio",
+    "hp/max_hp",
+    "0..1, NaN if max<=0"
+   ],
+   [
+    "my_sp",
+    "snap.player.sp",
+    "SP points"
+   ],
+   [
+    "my_max_sp",
+    "snap.player.max_sp",
+    "SP points"
+   ],
+   [
+    "my_sp_ratio",
+    "sp/max_sp",
+    "0..1, NaN if max<=0"
+   ],
+   [
+    "tgt_hp",
+    "target.hp",
+    "HP"
+   ],
+   [
+    "tgt_max_hp",
+    "target.max_hp",
+    "HP"
+   ],
+   [
+    "tgt_hp_ratio",
+    "hp/max_hp",
+    "NaN if max<=0"
+   ],
+   [
+    "tgt_sp",
+    "target.sp",
+    "SP"
+   ],
+   [
+    "tgt_max_sp",
+    "target.max_sp",
+    "SP"
+   ],
+   [
+    "tgt_sp_ratio",
+    "sp/max_sp",
+    "NaN if max<=0"
+   ],
+   [
+    "tgt_h",
+    "tick.h",
+    "m, horizontal distance (equals recomputed value)"
+   ],
+   [
+    "tgt_dy",
+    "tick.dy",
+    "m, target y - my y"
+   ],
+   [
+    "tgt_off_my_facing_deg",
+    "abs(deg(rel_angle(player,target)))",
+    "deg 0..180, how far target is from my facing"
+   ],
+   [
+    "tgt_off_my_facing_signed_deg",
+    "deg(rel_angle(player,target))",
+    "deg -180..180, + = right"
+   ],
+   [
+    "me_off_tgt_facing_deg",
+    "abs(deg(rel_angle(target,player)))",
+    "deg 0..180, 180 = I am behind it"
+   ],
+   [
+    "n_hostile_2_5m",
+    "count hostile hd<2.5 (target included)",
+    "count"
+   ],
+   [
+    "n_hostile_4m",
+    "count hostile hd<4.0 (target included)",
+    "count"
+   ],
+   [
+    "n_hostile_8m",
+    "count hostile hd<8.0",
+    "count"
+   ],
+   [
+    "n_hostile_25m",
+    "count hostile (all captured, <=25 m 3D)",
+    "count"
+   ],
+   [
+    "other_nearest_hd",
+    "min hd over hostile excluding target",
+    "m, NaN if none"
+   ],
+   [
+    "other_second_hd",
+    "second smallest hd excluding target",
+    "m, NaN if <2 others"
+   ],
+   [
+    "n_other_attacking_4m",
+    "hostile excluding target with hd<4 and 3000<=anim<3500",
+    "count"
+   ]
+  ],
+  "categorical": [
+   [
+    "my_anim",
+    "snap.player.anim (-1/null -> 'idle')"
+   ],
+   [
+    "tgt_anim",
+    "tick.a (equals target.anim; -1/null -> 'idle')"
+   ],
+   [
+    "tgt_anim_cat",
+    "baseline anim category of tick.a (idle/attack/stagger/hit_stun/downed/guard_broken/dormant/falling/other)"
+   ],
+   [
+    "weapon_id",
+    "weapon.id as a category"
+   ]
+  ],
+  "excluded": {
+   "fight": "I2 bot memory",
+   "reflex": "I2",
+   "care": "I2",
+   "res": "past outcomes — excluded in this I1-current run",
+   "rule/out": "label / post-decision",
+   "future scenes, hits, links": "future / audit",
+   "run/scene_seq/fight key/ptr values": "identifiers",
+   "commit/date/zone/nm/flags/ground": "version/context metadata",
+   "absolute x,y,z,gx,gy,gz": "absolute map coordinates",
+   "snap.t": "capture age — not in the allowed list",
+   "snap.cam_yaw": "camera direction — not in the allowed list",
+   "chars.dist": "3D distance duplicate of computed horizontal distances",
+   "map_id,name,npc_param": "constant/empty in DSR; npc_param is enemy type — not in the allowed list",
+   "team 0/1/26 chars": "not hostile by the bot's own team filter"
+  }
+ },
+ "preprocessing": {
+  "fit_on": "train only (per training set: base and no_dirty variants each build their own dictionaries)",
+  "categorical": "one-hot over values seen >= 5 times in the training set; other training values -> '__rare__'; values not seen in training -> '__unknown__' (one column each)",
+  "numeric_missing": "kept as NaN (RandomForest in scikit-learn >= 1.4 handles NaN) plus a 0/1 '<name>__missing' column for every numeric feature that can be NaN (ratios, other_nearest_hd, other_second_hd); no other scaling",
+  "check": "no feature uses rule, out, res, fight, reflex, care, or anything after the scene"
+ },
+ "model": {
+  "family": "sklearn.ensemble.RandomForestClassifier",
+  "common": {
+   "n_estimators": 200,
+   "min_samples_leaf": 3,
+   "random_state": 20261031,
+   "criterion": "gini",
+   "max_features": "sqrt",
+   "bootstrap": true,
+   "n_jobs": 1
+  },
+  "candidates": [
+   {
+    "id": "C1",
+    "max_depth": 6,
+    "class_weight": null
+   },
+   {
+    "id": "C2",
+    "max_depth": 6,
+    "class_weight": "balanced"
+   },
+   {
+    "id": "C3",
+    "max_depth": 12,
+    "class_weight": null
+   },
+   {
+    "id": "C4",
+    "max_depth": 12,
+    "class_weight": "balanced"
+   }
+  ]
+ },
+ "selection": {
+  "metric": "val macro F1 over all classes with >=1 true scene in val",
+  "tie": "compare rounded to 4 decimals; tie -> smaller max_depth; then candidate order C1..C4",
+  "uses": "train/val only; test/shift evaluated only after selection.json is written"
+ },
+ "metrics": {
+  "accuracy": "scene-weighted",
+  "per_run_accuracy": "also unweighted mean over runs",
+  "macro_f1_baseline_set": "baseline A lookup primary_classes for that eval set (read from preserved results.json)",
+  "macro_f1_all_true": "all classes with >=1 true scene in that eval set",
+  "per_class": "P/R/F1, true n, pred n, runs with that true class; precision 0 if never predicted",
+  "small_class_note": "classes with <10 true scenes or <3 runs are reference only",
+  "train_absent": "eval classes with 0 train scenes are listed separately"
+ },
+ "env": {
+  "python": "3.13.18 (main, Oct 26 2026, 14:08:19) [Clang 23.1.3 ]",
+  "executable": "/tmp/rfexp/venv/bin/python",
+  "platform": "Linux-6.18.44-fc-v185-x86_64-with-glibc2.39",
+  "scikit-learn": "1.9.1",
+  "numpy": "2.5.4",
+  "scipy": "1.18.1",
+  "joblib": "1.6.0",
+  "threadpoolctl": "3.7.0",
+  "venv_create": "/usr/local/bin/python3 -m venv /tmp/rfexp/venv",
+  "install": "/tmp/rfexp/venv/bin/pip install --only-binary=:all: --no-cache-dir scikit-learn==1.9.1",
+  "freeze_file": "requirements-freeze.txt"
+ }
+}

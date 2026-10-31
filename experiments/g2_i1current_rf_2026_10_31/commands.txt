@@ -1,0 +1,15 @@
+# environment (outside the repo; the venv is NOT preserved — recreate it)
+/usr/local/bin/python3 -m venv /tmp/rfexp/venv            # base interpreter: Python 3.13.18
+/tmp/rfexp/venv/bin/pip index versions scikit-learn --only-binary=:all:   # 2026-10-31: latest 1.9.1
+/tmp/rfexp/venv/bin/pip install --only-binary=:all: --no-cache-dir scikit-learn==1.9.1
+/tmp/rfexp/venv/bin/pip freeze > requirements-freeze.txt  # see file; reinstall: pip install --only-binary=:all: -r requirements-freeze.txt
+/tmp/rfexp/venv/bin/pip check
+
+# inputs (from git, not copied)
+git archive 6ccafc0 data/inventory/2026-10-31 | tar -x -C /tmp/inv3
+git show ca6b7f05d9f184c56d7fce97dab94b833e451fc9:experiments/g2_scene_baselines_2026_10_31/results.json > /tmp/rfexp/ref/baseline_results.json
+
+# runs (from the directory holding config.json and rf_i1current.py; outputs go to --out)
+/tmp/rfexp/venv/bin/python rf_i1current.py select --config config.json --extract /tmp/inv3/data/inventory/2026-10-31/g2_scene_extract.jsonl --manifest /tmp/inv3/data/inventory/2026-10-31/g2_scene_manifest_scenes.jsonl --out .
+/tmp/rfexp/venv/bin/python rf_i1current.py final  --config config.json --extract /tmp/inv3/data/inventory/2026-10-31/g2_scene_extract.jsonl --manifest /tmp/inv3/data/inventory/2026-10-31/g2_scene_manifest_scenes.jsonl --baseline-results /tmp/rfexp/ref/baseline_results.json --out .
+# models are not saved; rerunning 'final' retrains them (n_jobs=1, random_state 20261031)

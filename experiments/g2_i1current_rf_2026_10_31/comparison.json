@@ -1,0 +1,285 @@
+{
+ "baseline_results_sha256": "37b91a0a119c9a6c57ef673a52e3da1ed2aad6b0037e776d24cb322257f9db2e",
+ "focus_classes": [
+  "reflex",
+  "stagger_punish",
+  "stamina",
+  "attack"
+ ],
+ "eval": {
+  "val": {
+   "n": 134,
+   "runs": 5,
+   "acc": {
+    "majority": 0.284,
+    "lookup": 0.455,
+    "rf": 0.5597
+   },
+   "macro_f1_baseline_set": {
+    "classes": [
+     "after_swing",
+     "backstab_swing",
+     "face_first",
+     "reflex"
+    ],
+    "majority": 0.111,
+    "lookup": 0.391,
+    "rf": 0.6562
+   },
+   "macro_f1_all_true": {
+    "classes_n": 18,
+    "majority": 0.025,
+    "lookup": 0.257,
+    "rf": 0.4182
+   },
+   "focus": {
+    "reflex": {
+     "n": 16,
+     "runs": 4,
+     "lookup_R": 0.0,
+     "lookup_F1": 0.0,
+     "rf_P": 0.429,
+     "rf_R": 0.375,
+     "rf_F1": 0.4,
+     "rf_pred_n": 14
+    },
+    "stagger_punish": {
+     "n": 2,
+     "runs": 2,
+     "lookup_R": 0.0,
+     "lookup_F1": 0.0,
+     "rf_P": 0.182,
+     "rf_R": 1.0,
+     "rf_F1": 0.308,
+     "rf_pred_n": 11
+    },
+    "stamina": {
+     "n": 5,
+     "runs": 2,
+     "lookup_R": 0.0,
+     "lookup_F1": 0.0,
+     "rf_P": 0.375,
+     "rf_R": 0.6,
+     "rf_F1": 0.462,
+     "rf_pred_n": 8
+    },
+    "attack": {
+     "n": 9,
+     "runs": 3,
+     "lookup_R": 0.0,
+     "lookup_F1": 0.0,
+     "rf_P": 1.0,
+     "rf_R": 0.556,
+     "rf_F1": 0.714,
+     "rf_pred_n": 5
+    }
+   }
+  },
+  "test": {
+   "n": 233,
+   "runs": 7,
+   "acc": {
+    "majority": 0.33,
+    "lookup": 0.455,
+    "rf": 0.5665
+   },
+   "macro_f1_baseline_set": {
+    "classes": [
+     "after_swing",
+     "attack",
+     "backstab_swing",
+     "finish_first",
+     "reflex",
+     "stagger_punish",
+     "stamina"
+    ],
+    "majority": 0.071,
+    "lookup": 0.269,
+    "rf": 0.5694
+   },
+   "macro_f1_all_true": {
+    "classes_n": 17,
+    "majority": 0.029,
+    "lookup": 0.201,
+    "rf": 0.5025
+   },
+   "focus": {
+    "reflex": {
+     "n": 18,
+     "runs": 5,
+     "lookup_R": 0.0,
+     "lookup_F1": 0.0,
+     "rf_P": 0.7,
+     "rf_R": 0.389,
+     "rf_F1": 0.5,
+     "rf_pred_n": 10
+    },
+    "stagger_punish": {
+     "n": 23,
+     "runs": 3,
+     "lookup_R": 0.0,
+     "lookup_F1": 0.0,
+     "rf_P": 0.25,
+     "rf_R": 0.087,
+     "rf_F1": 0.129,
+     "rf_pred_n": 8
+    },
+    "stamina": {
+     "n": 12,
+     "runs": 3,
+     "lookup_R": 0.0,
+     "lookup_F1": 0.0,
+     "rf_P": 0.29,
+     "rf_R": 0.75,
+     "rf_F1": 0.419,
+     "rf_pred_n": 31
+    },
+    "attack": {
+     "n": 11,
+     "runs": 3,
+     "lookup_R": 0.0,
+     "lookup_F1": 0.0,
+     "rf_P": 0.75,
+     "rf_R": 0.545,
+     "rf_F1": 0.632,
+     "rf_pred_n": 8
+    }
+   }
+  },
+  "shift_zone": {
+   "n": 292,
+   "runs": 8,
+   "acc": {
+    "majority": 0.277,
+    "lookup": 0.455,
+    "rf": 0.589
+   },
+   "macro_f1_baseline_set": {
+    "classes": [
+     "after_swing",
+     "attack",
+     "backstab_swing",
+     "hit_first",
+     "reflex",
+     "stagger_punish"
+    ],
+    "majority": 0.072,
+    "lookup": 0.322,
+    "rf": 0.5805
+   },
+   "macro_f1_all_true": {
+    "classes_n": 14,
+    "majority": 0.031,
+    "lookup": 0.229,
+    "rf": 0.5036
+   },
+   "focus": {
+    "reflex": {
+     "n": 12,
+     "runs": 7,
+     "lookup_R": 0.0,
+     "lookup_F1": 0.0,
+     "rf_P": 0.0,
+     "rf_R": 0.0,
+     "rf_F1": 0.0,
+     "rf_pred_n": 8
+    },
+    "stagger_punish": {
+     "n": 71,
+     "runs": 5,
+     "lookup_R": 0.0,
+     "lookup_F1": 0.0,
+     "rf_P": 0.753,
+     "rf_R": 0.775,
+     "rf_F1": 0.764,
+     "rf_pred_n": 73
+    },
+    "stamina": {
+     "n": 7,
+     "runs": 5,
+     "lookup_R": 0.0,
+     "lookup_F1": 0.0,
+     "rf_P": 0.286,
+     "rf_R": 0.571,
+     "rf_F1": 0.381,
+     "rf_pred_n": 14
+    },
+    "attack": {
+     "n": 12,
+     "runs": 8,
+     "lookup_R": 0.0,
+     "lookup_F1": 0.0,
+     "rf_P": 0.9,
+     "rf_R": 0.75,
+     "rf_F1": 0.818,
+     "rf_pred_n": 10
+    }
+   }
+  },
+  "shift_ref": {
+   "n": 64,
+   "runs": 8,
+   "acc": {
+    "majority": 0.359,
+    "lookup": 0.406,
+    "rf": 0.4062
+   },
+   "macro_f1_baseline_set": {
+    "classes": [
+     "after_swing"
+    ],
+    "majority": 0.529,
+    "lookup": 0.553,
+    "rf": 0.0
+   },
+   "macro_f1_all_true": {
+    "classes_n": 8,
+    "majority": 0.066,
+    "lookup": 0.194,
+    "rf": 0.2809
+   },
+   "focus": {
+    "reflex": {
+     "n": 14,
+     "runs": 1,
+     "lookup_R": 0.0,
+     "lookup_F1": 0.0,
+     "rf_P": 0.6,
+     "rf_R": 0.643,
+     "rf_F1": 0.621,
+     "rf_pred_n": 15
+    },
+    "stagger_punish": {
+     "n": 5,
+     "runs": 1,
+     "lookup_R": 0.0,
+     "lookup_F1": 0.0,
+     "rf_P": 0.0,
+     "rf_R": 0.0,
+     "rf_F1": 0.0,
+     "rf_pred_n": 3
+    },
+    "stamina": {
+     "n": 0,
+     "runs": null,
+     "lookup_R": null,
+     "lookup_F1": null,
+     "rf_P": null,
+     "rf_R": null,
+     "rf_F1": null,
+     "rf_pred_n": null
+    },
+    "attack": {
+     "n": 0,
+     "runs": 0,
+     "lookup_R": null,
+     "lookup_F1": null,
+     "rf_P": 0.0,
+     "rf_R": 0.0,
+     "rf_F1": 0.0,
+     "rf_pred_n": 5
+    }
+   }
+  }
+ }
+}

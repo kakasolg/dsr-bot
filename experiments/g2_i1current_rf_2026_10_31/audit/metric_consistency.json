@@ -1,0 +1,704 @@
+{
+ "val": {
+  "y_true_from_extract": {
+   "n": 134,
+   "n_classes": 18,
+   "support": {
+    "after_swing": 38,
+    "backstab_swing": 22,
+    "reflex": 16,
+    "face_first": 13,
+    "attack": 9,
+    "hit_first": 6,
+    "finish_first": 5,
+    "stamina": 5,
+    "footing": 3,
+    "wait_far": 3,
+    "edge": 3,
+    "approach": 2,
+    "estus": 2,
+    "stagger_punish": 2,
+    "backstab": 2,
+    "shot": 1,
+    "finish": 1,
+    "late_windup_block": 1
+   },
+   "runs_per_class": {
+    "backstab_swing": 5,
+    "after_swing": 5,
+    "reflex": 4,
+    "face_first": 4,
+    "approach": 1,
+    "attack": 3,
+    "finish_first": 3,
+    "estus": 2,
+    "footing": 1,
+    "stagger_punish": 2,
+    "hit_first": 2,
+    "shot": 1,
+    "wait_far": 1,
+    "backstab": 1,
+    "stamina": 2,
+    "finish": 1,
+    "edge": 2,
+    "late_windup_block": 1
+   }
+  },
+  "baseline_lookup": {
+   "per_class_keys_n": 18,
+   "true_classes": [
+    "after_swing",
+    "approach",
+    "attack",
+    "backstab",
+    "backstab_swing",
+    "edge",
+    "estus",
+    "face_first",
+    "finish",
+    "finish_first",
+    "footing",
+    "hit_first",
+    "late_windup_block",
+    "reflex",
+    "shot",
+    "stagger_punish",
+    "stamina",
+    "wait_far"
+   ],
+   "n_true_classes_field": 18,
+   "pred_only_classes": [],
+   "macro_f1_all_true": 0.257,
+   "primary_classes": [
+    "after_swing",
+    "backstab_swing",
+    "face_first",
+    "reflex"
+   ],
+   "majority_n_true_classes_field": 18
+  },
+  "rf": {
+   "per_class_keys_n": 19,
+   "all_true_classes": [
+    "after_swing",
+    "approach",
+    "attack",
+    "backstab",
+    "backstab_swing",
+    "edge",
+    "estus",
+    "face_first",
+    "finish",
+    "finish_first",
+    "footing",
+    "hit_first",
+    "late_windup_block",
+    "reflex",
+    "shot",
+    "stagger_punish",
+    "stamina",
+    "wait_far"
+   ],
+   "pred_only_classes": [
+    "face"
+   ],
+   "macro_f1_all_true": 0.4182,
+   "baseline_set_classes": [
+    "after_swing",
+    "backstab_swing",
+    "face_first",
+    "reflex"
+   ],
+   "macro_f1_baseline_set": 0.6562
+  },
+  "union_true_or_pred_rf": {
+   "n": 19,
+   "classes": [
+    "after_swing",
+    "approach",
+    "attack",
+    "backstab",
+    "backstab_swing",
+    "edge",
+    "estus",
+    "face",
+    "face_first",
+    "finish",
+    "finish_first",
+    "footing",
+    "hit_first",
+    "late_windup_block",
+    "reflex",
+    "shot",
+    "stagger_punish",
+    "stamina",
+    "wait_far"
+   ]
+  },
+  "checks": {
+   "baseline_true_classes == extract": true,
+   "rf_true_classes == extract": true,
+   "baseline_support == extract": true,
+   "rf_support == extract": true,
+   "rf predictions (run,scene_seq,y_true) == extract": true,
+   "baseline per_run n == rf per_run n": true,
+   "rf baseline_set_classes == baseline primary_classes": true
+  },
+  "recount_from_predictions": {
+   "note": "NEW recount from predictions.jsonl (variant base), not a rerun",
+   "macro_f1_baseline_primary_set": 0.6562,
+   "labels_primary": [
+    "after_swing",
+    "backstab_swing",
+    "face_first",
+    "reflex"
+   ],
+   "macro_f1_true_classes": 0.4182,
+   "labels_true": [
+    "after_swing",
+    "approach",
+    "attack",
+    "backstab",
+    "backstab_swing",
+    "edge",
+    "estus",
+    "face_first",
+    "finish",
+    "finish_first",
+    "footing",
+    "hit_first",
+    "late_windup_block",
+    "reflex",
+    "shot",
+    "stagger_punish",
+    "stamina",
+    "wait_far"
+   ],
+   "per_class_f1_true": {
+    "after_swing": 0.51,
+    "approach": 0.0,
+    "attack": 0.714,
+    "backstab": 0.4,
+    "backstab_swing": 0.826,
+    "edge": 0.0,
+    "estus": 0.667,
+    "face_first": 0.889,
+    "finish": 0.333,
+    "finish_first": 0.769,
+    "footing": 0.0,
+    "hit_first": 0.75,
+    "late_windup_block": 0.5,
+    "reflex": 0.4,
+    "shot": 0.0,
+    "stagger_punish": 0.308,
+    "stamina": 0.462,
+    "wait_far": 0.0
+   }
+  }
+ },
+ "test": {
+  "y_true_from_extract": {
+   "n": 233,
+   "n_classes": 17,
+   "support": {
+    "after_swing": 77,
+    "backstab_swing": 34,
+    "stagger_punish": 23,
+    "reflex": 18,
+    "finish_first": 14,
+    "stamina": 12,
+    "attack": 11,
+    "face_first": 9,
+    "hit_first": 7,
+    "wait_far": 6,
+    "late_windup_block": 5,
+    "shot": 4,
+    "estus": 3,
+    "approach": 3,
+    "edge": 3,
+    "block": 2,
+    "backstab": 2
+   },
+   "runs_per_class": {
+    "backstab_swing": 7,
+    "shot": 3,
+    "stagger_punish": 3,
+    "after_swing": 7,
+    "face_first": 3,
+    "block": 1,
+    "reflex": 5,
+    "late_windup_block": 4,
+    "hit_first": 4,
+    "stamina": 3,
+    "finish_first": 4,
+    "wait_far": 2,
+    "estus": 1,
+    "attack": 3,
+    "approach": 2,
+    "edge": 2,
+    "backstab": 2
+   }
+  },
+  "baseline_lookup": {
+   "per_class_keys_n": 17,
+   "true_classes": [
+    "after_swing",
+    "approach",
+    "attack",
+    "backstab",
+    "backstab_swing",
+    "block",
+    "edge",
+    "estus",
+    "face_first",
+    "finish_first",
+    "hit_first",
+    "late_windup_block",
+    "reflex",
+    "shot",
+    "stagger_punish",
+    "stamina",
+    "wait_far"
+   ],
+   "n_true_classes_field": 17,
+   "pred_only_classes": [],
+   "macro_f1_all_true": 0.201,
+   "primary_classes": [
+    "after_swing",
+    "attack",
+    "backstab_swing",
+    "finish_first",
+    "reflex",
+    "stagger_punish",
+    "stamina"
+   ],
+   "majority_n_true_classes_field": 17
+  },
+  "rf": {
+   "per_class_keys_n": 18,
+   "all_true_classes": [
+    "after_swing",
+    "approach",
+    "attack",
+    "backstab",
+    "backstab_swing",
+    "block",
+    "edge",
+    "estus",
+    "face_first",
+    "finish_first",
+    "hit_first",
+    "late_windup_block",
+    "reflex",
+    "shot",
+    "stagger_punish",
+    "stamina",
+    "wait_far"
+   ],
+   "pred_only_classes": [
+    "finish"
+   ],
+   "macro_f1_all_true": 0.5025,
+   "baseline_set_classes": [
+    "after_swing",
+    "attack",
+    "backstab_swing",
+    "finish_first",
+    "reflex",
+    "stagger_punish",
+    "stamina"
+   ],
+   "macro_f1_baseline_set": 0.5694
+  },
+  "union_true_or_pred_rf": {
+   "n": 18,
+   "classes": [
+    "after_swing",
+    "approach",
+    "attack",
+    "backstab",
+    "backstab_swing",
+    "block",
+    "edge",
+    "estus",
+    "face_first",
+    "finish",
+    "finish_first",
+    "hit_first",
+    "late_windup_block",
+    "reflex",
+    "shot",
+    "stagger_punish",
+    "stamina",
+    "wait_far"
+   ]
+  },
+  "checks": {
+   "baseline_true_classes == extract": true,
+   "rf_true_classes == extract": true,
+   "baseline_support == extract": true,
+   "rf_support == extract": true,
+   "rf predictions (run,scene_seq,y_true) == extract": true,
+   "baseline per_run n == rf per_run n": true,
+   "rf baseline_set_classes == baseline primary_classes": true
+  },
+  "recount_from_predictions": {
+   "note": "NEW recount from predictions.jsonl (variant base), not a rerun",
+   "macro_f1_baseline_primary_set": 0.5694,
+   "labels_primary": [
+    "after_swing",
+    "attack",
+    "backstab_swing",
+    "finish_first",
+    "reflex",
+    "stagger_punish",
+    "stamina"
+   ],
+   "macro_f1_true_classes": 0.5025,
+   "labels_true": [
+    "after_swing",
+    "approach",
+    "attack",
+    "backstab",
+    "backstab_swing",
+    "block",
+    "edge",
+    "estus",
+    "face_first",
+    "finish_first",
+    "hit_first",
+    "late_windup_block",
+    "reflex",
+    "shot",
+    "stagger_punish",
+    "stamina",
+    "wait_far"
+   ],
+   "per_class_f1_true": {
+    "after_swing": 0.602,
+    "approach": 0.286,
+    "attack": 0.632,
+    "backstab": 0.4,
+    "backstab_swing": 0.865,
+    "block": 0.667,
+    "edge": 0.0,
+    "estus": 0.667,
+    "face_first": 0.875,
+    "finish_first": 0.839,
+    "hit_first": 0.452,
+    "late_windup_block": 0.588,
+    "reflex": 0.5,
+    "shot": 0.222,
+    "stagger_punish": 0.129,
+    "stamina": 0.419,
+    "wait_far": 0.4
+   }
+  }
+ },
+ "shift_zone": {
+  "y_true_from_extract": {
+   "n": 292,
+   "n_classes": 14,
+   "support": {
+    "after_swing": 81,
+    "stagger_punish": 71,
+    "backstab_swing": 44,
+    "hit_first": 28,
+    "reflex": 12,
+    "attack": 12,
+    "late_windup_block": 8,
+    "face_first": 7,
+    "approach": 7,
+    "stamina": 7,
+    "edge": 7,
+    "finish_first": 5,
+    "wait_far": 2,
+    "backstab": 1
+   },
+   "runs_per_class": {
+    "backstab_swing": 8,
+    "after_swing": 8,
+    "reflex": 7,
+    "face_first": 6,
+    "hit_first": 8,
+    "approach": 5,
+    "late_windup_block": 6,
+    "finish_first": 4,
+    "attack": 8,
+    "stamina": 5,
+    "stagger_punish": 5,
+    "edge": 4,
+    "wait_far": 2,
+    "backstab": 1
+   }
+  },
+  "baseline_lookup": {
+   "per_class_keys_n": 15,
+   "true_classes": [
+    "after_swing",
+    "approach",
+    "attack",
+    "backstab",
+    "backstab_swing",
+    "edge",
+    "face_first",
+    "finish_first",
+    "hit_first",
+    "late_windup_block",
+    "reflex",
+    "stagger_punish",
+    "stamina",
+    "wait_far"
+   ],
+   "n_true_classes_field": 14,
+   "pred_only_classes": [
+    "estus"
+   ],
+   "macro_f1_all_true": 0.229,
+   "primary_classes": [
+    "after_swing",
+    "attack",
+    "backstab_swing",
+    "hit_first",
+    "reflex",
+    "stagger_punish"
+   ],
+   "majority_n_true_classes_field": 14
+  },
+  "rf": {
+   "per_class_keys_n": 16,
+   "all_true_classes": [
+    "after_swing",
+    "approach",
+    "attack",
+    "backstab",
+    "backstab_swing",
+    "edge",
+    "face_first",
+    "finish_first",
+    "hit_first",
+    "late_windup_block",
+    "reflex",
+    "stagger_punish",
+    "stamina",
+    "wait_far"
+   ],
+   "pred_only_classes": [
+    "estus",
+    "lure"
+   ],
+   "macro_f1_all_true": 0.5036,
+   "baseline_set_classes": [
+    "after_swing",
+    "attack",
+    "backstab_swing",
+    "hit_first",
+    "reflex",
+    "stagger_punish"
+   ],
+   "macro_f1_baseline_set": 0.5805
+  },
+  "union_true_or_pred_rf": {
+   "n": 16,
+   "classes": [
+    "after_swing",
+    "approach",
+    "attack",
+    "backstab",
+    "backstab_swing",
+    "edge",
+    "estus",
+    "face_first",
+    "finish_first",
+    "hit_first",
+    "late_windup_block",
+    "lure",
+    "reflex",
+    "stagger_punish",
+    "stamina",
+    "wait_far"
+   ]
+  },
+  "checks": {
+   "baseline_true_classes == extract": true,
+   "rf_true_classes == extract": true,
+   "baseline_support == extract": true,
+   "rf_support == extract": true,
+   "rf predictions (run,scene_seq,y_true) == extract": true,
+   "baseline per_run n == rf per_run n": true,
+   "rf baseline_set_classes == baseline primary_classes": true
+  },
+  "recount_from_predictions": {
+   "note": "NEW recount from predictions.jsonl (variant base), not a rerun",
+   "macro_f1_baseline_primary_set": 0.5805,
+   "labels_primary": [
+    "after_swing",
+    "attack",
+    "backstab_swing",
+    "hit_first",
+    "reflex",
+    "stagger_punish"
+   ],
+   "macro_f1_true_classes": 0.5036,
+   "labels_true": [
+    "after_swing",
+    "approach",
+    "attack",
+    "backstab",
+    "backstab_swing",
+    "edge",
+    "face_first",
+    "finish_first",
+    "hit_first",
+    "late_windup_block",
+    "reflex",
+    "stagger_punish",
+    "stamina",
+    "wait_far"
+   ],
+   "per_class_f1_true": {
+    "after_swing": 0.277,
+    "approach": 0.2,
+    "attack": 0.818,
+    "backstab": 0.222,
+    "backstab_swing": 0.804,
+    "edge": 0.308,
+    "face_first": 0.857,
+    "finish_first": 1.0,
+    "hit_first": 0.82,
+    "late_windup_block": 0.6,
+    "reflex": 0.0,
+    "stagger_punish": 0.764,
+    "stamina": 0.381,
+    "wait_far": 0.0
+   }
+  }
+ },
+ "shift_ref": {
+  "y_true_from_extract": {
+   "n": 64,
+   "n_classes": 8,
+   "support": {
+    "after_swing": 23,
+    "reflex": 14,
+    "face_first": 13,
+    "hit_first": 5,
+    "stagger_punish": 5,
+    "late_windup_block": 2,
+    "approach": 1,
+    "edge": 1
+   },
+   "runs_per_class": {
+    "after_swing": 8,
+    "hit_first": 4,
+    "approach": 1,
+    "late_windup_block": 1,
+    "face_first": 2,
+    "reflex": 1,
+    "stagger_punish": 1,
+    "edge": 1
+   }
+  },
+  "baseline_lookup": {
+   "per_class_keys_n": 10,
+   "true_classes": [
+    "after_swing",
+    "approach",
+    "edge",
+    "face_first",
+    "hit_first",
+    "late_windup_block",
+    "reflex",
+    "stagger_punish"
+   ],
+   "n_true_classes_field": 8,
+   "pred_only_classes": [
+    "backstab",
+    "backstab_swing"
+   ],
+   "macro_f1_all_true": 0.194,
+   "primary_classes": [
+    "after_swing"
+   ],
+   "majority_n_true_classes_field": 8
+  },
+  "rf": {
+   "per_class_keys_n": 12,
+   "all_true_classes": [
+    "after_swing",
+    "approach",
+    "edge",
+    "face_first",
+    "hit_first",
+    "late_windup_block",
+    "reflex",
+    "stagger_punish"
+   ],
+   "pred_only_classes": [
+    "attack",
+    "block",
+    "estus",
+    "lure"
+   ],
+   "macro_f1_all_true": 0.2809,
+   "baseline_set_classes": [
+    "after_swing"
+   ],
+   "macro_f1_baseline_set": 0.0
+  },
+  "union_true_or_pred_rf": {
+   "n": 12,
+   "classes": [
+    "after_swing",
+    "approach",
+    "attack",
+    "block",
+    "edge",
+    "estus",
+    "face_first",
+    "hit_first",
+    "late_windup_block",
+    "lure",
+    "reflex",
+    "stagger_punish"
+   ]
+  },
+  "checks": {
+   "baseline_true_classes == extract": true,
+   "rf_true_classes == extract": true,
+   "baseline_support == extract": true,
+   "rf_support == extract": true,
+   "rf predictions (run,scene_seq,y_true) == extract": true,
+   "baseline per_run n == rf per_run n": true,
+   "rf baseline_set_classes == baseline primary_classes": true
+  },
+  "recount_from_predictions": {
+   "note": "NEW recount from predictions.jsonl (variant base), not a rerun",
+   "macro_f1_baseline_primary_set": 0.0,
+   "labels_primary": [
+    "after_swing"
+   ],
+   "macro_f1_true_classes": 0.2809,
+   "labels_true": [
+    "after_swing",
+    "approach",
+    "edge",
+    "face_first",
+    "hit_first",
+    "late_windup_block",
+    "reflex",
+    "stagger_punish"
+   ],
+   "per_class_f1_true": {
+    "after_swing": 0.0,
+    "approach": 0.0,
+    "edge": 0.0,
+    "face_first": 0.857,
+    "hit_first": 0.769,
+    "late_windup_block": 0.0,
+    "reflex": 0.621,
+    "stagger_punish": 0.0
+   }
+  }
+ }
+}
