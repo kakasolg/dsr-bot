@@ -24,7 +24,7 @@ MISSING = object()
 def manifest(path):
     rows = []
     for line in open(path, encoding="utf-8"):
-        if line.strip():
+        if line.strip() and not line.startswith("#"):
             run, split, n, flags, seqs = line.rstrip("\n").split("\t")
             rows.append({"run": run, "split": split, "n": int(n), "flags": flags,
                          "seqs": [int(s) for s in seqs.split(",")]})

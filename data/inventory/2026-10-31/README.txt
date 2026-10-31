@@ -54,8 +54,13 @@ Unsampled metadata - aggregated (17 runs, 0 read errors).
 
 --- Follow-up request (G2 scene extract for the manifest), same day, read only ---
 
-g2_scene_manifest.tsv: the manifest as given (55 runs, 1475 scenes incl. pending 22). The compressed-TSV sha256 in the
-request could not be checked here (compression method / bytes unknown; gzip -n of this file gives other hashes).
+g2_scene_manifest.tsv: Cloud's g2_scene_manifest_compact.tsv as given (header line kept; 55 runs, 1475 scenes incl.
+pending 22). Its sha256 equals the one in the request (ab637fcb...8dbe; "compressed TSV" = this compact TSV, not gzip).
+The extract was first run from the TSV pasted in the request; it equals this file minus the header line.
+g2_scene_manifest_scenes.jsonl, g2_scene_manifest_runs.json: Cloud's other two manifest files, as given. Checked against
+the extract: same (run, scene_seq) set, split and schema; rule_expected = ctl rule and fight_key_est =
+g2_scene_links.jsonl fight for all 1475; runs.json commit / dirty / cmd / seg / weapon name / split / n_scenes equal
+the extract for all 55. 0 differences.
 Target check - aggregated: 1475/1475 are k="scene" with rule equal to g2_scene_links.jsonl; 0 missing / mismatched.
 g2_scene_extract.jsonl - aggregated: 1475 lines (train 730, val 134, test 233, shift_zone 292, shift_ref 64,
   pending 22), 10,994,695 bytes (under 20 MB, so not gzipped). Values copied from the scene record as captured; meta

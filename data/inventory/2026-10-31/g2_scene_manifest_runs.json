@@ -1,0 +1,688 @@
+{
+ "schema": "dsr-g2-scene-manifest/0.1",
+ "created": "2026-10-31",
+ "source": {
+  "links": "data/inventory/2026-10-31/g2_scene_links.jsonl @413f84c",
+  "meta": "data/samples/*.settings.json @0f79b09 + data/inventory/2026-10-31/g2_unsampled_meta.json @413f84c"
+ },
+ "filter": "run date (run-ID prefix, local) >= 20261011 AND scene schema == dsr-scene-input/0.2 AND run commit has ancestors 4f99502, 8a2c96a, d256d69 (git merge-base --is-ancestor on the base commit; uncommitted diffs not checked)",
+ "totals": {
+  "runs": 55,
+  "scenes": 1475,
+  "by_split_runs": {
+   "train": 26,
+   "test": 7,
+   "val": 5,
+   "pending": 1,
+   "shift_zone": 8,
+   "shift_ref": 8
+  },
+  "by_split_scenes": {
+   "train": 730,
+   "test": 233,
+   "val": 134,
+   "pending": 22,
+   "shift_zone": 292,
+   "shift_ref": 64
+  }
+ },
+ "runs": [
+  {
+   "run": "20261011_144208_burg-bonfire",
+   "split": "train",
+   "n_scenes": 13,
+   "commit": "f78d76268980f95cbd25499d681b291a1cfc970d",
+   "dirty": false,
+   "cmd": "burg-bonfire",
+   "seg": "1-2",
+   "weapon": "배틀 액스",
+   "quality_flags": [
+    "opt:no_lure"
+   ]
+  },
+  {
+   "run": "20261011_144434_burg-bonfire",
+   "split": "train",
+   "n_scenes": 13,
+   "commit": "f78d76268980f95cbd25499d681b291a1cfc970d",
+   "dirty": false,
+   "cmd": "burg-bonfire",
+   "seg": "1-2",
+   "weapon": "배틀 액스",
+   "quality_flags": [
+    "opt:footing",
+    "opt:no_lure"
+   ]
+  },
+  {
+   "run": "20261011_144701_burg-bonfire",
+   "split": "train",
+   "n_scenes": 12,
+   "commit": "f78d76268980f95cbd25499d681b291a1cfc970d",
+   "dirty": false,
+   "cmd": "burg-bonfire",
+   "seg": "1-2",
+   "weapon": "배틀 액스",
+   "quality_flags": [
+    "opt:no_lure"
+   ]
+  },
+  {
+   "run": "20261011_144914_burg-bonfire",
+   "split": "test",
+   "n_scenes": 15,
+   "commit": "f78d76268980f95cbd25499d681b291a1cfc970d",
+   "dirty": false,
+   "cmd": "burg-bonfire",
+   "seg": "1-2",
+   "weapon": "배틀 액스",
+   "quality_flags": [
+    "opt:footing",
+    "opt:no_lure"
+   ]
+  },
+  {
+   "run": "20261011_145120_burg-bonfire",
+   "split": "train",
+   "n_scenes": 13,
+   "commit": "f78d76268980f95cbd25499d681b291a1cfc970d",
+   "dirty": false,
+   "cmd": "burg-bonfire",
+   "seg": "1-2",
+   "weapon": "배틀 액스",
+   "quality_flags": [
+    "opt:no_lure"
+   ]
+  },
+  {
+   "run": "20261011_145345_burg-bonfire",
+   "split": "val",
+   "n_scenes": 29,
+   "commit": "f78d76268980f95cbd25499d681b291a1cfc970d",
+   "dirty": false,
+   "cmd": "burg-bonfire",
+   "seg": "1-2",
+   "weapon": "배틀 액스",
+   "quality_flags": [
+    "opt:footing",
+    "opt:no_lure"
+   ]
+  },
+  {
+   "run": "20261011_161435_burg-bonfire",
+   "split": "train",
+   "n_scenes": 18,
+   "commit": "73510dc673b33c3f8b92f7edd2114018a3b1b58b",
+   "dirty": false,
+   "cmd": "burg-bonfire",
+   "seg": "1-2",
+   "weapon": "배틀 액스",
+   "quality_flags": [
+    "opt:no_lure"
+   ]
+  },
+  {
+   "run": "20261011_170346_burg-upper",
+   "split": "train",
+   "n_scenes": 34,
+   "commit": "09977ea96182d8819ab1e23a7b7519be00b0bbe2",
+   "dirty": false,
+   "cmd": "burg-upper",
+   "seg": null,
+   "weapon": "배틀 액스",
+   "quality_flags": []
+  },
+  {
+   "run": "20261011_171918_burg-upper",
+   "split": "train",
+   "n_scenes": 47,
+   "commit": "eb45e13feee9c28bc1d4932a0cc7b98f7f201929",
+   "dirty": false,
+   "cmd": "burg-upper",
+   "seg": null,
+   "weapon": "배틀 액스",
+   "quality_flags": []
+  },
+  {
+   "run": "20261011_174753_burg-upper",
+   "split": "train",
+   "n_scenes": 48,
+   "commit": "3a866015db499aa2fdacb1ee7bdee5fe7c0478ac",
+   "dirty": false,
+   "cmd": "burg-upper",
+   "seg": "1-8",
+   "weapon": "배틀 액스",
+   "quality_flags": []
+  },
+  {
+   "run": "20261012_003442_burg-upper",
+   "split": "train",
+   "n_scenes": 7,
+   "commit": "fe0b4a3fc2564bff3a99f1d7bfbb1923e191aa4b",
+   "dirty": true,
+   "cmd": "burg-upper",
+   "seg": "1-8",
+   "weapon": "배틀 액스",
+   "quality_flags": [
+    "dirty_diff_not_in_repo"
+   ]
+  },
+  {
+   "run": "20261012_003639_burg-upper",
+   "split": "test",
+   "n_scenes": 7,
+   "commit": "fe0b4a3fc2564bff3a99f1d7bfbb1923e191aa4b",
+   "dirty": true,
+   "cmd": "burg-upper",
+   "seg": "1-8",
+   "weapon": "배틀 액스",
+   "quality_flags": [
+    "dirty_diff_not_in_repo"
+   ]
+  },
+  {
+   "run": "20261012_003844_burg-upper",
+   "split": "val",
+   "n_scenes": 4,
+   "commit": "fe0b4a3fc2564bff3a99f1d7bfbb1923e191aa4b",
+   "dirty": true,
+   "cmd": "burg-upper",
+   "seg": "1-8",
+   "weapon": "배틀 액스",
+   "quality_flags": [
+    "dirty_diff_not_in_repo"
+   ]
+  },
+  {
+   "run": "20261012_004844_burg-upper",
+   "split": "train",
+   "n_scenes": 40,
+   "commit": "9763a4b6a3c0bcb535207c8d6a1e51e08ce933df",
+   "dirty": false,
+   "cmd": "burg-upper",
+   "seg": "1-8",
+   "weapon": "배틀 액스",
+   "quality_flags": []
+  },
+  {
+   "run": "20261012_005843_burg-upper",
+   "split": "test",
+   "n_scenes": 38,
+   "commit": "9763a4b6a3c0bcb535207c8d6a1e51e08ce933df",
+   "dirty": false,
+   "cmd": "burg-upper",
+   "seg": "1-8",
+   "weapon": "배틀 액스",
+   "quality_flags": []
+  },
+  {
+   "run": "20261012_010457_burg-upper",
+   "split": "train",
+   "n_scenes": 63,
+   "commit": "9763a4b6a3c0bcb535207c8d6a1e51e08ce933df",
+   "dirty": false,
+   "cmd": "burg-upper",
+   "seg": "1-8",
+   "weapon": "배틀 액스",
+   "quality_flags": []
+  },
+  {
+   "run": "20261012_024340_burg-upper",
+   "split": "val",
+   "n_scenes": 57,
+   "commit": "6341df3e57913a0ad1e42963554a86025a74add4",
+   "dirty": false,
+   "cmd": "burg-upper",
+   "seg": "1-8",
+   "weapon": "배틀 액스",
+   "quality_flags": []
+  },
+  {
+   "run": "20261012_025301_burg-upper",
+   "split": "test",
+   "n_scenes": 82,
+   "commit": "6341df3e57913a0ad1e42963554a86025a74add4",
+   "dirty": false,
+   "cmd": "burg-upper",
+   "seg": "1-8",
+   "weapon": "배틀 액스",
+   "quality_flags": []
+  },
+  {
+   "run": "20261012_030444_burg-upper",
+   "split": "train",
+   "n_scenes": 76,
+   "commit": "6341df3e57913a0ad1e42963554a86025a74add4",
+   "dirty": false,
+   "cmd": "burg-upper",
+   "seg": "1-8",
+   "weapon": "배틀 액스",
+   "quality_flags": []
+  },
+  {
+   "run": "20261012_033444_burg-bonfire",
+   "split": "test",
+   "n_scenes": 7,
+   "commit": "6b0e9f18ab94924e00327ab9c112acbc782f2c42",
+   "dirty": false,
+   "cmd": "burg-bonfire",
+   "seg": "1-5",
+   "weapon": "배틀 액스",
+   "quality_flags": [
+    "opt:no_lure"
+   ]
+  },
+  {
+   "run": "20261012_033810_burg-bonfire",
+   "split": "train",
+   "n_scenes": 46,
+   "commit": "e7e7ac354a83363638ab2d0062c9aee5c211dc53",
+   "dirty": false,
+   "cmd": "burg-bonfire",
+   "seg": "1-5",
+   "weapon": "배틀 액스",
+   "quality_flags": [
+    "opt:no_lure"
+   ]
+  },
+  {
+   "run": "20261012_053935_burg-bonfire",
+   "split": "val",
+   "n_scenes": 7,
+   "commit": "e82ee03f661e51f7b12875873a0f86cc6526a985",
+   "dirty": false,
+   "cmd": "burg-bonfire",
+   "seg": "1-5",
+   "weapon": "배틀 액스",
+   "quality_flags": [
+    "opt:no_lure"
+   ]
+  },
+  {
+   "run": "20261012_054128_burg-bonfire",
+   "split": "train",
+   "n_scenes": 17,
+   "commit": "e82ee03f661e51f7b12875873a0f86cc6526a985",
+   "dirty": false,
+   "cmd": "burg-bonfire",
+   "seg": "1-5",
+   "weapon": "배틀 액스",
+   "quality_flags": [
+    "opt:no_lure"
+   ]
+  },
+  {
+   "run": "20261012_060343_burg-upper",
+   "split": "train",
+   "n_scenes": 62,
+   "commit": "482e56a34f3918fbc69f8baa810c1b6002b597fd",
+   "dirty": false,
+   "cmd": "burg-upper",
+   "seg": "1-8",
+   "weapon": "배틀 액스",
+   "quality_flags": [
+    "opt:throw"
+   ]
+  },
+  {
+   "run": "20261012_074829_burg-upper",
+   "split": "train",
+   "n_scenes": 8,
+   "commit": "360eecaf77609a0cf51fd4b24b1e06271c426043",
+   "dirty": false,
+   "cmd": "burg-upper",
+   "seg": "1",
+   "weapon": "배틀 액스",
+   "quality_flags": []
+  },
+  {
+   "run": "20261012_075054_burg-upper",
+   "split": "train",
+   "n_scenes": 18,
+   "commit": "360eecaf77609a0cf51fd4b24b1e06271c426043",
+   "dirty": true,
+   "cmd": "burg-upper",
+   "seg": "1-2",
+   "weapon": "배틀 액스",
+   "quality_flags": [
+    "dirty_diff_not_in_repo"
+   ]
+  },
+  {
+   "run": "20261012_215634_burg-upper",
+   "split": "pending",
+   "n_scenes": 22,
+   "commit": "1f62872913f63cae9f725297e3f566e72d29707d",
+   "dirty": false,
+   "cmd": "burg-upper",
+   "seg": "1-2",
+   "weapon": "클레이모어",
+   "quality_flags": [
+    "missing_ctl_end",
+    "settings_not_in_git",
+    "opts_unknown"
+   ]
+  },
+  {
+   "run": "20261012_220230_burg-upper",
+   "split": "train",
+   "n_scenes": 9,
+   "commit": "1f62872913f63cae9f725297e3f566e72d29707d",
+   "dirty": false,
+   "cmd": "burg-upper",
+   "seg": "1-2",
+   "weapon": "클레이모어",
+   "quality_flags": []
+  },
+  {
+   "run": "20261012_220422_burg-upper",
+   "split": "train",
+   "n_scenes": 20,
+   "commit": "1f62872913f63cae9f725297e3f566e72d29707d",
+   "dirty": false,
+   "cmd": "burg-upper",
+   "seg": "1-4",
+   "weapon": "클레이모어",
+   "quality_flags": []
+  },
+  {
+   "run": "20261012_222804_burg-upper",
+   "split": "test",
+   "n_scenes": 16,
+   "commit": "b26ded0d1037dadb42fe6f79bd42f62bf133fd66",
+   "dirty": false,
+   "cmd": "burg-upper",
+   "seg": "1-4",
+   "weapon": "클레이모어",
+   "quality_flags": []
+  },
+  {
+   "run": "20261012_223957_burg-upper",
+   "split": "val",
+   "n_scenes": 37,
+   "commit": "d3c4dd61ee358d5f91aba990bf944087e259340a",
+   "dirty": false,
+   "cmd": "burg-upper",
+   "seg": "1-4",
+   "weapon": "클레이모어",
+   "quality_flags": []
+  },
+  {
+   "run": "20261012_225154_burg-upper",
+   "split": "train",
+   "n_scenes": 28,
+   "commit": "4d371bf1593a8558279a750557878cdb4f5f6980",
+   "dirty": false,
+   "cmd": "burg-upper",
+   "seg": "1-4",
+   "weapon": "클레이모어",
+   "quality_flags": []
+  },
+  {
+   "run": "20261013_003435_burg-upper",
+   "split": "train",
+   "n_scenes": 4,
+   "commit": "93dce7b8f70643541313bdd6a7a8b805417d9c9d",
+   "dirty": false,
+   "cmd": "burg-upper",
+   "seg": "1-4",
+   "weapon": "클레이모어",
+   "quality_flags": []
+  },
+  {
+   "run": "20261013_003654_burg-upper",
+   "split": "train",
+   "n_scenes": 35,
+   "commit": "4796a4b5f68e2558d120866a9df963596986eb05",
+   "dirty": false,
+   "cmd": "burg-upper",
+   "seg": "1-4",
+   "weapon": "클레이모어",
+   "quality_flags": []
+  },
+  {
+   "run": "20261013_005647_burg-upper",
+   "split": "train",
+   "n_scenes": 47,
+   "commit": "fdba4c59a5f71509e1837ab756be91a7f8434ad5",
+   "dirty": false,
+   "cmd": "burg-upper",
+   "seg": "1-8",
+   "weapon": "클레이모어",
+   "quality_flags": []
+  },
+  {
+   "run": "20261013_010935_burg-upper",
+   "split": "train",
+   "n_scenes": 30,
+   "commit": "5ba6854d3ff41f56b307482d6a8c782ef9afbc9e",
+   "dirty": false,
+   "cmd": "burg-upper",
+   "seg": "1-8",
+   "weapon": "클레이모어",
+   "quality_flags": []
+  },
+  {
+   "run": "20261013_011929_burg-upper",
+   "split": "test",
+   "n_scenes": 68,
+   "commit": "dbc5bda660b3af9a1411dbfcc1212e7199ffd816",
+   "dirty": false,
+   "cmd": "burg-upper",
+   "seg": "1-8",
+   "weapon": "클레이모어",
+   "quality_flags": []
+  },
+  {
+   "run": "20261013_050945_burg-altar",
+   "split": "shift_zone",
+   "n_scenes": 31,
+   "commit": "e4bca7e014e1a5a1c90985f094fa3b6fcbb82ba1",
+   "dirty": false,
+   "cmd": "burg-altar",
+   "seg": null,
+   "weapon": "클레이모어",
+   "quality_flags": []
+  },
+  {
+   "run": "20261013_055418_burg-altar",
+   "split": "shift_zone",
+   "n_scenes": 27,
+   "commit": "b3d91fb8bdf72264b594ca21bcc3da7072347d5d",
+   "dirty": false,
+   "cmd": "burg-altar",
+   "seg": null,
+   "weapon": "클레이모어",
+   "quality_flags": []
+  },
+  {
+   "run": "20261013_060542_burg-altar",
+   "split": "shift_zone",
+   "n_scenes": 53,
+   "commit": "af93953cb115e69ac8b68bf6131cad7974038669",
+   "dirty": false,
+   "cmd": "burg-altar",
+   "seg": null,
+   "weapon": "클레이모어",
+   "quality_flags": []
+  },
+  {
+   "run": "20261013_061331_burg-altar",
+   "split": "shift_zone",
+   "n_scenes": 52,
+   "commit": "13f152b62420ccf3e842d1ed34866228c135de0e",
+   "dirty": false,
+   "cmd": "burg-altar",
+   "seg": null,
+   "weapon": "클레이모어",
+   "quality_flags": []
+  },
+  {
+   "run": "20261013_062448_burg-altar",
+   "split": "shift_zone",
+   "n_scenes": 20,
+   "commit": "97932987cbdd365693c4195647e23872572690b7",
+   "dirty": false,
+   "cmd": "burg-altar",
+   "seg": null,
+   "weapon": "클레이모어",
+   "quality_flags": []
+  },
+  {
+   "run": "20261013_171039_altar",
+   "split": "train",
+   "n_scenes": 8,
+   "commit": "69b15c98e35b389b01c56729445e5822fcde4449",
+   "dirty": false,
+   "cmd": "altar",
+   "seg": null,
+   "weapon": "클레이모어",
+   "quality_flags": []
+  },
+  {
+   "run": "20261013_175209_clear-ramp",
+   "split": "train",
+   "n_scenes": 14,
+   "commit": "361796be434c628909f7b2d356dccab654057fa3",
+   "dirty": false,
+   "cmd": "clear-ramp",
+   "seg": null,
+   "weapon": "클레이모어",
+   "quality_flags": [
+    "settings_not_in_git",
+    "opts_unknown"
+   ]
+  },
+  {
+   "run": "20261013_183926_burg-altar",
+   "split": "shift_zone",
+   "n_scenes": 33,
+   "commit": "26278c0c4983c24468e475c49471a53885f3ffee",
+   "dirty": false,
+   "cmd": "burg-altar",
+   "seg": null,
+   "weapon": "클레이모어",
+   "quality_flags": []
+  },
+  {
+   "run": "20261013_185234_burg-altar",
+   "split": "shift_zone",
+   "n_scenes": 39,
+   "commit": "66cebffa1207f8fc9283d53eb00d06045765bde4",
+   "dirty": false,
+   "cmd": "burg-altar",
+   "seg": null,
+   "weapon": "클레이모어",
+   "quality_flags": []
+  },
+  {
+   "run": "20261013_190105_burg-altar",
+   "split": "shift_zone",
+   "n_scenes": 37,
+   "commit": "66cebffa1207f8fc9283d53eb00d06045765bde4",
+   "dirty": false,
+   "cmd": "burg-altar",
+   "seg": null,
+   "weapon": "클레이모어",
+   "quality_flags": []
+  },
+  {
+   "run": "20261019_205059_parish-group1",
+   "split": "shift_ref",
+   "n_scenes": 3,
+   "commit": "2a97b61620d6bcd943ace6ce9f80e8cad38ada37",
+   "dirty": true,
+   "cmd": "parish-group1",
+   "seg": null,
+   "weapon": "클레이모어",
+   "quality_flags": [
+    "dirty_diff_not_in_repo"
+   ]
+  },
+  {
+   "run": "20261019_205348_parish-group1",
+   "split": "shift_ref",
+   "n_scenes": 3,
+   "commit": "2a97b61620d6bcd943ace6ce9f80e8cad38ada37",
+   "dirty": true,
+   "cmd": "parish-group1",
+   "seg": null,
+   "weapon": "클레이모어",
+   "quality_flags": [
+    "dirty_diff_not_in_repo"
+   ]
+  },
+  {
+   "run": "20261019_205644_parish-route",
+   "split": "shift_ref",
+   "n_scenes": 6,
+   "commit": "2a97b61620d6bcd943ace6ce9f80e8cad38ada37",
+   "dirty": true,
+   "cmd": "parish-route",
+   "seg": null,
+   "weapon": "클레이모어",
+   "quality_flags": [
+    "dirty_diff_not_in_repo"
+   ]
+  },
+  {
+   "run": "20261019_212609_parish-group1",
+   "split": "shift_ref",
+   "n_scenes": 7,
+   "commit": "f36afcd60ab11793ac0b04c618f06c9f593cab5e",
+   "dirty": false,
+   "cmd": "parish-group1",
+   "seg": null,
+   "weapon": "클레이모어",
+   "quality_flags": []
+  },
+  {
+   "run": "20261019_212803_parish-group1",
+   "split": "shift_ref",
+   "n_scenes": 5,
+   "commit": "f36afcd60ab11793ac0b04c618f06c9f593cab5e",
+   "dirty": false,
+   "cmd": "parish-group1",
+   "seg": null,
+   "weapon": "클레이모어",
+   "quality_flags": []
+  },
+  {
+   "run": "20261019_212954_parish-group1",
+   "split": "shift_ref",
+   "n_scenes": 34,
+   "commit": "f36afcd60ab11793ac0b04c618f06c9f593cab5e",
+   "dirty": false,
+   "cmd": "parish-group1",
+   "seg": null,
+   "weapon": "클레이모어",
+   "quality_flags": []
+  },
+  {
+   "run": "20261019_232719_parish-group1",
+   "split": "shift_ref",
+   "n_scenes": 3,
+   "commit": "30ddc29c51d17a7491af90e17306bcd517ecb6ae",
+   "dirty": true,
+   "cmd": "parish-group1",
+   "seg": null,
+   "weapon": "클레이모어",
+   "quality_flags": [
+    "dirty_diff_not_in_repo"
+   ]
+  },
+  {
+   "run": "20261027_202130_parish-group1",
+   "split": "shift_ref",
+   "n_scenes": 3,
+   "commit": "137086b30624183818fcb7e43f3fd6d4db74fae9",
+   "dirty": true,
+   "cmd": "parish-group1",
+   "seg": null,
+   "weapon": "클레이모어",
+   "quality_flags": [
+    "dirty_diff_not_in_repo"
+   ]
+  }
+ ]
+}
