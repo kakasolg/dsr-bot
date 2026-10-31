@@ -1,0 +1,2253 @@
+{
+ "join": {
+  "pred_rows": 723,
+  "unique": 723,
+  "duplicates": 0,
+  "unlinked": 0,
+  "split_mismatch": 0,
+  "y_true_mismatch": 0,
+  "pending_in_predictions": 0
+ },
+ "reflex_age_semantics": {
+  "train_n": 730,
+  "age_none": 302,
+  "age_none_and_tick_a_attack": 50,
+  "age_set_and_tick_a_not_attack": 223,
+  "attack_age_rule_violations_train": 0,
+  "age_none_by_reflex_anim_attack": {
+   "reflex_anim_not_attack/start_absent": 73,
+   "reflex_anim_not_attack/start_present": 229
+  }
+ },
+ "eval": {
+  "val": {
+   "n": 16,
+   "runs": 4,
+   "both_correct": {
+    "n": 5,
+    "runs": 2,
+    "i1_pred": {
+     "reflex": 5
+    },
+    "i2_pred": {
+     "reflex": 5
+    },
+    "by_run": {
+     "20261011_145345_burg-bonfire": 3,
+     "20261012_053935_burg-bonfire": 2
+    },
+    "values": {
+     "n": 5,
+     "runs": 2,
+     "tgt_anim_is_attack": {
+      "False": 5
+     },
+     "reflex_anim_target_is_attack": {
+      "False": 4,
+      "True": 1
+     },
+     "reflex_start_has_target": {
+      "True": 5
+     },
+     "reflex_prefer_is_target": {
+      "True": 5
+     },
+     "swing_end_key": {
+      "True": 3,
+      "False": 2
+     },
+     "tgt_h": {
+      "present": 5,
+      "missing": 0,
+      "min": 0.85,
+      "median": 1.9,
+      "max": 1.92
+     },
+     "my_hp_ratio": {
+      "present": 5,
+      "missing": 0,
+      "min": 0.23,
+      "median": 0.577,
+      "max": 0.577
+     },
+     "my_sp_ratio": {
+      "present": 5,
+      "missing": 0,
+      "min": 0.52,
+      "median": 0.714,
+      "max": 0.755
+     },
+     "reflex_age_s": {
+      "present": 1,
+      "missing": 4,
+      "min": 5.063,
+      "median": 5.063,
+      "max": 5.063
+     },
+     "reflex_target_since_start_s": {
+      "present": 5,
+      "missing": 0,
+      "min": 0.866,
+      "median": 1.093,
+      "max": 5.221
+     },
+     "since_swing_end_s": {
+      "present": 3,
+      "missing": 2,
+      "min": 0.416,
+      "median": 0.489,
+      "max": 0.643
+     },
+     "since_stag_s": {
+      "present": 0,
+      "missing": 5,
+      "min": null,
+      "median": null,
+      "max": null
+     },
+     "since_target_swung_s": {
+      "present": 5,
+      "missing": 0,
+      "min": 0.464,
+      "median": 0.691,
+      "max": 1.519
+     },
+     "tgt_anim": {
+      "3500": 5
+     },
+     "aprev_anim": {
+      "3500": 4,
+      "__absent__": 1
+     }
+    }
+   },
+   "i1_only": {
+    "n": 3,
+    "runs": 2,
+    "i1_pred": {
+     "reflex": 3
+    },
+    "i2_pred": {
+     "after_swing": 2,
+     "backstab_swing": 1
+    },
+    "by_run": {
+     "20261011_145345_burg-bonfire": 1,
+     "20261012_024340_burg-upper": 2
+    },
+    "values": {
+     "n": 3,
+     "runs": 2,
+     "tgt_anim_is_attack": {
+      "False": 2,
+      "True": 1
+     },
+     "reflex_anim_target_is_attack": {
+      "True": 2,
+      "False": 1
+     },
+     "reflex_start_has_target": {
+      "True": 3
+     },
+     "reflex_prefer_is_target": {
+      "True": 3
+     },
+     "swing_end_key": {
+      "False": 3
+     },
+     "tgt_h": {
+      "present": 3,
+      "missing": 0,
+      "min": 0.82,
+      "median": 1.89,
+      "max": 2.3
+     },
+     "my_hp_ratio": {
+      "present": 3,
+      "missing": 0,
+      "min": 0.577,
+      "median": 1.0,
+      "max": 1.0
+     },
+     "my_sp_ratio": {
+      "present": 3,
+      "missing": 0,
+      "min": 0.704,
+      "median": 0.918,
+      "max": 1.0
+     },
+     "reflex_age_s": {
+      "present": 2,
+      "missing": 1,
+      "min": 0.466,
+      "median": 1.032,
+      "max": 1.597
+     },
+     "reflex_target_since_start_s": {
+      "present": 3,
+      "missing": 0,
+      "min": 0.45,
+      "median": 1.597,
+      "max": 14.994
+     },
+     "since_swing_end_s": {
+      "present": 0,
+      "missing": 3,
+      "min": null,
+      "median": null,
+      "max": null
+     },
+     "since_stag_s": {
+      "present": 0,
+      "missing": 3,
+      "min": null,
+      "median": null,
+      "max": null
+     },
+     "since_target_swung_s": {
+      "present": 2,
+      "missing": 1,
+      "min": 0.046,
+      "median": 0.047,
+      "max": 0.048
+     },
+     "tgt_anim": {
+      "3500": 2,
+      "3004": 1
+     },
+     "aprev_anim": {
+      "3003": 2,
+      "-1": 1
+     }
+    }
+   },
+   "i2_only": {
+    "n": 1,
+    "runs": 1,
+    "i1_pred": {
+     "after_swing": 1
+    },
+    "i2_pred": {
+     "reflex": 1
+    },
+    "by_run": {
+     "20261012_024340_burg-upper": 1
+    },
+    "values": {
+     "n": 1,
+     "runs": 1,
+     "tgt_anim_is_attack": {
+      "False": 1
+     },
+     "reflex_anim_target_is_attack": {
+      "False": 1
+     },
+     "reflex_start_has_target": {
+      "True": 1
+     },
+     "reflex_prefer_is_target": {
+      "True": 1
+     },
+     "swing_end_key": {
+      "True": 1
+     },
+     "tgt_h": {
+      "present": 1,
+      "missing": 0,
+      "min": 1.47,
+      "median": 1.47,
+      "max": 1.47
+     },
+     "my_hp_ratio": {
+      "present": 1,
+      "missing": 0,
+      "min": 0.709,
+      "median": 0.709,
+      "max": 0.709
+     },
+     "my_sp_ratio": {
+      "present": 1,
+      "missing": 0,
+      "min": 1.0,
+      "median": 1.0,
+      "max": 1.0
+     },
+     "reflex_age_s": {
+      "present": 0,
+      "missing": 1,
+      "min": null,
+      "median": null,
+      "max": null
+     },
+     "reflex_target_since_start_s": {
+      "present": 1,
+      "missing": 0,
+      "min": 1.862,
+      "median": 1.862,
+      "max": 1.862
+     },
+     "since_swing_end_s": {
+      "present": 1,
+      "missing": 0,
+      "min": 0.953,
+      "median": 0.953,
+      "max": 0.953
+     },
+     "since_stag_s": {
+      "present": 0,
+      "missing": 1,
+      "min": null,
+      "median": null,
+      "max": null
+     },
+     "since_target_swung_s": {
+      "present": 1,
+      "missing": 0,
+      "min": 0.979,
+      "median": 0.979,
+      "max": 0.979
+     },
+     "tgt_anim": {
+      "3500": 1
+     },
+     "aprev_anim": {
+      "3500": 1
+     }
+    }
+   },
+   "both_wrong": {
+    "n": 7,
+    "runs": 3,
+    "i1_pred": {
+     "stamina": 1,
+     "after_swing": 2,
+     "stagger_punish": 3,
+     "attack": 1
+    },
+    "i2_pred": {
+     "after_swing": 4,
+     "stagger_punish": 3
+    },
+    "by_run": {
+     "20261011_145345_burg-bonfire": 1,
+     "20261012_024340_burg-upper": 2,
+     "20261012_223957_burg-upper": 4
+    },
+    "values": {
+     "n": 7,
+     "runs": 3,
+     "tgt_anim_is_attack": {
+      "False": 7
+     },
+     "reflex_anim_target_is_attack": {
+      "True": 2,
+      "False": 5
+     },
+     "reflex_start_has_target": {
+      "True": 7
+     },
+     "reflex_prefer_is_target": {
+      "True": 7
+     },
+     "swing_end_key": {
+      "True": 7
+     },
+     "tgt_h": {
+      "present": 7,
+      "missing": 0,
+      "min": 1.03,
+      "median": 1.53,
+      "max": 1.72
+     },
+     "my_hp_ratio": {
+      "present": 7,
+      "missing": 0,
+      "min": 0.679,
+      "median": 0.926,
+      "max": 1.0
+     },
+     "my_sp_ratio": {
+      "present": 7,
+      "missing": 0,
+      "min": 0.449,
+      "median": 0.612,
+      "max": 0.918
+     },
+     "reflex_age_s": {
+      "present": 2,
+      "missing": 5,
+      "min": 1.019,
+      "median": 1.214,
+      "max": 1.408
+     },
+     "reflex_target_since_start_s": {
+      "present": 7,
+      "missing": 0,
+      "min": 0.917,
+      "median": 1.301,
+      "max": 7.625
+     },
+     "since_swing_end_s": {
+      "present": 4,
+      "missing": 3,
+      "min": 0.243,
+      "median": 0.536,
+      "max": 2.401
+     },
+     "since_stag_s": {
+      "present": 0,
+      "missing": 7,
+      "min": null,
+      "median": null,
+      "max": null
+     },
+     "since_target_swung_s": {
+      "present": 7,
+      "missing": 0,
+      "min": 0.03,
+      "median": 0.491,
+      "max": 5.506
+     },
+     "tgt_anim": {
+      "3500": 7
+     },
+     "aprev_anim": {
+      "3500": 5,
+      "3010": 1,
+      "3000": 1
+     }
+    }
+   }
+  },
+  "test": {
+   "n": 18,
+   "runs": 5,
+   "both_correct": {
+    "n": 2,
+    "runs": 1,
+    "i1_pred": {
+     "reflex": 2
+    },
+    "i2_pred": {
+     "reflex": 2
+    },
+    "by_run": {
+     "20261012_025301_burg-upper": 2
+    },
+    "values": {
+     "n": 2,
+     "runs": 1,
+     "tgt_anim_is_attack": {
+      "False": 2
+     },
+     "reflex_anim_target_is_attack": {
+      "False": 1,
+      "True": 1
+     },
+     "reflex_start_has_target": {
+      "True": 2
+     },
+     "reflex_prefer_is_target": {
+      "True": 2
+     },
+     "swing_end_key": {
+      "True": 2
+     },
+     "tgt_h": {
+      "present": 2,
+      "missing": 0,
+      "min": 0.85,
+      "median": 1.265,
+      "max": 1.68
+     },
+     "my_hp_ratio": {
+      "present": 2,
+      "missing": 0,
+      "min": 0.569,
+      "median": 0.697,
+      "max": 0.825
+     },
+     "my_sp_ratio": {
+      "present": 2,
+      "missing": 0,
+      "min": 0.459,
+      "median": 0.689,
+      "max": 0.918
+     },
+     "reflex_age_s": {
+      "present": 1,
+      "missing": 1,
+      "min": 0.386,
+      "median": 0.386,
+      "max": 0.386
+     },
+     "reflex_target_since_start_s": {
+      "present": 2,
+      "missing": 0,
+      "min": 0.386,
+      "median": 1.244,
+      "max": 2.102
+     },
+     "since_swing_end_s": {
+      "present": 1,
+      "missing": 1,
+      "min": 1.303,
+      "median": 1.303,
+      "max": 1.303
+     },
+     "since_stag_s": {
+      "present": 0,
+      "missing": 2,
+      "min": null,
+      "median": null,
+      "max": null
+     },
+     "since_target_swung_s": {
+      "present": 2,
+      "missing": 0,
+      "min": 0.068,
+      "median": 0.707,
+      "max": 1.347
+     },
+     "tgt_anim": {
+      "3500": 2
+     },
+     "aprev_anim": {
+      "3500": 1,
+      "3001": 1
+     }
+    }
+   },
+   "i1_only": {
+    "n": 9,
+    "runs": 4,
+    "i1_pred": {
+     "reflex": 9
+    },
+    "i2_pred": {
+     "after_swing": 5,
+     "backstab_swing": 2,
+     "attack": 1,
+     "stagger_punish": 1
+    },
+    "by_run": {
+     "20261012_005843_burg-upper": 1,
+     "20261012_025301_burg-upper": 5,
+     "20261012_033444_burg-bonfire": 1,
+     "20261013_011929_burg-upper": 2
+    },
+    "values": {
+     "n": 9,
+     "runs": 4,
+     "tgt_anim_is_attack": {
+      "True": 2,
+      "False": 7
+     },
+     "reflex_anim_target_is_attack": {
+      "True": 3,
+      "False": 6
+     },
+     "reflex_start_has_target": {
+      "True": 7,
+      "False": 2
+     },
+     "reflex_prefer_is_target": {
+      "True": 9
+     },
+     "swing_end_key": {
+      "True": 6,
+      "False": 3
+     },
+     "tgt_h": {
+      "present": 9,
+      "missing": 0,
+      "min": 0.85,
+      "median": 0.85,
+      "max": 2.18
+     },
+     "my_hp_ratio": {
+      "present": 9,
+      "missing": 0,
+      "min": 0.611,
+      "median": 0.961,
+      "max": 0.961
+     },
+     "my_sp_ratio": {
+      "present": 9,
+      "missing": 0,
+      "min": 0.163,
+      "median": 0.755,
+      "max": 1.0
+     },
+     "reflex_age_s": {
+      "present": 3,
+      "missing": 6,
+      "min": 0.856,
+      "median": 0.861,
+      "max": 1.862
+     },
+     "reflex_target_since_start_s": {
+      "present": 7,
+      "missing": 2,
+      "min": 0.856,
+      "median": 1.327,
+      "max": 2.608
+     },
+     "since_swing_end_s": {
+      "present": 5,
+      "missing": 4,
+      "min": 0.055,
+      "median": 0.573,
+      "max": 3.268
+     },
+     "since_stag_s": {
+      "present": 2,
+      "missing": 7,
+      "min": 1.134,
+      "median": 2.201,
+      "max": 3.268
+     },
+     "since_target_swung_s": {
+      "present": 7,
+      "missing": 2,
+      "min": -0.001,
+      "median": 0.084,
+      "max": 1.162
+     },
+     "tgt_anim": {
+      "3500": 7,
+      "3004": 2
+     },
+     "aprev_anim": {
+      "3500": 6,
+      "3009": 2,
+      "3001": 1
+     }
+    }
+   },
+   "i2_only": {
+    "n": 0,
+    "runs": 0,
+    "i1_pred": {},
+    "i2_pred": {},
+    "by_run": {},
+    "values": null
+   },
+   "both_wrong": {
+    "n": 7,
+    "runs": 4,
+    "i1_pred": {
+     "after_swing": 4,
+     "stamina": 2,
+     "stagger_punish": 1
+    },
+    "i2_pred": {
+     "after_swing": 5,
+     "stagger_punish": 1,
+     "approach": 1
+    },
+    "by_run": {
+     "20261011_144914_burg-bonfire": 2,
+     "20261012_005843_burg-upper": 1,
+     "20261012_025301_burg-upper": 1,
+     "20261013_011929_burg-upper": 3
+    },
+    "values": {
+     "n": 7,
+     "runs": 4,
+     "tgt_anim_is_attack": {
+      "True": 3,
+      "False": 4
+     },
+     "reflex_anim_target_is_attack": {
+      "True": 4,
+      "False": 3
+     },
+     "reflex_start_has_target": {
+      "True": 7
+     },
+     "reflex_prefer_is_target": {
+      "True": 7
+     },
+     "swing_end_key": {
+      "True": 7
+     },
+     "tgt_h": {
+      "present": 7,
+      "missing": 0,
+      "min": 0.87,
+      "median": 1.66,
+      "max": 2.97
+     },
+     "my_hp_ratio": {
+      "present": 7,
+      "missing": 0,
+      "min": 0.569,
+      "median": 0.755,
+      "max": 0.902
+     },
+     "my_sp_ratio": {
+      "present": 7,
+      "missing": 0,
+      "min": 0.214,
+      "median": 0.643,
+      "max": 0.929
+     },
+     "reflex_age_s": {
+      "present": 4,
+      "missing": 3,
+      "min": 0.451,
+      "median": 1.198,
+      "max": 1.314
+     },
+     "reflex_target_since_start_s": {
+      "present": 7,
+      "missing": 0,
+      "min": 0.417,
+      "median": 1.314,
+      "max": 2.991
+     },
+     "since_swing_end_s": {
+      "present": 3,
+      "missing": 4,
+      "min": 0.311,
+      "median": 1.056,
+      "max": 3.241
+     },
+     "since_stag_s": {
+      "present": 3,
+      "missing": 4,
+      "min": 0.311,
+      "median": 1.056,
+      "max": 3.015
+     },
+     "since_target_swung_s": {
+      "present": 7,
+      "missing": 0,
+      "min": 0.011,
+      "median": 0.053,
+      "max": 1.358
+     },
+     "tgt_anim": {
+      "3500": 4,
+      "3004": 3
+     },
+     "aprev_anim": {
+      "3500": 3,
+      "3004": 2,
+      "3009": 1,
+      "3000": 1
+     }
+    }
+   }
+  },
+  "shift_zone": {
+   "n": 12,
+   "runs": 7,
+   "both_correct": {
+    "n": 0,
+    "runs": 0,
+    "i1_pred": {},
+    "i2_pred": {},
+    "by_run": {},
+    "values": null
+   },
+   "i1_only": {
+    "n": 2,
+    "runs": 2,
+    "i1_pred": {
+     "reflex": 2
+    },
+    "i2_pred": {
+     "after_swing": 1,
+     "stagger_punish": 1
+    },
+    "by_run": {
+     "20261013_060542_burg-altar": 1,
+     "20261013_061331_burg-altar": 1
+    },
+    "values": {
+     "n": 2,
+     "runs": 2,
+     "tgt_anim_is_attack": {
+      "False": 2
+     },
+     "reflex_anim_target_is_attack": {
+      "True": 1,
+      "False": 1
+     },
+     "reflex_start_has_target": {
+      "True": 2
+     },
+     "reflex_prefer_is_target": {
+      "True": 2
+     },
+     "swing_end_key": {
+      "True": 2
+     },
+     "tgt_h": {
+      "present": 2,
+      "missing": 0,
+      "min": 0.98,
+      "median": 1.335,
+      "max": 1.69
+     },
+     "my_hp_ratio": {
+      "present": 2,
+      "missing": 0,
+      "min": 0.795,
+      "median": 0.897,
+      "max": 1.0
+     },
+     "my_sp_ratio": {
+      "present": 2,
+      "missing": 0,
+      "min": 0.551,
+      "median": 0.592,
+      "max": 0.633
+     },
+     "reflex_age_s": {
+      "present": 1,
+      "missing": 1,
+      "min": 0.921,
+      "median": 0.921,
+      "max": 0.921
+     },
+     "reflex_target_since_start_s": {
+      "present": 2,
+      "missing": 0,
+      "min": 0.921,
+      "median": 1.962,
+      "max": 3.003
+     },
+     "since_swing_end_s": {
+      "present": 2,
+      "missing": 0,
+      "min": 0.948,
+      "median": 1.615,
+      "max": 2.282
+     },
+     "since_stag_s": {
+      "present": 2,
+      "missing": 0,
+      "min": 0.948,
+      "median": 1.615,
+      "max": 2.282
+     },
+     "since_target_swung_s": {
+      "present": 2,
+      "missing": 0,
+      "min": 0.032,
+      "median": 0.485,
+      "max": 0.938
+     },
+     "tgt_anim": {
+      "3500": 2
+     },
+     "aprev_anim": {
+      "3000": 1,
+      "3500": 1
+     }
+    }
+   },
+   "i2_only": {
+    "n": 0,
+    "runs": 0,
+    "i1_pred": {},
+    "i2_pred": {},
+    "by_run": {},
+    "values": null
+   },
+   "both_wrong": {
+    "n": 10,
+    "runs": 7,
+    "i1_pred": {
+     "backstab_swing": 2,
+     "after_swing": 6,
+     "late_windup_block": 1,
+     "attack": 1
+    },
+    "i2_pred": {
+     "backstab_swing": 5,
+     "after_swing": 5
+    },
+    "by_run": {
+     "20261013_050945_burg-altar": 3,
+     "20261013_055418_burg-altar": 1,
+     "20261013_060542_burg-altar": 1,
+     "20261013_061331_burg-altar": 2,
+     "20261013_183926_burg-altar": 1,
+     "20261013_185234_burg-altar": 1,
+     "20261013_190105_burg-altar": 1
+    },
+    "values": {
+     "n": 10,
+     "runs": 7,
+     "tgt_anim_is_attack": {
+      "True": 9,
+      "False": 1
+     },
+     "reflex_anim_target_is_attack": {
+      "True": 10
+     },
+     "reflex_start_has_target": {
+      "True": 10
+     },
+     "reflex_prefer_is_target": {
+      "False": 3,
+      "True": 7
+     },
+     "swing_end_key": {
+      "False": 3,
+      "True": 7
+     },
+     "tgt_h": {
+      "present": 10,
+      "missing": 0,
+      "min": 0.88,
+      "median": 1.64,
+      "max": 5.75
+     },
+     "my_hp_ratio": {
+      "present": 10,
+      "missing": 0,
+      "min": 0.559,
+      "median": 0.978,
+      "max": 1.0
+     },
+     "my_sp_ratio": {
+      "present": 10,
+      "missing": 0,
+      "min": 0.57,
+      "median": 0.714,
+      "max": 1.0
+     },
+     "reflex_age_s": {
+      "present": 10,
+      "missing": 0,
+      "min": 0.147,
+      "median": 1.084,
+      "max": 1.889
+     },
+     "reflex_target_since_start_s": {
+      "present": 10,
+      "missing": 0,
+      "min": 0.147,
+      "median": 1.084,
+      "max": 1.889
+     },
+     "since_swing_end_s": {
+      "present": 4,
+      "missing": 6,
+      "min": 0.932,
+      "median": 3.229,
+      "max": 3.251
+     },
+     "since_stag_s": {
+      "present": 6,
+      "missing": 4,
+      "min": 2.681,
+      "median": 3.053,
+      "max": 3.251
+     },
+     "since_target_swung_s": {
+      "present": 10,
+      "missing": 0,
+      "min": -0.0,
+      "median": -0.0,
+      "max": 0.043
+     },
+     "tgt_anim": {
+      "3004": 6,
+      "3008": 3,
+      "3500": 1
+     },
+     "aprev_anim": {
+      "3009": 4,
+      "3008": 2,
+      "-1": 2,
+      "__absent__": 1,
+      "3004": 1
+     }
+    }
+   }
+  },
+  "shift_ref": {
+   "n": 14,
+   "runs": 1,
+   "both_correct": {
+    "n": 0,
+    "runs": 0,
+    "i1_pred": {},
+    "i2_pred": {},
+    "by_run": {},
+    "values": null
+   },
+   "i1_only": {
+    "n": 9,
+    "runs": 1,
+    "i1_pred": {
+     "reflex": 9
+    },
+    "i2_pred": {
+     "stagger_punish": 9
+    },
+    "by_run": {
+     "20261019_212954_parish-group1": 9
+    },
+    "values": {
+     "n": 9,
+     "runs": 1,
+     "tgt_anim_is_attack": {
+      "False": 9
+     },
+     "reflex_anim_target_is_attack": {
+      "False": 9
+     },
+     "reflex_start_has_target": {
+      "True": 9
+     },
+     "reflex_prefer_is_target": {
+      "True": 9
+     },
+     "swing_end_key": {
+      "True": 9
+     },
+     "tgt_h": {
+      "present": 9,
+      "missing": 0,
+      "min": 1.24,
+      "median": 1.42,
+      "max": 1.59
+     },
+     "my_hp_ratio": {
+      "present": 9,
+      "missing": 0,
+      "min": 0.77,
+      "median": 0.778,
+      "max": 0.813
+     },
+     "my_sp_ratio": {
+      "present": 9,
+      "missing": 0,
+      "min": 0.92,
+      "median": 0.99,
+      "max": 1.0
+     },
+     "reflex_age_s": {
+      "present": 0,
+      "missing": 9,
+      "min": null,
+      "median": null,
+      "max": null
+     },
+     "reflex_target_since_start_s": {
+      "present": 9,
+      "missing": 0,
+      "min": 1.406,
+      "median": 1.721,
+      "max": 2.095
+     },
+     "since_swing_end_s": {
+      "present": 9,
+      "missing": 0,
+      "min": 0.458,
+      "median": 0.772,
+      "max": 1.334
+     },
+     "since_stag_s": {
+      "present": 9,
+      "missing": 0,
+      "min": 0.458,
+      "median": 0.772,
+      "max": 1.334
+     },
+     "since_target_swung_s": {
+      "present": 9,
+      "missing": 0,
+      "min": 0.485,
+      "median": 0.8,
+      "max": 1.366
+     },
+     "tgt_anim": {
+      "3500": 9
+     },
+     "aprev_anim": {
+      "3500": 9
+     }
+    }
+   },
+   "i2_only": {
+    "n": 0,
+    "runs": 0,
+    "i1_pred": {},
+    "i2_pred": {},
+    "by_run": {},
+    "values": null
+   },
+   "both_wrong": {
+    "n": 5,
+    "runs": 1,
+    "i1_pred": {
+     "attack": 5
+    },
+    "i2_pred": {
+     "after_swing": 3,
+     "stagger_punish": 2
+    },
+    "by_run": {
+     "20261019_212954_parish-group1": 5
+    },
+    "values": {
+     "n": 5,
+     "runs": 1,
+     "tgt_anim_is_attack": {
+      "False": 5
+     },
+     "reflex_anim_target_is_attack": {
+      "True": 3,
+      "False": 2
+     },
+     "reflex_start_has_target": {
+      "True": 5
+     },
+     "reflex_prefer_is_target": {
+      "True": 5
+     },
+     "swing_end_key": {
+      "False": 2,
+      "True": 3
+     },
+     "tgt_h": {
+      "present": 5,
+      "missing": 0,
+      "min": 0.82,
+      "median": 0.97,
+      "max": 1.19
+     },
+     "my_hp_ratio": {
+      "present": 5,
+      "missing": 0,
+      "min": 0.77,
+      "median": 0.773,
+      "max": 0.813
+     },
+     "my_sp_ratio": {
+      "present": 5,
+      "missing": 0,
+      "min": 0.73,
+      "median": 0.9,
+      "max": 0.91
+     },
+     "reflex_age_s": {
+      "present": 3,
+      "missing": 2,
+      "min": 0.761,
+      "median": 0.94,
+      "max": 0.949
+     },
+     "reflex_target_since_start_s": {
+      "present": 5,
+      "missing": 0,
+      "min": 0.761,
+      "median": 0.949,
+      "max": 2.148
+     },
+     "since_swing_end_s": {
+      "present": 3,
+      "missing": 2,
+      "min": 1.137,
+      "median": 1.208,
+      "max": 2.295
+     },
+     "since_stag_s": {
+      "present": 3,
+      "missing": 2,
+      "min": 1.137,
+      "median": 1.208,
+      "max": 2.295
+     },
+     "since_target_swung_s": {
+      "present": 5,
+      "missing": 0,
+      "min": 0.028,
+      "median": 0.044,
+      "max": 1.252
+     },
+     "tgt_anim": {
+      "3500": 5
+     },
+     "aprev_anim": {
+      "3500": 2,
+      "3000": 1,
+      "3003": 1,
+      "3001": 1
+     }
+    }
+   }
+  }
+ },
+ "train_reference": {
+  "reflex": {
+   "n": 43,
+   "runs": 16,
+   "tgt_anim_is_attack": {
+    "False": 29,
+    "True": 14
+   },
+   "reflex_anim_target_is_attack": {
+    "True": 19,
+    "False": 24
+   },
+   "reflex_start_has_target": {
+    "True": 42,
+    "False": 1
+   },
+   "reflex_prefer_is_target": {
+    "True": 39,
+    "False": 4
+   },
+   "swing_end_key": {
+    "True": 34,
+    "False": 9
+   },
+   "tgt_h": {
+    "present": 43,
+    "missing": 0,
+    "min": 0.85,
+    "median": 1.69,
+    "max": 2.72
+   },
+   "my_hp_ratio": {
+    "present": 43,
+    "missing": 0,
+    "min": 0.037,
+    "median": 0.728,
+    "max": 1.0
+   },
+   "my_sp_ratio": {
+    "present": 43,
+    "missing": 0,
+    "min": -0.02,
+    "median": 0.867,
+    "max": 1.0
+   },
+   "reflex_age_s": {
+    "present": 19,
+    "missing": 24,
+    "min": 0.196,
+    "median": 1.067,
+    "max": 7.614
+   },
+   "reflex_target_since_start_s": {
+    "present": 42,
+    "missing": 1,
+    "min": 0.196,
+    "median": 2.012,
+    "max": 43.721
+   },
+   "since_swing_end_s": {
+    "present": 24,
+    "missing": 19,
+    "min": 0.029,
+    "median": 1.288,
+    "max": 5.264
+   },
+   "since_stag_s": {
+    "present": 6,
+    "missing": 37,
+    "min": 0.085,
+    "median": 2.887,
+    "max": 5.264
+   },
+   "since_target_swung_s": {
+    "present": 43,
+    "missing": 0,
+    "min": -0.0,
+    "median": 0.142,
+    "max": 3.405
+   },
+   "tgt_anim": {
+    "3500": 29,
+    "3004": 14
+   },
+   "aprev_anim": {
+    "3500": 21,
+    "3004": 6,
+    "-1": 3,
+    "3009": 3,
+    "3003": 2,
+    "3005": 2,
+    "3000": 2,
+    "3002": 1
+   }
+  },
+  "face_first": {
+   "n": 20,
+   "runs": 8,
+   "tgt_anim_is_attack": {
+    "False": 14,
+    "True": 6
+   },
+   "reflex_anim_target_is_attack": {
+    "False": 14,
+    "True": 6
+   },
+   "reflex_start_has_target": {
+    "True": 17,
+    "False": 3
+   },
+   "reflex_prefer_is_target": {
+    "True": 15,
+    "False": 5
+   },
+   "swing_end_key": {
+    "True": 12,
+    "False": 8
+   },
+   "tgt_h": {
+    "present": 20,
+    "missing": 0,
+    "min": 0.85,
+    "median": 1.77,
+    "max": 9.78
+   },
+   "my_hp_ratio": {
+    "present": 20,
+    "missing": 0,
+    "min": 0.037,
+    "median": 0.62,
+    "max": 1.0
+   },
+   "my_sp_ratio": {
+    "present": 20,
+    "missing": 0,
+    "min": 0.541,
+    "median": 0.974,
+    "max": 1.0
+   },
+   "reflex_age_s": {
+    "present": 6,
+    "missing": 14,
+    "min": 0.158,
+    "median": 4.024,
+    "max": 18.496
+   },
+   "reflex_target_since_start_s": {
+    "present": 17,
+    "missing": 3,
+    "min": 0.158,
+    "median": 2.887,
+    "max": 25.325
+   },
+   "since_swing_end_s": {
+    "present": 12,
+    "missing": 8,
+    "min": 0.152,
+    "median": 1.189,
+    "max": 6.839
+   },
+   "since_stag_s": {
+    "present": 1,
+    "missing": 19,
+    "min": 0.527,
+    "median": 0.527,
+    "max": 0.527
+   },
+   "since_target_swung_s": {
+    "present": 19,
+    "missing": 1,
+    "min": -0.0,
+    "median": 1.138,
+    "max": 1.584
+   },
+   "tgt_anim": {
+    "3500": 14,
+    "3004": 3,
+    "3008": 3
+   },
+   "aprev_anim": {
+    "3500": 11,
+    "__absent__": 4,
+    "-1": 2,
+    "3210": 1,
+    "3000": 1,
+    "3004": 1
+   }
+  },
+  "stagger_punish": {
+   "n": 45,
+   "runs": 16,
+   "tgt_anim_is_attack": {
+    "False": 45
+   },
+   "reflex_anim_target_is_attack": {
+    "False": 44,
+    "True": 1
+   },
+   "reflex_start_has_target": {
+    "True": 44,
+    "False": 1
+   },
+   "reflex_prefer_is_target": {
+    "True": 44,
+    "False": 1
+   },
+   "swing_end_key": {
+    "False": 5,
+    "True": 40
+   },
+   "tgt_h": {
+    "present": 45,
+    "missing": 0,
+    "min": 0.93,
+    "median": 1.43,
+    "max": 1.87
+   },
+   "my_hp_ratio": {
+    "present": 45,
+    "missing": 0,
+    "min": 0.037,
+    "median": 0.846,
+    "max": 1.0
+   },
+   "my_sp_ratio": {
+    "present": 45,
+    "missing": 0,
+    "min": 0.561,
+    "median": 0.643,
+    "max": 0.96
+   },
+   "reflex_age_s": {
+    "present": 1,
+    "missing": 44,
+    "min": 1.334,
+    "median": 1.334,
+    "max": 1.334
+   },
+   "reflex_target_since_start_s": {
+    "present": 44,
+    "missing": 1,
+    "min": 0.642,
+    "median": 1.763,
+    "max": 25.391
+   },
+   "since_swing_end_s": {
+    "present": 38,
+    "missing": 7,
+    "min": 0.039,
+    "median": 0.983,
+    "max": 7.046
+   },
+   "since_stag_s": {
+    "present": 29,
+    "missing": 16,
+    "min": 0.462,
+    "median": 0.988,
+    "max": 7.046
+   },
+   "since_target_swung_s": {
+    "present": 43,
+    "missing": 2,
+    "min": 0.039,
+    "median": 1.047,
+    "max": 18.436
+   },
+   "tgt_anim": {
+    "3500": 44,
+    "9600": 1
+   },
+   "aprev_anim": {
+    "3500": 42,
+    "3003": 1,
+    "9600": 1,
+    "-1": 1
+   }
+  }
+ },
+ "run_212954": {
+  "run": "20261019_212954_parish-group1",
+  "meta": {
+   "run": "20261019_212954_parish-group1",
+   "split": "shift_ref",
+   "n_scenes": 34,
+   "commit": "f36afcd60ab11793ac0b04c618f06c9f593cab5e",
+   "dirty": false,
+   "cmd": "parish-group1",
+   "seg": null,
+   "weapon": "클레이모어",
+   "quality_flags": []
+  },
+  "style": {
+   "guard": 34
+  },
+  "weapon": {
+   "{'id': 301000, 'name': '클레이모어'}": 34
+  },
+  "n": 34,
+  "y_true": {
+   "reflex": 14,
+   "face_first": 12,
+   "stagger_punish": 5,
+   "edge": 1,
+   "after_swing": 1,
+   "hit_first": 1
+  },
+  "i1_pred": {
+   "attack": 9,
+   "face_first": 12,
+   "reflex": 11,
+   "after_swing": 1,
+   "hit_first": 1
+  },
+  "i2_pred": {
+   "after_swing": 4,
+   "stagger_punish": 25,
+   "face_first": 4,
+   "hit_first": 1
+  },
+  "transitions_true_i1_i2": {
+   "reflex|attack|after_swing": 3,
+   "face_first|face_first|stagger_punish": 8,
+   "reflex|reflex|stagger_punish": 9,
+   "reflex|attack|stagger_punish": 2,
+   "face_first|face_first|face_first": 4,
+   "stagger_punish|attack|stagger_punish": 4,
+   "edge|reflex|stagger_punish": 1,
+   "stagger_punish|reflex|stagger_punish": 1,
+   "after_swing|after_swing|after_swing": 1,
+   "hit_first|hit_first|hit_first": 1
+  },
+  "values_by_true_rule": {
+   "after_swing": {
+    "n": 1,
+    "runs": 1,
+    "tgt_anim_is_attack": {
+     "True": 1
+    },
+    "reflex_anim_target_is_attack": {
+     "True": 1
+    },
+    "reflex_start_has_target": {
+     "True": 1
+    },
+    "reflex_prefer_is_target": {
+     "True": 1
+    },
+    "swing_end_key": {
+     "True": 1
+    },
+    "tgt_h": {
+     "present": 1,
+     "missing": 0,
+     "min": 1.23,
+     "median": 1.23,
+     "max": 1.23
+    },
+    "my_hp_ratio": {
+     "present": 1,
+     "missing": 0,
+     "min": 0.811,
+     "median": 0.811,
+     "max": 0.811
+    },
+    "my_sp_ratio": {
+     "present": 1,
+     "missing": 0,
+     "min": 0.91,
+     "median": 0.91,
+     "max": 0.91
+    },
+    "reflex_age_s": {
+     "present": 1,
+     "missing": 0,
+     "min": 1.936,
+     "median": 1.936,
+     "max": 1.936
+    },
+    "reflex_target_since_start_s": {
+     "present": 1,
+     "missing": 0,
+     "min": 1.936,
+     "median": 1.936,
+     "max": 1.936
+    },
+    "since_swing_end_s": {
+     "present": 1,
+     "missing": 0,
+     "min": 0.317,
+     "median": 0.317,
+     "max": 0.317
+    },
+    "since_stag_s": {
+     "present": 1,
+     "missing": 0,
+     "min": 3.304,
+     "median": 3.304,
+     "max": 3.304
+    },
+    "since_target_swung_s": {
+     "present": 1,
+     "missing": 0,
+     "min": -0.0,
+     "median": -0.0,
+     "max": -0.0
+    },
+    "tgt_anim": {
+     "3004": 1
+    },
+    "aprev_anim": {
+     "3004": 1
+    }
+   },
+   "edge": {
+    "n": 1,
+    "runs": 1,
+    "tgt_anim_is_attack": {
+     "False": 1
+    },
+    "reflex_anim_target_is_attack": {
+     "False": 1
+    },
+    "reflex_start_has_target": {
+     "True": 1
+    },
+    "reflex_prefer_is_target": {
+     "True": 1
+    },
+    "swing_end_key": {
+     "True": 1
+    },
+    "tgt_h": {
+     "present": 1,
+     "missing": 0,
+     "min": 1.44,
+     "median": 1.44,
+     "max": 1.44
+    },
+    "my_hp_ratio": {
+     "present": 1,
+     "missing": 0,
+     "min": 0.813,
+     "median": 0.813,
+     "max": 0.813
+    },
+    "my_sp_ratio": {
+     "present": 1,
+     "missing": 0,
+     "min": 1.0,
+     "median": 1.0,
+     "max": 1.0
+    },
+    "reflex_age_s": {
+     "present": 0,
+     "missing": 1,
+     "min": null,
+     "median": null,
+     "max": null
+    },
+    "reflex_target_since_start_s": {
+     "present": 1,
+     "missing": 0,
+     "min": 1.994,
+     "median": 1.994,
+     "max": 1.994
+    },
+    "since_swing_end_s": {
+     "present": 1,
+     "missing": 0,
+     "min": 1.233,
+     "median": 1.233,
+     "max": 1.233
+    },
+    "since_stag_s": {
+     "present": 1,
+     "missing": 0,
+     "min": 1.233,
+     "median": 1.233,
+     "max": 1.233
+    },
+    "since_target_swung_s": {
+     "present": 1,
+     "missing": 0,
+     "min": 1.265,
+     "median": 1.265,
+     "max": 1.265
+    },
+    "tgt_anim": {
+     "3500": 1
+    },
+    "aprev_anim": {
+     "3500": 1
+    }
+   },
+   "face_first": {
+    "n": 12,
+    "runs": 1,
+    "tgt_anim_is_attack": {
+     "False": 12
+    },
+    "reflex_anim_target_is_attack": {
+     "False": 12
+    },
+    "reflex_start_has_target": {
+     "True": 12
+    },
+    "reflex_prefer_is_target": {
+     "True": 12
+    },
+    "swing_end_key": {
+     "True": 12
+    },
+    "tgt_h": {
+     "present": 12,
+     "missing": 0,
+     "min": 0.82,
+     "median": 1.37,
+     "max": 1.58
+    },
+    "my_hp_ratio": {
+     "present": 12,
+     "missing": 0,
+     "min": 0.77,
+     "median": 0.773,
+     "max": 0.778
+    },
+    "my_sp_ratio": {
+     "present": 12,
+     "missing": 0,
+     "min": 0.74,
+     "median": 0.945,
+     "max": 1.0
+    },
+    "reflex_age_s": {
+     "present": 0,
+     "missing": 12,
+     "min": null,
+     "median": null,
+     "max": null
+    },
+    "reflex_target_since_start_s": {
+     "present": 12,
+     "missing": 0,
+     "min": 1.308,
+     "median": 1.729,
+     "max": 2.253
+    },
+    "since_swing_end_s": {
+     "present": 12,
+     "missing": 0,
+     "min": 0.368,
+     "median": 0.789,
+     "max": 1.313
+    },
+    "since_stag_s": {
+     "present": 12,
+     "missing": 0,
+     "min": 0.368,
+     "median": 0.789,
+     "max": 1.313
+    },
+    "since_target_swung_s": {
+     "present": 12,
+     "missing": 0,
+     "min": 0.412,
+     "median": 0.828,
+     "max": 1.357
+    },
+    "tgt_anim": {
+     "3500": 12
+    },
+    "aprev_anim": {
+     "3500": 12
+    }
+   },
+   "hit_first": {
+    "n": 1,
+    "runs": 1,
+    "tgt_anim_is_attack": {
+     "False": 1
+    },
+    "reflex_anim_target_is_attack": {
+     "False": 1
+    },
+    "reflex_start_has_target": {
+     "False": 1
+    },
+    "reflex_prefer_is_target": {
+     "True": 1
+    },
+    "swing_end_key": {
+     "True": 1
+    },
+    "tgt_h": {
+     "present": 1,
+     "missing": 0,
+     "min": 1.74,
+     "median": 1.74,
+     "max": 1.74
+    },
+    "my_hp_ratio": {
+     "present": 1,
+     "missing": 0,
+     "min": 0.807,
+     "median": 0.807,
+     "max": 0.807
+    },
+    "my_sp_ratio": {
+     "present": 1,
+     "missing": 0,
+     "min": 0.81,
+     "median": 0.81,
+     "max": 0.81
+    },
+    "reflex_age_s": {
+     "present": 0,
+     "missing": 1,
+     "min": null,
+     "median": null,
+     "max": null
+    },
+    "reflex_target_since_start_s": {
+     "present": 0,
+     "missing": 1,
+     "min": null,
+     "median": null,
+     "max": null
+    },
+    "since_swing_end_s": {
+     "present": 1,
+     "missing": 0,
+     "min": 5.217,
+     "median": 5.217,
+     "max": 5.217
+    },
+    "since_stag_s": {
+     "present": 1,
+     "missing": 0,
+     "min": 9.754,
+     "median": 9.754,
+     "max": 9.754
+    },
+    "since_target_swung_s": {
+     "present": 0,
+     "missing": 1,
+     "min": null,
+     "median": null,
+     "max": null
+    },
+    "tgt_anim": {
+     "-1": 1
+    },
+    "aprev_anim": {
+     "-1": 1
+    }
+   },
+   "reflex": {
+    "n": 14,
+    "runs": 1,
+    "tgt_anim_is_attack": {
+     "False": 14
+    },
+    "reflex_anim_target_is_attack": {
+     "True": 3,
+     "False": 11
+    },
+    "reflex_start_has_target": {
+     "True": 14
+    },
+    "reflex_prefer_is_target": {
+     "True": 14
+    },
+    "swing_end_key": {
+     "False": 2,
+     "True": 12
+    },
+    "tgt_h": {
+     "present": 14,
+     "missing": 0,
+     "min": 0.82,
+     "median": 1.34,
+     "max": 1.59
+    },
+    "my_hp_ratio": {
+     "present": 14,
+     "missing": 0,
+     "min": 0.77,
+     "median": 0.776,
+     "max": 0.813
+    },
+    "my_sp_ratio": {
+     "present": 14,
+     "missing": 0,
+     "min": 0.73,
+     "median": 0.93,
+     "max": 1.0
+    },
+    "reflex_age_s": {
+     "present": 3,
+     "missing": 11,
+     "min": 0.761,
+     "median": 0.94,
+     "max": 0.949
+    },
+    "reflex_target_since_start_s": {
+     "present": 14,
+     "missing": 0,
+     "min": 0.761,
+     "median": 1.648,
+     "max": 2.148
+    },
+    "since_swing_end_s": {
+     "present": 12,
+     "missing": 2,
+     "min": 0.458,
+     "median": 0.889,
+     "max": 2.295
+    },
+    "since_stag_s": {
+     "present": 12,
+     "missing": 2,
+     "min": 0.458,
+     "median": 0.889,
+     "max": 2.295
+    },
+    "since_target_swung_s": {
+     "present": 14,
+     "missing": 0,
+     "min": 0.028,
+     "median": 0.727,
+     "max": 1.366
+    },
+    "tgt_anim": {
+     "3500": 14
+    },
+    "aprev_anim": {
+     "3500": 11,
+     "3000": 1,
+     "3003": 1,
+     "3001": 1
+    }
+   },
+   "stagger_punish": {
+    "n": 5,
+    "runs": 1,
+    "tgt_anim_is_attack": {
+     "False": 5
+    },
+    "reflex_anim_target_is_attack": {
+     "False": 5
+    },
+    "reflex_start_has_target": {
+     "True": 5
+    },
+    "reflex_prefer_is_target": {
+     "True": 5
+    },
+    "swing_end_key": {
+     "True": 5
+    },
+    "tgt_h": {
+     "present": 5,
+     "missing": 0,
+     "min": 1.15,
+     "median": 1.15,
+     "max": 1.44
+    },
+    "my_hp_ratio": {
+     "present": 5,
+     "missing": 0,
+     "min": 0.77,
+     "median": 0.77,
+     "max": 0.813
+    },
+    "my_sp_ratio": {
+     "present": 5,
+     "missing": 0,
+     "min": 1.0,
+     "median": 1.0,
+     "max": 1.0
+    },
+    "reflex_age_s": {
+     "present": 0,
+     "missing": 5,
+     "min": null,
+     "median": null,
+     "max": null
+    },
+    "reflex_target_since_start_s": {
+     "present": 5,
+     "missing": 0,
+     "min": 2.026,
+     "median": 2.186,
+     "max": 2.266
+    },
+    "since_swing_end_s": {
+     "present": 5,
+     "missing": 0,
+     "min": 1.17,
+     "median": 1.265,
+     "max": 1.317
+    },
+    "since_stag_s": {
+     "present": 5,
+     "missing": 0,
+     "min": 1.17,
+     "median": 1.265,
+     "max": 1.317
+    },
+    "since_target_swung_s": {
+     "present": 5,
+     "missing": 0,
+     "min": 1.198,
+     "median": 1.297,
+     "max": 1.345
+    },
+    "tgt_anim": {
+     "3500": 5
+    },
+    "aprev_anim": {
+     "3500": 5
+    }
+   }
+  }
+ },
+ "reflex_face_first_by_run": [
+  {
+   "rule": "face_first",
+   "split": "shift_ref",
+   "run": "20261019_212609_parish-group1",
+   "true_n": 1,
+   "i1_right_i2_wrong": 0
+  },
+  {
+   "rule": "face_first",
+   "split": "shift_ref",
+   "run": "20261019_212954_parish-group1",
+   "true_n": 12,
+   "i1_right_i2_wrong": 8
+  },
+  {
+   "rule": "face_first",
+   "split": "shift_zone",
+   "run": "20261013_050945_burg-altar",
+   "true_n": 1,
+   "i1_right_i2_wrong": 0
+  },
+  {
+   "rule": "face_first",
+   "split": "shift_zone",
+   "run": "20261013_055418_burg-altar",
+   "true_n": 1,
+   "i1_right_i2_wrong": 0
+  },
+  {
+   "rule": "face_first",
+   "split": "shift_zone",
+   "run": "20261013_060542_burg-altar",
+   "true_n": 1,
+   "i1_right_i2_wrong": 0
+  },
+  {
+   "rule": "face_first",
+   "split": "shift_zone",
+   "run": "20261013_183926_burg-altar",
+   "true_n": 1,
+   "i1_right_i2_wrong": 0
+  },
+  {
+   "rule": "face_first",
+   "split": "shift_zone",
+   "run": "20261013_185234_burg-altar",
+   "true_n": 1,
+   "i1_right_i2_wrong": 0
+  },
+  {
+   "rule": "face_first",
+   "split": "shift_zone",
+   "run": "20261013_190105_burg-altar",
+   "true_n": 2,
+   "i1_right_i2_wrong": 0
+  },
+  {
+   "rule": "face_first",
+   "split": "test",
+   "run": "20261011_144914_burg-bonfire",
+   "true_n": 1,
+   "i1_right_i2_wrong": 0
+  },
+  {
+   "rule": "face_first",
+   "split": "test",
+   "run": "20261012_025301_burg-upper",
+   "true_n": 6,
+   "i1_right_i2_wrong": 2
+  },
+  {
+   "rule": "face_first",
+   "split": "test",
+   "run": "20261013_011929_burg-upper",
+   "true_n": 2,
+   "i1_right_i2_wrong": 0
+  },
+  {
+   "rule": "face_first",
+   "split": "val",
+   "run": "20261011_145345_burg-bonfire",
+   "true_n": 6,
+   "i1_right_i2_wrong": 0
+  },
+  {
+   "rule": "face_first",
+   "split": "val",
+   "run": "20261012_024340_burg-upper",
+   "true_n": 2,
+   "i1_right_i2_wrong": 0
+  },
+  {
+   "rule": "face_first",
+   "split": "val",
+   "run": "20261012_053935_burg-bonfire",
+   "true_n": 2,
+   "i1_right_i2_wrong": 1
+  },
+  {
+   "rule": "face_first",
+   "split": "val",
+   "run": "20261012_223957_burg-upper",
+   "true_n": 3,
+   "i1_right_i2_wrong": 3
+  },
+  {
+   "rule": "reflex",
+   "split": "shift_ref",
+   "run": "20261019_212954_parish-group1",
+   "true_n": 14,
+   "i1_right_i2_wrong": 9
+  },
+  {
+   "rule": "reflex",
+   "split": "shift_zone",
+   "run": "20261013_050945_burg-altar",
+   "true_n": 3,
+   "i1_right_i2_wrong": 0
+  },
+  {
+   "rule": "reflex",
+   "split": "shift_zone",
+   "run": "20261013_055418_burg-altar",
+   "true_n": 1,
+   "i1_right_i2_wrong": 0
+  },
+  {
+   "rule": "reflex",
+   "split": "shift_zone",
+   "run": "20261013_060542_burg-altar",
+   "true_n": 2,
+   "i1_right_i2_wrong": 1
+  },
+  {
+   "rule": "reflex",
+   "split": "shift_zone",
+   "run": "20261013_061331_burg-altar",
+   "true_n": 3,
+   "i1_right_i2_wrong": 1
+  },
+  {
+   "rule": "reflex",
+   "split": "shift_zone",
+   "run": "20261013_183926_burg-altar",
+   "true_n": 1,
+   "i1_right_i2_wrong": 0
+  },
+  {
+   "rule": "reflex",
+   "split": "shift_zone",
+   "run": "20261013_185234_burg-altar",
+   "true_n": 1,
+   "i1_right_i2_wrong": 0
+  },
+  {
+   "rule": "reflex",
+   "split": "shift_zone",
+   "run": "20261013_190105_burg-altar",
+   "true_n": 1,
+   "i1_right_i2_wrong": 0
+  },
+  {
+   "rule": "reflex",
+   "split": "test",
+   "run": "20261011_144914_burg-bonfire",
+   "true_n": 2,
+   "i1_right_i2_wrong": 0
+  },
+  {
+   "rule": "reflex",
+   "split": "test",
+   "run": "20261012_005843_burg-upper",
+   "true_n": 2,
+   "i1_right_i2_wrong": 1
+  },
+  {
+   "rule": "reflex",
+   "split": "test",
+   "run": "20261012_025301_burg-upper",
+   "true_n": 8,
+   "i1_right_i2_wrong": 5
+  },
+  {
+   "rule": "reflex",
+   "split": "test",
+   "run": "20261012_033444_burg-bonfire",
+   "true_n": 1,
+   "i1_right_i2_wrong": 1
+  },
+  {
+   "rule": "reflex",
+   "split": "test",
+   "run": "20261013_011929_burg-upper",
+   "true_n": 5,
+   "i1_right_i2_wrong": 2
+  },
+  {
+   "rule": "reflex",
+   "split": "val",
+   "run": "20261011_145345_burg-bonfire",
+   "true_n": 5,
+   "i1_right_i2_wrong": 1
+  },
+  {
+   "rule": "reflex",
+   "split": "val",
+   "run": "20261012_024340_burg-upper",
+   "true_n": 5,
+   "i1_right_i2_wrong": 2
+  },
+  {
+   "rule": "reflex",
+   "split": "val",
+   "run": "20261012_053935_burg-bonfire",
+   "true_n": 2,
+   "i1_right_i2_wrong": 0
+  },
+  {
+   "rule": "reflex",
+   "split": "val",
+   "run": "20261012_223957_burg-upper",
+   "true_n": 4,
+   "i1_right_i2_wrong": 0
+  }
+ ],
+ "rf_max_features": {
+  "setting": "sqrt",
+  "n_features": {
+   "I1": 61,
+   "I2_memory": 174
+  },
+  "sqrt_candidates_per_split": {
+   "I1": 7,
+   "I2_memory": 13
+  },
+  "note": "sklearn 'sqrt' -> max(1, int(sqrt(n_features))) candidate features per split"
+ }
+}
