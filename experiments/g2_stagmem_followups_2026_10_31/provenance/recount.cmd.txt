@@ -1,0 +1,48 @@
+cd /tmp && PYTHONDONTWRITEBYTECODE=1 /tmp/rfexp/venv/bin/python -I - <<'EOF'
+import json, importlib.util, collections
+spec=importlib.util.spec_from_file_location("rfi","/home/user/dsr-bot/experiments/g2_i1current_rf_2026_10_31/rf_i1current.py"); R=importlib.util.module_from_spec(spec); spec.loader.exec_module(R)
+import sklearn.ensemble as E
+def refuse(*a,**k): raise RuntimeError("no predict")
+E.RandomForestClassifier.predict=E.RandomForestClassifier.fit=refuse
+X={(x['run'],x['scene_seq']):x for x in map(json.loads,open('/tmp/inv3/data/inventory/2026-10-31/g2_scene_extract.jsonl'))}
+tc={x['rule'] for x in X.values() if x['split']=='train'}
+bl=json.load(open('/tmp/rfexp/ref/baseline_results.json'))['variants']['A_base']['eval']
+prim={e:bl[e]['lookup']['primary_classes'] for e in bl}
+P=[json.loads(l) for l in open('/tmp/stagmem_b0/run/predictions_B0.jsonl')]
+rB0=json.load(open('/tmp/stagmem_b0/run/results_B0.json')); rM=json.load(open('/tmp/stagmem_m/run/results_M.json')); rAB=json.load(open('/tmp/stagmem/run/results.json'))
+pAB={(p['run'],p['scene_seq']):p for p in map(json.loads,open('/tmp/stagmem/run/predictions.jsonl'))}
+pM={(p['run'],p['scene_seq']):p for p in map(json.loads,open('/tmp/stagmem_m/run/predictions_M.jsonl'))}
+ok=collections.Counter(); bad=[]
+# cross-file prediction agreement
+for p in P:
+    k=(p['run'],p['scene_seq'])
+    ok['pred_files_agree'] += (pAB[k]['y_pred_A']==p['y_pred_A'] and pAB[k]['y_pred_B']==p['y_pred_B'] and pM[k]['y_pred_M']==p['y_pred_M'] and X[k]['rule']==p['y_true'] and X[k]['split']==p['split'])
+keys=('acc','macro_f1_primary','macro_f1_all_true','per_run_unweighted_mean_acc','per_class','per_run')
+for sp in ('val','test','shift_zone','shift_ref'):
+    q=[p for p in P if p['split']==sp]; rows=[X[(p['run'],p['scene_seq'])] for p in q]; y=[p['y_true'] for p in q]
+    for m in ('A','M','B0','B'):
+        r=R.metrics(rows,y,[p[f'y_pred_{m}'] for p in q],{'primary':prim[sp]},tc)
+        for src,ref in (('B0file',rB0['eval'][sp]['metrics'][m]),)+((('Mfile',rM['eval'][sp]['metrics'][m]),) if m in 'AMB' and m!='B0' else ())+((('ABfile',rAB['eval'][sp][m]),) if m in ('A','B') else ()):
+            for kk in keys:
+                if r[kk]!=ref[kk]: bad.append((sp,m,src,kk))
+                else: ok['metric_match']+=1
+    # paired recount
+    def pr(a,b): return dict(collections.Counter('both' if p[a]==p['y_true'] and p[b]==p['y_true'] else 'first_only' if p[a]==p['y_true'] else 'second_only' if p[b]==p['y_true'] else 'both_wrong' for p in q))
+    for nm,(a,b) in {'B0_B':('y_pred_B0','y_pred_B'),'A_B0':('y_pred_A','y_pred_B0'),'M_B0':('y_pred_M','y_pred_B0')}.items():
+        if pr(a,b)!=rB0['eval'][sp]['paired'][nm]: bad.append((sp,'paired',nm))
+        else: ok['paired_match']+=1
+    if pr('y_pred_A','y_pred_M')!={ {'first_only':'first_only'}.get(k,k):v for k,v in rM['eval'][sp]['paired']['A_M'].items()}: bad.append((sp,'paired','A_M'))
+    else: ok['paired_match']+=1
+# diag recount from rows.json
+rows=json.load(open('/tmp/spaudit_consts/rows.json')); idx={(p['run'],p['scene_seq']):p for p in P}
+ev=[r for r in rows if r['split']!='train']; late=[r for r in ev if r['branch']=='late_guard']
+sets={'late_guard_95':late,'gain_35':[r for r in late if idx[(r['run'],r['seq'])]['y_pred_A']!='stagger_punish' and idx[(r['run'],r['seq'])]['y_pred_B']=='stagger_punish'],'core_24':[r for r in late if r['core']],'boundary_7':[r for r in late if r['margin'] is not None and r['margin']<0.05]}
+for n,s in sets.items():
+    c={f'{m}_correct':sum(idx[(r['run'],r['seq'])][f'y_pred_{m}']=='stagger_punish' for r in s) for m in ('A','M','B0','B')}
+    ref={k:rB0['diag'][n][k] for k in c}
+    if c!=ref or len(s)!=rB0['diag'][n]['n']: bad.append(('diag',n,c,ref))
+    else: ok['diag_match']+=1
+a6=[p for p in P if p['y_pred_A']==p['y_true'] and p['y_pred_B']!=p['y_true']]
+ok['a_only_6']=len(a6)==6 and sum(p['y_pred_B0']==p['y_true'] for p in a6)==rB0['diag']['a_only_6']['B0_correct']
+print(dict(ok)); print('BAD',bad)
+EOF

@@ -1,0 +1,62 @@
+cd /tmp && /usr/bin/python3 -I - <<'EOF'
+import json, math, collections, subprocess
+X=[json.loads(l) for l in open('/tmp/inv3/data/inventory/2026-10-31/g2_scene_extract.jsonl')]
+R={r['run']:r for r in json.load(open('/tmp/inv3/data/inventory/2026-10-31/g2_scene_manifest_runs.json'))['runs']}
+K=json.load(open('/tmp/spaudit_consts/consts.json'))
+P={(p['run'],p['scene_seq']):p for p in map(json.loads,open('/tmp/stagmem/run/predictions.jsonl'))}
+S,A,H=range(3500,3600),range(3000,3500),{6,7,24,25,27,33}
+PAD,OSR,GB=0.1,2.5,9600
+post=lambda c: subprocess.run(['git','-C','/home/user/dsr-bot','merge-base','--is-ancestor','93dce7b',c],capture_output=True).returncode==0
+def rel_angle(a,b):
+    fwd=a['heading']+math.pi
+    return (math.atan2(b['x']-a['x'],b['z']-a['z'])-fwd+math.pi)%(2*math.pi)-math.pi
+def core(x):
+    a=x['tick']['a']; p=x['snap']['player']; tp=x['tick']['ptr']
+    return (a is not None and a in S) and any(c['ptr']!=tp and c['team'] in H and (c['hp'] or 0)>0 and c['anim'] is not None and c['anim'] in A and math.hypot(c['x']-p['x'],c['z']-p['z'])<2.5 for c in x['snap']['chars'])
+rows=[]
+for x in X:
+    if x['rule']!='stagger_punish' or x['split']=='pending': continue
+    run=x['run']; cm=R[run]['commit'][:8]
+    if not post(R[run]['commit']): rows.append(dict(run=run,seq=x['scene_seq'],split=x['split'],branch='pre_P80',why='pre-93dce7b code (no late branch)',core=core(x))); continue
+    why=[]
+    if R[run]['dirty'] or x['meta']['dirty']: why.append('dirty')
+    f=x['fight']; t=x['tick']; p=x['snap']['player']; s=x['snap']
+    if f.get('ptr')!=t['ptr']: why.append('F.ptr!=tick.ptr')
+    tc=[c for c in s['chars'] if c['ptr']==t['ptr']]
+    if len(tc)!=1: why.append('target char missing')
+    c=tc[0]; k=K[cm]
+    st=k['stagger_s'].get(str(c['npc_param']), k['stagger_s']['UNKNOWN'])
+    w=k['weapons'].get(str(x['weapon']['id']-x['weapon']['id']%100))
+    if w is None or w['name']!=x['weapon']['name']: why.append('weapon unresolved')
+    a=t['a']
+    if a in S:
+        sp_=f.get('_stag_ptr','__absent__')
+        if sp_==f.get('ptr'):
+            tt=f.get('_stag_t'); age=-tt['_t'] if isinstance(tt,dict) else None
+            if age is None: why.append('_stag_t missing')
+        else: age=0.0
+    else: age=None
+    reachok = t['h']<=w['reach']+0.3 and abs(t['dy'])<=1.0
+    late=None; margin=None
+    if age is not None and w['startup'] is not None:
+        margin=age+w['startup']+PAD-st; late = margin>0
+    else: late=False
+    L = late and reachok
+    other=any(o['ptr']!=f.get('ptr') and o['team'] in H and o['hp']>0 and o['dist']<=OSR+2.0 and (o['anim'] if o['anim'] is not None else -1) in A and math.hypot(o['x']-p['x'],o['z']-p['z'])<OSR for o in s['chars'])
+    bo=x['flags'].get('BACKSTAB_ONLY')
+    Spre=(a in S or a==GB) and reachok and (p['sp'] or 0)>=w['sp_min'] and not other
+    if bo and Spre: why.append('BACKSTAB_ONLY: T.room unknown')
+    face = p['heading'] is not None and s['cam_yaw'] is not None and abs(math.degrees(rel_angle(p,c)))<=30.0
+    if margin is not None and abs(margin)<1e-6: why.append('at threshold')
+    if L: br='late_guard'
+    elif Spre: br='strike' if face else 'turn_only'
+    else: br='inconsistent'; why.append('no branch matches')
+    if why and br!='inconsistent' and any(w_ for w_ in why if w_!='dirty' or True): br_final='unknown'
+    else: br_final=br
+    if br=='inconsistent': br_final='unknown'
+    rows.append(dict(run=run,seq=x['scene_seq'],split=x['split'],branch=br_final,raw=br,why=';'.join(why),core=core(x),age=None if age is None else round(age,3),margin=None if margin is None else round(margin,3),stagger_s=st,npc=c['npc_param'],weapon=w['name'] if w else None,other=other,sp=p['sp'],h=round(t['h'],2),a=a,face=face))
+json.dump(rows,open('/tmp/spaudit_consts/rows.json','w'),ensure_ascii=False)
+c=collections.Counter((r['split']=='train', r['core'], r['branch']) for r in rows)
+for k,v in sorted(c.items(),key=str): print(k,v)
+print(collections.Counter(r['why'] for r in rows if r['why']))
+EOF

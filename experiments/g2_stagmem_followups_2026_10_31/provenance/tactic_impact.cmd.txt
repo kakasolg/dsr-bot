@@ -1,0 +1,13 @@
+cd /tmp && /usr/bin/python3 -I - <<'EOF'
+import json, collections
+rows={(r['run'],r['seq']):r['branch'] for r in json.load(open('/tmp/spaudit_consts/rows.json'))}
+P=[json.loads(l) for l in open('/home/user/dsr-bot/experiments/g2_i1current_rf_2026_10_31/predictions.jsonl')]
+for v in ('base','no_dirty_duel_train'):
+    for sp in ('val','test','shift_zone','shift_ref'):
+        q=[p for p in P if p['variant']==v and p['split']==sp]
+        t=collections.Counter(rows.get((p['run'],p['scene_seq'])) for p in q if p['y_true']=='stagger_punish')
+        pr=collections.Counter(('true_sp:'+str(rows.get((p['run'],p['scene_seq'])))) if p['y_true']=='stagger_punish' else 'true_other' for p in q if p['y_pred']=='stagger_punish')
+        print(v,sp,'true_sp',dict(t),'pred_sp',dict(pr))
+    q=[p for p in P if p['variant']==v and p['split']=='shift_ref' and p['run']!='20261019_232719_parish-group1']
+    print(v,'shift_ref_no_dirty true_sp',dict(collections.Counter(rows.get((p['run'],p['scene_seq'])) for p in q if p['y_true']=='stagger_punish')))
+EOF

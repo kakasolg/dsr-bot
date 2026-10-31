@@ -1,0 +1,67 @@
+{
+ "name": "g2-recording-control-M-v1",
+ "date": "2026-10-31",
+ "question": "Where does a model that only sees whether the raw stagger-memory keys exist (M) fall between A (current observation) and B (A + stagger-memory content) on the 4 evaluation splits, and on the audited late-guard scenes?",
+ "nature": "Follow-up diagnostic after the stagger_punish branch audit. Not blind, not causal. M is a RAW-FIELD RECORDING CONTROL, not a pure code-version control: key presence also depends on whether prep_reflex has run in this fight, and _stag_t presence also means a stagger streak has already started in this fight (memory content, see memory_features.caveats).",
+ "refs": {
+  "stagmem_prep_dir": "/tmp/stagmem/prep (read only)",
+  "stagmem_prep_SHA256SUMS_ok": true,
+  "stagmem_config_sha256": "715c48e7f98475b2992e61a9c6aea69c99b65246accfc3c5ca401d62e732de55",
+  "stagmem_script_sha256": "728578332f14ff713325cad6269d390132ed2c3485d92584f0c27bc7009d0be7",
+  "stagmem_prep_report_sha256": "606702f0e63939806d7470ce19caef5c0ec840b8e99c53be5d8f77c9104c14bb",
+  "stagmem_prep_tar_sha256": "0b0df12e95c30b96b62dd731927d16e7fec4e22000d98bcd7d18aa720c9d90f6",
+  "stagmem_results_sha256": "8b637b1b2359c7d21afb70894e2cc44851caf7ef14b3394235a64550987c2509",
+  "stagmem_predictions_sha256": "81e7631d804696f024fab9966a5eb11089340602784a4c5fb3fdf2c4f308fe3c",
+  "branch_audit_rows": "/tmp/spaudit_consts/rows.json",
+  "branch_audit_rows_sha256": "46ef3608b8106fcd942ba61e10d65aa40e432d1b6270e2d5db8542a66dd3cd29",
+  "branch_audit_consts_sha256": "3021f8c1a84a333b842664d1ee60e3e860e1b647793e383166e336f0fea42556",
+  "extract_sha256": "c0a31ceb8f8c733c0df043b076536c1d7045900ebec656a5ed44041527f3ea35",
+  "manifest_sha256": "3de0c325098b0358792b648aa1e1de5b079f591760ad94cfa3b39925e5eceec3",
+  "baseline_results_sha256": "37b91a0a119c9a6c57ef673a52e3da1ed2aad6b0037e776d24cb322257f9db2e",
+  "rf_config_sha256": "cb5c0d82a129dd9e904f9f41317282dd1d5dfc99f0637c85729a5ad2a7a1fa9e",
+  "rf_script_sha256": "461da1fa531be6db14a9c3b9b8cde91435e3dbaca3747e24cc650c0b6bf8347d",
+  "cond_audit_results_sha256": "25b21b98c36179d5e9acd8410c9bca8dbbbf3d75e4876b074bc519ff8dd7231a"
+ },
+ "reuse": {
+  "A_and_B": "reuse the stored predictions /tmp/stagmem/run/predictions.jsonl (y_pred_A, y_pred_B); A and B are NOT retrained",
+  "why_valid": "M is trained with the same script functions (stagmem_compare.setup: same data, hash checks, R.features, R.Encoder fit on train, same row order), the same params and seed; only the appended columns differ",
+  "not_verified_by_retraining": "that a retrained A would give the stored predictions again is assumed from the fixed seed / n_jobs 1 / same venv, not re-run (an earlier I1 retrain in this venv matched the preserved C3 predictions 0 mismatches, with sqrt)"
+ },
+ "conditions": {
+  "A": "stored: 61 columns (I1-current)",
+  "M": "A's 61 columns unchanged + 2 columns: rec_stag_ptr_key, rec_stag_t_key (63 columns). Trained new.",
+  "B": "stored: A + 6 stagger-memory columns (67)"
+ },
+ "memory_features": {
+  "M_columns": [
+   {"name": "rec_stag_ptr_key", "value": "1.0 if the key '_stag_ptr' is in the captured fight state, else 0.0", "missing": "never (always 0/1)"},
+   {"name": "rec_stag_t_key", "value": "1.0 if the key '_stag_t' is in the captured fight state, else 0.0", "missing": "never (always 0/1)"}
+  ],
+  "not_in_M": ["pointer values", "whether _stag_ptr is None", "target match", "elapsed time", "any of B's __missing columns"],
+  "why_two_columns": "the two keys are not always present together. train (ptr key, t key): (0,0) 601 · (1,0) 63 · (1,1) 66 · (0,1) 0",
+  "caveats": [
+   "_stag_ptr key: written by every prep_reflex call in code >= 93dce7b, so absent = pre-93dce7b code, or no prep_reflex yet in this fight (train: 592 + 9)",
+   "_stag_t key: written only when prep_reflex first sees a target in STAGGER in this Fight, so present = 'a stagger streak has started earlier in this fight' — this is memory content, not only recording",
+   "so M is a raw-field recording control, not a pure code-version control, and not free of memory content"
+  ]
+ },
+ "model": {"family": "sklearn.ensemble.RandomForestClassifier",
+  "params": {"n_estimators": 200, "max_depth": 12, "min_samples_leaf": 3, "class_weight": null, "random_state": 20261031, "criterion": "gini", "max_features": null, "bootstrap": true, "n_jobs": 1},
+  "note": "same as the stored A/B (max_features=None is the diagnostic setting, not C3)"},
+ "splits": {"fit": "train", "eval": ["val", "test", "shift_zone", "shift_ref"], "exclude": ["pending"]},
+ "evaluation": {
+  "per_split": "accuracy, macro F1 (preserved primary set / all true classes) with labels, per class P/R/F1/n/pred_n/runs, per-run accuracy + unweighted mean, for A (stored), M, B (stored)",
+  "paired": "A-M, M-B, A-B per split and per run (both / first only / second only / both wrong)",
+  "recorded_subgroups": "by rec_stag_ptr_key (recorded / not recorded) and by (ptr key, t key) state, per split, with scene and run counts",
+  "audited_sets": {
+   "late_guard_95": "eval stagger_punish scenes classified late_guard by the branch audit",
+   "gain_35": "late_guard scenes with A wrong and B right",
+   "boundary_7": "late_guard eval scenes with margin < 0.05 s, reported separately",
+   "core_24": "late_guard scenes in the core condition",
+   "strike_1": "the one eval actual-strike scene (20261013_190105_burg-altar seq 11093)"
+  },
+  "position": "for each audited set: correct counts of A, M, B, and for gain_35 how many M gets right (= like B) vs wrong (= like A)",
+  "never": ["attack-performance claims (one eval strike scene)", "statistical significance", "causal effects", "game performance", "claim that memory content and version are separated"]
+ },
+ "boundary": "prepare: fit/predict patched to raise, no model; train: needs --approved TRAINING-APPROVED-M, fits M only"
+}

@@ -1,0 +1,316 @@
+{
+ "config_sha256": "715c48e7f98475b2992e61a9c6aea69c99b65246accfc3c5ca401d62e732de55",
+ "script_sha256": "728578332f14ff713325cad6269d390132ed2c3485d92584f0c27bc7009d0be7",
+ "stage": "prepare (no fit / predict)",
+ "n": {
+  "train": 730,
+  "val": 134,
+  "test": 233,
+  "shift_zone": 292,
+  "shift_ref": 64
+ },
+ "pending_present": false,
+ "columns": {
+  "A": 61,
+  "B": 67,
+  "added": [
+   "smem_active",
+   "smem_active__missing",
+   "smem_is_target",
+   "smem_is_target__missing",
+   "smem_target_since_s",
+   "smem_target_since_s__missing"
+  ],
+  "A_cols": [
+   "my_hp",
+   "my_max_hp",
+   "my_hp_ratio",
+   "my_sp",
+   "my_max_sp",
+   "my_sp_ratio",
+   "tgt_hp",
+   "tgt_max_hp",
+   "tgt_hp_ratio",
+   "tgt_sp",
+   "tgt_max_sp",
+   "tgt_sp_ratio",
+   "tgt_h",
+   "tgt_dy",
+   "tgt_off_my_facing_deg",
+   "tgt_off_my_facing_signed_deg",
+   "me_off_tgt_facing_deg",
+   "n_hostile_2_5m",
+   "n_hostile_4m",
+   "n_hostile_8m",
+   "n_hostile_25m",
+   "other_nearest_hd",
+   "other_second_hd",
+   "n_other_attacking_4m",
+   "my_hp_ratio__missing",
+   "my_sp_ratio__missing",
+   "tgt_hp_ratio__missing",
+   "tgt_sp_ratio__missing",
+   "other_nearest_hd__missing",
+   "other_second_hd__missing",
+   "my_anim=140",
+   "my_anim=20140",
+   "my_anim=303000",
+   "my_anim=idle",
+   "my_anim=__rare__",
+   "my_anim=__unknown__",
+   "tgt_anim=2006",
+   "tgt_anim=3000",
+   "tgt_anim=3001",
+   "tgt_anim=3003",
+   "tgt_anim=3004",
+   "tgt_anim=3005",
+   "tgt_anim=3006",
+   "tgt_anim=3007",
+   "tgt_anim=3008",
+   "tgt_anim=3010",
+   "tgt_anim=3043",
+   "tgt_anim=3500",
+   "tgt_anim=idle",
+   "tgt_anim=__rare__",
+   "tgt_anim=__unknown__",
+   "tgt_anim_cat=attack",
+   "tgt_anim_cat=hit_stun",
+   "tgt_anim_cat=idle",
+   "tgt_anim_cat=stagger",
+   "tgt_anim_cat=__rare__",
+   "tgt_anim_cat=__unknown__",
+   "weapon_id=301000",
+   "weapon_id=701000",
+   "weapon_id=__rare__",
+   "weapon_id=__unknown__"
+  ]
+ },
+ "checks": {
+  "B_prefix_equals_A": {
+   "train": true,
+   "val": true,
+   "test": true,
+   "shift_zone": true,
+   "shift_ref": true
+  },
+  "shape": {
+   "train": [
+    [
+     730,
+     61
+    ],
+    [
+     730,
+     67
+    ]
+   ],
+   "val": [
+    [
+     134,
+     61
+    ],
+    [
+     134,
+     67
+    ]
+   ],
+   "test": [
+    [
+     233,
+     61
+    ],
+    [
+     233,
+     67
+    ]
+   ],
+   "shift_zone": [
+    [
+     292,
+     61
+    ],
+    [
+     292,
+     67
+    ]
+   ],
+   "shift_ref": [
+    [
+     64,
+     61
+    ],
+    [
+     64,
+     67
+    ]
+   ]
+  },
+  "value_nan_iff_missing_flag": {
+   "train": true,
+   "val": true,
+   "test": true,
+   "shift_zone": true,
+   "shift_ref": true
+  },
+  "missing_flags_have_no_nan": {
+   "train": true,
+   "val": true,
+   "test": true,
+   "shift_zone": true,
+   "shift_ref": true
+  },
+  "core_condition_counts_equal_preserved_audit": {
+   "val": true,
+   "test": true,
+   "shift_zone": true,
+   "shift_ref": true
+  },
+  "generic_since_matches_raw_on_train": true,
+  "eval_unknown_categories_count_only": {
+   "val": 2,
+   "test": 3,
+   "shift_zone": 3,
+   "shift_ref": 0
+  }
+ },
+ "train": {
+  "state_counts": {
+   "key_absent": 601,
+   "none": 86,
+   "target": 43
+  },
+  "none_with_leftover_stag_t_not_used": 23,
+  "state_x_current_target_staggered": {
+   "key_absent|nostag": 351,
+   "key_absent|stag": 250,
+   "none|nostag": 50,
+   "none|stag": 36,
+   "target|nostag": 3,
+   "target|stag": 40
+  },
+  "smem_target_since_s": {
+   "n": 43,
+   "min": 0.024,
+   "median": 0.8581,
+   "max": 2.5567,
+   "negative": 0
+  },
+  "rule_by_state": {
+   "key_absent": {
+    "after_swing": 215,
+    "backstab_swing": 103,
+    "finish_first": 46,
+    "reflex": 37,
+    "attack": 33,
+    "hit_first": 25,
+    "stamina": 22,
+    "face_first": 18,
+    "edge": 16,
+    "stagger_punish": 15,
+    "wait_far": 13,
+    "approach": 12,
+    "backstab": 11,
+    "late_windup_block": 11,
+    "shot": 7,
+    "estus": 7,
+    "finish": 6,
+    "block": 3,
+    "face": 1
+   },
+   "none": {
+    "after_swing": 33,
+    "hit_first": 16,
+    "backstab_swing": 9,
+    "backstab": 4,
+    "edge": 4,
+    "stamina": 3,
+    "attack": 3,
+    "reflex": 3,
+    "late_windup_block": 3,
+    "stagger_punish": 2,
+    "estus": 2,
+    "finish_first": 1,
+    "face_first": 1,
+    "approach": 1,
+    "lure": 1
+   },
+   "target": {
+    "stagger_punish": 28,
+    "reflex": 3,
+    "stamina": 2,
+    "approach": 2,
+    "after_swing": 1,
+    "attack": 1,
+    "backstab_swing": 1,
+    "edge": 1,
+    "face_first": 1,
+    "finish_first": 1,
+    "wait_far": 1,
+    "estus": 1
+   }
+  },
+  "runs_with_key": [
+   "20261013_003435_burg-upper",
+   "20261013_003654_burg-upper",
+   "20261013_005647_burg-upper",
+   "20261013_010935_burg-upper",
+   "20261013_171039_altar",
+   "20261013_175209_clear-ramp"
+  ],
+  "n_runs_with_key": 6,
+  "missing_rate": {
+   "smem_active": 0.8233,
+   "smem_is_target": 0.9411,
+   "smem_target_since_s": 0.9411
+  },
+  "nonmissing_values": {
+   "smem_active": {
+    "0.0": 86,
+    "1.0": 43
+   },
+   "smem_is_target": {
+    "1.0": 43
+   }
+  }
+ },
+ "primary_class_sets": {
+  "val": [
+   "after_swing",
+   "backstab_swing",
+   "face_first",
+   "reflex"
+  ],
+  "test": [
+   "after_swing",
+   "attack",
+   "backstab_swing",
+   "finish_first",
+   "reflex",
+   "stagger_punish",
+   "stamina"
+  ],
+  "shift_zone": [
+   "after_swing",
+   "attack",
+   "backstab_swing",
+   "hit_first",
+   "reflex",
+   "stagger_punish"
+  ],
+  "shift_ref": [
+   "after_swing"
+  ]
+ },
+ "model_params": {
+  "n_estimators": 200,
+  "max_depth": 12,
+  "min_samples_leaf": 3,
+  "class_weight": null,
+  "random_state": 20261031,
+  "criterion": "gini",
+  "max_features": null,
+  "bootstrap": true,
+  "n_jobs": 1
+ },
+ "all_checks_pass": true
+}

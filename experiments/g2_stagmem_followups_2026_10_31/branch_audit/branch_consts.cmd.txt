@@ -1,0 +1,23 @@
+mkdir -p /tmp/spaudit_consts && cd /tmp/spaudit_consts && /usr/bin/python3 -I - <<'EOF'
+import subprocess, hashlib, json, importlib.util, sys, collections
+cs=['13f152b6','26278c0c','361796be','4796a4b5','5ba6854d','66cebffa','69b15c98','af93953c','dbc5bda6','f36afcd6','fdba4c59']
+out={}; g=collections.defaultdict(list)
+for c in cs:
+    vals={}
+    for mod in ('foes','weapons'):
+        t=subprocess.run(['git','-C','/home/user/dsr-bot','show',f'{c}:souls/{mod}.py'],capture_output=True).stdout
+        p=f'/tmp/spaudit_consts/{mod}_{c}.py'; open(p,'wb').write(t)
+        spec=importlib.util.spec_from_file_location(f'{mod}_{c}',p); m=importlib.util.module_from_spec(spec); sys.modules[spec.name]=m; spec.loader.exec_module(m)
+        vals[mod]=m
+        vals[mod+'_sha']=hashlib.sha256(t).hexdigest()[:12]
+    F=vals['foes']; W=vals['weapons']
+    out[c]={'foes_sha':vals['foes_sha'],'weapons_sha':vals['weapons_sha'],
+            'stagger_s':{str(k):v.stagger_s for k,v in F.BY_NPC.items()}|{'UNKNOWN':F.UNKNOWN.stagger_s},
+            'weapons':{str(k):dict(name=w.name,reach=w.reach,sp_min=w.sp_min,startup=w.startup) for k,w in W.KNOWN.items()}}
+    g[(vals['foes_sha'],vals['weapons_sha'])].append(c)
+for k,v in g.items(): print(k,v)
+c0=list(g.values())[0][0]; print(json.dumps(out[c0]['weapons'],ensure_ascii=False)); print({k:v for k,v in out[c0]['stagger_s'].items()})
+json.dump(out,open('/tmp/spaudit_consts/consts.json','w'),ensure_ascii=False)
+for k,v in g.items():
+    c=v[0]; print(c, {n:out[c]['stagger_s'].get(n) for n in ('254000','254010','255000','255001','255010','255041','UNKNOWN')}, out[c]['weapons'].get('301000'))
+EOF

@@ -1,0 +1,821 @@
+{
+ "config_sha256": "ca354f41f83aa820dbd6f1ffe4c6af375b172b8582aaaf63a79f4bcb94b387c7",
+ "script_sha256": "4f29ddd435e96491acdb6cb20e0613ac9498761fb39f082db3c1299ccce17c68",
+ "stage": "prepare (no fit / predict)",
+ "columns": {
+  "A": 61,
+  "M": 63,
+  "added": [
+   "rec_stag_ptr_key",
+   "rec_stag_t_key"
+  ]
+ },
+ "checks": {
+  "refs": {
+   "stagmem_config": true,
+   "stagmem_script": true,
+   "stagmem_prep_report": true,
+   "stagmem_results": true,
+   "stagmem_predictions": true,
+   "audit_rows": true
+  },
+  "M_prefix_equals_A": {
+   "train": true,
+   "val": true,
+   "test": true,
+   "shift_zone": true,
+   "shift_ref": true
+  },
+  "M_prefix_equals_stored_B_prefix": {
+   "train": true,
+   "val": true,
+   "test": true,
+   "shift_zone": true,
+   "shift_ref": true
+  },
+  "M_cols_binary_no_nan": {
+   "train": true,
+   "val": true,
+   "test": true,
+   "shift_zone": true,
+   "shift_ref": true
+  },
+  "shape": {
+   "train": [
+    730,
+    63
+   ],
+   "val": [
+    134,
+    63
+   ],
+   "test": [
+    233,
+    63
+   ],
+   "shift_zone": [
+    292,
+    63
+   ],
+   "shift_ref": [
+    64,
+    63
+   ]
+  },
+  "train_key_combos": {
+   "ptr0_t0": 601,
+   "ptr1_t0": 63,
+   "ptr1_t1": 66
+  },
+  "keys_identical_on_train": false,
+  "stored_join": {
+   "val": true,
+   "test": true,
+   "shift_zone": true,
+   "shift_ref": true
+  },
+  "stored_rows": 723,
+  "stored_metrics_recomputed_equal": {
+   "val_A": true,
+   "val_B": true,
+   "test_A": true,
+   "test_B": true,
+   "shift_zone_A": true,
+   "shift_zone_B": true,
+   "shift_ref_A": true,
+   "shift_ref_B": true
+  },
+  "audited_set_sizes": {
+   "late_guard_95": 95,
+   "gain_35": 35,
+   "boundary_7": 7,
+   "core_24": 24,
+   "strike_1": 1
+  },
+  "audited_sets_in_eval": true
+ },
+ "eval_recorded_counts_scenes": {
+  "val": {
+   "not_recorded": 134
+  },
+  "test": {
+   "not_recorded": 166,
+   "recorded": 67
+  },
+  "shift_zone": {
+   "recorded": 269,
+   "not_recorded": 23
+  },
+  "shift_ref": {
+   "recorded": 63,
+   "not_recorded": 1
+  }
+ },
+ "eval_recorded_counts_runs": {
+  "val": {
+   "recorded": 0,
+   "not_recorded": 5
+  },
+  "test": {
+   "recorded": 1,
+   "not_recorded": 7
+  },
+  "shift_zone": {
+   "recorded": 8,
+   "not_recorded": 8
+  },
+  "shift_ref": {
+   "recorded": 8,
+   "not_recorded": 1
+  }
+ },
+ "audited_sets": {
+  "late_guard_95": [
+   [
+    "20261013_011929_burg-upper",
+    3107
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3109
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3143
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3145
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3147
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3150
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3152
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3154
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3156
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3158
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3160
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3162
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3294
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3296
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3298
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3300
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3302
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3304
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3306
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3308
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2291
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2293
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2295
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2297
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2299
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2301
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2303
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2305
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2307
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2309
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2311
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2313
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2315
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2317
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2319
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2322
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2324
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2331
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2334
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2336
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2338
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2341
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2343
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2345
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2348
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2350
+   ],
+   [
+    "20261013_061331_burg-altar",
+    2240
+   ],
+   [
+    "20261013_061331_burg-altar",
+    2242
+   ],
+   [
+    "20261013_061331_burg-altar",
+    2244
+   ],
+   [
+    "20261013_061331_burg-altar",
+    2246
+   ],
+   [
+    "20261013_061331_burg-altar",
+    2248
+   ],
+   [
+    "20261013_061331_burg-altar",
+    2250
+   ],
+   [
+    "20261013_061331_burg-altar",
+    2252
+   ],
+   [
+    "20261013_061331_burg-altar",
+    2254
+   ],
+   [
+    "20261013_061331_burg-altar",
+    2256
+   ],
+   [
+    "20261013_061331_burg-altar",
+    2258
+   ],
+   [
+    "20261013_061331_burg-altar",
+    2260
+   ],
+   [
+    "20261013_061331_burg-altar",
+    2262
+   ],
+   [
+    "20261013_061331_burg-altar",
+    2264
+   ],
+   [
+    "20261013_061331_burg-altar",
+    2266
+   ],
+   [
+    "20261013_061331_burg-altar",
+    2268
+   ],
+   [
+    "20261013_061331_burg-altar",
+    2303
+   ],
+   [
+    "20261013_061331_burg-altar",
+    2305
+   ],
+   [
+    "20261013_061331_burg-altar",
+    2307
+   ],
+   [
+    "20261013_061331_burg-altar",
+    2309
+   ],
+   [
+    "20261013_061331_burg-altar",
+    2311
+   ],
+   [
+    "20261013_061331_burg-altar",
+    2313
+   ],
+   [
+    "20261013_061331_burg-altar",
+    2315
+   ],
+   [
+    "20261013_061331_burg-altar",
+    2317
+   ],
+   [
+    "20261013_183926_burg-altar",
+    7655
+   ],
+   [
+    "20261013_183926_burg-altar",
+    7657
+   ],
+   [
+    "20261013_183926_burg-altar",
+    7659
+   ],
+   [
+    "20261013_183926_burg-altar",
+    7661
+   ],
+   [
+    "20261013_183926_burg-altar",
+    7663
+   ],
+   [
+    "20261013_185234_burg-altar",
+    2916
+   ],
+   [
+    "20261013_185234_burg-altar",
+    2918
+   ],
+   [
+    "20261013_185234_burg-altar",
+    2920
+   ],
+   [
+    "20261013_185234_burg-altar",
+    2922
+   ],
+   [
+    "20261013_185234_burg-altar",
+    2924
+   ],
+   [
+    "20261013_185234_burg-altar",
+    2926
+   ],
+   [
+    "20261013_185234_burg-altar",
+    2928
+   ],
+   [
+    "20261013_185234_burg-altar",
+    2930
+   ],
+   [
+    "20261013_185234_burg-altar",
+    2932
+   ],
+   [
+    "20261013_185234_burg-altar",
+    2934
+   ],
+   [
+    "20261013_185234_burg-altar",
+    2936
+   ],
+   [
+    "20261013_185234_burg-altar",
+    2938
+   ],
+   [
+    "20261013_185234_burg-altar",
+    2940
+   ],
+   [
+    "20261013_185234_burg-altar",
+    2942
+   ],
+   [
+    "20261013_185234_burg-altar",
+    2944
+   ],
+   [
+    "20261013_185234_burg-altar",
+    2946
+   ],
+   [
+    "20261019_212954_parish-group1",
+    3726
+   ],
+   [
+    "20261019_212954_parish-group1",
+    3728
+   ],
+   [
+    "20261019_212954_parish-group1",
+    3730
+   ],
+   [
+    "20261019_212954_parish-group1",
+    3732
+   ],
+   [
+    "20261019_212954_parish-group1",
+    4002
+   ]
+  ],
+  "gain_35": [
+   [
+    "20261013_011929_burg-upper",
+    3107
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3109
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3143
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3145
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3147
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3150
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3152
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3154
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3156
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3158
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3160
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3162
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3294
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3296
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3298
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3300
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3302
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3304
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3306
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3308
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2291
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2293
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2331
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2334
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2341
+   ],
+   [
+    "20261013_061331_burg-altar",
+    2268
+   ],
+   [
+    "20261013_061331_burg-altar",
+    2303
+   ],
+   [
+    "20261013_061331_burg-altar",
+    2305
+   ],
+   [
+    "20261013_061331_burg-altar",
+    2307
+   ],
+   [
+    "20261013_061331_burg-altar",
+    2309
+   ],
+   [
+    "20261013_061331_burg-altar",
+    2311
+   ],
+   [
+    "20261013_061331_burg-altar",
+    2313
+   ],
+   [
+    "20261013_061331_burg-altar",
+    2315
+   ],
+   [
+    "20261013_061331_burg-altar",
+    2317
+   ],
+   [
+    "20261013_183926_burg-altar",
+    7655
+   ]
+  ],
+  "boundary_7": [
+   [
+    "20261013_011929_burg-upper",
+    3143
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3294
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2291
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2293
+   ],
+   [
+    "20261013_061331_burg-altar",
+    2303
+   ],
+   [
+    "20261013_183926_burg-altar",
+    7655
+   ],
+   [
+    "20261013_185234_burg-altar",
+    2916
+   ]
+  ],
+  "core_24": [
+   [
+    "20261013_011929_burg-upper",
+    3107
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3109
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3294
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3296
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3298
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3300
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3302
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3304
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3306
+   ],
+   [
+    "20261013_011929_burg-upper",
+    3308
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2331
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2334
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2336
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2338
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2341
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2343
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2345
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2348
+   ],
+   [
+    "20261013_060542_burg-altar",
+    2350
+   ],
+   [
+    "20261019_212954_parish-group1",
+    3726
+   ],
+   [
+    "20261019_212954_parish-group1",
+    3728
+   ],
+   [
+    "20261019_212954_parish-group1",
+    3730
+   ],
+   [
+    "20261019_212954_parish-group1",
+    3732
+   ],
+   [
+    "20261019_212954_parish-group1",
+    4002
+   ]
+  ],
+  "strike_1": [
+   [
+    "20261013_190105_burg-altar",
+    11093
+   ]
+  ]
+ },
+ "primary_class_sets": {
+  "val": [
+   "after_swing",
+   "backstab_swing",
+   "face_first",
+   "reflex"
+  ],
+  "test": [
+   "after_swing",
+   "attack",
+   "backstab_swing",
+   "finish_first",
+   "reflex",
+   "stagger_punish",
+   "stamina"
+  ],
+  "shift_zone": [
+   "after_swing",
+   "attack",
+   "backstab_swing",
+   "hit_first",
+   "reflex",
+   "stagger_punish"
+  ],
+  "shift_ref": [
+   "after_swing"
+  ]
+ },
+ "all_checks_pass": true
+}

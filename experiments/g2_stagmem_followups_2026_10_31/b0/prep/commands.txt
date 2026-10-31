@@ -1,0 +1,22 @@
+# venv /tmp/rfexp/venv (Python 3.13.18, scikit-learn 1.9.1; freeze = requirements-freeze @79742deb). Inputs read only.
+
+# 1) PREPARE (done; no fit / predict)
+cd /tmp/stagmem_b0/prep
+PYTHONDONTWRITEBYTECODE=1 /tmp/rfexp/venv/bin/python stagmem_b0.py prepare --config config.json \
+  --stagmem-dir /tmp/stagmem --m-dir /tmp/stagmem_m --audit-rows /tmp/spaudit_consts/rows.json \
+  --rf-dir /home/user/dsr-bot/experiments/g2_i1current_rf_2026_10_31 \
+  --extract /tmp/inv3/data/inventory/2026-10-31/g2_scene_extract.jsonl \
+  --manifest /tmp/inv3/data/inventory/2026-10-31/g2_scene_manifest_scenes.jsonl \
+  --baseline-results /tmp/rfexp/ref/baseline_results.json --cond-results /tmp/stagmem/cond/results.json \
+  --out /tmp/stagmem_b0/prep
+# train without --approved: exits before creating --out (checked: no directory created)
+
+# 2) TRAIN B0 ONLY (NOT RUN; separate approval). --out must not exist yet; prep report is read from prep/.
+cd /tmp/stagmem_b0/prep && PYTHONDONTWRITEBYTECODE=1 /tmp/rfexp/venv/bin/python stagmem_b0.py train --config config.json \
+  --stagmem-dir /tmp/stagmem --m-dir /tmp/stagmem_m --audit-rows /tmp/spaudit_consts/rows.json \
+  --rf-dir /home/user/dsr-bot/experiments/g2_i1current_rf_2026_10_31 \
+  --extract /tmp/inv3/data/inventory/2026-10-31/g2_scene_extract.jsonl \
+  --manifest /tmp/inv3/data/inventory/2026-10-31/g2_scene_manifest_scenes.jsonl \
+  --baseline-results /tmp/rfexp/ref/baseline_results.json --cond-results /tmp/stagmem/cond/results.json \
+  --prep-report /tmp/stagmem_b0/prep/prep_report_B0.json --out /tmp/stagmem_b0/run --approved TRAINING-APPROVED-B0
+# writes /tmp/stagmem_b0/run/results_B0.json + predictions_B0.jsonl; A, M, B are read from stored predictions

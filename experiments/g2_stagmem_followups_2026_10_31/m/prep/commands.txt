@@ -1,0 +1,25 @@
+# inputs (read only): /tmp/inv3 (git archive 6ccafc0), /tmp/rfexp/ref/baseline_results.json, /tmp/stagmem (prep + run),
+# /tmp/stagmem/cond/results.json, /tmp/spaudit_consts/rows.json (branch audit), repo experiments/g2_i1current_rf_2026_10_31
+# venv /tmp/rfexp/venv (Python 3.13.18, scikit-learn 1.9.1; freeze = requirements-freeze @79742deb)
+
+# 1) PREPARE (done; no fit / predict)
+cd /tmp/stagmem_m/prep
+PYTHONDONTWRITEBYTECODE=1 /tmp/rfexp/venv/bin/python stagmem_m.py prepare --config config.json \
+  --stagmem-dir /tmp/stagmem --audit-rows /tmp/spaudit_consts/rows.json \
+  --rf-dir /home/user/dsr-bot/experiments/g2_i1current_rf_2026_10_31 \
+  --extract /tmp/inv3/data/inventory/2026-10-31/g2_scene_extract.jsonl \
+  --manifest /tmp/inv3/data/inventory/2026-10-31/g2_scene_manifest_scenes.jsonl \
+  --baseline-results /tmp/rfexp/ref/baseline_results.json --cond-results /tmp/stagmem/cond/results.json \
+  --out /tmp/stagmem_m/prep
+# without --approved the train stage exits (checked; it creates the --out dir before exiting — that empty dir was removed)
+
+# 2) TRAIN M ONLY (NOT RUN; needs separate approval)
+mkdir -p /tmp/stagmem_m/run && cp /tmp/stagmem_m/prep/prep_report_M.json /tmp/stagmem_m/run/
+cd /tmp/stagmem_m/prep && PYTHONDONTWRITEBYTECODE=1 /tmp/rfexp/venv/bin/python stagmem_m.py train --config config.json \
+  --stagmem-dir /tmp/stagmem --audit-rows /tmp/spaudit_consts/rows.json \
+  --rf-dir /home/user/dsr-bot/experiments/g2_i1current_rf_2026_10_31 \
+  --extract /tmp/inv3/data/inventory/2026-10-31/g2_scene_extract.jsonl \
+  --manifest /tmp/inv3/data/inventory/2026-10-31/g2_scene_manifest_scenes.jsonl \
+  --baseline-results /tmp/rfexp/ref/baseline_results.json --cond-results /tmp/stagmem/cond/results.json \
+  --out /tmp/stagmem_m/run --approved TRAINING-APPROVED-M
+# writes results_M.json + predictions_M.jsonl; A and B are read from /tmp/stagmem/run/predictions.jsonl, not retrained

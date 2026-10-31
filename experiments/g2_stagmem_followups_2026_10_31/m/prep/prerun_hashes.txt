@@ -1,0 +1,2 @@
+ca354f41f83aa820dbd6f1ffe4c6af375b172b8582aaaf63a79f4bcb94b387c7  config.json
+4f29ddd435e96491acdb6cb20e0613ac9498761fb39f082db3c1299ccce17c68  stagmem_m.py

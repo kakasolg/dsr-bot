@@ -1,0 +1,26 @@
+# venv (not preserved; same as earlier experiments)
+/usr/local/bin/python3 -m venv /tmp/rfexp/venv            # Python 3.13.18
+/tmp/rfexp/venv/bin/pip install --only-binary=:all: -r experiments/g2_i1current_rf_2026_10_31/requirements-freeze.txt   # @79742deb
+# inputs from git (read only, not copied into this directory)
+git archive 6ccafc0 data/inventory/2026-10-31 | tar -x -C /tmp/inv3
+git show ca6b7f05d9f184c56d7fce97dab94b833e451fc9:experiments/g2_scene_baselines_2026_10_31/results.json > /tmp/rfexp/ref/baseline_results.json
+git show 3a0064f5c7f0d0f8e75a0700c139eda2a401c749:experiments/g2_i1_vs_i2memory_c3_2026_10_31/audit/conditional_reflex/results.json > /tmp/stagmem/cond/results.json
+
+# 1) PREPARE (done 2026-10-31; no fit / predict, writes prep_report.json)
+cd /tmp/stagmem/prep
+PYTHONDONTWRITEBYTECODE=1 /tmp/rfexp/venv/bin/python stagmem_compare.py prepare --config config.json \
+  --rf-dir /home/user/dsr-bot/experiments/g2_i1current_rf_2026_10_31 \
+  --extract /tmp/inv3/data/inventory/2026-10-31/g2_scene_extract.jsonl \
+  --manifest /tmp/inv3/data/inventory/2026-10-31/g2_scene_manifest_scenes.jsonl \
+  --baseline-results /tmp/rfexp/ref/baseline_results.json --cond-results /tmp/stagmem/cond/results.json --out /tmp/stagmem/prep
+# without --approved the train stage exits with "train stage needs --approved TRAINING-APPROVED" (checked)
+
+# 2) TRAIN (NOT RUN; only after separate approval). Write results to a new directory next to a copy of prep_report.json:
+#    mkdir -p /tmp/stagmem/run && cp /tmp/stagmem/prep/prep_report.json /tmp/stagmem/run/
+PYTHONDONTWRITEBYTECODE=1 /tmp/rfexp/venv/bin/python stagmem_compare.py train --config config.json \
+  --rf-dir /home/user/dsr-bot/experiments/g2_i1current_rf_2026_10_31 \
+  --extract /tmp/inv3/data/inventory/2026-10-31/g2_scene_extract.jsonl \
+  --manifest /tmp/inv3/data/inventory/2026-10-31/g2_scene_manifest_scenes.jsonl \
+  --baseline-results /tmp/rfexp/ref/baseline_results.json --cond-results /tmp/stagmem/cond/results.json \
+  --out /tmp/stagmem/run --approved TRAINING-APPROVED
+# models are not saved; results.json + predictions.jsonl go to --out

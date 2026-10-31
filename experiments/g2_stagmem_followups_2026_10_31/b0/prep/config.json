@@ -1,0 +1,50 @@
+{
+ "name": "g2-B0-elapsed-value-removed-v1",
+ "date": "2026-10-31",
+ "question": "With the stagger-memory state and validity kept, does the actual elapsed-time value add to reproducing the late-guard rule labels?",
+ "nature": "Follow-up diagnostic after A/B, the stagger_punish branch audit and M. Not blind (the audited sets were chosen after seeing results), not causal, not a separation of version effects, nothing about game performance.",
+ "refs": {
+  "stagmem_config_sha256": "715c48e7f98475b2992e61a9c6aea69c99b65246accfc3c5ca401d62e732de55",
+  "stagmem_script_sha256": "728578332f14ff713325cad6269d390132ed2c3485d92584f0c27bc7009d0be7",
+  "stagmem_prep_report_sha256": "606702f0e63939806d7470ce19caef5c0ec840b8e99c53be5d8f77c9104c14bb",
+  "stagmem_results_sha256": "8b637b1b2359c7d21afb70894e2cc44851caf7ef14b3394235a64550987c2509",
+  "stagmem_predictions_sha256": "81e7631d804696f024fab9966a5eb11089340602784a4c5fb3fdf2c4f308fe3c",
+  "m_config_sha256": "ca354f41f83aa820dbd6f1ffe4c6af375b172b8582aaaf63a79f4bcb94b387c7",
+  "m_results_sha256": "23386489fb75abd197c19cbbce318ade70f84ade39310d0fb5642416e3b68c45",
+  "m_predictions_sha256": "9711cb5f7d71228080fae66a620c6652ae4a60e28cf8263ba396279102fe956f",
+  "branch_audit_rows_sha256": "46ef3608b8106fcd942ba61e10d65aa40e432d1b6270e2d5db8542a66dd3cd29",
+  "bundle_tar_sha256": "92c0c4c99c56bc2696706a0bfd5efd39e0981c1829cee17fcbba70ce8095f8ca",
+  "extract_sha256": "c0a31ceb8f8c733c0df043b076536c1d7045900ebec656a5ed44041527f3ea35",
+  "manifest_sha256": "3de0c325098b0358792b648aa1e1de5b079f591760ad94cfa3b39925e5eceec3",
+  "baseline_results_sha256": "37b91a0a119c9a6c57ef673a52e3da1ed2aad6b0037e776d24cb322257f9db2e",
+  "rf_config_sha256": "cb5c0d82a129dd9e904f9f41317282dd1d5dfc99f0637c85729a5ad2a7a1fa9e",
+  "rf_script_sha256": "461da1fa531be6db14a9c3b9b8cde91435e3dbaca3747e24cc650c0b6bf8347d",
+  "cond_audit_results_sha256": "25b21b98c36179d5e9acd8410c9bca8dbbbf3d75e4876b074bc519ff8dd7231a"
+ },
+ "conditions": {
+  "A": "stored y_pred_A (61 columns)",
+  "M": "stored y_pred_M (A + 2 key-presence columns)",
+  "B": "stored y_pred_B (67 columns)",
+  "B0": "B's 67 columns in B's order; only column smem_target_since_s changes: every non-NaN value -> 0.0, NaN stays NaN. All __missing columns and all other columns unchanged. Same transform on train and all eval splits. Trained new."
+ },
+ "b0_column": "smem_target_since_s",
+ "b0_value": 0.0,
+ "b0_note": "0.0 is a replacement constant, not an observed elapsed time (train valid values are 0.024..2.557 s). Whether another constant would give the same model is NOT checked and not claimed.",
+ "model": {"family": "sklearn.ensemble.RandomForestClassifier",
+  "params": {"n_estimators": 200, "max_depth": 12, "min_samples_leaf": 3, "class_weight": null, "random_state": 20261031, "criterion": "gini", "max_features": null, "bootstrap": true, "n_jobs": 1}},
+ "splits": {"fit": "train", "eval": ["val", "test", "shift_zone", "shift_ref"], "exclude": ["pending"]},
+ "evaluation": {
+  "full_eval_first": "per split: accuracy, macro F1 (preserved primary set / all true classes) with labels, per class, per-run accuracy + unweighted mean, for A, M, B0, B; paired B0-B, A-B0, M-B0 per split and per run",
+  "diagnostic_sets": {
+   "late_guard_95": "eval stagger_punish scenes of the late-guard branch (branch audit)",
+   "gain_35": "late_guard scenes with A wrong and B right — chosen AFTER seeing the A/B results (post-hoc diagnostic set)",
+   "core_24": "late_guard scenes in the core condition",
+   "boundary_7": "late_guard scenes within 0.05 s of the late threshold",
+   "a_only_6": "scenes with A right and B wrong (post-hoc)"
+  },
+  "gain_35_per_run": "B0 kept (right) / lost (wrong) per run",
+  "reflex_face_first": "scenes lost vs A and vs B for true reflex / face_first",
+  "never": ["causal effects", "pure version-effect separation", "game performance", "attack performance", "statistical significance", "that the constant choice does not matter", "any expectation stated as a result"]
+ },
+ "boundary": "prepare: fit/predict patched to raise. train: refuses without --approved TRAINING-APPROVED-B0 BEFORE creating any output directory."
+}
