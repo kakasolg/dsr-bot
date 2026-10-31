@@ -1,0 +1,41 @@
+run 20261030_225853_parish-group1 · ctl sha256 639ddf6c9c390e76 (2149 lines) · settings sha256 f23fd0861f38133d · checker sha256 9deb9fefba46b45a · repo HEAD 0f79b09
+kinds: {'hdr': 1, 'sync': 13, 'life': 3, 'pad': 1710, 'neutral': 13, 'dec.goto': 80, 'dec.counter': 18, 'span.fight': 6, 'span.cycle': 182, 'span.rule': 91, 'dec.rule': 15, 'dec.reflex': 3, 'span.action': 6, 'scene': 3, 'pad.override': 4, 'end': 1}
+end: {'seq': 2148, 'pc': 174811636422400, 'written': 2148, 'dropped': 0, 'lost': 0, 'write_errors': 0, 'last_error': None, 'writer_joined': True, 'complete': True, '_L': 2149}
+gap records: [] · broken lines: 0 · lines after end: 0
+life: [(3, 'start', None), (2142, 'normal_exit', 'cleared'), (2146, 'atexit', None)]
+fight: 3 · paired 3 · start without end [] · end without start []
+cycle: 91 · paired 91 · start without end [] · end without start []
+action: 3 · paired 3 · start without end [] · end without start []
+fight results: Counter({'killed': 3})
+cycle parent not a fight: []
+cycle end kinds: {'rule_cont': 88, 'rule_result': 3}
+cycle src: {'direct': 91} · resnap true: 0
+span.rule 91 · cycles with picked 91 · rule↔picked mismatch [] · picked without span.rule []
+picked rules: {'face_first': 1, 'edge': 1, 'approach': 3, 'block': 41, 'reflex': 42, 'after_swing': 3}
+none_pad (rule returned None after writing the pad): {} in 0 cycles
+span.rule pc order broken: []
+actions: {'light': 3} · parent kinds {'cycle': 3} · rule_id set 3 / 3 · rule_id → emitted span.rule 3
+action parent dangling: []
+action end reasons (dead = target HP 0): {('light', 'dead'): 3}
+action with hit: 3 · with ret: 0
+pad th=MainThread: 1678 records (+dup 152) · with cycle_id 413 · with action_id 14
+pad th=Thread-7 (_run): 30 records (+dup 3) · with cycle_id 0 · with action_id 0
+pad th=Thread-8 (_run): 2 records (+dup 0) · with cycle_id 0 · with action_id 0
+main pad without ids inside an open cycle: 0 [] · inside a fight but between cycles: 0 (callers {})
+main pad cycle_id outside that cycle's seq range: []
+other threads with a main id: []
+pad.override: 4 {('neutral', 'MainThread', True): 4}
+pad.drop: 0
+scenes 3 · inside exactly one cycle 3 · none 0 · cycles with picked and a scene 3/91
+input (obs) per cycle: {'no_obs': 91} · examples {'no_obs': '2: no obs_id field (file from before obs records)'}
+writer complete (end record) ≠ input restorable — they are reported apart
+settings end: {'result': 'cleared', 'end_read': {'t': 1793426389.56204, 'hp': [789, 793], 'estus': 10, 'pos': [28.28, 26.6, 104.01]}, 'last_valid_obs': {'t': 1793426389.56204, 'fseq': 2923, 'hp': 789, 'max_hp': 793, 'pos': [28.28, 26.6, 104.01]}, 'end_state_known': True}
+
+── vs-scene (consistency of two records of one read, not an independent sensor check)
+input status by cycle kind: {('rule_cont', 'no_obs'): 88, ('rule_result', 'no_obs'): 3}
+(snapshot() calls in sense, after) for cycles with span.obs: {}
+partial by picked rule: {}
+sense_only by picked rule: {}
+scene L1707 cycle 778: no span.obs
+scene L1902 cycle 1135: no span.obs
+scene L2138 cycle 1524: no span.obs
