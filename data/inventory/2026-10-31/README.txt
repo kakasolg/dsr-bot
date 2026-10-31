@@ -51,3 +51,16 @@ Unsampled metadata - aggregated (17 runs, 0 read errors).
   g2_unsampled_meta.json: runs with no git-tracked *settings.json whose name holds the run stamp (sample.py may add a
   label, so matching by exact file name gives 83 - not used). Fields from data/runs/<run>.settings.json.
   4 runs have no "game" block (weapon / max HP null): 20261010_010907, 20261012_215320, _215457, _215541.
+
+--- Follow-up request (G2 scene extract for the manifest), same day, read only ---
+
+g2_scene_manifest.tsv: the manifest as given (55 runs, 1475 scenes incl. pending 22). The compressed-TSV sha256 in the
+request could not be checked here (compression method / bytes unknown; gzip -n of this file gives other hashes).
+Target check - aggregated: 1475/1475 are k="scene" with rule equal to g2_scene_links.jsonl; 0 missing / mismatched.
+g2_scene_extract.jsonl - aggregated: 1475 lines (train 730, val 134, test 233, shift_zone 292, shift_ref 64,
+  pending 22), 10,994,695 bytes (under 20 MB, so not gzipped). Values copied from the scene record as captured; meta
+  from data/runs/<run>.settings.json (all 55 read, incl. the 2 runs whose settings are not in git).
+g2_scene_fight_keys.json - aggregated: fight dict keys with scene counts, by run and by commit.
+g2_scene_extract_check.json - aggregated: target check, counts by split, missing (absent or null) per field, style
+  per run, fight.arena not null, whether the 9 uncommitted diffs change duel.py / scenes.py, size stats.
+Script: experiments/inventory_2026_10_31/inv_g2_extract.py <manifest.tsv>
