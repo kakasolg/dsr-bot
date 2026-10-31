@@ -32,3 +32,22 @@ Request 5 - videos: aggregated (12 files, not sent).
 
 Scripts: experiments/inventory_2026_10_31/ (not imported by the bot). Video metadata came from a PowerShell call
 (Shell.Application GetDetailsOf: Length, Frame width, Frame height, Frame rate) saved to a temp JSON passed to inv_video.py.
+
+--- Follow-up request (G2 scene links), same day, read only ---
+
+Scene links - aggregated (120 runs read, 0 read errors, 1868 scenes).
+  g2_scene_links.jsonl: one line per scene, no snapshot body. ~1.2 MB (over the few-tens-of-KB guideline above:
+  one line per scene was asked for). Definitions are in the script docstring
+  (experiments/inventory_2026_10_31/inv_g2_scenes.py). Counts:
+  - scene's dec.rule: matched by snap_t 1319, by adjacent same rule 122 (its snap_t differs), null 427
+    (367 "same rule only earlier, not adjacent and snap_t differs", 60 "no dec.rule with this rule before the scene").
+  - pad window (only when a dec.rule matched): empty 1093, non-empty 348. In G2 files dec.rule is written after the
+    rule returns, often right after the previous dec.rule, so the pads a rule wrote usually sit before that window.
+  - next scene of the same fight: present 1164, fight_end 624, no_next_scene 80.
+  - fight key = ptr@start time (G2 scenes have no fight id); hostile = hp > 0 and team != player team, within the
+    scene list (<= 25 m).
+
+Unsampled metadata - aggregated (17 runs, 0 read errors).
+  g2_unsampled_meta.json: runs with no git-tracked *settings.json whose name holds the run stamp (sample.py may add a
+  label, so matching by exact file name gives 83 - not used). Fields from data/runs/<run>.settings.json.
+  4 runs have no "game" block (weapon / max HP null): 20261010_010907, 20261012_215320, _215457, _215541.

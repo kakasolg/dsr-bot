@@ -1,0 +1,274 @@
+{
+ "scope": "g2_ctl_presence.json runs with no git-tracked *settings.json whose file name contains the run stamp (YYYYMMDD_HHMMSS)",
+ "count": 17,
+ "runs": [
+  {
+   "run": "20261009_230046_burg-upper",
+   "settings": "data/runs/20261009_230046_burg-upper.settings.json",
+   "date": "2026-10-09T23:00:46-07:00",
+   "commit": "d2a3312990ce3ffa47b9a9a01e1fcff1d3e87b5d",
+   "dirty": false,
+   "diff_sha1": null,
+   "cmd": "burg-upper",
+   "seg": "1-3",
+   "weapon": [
+    206000,
+    "배틀 액스"
+   ],
+   "max_hp": 1431,
+   "missing": []
+  },
+  {
+   "run": "20261010_010907_burg-bonfire",
+   "settings": "data/runs/20261010_010907_burg-bonfire.settings.json",
+   "date": "2026-10-10T01:09:07-07:00",
+   "commit": "0c41513a09159a437f93c3159a818570664e0695",
+   "dirty": false,
+   "diff_sha1": null,
+   "cmd": "burg-bonfire",
+   "seg": "1",
+   "weapon": null,
+   "max_hp": null,
+   "missing": [
+    "game"
+   ]
+  },
+  {
+   "run": "20261012_215320_burg-upper",
+   "settings": "data/runs/20261012_215320_burg-upper.settings.json",
+   "date": "2026-10-12T21:53:21-07:00",
+   "commit": "f45ebf8c30303314afffdf21eeba2a9b740333d0",
+   "dirty": false,
+   "diff_sha1": null,
+   "cmd": "burg-upper",
+   "seg": "1-2",
+   "weapon": null,
+   "max_hp": null,
+   "missing": [
+    "game"
+   ]
+  },
+  {
+   "run": "20261012_215457_burg-upper",
+   "settings": "data/runs/20261012_215457_burg-upper.settings.json",
+   "date": "2026-10-12T21:54:57-07:00",
+   "commit": "f45ebf8c30303314afffdf21eeba2a9b740333d0",
+   "dirty": false,
+   "diff_sha1": null,
+   "cmd": "burg-upper",
+   "seg": "1-2",
+   "weapon": null,
+   "max_hp": null,
+   "missing": [
+    "game"
+   ]
+  },
+  {
+   "run": "20261012_215541_burg-upper",
+   "settings": "data/runs/20261012_215541_burg-upper.settings.json",
+   "date": "2026-10-12T21:55:41-07:00",
+   "commit": "f45ebf8c30303314afffdf21eeba2a9b740333d0",
+   "dirty": false,
+   "diff_sha1": null,
+   "cmd": "burg-upper",
+   "seg": "1-2",
+   "weapon": null,
+   "max_hp": null,
+   "missing": [
+    "game"
+   ]
+  },
+  {
+   "run": "20261012_215634_burg-upper",
+   "settings": "data/runs/20261012_215634_burg-upper.settings.json",
+   "date": "2026-10-12T21:56:34-07:00",
+   "commit": "1f62872913f63cae9f725297e3f566e72d29707d",
+   "dirty": false,
+   "diff_sha1": null,
+   "cmd": "burg-upper",
+   "seg": "1-2",
+   "weapon": [
+    301000,
+    "클레이모어"
+   ],
+   "max_hp": 742,
+   "missing": []
+  },
+  {
+   "run": "20261013_055336_altar-burg",
+   "settings": "data/runs/20261013_055336_altar-burg.settings.json",
+   "date": "2026-10-13T05:53:36-07:00",
+   "commit": "b3d91fb8bdf72264b594ca21bcc3da7072347d5d",
+   "dirty": false,
+   "diff_sha1": null,
+   "cmd": "altar-burg",
+   "seg": null,
+   "weapon": [
+    301000,
+    "클레이모어"
+   ],
+   "max_hp": 742,
+   "missing": []
+  },
+  {
+   "run": "20261013_061249_altar-burg",
+   "settings": "data/runs/20261013_061249_altar-burg.settings.json",
+   "date": "2026-10-13T06:12:49-07:00",
+   "commit": "13f152b62420ccf3e842d1ed34866228c135de0e",
+   "dirty": false,
+   "diff_sha1": null,
+   "cmd": "altar-burg",
+   "seg": null,
+   "weapon": [
+    301000,
+    "클레이모어"
+   ],
+   "max_hp": 742,
+   "missing": []
+  },
+  {
+   "run": "20261013_171755_altar",
+   "settings": "data/runs/20261013_171755_altar.settings.json",
+   "date": "2026-10-13T17:17:55-07:00",
+   "commit": "42e552c132b519682397bba35479b4120c347556",
+   "dirty": false,
+   "diff_sha1": null,
+   "cmd": "altar",
+   "seg": null,
+   "weapon": [
+    301005,
+    "클레이모어"
+   ],
+   "max_hp": 793,
+   "missing": []
+  },
+  {
+   "run": "20261013_171934_altar",
+   "settings": "data/runs/20261013_171934_altar.settings.json",
+   "date": "2026-10-13T17:19:34-07:00",
+   "commit": "42e552c132b519682397bba35479b4120c347556",
+   "dirty": false,
+   "diff_sha1": null,
+   "cmd": "altar",
+   "seg": null,
+   "weapon": [
+    301005,
+    "클레이모어"
+   ],
+   "max_hp": 793,
+   "missing": []
+  },
+  {
+   "run": "20261013_172111_altar",
+   "settings": "data/runs/20261013_172111_altar.settings.json",
+   "date": "2026-10-13T17:21:11-07:00",
+   "commit": "42e552c132b519682397bba35479b4120c347556",
+   "dirty": false,
+   "diff_sha1": null,
+   "cmd": "altar",
+   "seg": null,
+   "weapon": [
+    301005,
+    "클레이모어"
+   ],
+   "max_hp": 793,
+   "missing": []
+  },
+  {
+   "run": "20261013_175209_clear-ramp",
+   "settings": "data/runs/20261013_175209_clear-ramp.settings.json",
+   "date": "2026-10-13T17:52:09-07:00",
+   "commit": "361796be434c628909f7b2d356dccab654057fa3",
+   "dirty": false,
+   "diff_sha1": null,
+   "cmd": "clear-ramp",
+   "seg": null,
+   "weapon": [
+    301005,
+    "클레이모어"
+   ],
+   "max_hp": 793,
+   "missing": []
+  },
+  {
+   "run": "20261013_180321_altar",
+   "settings": "data/runs/20261013_180321_altar.settings.json",
+   "date": "2026-10-13T18:03:21-07:00",
+   "commit": "382dfbc986ee215be40ce55b9612c0574722d1bc",
+   "dirty": false,
+   "diff_sha1": null,
+   "cmd": "altar",
+   "seg": null,
+   "weapon": [
+    301005,
+    "클레이모어"
+   ],
+   "max_hp": 793,
+   "missing": []
+  },
+  {
+   "run": "20261013_180620_altar",
+   "settings": "data/runs/20261013_180620_altar.settings.json",
+   "date": "2026-10-13T18:06:20-07:00",
+   "commit": "536a0e2352ad75d0124e5e603fb622d92d1634bc",
+   "dirty": false,
+   "diff_sha1": null,
+   "cmd": "altar",
+   "seg": null,
+   "weapon": [
+    301005,
+    "클레이모어"
+   ],
+   "max_hp": 793,
+   "missing": []
+  },
+  {
+   "run": "20261013_180809_altar",
+   "settings": "data/runs/20261013_180809_altar.settings.json",
+   "date": "2026-10-13T18:08:09-07:00",
+   "commit": "4233f3df4b80318d8341f18507f5a098060019c5",
+   "dirty": false,
+   "diff_sha1": null,
+   "cmd": "altar",
+   "seg": null,
+   "weapon": [
+    301005,
+    "클레이모어"
+   ],
+   "max_hp": 793,
+   "missing": []
+  },
+  {
+   "run": "20261013_183846_altar-burg",
+   "settings": "data/runs/20261013_183846_altar-burg.settings.json",
+   "date": "2026-10-13T18:38:46-07:00",
+   "commit": "26278c0c4983c24468e475c49471a53885f3ffee",
+   "dirty": false,
+   "diff_sha1": null,
+   "cmd": "altar-burg",
+   "seg": null,
+   "weapon": [
+    301005,
+    "클레이모어"
+   ],
+   "max_hp": 793,
+   "missing": []
+  },
+  {
+   "run": "20261013_190024_altar-burg",
+   "settings": "data/runs/20261013_190024_altar-burg.settings.json",
+   "date": "2026-10-13T19:00:24-07:00",
+   "commit": "66cebffa1207f8fc9283d53eb00d06045765bde4",
+   "dirty": false,
+   "diff_sha1": null,
+   "cmd": "altar-burg",
+   "seg": null,
+   "weapon": [
+    301005,
+    "클레이모어"
+   ],
+   "max_hp": 793,
+   "missing": []
+  }
+ ]
+}
