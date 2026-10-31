@@ -1,0 +1,3499 @@
+{
+ "config_sha256": "b710ffb541bf00461bc9b787d8f6d354d4d6dfce70f200cb4bcf56f174f12c8b",
+ "join_check": {
+  "rows": 723,
+  "duplicates": 0,
+  "unlinked": 0,
+  "split_mismatch": 0,
+  "y_true_mismatch": 0,
+  "pending": 0,
+  "splits": {
+   "val": 134,
+   "test": 233,
+   "shift_zone": 292,
+   "shift_ref": 64
+  }
+ },
+ "tables": {
+  "all": {
+   "val": {
+    "stag|other": {
+     "reflex": {
+      "n": 11,
+      "runs": 4,
+      "i1_correct": 7,
+      "i1_recall": 0.6364,
+      "i2_correct": 5,
+      "i2_recall": 0.4545,
+      "both_correct": 5,
+      "i1_only": 2,
+      "i2_only": 0,
+      "both_wrong": 4,
+      "i2_minus_i1": -2
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 9,
+      "runs": 3,
+      "i1_correct": 9,
+      "i1_recall": 1.0,
+      "i2_correct": 5,
+      "i2_recall": 0.5556,
+      "both_correct": 5,
+      "i1_only": 4,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": -4
+     }
+    },
+    "stag|noother": {
+     "reflex": {
+      "n": 4,
+      "runs": 2,
+      "i1_correct": 0,
+      "i1_recall": 0.0,
+      "i2_correct": 1,
+      "i2_recall": 0.25,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 1,
+      "both_wrong": 3,
+      "i2_minus_i1": 1
+     },
+     "stagger_punish": {
+      "n": 2,
+      "runs": 2,
+      "i1_correct": 2,
+      "i1_recall": 1.0,
+      "i2_correct": 2,
+      "i2_recall": 1.0,
+      "both_correct": 2,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 4,
+      "runs": 2,
+      "i1_correct": 0,
+      "i1_recall": 0.0,
+      "i2_correct": 0,
+      "i2_recall": 0.0,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 4,
+      "i2_minus_i1": 0
+     }
+    },
+    "nostag|other": {
+     "reflex": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     }
+    },
+    "nostag|noother": {
+     "reflex": {
+      "n": 1,
+      "runs": 1,
+      "i1_correct": 1,
+      "i1_recall": 1.0,
+      "i2_correct": 0,
+      "i2_recall": 0.0,
+      "both_correct": 0,
+      "i1_only": 1,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": -1
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     }
+    }
+   },
+   "test": {
+    "stag|other": {
+     "reflex": {
+      "n": 12,
+      "runs": 3,
+      "i1_correct": 9,
+      "i1_recall": 0.75,
+      "i2_correct": 2,
+      "i2_recall": 0.1667,
+      "both_correct": 2,
+      "i1_only": 7,
+      "i2_only": 0,
+      "both_wrong": 3,
+      "i2_minus_i1": -7
+     },
+     "stagger_punish": {
+      "n": 10,
+      "runs": 1,
+      "i1_correct": 0,
+      "i1_recall": 0.0,
+      "i2_correct": 10,
+      "i2_recall": 1.0,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 10,
+      "both_wrong": 0,
+      "i2_minus_i1": 10
+     },
+     "face_first": {
+      "n": 7,
+      "runs": 2,
+      "i1_correct": 7,
+      "i1_recall": 1.0,
+      "i2_correct": 5,
+      "i2_recall": 0.7143,
+      "both_correct": 5,
+      "i1_only": 2,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": -2
+     }
+    },
+    "stag|noother": {
+     "reflex": {
+      "n": 1,
+      "runs": 1,
+      "i1_correct": 0,
+      "i1_recall": 0.0,
+      "i2_correct": 0,
+      "i2_recall": 0.0,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 1,
+      "i2_minus_i1": 0
+     },
+     "stagger_punish": {
+      "n": 13,
+      "runs": 3,
+      "i1_correct": 7,
+      "i1_recall": 0.5385,
+      "i2_correct": 12,
+      "i2_recall": 0.9231,
+      "both_correct": 7,
+      "i1_only": 0,
+      "i2_only": 5,
+      "both_wrong": 1,
+      "i2_minus_i1": 5
+     },
+     "face_first": {
+      "n": 1,
+      "runs": 1,
+      "i1_correct": 0,
+      "i1_recall": 0.0,
+      "i2_correct": 0,
+      "i2_recall": 0.0,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 1,
+      "i2_minus_i1": 0
+     }
+    },
+    "nostag|other": {
+     "reflex": {
+      "n": 1,
+      "runs": 1,
+      "i1_correct": 1,
+      "i1_recall": 1.0,
+      "i2_correct": 0,
+      "i2_recall": 0.0,
+      "both_correct": 0,
+      "i1_only": 1,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": -1
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     }
+    },
+    "nostag|noother": {
+     "reflex": {
+      "n": 4,
+      "runs": 3,
+      "i1_correct": 1,
+      "i1_recall": 0.25,
+      "i2_correct": 0,
+      "i2_recall": 0.0,
+      "both_correct": 0,
+      "i1_only": 1,
+      "i2_only": 0,
+      "both_wrong": 3,
+      "i2_minus_i1": -1
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 1,
+      "runs": 1,
+      "i1_correct": 0,
+      "i1_recall": 0.0,
+      "i2_correct": 0,
+      "i2_recall": 0.0,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 1,
+      "i2_minus_i1": 0
+     }
+    }
+   },
+   "shift_zone": {
+    "stag|other": {
+     "reflex": {
+      "n": 3,
+      "runs": 3,
+      "i1_correct": 2,
+      "i1_recall": 0.6667,
+      "i2_correct": 0,
+      "i2_recall": 0.0,
+      "both_correct": 0,
+      "i1_only": 2,
+      "i2_only": 0,
+      "both_wrong": 1,
+      "i2_minus_i1": -2
+     },
+     "stagger_punish": {
+      "n": 9,
+      "runs": 1,
+      "i1_correct": 0,
+      "i1_recall": 0.0,
+      "i2_correct": 9,
+      "i2_recall": 1.0,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 9,
+      "both_wrong": 0,
+      "i2_minus_i1": 9
+     },
+     "face_first": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     }
+    },
+    "stag|noother": {
+     "reflex": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "stagger_punish": {
+      "n": 62,
+      "runs": 5,
+      "i1_correct": 59,
+      "i1_recall": 0.9516,
+      "i2_correct": 62,
+      "i2_recall": 1.0,
+      "both_correct": 59,
+      "i1_only": 0,
+      "i2_only": 3,
+      "both_wrong": 0,
+      "i2_minus_i1": 3
+     },
+     "face_first": {
+      "n": 3,
+      "runs": 2,
+      "i1_correct": 0,
+      "i1_recall": 0.0,
+      "i2_correct": 0,
+      "i2_recall": 0.0,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 3,
+      "i2_minus_i1": 0
+     }
+    },
+    "nostag|other": {
+     "reflex": {
+      "n": 4,
+      "runs": 2,
+      "i1_correct": 0,
+      "i1_recall": 0.0,
+      "i2_correct": 0,
+      "i2_recall": 0.0,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 4,
+      "i2_minus_i1": 0
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 1,
+      "runs": 1,
+      "i1_correct": 0,
+      "i1_recall": 0.0,
+      "i2_correct": 0,
+      "i2_recall": 0.0,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 1,
+      "i2_minus_i1": 0
+     }
+    },
+    "nostag|noother": {
+     "reflex": {
+      "n": 5,
+      "runs": 5,
+      "i1_correct": 0,
+      "i1_recall": 0.0,
+      "i2_correct": 0,
+      "i2_recall": 0.0,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 5,
+      "i2_minus_i1": 0
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 3,
+      "runs": 3,
+      "i1_correct": 3,
+      "i1_recall": 1.0,
+      "i2_correct": 3,
+      "i2_recall": 1.0,
+      "both_correct": 3,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     }
+    }
+   },
+   "shift_ref": {
+    "stag|other": {
+     "reflex": {
+      "n": 14,
+      "runs": 1,
+      "i1_correct": 9,
+      "i1_recall": 0.6429,
+      "i2_correct": 0,
+      "i2_recall": 0.0,
+      "both_correct": 0,
+      "i1_only": 9,
+      "i2_only": 0,
+      "both_wrong": 5,
+      "i2_minus_i1": -9
+     },
+     "stagger_punish": {
+      "n": 5,
+      "runs": 1,
+      "i1_correct": 0,
+      "i1_recall": 0.0,
+      "i2_correct": 5,
+      "i2_recall": 1.0,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 5,
+      "both_wrong": 0,
+      "i2_minus_i1": 5
+     },
+     "face_first": {
+      "n": 12,
+      "runs": 1,
+      "i1_correct": 12,
+      "i1_recall": 1.0,
+      "i2_correct": 4,
+      "i2_recall": 0.3333,
+      "both_correct": 4,
+      "i1_only": 8,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": -8
+     }
+    },
+    "stag|noother": {
+     "reflex": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     }
+    },
+    "nostag|other": {
+     "reflex": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     }
+    },
+    "nostag|noother": {
+     "reflex": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 1,
+      "runs": 1,
+      "i1_correct": 0,
+      "i1_recall": 0.0,
+      "i2_correct": 0,
+      "i2_recall": 0.0,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 1,
+      "i2_minus_i1": 0
+     }
+    }
+   },
+   "ALL_eval_supplementary": {
+    "stag|other": {
+     "reflex": {
+      "n": 40,
+      "runs": 11,
+      "i1_correct": 27,
+      "i1_recall": 0.675,
+      "i2_correct": 7,
+      "i2_recall": 0.175,
+      "both_correct": 7,
+      "i1_only": 20,
+      "i2_only": 0,
+      "both_wrong": 13,
+      "i2_minus_i1": -20
+     },
+     "stagger_punish": {
+      "n": 24,
+      "runs": 3,
+      "i1_correct": 0,
+      "i1_recall": 0.0,
+      "i2_correct": 24,
+      "i2_recall": 1.0,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 24,
+      "both_wrong": 0,
+      "i2_minus_i1": 24
+     },
+     "face_first": {
+      "n": 28,
+      "runs": 6,
+      "i1_correct": 28,
+      "i1_recall": 1.0,
+      "i2_correct": 14,
+      "i2_recall": 0.5,
+      "both_correct": 14,
+      "i1_only": 14,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": -14
+     }
+    },
+    "stag|noother": {
+     "reflex": {
+      "n": 5,
+      "runs": 3,
+      "i1_correct": 0,
+      "i1_recall": 0.0,
+      "i2_correct": 1,
+      "i2_recall": 0.2,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 1,
+      "both_wrong": 4,
+      "i2_minus_i1": 1
+     },
+     "stagger_punish": {
+      "n": 77,
+      "runs": 10,
+      "i1_correct": 68,
+      "i1_recall": 0.8831,
+      "i2_correct": 76,
+      "i2_recall": 0.987,
+      "both_correct": 68,
+      "i1_only": 0,
+      "i2_only": 8,
+      "both_wrong": 1,
+      "i2_minus_i1": 8
+     },
+     "face_first": {
+      "n": 8,
+      "runs": 5,
+      "i1_correct": 0,
+      "i1_recall": 0.0,
+      "i2_correct": 0,
+      "i2_recall": 0.0,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 8,
+      "i2_minus_i1": 0
+     }
+    },
+    "nostag|other": {
+     "reflex": {
+      "n": 5,
+      "runs": 3,
+      "i1_correct": 1,
+      "i1_recall": 0.2,
+      "i2_correct": 0,
+      "i2_recall": 0.0,
+      "both_correct": 0,
+      "i1_only": 1,
+      "i2_only": 0,
+      "both_wrong": 4,
+      "i2_minus_i1": -1
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 1,
+      "runs": 1,
+      "i1_correct": 0,
+      "i1_recall": 0.0,
+      "i2_correct": 0,
+      "i2_recall": 0.0,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 1,
+      "i2_minus_i1": 0
+     }
+    },
+    "nostag|noother": {
+     "reflex": {
+      "n": 10,
+      "runs": 9,
+      "i1_correct": 2,
+      "i1_recall": 0.2,
+      "i2_correct": 0,
+      "i2_recall": 0.0,
+      "both_correct": 0,
+      "i1_only": 2,
+      "i2_only": 0,
+      "both_wrong": 8,
+      "i2_minus_i1": -2
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 5,
+      "runs": 5,
+      "i1_correct": 3,
+      "i1_recall": 0.6,
+      "i2_correct": 3,
+      "i2_recall": 0.6,
+      "both_correct": 3,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 2,
+      "i2_minus_i1": 0
+     }
+    }
+   }
+  },
+  "excl_212954": {
+   "val": {
+    "stag|other": {
+     "reflex": {
+      "n": 11,
+      "runs": 4,
+      "i1_correct": 7,
+      "i1_recall": 0.6364,
+      "i2_correct": 5,
+      "i2_recall": 0.4545,
+      "both_correct": 5,
+      "i1_only": 2,
+      "i2_only": 0,
+      "both_wrong": 4,
+      "i2_minus_i1": -2
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 9,
+      "runs": 3,
+      "i1_correct": 9,
+      "i1_recall": 1.0,
+      "i2_correct": 5,
+      "i2_recall": 0.5556,
+      "both_correct": 5,
+      "i1_only": 4,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": -4
+     }
+    },
+    "stag|noother": {
+     "reflex": {
+      "n": 4,
+      "runs": 2,
+      "i1_correct": 0,
+      "i1_recall": 0.0,
+      "i2_correct": 1,
+      "i2_recall": 0.25,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 1,
+      "both_wrong": 3,
+      "i2_minus_i1": 1
+     },
+     "stagger_punish": {
+      "n": 2,
+      "runs": 2,
+      "i1_correct": 2,
+      "i1_recall": 1.0,
+      "i2_correct": 2,
+      "i2_recall": 1.0,
+      "both_correct": 2,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 4,
+      "runs": 2,
+      "i1_correct": 0,
+      "i1_recall": 0.0,
+      "i2_correct": 0,
+      "i2_recall": 0.0,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 4,
+      "i2_minus_i1": 0
+     }
+    },
+    "nostag|other": {
+     "reflex": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     }
+    },
+    "nostag|noother": {
+     "reflex": {
+      "n": 1,
+      "runs": 1,
+      "i1_correct": 1,
+      "i1_recall": 1.0,
+      "i2_correct": 0,
+      "i2_recall": 0.0,
+      "both_correct": 0,
+      "i1_only": 1,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": -1
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     }
+    }
+   },
+   "test": {
+    "stag|other": {
+     "reflex": {
+      "n": 12,
+      "runs": 3,
+      "i1_correct": 9,
+      "i1_recall": 0.75,
+      "i2_correct": 2,
+      "i2_recall": 0.1667,
+      "both_correct": 2,
+      "i1_only": 7,
+      "i2_only": 0,
+      "both_wrong": 3,
+      "i2_minus_i1": -7
+     },
+     "stagger_punish": {
+      "n": 10,
+      "runs": 1,
+      "i1_correct": 0,
+      "i1_recall": 0.0,
+      "i2_correct": 10,
+      "i2_recall": 1.0,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 10,
+      "both_wrong": 0,
+      "i2_minus_i1": 10
+     },
+     "face_first": {
+      "n": 7,
+      "runs": 2,
+      "i1_correct": 7,
+      "i1_recall": 1.0,
+      "i2_correct": 5,
+      "i2_recall": 0.7143,
+      "both_correct": 5,
+      "i1_only": 2,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": -2
+     }
+    },
+    "stag|noother": {
+     "reflex": {
+      "n": 1,
+      "runs": 1,
+      "i1_correct": 0,
+      "i1_recall": 0.0,
+      "i2_correct": 0,
+      "i2_recall": 0.0,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 1,
+      "i2_minus_i1": 0
+     },
+     "stagger_punish": {
+      "n": 13,
+      "runs": 3,
+      "i1_correct": 7,
+      "i1_recall": 0.5385,
+      "i2_correct": 12,
+      "i2_recall": 0.9231,
+      "both_correct": 7,
+      "i1_only": 0,
+      "i2_only": 5,
+      "both_wrong": 1,
+      "i2_minus_i1": 5
+     },
+     "face_first": {
+      "n": 1,
+      "runs": 1,
+      "i1_correct": 0,
+      "i1_recall": 0.0,
+      "i2_correct": 0,
+      "i2_recall": 0.0,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 1,
+      "i2_minus_i1": 0
+     }
+    },
+    "nostag|other": {
+     "reflex": {
+      "n": 1,
+      "runs": 1,
+      "i1_correct": 1,
+      "i1_recall": 1.0,
+      "i2_correct": 0,
+      "i2_recall": 0.0,
+      "both_correct": 0,
+      "i1_only": 1,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": -1
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     }
+    },
+    "nostag|noother": {
+     "reflex": {
+      "n": 4,
+      "runs": 3,
+      "i1_correct": 1,
+      "i1_recall": 0.25,
+      "i2_correct": 0,
+      "i2_recall": 0.0,
+      "both_correct": 0,
+      "i1_only": 1,
+      "i2_only": 0,
+      "both_wrong": 3,
+      "i2_minus_i1": -1
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 1,
+      "runs": 1,
+      "i1_correct": 0,
+      "i1_recall": 0.0,
+      "i2_correct": 0,
+      "i2_recall": 0.0,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 1,
+      "i2_minus_i1": 0
+     }
+    }
+   },
+   "shift_zone": {
+    "stag|other": {
+     "reflex": {
+      "n": 3,
+      "runs": 3,
+      "i1_correct": 2,
+      "i1_recall": 0.6667,
+      "i2_correct": 0,
+      "i2_recall": 0.0,
+      "both_correct": 0,
+      "i1_only": 2,
+      "i2_only": 0,
+      "both_wrong": 1,
+      "i2_minus_i1": -2
+     },
+     "stagger_punish": {
+      "n": 9,
+      "runs": 1,
+      "i1_correct": 0,
+      "i1_recall": 0.0,
+      "i2_correct": 9,
+      "i2_recall": 1.0,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 9,
+      "both_wrong": 0,
+      "i2_minus_i1": 9
+     },
+     "face_first": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     }
+    },
+    "stag|noother": {
+     "reflex": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "stagger_punish": {
+      "n": 62,
+      "runs": 5,
+      "i1_correct": 59,
+      "i1_recall": 0.9516,
+      "i2_correct": 62,
+      "i2_recall": 1.0,
+      "both_correct": 59,
+      "i1_only": 0,
+      "i2_only": 3,
+      "both_wrong": 0,
+      "i2_minus_i1": 3
+     },
+     "face_first": {
+      "n": 3,
+      "runs": 2,
+      "i1_correct": 0,
+      "i1_recall": 0.0,
+      "i2_correct": 0,
+      "i2_recall": 0.0,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 3,
+      "i2_minus_i1": 0
+     }
+    },
+    "nostag|other": {
+     "reflex": {
+      "n": 4,
+      "runs": 2,
+      "i1_correct": 0,
+      "i1_recall": 0.0,
+      "i2_correct": 0,
+      "i2_recall": 0.0,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 4,
+      "i2_minus_i1": 0
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 1,
+      "runs": 1,
+      "i1_correct": 0,
+      "i1_recall": 0.0,
+      "i2_correct": 0,
+      "i2_recall": 0.0,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 1,
+      "i2_minus_i1": 0
+     }
+    },
+    "nostag|noother": {
+     "reflex": {
+      "n": 5,
+      "runs": 5,
+      "i1_correct": 0,
+      "i1_recall": 0.0,
+      "i2_correct": 0,
+      "i2_recall": 0.0,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 5,
+      "i2_minus_i1": 0
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 3,
+      "runs": 3,
+      "i1_correct": 3,
+      "i1_recall": 1.0,
+      "i2_correct": 3,
+      "i2_recall": 1.0,
+      "both_correct": 3,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     }
+    }
+   },
+   "shift_ref": {
+    "stag|other": {
+     "reflex": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     }
+    },
+    "stag|noother": {
+     "reflex": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     }
+    },
+    "nostag|other": {
+     "reflex": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     }
+    },
+    "nostag|noother": {
+     "reflex": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 1,
+      "runs": 1,
+      "i1_correct": 0,
+      "i1_recall": 0.0,
+      "i2_correct": 0,
+      "i2_recall": 0.0,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 1,
+      "i2_minus_i1": 0
+     }
+    }
+   },
+   "ALL_eval_supplementary": {
+    "stag|other": {
+     "reflex": {
+      "n": 26,
+      "runs": 10,
+      "i1_correct": 18,
+      "i1_recall": 0.6923,
+      "i2_correct": 7,
+      "i2_recall": 0.2692,
+      "both_correct": 7,
+      "i1_only": 11,
+      "i2_only": 0,
+      "both_wrong": 8,
+      "i2_minus_i1": -11
+     },
+     "stagger_punish": {
+      "n": 19,
+      "runs": 2,
+      "i1_correct": 0,
+      "i1_recall": 0.0,
+      "i2_correct": 19,
+      "i2_recall": 1.0,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 19,
+      "both_wrong": 0,
+      "i2_minus_i1": 19
+     },
+     "face_first": {
+      "n": 16,
+      "runs": 5,
+      "i1_correct": 16,
+      "i1_recall": 1.0,
+      "i2_correct": 10,
+      "i2_recall": 0.625,
+      "both_correct": 10,
+      "i1_only": 6,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": -6
+     }
+    },
+    "stag|noother": {
+     "reflex": {
+      "n": 5,
+      "runs": 3,
+      "i1_correct": 0,
+      "i1_recall": 0.0,
+      "i2_correct": 1,
+      "i2_recall": 0.2,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 1,
+      "both_wrong": 4,
+      "i2_minus_i1": 1
+     },
+     "stagger_punish": {
+      "n": 77,
+      "runs": 10,
+      "i1_correct": 68,
+      "i1_recall": 0.8831,
+      "i2_correct": 76,
+      "i2_recall": 0.987,
+      "both_correct": 68,
+      "i1_only": 0,
+      "i2_only": 8,
+      "both_wrong": 1,
+      "i2_minus_i1": 8
+     },
+     "face_first": {
+      "n": 8,
+      "runs": 5,
+      "i1_correct": 0,
+      "i1_recall": 0.0,
+      "i2_correct": 0,
+      "i2_recall": 0.0,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 8,
+      "i2_minus_i1": 0
+     }
+    },
+    "nostag|other": {
+     "reflex": {
+      "n": 5,
+      "runs": 3,
+      "i1_correct": 1,
+      "i1_recall": 0.2,
+      "i2_correct": 0,
+      "i2_recall": 0.0,
+      "both_correct": 0,
+      "i1_only": 1,
+      "i2_only": 0,
+      "both_wrong": 4,
+      "i2_minus_i1": -1
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 1,
+      "runs": 1,
+      "i1_correct": 0,
+      "i1_recall": 0.0,
+      "i2_correct": 0,
+      "i2_recall": 0.0,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 1,
+      "i2_minus_i1": 0
+     }
+    },
+    "nostag|noother": {
+     "reflex": {
+      "n": 10,
+      "runs": 9,
+      "i1_correct": 2,
+      "i1_recall": 0.2,
+      "i2_correct": 0,
+      "i2_recall": 0.0,
+      "both_correct": 0,
+      "i1_only": 2,
+      "i2_only": 0,
+      "both_wrong": 8,
+      "i2_minus_i1": -2
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 5,
+      "runs": 5,
+      "i1_correct": 3,
+      "i1_recall": 0.6,
+      "i2_correct": 3,
+      "i2_recall": 0.6,
+      "both_correct": 3,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 2,
+      "i2_minus_i1": 0
+     }
+    }
+   }
+  },
+  "only_212954": {
+   "val": {
+    "stag|other": {
+     "reflex": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     }
+    },
+    "stag|noother": {
+     "reflex": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     }
+    },
+    "nostag|other": {
+     "reflex": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     }
+    },
+    "nostag|noother": {
+     "reflex": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     }
+    }
+   },
+   "test": {
+    "stag|other": {
+     "reflex": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     }
+    },
+    "stag|noother": {
+     "reflex": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     }
+    },
+    "nostag|other": {
+     "reflex": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     }
+    },
+    "nostag|noother": {
+     "reflex": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     }
+    }
+   },
+   "shift_zone": {
+    "stag|other": {
+     "reflex": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     }
+    },
+    "stag|noother": {
+     "reflex": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     }
+    },
+    "nostag|other": {
+     "reflex": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     }
+    },
+    "nostag|noother": {
+     "reflex": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     }
+    }
+   },
+   "shift_ref": {
+    "stag|other": {
+     "reflex": {
+      "n": 14,
+      "runs": 1,
+      "i1_correct": 9,
+      "i1_recall": 0.6429,
+      "i2_correct": 0,
+      "i2_recall": 0.0,
+      "both_correct": 0,
+      "i1_only": 9,
+      "i2_only": 0,
+      "both_wrong": 5,
+      "i2_minus_i1": -9
+     },
+     "stagger_punish": {
+      "n": 5,
+      "runs": 1,
+      "i1_correct": 0,
+      "i1_recall": 0.0,
+      "i2_correct": 5,
+      "i2_recall": 1.0,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 5,
+      "both_wrong": 0,
+      "i2_minus_i1": 5
+     },
+     "face_first": {
+      "n": 12,
+      "runs": 1,
+      "i1_correct": 12,
+      "i1_recall": 1.0,
+      "i2_correct": 4,
+      "i2_recall": 0.3333,
+      "both_correct": 4,
+      "i1_only": 8,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": -8
+     }
+    },
+    "stag|noother": {
+     "reflex": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     }
+    },
+    "nostag|other": {
+     "reflex": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     }
+    },
+    "nostag|noother": {
+     "reflex": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     }
+    }
+   },
+   "ALL_eval_supplementary": {
+    "stag|other": {
+     "reflex": {
+      "n": 14,
+      "runs": 1,
+      "i1_correct": 9,
+      "i1_recall": 0.6429,
+      "i2_correct": 0,
+      "i2_recall": 0.0,
+      "both_correct": 0,
+      "i1_only": 9,
+      "i2_only": 0,
+      "both_wrong": 5,
+      "i2_minus_i1": -9
+     },
+     "stagger_punish": {
+      "n": 5,
+      "runs": 1,
+      "i1_correct": 0,
+      "i1_recall": 0.0,
+      "i2_correct": 5,
+      "i2_recall": 1.0,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 5,
+      "both_wrong": 0,
+      "i2_minus_i1": 5
+     },
+     "face_first": {
+      "n": 12,
+      "runs": 1,
+      "i1_correct": 12,
+      "i1_recall": 1.0,
+      "i2_correct": 4,
+      "i2_recall": 0.3333,
+      "both_correct": 4,
+      "i1_only": 8,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": -8
+     }
+    },
+    "stag|noother": {
+     "reflex": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     }
+    },
+    "nostag|other": {
+     "reflex": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     }
+    },
+    "nostag|noother": {
+     "reflex": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "stagger_punish": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     },
+     "face_first": {
+      "n": 0,
+      "runs": 0,
+      "i1_correct": 0,
+      "i1_recall": null,
+      "i2_correct": 0,
+      "i2_recall": null,
+      "both_correct": 0,
+      "i1_only": 0,
+      "i2_only": 0,
+      "both_wrong": 0,
+      "i2_minus_i1": 0
+     }
+    }
+   }
+  }
+ },
+ "transitions": {
+  "all": {
+   "val": {
+    "stag|other": {
+     "raw": {
+      "face_first|face_first|face_first": 5,
+      "reflex|reflex|reflex": 5,
+      "reflex|stagger_punish|stagger_punish": 3,
+      "face_first|face_first|stagger_punish": 3,
+      "reflex|reflex|after_swing": 2,
+      "face_first|face_first|reflex": 1,
+      "reflex|attack|after_swing": 1
+     },
+     "display": {
+      "face_first|face_first|face_first": 5,
+      "reflex|reflex|reflex": 5,
+      "reflex|stagger_punish|stagger_punish": 3,
+      "face_first|face_first|stagger_punish": 3,
+      "reflex|reflex|other": 2,
+      "face_first|face_first|reflex": 1,
+      "reflex|other|other": 1
+     }
+    },
+    "stag|noother": {
+     "raw": {
+      "stagger_punish|stagger_punish|stagger_punish": 2,
+      "reflex|after_swing|after_swing": 2,
+      "reflex|stamina|after_swing": 1,
+      "face_first|stamina|wait_far": 1,
+      "face_first|stagger_punish|stagger_punish": 1,
+      "face_first|stagger_punish|after_swing": 1,
+      "face_first|after_swing|after_swing": 1,
+      "reflex|after_swing|reflex": 1
+     },
+     "display": {
+      "reflex|other|other": 3,
+      "face_first|other|other": 2,
+      "stagger_punish|stagger_punish|stagger_punish": 2,
+      "face_first|stagger_punish|stagger_punish": 1,
+      "face_first|stagger_punish|other": 1,
+      "reflex|other|reflex": 1
+     }
+    },
+    "nostag|other": {
+     "raw": {},
+     "display": {}
+    },
+    "nostag|noother": {
+     "raw": {
+      "reflex|reflex|backstab_swing": 1
+     },
+     "display": {
+      "reflex|reflex|other": 1
+     }
+    }
+   },
+   "test": {
+    "stag|other": {
+     "raw": {
+      "stagger_punish|stamina|stagger_punish": 8,
+      "face_first|face_first|face_first": 5,
+      "reflex|reflex|after_swing": 3,
+      "face_first|face_first|backstab_swing": 2,
+      "reflex|reflex|backstab_swing": 2,
+      "reflex|reflex|reflex": 2,
+      "stagger_punish|reflex|stagger_punish": 2,
+      "reflex|reflex|attack": 1,
+      "reflex|stamina|after_swing": 1,
+      "reflex|stagger_punish|stagger_punish": 1,
+      "reflex|stamina|approach": 1,
+      "reflex|reflex|stagger_punish": 1
+     },
+     "display": {
+      "stagger_punish|other|stagger_punish": 8,
+      "reflex|reflex|other": 6,
+      "face_first|face_first|face_first": 5,
+      "face_first|face_first|other": 2,
+      "reflex|reflex|reflex": 2,
+      "reflex|other|other": 2,
+      "stagger_punish|reflex|stagger_punish": 2,
+      "reflex|stagger_punish|stagger_punish": 1,
+      "reflex|reflex|stagger_punish": 1
+     }
+    },
+    "stag|noother": {
+     "raw": {
+      "stagger_punish|stagger_punish|stagger_punish": 7,
+      "stagger_punish|stamina|stagger_punish": 5,
+      "stagger_punish|after_swing|after_swing": 1,
+      "reflex|after_swing|after_swing": 1,
+      "face_first|stamina|after_swing": 1
+     },
+     "display": {
+      "stagger_punish|stagger_punish|stagger_punish": 7,
+      "stagger_punish|other|stagger_punish": 5,
+      "stagger_punish|other|other": 1,
+      "reflex|other|other": 1,
+      "face_first|other|other": 1
+     }
+    },
+    "nostag|other": {
+     "raw": {
+      "reflex|reflex|after_swing": 1
+     },
+     "display": {
+      "reflex|reflex|other": 1
+     }
+    },
+    "nostag|noother": {
+     "raw": {
+      "reflex|after_swing|after_swing": 3,
+      "face_first|after_swing|backstab_swing": 1,
+      "reflex|reflex|after_swing": 1
+     },
+     "display": {
+      "reflex|other|other": 3,
+      "face_first|other|other": 1,
+      "reflex|reflex|other": 1
+     }
+    }
+   },
+   "shift_zone": {
+    "stag|other": {
+     "raw": {
+      "stagger_punish|reflex|stagger_punish": 9,
+      "reflex|reflex|after_swing": 1,
+      "reflex|reflex|stagger_punish": 1,
+      "reflex|attack|after_swing": 1
+     },
+     "display": {
+      "stagger_punish|reflex|stagger_punish": 9,
+      "reflex|reflex|other": 1,
+      "reflex|reflex|stagger_punish": 1,
+      "reflex|other|other": 1
+     }
+    },
+    "stag|noother": {
+     "raw": {
+      "stagger_punish|stagger_punish|stagger_punish": 59,
+      "face_first|after_swing|after_swing": 2,
+      "stagger_punish|after_swing|stagger_punish": 2,
+      "stagger_punish|stamina|stagger_punish": 1,
+      "face_first|stamina|after_swing": 1
+     },
+     "display": {
+      "stagger_punish|stagger_punish|stagger_punish": 59,
+      "face_first|other|other": 3,
+      "stagger_punish|other|stagger_punish": 3
+     }
+    },
+    "nostag|other": {
+     "raw": {
+      "reflex|backstab_swing|backstab_swing": 2,
+      "face_first|backstab_swing|backstab_swing": 1,
+      "reflex|late_windup_block|after_swing": 1,
+      "reflex|after_swing|backstab_swing": 1
+     },
+     "display": {
+      "reflex|other|other": 4,
+      "face_first|other|other": 1
+     }
+    },
+    "nostag|noother": {
+     "raw": {
+      "reflex|after_swing|after_swing": 3,
+      "face_first|face_first|face_first": 3,
+      "reflex|after_swing|backstab_swing": 2
+     },
+     "display": {
+      "reflex|other|other": 5,
+      "face_first|face_first|face_first": 3
+     }
+    }
+   },
+   "shift_ref": {
+    "stag|other": {
+     "raw": {
+      "reflex|reflex|stagger_punish": 9,
+      "face_first|face_first|stagger_punish": 8,
+      "face_first|face_first|face_first": 4,
+      "stagger_punish|attack|stagger_punish": 4,
+      "reflex|attack|after_swing": 3,
+      "reflex|attack|stagger_punish": 2,
+      "stagger_punish|reflex|stagger_punish": 1
+     },
+     "display": {
+      "reflex|reflex|stagger_punish": 9,
+      "face_first|face_first|stagger_punish": 8,
+      "face_first|face_first|face_first": 4,
+      "stagger_punish|other|stagger_punish": 4,
+      "reflex|other|other": 3,
+      "reflex|other|stagger_punish": 2,
+      "stagger_punish|reflex|stagger_punish": 1
+     }
+    },
+    "stag|noother": {
+     "raw": {},
+     "display": {}
+    },
+    "nostag|other": {
+     "raw": {},
+     "display": {}
+    },
+    "nostag|noother": {
+     "raw": {
+      "face_first|after_swing|after_swing": 1
+     },
+     "display": {
+      "face_first|other|other": 1
+     }
+    }
+   },
+   "ALL_eval_supplementary": {
+    "stag|other": {
+     "raw": {
+      "face_first|face_first|face_first": 14,
+      "stagger_punish|reflex|stagger_punish": 12,
+      "face_first|face_first|stagger_punish": 11,
+      "reflex|reflex|stagger_punish": 11,
+      "stagger_punish|stamina|stagger_punish": 8,
+      "reflex|reflex|reflex": 7,
+      "reflex|reflex|after_swing": 6,
+      "reflex|attack|after_swing": 5,
+      "reflex|stagger_punish|stagger_punish": 4,
+      "stagger_punish|attack|stagger_punish": 4,
+      "face_first|face_first|backstab_swing": 2,
+      "reflex|reflex|backstab_swing": 2,
+      "reflex|attack|stagger_punish": 2,
+      "face_first|face_first|reflex": 1,
+      "reflex|reflex|attack": 1,
+      "reflex|stamina|after_swing": 1,
+      "reflex|stamina|approach": 1
+     },
+     "display": {
+      "face_first|face_first|face_first": 14,
+      "stagger_punish|other|stagger_punish": 12,
+      "stagger_punish|reflex|stagger_punish": 12,
+      "face_first|face_first|stagger_punish": 11,
+      "reflex|reflex|stagger_punish": 11,
+      "reflex|reflex|other": 9,
+      "reflex|reflex|reflex": 7,
+      "reflex|other|other": 7,
+      "reflex|stagger_punish|stagger_punish": 4,
+      "face_first|face_first|other": 2,
+      "reflex|other|stagger_punish": 2,
+      "face_first|face_first|reflex": 1
+     }
+    },
+    "stag|noother": {
+     "raw": {
+      "stagger_punish|stagger_punish|stagger_punish": 68,
+      "stagger_punish|stamina|stagger_punish": 6,
+      "reflex|after_swing|after_swing": 3,
+      "face_first|after_swing|after_swing": 3,
+      "face_first|stamina|after_swing": 2,
+      "stagger_punish|after_swing|stagger_punish": 2,
+      "reflex|stamina|after_swing": 1,
+      "face_first|stamina|wait_far": 1,
+      "face_first|stagger_punish|stagger_punish": 1,
+      "face_first|stagger_punish|after_swing": 1,
+      "reflex|after_swing|reflex": 1,
+      "stagger_punish|after_swing|after_swing": 1
+     },
+     "display": {
+      "stagger_punish|stagger_punish|stagger_punish": 68,
+      "stagger_punish|other|stagger_punish": 8,
+      "face_first|other|other": 6,
+      "reflex|other|other": 4,
+      "face_first|stagger_punish|stagger_punish": 1,
+      "face_first|stagger_punish|other": 1,
+      "reflex|other|reflex": 1,
+      "stagger_punish|other|other": 1
+     }
+    },
+    "nostag|other": {
+     "raw": {
+      "reflex|backstab_swing|backstab_swing": 2,
+      "reflex|reflex|after_swing": 1,
+      "face_first|backstab_swing|backstab_swing": 1,
+      "reflex|late_windup_block|after_swing": 1,
+      "reflex|after_swing|backstab_swing": 1
+     },
+     "display": {
+      "reflex|other|other": 4,
+      "reflex|reflex|other": 1,
+      "face_first|other|other": 1
+     }
+    },
+    "nostag|noother": {
+     "raw": {
+      "reflex|after_swing|after_swing": 6,
+      "face_first|face_first|face_first": 3,
+      "reflex|after_swing|backstab_swing": 2,
+      "reflex|reflex|backstab_swing": 1,
+      "face_first|after_swing|backstab_swing": 1,
+      "reflex|reflex|after_swing": 1,
+      "face_first|after_swing|after_swing": 1
+     },
+     "display": {
+      "reflex|other|other": 8,
+      "face_first|face_first|face_first": 3,
+      "reflex|reflex|other": 2,
+      "face_first|other|other": 2
+     }
+    }
+   }
+  },
+  "excl_212954": {
+   "val": {
+    "stag|other": {
+     "raw": {
+      "face_first|face_first|face_first": 5,
+      "reflex|reflex|reflex": 5,
+      "reflex|stagger_punish|stagger_punish": 3,
+      "face_first|face_first|stagger_punish": 3,
+      "reflex|reflex|after_swing": 2,
+      "face_first|face_first|reflex": 1,
+      "reflex|attack|after_swing": 1
+     },
+     "display": {
+      "face_first|face_first|face_first": 5,
+      "reflex|reflex|reflex": 5,
+      "reflex|stagger_punish|stagger_punish": 3,
+      "face_first|face_first|stagger_punish": 3,
+      "reflex|reflex|other": 2,
+      "face_first|face_first|reflex": 1,
+      "reflex|other|other": 1
+     }
+    },
+    "stag|noother": {
+     "raw": {
+      "stagger_punish|stagger_punish|stagger_punish": 2,
+      "reflex|after_swing|after_swing": 2,
+      "reflex|stamina|after_swing": 1,
+      "face_first|stamina|wait_far": 1,
+      "face_first|stagger_punish|stagger_punish": 1,
+      "face_first|stagger_punish|after_swing": 1,
+      "face_first|after_swing|after_swing": 1,
+      "reflex|after_swing|reflex": 1
+     },
+     "display": {
+      "reflex|other|other": 3,
+      "face_first|other|other": 2,
+      "stagger_punish|stagger_punish|stagger_punish": 2,
+      "face_first|stagger_punish|stagger_punish": 1,
+      "face_first|stagger_punish|other": 1,
+      "reflex|other|reflex": 1
+     }
+    },
+    "nostag|other": {
+     "raw": {},
+     "display": {}
+    },
+    "nostag|noother": {
+     "raw": {
+      "reflex|reflex|backstab_swing": 1
+     },
+     "display": {
+      "reflex|reflex|other": 1
+     }
+    }
+   },
+   "test": {
+    "stag|other": {
+     "raw": {
+      "stagger_punish|stamina|stagger_punish": 8,
+      "face_first|face_first|face_first": 5,
+      "reflex|reflex|after_swing": 3,
+      "face_first|face_first|backstab_swing": 2,
+      "reflex|reflex|backstab_swing": 2,
+      "reflex|reflex|reflex": 2,
+      "stagger_punish|reflex|stagger_punish": 2,
+      "reflex|reflex|attack": 1,
+      "reflex|stamina|after_swing": 1,
+      "reflex|stagger_punish|stagger_punish": 1,
+      "reflex|stamina|approach": 1,
+      "reflex|reflex|stagger_punish": 1
+     },
+     "display": {
+      "stagger_punish|other|stagger_punish": 8,
+      "reflex|reflex|other": 6,
+      "face_first|face_first|face_first": 5,
+      "face_first|face_first|other": 2,
+      "reflex|reflex|reflex": 2,
+      "reflex|other|other": 2,
+      "stagger_punish|reflex|stagger_punish": 2,
+      "reflex|stagger_punish|stagger_punish": 1,
+      "reflex|reflex|stagger_punish": 1
+     }
+    },
+    "stag|noother": {
+     "raw": {
+      "stagger_punish|stagger_punish|stagger_punish": 7,
+      "stagger_punish|stamina|stagger_punish": 5,
+      "stagger_punish|after_swing|after_swing": 1,
+      "reflex|after_swing|after_swing": 1,
+      "face_first|stamina|after_swing": 1
+     },
+     "display": {
+      "stagger_punish|stagger_punish|stagger_punish": 7,
+      "stagger_punish|other|stagger_punish": 5,
+      "stagger_punish|other|other": 1,
+      "reflex|other|other": 1,
+      "face_first|other|other": 1
+     }
+    },
+    "nostag|other": {
+     "raw": {
+      "reflex|reflex|after_swing": 1
+     },
+     "display": {
+      "reflex|reflex|other": 1
+     }
+    },
+    "nostag|noother": {
+     "raw": {
+      "reflex|after_swing|after_swing": 3,
+      "face_first|after_swing|backstab_swing": 1,
+      "reflex|reflex|after_swing": 1
+     },
+     "display": {
+      "reflex|other|other": 3,
+      "face_first|other|other": 1,
+      "reflex|reflex|other": 1
+     }
+    }
+   },
+   "shift_zone": {
+    "stag|other": {
+     "raw": {
+      "stagger_punish|reflex|stagger_punish": 9,
+      "reflex|reflex|after_swing": 1,
+      "reflex|reflex|stagger_punish": 1,
+      "reflex|attack|after_swing": 1
+     },
+     "display": {
+      "stagger_punish|reflex|stagger_punish": 9,
+      "reflex|reflex|other": 1,
+      "reflex|reflex|stagger_punish": 1,
+      "reflex|other|other": 1
+     }
+    },
+    "stag|noother": {
+     "raw": {
+      "stagger_punish|stagger_punish|stagger_punish": 59,
+      "face_first|after_swing|after_swing": 2,
+      "stagger_punish|after_swing|stagger_punish": 2,
+      "stagger_punish|stamina|stagger_punish": 1,
+      "face_first|stamina|after_swing": 1
+     },
+     "display": {
+      "stagger_punish|stagger_punish|stagger_punish": 59,
+      "face_first|other|other": 3,
+      "stagger_punish|other|stagger_punish": 3
+     }
+    },
+    "nostag|other": {
+     "raw": {
+      "reflex|backstab_swing|backstab_swing": 2,
+      "face_first|backstab_swing|backstab_swing": 1,
+      "reflex|late_windup_block|after_swing": 1,
+      "reflex|after_swing|backstab_swing": 1
+     },
+     "display": {
+      "reflex|other|other": 4,
+      "face_first|other|other": 1
+     }
+    },
+    "nostag|noother": {
+     "raw": {
+      "reflex|after_swing|after_swing": 3,
+      "face_first|face_first|face_first": 3,
+      "reflex|after_swing|backstab_swing": 2
+     },
+     "display": {
+      "reflex|other|other": 5,
+      "face_first|face_first|face_first": 3
+     }
+    }
+   },
+   "shift_ref": {
+    "stag|other": {
+     "raw": {},
+     "display": {}
+    },
+    "stag|noother": {
+     "raw": {},
+     "display": {}
+    },
+    "nostag|other": {
+     "raw": {},
+     "display": {}
+    },
+    "nostag|noother": {
+     "raw": {
+      "face_first|after_swing|after_swing": 1
+     },
+     "display": {
+      "face_first|other|other": 1
+     }
+    }
+   },
+   "ALL_eval_supplementary": {
+    "stag|other": {
+     "raw": {
+      "stagger_punish|reflex|stagger_punish": 11,
+      "face_first|face_first|face_first": 10,
+      "stagger_punish|stamina|stagger_punish": 8,
+      "reflex|reflex|reflex": 7,
+      "reflex|reflex|after_swing": 6,
+      "reflex|stagger_punish|stagger_punish": 4,
+      "face_first|face_first|stagger_punish": 3,
+      "reflex|attack|after_swing": 2,
+      "face_first|face_first|backstab_swing": 2,
+      "reflex|reflex|backstab_swing": 2,
+      "reflex|reflex|stagger_punish": 2,
+      "face_first|face_first|reflex": 1,
+      "reflex|reflex|attack": 1,
+      "reflex|stamina|after_swing": 1,
+      "reflex|stamina|approach": 1
+     },
+     "display": {
+      "stagger_punish|reflex|stagger_punish": 11,
+      "face_first|face_first|face_first": 10,
+      "reflex|reflex|other": 9,
+      "stagger_punish|other|stagger_punish": 8,
+      "reflex|reflex|reflex": 7,
+      "reflex|stagger_punish|stagger_punish": 4,
+      "reflex|other|other": 4,
+      "face_first|face_first|stagger_punish": 3,
+      "face_first|face_first|other": 2,
+      "reflex|reflex|stagger_punish": 2,
+      "face_first|face_first|reflex": 1
+     }
+    },
+    "stag|noother": {
+     "raw": {
+      "stagger_punish|stagger_punish|stagger_punish": 68,
+      "stagger_punish|stamina|stagger_punish": 6,
+      "reflex|after_swing|after_swing": 3,
+      "face_first|after_swing|after_swing": 3,
+      "face_first|stamina|after_swing": 2,
+      "stagger_punish|after_swing|stagger_punish": 2,
+      "reflex|stamina|after_swing": 1,
+      "face_first|stamina|wait_far": 1,
+      "face_first|stagger_punish|stagger_punish": 1,
+      "face_first|stagger_punish|after_swing": 1,
+      "reflex|after_swing|reflex": 1,
+      "stagger_punish|after_swing|after_swing": 1
+     },
+     "display": {
+      "stagger_punish|stagger_punish|stagger_punish": 68,
+      "stagger_punish|other|stagger_punish": 8,
+      "face_first|other|other": 6,
+      "reflex|other|other": 4,
+      "face_first|stagger_punish|stagger_punish": 1,
+      "face_first|stagger_punish|other": 1,
+      "reflex|other|reflex": 1,
+      "stagger_punish|other|other": 1
+     }
+    },
+    "nostag|other": {
+     "raw": {
+      "reflex|backstab_swing|backstab_swing": 2,
+      "reflex|reflex|after_swing": 1,
+      "face_first|backstab_swing|backstab_swing": 1,
+      "reflex|late_windup_block|after_swing": 1,
+      "reflex|after_swing|backstab_swing": 1
+     },
+     "display": {
+      "reflex|other|other": 4,
+      "reflex|reflex|other": 1,
+      "face_first|other|other": 1
+     }
+    },
+    "nostag|noother": {
+     "raw": {
+      "reflex|after_swing|after_swing": 6,
+      "face_first|face_first|face_first": 3,
+      "reflex|after_swing|backstab_swing": 2,
+      "reflex|reflex|backstab_swing": 1,
+      "face_first|after_swing|backstab_swing": 1,
+      "reflex|reflex|after_swing": 1,
+      "face_first|after_swing|after_swing": 1
+     },
+     "display": {
+      "reflex|other|other": 8,
+      "face_first|face_first|face_first": 3,
+      "reflex|reflex|other": 2,
+      "face_first|other|other": 2
+     }
+    }
+   }
+  },
+  "only_212954": {
+   "val": {
+    "stag|other": {
+     "raw": {},
+     "display": {}
+    },
+    "stag|noother": {
+     "raw": {},
+     "display": {}
+    },
+    "nostag|other": {
+     "raw": {},
+     "display": {}
+    },
+    "nostag|noother": {
+     "raw": {},
+     "display": {}
+    }
+   },
+   "test": {
+    "stag|other": {
+     "raw": {},
+     "display": {}
+    },
+    "stag|noother": {
+     "raw": {},
+     "display": {}
+    },
+    "nostag|other": {
+     "raw": {},
+     "display": {}
+    },
+    "nostag|noother": {
+     "raw": {},
+     "display": {}
+    }
+   },
+   "shift_zone": {
+    "stag|other": {
+     "raw": {},
+     "display": {}
+    },
+    "stag|noother": {
+     "raw": {},
+     "display": {}
+    },
+    "nostag|other": {
+     "raw": {},
+     "display": {}
+    },
+    "nostag|noother": {
+     "raw": {},
+     "display": {}
+    }
+   },
+   "shift_ref": {
+    "stag|other": {
+     "raw": {
+      "reflex|reflex|stagger_punish": 9,
+      "face_first|face_first|stagger_punish": 8,
+      "face_first|face_first|face_first": 4,
+      "stagger_punish|attack|stagger_punish": 4,
+      "reflex|attack|after_swing": 3,
+      "reflex|attack|stagger_punish": 2,
+      "stagger_punish|reflex|stagger_punish": 1
+     },
+     "display": {
+      "reflex|reflex|stagger_punish": 9,
+      "face_first|face_first|stagger_punish": 8,
+      "face_first|face_first|face_first": 4,
+      "stagger_punish|other|stagger_punish": 4,
+      "reflex|other|other": 3,
+      "reflex|other|stagger_punish": 2,
+      "stagger_punish|reflex|stagger_punish": 1
+     }
+    },
+    "stag|noother": {
+     "raw": {},
+     "display": {}
+    },
+    "nostag|other": {
+     "raw": {},
+     "display": {}
+    },
+    "nostag|noother": {
+     "raw": {},
+     "display": {}
+    }
+   },
+   "ALL_eval_supplementary": {
+    "stag|other": {
+     "raw": {
+      "reflex|reflex|stagger_punish": 9,
+      "face_first|face_first|stagger_punish": 8,
+      "face_first|face_first|face_first": 4,
+      "stagger_punish|attack|stagger_punish": 4,
+      "reflex|attack|after_swing": 3,
+      "reflex|attack|stagger_punish": 2,
+      "stagger_punish|reflex|stagger_punish": 1
+     },
+     "display": {
+      "reflex|reflex|stagger_punish": 9,
+      "face_first|face_first|stagger_punish": 8,
+      "face_first|face_first|face_first": 4,
+      "stagger_punish|other|stagger_punish": 4,
+      "reflex|other|other": 3,
+      "reflex|other|stagger_punish": 2,
+      "stagger_punish|reflex|stagger_punish": 1
+     }
+    },
+    "stag|noother": {
+     "raw": {},
+     "display": {}
+    },
+    "nostag|other": {
+     "raw": {},
+     "display": {}
+    },
+    "nostag|noother": {
+     "raw": {},
+     "display": {}
+    }
+   }
+  }
+ },
+ "per_run_core": [
+  {
+   "run": "20261011_145345_burg-bonfire",
+   "split": "val",
+   "reflex_n": 4,
+   "reflex_i1": 4,
+   "reflex_i2": 3,
+   "stagger_punish_n": 0,
+   "stagger_punish_i1": 0,
+   "stagger_punish_i2": 0,
+   "face_first_n": 4,
+   "face_first_i1": 4,
+   "face_first_i2": 4,
+   "total_n": 8,
+   "i1_correct": 8,
+   "i2_correct": 7,
+   "transitions": {
+    "face_first|face_first|face_first": 4,
+    "reflex|reflex|reflex": 3,
+    "reflex|reflex|after_swing": 1
+   }
+  },
+  {
+   "run": "20261012_024340_burg-upper",
+   "split": "val",
+   "reflex_n": 1,
+   "reflex_i1": 1,
+   "reflex_i2": 0,
+   "stagger_punish_n": 0,
+   "stagger_punish_i1": 0,
+   "stagger_punish_i2": 0,
+   "face_first_n": 0,
+   "face_first_i1": 0,
+   "face_first_i2": 0,
+   "total_n": 1,
+   "i1_correct": 1,
+   "i2_correct": 0,
+   "transitions": {
+    "reflex|reflex|after_swing": 1
+   }
+  },
+  {
+   "run": "20261012_025301_burg-upper",
+   "split": "test",
+   "reflex_n": 7,
+   "reflex_i1": 7,
+   "reflex_i2": 2,
+   "stagger_punish_n": 0,
+   "stagger_punish_i1": 0,
+   "stagger_punish_i2": 0,
+   "face_first_n": 6,
+   "face_first_i1": 6,
+   "face_first_i2": 4,
+   "total_n": 13,
+   "i1_correct": 13,
+   "i2_correct": 6,
+   "transitions": {
+    "face_first|face_first|face_first": 4,
+    "face_first|face_first|backstab_swing": 2,
+    "reflex|reflex|backstab_swing": 2,
+    "reflex|reflex|after_swing": 2,
+    "reflex|reflex|reflex": 2,
+    "reflex|reflex|attack": 1
+   }
+  },
+  {
+   "run": "20261012_033444_burg-bonfire",
+   "split": "test",
+   "reflex_n": 1,
+   "reflex_i1": 1,
+   "reflex_i2": 0,
+   "stagger_punish_n": 0,
+   "stagger_punish_i1": 0,
+   "stagger_punish_i2": 0,
+   "face_first_n": 0,
+   "face_first_i1": 0,
+   "face_first_i2": 0,
+   "total_n": 1,
+   "i1_correct": 1,
+   "i2_correct": 0,
+   "transitions": {
+    "reflex|reflex|after_swing": 1
+   }
+  },
+  {
+   "run": "20261012_053935_burg-bonfire",
+   "split": "val",
+   "reflex_n": 2,
+   "reflex_i1": 2,
+   "reflex_i2": 2,
+   "stagger_punish_n": 0,
+   "stagger_punish_i1": 0,
+   "stagger_punish_i2": 0,
+   "face_first_n": 2,
+   "face_first_i1": 2,
+   "face_first_i2": 1,
+   "total_n": 4,
+   "i1_correct": 4,
+   "i2_correct": 3,
+   "transitions": {
+    "reflex|reflex|reflex": 2,
+    "face_first|face_first|reflex": 1,
+    "face_first|face_first|face_first": 1
+   }
+  },
+  {
+   "run": "20261012_223957_burg-upper",
+   "split": "val",
+   "reflex_n": 4,
+   "reflex_i1": 0,
+   "reflex_i2": 0,
+   "stagger_punish_n": 0,
+   "stagger_punish_i1": 0,
+   "stagger_punish_i2": 0,
+   "face_first_n": 3,
+   "face_first_i1": 3,
+   "face_first_i2": 0,
+   "total_n": 7,
+   "i1_correct": 3,
+   "i2_correct": 0,
+   "transitions": {
+    "reflex|stagger_punish|stagger_punish": 3,
+    "face_first|face_first|stagger_punish": 3,
+    "reflex|attack|after_swing": 1
+   }
+  },
+  {
+   "run": "20261013_011929_burg-upper",
+   "split": "test",
+   "reflex_n": 4,
+   "reflex_i1": 1,
+   "reflex_i2": 0,
+   "stagger_punish_n": 10,
+   "stagger_punish_i1": 0,
+   "stagger_punish_i2": 10,
+   "face_first_n": 1,
+   "face_first_i1": 1,
+   "face_first_i2": 1,
+   "total_n": 15,
+   "i1_correct": 2,
+   "i2_correct": 11,
+   "transitions": {
+    "stagger_punish|stamina|stagger_punish": 8,
+    "stagger_punish|reflex|stagger_punish": 2,
+    "reflex|stamina|after_swing": 1,
+    "reflex|stagger_punish|stagger_punish": 1,
+    "reflex|stamina|approach": 1,
+    "reflex|reflex|stagger_punish": 1,
+    "face_first|face_first|face_first": 1
+   }
+  },
+  {
+   "run": "20261013_060542_burg-altar",
+   "split": "shift_zone",
+   "reflex_n": 1,
+   "reflex_i1": 1,
+   "reflex_i2": 0,
+   "stagger_punish_n": 9,
+   "stagger_punish_i1": 0,
+   "stagger_punish_i2": 9,
+   "face_first_n": 0,
+   "face_first_i1": 0,
+   "face_first_i2": 0,
+   "total_n": 10,
+   "i1_correct": 1,
+   "i2_correct": 9,
+   "transitions": {
+    "stagger_punish|reflex|stagger_punish": 9,
+    "reflex|reflex|after_swing": 1
+   }
+  },
+  {
+   "run": "20261013_061331_burg-altar",
+   "split": "shift_zone",
+   "reflex_n": 1,
+   "reflex_i1": 1,
+   "reflex_i2": 0,
+   "stagger_punish_n": 0,
+   "stagger_punish_i1": 0,
+   "stagger_punish_i2": 0,
+   "face_first_n": 0,
+   "face_first_i1": 0,
+   "face_first_i2": 0,
+   "total_n": 1,
+   "i1_correct": 1,
+   "i2_correct": 0,
+   "transitions": {
+    "reflex|reflex|stagger_punish": 1
+   }
+  },
+  {
+   "run": "20261013_190105_burg-altar",
+   "split": "shift_zone",
+   "reflex_n": 1,
+   "reflex_i1": 0,
+   "reflex_i2": 0,
+   "stagger_punish_n": 0,
+   "stagger_punish_i1": 0,
+   "stagger_punish_i2": 0,
+   "face_first_n": 0,
+   "face_first_i1": 0,
+   "face_first_i2": 0,
+   "total_n": 1,
+   "i1_correct": 0,
+   "i2_correct": 0,
+   "transitions": {
+    "reflex|attack|after_swing": 1
+   }
+  },
+  {
+   "run": "20261019_212954_parish-group1",
+   "split": "shift_ref",
+   "reflex_n": 14,
+   "reflex_i1": 9,
+   "reflex_i2": 0,
+   "stagger_punish_n": 5,
+   "stagger_punish_i1": 0,
+   "stagger_punish_i2": 5,
+   "face_first_n": 12,
+   "face_first_i1": 12,
+   "face_first_i2": 4,
+   "total_n": 31,
+   "i1_correct": 21,
+   "i2_correct": 9,
+   "transitions": {
+    "reflex|reflex|stagger_punish": 9,
+    "face_first|face_first|stagger_punish": 8,
+    "face_first|face_first|face_first": 4,
+    "stagger_punish|attack|stagger_punish": 4,
+    "reflex|attack|after_swing": 3,
+    "reflex|attack|stagger_punish": 2,
+    "stagger_punish|reflex|stagger_punish": 1
+   }
+  }
+ ],
+ "condition_counts": {
+  "val": {
+   "nostag|noother": 55,
+   "stag|noother": 50,
+   "stag|other": 27,
+   "nostag|other": 2
+  },
+  "test": {
+   "nostag|noother": 106,
+   "stag|noother": 79,
+   "stag|other": 42,
+   "nostag|other": 6
+  },
+  "shift_zone": {
+   "nostag|noother": 125,
+   "stag|noother": 141,
+   "nostag|other": 8,
+   "stag|other": 18
+  },
+  "shift_ref": {
+   "stag|noother": 11,
+   "nostag|noother": 21,
+   "stag|other": 32
+  }
+ },
+ "consistency": {
+  "all_equals_excl_plus_only_violations": [],
+  "sum_cells_true3": 203,
+  "true3_scenes_in_eval": 203
+ }
+}

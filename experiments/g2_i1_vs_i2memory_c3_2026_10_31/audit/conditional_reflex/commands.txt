@@ -1,0 +1,8 @@
+# standard library only; any Python 3.12+ works (run here: /home/user/dsr-bot/.venv/bin/python3, Python 3.12.3)
+git archive 6ccafc0 data/inventory/2026-10-31 | tar -x -C /tmp/inv3        # extract + manifest (not copied)
+cd experiments/g2_i1_vs_i2memory_c3_2026_10_31/audit/conditional_reflex
+python3 -I conditional_reflex_audit.py --config config.json \
+  --extract /tmp/inv3/data/inventory/2026-10-31/g2_scene_extract.jsonl \
+  --manifest /tmp/inv3/data/inventory/2026-10-31/g2_scene_manifest_scenes.jsonl \
+  --predictions ../../predictions.jsonl --out .
+# refs: predictions.jsonl @ff72b45 sha256 488c90ee…796c; reflex audit @58d0ec7; config sha256 b710ffb5…2c8b

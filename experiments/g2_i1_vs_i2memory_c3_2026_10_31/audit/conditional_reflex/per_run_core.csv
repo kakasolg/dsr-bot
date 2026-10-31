@@ -1,0 +1,12 @@
+run,split,total_n,i1_correct,i2_correct,reflex_n,reflex_i1,reflex_i2,stagger_punish_n,stagger_punish_i1,stagger_punish_i2,face_first_n,face_first_i1,face_first_i2,transitions
+20261011_145345_burg-bonfire,val,8,8,7,4,4,3,0,0,0,4,4,4,"{""face_first|face_first|face_first"": 4, ""reflex|reflex|reflex"": 3, ""reflex|reflex|after_swing"": 1}"
+20261012_024340_burg-upper,val,1,1,0,1,1,0,0,0,0,0,0,0,"{""reflex|reflex|after_swing"": 1}"
+20261012_025301_burg-upper,test,13,13,6,7,7,2,0,0,0,6,6,4,"{""face_first|face_first|face_first"": 4, ""face_first|face_first|backstab_swing"": 2, ""reflex|reflex|backstab_swing"": 2, ""reflex|reflex|after_swing"": 2, ""reflex|reflex|reflex"": 2, ""reflex|reflex|attack"": 1}"
+20261012_033444_burg-bonfire,test,1,1,0,1,1,0,0,0,0,0,0,0,"{""reflex|reflex|after_swing"": 1}"
+20261012_053935_burg-bonfire,val,4,4,3,2,2,2,0,0,0,2,2,1,"{""reflex|reflex|reflex"": 2, ""face_first|face_first|reflex"": 1, ""face_first|face_first|face_first"": 1}"
+20261012_223957_burg-upper,val,7,3,0,4,0,0,0,0,0,3,3,0,"{""reflex|stagger_punish|stagger_punish"": 3, ""face_first|face_first|stagger_punish"": 3, ""reflex|attack|after_swing"": 1}"
+20261013_011929_burg-upper,test,15,2,11,4,1,0,10,0,10,1,1,1,"{""stagger_punish|stamina|stagger_punish"": 8, ""stagger_punish|reflex|stagger_punish"": 2, ""reflex|stamina|after_swing"": 1, ""reflex|stagger_punish|stagger_punish"": 1, ""reflex|stamina|approach"": 1, ""reflex|reflex|stagger_punish"": 1, ""face_first|face_first|face_first"": 1}"
+20261013_060542_burg-altar,shift_zone,10,1,9,1,1,0,9,0,9,0,0,0,"{""stagger_punish|reflex|stagger_punish"": 9, ""reflex|reflex|after_swing"": 1}"
+20261013_061331_burg-altar,shift_zone,1,1,0,1,1,0,0,0,0,0,0,0,"{""reflex|reflex|stagger_punish"": 1}"
+20261013_190105_burg-altar,shift_zone,1,0,0,1,0,0,0,0,0,0,0,0,"{""reflex|attack|after_swing"": 1}"
+20261019_212954_parish-group1,shift_ref,31,21,9,14,9,0,5,0,5,12,12,4,"{""reflex|reflex|stagger_punish"": 9, ""face_first|face_first|stagger_punish"": 8, ""face_first|face_first|face_first"": 4, ""stagger_punish|attack|stagger_punish"": 4, ""reflex|attack|after_swing"": 3, ""reflex|attack|stagger_punish"": 2, ""stagger_punish|reflex|stagger_punish"": 1}"

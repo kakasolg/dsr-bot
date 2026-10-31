@@ -1,0 +1,75 @@
+{
+ "name": "conditional-reflex-audit-v1",
+ "date": "2026-10-31",
+ "question": "When the target is staggered and another foe nearby is attacking, does I2-memory change reflex / face_first into stagger_punish across runs (not only 20261019_212954)?",
+ "kind": "descriptive recount of stored predictions; no training, no prediction, no input change",
+ "refs": {
+  "extract": "data/inventory/2026-10-31/g2_scene_extract.jsonl @6ccafc0",
+  "extract_sha256": "c0a31ceb8f8c733c0df043b076536c1d7045900ebec656a5ed44041527f3ea35",
+  "manifest": "data/inventory/2026-10-31/g2_scene_manifest_scenes.jsonl @6ccafc0",
+  "manifest_sha256": "3de0c325098b0358792b648aa1e1de5b079f591760ad94cfa3b39925e5eceec3",
+  "predictions": "experiments/g2_i1_vs_i2memory_c3_2026_10_31/predictions.jsonl @ff72b45b3422270a4b8c9cd28eb18e2e791b9fa2",
+  "predictions_sha256": "488c90ee65b52df21ca8eaef5bbb5d4ec4de5a88a878453aa00db31da49c796c",
+  "reflex_audit_commit": "58d0ec703d408b2bce3b105a262a58c6e23e0dc4"
+ },
+ "conditions": {
+  "A_target_staggered": {
+   "definition": "tick.a in range(3500, 3600)",
+   "source": "souls/moves.py:28 STAGGER",
+   "field": "tick.a (target anim at capture, equals the target char's anim)"
+  },
+  "B_other_attacking_lt_2_5m": {
+   "definition": "any snap.chars c with c.ptr != tick.ptr, c.team in {6,7,24,25,27,33}, c.hp > 0, c.anim in range(3000, 3500), hypot(c.x - player.x, c.z - player.z) < 2.5",
+   "sources": "teams/hp: telemetry.Snapshot.hostile (telemetry.py:117-118); attack: souls/moves.py:24 ATTACK; 2.5 m = reflex THREAT_R (souls/reflex.py:31)",
+   "fields": "snap.chars[].ptr, team, hp, anim, x, z; snap.player.x, z; tick.ptr",
+   "meaning": "an observed snapshot state only — not 'the reflex rule fired' and not 'the attack hit'"
+  },
+  "note": "scene chars are those captured within 25 m (scenes.CHAR_R); the player is not in snap.chars"
+ },
+ "splits": [
+  "val",
+  "test",
+  "shift_zone",
+  "shift_ref"
+ ],
+ "exclude": [
+  "pending"
+ ],
+ "train_used": "not used in these counts",
+ "true_classes": [
+  "reflex",
+  "stagger_punish",
+  "face_first"
+ ],
+ "scopes": {
+  "all": "all eval runs",
+  "excl_212954": "without 20261019_212954_parish-group1",
+  "only_212954": "that run only"
+ },
+ "per_cell": [
+  "n",
+  "runs",
+  "i1_correct",
+  "i1_recall",
+  "i2_correct",
+  "i2_recall",
+  "both_correct",
+  "i1_only",
+  "i2_only",
+  "both_wrong",
+  "i2_minus_i1"
+ ],
+ "zero_n": "recall = null when n = 0",
+ "metric_note": "recall here = correct / scenes of that true class within the condition cell; this is not overall precision or macro F1",
+ "transitions": {
+  "raw": "y_true|y_pred_i1|y_pred_i2 with every predicted rule kept",
+  "display": "predicted rules outside the 3 classes shown as 'other' (raw kept alongside)"
+ },
+ "per_run": "core cell (A and B) per run: true-class counts, I1/I2 correct, transitions",
+ "limits": [
+  "I1 already has nearby-foe counts/distances and n_other_attacking_4m; this 2.5 m split is an audit stratification, not a model feature",
+  "cannot separate target-centred memory, representation, RF max_features sampling, or version effects",
+  "no independence or significance assumed",
+  "no causal or game-quality claim"
+ ]
+}
