@@ -646,6 +646,13 @@ The items are still open in ROADMAP.md (one line each); their full text as it st
   same spans off / on. `tests/runinfo_test.py` +13 checks; `python -m pytest` 122 passed. Not checked: golden uses fake Moves (no real action / pad records there), timing in the game.
   **Next**: [MoKa] OK → [win] ramp, same save, `--ctl --ctl-scenes` with `--ctl-spans` once and without once; compare cycle-interval p50 / p95 / max,
   ctl gap / drop counts, feed served stats, scene capture time (load only, game outcome not compared). Raw `.ctl.jsonl` stay local (run ids + hashes only).
+  **Closed 2026-10-31 ([MoKa] "이번 테스트와 구현 작업을 종료")** — built: span.obs (cycle input body) + read counts, settings end_read src/fseq/age,
+  writer `complete`, `ctl_check.py` (`--vs-scene`); `python -m pytest` 123 passed. Game (3 runs, no rule change): 20261030_225853 and _233127
+  parish-group1, 20261031_005154 burg-bonfire seg 1 from the 10-03 initial save (SL4 Battle Axe, `backup-20261003-164637`): writer complete 3/3,
+  linkage violations 0, scene ↔ span.obs 3/3 and 17/17 same (same-read consistency, not a sensor check). Ramp vs the five 10-03 runs (different code
+  each, diffs not kept): all cleared; `unsafe_approach` repeats 91/121/98/128/2 then → 1 now; the new `shot` rule retreated after a −113 that 10-03c
+  also took (cause not identifiable: projectiles not read). One exploratory run — no regression verdict. **Not done**: spans on/off load comparison
+  above, full decision replay, other actions / cancel / Escape in game. Scope, limits, file hashes: `docs/ctl-experience-data.md`.
 
 ## Done items (moved out of ROADMAP.md by roadmap.py tidy)
 
@@ -655,3 +662,4 @@ Items as they left ROADMAP.md (mark, id, who, stage, result, where). Older done 
 - 2026-10-13 [x] alignment | MoKa | done | 7 Claymore runs: body ≤ 25° at every press, camera-only misses still hit → 'ok' = body 30° or lock (camera dropped, MoKa 10-13) | plan:alignment
 - 2026-10-13 [x] claymore-measure | win | done | light: blade 0.68–0.85 s, idle 1.39 s with LB (recovery 0.62 → 0.55); thrust 0.76–0.95, 1.50 s; reach 1.8 kept (hits to ~2.1 m) | stages/burg-to-altar.md
 - 2026-10-16 [x] rea-trial | cloud | verify | done: dump + analyzers off, B 5/5 + 10 new flags → `DBG_*` | docs/rea-trial.md
+- 2026-10-31 [x] ctl-linkage | MoKa | verify | closed 10-31 (MoKa): built, offline + 3 game runs checked; not done: on/off load, full decision replay, other actions | docs/ctl-experience-data.md · plan:ctl-linkage

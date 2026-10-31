@@ -201,7 +201,13 @@ class Sink:
         return self._flushed >= target
 
     def stop(self, timeout: float = 2.0) -> dict:
-        """Final sync + end record, close. Idempotent."""
+        """Final sync + end record, close. Idempotent.
+        End record completeness fields (record only, no extra wait):
+          writer_joined  the writer reached the stop marker within `timeout` — False: it was still writing (slow disk), the
+                         rest of the queue was counted as lost, and a record it had in hand may land after this end line
+          complete       writer_joined and nothing dropped / lost / failed — the file holds every record emitted before stop()
+        A process ended from outside (console closed, killed) writes no end record at all."""
+        joined = not self._th.is_alive()
         if self._th.is_alive():
             t1 = time.perf_counter() + timeout
             while time.perf_counter() < t1:
@@ -211,7 +217,8 @@ class Sink:
                 except queue.Full:
                     continue
             self._th.join(max(0.0, t1 - time.perf_counter()))
-        while True:                                  # whatever the writer never reached (it stopped) is counted as lost
+            joined = not self._th.is_alive()
+        while True:                                 # whatever the writer never reached (it stopped) is counted as lost
             try:
                 r = self.q.get_nowait()
             except queue.Empty:
@@ -221,7 +228,8 @@ class Sink:
         self._gap()
         self._sync()
         summary = {"written": self.written, "dropped": self.dropped, "lost": self.lost,
-                   "write_errors": self.write_errors, "last_error": self.last_error}
+                   "write_errors": self.write_errors, "last_error": self.last_error, "writer_joined": joined,
+                   "complete": joined and not (self.dropped or self.lost or self.write_errors)}
         self._write_safe({"k": "end", "seq": next(_seq), "pc": time.perf_counter_ns(), "th": threading.current_thread().name,
                           **summary})
         try:

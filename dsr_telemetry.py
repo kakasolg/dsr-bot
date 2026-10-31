@@ -57,6 +57,7 @@ try:
 except ImportError:
     pymem = None
 
+import ctlspan
 from telemetry import Chr, Snapshot   # same shape as Elden Ring → nav/patrol use it as-is
 
 AOBS = {
@@ -228,6 +229,7 @@ class DSRTelemetry:
         return math.atan2(fx, fz)
 
     def snapshot(self, within: float = 60.0) -> Optional[Snapshot]:
+        ctlspan.snap_read()                             # counts it if a duel cycle is open on this thread (record only)
         pp = self.player_ptr()
         if not pp:
             return None

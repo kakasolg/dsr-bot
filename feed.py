@@ -23,6 +23,7 @@ import time
 from typing import Optional
 
 import ctl
+import ctlspan
 from telemetry import Snapshot
 
 RADIUS = 40.0        # 피드가 읽는 반경 — 호출자 대부분이 5~40 m
@@ -94,6 +95,7 @@ class Feed:
         if within > self.radius or not self.alive():
             self.served["direct"] += 1
             return self.tm.snapshot(within=within)
+        ctlspan.snap_read()                     # a cached frame (direct reads are counted by the telemetry itself) — record only
         now = time.time()
         with self._cv:
             s = self.latest

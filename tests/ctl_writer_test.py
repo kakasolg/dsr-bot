@@ -211,6 +211,69 @@ def test_run_main(tmp: Path) -> None:
     check("run.main --ctl 없음: ctl 파일 안 생김, 꺼진 채", not list((tmp / "data" / "runs").glob("*.ctl.jsonl")) and not ctl.on())
 
 
+def test_exit_order(tmp: Path) -> None:
+    """The real end of a run, nothing flushed first: run.main returns → atexit runs control's handler, then ctl.stop()
+    (registered earlier, so it runs last). Then the same order with a disk too slow for stop()'s 2 s."""
+    import control
+    import run_stop_test as rst
+    import runinfo
+    rst.install(tmp)
+    rst.TRACE.clear()
+    rst.FakeMissions.exc = KeyboardInterrupt()
+    sys.argv = ["run.py", "merchant", "--ctl-spans"]
+    try:
+        import run
+        run.main()
+    except BaseException:
+        pass
+    control._on_atexit()
+    summ = ctl.stop()
+    f = sorted((tmp / "data" / "runs").glob("*_merchant.ctl.jsonl"))[-1]
+    r = rows(f)
+    life = [x["ev"] for x in r if x["k"] == "life"]
+    check("exit order: life start → user_stop → atexit, then end as the last line, nothing flushed first",
+          life[0] == "start" and "user_stop" in life and life[-1] == "atexit" and r[-1]["k"] == "end")
+    check("exit order: end says writer_joined and complete (0 dropped / lost / write errors)",
+          r[-1]["writer_joined"] is True and r[-1]["complete"] is True and summ["complete"] is True)
+    st = runinfo.read(sorted((tmp / "data" / "runs").glob("*_merchant.settings.json"))[-1])
+    e = st.get("end") or {}
+    check("exit order: settings end has result + end_read / last_valid_obs / end_state_known (fake game: not known)",
+          e.get("result") is not None and "end_read" in e and "last_valid_obs" in e and e.get("end_state_known") is False)
+    f.unlink()
+
+    class Slow:
+        def __init__(self, p):
+            self.f = open(p, "a", encoding="utf-8")
+
+        def write(self, s):
+            time.sleep(0.002)
+            return self.f.write(s)
+
+        def flush(self):
+            self.f.flush()
+
+        def close(self):
+            self.f.close()
+    p = tmp / "slow.ctl.jsonl"
+    ctl.start(p, run="slow", argv=["x"], cmd="test", opener=lambda q: Slow(q))
+    n = 1500                                           # ~3 s of writing at 2 ms a line, more than stop()'s 2 s
+    for i in range(n):
+        ctl.emit("pad", m="move", i=i)
+    t0 = time.perf_counter()
+    control._on_atexit()
+    summ = ctl.stop()
+    dt = time.perf_counter() - t0
+    time.sleep(0.2)
+    r = rows(p)
+    pads = sum(1 for x in r if x["k"] == "pad")
+    end = [x for x in r if x["k"] == "end"]
+    check(f"slow disk: stop() gives up after its limit ({dt:.2f} s, no endless wait)", dt < 3.0)
+    check(f"slow disk: end says writer_joined False, complete False, lost {summ['lost']} (on disk {pads} of {n})",
+          len(end) == 1 and end[0]["writer_joined"] is False and end[0]["complete"] is False and end[0]["lost"] > 0)
+    check("slow disk: on disk + lost accounts for every record but at most the one the writer had in hand",
+          pads + summ["lost"] >= n - 1)
+
+
 def main() -> None:
     tmp = Path(tempfile.mkdtemp(prefix="ctl_"))
     test_off()
@@ -219,6 +282,7 @@ def main() -> None:
     test_writer_failure(tmp)
     test_lifecycle(tmp)
     test_run_main(tmp)
+    test_exit_order(tmp)
     print("ctl_writer_test: 전부 통과")
 
 

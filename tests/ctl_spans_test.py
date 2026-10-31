@@ -17,6 +17,7 @@ from __future__ import annotations
 import sys as _sys, pathlib as _pl  # repo root first (the bot's modules), then this folder
 _sys.path[:0] = [str(_pl.Path(__file__).resolve().parent.parent), str(_pl.Path(__file__).resolve().parent)]
 
+import collections
 import gzip
 import itertools
 import json
@@ -109,6 +110,21 @@ def test_golden(tmp: Path) -> None:
     print(f"     cycle 끝 종류 {kinds}; None 돌려준 규칙 호출 {sum(x['none_n'] for x in ce.values())}회 "
           f"(그중 패드 출력 {nonepad} — 가짜 Moves라 패드 기록 없음)")
     print(f"     span.rule parent 있음 {ok_parent}/{len(rules)}")
+    obs = [x for x in r if x["k"] == "span.obs"]
+    by_obs = {x["obs_id"]: x for x in obs}
+    sensed = [x for x in ce.values() if x["kind"] in ("rule_cont", "rule_result", "no_rule")]
+    check(f"golden: obs {len(obs)}개 — 규칙까지 간 cycle마다 하나, obs_id 겹침 없음, 그 cycle을 가리킴",
+          len(by_obs) == len(obs) == len(sensed)
+          and all(x["obs_id"] in by_obs and by_obs[x["obs_id"]]["cycle_id"] == x["cycle_id"]
+                  and by_obs[x["obs_id"]]["snap"]["t"] == x["snap_t"] for x in sensed))
+    other_ids = set(cs) | fs | set(by_rule) | {x["action_id"] for x in r if x["k"] == "span.action"}
+    check("golden: obs_id는 fight·cycle·rule·action id와 겹치지 않음", not (set(by_obs) & other_ids))
+    check("golden: _sense가 끝낸 cycle(sense_result·sense_cont)은 obs 없음",
+          all(x.get("obs_id") is None for x in ce.values() if x["kind"].startswith("sense_")))
+    import ctl_check
+    st = collections.Counter(s for s, _ in ctl_check.input_status(r).values())
+    check(f"golden: 가짜 텔레메트리는 읽기를 세지 않음 → reads_uncounted (sense_only로 주장 안 함) {dict(st)}",
+          st["reads_uncounted"] == len(sensed) and not st["sense_only"])
 
     for label, setup in (("sink가 put마다 예외", lambda: setattr(ctl, "_sink", _Boom())),
                          ("큐 가득 참 (put마다 Full)", None),

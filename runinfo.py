@@ -16,6 +16,7 @@ import json
 import re
 import subprocess
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -182,13 +183,18 @@ def save_file() -> dict | None:
 
 def end_state(tm=None, mv=None) -> dict:
     """Three separate fields for the end block — never one standing in for another:
-      end_read        HP · Estus · position read now, at the end (None if the read failed / no game)
-      last_valid_obs  the feed's last frame that had a player, with its time (None without a feed)
-      end_state_known end_read got HP and position
+      end_read        HP · position from tm.snapshot(within=5.0) at the end, Estus from mv.estus_left() (None if it failed / no
+                      game). With the feed (run.py's usual tm) that snapshot is the feed's cached latest frame (≤ feed.MAX_AGE
+                      old, or the next one after ≤ feed.WAIT) — not a memory read of its own; Estus is one (goods_count). src /
+                      fseq / age_s say which: src "feed" (fseq = its frame number) or "direct", age_s = now − frame time.
+      last_valid_obs  the feed's last frame that had a player, with its time (None without a feed) — often the same frame
+                      as end_read when the feed was still running at the end
+      end_state_known end_read got HP and position — "a recent frame with a player existed at run_end", nothing more
     A run killed from outside (console closed, process ended) may write no end block at all."""
     rd = None
     try:
         s = tm.snapshot(within=5.0) if tm is not None else None
+        age = None if s is None or s.t is None else round(time.time() - s.t, 3)
         p = getattr(s, "player", None)
         if p is not None and p.hp is not None:
             est = None
@@ -196,7 +202,9 @@ def end_state(tm=None, mv=None) -> dict:
                 est = mv.estus_left() if mv is not None else None
             except Exception:
                 pass
-            rd = {"t": s.t, "hp": [p.hp, p.max_hp], "estus": est, "pos": [round(p.x, 2), round(p.y, 2), round(p.z, 2)]}
+            fseq = getattr(s, "fseq", None)
+            rd = {"t": s.t, "hp": [p.hp, p.max_hp], "estus": est, "pos": [round(p.x, 2), round(p.y, 2), round(p.z, 2)],
+                  "src": "feed" if fseq is not None else "direct", "fseq": fseq, "age_s": age}
     except Exception:
         rd = None
     lv = None

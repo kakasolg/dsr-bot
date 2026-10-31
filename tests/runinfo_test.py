@@ -18,6 +18,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -186,8 +187,16 @@ def main() -> None:
         e1 = runinfo.end_state(Tm(Snapshot(t=10.0, player=pl, chars=[]), lv), Mv())
         e2 = runinfo.end_state(Tm(None, lv), Mv())
         e3 = runinfo.end_state(None, None)
+        r1 = e1["end_read"]
         check("end_state: read now → end_read with HP · Estus · pos, known True",
-              e1["end_read"] == {"t": 10.0, "hp": [500, 793], "estus": 3, "pos": [1.23, 2.0, 3.0]} and e1["end_state_known"] is True)
+              {k: r1[k] for k in ("t", "hp", "estus", "pos")} == {"t": 10.0, "hp": [500, 793], "estus": 3, "pos": [1.23, 2.0, 3.0]}
+              and e1["end_state_known"] is True)
+        check("end_state: a snapshot without fseq → src direct, fseq None, age_s = now − its t",
+              r1["src"] == "direct" and r1["fseq"] is None and r1["age_s"] > 1e9)
+        sf = Snapshot(t=time.time() - 0.02, player=pl, chars=[], fseq=2923)
+        rf = runinfo.end_state(Tm(sf, lv), Mv())["end_read"]
+        check("end_state: a feed frame → src feed with its fseq and a small age (the feed's cached frame, not a read of its own)",
+              rf["src"] == "feed" and rf["fseq"] == 2923 and 0.0 <= rf["age_s"] < 1.0)
         check("end_state: read failed → end_read None, known False, last_valid_obs kept apart (not used as the end)",
               e2["end_read"] is None and e2["end_state_known"] is False and e2["last_valid_obs"] == lv)
         check("end_state: no game → all empty, no raise", e3 == {"end_read": None, "last_valid_obs": None, "end_state_known": False})

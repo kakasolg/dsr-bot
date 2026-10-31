@@ -7,11 +7,26 @@
                                    first_pad_pc, ret_pc)                 "cycle에만 붙이기")
   span.action  start / end         a blocking Moves call (moves._span)   parent: the enclosing action, else the cycle; rule_id
                                                                          = the rule being called when it started
+  span.obs     one record          the snapshot _sense read (T.s), copied   parent: cycle (obs_id; the cycle end names it)
+                                   when sensed() runs — before the rules
   pad records  + cycle_id / action_id of the thread that wrote them (control.Pad._record) — only the writing thread's own
                ids: CamFollow / GuardKeep / Escape threads never open a span, so their records carry none.
 
 Ids are per thread (threading.local); nothing here is shared between threads except the id counter. Every value put in a
 record is a primitive or a fresh copy. Nothing here raises into the caller and nothing is read back by the bot.
+
+span.obs — what it holds and what it does not (MoKa 2026-10-30 "각 cycle이 참조한 입력 본문"):
+  · held: every Snapshot field (t, pc, fseq, cam_yaw, cam_pitch, arm_style, flask_hp, max_flask_hp), every field of the
+    player and of every Chr in s.chars (all _sense got: SEEK_R 100 m, same order), Tick.now and the target ptr (T.c.ptr —
+    h / dy / a follow from it and the snapshot). Copied on the duel thread inside sensed() into new dicts of primitives; the
+    record owns them, the writer thread serializes them later, nothing else holds them.
+  · not held: Fight's own state (F.*: ptr history, timers, last_seen, woke, …), Moves.swung (filled by every thread's reads),
+    reflex / care / shadow state, scalar reads (grip, lock_target, handle, goods_count), and every snapshot read after
+    the sense read — F.cancel() inside _sense (Field's far / leash), rules, prep_face, actions' _watch, nav.goto.
+    Those later reads are only counted: snap_reads_sense / snap_reads_after in the cycle end (snap_read(), called by
+    dsr_telemetry and feed). A cycle with any later read is not "input restorable" from its obs alone.
+  · sense_result / sense_cont cycles: _sense returned before sensed() — no obs.
+  · a dropped obs (queue full) leaves the cycle's obs_id pointing at nothing; ctl_check.py reports it as missing / dropped.
 """
 from __future__ import annotations
 
@@ -83,7 +98,7 @@ class Fight:
             if self.cycle is not None:                     # not closed (should not happen) — close it, don't nest
                 self.cycle_end("abandoned")
             cid = next(_ids)
-            self.cycle = {"id": cid, "none": 0, "none_pad": []}
+            self.cycle = {"id": cid, "none": 0, "none_pad": [], "reads": 0}
             _tl.cycle, _tl.rule, _tl.actions = self.cycle, None, []
             ctl.emit("span.cycle", ev="start", cycle_id=cid, parent=self.id)
         except Exception:
@@ -96,9 +111,19 @@ class Fight:
             fseq = getattr(s, "fseq", None)
             self.cycle.update(sense_pc=time.perf_counter_ns(), radius=radius, snap_t=getattr(s, "t", None), fseq=fseq,
                               # feed.Feed sets fseq on every frame it serves; a direct telemetry read never does
-                              src=None if s is None else ("feed" if fseq is not None else "direct"), snap=s)
+                              src=None if s is None else ("feed" if fseq is not None else "direct"), snap=s,
+                              reads_sense=self.cycle["reads"])
         except Exception:
-            pass
+            return
+        try:
+            oid = next(_ids)
+            body = _snap_body(s)
+            c = getattr(T, "c", None)
+            ctl.emit("span.obs", obs_id=oid, cycle_id=self.cycle["id"], src=self.cycle["src"], fseq=self.cycle["fseq"],
+                     radius=radius, now=getattr(T, "now", None), target_ptr=getattr(c, "ptr", None), snap=body)
+            self.cycle["obs_id"] = oid
+        except Exception as e:
+            self.cycle["obs_err"] = type(e).__name__
 
     def rule_enter(self) -> None:
         try:
@@ -144,7 +169,9 @@ class Fight:
                      rule_id=cy.get("rule_id"), none_n=cy["none"], none_pad=list(cy["none_pad"]),
                      sense_pc=cy.get("sense_pc"), src=cy.get("src"), radius=cy.get("radius"), snap_t=cy.get("snap_t"),
                      fseq=cy.get("fseq"), resnap=None if T is None or s is None else getattr(T, "s", None) is not s,
-                     my_anim=getattr(p, "anim", None))
+                     my_anim=getattr(p, "anim", None), obs_id=cy.get("obs_id"), obs_err=cy.get("obs_err"),
+                     snap_reads_sense=cy.get("reads_sense"),
+                     snap_reads_after=None if "reads_sense" not in cy else cy["reads"] - cy["reads_sense"])
         except Exception:
             pass
 
@@ -160,9 +187,38 @@ class Fight:
             pass
 
 
-# ── actions (souls/moves.py) ──
+def snap_read() -> None:
+    """A snapshot read on this thread (dsr_telemetry.snapshot, feed.Feed.snapshot's cached frames). Counted only while a
+    cycle is open on this thread — the camera / guard / feed threads never have one."""
+    if ON:
+        try:
+            cy = getattr(_tl, "cycle", None)
+            if cy is not None:
+                cy["reads"] += 1
+        except Exception:
+            pass
+
 
 _PRIM = (int, float, str, bool, type(None))
+_SNAP_F = ("t", "pc", "fseq", "cam_yaw", "cam_pitch", "arm_style", "flask_hp", "max_flask_hp")
+
+
+def _chr(c) -> dict | None:
+    if c is None:
+        return None
+    return {k: (v if isinstance(v, _PRIM) else repr(v)) for k, v in vars(c).items()}
+
+
+def _snap_body(s) -> dict | None:
+    if s is None:
+        return None
+    out = {k: getattr(s, k, None) for k in _SNAP_F}
+    out["player"] = _chr(s.player)
+    out["chars"] = [_chr(c) for c in s.chars]
+    return out
+
+
+# ── actions (souls/moves.py) ──
 
 
 def _params(args: dict) -> dict:

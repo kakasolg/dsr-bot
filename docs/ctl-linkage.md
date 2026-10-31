@@ -40,3 +40,35 @@
 ## 확인 (2026-10-30)
 - 오프라인 (`tests/ctl_spans_test.py`, `tests/duel_golden_test.py`, pytest 전체): 결과는 `docs/roadmap/plan.md` `ctl-linkage` 줄.
 - 게임 부하 비교(경사로, 같은 세이브, `--ctl --ctl-scenes` 켬/끔 1회씩)는 [MoKa] 승인 뒤 [win].
+
+## 관측 본문 (`span.obs`, 2026-10-30 2차)
+- 목적: 각 싸움 cycle이 `_sense`에서 읽은 스냅샷 본문을 원본 파일만으로 복원 ([MoKa] "각 cycle이 참조한 입력 본문").
+- `span.obs` 레코드 (기존 `obs` 종류 = 피드·NoObs 관측 품질 전환 기록과는 별개): `ctlspan.Fight.sensed()`가 `_sense`가 이미 읽은 `T.s`를 복사해 한 줄로 남긴다. 게임 메모리를 더 읽지 않는다.
+  cycle 끝 기록의 `obs_id`가 이 레코드를 가리킨다. id는 span id와 같은 카운터라 겹치지 않는다(direct 읽기도).
+- 담는 것: Snapshot 필드 전부(t, pc, fseq, cam_yaw, cam_pitch, arm_style, flask_hp, max_flask_hp), 플레이어와
+  `s.chars`(SEEK_R 100 m, 같은 순서)의 Chr 필드 전부, `Tick.now`, 목표 ptr(`T.c.ptr`).
+- 담지 않는 것: Fight 상태(`F.*`), `Moves.swung`(모든 스레드의 읽기로 채워짐), reflex·care·shadow 상태, 단일 값 읽기
+  (grip, lock_target, handle, goods_count), sense 뒤의 스냅샷 재읽기(F.cancel의 far/leash, 규칙, prep_face, 동작의
+  `_watch`, nav.goto). 재읽기는 횟수만 센다: `snap_reads_sense` / `snap_reads_after`(`ctlspan.snap_read()`,
+  `dsr_telemetry.snapshot`과 피드 캐시 경로에서 호출, cycle이 열린 스레드에서만).
+- 복사 시점과 소유권: duel 스레드에서 규칙이 돌기 전에, 새 dict(원시값만)로 복사한다. 레코드만 그 dict를 갖고,
+  writer 스레드가 나중에 직렬화한다.
+- `python ctl_check.py <run>.ctl.jsonl`: cycle마다 `sense_only` · `partial` · `reads_uncounted` · `dropped` · `missing`
+  · `no_obs`. writer `complete`(end 레코드)와 연결 검사와 입력 복원은 따로 보고한다. `sense_only`도 "스냅샷 본문 복원
+  가능"까지만이다. 위의 "담지 않는 것"은 들어 있지 않다.
+- 확인: `tests/ctl_span_obs_test.py`, `tests/ctl_spans_test.py`(span.obs 켠 golden). 게임 실행 확인 범위와 남은 한계:
+  [`ctl-experience-data.md`](ctl-experience-data.md) (2026-10-31 마무리).
+
+## 네 가지 완전성 — 서로 대신하지 않는다 (2026-10-30 3차)
+- **writer complete**: end 레코드의 `complete`. writer가 stop 표시까지 갔고 버림·잃음·쓰기 오류가 0이라는 뜻이다. 기록이
+  끝났다는 사실만 말하고, 무엇이 기록됐는지는 말하지 않는다.
+- **linkage validity**: span의 짝·부모, picked ↔ span.rule, 스레드별 패드 id가 서로 맞는다는 뜻이다(`ctl_check.py`).
+- **sense_only**: 보존된 최초 스냅샷 말고는 그 cycle 동안 duel 스레드의 `snapshot()` 호출이 세지지 않았다는 뜻이다.
+  아래 셋이 없었다는 뜻은 **아니다**.
+  - 다른 스레드가 바꾸는 공유 상태: CamFollow·GuardKeep, 모든 스레드의 읽기로 채워지는 `Moves.swung`.
+  - 단일 값 읽기: grip, lock_target, handle, goods_count는 세지 않는다.
+  - Fight 기억.
+- **full decision replay**: 스냅샷, Fight 기억, 파생 상태, 단일 값 읽기, 그 순간 다른 스레드 상태까지 갖춰 그때 판단을
+  그대로 다시 돌리는 것. 지금 어떤 파일도 이것을 갖고 있지 않다. sense_only는 full decision replay가 아니다.
+- `ctl_check.py --vs-scene`은 같은 스냅샷 객체에서 나온 두 기록(scene, span.obs)이 같은지 보는, 저장 경로 일관성 검사다.
+  독립 센서로 확인한 것이 아니다.
