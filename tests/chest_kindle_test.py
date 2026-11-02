@@ -51,10 +51,11 @@ class Tm:
         return 1
 
 
-def chest_run(tm, at=(24.1, -5.7, -99.0)):
+def chest_run(tm, at=(24.1, -5.7, -99.0), take_at=2):
     f = make_field(World(player=at))
     m = MS.Missions.__new__(MS.Missions)
     m.f, m.mv, m.log = f, f.mv, f.log
+    m._chest_look = lambda *a: None                   # no game window here
     f.mv.tm = tm
     f.mv.snap = lambda *a, **k: NS(player=NS(x=CHEST["chest"][0], z=CHEST["chest"][2]), cam_yaw=0.0, hostile=lambda r: [])
     f.mv.stick_to = lambda *a, **k: (0.0, 0.0)
@@ -67,8 +68,8 @@ def chest_run(tm, at=(24.1, -5.7, -99.0)):
         presses.append(len(f.walks))
         if f.walks and tuple(f.walks[-1]) == tuple(CHEST["door_front"]):
             tm.flags[61010510] = True                 # door swings open
-        elif len(presses) >= 2 and tm.flags[61010510]:
-            tm.flags[51010460], tm.resin = True, 3    # second A at the chest takes the resin
+        elif len(presses) >= take_at and tm.flags[61010510]:
+            tm.flags[51010460], tm.resin = True, 3    # second A at the chest takes the resin (take_at: a later one)
     f.mv.pad.interact = interact
     sleep = MS.time.sleep
     MS.time.sleep = lambda s: None
@@ -84,10 +85,20 @@ def chest_run(tm, at=(24.1, -5.7, -99.0)):
     return r, f, presses
 
 
+def test_chest_second_round() -> None:
+    tm = Tm(door=True)
+    r, f, presses = chest_run(tm, take_at=MS.CHEST_PRESSES + 1)   # first A of round 2
+    assert r == "taken" and tm.resin == 3 and len(presses) == MS.CHEST_PRESSES + 2, (r, len(presses), f.logs)
+    assert any("1회차 A" in l for l in f.logs), f.logs
+    print(f"ok  chest: A ×{MS.CHEST_PRESSES} did nothing → second round (guard off, face again) takes it ({len(presses)} A)")
+
+
 def test_chest_opens_shut_door_then_takes() -> None:
     tm = Tm(door=False)
     r, f, presses = chest_run(tm)
     assert r == "taken" and tm.resin == 3 and tm.quick[1] == 311, (r, tm.resin, tm.quick, f.logs)
+    released = sum(1 for c in f.mv.pad.calls if c == ("release_due",))
+    assert released == len(presses), (released, len(presses))    # 11-02 P-110: every A released before the next one
     assert f.walks[0] == tuple(CHEST["door_front"]) and f.walks[1] == tuple(CHEST["stand"])
     print(f"ok  chest: shut door → walk to its front, A, then chest A×2 → resin 0→3, quick slot 311, window closed ({len(presses)} A)")
 
@@ -117,6 +128,7 @@ def test_chest_nudge_walks_in() -> None:
         f = make_field(World(player=(30.06, -7.5, -111.47)))
         m = MS.Missions.__new__(MS.Missions)
         m.f, m.mv, m.log = f, f.mv, f.log
+        m._chest_look = lambda *a: None               # no game window here
         f.mv.tm = tm
         f.mv.snap = lambda *a, **k: NS(player=NS(x=p["x"], z=p["z"]), cam_yaw=0.0, hostile=lambda r: [])
         f.mv.stick_to = lambda s, x, z, mag: (mag, 0.0)
@@ -172,14 +184,22 @@ def test_zone5_opens_door_before_kills() -> None:
     m._chest = lambda st, nb, tag: order.append(("chest",)) or "taken"
     r = m.upper_zone(5)
     kinds = [o[0] for o in order]
-    assert r == "cleared" and kinds.index("door") < kinds.index("kill") and kinds[-1] == "chest", order
+    assert r == "cleared" and kinds.index("door") < kinds.index("kill") and "chest" not in kinds, order
+    # 11-02 P-105: the chest (take_in 6) comes at the end of zone 6, after its 255001
+    order.clear()
+    z6 = MS.UPPER["zones"][5]
+    f.mv.tm = Tm(door=True)
+    m._before = lambda step, nb, tag: order.append((next(iter(step)),)) or "ok"
+    r6 = m.upper_zone(6)
+    kinds6 = [o[0] for o in order]
+    assert r6 == "cleared" and kinds6[0] == "barrel" and kinds6.index("kill") < kinds6.index("chest") and kinds6[-1] == "chest", order
     # door already open → no zone-start door step
     tm2 = Tm(door=True)
     f.mv.tm = tm2
     order.clear()
     m.upper_zone(5)
     assert ("door",) not in order, order
-    print("ok  zone 5: shut door → open it (then back to the safe spot) before luring 255000; open door → straight to the kills")
+    print("ok  zone 5: shut door → open it (then back to the safe spot) before luring 255000; open door → straight to the kills; chest after zone 6")
 
 
 class KTm:
@@ -289,6 +309,7 @@ def test_no_fog_a_by_ladder() -> None:
 if __name__ == "__main__":
     test_chest_data_on_navmesh()
     test_chest_opens_shut_door_then_takes()
+    test_chest_second_round()
     test_chest_open_door_no_a()
     test_chest_already_taken()
     test_chest_nudge_walks_in()

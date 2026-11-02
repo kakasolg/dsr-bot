@@ -3,7 +3,7 @@
  "title": "성벽 마을 위쪽 — 화톳불 → 타우로스 (구역 1–8)",
  "map": "m10_01_00_00",
  "made_by": "stage_report.py",
- "runs_read": 62,
+ "runs_read": 74,
  "zones": [
   {
    "n": 1,
@@ -155,12 +155,13 @@
     ]
    },
    "runs": {
-    "runs": 47,
-    "tries": 50,
-    "cleared": 45,
+    "runs": 58,
+    "tries": 61,
+    "cleared": 55,
     "results": {
-     "cleared": 45,
-     "died": 5
+     "cleared": 55,
+     "died": 5,
+     "left": 1
     },
     "deaths": [
      {
@@ -190,14 +191,14 @@
      }
     ],
     "falls": 7,
-    "big_hits": 63,
-    "big_hit_lost": 9312,
+    "big_hits": 83,
+    "big_hit_lost": 11422,
     "blamed": {
-     "254010": 50,
-     "255002": 9,
+     "254010": 67,
+     "255002": 12,
      "255001": 1
     },
-    "secs_median": 84,
+    "secs_median": 90,
     "files": [
      "20261009_230500_burg-upper_check-hp742",
      "20261009_234512_burg-upper_dirty-check",
@@ -239,6 +240,17 @@
      "20261101_192523_burg-upper_door-first-ok-chest-0.84m-no-open-estus-low",
      "20261101_214135_burg-upper_burg-upper_from-bonfire-died-zone2-255001-254011",
      "20261101_214607_burg-upper_burg-upper_from-bonfire-resin-taken-0.77m-died-zone8-crossbows",
+     "20261101_230106_burg-upper_zone8-hold-check1",
+     "20261101_234903_burg-upper_loop1",
+     "20261102_001903_burg-upper_loop2",
+     "20261102_004046_burg-upper_loop3",
+     "20261102_010036_burg-upper_loop4",
+     "20261102_012000_burg-upper_loop5",
+     "20261102_013127_burg-upper_loop6",
+     "20261102_014223_burg-upper_loop7-zone8-died",
+     "20261102_020649_burg-upper_loop8-zone8-died",
+     "20261102_022918_burg-upper_loop9-zone6-died",
+     "20261102_024657_burg-upper_loop10-cleared",
      "burg-upper-radar-2026-10-06-195804",
      "burg-upper-radar-2026-10-06-201550",
      "burg-upper-radar-2026-10-06a",
@@ -442,12 +454,12 @@
     ]
    },
    "runs": {
-    "runs": 35,
-    "tries": 38,
-    "cleared": 33,
+    "runs": 46,
+    "tries": 49,
+    "cleared": 42,
     "results": {
-     "cleared": 33,
-     "died": 5
+     "cleared": 42,
+     "died": 7
     },
     "deaths": [
      {
@@ -466,6 +478,16 @@
       "by": 254011
      },
      {
+      "run": "20261102_012000_burg-upper_loop5",
+      "cause": "hit",
+      "by": 255001
+     },
+     {
+      "run": "20261102_013127_burg-upper_loop6",
+      "cause": "hit",
+      "by": 254011
+     },
+     {
       "run": "burg-upper-radar-2026-10-06b",
       "cause": "hit",
       "by": 255001
@@ -477,14 +499,14 @@
      }
     ],
     "falls": 1,
-    "big_hits": 78,
-    "big_hit_lost": 14909,
+    "big_hits": 99,
+    "big_hit_lost": 18065,
     "blamed": {
-     "255001": 40,
-     "254011": 30,
+     "255001": 48,
+     "254011": 43,
      "254010": 6
     },
-    "secs_median": 54,
+    "secs_median": 53,
     "files": [
      "20261009_230500_burg-upper_check-hp742",
      "20261011_170346_burg-upper_p67fix-zone5-death",
@@ -515,6 +537,17 @@
      "20261101_192523_burg-upper_door-first-ok-chest-0.84m-no-open-estus-low",
      "20261101_214135_burg-upper_burg-upper_from-bonfire-died-zone2-255001-254011",
      "20261101_214607_burg-upper_burg-upper_from-bonfire-resin-taken-0.77m-died-zone8-crossbows",
+     "20261101_230106_burg-upper_zone8-hold-check1",
+     "20261101_234903_burg-upper_loop1",
+     "20261102_001903_burg-upper_loop2",
+     "20261102_004046_burg-upper_loop3",
+     "20261102_010036_burg-upper_loop4",
+     "20261102_012000_burg-upper_loop5",
+     "20261102_013127_burg-upper_loop6",
+     "20261102_014223_burg-upper_loop7-zone8-died",
+     "20261102_020649_burg-upper_loop8-zone8-died",
+     "20261102_022918_burg-upper_loop9-zone6-died",
+     "20261102_024657_burg-upper_loop10-cleared",
      "burg-upper-radar-2026-10-06-195804",
      "burg-upper-radar-2026-10-06-201550",
      "burg-upper-radar-2026-10-06b",
@@ -671,18 +704,18 @@
     ]
    },
    "runs": {
-    "runs": 29,
-    "tries": 31,
-    "cleared": 31,
+    "runs": 38,
+    "tries": 40,
+    "cleared": 40,
     "results": {
-     "cleared": 31
+     "cleared": 40
     },
     "deaths": [],
     "falls": 0,
-    "big_hits": 26,
-    "big_hit_lost": 3355,
+    "big_hits": 32,
+    "big_hit_lost": 3922,
     "blamed": {
-     "254010": 17,
+     "254010": 23,
      "254011": 4,
      "254012": 3,
      "255001": 1
@@ -714,6 +747,15 @@
      "20261101_183919_burg-upper_kindle-ok-door-ok-chest-1.34m-died-zone6",
      "20261101_192523_burg-upper_door-first-ok-chest-0.84m-no-open-estus-low",
      "20261101_214607_burg-upper_burg-upper_from-bonfire-resin-taken-0.77m-died-zone8-crossbows",
+     "20261101_230106_burg-upper_zone8-hold-check1",
+     "20261101_234903_burg-upper_loop1",
+     "20261102_001903_burg-upper_loop2",
+     "20261102_004046_burg-upper_loop3",
+     "20261102_010036_burg-upper_loop4",
+     "20261102_014223_burg-upper_loop7-zone8-died",
+     "20261102_020649_burg-upper_loop8-zone8-died",
+     "20261102_022918_burg-upper_loop9-zone6-died",
+     "20261102_024657_burg-upper_loop10-cleared",
      "burg-upper-radar-2026-10-06-195804",
      "burg-upper-radar-2026-10-06-201550",
      "burg-upper-radar-2026-10-06f",
@@ -915,11 +957,11 @@
     ]
    },
    "runs": {
-    "runs": 28,
-    "tries": 30,
-    "cleared": 27,
+    "runs": 37,
+    "tries": 39,
+    "cleared": 36,
     "results": {
-     "cleared": 27,
+     "cleared": 36,
      "died": 3
     },
     "deaths": [
@@ -940,12 +982,12 @@
      }
     ],
     "falls": 0,
-    "big_hits": 73,
-    "big_hit_lost": 10420,
+    "big_hits": 79,
+    "big_hit_lost": 11296,
     "blamed": {
-     "254011": 35,
-     "254010": 25,
-     "254012": 12,
+     "254011": 37,
+     "254010": 26,
+     "254012": 15,
      "255002": 1
     },
     "secs_median": 72,
@@ -974,6 +1016,15 @@
      "20261101_183919_burg-upper_kindle-ok-door-ok-chest-1.34m-died-zone6",
      "20261101_192523_burg-upper_door-first-ok-chest-0.84m-no-open-estus-low",
      "20261101_214607_burg-upper_burg-upper_from-bonfire-resin-taken-0.77m-died-zone8-crossbows",
+     "20261101_230106_burg-upper_zone8-hold-check1",
+     "20261101_234903_burg-upper_loop1",
+     "20261102_001903_burg-upper_loop2",
+     "20261102_004046_burg-upper_loop3",
+     "20261102_010036_burg-upper_loop4",
+     "20261102_014223_burg-upper_loop7-zone8-died",
+     "20261102_020649_burg-upper_loop8-zone8-died",
+     "20261102_022918_burg-upper_loop9-zone6-died",
+     "20261102_024657_burg-upper_loop10-cleared",
      "burg-upper-radar-2026-10-06-195804",
      "burg-upper-radar-2026-10-06-201910",
      "burg-upper-radar-2026-10-06g",
@@ -1166,11 +1217,11 @@
     ]
    },
    "runs": {
-    "runs": 24,
-    "tries": 21,
-    "cleared": 14,
+    "runs": 33,
+    "tries": 30,
+    "cleared": 23,
     "results": {
-     "cleared": 14,
+     "cleared": 23,
      "died": 5,
      "left": 2
     },
@@ -1202,14 +1253,14 @@
      }
     ],
     "falls": 0,
-    "big_hits": 42,
-    "big_hit_lost": 7513,
+    "big_hits": 47,
+    "big_hit_lost": 8283,
     "blamed": {
-     "255001": 29,
-     "255000": 9,
+     "255001": 32,
+     "255000": 11,
      "254012": 4
     },
-    "secs_median": 82,
+    "secs_median": 83,
     "files": [
      "20261011_170346_burg-upper_p67fix-zone5-death",
      "20261011_171918_burg-upper_p68fix-zone8-death",
@@ -1230,6 +1281,15 @@
      "20261101_183919_burg-upper_kindle-ok-door-ok-chest-1.34m-died-zone6",
      "20261101_192523_burg-upper_door-first-ok-chest-0.84m-no-open-estus-low",
      "20261101_214607_burg-upper_burg-upper_from-bonfire-resin-taken-0.77m-died-zone8-crossbows",
+     "20261101_230106_burg-upper_zone8-hold-check1",
+     "20261101_234903_burg-upper_loop1",
+     "20261102_001903_burg-upper_loop2",
+     "20261102_004046_burg-upper_loop3",
+     "20261102_010036_burg-upper_loop4",
+     "20261102_014223_burg-upper_loop7-zone8-died",
+     "20261102_020649_burg-upper_loop8-zone8-died",
+     "20261102_022918_burg-upper_loop9-zone6-died",
+     "20261102_024657_burg-upper_loop10-cleared",
      "burg-upper-radar-2026-10-06-195804",
      "burg-upper-radar-2026-10-06-200335",
      "burg-upper-radar-2026-10-06-202244",
@@ -1242,13 +1302,32 @@
     "P-68",
     "P-81",
     "P-100",
-    "P-102"
+    "P-102",
+    "P-110"
    ]
   },
   {
    "n": 6,
    "notes": {
-    "note": "녹화 자리 (37.5,-9.1,-104.8) 밑에 NavMesh 바닥이 없음(상자·턱 위로 보임) → 가장 가까운 바닥 1.1 m 옆으로"
+    "note": "녹화 자리 (37.5,-9.1,-104.8) 밑에 NavMesh 바닥이 없음(상자·턱 위로 보임) → 가장 가까운 바닥 1.1 m 옆으로",
+    "before": [
+     {
+      "barrel": {
+       "trigger": [
+        40.3,
+        -4.4,
+        -114.3
+       ],
+       "back": [
+        36.73,
+        -9.14,
+        -103.96
+       ],
+       "wait": 6.0,
+       "note": "P-105 11-02 024657 화면: 계단 위에서 불붙은 통이 굴러 내려와 −336 (11-01~02 9번 모두 같은 계단). 계단참까지 가서 통을 부르고 모퉁이 뒤 안전 자리로 달려 6 s 기다림 — 촉발 지점은 추정"
+      }
+     }
+    ]
    },
    "terrain": {
     "safe": [
@@ -1351,12 +1430,12 @@
     ]
    },
    "runs": {
-    "runs": 15,
-    "tries": 15,
-    "cleared": 13,
+    "runs": 24,
+    "tries": 24,
+    "cleared": 19,
     "results": {
-     "cleared": 13,
-     "died": 2
+     "cleared": 19,
+     "died": 5
     },
     "deaths": [
      {
@@ -1368,15 +1447,30 @@
       "run": "20261101_183919_burg-upper_kindle-ok-door-ok-chest-1.34m-died-zone6",
       "cause": "hit",
       "by": 255001
+     },
+     {
+      "run": "20261102_004046_burg-upper_loop3",
+      "cause": "hit",
+      "by": 255001
+     },
+     {
+      "run": "20261102_010036_burg-upper_loop4",
+      "cause": "hit",
+      "by": 255001
+     },
+     {
+      "run": "20261102_022918_burg-upper_loop9-zone6-died",
+      "cause": "hit",
+      "by": 255001
      }
     ],
     "falls": 0,
-    "big_hits": 18,
-    "big_hit_lost": 3931,
+    "big_hits": 33,
+    "big_hit_lost": 7735,
     "blamed": {
-     "255001": 16
+     "255001": 24
     },
-    "secs_median": 26,
+    "secs_median": 29,
     "files": [
      "20261011_171918_burg-upper_p68fix-zone8-death",
      "20261011_174753_burg-upper_zones1-8-cleared",
@@ -1390,6 +1484,15 @@
      "20261101_173025_burg-upper_retry-zone4-7-cleared-ladder-loop-died-zone8-tower",
      "20261101_183919_burg-upper_kindle-ok-door-ok-chest-1.34m-died-zone6",
      "20261101_214607_burg-upper_burg-upper_from-bonfire-resin-taken-0.77m-died-zone8-crossbows",
+     "20261101_230106_burg-upper_zone8-hold-check1",
+     "20261101_234903_burg-upper_loop1",
+     "20261102_001903_burg-upper_loop2",
+     "20261102_004046_burg-upper_loop3",
+     "20261102_010036_burg-upper_loop4",
+     "20261102_014223_burg-upper_loop7-zone8-died",
+     "20261102_020649_burg-upper_loop8-zone8-died",
+     "20261102_022918_burg-upper_loop9-zone6-died",
+     "20261102_024657_burg-upper_loop10-cleared",
      "burg-upper-radar-2026-10-06-200335",
      "burg-upper-radar-2026-10-06-202244",
      "burg-upper-radar-2026-10-06k"
@@ -1442,11 +1545,11 @@
     ]
    },
    "runs": {
-    "runs": 13,
-    "tries": 13,
-    "cleared": 13,
+    "runs": 19,
+    "tries": 19,
+    "cleared": 19,
     "results": {
-     "cleared": 13
+     "cleared": 19
     },
     "deaths": [],
     "falls": 0,
@@ -1467,6 +1570,12 @@
      "20261013_011929_burg-upper_burg-upper-clay18-3",
      "20261101_173025_burg-upper_retry-zone4-7-cleared-ladder-loop-died-zone8-tower",
      "20261101_214607_burg-upper_burg-upper_from-bonfire-resin-taken-0.77m-died-zone8-crossbows",
+     "20261101_230106_burg-upper_zone8-hold-check1",
+     "20261101_234903_burg-upper_loop1",
+     "20261102_001903_burg-upper_loop2",
+     "20261102_014223_burg-upper_loop7-zone8-died",
+     "20261102_020649_burg-upper_loop8-zone8-died",
+     "20261102_024657_burg-upper_loop10-cleared",
      "burg-upper-radar-2026-10-06-200335",
      "burg-upper-radar-2026-10-06-202244",
      "burg-upper-radar-2026-10-06k"
@@ -1613,12 +1722,12 @@
     "others": []
    },
    "runs": {
-    "runs": 13,
-    "tries": 13,
-    "cleared": 8,
+    "runs": 20,
+    "tries": 20,
+    "cleared": 13,
     "results": {
-     "died": 4,
-     "cleared": 8,
+     "died": 6,
+     "cleared": 13,
      "fog": 1
     },
     "deaths": [
@@ -1641,15 +1750,25 @@
       "run": "20261101_214607_burg-upper_burg-upper_from-bonfire-resin-taken-0.77m-died-zone8-crossbows",
       "cause": "hit",
       "by": 255002
+     },
+     {
+      "run": "20261102_014223_burg-upper_loop7-zone8-died",
+      "cause": "hit",
+      "by": 255002
+     },
+     {
+      "run": "20261102_020649_burg-upper_loop8-zone8-died",
+      "cause": "hit",
+      "by": 255002
      }
     ],
-    "falls": 0,
-    "big_hits": 22,
-    "big_hit_lost": 3765,
+    "falls": 1,
+    "big_hits": 33,
+    "big_hit_lost": 5494,
     "blamed": {
-     "255002": 22
+     "255002": 32
     },
-    "secs_median": 31,
+    "secs_median": 35,
     "files": [
      "20261011_171918_burg-upper_p68fix-zone8-death",
      "20261011_174753_burg-upper_zones1-8-cleared",
@@ -1662,6 +1781,13 @@
      "20261031_230005_burg-upper",
      "20261101_173025_burg-upper_retry-zone4-7-cleared-ladder-loop-died-zone8-tower",
      "20261101_214607_burg-upper_burg-upper_from-bonfire-resin-taken-0.77m-died-zone8-crossbows",
+     "20261101_230106_burg-upper_zone8-hold-check1",
+     "20261101_231119_burg-upper_zone8-top-pick-stain-fell",
+     "20261101_234903_burg-upper_loop1",
+     "20261102_001903_burg-upper_loop2",
+     "20261102_014223_burg-upper_loop7-zone8-died",
+     "20261102_020649_burg-upper_loop8-zone8-died",
+     "20261102_024657_burg-upper_loop10-cleared",
      "burg-upper-radar-2026-10-06-200729",
      "burg-upper-radar-2026-10-06-202244"
     ]
@@ -1669,7 +1795,9 @@
    "problems": [
     "P-47",
     "P-96",
-    "P-103"
+    "P-103",
+    "P-112",
+    "P-113"
    ]
   }
  ]

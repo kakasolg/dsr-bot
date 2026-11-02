@@ -81,7 +81,9 @@ FB_MAX_THROWS = 2
 UPPER_MOVED_M = 0.5      # a target counts as awake once it has an anim and is this far off where it stood
 UPPER_CLOSE_R = 3.0      # running in: stop this close even if it hasn't woken…
 UPPER_NOTICE_S = 2.0     # …and stand guarding this long for it to notice, then run back anyway
-UPPER_COME_R = 8.0       # a target already this close to the safe spot (or already moving) isn't run at — wait for it there
+SPRINT_BACK_M = 1.5      # _sprint(through): this much farther from the goal than the closest it got → stop and re-plan (P-113)
+SPRINT_REPLANS = 3
+UPPER_COME_R = 8.0      # a target already this close to the safe spot (or already moving) isn't run at — wait for it there
 UPPER_NEAR_SAFE_R = 4.0  # within this of the safe spot, don't turn our back to run there — fight (10-06d died 2–3 m from it)
 UPPER_TRIES = 4          # same target until dead, at most this many lure + fight rounds (a round may go to a foe that came along)
 UPPER_ENCOUNTER_R = 10.0 # running in: any awake, moving foe on our level this close → turn back to the safe spot
@@ -119,6 +121,8 @@ CHEST_NUDGE_S = 0.2
 CHEST_WINDOW_S = 2.0       # wait this long for the item window list before the closing A
 CHEST_PRESSES = 3        # A (lid) → A (take); a third only if the flag still reads shut
 CHEST_PRESS_S = 3.0
+CHEST_TAP_S = 0.15       # …hold A this long, then release it ourselves (Pad.interact holds 0.1 s)
+CHEST_ROUNDS = 2         # 11-01 fresh-save runs 183919·192523·234903: same spot/heading as the 214607 success, A ×3 nothing → guard off, face, again
 
 
 def _route():
@@ -439,8 +443,12 @@ class Missions:
                     left.append(f"#{i} {npc} {r}")
             if n not in LOOT_SKIP_ZONES:                   # still inside the zone: a pickup fight keeps its home · tether
                 self._loot(nb, f"구역{n}")
-            for step in z.get("after", []):
-                if "chest" in step and self._chest(step["chest"], nb, f"구역{n}") == "dead":
+            # 11-02 P-105: 상자 단계(구역 5)가 생긴 뒤 구역 6 255001이 계단 위에서 화염병 4번 — 예전(10-11~13, 6/6 피해 0)처럼 구역 6을
+            #  먼저 하고 상자는 그 뒤에 (take_in). 문은 위 door_first 그대로 구역 5에서 연다
+            chests = [st["chest"] for zz in UPPER["zones"] for st in zz.get("after", [])
+                      if "chest" in st and int(st["chest"].get("take_in", zz["n"])) == n]
+            for st in chests:
+                if self._chest(st, nb, f"구역{n}") == "dead":
                     return "died"
         finally:
             self.f.home = home0
@@ -579,13 +587,22 @@ class Missions:
         s = self.mv.snap(5.0)
         if s is not None:
             self.log(f"   {tag} 상자: 밀기 뒤 상자까지 {M.horiz(s.player, NS(x=box[0], z=box[2])):.2f} m")
-        self._face_pulses(box)
         n0 = tm.goods_count(item) or 0
-        for k in range(CHEST_PRESSES):
-            self.mv.pad.interact()
-            time.sleep(CHEST_PRESS_S)
+        for rnd in range(CHEST_ROUNDS):
+            # 11-01 234903: 잘 된 214607과 같은 자리·방향인데 A 세 번에 아무 일 없음 — 그때 화면을 못 봄.
+            #  가드 유지(LB)를 풀고 다시 돌아서 누르고, 누를 때마다 안내창 값·화면을 남겨 다음에 원인을 본다
+            self.mv.pad.unkeep()
+            self.mv.pad.neutral()
+            self._face_pulses(box)
+            for k in range(CHEST_PRESSES):
+                self._chest_look(tag, f"{rnd + 1}-{k + 1}")
+                self._press_a()
+                time.sleep(CHEST_PRESS_S)
+                if tm.event_flag(flag) is True:
+                    break
             if tm.event_flag(flag) is True:
                 break
+            self.log(f"   {tag} 상자: {rnd + 1}회차 A {CHEST_PRESSES}번 — 플래그 그대로")
         got = tm.event_flag(flag) is True
         if got:
             import drops
@@ -593,7 +610,7 @@ class Missions:
             t_end = time.time() + CHEST_WINDOW_S
             while not drops.itemget_nodes(tm) and time.time() < t_end:
                 time.sleep(0.1)
-            self.mv.pad.interact()                         # close the item window (pressed even if the list never read)
+            self._press_a()                                # close the item window (pressed even if the list never read)
             time.sleep(1.0)
         n1 = tm.goods_count(item) or 0
         quick = None
@@ -607,6 +624,25 @@ class Missions:
         self.f.events("chest", tag=tag, item=item, before=n0, after=n1, flag=tm.event_flag(flag), quick=quick)
         return "taken" if got else "not taken"
 
+    def _press_a(self) -> None:
+        """A tap released here — tap only schedules the release and no fight loop runs release_due at a door or chest.
+        11-02 002536: A 1 opened the lid, the A stayed down, A 2·3 'Pillage' never got a fresh press (P-110)."""
+        self.mv.pad.interact()
+        time.sleep(CHEST_TAP_S)
+        self.mv.pad.release_due()
+
+    def _chest_look(self, tag: str, k: str) -> None:
+        """Before an A at the chest: log the bottom prompt box reading and keep a screenshot in data/runs (best effort)."""
+        try:
+            import screen_prompt
+            import shot
+            px = screen_prompt.prompt_px()
+            path = Path(__file__).resolve().parent.parent / "data" / "runs" / f"chest_{time.strftime('%Y%m%d_%H%M%S')}_{k}.png"
+            shot.shot(path)
+            self.log(f"   {tag} 상자: A {k} 전 안내창 {px} ({'있음' if px >= 850 else '없음'}) · {path.name}")
+        except Exception as e:                               # no window / no display — the press goes ahead anyway
+            self.log(f"   {tag} 상자: A {k} 전 화면 못 봄 ({e})")
+
     def _open_door(self, st: dict, nb, tag: str) -> str:
         """A on st's door only while its state flag reads shut (A on an open door shuts it). → 'open' | 'dead' | 'door shut'"""
         tm = self.mv.tm
@@ -619,7 +655,7 @@ class Missions:
                 return "dead"
             self.f._settle(front, tol=0.4)
             self._face_pulses(door)
-            self.mv.pad.interact()
+            self._press_a()
             time.sleep(CHEST_DOOR_S)
             self.log(f"   {tag} 문: A ({k + 1}/{CHEST_DOOR_TRIES}) → 플래그 {dflag} = {tm.event_flag(dflag)}")
         return "open" if tm.event_flag(dflag) is True else "door shut"
@@ -816,6 +852,38 @@ class Missions:
         self.log(f"   {tag}: {why} — 달려서 안전 자리로 {back}")
         return "died" if back == "dead" else "here"
 
+    def _barrel(self, st: dict, nb, tag: str) -> str:
+        """
+        ── 구역 6 계단 불타는 통 (P-105, 11-02 024657 화면 캡처) ─────────────────────────────────────
+         · −336(애니 2026 넘어짐)은 계단 위에서 굴러 내려오는 불붙은 통 — 11-01~02 구역 6 9번 모두 같은 계단에서 맞음.
+           계단은 난간과 벽 사이로 좁아 옆으로 비킬 데가 없음
+         · 통은 계단참 (~40, −4.4)을 지난 뒤 ~1.6 s에 닿음 (010036: 41.3 → 43.2에서, 022918: 39.9 → 47.3에서) — 추정, 촉발 조건 미측정
+         · trigger까지 걸어가 통을 부르고, 곧바로 back(모퉁이 뒤 안전 자리)으로 달려 wait 초 가드 들고 기다린 뒤 원래 순서로
+        """
+        trig, back, wait = tuple(st["trigger"]), tuple(st["back"]), float(st.get("wait", 6.0))
+        s = self.mv.snap(5.0)
+        hp0 = s.player.hp if s is not None else None
+        r = self.f.walk_to(trig, nb, f"{tag} 통 부르기")
+        if r == "dead" or not self.f.alive():
+            return "dead"
+        r = self._sprint(back, nb, None, through=True)
+        if r == "dead" or not self.f.alive():
+            return "dead"
+        guard = getattr(self.mv.pad, "guard", lambda on: None)
+        guard(True)
+        try:
+            t0 = time.time()
+            while time.time() - t0 < wait:
+                if not self.f.alive():
+                    return "dead"
+                time.sleep(0.2)
+        finally:
+            guard(False)
+        s = self.mv.snap(5.0)
+        hp1 = s.player.hp if s is not None else None
+        self.log(f"   {tag}: 통 부르고 물러나 {wait:.0f} s 기다림 — HP {hp0} → {hp1}")
+        return "ok"
+
     def _past_before(self, z: dict) -> float | None:
         """The zone's before steps end with a ladder and we already stand at its top height → our y, else None."""
         ladders = [st["ladder"] for st in z.get("before", []) if "ladder" in st]
@@ -834,6 +902,8 @@ class Missions:
                 safe spot / tether from here on (P-47, [MoKa] 10-06: "구르기를 2번 해서 석궁병하고 간격을 벌려야 해")"""
         if "roll" in step:
             return self._roll_away(step["roll"], nb, tag)
+        if "barrel" in step:
+            return self._barrel(step["barrel"], nb, tag)
         if "fog" in step:
             st = step["fog"]
             front, beyond = tuple(st["front"]), tuple(st["beyond"])
@@ -1080,24 +1150,39 @@ class Missions:
         (reflex.threat_now — the same check Field's walks stop on) → 'threat', and the caller fights from where it stands.
         through: don't stop for threats (bolts from range) — only stop / arrival / death end it.
         → 'arrived' | 'stopped' | 'threat' | 'dead' | 'no_path' | …"""
-        s = self.mv.snap(5.0)
-        if s is None:
-            return "no_snapshot"
-        path = nb.find_path((s.player.x, s.player.y, s.player.z), tuple(goal))
-        if not path:
-            return "no_path"
         # P-67: 돌아가는 달리기가 적 셋에게 막혀 12 s 맞기만 함 — 멈춤 조건이 '도착'뿐이었다. 걷기와 같은 피격 검사를 거친다
-        why = []
+        # ── through 달리기가 거꾸로 감 (P-113, 11-02 020649 · 11-01 230106) ─────────────────────────────
+        #  사다리 꼭대기에서 맞은 뒤 달리기가 구르기(900→1790)로 턱 아래로 떨어져 경로점을 놓침 → 길 따라가기가 놓친 점으로
+        #  되돌아가 석궁병 쪽으로 3 m 걸어감, 피격에 안 멈추니 싸움 없이 −557. 목표에서 SPRINT_BACK_M 넘게 멀어지면 멈추고
+        #  지금 자리에서 길을 다시 찾음 (최대 SPRINT_REPLANS번)
+        for _ in range(SPRINT_REPLANS + 1 if through else 1):
+            s = self.mv.snap(5.0)
+            if s is None:
+                return "no_snapshot"
+            path = nb.find_path((s.player.x, s.player.y, s.player.z), tuple(goal))
+            if not path:
+                return "no_path"
+            why = []
+            best = [math.hypot(s.player.x - goal[0], s.player.z - goal[2])]
 
-        def stop2(sn) -> bool:
-            if stop is not None and stop(sn):
-                return True
-            if not through and self.f.reflex.threat_now(sn):
-                why.append("threat")
-                return True
-            return False
-        r = self.mv.walk_path(nav.trim_path(path[1:], tuple(goal)), nb, "sprint", stop=stop2)
-        return "threat" if r == "stopped" and why else r
+            def stop2(sn) -> bool:
+                if stop is not None and stop(sn):
+                    return True
+                if not through and self.f.reflex.threat_now(sn):
+                    why.append("threat")
+                    return True
+                if through:
+                    d = math.hypot(sn.player.x - goal[0], sn.player.z - goal[2])
+                    best[0] = min(best[0], d)
+                    if d > best[0] + SPRINT_BACK_M:
+                        why.append("back")
+                        return True
+                return False
+            r = self.mv.walk_path(nav.trim_path(path[1:], tuple(goal)), nb, "sprint", stop=stop2)
+            if not (r == "stopped" and why == ["back"]):
+                break
+            self.log(f"   달리기: 목표에서 {SPRINT_BACK_M} m 넘게 멀어짐 — 지금 자리에서 길 다시 찾음")
+        return "threat" if r == "stopped" and why and why[0] == "threat" else r
 
     UPPER_SEGMENTS = {n: f"zone{n}" for n in range(1, len(UPPER["zones"]) + 1)}
 

@@ -99,7 +99,12 @@ BY_NPC: dict[int, Foe] = {
     # As SHIELD, wait_far said "not approaching" and just blocked for 8 minutes. The fire motion number doesn't change, so anim changes don't reveal it.
     # [MoKa] 2026-10-11: "석궁병은 방패가 없는데 발차기 할 필요가 없음" — 구역 8에서 발차기+약공 콤보(2.5 s) 중 −228·−156 (P-66 다시 나옴).
     # 방패병(kind shield · kick_when_idle)에서 뺌: 발차기 없이 약공, 방패 전제 판단(먼저 치기 금지·방패병 양손 전환)도 안 씀
+    # ── 3004는 시작 2.1 s 뒤에 닿음 (P-112, 11-02 014223 구역 8 사망) ──────────────────────────────
+    #  블랙박스 9개 중 8개가 2.08~2.11 s에 −225~−384 (10-06 202244 · 10-11 171918 ×2 · 174753 · 10-13 011929 · 11-01 173025 ·
+    #  11-02 014223). windup 없을 땐 1.6 s(SWING_S)에 '끝'으로 봐서 014223은 1.94 s에 에스트용 백스텝으로 방패를 내리고 −330 → 사망.
+    #  255041(P-89)과 같은 값: 1.2 s부터 닿을 때까지 막음. early_kick은 off(방패 없음, 발차기 안 함)
     255002: Foe("석궁 병사", kind="other", ranged=True, unblockable=(3009,), punish_hits=1, stagger_s=1.35,
+                windup=(3004,), windup_act_s=1.2, windup_land_s=2.1,
                 note="3000/3001 = 석궁 발사. 기다리지 말고 붙어 약공 — 방패 없음, 발차기 안 함 ([MoKa] 2026-10-11). "
                      "뒤잡기 안 됨 — 벽에 붙어 서 있음 (사용자 2026-09-28)"),
     # 254013·254014 (next to the Undead Burg bonfire, HP150): not shield soldiers but bodiless phantoms — user "there's nothing there, why is it swinging"

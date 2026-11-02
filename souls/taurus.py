@@ -482,7 +482,9 @@ class Taurus:
             return
         b = self.boss(s)
         clear = b is None or M.horiz(s.player, b) > PLUNGE_R + 1.0
-        if clear and s.player.hp < s.player.max_hp * TOP_HEAL and self.mv.estus_left() > 0:
+        # 11-02 002807: 꼭대기에서 HP 225/698(32 %)인데 보스가 사다리 밑 4.3 m라 안 마시고 낙하 → 보스 HP 9 남기고 착지 뒤 3001 −225에 사망.
+        #  보스는 탑 위에 손이 안 닿음 — 낮으면 낙하 기회를 하나 놓치더라도 먼저 마신다
+        if s.player.hp < s.player.max_hp * TOP_HEAL and self.mv.estus_left() > 0:
             r = self.mv.drink(lambda sn: True)
             self.log(f"   타우로스: 꼭대기에서 에스트 {r}")
             self.events("estus", **r)

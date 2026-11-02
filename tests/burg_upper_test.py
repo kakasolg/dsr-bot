@@ -726,6 +726,48 @@ m.mv.snap = lambda r=5.0: NS(player=pl, hostile=lambda rr: close)
 m._firebomb_group("t")
 check("--throw: nearest already inside 4 m (1.5 m) → no firebomb (it would hit us too)", thrown == [])
 
+# ── P-105: zone 6 burning barrel — walk to the landing to set it off, run back round the corner, wait ──
+z6 = zones[5]
+bar = z6["before"][0]["barrel"]
+check("zone 6: barrel step first; trigger on the floor, safe spot reachable from it",
+      nm.on_mesh(*bar["trigger"], dy=1.5) and len(nm.find_path(tuple(bar["trigger"]), tuple(bar["back"]))) >= 2
+      and tuple(bar["back"]) == tuple(z6["safe"]))
+seq = []
+m = MS.Missions.__new__(MS.Missions)
+m.log = lambda x: seq.append(("log", x))
+m.f = NS(alive=lambda: True, walk_to=lambda goal, nb_, tag: seq.append(("walk", tuple(goal))) or "arrived")
+m.mv = NS(snap=lambda r=5.0: NS(player=NS(hp=500)), pad=NS(guard=lambda on: seq.append(("guard", on))))
+m._sprint = lambda goal, nb_, stop, through=False: seq.append(("sprint", tuple(goal), through)) or "arrived"
+r = m._before({"barrel": dict(bar, wait=0.0)}, None, "t")
+check(f"zone 6 barrel: walk to trigger → sprint back (through) → guard wait ({r}, {[x[0] for x in seq]})",
+      r == "ok" and [x[0] for x in seq] == ["walk", "sprint", "guard", "guard", "log"]
+      and seq[0][1] == tuple(bar["trigger"]) and seq[1][1:] == (tuple(bar["back"]), True))
+
+# ── P-113: through sprint that turns back toward the ladder is stopped and re-planned ──
+f9 = tuple(z8["safe"])
+pos = {"p": (50.1, 24.8, -116.8)}
+plans, logs = [], []
+def walk_back_once(path, nb_, mode, stop=None):
+    # 020649: fell off the ledge at 56.9, then walked back west toward the crossbowmen
+    track = [(52.5, 24.5, -116.8), (55.3, 23.7, -117.6), (56.9, 23.7, -118.0), (55.0, 23.7, -118.0), (54.2, 23.7, -118.3)] \
+        if len(plans) == 1 else [(58.0, 23.7, -117.5), (60.5, 23.7, -117.0), f9]
+    for q in track:
+        pos["p"] = q
+        if stop(NS(player=NS(x=q[0], y=q[1], z=q[2]))):
+            return "stopped"
+    return "arrived"
+class NbRec:
+    def find_path(self, a, b):
+        plans.append(a)
+        return nm.find_path(a, b)
+m = MS.Missions.__new__(MS.Missions)
+m.log = logs.append
+m.f = NS(reflex=NS(threat_now=lambda sn: True))           # through ignores threats
+m.mv = NS(snap=lambda r=5.0: NS(player=NS(x=pos["p"][0], y=pos["p"][1], z=pos["p"][2])), walk_path=walk_back_once)
+r = m._sprint(f9, NbRec(), None, through=True)
+check(f"P-113: turning back 1.5 m+ → stop, re-plan from (55.0,…), arrive ({r}, {len(plans)} plans, {[tuple(round(v, 1) for v in q) for q in plans]})",
+      r == "arrived" and len(plans) == 2 and abs(plans[1][0] - 55.0) < 0.1 and any("길 다시" in x for x in logs))
+
 
 print(f"\n{'all ok' if not fails else f'{fails} FAILED'}")
 sys.exit(1 if fails else 0)

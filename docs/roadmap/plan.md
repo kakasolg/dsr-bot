@@ -566,6 +566,11 @@ The items are still open in ROADMAP.md (one line each); their full text as it st
   - 2026-10-12 [win] **맞교환 고침** `4d371bf`: `swing_over`가 막을 수 없는 3009를 나이로 안 끝냄, 화염병 망자 3008 = windup(1.7 s에 떨어짐); expect 장면 3개(옛 코드 FAIL·지금 pass), golden 그대로. 에스트 변경은 뺌 — '10 m 안 나를 보는 적이면 안 마심'은 지난 98번 중 30번을 막고 막은 것 중 맞은 건 1번. 런 `tradefix1`(구역1–4): **구역 2-1에서 사망 1번**(P-80: 휘청 반격이 SP 기다리다 0.9 s 늦게 나감 — 오늘 고친 것과 무관), 핏자국 소울 2274 → 회수 가서 구역 1–4 다시 cleared, 회수는 `foes_near`로 못 함. 2.5 m 안 칼 닿음 9번: 막음 22 %, LB 뗀 채 맞음 22 %(2번). 가드 유지 직접 듦 7번. 공격 15번 정렬 60 %, 맞힘 정렬 8/9 · 어긋남 5/6.
   - 2026-10-13 [win] **휘청 늦음** `93dce7b` (P-80). 런 `staggerfix1`: 구역 1 계단 옆 낙사(P-70 다시, 고친 것과 무관). 런 `staggerfix2`: 구역 1–4 cleared, 깨끗, 최저 HP 77 %, 큰 피격 1번 −118, 가드 유지 직접 6번, 255001 같은 장면 0 피해 처치. 공격 12번 정렬 58 %, 맞힘 정렬 7/7 · 어긋남 3/5 (어긋남 = 카메라만). 싸움 중 몸 30° 안 83 %.
 - `taurus` (moved 2026-10-12): [~] [win] Taurus: `run.py taurus` — plunge loop (MoKa 10-12). Full runs bonfire → Taurus killed 2× (`005650`, `025057`); guide + data: `docs/boss-taurus.md`
+  - 2026-11-02 [win] **불의 제전 세이브 체인 (MoKa 11-01 "소머리데몬까지 한번에 잡을 때까지")**: 세이브 e2da9f35 → `clear-ramp` → `burg-bonfire --seg 2-6` →
+    `burg-upper --seg 1-8` → `savepoint.py reload` → `taurus`, 모두 `--no-lure --level-up VIT --kindle --radar`. 10번 시도: 1 송진 0 멈춤 · 2 보스 HP 9 사망(P-111) ·
+    3·4·9 구역 6 사망(P-105 통) · 5·6 구역 2 사망(P-106) · 7·8 구역 8 사망(P-112·P-113) · **10 타우로스 처치** (`025549`, 낙하 3번 1215→714→213→0, 최저 HP 39 %, 죽음 없음).
+    7~10은 clear-ramp가 'left …?'로 끝나 복원 없이 burg-bonfire부터 이어 감(캐릭터 살아 있음). 10회차에도 구역 6 통 −336·255001 −216을 맞았고 꼭대기 에스트 2번 끊김 —
+    한 번의 처치, 반복 성공 아님. 샘플 `data/samples/20261102_0*_loop*`
 - `fall-death-policy` (moved 2026-10-12): [~] [win] **Fall / death policy (MoKa 10-12)** — 10-12 3 full runs: (1) · (2) seen, findings in Relay; (3) · (4) next runs. P-71 / P-72
 - `boss-two-hand-dodge` (moved 2026-10-12): [ ] [cloud]+[win] Boss fight default = two-handed + dodging (9-30 principle); Taurus is the first case (the general boss module is v2.0)
 - `firebomb-hollow-close-in` (moved 2026-10-12): [ ] [cloud] Firebomb hollow "close in fast" rule — unless the way there is a fall-risk zone (ledge 254012 is ignored) → check with `duel_golden_test`

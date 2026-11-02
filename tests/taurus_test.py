@@ -64,6 +64,22 @@ def make(snaps, alive=True):
 t, mv, pad = make([snap(boss(x=45.0, y=15.8, z=-119.0, anim=3001), me=(47.0, 15.9, -119.6))])
 check("plunge wait: already down from the top → 'off_top' at once (fight next)", t._plunge() == "off_top")
 
+# 11-02 002807: on the top at 32 % HP with the boss 4.3 m below the ladder → drink first (it plunged and died with the boss at HP 9)
+t, mv, pad = make([snap(boss(x=46.0, y=15.8, z=-118.0, anim=-1), me=(49.1, 24.7, -117.4), hp=225)])
+drinks = []
+mv.drink = lambda ok: drinks.append(1) or {"ok": True}
+t.tm = NS(goods_count=lambda i: 0)
+t.events = lambda *a, **k: None
+t._on_top()
+check("top: HP 32 % with the boss right below → Estus anyway", drinks == [1])
+t, mv, pad = make([snap(boss(x=46.0, y=15.8, z=-118.0, anim=-1), me=(49.1, 24.7, -117.4), hp=600)])
+drinks = []
+mv.drink = lambda ok: drinks.append(1) or {"ok": True}
+t.tm = NS(goods_count=lambda i: 0)
+t.events = lambda *a, **k: None
+t._on_top()
+check("top: HP 81 % → no Estus", drinks == [])
+
 hits = []
 
 

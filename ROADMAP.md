@@ -31,7 +31,7 @@ needing the tick loop, route data, settings object or WorldState.
 
 `run.py burg-upper` = MoKa's safe-spot zones 1–8 (`data/burg-upper-map.json`); test save `backup-20261006-155749-…-before-taurus`.
 
-- [~] taurus | MoKa | verify | 11-01 taurus-start: 10 tries, 5 kills (boss HP 0 read); ladder/roll fixes uncommitted (P-97), timed dodge offline only → next: MoKa review, commit | docs/boss-taurus.md · plan:taurus · P-97
+- [~] taurus | MoKa | verify | 11-02 Firelink-save chain: 10 tries, Taurus killed in try 10 (no deaths); fixes uncommitted → next: MoKa review, commit | docs/boss-taurus.md · plan:taurus 
 - [~] fall-death-policy | win | verify | no fall quit-out + after-death pickup: (1)(2) seen in 3 runs; (3) death record, (4) alignment next runs | P-71 · P-72 · plan:fall-death-policy
 - [ ] boss-two-hand-dodge | cloud+win | todo | boss default = two-handed + dodging (9-30); Taurus first, general boss module is v2.0 | plan:boss-two-hand-dodge
 - [~] stage-analysis | MoKa | decide | burg-upper zones 1–8 analysed (auto + hand draft); MoKa: fix intent / response, zone 4 safe spot 0.5 m from a drop | docs/stages/burg-upper.md · plan:stage-analysis
@@ -201,10 +201,15 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 102 | `burg-upper` zone 5 (11-01 173025): unknown-fog A at the ladder foot grabbed the ladder, 87–196 s looping | fix built (no fog A ≤2.5 m from NavMesh ladder faces); offline tests only |
 | 103 | `burg-upper` zone 8 tower top (11-01 173025, again 214607): 255002 hits, low-HP retreat in the open, no estus (thrower awake) → died; 4/12 zone-8 runs died | game 1 run (11-01 230106): zone 8 cleared, no death, both 255002 killed at/near F9#8 (0 dmg taken); detour after the ladder took both bolts (−160); 20 s hold untested; more runs + step logs next |
 | 104 | Resin chest: scratch script pressed 'door A' 13 m from the door (picked a firebomb), stuck at the shut door; bot 'approach' can't open doors | game 183919: door opened (1 A), chest missed (stood 1.34 m, nudges didn't move) → next fix, MoKa |
-| 105 | `burg-upper` zone 6 (11-01 183919): safe spot NOT REACHED ×3, −336 on the stairs (46.6,−0.7,−113.3) with no attacker anim, then 255001 → died | open (analysis) |
+| 105 | `burg-upper` zone 6 (11-01 183919): safe spot NOT REACHED ×3, −336 on the stairs (46.6,−0.7,−113.3) with no attacker anim, then 255001 → died | open → cause seen on screen (11-02 024657): a burning barrel rolls down the stairs (9/9 runs, −336); barrel step built (go to the landing, run back round the corner, wait 6 s), offline only; 024657 survived it and cleared |
 | 106 | `burg-upper` zone 2-1 (11-01 214135, from the Burg bonfire): started at HP 81 %, 255001 + 254011 together, estus refused 8× (foe close), retreats ×3 → died | open — same family as P-45/P-74/P-98 |
 | 107 | Item-get window left open after the resin chest (11-01 214607): close-A skipped when the window list read empty | fix built (wait ≤ 2 s, A always), offline only |
 | 108 | `burg-upper --seg 8` started on the tower top (11-01 231119): fog step misread 'before the wall' (3D distance) → walked off the ladder top, 9 m fall −110; stain got | fix built (skip fog/ladder/top-up at ladder-top height, slack 1.5 m), offline tests only; game check next |
+| 109 | `taurus` started on the tower top (11-01 233535): fog step walked off the ladder hole (9 m, −110, same as P-108 but taurus.py's own fog call), no estus (85 % > PRE_HEAL); 1 plunge 1215→714 then 3012/4100/3001 hits → died | open → MoKa: fix taurus start from tower top, or run it only before the fog |
+| 110 | Zone 5 resin chest not taken on fresh Firelink-save chains (183919, 192523, 234903): same spot/heading as the 214607 success, A ×3 → nothing; taurus then stops "resin 0" | open → cause: tap A never released outside fight loops (lid opened, Pillage A ignored; 2nd round after neutral took it 11-02 001833); fix built (release each A), offline only |
+| 111 | Taurus (11-02 002807): on the top at 32 % HP with the boss below the ladder → no Estus, plunged (510→9), hit by 3001 while rolling after landing → died at boss HP 9 | open → 11-02 025549 Taurus killed (plunges 2–3), but both top drinks ended '끊김' at HP 271·329 — drink attempted, not taken; cause not analysed |
+| 112 | `burg-upper` zone 8 top (11-02 014223): crossbowman 255002 3004 called over at 1.6 s → Estus backstep dropped the shield at 1.94 s → −330 at 2.11 s, died at 47 % | open → fix built; 11-02 022918 blocked 3004 ×20 for 0 in zone 2, 024657 zone 8 cleared (hits were 3005/3003); the 3004-backstep case not seen again |
+| 113 | `burg-upper` zone 8 (11-02 020649): through-sprint from the ladder top fell off the ledge after a hit, then walked back west into the crossbowmen with no fight → −557, died (same turn-back in 11-01 230106) | open → fix built, offline only; 11-02 024657 zone 8: no turn-back, path not exercised |
 
 ## 5. Relay — [cloud] ↔ board
 
