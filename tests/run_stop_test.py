@@ -29,7 +29,7 @@ import env
 import navmesh
 import run
 import track
-from souls import camera, field, missions, moves, props, watch, weapons
+from souls import camera, field, guardkeep, missions, moves, props, watch, weapons
 
 TRACE: list = []
 
@@ -85,6 +85,13 @@ class FakeCam:
     def on_attack(self, **row): pass
 
 
+class FakeGuard:
+    def __init__(self, *a, **k): pass
+    def start(self): return self
+    def stop(self): TRACE.append("gk.stop")
+    def stats(self): return "gk"
+
+
 class FakeLock:
     def acquire(self): return True
     def release(self): TRACE.append("lock.release")
@@ -132,6 +139,7 @@ def install(tmp: Path) -> None:
     blackbox.BlackBox = FakeBox
     field.Field = lambda *a, **k: types.SimpleNamespace(alive=lambda: True, wait_respawn=lambda t: True)
     camera.CamFollow = FakeCam
+    guardkeep.GuardKeep = FakeGuard
     missions.Missions = FakeMissions
     botlock.BotLock = FakeLock
 
@@ -179,6 +187,10 @@ def main() -> None:
     check("Ctrl+C: 퀵 종료(fire) 안 부름", not any(isinstance(x, tuple) and x[0] == "fire" for x in TRACE))
     check("Ctrl+C: 정리 중 퀵 종료·턱 되돌림 꺼짐", FakeEsc.last.quit_ok is False and FakeEsc.last.nudge_ok is False)
     check("Ctrl+C: 카메라 따라가기를 정리 대기 전에 멈춤", "cam.stop" in after("mission")[:3])
+    # 가드 유지가 살아 있으면 정리 대기(최대 40 s + 30 s) 동안 휘두르는 적마다 LB를 다시 든다 — 멈춘 뒤 neutral 한 번 더
+    a_ = after("mission")
+    check("Ctrl+C: 가드 유지를 정리 대기 전에 멈추고 그 뒤 neutral",
+          "gk.stop" in a_[:4] and "neutral" in a_[a_.index("gk.stop"):][:2] if "gk.stop" in a_ else False)
     check("Ctrl+C: 마지막 패드 호출은 neutral, 잠금 풀기 전", final_order_ok())
     events = [json.loads(l) for f in (tmp / "data" / "runs").glob("*_merchant.jsonl") for l in f.read_text(encoding="utf-8").splitlines()]
     check("Ctrl+C: user_stop 사건 기록", any(ev.get("ev") == "user_stop" for ev in events))
