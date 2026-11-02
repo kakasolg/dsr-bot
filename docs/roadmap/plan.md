@@ -571,6 +571,12 @@ The items are still open in ROADMAP.md (one line each); their full text as it st
     3·4·9 구역 6 사망(P-105 통) · 5·6 구역 2 사망(P-106) · 7·8 구역 8 사망(P-112·P-113) · **10 타우로스 처치** (`025549`, 낙하 3번 1215→714→213→0, 최저 HP 39 %, 죽음 없음).
     7~10은 clear-ramp가 'left …?'로 끝나 복원 없이 burg-bonfire부터 이어 감(캐릭터 살아 있음). 10회차에도 구역 6 통 −336·255001 −216을 맞았고 꼭대기 에스트 2번 끊김 —
     한 번의 처치, 반복 성공 아님. 샘플 `data/samples/20261102_0*_loop*`
+  - 2026-11-02 [win] **try 11–20 — 망자 상인 나이프 ([MoKa] "망자상인 한테 가서 투척 나이프를 구입 해봐")**: `chain3` = chain2 + `burg-bonfire --buy 290:25`
+    + `burg-upper --throw`. **try 20 (053956 → 055642): 사망 0, 타우로스 처치** — 상점 290 ×25 (퀵 슬롯 2) → VIT 레벨업 → burg-upper 1–8 cleared
+    (구역 4 나이프 254010 lured, 구역 6 기다림 중 255001 3.4 m → 끝, 송진 상자 0→3) → 낙하 1번 1215 → 714 (내 HP 698) → 다리에서 약공 4번 6 s 처치,
+    받은 피해 0, 소울 4500 (처치 확인: 소울 +~3000). 두 대 기준 에스트(P-118)는 이번엔 맞지 않아 안 거침.
+    try 11–19 사망 9: 마을 4 (#2 ×2 · #4 · #6, 상점 전) · 경사로 1 · burg-upper 구역 2 ×2 (나이프 안 씀 구역) · 구역 7 1 (P-115) · 타우로스 1 (P-118, 보스 ~161).
+    상점: try 12 not_facing(P-114) → 고친 뒤 15·16·17·20 ok 4/4. 나이프: 구역 1·2에서 0/5 (P-117) → [MoKa] "황금송진 있는 문 앞에 병사들 있는데 부터" → 구역 4부터, 254010 lured 2/2.
 - `fall-death-policy` (moved 2026-10-12): [~] [win] **Fall / death policy (MoKa 10-12)** — 10-12 3 full runs: (1) · (2) seen, findings in Relay; (3) · (4) next runs. P-71 / P-72
 - `boss-two-hand-dodge` (moved 2026-10-12): [ ] [cloud]+[win] Boss fight default = two-handed + dodging (9-30 principle); Taurus is the first case (the general boss module is v2.0)
 - `firebomb-hollow-close-in` (moved 2026-10-12): [ ] [cloud] Firebomb hollow "close in fast" rule — unless the way there is a fall-risk zone (ledge 254012 is ignored) → check with `duel_golden_test`

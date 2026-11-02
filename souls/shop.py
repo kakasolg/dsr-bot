@@ -33,12 +33,14 @@ A_, B_, UP, DOWN, RIGHT = (B.XUSB_GAMEPAD_A, B.XUSB_GAMEPAD_B, B.XUSB_GAMEPAD_DP
                            B.XUSB_GAMEPAD_DPAD_RIGHT)
 
 # The Undead Merchant (male) in the Undead Burg — fixed list (docs/shop-undead-merchant.md 06): goods id → (row, price)
-UNDEAD_MERCHANT = {"npc": 251001, "pos": (-38.02, -19.80, -66.50), "name": "망자 상인",
+# stand: places.py "상인" — 1.74 m from him, outside the boxes he sits between
+UNDEAD_MERCHANT = {"npc": 251001, "pos": (-38.02, -19.80, -66.50), "name": "망자 상인", "stand": (-39.17, -19.8, -67.81),
                    "rows": {280: (1, 500), M.ITEM_KNIFE: (2, 10), M.ITEM_FIREBOMB: (3, 50)}}   # row 4 Lloyd's Talisman 500 (id unrecorded)
 
 TALK_R = 1.7          # stand this close (record 03: the prompt showed at 1.7 m facing him, not at 1.2 m facing away)
 TALK_DEG = 12.0       # … facing him this well
 APPROACH_S = 6.0
+STAND_R = 0.5         # this close to merchant["stand"] counts as there
 LINE_S = 2.5          # a dialogue line this long with no menu → A to advance it (greeting: 1–4 lines, [win] check 1)
 LINES_MAX = 8
 OPEN_S = 2.0          # A on Purchase Item → the list shows within this
@@ -204,12 +206,16 @@ class Shop:
         c = self.find(s)
         if c is None:
             return "not_found"
+        # ── 상자 사이에 앉은 상인 ([win] 11-02 try 12) ──────────────────────────────
+        #  그의 몸 중심으로 걸으면 상자에 막혀 3.7 m에서 timeout × 4 → not_facing. 기록된 서는 자리(1.74 m)로 간다
+        stand = self.m.get("stand")
+        goal = stand or (c.x, c.y, c.z)
         d = M.horiz(s.player, c)
-        if d > 4.0:
+        far = math.hypot(s.player.x - goal[0], s.player.z - goal[2]) > STAND_R if stand else d > 4.0
+        if far and d > TALK_R:
             if self.walk_to is None:
                 return "far"
-            p = (c.x, c.y, c.z)
-            r = self.walk_to(p, self.nm, self.m["name"])
+            r = self.walk_to(goal, self.nm, self.m["name"])
             if r not in ("arrived", "stuck", "unreachable", "timeout"):
                 return r
         t0 = time.time()
@@ -219,9 +225,10 @@ class Shop:
             if c is None:
                 return "not_found"
             d = M.horiz(s.player, c)
-            if d <= TALK_R:
+            if d <= TALK_R or (stand and math.hypot(s.player.x - stand[0], s.player.z - stand[2]) <= STAND_R):
                 break
-            self.pad.move(*self.mv.stick_to(s, c.x, c.z, 0.35))
+            gx, gz = stand[0] if stand else c.x, stand[2] if stand else c.z
+            self.pad.move(*self.mv.stick_to(s, gx, gz, 0.35))
             time.sleep(min(0.25, 0.08 + (d - TALK_R) * 0.15))
             self.pad.move(0.0, 0.0)
             time.sleep(0.15)

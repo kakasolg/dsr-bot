@@ -46,9 +46,13 @@ STICK_R = 1.2
 HIT_SP = 40
 HIT_SP2 = 80                        # two in a row only from here (two cost ~76)
 ESTUS_HP = 0.40
+# ── 두 대 맞으면 죽음 → 한 대 맞으면 마심 ([MoKa] 11-02 "연속 2대 맞으면 죽잖아" · "에스트 마시면서") ──
+#  11-02 051424: 착지 562 → 3006 −242 = 320(46 %, ESTUS_HP 위라 안 마심) → 3005 −242 = 78 → 마시다 끊겨 사망, 보스 HP ~161 남음
+TAURUS_HIT = 245                    # one hit seen 233–242 (10-12 3003 −233, 11-02 3006 / 3005 −242)
 PRE_HEAL = 0.80                     # before calling it: drink up to this (save point start is 680/742 = 0.92)
 FIGHT_LIMIT = 150.0
-CYCLES = 5                          # plunge rounds before falling back to the close fight
+CYCLES = 5                          # plunge rounds before falling back to the close fight (only when PLUNGES > 1)
+PLUNGES = 1                         # plunges in all; after the last one, the close fight on the bridge (MoKa 11-02)
 PUNISH_R = 2.6                      # after landing: one light if it's this close
 BACK_S = 10.0                       # longest run back to the ladder
 DODGE_R = 4.5                       # on the way back: roll toward the ladder when it starts a swing this close
@@ -386,6 +390,14 @@ class Taurus:
                     self._punish()
                 if not self.f.alive():
                     return "died"
+                if cycle >= PLUNGES:
+                    # ── 낙하는 한 번, 그다음은 다리에서 붙어 싸움 ([MoKa] 11-02) ────────────────────────────────
+                    #  "나는 낙하 공격 한 번 하고 황금 송진 유효할때 계속 때려. 에스트 마시면서. 4-5번만 때리면 죽어 타우로스.
+                    #   내가 보기엔 계단 올라가는 것도 위험해 보여. 올라가다 맞으면 연속 2대 맞으면 죽잖아. 나는 그런 선택 않해야."
+                    #  → 사다리로 돌아가 다시 오르지 않음. 11-02 025549는 낙하 3번으로 잡았지만 오르는 길에 −242, 꼭대기 에스트 2번 끊김
+                    #  송진은 싸움 중에 다시 바르지 않음 — [MoKa] "송진 다시 바르면 절대 않되. 그러다가 죽어" · "처음 바른 송진 유효할때 해결해야해"
+                    self.log(f"   타우로스: 낙하 {cycle}번 뒤 붙어서 싸움 (송진 {self._resin_age()})")
+                    return self._fight()
                 r = self._back_up(cycle)
                 if r in ("died", "killed", "gone"):
                     return r
@@ -495,6 +507,10 @@ class Taurus:
         if clear and (rt is None or time.time() - rt > RESIN_S) and (self.tm.goods_count(RESIN) or 0) > 0:
             self._resin(wait=0.0)
 
+    def _resin_age(self) -> str:
+        rt = getattr(self, "resin_t", None)
+        return "안 바름" if rt is None else f"{time.time() - rt:.0f} s 전"
+
     def _fight(self) -> str:
         """Stay right up against it ([MoKa] "바짝 붙어서 공격"): within HIT_R and stamina ≥ HIT_SP → one light; else step in to
         STICK_R (floor-checked) and let stamina come back. HP < ESTUS_HP and it isn't swinging → Estus."""
@@ -532,7 +548,7 @@ class Taurus:
             p = s.player
             h = M.horiz(p, b)
             a = b.anim if b.anim is not None else -1
-            if p.hp < p.max_hp * ESTUS_HP and a not in M.ATTACK and self.mv.estus_left() > 0:
+            if p.hp < max(p.max_hp * ESTUS_HP, 2 * TAURUS_HIT) and a not in M.ATTACK and self.mv.estus_left() > 0:
                 self.pad.neutral()
                 r = self.mv.drink(lambda sn: (self.boss(sn) is None or (self.boss(sn).anim or -1) not in M.ATTACK))
                 self.log(f"   타우로스 싸움 중 에스트: {r}")

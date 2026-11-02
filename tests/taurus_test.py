@@ -133,5 +133,45 @@ check(f"AttackLog: one 3003, −233, 2 m, our anim kind recorded ({att})",
 check(f"AttackLog: angle = where we stand off its facing (it faces away from us here → behind, ±180)",
       att and abs(abs(att[0]["ang"]) - 180) <= 1)
 
+# [MoKa] 11-02 "낙하 공격 한 번 하고 황금 송진 유효할때 계속 때려. 에스트 마시면서 … 계단 올라가는 것도 위험해 보여"
+t, mv, pad = make([snap(boss(x=47.0, y=15.8, z=-119.0, anim=-1, hp=714), me=(48.0, 15.8, -119.0))])
+went = []
+t._punish = lambda: went.append("punish")
+t._back_up = lambda cycle: went.append("back_up") or "ok"
+t._fight = lambda: went.append("fight") or "killed"
+r = t._loop("ok", True)
+check(f"one plunge: after landing → punish → close fight, no climb back ({went})", r == "killed" and went == ["punish", "fight"])
+
+# [MoKa] 11-02 "송진 다시 바르면 절대 않되. 그러다가 죽어" — the close fight never rubs the resin, even worn off and 5 m away
+rubbed = []
+b = boss(x=52.0, y=15.8, z=-119.0, anim=-1, hp=500)
+t, mv, pad = make([snap(b, me=(47.0, 15.8, -119.0)), snap(None, me=(47.0, 15.8, -119.0))])
+t.tm = NS(goods_count=lambda i: 2)
+t.events = lambda *a, **k: None
+t.resin_t = None
+t._resin = lambda wait=1.0: rubbed.append(wait)
+t._fight()
+check("close fight: resin worn off, boss 5 m away and idle → still no rub", rubbed == [])
+
+# 11-02 051424: 320/698 after one −242 → no drink (40 % rule) → next −242 → 78 → died. Below two hits (490) → drink
+drank = []
+b = boss(x=48.5, y=15.8, z=-119.0, anim=-1, hp=400)
+t, mv, pad = make([snap(b, me=(47.0, 15.8, -119.0), hp=320), snap(None, me=(47.0, 15.8, -119.0))])
+t.tm = NS(goods_count=lambda i: 2)
+t.events = lambda *a, **k: None
+mv.drink = lambda ok: drank.append(1) or {"ok": True}
+mv.light = light
+t._fight()
+check(f"close fight: HP 320 (one hit left before death) and boss not swinging → Estus ({drank})", drank == [1])
+drank.clear()
+t, mv, pad = make([snap(boss(x=48.5, y=15.8, z=-119.0, anim=-1, hp=400), me=(47.0, 15.8, -119.0), hp=562),
+                   snap(None, me=(47.0, 15.8, -119.0))])
+t.tm = NS(goods_count=lambda i: 2)
+t.events = lambda *a, **k: None
+mv.drink = lambda ok: drank.append(1) or {"ok": True}
+mv.light = light
+t._fight()
+check("close fight: HP 562 (takes two hits) → hits, no Estus", drank == [])
+
 print("all ok" if not fails else f"{fails} FAILED")
 sys.exit(1 if fails else 0)

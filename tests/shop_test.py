@@ -237,6 +237,30 @@ def main() -> None:
     check("Screen.state() on the bot's full-size shots: 55 menu, 56 list, 59 qty",
           [got[k][0] for k in ("55", "56", "59")] == ["menu", "list", "qty"])
 
+    # [win] 11-02 try 12: walking at his centre stuck on the boxes 3.7 m out (timeout × 4) → not_facing. Now: to the stand spot
+    shop, game, ev = rig()
+    me = shop.mv.snap().player
+    npc = shop.mv.snap().chars[0]
+    npc.x, npc.y, npc.z = S.UNDEAD_MERCHANT["pos"]
+    me.x, me.y, me.z = -40.9, -19.8, -68.8
+    went = []
+
+    def walk_to(p, nm, name):
+        went.append(p)
+        me.x, me.y, me.z = p
+        return "arrived"
+    shop.walk_to = walk_to
+    r = shop.approach()
+    check(f"approach from 3.7 m behind the boxes → walks to the stand spot, not his centre ({went}) → {r}",
+          went == [S.UNDEAD_MERCHANT["stand"]] and r == "ok")
+    import math
+    from pathlib import Path
+    import navmesh
+    nm = navmesh.Navmesh.from_npz(Path(__file__).resolve().parent.parent / "data" / "samples" / "navmesh_m10_01_00_00.npz")
+    st = S.UNDEAD_MERCHANT["stand"]
+    check(f"stand spot on the Burg floor, within TALK_R + 0.1 of him ({math.dist(st[::2], S.UNDEAD_MERCHANT['pos'][::2]):.2f} m)",
+          nm.on_mesh(*st, dy=1.5) and math.dist(st[::2], S.UNDEAD_MERCHANT["pos"][::2]) <= S.TALK_R + 0.1)
+
     # run.py wiring: --buy parsed and handed to Shop.buy with Field.walk_to for the approach
     import run
     seen = {}
@@ -259,9 +283,24 @@ def main() -> None:
             def event(self, ev, **k):
                 pass
         log = Log()
-        r = run._shop(NS(buy="290:30,292:20", shop_shots=False), NS(), "nmB", NS(walk_to="fld.walk_to"), log)
+        import steam_state
+        quick = [292, -1, -1, -1, -1]
+
+        def equip(g):
+            i = quick.index(-1)
+            quick[i] = g
+            return i
+        tm = NS(quick_items=lambda: list(quick), equip_quick_item=equip)
+        real_check, steam_state.check = steam_state.check, lambda: {"offline": True}
+        try:
+            r = run._shop(NS(buy="290:30,292:20", shop_shots=False), NS(tm=tm), "nmB", NS(walk_to="fld.walk_to"), log)
+        finally:
+            steam_state.check = real_check
         check(f"run._shop: items parsed, NavMesh and walk_to passed, no shots → {r}", r == "shop ok"
               and seen == {"nm": "nmB", "shoot": None, "walk_to": "fld.walk_to", "items": [(290, 30), (292, 20)]})
+        # [MoKa] 11-02 "투척나이프 구입 하는 것이 빠져 있어" — bought knives must land in a quick slot or the lure never uses them
+        check(f"run._shop: bought 290 put in the first empty quick slot, 292 already there untouched → {quick}",
+              quick == [292, 290, -1, -1, -1])
         check("run._shop without --buy → nothing bought", run._shop(NS(buy=None, shop_shots=False), NS(), None, NS(), log)
               == "shop: --buy 없음")
     finally:

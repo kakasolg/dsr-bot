@@ -95,7 +95,20 @@ def _shop(a, mv, nm, fld, log) -> str:
             png.unlink()
     res = shop_.Shop(mv, nm, log=log, events=log.event, shoot=shoot, walk_to=fld.walk_to).buy(items)
     log(f"── 상점: {res['result']} — " + ", ".join(f"{x['goods']} {x.get('bought', 0)}/{x['want']}" for x in res["items"]))
+    _quick_slot(mv.tm, [x["goods"] for x in res["items"] if x.get("bought")], log)
     return f"shop {res['result']}"
+
+
+def _quick_slot(tm, goods, log) -> None:
+    """Bought items into an empty quick slot — the bot can only use quick-slot items (Missions._has).
+    산 직후 퀵 슬롯에 없으면 burg-upper --throw 의 나이프 유인이 그냥 몸 유인으로 넘어간다 ([MoKa] 11-02 "원거리에서 하나씩 유인")"""
+    import steam_state
+    for g in goods:
+        if g in (tm.quick_items() or []):
+            continue
+        slot = tm.equip_quick_item(g) if steam_state.check().get("offline") is True else None
+        log(f"   상점: {g} 퀵 슬롯 " + (f"{slot + 1}번째 칸에 넣음 → {tm.quick_items()}" if slot is not None
+                                   else f"못 넣음 (Steam 오프라인 확인 안 됨 또는 빈 칸 없음, 슬롯 {tm.quick_items()})"))
 
 
 def status() -> None:

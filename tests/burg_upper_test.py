@@ -10,6 +10,7 @@ import sys as _sys, pathlib as _pl  # repo root first (the bot's modules), then 
 _sys.path[:0] = [str(_pl.Path(__file__).resolve().parent.parent), str(_pl.Path(__file__).resolve().parent)]
 
 import math
+import time
 import sys
 from pathlib import Path
 from types import SimpleNamespace as NS
@@ -701,6 +702,21 @@ check("--throw: knife lure from the safe spot, no run in (it comes to us)", r ==
 m, f, calls, w, foe = throw_rig("no_spot")
 r = m._lure(foe, 51, safe, LineNm(), "t")
 check("--throw: no throw spot → the old body run", kinds(calls)[:2] == ["knife", "sprint"])
+# [MoKa] 11-02 "투척나이프를 황금송진 있는 문 앞에 병사들 있는데 부터 사용 해야함" — zones 1–3 body run, knife from zone 4
+for zn, want in ((2, "sprint"), (4, "knife")):
+    m, f, calls, w, foe = throw_rig("lured")
+    m.zone_n = zn
+    m._lure(foe, 51, safe, LineNm(), "t")
+    check(f"--throw in zone {zn}: first move is {want}", kinds(calls)[0] == want)
+check("knife zone 4 = the hollows within 5 m of the resin door",
+      MS.UPPER_KNIFE_FROM == 4 and all(math.dist(k[1][::2], (20.22, -104.2)) < 5.5 for k in zones[3]["kills"][:3]))
+# P-117: a failed knife (no lock) is not tried on the same foe again — the second try stood in firebomb range
+m, f, calls, w, foe = throw_rig("no_spot")
+m.zone_n = 4
+m._lure(foe, 51, safe, LineNm(), "t")
+calls.clear()
+m._lure(foe, 51, safe, LineNm(), "t")
+check(f"after no_spot: next round on the same foe is the body run, no knife ({kinds(calls)})", "knife" not in kinds(calls))
 m, f, calls, w, foe = throw_rig("lured")
 m.throw = False
 m._lure(foe, 51, safe, LineNm(), "t")
@@ -726,22 +742,54 @@ m.mv.snap = lambda r=5.0: NS(player=pl, hostile=lambda rr: close)
 m._firebomb_group("t")
 check("--throw: nearest already inside 4 m (1.5 m) → no firebomb (it would hit us too)", thrown == [])
 
-# ── P-105: zone 6 burning barrel — walk to the landing to set it off, run back round the corner, wait ──
-z6 = zones[5]
-bar = z6["before"][0]["barrel"]
-check("zone 6: barrel step first; trigger on the floor, safe spot reachable from it",
-      nm.on_mesh(*bar["trigger"], dy=1.5) and len(nm.find_path(tuple(bar["trigger"]), tuple(bar["back"]))) >= 2
-      and tuple(bar["back"]) == tuple(z6["safe"]))
-seq = []
+# ── P-105: zone 6 burning barrel — no dodging; a big hit on the lure run → drink where we stand once up ([MoKa] 11-02) ──
+k6 = zones[5]["kills"][0]
+bar = zones[5]["before"][0]["barrel"]
+check("zone 6: barrel step first (trigger ~5 m past the turn, on the floor) + sip_on_hit on both",
+      nm.on_mesh(*bar["trigger"], dy=1.5) and math.dist(bar["trigger"], (39.1, -5.0, -114.6)) < 5.5
+      and tuple(bar["back"]) == tuple(zones[5]["safe"]) and bar["sip_on_hit"] == 0.3 and k6[2].get("sip_on_hit") == 0.3)
+def sip_case(hp_after, anims, left=5):
+    seq, st = [], {"i": 0}
+    def snap(r=15.0):
+        a = anims[min(st["i"], len(anims) - 1)]; st["i"] += 1
+        return NS(player=NS(hp=hp_after, max_hp=698, anim=a))
+    m = MS.Missions.__new__(MS.Missions)
+    m.log = lambda x: seq.append(("log", x))
+    m.f = NS(alive=lambda: True, estus_left=lambda: left, events=lambda *a, **k: None)
+    m.mv = NS(snap=snap, drink=lambda safe: seq.append(("drink", st["i"])) or {"ok": True, "hp": [hp_after, hp_after + 300], "left": left - 1})
+    return m._sip_on_hit(698, 0.3, "t"), seq
+r, seq = sip_case(362, [2026, 2026, 2026, -1])
+check(f"zone 6 sip_on_hit: −336 → waits up from 2026, then drinks ({r}, {[x[0] for x in seq]})",
+      r == "drank" and [x[0] for x in seq] == ["drink", "log"] and seq[0][1] >= 4)
+r, seq = sip_case(600, [-1])
+check("zone 6 sip_on_hit: −98 (below 30 %) → no drink", r is None and seq == [])
+# barrel step: hit on the way up → one sip right there, none again after the run back
+bseq = []
 m = MS.Missions.__new__(MS.Missions)
-m.log = lambda x: seq.append(("log", x))
-m.f = NS(alive=lambda: True, walk_to=lambda goal, nb_, tag: seq.append(("walk", tuple(goal))) or "arrived")
-m.mv = NS(snap=lambda r=5.0: NS(player=NS(hp=500)), pad=NS(guard=lambda on: seq.append(("guard", on))))
-m._sprint = lambda goal, nb_, stop, through=False: seq.append(("sprint", tuple(goal), through)) or "arrived"
+m.log = lambda x: bseq.append(("log", x))
+m.f = NS(alive=lambda: True, walk_to=lambda goal, nb_, tag: bseq.append(("walk",)) or "arrived")
+m.mv = NS(snap=lambda r=5.0: NS(player=NS(hp=698, x=36.7, z=-104.0), chars=[]), pad=NS(guard=lambda on: None))
+m._sprint = lambda goal, nb_, stop, through=False: bseq.append(("sprint", through)) or "arrived"
+m._sip_on_hit = lambda hp0, frac, tag: bseq.append(("sip", hp0)) or "drank"
 r = m._before({"barrel": dict(bar, wait=0.0)}, None, "t")
-check(f"zone 6 barrel: walk to trigger → sprint back (through) → guard wait ({r}, {[x[0] for x in seq]})",
-      r == "ok" and [x[0] for x in seq] == ["walk", "sprint", "guard", "guard", "log"]
-      and seq[0][1] == tuple(bar["trigger"]) and seq[1][1:] == (tuple(bar["back"]), True))
+# try 12: drank after the barrel (458 → 698), then −237 from the soldier and no 2nd sip → so check again, from the HP after the sip
+check(f"zone 6 barrel: walk up → sip → run back → sip check again from the HP after drinking ({r}, {bseq})",
+      r == "ok" and [x[0] for x in bseq] == ["walk", "sip", "sprint", "sip", "log"] and bseq[3][1] == 698)
+# try 12: the barrel soldier came down to 1.7 m during the guard-wait → stop waiting (the kills step fights it)
+bseq.clear()
+soldier = NS(npc_param=255001, hp=96, x=37.5, y=-9.1, z=-102.5)
+m.mv = NS(snap=lambda r=5.0: NS(player=NS(hp=698, x=36.7, y=-9.1, z=-104.0), chars=[soldier]), pad=NS(guard=lambda on: None))
+m._sip_on_hit = lambda hp0, frac, tag: None
+t0 = time.time()
+r = m._before({"barrel": dict(bar, wait=5.0)}, None, "t")
+check(f"zone 6 barrel: foe 1.7 m away during the wait → wait ends at once ({time.time() - t0:.1f} s, {[x[1][:40] for x in bseq if x[0] == 'log']})",
+      r == "ok" and time.time() - t0 < 1.0 and any("기다림 끝" in x[1] for x in bseq if x[0] == "log"))
+# try 12: the soldier left its spawn 10 m higher → not '안 보임', the same type next to me is it
+m.f = NS(find_at=lambda npc, p, r=3.0: soldier if math.dist(p, (36.7, -9.1, -104.0)) < 0.1 and r == MS.UPPER_FOLLOW_R else None)
+check("zone 6: foe gone from its spawn but 1.7 m from me → found (no '이미 잡았거나 죽음')",
+      m._zone_foe(255001, tuple(k6[1])) is soldier)
+r, seq = sip_case(362, [-1], left=0)
+check("zone 6 sip_on_hit: no Estus left → logs, no drink", r is None and [x[0] for x in seq] == ["log"])
 
 # ── P-113: through sprint that turns back toward the ladder is stopped and re-planned ──
 f9 = tuple(z8["safe"])

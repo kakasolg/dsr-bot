@@ -83,12 +83,19 @@ UPPER_CLOSE_R = 3.0      # running in: stop this close even if it hasn't woken�
 UPPER_NOTICE_S = 2.0     # …and stand guarding this long for it to notice, then run back anyway
 SPRINT_BACK_M = 1.5      # _sprint(through): this much farther from the goal than the closest it got → stop and re-plan (P-113)
 SPRINT_REPLANS = 3
+SIP_GETUP_S = 3.0        # _sip_on_hit: wait at most this long to get up (my anim in HIT_STUN) before drinking
+BARREL_FOE_R = 4.0     # _barrel: a live foe this close ends the guard-wait (try 12: the barrel soldier came down to 1.7 m)
+UPPER_FOLLOW_R = 8.0   # _pull_to_safe: not at its spawn → the same type this close to me is the one that followed
 UPPER_COME_R = 8.0      # a target already this close to the safe spot (or already moving) isn't run at — wait for it there
 UPPER_NEAR_SAFE_R = 4.0  # within this of the safe spot, don't turn our back to run there — fight (10-06d died 2–3 m from it)
 UPPER_TRIES = 4          # same target until dead, at most this many lure + fight rounds (a round may go to a foe that came along)
 UPPER_ENCOUNTER_R = 10.0 # running in: any awake, moving foe on our level this close → turn back to the safe spot
 UPPER_LURE_CROWD_R = 4.0 # a target with another live foe this close (same level) is lured with a knife, not by running in (below)
 UPPER_LURE_CROWD_DY = 2.0
+# ── 나이프는 송진 문 앞 병사들부터 ([MoKa] 11-02) ─────────────────────────────
+#  "투척나이프를 황금송진 있는 문 앞에 병사들 있는데 부터 사용 해야함" — 구역 4 (문 (20.2, −5.7, −104.2) 2–5 m 안의 254010·254012·254011)부터.
+#  11-02 try 15: 구역 1·2에서 락온이 안 걸려 0/5 던지고, 구역 2에선 그 사이 턱 화염병에 −666 → 사망 (P-117)
+UPPER_KNIFE_FROM = 4
 UPPER_HEAL_FRAC = 0.7    # before each lure: below this share of max HP, Estus first
 LADDER_TRIES = 3         # zone 8 ladder: face + A + climb attempts
 LADDER_TOP_SLACK_M = 1.5  # already up when y ≥ top_y − this: zone 8 tower floor 23.7 vs top_y 24.5 (11-01 230106 track), bottom 16.0 (P-108)
@@ -376,6 +383,7 @@ class Missions:
         nb = self.nms[MAP_B]
         z = UPPER["zones"][n - 1]
         safe = tuple(z["safe"])
+        self.zone_n = n
         # home = where recover() backs off to drink. Not the safe spot (10-06d: already there, foe on us → never drank) and not
         # the run's default (Firelink — another NavMesh, no path) → the Undead Burg bonfire
         home0, self.f.home = self.f.home, BURG_BONFIRE_SIDE
@@ -459,6 +467,19 @@ class Missions:
         self.log(f"── 구역{n}: 끝")
         return "cleared"
 
+    def _zone_foe(self, npc: int, pos):
+        """The zone's foe of type npc: near its spawn, else the same type next to me; never one on the firebomb ledge."""
+        c = self.f.find_at(npc, pos, 8.0) or self.f.find_at(npc, pos, 20.0)
+        if c is None:
+            # 11-02 try 12: 구역 6 통 병사가 계단 위 스폰(y 0.9)에서 안전 자리(y −9.1)까지 내려와 붙었는데 스폰 3 m 높이 안만 찾아
+            #  '안 보임 — 이미 잡았거나 죽음' → 구역 7로 넘어가 HP 326으로 싸우다 사망. 스폰에 없으면 내 옆도 봄
+            s = self.mv.snap(10.0)
+            if s is not None:
+                c = self.f.find_at(npc, (s.player.x, s.player.y, s.player.z), UPPER_FOLLOW_R)
+        if c is not None and any(math.dist((c.x, c.y, c.z), q) < UPPER_IGNORE_R for q in UPPER_IGNORE):
+            c = None
+        return c
+
     def _pull_to_safe(self, npc: int, pos, safe, nb, tag: str, how: dict | None = None) -> str:
         """── 안전 자리로 끌어와 싸우기 ([MoKa] 2026-10-06 녹화) ──────────────────────────────
          MoKa는 구역 적을 그 자리에서 싸우지 않고 깨운 뒤 안전 자리까지 데리고 와서 잡았다 (구역 2: 255001을 스폰에서 20 m 끌고 옴).
@@ -470,9 +491,7 @@ class Missions:
          세 번 맞고 죽음([MoKa]: "왜 다시 돌아가려 한거야?") → 이미 오는 놈·안전 자리 가까운 놈엔 안 나가고, 안전 자리 UPPER_NEAR_SAFE_R
          안이면 돌아서지 않고 싸움. 그 전엔 255001을 HP 334로 남겨 두고 다음 놈으로 넘어감 → 그놈이 죽을 때까지 UPPER_TRIES번,
          나가기 전마다 에스트 먼저([MoKa]: "hp가 많이 줄었으면, 에스트를 마셔야 하는 것이 우선")."""
-        c = self.f.find_at(npc, pos, 8.0) or self.f.find_at(npc, pos, 20.0)
-        if c is not None and any(math.dist((c.x, c.y, c.z), q) < UPPER_IGNORE_R for q in UPPER_IGNORE):
-            c = None
+        c = self._zone_foe(npc, pos)
         if c is None:
             self.log(f"   {tag}: 안 보임 — 이미 잡았거나 죽음")
             return "gone"
@@ -814,7 +833,9 @@ class Missions:
             return met(sn) or (c is not None and M.horiz(sn.player, c) < UPPER_CLOSE_R)
 
         crowd = crowd_near(self.mv.snap(200.0), t, ptr)
-        if (getattr(self, "throw", False) or crowd) and not how.get("lure_at") and self._has(M.ITEM_KNIFE):
+        failed = getattr(self, "knife_failed", set())
+        knife_zone = getattr(self, "zone_n", UPPER_KNIFE_FROM) >= UPPER_KNIFE_FROM
+        if (getattr(self, "throw", False) or crowd) and knife_zone and ptr not in failed and not how.get("lure_at")                 and self._has(M.ITEM_KNIFE):
             if crowd and not getattr(self, "throw", False):
                 self.log(f"   {tag}: 옆에 {len(crowd)}명 붙어 있음 ({', '.join(f'{o.npc_param} {math.hypot(o.x - t.x, o.z - t.z):.1f} m' for o in crowd)}) — 몸 대신 나이프로")
             lr = self.f.lure(ptr, here0, nb, tag, arena=safe)     # from the safe spot, or up to 10 m along the path, locked on
@@ -829,9 +850,15 @@ class Missions:
                     if back == "dead":
                         return "died"
                 return "here"
-            # no_knife / no_path / no_spot / too_far / no_reaction / no_lock → the body run below
+            # no_knife / no_path / no_spot / too_far / no_reaction / no_lock → the body run below, and no knife at this one again
+            #  (P-117: 구역 2-1에서 같은 놈에게 두 번 서서 시도하는 사이 화염병 −222 · −111)
+            self.knife_failed = failed | {ptr}
         goal = tuple(how["lure_at"]) if how.get("lure_at") else here0
+        s = self.mv.snap(5.0)
+        hp0 = s.player.hp if s is not None else None
         if self._sprint(goal, nb, stop_in) == "dead":
+            return "died"
+        if how.get("sip_on_hit") and hp0 is not None and self._sip_on_hit(hp0, float(how["sip_on_hit"]), tag) == "dead":
             return "died"
         s = self.mv.snap(200.0)
         if s is not None and not met(s):
@@ -855,19 +882,34 @@ class Missions:
     def _barrel(self, st: dict, nb, tag: str) -> str:
         """
         ── 구역 6 계단 불타는 통 (P-105, 11-02 024657 화면 캡처) ─────────────────────────────────────
-         · −336(애니 2026 넘어짐)은 계단 위에서 굴러 내려오는 불붙은 통 — 11-01~02 구역 6 9번 모두 같은 계단에서 맞음.
+         · −336(애니 2026 넘어짐)은 병사가 계단 위에서 굴린 불붙은 통 — 11-01~02 구역 6 9번 모두 같은 계단에서 맞음.
            계단은 난간과 벽 사이로 좁아 옆으로 비킬 데가 없음
-         · 통은 계단참 (~40, −4.4)을 지난 뒤 ~1.6 s에 닿음 (010036: 41.3 → 43.2에서, 022918: 39.9 → 47.3에서) — 추정, 촉발 조건 미측정
-         · trigger까지 걸어가 통을 부르고, 곧바로 back(모퉁이 뒤 안전 자리)으로 달려 wait 초 가드 들고 기다린 뒤 원래 순서로
+         · [MoKa] 11-02 "계단이 꺽이는 지점에서 5m 정도 올라 가면 굴리는데 그게 몇 m인지 몰라" — 꺾이는 곳 (39.1, −5.0, −114.6)에서
+           4.9 m인 (43.3, −2.6) = 010036이 멈춘 뒤 ~1 s에 맞은 자리. 022918은 41.4까지 아무 일 없고 43.7을 지나 ~1 s 뒤 46.5에서 맞음
+         · trigger까지 걸어가 통을 부르고, 기다리지 않고 back(모퉁이 뒤 안전 자리)으로 달려 wait 초 가드 들고 기다린 뒤 원래 순서로
+         · [MoKa] "일단 피해본다, 맞으면 바로 마신다" — 이 사이 sip_on_hit 넘게 잃으면 일어나자마자 한 모금 (_sip_on_hit)
         """
         trig, back, wait = tuple(st["trigger"]), tuple(st["back"]), float(st.get("wait", 6.0))
         s = self.mv.snap(5.0)
         hp0 = s.player.hp if s is not None else None
+        sip = float(st["sip_on_hit"]) if st.get("sip_on_hit") else None
         r = self.f.walk_to(trig, nb, f"{tag} 통 부르기")
         if r == "dead" or not self.f.alive():
             return "dead"
+        drank = None
+        if sip and hp0 is not None:                        # hit on the way up — drink there, not after the 20 m run back
+            drank = self._sip_on_hit(hp0, sip, tag)
+            if drank == "dead":
+                return "dead"
+        # 11-02 try 12: 마신 뒤 또 맞아도(−237) 한 번 마셨다고 건너뜀 → 326으로 구역 7 → 사망. 마신 뒤 HP를 새 기준으로 다시 봄
+        base = hp0
+        if drank == "drank":
+            s = self.mv.snap(5.0)
+            base = s.player.hp if s is not None else None
         r = self._sprint(back, nb, None, through=True)
         if r == "dead" or not self.f.alive():
+            return "dead"
+        if sip and base is not None and self._sip_on_hit(base, sip, tag) == "dead":
             return "dead"
         guard = getattr(self.mv.pad, "guard", lambda on: None)
         guard(True)
@@ -876,13 +918,43 @@ class Missions:
             while time.time() - t0 < wait:
                 if not self.f.alive():
                     return "dead"
+                # 11-02 try 12: 통 굴린 병사(255001)가 내려와 기다리는 중에 1.7 m에서 −237 → 오면 기다림 끝, kills 순서가 싸움
+                s = self.mv.snap(10.0)
+                near = [c for c in (s.chars if s is not None else ()) if c.hp > 0 and M.horiz(s.player, c) < BARREL_FOE_R]
+                if near:
+                    self.log(f"   {tag}: 기다리는 중 {near[0].npc_param} {M.horiz(s.player, near[0]):.1f} m — 기다림 끝")
+                    break
                 time.sleep(0.2)
         finally:
             guard(False)
         s = self.mv.snap(5.0)
-        hp1 = s.player.hp if s is not None else None
-        self.log(f"   {tag}: 통 부르고 물러나 {wait:.0f} s 기다림 — HP {hp0} → {hp1}")
+        self.log(f"   {tag}: 통 부르고 물러나 {wait:.0f} s 기다림 — HP {hp0} → {s.player.hp if s is not None else None}")
         return "ok"
+
+    def _sip_on_hit(self, hp0: int, frac: float, tag: str) -> str | None:
+        """
+        ── 큰 한 방 맞으면 그 자리에서 바로 에스트 (P-105, [MoKa] 11-02 "죽지 않으니 맞으면 바로 에스트 마시는게 더 나은 방법이야") ──
+         · 구역 6 계단: 병사가 굴린 불붙은 통 −336 (11-01~02 9번 모두). 피하기(계단을 올라갔다 내려오기)는 영상 없이 시점을 못 맞춰
+           부작용만 난다고 MoKa가 봄 → 맞고, 넘어진 데서 일어나자마자 한 모금
+         · 유인 달리기 동안 max HP × frac 넘게 잃었을 때만. 휘두르는 적이 있어도 미루지 않음(_drink_back의 UPPER_SWING_R 예외와 다름) —
+           022918은 미뤘다가 255001 3004 −237 → 사망
+        → 'dead' | 'drank' | None (no big hit / no Estus)"""
+        s = self.mv.snap(15.0)
+        if s is None or hp0 - s.player.hp < s.player.max_hp * frac:
+            return None
+        t0 = time.time()
+        while s is not None and (s.player.anim or -1) in M.HIT_STUN and time.time() - t0 < SIP_GETUP_S:
+            time.sleep(0.05)
+            s = self.mv.snap(15.0)
+        if not self.f.alive():
+            return "dead"
+        if self.f.estus_left() <= 0:
+            self.log(f"   {tag}: 큰 피격 (HP {hp0} → {s.player.hp if s else '?'}) — 에스트 없음")
+            return None
+        r = self.mv.drink(lambda _s: True)
+        self.log(f"   {tag}: 큰 피격 (HP {hp0} → {r.get('hp', [None])[0]}) — 그 자리에서 에스트: {r}")
+        self.f.events("estus", **r)
+        return "drank" if self.f.alive() else "dead"
 
     def _past_before(self, z: dict) -> float | None:
         """The zone's before steps end with a ladder and we already stand at its top height → our y, else None."""
