@@ -3,7 +3,7 @@
  "title": "성벽 마을 위쪽 — 화톳불 → 타우로스 (구역 1–8)",
  "map": "m10_01_00_00",
  "made_by": "stage_report.py",
- "runs_read": 61,
+ "runs_read": 62,
  "zones": [
   {
    "n": 1,
@@ -155,11 +155,11 @@
     ]
    },
    "runs": {
-    "runs": 46,
-    "tries": 49,
-    "cleared": 44,
+    "runs": 47,
+    "tries": 50,
+    "cleared": 45,
     "results": {
-     "cleared": 44,
+     "cleared": 45,
      "died": 5
     },
     "deaths": [
@@ -190,11 +190,11 @@
      }
     ],
     "falls": 7,
-    "big_hits": 60,
-    "big_hit_lost": 9069,
+    "big_hits": 63,
+    "big_hit_lost": 9312,
     "blamed": {
-     "254010": 49,
-     "255002": 7,
+     "254010": 50,
+     "255002": 9,
      "255001": 1
     },
     "secs_median": 84,
@@ -238,6 +238,7 @@
      "20261101_183919_burg-upper_kindle-ok-door-ok-chest-1.34m-died-zone6",
      "20261101_192523_burg-upper_door-first-ok-chest-0.84m-no-open-estus-low",
      "20261101_214135_burg-upper_burg-upper_from-bonfire-died-zone2-255001-254011",
+     "20261101_214607_burg-upper_burg-upper_from-bonfire-resin-taken-0.77m-died-zone8-crossbows",
      "burg-upper-radar-2026-10-06-195804",
      "burg-upper-radar-2026-10-06-201550",
      "burg-upper-radar-2026-10-06a",
@@ -441,11 +442,11 @@
     ]
    },
    "runs": {
-    "runs": 34,
-    "tries": 37,
-    "cleared": 32,
+    "runs": 35,
+    "tries": 38,
+    "cleared": 33,
     "results": {
-     "cleared": 32,
+     "cleared": 33,
      "died": 5
     },
     "deaths": [
@@ -476,14 +477,14 @@
      }
     ],
     "falls": 1,
-    "big_hits": 76,
-    "big_hit_lost": 14685,
+    "big_hits": 78,
+    "big_hit_lost": 14909,
     "blamed": {
-     "255001": 39,
-     "254011": 29,
+     "255001": 40,
+     "254011": 30,
      "254010": 6
     },
-    "secs_median": 53,
+    "secs_median": 54,
     "files": [
      "20261009_230500_burg-upper_check-hp742",
      "20261011_170346_burg-upper_p67fix-zone5-death",
@@ -513,6 +514,7 @@
      "20261101_183919_burg-upper_kindle-ok-door-ok-chest-1.34m-died-zone6",
      "20261101_192523_burg-upper_door-first-ok-chest-0.84m-no-open-estus-low",
      "20261101_214135_burg-upper_burg-upper_from-bonfire-died-zone2-255001-254011",
+     "20261101_214607_burg-upper_burg-upper_from-bonfire-resin-taken-0.77m-died-zone8-crossbows",
      "burg-upper-radar-2026-10-06-195804",
      "burg-upper-radar-2026-10-06-201550",
      "burg-upper-radar-2026-10-06b",
@@ -669,23 +671,23 @@
     ]
    },
    "runs": {
-    "runs": 28,
-    "tries": 30,
-    "cleared": 30,
+    "runs": 29,
+    "tries": 31,
+    "cleared": 31,
     "results": {
-     "cleared": 30
+     "cleared": 31
     },
     "deaths": [],
     "falls": 0,
-    "big_hits": 25,
-    "big_hit_lost": 3193,
+    "big_hits": 26,
+    "big_hit_lost": 3355,
     "blamed": {
-     "254010": 16,
+     "254010": 17,
      "254011": 4,
      "254012": 3,
      "255001": 1
     },
-    "secs_median": 26,
+    "secs_median": 27,
     "files": [
      "20261009_230500_burg-upper_check-hp742",
      "20261011_170346_burg-upper_p67fix-zone5-death",
@@ -711,6 +713,7 @@
      "20261101_163738_burg-upper_retry-zone1-3-cleared-stopped-for-kindle",
      "20261101_183919_burg-upper_kindle-ok-door-ok-chest-1.34m-died-zone6",
      "20261101_192523_burg-upper_door-first-ok-chest-0.84m-no-open-estus-low",
+     "20261101_214607_burg-upper_burg-upper_from-bonfire-resin-taken-0.77m-died-zone8-crossbows",
      "burg-upper-radar-2026-10-06-195804",
      "burg-upper-radar-2026-10-06-201550",
      "burg-upper-radar-2026-10-06f",
@@ -912,11 +915,11 @@
     ]
    },
    "runs": {
-    "runs": 27,
-    "tries": 29,
-    "cleared": 26,
+    "runs": 28,
+    "tries": 30,
+    "cleared": 27,
     "results": {
-     "cleared": 26,
+     "cleared": 27,
      "died": 3
     },
     "deaths": [
@@ -970,6 +973,7 @@
      "20261101_173025_burg-upper_retry-zone4-7-cleared-ladder-loop-died-zone8-tower",
      "20261101_183919_burg-upper_kindle-ok-door-ok-chest-1.34m-died-zone6",
      "20261101_192523_burg-upper_door-first-ok-chest-0.84m-no-open-estus-low",
+     "20261101_214607_burg-upper_burg-upper_from-bonfire-resin-taken-0.77m-died-zone8-crossbows",
      "burg-upper-radar-2026-10-06-195804",
      "burg-upper-radar-2026-10-06-201910",
      "burg-upper-radar-2026-10-06g",
@@ -1162,11 +1166,11 @@
     ]
    },
    "runs": {
-    "runs": 23,
-    "tries": 20,
-    "cleared": 13,
+    "runs": 24,
+    "tries": 21,
+    "cleared": 14,
     "results": {
-     "cleared": 13,
+     "cleared": 14,
      "died": 5,
      "left": 2
     },
@@ -1205,7 +1209,7 @@
      "255000": 9,
      "254012": 4
     },
-    "secs_median": 83,
+    "secs_median": 82,
     "files": [
      "20261011_170346_burg-upper_p67fix-zone5-death",
      "20261011_171918_burg-upper_p68fix-zone8-death",
@@ -1225,6 +1229,7 @@
      "20261101_173025_burg-upper_retry-zone4-7-cleared-ladder-loop-died-zone8-tower",
      "20261101_183919_burg-upper_kindle-ok-door-ok-chest-1.34m-died-zone6",
      "20261101_192523_burg-upper_door-first-ok-chest-0.84m-no-open-estus-low",
+     "20261101_214607_burg-upper_burg-upper_from-bonfire-resin-taken-0.77m-died-zone8-crossbows",
      "burg-upper-radar-2026-10-06-195804",
      "burg-upper-radar-2026-10-06-200335",
      "burg-upper-radar-2026-10-06-202244",
@@ -1346,11 +1351,11 @@
     ]
    },
    "runs": {
-    "runs": 14,
-    "tries": 14,
-    "cleared": 12,
+    "runs": 15,
+    "tries": 15,
+    "cleared": 13,
     "results": {
-     "cleared": 12,
+     "cleared": 13,
      "died": 2
     },
     "deaths": [
@@ -1366,8 +1371,8 @@
      }
     ],
     "falls": 0,
-    "big_hits": 17,
-    "big_hit_lost": 3595,
+    "big_hits": 18,
+    "big_hit_lost": 3931,
     "blamed": {
      "255001": 16
     },
@@ -1384,6 +1389,7 @@
      "20261013_011929_burg-upper_burg-upper-clay18-3",
      "20261101_173025_burg-upper_retry-zone4-7-cleared-ladder-loop-died-zone8-tower",
      "20261101_183919_burg-upper_kindle-ok-door-ok-chest-1.34m-died-zone6",
+     "20261101_214607_burg-upper_burg-upper_from-bonfire-resin-taken-0.77m-died-zone8-crossbows",
      "burg-upper-radar-2026-10-06-200335",
      "burg-upper-radar-2026-10-06-202244",
      "burg-upper-radar-2026-10-06k"
@@ -1436,11 +1442,11 @@
     ]
    },
    "runs": {
-    "runs": 12,
-    "tries": 12,
-    "cleared": 12,
+    "runs": 13,
+    "tries": 13,
+    "cleared": 13,
     "results": {
-     "cleared": 12
+     "cleared": 13
     },
     "deaths": [],
     "falls": 0,
@@ -1460,6 +1466,7 @@
      "20261013_010935_burg-upper_burg-upper-clay18-2",
      "20261013_011929_burg-upper_burg-upper-clay18-3",
      "20261101_173025_burg-upper_retry-zone4-7-cleared-ladder-loop-died-zone8-tower",
+     "20261101_214607_burg-upper_burg-upper_from-bonfire-resin-taken-0.77m-died-zone8-crossbows",
      "burg-upper-radar-2026-10-06-200335",
      "burg-upper-radar-2026-10-06-202244",
      "burg-upper-radar-2026-10-06k"
@@ -1470,7 +1477,7 @@
   {
    "n": 8,
    "notes": {
-    "note": "[MoKa] 2026-10-06: \"이제 안개벽 지나서, 사다리 타고 올라가서 석궁병 2 처리 해야 해\". 녹화 151317 365~405 s: 안개벽 앞 (52.07,17.21,−118.55) → 서쪽으로 걸어 (49.9,16.96,−118.86)에서 통과(애니 1550) → (47.0,15.8,−119.1) → 사다리 아래 (49.16,15.97,−117.1), 동쪽 보고 A → 오르기(7010~7013) 385~393 s → 꼭대기 (50.78,24.73,−116.64) — 석궁 둘이 4~5 m에서 쏨(3002·3003) → 동쪽으로 11 m 달려 F9#8 (61.95,23.7,−116.93) → 석궁 둘이 따라와 (53,23.7,−120)에서 처치. before = 안전 자리 가기 전 순서, run_to_safe = 사다리 꼭대기에서 안전 자리까지 달림(천천히 걷기 아님) · 10-06l: 안개벽 앞을 벽 너머 (50.44,…)로 잡아 걷기가 벽을 밀다 timeout 2번(~45 s) 뒤에야 A — [MoKa] 'a 안누르고 가려고 해' → 앞 = [MoKa] F9#7 자리(벽 이쪽) · 10-06l 화면 확인: 하얀 안개벽은 계단 위 탑 문(아치)에 그대로 — 녹화에서도 안 지나감(1550은 계단에서 내려선 것). [MoKa] \"계단에서 내려 와서, 옆으로 붙어서 사다리 타야해\" → 안개벽 단계 빼고, 계단 아래 (46,−118.3)에서 벽 따라 z −117.2로 사다리까지(녹화 점 그대로). 그 길로 손으로 걸어 A → 꼭대기 (49.96,24.81,−116.86) 확인 · [MoKa] \"가자 마자 공격해\" → 안전 자리 = 사다리 꼭대기, 석궁 둘은 attack(유인·기다림 없이 곧바로 붙어 싸움) · [MoKa] \"안개벽 처리 않해?\" — 안개벽(아치)은 구역 7 자리와 사다리로 내려가는 계단 사이에 있음(스크린샷은 지난 뒤에 찍힘). 안개벽 단계를 되살림: 앞 = F9#7 (52.07,17.21,−118.55), 너머 = 10-06l에 봇이 A로 통과한 뒤 선 자리 (49.62,16.79,−118.74) · P-47 [MoKa] 10-06 \"구르기를 2번 해서 석궁병하고 간격을 벌려야 해\": 사다리 뒤 roll 2번 — 꼭대기는 가장자리 0.2~0.5 m 좁은 턱, 동쪽 F9#8 (61.95,23.7,−116.93) 쪽으로 2~3 m부터 바닥이 넓음(녹화에서 MoKa가 달려간 쪽) → 구른 자리가 안전 자리(safe_after)",
+    "note": "[MoKa] 2026-10-06: \"이제 안개벽 지나서, 사다리 타고 올라가서 석궁병 2 처리 해야 해\". 녹화 151317 365~405 s: 안개벽 앞 (52.07,17.21,−118.55) → 서쪽으로 걸어 (49.9,16.96,−118.86)에서 통과(애니 1550) → (47.0,15.8,−119.1) → 사다리 아래 (49.16,15.97,−117.1), 동쪽 보고 A → 오르기(7010~7013) 385~393 s → 꼭대기 (50.78,24.73,−116.64) — 석궁 둘이 4~5 m에서 쏨(3002·3003) → 동쪽으로 11 m 달려 F9#8 (61.95,23.7,−116.93) → 석궁 둘이 따라와 (53,23.7,−120)에서 처치. before = 안전 자리 가기 전 순서, run_to_safe = 사다리 꼭대기에서 안전 자리까지 달림(천천히 걷기 아님) · 10-06l: 안개벽 앞을 벽 너머 (50.44,…)로 잡아 걷기가 벽을 밀다 timeout 2번(~45 s) 뒤에야 A — [MoKa] 'a 안누르고 가려고 해' → 앞 = [MoKa] F9#7 자리(벽 이쪽) · 10-06l 화면 확인: 하얀 안개벽은 계단 위 탑 문(아치)에 그대로 — 녹화에서도 안 지나감(1550은 계단에서 내려선 것). [MoKa] \"계단에서 내려 와서, 옆으로 붙어서 사다리 타야해\" → 안개벽 단계 빼고, 계단 아래 (46,−118.3)에서 벽 따라 z −117.2로 사다리까지(녹화 점 그대로). 그 길로 손으로 걸어 A → 꼭대기 (49.96,24.81,−116.86) 확인 · [MoKa] \"가자 마자 공격해\" → 안전 자리 = 사다리 꼭대기, 석궁 둘은 attack(유인·기다림 없이 곧바로 붙어 싸움) · [MoKa] \"안개벽 처리 않해?\" — 안개벽(아치)은 구역 7 자리와 사다리로 내려가는 계단 사이에 있음(스크린샷은 지난 뒤에 찍힘). 안개벽 단계를 되살림: 앞 = F9#7 (52.07,17.21,−118.55), 너머 = 10-06l에 봇이 A로 통과한 뒤 선 자리 (49.62,16.79,−118.74) · P-47 [MoKa] 10-06 \"구르기를 2번 해서 석궁병하고 간격을 벌려야 해\": 사다리 뒤 roll 2번 — 꼭대기는 가장자리 0.2~0.5 m 좁은 턱, 동쪽 F9#8 (61.95,23.7,−116.93) 쪽으로 2~3 m부터 바닥이 넓음(녹화에서 MoKa가 달려간 쪽) → 구른 자리가 안전 자리(safe_after) · MoKa 11-01 \"녹화처럼 달려가 기다리기\" (P-103, 12런 중 사망 4): 구르기 2번 단계 뺌 → 꼭대기에서 F9#8까지 피격에 멈추지 않고 달림(run_to_safe 'through'), 안전 자리 = F9#8, 석궁 둘은 hold 20 s(가드 들고 기다림 → 오면 물러나지 않고 싸움, 안 오면 붙음)",
     "before": [
      {
       "fog": {
@@ -1520,45 +1527,35 @@
         15.97,
         -117.1
        ],
-       "top_y": 24.5
-      }
-     },
-     {
-      "roll": {
-       "n": 2,
-       "toward": [
-        61.95,
-        23.7,
-        -116.93
-       ],
-       "safe_after": true
+       "top_y": 24.5,
+       "heal_first": 0.9
       }
      }
     ]
    },
    "terrain": {
     "safe": [
-     49.96,
-     24.81,
-     -116.86
+     61.95,
+     23.7,
+     -116.93
     ],
-    "safe_drop_m": 0.5,
-    "safe_wall_m": 0.4,
-    "drops_near_safe": 5,
+    "safe_drop_m": 5.2,
+    "safe_wall_m": 3.0,
+    "drops_near_safe": 0,
     "to_foes": [
      {
       "npc": 255002,
-      "dist_m": 4.3,
-      "dy_m": -1.0,
-      "path_m": 6.0,
-      "edge_m": 6.0
+      "dist_m": 9.5,
+      "dy_m": 0.1,
+      "path_m": 9.6,
+      "edge_m": 1.4
      },
      {
       "npc": 255002,
-      "dist_m": 5.3,
-      "dy_m": -1.0,
-      "path_m": 7.3,
-      "edge_m": 7.3
+      "dist_m": 10.4,
+      "dy_m": 0.1,
+      "path_m": 9.1,
+      "edge_m": 1.0
      }
     ]
    },
@@ -1576,7 +1573,7 @@
        -119.8
       ],
       "how": {
-       "attack": true
+       "hold": 20
       },
       "notice_m": 4.1,
       "sight_m": 40,
@@ -1596,7 +1593,7 @@
        -121.4
       ],
       "how": {
-       "attack": true
+       "hold": 20
       },
       "notice_m": 4.1,
       "sight_m": 40,
@@ -1616,11 +1613,11 @@
     "others": []
    },
    "runs": {
-    "runs": 12,
-    "tries": 12,
+    "runs": 13,
+    "tries": 13,
     "cleared": 8,
     "results": {
-     "died": 3,
+     "died": 4,
      "cleared": 8,
      "fog": 1
     },
@@ -1639,13 +1636,18 @@
       "run": "20261101_173025_burg-upper_retry-zone4-7-cleared-ladder-loop-died-zone8-tower",
       "cause": "hit",
       "by": 255002
+     },
+     {
+      "run": "20261101_214607_burg-upper_burg-upper_from-bonfire-resin-taken-0.77m-died-zone8-crossbows",
+      "cause": "hit",
+      "by": 255002
      }
     ],
     "falls": 0,
-    "big_hits": 18,
-    "big_hit_lost": 3244,
+    "big_hits": 22,
+    "big_hit_lost": 3765,
     "blamed": {
-     "255002": 18
+     "255002": 22
     },
     "secs_median": 31,
     "files": [
@@ -1659,6 +1661,7 @@
      "20261013_011929_burg-upper_burg-upper-clay18-3",
      "20261031_230005_burg-upper",
      "20261101_173025_burg-upper_retry-zone4-7-cleared-ladder-loop-died-zone8-tower",
+     "20261101_214607_burg-upper_burg-upper_from-bonfire-resin-taken-0.77m-died-zone8-crossbows",
      "burg-upper-radar-2026-10-06-200729",
      "burg-upper-radar-2026-10-06-202244"
     ]
