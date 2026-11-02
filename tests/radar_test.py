@@ -103,6 +103,26 @@ check("부숨 시도한 물건 이름", radar.intent_dict(mv).get("smash") == "o
 mv.show_smash = ("o1130_12", (1.0, 0.0, 1.0), time.time() - 60)
 check("오래된 부숨은 안 보냄", "smash" not in radar.intent_dict(mv))
 
+print("적 드롭 (field.pick_drops → mv.show_drops)")
+mv.show_drops = (time.time(), [(-30.25, -49.31, 28.55, 0x10000000 | 523000, "pending", True),
+                               (-31.0, -49.6, 30.0, 701000, "taken", False)])
+dr = radar.intent_dict(mv).get("drops")
+check("드롭: 위치·아이템 코드·상태·지금 가는 곳", dr == [[-30.25, -49.31, 28.55, 0x10000000 | 523000, "pending", True],
+                                                [-31.0, -49.6, 30.0, 701000, "taken", False]])
+mv.show_drops = (time.time() - radar.DROPS_FRESH - 1, mv.show_drops[1])
+check("오래된 드롭은 안 보냄", "drops" not in radar.intent_dict(mv))
+mv.show_drops = None
+names = S.load_drop_names()
+check(f"드롭 이름 (*-drops.json, {len(names)}개): 방어구 523000·무기 701000·소모품 292",
+      names.get(0x10000000 | 523000) == "Hollow Warrior Waistcloth" and names.get(701000) == "Battle Axe"
+      and names.get(0x40000000 | 292) == "Firebomb")
+ds = S.State(props=[], items=[], enemies={})
+ds.drop_names = {0x10000000 | 523000: "Hollow Warrior Waistcloth"}
+ds.put({"type": "snap", "player": {"x": 0.0, "y": 0.0, "z": 0.0}, "chars": [],
+        "drops": [[1.0, 0.0, 1.0, 0x10000000 | 523000, "pending", True], [2.0, 0.0, 1.0, 999, "failed", False]]})
+check("서버: 스냅샷의 드롭 코드만 이름으로 (모르는 코드는 빠짐)",
+      ds.get().get("drop_names") == {str(0x10000000 | 523000): "Hollow Warrior Waistcloth"})
+
 print("부서지는 물건 (서버)")
 ps = S.State(props=[[1.0, 0.0, 2.0, False, "near"], [100.0, 0.0, 0.0, False, "far"], [1.0, -20.0, 2.0, False, "below"]])
 check("스냅샷 없으면 props 없음", "props" not in ps.get())

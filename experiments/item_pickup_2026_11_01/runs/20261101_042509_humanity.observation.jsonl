@@ -1,0 +1,2 @@
+{"k": "observation", "wall": "2026-11-01T05:08:44-08:00", "who": "MoKa", "what": "획득 창이 화면에 떠 있음", "run": "20261101_042509_humanity", "menu_open_at_end": false, "note": "MoKa 눈 확인, 원본 jsonl과 별도 파일"}
+{"k": "observation", "wall": "2026-11-01T05:10:48-08:00", "who": "MoKa", "what": "닫기 A 1회 뒤 획득 창이 사라짐", "run": "20261101_042509_humanity", "close_record": "20261101_042509_humanity.close.jsonl", "menu_open_before_after": [false, false]}

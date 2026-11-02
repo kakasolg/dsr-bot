@@ -1,0 +1,49 @@
+{"k": "hdr", "argv": ["experiments/item_pickup_2026_11_01/humanity_probe.py", "--note", "humanity probe 1, first-arrival firelink save e2da9f35"], "note": "humanity probe 1, first-arrival firelink save e2da9f35", "flag": 51020000, "item": 500, "corpse": [-39.37, -58.16, 53.44], "wall": 1793535909.135508}
+{"k": "state", "step": "before", "t": 0.003, "flag": {"v": false}, "goods": {"v": 1}, "humanity": {"v": 0}, "menu_open": {"v": false}, "player": {"x": -47.40472412109375, "y": -59.816776275634766, "z": 53.292518615722656, "heading": 2.5307273864746094, "anim": -1, "hp": 616}, "d_corpse": 8.036, "d_bonfire": 0.019}
+{"k": "path", "n": 9, "pts": [[-47.4, -59.82, 53.29], [-45.53, -59.4, 53.63], [-44.53, -59.09, 52.87], [-42.9, -58.95, 55.06], [-42.68, -58.94, 55.76], [-39.94, -58.7, 56.37], [-38.22, -58.65, 55.65], [-37.73, -58.76, 54.32], [-37.73, -58.76, 54.32]]}
+{"k": "input", "t": 0.125, "what": "move", "stick": [0.91, -0.42], "wp": 1}
+{"k": "input", "t": 0.332, "what": "move", "stick": [0.91, -0.41], "wp": 1}
+{"k": "input", "t": 0.435, "what": "move", "stick": [0.92, -0.39], "wp": 1}
+{"k": "input", "t": 0.54, "what": "move", "stick": [0.94, -0.35], "wp": 1}
+{"k": "input", "t": 0.644, "what": "move", "stick": [0.96, -0.28], "wp": 1}
+{"k": "input", "t": 0.747, "what": "move", "stick": [0.69, -0.73], "wp": 2}
+{"k": "input", "t": 0.85, "what": "move", "stick": [0.74, -0.67], "wp": 2}
+{"k": "input", "t": 0.954, "what": "move", "stick": [0.79, -0.61], "wp": 2}
+{"k": "input", "t": 1.057, "what": "move", "stick": [0.85, -0.53], "wp": 2}
+{"k": "input", "t": 1.161, "what": "move", "stick": [0.73, 0.69], "wp": 3}
+{"k": "input", "t": 1.264, "what": "move", "stick": [0.65, 0.76], "wp": 3}
+{"k": "input", "t": 1.367, "what": "move", "stick": [0.58, 0.81], "wp": 3}
+{"k": "input", "t": 1.471, "what": "move", "stick": [0.52, 0.85], "wp": 3}
+{"k": "input", "t": 1.574, "what": "move", "stick": [0.46, 0.89], "wp": 3}
+{"k": "input", "t": 1.677, "what": "move", "stick": [0.42, 0.91], "wp": 3}
+{"k": "input", "t": 1.78, "what": "move", "stick": [0.38, 0.93], "wp": 3}
+{"k": "input", "t": 1.884, "what": "move", "stick": [0.13, 0.99], "wp": 4}
+{"k": "input", "t": 1.987, "what": "move", "stick": [0.11, 0.99], "wp": 4}
+{"k": "input", "t": 2.092, "what": "move", "stick": [0.77, 0.64], "wp": 5}
+{"k": "input", "t": 2.194, "what": "move", "stick": [0.76, 0.65], "wp": 5}
+{"k": "input", "t": 2.298, "what": "move", "stick": [0.74, 0.68], "wp": 5}
+{"k": "input", "t": 2.401, "what": "move", "stick": [0.71, 0.71], "wp": 5}
+{"k": "input", "t": 2.505, "what": "move", "stick": [0.67, 0.74], "wp": 5}
+{"k": "input", "t": 2.607, "what": "move", "stick": [0.63, 0.78], "wp": 5}
+{"k": "input", "t": 2.711, "what": "move", "stick": [0.59, 0.81], "wp": 5}
+{"k": "input", "t": 2.814, "what": "move", "stick": [0.56, 0.83], "wp": 5}
+{"k": "input", "t": 2.917, "what": "move", "stick": [0.93, 0.36], "wp": 6}
+{"k": "input", "t": 3.02, "what": "move", "stick": [0.91, 0.41], "wp": 6}
+{"k": "input", "t": 3.122, "what": "move", "stick": [0.89, 0.46], "wp": 6}
+{"k": "input", "t": 3.226, "what": "move", "stick": [0.85, 0.53], "wp": 6}
+{"k": "input", "t": 3.329, "what": "move", "stick": [0.81, 0.58], "wp": 6}
+{"k": "input", "t": 3.432, "what": "move", "stick": [0.99, -0.11], "wp": 7}
+{"k": "input", "t": 3.536, "what": "move", "stick": [1.0, -0.05], "wp": 7}
+{"k": "input", "t": 3.638, "what": "move", "stick": [1.0, 0.02], "wp": 7}
+{"k": "input", "t": 3.743, "what": "move", "stick": [0.99, 0.11], "wp": 7}
+{"k": "input", "t": 3.846, "what": "move", "stick": [0.24, -0.97], "wp": 9}
+{"k": "input", "t": 3.949, "what": "move", "stick": [0.26, -0.96], "wp": 9}
+{"k": "input", "t": 4.052, "what": "move", "stick": [0.3, -0.95], "wp": 9}
+{"k": "input", "t": 4.155, "what": "neutral", "why": "arrived"}
+{"k": "state", "step": "before_A", "t": 4.659, "flag": {"v": false}, "goods": {"v": 1}, "humanity": {"v": 0}, "menu_open": {"v": false}, "player": {"x": -38.97831726074219, "y": -58.85873031616211, "z": 53.71039962768555, "heading": 0.997650146484375, "anim": -1, "hp": 616}, "d_corpse": 0.476, "d_bonfire": 8.484}
+{"k": "input", "t": 4.659, "what": "A", "step": "pick1"}
+{"k": "state", "step": "after_A1", "t": 5.042, "flag": {"v": true}, "goods": {"v": 4}, "humanity": {"v": 0}, "menu_open": {"v": false}, "player": {"x": -38.97831726074219, "y": -58.85873031616211, "z": 53.71039962768555, "heading": 0.997650146484375, "anim": -1, "hp": 616}, "d_corpse": 0.476, "d_bonfire": 8.484}
+{"k": "state", "step": "after", "t": 5.547, "flag": {"v": true}, "goods": {"v": 4}, "humanity": {"v": 0}, "menu_open": {"v": false}, "player": {"x": -38.97831726074219, "y": -58.85873031616211, "z": 53.71039962768555, "heading": 0.997650146484375, "anim": -1, "hp": 616}, "d_corpse": 0.476, "d_bonfire": 8.484}
+{"k": "ask", "what": "획득 창이 화면에 떠 있는지 한 번 봐 주세요 (떠 있음 / 없음). 닫기 입력은 안 보냈다", "menu_open": {"v": false}}
+{"k": "input", "what": "cleanup", "neutral": true, "closed": true}
+{"k": "end", "result": "got", "judge": {"flag_before": {"v": false}, "flag_after": {"v": true}, "flag_on_at": 5.042, "goods": {"before": {"v": 1}, "after": {"v": 4}, "delta": 3, "vs_lot": "match"}, "humanity": {"before": {"v": 0}, "after": {"v": 0}, "delta": 0}, "menu_open": {"before": {"v": false}, "after": {"v": false}}}}

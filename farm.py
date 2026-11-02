@@ -131,6 +131,32 @@ def rest(tm, pad, nm, bonfire, mode: str = "walk") -> bool:
     except Exception:
         pass
     time.sleep(1.0)
+
+    def stand_up() -> bool:
+        for _ in range(6):
+            if not seated():
+                return True
+            press(vgamepad.XUSB_BUTTON.XUSB_GAMEPAD_B)
+            time.sleep(1.0)
+        return not seated()
+
+    def sit_down() -> bool:
+        for _ in range(3):
+            control.focus_game()
+            press(vgamepad.XUSB_BUTTON.XUSB_GAMEPAD_A)
+            for _ in range(16):
+                time.sleep(0.25)
+                if seated():
+                    return True
+        return False
+
+    import kindle
+    B = vgamepad.XUSB_BUTTON
+    menu = {"A": B.XUSB_GAMEPAD_A, "DOWN": B.XUSB_GAMEPAD_DPAD_DOWN, "LEFT": B.XUSB_GAMEPAD_DPAD_LEFT}
+    kindle.maybe(tm, lambda k: press(menu[k]), stand_up, sit_down,
+                 log=lambda m: print(m, flush=True))           # run.py --kindle: 성벽 마을 화톳불에서 인간성 2 → 되살리기 → 불 지피기 ([MoKa] 11-01)
+    import levelup                          # after kindling: a level-up leaves the cursor off "Leave"
+    levelup.maybe(tm, press, log=lambda m: print(m, flush=True))   # run.py --level-up: 앉은 김에 소울로 능력치 ([MoKa] 10-31)
     for _ in range(6):                      # 일어나기 = 메뉴 닫기
         if not seated():
             break

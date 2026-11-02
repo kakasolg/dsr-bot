@@ -112,6 +112,20 @@ def status() -> None:
 
 
 LURE_CMDS = {"burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt-one"}   # knife lures (souls/field.py lure)
+# commands whose missions call Missions._loot (clear_ramp · clear_burg_town · upper_zone · hunt_one); others: no drop pickup
+LOOT_CMDS = {"clear-ramp", "burg-bonfire", "burg-loop", "clear-burg-town", "hunt-one", "merchant", "burg-upper", "burg-altar",
+             "pick-blood"}
+ESTUS_HOME = 1        # --level-up: this many estus left after a zone → back to the bonfire instead of the next zone ([MoKa] 10-31)
+
+
+def _stain_carry(log):
+    """--pick-stain: the stain on record (data/bloodstain.json) and its burg-upper zone → afterdeath carry, or None."""
+    import places
+    from souls.watch import Blood
+    st = Blood.read()
+    zn = places.upper_zone(*st["pos"]) if st and st.get("pos") else None
+    log(f"   핏자국 기록: {st} → 구역 {zn}" if zn else f"   핏자국 기록 없음/상층 밖: {st}")
+    return (st, zn) if zn else None
 
 
 def main() -> None:
@@ -122,6 +136,8 @@ def main() -> None:
     ap.add_argument("--fall-quit", action="store_true", help="낙하 때 예전처럼 퀵 종료 (기본: 기록만 하고 계속, [MoKa] 2026-10-12)")
     ap.add_argument("--buy", default=None, help="상인에게서 살 것 '290:30,292:20' (goods:개수 — 290 투척 나이프, 292 화염병). "
                     "merchant-buy: 지금 선 곳에서 · burg-bonfire --seg …5: 상인 도착 뒤 (souls/shop.py)")
+    ap.add_argument("--drops", action="store_true", help="(예전 옵션) 이제 기본값 — 드롭 줍기는 LOOT_CMDS에서 늘 켜짐, 끄려면 --no-loot")
+    ap.add_argument("--no-loot", action="store_true", help="적 드롭 자동 줍기 끔 (souls/loot.py) — 진단·비교용, 예전 동작 그대로")
     ap.add_argument("--throw", action="store_true", help="burg-upper: 투척 나이프로 유인 (달려가기 전), 화염병 — 둘 이상 다가올 때 · 턱 위 화염병 망자 "
                     "(souls/missions.py FB_*; 퀵 슬롯에 290 · 292, [MoKa] 2026-10-12)")
     ap.add_argument("--shop-shots", action="store_true", help="상점 단계마다 스크린샷 data/shop/<날짜>/ (pad_step.py처럼)")
@@ -160,11 +176,21 @@ def main() -> None:
                     help="싸움 중 발밑이 위험하면(바닥 지도에서 발밑 바닥 없음, 또는 좁은데 밀리면 떨어짐) 넓은 쪽으로 방패 든 채 한 걸음 — "
                          "duel.rule_footing, rule_edge 대신 (P-58·P-49, [MoKa] 2026-10-11). 기본 꺼짐 (A/B용)")
     ap.add_argument("--note", default=None, help="한 줄 메모 — 실행 설정 기록(<run>.settings.json)과 로그 첫 줄에 남음 (예: 세이브 이름)")
+    ap.add_argument("--pick-stain", action="store_true", help="burg-upper: 시작 전 핏자국 기록(data/bloodstain.json)을 그 구역을 지난 뒤 주움")
+    ap.add_argument("--level-up", metavar="STAT", help="화톳불에서 쉴 때마다 소울로 이 능력치를 올림 (VIT …, levelup.py)")
+    ap.add_argument("--kindle", action="store_true",
+                    help="성벽 마을 화톳불에서 쉴 때 인간성 2 → 되살리기 → 불 지피기 (에스트 10병, kindle.py)")
     ap.add_argument("--no-lure", action="store_true", help="나이프로 한 놈씩 깨우지 않고 예전처럼 걸어가 붙는다 (비교용)")
     ap.add_argument("--style", choices=["guard", "backstep", "rush"], default="guard",
                     help="guard: 방패로 받고 휘청에 친다 (기본) | backstep: 양손, 백스텝으로 피하고 헛친 뒤 약공 | "
                          "rush: 양손, 막지도 피하지도 않고 계속 공격, 에스트로 버틴다 (사용자 제안, 실험)")
     a = ap.parse_args()
+    if a.level_up:
+        import levelup
+        levelup.WANT = a.level_up.upper()
+    if a.kindle:
+        import kindle
+        kindle.ON = True
     if a.cmd == "status":
         return status()
     if a.cmd == "watch":                                    # read-only: no lock, no pad, no Log file — --radar implied
@@ -375,6 +401,13 @@ def main() -> None:
     fld.run_id = log.path.stem                              # fight ids: <run>#f001 … (Field.fight)
     ms = missions.Missions(fld, nms, log=log, lure=not a.no_lure)
     ms.throw = a.throw
+    # 적 드롭 줍기: 연결된 명령에선 기본으로 켬 ([MoKa] 11-01 "일반 진행 중 자동으로 수행하는 공통 루틴"). 기준은 지금(처치 전)
+    loot = getattr(fld, "loot", None)
+    if loot is not None:
+        loot.on = a.cmd in LOOT_CMDS and not a.no_loot
+        if loot.on:
+            loot.reset("run start")
+    log(f"드롭 줍기: {'켬' if loot is not None and loot.on else '끔'}" + (" (--no-loot)" if a.no_loot else "" if a.cmd in LOOT_CMDS else " (이 명령엔 연결 안 됨)"))
     result = "exception"
     try:
         if a.cmd == "burg-bonfire" and a.seg:
@@ -397,16 +430,30 @@ def main() -> None:
                 int(lo), int(hi or lo), ms.upper_segment, alive=fld.alive, respawn=lambda: fld.wait_respawn(45.0),
                 read_stain=Blood.read, pick=lambda: fld.pick_blood(nms[missions.MAP_B], near=afterdeath.PICK_NEAR),
                 log=log, event=log.event, set_zone=lambda n: setattr(log, "zone", None if n is None else f"burg-upper:{n}"),
-                recover=not a.no_recover, label=lambda n: ms.UPPER_SEGMENTS[n])
+                recover=not a.no_recover, label=lambda n: ms.UPPER_SEGMENTS[n],
+                # --level-up = soul farming: 에스트 1개 남으면 다음 구역 안 가고 화톳불로 돌아가 쉰다 ([MoKa] 10-31)
+                low=(lambda: f"에스트 {fld.estus_left()}개 남음" if fld.estus_left() <= ESTUS_HOME else None) if a.level_up else None,
+                carry=_stain_carry(log) if a.pick_stain else None)
+            if r == "estus_low" and fld.alive():
+                ok = fld.rest_at(nms[missions.MAP_B], missions.SPOTS["burg-bonfire"])
+                log(f"══ 화톳불로 돌아가 쉼: {'ok' if ok else '실패'}")
         elif a.cmd == "burg-altar":
             # whole chain ([MoKa] 10-13): Burg bonfire → zones 1–7 → zone 8's fog wall → Taurus bridge → Hellkite bridge → altar bonfire
+            # 타우로스를 잡은 캐릭터 전용 — 처치가 확인 안 되면 아무것도 안 하고 멈춤 ([MoKa] 10-31, 10-31 155929: 살아 있는 보스 앞 다리로 감)
+            import boss_ready
+            v = boss_ready.altar(tm)
+            log(f"══ 진입 검사 (burg-altar): {v.line()}")
+            log.event("ready", what="burg-altar", ok=v.ok, stop=v.stop, facts=v.facts)
             lo, _, hi = (a.seg or "1-7").partition("-")
-            r = afterdeath.run_zones(
-                int(lo), int(hi or lo), ms.upper_segment, alive=fld.alive, respawn=lambda: fld.wait_respawn(45.0),
-                read_stain=Blood.read, pick=lambda: fld.pick_blood(nms[missions.MAP_B], near=afterdeath.PICK_NEAR),
-                log=log, event=log.event, set_zone=lambda n: setattr(log, "zone", None if n is None else f"burg-upper:{n}"),
-                recover=not a.no_recover, label=lambda n: ms.UPPER_SEGMENTS[n])
-            if fld.alive() and r not in ("died", "no_estus", "휴식 실패"):
+            if not v.ok:
+                r = "멈춤: " + " · ".join(v.stop)
+            else:
+                r = afterdeath.run_zones(
+                    int(lo), int(hi or lo), ms.upper_segment, alive=fld.alive, respawn=lambda: fld.wait_respawn(45.0),
+                    read_stain=Blood.read, pick=lambda: fld.pick_blood(nms[missions.MAP_B], near=afterdeath.PICK_NEAR),
+                    log=log, event=log.event, set_zone=lambda n: setattr(log, "zone", None if n is None else f"burg-upper:{n}"),
+                    recover=not a.no_recover, label=lambda n: ms.UPPER_SEGMENTS[n])
+            if v.ok and fld.alive() and r not in ("died", "no_estus", "휴식 실패"):
                 log.zone = "altar"
                 fg = ms.to_altar_bridge()
                 log(f"══ 구역 8 안개벽: {fg}")
@@ -422,7 +469,8 @@ def main() -> None:
             r = ms.passage_drill(rounds=5)
         elif a.cmd == "clear-ramp":
             if not a.no_rest:
-                ms.start_fresh()
+                ms.start_fresh()                            # --level-up: the rest levels first
+            ms.firelink_humanity()
             r = ms.clear_ramp(lure=not a.no_lure)
         elif a.cmd == "clear-burg-town":
             r = ms.clear_burg_town()
@@ -508,6 +556,8 @@ def main() -> None:
         pad.neutral()
         esc.quit_ok = esc.nudge_ok = False      # the Escape thread keeps watching but only logs (fire → skipped)
         cam.stop()                              # camera follow would keep turning the right stick through the cleanup waits
+        if gk is not None:
+            gk.stop()                           # same for guard keep: it re-raises LB on every nearby swing, and a live keep_guard window makes neutral() press LB again
         pad.neutral()
         log("══ 사용자 중지 (Ctrl+C) — 입력 중립, 퀵 종료 안 함")
         log.event("user_stop", cmd=a.cmd)

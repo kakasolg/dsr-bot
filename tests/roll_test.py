@@ -113,6 +113,19 @@ def main() -> None:
     check("stick let go (0, 0) once the roll anim started, before the 1.2 s hold", ("move", 0.0, 0.0, True) in log)
     check(f"rolled where it was aimed: meant {r['want']}°, took {r['got']}° (off {r['off']}°)",
           r["off"] is not None and r["off"] <= 5)
+    # hold=True (Taurus's ladder foot): the stick stays in for the old 1.2 s after B (710 ~1.0 s; let go → 2.0 s there, 10-31)
+    log.clear()
+    state.clear(); state["t"] = 0.0
+    me.update(x=0.0, z=0.0, anim=-1)
+    M.time = Clock()
+    try:
+        r2 = mv.roll_toward(stale, 3.0 * aim[0], 3.0 * aim[1], hold=True)
+        t_b = state["rolled_at"]
+    finally:
+        M.time = real_time
+    rel = [i for i, e in enumerate(log) if e[0] == "move" and e[1:3] == (0.0, 0.0)]
+    check("hold=True: no stick let-go before 1.2 s after B (one release, at the end)", len(rel) == 1 and rel[0] == len(log) - 1)
+    check("hold=True: still rolls where aimed", r2["off"] is not None and r2["off"] <= 5 and t_b > 0)
     print("roll_test: all ok")
 
 

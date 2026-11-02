@@ -24,6 +24,18 @@ def test_zones() -> None:
     print("ok  zones: Firelink bonfire / town #4 street / merchant / ramp flat; other level → none")
 
 
+def test_where_upper() -> None:
+    assert places.where(19.9, -5.72, -103.7) == "상층 4 · 송진 문"
+    assert places.where(15.5, -5.7, -103.6) == "상층 4"                          # zone 4 kill spot
+    assert places.where(49.16, 15.97, -117.1) == "상층 7 · 탑 사다리 아래"
+    assert places.where(50.0, 24.8, -116.9) == "상층 8 · 탑 사다리 위"            # same x/z as the bottom, other level
+    assert places.where(10.0, 16.0, -117.0) == "타우로스 다리"
+    assert places.where(30.0, -6.0, -90.0) == "상층 5 근처 11 m"
+    assert places.where(-28.1, 40.0, -58.8) is None
+    assert places.zone(-28.1, -13.4, -58.8) == "town #4 street (packs)"         # older names still win where they were
+    print("ok  where: 상층 n · 지점 / 다리 / 근처 n m / 다른 층 → none")
+
+
 def test_labels() -> None:
     L = places.Labels(spawns={("경사로", "ramp"): [{"npc": 255010, "pos": [-23.4, -49.67, 16.15]}]},
                       msb=[(254010, (-28.0, -13.4, -58.0), "c2540_0012"), (254010, (60.0, -13.4, 60.0), "c2540_0099")])
@@ -45,11 +57,15 @@ def test_real_data() -> None:
     L = places.Labels()
     town4 = {"ptr": 9, "npc": 254010, "x": -1.83, "y": -10.02, "z": -64.24}
     assert L.of(town4) == "town#4 hollow", L.of(town4)
+    cb = [{"ptr": 20 + i, "npc": 255002, "x": 52.7, "y": 23.8, "z": z} for i, z in enumerate((-121.3, -119.9))]
+    assert [L.of(c, en=False) for c in cb] == ["상층8#2 석궁병", "상층8#1 석궁병"]     # nearest spawn, not first in the list
+    print(f"ok  real data: town #4 spawn → {L.of(town4)!r}, tower → {L.of(cb[1], en=False)!r}")
     print(f"ok  real data: town #4 spawn → {L.of(town4)!r}, {len(L.msb)} game-file placements, {len(places.ZONES)} zones")
 
 
 if __name__ == "__main__":
     test_zones()
+    test_where_upper()
     test_labels()
     test_real_data()
     print("전부 통과")

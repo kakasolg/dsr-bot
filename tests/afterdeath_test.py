@@ -73,6 +73,14 @@ def main() -> None:
     check("no stain record → ignore", A.plan(None, 3, None, 0)[0] == "ignore")
     check(f"trip cap {A.MAX_TRIPS} → stop", A.plan(rich, 3, 5, A.MAX_TRIPS)[0] == "stop")
 
+    # low(): [MoKa] 10-31 "에스트 하나 남았으면 그냥 돌아가" — checked after each cleared zone, never after the last
+    g = Game({}, [])
+    r = g.run(1, 5, low=lambda: "에스트 1개 남음" if len(g.played) >= 3 else None)
+    check("low after zone 3 → estus_low, zones 4–5 not played", r == "estus_low" and [n for _, n in g.played] == [1, 2, 3]
+          and ("zones_stop", {"zone": 3, "why": "에스트 1개 남음"}) in g.events)
+    g = Game({}, [])
+    check("low only true at the end → last zone's result", g.run(1, 2, low=lambda: "x" if len(g.played) >= 2 else None) == "cleared")
+
     # recover: die in zone 5 → from zone 1 again, pick after zone 5, go on to 8
     g = Game({(0, 5): 1}, [rich], pick_at={(1, 5): "got"})
     r = g.run()

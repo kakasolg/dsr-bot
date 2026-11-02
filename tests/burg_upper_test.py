@@ -41,11 +41,14 @@ z8 = zones[7]
 lad = z8["before"][1]["ladder"]
 p = nm.find_path(tuple(zones[6]["safe"]), tuple(lad["approach"][0]))
 check(f"zone 8: top of the stairs → foot of the stairs ({length(p):.0f} m)", len(p) >= 2 and length(p) < 15)
-check("zone 8: fog wall first, then the ladder ([MoKa] '안개벽 처리 않해?'), then two rolls (P-47)",
-      [next(iter(s)) for s in z8["before"]] == ["fog", "ladder", "roll"])
+check("zone 8: fog wall first, then the ladder ([MoKa] '안개벽 처리 않해?'); no rolls (MoKa 11-01 '녹화처럼 달려가 기다리기')",
+      [next(iter(s)) for s in z8["before"]] == ["fog", "ladder"])
+p = nm.find_path((49.96, 24.81, -116.86), tuple(z8["safe"]))
+check(f"zone 8: ladder top → F9#8 run spot ({length(p):.0f} m), run through bolts",
+      len(p) >= 2 and length(p) < 20 and z8.get("run_to_safe") == "through")
 p = nm.find_path(tuple(z8["safe"]), tuple(z8["kills"][0][1]))
-check(f"zone 8: ladder top → first crossbowman ({length(p):.0f} m)", len(p) >= 2 and length(p) < 10)
-check("zone 8: crossbowmen are attacked at once ([MoKa] '가자 마자 공격해')", all(k[2].get("attack") for k in z8["kills"]))
+check(f"zone 8: F9#8 → first crossbowman ({length(p):.0f} m)", len(p) >= 2 and length(p) < 15)
+check("zone 8: crossbowmen are waited for at F9#8, then fought without retreat (hold)", all(k[2].get("hold") for k in z8["kills"]))
 prev = MS.BURG_BONFIRE_SIDE
 for z in zones:
     safe = tuple(z["safe"])
@@ -323,24 +326,149 @@ check("wait: guard at the safe spot until the patrolling 255000 comes — no run
 # zone 8 ladder ([MoKa] "사다리 타고 올라가서") — face, A, stick up until the top height
 MS.LADDER_CLIMB_S = 3.0
 lad_log = []
-pos = {"y": 15.97}
+MS.LADDER_GRAB_S = 0.3
+MS.LADDER_BUSY_S = 1.0
+pos = {"y": 15.97, "anim": -1, "busy": 0}
 def lad_move(x, y):
     lad_log.append(("move", x, y))
-    if y > 0.9 and ("A" in [e[0] for e in lad_log]):
+    if y > 0.9 and pos["anim"] >= 7000:
         pos["y"] += 1.5
+def lad_A():
+    lad_log.append(("A", pos["anim"]))
+    if not (700 <= pos["anim"] < 800):                  # the game drops A during a roll
+        pos["anim"] = 7010
+def lad_snap(r=5.0):
+    if pos["busy"]:                                     # a roll that is still playing out
+        pos["busy"] -= 1
+        if not pos["busy"]:
+            pos["anim"] = -1
+    return NS(player=NS(x=49.16, y=pos["y"], z=-117.1, anim=pos["anim"], heading=pos.get("heading"), hp=pos.get("hp")),
+              cam_yaw=0.0)
 m = MS.Missions.__new__(MS.Missions)
 m.log = lambda *a: None
 m.f = NS(walk_to=lambda *a, **k: "arrived", walk=lambda *a, **k: "arrived", alive=lambda: True, _settle=lambda *a, **k: 0.0)
-m.mv = NS(snap=lambda r=5.0: NS(player=NS(x=49.16, y=pos["y"], z=-117.1), cam_yaw=0.0),
-          stick_to=lambda s, x, z, sc=1.0: (sc, 0.0),
-          pad=NS(move=lad_move, interact=lambda: lad_log.append(("A",)), neutral=lambda: None))
+m.mv = NS(snap=lad_snap, stick_to=lambda s, x, z, sc=1.0: (sc, 0.0),
+          pad=NS(move=lad_move, interact=lad_A, neutral=lambda: lad_log.append(("neutral",)), release_due=lambda: None))
 r = m._before(z8["before"][1], None, "t")
-check("ladder: A at the bottom, then stick up until the top", r == "ok" and pos["y"] >= 24.2 and ("A",) in lad_log)
-pos["y"] = 15.97
+check("ladder: A at the bottom, mount anim 7010, then stick up until the top", r == "ok" and pos["y"] >= 24.2 and ("A", -1) in lad_log)
+pos.update(y=15.97, anim=-1)
 lad_log.clear()
 m.mv.pad.interact = lambda: lad_log.append(("noA",))   # A doesn't grab the ladder
 r = m._before(z8["before"][1], None, "t")
 check("ladder: never climbs → fail after the tries", r == "fail" and pos["y"] < 17)
+check("ladder: A not taken → no 'stick up' at all (10-31 225341 · 230111: it ran 7 m toward Taurus)",
+      not [e for e in lad_log if e[0] == "move" and e[2] > 0.9])
+# 10-31: at the ladder foot still in the roll (anim 710 for 1.5 s) — wait it out, then A
+pos.update(y=15.97, anim=710, busy=6)
+lad_log.clear()
+m.mv.pad.interact = lad_A
+r = m._before(z8["before"][1], None, "t")
+check("ladder: still rolling (710) → A only after the roll ends → climbs", r == "ok" and [e for e in lad_log if e[0] == "A"] == [("A", -1)])
+# 10-31 235045: A not taken → it stayed held (no release) and the next two A taps were no new press; A in Estus 7587 dropped
+pos.update(y=15.97, anim=-1, busy=0)
+lad_log.clear()
+m.mv.pad.interact = lambda: lad_log.append(("noA",))
+m._before(z8["before"][1], None, "t")
+ev = [e[0] for e in lad_log if e[0] in ("noA", "neutral")]
+check("ladder: every A that isn't taken is let go (neutral) before the next A", ev[:6] == ["noA", "neutral"] * 3)
+pos.update(y=15.97, anim=7587, busy=6)
+lad_log.clear()
+m.mv.pad.interact = lad_A
+r = m._before(z8["before"][1], None, "t")
+check("ladder: still drinking Estus (7587) → A only after it ends → climbs", r == "ok" and [e for e in lad_log if e[0] == "A"] == [("A", -1)])
+# 20261101_000027: the roll ended, −1 for one read, then a hit stun — A must wait until free for a moment in a row
+seq = iter([710, 710, -1, 2017, 2017, 2017, -1, -1, -1, -1, -1, -1, -1, -1])
+pos.update(y=15.97, anim=710, busy=0)
+base_snap = m.mv.snap
+reads = {"n": 0, "at_A": None}
+def seq_snap(r=5.0):
+    reads["n"] += 1
+    pos["anim"] = next(seq, -1) if pos["anim"] < 7000 else pos["anim"]
+    return base_snap(r)
+def seq_A():
+    reads["at_A"] = reads["at_A"] or reads["n"]
+    lad_A()
+m.mv.pad.interact = seq_A
+m.mv.snap = seq_snap
+lad_log.clear()
+r = m._before(z8["before"][1], None, "t")
+m.mv.snap = base_snap
+m.mv.pad.interact = lad_A
+pos.update(y=15.97, anim=-1, busy=0, heading=-math.pi / 2 + math.radians(18))   # 18° off the ladder (001326: 15–20°)
+lad_log.clear()
+r = m._before(z8["before"][1], None, "t")
+first_A = next(i for i, e in enumerate(lad_log) if e[0] == "A")
+check("ladder: body already facing it (18° off) → no turn stick before A, climbs",
+      r == "ok" and not [e for e in lad_log[:first_A] if e[0] == "move" and (e[1] or e[2])])
+pos.update(y=15.97, heading=-math.pi / 2 + math.radians(90))
+lad_log.clear()
+r = m._before(z8["before"][1], None, "t")
+first_A = next(i for i, e in enumerate(lad_log) if e[0] == "A")
+check("ladder: body 90° off → turn stick first, then A", r == "ok" and [e for e in lad_log[:first_A] if e[0] == "move" and (e[1] or e[2])])
+# 20261101_001740: after a stun the body faced 180° away; one short weak nudge didn't turn it and A wasn't taken
+base_move = m.mv.pad.move
+def turn_move(x, y):
+    base_move(x, y)
+    if x or y:                                          # each stick read turns the body 30° toward the ladder
+        h = pos["heading"] - (-math.pi / 2)
+        pos["heading"] = -math.pi / 2 + math.copysign(max(abs(h) - math.radians(30), 0.0), h)
+m.mv.pad.move = turn_move
+pos.update(y=15.97, heading=-math.pi / 2 + math.radians(179))
+lad_A_off = []
+def facing_A():
+    lad_A_off.append(abs(math.degrees(pos["heading"] + math.pi / 2)))
+    lad_A()
+m.mv.pad.interact = facing_A
+lad_log.clear()
+r = m._before(z8["before"][1], None, "t")
+check("ladder: body 179° off → keeps turning (fresh reads) until within LADDER_FACE_DEG, then A, climbs",
+      r == "ok" and lad_A_off and lad_A_off[0] <= MS.LADDER_FACE_DEG)
+m.mv.pad.move = base_move
+m.mv.pad.interact = lad_A
+pos.pop("heading")
+check("ladder: a one-read gap between the roll and a hit stun is not 'free' → A only after the stun → climbs",
+      r == "ok" and (reads["at_A"] or 0) >= 7)
+# 20261101_002546: HP 0 at 82.53, after the entry check (nav.goto ended 82.51) — then A at 82.66 · 84.02 · 85.38 on the corpse
+base_f = m.f
+def dies_in_settle(settles_alive):
+    """Fake Field whose alive() reads the fake HP; HP drops to 0 at the n-th _settle (entry settle = 1st), in the
+    snapshots too (the real snapshot carries player.hp)."""
+    life = {"hp": 377, "n": 0}
+    pos["hp"] = 377
+    def settle(*a, **k):
+        life["n"] += 1
+        if life["n"] > settles_alive:
+            life["hp"] = pos["hp"] = 0
+            lad_log.append(("died",))
+        return 0.0
+    return NS(walk_to=base_f.walk_to, walk=base_f.walk, alive=lambda: life["hp"] > 0, _settle=settle)
+def after_death(log):
+    return log[log.index(("died",)) + 1:] if ("died",) in log else []
+def drives(e):
+    return e[0] in ("A", "noA") or (e[0] == "move" and (e[1] or e[2]))
+pos.update(y=15.97, anim=-1, busy=0)
+m.f = dies_in_settle(0)                                 # dead before the first A (002546)
+lad_log.clear()
+r = m._before(z8["before"][1], None, "t")
+check("ladder: dead after the entry check → 'dead', no A / turn / stick after the death (002546)",
+      r == "dead" and not [e for e in after_death(lad_log) if drives(e)])
+check("ladder: dead → this routine lets go of its inputs (neutral) and does nothing else",
+      after_death(lad_log) == [("neutral",)])
+pos.update(y=15.97, anim=-1, busy=0)
+m.f = dies_in_settle(1)                                 # first A not taken, dies in the retry's settle
+m.mv.pad.interact = lambda: lad_log.append(("noA",))
+lad_log.clear()
+r = m._before(z8["before"][1], None, "t")
+check("ladder: dies between tries → 'dead', one A before the death, none after",
+      r == "dead" and [e for e in lad_log if e[0] == "noA"] == [("noA",)] and not [e for e in after_death(lad_log) if drives(e)])
+pos.update(y=15.97, anim=-1, busy=0)
+m.f = dies_in_settle(99)                                # alive throughout: normal path unchanged
+m.mv.pad.interact = lad_A
+lad_log.clear()
+r = m._before(z8["before"][1], None, "t")
+check("ladder: alive throughout → A, mount, climbs as before", r == "ok" and pos["y"] >= 24.2 and ("A", -1) in lad_log)
+m.f = base_f
+pos.pop("hp")
 
 from souls import field as F  # noqa: E402
 # 10-06j: the shield soldier shut the door west of the zone 5 safe spot ([MoKa] "a 눌러, 방패병이 문을 닫았어")
@@ -439,6 +567,7 @@ def tethered(results, start, spot=tuple(z2["safe"]), move=True, npc=None, foes=(
             _fight_once=once, _retreat_to_zone=retreat,
             mv=NS(snap=snap))
     me._tether_far = lambda s: F.Field._tether_far(me, s)
+    me._door_retry = lambda r, toward, tag, again: F.Field._door_retry(me, r, toward, tag, again)
     if npc is not None:
         me.mv.find = lambda s, ptr: NS(npc_param=npc)
     r = F.Field.fight(me, 1, None, "t")
@@ -484,9 +613,9 @@ check("zone: escape.pick limited to TETHER_R around the safe spot", F.Field._zon
 
 # P-47 zone 8 ladder top ([MoKa] 10-06: "구르기를 2번 해서 석궁병하고 간격을 벌려야 해") — the top is a ledge 0.2–0.5 m from the
 # NavMesh edge; east toward F9#8 the floor widens. Roll there twice, then the landing is the safe spot / tether
-roll = z8["before"][2]["roll"]
-check("zone 8 roll step: 2 rolls toward MoKa's F9#8, landing = safe spot", roll["n"] == 2 and roll["safe_after"]
-      and math.dist(tuple(roll["toward"]), (61.95, 23.7, -116.93)) < 0.1)
+# 11-01 MoKa "녹화처럼 달려가 기다리기": zone 8 no longer rolls (run to F9#8 instead); the roll step type stays, tested here with
+# the old zone 8 data
+roll = {"n": 2, "toward": [61.95, 23.7, -116.93], "safe_after": True}
 import ground  # noqa: E402
 import nav  # noqa: E402
 g8 = ground.Ground(nm)
@@ -519,21 +648,19 @@ check(f"_roll_away: two rolls east, landing recorded ({r}, {len(rolled)}, {tuple
 
 foe = Chr(npc_param=255002, ptr=83, x=52.9, y=23.8, z=-119.8, hp=85, anim=-1)
 m, f, calls, w = make(foe)
-landing = (55.9, 23.7, -116.8)
+f9 = tuple(z8["safe"])
 def before8(step, nb_, tag):
     calls.append(("before", next(iter(step))))
-    if "roll" in step:
-        m._landed = landing
     return "ok"
 m._before, m._top_up = before8, (lambda *a: True)
-walked8, pulled8 = [], []
+walked8, pulled8, ran8 = [], [], []
 f.careful_walk_to = lambda *a, **k: walked8.append(a) or "arrived"
-base_pull = m._pull_to_safe
-m._pull_to_safe = lambda npc, pos, safe_, nb_, tag, how=None: (pulled8.append((safe_, f.tether)), base_pull(npc, pos, safe_, nb_, tag, how))[1]
+m._sprint = lambda goal, nb_, stop, through=False: ran8.append((tuple(goal), through)) or "arrived"
+m._pull_to_safe = lambda npc, pos, safe_, nb_, tag, how=None: pulled8.append((safe_, f.tether, dict(how or {}))) or "killed"
 zr = m.upper_zone(8)
-check(f"zone 8: fog → ladder → roll, then no walk back to the ladder top; fights use the landing as safe spot / tether ({zr})",
-      [c[1] for c in calls if c[0] == "before"] == ["fog", "ladder", "roll"] and walked8 == []
-      and pulled8 and all(sp == landing and t == landing for sp, t in pulled8) and f.tether != landing)
+check(f"zone 8: fog → ladder → run to F9#8 through bolts (no rolls, no careful walk); fights wait there ({zr})",
+      [c[1] for c in calls if c[0] == "before"] == ["fog", "ladder"] and ran8 == [(f9, True)] and walked8 == []
+      and len(pulled8) == 2 and all(sp == f9 and t == f9 and h.get("hold") for sp, t, h in pulled8))
 
 # --throw ([MoKa] 2026-10-12: "투척 아이템 구매했으니 … 소머리데몬 가는 길에 적들에게 사용"): knife lure before the body run,
 # firebomb when two or more come at the safe spot

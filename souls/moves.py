@@ -154,6 +154,7 @@ class Moves:
         self.show_path = None    # (tag, [(x, y, z), ...]) while field.walk follows a path
         self.show_spot = None    # (tag, (x, y, z), time) — last spot field._hold_at held
         self.show_smash = None   # (prop name, (x, y, z), time) — last prop field._smash_blocking swung at
+        self.show_drops = None   # (time, [(x, y, z, item, state, aim)]) — field.pick_drops' DropBook (aim = the cluster being visited)
 
     # ── Camera ───────────────────────────────────────────────
     # User 2026-09-26: "This game has auto lock-on, so … press the right stick again to release, point the camera at the enemy you want, press the stick".
@@ -555,7 +556,7 @@ class Moves:
         return hit
 
     @_span
-    def roll_toward(self, s, x: float, z: float) -> dict:
+    def roll_toward(self, s, x: float, z: float, hold: bool = False) -> dict:
         """Stick that way + tap B = roll. → {'want', 'got', 'off'} — the direction meant and the one taken (degrees, atan2(dx, dz)).
 
         P-73 (20261012_033444 68.0 s): the stick is camera-relative and was worked out from a snapshot taken before the roll;
@@ -563,7 +564,9 @@ class Moves:
         −126° instead of −30° — off the ramp, 22.4 m. Now: the camera holds still (cam_busy, as for knife throws) from before
         the stick is worked out until the roll is under way; the stick comes from a fresh snapshot; wait out a hit stagger
         first (the 0.3 s turn is lost in it); let go of the stick once the roll starts — the old 1.2 s hold walked ~1 m on
-        after it, past where the floor was checked (nav.ROLL_CHECK_M)."""
+        after it, past where the floor was checked (nav.ROLL_CHECK_M).
+        hold=True: the old 1.2 s stick hold — only toward a spot with a wall behind it (Taurus's ladder foot). With the stick
+        let go the roll (710) played 2.0 s there (10-31 225341 · 235622 · 20261101_000027); held, ~1.0 s (before f2333dc 20/20)."""
         busy, self.cam_busy = self.cam_busy, True
         try:
             time.sleep(0.06)                                 # a camera pulse already going finishes (CamFollow ticks 0.05 s)
@@ -581,12 +584,12 @@ class Moves:
             while time.time() - t0 < 1.2:
                 self.pad.release_due()
                 s2 = self.snap(10.0)
-                if s2 is not None and s2.player.anim is not None and 700 <= s2.player.anim < 800 and time.time() - t0 > 0.1:
+                if not hold and s2 is not None and s2.player.anim is not None and 700 <= s2.player.anim < 800 and time.time() - t0 > 0.1:
                     break                                    # rolling — its direction is set
                 time.sleep(0.02)
             self.pad.move(0.0, 0.0)
             t0 = time.time()
-            while time.time() - t0 < 0.9:                    # the roll plays out
+            while time.time() - t0 < (0.2 if hold else 0.9):  # the roll plays out
                 self.pad.release_due()
                 time.sleep(0.03)
             s3 = self.snap(10.0)

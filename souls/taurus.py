@@ -52,6 +52,9 @@ CYCLES = 5                          # plunge rounds before falling back to the c
 PUNISH_R = 2.6                      # after landing: one light if it's this close
 BACK_S = 10.0                       # longest run back to the ladder
 DODGE_R = 4.5                       # on the way back: roll toward the ladder when it starts a swing this close
+HIT_AT = {3000: 1.45, 3002: 1.41, 3003: 1.99, 3004: 1.85, 3005: 1.51, 3006: 1.55}   # anim time (s) of its first hit, see ROLL_LEAD
+ROLL_LEAD = 0.33                    # B this long before the hit: roll i-frames ~0.1–0.37 s after B (boss/boss.py)
+DODGE_FAR = {3004: 12.0}            # the leap lands from far: hit at 8.99–10.7 m (002546, 235045, 230111)
 TOP_HEAL = 0.50                     # Estus on the top only (YouTube guide), and only below this
 RESIN_S = 55.0                      # Gold Pine Resin lasts ~60 s — rub again on the top after this
 HIT_AFTER_S = 0.6                   # AttackLog: an HP drop this long after its anim ends still counts for that attack
@@ -74,6 +77,30 @@ def my_kind(anim) -> str:
     if 2000 <= a < 2100 or 100000 <= a < 101500:
         return "경직/막기"
     return f"기타({a})"
+
+
+WAY_NEXT_M = 0.7                    # steer at the first NavMesh path point at least this far ahead
+WAY_EVERY_S = 1.0                   # path worked out again this often on the way back
+
+
+def ladder_way(nm, p, goal):
+    """The point to steer at on the way back to the ladder foot: the next NavMesh path point, or goal itself (no mesh / no path).
+
+    ── 직선이 막히는 자리 (10-31 230917 · 20261101_000849) ─────────────────────────
+     3012에 구른 뒤 안개벽 쪽 경사로 (49.5~50.6, 16.8~17.2, −118.3~−118.6)에 섬 → 사다리 아래 (49.16, 15.97, −117.1)까지
+     직선 스틱이 8 s 막혀 제자리에서 3005·3002에 맞음. NavMesh로는 경사로를 내려가 서쪽 (45.96, −118.38)을 돌아가는 길만 이어짐."""
+    if nm is None:
+        return goal
+    try:
+        path = nm.find_path((p.x, p.y, p.z), tuple(goal))
+    except Exception:
+        path = None
+    if not path:
+        return goal
+    for q in path:
+        if math.hypot(q[0] - p.x, q[2] - p.z) >= WAY_NEXT_M:
+            return tuple(q)
+    return goal
 
 
 def ang_off(b, p) -> float:
@@ -160,10 +187,14 @@ class Taurus:
         """→ 'killed' | 'died' | 'no_estus' | '<step> fail' …"""
         if not self.f.alive():
             return "died"
-        if self.mv.estus_left() < 1:                       # [MoKa] 10-06: "에스트는 1개만 있으면 될 것 같아"
-            return "no_estus"
-        if (self.tm.goods_count(RESIN) or 0) < 1:
-            self.log("   타우로스: 황금 송진 없음 — 송진 없이 감")
+        # 진입 검사 — 석궁병 둘 처치 확인 · 송진 보유+퀵슬롯 (이 경로는 송진 필수) · 에스트 ≥ 1 ([MoKa] 10-06 "에스트는 1개만",
+        # 10-31 "전제 미충족 또는 확인 불가이면 중단·보고"). 미충족이면 이동·공격·아이템 사용 전에 멈춤
+        import boss_ready
+        v = boss_ready.taurus(self.tm)
+        self.log(f"   타우로스 진입 검사: {v.line()}")
+        self.events("taurus", what="ready", ok=v.ok, stop=v.stop, facts=v.facts)
+        if not v.ok:
+            return "멈춤: " + " · ".join(v.stop)
         self.f.ignore_npcs = {TAURUS}                      # walks don't stop to duel it — we run to the ladder
         esc = self.f.esc
         saved = (esc.quit_ok, getattr(esc, "nudge_ok", True))
@@ -388,6 +419,8 @@ class Taurus:
         """Run to the ladder foot (roll toward it when it starts a swing within DODGE_R), then climb."""
         bottom = LADDER["bottom"]
         t0, prev_a, rolled = time.time(), None, 0.0
+        way, way_t = bottom, 0.0
+        dodged, seen_t, last_at = True, 0.0, None
         while time.time() - t0 < BACK_S:
             if not self.f.alive():
                 return "died"
@@ -401,18 +434,39 @@ class Taurus:
             d = math.hypot(p.x - bottom[0], p.z - bottom[2])
             if d <= 0.6:
                 break
+            if time.time() - way_t > WAY_EVERY_S or math.hypot(p.x - way[0], p.z - way[2]) < 0.5:
+                way, way_t = ladder_way(self.nm, p, bottom), time.time()
             a = b.anim if b.anim is not None else -1
             started = 3000 <= a < 3100 and a != prev_a
             prev_a = a
-            if started and M.horiz(p, b) < DODGE_R and time.time() - rolled > 1.2 and s.cam_yaw is not None:
-                self.log(f"   타우로스 {a} 시작 {M.horiz(p, b):.1f} m (정면에서 {ang_off(b, p):+.0f}°) — 사다리 쪽으로 구르기")
-                self.events("taurus", what="dodge", anim=a, h=round(M.horiz(p, b), 2), ang=round(ang_off(b, p)))
-                self.mv.roll_toward(s, bottom[0], bottom[2])
+            # ── 시작이 아니라 닿기 직전에 구른다 (20261101_002546) ─────────────────────────────────
+            #  시작 보자마자 구르면 1.4~2.0 s 앞서 굴러 구르기가 끝난 뒤 맞음 (001740 끝 0.14 s 뒤, 000027·001326 구르는 중).
+            #  또 구르기 쿨다운 중 시작한 3005는 '시작'을 놓쳐 안 구르고 달리다 −233 (74.58 시작 → 76.10 맞음).
+            #  블랙박스 60 Hz에서 애니 시작 → 피해가 애니마다 일정 (3002 1.41~1.49, 3005 1.51~1.64 …) → HIT_AT.
+            #  게임의 애니 시간(anim_time)으로 HIT_AT − ROLL_LEAD에 구르고, 그때까지는 사다리 쪽으로 계속 달린다.
+            #  HIT_AT에 없는 애니(3012 등)는 전처럼 시작에 바로.
+            at = self.tm.anim_time(b.ptr) if 3000 <= a < 3100 and hasattr(self.tm, "anim_time") else None
+            if started or (at is not None and last_at is not None and at < last_at - 0.2):   # new swing (or same id again)
+                dodged, seen_t = False, time.time()
+            last_at = at
+            hit_at = HIT_AT.get(a)
+            if hit_at is not None:
+                age = at if at is not None else time.time() - seen_t
+                due = not dodged and hit_at - ROLL_LEAD <= age < hit_at + 0.1 and M.horiz(p, b) < DODGE_FAR.get(a, DODGE_R)
+            else:
+                due = started and M.horiz(p, b) < DODGE_R and time.time() - rolled > 1.2
+            if due and s.cam_yaw is not None:
+                dodged = True
+                when = "시작" if hit_at is None else f"{age:.2f} s (닿기 {hit_at:.2f} s)"
+                self.log(f"   타우로스 {a} {when} {M.horiz(p, b):.1f} m (정면에서 {ang_off(b, p):+.0f}°) — 사다리 쪽으로 구르기")
+                self.events("taurus", what="dodge", anim=a, h=round(M.horiz(p, b), 2), ang=round(ang_off(b, p)),
+                            at=None if at is None else round(at, 3))
+                self.mv.roll_toward(s, way[0], way[2], hold=True)   # stick held 1.2 s: 710 ends ~1.0 s (let go: 2.0 s, 10-31)
                 rolled = time.time()
                 continue
             if s.cam_yaw is not None:
                 self.pad.sprint(d > 2.5)
-                self.pad.move(*self.mv.stick_to(s, bottom[0], bottom[2], 1.0 if d > 1.5 else 0.5))
+                self.pad.move(*self.mv.stick_to(s, way[0], way[2], 1.0 if d > 1.5 else 0.5))
             self.pad.release_due()
             time.sleep(0.03)
         self.pad.sprint(False)

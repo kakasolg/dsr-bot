@@ -31,7 +31,7 @@ needing the tick loop, route data, settings object or WorldState.
 
 `run.py burg-upper` = MoKa's safe-spot zones 1–8 (`data/burg-upper-map.json`); test save `backup-20261006-155749-…-before-taurus`.
 
-- [~] taurus | win | doing | `run.py taurus` plunge loop; bonfire → Taurus killed 2× (005650, 025057) | docs/boss-taurus.md · plan:taurus
+- [~] taurus | MoKa | verify | 11-01 taurus-start: 10 tries, 5 kills (boss HP 0 read); ladder/roll fixes uncommitted (P-97), timed dodge offline only → next: MoKa review, commit | docs/boss-taurus.md · plan:taurus · P-97
 - [~] fall-death-policy | win | verify | no fall quit-out + after-death pickup: (1)(2) seen in 3 runs; (3) death record, (4) alignment next runs | P-71 · P-72 · plan:fall-death-policy
 - [ ] boss-two-hand-dodge | cloud+win | todo | boss default = two-handed + dodging (9-30); Taurus first, general boss module is v2.0 | plan:boss-two-hand-dodge
 - [~] stage-analysis | MoKa | decide | burg-upper zones 1–8 analysed (auto + hand draft); MoKa: fix intent / response, zone 4 safe spot 0.5 m from a drop | docs/stages/burg-upper.md · plan:stage-analysis
@@ -82,6 +82,9 @@ needing the tick loop, route data, settings object or WorldState.
 - [ ] ramp-labels | MoKa | todo | ramp 24-scene labels (review mode) → `label_pilot.py report --set ramp`; then size of the eval set | plan:ramp-labels
 
 **Game files · radar · overlay (2, 4, 5)**
+- [~] firelink-items | MoKa | decide | drops picked in game: ramp 4×, Burg zone 1 2×; Firelink humanity corpse got 2/2 (flag + count); other fixed treasure / chests: no code | docs/item-pickup.md · plan:firelink-items
+- [~] resin-route | win | verify | 214607: chest opened at 0.77 m, resin 0→3, flag True (memory, 1 run); window left open (P-107, fix offline only) | docs/item-pickup.md · P-104
+- [~] kindle | win | verify | `--kindle`: game 183919 at the Burg bonfire — humanity 0→2, reverse 2→1, kindle Estus 5→10 (memory reads, 1 run) | kindle.py · plan:kindle
 - [~] msb-treasures | win | doing | re-run `msb_extract.py m10_02_00_00 m10_01_00_00` for `treasures` | plan:msb-treasures
 - [~] overlay-borderless | win | doing | borderless overlay + bot: overlay visible, clicks pass through, bot keeps going | plan:overlay-borderless
 - [~] radar-upgrade | win | doing | radar upgrade check (navmesh drawn, pad slots, recording, `--replay`) | plan:radar-upgrade
@@ -189,6 +192,18 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 93 | Pad, normal time (no freeze): `keep_guard` + `guard(True)`→`guard(False)` → LB left on after the hold ends (offline model S6 + test S6-normal) | open, tracked only |
 | 94 | Pad, normal time: an earlier `tap` release on the same button lets go of a new `hold(…, True)` (Y; offline model S5 + test S5-normal; no game path found) | open, tracked only |
 | 95 | Parish fight #2 (10-30): after_swing light into an interloper 255041 in 3003 for 2.5 s → −174 during our own attack; not the "2.7 s approach gap" blind_report shows (that counts the black-box line's write time) | open, analysis only |
+| 96 | `burg-altar` run on a character with Taurus alive (10-31 155929): no zone 8 / `taurus` / resin → died to 225000 on the bridge; the death before it (155357) had no analysis either | open → `boss_ready` entry checks built (uncommitted, offline tests only); game read unchecked |
+| 97 | Taurus plunge loop (11-01): ladder A held/dropped, turn too short, rolls at swing start not before the hit; 10 tries 5 kills | open → 7 fixes uncommitted, offline tests; timed dodge not yet seen in game |
+| 98 | `burg-upper` zone 2 (11-01 151756): 254011 + 255001 together, low-HP retreat ×4 without estus, fell 10 m off the edge near (-3.1,-14.2,-68.6) → died | open |
+| 99 | `burg-bonfire` town2 `#4 이동` (11-01 153157, restored Firelink save): fog wall at (-50,-22.3,-32) not passed while 250000 hit −125/−264/−97 → died | fix built (MSB wall center + turn before A + flag 11010090); passed 1/1 in game (163220) |
+| 100 | `burg-upper` zone 5 (11-01 154533): kept guarding at SP 7→0 (MoKa: ≤30% SP can't guard the next hit) → anim 160 guard break → 255001 ×2 → died | open → fix proposal, MoKa |
+| 101 | Bot pad ignored entirely (11-01 171617, zone 4 start, 2 min still); XInput free, focus fixed → still 0 m; game restart fixed it | open, cause unknown (observe) |
+| 102 | `burg-upper` zone 5 (11-01 173025): unknown-fog A at the ladder foot grabbed the ladder, 87–196 s looping | fix built (no fog A ≤2.5 m from NavMesh ladder faces); offline tests only |
+| 103 | `burg-upper` zone 8 tower top (11-01 173025, again 214607): 255002 hits, low-HP retreat in the open, no estus (thrower awake) → died; 4/12 zone-8 runs died | built (offline only): estus a)+b), no rolls → run to F9#8 and hold, no retreat; game check next |
+| 104 | Resin chest: scratch script pressed 'door A' 13 m from the door (picked a firebomb), stuck at the shut door; bot 'approach' can't open doors | game 183919: door opened (1 A), chest missed (stood 1.34 m, nudges didn't move) → next fix, MoKa |
+| 105 | `burg-upper` zone 6 (11-01 183919): safe spot NOT REACHED ×3, −336 on the stairs (46.6,−0.7,−113.3) with no attacker anim, then 255001 → died | open (analysis) |
+| 106 | `burg-upper` zone 2-1 (11-01 214135, from the Burg bonfire): started at HP 81 %, 255001 + 254011 together, estus refused 8× (foe close), retreats ×3 → died | open — same family as P-45/P-74/P-98 |
+| 107 | Item-get window left open after the resin chest (11-01 214607): close-A skipped when the window list read empty | fix built (wait ≤ 2 s, A always), offline only |
 
 ## 5. Relay — [cloud] ↔ board
 

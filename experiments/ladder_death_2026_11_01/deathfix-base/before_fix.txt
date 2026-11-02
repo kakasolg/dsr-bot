@@ -1,0 +1,5 @@
+  FAIL ladder: dead after the entry check → 'dead', no A / turn / stick after the death (002546)
+  FAIL ladder: dead → this routine lets go of its inputs (neutral) and does nothing else
+  FAIL ladder: dies between tries → 'dead', one A before the death, none after
+  ok   ladder: alive throughout → A, mount, climbs as before
+3 FAILED

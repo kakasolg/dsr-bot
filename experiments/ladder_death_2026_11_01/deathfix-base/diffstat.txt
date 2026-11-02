@@ -1,0 +1,21 @@
+ .claude/launch.json         |  32 +++++++++++++-
+ CLAUDE.md                   |  30 +++++++++++++
+ ROADMAP.md                  |   4 +-
+ data/stages/burg-upper.json | 104 ++++++++++++++++++++++++--------------------
+ docs/boss-taurus.md         |  74 +++++++++++++++++++++++++++++++
+ docs/roadmap/problems.md    |  59 +++++++++++++++++++++++++
+ docs/stages/burg-upper.md   |  18 ++++----
+ farm.py                     |   2 +
+ overlay.py                  |   5 ++-
+ places.py                   |  62 ++++++++++++++++++++++++--
+ radar_server.py             |  10 +++--
+ run.py                      |  44 ++++++++++++++++---
+ souls/afterdeath.py         |  10 ++++-
+ souls/missions.py           |  80 ++++++++++++++++++++++++++++++----
+ souls/moves.py              |  10 +++--
+ souls/taurus.py             |  72 ++++++++++++++++++++++++++----
+ tests/afterdeath_test.py    |   8 ++++
+ tests/burg_upper_test.py    |  97 ++++++++++++++++++++++++++++++++++++++---
+ tests/places_test.py        |  16 +++++++
+ tests/roll_test.py          |  13 ++++++
+ 20 files changed, 646 insertions(+), 104 deletions(-)

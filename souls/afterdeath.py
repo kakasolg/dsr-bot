@@ -54,13 +54,16 @@ def fresh_stain(read, before, wait_s: float = 5.0, sleep=None) -> dict | None:
 
 
 def run_zones(first: int, last: int, play, *, alive, respawn, read_stain, pick, log=print, event=None, set_zone=None,
-              restart: int = 1, recover: bool = True, ends=("died", "no_estus", "휴식 실패"), label=None, sleep=None) -> str:
+              restart: int = 1, recover: bool = True, ends=("died", "no_estus", "휴식 실패"), label=None, sleep=None,
+              low=None, carry=None) -> str:
     """Zones first..last with play(n) → result. After a death: respawn(), then plan() on the new stain — 'recover' starts over at
     `restart` and, after the zone we died in (and each later one) is cleared, pick() (Field.pick_blood: None = no stain / too far,
     'got', 'miss', 'near_bonfire', 'foes_near', or a walk result) until it is got. recover=False = the old way: a death ends the run. → last zone result"""
     event = event or (lambda *a, **k: None)
     set_zone = set_zone or (lambda n: None)
     trips, last_dead, start, target, r = 0, None, first, None, None    # target: the stain we went back for, dropped in zone last_dead
+    if carry is not None:                               # (stain, zone): a stain from before this run (run.py --pick-stain, [MoKa] 10-31)
+        target, last_dead = carry
     while True:
         died_in = None
         before = read_stain()
@@ -80,6 +83,11 @@ def run_zones(first: int, last: int, play, *, alive, respawn, read_stain, pick, 
                 break
             if r in ends:
                 break
+            why = low() if low is not None and n < last else None
+            if why:                                     # [MoKa] 10-31 "에스트 하나 남았으면 그냥 돌아가" — next zone not started
+                log(f"══ 구역 {n} 뒤 멈춤: {why}")
+                event("zones_stop", zone=n, why=why)
+                return "estus_low"
         if died_in is None:
             return r
         set_zone(None)

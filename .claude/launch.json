@@ -61,6 +61,36 @@
         "47816"
       ],
       "port": 47816
+    },
+    {
+      "name": "hotpla-discover-pick-web",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8082",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "D:/dev/kotlin-prj/Hotpla-discover-pick/web"
+      ],
+      "port": 8082,
+      "autoPort": false
+    },
+    {
+      "name": "comfyui",
+      "runtimeExecutable": "D:/tools/ComfyUI_windows_portable/python_embeded/python.exe",
+      "runtimeArgs": [
+        "-s",
+        "D:/tools/ComfyUI_windows_portable/ComfyUI/main.py",
+        "--listen",
+        "127.0.0.1",
+        "--port",
+        "8188",
+        "--disable-auto-launch"
+      ],
+      "port": 8188,
+      "autoPort": false
     }
   ]
 }

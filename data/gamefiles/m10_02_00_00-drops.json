@@ -1,0 +1,2820 @@
+{
+ "map_id": "m10_02_00_00",
+ "evidence": "file",
+ "source": {
+  "map_json": {
+   "path": "data/gamefiles/m10_02_00_00.json",
+   "sha256": "fe510fd25eddbf9ff7966e822ae5e38c192146fef1746f34c1aff45677829bc6"
+  },
+  "gameparam": {
+   "path": "param/GameParam/GameParam.parambnd.dcx",
+   "sha256": "cc4a81cc87f028534d965c908a8aa7dba2f9e235ac30f5e72ddf6bb45dc7b5ab"
+  },
+  "item_names": {
+   "path": "msg/ENGLISH/item.msgbnd.dcx",
+   "sha256": "20193b611fdf087da4d7d098f9ff754b0bb59f636519c483ba7960f77cfbf691"
+  },
+  "parser": "soulstruct 2.3.2 (GPL-3.0-or-later), darksouls1r GameParamBND",
+  "tracks": {
+   "pattern": "data/samples/*burg-*.track.jsonl",
+   "files": 126
+  }
+ },
+ "notes": "weight_share is a share of points inside one row, not a probability. Flags: see drop_tables.py header.",
+ "npcs": [
+  {
+   "npc_param_id": 6030,
+   "kind": [
+    "human"
+   ],
+   "models": [
+    "c0000"
+   ],
+   "placed": [
+    {
+     "name": "c0000_0011",
+     "entity_id": 6031,
+     "pos": [
+      -27.09,
+      -58.86,
+      59.28
+     ]
+    }
+   ],
+   "seen_runs": 0,
+   "status": "no_lot_ids(all -1)",
+   "item_lot_ids_raw": [
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1
+   ],
+   "humanity_lot_id_raw": -1,
+   "drop_type_raw": 1,
+   "lots": []
+  },
+  {
+   "npc_param_id": 6040,
+   "kind": [
+    "human"
+   ],
+   "models": [
+    "c0000"
+   ],
+   "placed": [
+    {
+     "name": "c0000_0012",
+     "entity_id": 6041,
+     "pos": [
+      -30.57,
+      -58.93,
+      57.43
+     ]
+    }
+   ],
+   "seen_runs": 0,
+   "status": "ok",
+   "item_lot_ids_raw": [
+    6040,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1
+   ],
+   "humanity_lot_id_raw": -1,
+   "drop_type_raw": 1,
+   "lots": [
+    {
+     "lot": 6040,
+     "status": "ok",
+     "class": "chain_unresolved",
+     "chain_rule": "next row while it exists (external description, not seen in play)",
+     "rows": [
+      {
+       "row": 6040,
+       "item_flag": 50006040,
+       "flag_meaning": "one_time_flag",
+       "cumulative": {
+        "first_flag": -1,
+        "max_additions": 0,
+        "used": false
+       },
+       "points_total": 100,
+       "slots": [
+        {
+         "slot": 1,
+         "category": "good",
+         "category_raw": 1073741824,
+         "id": 3510,
+         "name": "Sorcery: Hush",
+         "count": 1,
+         "points": 100,
+         "luck": true,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 1.0
+        }
+       ],
+       "has_empty_slot": false,
+       "unknown_category": false,
+       "table_single_outcome": true
+      },
+      {
+       "row": 6041,
+       "item_flag": 50006040,
+       "flag_meaning": "one_time_flag",
+       "cumulative": {
+        "first_flag": -1,
+        "max_additions": 0,
+        "used": false
+       },
+       "points_total": 100,
+       "slots": [
+        {
+         "slot": 1,
+         "category": "ring",
+         "category_raw": 536870912,
+         "id": 123,
+         "name": "Slumbering Dragoncrest Ring",
+         "count": 1,
+         "points": 100,
+         "luck": true,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 1.0
+        }
+       ],
+       "has_empty_slot": false,
+       "unknown_category": false,
+       "table_single_outcome": true
+      },
+      {
+       "row": 6042,
+       "item_flag": 50006041,
+       "flag_meaning": "one_time_flag",
+       "cumulative": {
+        "first_flag": -1,
+        "max_additions": 0,
+        "used": false
+       },
+       "points_total": 100,
+       "slots": [
+        {
+         "slot": 1,
+         "category": "good",
+         "category_raw": 1073741824,
+         "id": 500,
+         "name": "Humanity",
+         "count": 1,
+         "points": 100,
+         "luck": true,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 1.0
+        }
+       ],
+       "has_empty_slot": false,
+       "unknown_category": false,
+       "table_single_outcome": true
+      }
+     ],
+     "flags_raw": [
+      50006040,
+      50006040,
+      50006041
+     ],
+     "any_one_time_flag": true,
+     "any_unresolved": false
+    }
+   ]
+  },
+  {
+   "npc_param_id": 6070,
+   "kind": [
+    "human"
+   ],
+   "models": [
+    "c0000"
+   ],
+   "placed": [
+    {
+     "name": "c0000_0013",
+     "entity_id": 6070,
+     "pos": [
+      -24.29,
+      -53.22,
+      94.89
+     ]
+    }
+   ],
+   "seen_runs": 0,
+   "status": "ok",
+   "item_lot_ids_raw": [
+    6070,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1
+   ],
+   "humanity_lot_id_raw": -1,
+   "drop_type_raw": 1,
+   "lots": [
+    {
+     "lot": 6070,
+     "status": "ok",
+     "class": "chain_unresolved",
+     "chain_rule": "next row while it exists (external description, not seen in play)",
+     "rows": [
+      {
+       "row": 6070,
+       "item_flag": 50006070,
+       "flag_meaning": "one_time_flag",
+       "cumulative": {
+        "first_flag": -1,
+        "max_additions": 0,
+        "used": false
+       },
+       "points_total": 100,
+       "slots": [
+        {
+         "slot": 1,
+         "category": "weapon",
+         "category_raw": 0,
+         "id": 1363000,
+         "name": "Ivory Talisman",
+         "count": 1,
+         "points": 100,
+         "luck": true,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 1.0
+        }
+       ],
+       "has_empty_slot": false,
+       "unknown_category": false,
+       "table_single_outcome": true
+      },
+      {
+       "row": 6071,
+       "item_flag": 50006071,
+       "flag_meaning": "one_time_flag",
+       "cumulative": {
+        "first_flag": -1,
+        "max_additions": 0,
+        "used": false
+       },
+       "points_total": 100,
+       "slots": [
+        {
+         "slot": 1,
+         "category": "good",
+         "category_raw": 1073741824,
+         "id": 376,
+         "name": "Pendant",
+         "count": 1,
+         "points": 100,
+         "luck": true,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 1.0
+        }
+       ],
+       "has_empty_slot": false,
+       "unknown_category": false,
+       "table_single_outcome": true
+      },
+      {
+       "row": 6072,
+       "item_flag": 50006072,
+       "flag_meaning": "one_time_flag",
+       "cumulative": {
+        "first_flag": -1,
+        "max_additions": 0,
+        "used": false
+       },
+       "points_total": 100,
+       "slots": [
+        {
+         "slot": 1,
+         "category": "good",
+         "category_raw": 1073741824,
+         "id": 500,
+         "name": "Humanity",
+         "count": 7,
+         "points": 100,
+         "luck": true,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 1.0
+        }
+       ],
+       "has_empty_slot": false,
+       "unknown_category": false,
+       "table_single_outcome": true
+      }
+     ],
+     "flags_raw": [
+      50006070,
+      50006071,
+      50006072
+     ],
+     "any_one_time_flag": true,
+     "any_unresolved": false
+    }
+   ]
+  },
+  {
+   "npc_param_id": 6080,
+   "kind": [
+    "human"
+   ],
+   "models": [
+    "c0000"
+   ],
+   "placed": [
+    {
+     "name": "c0000_0014",
+     "entity_id": 6080,
+     "pos": [
+      -28.29,
+      -53.27,
+      88.04
+     ]
+    }
+   ],
+   "seen_runs": 0,
+   "status": "ok",
+   "item_lot_ids_raw": [
+    6080,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1
+   ],
+   "humanity_lot_id_raw": -1,
+   "drop_type_raw": 1,
+   "lots": [
+    {
+     "lot": 6080,
+     "status": "ok",
+     "class": "chain_unresolved",
+     "chain_rule": "next row while it exists (external description, not seen in play)",
+     "rows": [
+      {
+       "row": 6080,
+       "item_flag": 50006080,
+       "flag_meaning": "one_time_flag",
+       "cumulative": {
+        "first_flag": -1,
+        "max_additions": 0,
+        "used": false
+       },
+       "points_total": 100,
+       "slots": [
+        {
+         "slot": 1,
+         "category": "weapon",
+         "category_raw": 0,
+         "id": 1363000,
+         "name": "Ivory Talisman",
+         "count": 1,
+         "points": 100,
+         "luck": true,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 1.0
+        }
+       ],
+       "has_empty_slot": false,
+       "unknown_category": false,
+       "table_single_outcome": true
+      },
+      {
+       "row": 6081,
+       "item_flag": 50006081,
+       "flag_meaning": "one_time_flag",
+       "cumulative": {
+        "first_flag": -1,
+        "max_additions": 0,
+        "used": false
+       },
+       "points_total": 100,
+       "slots": [
+        {
+         "slot": 1,
+         "category": "good",
+         "category_raw": 1073741824,
+         "id": 500,
+         "name": "Humanity",
+         "count": 2,
+         "points": 100,
+         "luck": true,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 1.0
+        }
+       ],
+       "has_empty_slot": false,
+       "unknown_category": false,
+       "table_single_outcome": true
+      }
+     ],
+     "flags_raw": [
+      50006080,
+      50006081
+     ],
+     "any_one_time_flag": true,
+     "any_unresolved": false
+    }
+   ]
+  },
+  {
+   "npc_param_id": 6090,
+   "kind": [
+    "human"
+   ],
+   "models": [
+    "c0000"
+   ],
+   "placed": [
+    {
+     "name": "c0000_0015",
+     "entity_id": 6090,
+     "pos": [
+      -24.36,
+      -53.25,
+      91.57
+     ]
+    }
+   ],
+   "seen_runs": 0,
+   "status": "no_lot_ids(all -1)",
+   "item_lot_ids_raw": [
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1
+   ],
+   "humanity_lot_id_raw": -1,
+   "drop_type_raw": 1,
+   "lots": []
+  },
+  {
+   "npc_param_id": 6100,
+   "kind": [
+    "human"
+   ],
+   "models": [
+    "c0000"
+   ],
+   "placed": [
+    {
+     "name": "c0000_0016",
+     "entity_id": 6100,
+     "pos": [
+      -22.78,
+      -53.27,
+      89.6
+     ]
+    }
+   ],
+   "seen_runs": 0,
+   "status": "no_lot_ids(all -1)",
+   "item_lot_ids_raw": [
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1
+   ],
+   "humanity_lot_id_raw": -1,
+   "drop_type_raw": 1,
+   "lots": []
+  },
+  {
+   "npc_param_id": 6130,
+   "kind": [
+    "human"
+   ],
+   "models": [
+    "c0000"
+   ],
+   "placed": [
+    {
+     "name": "c0000_0017",
+     "entity_id": 6131,
+     "pos": [
+      -46.95,
+      -56.35,
+      66.41
+     ]
+    }
+   ],
+   "seen_runs": 0,
+   "status": "no_lot_ids(all -1)",
+   "item_lot_ids_raw": [
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1
+   ],
+   "humanity_lot_id_raw": -1,
+   "drop_type_raw": 1,
+   "lots": []
+  },
+  {
+   "npc_param_id": 6180,
+   "kind": [
+    "human"
+   ],
+   "models": [
+    "c0000"
+   ],
+   "placed": [
+    {
+     "name": "c0000_0024",
+     "entity_id": 6181,
+     "pos": [
+      -25.15,
+      -55.24,
+      68.24
+     ]
+    }
+   ],
+   "seen_runs": 0,
+   "status": "no_lot_ids(all -1)",
+   "item_lot_ids_raw": [
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1
+   ],
+   "humanity_lot_id_raw": -1,
+   "drop_type_raw": 1,
+   "lots": []
+  },
+  {
+   "npc_param_id": 6260,
+   "kind": [
+    "human"
+   ],
+   "models": [
+    "c0000"
+   ],
+   "placed": [
+    {
+     "name": "c0000_0003",
+     "entity_id": 6261,
+     "pos": [
+      -39.53,
+      -50.0,
+      -0.86
+     ]
+    }
+   ],
+   "seen_runs": 0,
+   "status": "no_lot_ids(all -1)",
+   "item_lot_ids_raw": [
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1
+   ],
+   "humanity_lot_id_raw": -1,
+   "drop_type_raw": 1,
+   "lots": []
+  },
+  {
+   "npc_param_id": 6270,
+   "kind": [
+    "human"
+   ],
+   "models": [
+    "c0000"
+   ],
+   "placed": [
+    {
+     "name": "c0000_0018",
+     "entity_id": 6270,
+     "pos": [
+      -51.028,
+      -59.59,
+      62.81
+     ]
+    }
+   ],
+   "seen_runs": 0,
+   "status": "no_lot_ids(all -1)",
+   "item_lot_ids_raw": [
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1
+   ],
+   "humanity_lot_id_raw": -1,
+   "drop_type_raw": 1,
+   "lots": []
+  },
+  {
+   "npc_param_id": 6282,
+   "kind": [
+    "human"
+   ],
+   "models": [
+    "c0000"
+   ],
+   "placed": [
+    {
+     "name": "c0000_0020",
+     "entity_id": 6287,
+     "pos": [
+      -54.7,
+      -60.17,
+      53.59
+     ]
+    }
+   ],
+   "seen_runs": 0,
+   "status": "ok",
+   "item_lot_ids_raw": [
+    6280,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1
+   ],
+   "humanity_lot_id_raw": -1,
+   "drop_type_raw": 1,
+   "lots": [
+    {
+     "lot": 6280,
+     "status": "ok",
+     "class": "chain_unresolved",
+     "chain_rule": "next row while it exists (external description, not seen in play)",
+     "rows": [
+      {
+       "row": 6280,
+       "item_flag": 50000070,
+       "flag_meaning": "one_time_flag",
+       "cumulative": {
+        "first_flag": -1,
+        "max_additions": 0,
+        "used": false
+       },
+       "points_total": 100,
+       "slots": [
+        {
+         "slot": 1,
+         "category": "ring",
+         "category_raw": 536870912,
+         "id": 108,
+         "name": "Speckled Stoneplate Ring",
+         "count": 1,
+         "points": 100,
+         "luck": true,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 1.0
+        }
+       ],
+       "has_empty_slot": false,
+       "unknown_category": false,
+       "table_single_outcome": true
+      },
+      {
+       "row": 6281,
+       "item_flag": 50006280,
+       "flag_meaning": "one_time_flag",
+       "cumulative": {
+        "first_flag": -1,
+        "max_additions": 0,
+        "used": false
+       },
+       "points_total": 100,
+       "slots": [
+        {
+         "slot": 1,
+         "category": "good",
+         "category_raw": 1073741824,
+         "id": 500,
+         "name": "Humanity",
+         "count": 3,
+         "points": 100,
+         "luck": true,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 1.0
+        }
+       ],
+       "has_empty_slot": false,
+       "unknown_category": false,
+       "table_single_outcome": true
+      }
+     ],
+     "flags_raw": [
+      50000070,
+      50006280
+     ],
+     "any_one_time_flag": true,
+     "any_unresolved": false
+    }
+   ]
+  },
+  {
+   "npc_param_id": 6290,
+   "kind": [
+    "human"
+   ],
+   "models": [
+    "c0000"
+   ],
+   "placed": [
+    {
+     "name": "c0000_0021",
+     "entity_id": 6292,
+     "pos": [
+      -54.17,
+      -60.12,
+      52.3
+     ]
+    }
+   ],
+   "seen_runs": 0,
+   "status": "no_lot_ids(all -1)",
+   "item_lot_ids_raw": [
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1
+   ],
+   "humanity_lot_id_raw": -1,
+   "drop_type_raw": 1,
+   "lots": []
+  },
+  {
+   "npc_param_id": 6300,
+   "kind": [
+    "human"
+   ],
+   "models": [
+    "c0000"
+   ],
+   "placed": [
+    {
+     "name": "c0000_0019",
+     "entity_id": 6301,
+     "pos": [
+      -59.342,
+      -64.623,
+      43.541
+     ]
+    }
+   ],
+   "seen_runs": 0,
+   "status": "ok",
+   "item_lot_ids_raw": [
+    6300,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1
+   ],
+   "humanity_lot_id_raw": -1,
+   "drop_type_raw": 1,
+   "lots": [
+    {
+     "lot": 6300,
+     "status": "ok",
+     "class": "chain_unresolved",
+     "chain_rule": "next row while it exists (external description, not seen in play)",
+     "rows": [
+      {
+       "row": 6300,
+       "item_flag": 50006300,
+       "flag_meaning": "one_time_flag",
+       "cumulative": {
+        "first_flag": -1,
+        "max_additions": 0,
+        "used": false
+       },
+       "points_total": 100,
+       "slots": [
+        {
+         "slot": 1,
+         "category": "ring",
+         "category_raw": 536870912,
+         "id": 143,
+         "name": "Ring of Favor and Protection",
+         "count": 1,
+         "points": 100,
+         "luck": true,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 1.0
+        }
+       ],
+       "has_empty_slot": false,
+       "unknown_category": false,
+       "table_single_outcome": true
+      },
+      {
+       "row": 6301,
+       "item_flag": 50006301,
+       "flag_meaning": "one_time_flag",
+       "cumulative": {
+        "first_flag": -1,
+        "max_additions": 0,
+        "used": false
+       },
+       "points_total": 100,
+       "slots": [
+        {
+         "slot": 1,
+         "category": "good",
+         "category_raw": 1073741824,
+         "id": 500,
+         "name": "Humanity",
+         "count": 5,
+         "points": 100,
+         "luck": true,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 1.0
+        }
+       ],
+       "has_empty_slot": false,
+       "unknown_category": false,
+       "table_single_outcome": true
+      }
+     ],
+     "flags_raw": [
+      50006300,
+      50006301
+     ],
+     "any_one_time_flag": true,
+     "any_unresolved": false
+    }
+   ]
+  },
+  {
+   "npc_param_id": 6321,
+   "kind": [
+    "human"
+   ],
+   "models": [
+    "c0000"
+   ],
+   "placed": [
+    {
+     "name": "c0000_0022",
+     "entity_id": 6322,
+     "pos": [
+      -55.21,
+      -54.49,
+      90.82
+     ]
+    }
+   ],
+   "seen_runs": 0,
+   "status": "ok",
+   "item_lot_ids_raw": [
+    6320,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1
+   ],
+   "humanity_lot_id_raw": -1,
+   "drop_type_raw": 1,
+   "lots": [
+    {
+     "lot": 6320,
+     "status": "ok",
+     "class": "chain_unresolved",
+     "chain_rule": "next row while it exists (external description, not seen in play)",
+     "rows": [
+      {
+       "row": 6320,
+       "item_flag": 50006320,
+       "flag_meaning": "one_time_flag",
+       "cumulative": {
+        "first_flag": -1,
+        "max_additions": 0,
+        "used": false
+       },
+       "points_total": 100,
+       "slots": [
+        {
+         "slot": 1,
+         "category": "weapon",
+         "category_raw": 0,
+         "id": 702000,
+         "name": "Crescent Axe",
+         "count": 1,
+         "points": 100,
+         "luck": true,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 1.0
+        }
+       ],
+       "has_empty_slot": false,
+       "unknown_category": false,
+       "table_single_outcome": true
+      },
+      {
+       "row": 6321,
+       "item_flag": 50006321,
+       "flag_meaning": "one_time_flag",
+       "cumulative": {
+        "first_flag": -1,
+        "max_additions": 0,
+        "used": false
+       },
+       "points_total": 100,
+       "slots": [
+        {
+         "slot": 1,
+         "category": "good",
+         "category_raw": 1073741824,
+         "id": 500,
+         "name": "Humanity",
+         "count": 4,
+         "points": 100,
+         "luck": true,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 1.0
+        }
+       ],
+       "has_empty_slot": false,
+       "unknown_category": false,
+       "table_single_outcome": true
+      }
+     ],
+     "flags_raw": [
+      50006320,
+      50006321
+     ],
+     "any_one_time_flag": true,
+     "any_unresolved": false
+    }
+   ]
+  },
+  {
+   "npc_param_id": 100000,
+   "kind": [
+    "enemy"
+   ],
+   "models": [
+    "c1000"
+   ],
+   "placed": [
+    {
+     "name": "c1000_0000",
+     "entity_id": 1020960,
+     "pos": [
+      -51.8,
+      -60.1,
+      55.7
+     ]
+    },
+    {
+     "name": "c1000_0001",
+     "entity_id": -1,
+     "pos": [
+      -53.17,
+      -64.63,
+      50.15
+     ]
+    },
+    {
+     "name": "c1000_0002",
+     "entity_id": 6450,
+     "pos": [
+      -23.57,
+      -70.3,
+      167.91
+     ]
+    }
+   ],
+   "seen_runs": 0,
+   "status": "no_lot_ids(all -1)",
+   "item_lot_ids_raw": [
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1
+   ],
+   "humanity_lot_id_raw": -1,
+   "drop_type_raw": 1,
+   "lots": []
+  },
+  {
+   "npc_param_id": 120100,
+   "kind": [
+    "enemy"
+   ],
+   "models": [
+    "c1201"
+   ],
+   "placed": [
+    {
+     "name": "c1201_0002",
+     "entity_id": -1,
+     "pos": [
+      -16.723,
+      -33.949,
+      11.753
+     ]
+    }
+   ],
+   "seen_runs": 57,
+   "status": "ok",
+   "item_lot_ids_raw": [
+    12010000,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1
+   ],
+   "humanity_lot_id_raw": -1,
+   "drop_type_raw": 0,
+   "lots": [
+    {
+     "lot": 12010000,
+     "status": "ok",
+     "class": "weighted_one_row",
+     "chain_rule": "next row while it exists (external description, not seen in play)",
+     "rows": [
+      {
+       "row": 12010000,
+       "item_flag": -1,
+       "flag_meaning": "none(-1)",
+       "cumulative": {
+        "first_flag": -1,
+        "max_additions": 0,
+        "used": false
+       },
+       "points_total": 100,
+       "slots": [
+        {
+         "slot": 1,
+         "category": "empty",
+         "category_raw": -1,
+         "id": 0,
+         "name": null,
+         "count": 0,
+         "points": 95,
+         "luck": true,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.95
+        },
+        {
+         "slot": 2,
+         "category": "good",
+         "category_raw": 1073741824,
+         "id": 500,
+         "name": "Humanity",
+         "count": 1,
+         "points": 5,
+         "luck": false,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.05
+        }
+       ],
+       "has_empty_slot": true,
+       "unknown_category": false,
+       "table_single_outcome": false
+      }
+     ],
+     "flags_raw": [
+      -1
+     ],
+     "any_one_time_flag": false,
+     "any_unresolved": false
+    }
+   ]
+  },
+  {
+   "npc_param_id": 251000,
+   "kind": [
+    "enemy"
+   ],
+   "models": [
+    "c2510"
+   ],
+   "placed": [
+    {
+     "name": "c2510_0000",
+     "entity_id": 6240,
+     "pos": [
+      -105.99,
+      -33.95,
+      -44.1
+     ]
+    }
+   ],
+   "seen_runs": 0,
+   "status": "ok",
+   "item_lot_ids_raw": [
+    25100000,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1
+   ],
+   "humanity_lot_id_raw": 5270,
+   "drop_type_raw": 0,
+   "lots": [
+    {
+     "lot": 25100000,
+     "status": "ok",
+     "class": "table_empty_only",
+     "chain_rule": "next row while it exists (external description, not seen in play)",
+     "rows": [
+      {
+       "row": 25100000,
+       "item_flag": -1,
+       "flag_meaning": "none(-1)",
+       "cumulative": {
+        "first_flag": -1,
+        "max_additions": 0,
+        "used": false
+       },
+       "points_total": 100,
+       "slots": [
+        {
+         "slot": 1,
+         "category": "empty",
+         "category_raw": -1,
+         "id": 0,
+         "name": null,
+         "count": 0,
+         "points": 100,
+         "luck": true,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 1.0
+        }
+       ],
+       "has_empty_slot": true,
+       "unknown_category": false,
+       "table_single_outcome": false
+      }
+     ],
+     "flags_raw": [
+      -1
+     ],
+     "any_one_time_flag": false,
+     "any_unresolved": false
+    }
+   ]
+  },
+  {
+   "npc_param_id": 254000,
+   "kind": [
+    "enemy"
+   ],
+   "models": [
+    "c2540"
+   ],
+   "placed": [
+    {
+     "name": "c2540_0000",
+     "entity_id": 1020160,
+     "pos": [
+      -20.574,
+      -40.348,
+      18.93
+     ]
+    },
+    {
+     "name": "c2540_0003",
+     "entity_id": 1020163,
+     "pos": [
+      -29.791,
+      -49.612,
+      24.882
+     ]
+    },
+    {
+     "name": "c2540_0007",
+     "entity_id": 1020166,
+     "pos": [
+      -24.718,
+      -33.71,
+      9.278
+     ]
+    }
+   ],
+   "seen_runs": 59,
+   "status": "ok",
+   "item_lot_ids_raw": [
+    25400000,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1
+   ],
+   "humanity_lot_id_raw": 5210,
+   "drop_type_raw": 0,
+   "lots": [
+    {
+     "lot": 25400000,
+     "status": "ok",
+     "class": "chain_unresolved",
+     "chain_rule": "next row while it exists (external description, not seen in play)",
+     "rows": [
+      {
+       "row": 25400000,
+       "item_flag": -1,
+       "flag_meaning": "none(-1)",
+       "cumulative": {
+        "first_flag": -1,
+        "max_additions": 0,
+        "used": false
+       },
+       "points_total": 100,
+       "slots": [
+        {
+         "slot": 1,
+         "category": "empty",
+         "category_raw": -1,
+         "id": 0,
+         "name": null,
+         "count": 0,
+         "points": 97,
+         "luck": true,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.97
+        },
+        {
+         "slot": 2,
+         "category": "weapon",
+         "category_raw": 0,
+         "id": 200000,
+         "name": "Shortsword",
+         "count": 1,
+         "points": 2,
+         "luck": false,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.02
+        },
+        {
+         "slot": 3,
+         "category": "weapon",
+         "category_raw": 0,
+         "id": 1406000,
+         "name": "Cracked Round Shield",
+         "count": 1,
+         "points": 1,
+         "luck": false,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.01
+        }
+       ],
+       "has_empty_slot": true,
+       "unknown_category": false,
+       "table_single_outcome": false
+      },
+      {
+       "row": 25400001,
+       "item_flag": -2,
+       "flag_meaning": "unresolved",
+       "cumulative": {
+        "first_flag": -1,
+        "max_additions": 0,
+        "used": false
+       },
+       "points_total": 100,
+       "slots": [
+        {
+         "slot": 1,
+         "category": "empty",
+         "category_raw": -1,
+         "id": 0,
+         "name": null,
+         "count": 0,
+         "points": 99,
+         "luck": true,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.99
+        },
+        {
+         "slot": 2,
+         "category": "armor",
+         "category_raw": 268435456,
+         "id": 520000,
+         "name": "Hollow Warrior Helm",
+         "count": 1,
+         "points": 1,
+         "luck": false,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.01
+        }
+       ],
+       "has_empty_slot": true,
+       "unknown_category": false,
+       "table_single_outcome": false
+      },
+      {
+       "row": 25400002,
+       "item_flag": -2,
+       "flag_meaning": "unresolved",
+       "cumulative": {
+        "first_flag": -1,
+        "max_additions": 0,
+        "used": false
+       },
+       "points_total": 100,
+       "slots": [
+        {
+         "slot": 1,
+         "category": "empty",
+         "category_raw": -1,
+         "id": 0,
+         "name": null,
+         "count": 0,
+         "points": 99,
+         "luck": true,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.99
+        },
+        {
+         "slot": 2,
+         "category": "armor",
+         "category_raw": 268435456,
+         "id": 521000,
+         "name": "Hollow Warrior Armor",
+         "count": 1,
+         "points": 1,
+         "luck": false,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.01
+        }
+       ],
+       "has_empty_slot": true,
+       "unknown_category": false,
+       "table_single_outcome": false
+      },
+      {
+       "row": 25400003,
+       "item_flag": -2,
+       "flag_meaning": "unresolved",
+       "cumulative": {
+        "first_flag": -1,
+        "max_additions": 0,
+        "used": false
+       },
+       "points_total": 100,
+       "slots": [
+        {
+         "slot": 1,
+         "category": "empty",
+         "category_raw": -1,
+         "id": 0,
+         "name": null,
+         "count": 0,
+         "points": 99,
+         "luck": true,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.99
+        },
+        {
+         "slot": 2,
+         "category": "armor",
+         "category_raw": 268435456,
+         "id": 523000,
+         "name": "Hollow Warrior Waistcloth",
+         "count": 1,
+         "points": 1,
+         "luck": false,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.01
+        }
+       ],
+       "has_empty_slot": true,
+       "unknown_category": false,
+       "table_single_outcome": false
+      }
+     ],
+     "flags_raw": [
+      -1,
+      -2,
+      -2,
+      -2
+     ],
+     "any_one_time_flag": false,
+     "any_unresolved": true
+    }
+   ]
+  },
+  {
+   "npc_param_id": 254001,
+   "kind": [
+    "enemy"
+   ],
+   "models": [
+    "c2540"
+   ],
+   "placed": [
+    {
+     "name": "c2540_0006",
+     "entity_id": 1020165,
+     "pos": [
+      -13.15,
+      -39.074,
+      11.73
+     ]
+    }
+   ],
+   "seen_runs": 57,
+   "status": "ok",
+   "item_lot_ids_raw": [
+    25400100,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1
+   ],
+   "humanity_lot_id_raw": 5210,
+   "drop_type_raw": 0,
+   "lots": [
+    {
+     "lot": 25400100,
+     "status": "ok",
+     "class": "chain_unresolved",
+     "chain_rule": "next row while it exists (external description, not seen in play)",
+     "rows": [
+      {
+       "row": 25400100,
+       "item_flag": -1,
+       "flag_meaning": "none(-1)",
+       "cumulative": {
+        "first_flag": -1,
+        "max_additions": 0,
+        "used": false
+       },
+       "points_total": 100,
+       "slots": [
+        {
+         "slot": 1,
+         "category": "empty",
+         "category_raw": -1,
+         "id": 0,
+         "name": null,
+         "count": 0,
+         "points": 97,
+         "luck": true,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.97
+        },
+        {
+         "slot": 2,
+         "category": "weapon",
+         "category_raw": 0,
+         "id": 701000,
+         "name": "Battle Axe",
+         "count": 1,
+         "points": 2,
+         "luck": false,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.02
+        },
+        {
+         "slot": 3,
+         "category": "weapon",
+         "category_raw": 0,
+         "id": 1406000,
+         "name": "Cracked Round Shield",
+         "count": 1,
+         "points": 1,
+         "luck": false,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.01
+        }
+       ],
+       "has_empty_slot": true,
+       "unknown_category": false,
+       "table_single_outcome": false
+      },
+      {
+       "row": 25400101,
+       "item_flag": -2,
+       "flag_meaning": "unresolved",
+       "cumulative": {
+        "first_flag": -1,
+        "max_additions": 0,
+        "used": false
+       },
+       "points_total": 100,
+       "slots": [
+        {
+         "slot": 1,
+         "category": "empty",
+         "category_raw": -1,
+         "id": 0,
+         "name": null,
+         "count": 0,
+         "points": 99,
+         "luck": true,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.99
+        },
+        {
+         "slot": 2,
+         "category": "armor",
+         "category_raw": 268435456,
+         "id": 520000,
+         "name": "Hollow Warrior Helm",
+         "count": 1,
+         "points": 1,
+         "luck": false,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.01
+        }
+       ],
+       "has_empty_slot": true,
+       "unknown_category": false,
+       "table_single_outcome": false
+      },
+      {
+       "row": 25400102,
+       "item_flag": -2,
+       "flag_meaning": "unresolved",
+       "cumulative": {
+        "first_flag": -1,
+        "max_additions": 0,
+        "used": false
+       },
+       "points_total": 100,
+       "slots": [
+        {
+         "slot": 1,
+         "category": "empty",
+         "category_raw": -1,
+         "id": 0,
+         "name": null,
+         "count": 0,
+         "points": 99,
+         "luck": true,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.99
+        },
+        {
+         "slot": 2,
+         "category": "armor",
+         "category_raw": 268435456,
+         "id": 521000,
+         "name": "Hollow Warrior Armor",
+         "count": 1,
+         "points": 1,
+         "luck": false,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.01
+        }
+       ],
+       "has_empty_slot": true,
+       "unknown_category": false,
+       "table_single_outcome": false
+      },
+      {
+       "row": 25400103,
+       "item_flag": -2,
+       "flag_meaning": "unresolved",
+       "cumulative": {
+        "first_flag": -1,
+        "max_additions": 0,
+        "used": false
+       },
+       "points_total": 100,
+       "slots": [
+        {
+         "slot": 1,
+         "category": "empty",
+         "category_raw": -1,
+         "id": 0,
+         "name": null,
+         "count": 0,
+         "points": 99,
+         "luck": true,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.99
+        },
+        {
+         "slot": 2,
+         "category": "armor",
+         "category_raw": 268435456,
+         "id": 523000,
+         "name": "Hollow Warrior Waistcloth",
+         "count": 1,
+         "points": 1,
+         "luck": false,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.01
+        }
+       ],
+       "has_empty_slot": true,
+       "unknown_category": false,
+       "table_single_outcome": false
+      }
+     ],
+     "flags_raw": [
+      -1,
+      -2,
+      -2,
+      -2
+     ],
+     "any_one_time_flag": false,
+     "any_unresolved": true
+    }
+   ]
+  },
+  {
+   "npc_param_id": 254002,
+   "kind": [
+    "enemy"
+   ],
+   "models": [
+    "c2540"
+   ],
+   "placed": [
+    {
+     "name": "c2540_0001",
+     "entity_id": 1020161,
+     "pos": [
+      -21.103,
+      -39.275,
+      13.227
+     ]
+    }
+   ],
+   "seen_runs": 57,
+   "status": "ok",
+   "item_lot_ids_raw": [
+    25400200,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1
+   ],
+   "humanity_lot_id_raw": 5210,
+   "drop_type_raw": 0,
+   "lots": [
+    {
+     "lot": 25400200,
+     "status": "ok",
+     "class": "chain_unresolved",
+     "chain_rule": "next row while it exists (external description, not seen in play)",
+     "rows": [
+      {
+       "row": 25400200,
+       "item_flag": -1,
+       "flag_meaning": "none(-1)",
+       "cumulative": {
+        "first_flag": -1,
+        "max_additions": 0,
+        "used": false
+       },
+       "points_total": 100,
+       "slots": [
+        {
+         "slot": 1,
+         "category": "empty",
+         "category_raw": -1,
+         "id": 0,
+         "name": null,
+         "count": 0,
+         "points": 88,
+         "luck": true,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.88
+        },
+        {
+         "slot": 2,
+         "category": "good",
+         "category_raw": 1073741824,
+         "id": 292,
+         "name": "Firebomb",
+         "count": 1,
+         "points": 10,
+         "luck": false,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.1
+        },
+        {
+         "slot": 3,
+         "category": "good",
+         "category_raw": 1073741824,
+         "id": 292,
+         "name": "Firebomb",
+         "count": 2,
+         "points": 2,
+         "luck": false,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.02
+        }
+       ],
+       "has_empty_slot": true,
+       "unknown_category": false,
+       "table_single_outcome": false
+      },
+      {
+       "row": 25400201,
+       "item_flag": -2,
+       "flag_meaning": "unresolved",
+       "cumulative": {
+        "first_flag": -1,
+        "max_additions": 0,
+        "used": false
+       },
+       "points_total": 100,
+       "slots": [
+        {
+         "slot": 1,
+         "category": "empty",
+         "category_raw": -1,
+         "id": 0,
+         "name": null,
+         "count": 0,
+         "points": 99,
+         "luck": true,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.99
+        },
+        {
+         "slot": 2,
+         "category": "armor",
+         "category_raw": 268435456,
+         "id": 520000,
+         "name": "Hollow Warrior Helm",
+         "count": 1,
+         "points": 1,
+         "luck": false,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.01
+        }
+       ],
+       "has_empty_slot": true,
+       "unknown_category": false,
+       "table_single_outcome": false
+      },
+      {
+       "row": 25400202,
+       "item_flag": -2,
+       "flag_meaning": "unresolved",
+       "cumulative": {
+        "first_flag": -1,
+        "max_additions": 0,
+        "used": false
+       },
+       "points_total": 100,
+       "slots": [
+        {
+         "slot": 1,
+         "category": "empty",
+         "category_raw": -1,
+         "id": 0,
+         "name": null,
+         "count": 0,
+         "points": 99,
+         "luck": true,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.99
+        },
+        {
+         "slot": 2,
+         "category": "armor",
+         "category_raw": 268435456,
+         "id": 521000,
+         "name": "Hollow Warrior Armor",
+         "count": 1,
+         "points": 1,
+         "luck": false,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.01
+        }
+       ],
+       "has_empty_slot": true,
+       "unknown_category": false,
+       "table_single_outcome": false
+      },
+      {
+       "row": 25400203,
+       "item_flag": -2,
+       "flag_meaning": "unresolved",
+       "cumulative": {
+        "first_flag": -1,
+        "max_additions": 0,
+        "used": false
+       },
+       "points_total": 100,
+       "slots": [
+        {
+         "slot": 1,
+         "category": "empty",
+         "category_raw": -1,
+         "id": 0,
+         "name": null,
+         "count": 0,
+         "points": 99,
+         "luck": true,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.99
+        },
+        {
+         "slot": 2,
+         "category": "armor",
+         "category_raw": 268435456,
+         "id": 523000,
+         "name": "Hollow Warrior Waistcloth",
+         "count": 1,
+         "points": 1,
+         "luck": false,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.01
+        }
+       ],
+       "has_empty_slot": true,
+       "unknown_category": false,
+       "table_single_outcome": false
+      }
+     ],
+     "flags_raw": [
+      -1,
+      -2,
+      -2,
+      -2
+     ],
+     "any_one_time_flag": false,
+     "any_unresolved": true
+    }
+   ]
+  },
+  {
+   "npc_param_id": 255010,
+   "kind": [
+    "enemy"
+   ],
+   "models": [
+    "c2550"
+   ],
+   "placed": [
+    {
+     "name": "c2550_0000",
+     "entity_id": 1020190,
+     "pos": [
+      -23.4,
+      -49.67,
+      16.15
+     ]
+    }
+   ],
+   "seen_runs": 59,
+   "status": "ok",
+   "item_lot_ids_raw": [
+    25501000,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1
+   ],
+   "humanity_lot_id_raw": 5220,
+   "drop_type_raw": 0,
+   "lots": [
+    {
+     "lot": 25501000,
+     "status": "ok",
+     "class": "chain_unresolved",
+     "chain_rule": "next row while it exists (external description, not seen in play)",
+     "rows": [
+      {
+       "row": 25501000,
+       "item_flag": -1,
+       "flag_meaning": "none(-1)",
+       "cumulative": {
+        "first_flag": -1,
+        "max_additions": 0,
+        "used": false
+       },
+       "points_total": 100,
+       "slots": [
+        {
+         "slot": 1,
+         "category": "empty",
+         "category_raw": -1,
+         "id": 0,
+         "name": null,
+         "count": 0,
+         "points": 97,
+         "luck": true,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.97
+        },
+        {
+         "slot": 2,
+         "category": "weapon",
+         "category_raw": 0,
+         "id": 201000,
+         "name": "Longsword",
+         "count": 1,
+         "points": 2,
+         "luck": false,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.02
+        },
+        {
+         "slot": 3,
+         "category": "weapon",
+         "category_raw": 0,
+         "id": 1454000,
+         "name": "Hollow Soldier Shield",
+         "count": 1,
+         "points": 1,
+         "luck": false,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.01
+        }
+       ],
+       "has_empty_slot": true,
+       "unknown_category": false,
+       "table_single_outcome": false
+      },
+      {
+       "row": 25501001,
+       "item_flag": -2,
+       "flag_meaning": "unresolved",
+       "cumulative": {
+        "first_flag": -1,
+        "max_additions": 0,
+        "used": false
+       },
+       "points_total": 100,
+       "slots": [
+        {
+         "slot": 1,
+         "category": "empty",
+         "category_raw": -1,
+         "id": 0,
+         "name": null,
+         "count": 0,
+         "points": 99,
+         "luck": true,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.99
+        },
+        {
+         "slot": 2,
+         "category": "armor",
+         "category_raw": 268435456,
+         "id": 480000,
+         "name": "Hollow Soldier Helm",
+         "count": 1,
+         "points": 1,
+         "luck": false,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.01
+        }
+       ],
+       "has_empty_slot": true,
+       "unknown_category": false,
+       "table_single_outcome": false
+      },
+      {
+       "row": 25501002,
+       "item_flag": -2,
+       "flag_meaning": "unresolved",
+       "cumulative": {
+        "first_flag": -1,
+        "max_additions": 0,
+        "used": false
+       },
+       "points_total": 100,
+       "slots": [
+        {
+         "slot": 1,
+         "category": "empty",
+         "category_raw": -1,
+         "id": 0,
+         "name": null,
+         "count": 0,
+         "points": 99,
+         "luck": true,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.99
+        },
+        {
+         "slot": 2,
+         "category": "armor",
+         "category_raw": 268435456,
+         "id": 481000,
+         "name": "Hollow Soldier Armor",
+         "count": 1,
+         "points": 1,
+         "luck": false,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.01
+        }
+       ],
+       "has_empty_slot": true,
+       "unknown_category": false,
+       "table_single_outcome": false
+      },
+      {
+       "row": 25501003,
+       "item_flag": -2,
+       "flag_meaning": "unresolved",
+       "cumulative": {
+        "first_flag": -1,
+        "max_additions": 0,
+        "used": false
+       },
+       "points_total": 100,
+       "slots": [
+        {
+         "slot": 1,
+         "category": "empty",
+         "category_raw": -1,
+         "id": 0,
+         "name": null,
+         "count": 0,
+         "points": 99,
+         "luck": true,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.99
+        },
+        {
+         "slot": 2,
+         "category": "armor",
+         "category_raw": 268435456,
+         "id": 483000,
+         "name": "Hollow Soldier Waistcloth",
+         "count": 1,
+         "points": 1,
+         "luck": false,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.01
+        }
+       ],
+       "has_empty_slot": true,
+       "unknown_category": false,
+       "table_single_outcome": false
+      },
+      {
+       "row": 25501004,
+       "item_flag": -2,
+       "flag_meaning": "unresolved",
+       "cumulative": {
+        "first_flag": -1,
+        "max_additions": 0,
+        "used": false
+       },
+       "points_total": 1000,
+       "slots": [
+        {
+         "slot": 1,
+         "category": "empty",
+         "category_raw": -1,
+         "id": 0,
+         "name": null,
+         "count": 0,
+         "points": 984,
+         "luck": true,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.984
+        },
+        {
+         "slot": 2,
+         "category": "good",
+         "category_raw": 1073741824,
+         "id": 1000,
+         "name": "Titanite Shard",
+         "count": 1,
+         "points": 16,
+         "luck": false,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.016
+        }
+       ],
+       "has_empty_slot": true,
+       "unknown_category": false,
+       "table_single_outcome": false
+      }
+     ],
+     "flags_raw": [
+      -1,
+      -2,
+      -2,
+      -2,
+      -2
+     ],
+     "any_one_time_flag": false,
+     "any_unresolved": true
+    }
+   ]
+  },
+  {
+   "npc_param_id": 275000,
+   "kind": [
+    "enemy"
+   ],
+   "models": [
+    "c2750"
+   ],
+   "placed": [
+    {
+     "name": "c2750_0000",
+     "entity_id": 6060,
+     "pos": [
+      -53.07,
+      -64.6,
+      52.0
+     ]
+    }
+   ],
+   "seen_runs": 0,
+   "status": "no_lot_ids(all -1)",
+   "item_lot_ids_raw": [
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1
+   ],
+   "humanity_lot_id_raw": -1,
+   "drop_type_raw": 1,
+   "lots": []
+  },
+  {
+   "npc_param_id": 290000,
+   "kind": [
+    "enemy"
+   ],
+   "models": [
+    "c2900"
+   ],
+   "placed": [
+    {
+     "name": "c2900_0000",
+     "entity_id": 1020200,
+     "pos": [
+      -41.298,
+      -63.59,
+      129.483
+     ]
+    },
+    {
+     "name": "c2900_0001",
+     "entity_id": 1020201,
+     "pos": [
+      -38.245,
+      -63.748,
+      131.209
+     ]
+    },
+    {
+     "name": "c2900_0002",
+     "entity_id": 1020202,
+     "pos": [
+      -40.907,
+      -67.658,
+      151.012
+     ]
+    },
+    {
+     "name": "c2900_0004",
+     "entity_id": 1020204,
+     "pos": [
+      -52.0,
+      -61.565,
+      114.917
+     ]
+    },
+    {
+     "name": "c2900_0006",
+     "entity_id": 1020206,
+     "pos": [
+      -48.483,
+      -67.964,
+      136.165
+     ]
+    },
+    {
+     "name": "c2900_0010",
+     "entity_id": 1020210,
+     "pos": [
+      -29.069,
+      -71.005,
+      166.018
+     ]
+    },
+    {
+     "name": "c2900_0011",
+     "entity_id": 1020211,
+     "pos": [
+      -29.274,
+      -70.692,
+      169.14
+     ]
+    },
+    {
+     "name": "c2900_0014",
+     "entity_id": 1020214,
+     "pos": [
+      -40.121,
+      -68.399,
+      153.264
+     ]
+    }
+   ],
+   "seen_runs": 0,
+   "status": "ok",
+   "item_lot_ids_raw": [
+    29000000,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1
+   ],
+   "humanity_lot_id_raw": -1,
+   "drop_type_raw": 0,
+   "lots": [
+    {
+     "lot": 29000000,
+     "status": "ok",
+     "class": "weighted_one_row",
+     "chain_rule": "next row while it exists (external description, not seen in play)",
+     "rows": [
+      {
+       "row": 29000000,
+       "item_flag": -1,
+       "flag_meaning": "none(-1)",
+       "cumulative": {
+        "first_flag": -1,
+        "max_additions": 0,
+        "used": false
+       },
+       "points_total": 100,
+       "slots": [
+        {
+         "slot": 1,
+         "category": "empty",
+         "category_raw": -1,
+         "id": 0,
+         "name": null,
+         "count": 0,
+         "points": 97,
+         "luck": true,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.97
+        },
+        {
+         "slot": 2,
+         "category": "weapon",
+         "category_raw": 0,
+         "id": 400000,
+         "name": "Scimitar",
+         "count": 1,
+         "points": 2,
+         "luck": false,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.02
+        },
+        {
+         "slot": 3,
+         "category": "weapon",
+         "category_raw": 0,
+         "id": 1476000,
+         "name": "Red and White Round Shield",
+         "count": 1,
+         "points": 1,
+         "luck": false,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.01
+        }
+       ],
+       "has_empty_slot": true,
+       "unknown_category": false,
+       "table_single_outcome": false
+      }
+     ],
+     "flags_raw": [
+      -1
+     ],
+     "any_one_time_flag": false,
+     "any_unresolved": false
+    }
+   ]
+  },
+  {
+   "npc_param_id": 290002,
+   "kind": [
+    "enemy"
+   ],
+   "models": [
+    "c2900"
+   ],
+   "placed": [
+    {
+     "name": "c2900_0003",
+     "entity_id": 1020203,
+     "pos": [
+      -53.074,
+      -61.587,
+      111.869
+     ]
+    },
+    {
+     "name": "c2900_0005",
+     "entity_id": 1020205,
+     "pos": [
+      -51.472,
+      -69.848,
+      140.043
+     ]
+    },
+    {
+     "name": "c2900_0009",
+     "entity_id": 1020209,
+     "pos": [
+      -31.067,
+      -70.869,
+      168.29
+     ]
+    }
+   ],
+   "seen_runs": 0,
+   "status": "ok",
+   "item_lot_ids_raw": [
+    29000200,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1
+   ],
+   "humanity_lot_id_raw": -1,
+   "drop_type_raw": 0,
+   "lots": [
+    {
+     "lot": 29000200,
+     "status": "ok",
+     "class": "weighted_one_row",
+     "chain_rule": "next row while it exists (external description, not seen in play)",
+     "rows": [
+      {
+       "row": 29000200,
+       "item_flag": -1,
+       "flag_meaning": "none(-1)",
+       "cumulative": {
+        "first_flag": -1,
+        "max_additions": 0,
+        "used": false
+       },
+       "points_total": 100,
+       "slots": [
+        {
+         "slot": 1,
+         "category": "empty",
+         "category_raw": -1,
+         "id": 0,
+         "name": null,
+         "count": 0,
+         "points": 97,
+         "luck": true,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.97
+        },
+        {
+         "slot": 2,
+         "category": "weapon",
+         "category_raw": 0,
+         "id": 401000,
+         "name": "Falchion",
+         "count": 1,
+         "points": 2,
+         "luck": false,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.02
+        },
+        {
+         "slot": 3,
+         "category": "weapon",
+         "category_raw": 0,
+         "id": 1476000,
+         "name": "Red and White Round Shield",
+         "count": 1,
+         "points": 1,
+         "luck": false,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.01
+        }
+       ],
+       "has_empty_slot": true,
+       "unknown_category": false,
+       "table_single_outcome": false
+      }
+     ],
+     "flags_raw": [
+      -1
+     ],
+     "any_one_time_flag": false,
+     "any_unresolved": false
+    }
+   ]
+  },
+  {
+   "npc_param_id": 291000,
+   "kind": [
+    "enemy"
+   ],
+   "models": [
+    "c2910"
+   ],
+   "placed": [
+    {
+     "name": "c2910_0000",
+     "entity_id": 1020212,
+     "pos": [
+      -27.504,
+      -70.801,
+      168.371
+     ]
+    },
+    {
+     "name": "c2910_0001",
+     "entity_id": 1020213,
+     "pos": [
+      -28.448,
+      -63.155,
+      147.813
+     ]
+    }
+   ],
+   "seen_runs": 0,
+   "status": "ok",
+   "item_lot_ids_raw": [
+    29100000,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1
+   ],
+   "humanity_lot_id_raw": -1,
+   "drop_type_raw": 0,
+   "lots": [
+    {
+     "lot": 29100000,
+     "status": "ok",
+     "class": "weighted_one_row",
+     "chain_rule": "next row while it exists (external description, not seen in play)",
+     "rows": [
+      {
+       "row": 29100000,
+       "item_flag": -1,
+       "flag_meaning": "none(-1)",
+       "cumulative": {
+        "first_flag": -1,
+        "max_additions": 0,
+        "used": false
+       },
+       "points_total": 100,
+       "slots": [
+        {
+         "slot": 1,
+         "category": "empty",
+         "category_raw": -1,
+         "id": 0,
+         "name": null,
+         "count": 0,
+         "points": 99,
+         "luck": true,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.99
+        },
+        {
+         "slot": 2,
+         "category": "weapon",
+         "category_raw": 0,
+         "id": 451000,
+         "name": "Murakumo",
+         "count": 1,
+         "points": 1,
+         "luck": false,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 0.01
+        }
+       ],
+       "has_empty_slot": true,
+       "unknown_category": false,
+       "table_single_outcome": false
+      }
+     ],
+     "flags_raw": [
+      -1
+     ],
+     "any_one_time_flag": false,
+     "any_unresolved": false
+    }
+   ]
+  },
+  {
+   "npc_param_id": 351000,
+   "kind": [
+    "enemy"
+   ],
+   "models": [
+    "c3510"
+   ],
+   "placed": [
+    {
+     "name": "c3510_0000",
+     "entity_id": 1020100,
+     "pos": [
+      -45.997,
+      -46.474,
+      89.256
+     ]
+    }
+   ],
+   "seen_runs": 0,
+   "status": "ok",
+   "item_lot_ids_raw": [
+    35100000,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1
+   ],
+   "humanity_lot_id_raw": -1,
+   "drop_type_raw": 1,
+   "lots": [
+    {
+     "lot": 35100000,
+     "status": "ok",
+     "class": "table_empty_only",
+     "chain_rule": "next row while it exists (external description, not seen in play)",
+     "rows": [
+      {
+       "row": 35100000,
+       "item_flag": -1,
+       "flag_meaning": "none(-1)",
+       "cumulative": {
+        "first_flag": -1,
+        "max_additions": 0,
+        "used": false
+       },
+       "points_total": 100,
+       "slots": [
+        {
+         "slot": 1,
+         "category": "empty",
+         "category_raw": -1,
+         "id": 0,
+         "name": null,
+         "count": 0,
+         "points": 100,
+         "luck": true,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 1.0
+        }
+       ],
+       "has_empty_slot": true,
+       "unknown_category": false,
+       "table_single_outcome": false
+      }
+     ],
+     "flags_raw": [
+      -1
+     ],
+     "any_one_time_flag": false,
+     "any_unresolved": false
+    }
+   ]
+  },
+  {
+   "npc_param_id": 533000,
+   "kind": [
+    "enemy"
+   ],
+   "models": [
+    "c5330"
+   ],
+   "placed": [
+    {
+     "name": "c5330_0000",
+     "entity_id": 6330,
+     "pos": [
+      -38.4,
+      -56.03,
+      88.78
+     ]
+    }
+   ],
+   "seen_runs": 0,
+   "status": "ok",
+   "item_lot_ids_raw": [
+    53300000,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1
+   ],
+   "humanity_lot_id_raw": -1,
+   "drop_type_raw": 1,
+   "lots": [
+    {
+     "lot": 53300000,
+     "status": "ok",
+     "class": "table_empty_only",
+     "chain_rule": "next row while it exists (external description, not seen in play)",
+     "rows": [
+      {
+       "row": 53300000,
+       "item_flag": -1,
+       "flag_meaning": "none(-1)",
+       "cumulative": {
+        "first_flag": -1,
+        "max_additions": 0,
+        "used": false
+       },
+       "points_total": 100,
+       "slots": [
+        {
+         "slot": 1,
+         "category": "empty",
+         "category_raw": -1,
+         "id": 0,
+         "name": null,
+         "count": 0,
+         "points": 100,
+         "luck": true,
+         "slot_flag_raw": 0,
+         "cumulative_points": 0,
+         "reset_cumulative": false,
+         "weight_share": 1.0
+        }
+       ],
+       "has_empty_slot": true,
+       "unknown_category": false,
+       "table_single_outcome": false
+      }
+     ],
+     "flags_raw": [
+      -1
+     ],
+     "any_one_time_flag": false,
+     "any_unresolved": false
+    }
+   ]
+  }
+ ]
+}

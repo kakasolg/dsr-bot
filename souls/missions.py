@@ -10,6 +10,7 @@ import json
 import math
 import time
 from pathlib import Path
+from types import SimpleNamespace as NS
 
 import nav
 
@@ -52,6 +53,9 @@ RAMP_LURE_AT.update({
 # and on the way the shield soldier chased it for 790. Starting from the flat ground below, [1,3,…] (10/10, median damage 282) is better — safer to let the upper-ledge ones come down one at a time
 RAMP_SURVIVOR_R = 15.0   # a live ramp foe this close to a spawn of its type counts as a survivor (pass_ramp)
 RAMP_RETRIES = 2         # …and the ramp is cleared again at most this many times before the mission stops
+# 구역 끝 드롭 줍기(Missions._loot)를 하지 않는 구역 — 구역 8: 탑 위 좁은 턱(P-47)·석궁병 둘이 남는 구역이고 바로 앞이
+# 타우로스 안개벽이라, 드롭 때문에 턱 위를 걸어 다니거나 보스 쪽으로 가지 않는다 (게임 확인 없이 정한 제외)
+LOOT_SKIP_ZONES = {8}
 NO_LURE = {1}            # #1 is on a high spot: from afar it's blocked by rocks, up close it's already coming down (user 2026-09-24) — walk to the flat ground and it comes on its own
 # Undead Burg 6 — exactly the order the user killed them (recording analysis, 2026-09-25): "Code it to kill in the order I kill"
 # ("Not a good method, but for now it breaks the order too much, no choice" — script the demo order as-is instead of generalized judgment).
@@ -85,6 +89,11 @@ UPPER_LURE_CROWD_R = 4.0 # a target with another live foe this close (same level
 UPPER_LURE_CROWD_DY = 2.0
 UPPER_HEAL_FRAC = 0.7    # before each lure: below this share of max HP, Estus first
 LADDER_TRIES = 3         # zone 8 ladder: face + A + climb attempts
+LADDER_BUSY_S = 4.5      # wait at most this for a roll / stagger / Estus to end before facing + A (235045: Estus 3.2 s, stun 2017 4 s)
+LADDER_FREE_S = 0.15     # not busy this long in a row before facing + A
+LADDER_FACE_DEG = 35.0   # body already this close to the ladder → no turn, A at once (A taken at 15–20° off, 10-31)
+LADDER_TURN_S = 1.0      # turn toward the ladder at most this long before A (001740: 93° and 180° off after a stun)
+LADDER_GRAB_S = 1.2      # after A, the mount anim (7010) must show within this — else no climb input
 ROUTE_NEAR_M = 6.0       # _to_merchant: the nearest route point is walked to straight only this close …
 ROUTE_DY_M = 1.5         # … and on our level — P-57: a ramp fight ending on the top platform (−20,−39.3,14.4) was 4.2 m from A0
                          # (the stair top, 3.3 m higher, reached around the east side); the straight walk ran into the ledge — a 1.5–2.6 s
@@ -99,6 +108,16 @@ ROLL_M = 2.6             # a 'roll' before-step: floor this far ahead for each r
 ROLL_FOE_R = 10.0        # … foes this close are kept at a distance when the planned way has no floor
 UPPER_SIP_FRAC = 0.7     # back at the safe spot: drink only below this share (10-06g spent one on 713/742; [MoKa] 90 → 80 → 70 %)
 UPPER_SWING_R = 2.5      # …and not while a foe this close is mid-swing (10-06g: interrupted by a firebomb from 2.4 m)
+CHEST_FOE_R = 8.0        # zone 'after' chest: an awake foe this close → don't go
+CHEST_DOOR_TRIES = 2     # …A on the door (only while its state flag reads shut)
+CHEST_DOOR_S = 2.5       # …wait for it to swing / the Master Key message (11-01: flag True 2.5 s after A)
+CHEST_REACH_M = 0.75     # …the lid opened on A from 0.77 m, not from 2.4 m (item-pickup.md 11-01); 192523: 0.84 m, same side, faced → A ×3 nothing
+CHEST_NUDGES = 10
+CHEST_NUDGE_STICK = 0.7  # 11-01 183919: stick 0.3 only turned the body — 8 pulses, position unchanged at 1.34 m
+CHEST_NUDGE_S = 0.2
+CHEST_WINDOW_S = 2.0       # wait this long for the item window list before the closing A
+CHEST_PRESSES = 3        # A (lid) → A (take); a third only if the flag still reads shut
+CHEST_PRESS_S = 3.0
 
 
 def _route():
@@ -185,6 +204,8 @@ class Missions:
                 ok = self.mv.tm.bonfire_warp(FIRELINK_ID, log=self.log)
                 r = "warped" if ok else "warp_failed"
                 time.sleep(2.0)
+                if ok and getattr(self.f, "loot", None) is not None:
+                    self.f.loot.reset("warp")
             else:
                 r = self.f.walk_to(tuple(FIRELINK["stand"]), na, f"드릴{n} 화톳불로")
             self.log(f"   드릴 {n}: 화톳불까지 {r} {time.time() - t0:.1f} s")
@@ -258,7 +279,29 @@ class Missions:
         targets = [dict(RAMP[i - 1], label=i, lure=(i not in NO_LURE), lure_at=RAMP_LURE_AT.get(i)) for i in RAMP_ORDER]
         r = self.f.clear(targets, self.nms[MAP_A], arena=RAMP_ARENA, lure=lure)
         self.log(f"── 경사로: {r}")
+        self._loot(self.nms[MAP_A], "경사로", back=RAMP_ARENA)   # the arena: pass_ramp's survivor check and the next walk start there
         return r
+
+    def firelink_humanity(self) -> dict | None:
+        """불의 제전 화톳불 옆 인간성 ×3 시체(loot.TREASURES) — 쉬고(레벨업) 난 뒤 경사로 전에 ([MoKa] 11-01 "먼저 레벨업 하고,
+        humanity 아이템 확보 하는 것도 점검"). 이미 주웠으면(ItemFlag) 걷지 않는다. Off (--no-loot) → None."""
+        lt = getattr(self.f, "loot", None)
+        if lt is None or not lt.on or not self.f.alive():
+            return None
+        from . import loot as loot_
+        r = self.f.pick_treasure(self.nms[MAP_A], loot_.TREASURES["firelink-humanity"])
+        self.log(f"── 인간성 시체: {r['result']}")
+        return r
+
+    def _loot(self, nm, tag: str, back=None) -> None:
+        """Pick up enemy drops here, after this stop's own fights (Field.loot, souls/loot.py — one book per run, baseline at run
+        start / rest / respawn / warp / quit-out). Off (--no-loot) → nothing at all. back=None: the next step's walk finds its
+        way from wherever the pickups ended (walk / careful_walk_to / to_merchant re-find the nearest path point)."""
+        lt = getattr(self.f, "loot", None)
+        if lt is None or not lt.on or not self.f.alive():
+            return
+        r = lt.collect(nm, tag, back=back)
+        self.log(f"── {tag} 드롭: {r}")
 
     def _climb_entry_stairs(self, nb) -> None:
         """Town entrance → top of the stairs (route b point STAIRS_TOP_K) as a normal walk — [MoKa] 2026-10-01: "계단까지는 안전 구역이니
@@ -319,6 +362,7 @@ class Missions:
                 if not ok and self.f.estus_left() <= 0:
                     return "no_estus"
         self.log("── 성벽 마을(순서 고정): 끝")
+        self._loot(nb, "성벽 마을")
         return "cleared"
 
     def upper_zone(self, n: int) -> str:
@@ -358,7 +402,7 @@ class Missions:
             elif no_safe:
                 r = "arrived"
             elif z.get("run_to_safe"):
-                r = self._sprint(safe, nb, None)
+                r = self._sprint(safe, nb, None, through=z.get("run_to_safe") == "through")
                 r = "dead" if r == "dead" else ("arrived" if r in ("arrived", "stopped") else r)
             else:
                 r = self.f.careful_walk_to(safe, nb, f"구역{n} 안전 자리")
@@ -367,6 +411,16 @@ class Missions:
             if r != "arrived":
                 self.log(f"   구역{n} 안전 자리까지 {r} — 지금 자리에서 이어감")
             self._firebomb_ledge(f"구역{n}")
+            # 11-01 183919 ([MoKa] "처음에 문 안열고 들어가려다 못여니깐 … 병사들 해치우고 그다음에 문 연거야"): 255000 유인 길이
+            # 닫힌 문 1011310을 지나 문 앞 (19.9,−103.7)에서 7 s 막힘 → 문이 있는 'after' 단계는 적보다 먼저 문만 연다
+            for step in z.get("after", []):
+                st = step.get("chest") or {}
+                if st.get("door_first") and self.mv.tm.event_flag(int(st["door_flag"])) is not True:
+                    r = self._open_door(st, nb, f"구역{n}")
+                    if r == "dead":
+                        return "died"
+                    if self.f.careful_walk_to(safe, nb, f"구역{n} 안전 자리") == "dead":
+                        return "died"
             left = []
             for i, k in enumerate(z["kills"], 1):
                 if not self.f.alive():
@@ -377,6 +431,11 @@ class Missions:
                     return r
                 if r not in ("killed", "gone"):
                     left.append(f"#{i} {npc} {r}")
+            if n not in LOOT_SKIP_ZONES:                   # still inside the zone: a pickup fight keeps its home · tether
+                self._loot(nb, f"구역{n}")
+            for step in z.get("after", []):
+                if "chest" in step and self._chest(step["chest"], nb, f"구역{n}") == "dead":
+                    return "died"
         finally:
             self.f.home = home0
             self.f.extra_zones, self.f.tether = zones0, tether0
@@ -405,6 +464,27 @@ class Missions:
             return "gone"
         ptr = c.ptr
         res = None
+        if (how or {}).get("hold"):
+            # ── 구역 8 석궁: 녹화처럼 달려가 기다리기 (MoKa 11-01 "녹화처럼 달려가 기다리기") ──────────────
+            #  녹화 151317: 꼭대기에서 동쪽 F9#8까지 11 m 달림 → 석궁 둘이 따라와 근접에서 처치. 구르기 2번 + 붙기(P-47)는
+            #  사거리 6–9 m에서 끝나 붙는 중에 맞았고, low_hp 후퇴는 탁 트인 탑 위에서 계속 맞음(12런 중 사망 4, P-103).
+            #  → 안전 자리(F9#8)에서 가드 들고 기다림, 오면 물러나지 않고(desperate) 싸움, 사이사이 에스트(Field.desperate 포함).
+            #  기다려도 안 오면 그때 붙음.
+            if not self._wait_at_safe(ptr, safe, float(how["hold"])):
+                self.log(f"   {tag}: {how['hold']} s 기다려도 안 옴 — 붙음")
+            for k in range(UPPER_TRIES):
+                if not self.f.alive():
+                    return "died"
+                t = self.mv.find(self.mv.snap(200.0), ptr)
+                if t is None or t.hp <= 0:
+                    return "killed"
+                foe = self._first_foe(ptr)
+                res = self.f.fight(foe, nb, tag if foe == ptr else f"{tag}: 같이 온 놈", desperate=True)
+                if res.result == "me_dead":
+                    return "died"
+                self.f.heal(UPPER_HEAL_FRAC)
+            t = self.mv.find(self.mv.snap(200.0), ptr)
+            return "killed" if t is None or t.hp <= 0 else res.result
         if (how or {}).get("attack"):                      # 구역 8 석궁 — [MoKa] "가자 마자 공격해": no lure, no waiting, close in now
             desperate = False                          # 10-06 구역 8: low_hp 뒤 물러남·에스트 없이 0 s 싸움을 4번 → 사망 (P-47)
             for k in range(UPPER_TRIES):
@@ -449,6 +529,105 @@ class Missions:
                     return "no_estus"
                 self.log(f"   {ftag}: {res.result} — 살아 있음, 다시 ({k + 1}/{UPPER_TRIES})")
         return res.result if res is not None else "gone"
+
+    def _chest(self, st: dict, nb, tag: str) -> str:
+        """Zone 'after' step: open a door by its state flag, walk to a treasure chest, take what's in it, put `item` in a quick slot.
+        → 'taken' | 'already' | 'dead' | why it stopped
+
+        ── 구역 5 문 → 宝箱01 황금송진 ([MoKa] 11-01 "문열고 황금 송진 잡는 것도 … 루틴에 적용해줘") ──────────────
+         문 1011310은 상태 플래그(61010510) False일 때만 A — 열린 문에 A면 다시 닫힘. 11-01 180933 뒤엔 잠긴 문이라 A에 "Used Master Key".
+         상자는 2.4 m에선 A가 안 먹고 ~0.8 m 앞에서 A(뚜껑) → A(꺼내기, 송진 0→3, 플래그 51010460 True) → A(창 닫기) (docs/item-pickup.md).
+         같은 날 스크래치 스크립트는 문에서 먼 자리에서 '문 A'를 눌러 바닥의 화염병을 주웠다 — 그래서 문 앞에 선 뒤에만 누른다."""
+        tm = self.mv.tm
+        item, flag = int(st["item"]), int(st["flag"])
+        if tm.event_flag(flag) is True:
+            self.log(f"   {tag} 상자: 이미 열었음 (플래그 {flag}) — {item} {tm.goods_count(item)}개")
+            return "already"
+        s = self.mv.snap(15.0)
+        awake = [c for c in s.hostile(CHEST_FOE_R + 2.0) if c.hp > 0 and (c.anim or -1) != -1
+                 and M.horiz(s.player, c) < CHEST_FOE_R] if s is not None else []
+        if awake:
+            self.log(f"   {tag} 상자: {awake[0].npc_param} {M.horiz(s.player, awake[0]):.1f} m — 안 감")
+            return "foe"
+        r = self._open_door(st, nb, tag)
+        if r != "open":
+            return r
+        box = tuple(st["chest"])
+        r = self.f.walk_to(tuple(st["stand"]), nb, f"{tag} 상자 앞")
+        if r == "dead" or not self.f.alive():
+            return "dead"
+        last, stuck = None, 0
+        for _ in range(CHEST_NUDGES):                      # NavMesh ends 1.5 m off the chest; the lid needs ~0.8 m
+            s = self.mv.snap(5.0)
+            d = M.horiz(s.player, NS(x=box[0], z=box[2])) if s is not None else None
+            if d is None or d <= CHEST_REACH_M:
+                break
+            stuck = stuck + 1 if last is not None and last - d < 0.03 else 0
+            if stuck >= 2:                                 # against the chest's collision — A from here
+                break
+            last = d
+            self.mv.pad.move(*self.mv.stick_to(s, box[0], box[2], CHEST_NUDGE_STICK))
+            time.sleep(CHEST_NUDGE_S)
+            self.mv.pad.move(0.0, 0.0)
+            time.sleep(0.25)
+        s = self.mv.snap(5.0)
+        if s is not None:
+            self.log(f"   {tag} 상자: 밀기 뒤 상자까지 {M.horiz(s.player, NS(x=box[0], z=box[2])):.2f} m")
+        self._face_pulses(box)
+        n0 = tm.goods_count(item) or 0
+        for k in range(CHEST_PRESSES):
+            self.mv.pad.interact()
+            time.sleep(CHEST_PRESS_S)
+            if tm.event_flag(flag) is True:
+                break
+        got = tm.event_flag(flag) is True
+        if got:
+            import drops
+            # 11-01 214607: 플래그가 True가 된 직후엔 창 목록이 아직 비어 있어 A를 안 눌렀고, 'Gold Pine Resin 3' 창을 띄운 채 구역 6 싸움으로 감
+            t_end = time.time() + CHEST_WINDOW_S
+            while not drops.itemget_nodes(tm) and time.time() < t_end:
+                time.sleep(0.1)
+            self.mv.pad.interact()                         # close the item window (pressed even if the list never read)
+            time.sleep(1.0)
+        n1 = tm.goods_count(item) or 0
+        quick = None
+        if got and st.get("quick"):
+            import steam_state
+            quick = (tm.equip_quick_item(item) if steam_state.check().get("offline") is True else "Steam 오프라인 아님")
+        s = self.mv.snap(5.0)
+        d = M.horiz(s.player, NS(x=box[0], z=box[2])) if s is not None else None
+        self.log(f"   {tag} 상자: {'꺼냄' if got else '못 꺼냄'} — {item} {n0}→{n1}, 플래그 {flag} = {tm.event_flag(flag)}, "
+                 f"상자까지 {d if d is None else round(d, 2)} m, 퀵슬롯 {quick}")
+        self.f.events("chest", tag=tag, item=item, before=n0, after=n1, flag=tm.event_flag(flag), quick=quick)
+        return "taken" if got else "not taken"
+
+    def _open_door(self, st: dict, nb, tag: str) -> str:
+        """A on st's door only while its state flag reads shut (A on an open door shuts it). → 'open' | 'dead' | 'door shut'"""
+        tm = self.mv.tm
+        door, front, dflag = tuple(st["door"]), tuple(st["door_front"]), int(st["door_flag"])
+        for k in range(CHEST_DOOR_TRIES):
+            if tm.event_flag(dflag) is True:
+                break
+            r = self.f.walk_to(front, nb, f"{tag} 문 앞")
+            if r == "dead" or not self.f.alive():
+                return "dead"
+            self.f._settle(front, tol=0.4)
+            self._face_pulses(door)
+            self.mv.pad.interact()
+            time.sleep(CHEST_DOOR_S)
+            self.log(f"   {tag} 문: A ({k + 1}/{CHEST_DOOR_TRIES}) → 플래그 {dflag} = {tm.event_flag(dflag)}")
+        return "open" if tm.event_flag(dflag) is True else "door shut"
+
+    def _face_pulses(self, t, n: int = 4) -> None:
+        """Turn toward t with short weak stick pulses (barely moves) — doors and chests take A only when faced."""
+        for _ in range(n):
+            s = self.mv.snap(5.0)
+            if s is None or s.cam_yaw is None:
+                return
+            self.mv.pad.move(*self.mv.stick_to(s, t[0], t[2], 0.3))
+            time.sleep(0.12)
+            self.mv.pad.move(0.0, 0.0)
+            time.sleep(0.25)
 
     def _top_up(self, nb, tag: str) -> bool:
         """Estus before going out: below UPPER_HEAL_FRAC drink here, or — a foe too close to drink — back off toward the bonfire
@@ -669,6 +848,12 @@ class Missions:
         if s is not None and s.player.y >= top_y - 0.6:
             self.log(f"   {tag}: 이미 사다리 위")
             return "ok"
+        hp, mx = (getattr(s.player, "hp", None), getattr(s.player, "max_hp", None)) if s is not None else (None, None)
+        if st.get("heal_first") and hp is not None and mx and hp < mx * float(st["heal_first"]):
+            # ── 사다리 위는 석궁병 둘 사거리라 못 마심 (MoKa 11-01 "가)+나) 고치기") ──────────────
+            #  214607: 72 %로 올라가 −162 · −162 · −81 → HP 116에서 '근처에 적 — 안 마심' 3번 → 사망 (P-103과 같은 꼴)
+            self.log(f"   {tag}: 사다리 전 HP {hp}/{mx} — 에스트 먼저")
+            self.f.heal(float(st["heal_first"]), sips=3)
         if st.get("approach"):                             # [MoKa]: "계단에서 내려 와서, 옆으로 붙어서" — the recorded line, not a diagonal
             r = self.f.walk([tuple(q) for q in st["approach"]], nb, f"{tag} 사다리 아래", tol=0.4)
         else:
@@ -677,23 +862,52 @@ class Missions:
             return "dead"
         self.f._settle(bottom, tol=0.4)
         for attempt in range(LADDER_TRIES):
-            s = self.mv.snap(5.0)
-            if s is not None and s.cam_yaw is not None:
-                self.mv.pad.move(*self.mv.stick_to(s, face[0], face[2], 0.35))
-                time.sleep(0.25)
+            s = self._ladder_ready()
+            # ── 이미 사다리를 보고 있으면 돌기 0.45 s를 건너뜀 (20261101_001326) ──────────────────
+            #  구르기 뒤 몸이 사다리에서 15~20° (헤딩 −105°) — 돌기 스틱에도 헤딩은 그대로였고, 그 0.45 s 사이 3002에 맞음
+            #  (710 끝 53.6 → A 54.62, 피격 54.51). 같은 헤딩에서 A는 바로 먹힘 (000637 54.6 → 7010 54.72).
+            # ── 볼 때까지 돌기 (20261101_001740) ─────────────────────────────────────────────────
+            #  경직 뒤 몸이 93°·180° 돌아가 있었는데 스틱 0.35 × 0.25 s로는 거의 안 돌아 A 두 번이 안 먹음 (64.72, 70.91).
+            #  moves.face처럼 0.55로, 매번 새 스냅숏으로 LADDER_FACE_DEG 안에 들 때까지 (최대 LADDER_TURN_S) 돈 뒤 A.
+            t_turn = time.time()
+            turned = False
+            while (s is not None and not self._ladder_dead(s) and s.cam_yaw is not None
+                   and getattr(s.player, "heading", None) is not None
+                   and abs(math.degrees(M.rel_angle(s.player, NS(x=face[0], z=face[2])))) > LADDER_FACE_DEG
+                   and time.time() - t_turn < LADDER_TURN_S):
+                self.mv.pad.move(*self.mv.stick_to(s, face[0], face[2], 0.55))
+                turned = True
+                time.sleep(0.05)
+                s = self.mv.snap(5.0)
+            if self._ladder_dead(s, tag):                  # 20261101_002546: HP 0 after the entry check, then A ×3 on the corpse
+                self.mv.pad.neutral()
+                return "dead"
+            if turned:
                 self.mv.pad.move(0.0, 0.0)
-                time.sleep(0.2)
+                time.sleep(0.1)
             self.mv.pad.interact()
-            time.sleep(0.8)
-            s = self.mv.snap(5.0)
-            y0 = s.player.y if s else bottom[1]
-            t0, moved = time.time(), False
+            s = self._ladder_grabbed()
+            if s is None:
+                # ── A가 안 먹으면 스틱 위를 누르지 않는다 (10-31 225341 · 230111) ──────────────
+                #  구르기(애니 710)가 1.5 s 이어지는 동안 누른 A는 무시됐고, 사다리에 안 붙은 채 '스틱 위'는 카메라 앞
+                #  (보스 쪽)으로 달리기가 돼 7 m 끌려가 맞았다. 붙었는지(애니 7000대) 보고 아니면 다시 사다리를 본다.
+                self.log(f"   {tag}: 사다리 안 잡힘 ({attempt + 1}/{LADDER_TRIES}) — 오르기 입력 안 함")
+                self.mv.pad.neutral()                      # A 떼기 — 10-31 235045: 눌린 채 남아 다음 A 두 번이 새 입력이 안 됨
+                if self._ladder_dead(self.mv.snap(5.0), tag):
+                    return "dead"
+                self.f._settle(bottom, tol=0.4)
+                continue
+            y0 = s.player.y
+            t0, moved, died = time.time(), False, False
             while time.time() - t0 < LADDER_CLIMB_S:
                 self.mv.pad.move(0.0, 1.0)                 # stick up = climb
                 time.sleep(0.1)
                 s = self.mv.snap(5.0)
                 if s is None:
                     continue
+                if self._ladder_dead(s, tag):
+                    died = True
+                    break
                 moved = moved or s.player.y > y0 + 0.4
                 if s.player.y >= top_y - 0.3:
                     time.sleep(0.8)                        # keep pushing — step off the top
@@ -701,13 +915,72 @@ class Missions:
                 if not moved and time.time() - t0 > 2.5:
                     break                                  # not on the ladder — face it again and A
             self.mv.pad.neutral()
+            if died:
+                return "dead"
             s = self.mv.snap(5.0)
             if s is not None and s.player.y >= top_y - 0.6:
                 self.log(f"   {tag}: 사다리 올라감 (y {s.player.y:.1f})")
                 return "ok"
             self.log(f"   {tag}: 사다리 안 올라감 ({attempt + 1}/{LADDER_TRIES}, y {None if s is None else round(s.player.y, 1)})")
+            if self._ladder_dead(s, tag):
+                return "dead"
             self.f._settle(bottom, tol=0.4)
         return "fail"
+
+    def _ladder_dead(self, s, tag: str | None = None) -> bool:
+        """
+        ── 사다리 루틴의 사망 판정 (20261101_002546) ─────────────────────────────
+         · 이미 읽은 스냅숏의 HP 0 = 사망. alive()로 다시 확인하지 않는다 — DS1에서 HP 0은 되돌아오지 않고,
+           Field.alive도 읽기 한 번의 HP로 판정한다. 살아 있는 경로에 읽기를 더하지 않으려고 손에 든 스냅숏을 쓴다.
+         · 스냅숏 없음 = 읽기 실패이지 사망 증거가 아니다 → 입구와 같은 정책(Field.alive: 다시 읽고 그래도 없으면 False).
+         · 판정 시점은 '읽은 순간'이다 — 실제 사망과 그 읽기 사이의 입력은 막지 못한다.
+         tag: log the verdict under it (None = no log: the turn loop's per-read check)."""
+        if s is None:
+            dead = not self.f.alive()
+            if dead and tag:
+                self.log(f"   {tag}: 사다리 — 스냅숏 없음, alive() 거짓 → 'dead' (읽기 실패, HP 0은 못 봄)")
+            return dead
+        hp = getattr(s.player, "hp", None)
+        if hp is not None and hp <= 0:
+            if tag:
+                self.log(f"   {tag}: 사다리 — 스냅숏 HP 0 → 중단")
+            return True
+        return False
+
+    def _ladder_ready(self):
+        """Wait until a roll (700s), a hit stagger or Estus is over — A pressed in one is dropped. Free means free for
+        LADDER_FREE_S in a row: 20261101_000027 710 ended at 55.58, −1 for 0.05 s, then a hit stun (2017) at 55.63 — A at 56.06
+        went in the stun. → a fresh snapshot or None."""
+        t0 = time.time()
+        s = self.mv.snap(5.0)
+        free_t = None
+        while s is not None and time.time() - t0 < LADDER_BUSY_S:
+            a = getattr(s.player, "anim", None)
+            a = -1 if a is None else a
+            if 700 <= a < 800 or a in M.HIT_STUN or 7585 <= a <= 7587:   # 7585–7587 Estus (235045: A in 7587 dropped)
+                free_t = None
+            else:
+                free_t = free_t or time.time()
+                if time.time() - free_t >= LADDER_FREE_S:
+                    break
+            time.sleep(0.05)
+            s = self.mv.snap(5.0)
+        return s
+
+    def _ladder_grabbed(self):
+        """After A: the ladder anims (7000s) or the body going up within LADDER_GRAB_S → that snapshot, else None."""
+        t0 = time.time()
+        s0 = self.mv.snap(5.0)
+        y0 = s0.player.y if s0 is not None else None
+        while time.time() - t0 < LADDER_GRAB_S:
+            self.mv.pad.release_due()                      # the A tap is released here (tap only schedules it)
+            time.sleep(0.05)
+            s = self.mv.snap(5.0)
+            if s is None:
+                continue
+            if 7000 <= (getattr(s.player, "anim", None) or -1) < 7100 or (y0 is not None and s.player.y > y0 + 0.3):
+                return s
+        return None
 
     def _roll_away(self, st: dict, nb, tag: str) -> str:
         """
@@ -786,9 +1059,10 @@ class Missions:
         finally:
             guard(False)
 
-    def _sprint(self, goal, nb, stop) -> str:
+    def _sprint(self, goal, nb, stop, through: bool = False) -> str:
         """Run along the NavMesh path to goal (no guard) until stop(snapshot), or until a foe is hitting / swinging at us
         (reflex.threat_now — the same check Field's walks stop on) → 'threat', and the caller fights from where it stands.
+        through: don't stop for threats (bolts from range) — only stop / arrival / death end it.
         → 'arrived' | 'stopped' | 'threat' | 'dead' | 'no_path' | …"""
         s = self.mv.snap(5.0)
         if s is None:
@@ -802,7 +1076,7 @@ class Missions:
         def stop2(sn) -> bool:
             if stop is not None and stop(sn):
                 return True
-            if self.f.reflex.threat_now(sn):
+            if not through and self.f.reflex.threat_now(sn):
                 why.append("threat")
                 return True
             return False
@@ -855,6 +1129,7 @@ class Missions:
             res = d.result
             if res == "me_dead":
                 return "died"
+            self._loot(nb, tag)
         back = self.f.walk_to(BURG_BONFIRE_SIDE, nb, "화톳불로")
         self.log(f"── 한 마리: {res}, 귀환 {back}")
         return f"{res} / 귀환 {back}"
@@ -1048,6 +1323,9 @@ class Missions:
                 break
         time.sleep(1.0)
         after = tm.last_bonfire()
+        if sat:
+            import levelup
+            levelup.maybe(tm, self.mv.press, log=self.log)  # run.py --level-up ([MoKa] 10-31 "모은 소울로 업그레이드")
         for _ in range(6):
             if not (tm.sitting() or tm.menu_open()):
                 break

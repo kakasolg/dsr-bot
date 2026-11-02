@@ -1,0 +1,32 @@
+run 20261031_153842_burg-upper · ctl sha256 6f584dfed587108f (7995 lines) · settings sha256 1c311c17710617dc · checker sha256 9deb9fefba46b45a · repo HEAD 6ccafc0
+kinds: {'hdr': 1, 'sync': 47, 'life': 1, 'pad': 6872, 'neutral': 83, 'dec.goto': 805, 'dec.counter': 95, 'dec.rule': 59, 'dec.reflex': 10, 'scene': 22}
+end: NONE
+gap records: [] · broken lines: 0 · lines after end: None
+life: [(3, 'start', None)]
+fight: 0 · paired 0 · start without end [] · end without start []
+cycle: 0 · paired 0 · start without end [] · end without start []
+action: 0 · paired 0 · start without end [] · end without start []
+fight results: Counter()
+cycle parent not a fight: []
+cycle end kinds: {}
+cycle src: {} · resnap true: 0
+span.rule 0 · cycles with picked 0 · rule↔picked mismatch [] · picked without span.rule []
+picked rules: {}
+none_pad (rule returned None after writing the pad): {} in 0 cycles
+span.rule pc order broken: []
+actions: {} · parent kinds {} · rule_id set 0 / 0 · rule_id → emitted span.rule 0
+action parent dangling: []
+action end reasons (dead = target HP 0): {}
+action with hit: 0 · with ret: 0
+pad th=MainThread: 6301 records (+dup 1591) · with cycle_id 0 · with action_id 0
+pad th=Thread-7 (_run): 567 records (+dup 262) · with cycle_id 0 · with action_id 0
+pad th=Thread-8 (_run): 4 records (+dup 3) · with cycle_id 0 · with action_id 0
+main pad without ids inside an open cycle: 0 [] · inside a fight but between cycles: 0 (callers {})
+main pad cycle_id outside that cycle's seq range: []
+other threads with a main id: []
+pad.override: 0 {}
+pad.drop: 0
+scenes 22 · inside exactly one cycle 0 · none 22 · cycles with picked and a scene 0/0
+input (obs) per cycle: {} · examples {}
+writer complete (end record) ≠ input restorable — they are reported apart
+settings end: None

@@ -1,0 +1,62 @@
+{
+ "schema": "g4-collection-hashes/0.1",
+ "commit": "6ccafc0f636c0976ea4289251ae5896afe2a7bee",
+ "branch": "claude/dsr-bot-project-review-r3hh9f",
+ "worktree_at_commit": true,
+ "worktree_dirty_tracked": [
+  ".claude/launch.json"
+ ],
+ "core_autocrlf": "true",
+ "file_sha256_git_blob": {
+  "scenes.py": "065f4717f2e1821ba559c25584901cfee459d5e5340d5ad125bd5a1636175b9c",
+  "souls/duel.py": "44c35c5e3e2364615a15577e10da37af2503231c7764eabe6fa45cd5970728c1",
+  "souls/foes.py": "01153c4e7f00efe9a2c19427b1902f1e6d4bf9d316d410e0dadde5efc51c9b88",
+  "souls/weapons.py": "7c6b506304b5e8daf1da3ee47ff395db6ce7e39448d92667703a5a1b00c02136",
+  "souls/moves.py": "15f69a0d896821bdd43299af970026c9190b9ff2615697fdd10d0e1d3cfe9a9a",
+  "souls/reflex.py": "52c42f0ee6f6cad403b591c604a771bb95e4a57c3e96a66cc712d2fd5a53b8cb",
+  "control.py": "e773e43623ca457f24bb94be4019a3d632c20e7feb9a01a77d140f21f1e24175",
+  "dsr_telemetry.py": "7f8cf4c512976312c60ed3ad68d9d029b1f86eac4aa67e93afa07fa95b1c8025",
+  "feed.py": "4b525a4b0fd1b1946a66035e976b76a99974d6cedf8c8257e117fa9f64e07b7c",
+  "run.py": "9f493cd042f60b5669c913f56ddbe659f68a6c3719e048139efe89a98001202f",
+  "ctl.py": "30efb5aa720a8c371168c2113077a8f2422544ea1835eec9fd645a4be3e49cf6",
+  "ctlspan.py": "c0dd11f7c1d90717e06ed7d835826adf8558bd61dfcfaecd8da27329679c554a",
+  "runinfo.py": "7435eed8434159cd8019987ebc97b867b4b64a447b26c43321674745e7bf217f",
+  "savepoint.py": "a162dc201dbb6ca24a8632a1e7f53e69813d912b4b3d8bc61e442a0179fd57a4",
+  "ctl_check.py": "9deb9fefba46b45a83d6d4898a9475a95125898288b3465ccb7baed3f64f7bfc",
+  "scene_replay.py": "d5a3dcf72f892e482d396665f5dd7502ffcedaf29dbaf3fbbdae9619239d9557"
+ },
+ "duel_sha1_source_segment": {
+  "_other_swinging": "ddf6e30b509e4a6fbea63abe642e3044d8c0bf7c",
+  "prep_reflex": "ed2af2bd47b4352db7a284a57ddf847507096879",
+  "_stagger_late": "3e9d1be57093718ed9bbeae6002eaf06efe4a520",
+  "rule_stagger_punish": "742cafdfa4fb39e4f5ba421815993a65156e4c5c",
+  "RULES": "bc4c029d4fe77efd5d73d1a7fe86ac0f6d53ee34"
+ },
+ "same_as_g2_prefix": {
+  "rule_stagger_punish": true,
+  "_stagger_late": true,
+  "_other_swinging": true,
+  "prep_reflex": true,
+  "RULES": true,
+  "scenes.py": true
+ },
+ "python": {
+  "executable": "D:\\dev\\dsr-bot\\.venv\\Scripts\\python.exe",
+  "version": "3.12.10"
+ },
+ "packages": {
+  "vgamepad": "0.1.0",
+  "pymem": "1.14.0",
+  "numpy": "2.5.3",
+  "pytest": "9.1.1",
+  "soulstruct": "2.3.2",
+  "pillow": "12.3.0",
+  "zstandard": "0.25.0"
+ },
+ "game_exe": {
+  "path": "D:\\SteamLibrary\\steamapps\\common\\DARK SOULS REMASTERED\\DarkSoulsRemastered.exe",
+  "size": 50286344,
+  "sha256": "a45aaa36dd2f6cc151670a639ea5547043cf38ea79ff4178b963c6ed71f98d7b"
+ },
+ "tool_sha256": "f46e73aa54c017e571308090078f064e9fb09179550c1a92d0456c6be11d409e"
+}

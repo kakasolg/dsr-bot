@@ -368,6 +368,15 @@ class Navmesh:
         d[np.abs(near[:, 1] - y) > dy] = np.inf
         return float(d.min())
 
+    def ladder_dist(self, x: float, y: float, z: float, dy: float = 3.0) -> float:
+        """Horizontal distance to the nearest Ladder-flag triangle within dy (inf if none)."""
+        m = (self.flags & 1024) != 0
+        if not m.any():
+            return math.inf
+        c = self.centroid[m]
+        c = c[np.abs(c[:, 1] - y) <= dy]
+        return float(np.hypot(c[:, 0] - x, c[:, 2] - z).min()) if len(c) else math.inf
+
     def wall_dist(self, x: float, y: float, z: float, dy: float = 2.0) -> float:
         """Horizontal distance to the nearest 'wall' edge (edge_kinds) on this level — a wall to put our back to."""
         return self._edge_dist(self.edge_kinds()["wall"], x, y, z, dy)

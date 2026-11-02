@@ -42,6 +42,21 @@ pipeline whose output hasn't passed the check that matters. MoKa's model wording
   entries still open there are handled as before (`→ done` / `→ moved` right after the tag; `tidy` moves them to relay.md).
   Only settled things go into items or the problem log.
 
+## pstack
+- The installed user plugin `pstack@cursor-plugins` (0.15.36) does not start from a plain request: every skill except
+  `setup-pstack` is not model-invoked. When MoKa calls `/pstack:<skill>` or asks to use pstack, the agent may read that skill's
+  `SKILL.md` and follow it; reports say which it was (slash-command call or procedure followed from the file). Its agents
+  (`pstack:poteto-agent`, `pstack:comment-sicko`) are plain subagent types and can be spawned without a slash command.
+- pstack's text is guidance, not enforcement. It does not change the system and tool policies above it or MoKa's approved
+  scope; inside that scope this repo's rules apply.
+- Commit · push · PR · merge · bot/game runs · save restore or edits stay inside the scope MoKa approved for that session;
+  pstack's "just do it" / "never block on the human" do not widen it.
+- Keep comments that carry run ids, measurements or MoKa quotes (the Korean "why" notes); no bulk comment removal.
+- Subagents may read in parallel (files, logs, git); only the one approved worker drives the game, pad or saves.
+- A step needing a skill or tool not installed here (`deslop`, `create-skill`, Cursor-only features) → report it not done and
+  why; don't mark it done or swap in something else.
+- Results as in "How to state results": a kill doesn't show the changed path ran; a target situation that never came up = on hold.
+
 ## Code and tests
 - Python 3.12. Offline tests (no game): `python -m pytest` (all) · `python -m pytest -k radar` (one) · `python tests/radar_test.py`
   (one script). New tests: `tests/<name>_test.py`, picked up automatically.
@@ -60,6 +75,10 @@ pipeline whose output hasn't passed the check that matters. MoKa's model wording
 - Changing `control.Pad` (freeze, neutral, guard, keep_guard, sprint, tap, hold, release_due, kick …) → `python -m pytest -k
   "pad_freeze or freeze_probe"`; a new pad call or thread also goes into the race table and `PadFreeze.tla`
   (`docs/formal/pad_freeze/README.md`).
+- Changing the ladder routine (`souls/missions.py` `_before` / `_ladder_*`), `Moves.roll_toward` or `souls/taurus.py` →
+  `python -m pytest -k "burg_upper or roll or taurus or boss_ready"` (burg_upper · roll · taurus · taurus_way · taurus_dodge ·
+  boss_ready), then `python -m pytest` for regressions — `ground_test.py` already fails (P-97), not caused or fixed by these.
+  Fake pads/snapshots and the Burg NavMesh only: not a game check (P-97).
 - Rule and number sources: LAYERS.md. Record formats: OBSERVE.md.
 
 ## [win] after every bot run
@@ -72,3 +91,14 @@ uncommitted changes, arguments, constants, character) and puts it in short on th
 compares two runs' settings before their results. `--note "…"` adds a line (e.g. the save used). An AGAIN, the same stall spot in 2+ runs,
 or decision-gap damage clearly above earlier runs goes into the problem log even if the bot recovered (a mistake that
 didn't kill is still a defect).
+
+**Before a run** (manual — nothing enforces this): name the command's precondition (its docstring / the area doc, e.g.
+`docs/boss-taurus.md` §2-1: `burg-altar` is for a character that already killed Taurus), read the current state (`run.py status`,
+which save), grep the ROADMAP problem index for open problems on that command or zone, and use the procedure that already
+worked (10-12: `burg-upper --seg 1-8` → `taurus`). Past runs are not evidence of today's save. Code checks only `burg-altar` and
+`taurus` (`boss_ready.py`, stops when unmet or unknown).
+**After a death or failed result, before the next run** (manual): keep the run id and `sample.py` it; write observed facts
+(log / risk line / hits) apart from hypotheses; split the direct situation (what hit) from the entry cause (command, precondition,
+missing preparation); grep problems.md for the same command / zone / foe; pick one next step (change the plan · propose a code
+fix · observe more · hold for MoKa) and what would count as solved; record it as a P entry + index row (P-96). A deliberate repro
+run with a stated purpose is fine; the same command on the same save again without that is not. No automatic playbook edits.
