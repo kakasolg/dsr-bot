@@ -89,6 +89,7 @@ UPPER_LURE_CROWD_R = 4.0 # a target with another live foe this close (same level
 UPPER_LURE_CROWD_DY = 2.0
 UPPER_HEAL_FRAC = 0.7    # before each lure: below this share of max HP, Estus first
 LADDER_TRIES = 3         # zone 8 ladder: face + A + climb attempts
+LADDER_TOP_SLACK_M = 1.5  # already up when y ≥ top_y − this: zone 8 tower floor 23.7 vs top_y 24.5 (11-01 230106 track), bottom 16.0 (P-108)
 LADDER_BUSY_S = 4.5      # wait at most this for a roll / stagger / Estus to end before facing + A (235045: Estus 3.2 s, stun 2017 4 s)
 LADDER_FREE_S = 0.15     # not busy this long in a row before facing + A
 LADDER_FACE_DEG = 35.0   # body already this close to the ladder → no turn, A at once (A taken at 15–20° off, 10-31)
@@ -381,10 +382,15 @@ class Missions:
         no_safe = bool(z.get("no_safe"))                  # 구역 3 — [MoKa] "적이 하나씩 만나니깐 그냥 공격 … 안전 구역 자체가 필요 없어"
         self.f.extra_zones, self.f.tether = ((), None) if no_safe else ((safe,), safe)
         try:
-            if z.get("before") and not self._top_up(nb, f"구역{n}"):   # fog wall · ladder ahead — no fighting there, drink first
+            past = self._past_before(z)
+            if past:
+                # 11-01 231119 (P-108): 탑 위에서 --seg 8 시작 → fog 단계가 3D 거리로 '안개벽 앞'이라 보고 걸어가다 사다리 꼭대기에서 9 m 낙하.
+                #  사다리 꼭대기 높이면 안개벽·사다리는 이미 지난 것 — before 단계(에스트 채우기 포함)를 통째로 건너뜀
+                self.log(f"   구역{n}: 이미 사다리 꼭대기 높이 (y {past:.1f}) — 안개벽·사다리 단계 건너뜀")
+            elif z.get("before") and not self._top_up(nb, f"구역{n}"):   # fog wall · ladder ahead — no fighting there, drink first
                 return "no_estus"
             landed = None
-            for step in z.get("before", []):
+            for step in ([] if past else z.get("before", [])):
                 self._landed = None
                 r = self._before(step, nb, f"구역{n}")
                 if r == "dead":
@@ -809,6 +815,16 @@ class Missions:
         back = self._sprint(safe, nb, lambda sn: math.hypot(sn.player.x - safe[0], sn.player.z - safe[2]) < 1.5)
         self.log(f"   {tag}: {why} — 달려서 안전 자리로 {back}")
         return "died" if back == "dead" else "here"
+
+    def _past_before(self, z: dict) -> float | None:
+        """The zone's before steps end with a ladder and we already stand at its top height → our y, else None."""
+        ladders = [st["ladder"] for st in z.get("before", []) if "ladder" in st]
+        if not ladders:
+            return None
+        s = self.mv.snap(5.0)
+        if s is None or s.player.y < float(ladders[-1]["top_y"]) - LADDER_TOP_SLACK_M:
+            return None
+        return s.player.y
 
     def _before(self, step: dict, nb, tag: str) -> str:
         """A zone's 'before' step (구역 8, [MoKa] "안개벽 지나서, 사다리 타고 올라가서"). → 'ok' | 'dead' | 'fail' | walk result

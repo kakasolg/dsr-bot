@@ -1468,3 +1468,17 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
   로그·보고서(hotspots · track · blind)에는 아무 흔적 없음 — 창이 열려 있는지 읽는 곳이 없음.
 - 원인(코드 읽기, 게임 확인 안 함): `_chest`가 플래그 True 직후 `drops.itemget_nodes`가 비어 있으면 닫기 A를 안 누름.
 - 수정(커밋 안 함): 목록이 잡힐 때까지 최대 `CHEST_WINDOW_S` 2 s 기다린 뒤 A를 항상 한 번. 오프라인 테스트만.
+
+### P-108 burg-upper --seg 8을 탑 위에서 시작: '안개벽 너머' 판정이 틀려 사다리 꼭대기 턱에서 9 m 낙하 (2026-11-01 run 20261101_231119)
+- 관측(로그): 230106 런 직후 탑 위 (56.5, 23.7, −119.3)에서 `burg-upper --seg 8 --pick-stain --radar`(핏자국 줍기용). 구역 8 'before'의 fog 단계가
+  "이미 안개벽 너머"를 못 알아보고 `walk_to(안개벽 앞)` → 26점 경로 5번 점 근처 사다리 꼭대기 (49.05, 24.54, −117.22)에서 낙하 9.1 m, −110 → HP 449.
+  아래에서 경로 점(사다리 위쪽 y 18–21) unreachable 반복, 안개벽 A 2번 0.0 m, '안개벽 없음 (보스 처치 뒤?) — 걸어서 지나감'으로 넘어간 뒤 사다리 다시 오름
+  → 255002 둘 없음 → 핏자국 회수 got (소울 1352 → 2612). 사망 없음, 에스트 1 마심(8 남음).
+- 원인(코드 읽기): `Missions` before 단계 fog 판정이 3D 거리 `dist(나, beyond) < dist(나, front)`만 봄. 탑 위에서는 front 7.9 m, beyond 9.8 m라
+  '안개벽 앞'으로 판정. 다음 단계(사다리)의 "이미 사다리 위"(y ≥ top_y − 0.6) 검사는 fog 단계 뒤라 쓰이지 못함. 시작 자리가 탑 위인 경우를 생각 안 한 것.
+  '안개벽 없음 (보스 처치 뒤?)' 줄도 틀린 추정 — 이번엔 벽 앞에 제대로 서지 못한 상태였음(확인 안 함).
+- 다음 한 걸음: 코드 수정 제안 — before 단계 시작에 사다리 꼭대기 높이면 fog·ladder 모두 건너뜀(MoKa 승인 대기).
+- 수정 (11-01, MoKa "네, 고쳐"): `Missions._past_before` — before 단계에 사다리가 있고 y ≥ top_y − `LADDER_TOP_SLACK_M`(1.5)이면 fog·ladder·
+  에스트 채우기(_top_up)를 통째로 건너뜀. 여유 1.5 m: 탑 바닥 23.7 vs top_y 24.5(230106 track) — 사다리 단계의 기존 0.6 m 여유(23.9)로는 탑 바닥에서
+  '이미 사다리 위'도 안 걸림. 아래(사다리 밑 16.0, 안개벽 17.2)는 그대로 단계 진행. 오프라인 테스트(burg_upper_test: _past_before 높이별,
+  탑 위 시작 구역 8 흐름)와 전체 pytest(134 통과, ground_test P-97만 실패)만, 게임 확인 안 함.

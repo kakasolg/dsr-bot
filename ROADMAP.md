@@ -204,6 +204,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 105 | `burg-upper` zone 6 (11-01 183919): safe spot NOT REACHED ×3, −336 on the stairs (46.6,−0.7,−113.3) with no attacker anim, then 255001 → died | open (analysis) |
 | 106 | `burg-upper` zone 2-1 (11-01 214135, from the Burg bonfire): started at HP 81 %, 255001 + 254011 together, estus refused 8× (foe close), retreats ×3 → died | open — same family as P-45/P-74/P-98 |
 | 107 | Item-get window left open after the resin chest (11-01 214607): close-A skipped when the window list read empty | fix built (wait ≤ 2 s, A always), offline only |
+| 108 | `burg-upper --seg 8` started on the tower top (11-01 231119): fog step misread 'before the wall' (3D distance) → walked off the ladder top, 9 m fall −110; stain got | fix built (skip fog/ladder/top-up at ladder-top height, slack 1.5 m), offline tests only; game check next |
 
 ## 5. Relay — [cloud] ↔ board
 

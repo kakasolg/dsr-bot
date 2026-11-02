@@ -662,6 +662,27 @@ check(f"zone 8: fog → ladder → run to F9#8 through bolts (no rolls, no caref
       [c[1] for c in calls if c[0] == "before"] == ["fog", "ladder"] and ran8 == [(f9, True)] and walked8 == []
       and len(pulled8) == 2 and all(sp == f9 and t == f9 and h.get("hold") for sp, t, h in pulled8))
 
+# P-108 (11-01 231119): --seg 8 started on the tower top → the fog step read 'before the wall' by 3D distance and walked off the ladder top
+mp = MS.Missions.__new__(MS.Missions)
+for y_, want in ((15.97, None), (23.7, 23.7), (24.8, 24.8)):
+    mp.mv = NS(snap=lambda r=5.0, y_=y_: NS(player=NS(x=56.5, y=y_, z=-119.3)))
+    check(f"_past_before: y {y_} → {want}", mp._past_before(z8) == want)
+mp.mv = NS(snap=lambda r=5.0: None)
+check("_past_before: no snapshot → None (do the steps)", mp._past_before(z8) is None)
+check("_past_before: zone with no ladder step → None", mp._past_before({"before": [{"fog": z8["before"][0]["fog"]}]}) is None)
+foe = Chr(npc_param=255002, ptr=83, x=52.9, y=23.8, z=-119.8, hp=85, anim=-1)
+m, f, calls, w = make(foe)
+topped = []
+m._before, m._top_up = before8, (lambda *a: topped.append(1) or True)
+m._past_before = lambda z: 23.7
+ran8.clear(); pulled8.clear()
+f.careful_walk_to = lambda *a, **k: walked8.append(a) or "arrived"
+m._sprint = lambda goal, nb_, stop, through=False: ran8.append((tuple(goal), through)) or "arrived"
+m._pull_to_safe = lambda npc, pos, safe_, nb_, tag, how=None: pulled8.append((safe_, f.tether, dict(how or {}))) or "killed"
+zr = m.upper_zone(8)
+check(f"zone 8 from the tower top: no fog / ladder / estus top-up, still runs to F9#8 and waits there ({zr})",
+      not [c for c in calls if c[0] == "before"] and topped == [] and ran8 == [(f9, True)] and len(pulled8) == 2)
+
 # --throw ([MoKa] 2026-10-12: "투척 아이템 구매했으니 … 소머리데몬 가는 길에 적들에게 사용"): knife lure before the body run,
 # firebomb when two or more come at the safe spot
 def throw_rig(lure_result):
