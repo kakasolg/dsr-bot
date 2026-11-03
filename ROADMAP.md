@@ -31,7 +31,7 @@ needing the tick loop, route data, settings object or WorldState.
 
 `run.py burg-upper` = MoKa's safe-spot zones 1–8 (`data/burg-upper-map.json`); test save `backup-20261006-155749-…-before-taurus`.
 
-- [~] taurus | MoKa | verify | 11-02 knives at the merchant: try 20 killed Taurus, 0 deaths (try 11–19 died 9×); fixes uncommitted → MoKa review, commit | docs/boss-taurus.md · plan:taurus 
+- [~] taurus | MoKa | verify | try 20 killed Taurus; 11-03 try 21 (OBS clip) died at Taurus from in front → between-feet fix (P-119) built, game check next | docs/boss-taurus.md · plan:taurus 
 - [~] fall-death-policy | win | verify | no fall quit-out + after-death pickup: (1)(2) seen in 3 runs; (3) death record, (4) alignment next runs | P-71 · P-72 · plan:fall-death-policy
 - [ ] boss-two-hand-dodge | cloud+win | todo | boss default = two-handed + dodging (9-30); Taurus first, general boss module is v2.0 | plan:boss-two-hand-dodge
 - [~] stage-analysis | MoKa | decide | burg-upper zones 1–8 analysed (auto + hand draft); MoKa: fix intent / response, zone 4 safe spot 0.5 m from a drop | docs/stages/burg-upper.md · plan:stage-analysis
@@ -214,7 +214,9 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 115 | `burg-upper` zone 6 (11-02 040854): barrel soldier came down to the safe spot, kill step said "안 보임" (spawn-height search), 2nd hit not sipped → zone 7 at HP 326, died | open → fix built; game: wait ended at 3.6 / 3.4 m (try 16·20), follow-lookup and re-sip paths not exercised |
 | 116 | `burg-bonfire` town #6 (11-02 042357): two shield 255000 together, one in anim 3007 for 10 s+; 4 hits while closing in → died (before the shop, no knives) | open → observe 3007 first |
 | 117 | `burg-upper --throw` (11-02 044545): knife lure threw 0 of 5 (lock-on failed 7–11 m); standing in 254012 firebomb range in zone 2 −666 → died | open → MoKa: knives from zone 4 (resin door) on, no retry after a fail; 11-02 051424 zone 4 knife hit, lured |
-| 118 | `taurus` close fight (11-02 051424): no Estus at 320/698 (40 % rule), next −242 → died, boss ~161 left | open → drink below two hits (490); try 20 killed Taurus with no hit taken — path not exercised |
+| 118 | `taurus` close fight (11-02 051424): no Estus at 320/698 (40 % rule), next −242 → died, boss ~161 left | open → drink below two hits (490); 11-03 try 21: ran in game (drank at 456), death was P-119 |
+| 119 | `taurus` close fight (11-03 try 21·22): swung on its center line 0.5–2.0 m in front, hit back to back → died | open → crotch_spot + two-hit/stay: killed 3 of 4 from MoKa's fog save (try 24–26; try 23 knocked off the bridge) |
+| 120 | PC hard freeze → reboot 11-03 06:30 (WHEA fatal, no bugcheck; same 10-25) during clip analysis | parked → MoKa: note only; if again, throttle clip.py ffmpeg, check BIOS |
 
 ## 5. Relay — [cloud] ↔ board
 

@@ -90,7 +90,7 @@ def light(s, c, n=1, sp_second=40):
 
 
 b = boss(x=47.0, y=15.8, z=-119.0, anim=-1)
-t, mv, pad = make([snap(b, me=(47.5, 15.8, -119.5), sp=98), snap(None, me=(47.5, 15.8, -119.5))])
+t, mv, pad = make([snap(b, me=(47.3, 15.8, -119.3), sp=98), snap(None, me=(47.3, 15.8, -119.3))])
 mv.light = light
 r = t._fight()
 check("fight: killed (it just drops out of the snapshot, no quit-out)", r == "killed")
@@ -172,6 +172,51 @@ mv.drink = lambda ok: drank.append(1) or {"ok": True}
 mv.light = light
 t._fight()
 check("close fight: HP 562 (takes two hits) → hits, no Estus", drank == [])
+
+# [MoKa] 11-03: "나는 보스 가랑이 사이에서 공격 한거야" (try 21 클립: "봇은 보스의 앞쪽에서 공격하는 것이 차이")
+# boss heading 0 faces −z. try 22 died on its center line 0.6 m in front (−244 × 2) → no swing there, walk to the spot;
+# MoKa's swings (taurus_watch 20261103_064407): 0.2–1.0 m in front, 0.5–0.8 m to the side → swing there
+_nav = T.nav.safe_heading
+T.nav.safe_heading = lambda nm, p, dx, dz, reach=1.0: (dx, dz)
+hits.clear()
+t, mv, pad = make([snap(boss(x=47.0, y=15.8, z=-119.0, anim=-1, hp=500), me=(47.0, 15.8, -119.6), sp=98)] * 3
+                  + [snap(None, me=(47.0, 15.8, -119.6))])
+t.nm = None
+mv.light = light
+moved = []
+mv.stick_to = lambda s, x, z, sc=1.0: moved.append((round(x, 2), round(z, 2))) or (0.0, sc)
+t._fight()
+sx, sz = T.crotch_spot(boss(x=47.0, y=15.8, z=-119.0), NS(x=47.0, z=-119.6))
+check(f"close fight: center line 0.6 m in front → no swing, walks to the spot ({hits}, spot {sx:.2f},{sz:.2f}, moves {moved[:1]})",
+      hits == [] and moved and abs(sx - 46.4) < 0.01 and abs(sz - -119.4) < 0.01)
+hits.clear()
+t, mv, pad = make([snap(boss(x=47.0, y=15.8, z=-119.0, anim=-1, hp=500), me=(46.4, 15.8, -119.45), sp=98),
+                   snap(None, me=(46.4, 15.8, -119.45))])
+mv.light = light
+t._fight()
+check(f"close fight: between its legs (0.4 front, 0.6 side) → swings ({hits})", hits and hits[0][0] == 2)
+check("crotch spot: player on its left → spot on its left",
+      T.ang_off(boss(x=47.0, y=15.8, z=-119.0), NS(x=47.0 + 0.5, z=-119.3)) < 0
+      and T.crotch_spot(boss(x=47.0, y=15.8, z=-119.0), NS(x=47.5, z=-119.3))[0] > 47.0)
+
+# [MoKa] 11-03 "2대 때리고 다시 가랑이에 붙어봐 … 스테미나도 채워야해": on the spot with stamina 60 (one light's worth) → no swing
+hits.clear()
+t, mv, pad = make([snap(boss(x=47.0, y=15.8, z=-119.0, anim=-1, hp=500), me=(46.4, 15.8, -119.45), sp=60)] * 3
+                  + [snap(None, me=(46.4, 15.8, -119.45))])
+mv.light = light
+t._fight()
+check(f"close fight: on the spot, stamina 60 → waits for two-hit stamina, no single light ({hits})", hits == [])
+
+# [MoKa] 11-03 "때릴때 마다 뒤로 밀려" — pushed 1.2 m back off the spot after a swing → full stick back in
+T.nav.safe_heading = lambda nm, p, dx, dz, reach=1.0: (dx, dz)
+t, mv, pad = make([snap(boss(x=47.0, y=15.8, z=-119.0, anim=-1, hp=500), me=(46.4, 15.8, -120.6), sp=30)] * 3
+                  + [snap(None, me=(46.4, 15.8, -120.6))])
+t.nm = None
+scales = []
+mv.stick_to = lambda s, x, z, sc=1.0: scales.append(sc) or (0.0, sc)
+t._fight()
+check(f"close fight: pushed back 1.2 m off the spot → full stick back in ({scales[:2]})", scales and scales[0] == 1.0)
+T.nav.safe_heading = _nav
 
 print("all ok" if not fails else f"{fails} FAILED")
 sys.exit(1 if fails else 0)

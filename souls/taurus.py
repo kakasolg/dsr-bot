@@ -36,13 +36,21 @@ LADDER = {"bottom": (49.16, 15.97, -117.1), "face": (50.5, 15.97, -117.1), "top_
 #  · 붙기: 녹화에서 약공한 자리 0.3~1.9 m(보스 중심, 대부분 1.3 m 안). 10-12 시도 5~8: HIT_R 2.2였을 때 휘두름 19번 중
 #    피해 0이 12번 — 거의 다 2.05~2.16 m에서 보스 공격(3002~3005) 중에 침. 1.4 m / 0.8 m로 좁혀 본 시도 9~11은 0/3
 #    (2.2 m일 때 5~8은 2/4) → 거리만으로는 안 갈림, 2.2 / 1.2로 되돌림. 다음은 보스 공격 중 어디 서 있나(MoKa에게 물음)
+#  · 11-03 MoKa (try 21 클립을 보고): "나는 보스 발 사이에서 공격하는데, 봇은 보스의 앞쪽에서 공격하는 것이 차이"
+#    try 21: 붙어서 34 s, 약공 8번, 맞은 곳 1.2~2.0 m 정면 ±15° → 사망. 지난 런 약공 75번 거리 중앙값 2.09 m (최소 0.92).
+#    보스 공격 기록 h_min 0.04 m도 있으니 발 사이(중심 ~0.7 m 안)까지 들어갈 수 있음 → 거기 들어가서만 친다.
+#    시도 9~11의 0.8 m(0/3)는 낙하 여러 번·사다리 왕복 때라 지금 계획(낙하 1번 + 다리 위 싸움)과 다름
+#  · 11-03 try 22 (HIT_R 0.7): 0.5~0.7 m까지 들어갔지만 보스 기준 앞 0.5~0.7 · 옆 0.0 (중앙선) → 3006 · 3000 연속 −244 → 12 s 만에 사망.
+#    MoKa 직접 (taurus_watch 20261103_064407, 양손 도끼·송진 없음, 처치·받은 피해 191): "나는 보스 가랑이 사이에서 공격 한거야"
+#    붙어서 친 자리 앞 0.2~1.0 · 옆 0.5~0.8 m (중앙선에서 비켜난 다리 안쪽). 기록 한 번뿐 — SPOT_* 값은 이 한 번에서 잼
 #  · 스태미나: 양손 약공 한 번 ~38 — 40 밑이면 안 치고 붙은 채 회복 (0 밑으로 간 뒤 −237 두 번)
 #  · 에스트: HP 40 % 밑, 보스가 공격 애니가 아닐 때 (녹화: 가까이서도 마심)
 APPEAR_S = 20.0
 PLUNGE_R = 5.0
 PLUNGE_WAIT_S = 30.0
-HIT_R = 2.2
-STICK_R = 1.2
+SPOT_FWD = 0.4                      # where we swing from, in its own frame: this far in front of its center …
+SPOT_SIDE = 0.6                     # … and this far to one side (between its legs, off the club's center line)
+SPOT_R = 0.45                       # swing only within this of that spot; else walk to it
 HIT_SP = 40
 HIT_SP2 = 80                        # two in a row only from here (two cost ~76)
 ESTUS_HP = 0.40
@@ -112,6 +120,15 @@ def ang_off(b, p) -> float:
     fwd = (b.heading or 0.0) + math.pi
     a = math.atan2(p.x - b.x, p.z - b.z) - fwd
     return math.degrees((a + math.pi) % (2 * math.pi) - math.pi)
+
+
+def crotch_spot(b, p) -> tuple[float, float]:
+    """World (x, z) SPOT_FWD in front of b and SPOT_SIDE to the side p is already on (its right when dead center)."""
+    fwd = (b.heading or 0.0) + math.pi
+    side = 1.0 if ang_off(b, p) >= 0 else -1.0
+    rgt = fwd + math.pi / 2
+    return (b.x + SPOT_FWD * math.sin(fwd) + side * SPOT_SIDE * math.sin(rgt),
+            b.z + SPOT_FWD * math.cos(fwd) + side * SPOT_SIDE * math.cos(rgt))
 
 
 class AttackLog(threading.Thread):
@@ -512,8 +529,8 @@ class Taurus:
         return "안 바름" if rt is None else f"{time.time() - rt:.0f} s 전"
 
     def _fight(self) -> str:
-        """Stay right up against it ([MoKa] "바짝 붙어서 공격"): within HIT_R and stamina ≥ HIT_SP → one light; else step in to
-        STICK_R (floor-checked) and let stamina come back. HP < ESTUS_HP and it isn't swinging → Estus."""
+        """Between its legs ([MoKa] "바짝 붙어서 공격", 11-03 "보스 가랑이 사이에서 공격"): within SPOT_R of crotch_spot() and
+        stamina ≥ HIT_SP2 → two lights; else walk to the spot (floor-checked) and let stamina come back. HP < ESTUS_HP and it isn't swinging → Estus."""
         t0, hits = time.time(), 0
         # no guard: two-handed, LB is a weapon block — try 4 (2026-10-12) light() held it after each swing, the axe soaked
         # its hits (stamina 98 → 9), stamina came back slowly with LB down, and only 1 of 4 lights landed
@@ -554,19 +571,24 @@ class Taurus:
                 self.log(f"   타우로스 싸움 중 에스트: {r}")
                 self.events("estus", **r)
                 continue
-            if h <= HIT_R and (p.sp or 0) >= HIT_SP:
+            sx, sz = crotch_spot(b, p)
+            off = math.hypot(sx - p.x, sz - p.z)
+            # [MoKa] 11-03 "2대 때리고 다시 가랑이에 붙어봐. 거리 조절도 되지만, 스테미나도 채워야해" — always two, then stay on the
+            # spot (it re-follows the spot as the boss turns) until stamina is back to HIT_SP2; no single light on leftover stamina
+            if off <= SPOT_R and (p.sp or 0) >= HIT_SP2:
                 if self.mv.face(s, b, deg=30.0):
-                    n = 2 if (p.sp or 0) >= HIT_SP2 else 1     # recording: MoKa chained them while stamina lasted
+                    n = 2
                     hit = self.mv.light(s, b, n=n, sp_second=HIT_SP)
                     hits += n
                     self.events("taurus", what="hit", dmg=hit.dmg, taken=hit.taken, h=round(h, 2), anim=a, sp=p.sp)
                 continue
-            if h > STICK_R and s.cam_yaw is not None:
-                way = nav.safe_heading(self.nm, p, b.x - p.x, b.z - p.z, reach=min(1.2, max(0.4, h - 0.3)))
+            if off > SPOT_R and s.cam_yaw is not None:
+                way = nav.safe_heading(self.nm, p, sx - p.x, sz - p.z, reach=min(1.2, max(0.3, off)))
                 if way is None:
                     self.pad.move(0.0, 0.0)
                 else:
-                    self.pad.move(*self.mv.stick_to(s, p.x + way[0], p.z + way[1], 1.0 if h > 4.0 else 0.6))
+                    # [MoKa] 11-03 "때릴때 마다 뒤로 밀려" — each swing pushes us off the spot: full stick back in unless right at it
+                    self.pad.move(*self.mv.stick_to(s, p.x + way[0], p.z + way[1], 1.0 if h > 4.0 or off > 0.8 else 0.6))
             else:
                 self.pad.move(0.0, 0.0)
             time.sleep(0.05)
