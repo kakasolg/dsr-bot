@@ -22,7 +22,7 @@ class Style:
     reflex_on: bool = True  # use reflex (block/evade)? — if False, reflex only logs and does not move, so the attack loop is not interrupted
 
 
-GUARD = Style("guard", shield=True, grip=1, evade=False, bs_attack=False, punish_after=1.1, punish_min_r=1.8)
+GUARD = Style("guard", shield=True, grip=1, evade=False, bs_attack=True, punish_after=1.1, punish_min_r=1.8)
 BACKSTEP = Style("backstep", shield=False, grip=3, evade=True, bs_attack=True, punish_after=1.1, punish_min_r=1.8)
 RUSH = Style("rush", shield=False, grip=3, evade=False, bs_attack=False, punish_after=1.1, punish_min_r=1.8, reflex_on=False)
 BY_NAME = {s.name: s for s in (GUARD, BACKSTEP, RUSH)}

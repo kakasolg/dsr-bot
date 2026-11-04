@@ -195,7 +195,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 96 | `burg-altar` run on a character with Taurus alive (10-31 155929): no zone 8 / `taurus` / resin → died to 225000 on the bridge; the death before it (155357) had no analysis either | open → `boss_ready` entry checks built (uncommitted, offline tests only); game read unchecked |
 | 97 | Taurus plunge loop (11-01): ladder A held/dropped, turn too short, rolls at swing start not before the hit; 10 tries 5 kills | open → 7 fixes uncommitted, offline tests; timed dodge not yet seen in game |
 | 98 | `burg-upper` zone 2 (11-01 151756): 254011 + 255001 together, low-HP retreat ×4 without estus, fell 10 m off the edge near (-3.1,-14.2,-68.6) → died | open |
-| 99 | `burg-bonfire` town2 `#4 이동` (11-01 153157, restored Firelink save): fog wall at (-50,-22.3,-32) not passed while 250000 hit −125/−264/−97 → died | fix built (MSB wall center + turn before A + flag 11010090); passed 1/1 in game (163220) |
+| 99 | `burg-bonfire` town2 `#4 이동` (11-01 153157, restored Firelink save): fog wall at (-50,-22.3,-32) stuck while 250000 hit → died | fix built (MSB wall center + turn before A + flag 11010090); passed 1/1 in game (163220); AGAIN 11-03 try 27 (~65 s, 3rd A) |
 | 100 | `burg-upper` zone 5 (11-01 154533): kept guarding at SP 7→0 (MoKa: ≤30% SP can't guard the next hit) → anim 160 guard break → 255001 ×2 → died | open → fix proposal, MoKa |
 | 101 | Bot pad ignored entirely (11-01 171617, zone 4 start, 2 min still); XInput free, focus fixed → still 0 m; game restart fixed it | open, cause unknown (observe) |
 | 102 | `burg-upper` zone 5 (11-01 173025): unknown-fog A at the ladder foot grabbed the ladder, 87–196 s looping | fix built (no fog A ≤2.5 m from NavMesh ladder faces); offline tests only |
@@ -217,6 +217,9 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 118 | `taurus` close fight (11-02 051424): no Estus at 320/698 (40 % rule), next −242 → died, boss ~161 left | open → drink below two hits (490); 11-03 try 21: ran in game (drank at 456), death was P-119 |
 | 119 | `taurus` close fight (11-03 try 21·22): swung on its center line 0.5–2.0 m in front, hit back to back → died | open → crotch_spot + two-hit/stay: killed 3 of 4 from MoKa's fog save (try 24–26; try 23 knocked off the bridge) |
 | 120 | PC hard freeze → reboot 11-03 06:30 (WHEA fatal, no bugcheck; same 10-25) during clip analysis | parked → MoKa: note only; if again, throttle clip.py ffmpeg, check BIOS |
+| 121 | burg-upper z8: two 255002, died | open → ramp combo tests |
+| 122 | ramp 133114: retreat fell, died | open → MoKa |
+| 123 | ramp 182029: 2-hand, 255010 | open |
 
 ## 5. Relay — [cloud] ↔ board
 

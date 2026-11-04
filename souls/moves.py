@@ -459,8 +459,18 @@ class Moves:
             self.pad.release_due()
             time.sleep(0.02)
 
+    def step(self, s, x: float, z: float, secs: float, guard: bool = True) -> None:
+        """Walk toward local (x, z) for secs (stick, guard up), then neutral — a small set-up move before a drilled combo."""
+        self.pad.guard(guard)
+        self.pad.move(*self.stick_to(s, x, z))
+        t0 = time.time()
+        while time.time() - t0 < secs:
+            self.pad.release_due()
+            time.sleep(0.02)
+        self.pad.move(0.0, 0.0)
+
     @_span
-    def backstep_attack(self, s, c, nm=None) -> Hit:
+    def backstep_attack(self, s, c, nm=None, front: float = 2.2, r1_at: float | None = None, swing: int | None = None) -> Hit:
         """Backstep + R1 as **one move** (user 2026-09-24: "Backstep then attack must not be two moves, it has to be one").
         Stick neutral → B → R1 after BS_TO_R1. Needs floor 2.6 m behind·3.0 m ahead (it lunges forward). Body must face the target within 40°."""
         hit = Hit("bsattack", presses=0)
@@ -473,29 +483,41 @@ class Moves:
             if not nav.can_move(nm, p, back[0], back[1], 2.6):
                 hit.skipped = "뒤에 바닥 없음"
                 return hit
-            if not nav.can_move(nm, p, -back[0], -back[1], 2.2):
+            if not nav.can_move(nm, p, -back[0], -back[1], front):
                 hit.skipped = "앞에 바닥 없음"
                 return hit
         if abs(math.degrees(rel_angle(p, c))) > 40:
             hit.skipped = "몸이 딴 데"
             return hit
-        return self.combo("backstep_r1", s, c, nm=None)   # floor already checked above
+        return self.combo("backstep_r1", s, c, nm=None, r1_at=r1_at, swing=swing)   # floor already checked above
 
     # ── Combo = sequence (user 2026-09-24: "Make attack combos a single sequence — roll light, jump heavy, backstep light, like that") ──
     # one row = (time s, action). Actions: "stick_fwd" stick toward target | "stick_off" release stick | "B" | "R1" | "R2" (trigger)
+    #   | "jump" stick toward target + R2 in the same report
+    # 게임 실측 (P-121, 11-03 방 안, 한손, experiments/combo_probe.py, 앞뒤 바닥 확인 뒤): backstep_r1 690 → 303500 (B 뒤 0.87–0.90 s,
+    # 1.5–1.8 m) 2/2 · roll_r1 710 → 303900 (1.1 s, 2.9–5.5 m) 2/2 · jump_r2 303600 (3.25 m) 1/1 — 예전 행(스틱 먼저, 0.1 s 뒤 R2)은
+    # 303300 강공(0.31 m)이었음. 애니가 화면의 백스텝 공격·구르기 공격·점프 공격과 같은지는 MoKa 확인 대기
     # times: steps before B are relative to start, **steps after B are relative to the moment B was pressed** (so gaps hold even with the 0.16 s stick-release wait)
     # results observed with a single _watch. Add a new combo as one row here; upper layers call it by name only.
     COMBOS = {
         "backstep_r1": ((0.0, "stick_off"), (0.0, "B"), (BS_TO_R1, "R1")),                 # backstep light — lunges 1.7~2.8 m forward
         "roll_r1":     ((0.0, "stick_fwd"), (0.3, "B"), (0.55, "R1")),                      # roll light — R1 0.55 s after B (post-B times are relative to B)
-        "jump_r2":     ((0.0, "stick_fwd"), (0.1, "R2"), (0.25, "stick_off")),             # jump heavy — forward+R2 (control chart)
+        "jump_r2":     ((0.0, "jump"),),                                                    # jump attack — stick + R2 in one report (Pad.jump_attack)
     }
     COMBO_WATCH = {"backstep_r1": BS_TO_R1 + 1.1, "roll_r1": 2.0, "jump_r2": 1.8}
+    # 공격 키는 회피 동작(690 백스텝 · 710 구르기)이 실제로 보인 뒤 AFTER_DODGE s 이후에 — B 기준 시간만으로는 140(막기 등) 중에
+    # B가 늦게 먹혀 R1이 먼저 들어가 버려짐 (P-121 125142: 140에서 시작한 백스텝 콤보 4/4가 690만, 303500 없음). 안 보이면
+    # B 뒤 DODGE_WAIT s에 그냥 누름.
+    COMBO_GATE = {"backstep_r1": range(690, 700), "roll_r1": range(700, 800)}
+    AFTER_DODGE, DODGE_WAIT = 0.30, 0.9
 
     @_span
     @_aligned(1)
-    def combo(self, name: str, s, c, nm=None, need_back: float = 0.0, need_front: float = 3.0) -> Hit:
-        """One combo as one move. Floor check: need_back m behind·need_front m ahead (roll·jump move forward)."""
+    def combo(self, name: str, s, c, nm=None, need_back: float = 0.0, need_front: float = 3.0,
+              r1_at: float | None = None, swing: int | None = None) -> Hit:
+        """One combo as one move. Floor check: need_back m behind·need_front m ahead (roll·jump move forward).
+        r1_at: the attack key not before this time.time() (the foe's live window ends then). swing: the foe's attack anim
+        we dodge — if it chains into another attack before the key, the key is not pressed (hit.skipped says so)."""
         hit = Hit(name, presses=0)
         p = s.player
         if p.heading is None or s.cam_yaw is None:
@@ -533,11 +555,15 @@ class Moves:
             elif act == "R2":
                 self.pad._r2(0.12)
                 hit.presses += 1
+            elif act == "jump":
+                self.pad.jump_attack(fwd)
+                hit.presses += 1
 
         # times are **relative to the moment B was pressed** — with absolute times R1 moved earlier by the stick-release wait (0.16 s), turning 0.45 into 0.29 (caught by moves_test)
         state["anchor"] = None
 
         t_start = time.time()
+        gate = self.COMBO_GATE.get(name)
 
         def tick(t, h):
             while state["i"] < len(steps):
@@ -546,6 +572,19 @@ class Moves:
                 base = state["anchor"] if (state["anchor"] is not None and st_t > 0) else t_start
                 if now - base < st_t:
                     break
+                if act in ("R1", "R2") and r1_at is not None and now < r1_at:
+                    break
+                if act in ("R1", "R2") and swing is not None and any(a in ATTACK and a != swing for _ta, a in h.e_anims):
+                    # 휘두름이 다음 공격으로 이어짐 (c2540 3000→3001→3002) — 지금 누르면 그 공격에 맞음, 백스텝만 하고 끝
+                    hit.skipped = "연속 공격 — 공격 키 안 누름"
+                    state["i"] = len(steps)
+                    break
+                if gate is not None and state["anchor"] is not None and act in ("R1", "R2"):
+                    seen = next((ta for ta, a in h.my_anims if a in gate and t_start + ta >= state["anchor"] - 0.05), None)
+                    if seen is None and now - state["anchor"] < self.DODGE_WAIT:
+                        break
+                    if seen is not None and now - (t_start + seen) < self.AFTER_DODGE:
+                        break
                 do(act)
                 if act == "B" and state["anchor"] is None:
                     state["anchor"] = time.time()          # post-B step times are relative to the moment B was pressed

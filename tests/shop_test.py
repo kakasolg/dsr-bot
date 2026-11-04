@@ -106,6 +106,9 @@ class Merchant:
         elif st == "qty":
             if button == UP:
                 self.qty += 1
+            elif button == DOWN:                           # 1 → the window's max ([MoKa] 11-03: the opposite key wraps to max)
+                g, price = self.ROWS[self.cursor]
+                self.qty = max(1, min(self.souls // price, 99 - self.goods.get(g, 0)))
             elif button == RIGHT:
                 self.ok = True
             elif button == B:
@@ -196,6 +199,10 @@ def main() -> None:
     shop, game, ev = rig(souls=300)
     out = shop.buy([(292, 20)])
     check(f"300 souls, firebombs × 20 at 50 → 6 bought ({ev[-1]})", game.goods[292] == 53 and ev[-1]["asked"] == 6 and game.souls == 0)
+    shop, game, ev = rig(souls=1879)
+    out = shop.buy([(290, 99)])
+    check(f"1879 souls, knives × 99 at 10 → one DOWN to the max, not 98 UP ({ev[-1]})",
+          ev[-1]["result"] == "ok" and game.goods[290] == 99 and "UP" not in game.presses and game.presses.count("DOWN") >= 1)
     shop, game, ev = rig(souls=40)
     out = shop.buy([(292, 1), (290, 4)])
     check("40 souls: no firebomb (no_souls, no buttons for it), 4 knives", [e["result"] for e in ev] == ["no_souls", "ok"]

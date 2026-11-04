@@ -143,7 +143,7 @@ def _stain_carry(log):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["status", "watch", "burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt-one", "merchant", "light-burg", "burg-upper", "quit-test", "passage-drill", "asylum", "taurus", "merchant-buy", "altar", "altar-burg", "firebomb-probe", "pick-blood", "burg-altar", "parish-group1", "parish-route"])
+    ap.add_argument("cmd", choices=["status", "watch", "burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt-one", "merchant", "to-firelink", "light-burg", "burg-upper", "quit-test", "passage-drill", "asylum", "taurus", "merchant-buy", "altar", "altar-burg", "firebomb-probe", "pick-blood", "burg-altar", "parish-group1", "parish-route"])
     ap.add_argument("--no-rest", action="store_true")
     ap.add_argument("--no-quit", action="store_true", help="퀵 종료(메뉴로 나갔다 오기) 안 씀 — 영상 촬영용")
     ap.add_argument("--fall-quit", action="store_true", help="낙하 때 예전처럼 퀵 종료 (기본: 기록만 하고 계속, [MoKa] 2026-10-12)")
@@ -185,6 +185,10 @@ def main() -> None:
     ap.add_argument("--ground", action="store_true",
                     help="걷기의 바닥 확인에 NavMesh + 걸어 본 자리(ground.py, data/walked/) — 통로·다리 아치처럼 NavMesh가 빈 곳을 낭떠러지로 안 봄. "
                          "싸움·물러남·낙하 감지는 NavMesh 그대로 (field.GROUND_IN_FIGHTS, P-56). 기본 꺼짐 (A/B용)")
+    ap.add_argument("--combo-only", action="store_true",
+                    help="시험: 공격은 구르기 약공·백스텝 약공·점프 공격만 (souls/duel.py COMBO_ONLY, [MoKa] 2026-11-03 P-121)")
+    ap.add_argument("--drill", default=None, choices=["backstep_r1", "roll_r1", "jump_r2", "kick_combo"],
+                    help="시험: 이 공격만 — 조건(자리·거리)부터 만들고 침, 다른 공격으로 안 바꿈 (--combo-only 포함, duel.DRILL, P-121)")
     ap.add_argument("--footing", action="store_true",
                     help="싸움 중 발밑이 위험하면(바닥 지도에서 발밑 바닥 없음, 또는 좁은데 밀리면 떨어짐) 넓은 쪽으로 방패 든 채 한 걸음 — "
                          "duel.rule_footing, rule_edge 대신 (P-58·P-49, [MoKa] 2026-10-11). 기본 꺼짐 (A/B용)")
@@ -231,6 +235,10 @@ def main() -> None:
     if a.footing:                                           # same: before the settings record
         from souls import duel as duel_f
         duel_f.FOOTING = True
+    if a.combo_only or a.drill:                             # same: before the settings record
+        from souls import duel as duel_c
+        duel_c.COMBO_ONLY = True
+        duel_c.DRILL = a.drill
     log = Log(a.cmd)
     import runinfo
     settings_path = Path(str(log.path).replace(".jsonl", ".settings.json"))
@@ -485,6 +493,9 @@ def main() -> None:
                 ms.start_fresh()                            # --level-up: the rest levels first
             ms.firelink_humanity()
             r = ms.clear_ramp(lure=not a.no_lure)
+            if r == "cleared" and fld.alive() and not a.no_recover:
+                # 경사로 핏자국 (P-121 182029 양손 드릴 사망, 소울 2661): 비운 뒤 줍기 — pick_blood가 근처 산 적·화톳불 옆을 걸러 냄
+                log(f"── 경사로 핏자국: {fld.pick_blood(nms[missions.MAP_A], near=60.0)}")
         elif a.cmd == "clear-burg-town":
             r = ms.clear_burg_town()
         elif a.cmd == "hunt-one":
@@ -493,6 +504,8 @@ def main() -> None:
             r = _shop(a, mv, nms[missions.MAP_B], fld, log)
         elif a.cmd == "merchant":
             r = ms.to_merchant()
+        elif a.cmd == "to-firelink":
+            r = ms.to_firelink()                        # 상인·화톳불에 쉬지 않고 선 캐릭터를 걸어서 되돌림 (P-121 나이프 산 뒤 드릴로)
         elif a.cmd == "pick-blood":
             # bloodstain in burg-upper zone 1 (10-13 firebomb-probe death): clear zone 1 first — pick_blood needs no live foe near it
             log.zone = "pick-blood"

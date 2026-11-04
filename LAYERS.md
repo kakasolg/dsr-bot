@@ -196,7 +196,7 @@ Tools that write game memory (warp, quit-out, invincibility, item insertion, etc
 ## Attack combos (layer 1 `moves.COMBOS`)
 
 User (2026-09-24): "Make attack combos a single sequence — roll light attack, jump heavy attack, backstep light attack, that kind of thing." A combo is a table of (time, action) rows, and the result is checked with a single watch.
-A new combo is one row in the table; upper layers only call `mv.combo("이름", s, c, nm)` ("name"). Current rows: `backstep_r1` (B → R1 at 0.45 s, used live), `roll_r1`/`jump_r2` (values from the old control chart / estimates, not measured).
+A new combo is one row in the table; upper layers only call `mv.combo("이름", s, c, nm)` ("name"). Current rows: `backstep_r1` (B → R1 at 0.45 s), `roll_r1` (B → R1 at 0.55 s), `jump_r2` (stick + R2 in one report). Measured 11-03 in a room, one-handed, floor checked ahead/behind (`experiments/combo_probe.py`, P-121): 690 → 303500, 710 → 303900, 303600 (3.25 m); the old jump row (stick first, R2 0.1 s later) gave the plain heavy 303300. Since P-121 the reflex uses backstep_r1 / roll_r1 in guard style too.
 
 ## User demo recording (2026-09-24, `experiments/demo_record.py` → `data/demo/20260924_162859.jsonl`)
 

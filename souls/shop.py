@@ -37,6 +37,10 @@ A_, B_, UP, DOWN, RIGHT = (B.XUSB_GAMEPAD_A, B.XUSB_GAMEPAD_B, B.XUSB_GAMEPAD_DP
 UNDEAD_MERCHANT = {"npc": 251001, "pos": (-38.02, -19.80, -66.50), "name": "망자 상인", "stand": (-39.17, -19.8, -67.81),
                    "rows": {280: (1, 500), M.ITEM_KNIFE: (2, 10), M.ITEM_FIREBOMB: (3, 50)}}   # row 4 Lloyd's Talisman 500 (id unrecorded)
 
+# 수량 창은 1에서 아래(↓)로 한 번 누르면 최대치로 넘어감 ([MoKa] 2026-11-03 "구매 할때 반대 방향키로 돌리면 최대치를 구매 할 수 잇어")
+# — 최대치 = 소울로 살 수 있는 수 · 한 번에 99 · 가진 수 합 99 중 작은 것 (게임 화면에서 잰 적 없음, 산 뒤 메모리로 확인)
+QTY_MAX = 99
+
 TALK_R = 1.7          # stand this close (record 03: the prompt showed at 1.7 m facing him, not at 1.2 m facing away)
 TALK_DEG = 12.0       # … facing him this well
 APPROACH_S = 6.0
@@ -296,7 +300,7 @@ class Shop:
         return self.tm.goods_count(goods) or 0, self.tm.souls() or 0
 
     def _buy_one(self, goods: int, n: int, row: int, price: int) -> tuple[int, int]:
-        """On the open list: move to row, A, n − 1 × UP, RIGHT (CANCEL → OK, checked on screen), A. → (bought, souls spent)
+        """On the open list: move to row, A, n − 1 × UP (or one DOWN when n is the window's max), RIGHT (CANCEL → OK, checked on screen), A. → (bought, souls spent)
         read from memory. A screen that isn't the expected one stops before the next press (row → None: talk again)."""
         g0, s0 = self._counts(goods)
         if self._wait(("list",), 1.0) != "list":
@@ -314,7 +318,9 @@ class Shop:
             return 0, 0
         if self.shoot is not None:
             self.shoot(f"select-{goods}")
-        if n > 1:
+        if n > 2 and n == min(QTY_MAX - g0, s0 // price):
+            self._press(DOWN, MOVE_S, f"qty-max-{n}")       # 1 → 최대치 한 번에
+        elif n > 1:
             self._press(UP, MOVE_S, f"qty-{n}", n=n - 1)
         self._press(RIGHT, MOVE_S, "ok")                   # the window opens on CANCEL (record 08 → 09)
         ok = self.screen.ok_selected()
@@ -382,7 +388,7 @@ class Shop:
             return row
         r, price = self.m["rows"][goods]
         g0, s0 = self._counts(goods)
-        n = min(want, s0 // price)
+        n = min(want, s0 // price, QTY_MAX - g0)
         if n <= 0:
             row = {"goods": goods, "want": want, "bought": 0, "souls0": s0, "souls1": s0, "result": "no_souls"}
             self.log(f"   상점: {goods} ×{want} — 소울 {s0} < {price}, 안 삼")

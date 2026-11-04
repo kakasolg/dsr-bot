@@ -13,6 +13,7 @@ import sys as _sys, pathlib as _pl  # repo root first (the bot's modules), then 
 _sys.path[:0] = [str(_pl.Path(__file__).resolve().parent.parent), str(_pl.Path(__file__).resolve().parent)]
 
 import sys
+import threading
 import time
 
 sys.path.insert(0, ".")
@@ -93,6 +94,17 @@ class FakeTm:
         return Snapshot(t=time.time(), player=p, chars=[c], cam_yaw=0.0)
 
 
+def dodge_on_b(pad, tm, anim, late=0.0):
+    """B 를 누르면 late s 뒤 내 애니가 anim (690 백스텝 · 710 구르기) — 게임이 회피를 보여 주는 것처럼."""
+    tap = pad.tap
+
+    def wrapped(button, hold=0.08, stick_ok=False):
+        tap(button, hold, stick_ok)
+        if button == B.XUSB_GAMEPAD_B:
+            threading.Timer(late, lambda: setattr(tm, "anim", anim)).start()
+    pad.tap = wrapped
+
+
 def taps(pad, name):
     return [t for t, k, *v in pad.log if k == "tap" and v and v[0] == name]
 
@@ -109,6 +121,7 @@ def main() -> None:
     pad, tm = FakePad(), FakeTm()
     mv = M.Moves(tm, pad)
     s = tm.snapshot(); c = s.chars[0]
+    dodge_on_b(pad, tm, 690)
     pad.move(0.0, 1.0)                                   # 직전에 앞으로 밀고 있었다
     t0 = time.time()
     h = mv.combo("backstep_r1", s, c, nm=None)
@@ -119,6 +132,13 @@ def main() -> None:
         sticks_before_b = [v for t, k, *v in pad.log if k == "stick" and t <= b[0]]
         check(sticks_before_b and sticks_before_b[-1] == [0.0, 0.0], f"B 직전 스틱 중립 {sticks_before_b[-1] if sticks_before_b else None}")
         check(b[0] - (0.0) >= 0.14, f"스틱 놓고 {b[0]:.2f} s 뒤 B (≥ 0.16 s 규칙)")
+
+    # 1b) 140(막기 등) 중이라 백스텝이 0.4 s 늦게 나오면 R1 도 690 이 보인 뒤 0.30 s 이후 (P-121 125142)
+    pad, tm = FakePad(), FakeTm(); mv = M.Moves(tm, pad); s = tm.snapshot(); c = s.chars[0]
+    dodge_on_b(pad, tm, 690, late=0.4)
+    h = mv.combo("backstep_r1", s, c, nm=None)
+    b, r1 = taps(pad, "B"), taps(pad, "R1")
+    check(len(b) == 1 and len(r1) == 1 and r1[0] - b[0] >= 0.68, f"늦은 백스텝: B{b} R1{r1} (B 뒤 ≥ 0.4+0.30 s)")
 
     # 2) 약공 2연타 타이밍
     pad, tm = FakePad(), FakeTm(); mv = M.Moves(tm, pad); s = tm.snapshot(); c = s.chars[0]
@@ -139,6 +159,7 @@ def main() -> None:
 
     # 4) 구르기 약공: 앞스틱 + B, 0.85 s 뒤 R1
     pad, tm = FakePad(), FakeTm(); mv = M.Moves(tm, pad); s = tm.snapshot(); c = s.chars[0]
+    dodge_on_b(pad, tm, 710)
     h = mv.combo("roll_r1", s, c, nm=None)
     b, r1 = taps(pad, "B"), taps(pad, "R1")
     sticks_before_b = [v for t, k, *v in pad.log if k == "stick" and t <= (b[0] if b else 9)]

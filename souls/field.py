@@ -31,6 +31,8 @@ from . import style as style_
 from .watch import Blood
 
 FOLLOW_R = 4.5           # while walking the path, fight any awake foe that closes within this (horizontal)
+GROUP_R = 12.0          # COMBO_ONLY 무리 계획: 이 안의 적을 한 무리로 (P-121)
+GROUP_MOVE_SAFE = 3.5   # 첫 놈이 이보다 가까우면 자리 안 옮김
 FOLLOW_DY = 2.5          # foe following on stairs — up to this height difference
 SAFE_R = 6.0             # estus: no awake foe within this, and
 SAFE_ATTACK_R = 8.0      #          nobody swinging within this
@@ -808,6 +810,11 @@ class Field:
         nm = plain_nm(nm)                                  # run.py --ground: fights keep the plain NavMesh (GROUND_IN_FIGHTS)
         self._fight_n = getattr(self, "_fight_n", 0) + 1     # one id per fight() — a tether cut and re-taken stays the same fight
         self.fight_id = f"{getattr(self, 'run_id', 'run')}#f{self._fight_n:03d}"   # run.py sets run_id (runinfo, ROADMAP 1-i)
+        if D.COMBO_ONLY:
+            self._plan_key = None                          # 새 싸움: 계획부터 다시
+            self._group_plan(ptr, nm, tag)
+            # 다가가는 동안 무리가 바뀌면 다시 계획 (131637 #1: 40 m 밖 잠든 놈이라 시작 때 무리가 비어 계획 없이 싸움)
+            D.REPLAN = lambda: self._group_plan(ptr, nm, tag, move=False)
         spot = getattr(self, "tether", None)
         if spot is not None and callable(getattr(self.mv, "find", None)):
             c = self.mv.find(self.mv.snap(SEEK_R), ptr)
@@ -831,6 +838,61 @@ class Field:
                 self.log(f"   {tag}: 안전 자리로 못 감 ({zr}) — 묶지 않고 여기서 싸움")
                 spot = None
         return r
+
+    def _group_plan(self, ptr, nm, tag: str, move: bool = True) -> None:
+        """
+        ── 싸우기 전에 무리 전체 계획 (P-121, [MoKa] 2026-11-03) ──────────────────────────────
+         "첫 번째 적은 백스텝 콤보, 두번째 적은 점프 공격, 세번째 방패병은 백스텝 공격 이런 식의 미리 계획을 하고, 거기에 맞는 플랜,
+          좋은 위치를 확보 해야" · "그러지 않으면 데이타를 확보 못해" · "계획이 없으니 그냥 하던데로 하잖아. 이러면 의미가 없지."
+         · 근처(GROUP_R) 깨어 있는 적이 바뀔 때마다 group_plan.make: 놈마다 공격 + 서 있을 자리(첫 놈 반대쪽 뒤 바닥·낭떠러지 거리·
+           다음 놈 진입 거리). 첫 놈이 GROUP_MOVE_SAFE m보다 멀면 그 자리로 가드 든 채 걸어감.
+         · 계획은 D.PLANNED (ptr → 공격) — _combo_strike가 표보다 먼저 시도하고, "combo" 이벤트에 planned·followed로 남김.
+        """
+        from . import group_plan as GP
+        s = self.mv.snap(GROUP_R + 2.0)
+        if s is None:
+            return
+        p = s.player
+        foes = [c for c in s.hostile(SEEK_R) if c.hp > 0 and abs(c.y - p.y) < FOLLOW_DY
+                and (c.ptr == ptr or (awake(c) and M.horiz(p, c) < GROUP_R))]
+        key = frozenset(c.ptr for c in foes)
+        if not foes or key == getattr(self, "_plan_key", None):
+            return
+        self._plan_key = key
+        plan = GP.make(p, foes, nm, foe_of=foes_.of)
+        if D.DRILL:
+            for st in plan.steps:                          # 드릴: 모든 놈에 그 공격 (134253: 방패병 계획 kick_combo가 드릴을 이김)
+                st.attack, st.why = D.DRILL, "드릴"
+        sig = tuple((st.ptr, st.attack) for st in plan.steps)
+        if sig == getattr(self, "_plan_sig", None) and plan.moved < 0.8:
+            return                                         # 같은 계획 — 다시 적지 않음 (132052: 같은 두 놈 계획 5번)
+        self._plan_sig = sig
+        for line in plan.lines():
+            self.log(f"   {line}")
+        D.PLANNED.clear()
+        D.PLANNED.update({st.ptr: st.attack for st in plan.steps})
+        self.events("group_plan", tag=tag, spot=[round(v, 2) for v in plan.spot] if plan.spot else None, moved=round(plan.moved, 2),
+                    spot_why=plan.spot_why, steps=[dict(ptr=st.ptr, npc=st.npc, dist=st.dist, attack=st.attack, why=st.why)
+                                                   for st in plan.steps])
+        near = min(M.horiz(p, c) for c in foes)
+        if not move or plan.spot is None or plan.moved < 0.8:
+            return
+        if near < GROUP_MOVE_SAFE:
+            self.log(f"   자리 못 옮김 — 첫 놈이 {near:.1f} m (< {GROUP_MOVE_SAFE} m), 여기서")
+            self.events("group_spot", result="too_close", near=round(near, 2))
+            return
+        q = plan.spot
+        path = nm.find_path((p.x, p.y, p.z), q) if nm is not None else None
+        if not path:
+            self.log("   자리로 가는 길 없음 — 여기서")
+            return
+        stop = lambda sn: (M.horiz(sn.player, types.SimpleNamespace(x=q[0], z=q[2])) < 0.5
+                           or any(awake(c) and M.horiz(sn.player, c) < GROUP_MOVE_SAFE - 0.5 for c in sn.hostile(GROUP_MOVE_SAFE)))
+        r = self.mv.walk_path(path[1:], nm, "guard", stop=stop)
+        s2 = self.mv.snap(5.0)
+        off = None if s2 is None else math.hypot(s2.player.x - q[0], s2.player.z - q[2])
+        self.log(f"   자리로: {r}" + (f", 남은 {off:.1f} m" if off is not None else ""))
+        self.events("group_spot", result=r, off=None if off is None else round(off, 2))
 
     def _tether_far(self, spot):
         """Cut the fight: more than TETHER_R from the safe spot and nobody on us (TETHER_CONTACT_R, P-74)."""
@@ -1528,6 +1590,9 @@ class Field:
                 continue
             coming = [c for c in s.hostile(FOLLOW_R + 2.0) if awake(c) and c.ptr not in ignore and c.anim not in (None, -1)
                       and M.horiz(s.player, c) < FOLLOW_R + 2.0 and abs(c.y - s.player.y) < FOLLOW_DY]
+            if D.COMBO_ONLY:
+                # 오는 놈이 붙기 전에 계획 + 자리 (132052: 싸움 시작 때 세우니 첫 놈이 늘 0.6–3.0 m — 자리 옮김 0/7)
+                self._group_plan(None, nm, "오기 전")
             if coming:
                 c = min(coming, key=lambda x: M.horiz(s.player, x))
                 tried[c.ptr] = tried.get(c.ptr, 0) + 1

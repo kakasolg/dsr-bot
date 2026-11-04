@@ -416,11 +416,14 @@ def print_summary(s: dict) -> None:
 
 
 def main() -> None:
+    global WORLD_HZ
     ap = argparse.ArgumentParser(description="읽기 전용 관찰 기록기 (OBSERVE.md)")
     ap.add_argument("--radius", type=float, default=30.0)
     ap.add_argument("--minutes", type=float, default=None)
     ap.add_argument("--out", type=Path, default=OUT_DIR)
+    ap.add_argument("--hz", type=float, default=WORLD_HZ, help="world snapshots per second (P-121 timing: 30)")
     a = ap.parse_args()
+    WORLD_HZ = a.hz
     path = a.out / f"{time.strftime('%Y%m%d_%H%M%S')}.jsonl"
     obs = Observer(open_game_reader(), XInputPads(), Win32Keys(), path, radius=a.radius)
     print(f"관찰 기록 → {path}  (읽기 전용 · F9 = 마커 · Ctrl+C 로 끝)", flush=True)

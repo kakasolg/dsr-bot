@@ -7,12 +7,13 @@ situation keys (all optional except foe):
   foe 254010 · anim -1 · anim_seq [3003, -1] (one anim per tick — a swing that ends) · dist 1.2 m · dy 0.0 ·
   foe_hp 1.0 (share of 85) · my_sp 1.0 (share of 106) · facing_err 0° (our body off the foe) · foe_facing 0° (180 = back to us) ·
   others [{"npc": 254000, "anim": 3003, "x": 1.3, "z": 0.3}] (metres from us; foe stands at x 0, z dist) ·
+  dist_seq [1.5, 1.5, 5.0] (the foe's distance per tick) · others[i] "anim_seq" (per tick, like the foe's) ·
   style "guard" · weapon "battle_axe"|"broadsword" · flags {"BACKSTAB": false, "HEAVY": false} (duel module flags, e.g. --basic) ·
   reflex "auto" (shields when a foe swings within duel.NEAR) | "off" | "on" · age 0.3 (seconds since the swing began, as the
   reflex reports it) · wait_far false · room true (floor behind the foe for a backstab) · ticks 4
 
 decide(situation) → {"tactic": first tactic (laya_shadow.policy_tactic; turning to face isn't one), "rules": [rule per tick],
-                     "trace": [Moves calls]}
+                     "trace": [Moves calls], "log": [duel's log lines]}
 """
 from __future__ import annotations
 import sys as _sys, pathlib as _pl  # repo root first (the bot's modules), then this folder
@@ -71,11 +72,14 @@ def decide(sc: dict) -> dict:
     c = w.add(2, 0x1002, sc["foe"], (0.0, -49.4 + sc.get("dy", 0.0), sc.get("dist", 1.2)),
               hp=max(1, round(MAX_HP * sc.get("foe_hp", 1.0))), max_hp=MAX_HP, anim=seq[0])
     c.heading = math.radians(sc.get("foe_facing", 0.0))            # 0: facing us (−z); π: its back to us
+    dseq = sc.get("dist_seq")
+    others = []
     for i, o in enumerate(sc.get("others", [])):
         x = w.add(3 + i, 0x1003 + i, o.get("npc", 254000), (o.get("x", 1.3), -49.4, o.get("z", 0.3)),
-                  hp=o.get("hp", 75), anim=o.get("anim", -1))
+                  hp=o.get("hp", 75), anim=(o.get("anim_seq") or [o.get("anim", -1)])[0])
         x.heading = -math.pi / 2
-    trace, grab = [], Grab()
+        others.append((x, o.get("anim_seq")))
+    trace, grab, lines = [], Grab(), []
     mv = G.Mv(w, trace)
     mv.tm.grip = lambda: None
     r3, locks = mv._r3, []
@@ -87,6 +91,11 @@ def decide(sc: dict) -> dict:
         n = tick["n"]
         tick["n"] += 1
         c.anim = seq[min(n, len(seq) - 1)]
+        if dseq:
+            c.z = dseq[min(n, len(dseq) - 1)]
+        for x, aseq in others:
+            if aseq:
+                x.anim = aseq[min(n, len(aseq) - 1)]
         return n >= ticks
     saved = {k: getattr(D, k) for k in ("_backstab", "_back_to_safe", "_separate", "_approach", "_room_behind")}
     flags = {k: getattr(D, k) for k in FLAGS}
@@ -99,7 +108,7 @@ def decide(sc: dict) -> dict:
     for k, v in (sc.get("flags") or {}).items():
         setattr(D, k, v)
     try:
-        r = D.duel(mv, WEAPONS[sc.get("weapon", "battle_axe")], 2, None, log=lambda line: None, cancel=cancel,
+        r = D.duel(mv, WEAPONS[sc.get("weapon", "battle_axe")], 2, None, log=lines.append, cancel=cancel,
                    reflex=Reflex(sc.get("reflex", "auto"), sc.get("age", 0.3), trace), style=sc.get("style", "guard"),
                    wait_far=sc.get("wait_far", False), advisor=grab)
         result = r.result
@@ -113,14 +122,14 @@ def decide(sc: dict) -> dict:
         D.time.sleep = sleep
     f = {"_shield": sc.get("style", "guard") == "guard", "_arena": None}
     tactic = next((t for t in (LS.policy_tactic(r_, f) for r_ in grab.rules) if t), None)
-    return {"tactic": tactic, "rules": grab.rules, "trace": trace, "result": result, "locked": any(locks)}
+    return {"tactic": tactic, "rules": grab.rules, "trace": trace, "result": result, "locked": any(locks), "log": lines}
 
 
 def judge(sc: dict, expect: dict) -> tuple[bool, str, dict]:
     """→ (meets the expectation, why not, decision). expect: acceptable / forbidden (the first tactic), first_rule, has_rule
     (acts on some tick — e.g. after_swing on the tick the swing ends), not_rules (on no tick), trace_has (a Moves call),
     trace_not (a Moves call that must not happen — e.g. kick against a foe without a shield), locked (lock-on taken during the
-    scene or not — duel._keep_lock)."""
+    scene or not — duel._keep_lock), log_has / log_not (lists of substrings some log line must / must not contain)."""
     d = decide(sc)
     why = []
     acc, forb = expect.get("acceptable"), expect.get("forbidden") or []
@@ -141,6 +150,12 @@ def judge(sc: dict, expect: dict) -> tuple[bool, str, dict]:
         why.append(f"{expect['trace_not']} in the trace")
     if "locked" in expect and d["locked"] != expect["locked"]:
         why.append(f"lock-on {'never taken' if expect['locked'] else 'taken'}")
+    for part in expect.get("log_has") or []:
+        if not any(part in line for line in d["log"]):
+            why.append(f"no log line with «{part}»")
+    for part in expect.get("log_not") or []:
+        if any(part in line for line in d["log"]):
+            why.append(f"log line with «{part}»")
     if str(d["result"]).startswith("error"):
         why.append(d["result"])
     return not why, "; ".join(why), d

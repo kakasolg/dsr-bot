@@ -126,7 +126,7 @@ class Reflex:
         if c.anim is not None and start is not None and (evade_now or self.unblockable(c)):
             if self._dodged.get(c.ptr) != start:
                 self._dodged[c.ptr] = start
-                kind = self.dodge(s, c, attack=evade_now and self.bs_attack)
+                kind = self.dodge(s, c, attack=self.bs_attack)   # every style that allows it, not only evade_now (P-121)
                 self._pending = {"t": now, "kind": kind, "dist": round(M.horiz(p, c), 2), "eanim": c.anim, "npc": c.npc_param,
                                  "hp0": p.hp or 0, "min_hp": p.hp or 0}
                 act = f"dodge:{kind}"
@@ -171,7 +171,18 @@ class Reflex:
         return any(x.ptr != c.ptr and x.hp > 0 and x.anim not in (-1, None) and M.horiz(s.player, x) < MIXED_R for x in s.hostile(MIXED_R + 1))
 
     def dodge(self, s, c, attack: bool = False) -> str:
-        """Unblockable attack — backstep if there is ground behind, else roll to a side with ground. If neither, guard (no choice)."""
+        """Unblockable attack — backstep if there is ground behind (with attack: backstep + R1 as one move); otherwise face it.
+        No ground info at all → guard.
+
+        ── 회피 뒤 약공은 한 동작 (P-121, [MoKa] 2026-11-03) ──────────────────────────────
+         · "봇은 구르기 하고 기다렸다 약공 … 백 스텝 하고 기다렸다 공격, 사이가 떠 버려. 그런데 발차기 약공은 한 동작 처럼 해"
+         · 원인: 발차기만 kick_combo 안에서 R1까지 누름. 백스텝은 backstep()만 하고 판단 루프로 돌아가 휘두름 끝·몸 돌리기·
+           걸어가기를 거쳐 약공 (try 27: 백스텝 뒤 다음 공격 3.5 s). 백스텝 약공은 evade 스타일에서만 켜져 있었고,
+           roll_r1은 정의만 있고 부르는 곳이 없었음
+         · 그래서 guard 스타일도 bs_attack. 옆 구르기는 계속 안 함 (2026-09-24 16 m 낙사)
+         · 뒤에 바닥이 없을 때 그놈 쪽 구르기 약공도 넣었다가 뺌 — 반사는 늘 붙어서(EVADE_R 안) 휘두를 때라,
+           [MoKa] 11-03 "구르기 공격을 왜 이렇게 가까운데 사용해." 구르기는 거리가 있을 때만 (duel COMBO_ONLY BS_R)
+        """
         p = s.player
         if p.heading is not None and self.nm is not None:
             back = (math.sin(p.heading), math.cos(p.heading))          # heading direction = behind the body (same convention as hunt.backstep_attack)
