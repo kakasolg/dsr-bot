@@ -30,7 +30,7 @@ class Step:
     ptr: int
     npc: int
     dist: float                     # from the chosen spot
-    attack: str                     # backstep_r1 | roll_r1 | jump_r2 | kick_combo | light | wait
+    attack: str                     # backstep_r1 | roll_r1 | jump_r2 | backstab | kick_combo | light | wait
     why: str
 
 
@@ -51,20 +51,27 @@ class Plan:
         return out
 
 
-def attack_for(order: int, h: float, foe, anim) -> tuple[str, str]:
-    """Planned attack for the order-th foe (0 = first) at distance h from our spot."""
+def attack_for(order: int, h: float, foe, anim, n: int = 1, arc_ok: bool = True) -> tuple[str, str]:
+    """Planned attack for the order-th foe (0 = first) of n at distance h from our spot. arc_ok = floor to circle to its back.
+
+    ── 상황별 기술 ([MoKa] 2026-11-04) ──────────────────────────────
+     "뒤로만 물러나야 하는 상황, 적이 2인 경우는 백스텝 콤보, 적이 근처에 하나이고, 지형으로 막히지 않으면 뒤잡 공격,
+      그리고 가드 브레이크는 점프 공격 이런식으로 세팅 해봐."
+     · 방패 든 놈 → jump_r2 (가드 브레이크; 타이밍은 rule_jump_drill: 서 있는 놈 2.6–4.8 m · 헛친 뒤)
+     · 석궁병 → roll_r1 ([MoKa] 11-03 "석궁병 다가 갈때 구르기 콤보")
+     · 근처 하나 · 돌아갈 바닥 있음 → backstab
+     · 둘 이상 · 돌 자리 막힘 (뒤로만 물러남) → backstep_r1
+    """
     k = CTB.key(h, foe, anim, True, True)
-    if k["kind"] == "shield" and k["state"] == "idle":
-        return "kick_combo", 'MoKa "방패가 있으면 발차기 콤보"'
-    if order == 0 or h <= CTB.NEAR_R:
-        # 첫 놈은 우리에게 걸어 온다 — 붙을 때 백스텝 콤보 (MoKa "붙으면 백스텝 콤보")
-        return "backstep_r1", "먼저 붙을 놈 → 백스텝 콤보"
-    # 둘째부터는 앞 놈을 처리한 뒤 그쪽으로 다가가며 진입 거리(2.2–4.5 m)에서 들어감
+    if k["kind"] == "shield":
+        return "jump_r2", 'MoKa "가드 브레이크는 점프 공격"'
     if k["kind"] == "ranged":
         return "roll_r1", 'MoKa "석궁병 다가 갈때 구르기 콤보"'
-    if h <= CTB.MID_R:
-        return "roll_r1", f"{h:.1f} m — 구르기 콤보로 들어감"
-    return "jump_r2", f"{h:.1f} m — 다가가다 {CTB.MID_R}–{CTB.ENTRY_MAX} m에서 점프 공격 (3.25 m 이동)"
+    if n >= 2:
+        return "backstep_r1", f'{n}놈 — MoKa "적이 2인 경우는 백스텝 콤보"'
+    if arc_ok:
+        return "backstab", 'MoKa "근처에 하나이고, 지형으로 막히지 않으면 뒤잡"'
+    return "backstep_r1", 'MoKa "뒤로만 물러나야 하는 상황 … 백스텝 콤보" (돌 바닥 없음)'
 
 
 def _g(p, x, y, z):
@@ -103,12 +110,14 @@ def _spot_score(nm, p, q, ordered, foes_info) -> tuple[float, list[str]]:
     return score, notes
 
 
-def make(p, foes: list, nm, foe_of=lambda npc: None, here_only: bool = False, rings: tuple = SPOT_R) -> Plan:
-    """foes: snapshot chars (awake hostiles nearby). foe_of(npc) → foe profile (foes.of). Nearest first = the order they come."""
+def make(p, foes: list, nm, foe_of=lambda npc: None, here_only: bool = False, rings: tuple = SPOT_R, arc_of=lambda c: True) -> Plan:
+    """foes: snapshot chars (awake hostiles nearby). foe_of(npc) → foe profile (foes.of). Nearest first = the order they come.
+    arc_of(c) → floor to circle round that foe to its back (duel._arc_open, from where we stand now)."""
     plan = Plan()
     if not foes:
         return plan
     ordered = sorted(foes, key=lambda c: math.hypot(c.x - p.x, c.z - p.z))
+    arcs = {c.ptr: bool(arc_of(c)) for c in ordered}
     cands = [(p.x, p.y, p.z)] if here_only else [
         (p.x + r * math.sin(2 * math.pi * i / SPOT_DIRS), p.y, p.z + r * math.cos(2 * math.pi * i / SPOT_DIRS))
         for r in rings for i in (range(SPOT_DIRS) if r > 0 else range(1))]
@@ -120,13 +129,13 @@ def make(p, foes: list, nm, foe_of=lambda npc: None, here_only: bool = False, ri
                 continue                                   # can't walk there straight
             if any(math.hypot(c.x - q[0], c.z - q[2]) < math.hypot(c.x - p.x, c.z - p.z) - 1.0 for c in ordered[:1]):
                 continue                                   # 첫 놈 쪽으로 다가가는 자리는 안 씀 — 그놈이 오게 둠
-        info = [attack_for(i, math.hypot(c.x - q[0], c.z - q[2]), foe_of(c.npc_param), c.anim) for i, c in enumerate(ordered)]
+        info = [attack_for(i, math.hypot(c.x - q[0], c.z - q[2]), foe_of(c.npc_param), c.anim, len(ordered), arcs[c.ptr]) for i, c in enumerate(ordered)]
         sc, notes = _spot_score(nm, p, q, ordered, info)
         if best is None or sc < best[0]:
             best = (sc, q, info, notes)
     if best is None:
         q = (p.x, p.y, p.z)
-        info = [attack_for(i, math.hypot(c.x - p.x, c.z - p.z), foe_of(c.npc_param), c.anim) for i, c in enumerate(ordered)]
+        info = [attack_for(i, math.hypot(c.x - p.x, c.z - p.z), foe_of(c.npc_param), c.anim, len(ordered), arcs[c.ptr]) for i, c in enumerate(ordered)]
         best = (0.0, q, info, ["갈 수 있는 자리 없음"])
     _sc, q, info, notes = best
     plan.spot, plan.moved = q, math.hypot(q[0] - p.x, q[2] - p.z)

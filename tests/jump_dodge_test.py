@@ -75,6 +75,25 @@ def main() -> None:
         F = fight()
         check("다른 드릴이면 안 함", tick(F, 3000, 0.1, 1.8) is None and F.mv.calls == [])
         check("다른 드릴이면 기력 모으기도 안 함", tick(F, -1, None, 1.8, sp=40, rule=D.rule_jump_save) is None)
+        D.DRILL, saved_co = None, D.COMBO_ONLY
+        try:
+            D.COMBO_ONLY = True
+            D.PLANNED.clear(); D.PLANNED[7] = "jump_r2"
+            other = NS(ptr=9, hp=50, y=0.0)
+            def tick2(F, others):
+                c = NS(ptr=7, npc_param=254000, x=0.0, y=0.0, z=1.8, anim=-1, hp=80)
+                s = NS(player=NS(heading=0.0, sp=40, y=0.0), hostile=lambda r: [c] + others)
+                return D.rule_jump_save(F, NS(s=s, c=c, h=1.8, a=-1, age=None, now=100.0))
+            F = fight(); F.mv.guard = lambda on: F.mv.calls.append(("guard", on)); F.mv.face = lambda s, c: True
+            check("계획 점프 · 혼자 → 기력 모으기 (방패 내림)", tick2(F, []) == D.CONT and F.mv.calls == [("guard", False)])
+            F = fight(); F.mv.guard = lambda on: F.mv.calls.append(("guard", on)); F.mv.face = lambda s, c: True
+            check("계획 점프 · 다른 놈 가까이 → 방패 안 내림", tick2(F, [other]) is None and F.mv.calls == [])
+            bs = next(r for r in D.RULES if r.__name__ == "rule_backstab")
+            D.PLANNED[7] = "backstep_r1"
+            check("--combo-only 계획 백스텝 콤보 (2놈) → 뒤잡 안 함 ([MoKa] 11-04)", bs(NS(), NS(c=NS(ptr=7), backstab_chance=True)) is None)
+        finally:
+            D.COMBO_ONLY = saved_co
+            D.PLANNED.clear()
     finally:
         D.DRILL = saved
 

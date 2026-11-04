@@ -109,12 +109,16 @@ def main() -> None:
         F = fight(Mv())
         check("2.0 m 서 있음 (휘두름 없음) → 안 함 (표대로)", tick(F, -1, None, h=2.0, v=0.0) is None and F.mv.calls == [])
         F = fight(Mv())
+        r = tick(F, 3000, 0.2, h=1.6)
+        check(f"3000 시작 +0.2 s 1.6 m → B ({bs(F)})", r == D.CONT and len(bs(F)) == 1)
+        # P-130 ([MoKa] 11-04 "Yes, guard"): 시범 267.9 s의 2.2 m도 이제 가드 — 11-04 집계 1.8 m 넘어 B는 3 피함 · 9 맞음
+        F = fight(Mv())
         r = tick(F, 3000, 0.2)
-        check(f"3000 시작 +0.2 s 2.2 m → B (시범 267.9 s: 이어진 3001 중에 맞힘) ({bs(F)})", r == D.CONT and len(bs(F)) == 1)
+        check(f"P-130: 3000 시작 +0.2 s 2.2 m → B 안 누르고 가드 ({F.mv.calls})", r is None and not bs(F) and ("guard", True) in F.mv.calls)
         F = fight(Mv())
         check("0.9 m 휘두름 시작 → 안 함 (160317 −160)", tick(F, 3003, 0.0, h=0.9) is None and F.mv.calls == [])
         F = fight(Mv())
-        check("휘두름 +0.5 s → 늦음, 안 함 (시범 183 · 198 · 206 s 맞음)", tick(F, 3002, 0.5) is None and F.mv.calls == [])
+        check("휘두름 +0.5 s → 늦음, 안 함 (시범 183 · 198 · 206 s 맞음)", tick(F, 3002, 0.5, h=1.6) is None and F.mv.calls == [])
         F = fight(Mv())
         check("뛰어드는 찌르기 3005 → 안 함 (막기에 맡김)", tick(F, 3005, 0.1, v=5.0) is None and F.mv.calls == [])
         F = fight(Mv())
@@ -122,15 +126,15 @@ def main() -> None:
         F = fight(Mv())
         check("255010 다가옴 1.9 m → B (160734 피함+맞힘)", tick(F, -1, None, h=1.9, npc=255010, v=2.0) == D.CONT and len(bs(F)) == 1)
         F = fight(Mv())
-        check("기력 30 → 안 함", tick(F, 3000, 0.2, sp=30) is None and F.mv.calls == [])
+        check("기력 30 → 안 함", tick(F, 3000, 0.2, h=1.6, sp=30) is None and F.mv.calls == [])
         F = fight(Mv(lock="none"))
-        check("락온 없음 → 안 함", tick(F, 3000, 0.2) is None and not bs(F))
+        check("락온 없음 → 안 함", tick(F, 3000, 0.2, h=1.6) is None and not bs(F))
         D.DRILL = "roll_r1"
         F = fight(Mv())
-        check("구르기 드릴 중엔 안 함", tick(F, 3000, 0.2) is None and F.mv.calls == [])
+        check("구르기 드릴 중엔 안 함", tick(F, 3000, 0.2, h=1.6) is None and F.mv.calls == [])
         D.COMBO_ONLY, D.DRILL = False, None
         F = fight(Mv())
-        check("콤보 시험 아니면 안 함 (평소 싸움 그대로)", tick(F, 3000, 0.2) is None and F.mv.calls == [])
+        check("콤보 시험 아니면 안 함 (평소 싸움 그대로)", tick(F, 3000, 0.2, h=1.6) is None and F.mv.calls == [])
     finally:
         D.COMBO_ONLY, D.DRILL = saved
 

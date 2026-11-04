@@ -13,6 +13,7 @@ if hasattr(sys.stdout, "reconfigure"):
 
 import combo_report
 from souls import combo_table as T
+from souls import moves as M
 from souls.moves import Hit
 
 HOLLOW, SHIELD, XBOW = NS(kind="other", ranged=False), NS(kind="shield", ranged=False), NS(kind="other", ranged=True)
@@ -30,9 +31,13 @@ def plan(h, foe, anim):
 
 def main() -> None:
     # MoKa 11-03 cells
-    check("붙은 망자 → 백스텝 콤보", plan(1.0, HOLLOW, 3000) == ["backstep_r1"])
+    check("붙은 망자 → 백스텝 콤보", plan(1.0, HOLLOW, -1) == ["backstep_r1"])
+    # P-128 ([MoKa] 11-04 "1번 수정": 휘두를 때 가드나 뒤로) — 붙어서 휘두르는 망자에 시작하면 끊김 3/3
+    check("붙은 망자 휘두르는 중 → 안 침 (가드, P-128)", plan(1.0, HOLLOW, 3000) == [])
     check("1.15–2.2 m 망자 → 약공 (봇 평가: 백스텝 헛침)", plan(1.6, HOLLOW, -1) == ["light"])
     check("1.15–2.2 m 휘두르는 중 → 안 침", plan(1.6, HOLLOW, 3000) == [])
+    check("석궁병 1.6 m 쏘는 중 (3001) → 약공 (010011 서서 맞다 사망, P-125)", plan(1.6, XBOW, 3001) == ["light"])
+    check("석궁병 1.0 m 쏘는 중 → 약공", plan(1.0, XBOW, 3001) == ["light"])
     check("1.15–2.2 m 방패병 서 있음 → 발차기", plan(1.6, SHIELD, -1) == ["kick_combo"])
     check("붙은 망자, 백스텝만 (구르기로 대신 안 함)", "roll_r1" not in plan(2.0, HOLLOW, -1))
     check("붙은 방패병, 방패 들고 서 있음 → 발차기 콤보", plan(1.0, SHIELD, -1) == ["kick_combo"])
@@ -71,6 +76,16 @@ def main() -> None:
     # judge: one reason per outcome
     ok = Hit("backstep_r1", presses=2, dmg=70, my_anims=[(0.1, 690), (0.9, 303500)])
     check("맞히고 안 맞음 → 성공", T.judge("backstep_r1", ok, [], 1.4, 1.0, -1, 1.6)[0] == "성공")
+    # [MoKa] 11-04 클레이모어 주력: 한손 공격 애니는 253xxx (배틀 액스는 303xxx) — 예전 300000–310000만 봐서 "콤보 안 나옴"·"불명"이었음
+    cm = Hit("backstep_r1", presses=2, dmg=90, my_anims=[(0.1, 690), (0.9, 253500)])
+    check("클레이모어 253500 → 백스텝 콤보 나옴, 성공", T.judge("backstep_r1", cm, [], 1.4, 1.0, -1, 1.8)[0] == "성공")
+    check("my_attack: 253000 · 303000 · 304500 · 203000 예, 690 · 2006 · 100640 아님",
+          all(M.my_attack(a) for a in (253000, 303000, 304500, 203000)) and not any(M.my_attack(a) for a in (690, 2006, 100640, -1, None)))
+    # 11-04 클레이모어 (닿는 거리 1.8, 잰 무기 배틀 액스 1.6): 백스텝 콤보 칸 1.15 → 1.35 m, 점프 진입 끝 4.5 → 4.7 m
+    line = T.set_weapon(NS(reach=1.8))
+    check(f"클레이모어 거리 ({line})", T.BS_MAX == 1.35 and T.ENTRY_MAX == 4.7 and T.dist_band(1.3) == "near")
+    T.set_weapon(NS(reach=1.6))
+    check("배틀 액스로 되돌리면 그대로", T.BS_MAX == 1.15 and T.ENTRY_MAX == 4.5 and T.dist_band(1.3) == "reach")
     trade = Hit("roll_r1", presses=2, dmg=48, taken=95, my_anims=[(0.1, 710), (1.1, 303900)])
     check("맞히고 맞음 → 맞교환", T.judge("roll_r1", trade, [], 2.5, 1.0, 3000, 1.6)[0] == "맞교환")
     cut = Hit("roll_r1", presses=2, taken=126, my_anims=[(0.1, 710), (0.4, 2004)])

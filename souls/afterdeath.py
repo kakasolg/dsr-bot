@@ -16,6 +16,7 @@ RECOVER_SOULS = 2000      # 10-11/10-12 runs (SL 15-18) dropped 439-4,127 per de
 RECOVER_HUMANITY = 2      # 1 humanity alone (most deaths carry it) is not worth a trip
 MAX_TRIPS = 2             # recovery trips per run — a run that keeps dying somewhere new still ends
 PICK_NEAR = 40.0          # after the death zone (and later ones) of a recovery trip: walk to the stain if it is this close (m)
+WARP_RESTARTS = 3         # zone runs restarted after a bonfire warp (P-126); same cap as watch.Escape.CROWD3_MAX
 
 
 def worth(stain: dict | None) -> bool:
@@ -62,10 +63,11 @@ def run_zones(first: int, last: int, play, *, alive, respawn, read_stain, pick, 
     event = event or (lambda *a, **k: None)
     set_zone = set_zone or (lambda n: None)
     trips, last_dead, start, target, r = 0, None, first, None, None    # target: the stain we went back for, dropped in zone last_dead
+    warps = 0
     if carry is not None:                               # (stain, zone): a stain from before this run (run.py --pick-stain, [MoKa] 10-31)
         target, last_dead = carry
     while True:
-        died_in = None
+        died_in = warped_in = None
         before = read_stain()
         for n in range(start, last + 1):
             set_zone(n)
@@ -81,6 +83,9 @@ def run_zones(first: int, last: int, play, *, alive, respawn, read_stain, pick, 
             if not alive():
                 died_in = n
                 break
+            if r == "warped":
+                warped_in = n
+                break
             if r in ends:
                 break
             why = low() if low is not None and n < last else None
@@ -88,6 +93,16 @@ def run_zones(first: int, last: int, play, *, alive, respawn, read_stain, pick, 
                 log(f"══ 구역 {n} 뒤 멈춤: {why}")
                 event("zones_stop", zone=n, why=why)
                 return "estus_low"
+        if warped_in is not None:
+            # P-126 · [MoKa] 11-04 "리셋하고 다시 하는 거지": 워프는 적을 안 돌림 → 구역 `restart` (구역 1 = 화톳불 휴식, 적 전부 리셋)부터
+            warps += 1
+            if warps > WARP_RESTARTS:
+                log(f"══ 구역 {warped_in} 워프 {warps}번째 — 다시 시작 안 함 (최대 {WARP_RESTARTS})")
+                return r
+            log(f"══ 구역 {warped_in}에서 워프 → 구역 {restart}부터 다시 (쉬어서 적 리셋, {warps}/{WARP_RESTARTS})")
+            event("zones_restart", zone=warped_in, why="warp", n=warps)
+            start = restart
+            continue
         if died_in is None:
             return r
         set_zone(None)

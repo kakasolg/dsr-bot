@@ -185,6 +185,10 @@ def main() -> None:
     ap.add_argument("--ground", action="store_true",
                     help="걷기의 바닥 확인에 NavMesh + 걸어 본 자리(ground.py, data/walked/) — 통로·다리 아치처럼 NavMesh가 빈 곳을 낭떠러지로 안 봄. "
                          "싸움·물러남·낙하 감지는 NavMesh 그대로 (field.GROUND_IN_FIGHTS, P-56). 기본 꺼짐 (A/B용)")
+    ap.add_argument("--crowd-warp", action="store_true",
+                    help="셋 이상 몰려 와 이미 붙어 있으면 마지막 화톳불로 워프 (게임 메모리 호출; 멀면 메뉴 퀵 종료는 늘 함) — 공격 기술 시험 "
+                         "(--combo-only · --drill)에서만, 정상 미션엔 안 씀 ([MoKa] 11-04 \"지금은 공격 기술 drill 이니 예외 상황으로 치자. "
+                         "정상적 미션에서 사용 하면 않됨\")")
     ap.add_argument("--combo-only", action="store_true",
                     help="시험: 공격은 구르기 약공·백스텝 약공·점프 공격만 (souls/duel.py COMBO_ONLY, [MoKa] 2026-11-03 P-121)")
     ap.add_argument("--drill", default=None, choices=["backstep_r1", "roll_r1", "jump_r2", "kick_combo"],
@@ -202,6 +206,8 @@ def main() -> None:
                     help="guard: 방패로 받고 휘청에 친다 (기본) | backstep: 양손, 백스텝으로 피하고 헛친 뒤 약공 | "
                          "rush: 양손, 막지도 피하지도 않고 계속 공격, 에스트로 버틴다 (사용자 제안, 실험)")
     a = ap.parse_args()
+    if a.crowd_warp and not (a.combo_only or a.drill):
+        ap.error("--crowd-warp는 공격 기술 시험 (--combo-only · --drill)에서만 ([MoKa] 11-04: 정상 미션에서 사용 안 됨)")
     if a.level_up:
         import levelup
         levelup.WANT = a.level_up.upper()
@@ -359,6 +365,8 @@ def main() -> None:
     w = weapons.of(tm.right_weapon())
     mv.weapon = w
     log(f"무기: {w.name} (약공 {w.combo}연타, 닿는 거리 {w.reach} m, 강공 {'씀' if w.use_heavy else '안 씀'})")
+    from souls import combo_table as combo_table_
+    log(combo_table_.set_weapon(w))                         # P-121 표 거리를 무기 닿는 거리에 맞춤 (11-04 클레이모어)
     esc = Escape(pad, list(nms.values()), log=log, events=log.event)   # fall / ledge watch: always the plain NavMesh (also with --ground)
     if a.ground:                                            # walks and fights read floor through the walked-cell map (design-floor-check §3-C)
         import ground
@@ -367,6 +375,7 @@ def main() -> None:
             + ") — 싸움·물러남·낙하 감지는 NavMesh 그대로")
     esc.quit_ok = not a.no_quit
     esc.fall_quit = a.fall_quit
+    esc.crowd_warp = a.crowd_warp
     if a.no_quit:
         import os
         os.environ["BOT_NO_WARP"] = "1"                   # also disable farm.rest's warp to the bonfire
@@ -492,7 +501,11 @@ def main() -> None:
             if not a.no_rest:
                 ms.start_fresh()                            # --level-up: the rest levels first
             ms.firelink_humanity()
-            r = ms.clear_ramp(lure=not a.no_lure)
+            # P-129: 다른 이름으로 잡힌 놈 (끼어든 · 오는 놈)이 칸에 안 적혀 "left #N?"로 끝남 (050019 · 051800) — 미션과 같이 pass_ramp가
+            #  살아 있는 적을 찾아 보고, 없으면 지나감 ("passed: …")
+            ok, r = ms.pass_ramp(lure=not a.no_lure)
+            if ok and r != "cleared":
+                r = f"passed: {r}"
             if r == "cleared" and fld.alive() and not a.no_recover:
                 # 경사로 핏자국 (P-121 182029 양손 드릴 사망, 소울 2661): 비운 뒤 줍기 — pick_blood가 근처 산 적·화톳불 옆을 걸러 냄
                 log(f"── 경사로 핏자국: {fld.pick_blood(nms[missions.MAP_A], near=60.0)}")

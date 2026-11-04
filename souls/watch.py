@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import collections
 import json
+import math
 import threading
 import time
 from pathlib import Path
@@ -44,6 +45,20 @@ class Escape:
     NUDGE_SAME_DY = 0.15      # standing: ±0.1 m in both runs; a 0.35 m/s slide (152400) drops ≥ 0.2 m between nudges
     LEDGE_CREEP = 0.5         # descending while moving less than this in 1 s = sliding (stairs move faster)
     CROWD_COOLDOWN = 60.0     # avoid repeating at the same spot
+    # ── 셋 이상 몰려 오면 실패 ([MoKa] 2026-11-04) ──────────────────────────────
+    #  "5명이 몰려 오면, 고수 들도 답이 없어. 그냥 quit menu 해서 몹들이 원위치로 보내는 것이 최선이야. 문제는 적들 근처에서는
+    #   quit menu도 소용 없으니 그때는 화톳불 근처로 워프가 다음 해법이지. 일단 3명 이상 몰려 오면 실패라고 생각해야되."
+    #  011442 burg-upper 구역 2-1: 유인에 254011 둘 + 255001 + 254010 둘 → 계획 5놈, 사망 (P-117 AGAIN).
+    #  · CROWD3_R 안에 깨어 있는 적 CROWD3_N 이상이 CROWD3_HOLD s 이어지면: 제일 가까운 놈이 CROWD3_QUIT_R 넘게 멀면 메뉴 퀵 종료
+    #    (죽인 놈은 그대로, 나머지는 제자리·경계 풀림 — quit_reload와 같은 menu 길), 붙어 있으면 crowd_warp일 때 마지막 화톳불로 워프
+    #    (게임 메모리 호출 — run.py --crowd-warp일 때만), 아니면 기록만 하고 아래 층 (fall_back)에 맡김.
+    #  · 2026-09-28 [MoKa] "둘러싸였을 때는 퀵 종료하면 안 되고 후퇴해야 해"와 같은 뜻: 붙은 뒤엔 퀵 종료 안 함 (그 자리에서 다시 맞음).
+    CROWD3_N = 3
+    CROWD3_R = 12.0
+    CROWD3_DY = 2.5
+    CROWD3_HOLD = 0.3
+    CROWD3_QUIT_R = 4.0       # 제일 가까운 놈이 이보다 멀면 퀵 종료 (메뉴 입력 ~2 s 동안 닿지 않을 거리 — 망자 달리기 ~3.6 m/s × 1 s 남짓)
+    CROWD3_MAX = 3            # 한 실행에서 이만큼 나간 뒤엔 더 안 나감 (같은 유인을 되풀이하는 고리 막기) — 기록만
     QUIT_S = 2.8
 
     def __init__(self, pad, nms: list, log=print, events=None):
@@ -59,6 +74,11 @@ class Escape:
         self.planned = None           # a drop we mean to make (Taurus plunge, asylum plunge, the crow) → not a fall: logged, no "fall" event
         self.nudge_ok = True                               # False = no ledge nudge-back (a deliberate drop — souls/asylum plunge onto the demon)
         self.last_fall = self.last_crowd = 0.0
+        self.crowd3_ok = True                              # False = no "3+ foes" quit-out / warp (tests, deliberate group fights)
+        self.crowd_warp = False                            # True = warp to the last bonfire when 3+ are already close (run.py --crowd-warp)
+        self.crowd3_n = 0                                  # 3+ escapes this run
+        self.warps = 0                                     # successful bonfire warps this run — the zone runner restarts on a change
+        self._crowd3_since = None
         self.last_fall_pos = None     # so upper layers back away from the edge right after a fatal-fall escape
         self.safe_pos = None          # last spot with floor directly underfoot (_ledge)
         self.last_nudge = 0.0
@@ -116,6 +136,11 @@ class Escape:
             # 둘러싸였을 때 퀵 종료는 없앰 ([MoKa] 2026-09-28: "둘러싸였을 때는 퀵 종료하면 안 되고 후퇴해야 해") — 그 자리에서 다시
             # 시작해 같은 적 옆에서 이어 싸움 (Bandit Bot: 동시 피격 한 번에 피해 속도가 튀어 HP 65 %에서 걸림 → HP 441로 이어 싸우다 사망).
             # 둘러싸임은 duel 'crowd' → Field.fall_back 이 맡는다
+            if not why and not falling and self.crowd3_ok and now - self.last_crowd > self.CROWD_COOLDOWN:
+                why, kind = self._crowd3(s, p, now)
+            if why and kind == "crowd3_warp":
+                self.warp_last(why, tm, p)
+                why = None
             if why:
                 if kind == "fall" and not self.fall_quit:
                     self.fall_seen(why, p)
@@ -243,6 +268,62 @@ class Escape:
             self.pad.unfreeze()
             ctl.emit("esc", ev="nudge_end", dt_ms=round((time.perf_counter() - t0) * 1000, 1))
         return True
+
+    def _crowd3(self, s, p, now: float) -> tuple[str | None, str | None]:
+        """3+ awake foes within CROWD3_R for CROWD3_HOLD s → (why, 'crowd3' | 'crowd3_warp') or (None, None) (see CROWD3_* above)."""
+        near = sorted(math.hypot(c.x - p.x, c.z - p.z) for c in s.hostile(self.CROWD3_R)
+                      if (c.hp or 0) > 0 and not 9000 <= (c.anim or 0) < 9100 and abs(c.y - p.y) < self.CROWD3_DY)
+        if len(near) < self.CROWD3_N:
+            self._crowd3_since = None
+            return None, None
+        if self._crowd3_since is None:
+            self._crowd3_since = now
+        if now - self._crowd3_since < self.CROWD3_HOLD:
+            return None, None
+        self._crowd3_since = None
+        self.last_crowd = now
+        what = f"{len(near)}놈 몰려 옴 (가장 가까운 {near[0]:.1f} m) — 실패로 봄"
+        if self.crowd3_n >= self.CROWD3_MAX:
+            self.log(f"   ⚠ {what} — 이 실행에서 {self.crowd3_n}번 나가서 이번엔 안 나감 (기록만)")
+            if self.events:
+                self.events("crowd3", n=len(near), near=round(near[0], 2), action="capped")
+            return None, None
+        self.crowd3_n += 1
+        if near[0] > self.CROWD3_QUIT_R:
+            if self.events:
+                self.events("crowd3", n=len(near), near=round(near[0], 2), action="quit")
+            return what + " → 메뉴 퀵 종료 (몹 원위치)", "crowd3"
+        if self.crowd_warp:
+            if self.events:
+                self.events("crowd3", n=len(near), near=round(near[0], 2), action="warp")
+            return what + " → 붙어 있어 퀵 종료 소용없음, 화톳불 워프", "crowd3_warp"
+        self.log(f"   ⚠ {what} — 붙어 있어 퀵 종료 안 함, 워프 꺼짐 (--crowd-warp 없음) → 아래 층이 물러남")
+        if self.events:
+            self.events("crowd3", n=len(near), near=round(near[0], 2), action="close_no_warp")
+        return None, None
+
+    def warp_last(self, why: str, tm, p) -> bool:
+        """Warp to the last rested bonfire (tm.bonfire_warp — game memory call, run.py --crowd-warp only). Pad frozen meanwhile."""
+        with self._lock:
+            bid = tm.last_bonfire()
+            self.log(f"   ⚠ 워프: {why} — 화톳불 {bid}")
+            self.escaping = True
+            self.pad.freeze()
+            try:
+                ok = bool(bid) and tm.bonfire_warp(bid, log=self.log)
+            finally:
+                self.pad.neutral()
+                self.pad.unfreeze()
+            time.sleep(2.0)
+            self._hp.clear()
+            self._y.clear()
+            self.gen += 1
+            self.warps += 1 if ok else 0
+            self.escaping = False
+            self.log(f"   ⚠ 워프 결과: {'ok' if ok else 'failed'}")
+            if self.events:
+                self.events("escape", why=why, kind="crowd3_warp", ok=ok, bonfire=bid)
+            return ok
 
     def _quit(self, tm, kind: str, res: dict) -> float | None:
         """

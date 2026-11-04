@@ -188,10 +188,10 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 85 | `burg-altar` dies at ③: bridge hollows follow (lunges, 2 at once), and a stain pickup walked into the breath line | open — 2/5 arrived; fight + recover at ③, pickup removed |
 | 86 | `altar-burg` left the altar at HP 41 % (no rest) → perched Hellkite + bridge soldier → died | open — Estus before leaving; rest at the altar = MoKa |
 | 91 | Pad freeze: guardkeep's `keep_guard` from another thread → the holder's `neutral()` presses LB on the real device, held through menu input (offline race table K1, not seen in game) | open → minimal patch built 10-27 (uncommitted); fake-pad tests pass; game: one quit-out J run, output log clean, screen/XInput unchecked; nudge unchecked |
-| 92 | Pad freeze: another thread's `sprint(True)` → the holder's `neutral()` presses B (menu cancel) on the real device, held through menu input (offline K2; K3 `tap` note) | open → same patch as P-91 (uncommitted); same one quit-out J run (output log: no B); screen/XInput unchecked |
+| 92 | Pad freeze: another thread's `sprint(True)` → holder's `neutral()` presses B on the real device through menu input (offline K2) | open → same patch as P-91 (uncommitted); one quit-out J run, no B in log; screen/XInput unchecked |
 | 93 | Pad, normal time (no freeze): `keep_guard` + `guard(True)`→`guard(False)` → LB left on after the hold ends (offline model S6 + test S6-normal) | open, tracked only |
 | 94 | Pad, normal time: an earlier `tap` release on the same button lets go of a new `hold(…, True)` (Y; offline model S5 + test S5-normal; no game path found) | open, tracked only |
-| 95 | Parish fight #2 (10-30): after_swing light into an interloper 255041 in 3003 for 2.5 s → −174 during our own attack; not the "2.7 s approach gap" blind_report shows (that counts the black-box line's write time) | open, analysis only |
+| 95 | Parish #2 (10-30): after_swing light into interloper 255041 (3003) → −174 mid-attack; not blind_report's 2.7 s gap | open, analysis only |
 | 96 | `burg-altar` run on a character with Taurus alive (10-31 155929): no zone 8 / `taurus` / resin → died to 225000 on the bridge; the death before it (155357) had no analysis either | open → `boss_ready` entry checks built (uncommitted, offline tests only); game read unchecked |
 | 97 | Taurus plunge loop (11-01): ladder A held/dropped, turn too short, rolls at swing start not before the hit; 10 tries 5 kills | open → 7 fixes uncommitted, offline tests; timed dodge not yet seen in game |
 | 98 | `burg-upper` zone 2 (11-01 151756): 254011 + 255001 together, low-HP retreat ×4 without estus, fell 10 m off the edge near (-3.1,-14.2,-68.6) → died | open |
@@ -201,7 +201,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 102 | `burg-upper` zone 5 (11-01 173025): unknown-fog A at the ladder foot grabbed the ladder, 87–196 s looping | fix built (no fog A ≤2.5 m from NavMesh ladder faces); offline tests only |
 | 103 | `burg-upper` zone 8 tower top (11-01 173025, again 214607): 255002 hits, low-HP retreat in the open, no estus (thrower awake) → died; 4/12 zone-8 runs died | game 1 run (11-01 230106): zone 8 cleared, no death, both 255002 killed at/near F9#8 (0 dmg taken); detour after the ladder took both bolts (−160); 20 s hold untested; more runs + step logs next |
 | 104 | Resin chest: scratch script pressed 'door A' 13 m from the door (picked a firebomb), stuck at the shut door; bot 'approach' can't open doors | game 183919: door opened (1 A), chest missed (stood 1.34 m, nudges didn't move) → next fix, MoKa |
-| 105 | `burg-upper` zone 6 (11-01 183919): safe spot NOT REACHED ×3, −336 on the stairs (46.6,−0.7,−113.3) with no attacker anim, then 255001 → died | open → cause seen on screen (11-02 024657): a soldier rolls a burning barrel down the stairs (9/9, −336); MoKa: try to dodge, drink at once if hit → barrel step (~5 m past the turn, run back) + sip_on_hit, offline only |
+| 105 | `burg-upper` zone 6 (11-01 183919): −336 on the stairs (46.6,−0.7,−113.3), no attacker anim → died | open → cause (11-02 024657): rolling burning barrel (9/9, −336); MoKa: dodge, drink at once → barrel step + sip_on_hit, offline only |
 | 106 | `burg-upper` zone 2-1 (11-01 214135, from the Burg bonfire): started at HP 81 %, 255001 + 254011 together, estus refused 8× (foe close), retreats ×3 → died | open — same family as P-45/P-74/P-98 |
 | 107 | Item-get window left open after the resin chest (11-01 214607): close-A skipped when the window list read empty | fix built (wait ≤ 2 s, A always), offline only |
 | 108 | `burg-upper --seg 8` started on the tower top (11-01 231119): fog step misread 'before the wall' (3D distance) → walked off the ladder top, 9 m fall −110; stain got | fix built (skip fog/ladder/top-up at ladder-top height, slack 1.5 m), offline tests only; game check next |
@@ -213,13 +213,20 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 114 | shop (11-02 040229): bot reached the Undead Merchant, walk to his centre blocked by boxes at 3.7 m → not_facing, 0 knives | open → stand spot + quick slot; game: bought 25 in 4/4 (11-02 try 15·16·17·20) |
 | 115 | `burg-upper` zone 6 (11-02 040854): barrel soldier came down to the safe spot, kill step said "안 보임" (spawn-height search), 2nd hit not sipped → zone 7 at HP 326, died | open → fix built; game: wait ended at 3.6 / 3.4 m (try 16·20), follow-lookup and re-sip paths not exercised |
 | 116 | `burg-bonfire` town #6 (11-02 042357): two shield 255000 together, one in anim 3007 for 10 s+; 4 hits while closing in → died (before the shop, no knives) | open → observe 3007 first |
-| 117 | `burg-upper --throw` (11-02 044545): knife lure threw 0 of 5 (lock-on failed 7–11 m); standing in 254012 firebomb range in zone 2 −666 → died | open → MoKa: knives from zone 4 (resin door) on, no retry after a fail; 11-02 051424 zone 4 knife hit, lured |
+| 117 | burg-upper z2: knife lure 0/5 (044545); 11-04 011442 AGAIN: 5 foes, backstep combo into swings → died | open → MoKa |
 | 118 | `taurus` close fight (11-02 051424): no Estus at 320/698 (40 % rule), next −242 → died, boss ~161 left | open → drink below two hits (490); 11-03 try 21: ran in game (drank at 456), death was P-119 |
 | 119 | `taurus` close fight (11-03 try 21·22): swung on its center line 0.5–2.0 m in front, hit back to back → died | open → crotch_spot + two-hit/stay: killed 3 of 4 from MoKa's fog save (try 24–26; try 23 knocked off the bridge) |
-| 120 | PC hard freeze → reboot 11-03 06:30 (WHEA fatal, no bugcheck; same 10-25) during clip analysis | parked → MoKa: note only; if again, throttle clip.py ffmpeg, check BIOS |
+| 120 | PC freeze 11-03 (WHEA) in clip analysis | parked → MoKa: if again, throttle ffmpeg, check BIOS |
 | 121 | burg-upper z8: two 255002, died | open → ramp combo tests |
 | 122 | ramp 133114: retreat fell, died | open → MoKa |
 | 123 | ramp 182029: 2-hand, 255010 | open |
+| 124 | taurus 001105: Estus in reach, fell | open → MoKa |
+| 125 | burg 010011: xbow 1.6 m, no attack | verify |
+| 126 | 015007: warp, re-entered same 5 | verify → rest + restart; 023349 ok |
+| 127 | z2: walker anim −1 → ran into 3 | verify → walk check + lure_at; 040915 1:1 |
+| 128 | no guard vs swing | verify → guard; 044457 cleared |
+| 129 | ramp left #N? · escape error | verify → fixed, 3 runs ok |
+| 130 | swing backstep ≥1.8 m: 3 ok/9 hit | decide → MoKa |
 
 ## 5. Relay — [cloud] ↔ board
 

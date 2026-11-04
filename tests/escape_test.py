@@ -111,6 +111,9 @@ def main() -> None:
     check(f"13 m out, nobody near: the safe spot itself is a candidate and back there is the way ({ch3.line()})",
           ch3.point is not None and math.hypot(ch3.point[0] - safe[0], ch3.point[2] - safe[2]) <= 8.0
           and any(t[3] == "off_zone" for t in ch3.table))
+    # P-129 (051246): the chosen point also listed earlier as a dropped candidate (score None) → line() raised TypeError
+    dup = E.Choice(point=(1.0, 0.0, 2.0), src="R", table=[("R", (1.0, 0.0, 2.0), None, "foe"), ("R", (1.0, 0.0, 2.0), 3.5, "")])
+    check(f"P-129: same point dropped once and kept once → line() ok ({dup.line()})", "3.5" in dup.line())
     print("escape_test: 전부 통과")
 
 

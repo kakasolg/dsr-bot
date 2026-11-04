@@ -157,6 +157,18 @@ def main() -> None:
         D.COMBO_ONLY = saved
     check(f"락온 안 걸림 → 콤보 안 누름 ({r.kind}: {r.skipped})", r.kind == "wait" and "락온" in r.skipped and mv.calls == [])
 
+    # P-128 (040915 구역 2): 붙어서 휘두르는 망자 (3000, 1.0 m) → 표가 [] → 서 있지 않고 가드 들고 기다림, 줄은 한 번만
+    mv = Mv(); mv.lock_state = lambda ptr: "target"; guards, logs = [], []
+    mv.guard = lambda on: guards.append(on)
+    F = NS(mv=mv, nm=None, log=logs.append, events=lambda *_a, **_k: None, foe=HOLLOW, hp_start=600,
+           weapon=NS(reach=1.6, combo=2))
+    p = NS(x=0.0, y=0.0, z=0.0, heading=0.0, hp=600, max_hp=698, anim=-1)
+    c = NS(ptr=8, npc_param=254000, x=0.0, y=0.0, z=1.0, anim=3000, hp=80)
+    r = D._combo_strike(F, NS(player=p, hostile=lambda r: [c]), c)
+    r2 = D._combo_strike(F, NS(player=p, hostile=lambda r: [c]), c)
+    check(f"P-128: 붙어서 휘두르는 놈 → 가드 ({r.kind}: {r.skipped}), 줄 {len(logs)}",
+          r.kind == r2.kind == "wait" and guards == [True, True] and mv.calls == [] and len(logs) == 1)
+
 
 if __name__ == "__main__":
     main()

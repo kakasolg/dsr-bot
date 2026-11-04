@@ -102,6 +102,23 @@ def main() -> None:
         D.DRILL = "backstep_r1"
         F = fight(Mv())
         check("다른 드릴이면 안 함", tick(F, 3.5) is None and not jumps(F))
+        D.DRILL, saved_co = None, D.COMBO_ONLY
+        try:
+            D.COMBO_ONLY = True
+            D.PLANNED.clear(); D.PLANNED[7] = "jump_r2"
+            F = fight(Mv())
+            check("드릴 없이 --combo-only 계획 jump_r2 → 같은 타이밍 규칙으로 점프 ([MoKa] 11-04)",
+                  tick(F, 3.5) == D.CONT and len(jumps(F)) == 1)
+            D.PLANNED[7] = "backstep_r1"
+            F = fight(Mv())
+            check("계획이 backstep_r1이면 점프 안 함", tick(F, 3.5) is None and not jumps(F))
+            D.COMBO_ONLY = False
+            D.PLANNED[7] = "jump_r2"
+            F = fight(Mv())
+            check("--combo-only 아니면 계획 있어도 안 함", tick(F, 3.5) is None and not jumps(F))
+        finally:
+            D.COMBO_ONLY = saved_co
+            D.PLANNED.clear()
     finally:
         D.DRILL = saved
 

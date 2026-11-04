@@ -24,6 +24,7 @@ import math
 from types import SimpleNamespace as NS
 
 import control
+import dsr_telemetry
 import env
 import nav
 import navmesh
@@ -31,6 +32,7 @@ from control import B
 from souls import missions
 from souls import moves as M
 
+ACTIVE_VALS = (5, 257)      # anim struct +0xA0 while the blade is out (swing_probe.py, Claymore 10-13)
 FRONT_M, BACK_M = 3.0, 2.6   # floor needed ahead / behind — the bot's own checks (combo need_front 3.0, backstep 2.6)
 
 
@@ -151,6 +153,19 @@ def main() -> None:
     else:
         t0 = time.time()
         pad.kick(*fwd)
+    # [MoKa] 11-04 "검이 길고 동작이 다르니 다시 측정": blade-out window (+0xA0) and how far we had moved along the aim by then
+    ax, az = aim.x - p0.x, aim.z - p0.z
+    an_ = math.hypot(ax, az) or 1.0
+    ax, az = ax / an_, az / an_
+
+    def blade():
+        try:
+            pp = tm.player_ptr()
+            v = tm.i32(tm.q(tm.q(pp + dsr_telemetry.OFF_MAPDATA) + 0x48) + 0xA0)
+            return None if v is None else v & 0xFFFF     # combos set the high bit (0x80000005 / 0x80000101) — plain light doesn't
+        except Exception:
+            return None
+    wins, on, braw = [], None, []
     anims, last, r1_done, stick_off = [], None, r1_at is None, False
     while time.time() - t0 < a.secs:
         pad.release_due()
@@ -164,6 +179,18 @@ def main() -> None:
             r1_done = True
         s = tm.snapshot(within=5.0)
         an = s.player.anim if s else None
+        b = blade()
+        if not braw or braw[-1][1] != b:
+            braw.append((round(t, 2), b))
+        fw = ((s.player.x - p0.x) * ax + (s.player.z - p0.z) * az) if s else None
+        if b in ACTIVE_VALS and on is None:
+            on = (round(t, 2), fw)
+        elif b not in ACTIVE_VALS and on is not None:
+            if wins and on[0] - wins[-1][1] < 0.05:
+                wins[-1] = (wins[-1][0], round(t, 2), wins[-1][2], fw)
+            else:
+                wins.append((on[0], round(t, 2), on[1], fw))
+            on = None
         if an != last:
             anims.append((round(t, 2), an))
             last = an
@@ -174,6 +201,10 @@ def main() -> None:
     moved = ((p1.x - p0.x) ** 2 + (p1.z - p0.z) ** 2) ** 0.5 if p0 and p1 else None
     print(f"  → {anims}", flush=True)
     print(f"  moved {moved and round(moved, 2)} m, SP {p1 and p1.sp}", flush=True)
+    for w0, w1, f0, f1 in wins:                      # forward displacement at blade on → off (m along the aim; − = backwards)
+        print(f"  blade {w0:.2f}–{w1:.2f} s, forward {f0 if f0 is None else round(f0, 2)} → {f1 if f1 is None else round(f1, 2)} m", flush=True)
+    if not wins:
+        print("  blade: no +0xA0 window seen", flush=True)
 
 
 if __name__ == "__main__":

@@ -52,9 +52,16 @@ def main() -> None:
     plan = GP.make(me(), foes, None, foe_of=KINDS.get, here_only=True)
     atk = [st.attack for st in plan.steps]
     check(f"순서는 가까운 놈부터 ({[st.npc for st in plan.steps]})", [st.npc for st in plan.steps] == [254000, 254002, 252000])
-    check(f"첫 놈 → 백스텝 콤보 ({atk})", atk[0] == "backstep_r1")
-    check(f"두 번째 7.5 m 망자 → 점프 공격으로 들어감 ({atk})", atk[1] == "jump_r2")
-    check(f"방패병 서 있음 → 발차기 ({atk})", atk[2] == "kick_combo")
+    # [MoKa] 11-04 "적이 2인 경우는 백스텝 콤보, 적이 근처에 하나이고, 지형으로 막히지 않으면 뒤잡 공격, 가드 브레이크는 점프 공격"
+    check(f"3놈: 첫 망자 → 백스텝 콤보 ({atk})", atk[0] == "backstep_r1")
+    check(f"3놈: 두 번째 망자도 → 백스텝 콤보 ({atk})", atk[1] == "backstep_r1")
+    check(f"방패병 → 점프 공격 (가드 브레이크) ({atk})", atk[2] == "jump_r2")
+    one = [foe(1, 254000, 0.0, 3.0)]
+    check("근처 하나 · 돌 바닥 있음 → 뒤잡", GP.make(me(), one, None, foe_of=KINDS.get, here_only=True).steps[0].attack == "backstab")
+    check("근처 하나 · 돌 바닥 막힘 → 백스텝 콤보 (뒤로만)", GP.make(me(), one, None, foe_of=KINDS.get, here_only=True,
+                                                         arc_of=lambda c: False).steps[0].attack == "backstep_r1")
+    check("방패병 하나 → 점프 공격", GP.make(me(), [foe(2, 252000, 0.0, 3.0)], None, foe_of=KINDS.get,
+                                       here_only=True).steps[0].attack == "jump_r2")
     check("계획 줄 있음", len(plan.lines()) == 4 and "1)" in plan.lines()[1])
 
     # 첫 놈은 +z 쪽 → 백스텝은 −z로 2.6 m 바닥이 필요. 어디로 옮겨도 그런 자리가 없으면 그 이유가 계획에 남음

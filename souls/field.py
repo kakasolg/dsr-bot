@@ -859,7 +859,7 @@ class Field:
         if not foes or key == getattr(self, "_plan_key", None):
             return
         self._plan_key = key
-        plan = GP.make(p, foes, nm, foe_of=foes_.of)
+        plan = GP.make(p, foes, nm, foe_of=foes_.of, arc_of=lambda c: any(D._arc_open(nm, p, c)))
         if D.DRILL:
             for st in plan.steps:                          # 드릴: 모든 놈에 그 공격 (134253: 방패병 계획 kick_combo가 드릴을 이김)
                 st.attack, st.why = D.DRILL, "드릴"

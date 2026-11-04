@@ -176,6 +176,18 @@ def main() -> None:
     r = esc.fall_seen("낙사 (발밑 바닥 9 m 아래)", types.SimpleNamespace(x=48.94, y=24.62, z=-117.4, hp=742))
     check("planned drop → no 'fall' event, logged as 계획된 낙하", rows == [] and r["planned"] and "계획된 낙하" in lines[-1])
     esc.planned = None
+    # P-126 · [MoKa] 11-04 "리셋하고 다시 하는 거지": a zone that ends 'warped' restarts the zones from `restart` (zone 1 rests)
+    g = Game({}, [])
+    order = iter(["cleared", "warped", "cleared"])
+    g.play = lambda n: (g.played.append((g.life, n)), next(order, "cleared"))[1]
+    r = g.run(1, 3)
+    check("워프 → 구역 1부터 다시 (1, 2, 1, 2, 3)", [n for _, n in g.played] == [1, 2, 1, 2, 3] and r == "cleared"
+          and any(ev == "zones_restart" and k["zone"] == 2 for ev, k in g.events))
+    g = Game({}, [])
+    g.play = lambda n: (g.played.append((g.life, n)), "warped")[1]
+    r = g.run(1, 3)
+    check(f"워프 {A.WARP_RESTARTS}번 넘으면 끝", r == "warped" and len(g.played) == A.WARP_RESTARTS + 1)
+
     print("afterdeath: all ok")
 
 

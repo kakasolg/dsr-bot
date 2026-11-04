@@ -27,10 +27,16 @@ COMBO_ANIM = {"backstep_r1": 500, "roll_r1": 900, "jump_r2": 600}
 TABLE = [
     # 봇 평가 (MoKa 판단 아님, 표본 작음): 백스텝 콤보는 모션이 다 나와도 1.2·1.58·1.95 m에서 헛침 3번 (125142·125647, 그놈 애니
     # 3000·2012·3500 → 물러나는 중), 0.85–1.35 m에서 맞힘 2번. 약공은 1.49–1.69 m에서 맞힘 3/3. → 1.15 m 넘으면 약공
+    # 석궁병의 3001은 쏘기 — 붙어서도 휘두름이 아님. 010011 (P-125): 1.6 m에서 "휘두름 → 안 침"으로 11 s 서서 −83씩 맞고 사망
+    (("reach", "ranged", "swing"), ["light"], "봇 평가 11-04 010011: 석궁병 쏘는 중 1.6 m에서 안 쳐서 사망 → 붙으면 약공"),
+    (("near", "ranged", "swing"), ["light"], "봇 평가 11-04 010011: 석궁병 쏘는 중 붙으면 약공"),
     (("reach", "shield", "idle"), ["kick_combo"], 'MoKa 11-03 "붙어 있는데 상대가 방패가 있으면 발차기 콤보"'),
     (("reach", "*", "swing"), [], "봇 평가 11-03 130055: 휘두르는 놈에 1.17 m 약공 → 나가기 전에 맞아 끊김 −55 → 안 침 (반사가 피함)"),
     (("reach", "*", "*"), ["light"], "봇 평가 11-03: 1.15–2.2 m 백스텝 콤보 헛침 3/3, 약공 맞힘 3/3 (125142·125647)"),
     (("near", "shield", "idle"), ["kick_combo"], 'MoKa 11-03 "붙어 있는데 상대가 방패가 있으면 발차기 콤보"'),
+    # 봇 평가 11-04 (P-128): 붙어서 휘두르는 놈에 시작하면 나가기 전에 맞아 끊김 3번 — 040915 1.0 m backstep_r1 −190 · 023349 0.9 m 약공
+    #  −92 · 011442 0.8 m backstep_r1 −267 → 안 침, 가드 들고 휘두름 끝을 기다림 (방패병 줄은 MoKa 말이 있어 아래 그대로)
+    (("near", "other", "swing"), [], "봇 평가 11-04 040915·023349·011442: 붙어서 휘두르는 놈에 시작 → 끊김 3/3 → 가드"),
     (("near", "shield", "*"), ["backstep_r1"], 'MoKa 11-03 "지금 방패병이 딱 백스텝 콤보 였는데" (휘두른 직후)'),
     (("near", "*", "*"), ["backstep_r1"], 'MoKa 11-03 "붙으면 백스텝 콤보" · "가까운데 구르기" 금지'),
     (("mid", "ranged", "*"), ["roll_r1", "jump_r2"], 'MoKa 11-03 "석궁병 다가 갈때 구르기 콤보로 공격 했어야지"'),
@@ -63,6 +69,23 @@ ENTRY = [
     (("mid", "*", "*"), ["roll_r1"], 'MoKa 11-03 "거리가 있으면 구르기 콤보"'),
     (("far", "*", "*"), ["jump_r2", "roll_r1"], "봇 기본 (MoKa 판단 전): 3.5 m 넘으면 점프 공격 (3.25 m 이동)"),
 ]
+
+
+# ── 무기마다 거리 ([MoKa] 11-04 "검이 길고 동작이 다르니 다시 측정") ─────────────────────────────
+#  위 거리는 11-03 배틀 액스 (닿는 거리 1.6 m, 애니 303xxx)로 잰 값. 콤보 이동 거리는 클레이모어도 거의 같음 (11-04 combo_probe:
+#  백스텝 칼날 때 앞 0.3–0.7 m, 점프 3.27 m, 구르기 5.0–5.6 m) → 닿는 거리 차이만큼 백스텝 콤보 칸 · 점프 진입 끝을 옮김.
+#  실전에서 맞는 거리는 아직 안 잼 (봇 평가 전).
+MEASURED_REACH = 1.6
+_BASE = {"BS_MAX": BS_MAX, "ENTRY_MAX": ENTRY_MAX}
+
+
+def set_weapon(w) -> str:
+    """Shift the reach-bound cells by w.reach − MEASURED_REACH (run.py, once the weapon is known). → one log line."""
+    global BS_MAX, ENTRY_MAX
+    extra = (getattr(w, "reach", MEASURED_REACH) or MEASURED_REACH) - MEASURED_REACH
+    BS_MAX = round(_BASE["BS_MAX"] + extra, 2)
+    ENTRY_MAX = round(_BASE["ENTRY_MAX"] + extra, 2)
+    return f"콤보 거리: 닿는 거리 {getattr(w, 'reach', '?')} m (잰 무기 {MEASURED_REACH} m, {extra:+.2f}) → 백스텝 콤보 ≤ {BS_MAX} m, 점프 진입 ≤ {ENTRY_MAX} m"
 
 
 def entry_plan(k: dict) -> tuple[list[str], str]:
@@ -129,9 +152,9 @@ def judge(move: str | None, hit, skipped: list[str], h0: float, h1: float | None
         return "못함", "지형: " + (" · ".join(skipped) if skipped else "쓸 수 있는 콤보 없음")
     mine = [a for _t, a in hit.my_anims if a is not None]
     want = COMBO_ANIM.get(move)
-    came = want is None or any(a >= 300000 and a % 1000 == want for a in mine)
+    came = want is None or any(M.my_attack(a) and a % 1000 == want for a in mine)
     stunned = any(a in M.HIT_STUN for a in mine)
-    if hit.dmg > 0 and not any(a >= 300000 for a in mine):
+    if hit.dmg > 0 and not any(M.my_attack(a) for a in mine):
         # 내 공격 애니가 하나도 없는데 피해 — 직전 공격이 늦게 잡혔거나 다른 원인 (125142 151 s: 애니 [-1]인데 "성공 59")
         return "불명", f"피해 {hit.dmg}{' (처치)' if hit.dead else ''} 들어왔지만 내 공격 애니 없음 — 이 콤보 때문 아님"
     if hit.dmg > 0:

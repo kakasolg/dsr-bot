@@ -218,6 +218,27 @@ foe = Chr(npc_param=254011, ptr=17, x=-6.0, y=-10.0, z=-79.0, hp=75, anim=-1)   
 m, f, calls, w = make(foe)
 check("asleep but within 8 m of the spot → wait there too", m._lure(foe, 17, safe, LineNm(), "t") == "here" and calls == [])
 
+# P-127 (023349 zone 2): walking foes read anim −1 — 254011 walked 1.5 m toward us with −1 and the run in never stopped
+foe = Chr(npc_param=255001, ptr=19, x=-1.3, y=-10.1, z=-95.4, hp=85, anim=-1)
+walker = Chr(npc_param=254011, ptr=20, x=-10.1, y=-9.9, z=-81.0, hp=75, anim=-1)
+m, f, calls, w = make(foe, wake="asleep", other=walker)
+seen_stop = []
+
+
+def walk_toward(path, nm_, mode="walk", stop=None, **kw):
+    calls.append(("sprint", tuple(path[-1]), mode))
+    if tuple(path[-1]) == safe:
+        return "arrived"
+    seen_stop.append(stop(m.mv.snap(30.0)))              # first look: the walker where it stands
+    walker.z += 1.5                                      # it walks toward us, anim still −1
+    seen_stop.append(stop(m.mv.snap(30.0)))
+    return "stopped" if seen_stop[-1] else "arrived"
+
+
+m.mv.walk_path = f.mv.walk_path = walk_toward
+m._lure(foe, 19, safe, LineNm(), "t")
+check("P-127: another foe walking 1.5 m with anim −1 stops the run in (not only anims)", seen_stop == [False, True])
+
 foe = Chr(npc_param=255001, ptr=18, x=-1.3, y=-10.1, z=-95.4, hp=85, anim=-1)
 m, f, calls, w = make(foe, results=("low_hp", "killed"))
 r = m._pull_to_safe(255001, (-1.3, -10.1, -95.4), safe, LineNm(), "t")

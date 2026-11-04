@@ -76,7 +76,7 @@ def my_kind(anim) -> str:
     a = anim if anim is not None else -1
     if a == -1:
         return "서 있음/걷기"
-    if 300000 <= a < 310000:
+    if M.my_attack(a):
         return "공격 중"
     if 700 <= a < 800:
         return "구르기/백스텝"

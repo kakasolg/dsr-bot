@@ -1127,6 +1127,13 @@ DRILL_BS_IDLE = 3.0
 ENTRY_LEAD = {"roll_r1": 0.9, "jump_r2": 0.8}
 LOCK_WAIT_S = 4.0        # 콤보 전 락온을 이만큼 기다리고도 못 잡으면 락온 없이 침 (기록에 남김)
 PLANNED: dict = {}
+
+
+def _tech(c) -> str | None:
+    """This foe's technique: the drill's, else the group plan's (--combo-only). Timing rules (jump · swing backstep) key off it,
+    so a route run with --combo-only uses them per foe, not only in a one-attack drill ([MoKa] 11-04 "공격 기술을 적절한 타이밍에
+    못 사용 한다는 것을 개선 해야해")."""
+    return DRILL or (PLANNED.get(c.ptr) if COMBO_ONLY else None)
 BS_WAIT = 0.0             # COMBO_ONLY: planned backstep combo but foe at 1.15–2.2 m → wait this long for it to come in        # COMBO_ONLY: foe ptr → planned attack, set by Field._group_plan (souls/group_plan.py) before the fight
 BS_R = 2.2               # COMBO_ONLY: within this = 붙어 있음 (1.6 reach → 2.2 after "가까운데 구르기") → backstep attack first ([MoKa] 11-03 "적이 붙어 있으면 백스텝 콤보 사용해야지")
 FOOTING = False          # run.py --footing: rule_footing on, rule_edge off (design-floor-check §3-A; [MoKa] 2026-10-11 answers to §7)
@@ -1240,6 +1247,9 @@ SWING_BS_POLL = 0.01     # 장전 중 보는 간격
 SWING_BS_LAT = 0.15      # B 입력 → 690 보임 (155254)
 # 160317: 0.9 m에서 누른 것은 3003에 그대로 맞음 (−160), 1.4 m 이상은 피함 4/4 → 이보다 가까우면 백스텝으로 못 벗어남 (막기에 맡김)
 SWING_BS_MIN = 1.2
+# P-130 ([MoKa] 11-04 "Yes, guard"): 휘두르기 시작한 놈에 1.8 m 넘어서 B → 11-04 로그 집계 피함+맞힘 3 · 못 피함 9 (−1210);
+#  1.8 m 안은 10 · 6 (−815) → 휘두름 갈래는 이 거리 넘으면 B 안 누르고 가드 (다가올 때 장전 갈래는 그대로)
+SWING_BS_SWING_MAX = 1.8
 SWING_BS_V = 0.5         # 이보다 빨리 다가오는 놈만 (서 있는 놈엔 안 함 — 표대로)
 SWING_BS_EARLY = 0.35    # 휘두름 시작 뒤 이만큼까지만 누름 (시범: +0.23 s 성공, +0.5 s 넘으면 맞음)
 SWING_BS_R1 = 0.6        # B 뒤 이만큼에 R1 (시범 0.53–0.73 s)
@@ -1286,7 +1296,8 @@ JUMP_LO, JUMP_HI = 2.6, 4.8   # 누를 때 서 있는 그놈 거리 — 점프 3
 JUMP_FRONT = 4.3          # 앞에 이만큼 바닥 (140920 점프 드릴 #1 낙사)
 JUMP_SP = 65              # 224853: 303600 점프 한 번에 기력 48 → −17 (≈65, 배틀 액스)
 JUMP_DODGE_MIN = 1.6      # 백스텝만은 이보다 멀 때 — 225538: 3000 시작 1.4 m에서 B → 1.05 m에서 −83 (못 벗어남); 1.7 · 2.3 m는 피함
-JUMP_DODGE_SP = JUMP_SP + 20   # 백스텝만은 이만큼 있을 때 — 백스텝 ≈20 (98 → 78) 쓰고도 헛친 틈에 점프할 기력이 남게
+JUMP_DODGE_SP = JUMP_SP + 20
+JUMP_SAVE_CROWD_R = 6.0   # 드릴 밖 계획 점프: 다른 놈이 이 안에 있으면 rule_jump_save (방패 내림) 안 함   # 백스텝만은 이만큼 있을 때 — 백스텝 ≈20 (98 → 78) 쓰고도 헛친 틈에 점프할 기력이 남게
 JUMP_COOL = 2.0
 JUMP_WAIT_FAR = 7.0       # 점프 드릴: 이보다 멀면 다가감, JUMP_HI..이 사이에선 기다림 (_drill_setup DRILL_WAIT)
 JUMP_HOLD = 4.1           # 점프 드릴: 안 오면 이 거리까지 다가가서 섬 (창 JUMP_LO..JUMP_HI 가운데)
@@ -1303,7 +1314,7 @@ def rule_jump_drill(F, T):
        5.5 → 1.0 m, 옆으로 넘어감 ([MoKa] "넘어갔어"). 망자는 다가오다 가속하니 속도로 착지 거리를 못 맞춤.
      · 락온 · 기력 JUMP_SP · 앞 바닥 JUMP_FRONT m · 높이 차 1 m 안. 매번 "jump_drill" 이벤트 (h · v · 내 애니·그놈 애니 시간 · 피해).
     """
-    if DRILL != "jump_r2":
+    if _tech(T.c) != "jump_r2":
         return None
     s, c, h = T.s, T.c, T.h
     if h > JUMP_WAIT_FAR or abs(getattr(T, "dy", 0.0) or 0.0) > 1.0:
@@ -1369,7 +1380,7 @@ def rule_jump_dodge(F, T):
      거리가 2.4–4.3 m 생기면 rule_jump_drill이 점프 (헛침 갈래). 조건은 휘두름 백스텝과 같음 (망자 · SWING_BS_MIN..R · 시작
      SWING_BS_EARLY s 안 · 뒤 바닥 2.6 m).
     """
-    if DRILL != "jump_r2":
+    if _tech(T.c) != "jump_r2":
         return None
     s, c, h = T.s, T.c, T.h
     swinging = T.a in M.ATTACK and T.age is not None
@@ -1400,8 +1411,11 @@ def rule_jump_save(F, T):
      (2.6 m)에 점프할 기력이 없었음. 기력 < JUMP_DODGE_SP이고 그놈이 안 휘두를 때는 방패 내리고 (회복 −80 % 없앰) 마주 보고만
      섬 — 다른 공격 안 함. 휘두르면 아래 막기·반사 규칙이 그대로 막음.
     """
-    if DRILL != "jump_r2":
+    if _tech(T.c) != "jump_r2":
         return None
+    if not DRILL and sum(1 for x in T.s.hostile(JUMP_SAVE_CROWD_R) if x.hp > 0 and x.ptr != T.c.ptr
+                         and abs(x.y - T.s.player.y) < 1.2) > 0:
+        return None                                        # 계획 점프 (드릴 밖): 다른 놈이 가까이 있으면 방패 내리지 않음
     sp = getattr(T.s.player, "sp", None)
     if sp is None or sp >= JUMP_DODGE_SP or (T.a in M.ATTACK and T.age is not None):
         return None
@@ -1439,6 +1453,13 @@ def rule_swing_backstep(F, T):
     arm = 0.0
     if swinging:
         if h > SWING_BS_R or T.age > SWING_BS_EARLY:
+            return None
+        if h >= SWING_BS_SWING_MAX:
+            F.mv.guard(True)
+            if F.__dict__.get("_sbs_guard") != (c.ptr, T.a):
+                F._sbs_guard = (c.ptr, T.a)
+                F.log(f"      백스텝 콤보 안 함: {c.npc_param} {T.a} +{T.age:.2f} s {h:.1f} m — {SWING_BS_SWING_MAX} m 넘음, 가드 (P-130)")
+                F.events("swing_bs", npc=c.npc_param, anim=T.a, age=round(T.age, 3), v=round(v, 2), what="far_guard", h=round(h, 2))
             return None
     elif v >= SWING_BS_V:
         arm = max(0.0, (h - SWING_BS_R) / v)
@@ -1609,7 +1630,8 @@ def rule_after_swing(F, T):
         F.mv.guard(True)
     F.record(hit)
     F.note("휘두름 끝 반격", s, c)
-    F.log(f"      휘두름 끝 → {hit.kind}×{hit.presses} 피해 {hit.dmg}, 옆 {hit.others}, 내 피해 {hit.taken}")
+    if hit.presses or hit.kind != "wait":                # 콤보 시험의 기다림 (P-128 가드)은 _combo_strike가 한 번만 적음
+        F.log(f"      휘두름 끝 → {hit.kind}×{hit.presses} 피해 {hit.dmg}, 옆 {hit.others}, 내 피해 {hit.taken}")
     return F.killed_if(hit.dead)
 
 
@@ -1691,7 +1713,8 @@ def rule_hit_first(F, T):
             hit = _strike(F, T.s, T.c, n=w.combo, sp_second=w.sp_min, swinging=a != -1)
         F.record(hit)
         F.note("먼저치기", T.s, T.c)
-        F.log(f"      먼저 치기 → {hit.kind}×{hit.presses} 피해 {hit.dmg}, 옆 {hit.others}, 내 피해 {hit.taken}")
+        if hit.presses or hit.kind != "wait":                # 콤보 시험의 기다림 (P-128 가드)은 _combo_strike가 한 번만 적음
+            F.log(f"      먼저 치기 → {hit.kind}×{hit.presses} 피해 {hit.dmg}, 옆 {hit.others}, 내 피해 {hit.taken}")
         if not hit.dead and not single:
             hit = _third(F, hit)
         return F.killed_if(hit.dead)
@@ -2042,6 +2065,8 @@ def _entry_try(F, T):
     s, c, h = T.s, T.c, T.h
     if COMBO_ONLY:
         _closing(F, c, h)
+    if _tech(c) == "backstab":
+        return None                                        # 계획 뒤잡: 진입 콤보로 뛰어들지 않고 오게 둠 (뒤잡 규칙이 돌아 들어감)
     if (COMBO_ONLY and BS_R < _entry_h(F, c, h) <= CTB.ENTRY_MAX and abs(T.dy) <= 1.0 and (T.p.sp or 0) >= F.weapon.sp_min
             and F.mv.face(s, c, deg=30.0)):
         # 걸어 붙은 다음에 고르지 말고 거리 있을 때 진입 콤보로 들어감 (P-121, [MoKa] 11-03 "미리 거리가 있을때 하면서 들어가야지")
@@ -2270,7 +2295,7 @@ def _combo_strike(F, s, c, phase: str = "hit") -> "M.Hit":
      · 거리 기준은 방 안 실측(점프 3.25 m · 구르기 2.9–5.5 m · 백스텝 약공 1.5–1.8 m)에서 잡은 첫 값
     """
     p = s.player
-    if phase == "hit" and 300000 <= (p.anim or -1) < 310000:
+    if phase == "hit" and M.my_attack(p.anim):
         # 내 공격 동작이 아직 끝나지 않음 — 지금 누르면 콤보가 안 되고 보통 약공으로 이어짐 (132637 160.5 s: 303150 중 백스텝 콤보 →
         # [303150, 2035, 303000], 그 사이 −155). 동작이 끝날 때까지 다음 콤보를 누르지 않음
         return M.Hit("wait", skipped="내 공격 동작 중")
@@ -2310,6 +2335,14 @@ def _combo_strike(F, s, c, phase: str = "hit") -> "M.Hit":
         moves, src = [planned] + [m for m in moves if m != planned], "계획 → " + src
     if phase == "entry" and not moves:
         return M.Hit("entry", skipped="진입 없음 — " + src)
+    if phase == "hit" and not moves and k["state"] == "swing":
+        # P-128: 표가 "휘두르는 놈엔 안 침"인데 그냥 서 있었음 — 040915 구역 2: 254011 3006 1.3 m 앞에서 "쓸 수 있는 콤보 없음" 54번, 가드 없이 섬
+        #  → 가드 들고 기다림 (휘두름 끝 반격은 다음 규칙이 함). 같은 놈·같은 애니엔 한 번만 적음
+        F.mv.guard(True)
+        if getattr(F, "swing_guard", None) != (c.ptr, anim0):
+            F.swing_guard = (c.ptr, anim0)
+            F.log(f"      휘두르는 중 ({anim0}, {h_now:.1f} m) — 콤보 안 함, 가드 들고 기다림 ({src})")
+        return M.Hit("wait", skipped="휘두름 — 가드")
     why, hit, used = [], None, None
     # ── 콤보는 락온한 채로 ([MoKa] 11-03 "콤보는 적을 락업 하는 게 필수야") ──────────────────
     #  락온이 그놈에 안 걸렸으면 콤보를 누르지 않고 기다림 (_keep_lock이 R3를 누름). LOCK_WAIT_S 넘게 못 잡으면 락온 없이 치고 기록
@@ -2543,9 +2576,10 @@ def rule_attack(F, T):
 
 
 def _no_drill(rule):
-    """Drills never swap to another attack ([MoKa] 11-03 "점프 드릴이라고 하면서 뒤잡만 하고 있네") — backstab rules off while DRILL."""
+    """Drills never swap to another attack ([MoKa] 11-03 "점프 드릴이라고 하면서 뒤잡만 하고 있네") — backstab rules off while DRILL,
+    and with --combo-only for a foe whose plan is another technique ([MoKa] 11-04: 뒤잡은 근처에 하나 · 지형 안 막힐 때만)."""
     def wrapped(F, T):
-        if DRILL is not None:
+        if DRILL is not None or _tech(T.c) not in (None, "backstab"):
             if rule is prep_backstab_chance:
                 r = rule(F, T)
                 T.backstab_chance = False

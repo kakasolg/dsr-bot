@@ -79,6 +79,7 @@ FB_MIN_R, FB_MAX_R = 4.0, 10.0
 FB_LEDGE_R = 12.0
 FB_MAX_THROWS = 2
 UPPER_MOVED_M = 0.5      # a target counts as awake once it has an anim and is this far off where it stood
+UPPER_WALK_M = 1.0       # running in: any foe on our level this far off where we first saw it is walking (anim reads −1 while walking, P-127)
 UPPER_CLOSE_R = 3.0      # running in: stop this close even if it hasn't woken…
 UPPER_NOTICE_S = 2.0     # …and stand guarding this long for it to notice, then run back anyway
 SPRINT_BACK_M = 1.5      # _sprint(through): this much farther from the goal than the closest it got → stop and re-plan (P-113)
@@ -393,6 +394,7 @@ class Missions:
         zones0, tether0 = getattr(self.f, "extra_zones", ()), getattr(self.f, "tether", None)
         no_safe = bool(z.get("no_safe"))                  # 구역 3 — [MoKa] "적이 하나씩 만나니깐 그냥 공격 … 안전 구역 자체가 필요 없어"
         self.f.extra_zones, self.f.tether = ((), None) if no_safe else ((safe,), safe)
+        w0 = getattr(getattr(self.f, "esc", None), "warps", 0)
         try:
             past = self._past_before(z)
             if past:
@@ -426,6 +428,8 @@ class Missions:
                 r = self.f.careful_walk_to(safe, nb, f"구역{n} 안전 자리")
             if r == "dead":
                 return "died"
+            if self._warped(w0, f"구역{n} 안전 자리"):
+                return "warped"
             if r != "arrived":
                 self.log(f"   구역{n} 안전 자리까지 {r} — 지금 자리에서 이어감")
             self._firebomb_ledge(f"구역{n}")
@@ -443,10 +447,14 @@ class Missions:
             for i, k in enumerate(z["kills"], 1):
                 if not self.f.alive():
                     return "died"
+                if self._warped(w0, f"구역{n}"):
+                    return "warped"
                 npc, pos, how = k[0], k[1], (k[2] if len(k) > 2 else {})
                 r = self._pull_to_safe(npc, tuple(pos), safe, nb, f"구역{n}-{i} {npc}", how)
                 if r in ("died", "no_estus"):
                     return r
+                if self._warped(w0, f"구역{n}-{i}"):
+                    return "warped"
                 if r not in ("killed", "gone"):
                     left.append(f"#{i} {npc} {r}")
             if n not in LOOT_SKIP_ZONES:                   # still inside the zone: a pickup fight keeps its home · tether
@@ -466,6 +474,19 @@ class Missions:
             return "left " + " ".join(s.split()[0] for s in left)
         self.log(f"── 구역{n}: 끝")
         return "cleared"
+
+    def _warped(self, w0: int, tag: str) -> bool:
+        """
+        ── 워프 뒤엔 구역을 이어 가지 않음 (P-126) ─────────────────────
+         · 11-04 015007: 3놈 몰림 → 화톳불 워프는 됐는데, 못 잡은 놈을 '죽음'으로 지우고 38 m 걸어 같은 무리로 돌아가 사망.
+           워프는 적을 원위치로 안 돌림 — 깨어 있는 채 그 자리에 남음
+         · [MoKa] 11-04 "리셋하고 다시 하는 거지" → 'warped'를 돌려주면 afterdeath.run_zones가 화톳불 휴식 (구역 1)부터 다시
+        """
+        w = getattr(getattr(self.f, "esc", None), "warps", 0)
+        if w == w0:
+            return False
+        self.log(f"   {tag}: 화톳불로 워프됨 — 이 구역 그만, 쉬어서 적 리셋 뒤 처음부터")
+        return True
 
     def _zone_foe(self, npc: int, pos):
         """The zone's foe of type npc: near its spawn, else the same type next to me; never one on the firebomb ledge."""
@@ -824,9 +845,23 @@ class Missions:
             c = self.mv.find(sn, ptr)
             return c if c is not None else self.mv.find(self.mv.snap(200.0), ptr)
 
+        seen: dict = {}
+
+        def walking(sn) -> bool:
+            # P-127: 걷는 적은 애니가 −1로 읽힘 — 023349 구역 2: 255001 (−1,−95)→(−7,−93) 5 s 동안 전부 −1, 254011 둘도 −1인 채 다가옴
+            #  → 애니만 보던 met()가 못 봐서 1–2 m까지 달려 들어감. 처음 본 자리에서 UPPER_WALK_M 넘게 옮긴 놈 = 움직이는 중
+            p = sn.player
+            for c in getattr(sn, "hostile", lambda r: [])(UPPER_ENCOUNTER_R):
+                if c.hp <= 0 or abs(c.y - p.y) >= 2.5:
+                    continue
+                x0 = seen.setdefault(c.ptr, (c.x, c.z))
+                if math.hypot(c.x - x0[0], c.z - x0[1]) > UPPER_WALK_M:
+                    return True
+            return False
+
         def met(sn) -> bool:
             c = target(sn)
-            return c is None or c.hp <= 0 or woke(c) or any(e.ptr != ptr for e in self._encounters(sn, ptr))
+            return c is None or c.hp <= 0 or woke(c) or any(e.ptr != ptr for e in self._encounters(sn, ptr)) or walking(sn)
 
         def stop_in(sn) -> bool:
             c = target(sn)

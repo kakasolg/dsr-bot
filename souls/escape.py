@@ -43,9 +43,11 @@ class Choice:
         kept = sum(1 for t in self.table if t[2] is not None)
         if self.point is None:
             return f"물러날 쪽 없음 (후보 {len(self.table)}, 쓸 수 있는 것 {kept})"
-        best = next(t for t in self.table if t[1] == self.point)
-        name = {"T": "온 길", "R": "옆길", "H": "화톳불 쪽", "Z": "안전 자리"}[self.src]
-        return f"물러날 쪽: {name} ({self.point[0]:.1f},{self.point[1]:.1f},{self.point[2]:.1f}), 점수 {best[2]:.1f} — 후보 {len(self.table)}, 쓸 수 있는 것 {kept}"
+        # 051246: 같은 점이 버린 후보 (점수 None)로 먼저 있으면 best[2]가 None → TypeError로 봇이 멈춤 (P-129) — 점수 있는 줄을 먼저
+        best = next((t for t in self.table if t[1] == self.point and t[2] is not None), None)
+        score = f"{best[2]:.1f}" if best is not None else "?"
+        name = {"T": "온 길", "R": "옆길", "H": "화톳불 쪽", "Z": "안전 자리"}.get(self.src, self.src)
+        return f"물러날 쪽: {name} ({self.point[0]:.1f},{self.point[1]:.1f},{self.point[2]:.1f}), 점수 {score} — 후보 {len(self.table)}, 쓸 수 있는 것 {kept}"
 
 
 def _hd(a, b) -> float:

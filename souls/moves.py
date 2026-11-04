@@ -26,6 +26,12 @@ GUARD_BROKEN = 9600              # guard broken, staggered (after kicking a shie
 FALLING = (1500, 1550, 121500)  # falling: 1500 a foe going off a ledge (P-69), 1550 / 121500 our own (watch.FALL_ANIMS)
 HIT_STUN = range(2000, 2100)     # my own hit reactions (2004 in P-73) — a roll pressed in one comes out late
 STAGGER = range(3500, 3600)      # stagger — bounced off my shield etc. **An opening, not an attack** (2026-09-24: treating this as an attack made it just guard for 12 s)
+def my_attack(anim) -> bool:
+    """My own weapon attack anim: <weapon>3xxx one-handed / <weapon>4xxx two-handed — 203xxx knife · 253xxx Claymore · 303xxx Battle Axe.
+    Before 11-04 only 300000–310000 counted, so a Claymore swing read as "not attacking" ([MoKa] 11-04 "클레이모어 … 주력으로")."""
+    return anim is not None and 200000 <= anim < 400000 and (anim // 1000) % 10 in (3, 4)
+
+
 DOWNED = range(9900, 10000)      # knocked down·lying·getting up (9920 = getting up)
 GETTING_UP = 9920
 ESTUS_IDS = range(200, 216)      # Estus item ID varies by upgrade level (new character 201)
