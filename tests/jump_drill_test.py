@@ -23,9 +23,23 @@ def check(name: str, ok: bool) -> None:
         raise SystemExit(1)
 
 
+class Pad:
+    def __init__(self, stuck=False):
+        self.held, self.stuck = True, stuck
+
+    def guard_held(self):
+        return self.held
+
+
 class Mv:
-    def __init__(self, lock="target"):
+    def __init__(self, lock="target", stuck=False):
         self.calls, self.lock = [], lock
+        self.pad = Pad(stuck)
+
+    def guard(self, on):
+        self.calls.append(("guard", on))
+        if not on and not self.pad.stuck:
+            self.pad.held = False
 
     def lock_state(self, ptr):
         return self.lock
@@ -43,10 +57,10 @@ def fight(mv):
     return F
 
 
-def tick(F, h, anim=-1, age=None, v=0.0, sp=98, npc=254000, now=100.0):
+def tick(F, h, anim=-1, age=None, v=0.0, sp=98, npc=254000, now=100.0, my_anim=-1):
     c = NS(ptr=7, npc_param=npc, x=0.0, y=0.0, z=h, anim=anim, hp=80)
     F._hv = {7: (time.time() - 0.1, h + v * 0.1, v)}
-    T = NS(s=NS(player=NS(sp=sp)), c=c, h=h, a=anim, age=age, now=now, dy=0.0)
+    T = NS(s=NS(player=NS(sp=sp, anim=my_anim)), c=c, h=h, a=anim, age=age, now=now, dy=0.0)
     return D.rule_jump_drill(F, T)
 
 
@@ -59,7 +73,8 @@ def main() -> None:
     D.DRILL = "jump_r2"
     try:
         F = fight(Mv())
-        check("서 있는 놈 3.5 m → 점프, 앞 바닥 4.3 m 확인", tick(F, 3.5) == D.CONT and jumps(F) == [("jump_r2", D.JUMP_FRONT)])
+        check("서 있는 놈 3.5 m → 방패 내리고 점프, 앞 바닥 4.3 m 확인", tick(F, 3.5) == D.CONT and jumps(F) == [("jump_r2", D.JUMP_FRONT)]
+              and F.mv.calls[0] == ("guard", False))
         check("같은 놈 2 s 안엔 다시 안 함", tick(F, 3.5, now=101.0) is None and len(jumps(F)) == 1)
         F = fight(Mv())
         check("서 있는 놈 5.0 m → 아직 (기다림)", tick(F, 5.0) is None and not jumps(F))
@@ -74,6 +89,12 @@ def main() -> None:
         F = fight(Mv())
         r = tick(F, 3.8, anim=3000, age=1.3, v=1.0)      # 3000 판정 0.87–1.03 s 지남 (헛침 땐 다가와도 함)
         check(f"헛침 3000 +1.3 s (판정 끝 지남) 3.8 m → 점프 ({jumps(F)})", r == D.CONT and len(jumps(F)) == 1)
+        F = fight(Mv())
+        check("막기 경직 (내 애니 140) → 안 누름 (225538 선 채 R2)", tick(F, 3.5, my_anim=140) is None and not jumps(F))
+        check("백스텝 후딜 (내 애니 690) → 안 누름 (232507 선 채 R2)", tick(F, 3.5, my_anim=690) is None and not jumps(F))
+        check("경직 끝나면 다음 틱에 점프 (쿨다운 안 씀)", tick(F, 3.5, now=100.1) == D.CONT and len(jumps(F)) == 1)
+        F = fight(Mv(stuck=True))
+        check("방패가 안 내려감 → 안 누름", tick(F, 3.5) is None and not jumps(F))
         F = fight(Mv(lock="none"))
         check("락온 없음 → 안 함", tick(F, 3.5) is None and not jumps(F))
         F = fight(Mv())

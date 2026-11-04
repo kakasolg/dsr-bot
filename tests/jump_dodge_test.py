@@ -46,6 +46,8 @@ def main() -> None:
         F = fight()
         check("0.9 m → 안 함 (못 벗어남)", tick(F, 3003, 0.0, 0.9) is None and F.mv.calls == [])
         F = fight()
+        check("1.4 m → 안 함 (225538 1.4 m 백스텝 −83)", tick(F, 3000, 0.0, 1.4) is None and F.mv.calls == [])
+        F = fight()
         check("255010 휘두름 → 안 함", tick(F, 3000, 0.1, 1.8, npc=255010) is None and F.mv.calls == [])
         F = fight()
         check("서 있음 → 안 함", tick(F, -1, None, 1.8) is None and F.mv.calls == [])

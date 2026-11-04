@@ -1285,6 +1285,7 @@ JUMP_LO, JUMP_HI = 2.6, 4.8   # 누를 때 서 있는 그놈 거리 — 점프 3
                               # 224536 #4: LO 3.4면 0번 — 망자는 2.5–3.2 m에 서고 헛친 뒤 3.2 m → 2.6으로 내려 잼 (몸에 막혀 멈추는지)
 JUMP_FRONT = 4.3          # 앞에 이만큼 바닥 (140920 점프 드릴 #1 낙사)
 JUMP_SP = 65              # 224853: 303600 점프 한 번에 기력 48 → −17 (≈65, 배틀 액스)
+JUMP_DODGE_MIN = 1.6      # 백스텝만은 이보다 멀 때 — 225538: 3000 시작 1.4 m에서 B → 1.05 m에서 −83 (못 벗어남); 1.7 · 2.3 m는 피함
 JUMP_DODGE_SP = JUMP_SP + 20   # 백스텝만은 이만큼 있을 때 — 백스텝 ≈20 (98 → 78) 쓰고도 헛친 틈에 점프할 기력이 남게
 JUMP_COOL = 2.0
 JUMP_WAIT_FAR = 7.0       # 점프 드릴: 이보다 멀면 다가감, JUMP_HI..이 사이에선 기다림 (_drill_setup DRILL_WAIT)
@@ -1330,6 +1331,18 @@ def rule_jump_drill(F, T):
         F.log(f"      점프 공격 안 함: {c.npc_param} {what} {h:.1f} m — {why}")
         F.events("jump_drill", npc=c.npc_param, anim=T.a, v=round(v, 2), h=round(h, 2), what="skip", why=why)
         return None
+    # 225538 ①: LB (방패) 든 채 앞+R2 → 선 채 R2 303300 (26)이 나감 (ctl pad btn 256); 나머지 둘은 btn 0 → 303600 점프.
+    # 내 애니가 -1 (서 있음·걷기)일 때만 — 막기 경직 140 · 백스텝 후딜 690 중엔 앞+R2가 선 채 R2 303300으로 나감
+    # (232507 #7: 690 중 누름 → 303300). 다음 틱에 다시 봄 (쿨다운 안 씀).
+    if getattr(s.player, "anim", -1) not in (-1, None):
+        return None
+    F.mv.guard(False)
+    held = getattr(getattr(F.mv, "pad", None), "guard_held", lambda: False)
+    if held():
+        time.sleep(0.04)
+        if held():
+            F.events("jump_drill", npc=c.npc_param, h=round(h, 2), what="skip", why="방패 안 내려감")
+            return None
     last[c.ptr] = T.now
     t0 = time.time()
     hit = F.mv.combo("jump_r2", s, c, nm=F.nm, need_front=JUMP_FRONT)
@@ -1360,7 +1373,7 @@ def rule_jump_dodge(F, T):
         return None
     s, c, h = T.s, T.c, T.h
     swinging = T.a in M.ATTACK and T.age is not None
-    if (not swinging or T.a in SWING_BS_SKIP or T.age > SWING_BS_EARLY or not SWING_BS_MIN <= h <= SWING_BS_R
+    if (not swinging or T.a in SWING_BS_SKIP or T.age > SWING_BS_EARLY or not max(SWING_BS_MIN, JUMP_DODGE_MIN) <= h <= SWING_BS_R
             or int(getattr(c, "npc_param", 0) or 0) // 100 not in SWING_BS_NPC):
         return None
     last = F.__dict__.setdefault("_jdodge_t", {})
