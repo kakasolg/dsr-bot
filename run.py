@@ -445,8 +445,15 @@ def main() -> None:
             r = None
             for n in range(int(lo), int(hi or lo) + 1):
                 log.zone = f"burg:{n}"
+                w0 = esc.warps
                 r = ms.burg_segment(n)
                 log(f"══ 구역 {n} ({ms.BURG_SEGMENTS[n]}) 끝: {r}")
+                if esc.warps != w0:
+                    # [MoKa] 11-04 "워프 하면 봇이 다음 선택을 못함" — 132055: 워프로 불의 제전에 간 채 다음 구간 길을 찾다 no_path
+                    #  → 여기서 끝내고 'warped' (사슬이 쉬고 경사로부터 다시, burg-upper의 P-126과 같은 뜻)
+                    log(f"══ 구역 {n}에서 화톳불로 워프됨 — 이 단계 그만")
+                    r = "warped"
+                    break
                 if not fld.alive():
                     break
                 if a.buy and ms.BURG_SEGMENTS[n] == "merchant" and r == "상인 도착":

@@ -41,6 +41,11 @@ def _plain(v, now: float):
     return NotImplemented
 
 
+def _key(k):
+    """Dict keys saved as lists were tuples (JSON has no tuple)."""
+    return tuple(_key(x) for x in k) if isinstance(k, list) else k
+
+
 def restore(v, now: float):
     """Inverse of _plain with a new `now`."""
     if isinstance(v, list):
@@ -51,7 +56,7 @@ def restore(v, now: float):
         if "_set" in v:
             return {restore(x, now) for x in v["_set"]}
         if "_dict" in v:
-            return {restore(k, now): restore(x, now) for k, x in v["_dict"]}
+            return {_key(restore(k, now)): restore(x, now) for k, x in v["_dict"]}
     return v
 
 

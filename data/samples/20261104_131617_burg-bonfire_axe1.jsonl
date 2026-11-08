@@ -1,0 +1,90 @@
+{"t": 13.77, "ev": "style", "style": "guard"}
+{"t": 13.78, "ev": "char", "stats": {"VIT": 22, "ATN": 8, "END": 14, "STR": 16, "DEX": 10, "INT": 8, "FTH": 10, "RES": 11, "SL": 17, "소울": 1037, "누적소울": 19170, "인간성": 1}, "equip": {"왼손1": 1462000, "오른손1": 701000, "왼손2": 900000, "오른손2": 900000, "화살": 50000, "머리": 51000, "몸": 52000, "팔": 53000, "반지1": -1, "반지2": 143}}
+{"t": 13.78, "ev": "vital", "hp": 819, "max": 1018, "near": 0}
+{"t": 14.29, "ev": "vital", "hp": 819, "max": 1018, "near": 0}
+{"t": 14.83, "ev": "vital", "hp": 819, "max": 1018, "near": 0}
+{"t": 15.35, "ev": "vital", "hp": 819, "max": 1018, "near": 0}
+{"t": 15.87, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 16.37, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 16.88, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 17.38, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 17.89, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 18.39, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 18.9, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 19.41, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 19.92, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 20.43, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 20.93, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 21.44, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 21.95, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 22.46, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 22.96, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 23.48, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 23.99, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 24.5, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 25.0, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 25.51, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 26.02, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 26.53, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 27.04, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 1}
+{"t": 27.55, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 1}
+{"t": 28.06, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 1}
+{"t": 28.57, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 29.08, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 29.58, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 30.1, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 30.59, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 31.11, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 31.61, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 32.12, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 32.64, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 33.15, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 33.66, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 34.16, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 34.67, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 35.18, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 35.69, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 36.19, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 36.7, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 37.2, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 37.71, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 38.21, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 38.72, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 39.22, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 39.74, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 40.26, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 40.76, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 41.27, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 41.78, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 42.29, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 42.8, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 43.18, "ev": "fall", "zone": "burg:2", "why": "낙사 (바닥 모름, 0.8 s 에 4.0 m)", "kind": "fall", "pos0": [-25.56, -37.76, 10.99], "hp": 819}
+{"t": 43.31, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 43.69, "ev": "walk_fail", "zone": "burg:2", "tag": "통로", "i": 8, "n": 36, "q": [-25.32, -33.86, 6.68], "pos": [-25.67, -43.5, 11.19], "r": "unreachable", "fails": 1}
+{"t": 43.81, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 44.32, "ev": "vital", "zone": "burg:2", "hp": 819, "max": 1018, "near": 0}
+{"t": 44.67, "ev": "result", "cmd": "burg-bonfire", "result": "통로 dead"}
+{"t": 44.76, "ev": "death_seen", "hp": 0, "max_hp": 1018, "anim": 1600, "pos": [-25.74, -64.04, 11.33]}
+{"t": 44.83, "ev": "vital", "hp": 0, "max": 1018, "near": 0}
+{"t": 45.34, "ev": "vital", "hp": 0, "max": 1018, "near": 0}
+{"t": 45.84, "ev": "vital", "hp": 0, "max": 1018, "near": 0}
+{"t": 46.18, "ev": "hit", "n": 1, "lost": 819, "hp": 0, "max": 1018, "secs": 0.0, "blame": [], "fall": true, "drop_m": 28.3, "lost_hit": 0, "lost_fall": 819}
+{"t": 46.35, "ev": "vital", "hp": 0, "max": 1018, "near": 0}
+{"t": 46.86, "ev": "vital", "hp": 0, "max": 1018, "near": 0}
+{"t": 47.37, "ev": "vital", "hp": 0, "max": 1018, "near": 0}
+{"t": 47.87, "ev": "vital", "hp": 0, "max": 1018, "near": 0}
+{"t": 48.38, "ev": "vital", "hp": 0, "max": 1018, "near": 0}
+{"t": 48.89, "ev": "vital", "hp": 0, "max": 1018, "near": 0}
+{"t": 49.4, "ev": "vital", "hp": 0, "max": 1018, "near": 0}
+{"t": 49.92, "ev": "vital", "hp": 0, "max": 1018, "near": 0}
+{"t": 50.42, "ev": "vital", "hp": 0, "max": 1018, "near": 0}
+{"t": 51.65, "ev": "vital", "hp": 1018, "max": 1018, "near": 0}
+{"t": 51.8, "ev": "death", "pos": [-25.21, -33.73, 10.1], "souls": 1037, "humanity": 1, "zone": null, "escape": "idle", "since_fall_s": 1.6, "cause": "fall", "lost_hit": 0, "lost_fall": 819, "drop_m": 28.3, "blame": [], "hit_n": 1}
+{"t": 52.16, "ev": "vital", "hp": 1018, "max": 1018, "near": 0}
+{"t": 52.66, "ev": "vital", "hp": 1018, "max": 1018, "near": 0}
+{"t": 53.19, "ev": "vital", "hp": 1018, "max": 1018, "near": 0}
+{"t": 53.72, "ev": "vital", "hp": 1018, "max": 1018, "near": 0}
+{"t": 54.23, "ev": "vital", "hp": 1018, "max": 1018, "near": 0}
+{"t": 54.74, "ev": "vital", "hp": 1018, "max": 1018, "near": 0}
+{"t": 55.25, "ev": "vital", "hp": 1018, "max": 1018, "near": 0}
+{"t": 55.76, "ev": "vital", "hp": 1018, "max": 1018, "near": 0}

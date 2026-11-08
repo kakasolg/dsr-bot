@@ -16,6 +16,7 @@ if hasattr(sys.stdout, "reconfigure"):
 
 from souls import combo_table as CTB
 from souls import duel as D
+from souls import moves as M
 
 HOLLOW = NS(kind="other", ranged=False)
 
@@ -168,6 +169,28 @@ def main() -> None:
     r2 = D._combo_strike(F, NS(player=p, hostile=lambda r: [c]), c)
     check(f"P-128: 붙어서 휘두르는 놈 → 가드 ({r.kind}: {r.skipped}), 줄 {len(logs)}",
           r.kind == r2.kind == "wait" and guards == [True, True] and mv.calls == [] and len(logs) == 1)
+
+    # P-132 [MoKa] 11-04 "바로 약공": 계획이 백스텝 콤보여도 막아서 튕긴 놈 (3500, 1.0 m)엔 표대로 약공; 방패병은 그대로 백스텝 콤보
+    def strike(npc, foe):
+        mv = Mv(); mv.lock_state = lambda ptr: "target"
+        mv.light = lambda s, c, n=1, **_k: mv.calls.append(("light",)) or M.Hit("light", presses=1)
+        mv.combo = lambda name, *_a, **_k: mv.calls.append((name,)) or M.Hit(name, presses=2)
+        mv.snap = lambda r: None
+        mv.backstep_attack = lambda *_a, **_k: mv.calls.append(("backstep_r1",)) or M.Hit("backstep_r1", presses=2)
+        F = NS(mv=mv, nm=None, log=lambda *_: None, events=lambda *_a, **_k: None, foe=foe, hp_start=600,
+               weapon=NS(reach=1.6, combo=2))
+        p = NS(x=0.0, y=0.0, z=0.0, heading=0.0, hp=600, max_hp=698, anim=-1)
+        c = NS(ptr=9, npc_param=npc, x=0.0, y=0.0, z=1.0, anim=3500, hp=80)
+        D.PLANNED.clear(); D.PLANNED[9] = "backstep_r1"
+        try:
+            D._combo_strike(F, NS(player=p, hostile=lambda r: [c]), c)
+        finally:
+            D.PLANNED.clear()
+        return mv.calls
+    calls = strike(254000, HOLLOW)
+    check(f"P-132: 계획 백스텝 + 튕긴 망자 1.0 m → 약공 ({calls})", calls[:1] == [("light",)])
+    calls = strike(254010, NS(kind="shield", ranged=False))
+    check(f"P-132: 튕긴 방패병은 그대로 백스텝 콤보 ({calls})", calls[:1] == [("backstep_r1",)])
 
 
 if __name__ == "__main__":

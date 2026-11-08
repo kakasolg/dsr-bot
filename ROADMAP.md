@@ -136,7 +136,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 12 | Same stalls every run (`#3 이동` (−52.2,−22.8,−26.9), crates `o1150_01`, `o1132_06`, `o1321_0021`) | open |
 | 14 | Fell off the ramp edge right after a backstab | verify |
 | 16 | Fell through a gap while circling for a backstab | verify |
-| 17 | Secret-passage exit: stuck / fell | parked → 1-g |
+| 17 | Passage exit stuck/fell; again 11-04 | parked → 1g |
 | 18 | Ramp `left #N?` after a quit-out ended the mission | verify (`pass_ramp`) |
 | 19 | `experiments/reach.py direct` walked off a railing | open, low priority |
 | 21 | steam.exe outside connection right after restart (CDN) | decide (a/b/c) |
@@ -222,11 +222,13 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 123 | ramp 182029: 2-hand, 255010 | open |
 | 124 | taurus 001105: Estus in reach, fell | open → MoKa |
 | 125 | burg 010011: xbow 1.6 m, no attack | verify |
-| 126 | 015007: warp, re-entered same 5 | verify → rest + restart; 023349 ok |
-| 127 | z2: walker anim −1 → ran into 3 | verify → walk check + lure_at; 040915 1:1 |
-| 128 | no guard vs swing | verify → guard; 044457 cleared |
-| 129 | ramp left #N? · escape error | verify → fixed, 3 runs ok |
-| 130 | swing backstep ≥1.8 m: 3 ok/9 hit | decide → MoKa |
+| 126 | warp, re-entered same 5 | verify → rest+restart ok |
+| 127 | z2 walker anim −1 | verify → walk check; 1:1 |
+| 128 | no guard vs swing | verify → guard; cleared |
+| 129 | ramp #N? · escape error | verify → fixed, 3 ok |
+| 130 | swing bs ≥1.8 m mostly hit | verify: guard |
+| 131 | z4-1 crowd warp ×2 | decide → MoKa |
+| 132 | block→bs late | verify: light |
 
 ## 5. Relay — [cloud] ↔ board
 

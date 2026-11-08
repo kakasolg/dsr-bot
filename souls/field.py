@@ -353,6 +353,8 @@ class Field:
     def __init__(self, mv: M.Moves, weapon, escape, bonfires: list, log=print, events=None, style="guard"):
         self.mv, self.w, self.esc, self.log = mv, weapon, escape, log
         self._detour = False                               # keeps walk's "detour" from recursing
+        self.smash_ok = True                               # False = a caller (souls/altar_andre) forbids _smash: a blocking prop ends the walk
+        self.denial = None                                 # set once by a forbidden action; walk() then returns "denied" — never cleared here
         self._crowd_hits: list[float] = []                 # times of recent 'crowd' fall-backs (CROWD_MAX per CROWD_WINDOW_S)
         self._wall_off_until = 0.0
         self._crowd_off_until = 0.0                        # fall_back 이 길이 없어 못 물러났으면 잠깐 둘러싸여도 싸운다 (같은 자리에서 무한 반복 방지)
@@ -1957,6 +1959,8 @@ class Field:
             # a breakable prop on the way (the NavMesh doesn't know crates) — break it and try the same point again, before
             # detouring: the detour's navmesh path runs through the same crate (2026-09-27 burg-bonfire #6, ROADMAP P-6)
             if self._smash_blocking(nm, pp, q, st.smashed, tag, mover, why=f"점 못 감 ({r})"):
+                if getattr(self, "denial", None):
+                    return "denied"                        # not 'retry': no detour, door or fog wall after a refusal
                 st.fails = 0
                 return "retry"
             d, dy = math.dist(pp, q), pp[1] - q[1]
@@ -1978,6 +1982,8 @@ class Field:
                     r2 = self.walk_to(q, nm, f"{tag} 돌아서", done=done)
                 finally:
                     self._detour = False
+                if getattr(self, "denial", None):
+                    return "denied"
                 if r2 == "arrived":
                     st.fails = 0
                     return "next"
@@ -2017,6 +2023,8 @@ class Field:
         no_obs = control.NoObs(self.mv.pad, on_full=mover.stop)   # no snapshot: stick off now, everything off after a while (P0-C)
         try:
             while not plan.done:
+                if getattr(self, "denial", None):
+                    return "denied"                        # a nested walk (detour, fog front) or on_stuck already refused
                 if self.esc.escaping:
                     time.sleep(0.2)
                     continue
@@ -2060,9 +2068,12 @@ class Field:
                 # done() every tick, not only between points (10-13 firebomb-probe: "stop 8 m from it" walked on to 4.9 m — the next
                 # point was 3 m further): goto's mode_fn sees each snapshot, 'retreat' ends goto at once, then it's 'arrived' here
                 r = self._follow(q, t, terr, mover, on_stuck,
-                                 mode_fn=lambda sn: "retreat" if done is not None and done(sn) else self._walk_mode(sn, st, g0, mode))
+                                 mode_fn=lambda sn: "retreat" if getattr(self, "denial", None) or (done is not None and done(sn))
+                                 else self._walk_mode(sn, st, g0, mode))
                 if r == "dead":
                     return "dead"
+                if getattr(self, "denial", None):
+                    return "denied"                        # before 'retreat' / 'arrived' handling: no chaser fight, no next point
                 if r == "retreat" and done is not None:
                     s_done = self.mv.snap(40.0)
                     if s_done is not None and done(s_done):
@@ -2078,8 +2089,8 @@ class Field:
                     continue
                 if r != "arrived":
                     step = self._walk_missed(plan, st, q, r, nm, mover, done)
-                    if step == "stuck":
-                        return "stuck"
+                    if step in ("stuck", "denied"):
+                        return step
                     if step == "retry":
                         continue
                 else:
@@ -2104,6 +2115,20 @@ class Field:
             self.log(f"      {tag}: 앞길 {prop['model']} 옆에 NPC {npc.npc_param} ({npc.dist:.1f} m) — 부수지 않음")
             smashed[prop["name"]] = SMASH_TRIES
             return False
+        if not getattr(self, "smash_ok", True):
+            # ── 부수기 금지 (souls/altar_andre, 첫 이동 검증) ──────────────────────────────
+            #  안드레 근처: 막은 게 상자인지 NPC 몸인지 모른다 (P-82 상인). 휘두르지 않고, 우회·문·안개벽으로도 넘어가지 않고
+            #  걷기를 끝낸다. True = "처리됨"이라 goto는 탈출 동작 없이 다음 틱으로 가고, 그 틱의 mode_fn이 denial을 보고
+            #  'retreat'으로 goto를 끝낸다 (그 사이 입력은 pad.neutral뿐 — nav.goto 455–574 정적 추적)
+            if mover is not None:
+                mover.stop()                               # release run (B) — the only input after a refusal
+            if not getattr(self, "denial", None):
+                self.denial = {"kind": "denied", "op": "smash", "reason": "자동 장애물 부수기 금지 (smash_ok False)",
+                               "detail": {"tag": tag, "prop": prop["name"], "model": prop["model"],
+                                          "pos": list(prop["pos"]), "me": [round(v, 2) for v in me], "why": why}}
+                self.log(f"      {tag}: {why or '막힘'} — 앞길에 {prop['model']} ({prop['name']}), 부수기 금지 → 걷기 끝냄")
+                self.events("denied", **self.denial)
+            return True
         smashed[prop["name"]] = smashed.get(prop["name"], 0) + 1
         self.log(f"      {tag}: {why or '막힘'} — 앞길에 {prop['model']} ({prop['name']}, {math.dist(me, prop['pos']):.1f} m)")
         if mover is not None:
@@ -2252,6 +2277,8 @@ class Field:
         front = (fog[0] - dx / n * FOG_FRONT_M, fog[1], fog[2] - dz / n * FOG_FRONT_M)
         if math.hypot(front[0] - p[0], front[2] - p[2]) > 0.8:
             self.walk([front], nm, f"{tag} 안개벽 앞")
+            if getattr(self, "denial", None):
+                return False                               # no A after a refusal; the outer _walk returns 'denied' next
         ok = self.fog_through(q, known=True)
         self.log(f"   {tag}: 안개벽 ({fog[0]:.1f}, {fog[1]:.1f}, {fog[2]:.1f}) {'통과' if ok else '못 지나감 — 그대로 걸음'}")
         self.events("fog_cross", tag=tag, fog=list(fog), ok=ok)

@@ -329,6 +329,21 @@ class DSRTelemetry:
             return False
         return flag == 1 and a is not None and 7700 <= a < 7800 and a % 10 == 1   # 7720 = sitting down (flag 0), 77x1 = seated (7701/7711/7721)
 
+    def sitting_state(self) -> Optional[bool]:
+        """sitting() with unknown kept apart: True · False · None (no player pointer or a read failed).
+        sitting() itself stays as is — it returns False for unknown and its callers rely on that."""
+        pp = self.player_ptr()
+        if not pp:
+            return None
+        a = self.i32(pp + OFF_ANIM2)
+        if a is None:
+            return None
+        try:
+            flag = self.pm.read_uchar(pp + OFF_ANIM2 + 4)
+        except pymem.exception.PymemError:
+            return None
+        return flag == 1 and 7700 <= a < 7800 and a % 10 == 1
+
     def face(self, pad, heading: float, tries: int = 5, tol: float = 0.25) -> bool:
         """Turn the character to heading (+0x4 angle, measured world yaw = heading + π) — rotate in place with short stick taps.
         DS1 bonfire/door interaction prompts require facing them head-on (user measured)."""

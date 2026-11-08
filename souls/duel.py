@@ -2331,7 +2331,9 @@ def _combo_strike(F, s, c, phase: str = "hit") -> "M.Hit":
             return M.Hit("wait", skipped="계획: 백스텝 거리 기다림")
     # 계획한 공격을 표보다 먼저 — 단 이 단계에 맞는 것만 (진입: 구르기·점프 / 붙음: 백스텝·발차기), 휘두르는 놈엔 표대로
     fits = planned in (("roll_r1", "jump_r2") if phase == "entry" else ("backstep_r1", "kick_combo", "light"))
-    if fits and not DRILL and k["state"] != "swing" and not (planned == "backstep_r1" and k["dist"] == "reach"):
+    # P-132: 붙어서 튕긴 놈 (방패병 말고)엔 계획이 백스텝 콤보여도 표대로 바로 약공 (MoKa 11-04 "바로 약공")
+    bounced = phase == "hit" and k["state"] == "open" and k["kind"] != "shield" and moves[:1] == ["light"]
+    if fits and not DRILL and k["state"] != "swing" and not (planned == "backstep_r1" and k["dist"] == "reach") and not bounced:
         moves, src = [planned] + [m for m in moves if m != planned], "계획 → " + src
     if phase == "entry" and not moves:
         return M.Hit("entry", skipped="진입 없음 — " + src)
