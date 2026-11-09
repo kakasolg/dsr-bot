@@ -234,8 +234,9 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 135 | knife: right wall, ran in | verify |
 | 136 | block → light waits | verify |
 | 137 | z8 ladder top −934 | open |
-| 138 | no-knife chain: z6, z4 deaths | open |
+| 138 | no-knife: z6, z4 deaths | open |
 | 139 | axe wall bounce repeated; no sip | verify |
+| 140 | z4 rushed 3 w/o knife | verify |
 
 ## 5. Relay — [cloud] ↔ board
 

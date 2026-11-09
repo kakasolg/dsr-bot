@@ -88,6 +88,7 @@ SIP_GETUP_S = 3.0        # _sip_on_hit: wait at most this long to get up (my ani
 BARREL_FOE_R = 4.0     # _barrel: a live foe this close ends the guard-wait (try 12: the barrel soldier came down to 1.7 m)
 UPPER_FOLLOW_R = 8.0   # _pull_to_safe: not at its spawn → the same type this close to me is the one that followed
 UPPER_COME_R = 8.0      # a target already this close to the safe spot (or already moving) isn't run at — wait for it there
+CROWD_WAIT_S = 8.0       # P-140: a target with neighbours and no knife thrown → guard at the safe spot this long first (hypothesis, not measured)
 NOISE_WAIT_S = 5.0       # P-135: after a knife with no reaction, guard at the safe spot this long before running in (a wall-hit sound wakes foes)
 HOLD_STILL_S, HOLD_CLOSE_M = 3.0, 0.5   # hold: the target got no closer to the safe spot than this over this long → stop waiting, go to it
 # ── 구역 8 석궁 hold 20 s를 다 기다림 (MoKa 11-08 "사다리 타고 올라가면, 다음 판단 느려지는 것도 여전하네") ─────────────
@@ -904,6 +905,19 @@ class Missions:
             # no_knife / no_path / no_spot / too_far / no_reaction / no_lock → the body run below, and no knife at this one again
             #  (P-117: 구역 2-1에서 같은 놈에게 두 번 서서 시도하는 사이 화염병 −222 · −111)
             self.knife_failed = failed | {ptr}
+            knifed = True
+        else:
+            knifed = False
+        if crowd and not knifed and not how.get("lure_at"):
+            # ── 붙어 선 무리에 나이프 없이 달려들지 않음 — 안전 자리에서 먼저 기다림 (P-140, [MoKa] 11-08) ──────────────────
+            #  "일단 세명인데 달려 든 것 자체가 문제임" · "계단 위에 있을때 이미 적 하나가 캐릭터를 봐서 기다리면 하나만 와. 그걸
+            #  기다리면 되는데 달려드네". 221120 구역 4 (나이프 없음): 233.8 s 계단 위 (12.4, −94.1) 도착 → 1 s 뒤 문 앞 (15.0, −97.9)로
+            #  달려 들어감 → 254011 · 254010 · 254012 셋이 같이 움직임 → 사망. 거기서 기다렸으면 한 놈만 왔을지는 MoKa 관찰, 봇 기록엔 없음.
+            #  CROWD_WAIT_S 동안 아무도 안 오면 예전처럼 몸으로 (MoKa의 다른 안 "아예 계단 밑으로 내려 와도 되고"는 아직 안 만듦)
+            if self._wait_at_safe(ptr, safe, CROWD_WAIT_S):
+                self.log(f"   {tag}: 옆에 {len(crowd)}명 — 나이프 없이 안 달려듦, 안전 자리에서 기다리니 옴")
+                return "here"
+            self.log(f"   {tag}: 옆에 {len(crowd)}명 — 안전 자리에서 {CROWD_WAIT_S:g} s 기다려도 안 옴 ({self.hold_why}) — 몸으로")
         goal = tuple(how["lure_at"]) if how.get("lure_at") else here0
         s = self.mv.snap(5.0)
         hp0 = s.player.hp if s is not None else None
