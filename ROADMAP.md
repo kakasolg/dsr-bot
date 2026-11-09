@@ -31,7 +31,7 @@ needing the tick loop, route data, settings object or WorldState.
 
 `run.py burg-upper` = MoKa's safe-spot zones 1–8 (`data/burg-upper-map.json`); test save `backup-20261006-155749-…-before-taurus`.
 
-- [~] taurus | MoKa | verify | try 20 killed Taurus; 11-03 try 21 (OBS clip) died at Taurus from in front → between-feet fix (P-119) built, game check next | docs/boss-taurus.md · plan:taurus 
+- [~] taurus | MoKa | verify | 11-09 close fight (M1109-10…32: legs, x3, 701, 1-hit sip) — chain2 11-09: 6 kills / 6 deaths; MoKa: 여기서 마무리 | docs/boss-taurus.md · plan:taurus 
 - [~] fall-death-policy | win | verify | no fall quit-out + after-death pickup: (1)(2) seen in 3 runs; (3) death record, (4) alignment next runs | P-71 · P-72 · plan:fall-death-policy
 - [~] stage-analysis | MoKa | decide | burg-upper zones 1–8 analysed (auto + hand draft); MoKa: fix intent / response, zone 4 safe spot 0.5 m from a drop | docs/stages/burg-upper.md · plan:stage-analysis
 - [~] firebomb-hollow-close-in | win | verify | built offline 11-09: reachable firebomb hollow → sprint in, its hit doesn't send us out; ledge / drop way → rule_shot | plan:firebomb-hollow-close-in
