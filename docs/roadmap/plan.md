@@ -577,6 +577,7 @@ The items are still open in ROADMAP.md (one line each); their full text as it st
     받은 피해 0, 소울 4500 (처치 확인: 소울 +~3000). 두 대 기준 에스트(P-118)는 이번엔 맞지 않아 안 거침.
     try 11–19 사망 9: 마을 4 (#2 ×2 · #4 · #6, 상점 전) · 경사로 1 · burg-upper 구역 2 ×2 (나이프 안 씀 구역) · 구역 7 1 (P-115) · 타우로스 1 (P-118, 보스 ~161).
     상점: try 12 not_facing(P-114) → 고친 뒤 15·16·17·20 ok 4/4. 나이프: 구역 1·2에서 0/5 (P-117) → [MoKa] "황금송진 있는 문 앞에 병사들 있는데 부터" → 구역 4부터, 254010 lured 2/2.
+  - 11-09 [cloud] P-142 후속 분석 (게임 없음): 마실 때 맞는 건 거리 아닌 시점 — 에스트 중 시작한 공격 18/18 맞음 (1.84–7.95 m); 제안 = 보스 회복 중(anim_time ≥ TAE 판정 끝)에만 마심, [win] 측정 3가지 먼저. docs/analysis-taurus-sip-2026-11-09.md
 - `fall-death-policy` (moved 2026-10-12): [~] [win] **Fall / death policy (MoKa 10-12)** — 10-12 3 full runs: (1) · (2) seen, findings in Relay; (3) · (4) next runs. P-71 / P-72
 - `boss-two-hand-dodge` (moved 2026-10-12): [ ] [cloud]+[win] Boss fight default = two-handed + dodging (9-30 principle); Taurus is the first case (the general boss module is v2.0)
 - `firebomb-hollow-close-in` (moved 2026-10-12): [ ] [cloud] Firebomb hollow "close in fast" rule — unless the way there is a fall-risk zone (ledge 254012 is ignored) → check with `duel_golden_test`
