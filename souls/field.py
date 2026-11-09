@@ -295,6 +295,10 @@ CAREFUL_LEG = 4.0        # careful_walk_to: walk this far, then stop and look
 CAREFUL_LOOK_S = 1.5     # …stand this long (guard up) watching who comes
 CAREFUL_COME_R = 12.0    # an awake, moving foe this close (same level) → wait for it here and fight it alone
 CAREFUL_MAX_S = 240.0
+ARM_ROOM = 0.5            # P-135: NavMesh floor wanted on my right before a throw (MoKa 063807 hit from 0.5 / 0.5 m; 194800 missed from 0.2 m)
+ARM_EDGE_KEEP = 0.15      # never move closer than this to the left edge
+ARM_MIN_SHIFT = 0.05      # smaller shifts aren't worth a stick tap
+ARM_SETTLE_TOL, ARM_SETTLE_SCALE = 0.08, 0.25
 LURE_MIN, LURE_MAX = 6.0, 13.0   # throw conditions on flat ground — closer than this and just walking wakes it; farther and lock-on fails
 KNIFE_LOW = 5            # warn below this — going to buy from the merchant is a later task (user 2026-09-24)
 HOLD_TRIES = 3           # hold-the-spot targets (lure_at.hold): lure attempts; wait HOLD_WAIT in place between them
@@ -1212,7 +1216,10 @@ class Field:
                     return "dead"
                 if not self._asleep(ptr):
                     return "lured"
+            arm = self._arm_room(ptr, nm, tag)
             r = self.mv.throw_knife(ptr, require_lock=True)
+            if arm is not None:
+                r["arm"] = arm
             if want and r.get("why") and not (self.mv.tm.goods_count(M.ITEM_KNIFE) or 0) and self._emergency():
                 r = self.mv.throw_firebomb(ptr)            # firebomb only when out of knives and about to die
                 self.log(f"   {tag}: 나이프 없음 + 위기 — 화염병 → 피해 {r.get('hit')}")
@@ -1222,7 +1229,7 @@ class Field:
             self.log(f"   {tag}: 나이프 {n} ({r.get('dist')} m, 락온 {r.get('locked')}, 조준 {r.get('aim_off')}°) → "
                      f"피해 {r.get('hit')}, {'움직임' if r.get('woke') else '반응 없음'}{' | ' + r['why'] if r.get('why') else ''}"
                      f"{' | 다른 놈 깸 ' + str(len(others)) if others else ''}")
-            self.events("lure", tag=tag, n=n, **{k: r.get(k) for k in ("dist", "locked", "aim_off", "hit", "woke", "knives")})
+            self.events("lure", tag=tag, n=n, **{k: r.get(k) for k in ("dist", "locked", "aim_off", "hit", "woke", "knives", "arm")})
             if want:
                 hits += 1 if (r.get("hit") or 0) > 0 else 0
                 cn = self.mv.find(self.mv.snap(SEEK_R), ptr)
@@ -2373,7 +2380,7 @@ class Field:
             getattr(self.mv.pad, "guard", lambda on: None)(False)
         return "timeout"
 
-    def _settle(self, spot, tol: float = None, tries: int = 10) -> float:
+    def _settle(self, spot, tol: float = None, tries: int = 10, scale: float = 0.45) -> float:
         """Last few steps — short stick taps to get within tol of spot (horizontal). Throw-spot tolerance 1.5 m clashed with the 13 m lure minimum,
         giving 12.8~13.0 m → 'too_close' (R3 101913, 134451 three times) — user-approved 2026-09-26 'to 0.5 m'. → remaining distance"""
         tol = HOLD_SPOT_TOL if tol is None else tol
@@ -2385,11 +2392,50 @@ class Field:
             d = math.hypot(s.player.x - spot[0], s.player.z - spot[2])
             if d <= tol:
                 break
-            self.mv.pad.move(*self.mv.stick_to(s, spot[0], spot[2], 0.45))
+            self.mv.pad.move(*self.mv.stick_to(s, spot[0], spot[2], scale))
             time.sleep(0.12)
             self.mv.pad.move(0.0, 0.0)
             time.sleep(0.12)
         return d if d is not None else 0.0
+
+    def _arm_room(self, ptr, nm, tag: str) -> dict | None:
+        """
+        ── 오른팔 가동 공간 (P-135, [MoKa] 11-08) ──────────────────────────────
+         "양 옆이 좁은 통로에 특히 우측 벽에 붙어 있는 상태로 나이프를 던지면, 오른손이 벽에 부딪혀서 던지는 것이 실패한거야" ·
+         "좌측 벽으로 미세 조정으로 붙어서, 오른 팔이 움직이게 하는 가동 공간을 확보". 194800 구역 4: 던진 자리 오른쪽 바닥 0.2 m ·
+         왼쪽 0.8 m → 13.0 m 락온인데 피해 0; 시범 063807이 맞힌 자리는 0.5 / 0.5 m (통로 가운데).
+         오른쪽 바닥이 ARM_ROOM보다 좁으면 왼쪽으로 옮겨 섬 — 통로가 2×ARM_ROOM보다 좁으면 가운데로. NavMesh 가장자리는 벽인지
+         낭떠러지인지 모르고, 벽 표면보다 안쪽일 수 있음 (가설) — 그래서 "몇 m"가 아니라 좌우를 맞추는 쪽으로.
+         → None (안 잼) | {"right", "left", "moved"}
+        """
+        s = self.mv.snap(SEEK_R)
+        c = self.mv.find(s, ptr) if s is not None else None
+        if c is None or nm is None:
+            return None
+        p = s.player
+        room = nav.side_room(nm, p, c.x - p.x, c.z - p.z)
+        if room is None:
+            return None
+        right, left = room
+        out = {"right": right, "left": left, "moved": 0.0}
+        if right >= ARM_ROOM:
+            return out
+        want = (left - right) / 2 if right + left < 2 * ARM_ROOM else ARM_ROOM - right
+        shift = min(want, left - ARM_EDGE_KEEP)
+        if shift < ARM_MIN_SHIFT:
+            self.log(f"   {tag}: 오른쪽 바닥 {right:.2f} m · 왼쪽 {left:.2f} m — 옮길 자리 없음, 그대로 던짐")
+            return out
+        n = math.hypot(c.x - p.x, c.z - p.z)
+        fx, fz = (c.x - p.x) / n, (c.z - p.z) / n
+        goal = (p.x - fz * shift, p.y, p.z + fx * shift)       # left of facing = (−fz, fx) (nav.side_room)
+        self._settle(goal, tol=ARM_SETTLE_TOL, scale=ARM_SETTLE_SCALE)
+        s2 = self.mv.snap(SEEK_R)
+        p2 = s2.player if s2 is not None else p
+        r2 = nav.side_room(nm, p2, c.x - p2.x, c.z - p2.z) or (None, None)
+        out.update(moved=round(math.hypot(p2.x - p.x, p2.z - p.z), 2), right_after=r2[0], left_after=r2[1])
+        self.log(f"   {tag}: 오른팔 공간 — 오른쪽 바닥 {right:.2f} m · 왼쪽 {left:.2f} m → 왼쪽으로 {out['moved']:.2f} m "
+                 f"(뒤: 오른쪽 {r2[0]} · 왼쪽 {r2[1]})")
+        return out
 
     # ── Bloodstain────────────────────────────────────────────────
     def pick_blood(self, nm, near: float = 20.0, bonfire_ok: bool = False) -> str | None:

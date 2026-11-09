@@ -186,6 +186,28 @@ def can_move(terrain, p, dx: float, dz: float, dist: float) -> bool:
     return True
 
 
+def side_room(terrain, p, fx: float, fz: float, maxd: float = 1.5, step: float = 0.05) -> tuple[float, float] | None:
+    """Floor left on my right and left when facing (fx, fz): metres of NavMesh floor before an edge (wall or drop — the mesh can't
+    tell which), up to maxd. Right = (fz, −fx) (rel_angle: + is right, world yaw = atan2(dx, dz)). → (right, left), None without
+    floor_at (test stubs). Used for arm room before a throw (P-135)."""
+    f = getattr(terrain, "floor_at", None)
+    n = math.hypot(fx, fz)
+    if f is None or n < 1e-6:
+        return None
+    fx, fz = fx / n, fz / n
+    out = []
+    for ux, uz in ((fz, -fx), (-fz, fx)):
+        y, d = p.gy, 0.0
+        while d < maxd - 1e-9:
+            hit = f(p.gx + ux * (d + step), p.gz + uz * (d + step), y)
+            if hit is None or hit[0] < y - MOVE_STEP_DROP or hit[0] > y + MOVE_STEP_UP:
+                break
+            d += step
+            y = hit[0]
+        out.append(round(d, 2))
+    return out[0], out[1]
+
+
 def in_sight(terrain, a, b) -> bool:
     """Point b (feet) in sight from a (feet) — Navmesh.clear_sight. Lock-on needs it: bot lock-on 2–10 m on the way 6/41, every
     failure with a position had the straight line blocked (docs/throwables.md). True if terrain has no NavMesh geometry

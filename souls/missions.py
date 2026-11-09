@@ -88,6 +88,7 @@ SIP_GETUP_S = 3.0        # _sip_on_hit: wait at most this long to get up (my ani
 BARREL_FOE_R = 4.0     # _barrel: a live foe this close ends the guard-wait (try 12: the barrel soldier came down to 1.7 m)
 UPPER_FOLLOW_R = 8.0   # _pull_to_safe: not at its spawn → the same type this close to me is the one that followed
 UPPER_COME_R = 8.0      # a target already this close to the safe spot (or already moving) isn't run at — wait for it there
+NOISE_WAIT_S = 5.0       # P-135: after a knife with no reaction, guard at the safe spot this long before running in (a wall-hit sound wakes foes)
 HOLD_STILL_S, HOLD_CLOSE_M = 3.0, 0.5   # hold: the target got no closer to the safe spot than this over this long → stop waiting, go to it
 # ── 구역 8 석궁 hold 20 s를 다 기다림 (MoKa 11-08 "사다리 타고 올라가면, 다음 판단 느려지는 것도 여전하네") ─────────────
 #  20261108_192447: 8-1을 잡은 뒤 447–467 s, 8-2 255002가 7.1–7.4 m에 선 채 3002 · 3003 (쏨)만 — 다가오지 않는 놈을 20 s 가드로 기다림.
@@ -892,6 +893,14 @@ class Missions:
                     if back == "dead":
                         return "died"
                 return "here"
+            if lr == "no_reaction":
+                # ── 던졌는데 반응 없음 → 바로 뛰어들지 않음 (P-135, [MoKa] 11-08) ──────────────────────
+                #  "벽에 부딪히는 소리에 반응해서 적 하나가 왔는데 기다리지 못하고 뛰어들은것도 문제임" — 194800 구역 4: 186.7 no_reaction →
+                #  188.2 254012가 6 m로 오는데 몸 달리기로 붙으러 감 → 3놈 워프. 안전 자리에서 가드 들고 NOISE_WAIT_S 기다림, 오면 거기서 받음
+                if self._wait_at_safe(ptr, safe, NOISE_WAIT_S):
+                    self.log(f"   {tag}: 나이프 뒤 기다리니 옴 — 안전 자리에서 받음")
+                    return "here"
+                self.log(f"   {tag}: 나이프 뒤 {NOISE_WAIT_S:g} s 아무도 안 옴 — 몸으로")
             # no_knife / no_path / no_spot / too_far / no_reaction / no_lock → the body run below, and no knife at this one again
             #  (P-117: 구역 2-1에서 같은 놈에게 두 번 서서 시도하는 사이 화염병 −222 · −111)
             self.knife_failed = failed | {ptr}
