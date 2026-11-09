@@ -116,6 +116,26 @@ i_hit = next((i for i, c in enumerate(seq) if c[0] == "light"), None)
 check(f"fight (P-141): guard up walking to the spot, down right before the lights ({seq})",
       T.GUARD_CLOSE and i_on is not None and i_hit is not None and i_on < i_hit and seq[i_hit - 1] == ("guard", (False,)))
 
+# P-142 (013102, MoKa 11-09): HP 136 with one Estus left, boss in its 3000 range every tick → never drank, kept swinging, died.
+# Now: below the sip line with no sip window → no lights, guard up, back off; when the boss leaves its attack range → drink.
+b = boss(x=47.0, y=15.8, z=-119.0, anim=3006)
+calm = boss(x=47.0, y=15.8, z=-119.0, anim=-1)
+t, mv, pad = make([snap(b, me=(47.3, 15.8, -119.3), hp=136, sp=98), snap(b, me=(47.3, 15.8, -119.3), hp=136, sp=98),
+                   snap(calm, me=(49.0, 15.8, -119.3), hp=136, sp=98), snap(None, me=(49.0, 15.8, -119.3), hp=400)])
+mv.light = lambda s, c, n=1, sp_second=40: (pad.calls.append(("light", (n,))), NS(dmg=0, taken=0))[1]
+mv.drink = lambda ok: pad.calls.append(("drink", ())) or {"ok": True}
+t.nm = None
+T.nav.safe_heading = lambda nm, p, dx, dz, reach=1.0: (dx, dz)
+try:
+    t._fight()
+finally:
+    T.nav.safe_heading = T.nav_safe
+names = [c[0] for c in pad.calls if c[0] in ("guard", "light", "drink", "move")]
+i_drink = names.index("drink") if "drink" in names else None
+check(f"P-142: low HP, boss swinging → no light, guard up, step away; drinks once it stops ({names[:12]})",
+      i_drink is not None and "light" not in names[:i_drink] and ("guard", (True,)) in pad.calls[:pad.calls.index(("drink", ()))]
+      and any(c[0] == "move" and c[1] != (0.0, 0.0) for c in pad.calls[:pad.calls.index(("drink", ()))]))
+
 # try 11: a fall quit-out reloaded us in front of the fog wall — the boss (HP 150) just dropped out of the snapshot
 t, mv, pad = make([snap(boss(x=47.0, y=15.8, z=-119.0, anim=3005, hp=150), me=(47.5, 15.8, -119.5), sp=10),
                    snap(None, me=(51.9, 17.2, -118.6))])

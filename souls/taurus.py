@@ -58,6 +58,7 @@ HIT_SP = 40
 #  · 칠 때와 에스트 때만 가드를 내림. 자리에서 기력을 기다릴 때도 가드 (기력이 차는지가 이번 시험 질문 — 'hit' 이벤트에 sp)
 #  · 예전 (10-12 시험 4): 약공 뒤마다 LB가 눌린 채라 무기로 막아 기력 98 → 9, 약공 4번 중 1번만 맞음 → 가드 끔. GUARD_CLOSE False면 그대로
 GUARD_CLOSE = True
+LOW_BACK_R = 4.0                    # P-142: below the sip line with no sip window, back off to this (guard up) — unmeasured
 HIT_SP2 = 80                        # two in a row only from here (two cost ~76)
 ESTUS_HP = 0.40
 # ── 두 대 맞으면 죽음 → 한 대 맞으면 마심 ([MoKa] 11-02 "연속 2대 맞으면 죽잖아" · "에스트 마시면서") ──
@@ -551,6 +552,7 @@ class Taurus:
 
     def _fight_loop(self, t0: float, hits: int) -> str:
         g0 = getattr(self.f.esc, "gen", 0)
+        low_said = False
         while time.time() - t0 < FIGHT_LIMIT:
             if not self.f.alive():
                 self.log(f"   타우로스 싸움: 사망 — {time.time() - t0:.0f} s, 약공 {hits}번")
@@ -580,6 +582,24 @@ class Taurus:
                 self.log(f"   타우로스 싸움 중 에스트: {r}")
                 self.events("estus", **r)
                 continue
+            if p.hp < max(p.max_hp * ESTUS_HP, 2 * TAURUS_HIT) and self.mv.estus_left() > 0:
+                # ── 못 마시는 틱엔 치지 않음 (P-142, MoKa 11-09 "1번 진행") ──────────────────────────
+                #  013102: HP 355 · 136, 에스트 1개 남음 — 보스가 3000번대라 마시는 조건이 안 맞는 틱마다 아래로 내려가 약공×2 → 3006 −136 사망.
+                #  마실 선 아래면 약공 안 함: 가드 든 채 LOW_BACK_R까지 물러나 서서, 위 에스트 검사가 틈을 잡을 때까지 기다림
+                #  (MoKa 11-02 "한 대 맞으면 마심"). LOW_BACK_R는 측정 전 값.
+                if not low_said:
+                    low_said = True
+                    self.log(f"   타우로스: HP {p.hp} — 마실 틈 기다림, 약공 안 함 (보스 애니 {a}, {h:.1f} m, P-142)")
+                    self.events("taurus", what="wait_sip", hp=p.hp, anim=a, h=round(h, 2))
+                self.pad.guard(True)
+                if h < LOW_BACK_R and s.cam_yaw is not None:
+                    way = nav.safe_heading(self.nm, p, p.x - b.x, p.z - b.z, reach=1.0)
+                    self.pad.move(*(self.mv.stick_to(s, p.x + way[0], p.z + way[1], 1.0) if way is not None else (0.0, 0.0)))
+                else:
+                    self.pad.move(0.0, 0.0)
+                time.sleep(0.05)
+                continue
+            low_said = False
             sx, sz = crotch_spot(b, p)
             off = math.hypot(sx - p.x, sz - p.z)
             # [MoKa] 11-03 "2대 때리고 다시 가랑이에 붙어봐. 거리 조절도 되지만, 스테미나도 채워야해" — always two, then stay on the

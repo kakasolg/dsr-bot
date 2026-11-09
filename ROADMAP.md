@@ -238,7 +238,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 139 | axe wall bounce; no sip | verify |
 | 140 | z4 rushed 3 | verify |
 | 141 | Taurus guard | verify |
-| 142 | Taurus no sip | open |
+| 142 | Taurus no sip | verify |
 
 ## 5. Relay — [cloud] ↔ board
 
