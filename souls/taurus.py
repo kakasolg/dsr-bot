@@ -595,7 +595,10 @@ class Taurus:
             low = p.hp < max(p.max_hp * ESTUS_HP, 2 * TAURUS_HIT) and self.mv.estus_left() > 0
             sx0, sz0 = crotch_spot(b, p)
             on_spot = math.hypot(sx0 - p.x, sz0 - p.z) <= SIP_SPOT_R
-            window = low and (p.sp or 0) < HIT_SP and a not in BOSS_ATTACK
+            # [MoKa] 11-09 "한 대 남으면 마셔" — 073200: HP 3 · 기력 98에서 기력 규칙대로 약공 → 사망 (P-147). 한 대(TAURUS_HIT)에 죽는 HP면
+            #  기력과 상관없이 마실 창 (보스 BOSS_ATTACK 밖일 때), 그 사이엔 치지 않고 자리에서 가드
+            one_left = p.hp <= TAURUS_HIT and self.mv.estus_left() > 0
+            window = low and ((p.sp or 0) < HIT_SP or one_left) and a not in BOSS_ATTACK
             win_t = (win_t or time.time()) if window and not on_spot else None
             late = win_t is not None and time.time() - win_t > SIP_SPOT_WAIT
             if window and (on_spot or late):
@@ -628,7 +631,7 @@ class Taurus:
             # 그동안 아무것도 안 함. 이제 자리에 붙으면 기력 HIT_SP(40)부터 바로 약공×3 (세 번째는 기력이 음수로 가도 나감, 측정 전)
             spot_t = (spot_t or time.time()) if off <= SPOT_R else None
             waited = time.time() - spot_t if spot_t is not None else 0.0
-            if off <= SPOT_R and ((p.sp or 0) >= HIT_SP or (waited >= SPOT_ATTACK_S and (p.sp or 0) > 0)):
+            if off <= SPOT_R and not one_left and ((p.sp or 0) >= HIT_SP or (waited >= SPOT_ATTACK_S and (p.sp or 0) > 0)):
                 if self.mv.face(s, b, deg=30.0):
                     self.log(f"   타우로스: 다리 사이 도착 → 약공까지 {waited:.2f} s (기력 {p.sp})")
                     spot_t = None
