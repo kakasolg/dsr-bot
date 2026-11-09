@@ -1,6 +1,7 @@
 """DSR weapon / shield model (parts/WP_A_xxxx.partsbnd.dcx) → glTF .glb for the practice room, plus its dummy points
 (MoKa M1109-54: the real game models, local only — the repo is public, so the .glb stays in gitignored sim/godot/assets).
 
+  python sim/flver_glb.py --map m10_01_00_00         → sim/godot/assets/m10_01_00_00.glb (every MSB map piece, textured)
   python sim/flver_glb.py WP_A_0266 WP_A_1521        → sim/godot/assets/<name>.glb (then Godot --import),
                                                        dummies → data/gamefiles/weapon_models.json
 
@@ -283,9 +284,121 @@ def convert(name: str) -> dict:
                          "up": [round(v, 4) for v in d["up"]]} for d in fl["dummies"]]}
 
 
+def _texture_index(area_dir: Path) -> dict:
+    """{texture stem: (tpfbhd path, entry name)} for every map texture binder of an area (map/m10/m10_*.tpfbhd)."""
+    from soulstruct.containers import Binder
+    idx = {}
+    for bhd in sorted(area_dir.glob("*.tpfbhd")):
+        for e in Binder.from_path(bhd).entries:
+            stem = e.name.lower().split(".")[0]
+            idx.setdefault(stem, (bhd, e.name))
+    return idx
+
+
+def convert_map(map_id: str, tex_max: int = 512) -> dict:
+    """Every MSB map piece of a map → one .glb in Godot space = DSR world coordinates (the positions the bot reads from
+    memory) with x negated, the piece's MSB translate + Y rotation baked into the vertices; one primitive per piece × material,
+    the material's first (diffuse) texture downscaled to tex_max px. Pieces with X/Z rotation or scale ≠ 1 are skipped
+    and listed (none in m10_01)."""
+    import navmesh  # noqa: F401
+    from navmesh import GAME_DIR
+    from soulstruct.containers import TPF, Binder
+    from soulstruct.darksouls1r.maps import MSB
+    from soulstruct.dcx import decompress
+    from PIL import Image
+
+    msb = MSB.from_path(GAME_DIR / "map" / "MapStudio" / f"{map_id}.msb")
+    area = GAME_DIR / "map" / map_id[:3]
+    tindex = _texture_index(area)
+    binders: dict = {}
+    images: dict = {}           # texture stem → png bytes (shared across pieces)
+    parts, mats, img_of, skipped, done = [], [], {}, [], []
+    for piece in msb.map_pieces:
+        rx, ry, rz = (float(v) for v in piece.rotate)
+        if abs(rx) > 0.01 or abs(rz) > 0.01 or any(abs(float(v) - 1.0) > 1e-4 for v in piece.scale):
+            skipped.append(piece.name)
+            continue
+        f = GAME_DIR / "map" / map_id / f"{piece.model.name}A{map_id[1:3]}.flver.dcx"
+        if not f.exists():
+            skipped.append(f"{piece.name} (no {f.name})")
+            continue
+        b, _ = decompress(f)
+        fl = read_flver(b)
+        th = math.radians(ry)
+        c, s_ = math.cos(th), math.sin(th)
+        tx, ty, tz = (float(v) for v in piece.translate)
+        for mi, pos, nrm, uv, tris in mesh_data(b, fl):
+            # DSR world → Godot: DSR is left-handed, so x is negated (and the winding flipped) — otherwise the
+            # picture comes out mirrored left-right against the game (checked against the OBS recording 11-09)
+            pos = [(-(c * x + s_ * z + tx), y + ty, -s_ * x + c * z + tz) for x, y, z in pos]
+            nrm = [(-(c * x + s_ * z), y, -s_ * x + c * z) for x, y, z in nrm]
+            tris = [(a, c3, b2) for a, b2, c3 in tris]
+            m = fl["materials"][mi]
+            stem = ""
+            for t in m["textures"]:
+                st = Path(t["path"].replace("\\", "/")).stem.lower()
+                if st and not st.endswith(("_n", "_s")) and "_lit_" not in st:
+                    stem = st
+                    break
+            key = stem or f"{piece.name}:{mi}"
+            if key not in img_of:
+                img_of[key] = len(mats)
+                mats.append({"name": stem or m["name"]})
+                if stem in tindex and stem not in images:
+                    bhd, ename = tindex[stem]
+                    if bhd not in binders:
+                        binders[bhd] = Binder.from_path(bhd)
+                    data = binders[bhd][ename].data
+                    if data[:4] == b"DCX\0":
+                        data, _ = decompress(data)
+                    try:
+                        tex = TPF.from_bytes(data).textures[0].data
+                        im = Image.open(io.BytesIO(tex)).convert("RGBA")
+                        im.thumbnail((tex_max, tex_max))
+                        buf = io.BytesIO()
+                        im.save(buf, "PNG")
+                        images[stem] = buf.getvalue()
+                    except Exception as e:      # unreadable texture → untextured, listed
+                        skipped.append(f"texture {stem}: {e}")
+            parts.append((img_of[key], pos, nrm, uv, tris))
+        done.append(piece.name)
+    imgs = {i: images[mats[i]["name"]] for i in range(len(mats)) if mats[i]["name"] in images}
+    # Godot keeps at most 256 surfaces per mesh and silently drops the rest (m10_01: 1772 piece × material parts → the
+    # town was missing) — merge every part with the same material into one primitive
+    merged: dict = {}
+    for mi, pos, nrm, uv, tris in parts:
+        m = merged.setdefault(mi, [[], [], [], []])
+        base = len(m[0])
+        m[0] += pos
+        m[1] += nrm
+        m[2] += uv
+        m[3] += [(a + base, b + base, c + base) for a, b, c in tris]
+    parts = [(mi, *v) for mi, v in merged.items()]
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    out = OUT_DIR / f"{map_id}.glb"
+    write_glb(out, parts, imgs, mats)
+    return {"pieces": len(done), "skipped": skipped, "primitives": len(parts), "materials": len(mats),
+            "textured": len(imgs), "triangles": sum(len(p[4]) for p in parts), "mb": round(out.stat().st_size / 1e6, 1)}
+
+
+def _godot_import() -> None:
+    # a new .glb loads in the room only after Godot imported it (writes assets/*.import, extracts the textures)
+    import subprocess
+    from sim.godot_link import GODOT
+    if GODOT.exists():
+        subprocess.run([str(GODOT), "--headless", "--path", str(ROOT / "sim" / "godot"), "--import"],
+                       capture_output=True, timeout=600)
+        print("Godot import done")
+
+
 def main() -> None:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
+    if sys.argv[1:2] == ["--map"]:
+        for map_id in sys.argv[2:] or ["m10_01_00_00"]:
+            print(map_id, convert_map(map_id))
+        _godot_import()
+        return
     names = sys.argv[1:] or ["WP_A_0266", "WP_A_1521"]
     out = json.loads(DUMMY_JSON.read_text(encoding="utf-8")) if DUMMY_JSON.exists() else {}
     out.setdefault("source", "DSR parts/*.partsbnd.dcx FLVER2 dummies (sim/flver_glb.py); positions in model space, metres")
@@ -295,13 +408,7 @@ def main() -> None:
         refs = sorted({x["ref"] for x in d["dummies"]})
         print(f"{n}: {d['vertices']} verts {d['triangles']} tris, bounds {d['bounds']}, dummies {refs}")
     DUMMY_JSON.write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
-    # a new .glb loads in the room only after Godot imported it (writes assets/*.import, extracts the textures)
-    import subprocess
-    from sim.godot_link import GODOT
-    if GODOT.exists():
-        subprocess.run([str(GODOT), "--headless", "--path", str(ROOT / "sim" / "godot"), "--import"],
-                       capture_output=True, timeout=300)
-        print("Godot import done")
+    _godot_import()
 
 
 if __name__ == "__main__":

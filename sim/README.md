@@ -5,7 +5,13 @@
 - `build_actions.py` — `godot/actions.json` from the DSR player TAE (`player_tae_extract.py` → `data/gamefiles/tae_c0000.json`).
 - `flver_glb.py` — DSR weapon / shield models (`parts/WP_A_xxxx.partsbnd.dcx`) → `godot/assets/*.glb` + Godot import;
   dummy points → `data/gamefiles/weapon_models.json`. Then `build_actions.py` (equipment rows, AtkParam_Pc hitboxes).
-- Tests: `python tests/godot_room_test.py`, `python tests/godot_combat_test.py` (headless; skipped without Godot).
+- Scene replay (MoKa M1109-55/56): `python sim/replay_view.py [<run>] [--at <s>]` opens `godot/replay.tscn` on
+  `data/replays/<run>.json` (`replay_extract.py`: radar recording + run events, made on first use). Maps:
+  `python sim/flver_glb.py --map m10_01_00_00` and `--map m10_02_00_00` (local only). Keys at the top of `godot/replay.gd`.
+  DSR is left-handed: the replay and the converted maps use Godot x = −DSR x (the practice room `main.gd` does not yet,
+  so it is drawn mirrored).
+- Tests: `python tests/godot_room_test.py`, `python tests/godot_combat_test.py`, `python tests/replay_test.py`
+  (headless; skipped without Godot / data).
 
 ## Character assets (not in git)
 `godot/assets/UAL1_Standard.glb`, `godot/assets/UAL2_Standard.glb` — Quaternius *Universal Animation Library* 1 and 2,
