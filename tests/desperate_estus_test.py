@@ -81,7 +81,7 @@ def test_zone8_hold_no_retreat() -> None:
     calls = []
     m = MS.Missions.__new__(MS.Missions)
     m.log = lambda *a, **k: None
-    m._wait_at_safe = lambda ptr, safe, secs: calls.append(("wait", secs)) or True
+    m._wait_at_safe = lambda ptr, safe, secs, **k: calls.append(("wait", secs)) or True
     m._first_foe = lambda ptr: ptr
     m.mv = NS(snap=lambda r: NS(), find=lambda s, ptr: foe if foe.hp > 0 else None)
 

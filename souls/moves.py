@@ -497,6 +497,13 @@ class Moves:
             return hit
         return self.combo("backstep_r1", s, c, nm=None, r1_at=r1_at, swing=swing)   # floor already checked above
 
+    # ── 점프 공격 + 약공 ([MoKa] 11-04 판정 19 · 22 "점프 공격 + 약공을 콤보로 만들었어야 함", "점프 공격은 첫 공격이 실패해도 2타 공격이
+    #  확정적으로 들어가기 때문에 … 점프 공격 이후에는 그냥 약공이 더 자연스러운 선택") ─────────────────────────────────
+    #  점프를 누르고 JUMP_TO_R1 s 뒤 R1 — 점프 칼날은 누른 뒤 ~1.04 s (클레이모어 253600, observe 20261104_132739 1번), 애니 전체 ~2.3 s
+    #  (132116 · 133513, 배틀 액스 303600 4번). 칼날 직후에 눌러 게임이 받아 둔 뒤 이어 칠 첫 틈에 약공이 나가게 하려는 값 — 그 틈이 언제인지,
+    #  1.1 s 입력이 버려지지 않는지는 게임 확인 전 (가설). 점프에 이미 죽었으면 R1 안 누름 (tick의 h.dead).
+    JUMP_TO_R1 = 1.1
+
     # ── Combo = sequence (user 2026-09-24: "Make attack combos a single sequence — roll light, jump heavy, backstep light, like that") ──
     # one row = (time s, action). Actions: "stick_fwd" stick toward target | "stick_off" release stick | "B" | "R1" | "R2" (trigger)
     #   | "jump" stick toward target + R2 in the same report
@@ -508,9 +515,10 @@ class Moves:
     COMBOS = {
         "backstep_r1": ((0.0, "stick_off"), (0.0, "B"), (BS_TO_R1, "R1")),                 # backstep light — lunges 1.7~2.8 m forward
         "roll_r1":     ((0.0, "stick_fwd"), (0.3, "B"), (0.55, "R1")),                      # roll light — R1 0.55 s after B (post-B times are relative to B)
-        "jump_r2":     ((0.0, "jump"),),                                                    # jump attack — stick + R2 in one report (Pad.jump_attack)
+        "jump_r2":     ((0.0, "jump"), (JUMP_TO_R1, "R1")),                                 # jump attack (stick + R2 in one report, Pad.jump_attack) → light
     }
-    COMBO_WATCH = {"backstep_r1": BS_TO_R1 + 1.1, "roll_r1": 2.0, "jump_r2": 1.8}
+    COMBO_WATCH = {"backstep_r1": BS_TO_R1 + 1.1, "roll_r1": 2.0, "jump_r2": JUMP_TO_R1 + 1.1}
+    COMBO_TAIL = {"jump_r2": 0.9}                          # watch this long after the last key (default 0.4) — the follow-up light lands ~0.7 s after R1
     # 공격 키는 회피 동작(690 백스텝 · 710 구르기)이 실제로 보인 뒤 AFTER_DODGE s 이후에 — B 기준 시간만으로는 140(막기 등) 중에
     # B가 늦게 먹혀 R1이 먼저 들어가 버려짐 (P-121 125142: 140에서 시작한 백스텝 콤보 4/4가 690만, 303500 없음). 안 보이면
     # B 뒤 DODGE_WAIT s에 그냥 누름.
@@ -578,6 +586,9 @@ class Moves:
                 base = state["anchor"] if (state["anchor"] is not None and st_t > 0) else t_start
                 if now - base < st_t:
                     break
+                if act in ("R1", "R2") and state["i"] > 0 and h.dead:
+                    state["i"] = len(steps)                # the first part already killed it — no follow-up key
+                    break
                 if act in ("R1", "R2") and r1_at is not None and now < r1_at:
                     break
                 if act in ("R1", "R2") and swing is not None and any(a in ATTACK and a != swing for _ta, a in h.e_anims):
@@ -596,7 +607,8 @@ class Moves:
                     state["anchor"] = time.time()          # post-B step times are relative to the moment B was pressed
                 state["i"] += 1
         self._watch(hit, c.ptr, hp0, ehp0, self.COMBO_WATCH[name] + 0.3, tick,
-                    early_exit=lambda t, h: state["i"] >= len(steps) and time.time() > (state["anchor"] or t_start) + steps[-1][0] + 0.4)
+                    early_exit=lambda t, h: state["i"] >= len(steps) and time.time() > (state["anchor"] or t_start) + steps[-1][0]
+                    + self.COMBO_TAIL.get(name, 0.4))
         self.pad.move(0.0, 0.0)
         return hit
 

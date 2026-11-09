@@ -7,6 +7,7 @@
   · light(n=2): R1 → 0.45 s 뒤 R1, 첫 R1 은 스틱을 놓고 0.16 s 지난 뒤 (control.Pad.release_stick 규칙)
   · guard_ok=False 면 guard(True) 가 패드에 안 간다 (백스텝 스타일)
   · combo("roll_r1"): 스틱 앞 + B → 0.85 s 뒤 R1
+  · combo("jump_r2"): 점프 → JUMP_TO_R1 s 뒤 R1 (MoKa 11-04 "점프 공격 + 약공"), 점프에 죽었으면 R1 없음
 """
 from __future__ import annotations
 import sys as _sys, pathlib as _pl  # repo root first (the bot's modules), then this folder
@@ -64,6 +65,9 @@ class FakePad:
     def _r2(self, hold):
         self._rec("R2")
 
+    def jump_attack(self, fwd, hold=0.12):
+        self._rec("jump")
+
     def guard(self, on):
         self._rec("guard", on)
 
@@ -87,10 +91,11 @@ class FakeTm:
     """스냅샷: 플레이어는 원점, heading 0 (정면 = -z 쪽… rel_angle 규약: fwd = heading+π), 적은 정면 1.2 m."""
     def __init__(self):
         self.anim = -1
+        self.foe_hp = 75
 
     def snapshot(self, within=40.0):
         p = Chr(1, 0, 0, 700, 700, 0.0, 0.0, 0.0, sp=90, max_sp=90, anim=self.anim, heading=0.0)
-        c = Chr(10, 254000, 6, 75, 75, 0.0, 0.0, -1.2, anim=-1, dist=1.2)
+        c = Chr(10, 254000, 6, self.foe_hp, 75, 0.0, 0.0, -1.2, anim=-1, dist=1.2)
         return Snapshot(t=time.time(), player=p, chars=[c], cam_yaw=0.0)
 
 
@@ -166,6 +171,22 @@ def main() -> None:
     check(len(b) == 1 and len(r1) == 1 and sticks_before_b and sticks_before_b[-1] != [0.0, 0.0], f"roll_r1: 스틱 {sticks_before_b[-1] if sticks_before_b else None} B{b} R1{r1}")
     if b and r1:
         check(0.5 <= r1[0] - b[0] <= 0.65, f"B → R1 간격 {r1[0]-b[0]:.2f} s (0.55)")
+
+    # 5) 점프 공격 + 약공 (MoKa 11-04 판정 19 · 22): 점프 → JUMP_TO_R1 s 뒤 R1 하나
+    pad, tm = FakePad(), FakeTm(); mv = M.Moves(tm, pad); s = tm.snapshot(); c = s.chars[0]
+    h = mv.combo("jump_r2", s, c, nm=None)
+    j = [t for t, k, *v in pad.log if k == "jump"]
+    r1 = taps(pad, "R1")
+    check(len(j) == 1 and len(r1) == 1, f"jump_r2: 점프 {j} R1 {r1}")
+    if j and r1:
+        check(abs((r1[0] - j[0]) - M.Moves.JUMP_TO_R1) <= 0.08, f"점프 → R1 {r1[0]-j[0]:.2f} s ({M.Moves.JUMP_TO_R1})")
+
+    # 5b) 점프에 죽으면 R1 안 누름
+    pad, tm = FakePad(), FakeTm(); mv = M.Moves(tm, pad); s = tm.snapshot(); c = s.chars[0]
+    ja = pad.jump_attack
+    pad.jump_attack = lambda fwd, hold=0.12: (ja(fwd), threading.Timer(0.3, lambda: setattr(tm, "foe_hp", 0)).start())
+    h = mv.combo("jump_r2", s, c, nm=None)
+    check(h.dead and not taps(pad, "R1"), f"점프에 죽음 → R1 없음 (dead {h.dead}, R1 {taps(pad, 'R1')})")
 
     print("\n전체:", "OK" if ok else "FAIL")
     sys.exit(0 if ok else 1)

@@ -88,6 +88,10 @@ SIP_GETUP_S = 3.0        # _sip_on_hit: wait at most this long to get up (my ani
 BARREL_FOE_R = 4.0     # _barrel: a live foe this close ends the guard-wait (try 12: the barrel soldier came down to 1.7 m)
 UPPER_FOLLOW_R = 8.0   # _pull_to_safe: not at its spawn → the same type this close to me is the one that followed
 UPPER_COME_R = 8.0      # a target already this close to the safe spot (or already moving) isn't run at — wait for it there
+HOLD_STILL_S, HOLD_CLOSE_M = 3.0, 0.5   # hold: the target got no closer to the safe spot than this over this long → stop waiting, go to it
+# ── 구역 8 석궁 hold 20 s를 다 기다림 (MoKa 11-08 "사다리 타고 올라가면, 다음 판단 느려지는 것도 여전하네") ─────────────
+#  20261108_192447: 8-1을 잡은 뒤 447–467 s, 8-2 255002가 7.1–7.4 m에 선 채 3002 · 3003 (쏨)만 — 다가오지 않는 놈을 20 s 가드로 기다림.
+#  "오면 싸움, 안 오면 붙음" (11-01)은 그대로, "안 옴"을 HOLD_STILL_S 동안 HOLD_CLOSE_M도 안 다가옴으로 일찍 앎
 UPPER_NEAR_SAFE_R = 4.0  # within this of the safe spot, don't turn our back to run there — fight (10-06d died 2–3 m from it)
 UPPER_TRIES = 4          # same target until dead, at most this many lure + fight rounds (a round may go to a foe that came along)
 UPPER_ENCOUNTER_R = 10.0 # running in: any awake, moving foe on our level this close → turn back to the safe spot
@@ -524,8 +528,8 @@ class Missions:
             #  사거리 6–9 m에서 끝나 붙는 중에 맞았고, low_hp 후퇴는 탁 트인 탑 위에서 계속 맞음(12런 중 사망 4, P-103).
             #  → 안전 자리(F9#8)에서 가드 들고 기다림, 오면 물러나지 않고(desperate) 싸움, 사이사이 에스트(Field.desperate 포함).
             #  기다려도 안 오면 그때 붙음.
-            if not self._wait_at_safe(ptr, safe, float(how["hold"])):
-                self.log(f"   {tag}: {how['hold']} s 기다려도 안 옴 — 붙음")
+            if not self._wait_at_safe(ptr, safe, float(how["hold"]), still_out=True):
+                self.log(f"   {tag}: {getattr(self, 'hold_why', None) or str(how['hold']) + ' s 기다려도 안 옴'} — 붙음")
             for k in range(UPPER_TRIES):
                 if not self.f.alive():
                     return "died"
@@ -873,7 +877,10 @@ class Missions:
         if (getattr(self, "throw", False) or crowd) and knife_zone and ptr not in failed and not how.get("lure_at")                 and self._has(M.ITEM_KNIFE):
             if crowd and not getattr(self, "throw", False):
                 self.log(f"   {tag}: 옆에 {len(crowd)}명 붙어 있음 ({', '.join(f'{o.npc_param} {math.hypot(o.x - t.x, o.z - t.z):.1f} m' for o in crowd)}) — 몸 대신 나이프로")
-            lr = self.f.lure(ptr, here0, nb, tag, arena=safe)     # from the safe spot, or up to 10 m along the path, locked on
+            # P-131: how["knife_from"] = {"spot", "min", "max"} → throw only from there (구역 4 = [MoKa] 시범 063807: 안전 자리에서 그대로
+            #  락온 13.5 m 맞음). 없으면 전처럼 안전 자리 또는 길 따라 10 m — 11-08 192447: NavMesh가 13 m 직선을 막힘으로 봐 3.8 m 앞으로
+            #  나가 9.1 m에서 R3 → 이웃이 잡힘 (잡힌 것 other) → 둘 깨움
+            lr = self.f.lure(ptr, here0, nb, tag, arena=safe, lure_at=how.get("knife_from"))
             self.log(f"   {tag}: 나이프 유인 → {lr}")
             if not self.f.alive():
                 return "died"
@@ -1233,21 +1240,32 @@ class Missions:
                 best = (score, dx, dz)
         return None if best is None else (best[1], best[2], False)
 
-    def _wait_at_safe(self, ptr, safe, secs: float) -> bool:
-        """Guard at the safe spot up to secs for the target (or anyone) to come within UPPER_COME_R of it. → it came"""
+    def _wait_at_safe(self, ptr, safe, secs: float, still_out: bool = False) -> bool:
+        """Guard at the safe spot up to secs for the target (or anyone) to come within UPPER_COME_R of it. → it came
+        still_out: also give up once the target got no closer for HOLD_STILL_S (zone 8 hold — a patroller's `wait` keeps the full time)"""
         guard = getattr(self.mv.pad, "guard", lambda on: None)
         guard(True)
+        self.hold_why = None
         try:
             t0 = time.time()
+            seen: list = []                                # (time, target's distance to the safe spot)
             while time.time() - t0 < secs:
                 s = self.mv.snap(200.0)
                 if s is not None:
                     c = self.mv.find(s, ptr)
-                    if c is None or c.hp <= 0 or math.hypot(c.x - safe[0], c.z - safe[2]) < UPPER_COME_R:
+                    d = None if c is None else math.hypot(c.x - safe[0], c.z - safe[2])
+                    if c is None or c.hp <= 0 or d < UPPER_COME_R:
                         return True
                     if any(math.hypot(e.x - safe[0], e.z - safe[2]) < UPPER_COME_R for e in self._encounters(s, ptr)):
                         return True
+                    now = time.time()
+                    seen.append((now, d))
+                    old = [dd for tt, dd in seen if tt <= now - HOLD_STILL_S]
+                    if still_out and old and d > old[-1] - HOLD_CLOSE_M:
+                        self.hold_why = f"{now - t0:.1f} s 동안 안 다가옴 ({old[-1]:.1f} → {d:.1f} m)"
+                        return False
                 time.sleep(0.2)
+            self.hold_why = f"{secs:g} s 기다려도 안 옴"
             return False
         finally:
             guard(False)
