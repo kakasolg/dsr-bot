@@ -208,10 +208,10 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 110 | Zone 5 resin chest not taken on fresh Firelink-save chains (183919, 192523, 234903): same spot/heading as the 214607 success, A ×3 → nothing; taurus then stops "resin 0" | open → cause: tap A never released outside fight loops (lid opened, Pillage A ignored; 2nd round after neutral took it 11-02 001833); fix built (release each A), offline only |
 | 111 | Taurus (11-02 002807): on the top at 32 % HP with the boss below the ladder → no Estus, plunged (510→9), hit by 3001 while rolling after landing → died at boss HP 9 | open → MoKa 11-02: one plunge, then close fight on the bridge within the first resin, Estus between, never re-rub or climb again → PLUNGES 1, offline only |
 | 112 | `burg-upper` zone 8 top (11-02 014223): crossbowman 255002 3004 called over at 1.6 s → Estus backstep dropped the shield at 1.94 s → −330 at 2.11 s, died at 47 % | open → fix built; 11-02 022918 blocked 3004 ×20 for 0 in zone 2, 024657 zone 8 cleared (hits were 3005/3003); the 3004-backstep case not seen again |
-| 113 | `burg-upper` zone 8 (11-02 020649): through-sprint from the ladder top fell off the ledge after a hit, then walked back west into the crossbowmen with no fight → −557, died (same turn-back in 11-01 230106) | open → fix built, offline only; 11-02 024657 zone 8: no turn-back, path not exercised |
+| 113 | `burg-upper` zone 8 (11-02 020649): through-sprint from the ladder top fell off the ledge after a hit, then walked back west into the crossbowmen with no fight → −557, died | open → fix built, offline only; 11-02 024657 zone 8: no turn-back, path not exercised |
 | 114 | shop (11-02 040229): bot reached the Undead Merchant, walk to his centre blocked by boxes at 3.7 m → not_facing, 0 knives | open → stand spot + quick slot; game: bought 25 in 4/4 |
 | 115 | `burg-upper` zone 6 (11-02 040854): barrel soldier came down to the safe spot, kill step said "안 보임" (spawn-height search), 2nd hit not sipped → zone 7 at HP 326, died | open → fix built; game: wait ended at 3.6 / 3.4 m (try 16·20), follow-lookup and re-sip paths not exercised |
-| 116 | `burg-bonfire` town #6 (11-02 042357): two shield 255000 together, one in anim 3007 for 10 s+; 4 hits while closing in → died (before the shop, no knives) | open → observe 3007 first |
+| 116 | `burg-bonfire` town #6 (11-02 042357): two shield 255000 together, one in anim 3007 for 10 s+; 4 hits while closing in → died (before the shop, no knives) | open → observe 3007 |
 | 117 | burg-upper z2: knife lure 0/5 (044545); 11-04 011442 AGAIN: 5 foes, backstep combo into swings → died | open → MoKa |
 | 118 | `taurus` close fight (11-02 051424): no Estus at 320/698 (40 % rule), next −242 → died, boss ~161 left | open → drink below two hits (490); 11-03 try 21: ran in game (drank at 456), death was P-119 |
 | 119 | `taurus` close fight (11-03 try 21·22): swung on its center line 0.5–2.0 m in front, hit back to back → died | open → crotch_spot + two-hit/stay: killed 3 of 4 from MoKa's fog save (try 24–26; try 23 knocked off the bridge) |
@@ -243,6 +243,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 145 | Taurus death | open |
 | 146 | Taurus x3 | open |
 | 147 | Taurus 0 dmg | open |
+| 148 | Taurus 329 | open |
 
 ## 5. Relay — [cloud] ↔ board
 
