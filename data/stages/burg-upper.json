@@ -3,7 +3,7 @@
  "title": "성벽 마을 위쪽 — 화톳불 → 타우로스 (구역 1–8)",
  "map": "m10_01_00_00",
  "made_by": "stage_report.py",
- "runs_read": 101,
+ "runs_read": 102,
  "zones": [
   {
    "n": 1,
@@ -155,11 +155,11 @@
     ]
    },
    "runs": {
-    "runs": 85,
-    "tries": 107,
-    "cleared": 100,
+    "runs": 86,
+    "tries": 108,
+    "cleared": 101,
     "results": {
-     "cleared": 100,
+     "cleared": 101,
      "died": 5,
      "left": 2
     },
@@ -191,11 +191,11 @@
      }
     ],
     "falls": 7,
-    "big_hits": 134,
-    "big_hit_lost": 17772,
+    "big_hits": 136,
+    "big_hit_lost": 17938,
     "blamed": {
-     "254010": 108,
-     "255002": 19,
+     "254010": 109,
+     "255002": 20,
      "255001": 2,
      "254012": 1
     },
@@ -279,6 +279,7 @@
      "20261108_213157_burg-upper_firelink-noknife",
      "20261108_215233_burg-upper_firelink-noknife-retry",
      "20261108_221120_burg-upper_firelink-noknife-retry2",
+     "20261108_225520_burg-upper_firelink-noknife-retry3",
      "burg-upper-radar-2026-10-06-195804",
      "burg-upper-radar-2026-10-06-201550",
      "burg-upper-radar-2026-10-06a",
@@ -491,11 +492,11 @@
     ]
    },
    "runs": {
-    "runs": 73,
-    "tries": 95,
-    "cleared": 79,
+    "runs": 74,
+    "tries": 96,
+    "cleared": 80,
     "results": {
-     "cleared": 79,
+     "cleared": 80,
      "died": 12,
      "warped": 3,
      "left": 1
@@ -563,10 +564,10 @@
      }
     ],
     "falls": 1,
-    "big_hits": 177,
-    "big_hit_lost": 31432,
+    "big_hits": 178,
+    "big_hit_lost": 31521,
     "blamed": {
-     "254011": 83,
+     "254011": 84,
      "255001": 62,
      "254012": 12,
      "254010": 7
@@ -640,6 +641,7 @@
      "20261108_213157_burg-upper_firelink-noknife",
      "20261108_215233_burg-upper_firelink-noknife-retry",
      "20261108_221120_burg-upper_firelink-noknife-retry2",
+     "20261108_225520_burg-upper_firelink-noknife-retry3",
      "burg-upper-radar-2026-10-06-195804",
      "burg-upper-radar-2026-10-06-201550",
      "burg-upper-radar-2026-10-06b",
@@ -798,18 +800,18 @@
     ]
    },
    "runs": {
-    "runs": 60,
-    "tries": 78,
-    "cleared": 78,
+    "runs": 61,
+    "tries": 79,
+    "cleared": 79,
     "results": {
-     "cleared": 78
+     "cleared": 79
     },
     "deaths": [],
     "falls": 0,
-    "big_hits": 52,
-    "big_hit_lost": 6811,
+    "big_hits": 53,
+    "big_hit_lost": 6907,
     "blamed": {
-     "254010": 34,
+     "254010": 35,
      "254011": 8,
      "254012": 3,
      "255001": 1
@@ -872,6 +874,7 @@
      "20261108_213157_burg-upper_firelink-noknife",
      "20261108_215233_burg-upper_firelink-noknife-retry",
      "20261108_221120_burg-upper_firelink-noknife-retry2",
+     "20261108_225520_burg-upper_firelink-noknife-retry3",
      "burg-upper-radar-2026-10-06-195804",
      "burg-upper-radar-2026-10-06-201550",
      "burg-upper-radar-2026-10-06f",
@@ -1105,12 +1108,12 @@
     ]
    },
    "runs": {
-    "runs": 59,
-    "tries": 75,
+    "runs": 60,
+    "tries": 76,
     "cleared": 56,
     "results": {
      "cleared": 56,
-     "died": 5,
+     "died": 6,
      "warped": 14
     },
     "deaths": [
@@ -1138,18 +1141,23 @@
       "run": "20261108_221120_burg-upper_firelink-noknife-retry2",
       "cause": "hit",
       "by": 254012
+     },
+     {
+      "run": "20261108_225520_burg-upper_firelink-noknife-retry3",
+      "cause": "hit",
+      "by": 254010
      }
     ],
     "falls": 0,
-    "big_hits": 123,
-    "big_hit_lost": 17039,
+    "big_hits": 126,
+    "big_hit_lost": 17581,
     "blamed": {
-     "254011": 55,
-     "254010": 37,
+     "254011": 57,
+     "254010": 38,
      "254012": 30,
      "255002": 1
     },
-    "secs_median": 64,
+    "secs_median": 63,
     "files": [
      "20261011_170346_burg-upper_p67fix-zone5-death",
      "20261011_171918_burg-upper_p68fix-zone8-death",
@@ -1206,6 +1214,7 @@
      "20261108_213157_burg-upper_firelink-noknife",
      "20261108_215233_burg-upper_firelink-noknife-retry",
      "20261108_221120_burg-upper_firelink-noknife-retry2",
+     "20261108_225520_burg-upper_firelink-noknife-retry3",
      "burg-upper-radar-2026-10-06-195804",
      "burg-upper-radar-2026-10-06-201910",
      "burg-upper-radar-2026-10-06g",
@@ -1443,12 +1452,13 @@
      }
     ],
     "falls": 0,
-    "big_hits": 54,
-    "big_hit_lost": 9939,
+    "big_hits": 55,
+    "big_hit_lost": 9997,
     "blamed": {
      "255001": 38,
      "255000": 11,
-     "254012": 5
+     "254012": 5,
+     "254010": 1
     },
     "secs_median": 83,
     "files": [
