@@ -3,7 +3,7 @@
  "title": "성벽 마을 위쪽 — 화톳불 → 타우로스 (구역 1–8)",
  "map": "m10_01_00_00",
  "made_by": "stage_report.py",
- "runs_read": 96,
+ "runs_read": 97,
  "zones": [
   {
    "n": 1,
@@ -155,11 +155,11 @@
     ]
    },
    "runs": {
-    "runs": 80,
-    "tries": 94,
-    "cleared": 87,
+    "runs": 81,
+    "tries": 96,
+    "cleared": 89,
     "results": {
-     "cleared": 87,
+     "cleared": 89,
      "died": 5,
      "left": 2
     },
@@ -273,6 +273,7 @@
      "20261108_192447_burg-upper_p131-run1",
      "20261108_194800_burg-upper_p131-run2",
      "20261108_202047_burg-upper_p131-run3",
+     "20261108_205219_burg-upper_p136-run1",
      "burg-upper-radar-2026-10-06-195804",
      "burg-upper-radar-2026-10-06-201550",
      "burg-upper-radar-2026-10-06a",
@@ -485,11 +486,11 @@
     ]
    },
    "runs": {
-    "runs": 68,
-    "tries": 82,
-    "cleared": 66,
+    "runs": 69,
+    "tries": 84,
+    "cleared": 68,
     "results": {
-     "cleared": 66,
+     "cleared": 68,
      "died": 12,
      "warped": 3,
      "left": 1
@@ -557,15 +558,15 @@
      }
     ],
     "falls": 1,
-    "big_hits": 155,
-    "big_hit_lost": 27630,
+    "big_hits": 156,
+    "big_hit_lost": 27758,
     "blamed": {
-     "254011": 74,
+     "254011": 75,
      "255001": 56,
      "254012": 8,
      "254010": 7
     },
-    "secs_median": 56,
+    "secs_median": 57,
     "files": [
      "20261009_230500_burg-upper_check-hp742",
      "20261011_170346_burg-upper_p67fix-zone5-death",
@@ -629,6 +630,7 @@
      "20261108_192447_burg-upper_p131-run1",
      "20261108_194800_burg-upper_p131-run2",
      "20261108_202047_burg-upper_p131-run3",
+     "20261108_205219_burg-upper_p136-run1",
      "burg-upper-radar-2026-10-06-195804",
      "burg-upper-radar-2026-10-06-201550",
      "burg-upper-radar-2026-10-06b",
@@ -787,11 +789,11 @@
     ]
    },
    "runs": {
-    "runs": 55,
-    "tries": 65,
-    "cleared": 65,
+    "runs": 56,
+    "tries": 67,
+    "cleared": 67,
     "results": {
-     "cleared": 65
+     "cleared": 67
     },
     "deaths": [],
     "falls": 0,
@@ -856,6 +858,7 @@
      "20261108_192447_burg-upper_p131-run1",
      "20261108_194800_burg-upper_p131-run2",
      "20261108_202047_burg-upper_p131-run3",
+     "20261108_205219_burg-upper_p136-run1",
      "burg-upper-radar-2026-10-06-195804",
      "burg-upper-radar-2026-10-06-201550",
      "burg-upper-radar-2026-10-06f",
@@ -1089,13 +1092,13 @@
     ]
    },
    "runs": {
-    "runs": 54,
-    "tries": 62,
-    "cleared": 51,
+    "runs": 55,
+    "tries": 64,
+    "cleared": 52,
     "results": {
-     "cleared": 51,
+     "cleared": 52,
      "died": 3,
-     "warped": 8
+     "warped": 9
     },
     "deaths": [
      {
@@ -1115,15 +1118,15 @@
      }
     ],
     "falls": 0,
-    "big_hits": 107,
-    "big_hit_lost": 14945,
+    "big_hits": 108,
+    "big_hit_lost": 15159,
     "blamed": {
      "254011": 49,
-     "254010": 33,
+     "254010": 34,
      "254012": 24,
      "255002": 1
     },
-    "secs_median": 66,
+    "secs_median": 65,
     "files": [
      "20261011_170346_burg-upper_p67fix-zone5-death",
      "20261011_171918_burg-upper_p68fix-zone8-death",
@@ -1175,6 +1178,7 @@
      "20261108_192447_burg-upper_p131-run1",
      "20261108_194800_burg-upper_p131-run2",
      "20261108_202047_burg-upper_p131-run3",
+     "20261108_205219_burg-upper_p136-run1",
      "burg-upper-radar-2026-10-06-195804",
      "burg-upper-radar-2026-10-06-201910",
      "burg-upper-radar-2026-10-06g",
@@ -1368,11 +1372,11 @@
     ]
    },
    "runs": {
-    "runs": 48,
-    "tries": 45,
-    "cleared": 37,
+    "runs": 49,
+    "tries": 46,
+    "cleared": 38,
     "results": {
-     "cleared": 37,
+     "cleared": 38,
      "died": 6,
      "left": 2
     },
@@ -1416,7 +1420,7 @@
      "255000": 11,
      "254012": 4
     },
-    "secs_median": 84,
+    "secs_median": 83,
     "files": [
      "20261011_170346_burg-upper_p67fix-zone5-death",
      "20261011_171918_burg-upper_p68fix-zone8-death",
@@ -1461,6 +1465,7 @@
      "20261104_095201_burg-upper_claymore-r4",
      "20261108_192447_burg-upper_p131-run1",
      "20261108_194800_burg-upper_p131-run2",
+     "20261108_205219_burg-upper_p136-run1",
      "burg-upper-radar-2026-10-06-195804",
      "burg-upper-radar-2026-10-06-200335",
      "burg-upper-radar-2026-10-06-202244",
@@ -1605,11 +1610,11 @@
     ]
    },
    "runs": {
-    "runs": 38,
-    "tries": 38,
-    "cleared": 33,
+    "runs": 39,
+    "tries": 39,
+    "cleared": 34,
     "results": {
-     "cleared": 33,
+     "cleared": 34,
      "died": 5
     },
     "deaths": [
@@ -1645,7 +1650,7 @@
     "blamed": {
      "255001": 39
     },
-    "secs_median": 35,
+    "secs_median": 33,
     "files": [
      "20261011_171918_burg-upper_p68fix-zone8-death",
      "20261011_174753_burg-upper_zones1-8-cleared",
@@ -1682,6 +1687,7 @@
      "20261104_095201_burg-upper_claymore-r4",
      "20261108_192447_burg-upper_p131-run1",
      "20261108_194800_burg-upper_p131-run2",
+     "20261108_205219_burg-upper_p136-run1",
      "burg-upper-radar-2026-10-06-200335",
      "burg-upper-radar-2026-10-06-202244",
      "burg-upper-radar-2026-10-06k"
@@ -1735,11 +1741,11 @@
     ]
    },
    "runs": {
-    "runs": 32,
-    "tries": 32,
-    "cleared": 31,
+    "runs": 33,
+    "tries": 33,
+    "cleared": 32,
     "results": {
-     "cleared": 31,
+     "cleared": 32,
      "died": 1
     },
     "deaths": [
@@ -1786,6 +1792,7 @@
      "20261104_095201_burg-upper_claymore-r4",
      "20261108_192447_burg-upper_p131-run1",
      "20261108_194800_burg-upper_p131-run2",
+     "20261108_205219_burg-upper_p136-run1",
      "burg-upper-radar-2026-10-06-200335",
      "burg-upper-radar-2026-10-06-202244",
      "burg-upper-radar-2026-10-06k"
@@ -1934,12 +1941,12 @@
     "others": []
    },
    "runs": {
-    "runs": 32,
-    "tries": 32,
-    "cleared": 24,
+    "runs": 33,
+    "tries": 33,
+    "cleared": 25,
     "results": {
      "died": 7,
-     "cleared": 24,
+     "cleared": 25,
      "fog": 1
     },
     "deaths": [
@@ -2017,6 +2024,7 @@
      "20261104_095201_burg-upper_claymore-r4",
      "20261108_192447_burg-upper_p131-run1",
      "20261108_194800_burg-upper_p131-run2",
+     "20261108_205219_burg-upper_p136-run1",
      "burg-upper-radar-2026-10-06-200729",
      "burg-upper-radar-2026-10-06-202244"
     ]
