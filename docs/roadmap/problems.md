@@ -2321,3 +2321,7 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
   · 방패반격 (구역 4 둘 붙은 싸움 포함 9번): 친 5 (처치 2 · 나가기 전에 맞아 끊김 3: −89 −89 −83, 내 애니 303000 → 2001/2002 — 다른 놈이 침),
     기력 모자라 안 침 3 (SP 29 · 32 · 45 < 배틀 액스 sp_min 55), 화살 1. [MoKa] "둘이 있어도 방패에 부딪히면 약공 나왔으면 되는데 왜 않된건지?"
   · 샘플 data/samples/20261108_225520_burg-upper_firelink-noknife-retry3.
+- 고침 (11-08, [MoKa] "첫 번째 방패 부딪혔을때 반응해서 약공 들어갔으면 되는데"): 방패반격 기력 기준 배틀 액스 sp_min 55 → GUARD_COUNTER_SP 1
+  (기력이 남아 있으면 침). 오프라인 테스트만 (guard_counter_test · duel.jsonl guard-hit-low-sp-two-foes: 기준 55면 실패, 1이면 통과). golden 그대로.
+- [MoKa] 둘이 붙을 때 (P-140과 같은 장면): "이것도 2가지를 테스트 해야해. 정답은 나도 몰라. 둘을 상대한다 아니면 계단 밑으로 내려가서 하나씩
+  상대한다 이 두가지야." → 시험 (a) 둘을 상대 (지금 코드 + 위 고침) · (b) 계단 밑으로 내려가 하나씩 (안 만듦). 해결 기준: 각각 구역 4 통과 여부.

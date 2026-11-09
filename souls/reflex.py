@@ -37,6 +37,10 @@ THREAT_S = 1.3           # a threat only for this long after an attack anim star
 HIT_R = 3.0
 GUARD_HIT_ANIM = 140     # my anim % 10000 when something hits my raised shield (Battle Axe 140 · Claymore 20140)
 GUARD_COUNTER_STEP = 0.3 # guard_counter: the hitter within weapon reach + this (farther = an arrow or bolt on the shield)
+# ── 방패반격은 기력이 남아 있으면 침 (P-136, [MoKa] 11-08 "첫 번째 방패 부딪혔을때 반응해서 약공 들어갔으면 되는데") ──────────
+#  225520 구역 4 마지막 둘: 254010이 방패를 3번 쳤는데 SP 29 · 32 · 45 < 배틀 액스 sp_min 55 (2연타 콤보용 기준)라 3번 다 안 침 →
+#  둘의 공격을 막기만 하다 사망. 게임은 기력이 0보다 크면 약공이 나감. 친 뒤 막을 기력이 모자라는 위험은 MoKa가 받아들임
+GUARD_COUNTER_SP = 1
 WALL_BOUNCE_ANIM = 150   # my attack anim % 1000 after the swing struck a wall (Battle Axe 303000 → 303150) — wall_bounced()
 BOUNCE_SPOT_R = 0.6      # a swing from within this of a bounce spot would bounce again — duel.rule_wall_bounce moves first
 BOUNCE_KEEP_S = 120.0    # a bounce spot is remembered this long (one zone's fights)
@@ -154,7 +158,7 @@ class Reflex:
            (202047 hits #3 · #5: 20140 → 253000 0.3 s). 한 번 막을 때마다 한 번 (애니가 140을 벗어나면 다시 셈)
          · 맞힌 놈 = 무기 닿는 거리 + GUARD_COUNTER_STEP 안, 높이 차 1 m 안에서 휘두르는 중 (3000번대) 또는 내 방패에 튕긴
            휘청 (3500번대 — 205219 구역 1: 그 틱에 이미 3500이라 3000번대만 세던 첫 판은 3번 다 안 침). prefer (싸우는 놈) 먼저
-         · 안 침 (몸이 못 하는 것만): 그런 놈 없음 (멀리서 쏜 화살·볼트도 방패에 140 — foes.py), 기력 sp_min 미만.
+         · 안 침 (몸이 못 하는 것만): 그런 놈 없음 (멀리서 쏜 화살·볼트도 방패에 140 — foes.py), 기력 0 (GUARD_COUNTER_SP).
            옆 놈이 같이 휘둘러도 침 (첫 판은 rule_after_swing처럼 안 쳤음 — [MoKa] "모든 공격에서 기본")
          → Hit (쳤음) | None. self.gc_last에 (내 애니, 그놈, Hit, 안 친 이유)
         """
@@ -168,7 +172,7 @@ class Reflex:
         self._gc_done = True                                   # this block is decided — counter or not, once
         w = getattr(self.mv, "weapon", None)
         reach = (getattr(w, "reach", None) or 1.6) + GUARD_COUNTER_STEP
-        sp_min = getattr(w, "sp_min", None) or 30
+        sp_min = GUARD_COUNTER_SP
         near = [x for x in s.hostile(reach + 2.0) if x.hp > 0 and ((x.anim or -1) in M.ATTACK or (x.anim or -1) in M.STAGGER)
                 and M.horiz(p, x) <= reach and abs(x.y - p.y) <= 1.0]
         c = next((x for x in near if x.ptr == prefer), None) or min(near, key=lambda x: M.horiz(p, x), default=None)

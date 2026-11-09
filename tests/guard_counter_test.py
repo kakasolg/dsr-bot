@@ -51,10 +51,12 @@ def main() -> None:
     F, T, lights, logs = setup(140, [chr_(7, 0.0, -9.0, sw, npc=255040)])
     assert D.rule_guard_counter(F, T) is None and not lights and "닿는 거리" in logs[-1], (lights, logs)
     print("ok  shot on the shield (shooter 9 m) → no light")
-    # 4) low stamina → no light
-    F, T, lights, logs = setup(20140, [chr_(5, 0.0, -1.2, sw)], sp=10)
+    # 4) MoKa 11-08 "첫 번째 방패 부딪혔을때 반응해서 약공": 225520 SP 29 → light now; stamina 0 → the game can't swing
+    F, T, lights, logs = setup(20140, [chr_(5, 0.0, -1.2, sw)], sp=29)
+    assert D.rule_guard_counter(F, T) == D.CONT and lights == [(5, 1)], lights
+    F, T, lights, logs = setup(20140, [chr_(5, 0.0, -1.2, sw)], sp=0)
     assert D.rule_guard_counter(F, T) is None and not lights, lights
-    print("ok  stamina 10 < sp_min 30 → no light")
+    print("ok  stamina 29 (225520, under the axe's sp_min 55) → light; stamina 0 → no light")
     # 5) another foe swinging next to us → still a light, at the one we fight ([MoKa] "모든 공격에서 기본")
     F, T, lights, logs = setup(20140, [chr_(5, 0.0, -1.2, sw), chr_(6, 1.0, -0.5, sw)])
     assert D.rule_guard_counter(F, T) == D.CONT and lights == [(5, 1)], (lights, logs)
