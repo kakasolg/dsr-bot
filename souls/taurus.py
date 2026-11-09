@@ -51,7 +51,9 @@ PLUNGE_WAIT_S = 30.0
 # [MoKa] 11-09 "앞발에 붙어서 적의 무기 공격 범위에 들어 간거야" · "살짝 더 안쪽으로 들어가서 두 다리 사이에 있어야 하는데, 좌측 발이
 #  앞쪽으로 뻗고 있었는데 거기에 있었는데" — 072235 track: 근접 시간 대부분 중심 앞 1~2 m · 옆 ~0 (앞발 = 무기 범위). 0.4/0.6 → 더 안쪽.
 #  0.0/0.25 = 같은 런 53.8 s에 실제로 서 본 자리 (앞 +0.01 · 옆 +0.24) — 몸 충돌로 못 들어가는 자리는 아님
-SPOT_FWD = 0.0                      # where we swing from, in its own frame: this far in front of its center …
+# [MoKa] 11-09 "뒤로 옮겨" — 기준 런 074547 (M1109-25 "딱 내가 원하는 데로"): 약공×3 세 번 다 맞을 때 내 자리 중심 뒤 −0.5 ~ −1.7 (몸 밑).
+#  피해 0 사슬은 앞 +0.9 이상 또는 보스 701 이동 중 (P-147 비교, 12 사슬). 0.0 → −0.4 (뒤 0.3~0.5 중간, 074547 −0.45에 서 봄)
+SPOT_FWD = -0.4                     # where we swing from, in its own frame: this far in front of its center …
 SPOT_SIDE = 0.25                    # … and this far to one side (between its legs, off the club's center line)
 SPOT_R = 0.45                       # swing only within this of that spot; else walk to it
 HIT_SP = 40
