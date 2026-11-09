@@ -2111,3 +2111,8 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
   duel._combo_strike: 계획이 backstep_r1이어도 붙어서 튕긴 놈 (방패병 말고)엔 표대로 약공 — 전엔 계획이 표를 이겨 줄만 바꿔선 안 바뀜.
   시험: combo_table_test (튕긴 망자·석궁병 → 약공, 서 있는 망자는 백스텝) · drill_test (계획 백스텝 + 튕김 → 약공 / 방패병 → 백스텝;
   고침 빼면 실패 확인). 게임 확인 전 — 튕긴 놈에 약공이 실제로 먼저 맞는지 (클레이모어 약공 칼날 시각 안 잼)는 다음 실행에서.
+- 게임 (2026-11-08 다시 읽음): 11-04 무기 비교 실행 132740 · 132927 · 133514 · 133702는 이 고침이 든 채 돌았음 (.diff에 같은 줄) —
+  그 기록의 "튕긴 뒤 반격 9 / 9 (맞힘 8 / 8)"이 이 고침의 첫 게임 결과. 11-08 173514 clear-ramp · 173710 burg-bonfire --seg 2-6 (0dfafac,
+  클레이모어 세이브 firelink-claymore-hp1018 복원): cleared / lit, 사망 0, 최저 HP 53 % / 65 %. 콤보 줄 (near, *, open) 5번 모두 light —
+  그중 계획 backstep_r1을 표가 이긴 것 2 · backstab 1. 봇 판정은 5/5 "처치, 안 맞음". 11-04 132927엔 같은 줄 light 1번이 "나가기 전에 맞아 끊김 (−74)".
+  잰 것은 로그의 고른 기술과 봇 판정뿐 — 봇 판정은 MoKa 판정의 대리가 못 됨 (판정 세트 5/19 다름), 반 박자 빨라졌는지는 클립으로 MoKa 판정 필요.
