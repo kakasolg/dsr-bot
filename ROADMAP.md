@@ -232,6 +232,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 133 | jump → no light | verify |
 | 134 | z8 hold 20 s | verify |
 | 135 | knife: right wall, ran in | verify |
+| 136 | block → light waits | verify |
 
 ## 5. Relay — [cloud] ↔ board
 

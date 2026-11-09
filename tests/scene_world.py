@@ -11,6 +11,7 @@ situation keys (all optional except foe):
   style "guard" · weapon "battle_axe"|"broadsword" · flags {"BACKSTAB": false, "HEAVY": false} (duel module flags, e.g. --basic) ·
   reflex "auto" (shields when a foe swings within duel.NEAR) | "off" | "on" · age 0.3 (seconds since the swing began, as the
   reflex reports it) · wait_far false · room true (floor behind the foe for a backstab) · ticks 4
+  my_anim_seq [-1, 140] (our own anim per tick — 140 / 20140 = something hit the raised shield)
 
 decide(situation) → {"tactic": first tactic (laya_shadow.policy_tactic; turning to face isn't one), "rules": [rule per tick],
                      "trace": [Moves calls], "log": [duel's log lines]}
@@ -69,6 +70,9 @@ def decide(sc: dict) -> dict:
     w = World(player=(0.0, -49.4, 0.0), sp=round(MAX_SP * sc.get("my_sp", 1.0)), max_sp=MAX_SP)
     w.player.heading = -math.pi + math.radians(sc.get("facing_err", 0.0))
     seq = sc.get("anim_seq") or [sc.get("anim", -1)]
+    myseq = sc.get("my_anim_seq")
+    if myseq:
+        w.player.anim = myseq[0]
     c = w.add(2, 0x1002, sc["foe"], (0.0, -49.4 + sc.get("dy", 0.0), sc.get("dist", 1.2)),
               hp=max(1, round(MAX_HP * sc.get("foe_hp", 1.0))), max_hp=MAX_HP, anim=seq[0])
     c.heading = math.radians(sc.get("foe_facing", 0.0))            # 0: facing us (−z); π: its back to us
@@ -93,6 +97,8 @@ def decide(sc: dict) -> dict:
         c.anim = seq[min(n, len(seq) - 1)]
         if dseq:
             c.z = dseq[min(n, len(dseq) - 1)]
+        if myseq:
+            w.player.anim = myseq[min(n, len(myseq) - 1)]
         for x, aseq in others:
             if aseq:
                 x.anim = aseq[min(n, len(aseq) - 1)]
