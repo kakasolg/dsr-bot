@@ -222,8 +222,8 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 123 | ramp 182029: 2-hand, 255010 | open |
 | 124 | taurus 001105: Estus in reach, fell | open → MoKa |
 | 125 | burg 010011: xbow 1.6 m, no attack | verify |
-| 126 | warp, re-entered same 5 | verify → rest+restart ok |
-| 127 | z2 walker anim −1 | verify → walk check; 1:1 |
+| 126 | warp, re-entered 5 | verify: rest ok |
+| 127 | z2 walker anim −1 | verify: 1:1 |
 | 128 | no guard vs swing | verify → guard; cleared |
 | 129 | ramp #N? · escape error | verify → fixed, 3 ok |
 | 130 | swing bs ≥1.8 m mostly hit | verify: guard |
@@ -239,6 +239,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 140 | z4 rushed 3 | verify |
 | 141 | Taurus guard | verify |
 | 142 | Taurus no sip | verify |
+| 143 | z1 drop stuck | open |
 
 ## 5. Relay — [cloud] ↔ board
 
