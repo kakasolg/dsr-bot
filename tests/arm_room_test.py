@@ -61,6 +61,11 @@ def main() -> None:
     assert f.goals and abs(f.goals[0][0] - 0.35) < 0.06, f.goals
     print(f"ok  narrow 0.6 m passage → left side (x {f.goals[0][0]:.2f})")
 
+    f = field(Corridor(-0.6, 0.45), (0.0, 0.0))                    # 11-08 수동: 0.6 / 0.45 m → 피해 0, 0.85 / 0.2 m → 맞음
+    out = f._arm_room(9, Corridor(-0.6, 0.45), "t")
+    assert f.goals and abs(f.goals[0][0] - 0.3) < 0.06 and out["right_after"] >= 0.85, (f.goals, out)
+    print(f"ok  right 0.6 / left 0.45 → still hug the left (x {f.goals[0][0]:.2f}), right after {out['right_after']}")
+
     f = field(Corridor(-2.0, 2.0), (0.0, 0.0))                     # wide → stay
     out = f._arm_room(9, Corridor(-2.0, 2.0), "t")
     assert not f.goals and out["moved"] == 0.0, (f.goals, out)
