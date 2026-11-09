@@ -124,44 +124,77 @@ class Altar:
             self.log(f"   ② → ③: {r}")
             if r == "dead" or not self.f.alive():
                 return "died"
-            r = self._wait_landing()
-            if r == "died":
-                return r
-            for k in range(REST_RETRIES):
-                if r != "timeout":
-                    break
-                # ── 안 내려오면 밑의 길 → 숏컷(사다리) → 성안 화톳불에서 쉬고 → 다시 ③ ([MoKa] 2026-10-13 시연 3) ──
-                #  "카라미트가 다리에 있는 병사들을 태워 버려야 하는데, 않나타나면 오히려 꼬여" · "밑에 있는 길로 가서 숏컷으로 해서 성안 화톳불 가서 쉬어야 해"
-                #  시연 3 (data/observe/20261013_172318.jsonl): ② 아래층 → 서쪽 (−1.8, 4.5, −56.7) → 사다리 위 → 내려감 → 화톳불 쉼 →
-                #  사다리 올라옴 (7010–7013) → 아래층 → 계단 → ③ → 21.8 s 뒤 착지
-                self.log(f"   ③ 헬카이트 안 내려옴 — 숏컷으로 성안 화톳불 가서 쉬고 다시 ③ ({k + 1}/{REST_RETRIES})")
-                rr = self._rest_and_return()
-                self.log(f"   숏컷 쉬고 돌아오기: {rr}")
-                if rr == "died":
-                    return "died"
-                if rr != "ok":
-                    return f"숏컷 {rr}"            # stuck below / at the ladder — no straight run from there (10-13: no_path from the bonfire level)
-                r = self._wait_landing()
-                if r == "died":
-                    return r
-            if r == "timeout":
-                self.log("   ③ 헬카이트 계속 안 내려옴 — 화톳불로 바로 달림")
-                r = self._leg(self.R["sprint_3_to_4"], "③ → ④ (안 내려옴, 질주)", "sprint", BRIDGE_ALL)
-                if r == "dead" or not self.f.alive():
-                    return "died"
-                return self._to_bonfire(BRIDGE_ALL)
-            r = self._leg(self.R["sprint_3_to_4"], "③ → ④ 테라스 (질주)", "sprint", BRIDGE_ALL)
-            if r == "dead" or not self.f.alive():
-                return "died"
-            self._wait_away()
-            r = self._claymore()
-            if r == "died":
-                return r
-            return self._to_bonfire()
+            return self._cover_to_altar()
         finally:
             self.f.ignore_npcs = set()
             self.pad.sprint(False)
             self.pad.neutral()
+
+    def from_burg_bonfire(self) -> str:
+        """Undead Burg bonfire → up the kicked shortcut ladder → ③ cover → same as run() from there.
+        ([MoKa] 11-09 "다시 사다리 타고 올라가서 다음 화톳불 까지 진행" — 타우로스 뒤 성안 화톳불에서 레벨업한 캐릭터. 사다리는 그 세이브에서
+        11-09 손으로 참; 올라가기·③ 걷기는 _rest_and_return 뒤 절반과 같음 (10-13 연습 4 · 5 · 6 깨끗 3/3)) → 'arrived' | 'died' | '<step> <result>'"""
+        if not self.f.alive():
+            return "died"
+        m, lad = self.R["markers"], self.R["ladder_shortcut"]
+        self.f.tether, self.f.extra_zones = None, ()
+        try:
+            s = self.mv.snap(80.0)
+            self.log(f"   시작: {self._where(s)}")
+            self.f.ignore_npcs = {DRAKE}
+            r = self._ladder_up(tuple(lad["bottom"]), tuple(lad["top"]), tuple(lad["up_from"]), tuple(lad["up_face"]))
+            self.log(f"   사다리 올라가기: {r}")
+            if r != "ok":
+                return f"사다리 올라가기 {r}"
+            r = self.f.walk_to(tuple(m["3_stairs_cover"]), self.nm, "사다리 위 → ③ 엄폐 자리")
+            self.log(f"   사다리 위 → ③: {r}")
+            if r == "dead" or not self.f.alive():
+                return "died"
+            if r not in ("arrived", "done"):
+                return f"③ {r}"
+            return self._cover_to_altar()
+        finally:
+            self.f.ignore_npcs = set()
+            self.pad.sprint(False)
+            self.pad.neutral()
+
+    def _cover_to_altar(self) -> str:
+        """At ③: wait for the landing (shortcut rest when it doesn't come) → ④ → Claymore → Sunlight Altar bonfire."""
+        m = self.R["markers"]
+        r = self._wait_landing()
+        if r == "died":
+            return r
+        for k in range(REST_RETRIES):
+            if r != "timeout":
+                break
+            # ── 안 내려오면 밑의 길 → 숏컷(사다리) → 성안 화톳불에서 쉬고 → 다시 ③ ([MoKa] 2026-10-13 시연 3) ──
+            #  "카라미트가 다리에 있는 병사들을 태워 버려야 하는데, 않나타나면 오히려 꼬여" · "밑에 있는 길로 가서 숏컷으로 해서 성안 화톳불 가서 쉬어야 해"
+            #  시연 3 (data/observe/20261013_172318.jsonl): ② 아래층 → 서쪽 (−1.8, 4.5, −56.7) → 사다리 위 → 내려감 → 화톳불 쉼 →
+            #  사다리 올라옴 (7010–7013) → 아래층 → 계단 → ③ → 21.8 s 뒤 착지
+            self.log(f"   ③ 헬카이트 안 내려옴 — 숏컷으로 성안 화톳불 가서 쉬고 다시 ③ ({k + 1}/{REST_RETRIES})")
+            rr = self._rest_and_return()
+            self.log(f"   숏컷 쉬고 돌아오기: {rr}")
+            if rr == "died":
+                return "died"
+            if rr != "ok":
+                return f"숏컷 {rr}"            # stuck below / at the ladder — no straight run from there (10-13: no_path from the bonfire level)
+            r = self._wait_landing()
+            if r == "died":
+                return r
+        if r == "timeout":
+            self.log("   ③ 헬카이트 계속 안 내려옴 — 화톳불로 바로 달림")
+            r = self._leg(self.R["sprint_3_to_4"], "③ → ④ (안 내려옴, 질주)", "sprint", BRIDGE_ALL)
+            if r == "dead" or not self.f.alive():
+                return "died"
+            return self._to_bonfire(BRIDGE_ALL)
+        r = self._leg(self.R["sprint_3_to_4"], "③ → ④ 테라스 (질주)", "sprint", BRIDGE_ALL)
+        if r == "dead" or not self.f.alive():
+            return "died"
+        self._wait_away()
+        r = self._claymore()
+        if r == "died":
+            return r
+        return self._to_bonfire()
 
     def _rest_and_return(self, from_cover: bool = True) -> str:
         """③ (or ②) → ② lower ledge → ladder top → down → rest at the Undead Burg bonfire → up the ladder → ③.

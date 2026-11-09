@@ -143,7 +143,7 @@ def _stain_carry(log):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["status", "watch", "burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt-one", "merchant", "to-firelink", "light-burg", "burg-upper", "quit-test", "passage-drill", "asylum", "taurus", "merchant-buy", "altar", "altar-burg", "firebomb-probe", "pick-blood", "burg-altar", "parish-group1", "parish-route"])
+    ap.add_argument("cmd", choices=["status", "watch", "burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt-one", "merchant", "to-firelink", "light-burg", "burg-upper", "quit-test", "passage-drill", "asylum", "taurus", "merchant-buy", "altar", "altar-burg", "burg-to-altar", "firebomb-probe", "pick-blood", "burg-altar", "parish-group1", "parish-route"])
     ap.add_argument("--no-rest", action="store_true")
     ap.add_argument("--no-quit", action="store_true", help="퀵 종료(메뉴로 나갔다 오기) 안 씀 — 영상 촬영용")
     ap.add_argument("--fall-quit", action="store_true", help="낙하 때 예전처럼 퀵 종료 (기본: 기록만 하고 계속, [MoKa] 2026-10-12)")
@@ -557,6 +557,11 @@ def main() -> None:
             log.zone = "altar"
             r = altar.Altar(fld, nms[missions.MAP_B], missions.DATA, log=log, events=log.event).run()
             log(f"══ 제단: {r}")
+        elif a.cmd == "burg-to-altar":
+            from souls import altar
+            log.zone = "altar"
+            r = altar.Altar(fld, nms[missions.MAP_B], missions.DATA, log=log, events=log.event).from_burg_bonfire()
+            log(f"══ 성벽 마을 화톳불 → 태양의 제단: {r}")
         elif a.cmd == "altar-burg":
             from souls import altar
             log.zone = "altar"
