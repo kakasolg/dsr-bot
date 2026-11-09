@@ -1,0 +1,17 @@
+[    0.1] run 20261109_125955_light-altar · code e9a2b84+dirty(2) · light-altar --radar --note light the Sunlight Altar bonfire after 125700 arrived without lighting · settings 7d538b76 · note light the Sunlight Altar bonfire after 125700 arrived without lighting
+[    0.3] radar: sending — python radar_server.py -> http://127.0.0.1:47801, python overlay.py
+[   12.8]    물건 비켜 가기 (지난 실행에서 2번 이상 부숨): o1130_13 o1130_28 o1132_06 o1133_11 o1150_01 o1321_0021
+[   14.4] 무기: 배틀 액스 (약공 2연타, 닿는 거리 1.6 m, 강공 안 씀)
+[   14.4] 콤보 거리: 닿는 거리 1.6 m (잰 무기 1.6 m, +0.00) → 백스텝 콤보 ≤ 1.15 m, 점프 진입 ≤ 4.5 m
+[   14.4] 스타일: guard
+[   14.4] 캐릭터: SL 14 VIT 22 END 14 STR 14 DEX 9 | 반지 -1,-1 왼손 1462000
+[   14.4] 드롭 줍기: 끔 (이 명령엔 연결 안 됨)
+[   28.2]    태양의 제단 화톳불: 앉음 True, 마지막 화톳불 1012962 → 1012961
+[   28.2] ══ 태양의 제단 화톳불: lit
+[   28.2] ══ 결과: lit
+[   28.2] 카메라 정렬: 기록 없음
+[   28.2] 정렬 (몸 30° 또는 락온): 기록 없음
+[   28.3] 가드 유지: 휘두르는 적 2.5 m 안에서 방패 직접 듦 0번
+[   28.3] ══ 위험 판정: 깨끗  (결과 lit, 최저 HP 100%, 큰 피격 0번 -0)  
+[   28.3] 실행 설정 기록: 20261109_125955_light-altar.settings.json
+[   28.3] 텔레메트리 피드: {'frames': 1150, 'read_ms': 2.7, 'fresh': 1425, 'waited': 0, 'direct': 253, 'none': 0, 'stale': 0}

@@ -51,7 +51,7 @@ needing the tick loop, route data, settings object or WorldState.
 
 - [~] altar-route-rec | MoKa | doing | demo 1 read (§2-b); next: what calls the landing? | stages/burg-to-altar.md
 - [ ] claymore-grip | MoKa | decide | STR 16 = one-hand OK (154037); two-hand? default? | stages/burg-to-altar.md
-- [~] altar-mission | win | verify | full chain today 3/5 arrived (incl. a real no-landing → shortcut → arrived); P-86 altar-burg left low HP | stages/burg-to-altar.md
+- [~] altar-mission | win | verify | 11-09 burg-to-altar (Burg bonfire → ladder → altar) arrived 1/1 + Claymore; lighting fix P-151 | stages/burg-to-altar.md
 - [ ] keyboard-menus | win | todo | menus by keyboard scancodes (MoKa 10-13: more exact than the pad) — quitout / savepoint / shop | docs/keyboard-menus.md
 
 ## 2. v1.0 — open by area

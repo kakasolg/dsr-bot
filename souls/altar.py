@@ -42,6 +42,9 @@ COVER_HOME_R = 1.0       # at ③ with no foe close: further than this from the 
 COVER_LEASH_R = 3.0      # at ③: a fight that takes us further than this from the cover is cut and taken back (breath line ~7 m off)
 COVER_PICK_R = 15.0      # at ③: pick up a bloodstain this close (10-13 death at ③: 5432 souls)
 TERRACE_WAIT_S = 25.0
+ALTAR_BONFIRE_OBJ = (24.35, 9.5, -22.2)   # map data o0200_0001 (m10_01_00_00)
+BONFIRE_STAND_R = 1.2                     # stand this far from the object (Burg spot: 1.5 m from its object, 'Rest at bonfire' showed)
+BURG_BONFIRE_ID = 1012962                 # last_bonfire() at the Undead Burg bonfire (11-09 status)
 PICK_TRIES = 3
 LADDER_TRIES = 3
 LADDER_DOWN_S = 12.0
@@ -308,7 +311,49 @@ class Altar:
         self.log(f"   제단 화톳불로: {r}")
         if r == "dead" or not self.f.alive():
             return "died"
-        return "arrived" if r in ("arrived", "done") else f"화톳불 {r}"
+        if r not in ("arrived", "done"):
+            return f"화톳불 {r}"
+        return "arrived" if self.light_bonfire() else "arrived (불 못 붙임)"
+
+    def light_bonfire(self) -> bool:
+        """At the Sunlight Altar: walk next to the bonfire object, face it, A until seated (1st A lights it, the next sits), stand up.
+        11-09 125700: _to_bonfire stopped at the route's 'altar_bonfire' spot 3.8 m from the object and never pressed A — last bonfire
+        stayed the Burg one. Object = map data o0200_0001 (24.35, 9.5, −22.2). Success = seated and the last bonfire ID changed (or was this one)."""
+        obj = ALTAR_BONFIRE_OBJ
+        s = self.mv.snap(10.0)
+        if s is None:
+            return False
+        p = s.player
+        dx, dz = p.x - obj[0], p.z - obj[2]
+        n = math.hypot(dx, dz) or 1.0
+        stand = (obj[0] + dx / n * BONFIRE_STAND_R, obj[1], obj[2] + dz / n * BONFIRE_STAND_R)
+        self.f._settle(stand, tol=0.3)
+        s = self.f.snap_settled(5.0)
+        if s and s.cam_yaw is not None:
+            self.pad.move(*self.mv.stick_to(s, obj[0], obj[2], 0.45))
+            time.sleep(0.18)
+            self.pad.move(0.0, 0.0)
+            time.sleep(0.5)
+        before = self.tm.last_bonfire()
+        sat = False
+        for _ in range(3):
+            self.mv.press(M.B.XUSB_GAMEPAD_A)
+            t0 = time.time()
+            while time.time() - t0 < 6.0 and not self.tm.sitting():
+                time.sleep(0.25)
+            if self.tm.sitting():
+                sat = True
+                break
+        time.sleep(1.0)
+        after = self.tm.last_bonfire()
+        for _ in range(6):
+            if not (self.tm.sitting() or self.tm.menu_open()):
+                break
+            self.mv.press(M.B.XUSB_GAMEPAD_B)
+            time.sleep(1.0)
+        self.log(f"   태양의 제단 화톳불: 앉음 {sat}, 마지막 화톳불 {before} → {after}")
+        self.events("altar", what="bonfire", sat=sat, before=before, after=after)
+        return sat and after is not None and after != BURG_BONFIRE_ID
 
     def _settle_low(self) -> None:
         """

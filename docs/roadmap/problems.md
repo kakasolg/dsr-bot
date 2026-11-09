@@ -50,6 +50,7 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
 | 61 | `scene_replay` plays a `rule_shot` scene as `after_swing`: scenes keep chars ≤ 15 m, the thrower was 18–19 m (`SHOT_SCAN_R` 25) | fixed — `scenes.CHAR_R` 25 m (= `SHOT_SCAN_R`), next runs' scenes |
 | 62 | `risk_report` counts escape.pick back-offs (`ev: escape`) as quit-outs (강종) → clean runs read '위험' | fixed — back-off logs `escape_pick`; `risk_report` skips old `escape` rows with `src` |
 | 76 | `altar-burg`: ladder A missed, fell 10 m | fixed — 10-13 2/2 ladder down, no fall |
+| 151 | altar unlit | fixed |
 
 ### P-1 오프라인 테스트가 Linux에서 실행 안 됨 (2026-09-27, [cloud], 1번)
 - 증상: `field_*_test.py` 등이 `ModuleNotFoundError: pymem`, 이어서 `vgamepad`, `KeyError: 'TEMP'`로 실패
@@ -2498,3 +2499,10 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
 - 원인 (실수): 능력치를 묻지 않고 10-31 지시 M1031-01 "소울이 모일때 마다 Vitality" 를 그대로 씀. 지금 목표 (1-b. 클레이모어 주무기, MoKa 10-12)를 안 봄.
 - 지금: STR 14 · DEX 9 (클레이모어 STR 16 · DEX 10), 소울 87. 되돌리려면 세이브 복원뿐 (MoKa 판단).
 - 다음: 레벨업 전 능력치를 MoKa 지시 최신 줄에서 확인. 다음 레벨업은 --level-up STR (16까지) → DEX (10까지) (M1109-36).
+
+### P-151 Sunlight Altar bonfire not lit at the end of the altar route (20261109_125700_burg-to-altar)
+- 증상: 첫 burg-to-altar (e9a2b84): 사다리 올라감 → ③ → 착지 21.5 s → ④ 질주 → 헬카이트 떠남 11.0 s → 클레이모어 주움 → "제단 화톳불로: arrived"
+  → 결과 arrived, 최저 HP 100 %. 그런데 마지막 화톳불이 성안 (1012962) 그대로 — 불을 안 붙임.
+- 원인: Altar._to_bonfire 는 길 자료의 'altar_bonfire' 자리 (불 오브젝트에서 3.8 m)까지 걷기만 하고 A를 안 누름 (10-13 체인은 화톳불을 이미 붙인 세이브).
+- 고침: Altar.light_bonfire — 오브젝트 o0200_0001 (24.35, 9.5, −22.2) 1.2 m 옆, 바라보고 A로 앉기, B로 일어남; _to_bonfire 끝에서 부름,
+  run.py light-altar. 게임: 같은 자리에서 light-altar → 앉음, 마지막 화톳불 1012962 → 1012961 (한 번). 전체 경로 안에서 부르는 길은 아직 게임 미확인.
