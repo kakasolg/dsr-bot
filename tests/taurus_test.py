@@ -212,7 +212,7 @@ t.events = lambda *a, **k: None
 mv.drink = lambda ok: drank.append(1) or {"ok": True}
 mv.light = light
 t._fight()
-check(f"close fight: HP 320 (one hit left before death), stamina short, boss not swinging → Estus ({drank})", drank == [1])
+check(f"close fight: HP 320 (one hit left before death), stamina short, boss not swinging → Estus twice in a row (MoKa 11-09 \"두번\") ({drank})", drank == [1, 1])
 
 # MoKa 11-09 "에스트를 마셔도 다리 사이에서 마셔야지": sip window open but 2 m off the spot → walk to it first, no sip yet
 drank = []
@@ -245,6 +245,7 @@ check("close fight: HP 562 (takes two hits) → hits, no Estus", drank == [])
 # [MoKa] 11-03: "나는 보스 가랑이 사이에서 공격 한거야" (try 21 클립: "봇은 보스의 앞쪽에서 공격하는 것이 차이")
 # boss heading 0 faces −z. try 22 died on its center line 0.6 m in front (−244 × 2) → no swing there, walk to the spot;
 # MoKa's swings (taurus_watch 20261103_064407): 0.2–1.0 m in front, 0.5–0.8 m to the side → swing there
+# 11-09 "살짝 더 안쪽으로 … 두 다리 사이" (072235 sat 1–2 m in front = front foot): spot moved in to 0.0 front · 0.25 side
 _nav = T.nav.safe_heading
 T.nav.safe_heading = lambda nm, p, dx, dz, reach=1.0: (dx, dz)
 hits.clear()
@@ -257,13 +258,13 @@ mv.stick_to = lambda s, x, z, sc=1.0: moved.append((round(x, 2), round(z, 2))) o
 t._fight()
 sx, sz = T.crotch_spot(boss(x=47.0, y=15.8, z=-119.0), NS(x=47.0, z=-119.6))
 check(f"close fight: center line 0.6 m in front → no swing, walks to the spot ({hits}, spot {sx:.2f},{sz:.2f}, moves {moved[:1]})",
-      hits == [] and moved and abs(sx - 46.4) < 0.01 and abs(sz - -119.4) < 0.01)
+      hits == [] and moved and abs(sx - (47.0 - T.SPOT_SIDE)) < 0.01 and abs(sz - (-119.0 - T.SPOT_FWD)) < 0.01)
 hits.clear()
-t, mv, pad = make([snap(boss(x=47.0, y=15.8, z=-119.0, anim=-1, hp=500), me=(46.4, 15.8, -119.45), sp=98),
-                   snap(None, me=(46.4, 15.8, -119.45))])
+t, mv, pad = make([snap(boss(x=47.0, y=15.8, z=-119.0, anim=-1, hp=500), me=(46.75, 15.8, -119.05), sp=98),
+                   snap(None, me=(46.75, 15.8, -119.05))])
 mv.light = light
 t._fight()
-check(f"close fight: between its legs (0.4 front, 0.6 side) → swings three ({hits})", hits and hits[0][0] == 3)
+check(f"close fight: between its legs (SPOT_FWD front, SPOT_SIDE side — MoKa 11-09 \"더 안쪽\") → swings three ({hits})", hits and hits[0][0] == 3)
 check("crotch spot: player on its left → spot on its left",
       T.ang_off(boss(x=47.0, y=15.8, z=-119.0), NS(x=47.0 + 0.5, z=-119.3)) < 0
       and T.crotch_spot(boss(x=47.0, y=15.8, z=-119.0), NS(x=47.5, z=-119.3))[0] > 47.0)
@@ -271,22 +272,22 @@ check("crotch spot: player on its left → spot on its left",
 # [MoKa] 11-09 "다리에 붙었으면 바로 공격하고 3대를 연속으로 때려봐" (was 11-03: wait for two-hit stamina 80 — 071032 waited 6 s
 # with the guard up): on the spot with stamina 60 → three at once; stamina 30 (below HIT_SP 40) → no swing yet
 hits.clear()
-t, mv, pad = make([snap(boss(x=47.0, y=15.8, z=-119.0, anim=-1, hp=500), me=(46.4, 15.8, -119.45), sp=60)] * 3
-                  + [snap(None, me=(46.4, 15.8, -119.45))])
+t, mv, pad = make([snap(boss(x=47.0, y=15.8, z=-119.0, anim=-1, hp=500), me=(46.75, 15.8, -119.05), sp=60)] * 3
+                  + [snap(None, me=(46.75, 15.8, -119.05))])
 mv.light = light
 t._fight()
 check(f"close fight: on the spot, stamina 60 → three lights right away ({hits})", hits and hits[0][0] == 3)
 hits.clear()
-t, mv, pad = make([snap(boss(x=47.0, y=15.8, z=-119.0, anim=-1, hp=500), me=(46.4, 15.8, -119.45), sp=30)] * 3
-                  + [snap(None, me=(46.4, 15.8, -119.45))])
+t, mv, pad = make([snap(boss(x=47.0, y=15.8, z=-119.0, anim=-1, hp=500), me=(46.75, 15.8, -119.05), sp=30)] * 3
+                  + [snap(None, me=(46.75, 15.8, -119.05))])
 mv.light = light
 t._fight()
 check(f"close fight: on the spot, stamina 30 → no swing yet ({hits})", hits == [])
 # [MoKa] 11-09 "다리에 붙으면 0.5초 내에 공격 들어가봐": stamina 30 but on the spot for SPOT_ATTACK_S → swings
 hits.clear()
 import time as _tt
-_on_frames = [snap(boss(x=47.0, y=15.8, z=-119.0, anim=-1, hp=500), me=(46.4, 15.8, -119.45), sp=30)]
-t, mv, pad = make(_on_frames * 40 + [snap(None, me=(46.4, 15.8, -119.45))])
+_on_frames = [snap(boss(x=47.0, y=15.8, z=-119.0, anim=-1, hp=500), me=(46.75, 15.8, -119.05), sp=30)]
+t, mv, pad = make(_on_frames * 40 + [snap(None, me=(46.75, 15.8, -119.05))])
 mv.light = light
 _t0 = _tt.time()
 t._fight()

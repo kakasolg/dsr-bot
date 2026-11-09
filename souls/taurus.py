@@ -48,8 +48,11 @@ LADDER = {"bottom": (49.16, 15.97, -117.1), "face": (50.5, 15.97, -117.1), "top_
 APPEAR_S = 20.0
 PLUNGE_R = 5.0
 PLUNGE_WAIT_S = 30.0
-SPOT_FWD = 0.4                      # where we swing from, in its own frame: this far in front of its center …
-SPOT_SIDE = 0.6                     # … and this far to one side (between its legs, off the club's center line)
+# [MoKa] 11-09 "앞발에 붙어서 적의 무기 공격 범위에 들어 간거야" · "살짝 더 안쪽으로 들어가서 두 다리 사이에 있어야 하는데, 좌측 발이
+#  앞쪽으로 뻗고 있었는데 거기에 있었는데" — 072235 track: 근접 시간 대부분 중심 앞 1~2 m · 옆 ~0 (앞발 = 무기 범위). 0.4/0.6 → 더 안쪽.
+#  0.0/0.25 = 같은 런 53.8 s에 실제로 서 본 자리 (앞 +0.01 · 옆 +0.24) — 몸 충돌로 못 들어가는 자리는 아님
+SPOT_FWD = 0.0                      # where we swing from, in its own frame: this far in front of its center …
+SPOT_SIDE = 0.25                    # … and this far to one side (between its legs, off the club's center line)
 SPOT_R = 0.45                       # swing only within this of that spot; else walk to it
 HIT_SP = 40
 # ── 양손 가드 들고 가랑이로 들어감 (P-141, [MoKa] 2026-11-08) ──────────────────────────────
@@ -601,9 +604,16 @@ class Taurus:
                 win_t = None
                 self.pad.neutral()
                 self.pad.guard(False)
-                r = self.mv.drink(lambda sn: (self.boss(sn) is None or (self.boss(sn).anim or -1) not in BOSS_ATTACK))
+                ok = lambda sn: (self.boss(sn) is None or (self.boss(sn).anim or -1) not in BOSS_ATTACK)
+                r = self.mv.drink(ok)
                 self.log(f"   타우로스 싸움 중 에스트 (기력 {p.sp}, 다리 사이 {math.hypot(sx0 - p.x, sz0 - p.z):.1f} m): {r}")
                 self.events("estus", **r)
+                # [MoKa] 11-09 "에스트를 두번 마셔봐" — 072235: 한 번 마셔 29 → 85 (마시는 중 −244), 또 맞아 사망. 한 모금 끝나면 바로 한 번 더
+                #  (에스트 남았고 보스가 BOSS_ATTACK 밖일 때 — drink의 ok 검사)
+                if r.get("ok") and self.mv.estus_left() > 0 and self.f.alive():
+                    r2 = self.mv.drink(ok)
+                    self.log(f"   타우로스 싸움 중 에스트 두 번째: {r2}")
+                    self.events("estus", second=True, **r2)
                 continue
             if low and not low_said:
                 low_said = True

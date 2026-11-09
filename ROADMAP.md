@@ -239,9 +239,9 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 141 | Taurus guard | verify |
 | 142 | Taurus no sip | verify |
 | 143 | z1 drop stuck | open |
-| 144 | Taurus 4100 sip | verify |
-| 145 | Taurus 2fc6aaa death | open |
-| 146 | Taurus x3 front foot | open |
+| 144 | Taurus 4100 | verify |
+| 145 | Taurus death | open |
+| 146 | Taurus x3 | open |
 
 ## 5. Relay — [cloud] ↔ board
 
