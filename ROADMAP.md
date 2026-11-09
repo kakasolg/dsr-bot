@@ -34,7 +34,7 @@ needing the tick loop, route data, settings object or WorldState.
 - [~] taurus | MoKa | verify | try 20 killed Taurus; 11-03 try 21 (OBS clip) died at Taurus from in front → between-feet fix (P-119) built, game check next | docs/boss-taurus.md · plan:taurus 
 - [~] fall-death-policy | win | verify | no fall quit-out + after-death pickup: (1)(2) seen in 3 runs; (3) death record, (4) alignment next runs | P-71 · P-72 · plan:fall-death-policy
 - [~] stage-analysis | MoKa | decide | burg-upper zones 1–8 analysed (auto + hand draft); MoKa: fix intent / response, zone 4 safe spot 0.5 m from a drop | docs/stages/burg-upper.md · plan:stage-analysis
-- [ ] firebomb-hollow-close-in | cloud | todo | firebomb hollow: close in fast unless the way is a fall-risk zone (ledge 254012 ignored); golden | plan:firebomb-hollow-close-in
+- [~] firebomb-hollow-close-in | win | verify | built offline 11-09: reachable firebomb hollow → sprint in, its hit doesn't send us out; ledge / drop way → rule_shot | plan:firebomb-hollow-close-in
 - [~] zone-runs | win | doing | zone-by-zone runs; after each the three reports + `sample.py` (CLAUDE.md) | plan:zone-runs
 - [~] route-recordings | MoKa | doing | route recordings (3 done, Taurus killed in the 3rd) — more only if a zone needs it | plan:route-recordings
 

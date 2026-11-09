@@ -625,7 +625,7 @@ class DuelResult:
         return f"{self.result}{vs} — {self.secs:.0f} s, 준 피해 {self.dealt}, 받은 피해 {self.taken}, 공격 {' '.join(kinds) or '없음'}"
 
 
-def _approach(mv: M.Moves, weapon, s, c, nm, foe, cancel, log=lambda *a: None, may_approach=None) -> str:
+def _approach(mv: M.Moves, weapon, s, c, nm, foe, cancel, log=lambda *a: None, may_approach=None, rush: bool = False) -> str:
     """Follow a path to close in on it. Stops that tick once close / it starts swinging / cancelled.
     The path is planned to **its position at departure** — if it moves, re-plan after arriving (its position is logged every 1 s)."""
     p, ptr = s.player, c.ptr
@@ -678,6 +678,10 @@ def _approach(mv: M.Moves, weapon, s, c, nm, foe, cancel, log=lambda *a: None, m
         # removed running at ranged foes (evidence-grade gate, 2026-09-26) — projectile arc unknown, running safety is only a NavMesh estimate
         # don't run if another foe is within 8 m — while running we can't block and get hit defenseless until it enters 2.5 m (SWITCH_R)
         # (user 2026-09-25: "trying to get the shooter, but you react slowly and get surrounded by other mobs") → walk with shield up
+        if rush and cc is not None and not any(
+                x.ptr != ptr and _awake_anim(x.anim) and M.horiz(sn.player, x) < RUSH_OTHER_R and abs(x.y - sn.player.y) < 1.2
+                for x in sn.hostile(RUSH_OTHER_R + 1.0)):
+            return "sprint"                                 # M1006-17: 붙을 수 있는 화염병 할로우 — 던지는 줄에 오래 서 있지 않게 질주
         return "guard" if foe.ranged else "walk"
     return mv.walk_path(path, nm, mode, stop, timeout_per=6.0)
 
@@ -975,6 +979,61 @@ def _awake_anim(a) -> bool:
     return a not in (None, -1) and not (9000 <= a < 9100) and a not in M.STAGGER and a not in M.DOWNED
 
 
+# ── 화염병 할로우는 곧장 붙는다 (M1006-17, [MoKa] 10-06 · 11-09 M1109-02 "둘 다 살림") ──────────────────────────────
+#  10-06: "화염병 할로우(지붕 원거리)는 발사체를 읽지 않고 빨리 붙어서 친다 — 단, 붙으러 가는 길이 낙사 위험 구간이면 무시하고
+#  사정권 밖에서 싸운다 (턱 위 254012)". 11-09 MoKa: rule_shot(사선 밖으로)과 둘 다 살림 — 붙을 수 있는 화염병 할로우가 목표일 때만
+#  곧장 붙고(멀면 질주, 그 놈에게 맞아도 물러나지 않음), 다른 투척 적 · 붙을 수 없는 경우는 rule_shot 그대로.
+#  "붙을 수 있음" = 아래 전부 (값은 측정 전 — 오프라인 테스트만):
+#  "턱 위 254012"는 번호가 아니라 자리: Burg의 화염병 할로우 다섯은 모두 254012이고, MoKa가 무시하라고 한 건 턱 위 셋 (0.2,−4,−90.2) ·
+#  (3.5,−1.9,−86.2) · (5.1,−1.8,−84.1), 높이 +6 m, 사다리 · 망루 쪽 낙사 구간으로만 감 (plan.md 1-m 10-06) → 높이 차 · 경로로 거름.
+RUSH_DY = 1.2              # 그 놈과 높이 차가 이 안 (턱 위 · 아래층은 못 붙음)
+RUSH_PATH_MAX = 20.0       # NavMesh 경로 길이가 이 안 …
+RUSH_DETOUR = 1.6          # … 그리고 직선 거리의 이 배 안 (먼 우회 = 다른 길로 돌아감)
+RUSH_DROP_R = 1.0          # 경로 위 점 중 하나라도 낙차 가장자리(NavMesh 'drop')가 이 안이면 낙사 위험 구간
+RUSH_OTHER_R = 8.0         # 다른 깨어 있는 적이 이 안이면 질주 안 함 (뛰는 동안 못 막음 — _approach mode의 9-25 규칙 그대로)
+RUSH_RECHECK_S = 1.0
+RUSH_NM = None             # tests only (tests/scene_world.py "rush_nav"): NavMesh stand-in for rush_check when duel has none
+
+
+def _path_len(path) -> float:
+    return sum(math.dist(a, b) for a, b in zip(path, path[1:]))
+
+
+def rush_check(nm, p, c) -> tuple[bool, str]:
+    """Can we close in on firebomb hollow c straight away (M1006-17)? → (ok, why). Pure — no pad, no snapshot reads."""
+    if foes_.of(c.npc_param) is not foes_.FIREBOMB_HOLLOW:
+        return False, "화염병 할로우 아님"
+    if abs(c.y - p.y) > RUSH_DY:
+        return False, f"높이 차 {c.y - p.y:+.1f} m (턱 위 · 아래층)"
+    if nm is None:
+        return False, "NavMesh 없음"
+    path = nm.find_path((p.x, p.y, p.z), (c.x, c.y, c.z))
+    if not path or len(path) < 2:
+        return False, "경로 없음"
+    n, h = _path_len(path), M.horiz(p, c)
+    if n > RUSH_PATH_MAX or n > max(h, 1.0) * RUSH_DETOUR:
+        return False, f"경로 {n:.1f} m (직선 {h:.1f} m)"
+    if hasattr(nm, "drop_dist"):
+        for q in path[1:]:
+            d = nm.drop_dist(*q)
+            if d < RUSH_DROP_R:
+                return False, f"경로에 낙차 가장자리 {d:.1f} m ({q[0]:.1f}, {q[1]:.1f}, {q[2]:.1f})"
+    return True, f"경로 {n:.1f} m"
+
+
+def _rush(F, s, c) -> bool:
+    """rush_check for the current target, cached per foe for RUSH_RECHECK_S; logs when the answer changes."""
+    now = time.time()
+    memo = F.__dict__.setdefault("_rush", {})
+    got = memo.get(c.ptr)
+    if got is None or now - got[0] >= RUSH_RECHECK_S:
+        ok, why = rush_check(F.nm if F.nm is not None else RUSH_NM, s.player, c)
+        if got is None or got[1] != ok:
+            F.log(f"      화염병 할로우 {c.npc_param} {'곧장 붙음' if ok else '곧장 안 붙음'} — {why} (M1006-17)")
+        memo[c.ptr] = got = (now, ok)
+    return got[1]
+
+
 def swing_over(foe, a, age) -> bool:
     """The foe's attack anim is over — it lingers in the 3000s 1.5–5.3 s after the hit, so past SWING_S it counts as standing.
     A windup (foe.windup) is not over before it lands (foe.windup_land_s + LAND_PAD): P-66 — the shield soldier's 3004 lands at
@@ -1060,6 +1119,10 @@ def rule_shot(F, T):
     if not thr:
         return None                                        # a melee lunge, a fall, fire on the floor, someone we can't see — not a thrower
     t = min(thr, key=lambda x: M.horiz(p, x))
+    if t.ptr == T.c.ptr and _rush(F, s, T.c):
+        F.log(f"      원거리 피격 −{hp0 - p.hp}: {t.npc_param} {M.horiz(p, t):.1f} m — 붙을 수 있는 화염병 할로우, 사선 밖으로 안 감 (M1006-17)")
+        F.note("원거리피격:붙기", s, T.c)
+        return None
     F.shots.append(now)
     again = sum(1 for t0 in F.shots if now - t0 < SHOT_AGAIN_S) >= 2
     hold = [x for x in s.hostile(SHOT_HOLD_R + 1.0) if M.horiz(p, x) < SHOT_HOLD_R and _awake_anim(x.anim) and abs(x.y - p.y) < 1.2]
@@ -2222,7 +2285,8 @@ def rule_approach(F, T):
         r = _entry_try(F, T)
         if r is not None:
             return r
-        r = _approach(F.mv, F.weapon, s, c, F.nm, F.foe, F.cancel, F.log, may_approach=F.may_approach)
+        r = _approach(F.mv, F.weapon, s, c, F.nm, F.foe, F.cancel, F.log, may_approach=F.may_approach,
+                      rush=F.foe is foes_.FIREBOMB_HOLLOW and _rush(F, s, c))
         F.last_dmg_t = time.time()                         # time spent closing in isn't stalemate (one walk took 17 s)
         F.note(f"붙기:{r}", s, c)
         if r == "dead":

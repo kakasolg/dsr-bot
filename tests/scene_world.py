@@ -12,7 +12,10 @@ situation keys (all optional except foe):
   reflex "auto" (shields when a foe swings within duel.NEAR) | "off" | "on" · age 0.3 (seconds since the swing began, as the
   reflex reports it) · wait_far false · room true (floor behind the foe for a backstab) · ticks 4
   my_anim_seq [-1, 140] (our own anim per tick — 140 / 20140 = something hit the raised shield) ·
-  bounce_here true (our swing struck a wall where we stand — Reflex.bounces, P-139)
+  bounce_here true (our swing struck a wall where we stand — Reflex.bounces, P-139) ·
+  my_hp_seq [85, 85, 30] (our HP per tick — a hit from afar for rule_shot) ·
+  rush_nav "flat" | "drop" (M1006-17: a straight NavMesh path to the foe, with no drop edge / a drop edge 0.5 m off it —
+  only duel.rush_check sees it, the rest of duel still runs with no NavMesh)
 
 decide(situation) → {"tactic": first tactic (laya_shadow.policy_tactic; turning to face isn't one), "rules": [rule per tick],
                      "trace": [Moves calls], "log": [duel's log lines]}
@@ -55,6 +58,18 @@ class Reflex(G.Reflex):
         return fire
 
 
+class RushNav:
+    """Just enough NavMesh for duel.rush_check: a straight path (start → 3 points → goal), every point `drop` m from a drop edge."""
+    def __init__(self, drop: float):
+        self.drop = drop
+
+    def find_path(self, a, b):
+        return [tuple(a[i] + (b[i] - a[i]) * k / 4 for i in range(3)) for k in range(5)]
+
+    def drop_dist(self, x, y, z, dy=2.0):
+        return self.drop
+
+
 class Grab:
     """Rides along as duel's advisor: every rule that acted, in order."""
     def __init__(self):
@@ -74,6 +89,9 @@ def decide(sc: dict) -> dict:
     myseq = sc.get("my_anim_seq")
     if myseq:
         w.player.anim = myseq[0]
+    hpseq = sc.get("my_hp_seq")
+    if hpseq:
+        w.player.hp = hpseq[0]
     c = w.add(2, 0x1002, sc["foe"], (0.0, -49.4 + sc.get("dy", 0.0), sc.get("dist", 1.2)),
               hp=max(1, round(MAX_HP * sc.get("foe_hp", 1.0))), max_hp=MAX_HP, anim=seq[0])
     c.heading = math.radians(sc.get("foe_facing", 0.0))            # 0: facing us (−z); π: its back to us
@@ -100,6 +118,8 @@ def decide(sc: dict) -> dict:
             c.z = dseq[min(n, len(dseq) - 1)]
         if myseq:
             w.player.anim = myseq[min(n, len(myseq) - 1)]
+        if hpseq:
+            w.player.hp = hpseq[min(n, len(hpseq) - 1)]
         for x, aseq in others:
             if aseq:
                 x.anim = aseq[min(n, len(aseq) - 1)]
@@ -112,6 +132,9 @@ def decide(sc: dict) -> dict:
     D._separate, D._approach = rec("separate", "no_spot"), rec("approach", "stopped")
     D._room_behind = lambda nm, p, c_, r=1.0: sc.get("room", True)
     D.time.sleep = lambda s: None
+    rush_nm = D.RUSH_NM
+    if sc.get("rush_nav"):
+        D.RUSH_NM = RushNav(0.5 if sc["rush_nav"] == "drop" else 9.0)
     for k, v in (sc.get("flags") or {}).items():
         setattr(D, k, v)
     try:
@@ -131,6 +154,7 @@ def decide(sc: dict) -> dict:
         for k, v in flags.items():
             setattr(D, k, v)
         D.time.sleep = sleep
+        D.RUSH_NM = rush_nm
     f = {"_shield": sc.get("style", "guard") == "guard", "_arena": None}
     tactic = next((t for t in (LS.policy_tactic(r_, f) for r_ in grab.rules) if t), None)
     return {"tactic": tactic, "rules": grab.rules, "trace": trace, "result": result, "locked": any(locks), "log": lines}
