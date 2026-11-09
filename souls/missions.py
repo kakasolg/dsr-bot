@@ -71,6 +71,15 @@ BURG_CAREFUL = {1, 2, 3, 4, 5, 6}   # BURG_TOWN walks done slowly, stopping to p
 UPPER = json.loads((DATA / "burg-upper-map.json").read_text(encoding="utf-8"))
 UPPER_IGNORE = [tuple(p) for _n, p in UPPER["ignore"]]
 UPPER_IGNORE_R = 4.0     # a foe this close to an ignored ledge spot is one of the ledge firebomb hollows — never a target
+# ── 턱 위 화염병 사선 안으로 붙으러 가지 않음 (M1109-07, [MoKa] 11-09) ───────────────────────────────
+#  20261109_022350 구역 2: 255001이 안 와서 22 m 걸어 붙으러 감 → 그 길이 턱 위 254012 (+6 m) 사선 안, −111 · −89.
+#  MoKa: 문제는 "화염병 사선 안으로 255001에게 걸어간 것"이 맞음 (영상 10:19 · 11:18). 화염병 놈 자체는 잡으러 안 감 (M1109-08:
+#  올라가면 위에서 셋이 같이 침 — 잡으려면 활). 목표가 턱 위 화염병 자리에서 LEDGE_FIRE_R 안이고 나보다 그 자리에 더 가까우면
+#  (붙으면 사선으로 들어감) 붙지 않고 안전 자리에서 기다림. 마지막 시도(UPPER_TRIES번째)는 예전처럼 붙음 — 구역을 못 끝내는 일 방지.
+#  값은 측정 전: 이번 런 화염병 피격 13.4 · 10.8 m (높이 포함)
+LEDGE_FIRE_R = 14.0
+LEDGE_FIRE_DY = 3.0       # a ledge spot at least this much above me counts
+LEDGE_FIRE_MIN_H = 5.0    # a target closer than this is a fight in progress, not a walk in
 # ── 던지기 (run.py --throw, [MoKa] 2026-10-12 "투척 아이템 구매했으니 … 소머리데몬 가는 길에 적들에게 사용") ─────────────
 #  임시값 — 첫 시험용. 나이프: 달려가 깨우기 전에 Field.lure(안전 자리에서 / 길 따라 10 m 안까지 가서 락온 투척).
 #  화염병: 안전 자리로 깨어 오는 적이 둘 이상이고 가장 가까운 놈이 FB_MIN_R~FB_MAX_R → 그놈에게 (범위 피해),
@@ -201,6 +210,30 @@ def crowd_near(s, t, ptr) -> list:
         return []
     return [o for o in s.hostile(60.0) if o.ptr != ptr and o.hp > 0 and abs(o.y - t.y) < UPPER_LURE_CROWD_DY
             and math.hypot(o.x - t.x, o.z - t.z) < UPPER_LURE_CROWD_R]
+
+
+def dead_ledges(sn) -> set:
+    """Ledge spots whose firebomb hollow the snapshot shows dead (one not seen counts as alive)."""
+    out = set()
+    for c in (getattr(sn, "chars", None) or ()):
+        if c.hp is not None and c.hp <= 0:
+            for q in UPPER_IGNORE:
+                if math.dist((c.x, c.y, c.z), q) < UPPER_IGNORE_R:
+                    out.add(q)
+    return out
+
+
+def ledge_fire_block(p, c, ledges, dead=frozenset()):
+    """→ the ledge firebomb spot that closing in from p on c walks into, or None (M1109-07)."""
+    if M.horiz(p, c) <= LEDGE_FIRE_MIN_H:
+        return None
+    for q in ledges:
+        if q in dead or q[1] - p.y < LEDGE_FIRE_DY:
+            continue
+        dt = math.hypot(c.x - q[0], c.z - q[2])
+        if dt < LEDGE_FIRE_R and dt < math.hypot(p.x - q[0], p.z - q[2]) - 1.0:
+            return q
+    return None
 
 
 class Missions:
@@ -509,6 +542,24 @@ class Missions:
             c = None
         return c
 
+    def _ledge_fire_guard(self, tag: str):
+        """may_approach for a zone fight: no walking in toward a target that stands in a ledge firebomb's line (M1109-07)."""
+        said = []
+
+        def may(cc, sn) -> bool:
+            p = sn.player if sn is not None else None
+            if p is None:
+                return True
+            q = ledge_fire_block(p, cc, UPPER_IGNORE, dead_ledges(sn))
+            if q is None:
+                return True
+            if not said:
+                said.append(1)
+                self.log(f"   {tag}: {cc.npc_param} 붙으러 안 감 — 턱 위 화염병 ({q[0]:.1f}, {q[1]:.1f}, {q[2]:.1f}) 사선 안 "
+                         f"({math.hypot(cc.x - q[0], cc.z - q[2]):.1f} m), 안전 자리에서 기다림 (M1109-07)")
+            return False
+        return may
+
     def _pull_to_safe(self, npc: int, pos, safe, nb, tag: str, how: dict | None = None) -> str:
         """── 안전 자리로 끌어와 싸우기 ([MoKa] 2026-10-06 녹화) ──────────────────────────────
          MoKa는 구역 적을 그 자리에서 싸우지 않고 깨운 뒤 안전 자리까지 데리고 와서 잡았다 (구역 2: 255001을 스폰에서 20 m 끌고 옴).
@@ -580,7 +631,8 @@ class Missions:
             self._firebomb_group(tag)
             foe = self._first_foe(ptr)
             ftag = tag if foe == ptr else f"{tag}: 같이 온 놈"
-            res = self.f.fight(foe, nb, ftag, wait_far=True)
+            guard = self._ledge_fire_guard(ftag) if k < UPPER_TRIES - 1 else None
+            res = self.f.fight(foe, nb, ftag, wait_far=True, may_approach=guard)
             if res.result == "me_dead":
                 return "died"
             if res.result == "killed" and foe == ptr:
