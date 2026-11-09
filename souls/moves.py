@@ -878,6 +878,7 @@ class Moves:
             st = self.lock_state(ptr)
             if st == "target":
                 return True
+            self.last_lock = {**(self.last_lock or {}), "got": st}   # P-131: 실패 때 R3가 이웃을 잡았는지 (other) 아무도 못 잡았는지 (none)
             if st == "other":
                 self.pad.lock_on()                # locked the neighbor → release and retry
                 t = time.time()
@@ -893,7 +894,8 @@ class Moves:
             al = getattr(self, "last_lock", {}) or {}
             return {"ok": False, "locked": False, "dist": round(c.dist, 1), "align": al,
                     "why": "락온 안 걸림 — 안 던짐 (락온 없는 나이프는 오늘 0/5)"
-                           + (f" · R3 때 몸 {al.get('body')}° 카메라 {al.get('cam')}° 높이 {al.get('dy')} m" if al else "")}
+                           + (f" · R3 때 몸 {al.get('body')}° 카메라 {al.get('cam')}° 높이 {al.get('dy')} m" if al else "")
+                           + (f" · 잡힌 것 {al['got']}" if al.get("got") else "")}
         if not locked:
             # User 2026-09-24: "Aim problem when throwing knives — align direction with the enemy". Resetting the camera behind the body after aligning the body
             # makes camera direction = body direction (before, the camera from walking was looking sideways)
