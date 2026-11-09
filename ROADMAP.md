@@ -228,7 +228,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 129 | ramp #N? · escape error | verify → fixed, 3 ok |
 | 130 | swing bs ≥1.8 m mostly hit | verify: guard |
 | 131 | z4-1 crowd warp ×2 | decide → MoKa |
-| 132 | block→bs late | verify: light 5/5 (bot) |
+| 132 | block→bs late | verify: light |
 
 ## 5. Relay — [cloud] ↔ board
 
