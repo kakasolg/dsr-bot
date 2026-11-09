@@ -21,6 +21,18 @@
    "cancel_move": 0.8,
    "cancel_roll": 0.8,
    "cancel_r": 0.8,
+   "input_r": [
+    [
+     0.2,
+     2.3667
+    ]
+   ],
+   "input_roll": [
+    [
+     0.3667,
+     2.3667
+    ]
+   ],
    "clip": "Roll",
    "lib": "",
    "clip_until": 0.8
@@ -45,6 +57,18 @@
    "cancel_move": 1.1,
    "cancel_roll": 1.1,
    "cancel_r": 1.1,
+   "input_r": [
+    [
+     0.2,
+     2.3333
+    ]
+   ],
+   "input_roll": [
+    [
+     0.4333,
+     2.3333
+    ]
+   ],
    "clip": "Roll",
    "lib": "",
    "clip_until": 1.1
@@ -69,6 +93,8 @@
    "cancel_move": 0.9333,
    "cancel_roll": 0.8667,
    "cancel_r": 0.8667,
+   "input_r": [],
+   "input_roll": [],
    "clip": "Roll",
    "lib": "",
    "clip_until": 0.9333
@@ -97,7 +123,39 @@
    "cancel_move": 1.2,
    "cancel_roll": 1.1333,
    "cancel_r": 1.1333,
+   "input_r": [],
+   "input_roll": [],
    "clip": "Sword_Regular_A",
+   "lib": "ual2",
+   "clip_until": 1.2
+  },
+  "light2": {
+   "anim": 304001,
+   "length": 2.5667,
+   "note": "2nd light attack (combo)",
+   "invincible": [],
+   "no_turn": [
+    [
+     0.0,
+     0.2667
+    ],
+    [
+     0.5333,
+     2.5667
+    ]
+   ],
+   "attack": [
+    [
+     0.6333,
+     0.7667
+    ]
+   ],
+   "cancel_move": 1.2,
+   "cancel_roll": 1.1333,
+   "cancel_r": 1.1333,
+   "input_r": [],
+   "input_roll": [],
+   "clip": "Sword_Regular_B",
    "lib": "ual2",
    "clip_until": 1.2
   },
@@ -116,6 +174,8 @@
    "cancel_move": null,
    "cancel_roll": null,
    "cancel_r": null,
+   "input_r": [],
+   "input_roll": [],
    "clip": "Consume",
    "lib": "ual2",
    "clip_until": 2.3
@@ -140,6 +200,8 @@
    "cancel_move": 2.8667,
    "cancel_roll": 2.8667,
    "cancel_r": 2.8667,
+   "input_r": [],
+   "input_roll": [],
    "clip": "Interact",
    "lib": "",
    "clip_until": 2.8667

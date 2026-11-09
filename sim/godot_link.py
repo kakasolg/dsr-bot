@@ -14,6 +14,7 @@ import json
 import os
 import socket
 import subprocess
+import threading
 import time
 from pathlib import Path
 from typing import Optional
@@ -39,24 +40,29 @@ def start_room(headless: bool = True) -> subprocess.Popen:
 class SimTelemetry:
     def __init__(self, port: int = STATE_PORT):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 1 << 20)
         self.sock.bind(("127.0.0.1", port))
-        self.sock.setblocking(False)
+        self.sock.settimeout(0.2)
         self.last: Optional[dict] = None
+        # read every packet as it comes: when nobody reads, a full socket buffer drops the *new* packets and a later
+        # read returns old state (seen 11-09: the room looked 0.4× real time)
+        self._alive = True
+        threading.Thread(target=self._read, daemon=True).start()
 
-    def _drain(self) -> None:
-        while True:
+    def _read(self) -> None:
+        while self._alive:
             try:
                 data, _ = self.sock.recvfrom(65536)
-            except (BlockingIOError, OSError):
+            except socket.timeout:
+                continue
+            except OSError:
                 return
             self.last = json.loads(data)
 
     def state(self, wait: float = 2.0) -> Optional[dict]:
         end = time.time() + wait
-        self._drain()
         while self.last is None and time.time() < end:
             time.sleep(0.01)
-            self._drain()
         return self.last
 
     def snapshot(self, within: float = 60.0) -> Optional[Snapshot]:
@@ -65,9 +71,16 @@ class SimTelemetry:
             return None
         p = Chr(ptr=1, npc_param=0, team=1, hp=1, max_hp=1, x=d["x"], y=d["y"], z=d["z"], anim=d["anim"],
                 heading=d["heading"])
-        return Snapshot(t=d["t"], player=p, chars=[], cam_yaw=d["cam_yaw"])
+        chars = []
+        dm = d.get("dummy")
+        if dm:                       # the training dummy as a hostile (team 6) character, like a DSR foe in the list
+            dist = ((dm["x"] - d["x"]) ** 2 + (dm["z"] - d["z"]) ** 2) ** 0.5
+            chars.append(Chr(ptr=2, npc_param=0, team=6, hp=dm["hp"], max_hp=600, x=dm["x"], y=dm["y"], z=dm["z"],
+                             dist=dist, heading=dm["heading"], name="dummy"))
+        return Snapshot(t=d["t"], player=p, chars=chars, cam_yaw=d["cam_yaw"])
 
     def close(self) -> None:
+        self._alive = False
         self.sock.close()
 
 
@@ -75,7 +88,22 @@ class SimPad:
     def __init__(self, port: int = INPUT_PORT):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.addr = ("127.0.0.1", port)
-        self.st = {"lx": 0.0, "ly": 0.0, "rx": 0.0, "a": False, "b": False, "rb": False, "x": False}
+        self.st = {"lx": 0.0, "ly": 0.0, "rx": 0.0, "a": False, "b": False, "rb": False, "x": False, "r3": False, "slow": False, "ov": False}
+        # the room drops UDP input older than 0.5 s (then a real pad / the keyboard takes over) — resend every 0.1 s
+        # so a held stick stays held like on a pad
+        self._alive = True
+        threading.Thread(target=self._beat, daemon=True).start()
+
+    def _beat(self) -> None:
+        while self._alive:
+            time.sleep(0.1)
+            try:
+                self._send()
+            except OSError:
+                return
+
+    def close(self) -> None:
+        self._alive = False
 
     def _send(self) -> None:
         self.sock.sendto(json.dumps(self.st).encode(), self.addr)
@@ -89,11 +117,11 @@ class SimPad:
         self._send()
 
     def neutral(self, why: str | None = None) -> None:
-        self.st = {"lx": 0.0, "ly": 0.0, "rx": 0.0, "a": False, "b": False, "rb": False, "x": False}
+        self.st = {"lx": 0.0, "ly": 0.0, "rx": 0.0, "a": False, "b": False, "rb": False, "x": False, "r3": False, "slow": False, "ov": False}
         self._send()
 
     def press(self, key: str, hold: float = 0.1) -> None:
-        """Press a button ("a" "b" "rb" "x") for hold seconds. B shorter than 0.25 s = roll / backstep, longer = run."""
+        """Press a button ("a" "b" "rb" "x" "r3" lock-on, "slow" ×0.25, "ov" overlay) for hold seconds. B shorter than 0.25 s = roll / backstep, longer = run."""
         self.st[key] = True
         self._send()
         time.sleep(hold)

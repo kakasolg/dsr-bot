@@ -56,6 +56,28 @@ const B_TAP_S := 0.25          # [guess] B released before this = roll / backste
 const MODEL_PATH := "res://assets/UAL1_Standard.glb"    # CC0 Quaternius (not in git — sim/README.md)
 const LIB2_PATH := "res://assets/UAL2_Standard.glb"
 
+# ── Stage 1·2: camera, lock-on, buffer, hits (Perplexity build order, MoKa M1109-52/53) ──
+const LOCK_RANGE := 15.0       # [game] LockCamParam chrLockRangeMaxRadius
+const CAM_MIN := 0.6           # [guess] closest the camera retracts to near a wall
+const LOCK_CAM_TURN := 6.0     # [guess] 1/s camera yaw follow while locked on
+const WEAPON_IN := 0.5         # [guess] weapon segment, m in front of the body (Claymore-ish)
+const WEAPON_OUT := 1.9        # [guess]
+const WEAPON_R := 0.2          # [guess] (c2540's AtkParam hit radius was 0.2 — a foe's)
+const HITSTOP_S := 0.06        # [guess] (AtkParam hitStopTime exists — not read yet)
+const LIGHT_DMG := 150         # [guess]
+const PLAYER_HP := 849         # [meas] the 11-09 character (VIT 22)
+const STAGGER_S := 0.5         # [guess] player hit reaction
+const DUMMY_POS := Vector3(26.5, 9.4, -26.0)   # training dummy — not in DSR
+const DUMMY_R := 0.4           # [guess]
+const DUMMY_H := 1.8           # [guess]
+const DUMMY_HP := 600          # [guess]
+const DUMMY_EVERY := 3.0       # [guess] s per swing while the player is close
+const DUMMY_WINDUP := 0.7      # [guess] telegraph
+const DUMMY_ACTIVE := 0.15     # [guess]
+const DUMMY_REACH := 1.4       # [guess] hit sphere centre in front of it
+const DUMMY_HIT_R := 0.6       # [guess]
+const DUMMY_DMG := 120         # [guess]
+
 # ── Link ────────────────────────────────────────────────────────────────
 const STATE_PORT := 47811  # state out (JSON per physics frame) → sim/godot_link.py
 const INPUT_PORT := 47812  # UDP input in {"lx","ly","rx","a","b"} — headless tests without a pad
@@ -85,9 +107,36 @@ var prompt := false
 var prompt_why := ""
 var t := 0.0
 
+var lock := false
+var queued := {}            # "r" / "roll" → time pressed (kept until the DSR cancel time, then run)
+var log_ev := []            # last inputs: {k, in, buffered, exec}
+var hit_done := false       # this swing already hit the dummy (one hit per swing)
+var hitstop := 0.0
+var player_hp := PLAYER_HP
+var stagger := 0.0
+var player_hits := 0
+var dodged := 0
+var dummy: Node3D
+var dummy_body: StaticBody3D
+var dummy_arm: Node3D
+var dummy_mat: StandardMaterial3D
+var dummy_hp := DUMMY_HP
+var dummy_t := 0.0
+var dummy_phase := "idle"
+var dummy_heading := 0.0
+var dummy_hit_done := false
+var dummy_flash := 0.0
+var slow := false
+var overlay := true
+var dbg_mesh: ImmediateMesh
+var cam_dist := CAM_DIST
+var prev_weapon := []
+var speed_dir := 0.0
+var speed_dir_set := false
+
 var udp_out := PacketPeerUDP.new()
 var udp_in := PacketPeerUDP.new()
-var net_in := {"lx": 0.0, "ly": 0.0, "rx": 0.0, "a": false, "b": false, "rb": false, "x": false}
+var net_in := {"lx": 0.0, "ly": 0.0, "rx": 0.0, "a": false, "b": false, "rb": false, "x": false, "r3": false, "slow": false, "ov": false}
 var net_in_t := -10.0
 
 
@@ -98,6 +147,8 @@ func _ready() -> void:
 		actions = JSON.parse_string(f.get_as_text())["actions"]
 	_build_world()
 	_build_player()
+	_build_dummy()
+	_build_debug()
 	_build_ui()
 	cam_yaw = heading + PI          # camera starts behind the player
 	udp_out.set_dest_address("127.0.0.1", STATE_PORT)
@@ -303,7 +354,7 @@ func _read_input() -> Dictionary:
 	if t - net_in_t < 0.5:
 		return net_in.duplicate()
 	# pads: take the device with the largest left stick (the bot's ViGEm pad or MoKa's)
-	var best := {"lx": 0.0, "ly": 0.0, "rx": 0.0, "a": false, "b": false, "rb": false, "x": false}
+	var best := {"lx": 0.0, "ly": 0.0, "rx": 0.0, "a": false, "b": false, "rb": false, "x": false, "r3": false, "slow": false, "ov": false}
 	var best_m := -1.0
 	for dev in Input.get_connected_joypads():
 		var lx := Input.get_joy_axis(dev, JOY_AXIS_LEFT_X)
@@ -313,7 +364,8 @@ func _read_input() -> Dictionary:
 			best_m = m
 			best = {"lx": lx, "ly": ly, "rx": Input.get_joy_axis(dev, JOY_AXIS_RIGHT_X),
 				"a": Input.is_joy_button_pressed(dev, JOY_BUTTON_A), "b": Input.is_joy_button_pressed(dev, JOY_BUTTON_B),
-				"rb": Input.is_joy_button_pressed(dev, JOY_BUTTON_RIGHT_SHOULDER), "x": Input.is_joy_button_pressed(dev, JOY_BUTTON_X)}
+				"rb": Input.is_joy_button_pressed(dev, JOY_BUTTON_RIGHT_SHOULDER), "x": Input.is_joy_button_pressed(dev, JOY_BUTTON_X),
+				"r3": Input.is_joy_button_pressed(dev, JOY_BUTTON_RIGHT_STICK), "slow": false, "ov": false}
 	# keyboard (MoKa trying it by hand): WASD move (Shift = walk), arrows camera, E = A
 	var kx := float(Input.is_physical_key_pressed(KEY_D)) - float(Input.is_physical_key_pressed(KEY_A))
 	var ky := float(Input.is_physical_key_pressed(KEY_W)) - float(Input.is_physical_key_pressed(KEY_S))
@@ -332,6 +384,12 @@ func _read_input() -> Dictionary:
 		best["rb"] = true
 	if Input.is_physical_key_pressed(KEY_R):
 		best["x"] = true
+	if Input.is_physical_key_pressed(KEY_Q):
+		best["r3"] = true
+	if Input.is_physical_key_pressed(KEY_T):
+		best["slow"] = true
+	if Input.is_physical_key_pressed(KEY_F1):
+		best["ov"] = true
 	return best
 
 
@@ -350,6 +408,23 @@ func _in(wins: Array, at: float) -> bool:
 	return false
 
 
+func _log(k: String, buffered: bool, accepted := true) -> void:
+	log_ev.append({"k": k, "in": snappedf(t, 0.001), "buffered": buffered, "accepted": accepted, "exec": null})
+	if log_ev.size() > 8:
+		log_ev.pop_front()
+
+
+func _log_exec(k: String) -> void:
+	for i in range(log_ev.size() - 1, -1, -1):
+		if log_ev[i]["k"] == k and log_ev[i]["accepted"] and log_ev[i]["exec"] == null:
+			log_ev[i]["exec"] = snappedf(t, 0.001)
+			return
+
+
+func _target_angle() -> float:
+	return atan2(dummy.position.x - player.position.x, dummy.position.z - player.position.z)
+
+
 func _start(name: String, dir_angle: float) -> void:
 	if not actions.has(name):
 		return
@@ -358,6 +433,8 @@ func _start(name: String, dir_angle: float) -> void:
 	act_dir = dir_angle
 	anim = int(actions[name]["anim"])
 	speed = 0.0
+	hit_done = false
+	prev_weapon = []
 	if anim_player:
 		var a: Dictionary = actions[name]
 		var clip := String(a["clip"]) if String(a["lib"]) == "" else "%s/%s" % [a["lib"], a["clip"]]
@@ -375,8 +452,37 @@ func _start(name: String, dir_angle: float) -> void:
 func _end_action() -> void:
 	act_name = ""
 	anim = -1
+	queued.clear()
+	prev_weapon = []
 	if anim_player:
 		anim_player.speed_scale = 1.0
+
+
+func _exec(kind: String, m: float, want: float) -> void:
+	# Run a pressed (or buffered) input: roll / backstep for B, the next light attack for R.
+	var prev := act_name
+	_end_action()
+	_log_exec(kind)
+	if kind == "roll":
+		if m >= DEAD:
+			heading = wrapf(want - PI, -PI, PI)
+			_start("roll", want)
+		else:
+			_start("backstep", heading)               # backward = facing + PI, facing = heading + PI
+	elif kind == "r":
+		if lock:
+			heading = wrapf(_target_angle() - PI, -PI, PI)
+		_start("light2" if prev == "light" else "light", heading + PI)
+
+
+func _queue(kind: String) -> void:
+	# A press during an action: kept if the action's DSR input window is open (or it has none — [guess]).
+	var a: Dictionary = actions[act_name]
+	var wins: Array = a["input_r"] if kind == "r" else a["input_roll"]
+	var ok := wins.is_empty() or _in(wins, act_t)
+	_log(kind, true, ok)
+	if ok and not queued.has(kind):
+		queued[kind] = t
 
 
 func _physics_process(dt: float) -> void:
@@ -386,9 +492,21 @@ func _physics_process(dt: float) -> void:
 	var ly: float = inp["ly"]
 	var m := minf(Vector2(lx, ly).length(), 1.0)
 	var want := cam_actual_yaw() + atan2(lx, ly)      # world angle the stick points to (the camera as drawn, like DSR)
-	var face := heading + PI                           # world angle the body faces
 
-	cam_yaw = wrapf(cam_yaw - float(inp["rx"]) * CAM_TURN * dt, -PI, PI)
+	if _pressed(inp, "slow"):
+		slow = not slow
+		Engine.time_scale = 0.25 if slow else 1.0
+	if _pressed(inp, "ov"):
+		overlay = not overlay
+	if _pressed(inp, "r3"):
+		lock = (not lock) and dummy_hp > 0 and player.position.distance_to(dummy.position) <= LOCK_RANGE
+	if lock and (dummy_hp <= 0 or player.position.distance_to(dummy.position) > LOCK_RANGE):
+		lock = false
+
+	if lock:
+		cam_yaw = wrapf(cam_yaw + wrapf(_target_angle() - cam_yaw, -PI, PI) * (1.0 - exp(-LOCK_CAM_TURN * dt)), -PI, PI)
+	else:
+		cam_yaw = wrapf(cam_yaw - float(inp["rx"]) * CAM_TURN * dt, -PI, PI)
 	_check_prompt()
 
 	# B: tap = roll (stick held) / backstep (no stick); hold = run
@@ -400,68 +518,101 @@ func _physics_process(dt: float) -> void:
 		tap_b = t - b_down_t < B_TAP_S
 		b_down_t = -1.0
 	var running := b and b_down_t >= 0.0 and t - b_down_t >= B_TAP_S
-
-	# leaving the current action: by moving / rolling / the next R after the DSR cancel times, or at its end
-	if act_name != "":
-		act_t += dt
-		var a: Dictionary = actions[act_name]
-		var cm = a["cancel_move"]
-		var cr = a["cancel_roll"]
-		if act_t >= float(a["length"]) or (cm != null and act_t >= float(cm) and m >= DEAD):
-			_end_action()
-		elif cr != null and act_t >= float(cr) and tap_b:
-			_end_action()
-
 	var pressed_a := _pressed(inp, "a")
 	var pressed_rb := _pressed(inp, "rb")
 	var pressed_x := _pressed(inp, "x")
-	if act_name == "":
+
+	if hitstop > 0.0:
+		hitstop -= dt
+	if stagger > 0.0:
+		stagger -= dt
+		if pressed_rb or tap_b:
+			_log("r" if pressed_rb else "roll", false, false)     # inputs during a hit reaction are dropped
+	elif act_name != "":
+		if pressed_rb:
+			_queue("r")
 		if tap_b:
-			if m >= DEAD:
-				heading = wrapf(want - PI, -PI, PI)          # a roll goes where the stick points
-				_start("roll", want)
+			_queue("roll")
+		if hitstop <= 0.0:
+			act_t += dt
+		var a: Dictionary = actions[act_name]
+		var cm = a["cancel_move"]
+		var cr = a["cancel_r"]
+		var cro = a["cancel_roll"]
+		if queued.has("roll") and cro != null and act_t >= float(cro):
+			_exec("roll", m, want)
+		elif queued.has("r") and cr != null and act_t >= float(cr):
+			_exec("r", m, want)
+		elif act_t >= float(a["length"]):
+			var nxt := "roll" if queued.has("roll") else ("r" if queued.has("r") else "")
+			if nxt != "":
+				_exec(nxt, m, want)
 			else:
-				_start("backstep", face + PI)
+				_end_action()
+		elif cm != null and act_t >= float(cm) and m >= DEAD and queued.is_empty():
+			_end_action()
+	else:
+		if tap_b:
+			_log("roll", false)
+			_exec("roll", m, want)
+		elif pressed_rb:
+			_log("r", false)
+			_exec("r", m, want)
 		elif pressed_a and prompt:
 			lever_pulled = true
-			_start("lever", face)
-		elif pressed_rb:
-			_start("light", face)
+			_start("lever", heading + PI)
 		elif pressed_x:
-			_start("estus", face)
+			_start("estus", heading + PI)
 
 	var target_v := 0.0
 	var vel := Vector3.ZERO
-	if act_name != "":
+	if stagger > 0.0:
+		pass
+	elif act_name != "":
 		var a: Dictionary = actions[act_name]
-		if not _in(a["no_turn"], act_t) and m >= DEAD:  # DSR lets an action turn outside its "disable turning" window
-			var d0 := wrapf(want - (heading + PI), -PI, PI)
-			heading = wrapf(heading + clampf(d0, -TURN * dt, TURN * dt), -PI, PI)
+		if not _in(a["no_turn"], act_t):              # DSR lets an action turn outside its "disable turning" window
+			var aim := NAN
+			if lock and not act_name.begins_with("roll") and act_name != "backstep":
+				aim = _target_angle()
+			elif m >= DEAD:
+				aim = want
+			if not is_nan(aim):
+				var d0 := wrapf(aim - (heading + PI), -PI, PI)
+				heading = wrapf(heading + clampf(d0, -TURN * dt, TURN * dt), -PI, PI)
 		var dist := 0.0
 		var dur := 1.0
+		var dir := act_dir
 		if act_name.begins_with("roll"):
 			dist = ROLL_DIST
 			dur = ROLL_MOVE_S
 		elif act_name == "backstep":
 			dist = BACKSTEP_DIST
 			dur = BACKSTEP_MOVE_S
-		if act_t < dur and dist > 0.0:
-			vel = Vector3(sin(act_dir), 0, cos(act_dir)) * (dist / dur)
+		if act_t < dur and dist > 0.0 and hitstop <= 0.0:
+			vel = Vector3(sin(dir), 0, cos(dir)) * (dist / dur)
 	elif m >= DEAD:
 		target_v = V_RUN if running else (V_WALK if m < WALK_HI else V_JOG)
-		var d := wrapf(want - face, -PI, PI)
-		face += clampf(d, -TURN * dt, TURN * dt)
-		heading = wrapf(face - PI, -PI, PI)
-	if act_name == "":
+		var aim := _target_angle() if (lock and not running) else want      # locked on: face the target, strafe
+		var d := wrapf(aim - (heading + PI), -PI, PI)
+		heading = wrapf(heading + clampf(d, -TURN * dt, TURN * dt), -PI, PI)
+	if act_name == "" and stagger <= 0.0:
 		var tau := TAU_UP if target_v > speed else TAU_DOWN
 		speed += (target_v - speed) * (1.0 - exp(-dt / tau))
-		var face_dir := Vector3(sin(heading + PI), 0, cos(heading + PI))
-		vel = face_dir * speed
+		var move_angle := want if (lock and m >= DEAD and not running) else heading + PI
+		if m < DEAD:
+			move_angle = heading + PI if not lock else (speed_dir if speed_dir_set else heading + PI)
+		else:
+			speed_dir = move_angle
+			speed_dir_set = true
+		vel = Vector3(sin(move_angle), 0, cos(move_angle)) * speed
 	player.velocity.x = vel.x
 	player.velocity.z = vel.z
 	player.velocity.y = 0.0 if player.is_on_floor() else player.velocity.y - 9.8 * dt
 	player.rotation.y = heading
 	player.move_and_slide()
+
+	_weapon_hits()
+	_dummy_step(dt)
 
 	if lever_pulled and gate_open < 1.0:
 		gate_open = minf(1.0, gate_open + dt / GATE_OPEN_S)
@@ -469,23 +620,129 @@ func _physics_process(dt: float) -> void:
 
 	_animate()
 	_update_camera(dt)
+	_draw_debug()
 	_send_state()
 	prompt_label.text = "Ⓐ Pull lever" if prompt else ""
 	var p := player.position
 	var flags := ""
 	if act_name != "":
 		var a: Dictionary = actions[act_name]
-		flags = "%s %d  t %.2f%s%s%s" % [act_name, anim, act_t, "  INVINCIBLE" if _in(a["invincible"], act_t) else "",
-			"  no-turn" if _in(a["no_turn"], act_t) else "", "  HIT" if _in(a["attack"], act_t) else ""]
-	info_label.text = "pos %.2f %.2f %.2f  heading %.3f  cam_yaw %.3f
-bonfire-rel %.2f %.2f  prompt %s %s
-lever %s  gate %.0f%%
-%s" % [
-		p.x, p.y, p.z, heading, cam_yaw, p.x - BONFIRE.x, p.z - BONFIRE.z, prompt, prompt_why, lever_pulled, gate_open * 100, flags]
+		flags = "%s %d  t %.2f%s%s%s  queued %s" % [act_name, anim, act_t, "  INVINCIBLE" if _in(a["invincible"], act_t) else "",
+			"  no-turn" if _in(a["no_turn"], act_t) else "", "  HIT" if _in(a["attack"], act_t) else "", queued.keys()]
+	elif stagger > 0.0:
+		flags = "STAGGER %.2f" % stagger
+	var logs := ""
+	for e in log_ev.slice(maxi(0, log_ev.size() - 4)):
+		logs += "  %s in %.2f%s%s" % [e["k"], e["in"], " buf" if e["buffered"] else "", (" → %.2f" % e["exec"]) if e["exec"] != null else (" dropped" if not e["accepted"] else " …")]
+	info_label.text = "pos %.2f %.2f %.2f  heading %.3f  cam_yaw %.3f  cam %.1f m\nbonfire-rel %.2f %.2f  prompt %s %s\nlever %s  gate %.0f%%   HP %d  dummy %d (%s)  lock %s  hits %d dodged %d%s\n%s\ninputs:%s" % [
+		p.x, p.y, p.z, heading, cam_yaw, cam_dist, p.x - BONFIRE.x, p.z - BONFIRE.z, prompt, prompt_why, lever_pulled, gate_open * 100,
+		player_hp, dummy_hp, dummy_phase, lock, player_hits, dodged, "  SLOW x0.25" if slow else "", flags, logs]
+
+
+# ── Hits ────────────────────────────────────────────────────────────────
+func _weapon_seg() -> Array:
+	var f := Vector3(sin(heading + PI), 0, cos(heading + PI))
+	var base := player.position + Vector3(0, 1.2, 0)
+	return [base + f * WEAPON_IN, base + f * WEAPON_OUT]
+
+
+func _dummy_axis() -> Array:
+	return [dummy.position + Vector3(0, DUMMY_R, 0), dummy.position + Vector3(0, DUMMY_H - DUMMY_R, 0)]
+
+
+func _seg_dist(a0: Vector3, a1: Vector3, b0: Vector3, b1: Vector3) -> float:
+	var c := Geometry3D.get_closest_points_between_segments(a0, a1, b0, b1)
+	return c[0].distance_to(c[1])
+
+
+func _weapon_hits() -> void:
+	# Swept melee check: this frame's weapon segment, last frame's, and the trail between them (tip and middle).
+	if act_name == "" or not actions[act_name]["attack"].size() or not _in(actions[act_name]["attack"], act_t):
+		prev_weapon = []
+		return
+	var w := _weapon_seg()
+	var segs := [w]
+	if prev_weapon.size() == 2:
+		segs.append(prev_weapon)
+		segs.append([prev_weapon[1], w[1]])
+		segs.append([(prev_weapon[0] + prev_weapon[1]) / 2.0, (w[0] + w[1]) / 2.0])
+	prev_weapon = w
+	if hit_done or dummy_hp <= 0:
+		return
+	var ax := _dummy_axis()
+	for sg in segs:
+		if _seg_dist(sg[0], sg[1], ax[0], ax[1]) <= WEAPON_R + DUMMY_R:
+			hit_done = true                                   # one hit per swing
+			player_hits += 1
+			dummy_hp = maxi(0, dummy_hp - LIGHT_DMG)
+			hitstop = HITSTOP_S
+			dummy_flash = 0.15
+			if dummy_phase == "windup":                       # a hit interrupts its telegraphed swing [guess]
+				dummy_phase = "recover"
+				dummy_t = 0.0
+			return
+
+
+func _dummy_step(dt: float) -> void:
+	# Training dummy: faces the player, and when close swings every DUMMY_EVERY s — windup (telegraph), active, recover.
+	if dummy_flash > 0.0:
+		dummy_flash -= dt
+	dummy_mat.albedo_color = Color(1, 1, 1) if dummy_flash > 0.0 else (Color(0.3, 0.3, 0.3) if dummy_hp <= 0 else (
+		Color(0.9, 0.6, 0.1) if dummy_phase == "windup" else (Color(0.9, 0.1, 0.1) if dummy_phase == "active" else Color(0.55, 0.35, 0.2))))
+	if dummy_hp <= 0:
+		dummy_phase = "dead"
+		return
+	var to_p := player.position - dummy.position
+	var close := Vector2(to_p.x, to_p.z).length() <= DUMMY_REACH + DUMMY_HIT_R + 1.0
+	if dummy_phase == "idle" or dummy_phase == "recover":
+		dummy_heading = wrapf(atan2(-to_p.x, -to_p.z), -PI, PI)      # face the player (heading convention)
+		dummy.rotation.y = dummy_heading
+	dummy_t += dt
+	match dummy_phase:
+		"idle":
+			if close and dummy_t >= DUMMY_EVERY:
+				dummy_phase = "windup"
+				dummy_t = 0.0
+		"windup":
+			dummy_arm.rotation.x = lerpf(0.0, 1.2, minf(dummy_t / DUMMY_WINDUP, 1.0))
+			if dummy_t >= DUMMY_WINDUP:
+				dummy_phase = "active"
+				dummy_t = 0.0
+				dummy_hit_done = false
+		"active":
+			dummy_arm.rotation.x = -0.6
+			if not dummy_hit_done:
+				var c := _dummy_hit_centre()
+				var pax := [player.position + Vector3(0, RADIUS, 0), player.position + Vector3(0, HEIGHT - RADIUS, 0)]
+				var near := Geometry3D.get_closest_point_to_segment(c, pax[0], pax[1])
+				if near.distance_to(c) <= DUMMY_HIT_R + RADIUS:
+					dummy_hit_done = true
+					var inv := act_name != "" and _in(actions[act_name]["invincible"], act_t)
+					if inv:
+						dodged += 1
+					else:
+						player_hp = maxi(0, player_hp - DUMMY_DMG)
+						_end_action()                         # a hit cleans up the action: no hitbox / i-frames / queue left
+						stagger = STAGGER_S
+						if anim_player and anim_player.has_animation("Hit_Chest"):
+							anim_player.play("Hit_Chest", 0.05)
+							loco_clip = ""
+			if dummy_t >= DUMMY_ACTIVE:
+				dummy_phase = "recover"
+				dummy_t = 0.0
+		"recover":
+			dummy_arm.rotation.x = lerpf(-0.6, 0.0, minf(dummy_t / 0.6, 1.0))
+			if dummy_t >= 0.6:
+				dummy_phase = "idle"
+
+
+func _dummy_hit_centre() -> Vector3:
+	var f := Vector3(sin(dummy_heading + PI), 0, cos(dummy_heading + PI))
+	return dummy.position + f * DUMMY_REACH + Vector3(0, 1.0, 0)
 
 
 func _animate() -> void:
-	if anim_player == null or act_name != "":
+	if anim_player == null or act_name != "" or stagger > 0.0:
 		return
 	var clip := "Idle"
 	var sc := 1.0
@@ -501,6 +758,91 @@ func _animate() -> void:
 		anim_player.play(clip, 0.2)
 		loco_clip = clip
 	anim_player.speed_scale = sc
+
+
+# ── Debug overlay (F1) ──────────────────────────────────────────────────
+func _line(a: Vector3, b: Vector3, c: Color) -> void:
+	dbg_mesh.surface_set_color(c)
+	dbg_mesh.surface_add_vertex(a)
+	dbg_mesh.surface_set_color(c)
+	dbg_mesh.surface_add_vertex(b)
+
+
+func _ring(c0: Vector3, r: float, col: Color) -> void:
+	for i in 16:
+		var a0 := TAU * i / 16.0
+		var a1 := TAU * (i + 1) / 16.0
+		_line(c0 + Vector3(cos(a0), 0, sin(a0)) * r, c0 + Vector3(cos(a1), 0, sin(a1)) * r, col)
+
+
+func _draw_debug() -> void:
+	dbg_mesh.clear_surfaces()
+	if not overlay:
+		return
+	dbg_mesh.surface_begin(Mesh.PRIMITIVE_LINES)
+	var inv := act_name != "" and _in(actions[act_name]["invincible"], act_t)
+	var pc := Color(0.2, 1, 0.3) if inv else Color(0.2, 0.8, 1)
+	_ring(player.position + Vector3(0, 0.05, 0), RADIUS, pc)
+	_ring(player.position + Vector3(0, HEIGHT - 0.1, 0), RADIUS, pc)
+	if act_name != "" and actions[act_name]["attack"].size():
+		var w := _weapon_seg()
+		_line(w[0], w[1], Color(1, 0, 0) if _in(actions[act_name]["attack"], act_t) else Color(0.5, 0.5, 0.5))
+	var ax := _dummy_axis()
+	_line(ax[0], ax[1], Color(1, 1, 0))
+	_ring(dummy.position + Vector3(0, 0.05, 0), DUMMY_R, Color(1, 1, 0))
+	if dummy_phase == "windup" or dummy_phase == "active":
+		var c := _dummy_hit_centre()
+		var col := Color(1, 0, 0) if dummy_phase == "active" else Color(1, 0.6, 0)
+		_ring(c, DUMMY_HIT_R, col)
+		_ring(c + Vector3(0, -0.5, 0), DUMMY_HIT_R * 0.8, col)
+	dbg_mesh.surface_end()
+
+
+func _build_dummy() -> void:
+	dummy = Node3D.new()
+	dummy_mat = StandardMaterial3D.new()
+	dummy_mat.albedo_color = Color(0.55, 0.35, 0.2)
+	var mi := MeshInstance3D.new()
+	var cm := CapsuleMesh.new()
+	cm.radius = DUMMY_R
+	cm.height = DUMMY_H
+	cm.material = dummy_mat
+	mi.mesh = cm
+	mi.position.y = DUMMY_H / 2.0
+	dummy.add_child(mi)
+	dummy_arm = Node3D.new()
+	dummy_arm.position = Vector3(0, 1.4, 0)
+	var arm := MeshInstance3D.new()
+	var ab := BoxMesh.new()
+	ab.size = Vector3(0.12, 0.12, DUMMY_REACH)
+	ab.material = dummy_mat
+	arm.mesh = ab
+	arm.position = Vector3(0, 0, -DUMMY_REACH / 2.0)
+	dummy_arm.add_child(arm)
+	dummy.add_child(dummy_arm)
+	dummy_body = StaticBody3D.new()
+	var cs := CollisionShape3D.new()
+	var sh := CapsuleShape3D.new()
+	sh.radius = DUMMY_R
+	sh.height = DUMMY_H
+	cs.shape = sh
+	cs.position.y = DUMMY_H / 2.0
+	dummy_body.add_child(cs)
+	dummy.add_child(dummy_body)
+	dummy.position = DUMMY_POS
+	add_child(dummy)
+
+
+func _build_debug() -> void:
+	dbg_mesh = ImmediateMesh.new()
+	var mi := MeshInstance3D.new()
+	mi.mesh = dbg_mesh
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.vertex_color_use_as_albedo = true
+	mat.no_depth_test = true
+	mi.material_override = mat
+	add_child(mi)
 
 
 func _check_prompt() -> void:
@@ -523,7 +865,24 @@ func _update_camera(dt: float) -> void:
 	var fwd := Vector3(sin(cam_yaw), 0, cos(cam_yaw))
 	var org := player.position + Vector3(0, CAM_ORG_Y, 0)
 	var want := org - fwd * CAM_DIST * cos(CAM_PITCH) + Vector3(0, -sin(CAM_PITCH) * CAM_DIST, 0)
-	cam.position = cam.position.lerp(want, 1.0 - exp(-CAM_FOLLOW * dt)) if t > 0.05 else want
+	# spring arm: a wall between the body and the wanted camera spot pulls the camera in (characters don't block it)
+	var q := PhysicsRayQueryParameters3D.create(org, want)
+	q.exclude = [player.get_rid(), dummy_body.get_rid()]
+	var hit := get_world_3d().direct_space_state.intersect_ray(q)
+	var blocked := false
+	if hit:
+		var hp: Vector3 = hit["position"]
+		var back: Vector3 = (org - hp).normalized()
+		want = hp + back * 0.2
+		if org.distance_to(want) < CAM_MIN:
+			want = org - (org - want).normalized() * CAM_MIN
+		blocked = true
+	var lerped := cam.position.lerp(want, 1.0 - exp(-CAM_FOLLOW * dt)) if t > 0.05 else want
+	# never let the smoothing leave the camera behind the wall: snap in when the wall is closer than the smoothed spot
+	if blocked and org.distance_to(lerped) > org.distance_to(want):
+		lerped = want
+	cam.position = lerped
+	cam_dist = org.distance_to(cam.position)
 	cam.look_at(org, Vector3.UP)
 
 
@@ -540,5 +899,9 @@ func _send_state() -> void:
 		"action": act_name, "anim_time": act_t if act_name != "" else null,
 		"invincible": act_name != "" and _in(actions[act_name]["invincible"], act_t),
 		"no_turn": act_name != "" and _in(actions[act_name]["no_turn"], act_t),
-		"hitbox": act_name != "" and _in(actions[act_name]["attack"], act_t)}
+		"hitbox": act_name != "" and _in(actions[act_name]["attack"], act_t),
+		"lock": lock, "hp": player_hp, "stagger": stagger > 0.0, "queued": queued.keys(), "log": log_ev,
+		"cam_dist": cam_dist, "player_hits": player_hits, "dodged": dodged, "slow": slow,
+		"dummy": {"x": dummy.position.x, "y": dummy.position.y, "z": dummy.position.z, "hp": dummy_hp, "phase": dummy_phase,
+			"heading": dummy_heading}}
 	udp_out.put_packet(JSON.stringify(d).to_utf8_buffer())

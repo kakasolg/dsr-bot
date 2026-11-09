@@ -25,6 +25,7 @@ ACTIONS = {
     710: ("roll", "Roll", "", "mid roll forward — room default [guess]"),
     690: ("backstep", "Roll", "", "backstep — no CC0 clip: Roll played backward [stand-in]"),
     304000: ("light", "Sword_Regular_A", "ual2", "1st right-hand light attack, section 30 weapon"),
+    304001: ("light2", "Sword_Regular_B", "ual2", "2nd light attack (combo)"),
     7585: ("estus", "Consume", "ual2", "Estus"),
     8000: ("lever", "Interact", "", "pull lever (ObjActParam 1200 PlayerActionAnimation)"),
 }
@@ -51,6 +52,10 @@ def build() -> dict:
             "invincible": windows(ev, 8), "no_turn": windows(ev, 7),
             "attack": [[e["start"], e["end"]] for e in ev if e["type"] == 1],
             "cancel_move": move, "cancel_roll": first(ev, 26), "cancel_r": first(ev, 4),
+            # input windows: a press inside is kept and runs at the matching cancel time (DSR's buffer).
+            # flag 1 = R-attack input, 25 = roll input. An action without one: the room keeps the press from any time
+            # in the action ([guess] — DSR may buffer outside the TAE flags too).
+            "input_r": windows(ev, 1), "input_roll": windows(ev, 25),
             "clip": clip, "lib": lib, "clip_until": move if move is not None else length,
         }
     return {"source": "data/gamefiles/tae_c0000.json (player_tae_extract.py) — DSR game files; not yet checked against "
