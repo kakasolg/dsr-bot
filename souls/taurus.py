@@ -52,6 +52,12 @@ SPOT_FWD = 0.4                      # where we swing from, in its own frame: thi
 SPOT_SIDE = 0.6                     # … and this far to one side (between its legs, off the club's center line)
 SPOT_R = 0.45                       # swing only within this of that spot; else walk to it
 HIT_SP = 40
+# ── 양손 가드 들고 가랑이로 들어감 (P-141, [MoKa] 2026-11-08) ──────────────────────────────
+#  "타우로스 공략할때 가까이 갈때도 양잡 상태로 가드 해도, 배틀액스로도 방패보다는 데미지가 더 들어오지만 가드 하면서 들어가서 공격하면,
+#  한방에 죽지는 않을 거야. 문제는 가드를 하면 스테미나가 차지 않는게 문제" · "양잡 가드 하면서 다리 밑으로 들어가봐 … 다음 공격이 될지는 나도 모르겠네"
+#  · 칠 때와 에스트 때만 가드를 내림. 자리에서 기력을 기다릴 때도 가드 (기력이 차는지가 이번 시험 질문 — 'hit' 이벤트에 sp)
+#  · 예전 (10-12 시험 4): 약공 뒤마다 LB가 눌린 채라 무기로 막아 기력 98 → 9, 약공 4번 중 1번만 맞음 → 가드 끔. GUARD_CLOSE False면 그대로
+GUARD_CLOSE = True
 HIT_SP2 = 80                        # two in a row only from here (two cost ~76)
 ESTUS_HP = 0.40
 # ── 두 대 맞으면 죽음 → 한 대 맞으면 마심 ([MoKa] 11-02 "연속 2대 맞으면 죽잖아" · "에스트 마시면서") ──
@@ -536,10 +542,12 @@ class Taurus:
         # its hits (stamina 98 → 9), stamina came back slowly with LB down, and only 1 of 4 lights landed
         guard_ok, self.mv.guard_ok = getattr(self.mv, "guard_ok", True), False
         self.pad.guard(False)
+        self.log(f"   타우로스 근접: {'양손 가드 들고 들어감 (P-141)' if GUARD_CLOSE else '가드 없이'}")
         try:
             return self._fight_loop(t0, hits)
         finally:
             self.mv.guard_ok = guard_ok
+            self.pad.guard(False)
 
     def _fight_loop(self, t0: float, hits: int) -> str:
         g0 = getattr(self.f.esc, "gen", 0)
@@ -567,6 +575,7 @@ class Taurus:
             a = b.anim if b.anim is not None else -1
             if p.hp < max(p.max_hp * ESTUS_HP, 2 * TAURUS_HIT) and a not in M.ATTACK and self.mv.estus_left() > 0:
                 self.pad.neutral()
+                self.pad.guard(False)
                 r = self.mv.drink(lambda sn: (self.boss(sn) is None or (self.boss(sn).anim or -1) not in M.ATTACK))
                 self.log(f"   타우로스 싸움 중 에스트: {r}")
                 self.events("estus", **r)
@@ -578,10 +587,15 @@ class Taurus:
             if off <= SPOT_R and (p.sp or 0) >= HIT_SP2:
                 if self.mv.face(s, b, deg=30.0):
                     n = 2
+                    self.pad.guard(False)
                     hit = self.mv.light(s, b, n=n, sp_second=HIT_SP)
                     hits += n
-                    self.events("taurus", what="hit", dmg=hit.dmg, taken=hit.taken, h=round(h, 2), anim=a, sp=p.sp)
+                    self.events("taurus", what="hit", dmg=hit.dmg, taken=hit.taken, h=round(h, 2), anim=a, sp=p.sp,
+                                guard=GUARD_CLOSE)
+                    self.log(f"   타우로스 약공×{n}: 피해 {hit.dmg}, 내 피해 {hit.taken}, 기력 {p.sp} (거리 {h:.1f} m)")
                 continue
+            if GUARD_CLOSE:
+                self.pad.guard(True)
             if off > SPOT_R and s.cam_yaw is not None:
                 way = nav.safe_heading(self.nm, p, sx - p.x, sz - p.z, reach=min(1.2, max(0.3, off)))
                 if way is None:

@@ -232,11 +232,12 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 133 | jump → no light | verify |
 | 134 | z8 hold 20 s | verify |
 | 135 | knife: right wall | verify |
-| 136 | block → light waits | verify |
+| 136 | block→light | verify |
 | 137 | z8 ladder top | open |
 | 138 | no-knife: z6, z4 deaths | open |
 | 139 | axe wall bounce; no sip | verify |
 | 140 | z4 rushed 3 | verify |
+| 141 | Taurus: guard in | verify |
 
 ## 5. Relay — [cloud] ↔ board
 

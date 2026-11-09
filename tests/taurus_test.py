@@ -98,6 +98,24 @@ check("fight: two lights at full stamina, guard off while swinging", hits and hi
 check("fight: guard_ok restored afterwards", mv.guard_ok is True)
 check("fight: LB released at the start", ("guard", (False,)) in pad.calls)
 
+# P-141 ([MoKa] 11-08 "양잡 가드 하면서 다리 밑으로 들어가봐"): off the spot → LB held while walking in; at the spot → LB let go, then the lights
+b = boss(x=47.0, y=15.8, z=-119.0, anim=-1)
+t, mv, pad = make([snap(b, me=(50.0, 15.8, -119.0), sp=98), snap(b, me=(47.3, 15.8, -119.3), sp=98),
+                   snap(None, me=(47.3, 15.8, -119.3))])
+mv.light = lambda s, c, n=1, sp_second=40: (pad.calls.append(("light", (n,))), setattr(c, "hp", 0), NS(dmg=91 * n, taken=0))[2]
+t.nm = None
+T.nav_safe = T.nav.safe_heading
+T.nav.safe_heading = lambda nm, p, dx, dz, reach=1.0: (dx, dz)
+try:
+    t._fight()
+finally:
+    T.nav.safe_heading = T.nav_safe
+seq = [c for c in pad.calls if c[0] in ("guard", "light")]
+i_on = seq.index(("guard", (True,))) if ("guard", (True,)) in seq else None
+i_hit = next((i for i, c in enumerate(seq) if c[0] == "light"), None)
+check(f"fight (P-141): guard up walking to the spot, down right before the lights ({seq})",
+      T.GUARD_CLOSE and i_on is not None and i_hit is not None and i_on < i_hit and seq[i_hit - 1] == ("guard", (False,)))
+
 # try 11: a fall quit-out reloaded us in front of the fog wall — the boss (HP 150) just dropped out of the snapshot
 t, mv, pad = make([snap(boss(x=47.0, y=15.8, z=-119.0, anim=3005, hp=150), me=(47.5, 15.8, -119.5), sp=10),
                    snap(None, me=(51.9, 17.2, -118.6))])
