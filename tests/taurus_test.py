@@ -116,29 +116,33 @@ i_hit = next((i for i, c in enumerate(seq) if c[0] == "light"), None)
 check(f"fight (P-141): guard up walking to the spot, down right before the lights ({seq})",
       T.GUARD_CLOSE and i_on is not None and i_hit is not None and i_on < i_hit and seq[i_hit - 1] == ("guard", (False,)))
 
-# P-142 (013102, MoKa 11-09): HP 136 with one Estus left, boss in its 3000 range every tick → never drank, kept swinging, died.
-# Now: below the sip line with no sip window → no lights, guard up, stay on the between-legs spot (MoKa 11-09: never back off);
-# when the boss leaves its attack range → drink.
-b = boss(x=47.0, y=15.8, z=-119.0, anim=3006)
+# P-144 (MoKa 11-09 "에스트를 왜 마셔 … 스테미나가 다 떨어져가서 할게 없으면 에스트 마셔도 되겠지만, 다른 케이스는 스테미나가
+# 더 중요한 상황"): low HP but stamina for two → keep hitting between the legs, no sip
+def _on(bb, me=(47.3, -119.3)):
+    x, z = T.crotch_spot(bb, NS(x=me[0], z=me[1]))
+    return (x, 15.8, z)
 calm = boss(x=47.0, y=15.8, z=-119.0, anim=-1)
-t, mv, pad = make([snap(b, me=(47.3, 15.8, -119.3), hp=136, sp=98), snap(b, me=(47.3, 15.8, -119.3), hp=136, sp=98),
-                   snap(calm, me=(T.crotch_spot(calm, NS(x=47.3, z=-119.3))[0], 15.8, T.crotch_spot(calm, NS(x=47.3, z=-119.3))[1]),
-                        hp=136, sp=98), snap(None, me=(49.0, 15.8, -119.3), hp=400)])
+t, mv, pad = make([snap(calm, me=_on(calm), hp=136, sp=98), snap(None, me=_on(calm), hp=136)])
 mv.light = lambda s, c, n=1, sp_second=40: (pad.calls.append(("light", (n,))), NS(dmg=0, taken=0))[1]
 mv.drink = lambda ok: pad.calls.append(("drink", ())) or {"ok": True}
 t.nm = None
-T.nav.safe_heading = lambda nm, p, dx, dz, reach=1.0: (dx, dz)
-try:
-    t._fight()
-finally:
-    T.nav.safe_heading = T.nav_safe
-names = [c[0] for c in pad.calls if c[0] in ("guard", "light", "drink", "move")]
+t._fight()
+names = [c[0] for c in pad.calls if c[0] in ("light", "drink")]
+check(f"P-144: HP 136, stamina 98, on the spot, boss calm → lights, no sip ({names})", names[:1] == ["light"] and "drink" not in names)
+
+# stamina short (30): boss swinging (3006, then 4100) → no sip, no light, guard, stay on the spot; calm → sip there
+b = boss(x=47.0, y=15.8, z=-119.0, anim=3006)
+b2 = boss(x=47.0, y=15.8, z=-119.0, anim=4100)
+t, mv, pad = make([snap(b, me=_on(b), hp=136, sp=30), snap(b2, me=_on(b2), hp=136, sp=30),
+                   snap(calm, me=_on(calm), hp=136, sp=30), snap(None, me=_on(calm), hp=400)])
+mv.light = lambda s, c, n=1, sp_second=40: (pad.calls.append(("light", (n,))), NS(dmg=0, taken=0))[1]
+mv.drink = lambda ok: pad.calls.append(("drink", ())) or {"ok": True}
+t.nm = None
+t._fight()
+names = [c[0] for c in pad.calls if c[0] in ("guard", "light", "drink")]
 i_drink = names.index("drink") if "drink" in names else None
-_moves = [c[1] for c in pad.calls[:pad.calls.index(("drink", ()))] if c[0] == "move"] if i_drink is not None else []
-_sx, _sz = T.crotch_spot(b, NS(x=47.3, z=-119.3))
-check(f"P-142: low HP, boss swinging → no light, guard up, stays at the between-legs spot (no back-off); drinks once it stops ({names[:12]})",
-      i_drink is not None and "light" not in names[:i_drink] and ("guard", (True,)) in pad.calls[:pad.calls.index(("drink", ()))]
-      and all(mv_ == (0.0, 0.0) or (mv_[0] * (_sx - 47.3) + mv_[1] * (_sz + 119.3)) >= 0 for mv_ in _moves))
+check(f"P-144: stamina 30, boss in 3006 / 4100 → no sip, no light, guard; boss calm → sip on the spot ({names[:10]})",
+      i_drink is not None and "light" not in names and ("guard", (True,)) in pad.calls[:pad.calls.index(("drink", ()))])
 # P-142 2nd (065619): 4100 / 4101 / 4106 are attacks too (TAE) — no sip while the boss is in one
 check("P-142: 4000–4006 · 4100–4106 count as boss attacks (TAE c2250), 3000–3499 too; 2255 (death) does not",
       all(a in T.BOSS_ATTACK for a in (3006, 4000, 4006, 4100, 4101, 4106)) and 2255 not in T.BOSS_ATTACK and 4107 not in T.BOSS_ATTACK)
@@ -202,18 +206,18 @@ check("close fight: resin worn off, boss 5 m away and idle → still no rub", ru
 drank = []
 b = boss(x=48.5, y=15.8, z=-119.0, anim=-1, hp=400)
 _sp = T.crotch_spot(b, NS(x=47.0, z=-119.0))           # MoKa 11-09: sips happen between its legs
-t, mv, pad = make([snap(b, me=(_sp[0], 15.8, _sp[1]), hp=320), snap(None, me=(_sp[0], 15.8, _sp[1]))])
+t, mv, pad = make([snap(b, me=(_sp[0], 15.8, _sp[1]), hp=320, sp=30), snap(None, me=(_sp[0], 15.8, _sp[1]))])
 t.tm = NS(goods_count=lambda i: 2)
 t.events = lambda *a, **k: None
 mv.drink = lambda ok: drank.append(1) or {"ok": True}
 mv.light = light
 t._fight()
-check(f"close fight: HP 320 (one hit left before death) and boss not swinging → Estus ({drank})", drank == [1])
+check(f"close fight: HP 320 (one hit left before death), stamina short, boss not swinging → Estus ({drank})", drank == [1])
 
 # MoKa 11-09 "에스트를 마셔도 다리 사이에서 마셔야지": sip window open but 2 m off the spot → walk to it first, no sip yet
 drank = []
 b = boss(x=48.5, y=15.8, z=-119.0, anim=-1, hp=400)
-t, mv, pad = make([snap(b, me=(46.0, 15.8, -121.0), hp=320)] * 3 + [snap(None, me=(46.0, 15.8, -121.0))])
+t, mv, pad = make([snap(b, me=(46.0, 15.8, -121.0), hp=320, sp=30)] * 3 + [snap(None, me=(46.0, 15.8, -121.0))])
 t.tm = NS(goods_count=lambda i: 2)
 t.events = lambda *a, **k: None
 t.nm = None

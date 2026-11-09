@@ -581,46 +581,33 @@ class Taurus:
             p = s.player
             h = M.horiz(p, b)
             a = b.anim if b.anim is not None else -1
+            # ── 붙어 싸울 때 에스트는 기력이 바닥날 때만, 다리 사이에서 (P-142 · P-144, MoKa 11-09) ─────────────────
+            #  "에스트를 왜 마셔, 다리 사이에서 몇대 때리면 죽는데, 에스트 마시면서 시간 낭비" · "스테미나가 다 떨어져가서 할게 없으면
+            #  에스트 마셔도 되겠지만, 다른 케이스는 스테미나가 더 중요한 상황" · "에스트를 마셔도 다리 사이에서 마셔야지".
+            #  → HP가 마실 선 아래여도 기력이 HIT_SP2 이상이면 아래에서 약공×2 (마시지 않음). 기력이 모자라 어차피 가랑이 자리에서
+            #  기다리는 틱에만, 보스가 BOSS_ATTACK 밖이고 자리 SIP_SPOT_R 안이면 마심. P-142 1차의 '약공 안 함 + 4 m 물러남'은 없앰
+            #  (MoKa: "다리사이로 붙으라니깐 왜 멀리 떨어져"). 그 틈이 SIP_SPOT_WAIT 넘게 열렸는데 자리에 못 가면 그 자리에서 마심 (측정 전)
             low = p.hp < max(p.max_hp * ESTUS_HP, 2 * TAURUS_HIT) and self.mv.estus_left() > 0
-            # ── 에스트도 다리 사이에서 (MoKa 11-09 "에스트를 마셔도 다리 사이에서 마셔야지") ──────────────────
-            #  틈(BOSS_ATTACK 밖)이 와도 가랑이 자리에서 SIP_SPOT_R 밖이면 아래 '못 마시는 틱' 가지가 자리로 데려감 → 자리에서 마심.
-            #  틈이 SIP_SPOT_WAIT 넘게 열렸는데도 자리에 못 가면 그 자리에서 마심 (아예 못 마시고 죽는 것보다 나음, 측정 전 값)
             sx0, sz0 = crotch_spot(b, p)
             on_spot = math.hypot(sx0 - p.x, sz0 - p.z) <= SIP_SPOT_R
-            win_t = (win_t or time.time()) if low and a not in BOSS_ATTACK and not on_spot else None
+            window = low and (p.sp or 0) < HIT_SP2 and a not in BOSS_ATTACK
+            win_t = (win_t or time.time()) if window and not on_spot else None
             late = win_t is not None and time.time() - win_t > SIP_SPOT_WAIT
-            if low and a not in BOSS_ATTACK and (on_spot or late):
+            if window and (on_spot or late):
                 if late:
                     self.log(f"   타우로스: 다리 사이 못 가고 {SIP_SPOT_WAIT:g} s — 그 자리에서 마심 ({h:.1f} m)")
                 win_t = None
                 self.pad.neutral()
                 self.pad.guard(False)
                 r = self.mv.drink(lambda sn: (self.boss(sn) is None or (self.boss(sn).anim or -1) not in BOSS_ATTACK))
-                self.log(f"   타우로스 싸움 중 에스트: {r}")
+                self.log(f"   타우로스 싸움 중 에스트 (기력 {p.sp}, 다리 사이 {math.hypot(sx0 - p.x, sz0 - p.z):.1f} m): {r}")
                 self.events("estus", **r)
                 continue
-            if p.hp < max(p.max_hp * ESTUS_HP, 2 * TAURUS_HIT) and self.mv.estus_left() > 0:
-                # ── 못 마시는 틱엔 치지 않음, 그래도 다리 사이에 붙어 있음 (P-142, MoKa 11-09) ──────────────
-                #  013102: HP 136 · 에스트 1개 — 보스 3000번대 틱마다 약공×2 → 3006 −136 사망 → 마실 선 아래면 약공 안 함.
-                #  첫 판(ff9c32c)은 가드 든 채 4 m까지 물러났음 → MoKa 11-09: "다리사이로 붙으라니깐 왜 멀리 떨어져 … 길이 좁고, 보스 무기
-                #  거리에 들어가서, 가장 안전한 곳이 보스 다리 사이" (M1103-21). 그래서 물러나지 않고 가드 든 채 가랑이 자리(crotch_spot)를
-                #  따라가며 서서, 위 에스트 검사가 틈(BOSS_ATTACK 밖)을 잡을 때까지 기다림
-                if not low_said:
-                    low_said = True
-                    self.log(f"   타우로스: HP {p.hp} — 다리 사이에서 가드, 마실 틈 기다림, 약공 안 함 (보스 애니 {a}, {h:.1f} m, P-142)")
-                    self.events("taurus", what="wait_sip", hp=p.hp, anim=a, h=round(h, 2))
-                self.pad.guard(True)
-                sx, sz = crotch_spot(b, p)
-                off = math.hypot(sx - p.x, sz - p.z)
-                if off > SPOT_R and s.cam_yaw is not None:
-                    way = nav.safe_heading(self.nm, p, sx - p.x, sz - p.z, reach=min(1.2, max(0.3, off)))
-                    self.pad.move(*(self.mv.stick_to(s, p.x + way[0], p.z + way[1], 1.0 if off > 0.8 else 0.6)
-                                    if way is not None else (0.0, 0.0)))
-                else:
-                    self.pad.move(0.0, 0.0)
-                time.sleep(0.05)
-                continue
-            low_said = False
+            if low and not low_said:
+                low_said = True
+                self.log(f"   타우로스: HP {p.hp} — 마실 선 아래, 기력 {p.sp}: 기력 있으면 다리 사이에서 계속 치고, 모자랄 때 마심 (P-144)")
+                self.events("taurus", what="low_hp", hp=p.hp, sp=p.sp, anim=a, h=round(h, 2))
+            low_said = low_said and low
             sx, sz = crotch_spot(b, p)
             off = math.hypot(sx - p.x, sz - p.z)
             # [MoKa] 11-03 "2대 때리고 다시 가랑이에 붙어봐. 거리 조절도 되지만, 스테미나도 채워야해" — always two, then stay on the
