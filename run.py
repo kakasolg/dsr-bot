@@ -151,6 +151,8 @@ def main() -> None:
                     "merchant-buy: 지금 선 곳에서 · burg-bonfire --seg …5: 상인 도착 뒤 (souls/shop.py)")
     ap.add_argument("--drops", action="store_true", help="(예전 옵션) 이제 기본값 — 드롭 줍기는 LOOT_CMDS에서 늘 켜짐, 끄려면 --no-loot")
     ap.add_argument("--no-loot", action="store_true", help="적 드롭 자동 줍기 끔 (souls/loot.py) — 진단·비교용, 예전 동작 그대로")
+    ap.add_argument("--no-firebomb", action="store_true", help="화염병을 후보로 안 씀 (firebomb-candidate: 퀵 슬롯에 292가 있으면 유인 첫 투척 · "
+                    "둘 이상 다가올 때 · 턱 위 화염병 망자에 씀)")
     ap.add_argument("--throw", action="store_true", help="burg-upper: 투척 나이프로 유인 (달려가기 전), 화염병 — 둘 이상 다가올 때 · 턱 위 화염병 망자 "
                     "(souls/missions.py FB_*; 퀵 슬롯에 290 · 292, [MoKa] 2026-10-12)")
     ap.add_argument("--shop-shots", action="store_true", help="상점 단계마다 스크린샷 data/shop/<날짜>/ (pad_step.py처럼)")
@@ -429,6 +431,7 @@ def main() -> None:
         log(f"캐릭터 상태 읽기 실패: {ex!r}")
     runinfo.update(settings_path, game=runinfo.game(tm, mv, w))
     fld.run_id = log.path.stem                              # fight ids: <run>#f001 … (Field.fight)
+    fld.firebomb = not a.no_firebomb
     ms = missions.Missions(fld, nms, log=log, lure=not a.no_lure)
     ms.throw = a.throw
     # 적 드롭 줍기: 연결된 명령에선 기본으로 켬 ([MoKa] 11-01 "일반 진행 중 자동으로 수행하는 공통 루틴"). 기준은 지금(처치 전)

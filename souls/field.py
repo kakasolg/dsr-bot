@@ -303,6 +303,13 @@ ARM_SETTLE_TOL = 0.08
 ARM_SETTLE_SCALE = nav.FACE_STICK   # 0.45 — 11-08 202047: 0.25 is inside the stick deadzone (nav.FACE_STICK "below 0.4 doesn't even turn"), moved 0.00 m 3 times
 LURE_MIN, LURE_MAX = 6.0, 13.0   # throw conditions on flat ground — closer than this and just walking wakes it; farther and lock-on fails
 KNIFE_LOW = 5            # warn below this — going to buy from the merchant is a later task (user 2026-09-24)
+# ── 화염병도 후보 (ROADMAP firebomb-candidate, [MoKa] 10-12 · 10-13 M1013-03 "앞으로 화염병 위주로 플레이 해봐") ─────────────
+#  유인 첫 투척: 잠든 목표가 같은 높이 FB_OPEN_DY 안 · FB_OPEN_MIN–FB_OPEN_MAX m면 나이프 대신 화염병 (락온 필수 — 없으면 그 자리에서 나이프).
+#  근거 (docs/throwables.md): MoKa 시범 락온 + 높이차 ≤ 1.5 m + 5.8–10.1 m 9/9 한 방, 락온 없음 0/8, 아래 1.7–3.1 m 피해 6.
+#  봇 락온은 9 m 넘으면 거의 안 걸림 (firebomb-measure: ~5 m 75 한 방 2/2 · 7 m 18 · ≥ 9 m 락온 없음) — 그 거리에선 락온 실패 → 나이프.
+#  개수 제한 없음: 남아 있으면 씀, 없거나 퀵 슬롯에 없으면 지금과 같음. Field.firebomb = False (run.py --no-firebomb)로 끔.
+FB_OPEN_MIN, FB_OPEN_MAX = 5.0, 10.1
+FB_OPEN_DY = 1.5
 HOLD_TRIES = 3           # hold-the-spot targets (lure_at.hold): lure attempts; wait HOLD_WAIT in place between them
 HOLD_WAIT = 8.0
 MISSING_S = 5.0          # if a bound target stays missing from snapshots this long → 'unknown' (not treated as death)
@@ -360,6 +367,7 @@ class Field:
         self.mv, self.w, self.esc, self.log = mv, weapon, escape, log
         self._detour = False                               # keeps walk's "detour" from recursing
         self.smash_ok = True                               # False = a caller (souls/altar_andre) forbids _smash: a blocking prop ends the walk
+        self.firebomb = True                               # firebomb-candidate: firebombs are a choice while any are held in a quick slot
         self.denial = None                                 # set once by a forbidden action; walk() then returns "denied" — never cleared here
         self._crowd_hits: list[float] = []                 # times of recent 'crowd' fall-backs (CROWD_MAX per CROWD_WINDOW_S)
         self._wall_off_until = 0.0
@@ -1223,7 +1231,16 @@ class Field:
                 if not self._asleep(ptr):
                     return "lured"
             arm = self._arm_room(ptr, nm, tag)
-            r = self.mv.throw_knife(ptr, require_lock=True)
+            r = None
+            if n == 1 and not want and self.fb_opener(s.player, cn):
+                r = self.mv.throw_firebomb(ptr)            # 유인을 화염병으로 염 (firebomb-candidate) — 락온 실패면 아래에서 나이프
+                self.log(f"   {tag}: 화염병으로 유인 ({cn.dist:.1f} m, 높이 {cn.y - s.player.y:+.1f}) → 락온 {r.get('locked')}, "
+                         f"피해 {r.get('hit')}{' | ' + r['why'] if r.get('why') else ''}")
+                self.events("throw", item="firebomb", why="lure_open", **{k: r.get(k) for k in ("dist", "locked", "hit", "woke", "knives")})
+                if not r.get("ok"):
+                    r = None
+            if r is None:
+                r = self.mv.throw_knife(ptr, require_lock=True)
             if arm is not None:
                 r["arm"] = arm
             if want and r.get("why") and not (self.mv.tm.goods_count(M.ITEM_KNIFE) or 0) and self._emergency():
@@ -1286,6 +1303,17 @@ class Field:
         if c2 is None or c2.hp <= 0:
             return "dead"
         return None if self._asleep(ptr) else "lured"
+
+    def has_firebomb(self) -> bool:
+        """Firebombs on: held and in a quick slot (the bot can only pick quick-slot items)."""
+        if not getattr(self, "firebomb", True):
+            return False
+        quick = getattr(self.mv.tm, "quick_items", None)
+        return (self.mv.tm.goods_count(M.ITEM_FIREBOMB) or 0) > 0 and (not callable(quick) or M.ITEM_FIREBOMB in (quick() or []))
+
+    def fb_opener(self, p, c) -> bool:
+        """Open a lure on sleeping foe c with a firebomb rather than a knife? (FB_OPEN_*: same level, MoKa's one-shot range)"""
+        return (self.has_firebomb() and abs(c.y - p.y) <= FB_OPEN_DY and FB_OPEN_MIN <= M.horiz(p, c) <= FB_OPEN_MAX)
 
     def _emergency(self) -> bool:
         """About to die — HP under 35 % and no estus (condition for firebombs, user: 'bombs are better than dying')."""

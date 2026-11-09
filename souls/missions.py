@@ -77,7 +77,9 @@ UPPER_IGNORE_R = 4.0     # a foe this close to an ignored ledge spot is one of t
 #  구역 시작 때 턱 위 화염병 망자(UPPER_IGNORE 자리)가 FB_LEDGE_R 안 → 그놈에게. 각각 FB_MAX_THROWS개까지
 FB_MIN_R, FB_MAX_R = 4.0, 10.0
 FB_LEDGE_R = 12.0
-FB_MAX_THROWS = 2
+FB_MAX_THROWS = 8         # firebomb-candidate (11-09): no stock limit — this only stops one call looping on a foe the bombs don't drop
+#  firebomb-candidate (11-09, [cloud]): 둘 이상 다가올 때 · 턱 위 화염병 망자 — 예전엔 --throw일 때만, 각 2개까지. 이제 화염병이
+#  퀵 슬롯에 있으면 늘 후보 (Field.has_firebomb; run.py --no-firebomb로 끔), 남은 만큼 씀. 없으면 지금과 같음.
 UPPER_MOVED_M = 0.5      # a target counts as awake once it has an anim and is this far off where it stood
 UPPER_WALK_M = 1.0       # running in: any foe on our level this far off where we first saw it is walking (anim reads −1 while walking, P-127)
 UPPER_CLOSE_R = 3.0      # running in: stop this close even if it hasn't woken…
@@ -763,6 +765,11 @@ class Missions:
         quick = getattr(self.mv.tm, "quick_items", None)
         return (self.mv.tm.goods_count(item) or 0) > 0 and (not callable(quick) or item in (quick() or []))
 
+    def _fb_on(self) -> bool:
+        """Firebombs are a candidate: held in a quick slot and not switched off (Field.firebomb, run.py --no-firebomb)."""
+        has = getattr(self.f, "has_firebomb", None)
+        return has() if callable(has) else (getattr(self, "throw", False) and self._has(M.ITEM_FIREBOMB))
+
     def _firebomb(self, ptr, tag: str, why: str) -> dict:
         r = self.mv.throw_firebomb(ptr)
         self.log(f"   {tag}: 화염병 ({why}) — {r.get('dist')} m, 락온 {r.get('locked')} → 피해 {r.get('hit')}"
@@ -772,10 +779,10 @@ class Missions:
 
     def _firebomb_group(self, tag: str) -> None:
         """At the safe spot: two or more awake foes coming and the nearest FB_MIN_R–FB_MAX_R away → firebomb the nearest."""
-        if not getattr(self, "throw", False):
+        if not self._fb_on():
             return
         for _ in range(FB_MAX_THROWS):
-            if not self._has(M.ITEM_FIREBOMB):
+            if not self._fb_on():
                 return
             s = self.mv.snap(FB_MAX_R + 4.0)
             if s is None:
@@ -792,10 +799,10 @@ class Missions:
 
     def _firebomb_ledge(self, tag: str) -> None:
         """Zone start: a ledge firebomb hollow (UPPER_IGNORE spots — out of reach) within FB_LEDGE_R → firebombs at it."""
-        if not getattr(self, "throw", False):
+        if not self._fb_on():
             return
         for _ in range(FB_MAX_THROWS):
-            if not self._has(M.ITEM_FIREBOMB):
+            if not self._fb_on():
                 return
             s = self.mv.snap(FB_LEDGE_R + 6.0)
             if s is None:

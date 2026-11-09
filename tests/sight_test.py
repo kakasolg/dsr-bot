@@ -28,6 +28,7 @@ if hasattr(sys.stdout, "reconfigure"):
 import motion
 from field_fakes import World, make_field
 from souls import field as F
+from souls import moves as M
 from souls import missions as MS
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -121,7 +122,7 @@ def lure_rig(nm, start=(0.0, 0.0, 0.0), lure_at=None, arena=None):
     del f.lure                                             # the real lure/_lure
     f._asleep = lambda ptr, hold=0.4: True
     f._settle = lambda spot, tol=None, tries=10: 0.0
-    f.mv.tm.goods_count = lambda item: 20
+    f.mv.tm.goods_count = lambda item: 20 if item == M.ITEM_KNIFE else 0   # knives only — firebombs: firebomb_candidate_test
     throws = []
 
     def throw(ptr, **kw):
