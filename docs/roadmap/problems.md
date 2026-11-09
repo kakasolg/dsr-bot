@@ -2219,3 +2219,10 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
   `방패에 맞음 (140) — 반격 안 함: 닿는 거리에 휘두르는 놈 없음`: 방패에 맞은 틱에 그놈은 이미 3500 (튕겨 휘청)이라 3000번대만 세던 조건에 안 걸림.
   두 번 다 1–1.5 s 뒤 휘청반격 (rule_stagger_punish)으로 light. → 그날 좋아 보인 것은 이 규칙 덕이 아님.
 - 고침 2 (11-08): 3500번대 (M.STAGGER)도 맞힌 놈으로 셈. guard_counter_test 2b. 다음 실행부터 (205219는 6cbf9ee 그대로).
+- 고침 3 (11-08, [MoKa] "방패, 약공은 모든 공격에세 기본으로 하게 수정해."): 판단을 Reflex.guard_counter로 옮김 — reflex.tick이 도는 곳
+  (싸움, 걸을 때 reflex.hold, 제자리 방어) 모두 같은 것, duel.rule_guard_counter는 그걸 불러 기록·로그만. 옆 놈이 같이 휘둘러도 침
+  (첫 판의 '옆 놈도 휘두름' 건너뜀 뺌). 남은 안 침: 닿는 거리에 휘두르는·튕긴 놈 없음 (화살), 기력 sp_min 미만.
+  빈 곳: 걷는 중 guardkeep 스레드만 방패를 들고 reflex.tick이 안 도는 틈 (패드 스레드 경합 — 안 건드림).
+  golden 가짜 Reflex에 진짜 guard_counter, scene_world가 mv를 넘김. golden 40320 그대로, expect 71 통과. 오프라인만.
+- 205219 (6cbf9ee, 고침 2·3 전): 방패 반격 2번 침, 16번 건너뜀 (모두 '닿는 거리에 휘두르는 놈 없음' = 3500 문제), 휘청·휘두름 끝 반격 17번.
+  [MoKa] "방패, 약공 시퀀스가 좋아져서 나머지 문제가 자연스럽게 해결되네" — 이 실행의 반격 대부분은 휘청·휘두름 끝 규칙이 냄.

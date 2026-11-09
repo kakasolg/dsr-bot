@@ -114,8 +114,10 @@ def decide(sc: dict) -> dict:
     for k, v in (sc.get("flags") or {}).items():
         setattr(D, k, v)
     try:
+        rf = Reflex(sc.get("reflex", "auto"), sc.get("age", 0.3), trace)
+        rf.mv = mv                                                 # guard_counter (P-136) presses its light through the fake Moves
         r = D.duel(mv, WEAPONS[sc.get("weapon", "battle_axe")], 2, None, log=lines.append, cancel=cancel,
-                   reflex=Reflex(sc.get("reflex", "auto"), sc.get("age", 0.3), trace), style=sc.get("style", "guard"),
+                   reflex=rf, style=sc.get("style", "guard"),
                    wait_far=sc.get("wait_far", False), advisor=grab)
         result = r.result
     except Exception as e:                                         # a crash is an answer too — it fails the scene

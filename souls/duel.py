@@ -76,8 +76,6 @@ LAND_PAD = 0.2           # a windup (foes.Foe.windup_land_s) counts as landed th
 AFTER_SWING_S = 0.6      # rule_after_swing: right after its swing ends, this long to strike ([MoKa] '끝나면 무조건 공격')
 AFTER_SWING_DEG = 45.0   # …strike at once if aimed within this (turn first only beyond it)
 AFTER_SWING_STEP = 1.2   # …and step in if it's at most this much beyond our reach
-GUARD_HIT_ANIM = 140     # my anim % 10000 when something hits my raised shield (Battle Axe 140 · Claymore 20140)
-GUARD_COUNTER_STEP = 0.3 # rule_guard_counter: the hitter within reach + this (farther = an arrow or bolt on the shield)
 PULL_R = 8.0             # lure: start backing off if it is within this (even if not moving)
 SEEK_R = 100.0           # search for it within this radius — at 40 m it missed #1 at 42 m from the bonfire and everything was 'lost'
 CIRCLE_MAX_SWEEPS = 2    # tries per foe before normal attacks (99 during the 2026-09-28 "backstab no matter what" runs)
@@ -1638,44 +1636,22 @@ def rule_after_swing(F, T):
 
 
 def rule_guard_counter(F, T):
-    """
-    ── 방패에 맞으면 바로 약공 ([MoKa] 2026-11-08) ──────────────────────────────
-     "방패에 뭔가 부딪히면, 자동으로 약공이 나가야 하는데 3번 부딪히고 공격 한거 보면 이것도 시퀀스가 아니네" ·
-     "방패, 약공이 우선이야. 이건 기본이고"
-     · 전엔 휘두름이 끝나야 (rule_after_swing) 쳤다 — 이어서 휘두르는 놈은 그동안 반사가 막기만 해서 막기 여러 번 뒤에 반격
-     · 내 애니가 막기 피격 (…140)이 된 틱에 R1 하나 — 경직 중에 누르면 경직이 풀리는 대로 약공이 나감
-       (202047 hits #3 · #5: 20140 → 253000 0.3 s). 한 번 막을 때마다 한 번 (애니가 140을 벗어나면 다시 셈)
-     · 안 침: 무기 닿는 거리 + GUARD_COUNTER_STEP 안에 휘두르는 놈이 없음 (화살·볼트도 방패에 140 — foes.py),
-       (튕겨 휘청하는 3500번대는 침), 높이 차 1 m 넘음, 기력 sp_min 미만, 다른 놈이 OTHER_SWING_R 안에서 휘두르는 중 (rule_after_swing과 같은 조건)
-    """
-    p = T.p
-    a = p.anim if p.anim is not None else -1
-    if not (0 <= a < 100000 and a % 10000 == GUARD_HIT_ANIM):
-        F._gc_done = False
+    """방패에 맞으면 바로 약공 (P-136) — 판단은 Reflex.guard_counter (걷기·제자리 방어 등 reflex.tick이 도는 곳 모두 같은 것).
+    여기선 판단 루프 맨 앞 (prep_reflex 바로 다음)에서 불러 기록·로그만 붙인다. 같은 막기에 두 번 치지 않음 (reflex._gc_done)."""
+    rf = F.reflex
+    if rf is None:
         return None
-    if F.__dict__.get("_gc_done"):
+    hit = rf.guard_counter(T.s, prefer=F.ptr)
+    a, c, _, why = rf.gc_last or (None, None, None, None)
+    if hit is None:
+        if why is not None and rf.gc_last is not F.__dict__.get("_gc_logged"):
+            F._gc_logged = rf.gc_last
+            F.log(f"      방패에 맞음 ({a}) — 반격 안 함: {why}")
         return None
-    F._gc_done = True                                       # this block is decided — counter or not, once
-    w, s = F.weapon, T.s
-    # 휘두르는 중 (3000번대) 또는 내 방패에 튕긴 휘청 (3500번대) — 205219 구역 1: 방패에 맞은 틱에 그놈은 이미 3500이라 2번 다 안 침
-    near = [x for x in s.hostile(w.reach + GUARD_COUNTER_STEP + 2.0) if x.hp > 0
-            and ((x.anim or -1) in M.ATTACK or (x.anim or -1) in M.STAGGER)
-            and M.horiz(p, x) <= w.reach + GUARD_COUNTER_STEP and abs(x.y - p.y) <= 1.0]
-    c = next((x for x in near if x.ptr == F.ptr), None) or min(near, key=lambda x: M.horiz(p, x), default=None)
-    why = None
-    if c is None:
-        why = "닿는 거리에 휘두르는 놈 없음"
-    elif (p.sp or 0) < w.sp_min:
-        why = f"기력 {p.sp}"
-    elif _other_swinging(s, c.ptr):
-        why = "옆 놈도 휘두름"
-    if why is not None:
-        F.log(f"      방패에 맞음 ({a}) — 반격 안 함: {why}")
-        return None
-    hit = F.mv.light(s, c, n=1)
+    F._gc_logged = rf.gc_last
     F.record(hit)
-    F.note("방패반격", s, c)
-    F.log(f"      방패에 맞음 ({a}) → light×{hit.presses} {c.npc_param} {M.horiz(p, c):.1f} m 피해 {hit.dmg}, 내 피해 {hit.taken} "
+    F.note("방패반격", T.s, c)
+    F.log(f"      방패에 맞음 ({a}) → light×{hit.presses} {c.npc_param} {M.horiz(T.p, c):.1f} m 피해 {hit.dmg}, 내 피해 {hit.taken} "
           f"내 애니 {hit.my_anims[:4]}")
     return F.killed_if(hit.dead) if c.ptr == F.ptr else CONT
 

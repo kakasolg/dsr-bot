@@ -26,6 +26,7 @@ if hasattr(sys.stdout, "reconfigure"):
 from field_fakes import World
 from souls import duel as D
 from souls import moves as M
+from souls import reflex as R
 from souls import weapons
 
 GOLDEN = Path(__file__).with_name("duel_golden.json.gz")
@@ -93,6 +94,10 @@ class Mv:
 
 
 class Reflex:
+    # the real guard-hit counter (P-136) — runs only when our anim is …140; scene_world sets mv for its my_anim_seq scenes
+    mv, events, guard_counter_on, _gc_done, gc_last = None, None, True, False, None
+    guard_counter = R.Reflex.guard_counter
+
     def __init__(self, fires, trace):
         self.fires, self.t, self.prefer, self.last_hit = fires, trace, None, None
 

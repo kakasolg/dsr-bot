@@ -35,6 +35,8 @@ MIXED_R = 4.0            # even in backstep style, use the shield if another ene
 GUARD_SP = 25            # blocking below this breaks the guard (blocked at SP 12~22, guard broke, pushed off, fatal fall, 2026-09-24) — back off instead
 THREAT_S = 1.3           # a threat only for this long after an attack anim starts
 HIT_R = 3.0
+GUARD_HIT_ANIM = 140     # my anim % 10000 when something hits my raised shield (Battle Axe 140 · Claymore 20140)
+GUARD_COUNTER_STEP = 0.3 # guard_counter: the hitter within weapon reach + this (farther = an arrow or bolt on the shield)
 
 
 class Reflex:
@@ -51,6 +53,9 @@ class Reflex:
         self.events = None       # if layer 4 sets it, an 'evade' event per dodge (kind, distance, hit within the next 1.3 s) — counted by style_report.py
         self._pending: dict | None = None
         self.last_hit = None     # last backstep-attack result (duel takes it for logging)
+        self.guard_counter_on = True   # 방패에 맞으면 약공 (P-136) — every caller of tick() and duel's rule_guard_counter
+        self._gc_done = False          # this block (my anim …140) already decided
+        self.gc_last = None            # (my anim, foe or None, Hit or None, why or None) — the last decision, for the caller's log
         self._dodged: dict = {}        # ptr → start time of the dodged attack (dodge once per attack)
         self.prefer = None             # current opponent (duel sets it every tick) — preferred when there are several threats
         self._lock = (None, 0.0)       # (ptr, until) — keep the enemy we started guarding against in front for the whole attack
@@ -100,11 +105,51 @@ class Reflex:
         near = [c for c in s.hostile(r + 2.0) if c.hp > 0 and not (9000 <= (c.anim or 0) < 9100) and M.horiz(s.player, c) < r]
         return min(near, key=lambda c: M.horiz(s.player, c), default=None)
 
+    def guard_counter(self, s, prefer=None):
+        """
+        ── 방패에 맞으면 바로 약공 — 모든 싸움의 기본 (P-136, [MoKa] 2026-11-08) ──────────────────────────────
+         "방패에 뭔가 부딪히면, 자동으로 약공이 나가야 하는데 3번 부딪히고 공격 한거 보면 이것도 시퀀스가 아니네" ·
+         "방패, 약공이 우선이야. 이건 기본이고" · "방패, 약공은 모든 공격에세 기본으로 하게 수정해."
+         · 내 애니가 막기 피격 (…140)이 된 틱에 R1 하나 — 경직 중에 누르면 경직이 풀리는 대로 약공이 나감
+           (202047 hits #3 · #5: 20140 → 253000 0.3 s). 한 번 막을 때마다 한 번 (애니가 140을 벗어나면 다시 셈)
+         · 맞힌 놈 = 무기 닿는 거리 + GUARD_COUNTER_STEP 안, 높이 차 1 m 안에서 휘두르는 중 (3000번대) 또는 내 방패에 튕긴
+           휘청 (3500번대 — 205219 구역 1: 그 틱에 이미 3500이라 3000번대만 세던 첫 판은 3번 다 안 침). prefer (싸우는 놈) 먼저
+         · 안 침 (몸이 못 하는 것만): 그런 놈 없음 (멀리서 쏜 화살·볼트도 방패에 140 — foes.py), 기력 sp_min 미만.
+           옆 놈이 같이 휘둘러도 침 (첫 판은 rule_after_swing처럼 안 쳤음 — [MoKa] "모든 공격에서 기본")
+         → Hit (쳤음) | None. self.gc_last에 (내 애니, 그놈, Hit, 안 친 이유)
+        """
+        p = s.player
+        a = p.anim if p.anim is not None else -1
+        if not (0 <= a < 100000 and a % 10000 == GUARD_HIT_ANIM):
+            self._gc_done = False
+            return None
+        if self._gc_done or not self.guard_counter_on:
+            return None
+        self._gc_done = True                                   # this block is decided — counter or not, once
+        w = getattr(self.mv, "weapon", None)
+        reach = (getattr(w, "reach", None) or 1.6) + GUARD_COUNTER_STEP
+        sp_min = getattr(w, "sp_min", None) or 30
+        near = [x for x in s.hostile(reach + 2.0) if x.hp > 0 and ((x.anim or -1) in M.ATTACK or (x.anim or -1) in M.STAGGER)
+                and M.horiz(p, x) <= reach and abs(x.y - p.y) <= 1.0]
+        c = next((x for x in near if x.ptr == prefer), None) or min(near, key=lambda x: M.horiz(p, x), default=None)
+        why = "닿는 거리에 휘두르는 놈 없음" if c is None else f"기력 {p.sp}" if (p.sp or 0) < sp_min else None
+        if why is not None:
+            self.gc_last = (a, c, None, why)
+            return None
+        h = self.mv.light(s, c, n=1)
+        self.gc_last = (a, c, h, None)
+        if self.events:
+            self.events("guard_counter", anim=a, npc=c.npc_param, dist=round(M.horiz(p, c), 2), dmg=h.dmg, taken=h.taken)
+        return h
+
     def tick(self, s) -> bool:
         """→ whether the reflex moved this tick (shield, turning)."""
         self.update(s)
         if not self.reflex_on:
             return self._act(None)  # rush: record only (attack_age etc.), no block or dodge — the attack loop isn't interrupted
+        if not self.evade and self.guard_counter(s, prefer=self.prefer) is not None:
+            self.acted += 1
+            return self._act("guard_counter", self.gc_last[1], s, self._start.get(self.gc_last[1].ptr))
         th = self.threats(s)
         now = time.time()
         lock_ptr, lock_until = self._lock
