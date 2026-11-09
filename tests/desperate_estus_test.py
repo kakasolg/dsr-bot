@@ -31,10 +31,13 @@ def test_desperate_only_throwers() -> None:
     assert d(snap(116, [(CROSSBOW, 6.8, 3000), (CROSSBOW, 8.1, 3001)]))
     assert not d(snap(400, [(CROSSBOW, 6.8, 3000)]))                    # not low: the old rule stands
     assert not d(snap(116, [(CROSSBOW, 3.0, 3000)]))                    # a crossbow inside DESPERATE_R still blocks
-    assert not d(snap(116, [(CROSSBOW, 8.0, 3000), (SPEAR, 5.0, -1)]))  # an awake melee foe within SAFE_R blocks
+    assert d(snap(116, [(CROSSBOW, 8.0, 3000), (SPEAR, 5.0, -1)]))      # P-139: a melee foe not swinging at ≥ 3.5 m no longer blocks
+    assert d(snap(79, [(SPEAR, 3.8, -1)]))                              # 221120 구역 4: HP 79, 망자 3.8 m → 이제 마심
+    assert not d(snap(79, [(SPEAR, 3.0, -1)]))                          # melee inside LAST_SIP_R blocks
+    assert not d(snap(79, [(SPEAR, 4.5, 3000)]))                        # melee swinging within SAFE_R blocks
     assert d(snap(116, [(CROSSBOW, 8.0, 3000), (SPEAR, 7.0, -1)]))      # melee beyond SAFE_R: drinks
     assert d(snap(116, [(SPEAR, 2.0, 9000)]))                           # asleep (9000s) doesn't count
-    print("ok  desperate: HP < 30 %, only throwers awake and none within 4 m → drink; melee < 6 m or anything < 4 m → no")
+    print("ok  desperate: HP < 30 %, only throwers awake and none within 4 m → drink; melee < 3.5 m (or swinging < 6 m) or a thrower < 4 m → no")
 
 
 def test_heal_uses_desperate() -> None:

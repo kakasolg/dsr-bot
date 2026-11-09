@@ -27,6 +27,7 @@ import telemetry
 from souls import duel as D
 from souls import foes as foes_
 from souls import moves as M
+from souls import reflex as reflex_
 from souls import style as style_
 from souls import weapons
 
@@ -87,7 +88,12 @@ class Reflex:
     """update() / attack_age() as Reflex does: a new attack anim (3000 → 3002 counts) restarts the age inside the tick
     (prep_reflex). 2026-10-10 ramp run: a fixed age 3.9 s turned a backstab_swing scene into hit_first.
     Schema 0.1 scenes (before `anim` was recorded): the target's last anim is the Fight's _aprev (the previous tick's).
-    No `anim` in a 0.2 scene = a test's fake reflex: the recorded age as it was."""
+    No `anim` in a 0.2 scene = a test's fake reflex: the recorded age as it was.
+    guard_counter (P-136) and the wall-bounce spots (P-139) are the real methods; scenes don't keep bounce spots, so none."""
+    mv, events, guard_counter_on, _gc_done, gc_last = None, None, True, False, None
+    guard_counter = reflex_.Reflex.guard_counter
+    note_bounce, at_bounce = reflex_.Reflex.note_bounce, reflex_.Reflex.at_bounce
+
     def __init__(self, rec: dict, fired: bool, now: float, target=None, aprev=None, schema=None):
         r = rec or {}
         self.age, self.fired, self.prefer, self.last_hit = r.get("age"), fired, r.get("prefer"), None
@@ -103,6 +109,8 @@ class Reflex:
         st = self._start.get(target)
         self._lag = self.age - (now - st) if self.age is not None and st is not None else 0.0
         self._restarted = set()
+        self._gc_done = bool(r.get("gc_done", False))
+        self.bounces = [[x, z, now - age, n] for x, z, age, n in r.get("bounces", [])]
 
     def update(self, s):
         if self._anim is None:
@@ -186,6 +194,8 @@ def replay(rec: dict) -> str | None:
     F.reflex = (Reflex(rec.get("reflex"), rec.get("rule") == "reflex", now, rec["tick"]["ptr"], rec["fight"].get("_aprev"),
                        rec.get("schema"))
                 if rec.get("reflex") is not None else None)
+    if F.reflex is not None:
+        F.reflex.mv = mv
     F.care = Care(rec["care"]["wants"]) if rec.get("care") is not None else None
     F.may_approach, F.acts, F.note_t = None, {}, now
     r = rec.get("res") or {}

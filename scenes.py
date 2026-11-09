@@ -91,6 +91,9 @@ def capture(F, T) -> dict:
             "reflex": None if rf is None else {"age": rf.attack_age(F.ptr),
                                                "start": _plain(dict(getattr(rf, "_start", {}) or {}), now),
                                                "prefer": getattr(rf, "prefer", None),
+                                               "gc_done": getattr(rf, "_gc_done", False),       # P-136: this block decided
+                                               "bounces": [[b[0], b[1], round(now - b[2], 3), b[3]]   # P-139: [x, z, age s, tries]
+                                                           for b in getattr(rf, "bounces", [])],
                                                **({"anim": _plain(dict(rf._anim), now)} if hasattr(rf, "_anim") else {})},
             "care": None if care is None else {"wants": wants},
             "nm": getattr(F.nm, "map_id", None) if F.nm is not None else None,

@@ -198,7 +198,8 @@ SMASH_SWING_S = 0.7      # s per light attack
 REPAIR_FRAC = 0.4        # repair powder when weapon durability is below this fraction of max (field.repair)
 RANGED_R = 25.0          #          and no awake, moving 'thrower' (foes.ranged) within this
 DESPERATE_HP = 0.3       # estus: below this share of max HP, throwers alone (none within DESPERATE_R) no longer block a sip
-DESPERATE_R = 4.0        #          …but any foe this close still does
+DESPERATE_R = 4.0        #          …but a thrower this close still does
+LAST_SIP_R = 3.5         #          …and a melee foe this close, or one swinging within SAFE_R (P-139)
 BONFIRE_NO_A = 6.0
 # 에스트는 아끼지 말고 자주 ([MoKa] 2026-09-28: "열심히 에스트 마시면서 플레이하는 것이 최선" — 규칙을 더할수록 문제가 생김).
 # Bandit Bot e 실행: 최저 HP 10 %까지 떨어지고도 에스트 5개가 남음 → 0.5 / 0.6 에서 올림
@@ -446,17 +447,21 @@ class Field:
 
     def desperate(self, s) -> bool:
         """Low HP and only throwers keep safe() false — drink anyway (one bolt is less than one sip).
-        No foe of any kind within DESPERATE_R, and no awake non-thrower within SAFE_R."""
+        No thrower within DESPERATE_R, no awake melee foe within LAST_SIP_R, none swinging within SAFE_R."""
         # ── 원거리 때문에 영영 못 마시는 경우 (MoKa 11-01 "가)+나) 고치기") ──────────────
         #  214607 구역 8 탑 위: 석궁병 둘이 6–8 m에서 쏘는 동안 safe()가 계속 False → HP 116에서 3번 안 마시고 사망.
         if s.player.hp >= s.player.max_hp * DESPERATE_HP:
             return False
+        # ── 30 % 아래면 근접 적이 있어도 마심 (P-139, [MoKa] 11-08 "30% 이하이면 에스트 마시고 뭔가 해야 하는데 않했음") ──────
+        #  221120 구역 4: 굴러서 물러난 뒤 HP 79, 가장 가까운 망자 3.8 m → SAFE_R 6 m에 걸려 "안 마심"만 4번, 그대로 사망.
+        #  이제 근접 적은 LAST_SIP_R 안이거나 지금 휘두르는 중 (SAFE_R 안)일 때만 막음. 3.8 m에서 한 모금이 닿기 전에 끝나는지는 게임에서 안 잼
         for c in s.hostile(RANGED_R):
             if not awake(c):
                 continue
-            if c.dist < DESPERATE_R:
+            ranged = foes_.of(c.npc_param).ranged
+            if c.dist < (DESPERATE_R if ranged else LAST_SIP_R):
                 return False
-            if not foes_.of(c.npc_param).ranged and c.dist < SAFE_R:
+            if not ranged and (c.anim or -1) in M.ATTACK and c.dist < SAFE_R:
                 return False
         return True
 

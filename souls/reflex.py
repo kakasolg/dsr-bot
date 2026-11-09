@@ -37,6 +37,24 @@ THREAT_S = 1.3           # a threat only for this long after an attack anim star
 HIT_R = 3.0
 GUARD_HIT_ANIM = 140     # my anim % 10000 when something hits my raised shield (Battle Axe 140 · Claymore 20140)
 GUARD_COUNTER_STEP = 0.3 # guard_counter: the hitter within weapon reach + this (farther = an arrow or bolt on the shield)
+WALL_BOUNCE_ANIM = 150   # my attack anim % 1000 after the swing struck a wall (Battle Axe 303000 → 303150) — wall_bounced()
+BOUNCE_SPOT_R = 0.6      # a swing from within this of a bounce spot would bounce again — duel.rule_wall_bounce moves first
+BOUNCE_KEEP_S = 120.0    # a bounce spot is remembered this long (one zone's fights)
+
+
+def wall_bounced(hit) -> bool:
+    """
+    ── 무기가 벽에 튕김 (P-139, [MoKa] 2026-11-08 "무기가 벽에 부딪혀서 공격 실패함" · "감지가 되면 다른데로 가야지") ─────────
+     · 내 공격 애니 뒤에 …150 (배틀 액스 303000 → 303150)이 나오면 벽에 걸린 휘두르기로 봄
+     · 근거 (기록 대조만, 게임에서 따로 재 본 것 아님): 221120 구역 4 피해 0·안 맞음 휘두르기 2번 모두 303150 — MoKa가 같은 장면을
+       "무기가 벽에" 라고 봄. 11-03~08 런 전체 303150 36번 중 피해 0이 20번. 피해가 난 16번은 먼저 맞히고 벽에 걸린 것으로 추정 (가설)
+     · 클레이모어 등 다른 무기의 튕김 애니는 아직 못 봄 — 같은 규칙(…150)이 맞는지 모름
+    """
+    for x in getattr(hit, "my_anims", None) or ():
+        a = x[1] if isinstance(x, (tuple, list)) else x
+        if a is not None and a >= 100000 and a % 1000 == WALL_BOUNCE_ANIM:
+            return True
+    return False
 
 
 class Reflex:
@@ -55,6 +73,7 @@ class Reflex:
         self.last_hit = None     # last backstep-attack result (duel takes it for logging)
         self.guard_counter_on = True   # 방패에 맞으면 약공 (P-136) — every caller of tick() and duel's rule_guard_counter
         self._gc_done = False          # this block (my anim …140) already decided
+        self.bounces: list = []         # [x, z, t, tries] where my swing struck a wall (P-139) — note_bounce / at_bounce
         self.gc_last = None            # (my anim, foe or None, Hit or None, why or None) — the last decision, for the caller's log
         self._dodged: dict = {}        # ptr → start time of the dodged attack (dodge once per attack)
         self.prefer = None             # current opponent (duel sets it every tick) — preferred when there are several threats
@@ -105,6 +124,27 @@ class Reflex:
         near = [c for c in s.hostile(r + 2.0) if c.hp > 0 and not (9000 <= (c.anim or 0) < 9100) and M.horiz(s.player, c) < r]
         return min(near, key=lambda c: M.horiz(s.player, c), default=None)
 
+    def note_bounce(self, p, hit) -> bool:
+        """Remember p as a wall-bounce spot if hit's swing struck a wall (wall_bounced). → bounced?"""
+        if p is None or p.x is None or not wall_bounced(hit):
+            return False
+        old = self.at_bounce(p)
+        if old is not None:
+            old[2] = time.time()
+        else:
+            self.bounces.append([p.x, p.z, time.time(), 0])
+        if self.events:
+            self.events("wall_bounce", pos=[round(p.x, 2), round(p.z, 2)], dmg=getattr(hit, "dmg", 0))
+        return True
+
+    def at_bounce(self, p):
+        """The remembered bounce spot within BOUNCE_SPOT_R of p (newest first), or None."""
+        now = time.time()
+        self.bounces = [b for b in self.bounces if now - b[2] < BOUNCE_KEEP_S]
+        if p is None or p.x is None:
+            return None
+        return next((b for b in reversed(self.bounces) if math.hypot(p.x - b[0], p.z - b[1]) < BOUNCE_SPOT_R), None)
+
     def guard_counter(self, s, prefer=None):
         """
         ── 방패에 맞으면 바로 약공 — 모든 싸움의 기본 (P-136, [MoKa] 2026-11-08) ──────────────────────────────
@@ -132,11 +172,13 @@ class Reflex:
         near = [x for x in s.hostile(reach + 2.0) if x.hp > 0 and ((x.anim or -1) in M.ATTACK or (x.anim or -1) in M.STAGGER)
                 and M.horiz(p, x) <= reach and abs(x.y - p.y) <= 1.0]
         c = next((x for x in near if x.ptr == prefer), None) or min(near, key=lambda x: M.horiz(p, x), default=None)
-        why = "닿는 거리에 휘두르는 놈 없음" if c is None else f"기력 {p.sp}" if (p.sp or 0) < sp_min else None
+        why = ("닿는 거리에 휘두르는 놈 없음" if c is None else f"기력 {p.sp}" if (p.sp or 0) < sp_min
+               else "벽에 튕긴 자리 (P-139)" if self.at_bounce(p) is not None else None)
         if why is not None:
             self.gc_last = (a, c, None, why)
             return None
         h = self.mv.light(s, c, n=1)
+        self.note_bounce(p, h)
         self.gc_last = (a, c, h, None)
         if self.events:
             self.events("guard_counter", anim=a, npc=c.npc_param, dist=round(M.horiz(p, c), 2), dmg=h.dmg, taken=h.taken)

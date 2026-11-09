@@ -11,7 +11,8 @@ situation keys (all optional except foe):
   style "guard" · weapon "battle_axe"|"broadsword" · flags {"BACKSTAB": false, "HEAVY": false} (duel module flags, e.g. --basic) ·
   reflex "auto" (shields when a foe swings within duel.NEAR) | "off" | "on" · age 0.3 (seconds since the swing began, as the
   reflex reports it) · wait_far false · room true (floor behind the foe for a backstab) · ticks 4
-  my_anim_seq [-1, 140] (our own anim per tick — 140 / 20140 = something hit the raised shield)
+  my_anim_seq [-1, 140] (our own anim per tick — 140 / 20140 = something hit the raised shield) ·
+  bounce_here true (our swing struck a wall where we stand — Reflex.bounces, P-139)
 
 decide(situation) → {"tactic": first tactic (laya_shadow.policy_tactic; turning to face isn't one), "rules": [rule per tick],
                      "trace": [Moves calls], "log": [duel's log lines]}
@@ -116,6 +117,8 @@ def decide(sc: dict) -> dict:
     try:
         rf = Reflex(sc.get("reflex", "auto"), sc.get("age", 0.3), trace)
         rf.mv = mv                                                 # guard_counter (P-136) presses its light through the fake Moves
+        if sc.get("bounce_here"):
+            rf.bounces.append([w.player.x, w.player.z, D.time.time(), 0])
         r = D.duel(mv, WEAPONS[sc.get("weapon", "battle_axe")], 2, None, log=lines.append, cancel=cancel,
                    reflex=rf, style=sc.get("style", "guard"),
                    wait_far=sc.get("wait_far", False), advisor=grab)

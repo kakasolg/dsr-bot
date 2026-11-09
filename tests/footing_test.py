@@ -97,10 +97,10 @@ def main() -> None:
 
     # 4. wiring
     i = D.RULES.index(D.rule_footing)
-    # P-121 콤보 시험·드릴 규칙(--combo-only / --drill 때만 작동)만 사이에 낄 수 있음
+    # P-121 콤보 시험·드릴 규칙(--combo-only / --drill 때만 작동)만 사이에 낄 수 있음 · 앞엔 방패반격 (P-136, 내 애니 …140일 때만)
     between = D.RULES[i + 1:D.RULES.index(D.rule_after_swing)]
     check(f"② rule_footing sits right after prep_reflex, before rule_after_swing (between: {[r.__name__ for r in between]})",
-          D.RULES[i - 1] is D.prep_reflex and all(r in (D.rule_swing_backstep, D.rule_jump_drill, D.rule_jump_dodge, D.rule_jump_save) for r in between))
+          (D.RULES[i - 1] is D.prep_reflex or D.RULES[i - 2:i] == [D.prep_reflex, D.rule_guard_counter]) and all(r in (D.rule_swing_backstep, D.rule_jump_drill, D.rule_jump_dodge, D.rule_jump_save) for r in between))
     check("FOOTING is off by default (run.py --footing)", D.FOOTING is False and "--footing" in (ROOT / "run.py").read_text(encoding="utf-8"))
     import inspect
     check("rule_edge stands down when FOOTING is on", "not FOOTING" in inspect.getsource(D.rule_edge))

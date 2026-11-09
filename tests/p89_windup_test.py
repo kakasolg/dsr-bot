@@ -68,7 +68,9 @@ def test_real_scenes_before_hit_now_block():
 
 def test_real_stagger_scene_still_counters():
     rec = scene(1)                                       # 255041 in 3500 (blocked 3001) — the counter stays
-    assert rec["tick"]["a"] == 3500 and R.replay(rec) == "after_swing"
+    # P-136 (MoKa 11-08 "방패, 약공은 모든 공격에 기본"): my anim is 20140 (shield hit) here, so the guard counter presses the
+    # light before after_swing would — still a counter on the stagger, from an earlier rule
+    assert rec["tick"]["a"] == 3500 and R.replay(rec) in ("guard_counter", "after_swing")
 
 
 def test_no_shield_held_past_landing():

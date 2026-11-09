@@ -25,6 +25,7 @@ from . import combo_table as CTB
 from . import counter_trace as CT
 from . import foes as foes_
 from . import moves as M
+from . import reflex as R
 from . import swing_windows as SW
 
 STALEMATE_S = 15.0       # no damage dealt this long within reach = stalemate — previously gave up on 'not dead after 6 hits' (kicks and blocked light attacks counted too)
@@ -724,6 +725,10 @@ class Fight:
         self.acts.clear()
 
     def record(self, hit) -> None:
+        if self.reflex is not None and R.wall_bounced(hit):
+            s_ = self.mv.snap(5.0)
+            if s_ is not None and self.reflex.note_bounce(s_.player, hit):
+                self.log(f"      무기가 벽에 튕김 (내 애니 {[a for _, a in hit.my_anims][:5]}) — 이 자리에서 다시 안 휘두름 (P-139)")
         d = hit.as_dict()
         self.res.hits.append({k: d[k] for k in ("kind", "presses", "dmg", "dead", "taken", "others")})
         if hit.dmg > 0:
@@ -1048,6 +1053,64 @@ def rule_separate(F, T):
         F.note(f"떼어놓기:{r}", T.s, T.c)
         if r != "no_spot":
             return CONT
+    return None
+
+
+BOUNCE_CENTER_MIN = 0.2  # rule_wall_bounce: step to the passage middle only if it is at least this far
+BOUNCE_TAP_SCALE = 0.45  # stick taps for that step (0.25 is inside the deadzone — 202047, Field._settle)
+
+
+def rule_wall_bounce(F, T):
+    """
+    ── 벽에 튕긴 자리에서 같은 공격 반복 안 함 (P-139, [MoKa] 2026-11-08) ──────────────────────────────
+     "무기가 벽에 부딪혀서 공격 실패함" · "가운데가 차라리 낫지" · "감지가 되면 다른데로 가야지" ·
+     "한번은 이해가 되는데 무기가 벽에 부딪히면 다음 작업이 되야 하는데 않하고 반복하니 죽지"
+     · 221120 구역 4: 송진 문 앞 같은 자리에서 약공 10번 — 맞힘 1, 벽에 튕김(303150) 3, 나가기 전 끊김 5 → 사망
+     · 튕긴 자리 (Reflex.bounces, BOUNCE_SPOT_R 안)에 서 있으면 휘두르지 않고: ① 통로 가운데로 (좌우 바닥이 같아지게, 한 번)
+       ② 그래도 그 자리면 뒤로 백스텝 (적을 넓은 데로 끌어냄) ③ 둘 다 못 하면 이 규칙은 비킴 (다른 규칙대로)
+     · 그놈이 지금 휘두르는 중이면 비킴 — 방패가 먼저 (반사). 방패반격도 튕긴 자리에선 안 침 (Reflex.guard_counter)
+     · 가운데가 벽에 안 걸린다는 건 MoKa 말 + 063807 시범(가운데 0.5/0.5 m에서 나이프 맞음)뿐 — 근접 휘두르기로 잰 건 아님
+    """
+    rf = F.reflex
+    spot = rf.at_bounce(T.p) if rf is not None else None
+    if spot is None or (T.a in M.ATTACK and T.h < NEAR):
+        return None
+    s, c, p = T.s, T.c, T.p
+    if spot[3] == 0:
+        spot[3] = 1
+        room = nav.side_room(F.nm, p, c.x - p.x, c.z - p.z) if F.nm is not None and p.gx is not None else None
+        if room is not None:
+            right, left = room
+            shift = (left - right) / 2.0                       # + = to my left
+            if abs(shift) >= BOUNCE_CENTER_MIN:
+                n = math.hypot(c.x - p.x, c.z - p.z) or 1.0
+                lx, lz = -(c.z - p.z) / n, (c.x - p.x) / n     # left of facing the foe (nav.side_room: right = (fz, −fx))
+                gx, gz = p.x + lx * shift, p.z + lz * shift
+                if F.style.shield:
+                    F.mv.guard(True)
+                for _ in range(4):
+                    sn = F.mv.snap(5.0)
+                    if sn is None or sn.cam_yaw is None or math.hypot(sn.player.x - gx, sn.player.z - gz) < 0.15:
+                        break
+                    if any((x.anim or -1) in M.ATTACK and M.horiz(sn.player, x) < NEAR for x in sn.hostile(NEAR + 1.0)):
+                        break
+                    F.mv.pad.move(*F.mv.stick_to(sn, gx, gz, BOUNCE_TAP_SCALE))
+                    time.sleep(0.12)
+                    F.mv.pad.move(0.0, 0.0)
+                    time.sleep(0.08)
+                F.log(f"      벽 튕긴 자리 — 통로 가운데로 {shift:+.2f} m (오른쪽 {right} · 왼쪽 {left} m)")
+                F.note("벽튕김가운데", s, c)
+                return CONT
+    if spot[3] <= 1 and p.heading is not None and nav.can_move(F.nm, p, math.sin(p.heading), math.cos(p.heading), 2.2):
+        spot[3] = 2
+        F.backstep_t = T.now
+        F.mv.backstep()
+        F.log("      벽 튕긴 자리 — 뒤로 백스텝 (넓은 데로 끌어냄)")
+        F.note("벽튕김백스텝", s, c)
+        return CONT
+    if spot[3] < 3:
+        spot[3] = 3
+        F.log("      벽 튕긴 자리 — 옮길 데 없음, 다른 규칙대로")
     return None
 
 
@@ -2617,7 +2680,7 @@ def _no_drill(rule):
 # drill → (wait beyond this, step in only to this when it doesn't come, walk in beyond this) — _drill_setup
 DRILL_WAIT = {"backstep_r1": (SWING_BS_R, DRILL_BS_HOLD, DRILL_BS_FAR), "jump_r2": (JUMP_HI, JUMP_HOLD, JUMP_WAIT_FAR)}
 
-RULES = [rule_shot, rule_separate, rule_finish_first, prep_reflex, rule_guard_counter, rule_footing, rule_swing_backstep, rule_jump_drill, rule_jump_dodge,
+RULES = [rule_shot, rule_separate, rule_wall_bounce, rule_finish_first, prep_reflex, rule_guard_counter, rule_footing, rule_swing_backstep, rule_jump_drill, rule_jump_dodge,
          rule_jump_save, rule_after_swing, rule_face_first, rule_early_kick, rule_late_windup_block, prep_linger, rule_hit_first,
          _no_drill(rule_backstab_swing), rule_reflex, rule_lure, rule_edge, rule_estus, rule_stagger_punish, rule_evade, rule_block,
          rule_downed, _no_drill(prep_backstab_chance), rule_wait_far, rule_approach, rule_finish, rule_stamina, prep_face,

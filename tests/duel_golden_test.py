@@ -97,9 +97,11 @@ class Reflex:
     # the real guard-hit counter (P-136) — runs only when our anim is …140; scene_world sets mv for its my_anim_seq scenes
     mv, events, guard_counter_on, _gc_done, gc_last = None, None, True, False, None
     guard_counter = R.Reflex.guard_counter
+    note_bounce, at_bounce = R.Reflex.note_bounce, R.Reflex.at_bounce      # wall-bounce spots (P-139)
 
     def __init__(self, fires, trace):
         self.fires, self.t, self.prefer, self.last_hit = fires, trace, None, None
+        self.bounces = []
 
     def update(self, s):
         pass
