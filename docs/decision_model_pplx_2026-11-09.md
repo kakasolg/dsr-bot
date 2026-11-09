@@ -95,3 +95,61 @@ Conclusion: the ledger works for accountability. It is not yet clean training da
 ## Status
 Research note only. Nothing is built from it. The conflict it names first, "keep the damaged target vs. side attacker
 first", is ledger line M1108-10 (not built, waiting for MoKa's call).
+
+## Follow-up 1 — where to log, reuse what exists (same Perplexity thread)
+- **What it read.** It fully read `reflex.py`, `combo_table.py`, `scenes.py`, `scene_replay.py`, `duel_expect_test.py` and `duel_golden_test.py`. `duel.py` and `tests/expect/duel.jsonl` were cut off again.
+- **Correction to its own first answer.** Don't build a second recording system. Extend `scenes.Tap` (`tick` → `decided` → `keep`) and `scene_replay.replay`.
+- **Log what the first-match loop actually evaluated.**
+  - Record the evaluated prefix (declined / selected + reason).
+  - Rules after the winner are `not_evaluated`, not "inapplicable".
+  - Don't call every rule to list candidates: rules change F and press buttons.
+- **Log reflex separately.** `Reflex.guard_counter` and `Reflex.tick` are their own decision points:
+  - Log a counter that was refused, with the reason, before `mv.light`.
+  - Keep `_gc_done` from before the decision.
+- **Verified in reflex.py:**
+  - A remembered bounce spot vetoes the guard counter inside `guard_counter`.
+  - The counter does not skip because another foe is swinging. That was MoKa's instruction.
+  - Reflex threat choice uses threat lock / `prefer` / nearest. There is no "side attacker first" there, and no damage-based keep.
+- **combo_table:** the first row that matches wins. It listed which overlaps each row settles.
+- **Replay limit.** `scene_replay.Reflex.tick` returns the recorded `fired` value, so replay can't judge changes inside reflex. A real-reflex replay mode would be needed for that. Stale docstring: it says bounces are not kept, but they are.
+- **Expect corpus.** Add an optional `preference` field: `better`, `worse`, `condition`, `labeler`, `confidence`, `instruction_ids`. Let it point to an exact recorded scene.
+- **Golden test.** The logging sink must leave the trace unchanged. `duel_golden_test.run` already takes `advisor` / `tap` observers.
+- **Scene retention.** `Tap.keep` folds pose rules, so a dataset built only from kept scenes under-represents ordinary guard/wait choices. Also keep refusals, switch proposals, conflicts and a sample of ordinary decisions.
+
+## Follow-up 2 — conflict map with the real RULES order, video judging, sample size
+[win] pasted RULES and how target switching works (it happens in the per-tick setup before RULES: ranged-first, then
+`_interloper`; neither looks at the target's damage). Its answer:
+- **Target choice is upstream of RULES.** "Keep the damaged target" is not a rule that loses by order: it doesn't exist in the switch logic. Reordering RULES can't fix it.
+  - Log target arbitration: original target → ranged proposal → `_switch_threat` veto → interloper proposal → final target.
+  - Log it separately from the action arbitration.
+- **Order conflicts.** Finish-first, guard counter and swing backstab are deliberately aggressive and come before the defensive rules. Wall bounce wins over guard counter twice: by order (#3 < #6) and by the veto inside `guard_counter`.
+- **Backstab.** `NO_BACKSTAB_N` only sets `T.room = False` in `prep_linger` (#16). Whether an existing opening still allows a backstab depends on whether `backstab_swing`, `prep_backstab_chance` and `backstab` require `T.room`. It could not see those bodies. Open question for [win] to check in the code.
+- **Video judging (MoKa's constraint).** `clip.py`, `obs_rec.py` and `combo_judge.py` already fit, so extend them:
+  - **During the run:** an in-flow "mark" button. It bookmarks the moment and the recent decision ids; it is not a judgment.
+  - **Review together:** 4–6 clips in the first pilot, 6–10 per session (10–20 min).
+    - Ask one concrete question per clip, e.g. keep the damaged one / take the other / neither, plus the deciding visible condition.
+    - Read the captured answer back to MoKa.
+  - **Record separately:** choice vs. timing/execution vs. outcome. Also record target identity.
+  - **"Pre-reveal" is not "pre-outcome".** Record `outcome_visible`.
+  - **Clip ↔ log matching is up to ±2 s.** Confirm the exact decision id during review. Otherwise mark it `alignment_uncertain`.
+- **How many cases** (its planning heuristic, not a published threshold), for one narrow conflict:
+
+  | Reviewed cases | Use |
+  |---|---|
+  | 10–20 | Clarify meaning and features; write expect tests |
+  | 20–50 | Hand-edit conditional rules |
+  | 50–100 | Ranker as a shadow challenger |
+  | 100–200 | Compare against a tuned rule baseline on held-out runs |
+
+  - At 6–10 cases per session, 50 cases ≈ 5–9 sessions.
+  - Zero errors in 30 cases still leaves an error bound of about 10 %.
+- **Sources** (dates as given, not re-read):
+  - Cercola, Capretti, Formentin, Bayesian preference inference for RLHF (preprint Nov 2025, published Mar 2026);
+  - RLHF with Active Queries (TMLR Sep 2025);
+  - Batch Active Learning of Reward Functions from Human Preferences (Jun 2024): use diverse batches so a session doesn't get ten near-identical clips;
+  - Hirota et al. (above).
+- **Session mix it proposes:** ½ recurring conflicts or rule-vs-ranker disagreements, ¼ contrast cases, ¼ random eligible cases.
+- **Immediate plan it proposes:**
+  1. In the next ~3 joint sessions, label about 20 target-switch conflicts on clips.
+  2. Turn clear findings into conditional target-selection changes plus expect tests.
+  3. Keep collecting; the ranker comes later.
