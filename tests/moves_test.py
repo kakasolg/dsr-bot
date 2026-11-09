@@ -188,6 +188,22 @@ def main() -> None:
     h = mv.combo("jump_r2", s, c, nm=None)
     check(h.dead and not taps(pad, "R1"), f"점프에 죽음 → R1 없음 (dead {h.dead}, R1 {taps(pad, 'R1')})")
 
+    # 5c) 점프 중에 맞으면 R1 안 누름 (194203 48.2 s: 253600 → 2006 휘청 → 253000)
+    pad, tm = FakePad(), FakeTm(); mv = M.Moves(tm, pad); s = tm.snapshot(); c = s.chars[0]
+    real = tm.snapshot
+    hurt = {"on": False}
+
+    def snap2(within=40.0):
+        sn = real(within)
+        if hurt["on"]:
+            sn.player.hp = 551
+        return sn
+    tm.snapshot = snap2
+    ja = pad.jump_attack
+    pad.jump_attack = lambda fwd, hold=0.12: (ja(fwd), threading.Timer(0.4, lambda: hurt.update(on=True)).start())
+    h = mv.combo("jump_r2", s, c, nm=None)
+    check(h.taken > 0 and not taps(pad, "R1"), f"점프 중 맞음 → R1 없음 (taken {h.taken}, R1 {taps(pad, 'R1')}, skipped {h.skipped})")
+
     print("\n전체:", "OK" if ok else "FAIL")
     sys.exit(0 if ok else 1)
 

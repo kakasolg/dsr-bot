@@ -310,6 +310,7 @@ class Moves:
             s2 = self.snap(10.0)
             if s2:
                 my_min = min(my_min, s2.player.hp)
+                hit.taken = hp0 - my_min                   # live — combo ticks read it (P-133: no follow-up light after a hit)
                 c2 = self.find(s2, ptr)
                 e_min = 0 if c2 is None else min(e_min, c2.hp)
                 for x in s2.chars:
@@ -588,6 +589,11 @@ class Moves:
                     break
                 if act in ("R1", "R2") and state["i"] > 0 and h.dead:
                     state["i"] = len(steps)                # the first part already killed it — no follow-up key
+                    break
+                if name == "jump_r2" and act == "R1" and h.taken > 0:
+                    # P-133: 점프 중에 맞으면 (11-08 194203 48.2 s: 253600 → 2006 휘청 → 그래도 253000) 이어지는 2타가 아니라 새 공격 — 안 누름
+                    hit.skipped = "점프 중 맞음 — 약공 안 이음"
+                    state["i"] = len(steps)
                     break
                 if act in ("R1", "R2") and r1_at is not None and now < r1_at:
                     break
