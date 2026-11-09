@@ -237,7 +237,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 138 | no-knife deaths | open |
 | 139 | axe wall bounce; no sip | verify |
 | 140 | z4 rushed 3 | verify |
-| 141 | Taurus: guard in | verify |
+| 141 | Taurus guard | verify |
 
 ## 5. Relay — [cloud] ↔ board
 
