@@ -69,6 +69,7 @@ GUARD_CLOSE = True
 BOSS_ATTACK = frozenset(range(3000, 3500)) | frozenset(range(4000, 4007)) | frozenset(range(4100, 4107))
 HIT_SP2 = 80                        # two in a row only from here (two cost ~76)
 ESTUS_HP = 0.40
+BOSS_MOVE = frozenset({701})         # MoKa 11-09 "701엔 기다려": boss turning/walking — no light chain starts during it
 SPOT_ATTACK_S = 0.5                 # [MoKa] 11-09 "다리에 붙으면 0.5초 내에 공격 들어가봐": on the spot this long → swing even below HIT_SP (stamina > 0)
 SIP_SPOT_R = 0.8                    # P-142 (MoKa 11-09 "에스트를 마셔도 다리 사이에서"): sip only this close to crotch_spot — unmeasured
 SIP_SPOT_WAIT = 4.0                 # … unless a sip window has been open this long without reaching it (never drinking = death) — unmeasured
@@ -633,7 +634,10 @@ class Taurus:
             # 그동안 아무것도 안 함. 이제 자리에 붙으면 기력 HIT_SP(40)부터 바로 약공×3 (세 번째는 기력이 음수로 가도 나감, 측정 전)
             spot_t = (spot_t or time.time()) if off <= SPOT_R else None
             waited = time.time() - spot_t if spot_t is not None else 0.0
-            if off <= SPOT_R and not one_left and ((p.sp or 0) >= HIT_SP or (waited >= SPOT_ATTACK_S and (p.sp or 0) > 0)):
+            # [MoKa] 11-09 "701엔 기다려" — 보스 701 (돌며 이동) 중 시작한 약공×3 2/2 피해 0 (073200 #1 · 075309 #1: +0.6 s에 보스가 3 m+ 빠져나감).
+            #  701 동안은 자리에서 가드하고 기다림 (SPOT_ATTACK_S 대기 시계는 그대로 흐름 → 701이 끝나면 바로 시작)
+            moving = a in BOSS_MOVE
+            if off <= SPOT_R and not one_left and not moving and ((p.sp or 0) >= HIT_SP or (waited >= SPOT_ATTACK_S and (p.sp or 0) > 0)):
                 if self.mv.face(s, b, deg=30.0):
                     self.log(f"   타우로스: 다리 사이 도착 → 약공까지 {waited:.2f} s (기력 {p.sp})")
                     spot_t = None

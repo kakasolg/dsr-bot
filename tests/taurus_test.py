@@ -313,6 +313,22 @@ t._fight()
 check(f"close fight: on the spot, stamina 30 → swings once SPOT_ATTACK_S has passed ({hits}, {_tt.time() - _t0:.2f} s)",
       hits and hits[0][0] == 3 and T.SPOT_ATTACK_S == 0.5)
 
+# [MoKa] 11-09 "701엔 기다려" (073200 #1 · 075309 #1: lights started in 701 → boss walked off, 0 damage): on the spot, stamina 98,
+# boss in 701 → no swing; once it leaves 701 → swings
+hits.clear()
+t, mv, pad = make([snap(boss(x=47.0, y=15.8, z=-119.0, anim=701, hp=500), me=(46.75, 15.8, -118.65), sp=98)] * 3
+                  + [snap(None, me=(46.75, 15.8, -118.65))])
+mv.light = light
+t._fight()
+check(f"close fight: on the spot, stamina 98, boss in 701 → waits, no swing ({hits})", hits == [])
+hits.clear()
+t, mv, pad = make([snap(boss(x=47.0, y=15.8, z=-119.0, anim=701, hp=500), me=(46.75, 15.8, -118.65), sp=98)] * 2
+                  + [snap(boss(x=47.0, y=15.8, z=-119.0, anim=3005, hp=500), me=(46.75, 15.8, -118.65), sp=98)]
+                  + [snap(None, me=(46.75, 15.8, -118.65))])
+mv.light = light
+t._fight()
+check(f"close fight: 701 ends (boss now 3005) → three lights ({hits})", hits and hits[0][0] == 3)
+
 # [MoKa] 11-03 "때릴때 마다 뒤로 밀려" — pushed 1.2 m back off the spot after a swing → full stick back in
 T.nav.safe_heading = lambda nm, p, dx, dz, reach=1.0: (dx, dz)
 t, mv, pad = make([snap(boss(x=47.0, y=15.8, z=-119.0, anim=-1, hp=500), me=(46.4, 15.8, -120.6), sp=30)] * 3
