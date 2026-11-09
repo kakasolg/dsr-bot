@@ -44,7 +44,7 @@ needing the tick loop, route data, settings object or WorldState.
 - [~] heavy-lock | win | verify | `duel._keep_lock` + heavies only locked; zones 1–2: locks in 1:1, lets go for a 2nd foe; watch more runs | docs/throwables.md
 - [~] firebomb-measure | win | verify | hollow ~5 m: 75 one-shot 2/2 · 7 m: 18 · ≥ 9 m: no lock. crossbow 5 m: died (P-83) | plan:firebomb-measure
 - [~] firebomb-candidate | win | verify | built offline 11-09: firebombs in a quick slot = lure opener (5–10 m, lock) · 2+ coming · ledge, no --throw / limit | plan:firebomb-candidate
-- [ ] bow | cloud+win | todo | bow: buy, switch shield ↔ bow, locked-on shot, measure — after the firebomb | plan:bow
+- [~] bow | win | doing | skeleton 11-09 (souls/bow.py, off): switch by memory, locked shot; [win]: shop weapon tab, bow id, left-hand offsets, fire button | plan:bow
 - [~] npc-module | win | verify | built 11-09: souls/npc.Npc (approach · face · greet · close), Shop(Npc); [win]: one merchant-buy run | souls/npc.py · plan:npc-module
 
 ## 1-b. Taurus → Sunlight Altar, Claymore as main (MoKa 10-12)
