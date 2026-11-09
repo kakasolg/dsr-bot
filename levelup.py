@@ -1,6 +1,7 @@
 """Level up at a bonfire — spend the souls held on one stat ([MoKa] 2026-10-31: "소울이 모일때 마다 Vitality를 계속 올려봐").
 
   python run.py … --level-up VIT        every rest (farm.rest) levels VIT as far as the souls held allow, then stands up
+  python levelup.py STR=16 altar-bonfire  only up to 16 (one stat per rest: the menu cursor after B is not checked)
   python levelup.py VIT [spot]          rest at a bonfire from data/spots.json (default firelink-bonfire; must be near it),
                                         level up, stand up — one screenshot per press into data/runs/shots_…_levelup-steps
 
@@ -48,7 +49,7 @@ def affordable(sl: int, souls: int) -> int:
     return n
 
 
-def level(tm, press, stat: str, log=print) -> str:
+def level(tm, press, stat: str, log=print, up_to: int | None = None) -> str:
     """Seated with the bonfire menu open → level `stat` as far as the souls go, back to the bonfire menu.
     press(name) taps one pad button ('A', 'B', 'DOWN', 'LEFT', 'RIGHT'). → 'SL a→b, VIT x→y, souls s→t' | reason nothing happened."""
     if stat not in ROWS:
@@ -58,6 +59,11 @@ def level(tm, press, stat: str, log=print) -> str:
     if sl is None or souls is None:
         return "능력치 못 읽음"
     n = affordable(sl, souls)
+    if up_to is not None:                            # "STR=16": only up to that value ([MoKa] 11-09 클레이모어 STR 16 · DEX 10)
+        have = st.get(stat) or 0
+        if have >= up_to:
+            return f"{stat} 이미 {have} ≥ {up_to}"
+        n = min(n, up_to - have)
     if n < 1:
         return f"소울 부족 ({souls} < {cost(sl + 1)})"
     log(f"   레벨업: SL {sl} 소울 {souls} → {stat} +{n} (비용 {sum(cost(sl + k + 1) for k in range(n))})")
@@ -99,7 +105,8 @@ def maybe(tm, tap, log=print) -> str | None:
     B = vgamepad.XUSB_BUTTON
     keys = {"A": B.XUSB_GAMEPAD_A, "B": B.XUSB_GAMEPAD_B, "DOWN": B.XUSB_GAMEPAD_DPAD_DOWN,
             "LEFT": B.XUSB_GAMEPAD_DPAD_LEFT, "RIGHT": B.XUSB_GAMEPAD_DPAD_RIGHT}
-    r = level(tm, lambda k: tap(keys[k]), WANT, log)
+    stat, _, cap = WANT.partition("=")             # "STR" (as far as souls go) or "STR=16" (up to 16)
+    r = level(tm, lambda k: tap(keys[k]), stat, log, up_to=int(cap) if cap else None)
     log(f"   레벨업 ({WANT}): {r}")
     return r
 
