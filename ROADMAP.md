@@ -199,7 +199,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 100 | `burg-upper` zone 5 (11-01 154533): kept guarding at SP 7→0 (MoKa: ≤30% SP can't guard the next hit) → anim 160 guard break → 255001 ×2 → died | open → fix proposal, MoKa |
 | 101 | Bot pad ignored entirely (11-01 171617, zone 4 start, 2 min still); XInput free, focus fixed → still 0 m; game restart fixed it | open, cause unknown (observe) |
 | 102 | `burg-upper` zone 5 (11-01 173025): unknown-fog A at the ladder foot grabbed the ladder, 87–196 s looping | fix built (no fog A ≤2.5 m from NavMesh ladder faces); offline tests only |
-| 103 | z8 top 255002 hits → died (4/12) | open → P-134, P-137 |
+| 103 | z8 top 255002 → died | open → P-134, P-137 |
 | 104 | Resin chest: scratch script pressed 'door A' 13 m from the door (picked a firebomb), stuck at the shut door; bot 'approach' can't open doors | game 183919: door opened (1 A), chest missed (stood 1.34 m, nudges didn't move) → next fix, MoKa |
 | 105 | `burg-upper` zone 6 (11-01 183919): −336 on the stairs (46.6,−0.7,−113.3), no attacker anim → died | open → cause (11-02 024657): rolling burning barrel (9/9, −336); MoKa: dodge, drink at once → barrel step + sip_on_hit, offline only |
 | 106 | `burg-upper` zone 2-1 (11-01 214135, from the Burg bonfire): started at HP 81 %, 255001 + 254011 together, estus refused 8× (foe close), retreats ×3 → died | open — same family as P-45/P-74/P-98 |
@@ -234,7 +234,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 135 | knife: right wall | verify |
 | 136 | block→light | verify |
 | 137 | z8 ladder top | open |
-| 138 | no-knife: z6, z4 deaths | open |
+| 138 | no-knife deaths | open |
 | 139 | axe wall bounce; no sip | verify |
 | 140 | z4 rushed 3 | verify |
 | 141 | Taurus: guard in | verify |
