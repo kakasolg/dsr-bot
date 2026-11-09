@@ -296,12 +296,18 @@ def main() -> None:
         print(json.dumps({"log": log.name, "rows": rows}, ensure_ascii=False, indent=1))
         return
     print(f"MoKa 지시 장부 — {log.name}  (나옴 = 그 상황이 로그에 나온 횟수, 따름 = 말씀대로 한 횟수)")
+    quiet = [] if "--all" in sys.argv else [r for r in rows if r["came"] is None and r["status"] in ("built", "principle")]
     for r in rows:
+        if r in quiet:
+            continue
         st = STATUS.get(r["status"], r["status"])
         came = "-" if r["came"] is None else r["came"]
         fol = "-" if r["followed"] is None else r["followed"]
         print(f"  {r['id']} [{st}] {r['topic']}")
         print(f"      나옴 {came} · 따름 {fol} · {r['outcome']}" + (f" · 이유: {r['why']}" if r["status"] != "built" and r.get("why") else ""))
+    if quiet:
+        print(f"  감지기 없는 만듦·원칙 줄 {len(quiet)}개 — 나왔는지 로그로 못 셈 (--all 이면 줄마다): "
+              + " ".join(r["id"] for r in quiet))
     if "--cases" in sys.argv:
         print()
         print("경우마다 그때 조건 (계획 적 수 · 내 HP · 기력 · 그놈 거리) — 결과가 나쁜 건 다른 조건 탓일 수 있음 (MoKa 11-08)")
