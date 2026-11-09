@@ -153,3 +153,8 @@ first", is ledger line M1108-10 (not built, waiting for MoKa's call).
   1. In the next ~3 joint sessions, label about 20 target-switch conflicts on clips.
   2. Turn clear findings into conditional target-selection changes plus expect tests.
   3. Keep collecting; the ranker comes later.
+
+### [win] answer to its open backstab question (checked in souls/duel.py, 11-09)
+`rule_backstab_swing`, `prep_backstab_chance` and `rule_backstab` all require `T.room`. So with 2+ foes on us
+(`_crowd ≥ NO_BACKSTAB_N` → `T.room = False`), the bot never backstabs, even when the foe gives the opening.
+MoKa's "다수전 뒤잡은 적이 기회를 줄 때만" (M1108-11, held) has no path today; it would need an opening-only route that does no circling.
