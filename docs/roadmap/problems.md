@@ -2215,3 +2215,7 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
   — 안 칠 때도 이유를 로그에 남김. [MoKa] "방패, 약공이 우선이야. 이건 기본이고".
   시험: tests/guard_counter_test.py, expect 장면 3 (guard-hit-*, scene_world my_anim_seq 추가), golden 40320 그대로. 게임 확인 전 —
   막기 경직 중 R1이 경직 끝나자마자 나가는지는 기존 기록 (hits #3·#5: 20140 → 253000 0.3 s)뿐.
+- 게임 (11-08 205219, 6cbf9ee, 배틀 액스 SL1): [MoKa] "훨씬 좋으네" (구역 1 화면). 그런데 새 규칙은 구역 1에서 2번 다 안 침 —
+  `방패에 맞음 (140) — 반격 안 함: 닿는 거리에 휘두르는 놈 없음`: 방패에 맞은 틱에 그놈은 이미 3500 (튕겨 휘청)이라 3000번대만 세던 조건에 안 걸림.
+  두 번 다 1–1.5 s 뒤 휘청반격 (rule_stagger_punish)으로 light. → 그날 좋아 보인 것은 이 규칙 덕이 아님.
+- 고침 2 (11-08): 3500번대 (M.STAGGER)도 맞힌 놈으로 셈. guard_counter_test 2b. 다음 실행부터 (205219는 6cbf9ee 그대로).

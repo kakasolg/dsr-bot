@@ -1646,7 +1646,7 @@ def rule_guard_counter(F, T):
      · 내 애니가 막기 피격 (…140)이 된 틱에 R1 하나 — 경직 중에 누르면 경직이 풀리는 대로 약공이 나감
        (202047 hits #3 · #5: 20140 → 253000 0.3 s). 한 번 막을 때마다 한 번 (애니가 140을 벗어나면 다시 셈)
      · 안 침: 무기 닿는 거리 + GUARD_COUNTER_STEP 안에 휘두르는 놈이 없음 (화살·볼트도 방패에 140 — foes.py),
-       높이 차 1 m 넘음, 기력 sp_min 미만, 다른 놈이 OTHER_SWING_R 안에서 휘두르는 중 (rule_after_swing과 같은 조건)
+       (튕겨 휘청하는 3500번대는 침), 높이 차 1 m 넘음, 기력 sp_min 미만, 다른 놈이 OTHER_SWING_R 안에서 휘두르는 중 (rule_after_swing과 같은 조건)
     """
     p = T.p
     a = p.anim if p.anim is not None else -1
@@ -1657,7 +1657,9 @@ def rule_guard_counter(F, T):
         return None
     F._gc_done = True                                       # this block is decided — counter or not, once
     w, s = F.weapon, T.s
-    near = [x for x in s.hostile(w.reach + GUARD_COUNTER_STEP + 2.0) if x.hp > 0 and (x.anim or -1) in M.ATTACK
+    # 휘두르는 중 (3000번대) 또는 내 방패에 튕긴 휘청 (3500번대) — 205219 구역 1: 방패에 맞은 틱에 그놈은 이미 3500이라 2번 다 안 침
+    near = [x for x in s.hostile(w.reach + GUARD_COUNTER_STEP + 2.0) if x.hp > 0
+            and ((x.anim or -1) in M.ATTACK or (x.anim or -1) in M.STAGGER)
             and M.horiz(p, x) <= w.reach + GUARD_COUNTER_STEP and abs(x.y - p.y) <= 1.0]
     c = next((x for x in near if x.ptr == F.ptr), None) or min(near, key=lambda x: M.horiz(p, x), default=None)
     why = None

@@ -42,6 +42,10 @@ def main() -> None:
     T.p.anim = 140; D.rule_guard_counter(F, T)
     assert lights == [(5, 1), (5, 1)], lights
     print("ok  one light per block: none on the next tick of the same block, again on the next block (Battle Axe 140)")
+    # 2b) 205219 구역 1: the hitter already bounced off the shield (3500) on the guard-hit tick → still a light
+    F, T, lights, _ = setup(140, [chr_(5, 0.0, -0.9, 3500)])
+    assert D.rule_guard_counter(F, T) == D.CONT and lights == [(5, 1)], lights
+    print("ok  hitter already bounced (3500) on the guard-hit tick → light")
     # 3) arrow on the shield: nobody swinging within reach → no light
     F, T, lights, logs = setup(140, [chr_(7, 0.0, -9.0, sw, npc=255040)])
     assert D.rule_guard_counter(F, T) is None and not lights and "닿는 거리" in logs[-1], (lights, logs)
