@@ -298,7 +298,8 @@ CAREFUL_MAX_S = 240.0
 ARM_ROOM = 0.5            # P-135: NavMesh floor wanted on my right before a throw (MoKa 063807 hit from 0.5 / 0.5 m; 194800 missed from 0.2 m)
 ARM_EDGE_KEEP = 0.15      # never move closer than this to the left edge
 ARM_MIN_SHIFT = 0.05      # smaller shifts aren't worth a stick tap
-ARM_SETTLE_TOL, ARM_SETTLE_SCALE = 0.08, 0.25
+ARM_SETTLE_TOL = 0.08
+ARM_SETTLE_SCALE = nav.FACE_STICK   # 0.45 — 11-08 202047: 0.25 is inside the stick deadzone (nav.FACE_STICK "below 0.4 doesn't even turn"), moved 0.00 m 3 times
 LURE_MIN, LURE_MAX = 6.0, 13.0   # throw conditions on flat ground — closer than this and just walking wakes it; farther and lock-on fails
 KNIFE_LOW = 5            # warn below this — going to buy from the merchant is a later task (user 2026-09-24)
 HOLD_TRIES = 3           # hold-the-spot targets (lure_at.hold): lure attempts; wait HOLD_WAIT in place between them
@@ -2404,8 +2405,8 @@ class Field:
          "양 옆이 좁은 통로에 특히 우측 벽에 붙어 있는 상태로 나이프를 던지면, 오른손이 벽에 부딪혀서 던지는 것이 실패한거야" ·
          "좌측 벽으로 미세 조정으로 붙어서, 오른 팔이 움직이게 하는 가동 공간을 확보". 194800 구역 4: 던진 자리 오른쪽 바닥 0.2 m ·
          왼쪽 0.8 m → 13.0 m 락온인데 피해 0; 시범 063807이 맞힌 자리는 0.5 / 0.5 m (통로 가운데).
-         오른쪽 바닥이 ARM_ROOM보다 좁으면 왼쪽으로 옮겨 섬 — 통로가 2×ARM_ROOM보다 좁으면 가운데로. NavMesh 가장자리는 벽인지
-         낭떠러지인지 모르고, 벽 표면보다 안쪽일 수 있음 (가설) — 그래서 "몇 m"가 아니라 좌우를 맞추는 쪽으로.
+         오른쪽 바닥이 ARM_ROOM보다 좁으면 왼쪽 가장자리 ARM_EDGE_KEEP까지 붙어 섬 ([MoKa] 11-08 "좌측으로 붙어서 우측 확보 해야함";
+         처음엔 가운데로 갔음). NavMesh 가장자리는 벽인지 낭떠러지인지 모르고, 벽 표면보다 안쪽일 수 있음 (가설).
          → None (안 잼) | {"right", "left", "moved"}
         """
         s = self.mv.snap(SEEK_R)
@@ -2420,8 +2421,7 @@ class Field:
         out = {"right": right, "left": left, "moved": 0.0}
         if right >= ARM_ROOM:
             return out
-        want = (left - right) / 2 if right + left < 2 * ARM_ROOM else ARM_ROOM - right
-        shift = min(want, left - ARM_EDGE_KEEP)
+        shift = left - ARM_EDGE_KEEP                       # [MoKa] 11-08 "좌측으로 붙어서 우측 확보 해야함" — 가운데가 아니라 왼쪽 벽에 붙음
         if shift < ARM_MIN_SHIFT:
             self.log(f"   {tag}: 오른쪽 바닥 {right:.2f} m · 왼쪽 {left:.2f} m — 옮길 자리 없음, 그대로 던짐")
             return out

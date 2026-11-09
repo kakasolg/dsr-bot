@@ -43,6 +43,7 @@ def main() -> None:
         f.goals = []
 
         def settle(goal, tol=None, tries=10, scale=0.45):
+            assert scale >= 0.4, scale                         # 202047: 0.25 is inside the stick deadzone — moved 0.00 m
             f.goals.append(goal)
             state["p"] = me(goal[0], goal[2])
             return 0.0
@@ -51,14 +52,14 @@ def main() -> None:
 
     f = field(Corridor(-0.2, 0.8), (0.0, 0.0))                     # 194800: right 0.2 · left 0.8
     out = f._arm_room(9, Corridor(-0.2, 0.8), "t")
-    assert f.goals and abs(f.goals[0][0] - 0.3) < 0.06 and abs(f.goals[0][2]) < 1e-6, f.goals
-    assert out["right_after"] >= F.ARM_ROOM - 0.06, out
-    print(f"ok  right 0.2 / left 0.8 → step left 0.3 m (to x {f.goals[0][0]:.2f}), right after {out['right_after']}")
+    assert f.goals and abs(f.goals[0][0] - 0.65) < 0.06 and abs(f.goals[0][2]) < 1e-6, f.goals
+    assert out["right_after"] >= 0.8, out
+    print(f"ok  right 0.2 / left 0.8 → hug the left (x {f.goals[0][0]:.2f}, 0.15 m kept), right after {out['right_after']}")
 
-    f = field(Corridor(-0.1, 0.5), (0.0, 0.0))                     # 0.6 m passage → middle
+    f = field(Corridor(-0.1, 0.5), (0.0, 0.0))                     # 0.6 m passage → still the left side (MoKa 11-08)
     f._arm_room(9, Corridor(-0.1, 0.5), "t")
-    assert f.goals and abs(f.goals[0][0] - 0.2) < 0.06, f.goals
-    print(f"ok  narrow 0.6 m passage → to the middle (x {f.goals[0][0]:.2f})")
+    assert f.goals and abs(f.goals[0][0] - 0.35) < 0.06, f.goals
+    print(f"ok  narrow 0.6 m passage → left side (x {f.goals[0][0]:.2f})")
 
     f = field(Corridor(-2.0, 2.0), (0.0, 0.0))                     # wide → stay
     out = f._arm_room(9, Corridor(-2.0, 2.0), "t")
