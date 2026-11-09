@@ -2226,3 +2226,5 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
   golden 가짜 Reflex에 진짜 guard_counter, scene_world가 mv를 넘김. golden 40320 그대로, expect 71 통과. 오프라인만.
 - 205219 (6cbf9ee, 고침 2·3 전): 방패 반격 2번 침, 16번 건너뜀 (모두 '닿는 거리에 휘두르는 놈 없음' = 3500 문제), 휘청·휘두름 끝 반격 17번.
   [MoKa] "방패, 약공 시퀀스가 좋아져서 나머지 문제가 자연스럽게 해결되네" — 이 실행의 반격 대부분은 휘청·휘두름 끝 규칙이 냄.
+- [MoKa] 11-08: "방패병도 방패병이 공격하는 순간 캐릭터가 방패로 막고 바로 공격하면, 공격 타이밍이 나와. 굳이 발차기나 점프공격 않해도 되긴해."
+  guard_counter는 방패병도 따로 빼지 않음 → expect 장면 guard-hit-shield-soldier-light (255001, 통과). 발차기·점프 규칙은 그대로 둠 ("않해도 되긴해").
