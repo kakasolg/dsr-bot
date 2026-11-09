@@ -295,7 +295,8 @@ class Moves:
         self.pad.guard(on and self.guard_ok)
 
     # ── Attacks ─────────────────────────────────────────────────
-    def _watch(self, hit: Hit, ptr, hp0: int, ehp0: int, secs: float, on_tick=None, early_exit=None) -> None:
+    def _watch(self, hit: Hit, ptr, hp0: int, ehp0: int, secs: float, on_tick=None, early_exit=None, keys_left=None) -> None:
+        # keys_left(): a combo still has keys to press — a dead target doesn't end the watch before them (P-133 jump → light)
         t1 = time.time()
         my_min, e_min = hp0, ehp0
         s0 = self.snap(4.0)
@@ -320,7 +321,7 @@ class Moves:
                     hit.e_anims.append((round(time.time() - t1, 2), c2.anim))
                 if not hit.my_anims or hit.my_anims[-1][1] != s2.player.anim:
                     hit.my_anims.append((round(time.time() - t1, 2), s2.player.anim))
-                if e_min <= 0:
+                if e_min <= 0 and (keys_left is None or not keys_left()):
                     why = "gone" if c2 is None else "dead"
                     break
                 # once an attack anim has played and returned to -1 (standing) with nothing left to press, finish — avoids waiting out the rest blind
@@ -502,8 +503,9 @@ class Moves:
     #  확정적으로 들어가기 때문에 … 점프 공격 이후에는 그냥 약공이 더 자연스러운 선택") ─────────────────────────────────
     #  점프를 누르고 JUMP_TO_R1 s 뒤 R1 — 점프 칼날은 누른 뒤 ~1.04 s (클레이모어 253600, observe 20261104_132739 1번), 애니 전체 ~2.3 s
     #  (132116 · 133513, 배틀 액스 303600 4번). 칼날 직후에 눌러 게임이 받아 둔 뒤 이어 칠 첫 틈에 약공이 나가게 하려는 값 — 그 틈이 언제인지,
-    #  1.1 s 입력이 버려지지 않는지는 게임 확인 전 (가설). 점프에 이미 죽었으면 R1 안 누름 (tick의 h.dead).
+    #  1.1 s 입력이 버려지지 않는지는 게임 확인 전 (가설). 죽었거나 맞았어도 R1은 누름 ([MoKa] 11-08 "무조건").
     JUMP_TO_R1 = 1.1
+    COMBO_ALWAYS = ("jump_r2",)      # every key is pressed even after the target died (MoKa 11-08 "무조건")
 
     # ── Combo = sequence (user 2026-09-24: "Make attack combos a single sequence — roll light, jump heavy, backstep light, like that") ──
     # one row = (time s, action). Actions: "stick_fwd" stick toward target | "stick_off" release stick | "B" | "R1" | "R2" (trigger)
@@ -587,14 +589,8 @@ class Moves:
                 base = state["anchor"] if (state["anchor"] is not None and st_t > 0) else t_start
                 if now - base < st_t:
                     break
-                if act in ("R1", "R2") and state["i"] > 0 and h.dead:
-                    state["i"] = len(steps)                # the first part already killed it — no follow-up key
-                    break
-                if name == "jump_r2" and act == "R1" and h.taken > 0:
-                    # P-133: 점프 중에 맞으면 (11-08 194203 48.2 s: 253600 → 2006 휘청 → 그래도 253000) 이어지는 2타가 아니라 새 공격 — 안 누름
-                    hit.skipped = "점프 중 맞음 — 약공 안 이음"
-                    state["i"] = len(steps)
-                    break
+                # P-133: 점프 뒤 약공은 조건 없이 ([MoKa] 11-08 "무조건 점프 공격, 약공이 자동으로 나가야해") — 죽었거나 맞았어도 누름
+                #  (그 전 "죽으면 · 맞으면 안 누름"은 MoKa가 약공이 안 나온다고 본 이유)
                 if act in ("R1", "R2") and r1_at is not None and now < r1_at:
                     break
                 if act in ("R1", "R2") and swing is not None and any(a in ATTACK and a != swing for _ta, a in h.e_anims):
@@ -613,6 +609,7 @@ class Moves:
                     state["anchor"] = time.time()          # post-B step times are relative to the moment B was pressed
                 state["i"] += 1
         self._watch(hit, c.ptr, hp0, ehp0, self.COMBO_WATCH[name] + 0.3, tick,
+                    keys_left=(lambda: state["i"] < len(steps)) if name in self.COMBO_ALWAYS else None,
                     early_exit=lambda t, h: state["i"] >= len(steps) and time.time() > (state["anchor"] or t_start) + steps[-1][0]
                     + self.COMBO_TAIL.get(name, 0.4))
         self.pad.move(0.0, 0.0)

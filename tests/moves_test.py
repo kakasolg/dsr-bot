@@ -7,7 +7,7 @@
   · light(n=2): R1 → 0.45 s 뒤 R1, 첫 R1 은 스틱을 놓고 0.16 s 지난 뒤 (control.Pad.release_stick 규칙)
   · guard_ok=False 면 guard(True) 가 패드에 안 간다 (백스텝 스타일)
   · combo("roll_r1"): 스틱 앞 + B → 0.85 s 뒤 R1
-  · combo("jump_r2"): 점프 → JUMP_TO_R1 s 뒤 R1 (MoKa 11-04 "점프 공격 + 약공"), 점프에 죽었으면 R1 없음
+  · combo("jump_r2"): 점프 → JUMP_TO_R1 s 뒤 R1 (MoKa 11-04 "점프 공격 + 약공"), 죽었거나 맞았어도 R1 (MoKa 11-08 "무조건")
 """
 from __future__ import annotations
 import sys as _sys, pathlib as _pl  # repo root first (the bot's modules), then this folder
@@ -181,14 +181,14 @@ def main() -> None:
     if j and r1:
         check(abs((r1[0] - j[0]) - M.Moves.JUMP_TO_R1) <= 0.08, f"점프 → R1 {r1[0]-j[0]:.2f} s ({M.Moves.JUMP_TO_R1})")
 
-    # 5b) 점프에 죽으면 R1 안 누름
+    # 5b) 점프에 죽어도 R1 누름 (MoKa 11-08 "무조건 점프 공격, 약공이 자동으로 나가야해")
     pad, tm = FakePad(), FakeTm(); mv = M.Moves(tm, pad); s = tm.snapshot(); c = s.chars[0]
     ja = pad.jump_attack
     pad.jump_attack = lambda fwd, hold=0.12: (ja(fwd), threading.Timer(0.3, lambda: setattr(tm, "foe_hp", 0)).start())
     h = mv.combo("jump_r2", s, c, nm=None)
-    check(h.dead and not taps(pad, "R1"), f"점프에 죽음 → R1 없음 (dead {h.dead}, R1 {taps(pad, 'R1')})")
+    check(h.dead and len(taps(pad, "R1")) == 1, f"점프에 죽어도 R1 (dead {h.dead}, R1 {taps(pad, 'R1')})")
 
-    # 5c) 점프 중에 맞으면 R1 안 누름 (194203 48.2 s: 253600 → 2006 휘청 → 253000)
+    # 5c) 점프 중에 맞아도 R1 누름 (MoKa 11-08 "무조건")
     pad, tm = FakePad(), FakeTm(); mv = M.Moves(tm, pad); s = tm.snapshot(); c = s.chars[0]
     real = tm.snapshot
     hurt = {"on": False}
@@ -202,7 +202,7 @@ def main() -> None:
     ja = pad.jump_attack
     pad.jump_attack = lambda fwd, hold=0.12: (ja(fwd), threading.Timer(0.4, lambda: hurt.update(on=True)).start())
     h = mv.combo("jump_r2", s, c, nm=None)
-    check(h.taken > 0 and not taps(pad, "R1"), f"점프 중 맞음 → R1 없음 (taken {h.taken}, R1 {taps(pad, 'R1')}, skipped {h.skipped})")
+    check(h.taken > 0 and len(taps(pad, "R1")) == 1, f"점프 중 맞아도 R1 (taken {h.taken}, R1 {taps(pad, 'R1')}, skipped {h.skipped})")
 
     print("\n전체:", "OK" if ok else "FAIL")
     sys.exit(0 if ok else 1)
