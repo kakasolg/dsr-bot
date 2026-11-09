@@ -231,12 +231,12 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 132 | block→bs late | verify: light |
 | 133 | jump → no light | verify |
 | 134 | z8 hold 20 s | verify |
-| 135 | knife: right wall, ran in | verify |
+| 135 | knife: right wall | verify |
 | 136 | block → light waits | verify |
-| 137 | z8 ladder top −934 | open |
+| 137 | z8 ladder top | open |
 | 138 | no-knife: z6, z4 deaths | open |
-| 139 | axe wall bounce repeated; no sip | verify |
-| 140 | z4 rushed 3 w/o knife | verify |
+| 139 | axe wall bounce; no sip | verify |
+| 140 | z4 rushed 3 | verify |
 
 ## 5. Relay — [cloud] ↔ board
 
