@@ -257,6 +257,9 @@ DETECTORS = {f.__name__[2:]: f for f in (d_guard_counter, d_wall_bounce, d_crowd
                                           d_above_foe)}
 
 
+CHECK = {"agrees": "맞음", "partial": "일부 다름", "differs": "다름"}
+
+
 def report(lines: list[str], ledger: list[dict]) -> list[dict]:
     CASES.clear()
     out = []
@@ -265,7 +268,8 @@ def report(lines: list[str], ledger: list[dict]) -> list[dict]:
         det = e.get("detector")
         f = DETECTORS.get(det) if det else None
         r = (done[det] if det in done else done.setdefault(det, f(lines))) if f else None
-        row = {"id": e["id"], "topic": e["topic"], "status": e["status"], "why": e.get("why"), "detector": det}
+        row = {"id": e["id"], "topic": e["topic"], "status": e["status"], "why": e.get("why"), "detector": det,
+               "check": e.get("check")}
         if r is None:
             row.update(came=None, followed=None, outcome="감지기 없음 — 이 상황이 나왔는지 기록이 못 셈")
         else:
@@ -305,6 +309,9 @@ def main() -> None:
         fol = "-" if r["followed"] is None else r["followed"]
         print(f"  {r['id']} [{st}] {r['topic']}")
         print(f"      나옴 {came} · 따름 {fol} · {r['outcome']}" + (f" · 이유: {r['why']}" if r["status"] != "built" and r.get("why") else ""))
+        ck = r.get("check") or {}
+        if ck.get("verdict") in ("partial", "differs"):
+            print(f"      외부 자료 ({ck['by']}): {CHECK[ck['verdict']]} — {ck['note']}")
     if quiet:
         print(f"  감지기 없는 만듦·원칙 줄 {len(quiet)}개 — 나왔는지 로그로 못 셈 (--all 이면 줄마다): "
               + " ".join(r["id"] for r in quiet))

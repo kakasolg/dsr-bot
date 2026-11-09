@@ -39,6 +39,7 @@ def main() -> None:
         assert e.get("quote"), e
         assert e["status"] in ("built", "principle") or e.get("why"), f"{e['id']}: not built / held / noted needs a why"
         assert e.get("detector") is None or e["detector"] in L.DETECTORS, e
+        assert not e.get("check") or (e["check"]["verdict"] in L.CHECK and e["check"].get("note")), e
     rows = {r["id"]: r for r in L.report(LOG, ledger)}
     assert len(rows) == len(ledger)
     print(f"ok  ledger {len(ledger)} lines, ids unique, every not-built line says why, every row reported")
