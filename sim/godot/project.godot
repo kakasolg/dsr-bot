@@ -1,0 +1,14 @@
+; Engine configuration file — stage 0 practice room (MoKa M1109-47/50).
+config_version=5
+
+[application]
+config/name="dsr-bot practice room"
+run/main_scene="res://main.tscn"
+config/features=PackedStringArray("4.7")
+
+[display]
+window/size/viewport_width=1280
+window/size/viewport_height=720
+
+[physics]
+common/physics_ticks_per_second=60
