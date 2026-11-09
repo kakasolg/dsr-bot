@@ -171,5 +171,61 @@
    -22.2
   ],
   "note": "태양의 제단 화톳불 (o0200_0001). stand = 11-09 light-altar가 앉은 자리 (오브젝트 1.0 m), heading = 오브젝트 쪽 (성안 자리와 같은 규약)"
+ },
+ "altar-lever": {
+  "map": "m10_01_00_00",
+  "stand": [
+   19.39,
+   9.47,
+   -26.23
+  ],
+  "heading": 2.078,
+  "from_bonfire": [
+   -4.96,
+   -0.03,
+   -4.03
+  ],
+  "approach": {
+   "stand": [
+    21.54,
+    9.39,
+    -27.18
+   ],
+   "heading": 1.884,
+   "from_bonfire": [
+    -2.81,
+    -0.11,
+    -4.98
+   ]
+  },
+  "prompt": "Pull lever",
+  "note": "MoKa 2026-11-09가 직접 세운 자리 (M1109-44/45). 화톳불(object 24.35,9.5,-22.2) 기준. approach = 감실 정면 2 m, 여기서 정면으로 걸어 들어가면 stand에서 A 'Pull lever'. 옆(화톳불 기준 −5.7,−2.6)에서 들어가면 A 안 뜸",
+  "objact": {
+   "object": "o1200_1001",
+   "entity": 1011120,
+   "objact_entity": 11010620,
+   "pos": [
+    18.029,
+    9.403,
+    -25.488
+   ],
+   "rot_y": 120.0,
+   "param_row": 1200,
+   "param_row_note": "MSB obj_act_param_id -1 → 모델 번호 1200 행으로 추정 (같은 모델 레버 공용, 이름 m10_01_教会門レバー)",
+   "action_point": [
+    19.053,
+    9.403,
+    -26.079
+   ],
+   "action_point_from_bonfire": [
+    -5.3,
+    0.0,
+    -3.88
+   ],
+   "max_dist_m": 0.9,
+   "max_player_angle": 45,
+   "max_object_angle": 45,
+   "source": "ObjActParam 1200 MaxActionDistance 90 (cm로 읽음) · MaxPlayerAngle 45 · MaxObjectAngle 45 · ObjectActionModelPoint 191 = o1200.flver 더미 191 로컬 (0,0,1.182)"
+  }
  }
 }
