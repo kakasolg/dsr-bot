@@ -57,6 +57,12 @@ pipeline whose output hasn't passed the check that matters. MoKa's model wording
   why; don't mark it done or swap in something else.
 - Results as in "How to state results": a kill doesn't show the changed path ran; a target situation that never came up = on hold.
 
+## MoKa instructions (MoKa 2026-11-08)
+Every MoKa instruction or judgement about play gets a line in `docs/moka_ledger.jsonl` the same turn (id, quote, status built ·
+not_built · held · noted · principle, `why` when not built, `detector` in `moka_ledger.py` when the log can show the situation).
+Not building it is fine; dropping it silently is not ("조용히 씹혀 버리면 … 잊어먹은 건지 나도 판단이 않되"). A bad outcome is
+not proof the instruction is wrong — other conditions often decide it ("다른 팩터가 영향을 줘서 않되는 경우가 다반사"); report by case.
+
 ## Code and tests
 - Python 3.12. Offline tests (no game): `python -m pytest` (all) · `python -m pytest -k radar` (one) · `python tests/radar_test.py`
   (one script). New tests: `tests/<name>_test.py`, picked up automatically.
@@ -82,7 +88,8 @@ pipeline whose output hasn't passed the check that matters. MoKa's model wording
 - Rule and number sources: LAYERS.md. Record formats: OBSERVE.md.
 
 ## [win] after every bot run
-Run `python hotspots.py` (this run vs earlier: NEW · AGAIN · GONE), `python track_report.py` (planned path vs actual,
+Run `python moka_ledger.py [<run>] --cases` (each MoKa instruction in `docs/moka_ledger.jsonl`: came up · followed · outcome,
+with the conditions of every case — report it, including not-built lines), `python hotspots.py` (this run vs earlier: NEW · AGAIN · GONE), `python track_report.py` (planned path vs actual,
 stall spots) and `python blind_report.py` (decision gaps in fights — status line silent > 2 s and the damage taken
 meanwhile, by cause; if this grows while the average tick stays the same, the bot got slower). Copy the run with
 `python sample.py [<run>] [name]` (newest run by default: log → `.txt`, track, `.settings.json`, events `.jsonl`, timestamp kept in the name;
