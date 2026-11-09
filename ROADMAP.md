@@ -240,6 +240,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 142 | Taurus no sip | verify |
 | 143 | z1 drop stuck | open |
 | 144 | Taurus 4100 sip | verify |
+| 145 | Taurus 2fc6aaa death | open |
 
 ## 5. Relay — [cloud] ↔ board
 
