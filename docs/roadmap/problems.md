@@ -2491,3 +2491,10 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
   최저 HP 65 %, 큰 피격 0번, 에스트 0. 약공×3 두 번: 시작 앞 −0.24 · −0.12 (중심 뒤), 피해 408 · 306. 보스 701은 59.3–61.3 s
   (나와 0.7–2.5 m)에 나왔고 그동안 약공 시작 없음 → 61.3 s 701 끝, 62.3 s 약공 시작 (701 기다림 길로 보임 — 로그에 기다림 줄이 없어 track 시각으로만 추정).
   사슬 도중 701은 없음 → 끊기 길은 실행 안 됨 (게임 미확인). 낙하 뒤 첫 약공까지 5.1 s (074547은 1.0 s) — 그 차이가 701 기다림.
+
+### P-150 Level-up spent on VIT instead of STR/DEX for the Claymore (20261109_124818_light-burg)
+- 증상: MoKa "돌아가서 레벨업 해봐" → `run.py light-burg --level-up VIT` → SL 7→14, VIT 15→22, 소울 6419→87. 그 사이 MoKa "레벨업은 일단 클레이모어 사용
+  가능하게 str, dex 올려 줘야 해" · "str" — 이미 쓴 뒤 도착.
+- 원인 (실수): 능력치를 묻지 않고 10-31 지시 M1031-01 "소울이 모일때 마다 Vitality" 를 그대로 씀. 지금 목표 (1-b. 클레이모어 주무기, MoKa 10-12)를 안 봄.
+- 지금: STR 14 · DEX 9 (클레이모어 STR 16 · DEX 10), 소울 87. 되돌리려면 세이브 복원뿐 (MoKa 판단).
+- 다음: 레벨업 전 능력치를 MoKa 지시 최신 줄에서 확인. 다음 레벨업은 --level-up STR (16까지) → DEX (10까지) (M1109-36).

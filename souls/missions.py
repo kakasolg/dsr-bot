@@ -1596,6 +1596,24 @@ class Missions:
                 return True
         return False
 
+    def _shortcut_ladder_down(self, nb, r: str) -> str:
+        """walk_to stopped at the top of the Burg shortcut ladder (above the bonfire, altar route data 'ladder_shortcut') → climb down
+        with Altar._ladder_down, then walk on to the bonfire. Elsewhere → r unchanged.
+        ([MoKa] 11-09 "사다리를 내려야 하는데" · "사다리 한번 내리면, 숏컷이 열린 거야" · "다음 부터는 그 사다리로 바로 갈수 있는 거야" —
+        124406 light-burg: 타우로스 다리에서 화톳불로 가다 사다리 위 (−3.4, −0.3, −63.4)에서 'unreachable' 반복으로 멈춤. 사다리 차기는
+        이 세이브에서 한 번 (손으로, Kick ladder → Climb down 확인) — 찬 뒤엔 계속 열림이라 여기서는 차지 않고 내려가기만)"""
+        from souls import altar
+        A = altar.Altar(self.f, nb, DATA, log=self.log, events=getattr(self, "events", lambda *a, **k: None))
+        lad = A.R["ladder_shortcut"]
+        s = self.mv.snap(5.0)
+        if s is None or math.dist((s.player.x, s.player.y, s.player.z), tuple(lad["top"])) > 3.0:
+            return r
+        self.log(f"   화톳불로: 숏컷 사다리 위에서 멈춤 ({r}) → 사다리로 내려감")
+        d = A._ladder_down(tuple(lad["top"]), tuple(lad["face"]), float(lad["bottom"][1]))
+        if d != "ok":
+            return f"숏컷 사다리 {d}"
+        return self.f.walk_to(BURG_BONFIRE_SIDE, nb, "화톳불로 (사다리 아래에서)")
+
     def light_burg_bonfire(self) -> str:
         """Light the Undead Burg bonfire and sit: first A = light (BONFIRE LIT), next A = sit.
         Success = sat and the last bonfire ID is no longer Firelink Shrine. B (stand up) is pressed **only while sitting** (otherwise it's a backstep)."""
@@ -1603,6 +1621,8 @@ class Missions:
         _, _, R = _route()
         self.f.home = tuple(R["b"][0])                     # retreat spot = Undead Burg entrance (inside this navmesh)
         r = self.f.walk_to(BURG_BONFIRE_SIDE, nb, "화톳불로")
+        if r != "arrived":
+            r = self._shortcut_ladder_down(nb, r)
         if r != "arrived":
             return f"화톳불까지 {r}"
         # Bloodstain next to the bonfire first (2026-09-24: died here, 740 souls) — we'll sit at this bonfire anyway, so it's fine if A goes into sitting
