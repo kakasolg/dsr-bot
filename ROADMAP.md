@@ -224,7 +224,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 126 | warp, re-entered 5 | verify: rest ok |
 | 127 | z2 walker anim −1 | verify: 1:1 |
 | 128 | no guard vs swing | verify → guard; cleared |
-| 129 | ramp #N? · escape error | verify → fixed, 3 ok |
+| 129 | ramp #N? | verify: 3 ok |
 | 130 | swing bs ≥1.8 m mostly hit | verify: guard |
 | 131 | z4-1 crowd warp | verify: demo order |
 | 132 | block→bs late | verify: light |
@@ -239,6 +239,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 141 | Taurus guard | verify |
 | 142 | Taurus no sip | verify |
 | 143 | z1 drop stuck | open |
+| 144 | Taurus 4100 sip | verify |
 
 ## 5. Relay — [cloud] ↔ board
 

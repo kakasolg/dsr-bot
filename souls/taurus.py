@@ -58,9 +58,14 @@ HIT_SP = 40
 #  · 칠 때와 에스트 때만 가드를 내림. 자리에서 기력을 기다릴 때도 가드 (기력이 차는지가 이번 시험 질문 — 'hit' 이벤트에 sp)
 #  · 예전 (10-12 시험 4): 약공 뒤마다 LB가 눌린 채라 무기로 막아 기력 98 → 9, 약공 4번 중 1번만 맞음 → 가드 끔. GUARD_CLOSE False면 그대로
 GUARD_CLOSE = True
-LOW_BACK_R = 4.0                    # P-142: below the sip line with no sip window, back off to this (guard up) — unmeasured
+# ── 보스 공격 애니 (P-142 2차, 11-09 065619) ──────────────────────────────────────────────
+#  M.ATTACK(3000–3499)만 보고 마시다 4100 · 4101 · 4106에 −244 · −277 · −244 → 사망. TAE c2250(data/gamefiles/tae.json)에
+#  4000–4006 · 4100–4106도 3000–3006과 같은 시각의 공격 판정이 있음 (파일), 예전 런에서도 4100번대 피격 5번 (런타임).
+BOSS_ATTACK = frozenset(range(3000, 3500)) | frozenset(range(4000, 4007)) | frozenset(range(4100, 4107))
 HIT_SP2 = 80                        # two in a row only from here (two cost ~76)
 ESTUS_HP = 0.40
+SIP_SPOT_R = 0.8                    # P-142 (MoKa 11-09 "에스트를 마셔도 다리 사이에서"): sip only this close to crotch_spot — unmeasured
+SIP_SPOT_WAIT = 4.0                 # … unless a sip window has been open this long without reaching it (never drinking = death) — unmeasured
 # ── 두 대 맞으면 죽음 → 한 대 맞으면 마심 ([MoKa] 11-02 "연속 2대 맞으면 죽잖아" · "에스트 마시면서") ──
 #  11-02 051424: 착지 562 → 3006 −242 = 320(46 %, ESTUS_HP 위라 안 마심) → 3005 −242 = 78 → 마시다 끊겨 사망, 보스 HP ~161 남음
 TAURUS_HIT = 245                    # one hit seen 233–242 (10-12 3003 −233, 11-02 3006 / 3005 −242)
@@ -553,6 +558,7 @@ class Taurus:
     def _fight_loop(self, t0: float, hits: int) -> str:
         g0 = getattr(self.f.esc, "gen", 0)
         low_said = False
+        win_t = None                                   # first tick of the current sip window off the spot
         while time.time() - t0 < FIGHT_LIMIT:
             if not self.f.alive():
                 self.log(f"   타우로스 싸움: 사망 — {time.time() - t0:.0f} s, 약공 {hits}번")
@@ -575,26 +581,41 @@ class Taurus:
             p = s.player
             h = M.horiz(p, b)
             a = b.anim if b.anim is not None else -1
-            if p.hp < max(p.max_hp * ESTUS_HP, 2 * TAURUS_HIT) and a not in M.ATTACK and self.mv.estus_left() > 0:
+            low = p.hp < max(p.max_hp * ESTUS_HP, 2 * TAURUS_HIT) and self.mv.estus_left() > 0
+            # ── 에스트도 다리 사이에서 (MoKa 11-09 "에스트를 마셔도 다리 사이에서 마셔야지") ──────────────────
+            #  틈(BOSS_ATTACK 밖)이 와도 가랑이 자리에서 SIP_SPOT_R 밖이면 아래 '못 마시는 틱' 가지가 자리로 데려감 → 자리에서 마심.
+            #  틈이 SIP_SPOT_WAIT 넘게 열렸는데도 자리에 못 가면 그 자리에서 마심 (아예 못 마시고 죽는 것보다 나음, 측정 전 값)
+            sx0, sz0 = crotch_spot(b, p)
+            on_spot = math.hypot(sx0 - p.x, sz0 - p.z) <= SIP_SPOT_R
+            win_t = (win_t or time.time()) if low and a not in BOSS_ATTACK and not on_spot else None
+            late = win_t is not None and time.time() - win_t > SIP_SPOT_WAIT
+            if low and a not in BOSS_ATTACK and (on_spot or late):
+                if late:
+                    self.log(f"   타우로스: 다리 사이 못 가고 {SIP_SPOT_WAIT:g} s — 그 자리에서 마심 ({h:.1f} m)")
+                win_t = None
                 self.pad.neutral()
                 self.pad.guard(False)
-                r = self.mv.drink(lambda sn: (self.boss(sn) is None or (self.boss(sn).anim or -1) not in M.ATTACK))
+                r = self.mv.drink(lambda sn: (self.boss(sn) is None or (self.boss(sn).anim or -1) not in BOSS_ATTACK))
                 self.log(f"   타우로스 싸움 중 에스트: {r}")
                 self.events("estus", **r)
                 continue
             if p.hp < max(p.max_hp * ESTUS_HP, 2 * TAURUS_HIT) and self.mv.estus_left() > 0:
-                # ── 못 마시는 틱엔 치지 않음 (P-142, MoKa 11-09 "1번 진행") ──────────────────────────
-                #  013102: HP 355 · 136, 에스트 1개 남음 — 보스가 3000번대라 마시는 조건이 안 맞는 틱마다 아래로 내려가 약공×2 → 3006 −136 사망.
-                #  마실 선 아래면 약공 안 함: 가드 든 채 LOW_BACK_R까지 물러나 서서, 위 에스트 검사가 틈을 잡을 때까지 기다림
-                #  (MoKa 11-02 "한 대 맞으면 마심"). LOW_BACK_R는 측정 전 값.
+                # ── 못 마시는 틱엔 치지 않음, 그래도 다리 사이에 붙어 있음 (P-142, MoKa 11-09) ──────────────
+                #  013102: HP 136 · 에스트 1개 — 보스 3000번대 틱마다 약공×2 → 3006 −136 사망 → 마실 선 아래면 약공 안 함.
+                #  첫 판(ff9c32c)은 가드 든 채 4 m까지 물러났음 → MoKa 11-09: "다리사이로 붙으라니깐 왜 멀리 떨어져 … 길이 좁고, 보스 무기
+                #  거리에 들어가서, 가장 안전한 곳이 보스 다리 사이" (M1103-21). 그래서 물러나지 않고 가드 든 채 가랑이 자리(crotch_spot)를
+                #  따라가며 서서, 위 에스트 검사가 틈(BOSS_ATTACK 밖)을 잡을 때까지 기다림
                 if not low_said:
                     low_said = True
-                    self.log(f"   타우로스: HP {p.hp} — 마실 틈 기다림, 약공 안 함 (보스 애니 {a}, {h:.1f} m, P-142)")
+                    self.log(f"   타우로스: HP {p.hp} — 다리 사이에서 가드, 마실 틈 기다림, 약공 안 함 (보스 애니 {a}, {h:.1f} m, P-142)")
                     self.events("taurus", what="wait_sip", hp=p.hp, anim=a, h=round(h, 2))
                 self.pad.guard(True)
-                if h < LOW_BACK_R and s.cam_yaw is not None:
-                    way = nav.safe_heading(self.nm, p, p.x - b.x, p.z - b.z, reach=1.0)
-                    self.pad.move(*(self.mv.stick_to(s, p.x + way[0], p.z + way[1], 1.0) if way is not None else (0.0, 0.0)))
+                sx, sz = crotch_spot(b, p)
+                off = math.hypot(sx - p.x, sz - p.z)
+                if off > SPOT_R and s.cam_yaw is not None:
+                    way = nav.safe_heading(self.nm, p, sx - p.x, sz - p.z, reach=min(1.2, max(0.3, off)))
+                    self.pad.move(*(self.mv.stick_to(s, p.x + way[0], p.z + way[1], 1.0 if off > 0.8 else 0.6)
+                                    if way is not None else (0.0, 0.0)))
                 else:
                     self.pad.move(0.0, 0.0)
                 time.sleep(0.05)
