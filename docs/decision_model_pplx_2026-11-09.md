@@ -158,3 +158,22 @@ first", is ledger line M1108-10 (not built, waiting for MoKa's call).
 `rule_backstab_swing`, `prep_backstab_chance` and `rule_backstab` all require `T.room`. So with 2+ foes on us
 (`_crowd ≥ NO_BACKSTAB_N` → `T.room = False`), the bot never backstabs, even when the foe gives the opening.
 MoKa's "다수전 뒤잡은 적이 기회를 줄 때만" (M1108-11, held) has no path today; it would need an opening-only route that does no circling.
+
+## Why an LLM decision model at all (MoKa 2026-11-09, ledger M1109-01)
+The LLM does not read game memory; it would only see what the bot recorded (scene snapshot + anim meaning table),
+and it is too slow to drive the fight. So it is **not** the controller. Its job is a **test bench for the data**:
+- Keep a frozen, versioned set of decision cases:
+  - exact scene input;
+  - the candidates;
+  - MoKa's clip-anchored judgment, with the deciding condition;
+  - the instruction ids.
+- With each newer LLM, give it the same cases with the same fixed prompt (MoKa's instructions and the anim meaning table). Record:
+  - agreement with MoKa, by conflict type;
+  - what it says is missing to decide.
+- How to read the result:
+  - **Agrees more as models get better:** the record carries what the decision needs.
+  - **A strong model keeps missing in the same way:** the record lacks something MoKa sees only on video (camera-off foes, terrain, where a foe is heading), or the labels conflict. Either way that is a data gap to fix.
+- Limits:
+  - Agreement with MoKa is not proof of better play.
+  - The comparison needs the current rules and the small ranker as baselines.
+  - The case format must stay model-independent: plain JSON plus text tables, no model-specific prompt baked into the data.
