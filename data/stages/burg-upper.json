@@ -3,7 +3,7 @@
  "title": "성벽 마을 위쪽 — 화톳불 → 타우로스 (구역 1–8)",
  "map": "m10_01_00_00",
  "made_by": "stage_report.py",
- "runs_read": 94,
+ "runs_read": 95,
  "zones": [
   {
    "n": 1,
@@ -155,11 +155,11 @@
     ]
    },
    "runs": {
-    "runs": 78,
-    "tries": 88,
-    "cleared": 81,
+    "runs": 79,
+    "tries": 90,
+    "cleared": 83,
     "results": {
-     "cleared": 81,
+     "cleared": 83,
      "died": 5,
      "left": 2
     },
@@ -191,10 +191,10 @@
      }
     ],
     "falls": 7,
-    "big_hits": 116,
-    "big_hit_lost": 15222,
+    "big_hits": 118,
+    "big_hit_lost": 15485,
     "blamed": {
-     "254010": 96,
+     "254010": 98,
      "255002": 16,
      "255001": 1
     },
@@ -271,6 +271,7 @@
      "20261104_083206_burg-upper",
      "20261104_095201_burg-upper_claymore-r4",
      "20261108_192447_burg-upper_p131-run1",
+     "20261108_194800_burg-upper_p131-run2",
      "burg-upper-radar-2026-10-06-195804",
      "burg-upper-radar-2026-10-06-201550",
      "burg-upper-radar-2026-10-06a",
@@ -483,11 +484,11 @@
     ]
    },
    "runs": {
-    "runs": 66,
-    "tries": 76,
-    "cleared": 60,
+    "runs": 67,
+    "tries": 78,
+    "cleared": 62,
     "results": {
-     "cleared": 60,
+     "cleared": 62,
      "died": 12,
      "warped": 3,
      "left": 1
@@ -555,8 +556,8 @@
      }
     ],
     "falls": 1,
-    "big_hits": 147,
-    "big_hit_lost": 26507,
+    "big_hits": 148,
+    "big_hit_lost": 26614,
     "blamed": {
      "254011": 73,
      "255001": 54,
@@ -625,6 +626,7 @@
      "20261104_083206_burg-upper",
      "20261104_095201_burg-upper_claymore-r4",
      "20261108_192447_burg-upper_p131-run1",
+     "20261108_194800_burg-upper_p131-run2",
      "burg-upper-radar-2026-10-06-195804",
      "burg-upper-radar-2026-10-06-201550",
      "burg-upper-radar-2026-10-06b",
@@ -783,11 +785,11 @@
     ]
    },
    "runs": {
-    "runs": 53,
-    "tries": 59,
-    "cleared": 59,
+    "runs": 54,
+    "tries": 61,
+    "cleared": 61,
     "results": {
-     "cleared": 59
+     "cleared": 61
     },
     "deaths": [],
     "falls": 0,
@@ -850,6 +852,7 @@
      "20261104_083206_burg-upper",
      "20261104_095201_burg-upper_claymore-r4",
      "20261108_192447_burg-upper_p131-run1",
+     "20261108_194800_burg-upper_p131-run2",
      "burg-upper-radar-2026-10-06-195804",
      "burg-upper-radar-2026-10-06-201550",
      "burg-upper-radar-2026-10-06f",
@@ -1083,13 +1086,13 @@
     ]
    },
    "runs": {
-    "runs": 52,
-    "tries": 57,
-    "cleared": 50,
+    "runs": 53,
+    "tries": 59,
+    "cleared": 51,
     "results": {
-     "cleared": 50,
+     "cleared": 51,
      "died": 3,
-     "warped": 4
+     "warped": 5
     },
     "deaths": [
      {
@@ -1117,7 +1120,7 @@
      "254012": 23,
      "255002": 1
     },
-    "secs_median": 68,
+    "secs_median": 67,
     "files": [
      "20261011_170346_burg-upper_p67fix-zone5-death",
      "20261011_171918_burg-upper_p68fix-zone8-death",
@@ -1167,6 +1170,7 @@
      "20261104_083206_burg-upper",
      "20261104_095201_burg-upper_claymore-r4",
      "20261108_192447_burg-upper_p131-run1",
+     "20261108_194800_burg-upper_p131-run2",
      "burg-upper-radar-2026-10-06-195804",
      "burg-upper-radar-2026-10-06-201910",
      "burg-upper-radar-2026-10-06g",
@@ -1174,7 +1178,8 @@
     ]
    },
    "problems": [
-    "P-101"
+    "P-101",
+    "P-135"
    ]
   },
   {
@@ -1359,11 +1364,11 @@
     ]
    },
    "runs": {
-    "runs": 47,
-    "tries": 44,
-    "cleared": 36,
+    "runs": 48,
+    "tries": 45,
+    "cleared": 37,
     "results": {
-     "cleared": 36,
+     "cleared": 37,
      "died": 6,
      "left": 2
     },
@@ -1407,7 +1412,7 @@
      "255000": 11,
      "254012": 4
     },
-    "secs_median": 86,
+    "secs_median": 84,
     "files": [
      "20261011_170346_burg-upper_p67fix-zone5-death",
      "20261011_171918_burg-upper_p68fix-zone8-death",
@@ -1451,6 +1456,7 @@
      "20261104_083206_burg-upper",
      "20261104_095201_burg-upper_claymore-r4",
      "20261108_192447_burg-upper_p131-run1",
+     "20261108_194800_burg-upper_p131-run2",
      "burg-upper-radar-2026-10-06-195804",
      "burg-upper-radar-2026-10-06-200335",
      "burg-upper-radar-2026-10-06-202244",
@@ -1595,11 +1601,11 @@
     ]
    },
    "runs": {
-    "runs": 37,
-    "tries": 37,
-    "cleared": 32,
+    "runs": 38,
+    "tries": 38,
+    "cleared": 33,
     "results": {
-     "cleared": 32,
+     "cleared": 33,
      "died": 5
     },
     "deaths": [
@@ -1635,7 +1641,7 @@
     "blamed": {
      "255001": 39
     },
-    "secs_median": 33,
+    "secs_median": 35,
     "files": [
      "20261011_171918_burg-upper_p68fix-zone8-death",
      "20261011_174753_burg-upper_zones1-8-cleared",
@@ -1671,6 +1677,7 @@
      "20261104_083206_burg-upper",
      "20261104_095201_burg-upper_claymore-r4",
      "20261108_192447_burg-upper_p131-run1",
+     "20261108_194800_burg-upper_p131-run2",
      "burg-upper-radar-2026-10-06-200335",
      "burg-upper-radar-2026-10-06-202244",
      "burg-upper-radar-2026-10-06k"
@@ -1724,11 +1731,11 @@
     ]
    },
    "runs": {
-    "runs": 31,
-    "tries": 31,
-    "cleared": 30,
+    "runs": 32,
+    "tries": 32,
+    "cleared": 31,
     "results": {
-     "cleared": 30,
+     "cleared": 31,
      "died": 1
     },
     "deaths": [
@@ -1744,7 +1751,7 @@
     "blamed": {
      "255001": 4
     },
-    "secs_median": 44,
+    "secs_median": 45,
     "files": [
      "20261011_171918_burg-upper_p68fix-zone8-death",
      "20261011_174753_burg-upper_zones1-8-cleared",
@@ -1774,6 +1781,7 @@
      "20261104_083206_burg-upper",
      "20261104_095201_burg-upper_claymore-r4",
      "20261108_192447_burg-upper_p131-run1",
+     "20261108_194800_burg-upper_p131-run2",
      "burg-upper-radar-2026-10-06-200335",
      "burg-upper-radar-2026-10-06-202244",
      "burg-upper-radar-2026-10-06k"
@@ -1922,12 +1930,12 @@
     "others": []
    },
    "runs": {
-    "runs": 31,
-    "tries": 31,
-    "cleared": 23,
+    "runs": 32,
+    "tries": 32,
+    "cleared": 24,
     "results": {
      "died": 7,
-     "cleared": 23,
+     "cleared": 24,
      "fog": 1
     },
     "deaths": [
@@ -1968,10 +1976,10 @@
      }
     ],
     "falls": 1,
-    "big_hits": 53,
-    "big_hit_lost": 7844,
+    "big_hits": 54,
+    "big_hit_lost": 8030,
     "blamed": {
-     "255002": 52
+     "255002": 53
     },
     "secs_median": 38,
     "files": [
@@ -2004,6 +2012,7 @@
      "20261104_083206_burg-upper",
      "20261104_095201_burg-upper_claymore-r4",
      "20261108_192447_burg-upper_p131-run1",
+     "20261108_194800_burg-upper_p131-run2",
      "burg-upper-radar-2026-10-06-200729",
      "burg-upper-radar-2026-10-06-202244"
     ]
