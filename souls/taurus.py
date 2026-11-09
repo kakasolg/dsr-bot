@@ -64,6 +64,7 @@ GUARD_CLOSE = True
 BOSS_ATTACK = frozenset(range(3000, 3500)) | frozenset(range(4000, 4007)) | frozenset(range(4100, 4107))
 HIT_SP2 = 80                        # two in a row only from here (two cost ~76)
 ESTUS_HP = 0.40
+SPOT_ATTACK_S = 0.5                 # [MoKa] 11-09 "다리에 붙으면 0.5초 내에 공격 들어가봐": on the spot this long → swing even below HIT_SP (stamina > 0)
 SIP_SPOT_R = 0.8                    # P-142 (MoKa 11-09 "에스트를 마셔도 다리 사이에서"): sip only this close to crotch_spot — unmeasured
 SIP_SPOT_WAIT = 4.0                 # … unless a sip window has been open this long without reaching it (never drinking = death) — unmeasured
 # ── 두 대 맞으면 죽음 → 한 대 맞으면 마심 ([MoKa] 11-02 "연속 2대 맞으면 죽잖아" · "에스트 마시면서") ──
@@ -542,7 +543,7 @@ class Taurus:
 
     def _fight(self) -> str:
         """Between its legs ([MoKa] "바짝 붙어서 공격", 11-03 "보스 가랑이 사이에서 공격"): within SPOT_R of crotch_spot() and
-        stamina ≥ HIT_SP2 → two lights; else walk to the spot (floor-checked) and let stamina come back. HP < ESTUS_HP and it isn't swinging → Estus."""
+        stamina ≥ HIT_SP → three lights (MoKa 11-09); else walk to the spot (floor-checked) and let stamina come back. HP < ESTUS_HP and it isn't swinging → Estus."""
         t0, hits = time.time(), 0
         # no guard: two-handed, LB is a weapon block — try 4 (2026-10-12) light() held it after each swing, the axe soaked
         # its hits (stamina 98 → 9), stamina came back slowly with LB down, and only 1 of 4 lights landed
@@ -559,6 +560,7 @@ class Taurus:
         g0 = getattr(self.f.esc, "gen", 0)
         low_said = False
         win_t = None                                   # first tick of the current sip window off the spot
+        spot_t = None                                  # first tick on the spot since the last swing
         while time.time() - t0 < FIGHT_LIMIT:
             if not self.f.alive():
                 self.log(f"   타우로스 싸움: 사망 — {time.time() - t0:.0f} s, 약공 {hits}번")
@@ -584,13 +586,13 @@ class Taurus:
             # ── 붙어 싸울 때 에스트는 기력이 바닥날 때만, 다리 사이에서 (P-142 · P-144, MoKa 11-09) ─────────────────
             #  "에스트를 왜 마셔, 다리 사이에서 몇대 때리면 죽는데, 에스트 마시면서 시간 낭비" · "스테미나가 다 떨어져가서 할게 없으면
             #  에스트 마셔도 되겠지만, 다른 케이스는 스테미나가 더 중요한 상황" · "에스트를 마셔도 다리 사이에서 마셔야지".
-            #  → HP가 마실 선 아래여도 기력이 HIT_SP2 이상이면 아래에서 약공×2 (마시지 않음). 기력이 모자라 어차피 가랑이 자리에서
+            #  → HP가 마실 선 아래여도 기력이 HIT_SP 이상이면 아래에서 약공×3 (마시지 않음, 11-09 '3대 연속'). 기력이 모자라 어차피 가랑이 자리에서
             #  기다리는 틱에만, 보스가 BOSS_ATTACK 밖이고 자리 SIP_SPOT_R 안이면 마심. P-142 1차의 '약공 안 함 + 4 m 물러남'은 없앰
             #  (MoKa: "다리사이로 붙으라니깐 왜 멀리 떨어져"). 그 틈이 SIP_SPOT_WAIT 넘게 열렸는데 자리에 못 가면 그 자리에서 마심 (측정 전)
             low = p.hp < max(p.max_hp * ESTUS_HP, 2 * TAURUS_HIT) and self.mv.estus_left() > 0
             sx0, sz0 = crotch_spot(b, p)
             on_spot = math.hypot(sx0 - p.x, sz0 - p.z) <= SIP_SPOT_R
-            window = low and (p.sp or 0) < HIT_SP2 and a not in BOSS_ATTACK
+            window = low and (p.sp or 0) < HIT_SP and a not in BOSS_ATTACK
             win_t = (win_t or time.time()) if window and not on_spot else None
             late = win_t is not None and time.time() - win_t > SIP_SPOT_WAIT
             if window and (on_spot or late):
@@ -611,12 +613,18 @@ class Taurus:
             sx, sz = crotch_spot(b, p)
             off = math.hypot(sx - p.x, sz - p.z)
             # [MoKa] 11-03 "2대 때리고 다시 가랑이에 붙어봐. 거리 조절도 되지만, 스테미나도 채워야해" — always two, then stay on the
-            # spot (it re-follows the spot as the boss turns) until stamina is back to HIT_SP2; no single light on leftover stamina
-            if off <= SPOT_R and (p.sp or 0) >= HIT_SP2:
+            # spot (it re-follows the spot as the boss turns) until stamina is back to HIT_SP (11-09: was HIT_SP2 80 for two)
+            # [MoKa] 11-09 "다리에 붙었으면 바로 공격하고 3대를 연속으로 때려봐" — 071032: 기력 80을 가드 든 채 기다리느라 6 s (초당 ~9),
+            # 그동안 아무것도 안 함. 이제 자리에 붙으면 기력 HIT_SP(40)부터 바로 약공×3 (세 번째는 기력이 음수로 가도 나감, 측정 전)
+            spot_t = (spot_t or time.time()) if off <= SPOT_R else None
+            waited = time.time() - spot_t if spot_t is not None else 0.0
+            if off <= SPOT_R and ((p.sp or 0) >= HIT_SP or (waited >= SPOT_ATTACK_S and (p.sp or 0) > 0)):
                 if self.mv.face(s, b, deg=30.0):
-                    n = 2
+                    self.log(f"   타우로스: 다리 사이 도착 → 약공까지 {waited:.2f} s (기력 {p.sp})")
+                    spot_t = None
+                    n = 3
                     self.pad.guard(False)
-                    hit = self.mv.light(s, b, n=n, sp_second=HIT_SP)
+                    hit = self.mv.light(s, b, n=n, sp_second=0)
                     hits += n
                     self.events("taurus", what="hit", dmg=hit.dmg, taken=hit.taken, h=round(h, 2), anim=a, sp=p.sp,
                                 guard=GUARD_CLOSE)

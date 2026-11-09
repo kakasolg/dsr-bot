@@ -94,7 +94,7 @@ t, mv, pad = make([snap(b, me=(47.3, 15.8, -119.3), sp=98), snap(None, me=(47.3,
 mv.light = light
 r = t._fight()
 check("fight: killed (it just drops out of the snapshot, no quit-out)", r == "killed")
-check("fight: two lights at full stamina, guard off while swinging", hits and hits[0] == (2, False))
+check("fight: three lights at full stamina (MoKa 11-09 \"3대를 연속으로\"), guard off while swinging", hits and hits[0] == (3, False))
 check("fight: guard_ok restored afterwards", mv.guard_ok is True)
 check("fight: LB released at the start", ("guard", (False,)) in pad.calls)
 
@@ -263,18 +263,35 @@ t, mv, pad = make([snap(boss(x=47.0, y=15.8, z=-119.0, anim=-1, hp=500), me=(46.
                    snap(None, me=(46.4, 15.8, -119.45))])
 mv.light = light
 t._fight()
-check(f"close fight: between its legs (0.4 front, 0.6 side) → swings ({hits})", hits and hits[0][0] == 2)
+check(f"close fight: between its legs (0.4 front, 0.6 side) → swings three ({hits})", hits and hits[0][0] == 3)
 check("crotch spot: player on its left → spot on its left",
       T.ang_off(boss(x=47.0, y=15.8, z=-119.0), NS(x=47.0 + 0.5, z=-119.3)) < 0
       and T.crotch_spot(boss(x=47.0, y=15.8, z=-119.0), NS(x=47.5, z=-119.3))[0] > 47.0)
 
-# [MoKa] 11-03 "2대 때리고 다시 가랑이에 붙어봐 … 스테미나도 채워야해": on the spot with stamina 60 (one light's worth) → no swing
+# [MoKa] 11-09 "다리에 붙었으면 바로 공격하고 3대를 연속으로 때려봐" (was 11-03: wait for two-hit stamina 80 — 071032 waited 6 s
+# with the guard up): on the spot with stamina 60 → three at once; stamina 30 (below HIT_SP 40) → no swing yet
 hits.clear()
 t, mv, pad = make([snap(boss(x=47.0, y=15.8, z=-119.0, anim=-1, hp=500), me=(46.4, 15.8, -119.45), sp=60)] * 3
                   + [snap(None, me=(46.4, 15.8, -119.45))])
 mv.light = light
 t._fight()
-check(f"close fight: on the spot, stamina 60 → waits for two-hit stamina, no single light ({hits})", hits == [])
+check(f"close fight: on the spot, stamina 60 → three lights right away ({hits})", hits and hits[0][0] == 3)
+hits.clear()
+t, mv, pad = make([snap(boss(x=47.0, y=15.8, z=-119.0, anim=-1, hp=500), me=(46.4, 15.8, -119.45), sp=30)] * 3
+                  + [snap(None, me=(46.4, 15.8, -119.45))])
+mv.light = light
+t._fight()
+check(f"close fight: on the spot, stamina 30 → no swing yet ({hits})", hits == [])
+# [MoKa] 11-09 "다리에 붙으면 0.5초 내에 공격 들어가봐": stamina 30 but on the spot for SPOT_ATTACK_S → swings
+hits.clear()
+import time as _tt
+_on_frames = [snap(boss(x=47.0, y=15.8, z=-119.0, anim=-1, hp=500), me=(46.4, 15.8, -119.45), sp=30)]
+t, mv, pad = make(_on_frames * 40 + [snap(None, me=(46.4, 15.8, -119.45))])
+mv.light = light
+_t0 = _tt.time()
+t._fight()
+check(f"close fight: on the spot, stamina 30 → swings once SPOT_ATTACK_S has passed ({hits}, {_tt.time() - _t0:.2f} s)",
+      hits and hits[0][0] == 3 and T.SPOT_ATTACK_S == 0.5)
 
 # [MoKa] 11-03 "때릴때 마다 뒤로 밀려" — pushed 1.2 m back off the spot after a swing → full stick back in
 T.nav.safe_heading = lambda nm, p, dx, dz, reach=1.0: (dx, dz)

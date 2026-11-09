@@ -337,8 +337,9 @@ class Moves:
     @_span
     @_aligned(0)
     def light(self, s, c, n: int = 1, sp_second: int = 40) -> Hit:
-        """Light attack (R1) n times (1 or 2). The second at SECOND_R1_AT after the first R1, only if stamina exceeds sp_second.
-        The shield goes up after the last attack anim starts (so the second R1 isn't overridden by guard)."""
+        """Light attack (R1) n times (1, 2 or 3). Each further R1 at SECOND_R1_AT after the previous one, only if stamina exceeds
+        sp_second at the start. The shield goes up after the last attack anim starts (so a buffered R1 isn't overridden by guard).
+        n = 3: [MoKa] 11-09 타우로스 "다리에 붙었으면 바로 공격하고 3대를 연속으로 때려봐" — same chain step again, unmeasured."""
         hit = Hit("light")
         ptr, hp0, ehp0 = c.ptr, s.player.hp, c.hp
         w = self.weapon
@@ -352,23 +353,23 @@ class Moves:
         self.pad.guard(hold)
         self.pad.tap(B.XUSB_GAMEPAD_RIGHT_SHOULDER, 0.06)      # stick wait is handled by Pad
         hit.presses = 1
-        want_second = n >= 2 and (s.player.sp or 0) >= sp_second
-        state = {"second": not want_second, "guard": hold}
+        target = max(1, min(3, n)) if n >= 2 and (s.player.sp or 0) >= sp_second else 1
+        extra = (target - 2) * chain if target >= 2 else 0.0   # a third R1 shifts the guard / watch / exit times by one chain step
+        state = {"k": 1, "guard": hold}
 
         def tick(t, h):
-            if not state["second"] and t >= chain:
-                state["second"] = True
+            if state["k"] < target and t >= chain * state["k"]:
+                state["k"] += 1
                 if not h.dead:
                     self.pad.tap(B.XUSB_GAMEPAD_RIGHT_SHOULDER, 0.06)
-                    h.presses = 2
+                    h.presses = state["k"]
             # shield 0.6 s (0.35 s for a single hit) after the last R1 — pressing LB earlier can override the buffered R1 with guard
-            if not state["guard"] and state["second"] and t >= (g2 if h.presses == 2 else g1):
+            if not state["guard"] and state["k"] >= target and t >= (g2 + extra if target >= 2 else g1):
                 state["guard"] = True
                 self.guard(True)
         # when holding, the game signals the end — exit as soon as my anim returns to -1 (cancel frame)
-        exit_at = (lambda t, h: state["second"] and t > chain + 0.1) if hold else \
-                  (lambda t, h: state["second"] and t > (g2 - 0.3 if h.presses == 2 else g1 - 0.05))
-        self._watch(hit, ptr, hp0, ehp0, w2 if want_second else w1, tick, early_exit=exit_at)
+        exit_at = (lambda t, h: state["k"] >= target and t > chain + extra + 0.1) if hold else                   (lambda t, h: state["k"] >= target and t > (g2 - 0.3 + extra if target >= 2 else g1 - 0.05))
+        self._watch(hit, ptr, hp0, ehp0, w2 + extra if target >= 2 else w1, tick, early_exit=exit_at)
         self.pad.move(0.0, 0.0)
         self._phantom_check(s, c, hit)
         return hit
