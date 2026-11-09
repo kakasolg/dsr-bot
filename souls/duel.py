@@ -564,6 +564,28 @@ def _interloper(x, p, ptr, h: float) -> bool:
             and M.horiz(p, x) < min(SWITCH_R, h - SWITCH_MARGIN) and abs(x.y - p.y) < 1.2)
 
 
+def _foe_brief(p, x) -> dict:
+    """One foe as the target-switch record sees it: who, how far, which side, what it is doing, how hurt."""
+    ang = None
+    if p.heading is not None:
+        ang = round(math.degrees(M.rel_angle(p, x)))
+    return {"ptr": x.ptr, "npc": x.npc_param, "h": round(M.horiz(p, x), 2), "dy": round(x.y - p.y, 2), "deg": ang,
+            "anim": x.anim, "hp": x.hp, "max_hp": x.max_hp}
+
+
+def _arb_start(F, p, c, ranged_cut, busy, x, threat, now) -> dict:
+    """── 목표 바꿈 판단 기록 (MoKa 2026-11-09, docs/decision_model_pplx_2026-11-09.md) ──────────
+     목표 바꿈은 RULES 전에 일어나고 지금 목표가 얼마나 다쳤는지 안 봄 (M1108-10 '다친 적 유지'와 부딪힘).
+     원래 목표 → 원거리 후보(+근접 위협 거부) → 끼어든 놈 후보 → 최종 목표를 한 기록으로 남김. 영상 판정과 맞출 원자료.
+     기록만 — 이 dict는 다시 읽히지 않음."""
+    return {"t": now, "from": _foe_brief(p, c), "busy": bool(busy),
+            "ranged": [_foe_brief(p, y) for y in ranged_cut],
+            "ranged_pick": None if x is None else x.ptr,
+            "ranged_veto": None if threat is None else _foe_brief(p, threat),
+            "ranged_hold_left": round(max(0.0, SWITCH_HOLD - (now - F.switch_t)), 2),
+            "orig_ptr": F.orig_ptr}
+
+
 def _switch_threat(s, p, x, swung: dict, now: float):
     """
     ── 원거리 전환 안전성 (P-121, [MoKa] 2026-11-03) ──────────────────────────────
@@ -871,6 +893,7 @@ def _sense(F: Fight):
             swung[x.ptr] = now
     x = min(ranged_cut, key=lambda y: M.horiz(p, y)) if ranged_cut and not busy and now - F.switch_t > SWITCH_HOLD else None
     threat = _switch_threat(s, p, x, swung, now) if x is not None else None
+    arb = _arb_start(F, p, c, ranged_cut, busy, x, threat, now) if SCENE_TAP is not None and ranged_cut else None
     if threat is not None:
         if F.__dict__.get("_switch_held") != threat.ptr:
             F._switch_held = threat.ptr
@@ -887,6 +910,11 @@ def _sense(F: Fight):
         F.last_seen, F.foe = x, foes_.of(x.npc_param)
         h, dy, a = M.horiz(p, c), c.y - p.y, (c.anim if c.anim is not None else -1)
     cut = [x for x in s.hostile(SWITCH_R + 2.0) if _interloper(x, p, F.ptr, h)]
+    if SCENE_TAP is not None and (arb is not None or cut):
+        arb = arb or _arb_start(F, p, c, [], busy, None, None, now)
+        arb["mid"] = _foe_brief(p, c)                     # target after the ranged step, before the interloper step
+        arb["cut"] = [_foe_brief(p, y) for y in cut]
+        arb["cut_hold_left"] = round(max(0.0, SWITCH_HOLD - (now - F.switch_t)), 2)
     # between two at similar distances it switched targets every 1–2 s, turning and getting hit in the back (±140–166°, 442 in 25 s) —
     # switch only when clearly closer (SWITCH_MARGIN), and keep it for SWITCH_HOLD after switching
     if cut and now - F.switch_t > SWITCH_HOLD:
@@ -899,6 +927,10 @@ def _sense(F: Fight):
         F.ptr, c, F.switch_t = x.ptr, x, now
         F.last_seen, F.foe = x, foes_.of(x.npc_param)
         h, dy, a = M.horiz(p, c), c.y - p.y, (c.anim if c.anim is not None else -1)
+    if arb is not None:
+        arb["to"] = _foe_brief(p, c)
+        arb["switched"] = arb["to"]["ptr"] != arb["from"]["ptr"]
+        SCENE_TAP.switch(F, arb)                           # record only (scenes.py) — nothing here is read back
     if not (h > F.weapon.reach and F.wait_far):            # if not waiting, also clear the waiting HP baseline
         F.wait_hp0 = None
     _track_calm(F, c, a, now)
@@ -2803,7 +2835,7 @@ def _duel_loop(F, rr, advisor, tap, sp) -> DuelResult:
         if rr is not None:
             CT.tick(F, T)
         picked = None
-        for rule in RULES:
+        for i_rule, rule in enumerate(RULES):
             tok = tap.freeze(F, T) if tap is not None else None
             if sp is not None:
                 sp.rule_enter()
@@ -2819,7 +2851,7 @@ def _duel_loop(F, rr, advisor, tap, sp) -> DuelResult:
             if rr is not None:
                 rr.add(F, T, name, out)
             if SCENE_TAP is not None:
-                SCENE_TAP.decided(F, T, name, out)
+                SCENE_TAP.decided(F, T, name, out, i_rule)
             pay = tap.decided(F, T, tok, name, out) if tap is not None else None
             if advisor is not None:
                 if pay is None:

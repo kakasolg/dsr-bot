@@ -104,31 +104,60 @@ def capture(F, T) -> dict:
 class Tap:
     """duel.SCENE_TAP. sink(record) — default ctl.emit("scene", …). keep(rule, T, F) decides which decisions are kept."""
 
-    def __init__(self, sink=None):
+    def __init__(self, sink=None, switch_sink=None):
+        """switch_sink(record): target-switch records — default ctl.emit("switch", …) when sink is the default too, else dropped
+        unless given (a test that collects scenes doesn't get switch records mixed in)."""
         if sink is None:
             import ctl
             sink = lambda rec: ctl.emit("scene", **rec)
+            if switch_sink is None:
+                switch_sink = lambda rec: ctl.emit("switch", **rec)
         self.sink = sink
+        self.switch_sink = switch_sink
         self.pre = None
         self.last = {}                   # fight id → (rule, ptr, anim) last kept for a pose rule — one per change, not per tick
         self.kept = self.errors = 0
+        self.switches = 0
         self.cost_ns = 0
+        self.n = 0                       # tick id — joins a 'switch' record to the 'scene' record of the same tick
+        self.arb = None                  # this tick's target-switch record (duel._sense, before RULES)
+
+    def switch(self, F, arb: dict) -> None:
+        """Target arbitration (duel._sense: ranged-first, then interloper) — written as its own 'switch' record, every time a
+        switch was proposed, switched or not. The scene of the same tick carries it too and is always kept (keep())."""
+        try:
+            self.arb = dict(arb, tick=self.n + 1, fight=id(F), t_wall=arb.get("t"))
+            self.switches += 1
+            if self.switch_sink is not None:
+                self.switch_sink(dict(self.arb))
+        except Exception:
+            self.arb = None
+            self.errors += 1
 
     def tick(self, F, T) -> None:
         t0 = time.perf_counter_ns()
+        self.n += 1
         try:
             self.pre = capture(F, T)
+            self.pre["tick"]["id"] = self.n
+            if self.arb is not None and self.arb.get("tick") == self.n:
+                self.pre["switch"] = self.arb
         except Exception:
             self.pre = None
             self.errors += 1
+        self.arb = None
         self.cost_ns += time.perf_counter_ns() - t0
 
-    def decided(self, F, T, rule: str, out) -> None:
+    def decided(self, F, T, rule: str, out, i_rule: int | None = None) -> None:
+        """i_rule: the winner's place in duel.RULES — every rule before it returned None this tick (first match wins), every rule
+        after it was not evaluated (not 'did not apply')."""
         try:
-            if self.pre is None or not self.keep(rule, T, F):
+            if self.pre is None or not (self.pre.get("switch") or self.keep(rule, T, F)):
                 return
             from souls import duel as D
             rec = dict(self.pre, rule=rule, out="result" if isinstance(out, D.DuelResult) else str(out))
+            if i_rule is not None:
+                rec["declined"] = D._RULE_NAMES[:i_rule]
             self.pre = None
             self.kept += 1
             self.sink(rec)
@@ -149,4 +178,5 @@ class Tap:
         return False
 
     def summary(self) -> str:
-        return f"scenes kept {self.kept}, errors {self.errors}, capture {self.cost_ns / 1e6:.0f} ms total"
+        return (f"scenes kept {self.kept}, target-switch records {self.switches}, errors {self.errors}, "
+                f"capture {self.cost_ns / 1e6:.0f} ms total")

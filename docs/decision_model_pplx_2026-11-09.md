@@ -177,3 +177,47 @@ and it is too slow to drive the fight. So it is **not** the controller. Its job 
   - Agreement with MoKa is not proof of better play.
   - The comparison needs the current rules and the small ranker as baselines.
   - The case format must stay model-independent: plain JSON plus text tables, no model-specific prompt baked into the data.
+
+## Step 1 built (11-09): target-switch decision record — record only
+- **Where it is written.** `souls/duel.py` `_sense` builds one record per tick where a switch was proposed, whether or not it switched: ranged-first candidates, or an interloper. Contents:
+  - `from`: the original target;
+  - `ranged` + `ranged_pick` / `ranged_veto` (the `_switch_threat` foe) / `ranged_hold_left`;
+  - `mid`: the target after the ranged step;
+  - `cut`: interloper candidates + `cut_hold_left`;
+  - `to`: the final target;
+  - `switched`.
+
+  Each foe is recorded as `{ptr, npc, h, dy, deg (side angle, + = right), anim, hp, max_hp}`, so a switch away from a damaged target shows directly.
+- **Output (`run.py --ctl-scenes` only).** `scenes.Tap.switch` writes it as a ctl record `"switch"`. The scene record of the same tick then:
+  - carries the same record under `switch` and is always kept;
+  - has `tick.id`, which joins the two records;
+  - has `declined`, the rules evaluated before the winner. Rules after the winner were not evaluated.
+- **Check.** `tests/target_switch_record_test.py`, golden situations:
+  - the same decisions with and without the record;
+  - 180 records in 576 situations, 90 of them switches away from a damaged target;
+  - every switch scene kept, `declined` exact.
+
+  `duel_golden_test` and `scene_replay_test` are unchanged. No game run yet, so no real switch record exists yet.
+
+## Review and bench case format (to fill from the first run with these records)
+`data/labels/switch_cases.jsonl`, one case per reviewed decision. Format is model-independent (plain JSON), for the
+LLM test bench (M1109-01) and the later ranker:
+```
+{"case_id", "run", "ctl_line", "tick_id", "alignment": "confirmed" | "uncertain",
+ "switch": <the switch record>, "scene": <the scene record of that tick>,
+ "candidates": ["keep:<ptr>", "switch:<ptr>", …, "neither"],
+ "moka": {"choice": "keep:<ptr>" | "switch:<ptr>" | "neither" | "unsure", "decisive": "MoKa's words",
+          "timing": "ok|early|late|unsure", "outcome_visible": true|false, "confidence": "low|mid|high", "quote": "…"},
+ "instruction_ids": ["M1108-10", …], "recorded_by": "claude (MoKa가 영상 보며 답한 것)"}
+```
+Procedure (MoKa 11-02 and 11-09: judge only while watching the same clip together):
+- **Pick clips.** Take them from `switch` records with clip.py windows: ½ recurring conflicts, ¼ contrast cases, ¼ random.
+- **Session size.** 6–10 clips per session.
+- **For each clip:**
+  1. Ask one question: keep the damaged one / take the other / neither, and what visible thing decides it.
+  2. Write the answer at once and read it back.
+  3. Show the bot's reasons only after MoKa answers.
+- **Uses of the cases:**
+  - ~20 cases: conditional target-selection fix + expect scenes;
+  - 50+: a ranker as shadow challenger;
+  - with each new LLM: rerun the frozen cases with a fixed prompt (MoKa's instructions + anim meaning table).
