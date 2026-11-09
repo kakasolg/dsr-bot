@@ -60,11 +60,17 @@ const LIB2_PATH := "res://assets/UAL2_Standard.glb"
 const LOCK_RANGE := 15.0       # [game] LockCamParam chrLockRangeMaxRadius
 const CAM_MIN := 0.6           # [guess] closest the camera retracts to near a wall
 const LOCK_CAM_TURN := 6.0     # [guess] 1/s camera yaw follow while locked on
-const WEAPON_IN := 0.5         # [guess] weapon segment, m in front of the body (Claymore-ish)
+const WEAPON_IN := 0.5         # [guess] fallback weapon segment (no weapon model), m in front of the body
 const WEAPON_OUT := 1.9        # [guess]
-const WEAPON_R := 0.2          # [guess] (c2540's AtkParam hit radius was 0.2 — a foe's)
-const HITSTOP_S := 0.06        # [guess] (AtkParam hitStopTime exists — not read yet)
-const LIGHT_DMG := 150         # [guess]
+const WEAPON_R := 0.2          # [guess]
+# Equipment (MoKa M1109-54): DSR weapon / shield models, local only (sim/flver_glb.py → assets/, gitignored).
+# Hitboxes, hitstop and damage come from actions.json "hit" (AtkParam_Pc) and "equip" (EquipParamWeapon) — [game].
+# How a model sits in the Quaternius hand is [guess]: hand_r / hand_l rest axes are y = along the fingers,
+# z = character forward, x = up (right) / down (left); DSR weapon models have the blade along -Y, grip at the origin.
+const RIGHT_GLB := "res://assets/WP_A_0266.glb"    # Claymore (EquipParamWeapon 301000, WeaponModel 266)
+const LEFT_GLB := "res://assets/WP_A_1521.glb"     # Wooden Shield (1400000, WeaponModel 1521)
+const GRIP_R := Vector3(-0.02, 0.08, 0.0)          # [guess] grip point in hand_r space (into the fist, palm side)
+const GRIP_L := Vector3(0.03, 0.07, 0.0)           # [guess] shield handle in hand_l space
 const PLAYER_HP := 849         # [meas] the 11-09 character (VIT 22)
 const STAGGER_S := 0.5         # [guess] player hit reaction
 const DUMMY_POS := Vector3(26.5, 9.4, -26.0)   # training dummy — not in DSR
@@ -130,9 +136,11 @@ var slow := false
 var overlay := true
 var dbg_mesh: ImmediateMesh
 var cam_dist := CAM_DIST
-var prev_weapon := []
 var speed_dir := 0.0
 var speed_dir_set := false
+var equip := {}              # actions.json "equip": right / left weapon rows and model dummies
+var weapon_node: Node3D      # right-hand weapon model (null → fallback segment)
+var prev_caps := []          # last frame's hit capsules [[p0, p1, r], …] for the swept test
 
 var udp_out := PacketPeerUDP.new()
 var udp_in := PacketPeerUDP.new()
@@ -144,7 +152,9 @@ func _ready() -> void:
 	lever_basis = Basis(Vector3.UP, deg_to_rad(LEVER_ROT_DEG))
 	var f := FileAccess.open("res://actions.json", FileAccess.READ)
 	if f:
-		actions = JSON.parse_string(f.get_as_text())["actions"]
+		var j: Dictionary = JSON.parse_string(f.get_as_text())
+		actions = j["actions"]
+		equip = j.get("equip", {})
 	_build_world()
 	_build_player()
 	_build_dummy()
@@ -318,12 +328,38 @@ func _build_player() -> void:
 				m2.queue_free()
 			body.visible = false
 			nose.visible = false
+			_attach_equipment(model)
 	player.position = START
 	player.rotation.y = heading
 	add_child(player)
 	cam = Camera3D.new()
 	add_child(cam)
 	cam.current = true
+
+
+func _attach_equipment(model: Node3D) -> void:
+	var sks := model.find_children("*", "Skeleton3D", true, false)
+	if sks.is_empty():
+		return
+	var sk: Skeleton3D = sks[0]
+	# right: weapon -Y (blade) → hand +Z (forward in the rest pose), weapon X (blade width) → hand X
+	if ResourceLoader.exists(RIGHT_GLB):
+		var ba := BoneAttachment3D.new()
+		ba.bone_name = "hand_r"
+		sk.add_child(ba)
+		weapon_node = load(RIGHT_GLB).instantiate()
+		weapon_node.transform = Transform3D(Basis(Vector3(1, 0, 0), Vector3(0, 0, -1), Vector3(0, 1, 0)), GRIP_R)
+		ba.add_child(weapon_node)
+	# left: shield front (+Z) → away from the palm (hand -X), shield X → along the arm (hand Y)
+	if ResourceLoader.exists(LEFT_GLB):
+		var bl := BoneAttachment3D.new()
+		bl.bone_name = "hand_l"
+		sk.add_child(bl)
+		var sh: Node3D = load(LEFT_GLB).instantiate()
+		var b := Basis(Vector3(0, 1, 0), Vector3(0, 0, -1), Vector3(-1, 0, 0))
+		var grip := Vector3(0.0079, 0.0075, -0.1509)       # [game] WP_A_1521 dummy 100–130 (the handle)
+		sh.transform = Transform3D(b, GRIP_L - b * grip)
+		bl.add_child(sh)
 
 
 func _build_ui() -> void:
@@ -434,7 +470,7 @@ func _start(name: String, dir_angle: float) -> void:
 	anim = int(actions[name]["anim"])
 	speed = 0.0
 	hit_done = false
-	prev_weapon = []
+	prev_caps = []
 	if anim_player:
 		var a: Dictionary = actions[name]
 		var clip := String(a["clip"]) if String(a["lib"]) == "" else "%s/%s" % [a["lib"], a["clip"]]
@@ -449,11 +485,33 @@ func _start(name: String, dir_angle: float) -> void:
 			loco_clip = ""
 
 
+func _clip_rate() -> void:
+	# Attack clips: two-segment time warp so the clip's blade-forward moment (clip_contact) lands in the middle of the
+	# DSR attack window; frozen during hitstop. Other actions keep the one rate _start set.
+	var a: Dictionary = actions.get(act_name, {})
+	if anim_player == null or not a.has("clip_contact") or not a["attack"].size():
+		return
+	var clip := String(a["clip"]) if String(a["lib"]) == "" else "%s/%s" % [a["lib"], a["clip"]]
+	if not anim_player.has_animation(clip):
+		return
+	var length := anim_player.get_animation(clip).length
+	var c := float(a["clip_contact"]) * length
+	var w: Array = a["attack"][0]
+	var mid := (float(w[0]) + float(w[1])) / 2.0
+	var until := maxf(float(a["clip_until"]), mid + 0.1)
+	if hitstop > 0.0:
+		anim_player.speed_scale = 0.0
+	elif act_t < mid:
+		anim_player.speed_scale = c / mid
+	else:
+		anim_player.speed_scale = (length - c) / (until - mid)
+
+
 func _end_action() -> void:
 	act_name = ""
 	anim = -1
 	queued.clear()
-	prev_weapon = []
+	prev_caps = []
 	if anim_player:
 		anim_player.speed_scale = 1.0
 
@@ -535,6 +593,7 @@ func _physics_process(dt: float) -> void:
 			_queue("roll")
 		if hitstop <= 0.0:
 			act_t += dt
+		_clip_rate()
 		var a: Dictionary = actions[act_name]
 		var cm = a["cancel_move"]
 		var cr = a["cancel_r"]
@@ -655,27 +714,60 @@ func _seg_dist(a0: Vector3, a1: Vector3, b0: Vector3, b1: Vector3) -> float:
 	return c[0].distance_to(c[1])
 
 
+func _weapon_caps() -> Array:
+	# This frame's hit capsules [[p0, p1, radius], …]: AtkParam_Pc Hitbox start/end model points = dummy ids on the
+	# weapon model, placed by the weapon node (the hand bone of the playing clip). No model → the old fallback segment.
+	var a: Dictionary = actions.get(act_name, {})
+	if weapon_node == null or not a.has("hit") or not equip.has("right"):
+		var w := _weapon_seg()
+		return [[w[0], w[1], WEAPON_R]]
+	var dm: Dictionary = equip["right"]["dummies"]
+	var out := []
+	var g := weapon_node.global_transform
+	for hb in a["hit"]["hitboxes"]:
+		var k0 := str(int(hb["from"]))
+		var k1 := str(int(hb["to"]))
+		if not dm.has(k0) or not dm.has(k1):
+			continue
+		var d0: Array = dm[k0]
+		var d1: Array = dm[k1]
+		out.append([g * Vector3(d0[0], d0[1], d0[2]), g * Vector3(d1[0], d1[1], d1[2]), float(hb["radius"])])
+	return out
+
+
+func _hit_damage() -> int:
+	# [game] weapon base physical × the attack's physical % — before stat scaling, upgrades and the target's defense
+	var a: Dictionary = actions.get(act_name, {})
+	if a.has("hit") and equip.has("right"):
+		return int(round(float(equip["right"]["base_physical"]) * float(a["hit"]["physical_pct"]) / 100.0))
+	return 150
+
+
 func _weapon_hits() -> void:
-	# Swept melee check: this frame's weapon segment, last frame's, and the trail between them (tip and middle).
+	# Swept melee check per capsule: this frame's, last frame's, and the trail between them (both ends and middle).
 	if act_name == "" or not actions[act_name]["attack"].size() or not _in(actions[act_name]["attack"], act_t):
-		prev_weapon = []
+		prev_caps = []
 		return
-	var w := _weapon_seg()
-	var segs := [w]
-	if prev_weapon.size() == 2:
-		segs.append(prev_weapon)
-		segs.append([prev_weapon[1], w[1]])
-		segs.append([(prev_weapon[0] + prev_weapon[1]) / 2.0, (w[0] + w[1]) / 2.0])
-	prev_weapon = w
+	var caps := _weapon_caps()
+	var tests := []
+	for i in caps.size():
+		var c: Array = caps[i]
+		tests.append(c)
+		if prev_caps.size() == caps.size():
+			var p: Array = prev_caps[i]
+			tests.append([p[0], c[0], c[2]])
+			tests.append([p[1], c[1], c[2]])
+			tests.append([(p[0] + p[1]) / 2.0, (c[0] + c[1]) / 2.0, c[2]])
+	prev_caps = caps
 	if hit_done or dummy_hp <= 0:
 		return
 	var ax := _dummy_axis()
-	for sg in segs:
-		if _seg_dist(sg[0], sg[1], ax[0], ax[1]) <= WEAPON_R + DUMMY_R:
+	for sg in tests:
+		if _seg_dist(sg[0], sg[1], ax[0], ax[1]) <= float(sg[2]) + DUMMY_R:
 			hit_done = true                                   # one hit per swing
 			player_hits += 1
-			dummy_hp = maxi(0, dummy_hp - LIGHT_DMG)
-			hitstop = HITSTOP_S
+			dummy_hp = maxi(0, dummy_hp - _hit_damage())
+			hitstop = float(actions[act_name].get("hit", {}).get("hitstop", 0.06))
 			dummy_flash = 0.15
 			if dummy_phase == "windup":                       # a hit interrupts its telegraphed swing [guess]
 				dummy_phase = "recover"
@@ -785,8 +877,11 @@ func _draw_debug() -> void:
 	_ring(player.position + Vector3(0, 0.05, 0), RADIUS, pc)
 	_ring(player.position + Vector3(0, HEIGHT - 0.1, 0), RADIUS, pc)
 	if act_name != "" and actions[act_name]["attack"].size():
-		var w := _weapon_seg()
-		_line(w[0], w[1], Color(1, 0, 0) if _in(actions[act_name]["attack"], act_t) else Color(0.5, 0.5, 0.5))
+		var col := Color(1, 0, 0) if _in(actions[act_name]["attack"], act_t) else Color(0.5, 0.5, 0.5)
+		for c in _weapon_caps():
+			_line(c[0], c[1], col)
+			_ring(c[0], c[2], col)
+			_ring(c[1], c[2], col)
 	var ax := _dummy_axis()
 	_line(ax[0], ax[1], Color(1, 1, 0))
 	_ring(dummy.position + Vector3(0, 0.05, 0), DUMMY_R, Color(1, 1, 0))

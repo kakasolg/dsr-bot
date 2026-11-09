@@ -107,7 +107,7 @@ def main() -> None:
                 hits.append(st["anim_time"])
             time.sleep(0.01)
         w = act["light"]["attack"][0]
-        check(f"RB → light 304000, hit window seen {min(hits):.2f}–{max(hits):.2f} s (DSR {w[0]:.3f}–{w[1]:.3f})",
+        check(f"RB → light {act['light']['anim']}, hit window seen {min(hits):.2f}–{max(hits):.2f} s (DSR {w[0]:.3f}–{w[1]:.3f})",
               hits and w[0] - 0.02 <= min(hits) and max(hits) <= w[1] + 0.02)
         print("godot_room_test: 전부 통과")
     finally:

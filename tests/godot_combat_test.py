@@ -49,7 +49,9 @@ def main() -> None:
     if not GL.GODOT.exists():
         print(f"skip: Godot not found at {GL.GODOT}")
         return
-    act = json.loads((ROOT / "sim/godot/actions.json").read_text(encoding="utf-8"))["actions"]
+    d = json.loads((ROOT / "sim/godot/actions.json").read_text(encoding="utf-8"))
+    act = d["actions"]
+    dmg = round(d["equip"]["right"]["base_physical"] * act["light"]["hit"]["physical_pct"] / 100)   # [game] before scaling
     tm, pad = GL.SimTelemetry(), GL.SimPad()
     proc = GL.start_room(headless=True)
     try:
@@ -98,7 +100,7 @@ def main() -> None:
         pad.press("rb", 0.04)                                # too early
         st = wait_for(tm, lambda s: s["action"] == "roll" and s["anim_time"] >= 0.32)
         pad.press("rb", 0.04)                                # inside the window
-        st = wait_for(tm, lambda s: s["anim"] == 304000, tmax=3.0)
+        st = wait_for(tm, lambda s: s["anim"] == act["light"]["anim"], tmax=3.0)
         log = st["log"] if st else []
         rs = [e for e in log if e["k"] == "r"][-2:]
         print("  inputs:", rs)
@@ -120,8 +122,8 @@ def main() -> None:
               st is not None and act["light"]["attack"][0][0] - 0.02 <= st["anim_time"] <= act["light"]["attack"][0][1] + 0.02)
         time.sleep(2.0)
         st = tm.state()
-        check(f"one hit per swing: dummy HP {hp0} → {st['dummy']['hp']} (150 a hit), hits +{st['player_hits'] - hits0}",
-              st["player_hits"] - hits0 == 1 and hp0 - st["dummy"]["hp"] == 150)
+        check(f"one hit per swing: dummy HP {hp0} → {st['dummy']['hp']} ({dmg} a hit), hits +{st['player_hits'] - hits0}",
+              st["player_hits"] - hits0 == 1 and hp0 - st["dummy"]["hp"] == dmg)
 
         # 5. the dummy's swing: standing still → hit + stagger; rolling into it with i-frames up → dodged
         st = face_dummy_from(tm, pad, 1.6)

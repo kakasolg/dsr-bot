@@ -1,5 +1,83 @@
 {
- "source": "data/gamefiles/tae_c0000.json (player_tae_extract.py) — DSR game files; not yet checked against DSAnimStudio or the game",
+ "source": "data/gamefiles/tae_c0000.json (player_tae_extract.py) + GameParam (EquipParamWeapon, BehaviorParam_PC, AtkParam_Pc) + weapon model dummies (sim/flver_glb.py) — DSR game files; not yet checked against DSAnimStudio or the game",
+ "equip": {
+  "right": {
+   "row": 301000,
+   "name": "クレイモア",
+   "model": "WP_A_0266",
+   "weight": 6.0,
+   "attack_section": 25,
+   "behavior_variation": 2505,
+   "base_physical": 103,
+   "physical_guard_pct": 60.0,
+   "guard_stamina_defense": 38,
+   "parry": false,
+   "required_str_dex": [
+    16,
+    10
+   ],
+   "dummies": {
+    "130": [
+     0.0,
+     -0.657,
+     0.0026
+    ],
+    "100": [
+     0.0,
+     -1.2837,
+     0.0026
+    ],
+    "110": [
+     0.0,
+     -0.1618,
+     0.0026
+    ],
+    "120": [
+     0.0,
+     0.0474,
+     -0.0059
+    ]
+   }
+  },
+  "left": {
+   "row": 1400000,
+   "name": "ウッドシールド",
+   "model": "WP_A_1521",
+   "weight": 1.0,
+   "attack_section": 48,
+   "behavior_variation": 4800,
+   "base_physical": 52,
+   "physical_guard_pct": 88.0,
+   "guard_stamina_defense": 44,
+   "parry": true,
+   "required_str_dex": [
+    6,
+    0
+   ],
+   "dummies": {
+    "100": [
+     0.0079,
+     0.0075,
+     -0.1509
+    ],
+    "110": [
+     0.0079,
+     0.0075,
+     -0.1509
+    ],
+    "120": [
+     0.0079,
+     0.0075,
+     -0.1509
+    ],
+    "130": [
+     0.0079,
+     0.0075,
+     -0.1509
+    ]
+   }
+  }
+ },
  "actions": {
   "roll_fast": {
    "anim": 700,
@@ -100,9 +178,62 @@
    "clip_until": 0.9333
   },
   "light": {
-   "anim": 304000,
-   "length": 2.5667,
-   "note": "1st right-hand light attack, section 30 weapon",
+   "anim": 253000,
+   "length": 3.0333,
+   "note": "Claymore one-handed light 1 (BehaviorParam_PC 102505000)",
+   "invincible": [],
+   "no_turn": [
+    [
+     0.0,
+     0.3667
+    ],
+    [
+     0.6,
+     3.0333
+    ]
+   ],
+   "attack": [
+    [
+     0.6667,
+     0.8
+    ]
+   ],
+   "cancel_move": 1.5667,
+   "cancel_roll": 1.4,
+   "cancel_r": 1.1667,
+   "input_r": [],
+   "input_roll": [],
+   "clip": "Sword_Regular_A",
+   "lib": "ual2",
+   "clip_until": 1.5667,
+   "clip_contact": 0.575,
+   "hit": {
+    "behavior": 102505000,
+    "behavior_name": "【74】クレイモア_片手通常1",
+    "stamina": 30,
+    "atk_param": 2500000,
+    "atk_name": "大剣_片手通常1",
+    "physical_pct": 100,
+    "hitstop": 0.08,
+    "model_point_source": 0,
+    "hitboxes": [
+     {
+      "from": 100,
+      "to": 110,
+      "radius": 0.4
+     },
+     {
+      "from": 120,
+      "to": 110,
+      "radius": 0.1
+     }
+    ]
+   }
+  },
+  "light2": {
+   "anim": 253001,
+   "length": 3.4,
+   "note": "Claymore one-handed light 2 (BehaviorParam_PC 102505010)",
    "invincible": [],
    "no_turn": [
     [
@@ -111,53 +242,46 @@
     ],
     [
      0.4667,
-     2.5667
+     3.4
     ]
    ],
    "attack": [
     [
-     0.6333,
-     0.7667
+     0.6,
+     0.7333
     ]
    ],
-   "cancel_move": 1.2,
-   "cancel_roll": 1.1333,
-   "cancel_r": 1.1333,
-   "input_r": [],
-   "input_roll": [],
-   "clip": "Sword_Regular_A",
-   "lib": "ual2",
-   "clip_until": 1.2
-  },
-  "light2": {
-   "anim": 304001,
-   "length": 2.5667,
-   "note": "2nd light attack (combo)",
-   "invincible": [],
-   "no_turn": [
-    [
-     0.0,
-     0.2667
-    ],
-    [
-     0.5333,
-     2.5667
-    ]
-   ],
-   "attack": [
-    [
-     0.6333,
-     0.7667
-    ]
-   ],
-   "cancel_move": 1.2,
-   "cancel_roll": 1.1333,
-   "cancel_r": 1.1333,
+   "cancel_move": 1.4667,
+   "cancel_roll": 1.3333,
+   "cancel_r": 1.1,
    "input_r": [],
    "input_roll": [],
    "clip": "Sword_Regular_B",
    "lib": "ual2",
-   "clip_until": 1.2
+   "clip_until": 1.4667,
+   "clip_contact": 0.475,
+   "hit": {
+    "behavior": 102505010,
+    "behavior_name": "【74】クレイモア_片手通常2",
+    "stamina": 30,
+    "atk_param": 2500010,
+    "atk_name": "大剣_片手通常2",
+    "physical_pct": 100,
+    "hitstop": 0.08,
+    "model_point_source": 0,
+    "hitboxes": [
+     {
+      "from": 100,
+      "to": 110,
+      "radius": 0.4
+     },
+     {
+      "from": 120,
+      "to": 110,
+      "radius": 0.1
+     }
+    ]
+   }
   },
   "estus": {
    "anim": 7585,
