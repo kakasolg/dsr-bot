@@ -41,21 +41,15 @@ UNDEAD_MERCHANT = {"npc": 251001, "pos": (-38.02, -19.80, -66.50), "name": "망�
 # — 최대치 = 소울로 살 수 있는 수 · 한 번에 99 · 가진 수 합 99 중 작은 것 (게임 화면에서 잰 적 없음, 산 뒤 메모리로 확인)
 QTY_MAX = 99
 
-TALK_R = 1.7          # stand this close (record 03: the prompt showed at 1.7 m facing him, not at 1.2 m facing away)
-TALK_DEG = 12.0       # … facing him this well
-APPROACH_S = 6.0
-STAND_R = 0.5         # this close to merchant["stand"] counts as there
-LINE_S = 2.5          # a dialogue line this long with no menu → A to advance it (greeting: 1–4 lines, [win] check 1)
-LINES_MAX = 8
+# talking (approach · face · greeting · leaving) is souls/npc.Npc's — re-exported here for older callers / tests
+from souls.npc import TALK_R, TALK_DEG, APPROACH_S, STAND_R, LINE_S, LINES_MAX, LEAVE_S, HOLD, POLL   # noqa: E402,F401
+from souls.npc import Npc                                                                            # noqa: E402
 OPEN_S = 2.0          # A on Purchase Item → the list shows within this
 QTY_S = 1.5           # A on a row → the quantity window within this
 MOVE_S = 0.5          # a cursor step on the list / OK↔CANCEL
 QTY_GAP = 0.25        # UP × 28 at this spacing all went in (record 11)
 BUY_S = 1.0           # A on OK → bought, back on the list
 CHECK_S = 1.5         # poll memory this long for the purchase to show
-LEAVE_S = 9.0         # B, B, then wait for menu_open to go False — [win] 10-12: the farewell line keeps it True 6.1 s after the B on the menu
-HOLD = 0.1
-POLL = 0.1
 
 ROOT = Path(__file__).resolve().parent.parent
 UI_DIR = ROOT / "data" / "shop" / "ui"
@@ -164,107 +158,23 @@ def make_refs(shots_dir: Path = ROOT / "data" / "shop" / "20261012", ui_dir: Pat
     return out
 
 
-class Shop:
+class Shop(Npc):
     def __init__(self, mv, nm=None, log=print, events=None, merchant: dict = UNDEAD_MERCHANT, shoot=None, walk_to=None,
                  screen: Screen | None = None):
         """mv: souls.moves.Moves · nm: NavMesh for the approach · shoot(tag): optional screenshot after each step (run.py
         --shop-shots, the way pad_step.py recorded it) · walk_to(goal, nm, tag) → 'arrived' …: Field.walk_to, used only when
-        the merchant is farther than a few metres."""
-        self.mv, self.tm, self.pad, self.nm = mv, mv.tm, mv.pad, nm
-        self.log, self.events, self.m, self.shoot, self.walk_to = log, events or (lambda *a, **k: None), merchant, shoot, walk_to
+        the merchant is farther than a few metres. Approach · facing · greeting · leaving: souls.npc.Npc."""
+        super().__init__(mv, merchant, nm=nm, log=log, events=events, shoot=shoot, walk_to=walk_to,
+                         screen=screen if screen is not None else Screen(), tag="상점")
         self.row = None        # where the list cursor is (None = list not open)
-        self.screen = screen if screen is not None else Screen()
-
-    def _wait(self, want: tuple, secs: float) -> str | None:
-        """Poll the screen until it is one of `want` → that state, else None."""
-        t0 = time.time()
-        while True:
-            st = self.screen.state()
-            if st in want:
-                return st
-            if time.time() - t0 >= secs:
-                return None
-            time.sleep(POLL)
-
-    # ── buttons ───────────────────────────────────────────────
-    def _press(self, button, wait: float, tag: str = "", n: int = 1, gap: float = QTY_GAP) -> None:
-        for i in range(n):
-            self.pad.press(button, HOLD)
-            if i < n - 1:
-                time.sleep(gap)
-        time.sleep(wait)
-        if self.shoot is not None and tag:
-            try:
-                self.shoot(tag)
-            except Exception:
-                pass
-
-    # ── the merchant ──────────────────────────────────────────
-    def find(self, s):
-        return next((c for c in (s.chars if s else ()) if c.npc_param == self.m["npc"]), None)
-
-    def approach(self) -> str:
-        """Within TALK_R of the merchant, facing him within TALK_DEG. → 'ok' | 'not_found' | 'far' | a walk result"""
-        self.pad.neutral()
-        s = self.mv.snap(30.0)
-        c = self.find(s)
-        if c is None:
-            return "not_found"
-        # ── 상자 사이에 앉은 상인 ([win] 11-02 try 12) ──────────────────────────────
-        #  그의 몸 중심으로 걸으면 상자에 막혀 3.7 m에서 timeout × 4 → not_facing. 기록된 서는 자리(1.74 m)로 간다
-        stand = self.m.get("stand")
-        goal = stand or (c.x, c.y, c.z)
-        d = M.horiz(s.player, c)
-        far = math.hypot(s.player.x - goal[0], s.player.z - goal[2]) > STAND_R if stand else d > 4.0
-        if far and d > TALK_R:
-            if self.walk_to is None:
-                return "far"
-            r = self.walk_to(goal, self.nm, self.m["name"])
-            if r not in ("arrived", "stuck", "unreachable", "timeout"):
-                return r
-        t0 = time.time()
-        while time.time() - t0 < APPROACH_S:                # short steps in — a sitting NPC: walking into him is harmless
-            s = self.mv.snap(30.0)
-            c = self.find(s)
-            if c is None:
-                return "not_found"
-            d = M.horiz(s.player, c)
-            if d <= TALK_R or (stand and math.hypot(s.player.x - stand[0], s.player.z - stand[2]) <= STAND_R):
-                break
-            gx, gz = stand[0] if stand else c.x, stand[2] if stand else c.z
-            self.pad.move(*self.mv.stick_to(s, gx, gz, 0.35))
-            time.sleep(min(0.25, 0.08 + (d - TALK_R) * 0.15))
-            self.pad.move(0.0, 0.0)
-            time.sleep(0.15)
-        self.pad.move(0.0, 0.0)
-        off = self.mv.aim(c.ptr, deg=TALK_DEG, timeout=3.0)  # taps that turn without walking (face() would push the stick)
-        s = self.mv.snap(30.0)
-        c = self.find(s)
-        d = M.horiz(s.player, c) if c is not None else None
-        self.log(f"   상점: {self.m['name']} {d if d is None else round(d, 2)} m, 몸 {off if off is None else round(off)}°")
-        if c is None or d > TALK_R + 0.4 or off is None or abs(off) > TALK_DEG:
-            return "not_facing"
-        return "ok"
 
     def talk(self) -> bool:
-        """A → greeting (1–4 lines; A during a line only advances it) → the menu → A on 'Purchase Item' → the list (row 1).
+        """Npc.greet until the menu (or straight the list) → A on 'Purchase Item' → the list (row 1).
         Waits on the screen, not the clock. False if the menu never opened (no talk prompt) or never reached the list."""
-        self._press(A_, 0.0, "")
-        t0 = time.time()
-        while time.time() - t0 < 1.5:
-            if self.tm.menu_open():
-                break
-            time.sleep(0.05)
-        else:
-            return False
-        st = None
-        for line in range(LINES_MAX):
-            st = self._wait(("menu", "list"), LINE_S)
-            if st:
-                break
-            self._press(A_, 0.0, f"line-{line + 1}")      # still a line of dialogue → next line
+        st = self.greet(("menu", "list"))
         if st is None:
-            self.log(f"   상점: 대사 뒤 메뉴가 안 보임 ({self.screen.last})")
+            if self.tm.menu_open():
+                self.log(f"   상점: 대사 뒤 메뉴가 안 보임 ({self.screen.last})")
             return False
         if self.shoot is not None:
             self.shoot(f"after-greeting-{st}")
@@ -280,20 +190,13 @@ class Shop:
         return True
 
     def leave(self) -> bool:
-        """B (list → menu), B (menu → farewell → game); wait for menu_open False. → closed"""
+        """B (list → menu), then Npc.close (menu → farewell → game). → closed"""
         self._press(B_, 0.0, "")
         self._wait(("menu",), 1.5)
-        self._press(B_, 0.0, "close-shop")
-        t0 = time.time()
-        while time.time() - t0 < LEAVE_S:
-            if not self.tm.menu_open():
-                self.row = None
-                time.sleep(0.5)
-                return True
-            if time.time() - t0 > 3.0:
-                self._press(B_, 0.5)                       # still in a line of dialogue
-            time.sleep(0.1)
-        return False
+        closed = self.close("close-shop")
+        if closed:
+            self.row = None
+        return closed
 
     # ── one item ──────────────────────────────────────────────
     def _counts(self, goods: int) -> tuple[int, int]:

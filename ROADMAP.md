@@ -45,7 +45,7 @@ needing the tick loop, route data, settings object or WorldState.
 - [~] firebomb-measure | win | verify | hollow ~5 m: 75 one-shot 2/2 · 7 m: 18 · ≥ 9 m: no lock. crossbow 5 m: died (P-83) | plan:firebomb-measure
 - [~] firebomb-candidate | win | verify | built offline 11-09: firebombs in a quick slot = lure opener (5–10 m, lock) · 2+ coming · ledge, no --throw / limit | plan:firebomb-candidate
 - [ ] bow | cloud+win | todo | bow: buy, switch shield ↔ bow, locked-on shot, measure — after the firebomb | plan:bow
-- [ ] npc-module | cloud | todo | NPC interaction as one module (talk / shop / quests); the merchant is the first case | souls/shop.py · plan:npc-module
+- [~] npc-module | win | verify | built 11-09: souls/npc.Npc (approach · face · greet · close), Shop(Npc); [win]: one merchant-buy run | souls/npc.py · plan:npc-module
 
 ## 1-b. Taurus → Sunlight Altar, Claymore as main (MoKa 10-12)
 

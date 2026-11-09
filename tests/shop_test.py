@@ -21,6 +21,7 @@ from types import SimpleNamespace as NS
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
+from souls import npc as N
 from souls import shop as S
 
 A, B, UP, DOWN, RIGHT = S.A_, S.B_, S.UP, S.DOWN, S.RIGHT
@@ -124,6 +125,7 @@ class Merchant:
 def rig(**kw):
     clock = Clock()
     S.time = clock                                     # the module's time.time / time.sleep
+    N.time = clock                                     # … and souls.npc's (approach · greeting · leaving moved there)
     game = Merchant(clock, **kw)
     me = NS(x=0.0, y=0.0, z=0.0, heading=0.0)
     npc = NS(ptr=9, npc_param=251001, x=0.0, y=0.0, z=1.5)
