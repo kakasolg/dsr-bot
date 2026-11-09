@@ -683,3 +683,4 @@ Items as they left ROADMAP.md (mark, id, who, stage, result, where). Older done 
 - 2026-10-13 [x] claymore-measure | win | done | light: blade 0.68–0.85 s, idle 1.39 s with LB (recovery 0.62 → 0.55); thrust 0.76–0.95, 1.50 s; reach 1.8 kept (hits to ~2.1 m) | stages/burg-to-altar.md
 - 2026-10-16 [x] rea-trial | cloud | verify | done: dump + analyzers off, B 5/5 + 10 new flags → `DBG_*` | docs/rea-trial.md
 - 2026-10-31 [x] ctl-linkage | MoKa | verify | closed 10-31 (MoKa): built, offline + 3 game runs checked; not done: on/off load, full decision replay, other actions | docs/ctl-experience-data.md · plan:ctl-linkage
+- 2026-11-09 [x] boss-two-hand-dodge | MoKa | done | closed 11-09 (MoKa M1109-03): Taurus = two-handed guard close-in (P-141); general boss = v2.0 boss-module | plan:boss-two-hand-dodge
