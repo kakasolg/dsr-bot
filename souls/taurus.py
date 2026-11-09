@@ -643,7 +643,11 @@ class Taurus:
                     spot_t = None
                     n = 3
                     self.pad.guard(False)
-                    hit = self.mv.light(s, b, n=n, sp_second=0)
+                    # [MoKa] 11-09 "끊고 다시 붙어" — 사슬 도중 보스 701 (백스텝, 뒤로 −1.6 m / 0.5 s)이면 남은 약공 끊고 이 고리가 바로 자리로 다시 붙임
+                    hit = self.mv.light(s, b, n=n, sp_second=0, stop_on=BOSS_MOVE)
+                    if hit.cut:
+                        self.log(f"   타우로스: 약공 {hit.cut[2]}번째 뒤 보스 {hit.cut[1]} (백스텝) → 남은 약공 끊고 다시 붙음 ({hit.cut[0]:.2f} s)")
+                        self.events("taurus", what="cut", t=hit.cut[0], anim=hit.cut[1], presses=hit.cut[2])
                     hits += n
                     self.events("taurus", what="hit", dmg=hit.dmg, taken=hit.taken, h=round(h, 2), anim=a, sp=p.sp,
                                 guard=GUARD_CLOSE)

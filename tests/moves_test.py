@@ -95,7 +95,7 @@ class FakeTm:
 
     def snapshot(self, within=40.0):
         p = Chr(1, 0, 0, 700, 700, 0.0, 0.0, 0.0, sp=90, max_sp=90, anim=self.anim, heading=0.0)
-        c = Chr(10, 254000, 6, self.foe_hp, 75, 0.0, 0.0, -1.2, anim=-1, dist=1.2)
+        c = Chr(10, 254000, 6, self.foe_hp, 75, 0.0, 0.0, -1.2, anim=getattr(self, "foe_anim", -1), dist=1.2)
         return Snapshot(t=time.time(), player=p, chars=[c], cam_yaw=0.0)
 
 
@@ -154,6 +154,16 @@ def main() -> None:
     if len(r1) == 2:
         check(0.38 <= r1[1] - r1[0] <= 0.55, f"R1 간격 {r1[1]-r1[0]:.2f} s (0.45)")
         check(r1[0] >= 0.14, f"첫 R1 은 스틱 놓고 {r1[0]:.2f} s 뒤")
+
+    # 2b) 약공×3 도중 상대가 stop_on 애니 (타우로스 701 백스텝)면 남은 R1 끊음 — [MoKa] 11-09 "끊고 다시 붙어"
+    pad, tm = FakePad(), FakeTm(); mv = M.Moves(tm, pad); s = tm.snapshot(); c = s.chars[0]
+    threading.Timer(0.2, lambda: setattr(tm, "foe_anim", 701)).start()
+    h = mv.light(s, c, n=3, sp_second=0, stop_on=frozenset({701}))
+    r1 = taps(pad, "R1")
+    check(len(r1) == 1 and h.cut is not None and h.cut[1] == 701, f"light×3, 0.2 s에 701 → R1 {len(r1)}번 (1), cut {h.cut}")
+    pad, tm = FakePad(), FakeTm(); mv = M.Moves(tm, pad); s = tm.snapshot(); c = s.chars[0]
+    h = mv.light(s, c, n=3, sp_second=0, stop_on=frozenset({701}))
+    check(len(taps(pad, "R1")) == 3 and h.cut is None, f"light×3, 701 없음 → R1 {len(taps(pad, 'R1'))}번 (3)")
 
     # 3) guard_ok=False 면 방패가 안 간다
     pad, tm = FakePad(), FakeTm(); mv = M.Moves(tm, pad); mv.guard_ok = False

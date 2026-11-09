@@ -83,10 +83,10 @@ check("top: HP 81 % → no Estus", drinks == [])
 hits = []
 
 
-def light(s, c, n=1, sp_second=40):
+def light(s, c, n=1, sp_second=40, **kw):
     hits.append((n, mv.guard_ok))
     c.hp = 0
-    return NS(dmg=91 * n, taken=0)
+    return NS(dmg=91 * n, taken=0, cut=None)
 
 
 b = boss(x=47.0, y=15.8, z=-119.0, anim=-1)
@@ -102,7 +102,7 @@ check("fight: LB released at the start", ("guard", (False,)) in pad.calls)
 b = boss(x=47.0, y=15.8, z=-119.0, anim=-1)
 t, mv, pad = make([snap(b, me=(50.0, 15.8, -119.0), sp=98), snap(b, me=(47.25, 15.8, -118.65), sp=98),
                    snap(None, me=(47.25, 15.8, -118.65))])
-mv.light = lambda s, c, n=1, sp_second=40: (pad.calls.append(("light", (n,))), setattr(c, "hp", 0), NS(dmg=91 * n, taken=0))[2]
+mv.light = lambda s, c, n=1, sp_second=40, **kw: (pad.calls.append(("light", (n,))), setattr(c, "hp", 0), NS(dmg=91 * n, taken=0, cut=None))[2]
 t.nm = None
 T.nav_safe = T.nav.safe_heading
 T.nav.safe_heading = lambda nm, p, dx, dz, reach=1.0: (dx, dz)
@@ -124,7 +124,7 @@ def _on(bb, me=(47.3, -119.3)):
 calm = boss(x=47.0, y=15.8, z=-119.0, anim=-1)
 # (HP 136 → 300: 136 is now ≤ one hit, which drinks — MoKa 11-09 "한 대 남으면 마셔"; 300 is low but takes one more hit)
 t, mv, pad = make([snap(calm, me=_on(calm), hp=300, sp=98), snap(None, me=_on(calm), hp=300)])
-mv.light = lambda s, c, n=1, sp_second=40: (pad.calls.append(("light", (n,))), NS(dmg=0, taken=0))[1]
+mv.light = lambda s, c, n=1, sp_second=40, **kw: (pad.calls.append(("light", (n,))), NS(dmg=0, taken=0, cut=None))[1]
 mv.drink = lambda ok: pad.calls.append(("drink", ())) or {"ok": True}
 t.nm = None
 t._fight()
@@ -136,7 +136,7 @@ b = boss(x=47.0, y=15.8, z=-119.0, anim=3006)
 b2 = boss(x=47.0, y=15.8, z=-119.0, anim=4100)
 t, mv, pad = make([snap(b, me=_on(b), hp=136, sp=30), snap(b2, me=_on(b2), hp=136, sp=30),
                    snap(calm, me=_on(calm), hp=136, sp=30), snap(None, me=_on(calm), hp=400)])
-mv.light = lambda s, c, n=1, sp_second=40: (pad.calls.append(("light", (n,))), NS(dmg=0, taken=0))[1]
+mv.light = lambda s, c, n=1, sp_second=40, **kw: (pad.calls.append(("light", (n,))), NS(dmg=0, taken=0, cut=None))[1]
 mv.drink = lambda ok: pad.calls.append(("drink", ())) or {"ok": True}
 t.nm = None
 t._fight()

@@ -58,6 +58,7 @@ class Hit:
     e_anims: list = field(default_factory=list)
     my_anims: list = field(default_factory=list)
     skipped: str | None = None
+    cut: tuple | None = None      # (t, target anim, presses so far) when stop_on cut the chain
     others: int = 0               # number of non-target enemies whose HP also dropped (Claymore horizontal slash — user: "nearby enemies take damage too")
 
     def as_dict(self) -> dict:
@@ -336,10 +337,12 @@ class Moves:
 
     @_span
     @_aligned(0)
-    def light(self, s, c, n: int = 1, sp_second: int = 40) -> Hit:
+    def light(self, s, c, n: int = 1, sp_second: int = 40, stop_on=frozenset()) -> Hit:
         """Light attack (R1) n times (1, 2 or 3). Each further R1 at SECOND_R1_AT after the previous one, only if stamina exceeds
         sp_second at the start. The shield goes up after the last attack anim starts (so a buffered R1 isn't overridden by guard).
-        n = 3: [MoKa] 11-09 타우로스 "다리에 붙었으면 바로 공격하고 3대를 연속으로 때려봐" — same chain step again, unmeasured."""
+        n = 3: [MoKa] 11-09 타우로스 "다리에 붙었으면 바로 공격하고 3대를 연속으로 때려봐" — same chain step again, unmeasured.
+        stop_on: target anims that cut the chain — no further R1 once the target is seen in one, exit when my swing ends
+        ([MoKa] 11-09 "끊고 다시 붙어": 타우로스 701 백스텝 중 남은 약공이 빈 데를 침, 121803 첫 사슬 3.9 s)."""
         hit = Hit("light")
         ptr, hp0, ehp0 = c.ptr, s.player.hp, c.hp
         w = self.weapon
@@ -355,9 +358,14 @@ class Moves:
         hit.presses = 1
         target = max(1, min(3, n)) if n >= 2 and (s.player.sp or 0) >= sp_second else 1
         extra = (target - 2) * chain if target >= 2 else 0.0   # a third R1 shifts the guard / watch / exit times by one chain step
-        state = {"k": 1, "guard": hold}
+        state = {"k": 1, "guard": hold, "cut": False}
 
         def tick(t, h):
+            if stop_on and not state["cut"] and h.e_anims and h.e_anims[-1][1] in stop_on and state["k"] < target:
+                state["cut"] = True
+                h.cut = (round(t, 2), h.e_anims[-1][1], state["k"])
+            if state["cut"]:
+                return
             if state["k"] < target and t >= chain * state["k"]:
                 state["k"] += 1
                 if not h.dead:
@@ -368,8 +376,10 @@ class Moves:
                 state["guard"] = True
                 self.guard(True)
         # when holding, the game signals the end — exit as soon as my anim returns to -1 (cancel frame)
-        exit_at = (lambda t, h: state["k"] >= target and t > chain + extra + 0.1) if hold else                   (lambda t, h: state["k"] >= target and t > (g2 - 0.3 + extra if target >= 2 else g1 - 0.05))
+        exit_at = (lambda t, h: state["cut"] or (state["k"] >= target and t > chain + extra + 0.1)) if hold else                   (lambda t, h: state["cut"] or (state["k"] >= target and t > (g2 - 0.3 + extra if target >= 2 else g1 - 0.05)))
         self._watch(hit, ptr, hp0, ehp0, w2 + extra if target >= 2 else w1, tick, early_exit=exit_at)
+        if state["cut"] and not state["guard"]:
+            self.guard(True)
         self.pad.move(0.0, 0.0)
         self._phantom_check(s, c, hit)
         return hit
