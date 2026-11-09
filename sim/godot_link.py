@@ -75,7 +75,7 @@ class SimPad:
     def __init__(self, port: int = INPUT_PORT):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.addr = ("127.0.0.1", port)
-        self.st = {"lx": 0.0, "ly": 0.0, "rx": 0.0, "a": False, "b": False}
+        self.st = {"lx": 0.0, "ly": 0.0, "rx": 0.0, "a": False, "b": False, "rb": False, "x": False}
 
     def _send(self) -> None:
         self.sock.sendto(json.dumps(self.st).encode(), self.addr)
@@ -89,7 +89,15 @@ class SimPad:
         self._send()
 
     def neutral(self, why: str | None = None) -> None:
-        self.st = {"lx": 0.0, "ly": 0.0, "rx": 0.0, "a": False, "b": False}
+        self.st = {"lx": 0.0, "ly": 0.0, "rx": 0.0, "a": False, "b": False, "rb": False, "x": False}
+        self._send()
+
+    def press(self, key: str, hold: float = 0.1) -> None:
+        """Press a button ("a" "b" "rb" "x") for hold seconds. B shorter than 0.25 s = roll / backstep, longer = run."""
+        self.st[key] = True
+        self._send()
+        time.sleep(hold)
+        self.st[key] = False
         self._send()
 
     def interact(self) -> None:

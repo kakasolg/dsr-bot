@@ -1,0 +1,148 @@
+{
+ "source": "data/gamefiles/tae_c0000.json (player_tae_extract.py) — DSR game files; not yet checked against DSAnimStudio or the game",
+ "actions": {
+  "roll_fast": {
+   "anim": 700,
+   "length": 2.3667,
+   "note": "fast roll forward (equip load < 25 %)",
+   "invincible": [
+    [
+     0.0,
+     0.3667
+    ]
+   ],
+   "no_turn": [
+    [
+     0.0667,
+     2.3667
+    ]
+   ],
+   "attack": [],
+   "cancel_move": 0.8,
+   "cancel_roll": 0.8,
+   "cancel_r": 0.8,
+   "clip": "Roll",
+   "lib": "",
+   "clip_until": 0.8
+  },
+  "roll": {
+   "anim": 710,
+   "length": 2.3333,
+   "note": "mid roll forward — room default [guess]",
+   "invincible": [
+    [
+     0.0,
+     0.3667
+    ]
+   ],
+   "no_turn": [
+    [
+     0.0667,
+     2.3333
+    ]
+   ],
+   "attack": [],
+   "cancel_move": 1.1,
+   "cancel_roll": 1.1,
+   "cancel_r": 1.1,
+   "clip": "Roll",
+   "lib": "",
+   "clip_until": 1.1
+  },
+  "backstep": {
+   "anim": 690,
+   "length": 2.4333,
+   "note": "backstep — no CC0 clip: Roll played backward [stand-in]",
+   "invincible": [
+    [
+     0.0,
+     0.1333
+    ]
+   ],
+   "no_turn": [
+    [
+     0.0667,
+     2.4333
+    ]
+   ],
+   "attack": [],
+   "cancel_move": 0.9333,
+   "cancel_roll": 0.8667,
+   "cancel_r": 0.8667,
+   "clip": "Roll",
+   "lib": "",
+   "clip_until": 0.9333
+  },
+  "light": {
+   "anim": 304000,
+   "length": 2.5667,
+   "note": "1st right-hand light attack, section 30 weapon",
+   "invincible": [],
+   "no_turn": [
+    [
+     0.0,
+     0.2333
+    ],
+    [
+     0.4667,
+     2.5667
+    ]
+   ],
+   "attack": [
+    [
+     0.6333,
+     0.7667
+    ]
+   ],
+   "cancel_move": 1.2,
+   "cancel_roll": 1.1333,
+   "cancel_r": 1.1333,
+   "clip": "Sword_Regular_A",
+   "lib": "ual2",
+   "clip_until": 1.2
+  },
+  "estus": {
+   "anim": 7585,
+   "length": 2.3,
+   "note": "Estus",
+   "invincible": [],
+   "no_turn": [
+    [
+     0.0,
+     2.3
+    ]
+   ],
+   "attack": [],
+   "cancel_move": null,
+   "cancel_roll": null,
+   "cancel_r": null,
+   "clip": "Consume",
+   "lib": "ual2",
+   "clip_until": 2.3
+  },
+  "lever": {
+   "anim": 8000,
+   "length": 3.3333,
+   "note": "pull lever (ObjActParam 1200 PlayerActionAnimation)",
+   "invincible": [
+    [
+     0.0,
+     2.8667
+    ]
+   ],
+   "no_turn": [
+    [
+     0.0,
+     3.3333
+    ]
+   ],
+   "attack": [],
+   "cancel_move": 2.8667,
+   "cancel_roll": 2.8667,
+   "cancel_r": 2.8667,
+   "clip": "Interact",
+   "lib": "",
+   "clip_until": 2.8667
+  }
+ }
+}

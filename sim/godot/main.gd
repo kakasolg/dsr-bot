@@ -26,8 +26,6 @@ const ACT_POINT_LOCAL := Vector3(0, 0, 1.182)       # [game] dummy 191
 const ACT_DIST := 0.90                              # [game] MaxActionDistance 90 — cm is [guess]
 const ACT_PLAYER_DEG := 45.0                        # [game] MaxPlayerAngle
 const ACT_OBJECT_DEG := 45.0                        # [game] MaxObjectAngle — measured from the lever origin is [guess]
-const PULL_ANIM := 8000                             # [game] PlayerActionAnimation
-const PULL_S := 2.0                                 # [guess] how long the pull locks the player
 const GATE_OPEN_S := 3.0                            # [guess]
 
 # ── Player movement (motion.py Params) ─────────────────────────────────
@@ -49,6 +47,15 @@ const CAM_PITCH := -0.25   # [guess] rad
 const CAM_TURN := 2.5      # [guess] rad/s at full right stick
 const CAM_FOLLOW := 8.0    # [guess] 1/s position smoothing
 
+# ── Actions (sim/godot/actions.json ← sim/build_actions.py ← DSR player TAE) ──
+const ROLL_DIST := 2.8         # [guess] m a roll travels — to be measured in DSR
+const ROLL_MOVE_S := 0.6       # [guess] s it takes
+const BACKSTEP_DIST := 1.6     # [guess]
+const BACKSTEP_MOVE_S := 0.4   # [guess]
+const B_TAP_S := 0.25          # [guess] B released before this = roll / backstep, held longer = run
+const MODEL_PATH := "res://assets/UAL1_Standard.glb"    # CC0 Quaternius (not in git — sim/README.md)
+const LIB2_PATH := "res://assets/UAL2_Standard.glb"
+
 # ── Link ────────────────────────────────────────────────────────────────
 const STATE_PORT := 47811  # state out (JSON per physics frame) → sim/godot_link.py
 const INPUT_PORT := 47812  # UDP input in {"lx","ly","rx","a","b"} — headless tests without a pad
@@ -64,22 +71,31 @@ var heading := START_HEADING
 var speed := 0.0
 var cam_yaw := 0.0
 var anim := -1
-var action_left := 0.0
+var actions := {}            # name → DSR windows (actions.json)
+var act_name := ""           # current action, "" = none
+var act_t := 0.0             # s since it started (= DSR anim_time)
+var act_dir := 0.0           # world angle the action moves along
+var b_down_t := -1.0
+var btn_was := {}
+var anim_player: AnimationPlayer
+var loco_clip := ""
 var lever_pulled := false
 var gate_open := 0.0          # 0 closed … 1 open
 var prompt := false
 var prompt_why := ""
-var a_was_down := false
 var t := 0.0
 
 var udp_out := PacketPeerUDP.new()
 var udp_in := PacketPeerUDP.new()
-var net_in := {"lx": 0.0, "ly": 0.0, "rx": 0.0, "a": false, "b": false}
+var net_in := {"lx": 0.0, "ly": 0.0, "rx": 0.0, "a": false, "b": false, "rb": false, "x": false}
 var net_in_t := -10.0
 
 
 func _ready() -> void:
 	lever_basis = Basis(Vector3.UP, deg_to_rad(LEVER_ROT_DEG))
+	var f := FileAccess.open("res://actions.json", FileAccess.READ)
+	if f:
+		actions = JSON.parse_string(f.get_as_text())["actions"]
 	_build_world()
 	_build_player()
 	_build_ui()
@@ -236,6 +252,21 @@ func _build_player() -> void:
 	nose.mesh = nb
 	nose.position = Vector3(0, 1.4, -0.35)
 	player.add_child(nose)
+	if ResourceLoader.exists(MODEL_PATH):
+		var model: Node3D = load(MODEL_PATH).instantiate()
+		model.rotation.y = PI                 # glTF faces +Z, the room's forward is -Z
+		player.add_child(model)
+		var aps := model.find_children("*", "AnimationPlayer", true, false)
+		if aps.size() > 0:
+			anim_player = aps[0]
+			if ResourceLoader.exists(LIB2_PATH):
+				var m2: Node = load(LIB2_PATH).instantiate()
+				var ap2 := m2.find_children("*", "AnimationPlayer", true, false)
+				if ap2.size() > 0:
+					anim_player.add_animation_library("ual2", ap2[0].get_animation_library(""))
+				m2.queue_free()
+			body.visible = false
+			nose.visible = false
 	player.position = START
 	player.rotation.y = heading
 	add_child(player)
@@ -272,7 +303,7 @@ func _read_input() -> Dictionary:
 	if t - net_in_t < 0.5:
 		return net_in.duplicate()
 	# pads: take the device with the largest left stick (the bot's ViGEm pad or MoKa's)
-	var best := {"lx": 0.0, "ly": 0.0, "rx": 0.0, "a": false, "b": false}
+	var best := {"lx": 0.0, "ly": 0.0, "rx": 0.0, "a": false, "b": false, "rb": false, "x": false}
 	var best_m := -1.0
 	for dev in Input.get_connected_joypads():
 		var lx := Input.get_joy_axis(dev, JOY_AXIS_LEFT_X)
@@ -281,7 +312,8 @@ func _read_input() -> Dictionary:
 		if m > best_m or Input.is_joy_button_pressed(dev, JOY_BUTTON_A):
 			best_m = m
 			best = {"lx": lx, "ly": ly, "rx": Input.get_joy_axis(dev, JOY_AXIS_RIGHT_X),
-				"a": Input.is_joy_button_pressed(dev, JOY_BUTTON_A), "b": Input.is_joy_button_pressed(dev, JOY_BUTTON_B)}
+				"a": Input.is_joy_button_pressed(dev, JOY_BUTTON_A), "b": Input.is_joy_button_pressed(dev, JOY_BUTTON_B),
+				"rb": Input.is_joy_button_pressed(dev, JOY_BUTTON_RIGHT_SHOULDER), "x": Input.is_joy_button_pressed(dev, JOY_BUTTON_X)}
 	# keyboard (MoKa trying it by hand): WASD move (Shift = walk), arrows camera, E = A
 	var kx := float(Input.is_physical_key_pressed(KEY_D)) - float(Input.is_physical_key_pressed(KEY_A))
 	var ky := float(Input.is_physical_key_pressed(KEY_W)) - float(Input.is_physical_key_pressed(KEY_S))
@@ -294,64 +326,187 @@ func _read_input() -> Dictionary:
 		best["rx"] = kr
 	if Input.is_physical_key_pressed(KEY_E):
 		best["a"] = true
+	if Input.is_physical_key_pressed(KEY_SPACE):
+		best["b"] = true
+	if Input.is_physical_key_pressed(KEY_J):
+		best["rb"] = true
+	if Input.is_physical_key_pressed(KEY_R):
+		best["x"] = true
 	return best
 
 
 # ── Frame ───────────────────────────────────────────────────────────────
+func _pressed(inp: Dictionary, k: String) -> bool:
+	var now: bool = inp.get(k, false)
+	var was: bool = btn_was.get(k, false)
+	btn_was[k] = now
+	return now and not was
+
+
+func _in(wins: Array, at: float) -> bool:
+	for w in wins:
+		if at >= float(w[0]) and at < float(w[1]):
+			return true
+	return false
+
+
+func _start(name: String, dir_angle: float) -> void:
+	if not actions.has(name):
+		return
+	act_name = name
+	act_t = 0.0
+	act_dir = dir_angle
+	anim = int(actions[name]["anim"])
+	speed = 0.0
+	if anim_player:
+		var a: Dictionary = actions[name]
+		var clip := String(a["clip"]) if String(a["lib"]) == "" else "%s/%s" % [a["lib"], a["clip"]]
+		if anim_player.has_animation(clip):
+			var length := anim_player.get_animation(clip).length
+			var until := float(a["clip_until"])
+			if name == "backstep":
+				anim_player.play_backwards(clip, 0.1)
+			else:
+				anim_player.play(clip, 0.1)
+			anim_player.speed_scale = length / maxf(until, 0.1)
+			loco_clip = ""
+
+
+func _end_action() -> void:
+	act_name = ""
+	anim = -1
+	if anim_player:
+		anim_player.speed_scale = 1.0
+
+
 func _physics_process(dt: float) -> void:
 	t += dt
 	var inp := _read_input()
 	var lx: float = inp["lx"]
 	var ly: float = inp["ly"]
 	var m := minf(Vector2(lx, ly).length(), 1.0)
+	var want := cam_actual_yaw() + atan2(lx, ly)      # world angle the stick points to (the camera as drawn, like DSR)
+	var face := heading + PI                           # world angle the body faces
 
 	cam_yaw = wrapf(cam_yaw - float(inp["rx"]) * CAM_TURN * dt, -PI, PI)
+	_check_prompt()
+
+	# B: tap = roll (stick held) / backstep (no stick); hold = run
+	var b: bool = inp["b"]
+	var tap_b := false
+	if b and b_down_t < 0.0:
+		b_down_t = t
+	elif not b and b_down_t >= 0.0:
+		tap_b = t - b_down_t < B_TAP_S
+		b_down_t = -1.0
+	var running := b and b_down_t >= 0.0 and t - b_down_t >= B_TAP_S
+
+	# leaving the current action: by moving / rolling / the next R after the DSR cancel times, or at its end
+	if act_name != "":
+		act_t += dt
+		var a: Dictionary = actions[act_name]
+		var cm = a["cancel_move"]
+		var cr = a["cancel_roll"]
+		if act_t >= float(a["length"]) or (cm != null and act_t >= float(cm) and m >= DEAD):
+			_end_action()
+		elif cr != null and act_t >= float(cr) and tap_b:
+			_end_action()
+
+	var pressed_a := _pressed(inp, "a")
+	var pressed_rb := _pressed(inp, "rb")
+	var pressed_x := _pressed(inp, "x")
+	if act_name == "":
+		if tap_b:
+			if m >= DEAD:
+				heading = wrapf(want - PI, -PI, PI)          # a roll goes where the stick points
+				_start("roll", want)
+			else:
+				_start("backstep", face + PI)
+		elif pressed_a and prompt:
+			lever_pulled = true
+			_start("lever", face)
+		elif pressed_rb:
+			_start("light", face)
+		elif pressed_x:
+			_start("estus", face)
 
 	var target_v := 0.0
-	if action_left > 0.0:
-		action_left -= dt
-		if action_left <= 0.0:
-			anim = -1
+	var vel := Vector3.ZERO
+	if act_name != "":
+		var a: Dictionary = actions[act_name]
+		if not _in(a["no_turn"], act_t) and m >= DEAD:  # DSR lets an action turn outside its "disable turning" window
+			var d0 := wrapf(want - (heading + PI), -PI, PI)
+			heading = wrapf(heading + clampf(d0, -TURN * dt, TURN * dt), -PI, PI)
+		var dist := 0.0
+		var dur := 1.0
+		if act_name.begins_with("roll"):
+			dist = ROLL_DIST
+			dur = ROLL_MOVE_S
+		elif act_name == "backstep":
+			dist = BACKSTEP_DIST
+			dur = BACKSTEP_MOVE_S
+		if act_t < dur and dist > 0.0:
+			vel = Vector3(sin(act_dir), 0, cos(act_dir)) * (dist / dur)
 	elif m >= DEAD:
-		target_v = V_RUN if inp["b"] else (V_WALK if m < WALK_HI else V_JOG)
-		var want := cam_actual_yaw() + atan2(lx, ly)           # world angle the stick points to (the camera as drawn, like DSR)
-		var face := heading + PI                               # world angle the body faces
+		target_v = V_RUN if running else (V_WALK if m < WALK_HI else V_JOG)
 		var d := wrapf(want - face, -PI, PI)
 		face += clampf(d, -TURN * dt, TURN * dt)
 		heading = wrapf(face - PI, -PI, PI)
-	var tau := TAU_UP if target_v > speed else TAU_DOWN
-	speed += (target_v - speed) * (1.0 - exp(-dt / tau))
-	var face_dir := Vector3(sin(heading + PI), 0, cos(heading + PI))
-	player.velocity.x = face_dir.x * speed
-	player.velocity.z = face_dir.z * speed
+	if act_name == "":
+		var tau := TAU_UP if target_v > speed else TAU_DOWN
+		speed += (target_v - speed) * (1.0 - exp(-dt / tau))
+		var face_dir := Vector3(sin(heading + PI), 0, cos(heading + PI))
+		vel = face_dir * speed
+	player.velocity.x = vel.x
+	player.velocity.z = vel.z
 	player.velocity.y = 0.0 if player.is_on_floor() else player.velocity.y - 9.8 * dt
 	player.rotation.y = heading
 	player.move_and_slide()
 
-	_check_prompt()
-	var a_down: bool = inp["a"]
-	if a_down and not a_was_down and prompt and action_left <= 0.0:
-		lever_pulled = true
-		anim = PULL_ANIM
-		action_left = PULL_S
-		speed = 0.0
-	a_was_down = a_down
 	if lever_pulled and gate_open < 1.0:
 		gate_open = minf(1.0, gate_open + dt / GATE_OPEN_S)
 		gate.position.y = FLOOR_Y + GATE_H / 2.0 + gate_open * (GATE_H - 0.2)
 
+	_animate()
 	_update_camera(dt)
 	_send_state()
 	prompt_label.text = "Ⓐ Pull lever" if prompt else ""
 	var p := player.position
-	info_label.text = "pos %.2f %.2f %.2f  heading %.3f  cam_yaw %.3f\nbonfire-rel %.2f %.2f  prompt %s %s\nlever %s  gate %.0f%%" % [
-		p.x, p.y, p.z, heading, cam_yaw, p.x - BONFIRE.x, p.z - BONFIRE.z, prompt, prompt_why, lever_pulled, gate_open * 100]
+	var flags := ""
+	if act_name != "":
+		var a: Dictionary = actions[act_name]
+		flags = "%s %d  t %.2f%s%s%s" % [act_name, anim, act_t, "  INVINCIBLE" if _in(a["invincible"], act_t) else "",
+			"  no-turn" if _in(a["no_turn"], act_t) else "", "  HIT" if _in(a["attack"], act_t) else ""]
+	info_label.text = "pos %.2f %.2f %.2f  heading %.3f  cam_yaw %.3f
+bonfire-rel %.2f %.2f  prompt %s %s
+lever %s  gate %.0f%%
+%s" % [
+		p.x, p.y, p.z, heading, cam_yaw, p.x - BONFIRE.x, p.z - BONFIRE.z, prompt, prompt_why, lever_pulled, gate_open * 100, flags]
+
+
+func _animate() -> void:
+	if anim_player == null or act_name != "":
+		return
+	var clip := "Idle"
+	var sc := 1.0
+	if speed > 3.7:
+		clip = "Sprint"
+	elif speed > 2.0:
+		clip = "Jog_Fwd"
+		sc = speed / 3.42
+	elif speed > 0.3:
+		clip = "Walk"
+		sc = speed / 1.64
+	if clip != loco_clip or not anim_player.is_playing():
+		anim_player.play(clip, 0.2)
+		loco_clip = clip
+	anim_player.speed_scale = sc
 
 
 func _check_prompt() -> void:
 	prompt = false
-	if lever_pulled:
-		prompt_why = "(pulled)"
+	if lever_pulled or act_name != "":
+		prompt_why = "(pulled)" if lever_pulled else "(busy)"
 		return
 	var ap := act_point()
 	var p := player.position
@@ -381,5 +536,9 @@ func _send_state() -> void:
 	var p := player.position
 	var d := {"t": t, "x": p.x, "y": p.y, "z": p.z, "heading": heading, "anim": anim, "speed": speed,
 		"cam_yaw": cam_actual_yaw(), "prompt": prompt, "prompt_text": "Pull lever" if prompt else "",
-		"prompt_why": prompt_why, "lever": lever_pulled, "gate_open": gate_open}
+		"prompt_why": prompt_why, "lever": lever_pulled, "gate_open": gate_open,
+		"action": act_name, "anim_time": act_t if act_name != "" else null,
+		"invincible": act_name != "" and _in(actions[act_name]["invincible"], act_t),
+		"no_turn": act_name != "" and _in(actions[act_name]["no_turn"], act_t),
+		"hitbox": act_name != "" and _in(actions[act_name]["attack"], act_t)}
 	udp_out.put_packet(JSON.stringify(d).to_utf8_buffer())

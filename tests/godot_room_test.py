@@ -70,6 +70,45 @@ def main() -> None:
         time.sleep(3.5)
         st = tm.state()
         check(f"gate opens ({st['gate_open']:.0%})", st["gate_open"] >= 0.99)
+
+        # actions with the DSR player TAE windows (sim/godot/actions.json)
+        act = json.loads((ROOT / "sim/godot/actions.json").read_text(encoding="utf-8"))["actions"]
+        st = go(tm, pad, 22.0, -24.5)
+        x0, z0 = st["x"], st["z"]
+        pad.move(0.0, 0.0)
+        pad.press("b", 0.08)                                   # B tap, no stick → backstep
+        time.sleep(0.05)
+        st = tm.state()
+        check(f"B tap, no stick → backstep {st['anim']} (DSR 690), invincible at {st['anim_time']:.2f} s",
+              st["anim"] == 690 and st["invincible"] == (st["anim_time"] < act["backstep"]["invincible"][0][1]))
+        time.sleep(1.2)
+        st = tm.state()
+        moved = math.hypot(st["x"] - x0, st["z"] - z0)
+        check(f"backstep moved {moved:.2f} m backward ([guess] 1.6 m)", 1.2 < moved < 2.0)
+        time.sleep(1.5)
+        s0 = tm.state()
+        pad.move(0.0, 0.6)
+        pad.press("b", 0.08)                                   # stick + B tap → roll
+        time.sleep(0.15)
+        st = tm.state()
+        check(f"stick + B tap → roll {st['anim']} (DSR 710), invincible {st['invincible']} at {st['anim_time']:.2f} s",
+              st["anim"] == 710 and st["invincible"])
+        time.sleep(0.4)
+        st = tm.state()
+        check(f"roll: invincible over after 0.367 s (t {st['anim_time']:.2f}: {st['invincible']})", not st["invincible"])
+        pad.move(0.0, 0.0)
+        time.sleep(2.2)
+        pad.press("rb", 0.08)
+        hits = []
+        t0 = time.time()
+        while time.time() - t0 < 1.5:
+            st = tm.state()
+            if st["hitbox"]:
+                hits.append(st["anim_time"])
+            time.sleep(0.01)
+        w = act["light"]["attack"][0]
+        check(f"RB → light 304000, hit window seen {min(hits):.2f}–{max(hits):.2f} s (DSR {w[0]:.3f}–{w[1]:.3f})",
+              hits and w[0] - 0.02 <= min(hits) and max(hits) <= w[1] + 0.02)
         print("godot_room_test: 전부 통과")
     finally:
         pad.neutral()
