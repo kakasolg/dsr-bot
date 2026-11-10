@@ -2551,6 +2551,8 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
     (#6 4 m 안: 도착 뒤 2.1~2.2 s) — 해결 기준 "10회 연속 통과 또는 원인 확인" 둘 다. [win]에서는 안 돌림.
   - 남은 것: 테스트 하나가 패드 1개만 남기는데도 [win]에서 3~4회 중 1회 45 s를 넘긴 이유(1개일 때 cloud는 30~32 s)는 직접 못 봄 —
     [win]이 더 느리거나 pytest 부하로 추정. `run.py`는 프로세스당 패드 하나라 해당 없음.
+  - 확인 ([win], 헤드리스, 11-10 12:10~12:20): 104aba4를 별도 작업 폴더에 풀고 이 PC의 DSR 모델·게임 데이터를 넣어 `python tests/godot_ramp_test.py` 10회 연속 통과
+    (실패 0, 회당 50~52 s, #1까지 14.5~14.6 s, #6 4 m 안: 도착 뒤 매번 2.2 s). 테스트 파일만 따로 돌림 — 전에 실패가 나온 `pytest` 전체 조건으로는 안 돌림.
 
 ### P-155 merchant-buy: 시작 준비 중에 캐릭터가 상인을 침 (입력 출처 모름) → 적대 → 봇이 망자 상인을 죽임 (11-10)
 - 실행: `20261110_061503_merchant-buy` (a1aa801+dirty), npc-module 게임 확인용. 세이브 `backup-20261012-034844-merchant-bought-knife30-firebomb67`
