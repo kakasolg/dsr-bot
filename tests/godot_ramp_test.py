@@ -164,6 +164,7 @@ def room(sc: dict) -> None:
               took and hp3 >= hp2 - 30)
     finally:
         pad.move(0.0, 0.0)
+        pad.close()                                   # stop its beat — it would feed the next room zeros (P-154)
         tm.close()
         _stop(p)
         _pl.Path(rec).unlink(missing_ok=True)
@@ -214,6 +215,7 @@ def room_six(sc: dict) -> None:
               f"{took if took is None else round(took, 1)} s after the player got there)", best < 4.0)
     finally:
         pad.move(0.0, 0.0)
+        pad.close()                                   # stop its beat — it would feed the next room zeros (P-154)
         tm.close()
         _stop(p)
         _pl.Path(rec).unlink(missing_ok=True)

@@ -247,7 +247,6 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 150 | VIT lvl | open |
 | 152 | probe fall | open |
 | 153 | probe: flags off by foes → death | open |
-| 154 | ramp_test #6 flaky | open |
 | 155 | start-up swing → merchant killed | open |
 | 157 | probe: ZW 2H R1 bounce = side wall; spot by hand | open |
 

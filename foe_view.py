@@ -219,6 +219,7 @@ def main() -> None:
           + (f" ({c['from']:.1f} s부터, 최대 {c['peak']}명)" if c["from"] else ""))
     print(f"  봇이 영역 1022710 안: +58° 해석 {v['bot_in_region'][1] or '없음'} · −58° 해석 {v['bot_in_region'][-1] or '없음'}")
     out = ROOT / "data" / "replays" / f"{run}.foe_view.json"
+    out.parent.mkdir(parents=True, exist_ok=True)           # data/replays is outside git — a fresh clone has none
     out.write_text(json.dumps(v, ensure_ascii=False, indent=1), encoding="utf-8")
 
 
