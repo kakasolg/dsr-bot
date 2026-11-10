@@ -141,6 +141,7 @@ func _build_world() -> void:
 			if sh is ConcavePolygonShape3D:
 				(sh as ConcavePolygonShape3D).backface_collision = true    # map winding isn't trusted (mirrored)
 	cam = Camera3D.new()
+	cam.fov = 43.0                # [game] LockCamParam VerticalFieldOfView (as main.gd CAM_FOV)
 	cam.far = 600.0
 	add_child(cam)
 	cam.current = true

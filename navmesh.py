@@ -132,6 +132,38 @@ class Navmesh:
         nm._gates = [sorted(g) for _, g in sorted(groups.items())]
         return nm
 
+    @classmethod
+    def flat(cls, half: float = 20.0, cell: float = 2.0, y: float = 0.0, map_id: str = "flat") -> "Navmesh":
+        """A square of flat floor (−half…half in x and z at height y), one piece, no gates — the Godot practice room's
+        flat arena (MoKa M1109-75; sim/arena_scene.py builds the room's floor from the same call). Not a DSR map."""
+        n = int(round(2 * half / cell))
+        xs = np.linspace(-half, half, n + 1)
+        nm = cls.__new__(cls)
+        nm.map_id = map_id
+        nm.model_tri_offset = {}
+        nm.src = [f"flat {2 * half:g} m square, {cell:g} m cells, y {y:g}"]
+        nm.v = np.array([[x, y, z] for z in xs for x in xs], dtype=np.float64)
+        tris = []
+        for j in range(n):
+            for i in range(n):
+                a, b, c, d = j * (n + 1) + i, j * (n + 1) + i + 1, (j + 1) * (n + 1) + i + 1, (j + 1) * (n + 1) + i
+                tris += [[a, b, c], [a, c, d]]
+        nm.t = np.array(tris, dtype=np.int64)
+        nm.flags = np.zeros(len(tris), dtype=np.int64)
+        nm.piece = np.zeros(len(tris), dtype=np.int64)
+        # neighbours by shared edge, in the edge order the game's NVM uses: (0,1) (1,2) (2,0)
+        owner: dict[tuple[int, int], list[int]] = {}
+        for ti, tr in enumerate(tris):
+            for k in range(3):
+                owner.setdefault(tuple(sorted((tr[k], tr[(k + 1) % 3]))), []).append(ti)
+        adj = [[next((o for o in owner[tuple(sorted((tr[k], tr[(k + 1) % 3])))] if o != ti), -1) for k in range(3)]
+               for ti, tr in enumerate(tris)]
+        nm.adj = np.array(adj, dtype=np.int64)
+        nm.centroid = (nm.v[nm.t[:, 0]] + nm.v[nm.t[:, 1]] + nm.v[nm.t[:, 2]]) / 3.0
+        nm.a, nm.b, nm.c = nm.v[nm.t[:, 0]], nm.v[nm.t[:, 1]], nm.v[nm.t[:, 2]]
+        nm._gates = []
+        return nm
+
     def __len__(self) -> int:
         return len(self.t)
 

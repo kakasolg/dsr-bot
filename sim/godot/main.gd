@@ -43,6 +43,8 @@ const HEIGHT := 1.7        # [guess]
 # ── Camera ──────────────────────────────────────────────────────────────
 const CAM_DIST := 4.0      # [game] LockCamParam camDistTarget (lock-on camera; free camera is [guess] the same)
 const CAM_ORG_Y := 1.42    # [game] LockCamParam chrOrgOffset_Y
+const CAM_FOV := 43.0      # [game] LockCamParam VerticalFieldOfView, every row (Godot's default 75° made the body big, the map small and the ramp steep — MoKa 11-09)
+const MIRROR := true       # show the picture as DSR does (_build_mirror); the numbers stay DSR's either way
 const CAM_PITCH := -0.25   # [guess] rad
 const CAM_TURN := 2.5      # [guess] rad/s at full right stick
 const CAM_FOLLOW := 8.0    # [guess] 1/s position smoothing
@@ -69,12 +71,25 @@ const WEAPON_R := 0.2          # [guess]
 # z = character forward, x = up (right) / down (left); DSR weapon models have the blade along -Y, grip at the origin.
 const RIGHT_GLB := "res://assets/WP_A_0266.glb"    # Claymore (EquipParamWeapon 301000, WeaponModel 266)
 const LEFT_GLB := "res://assets/WP_A_1521.glb"     # Wooden Shield (1400000, WeaponModel 1521)
+# CC0 stand-ins (MoKa M1110-10: "Quaternius 공개 사용 하고 무기도 공개에서 찾아서 최대 한 유사한거"): Quaternius Medieval
+# Weapons (CC0, assets/cc0/License.txt). Used only when the DSR model above is missing (a fresh clone / cloud). The weapon
+# node stays where the DSR model would be, so the hit capsules (DSR dummy points in that node's space) are the same;
+# the CC0 mesh inside is turned blade −Y like DSR's and scaled so its tip is the farthest DSR dummy [look only].
+const CC0_RIGHT := "res://assets/cc0/Claymore.fbx"   # blade +Y, grip at the origin, tip y 6.27
+const CC0_RIGHT_TIP := 6.27
+const CC0_LEFT := "res://assets/cc0/Shield_Round.fbx"  # face +Z, Ø 2.0
+const CC0_LEFT_D := 0.6                               # [guess] Wooden Shield diameter, m
 const GRIP_R := Vector3(-0.02, 0.08, 0.0)          # [guess] grip point in hand_r space (into the fist, palm side)
 const GRIP_L := Vector3(0.03, 0.07, 0.0)           # [guess] shield handle in hand_l space
+const SHIELD_OUT := -0.15                          # [guess] shield moved off the forearm toward its face side (sign from renders — the model is mirrored)
 const PLAYER_HP := 849         # [meas] the 11-09 character (VIT 22)
 const STAGGER_S := 0.5         # [guess] player hit reaction
 const DUMMY_POS := Vector3(26.5, 9.4, -26.0)   # training dummy — not in DSR
 const DUMMY_R := 0.4           # [guess]
+# 내 칼이 맞히는 상대 몸 두께 (MoKa 11-09 "칼 길이가 너무 길어서 사기 수준"): 몸 충돌 0.4를 그대로 쓰면 AtkParam 반지름 0.4와 합쳐
+# 칼끝 0.8 m 밖까지 맞음 — 약공이 중심 2.4 m에서 늘 맞았다. 게임 블랙박스 (souls/weapons.py CLAYMORE): 1.8 m 9/14 · 2.0 m 6/15 ·
+# 2.2 m 3/8 · 2.4 m 3/19. 이 값은 그 경계에 맞춘 [guess] (DSR이 실제로 어느 몸 캡슐로 재는지는 모름)
+const BODY_HIT_R := 0.0
 const DUMMY_H := 1.8           # [guess]
 const DUMMY_HP := 600          # [guess]
 const DUMMY_EVERY := 3.0       # [guess] s per swing while the player is close
@@ -90,6 +105,7 @@ const INPUT_PORT := 47812  # UDP input in {"lx","ly","rx","a","b"} — headless 
 
 var player: CharacterBody3D
 var cam: Camera3D
+var mirror_view: SubViewport   # the camera's view, shown flipped (_build_mirror)
 var gate: AnimatableBody3D
 var prompt_label: Label
 var info_label: Label
@@ -316,6 +332,10 @@ func _build_player() -> void:
 	if ResourceLoader.exists(MODEL_PATH):
 		var model: Node3D = load(MODEL_PATH).instantiate()
 		model.rotation.y = PI                 # glTF faces +Z, the room's forward is -Z
+		if MIRROR:
+			# a right-handed model in DSR's left-handed numbers holds the sword on the game's left; mirrored here and
+			# again by the picture, it is right-handed on screen and its weapon swings on DSR's side (foes: ramp.gd)
+			model.scale = Vector3(-1, 1, 1)
 		player.add_child(model)
 		var aps := model.find_children("*", "AnimationPlayer", true, false)
 		if aps.size() > 0:
@@ -333,8 +353,34 @@ func _build_player() -> void:
 	player.rotation.y = heading
 	add_child(player)
 	cam = Camera3D.new()
-	add_child(cam)
+	cam.fov = CAM_FOV
+	if MIRROR:
+		_build_mirror()
+		mirror_view.add_child(cam)
+	else:
+		add_child(cam)
 	cam.current = true
+
+
+# The room keeps DSR's numbers (positions, headings, camera yaw — what the bot reads), but DSR is left-handed and Godot
+# right-handed, so drawn as is the room is the game's mirror image (MoKa 11-09: "연습장은 좌측으로 올라가네"). The camera
+# renders into a SubViewport (same World3D) and the picture is shown flipped left-right; the HUD stays unflipped.
+func _build_mirror() -> void:
+	mirror_view = SubViewport.new()
+	mirror_view.size = get_viewport().get_visible_rect().size
+	mirror_view.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	add_child(mirror_view)
+	var layer := CanvasLayer.new()
+	layer.layer = -1
+	add_child(layer)
+	var tr := TextureRect.new()
+	tr.texture = mirror_view.get_texture()
+	tr.flip_h = true
+	tr.set_anchors_preset(Control.PRESET_FULL_RECT)
+	tr.stretch_mode = TextureRect.STRETCH_SCALE
+	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	layer.add_child(tr)
+	get_viewport().size_changed.connect(func(): mirror_view.size = get_viewport().get_visible_rect().size)
 
 
 func _attach_equipment(model: Node3D) -> void:
@@ -343,22 +389,42 @@ func _attach_equipment(model: Node3D) -> void:
 		return
 	var sk: Skeleton3D = sks[0]
 	# right: weapon -Y (blade) → hand +Z (forward in the rest pose), weapon X (blade width) → hand X
-	if ResourceLoader.exists(RIGHT_GLB):
+	if ResourceLoader.exists(RIGHT_GLB) or ResourceLoader.exists(CC0_RIGHT):
 		var ba := BoneAttachment3D.new()
 		ba.bone_name = "hand_r"
 		sk.add_child(ba)
-		weapon_node = load(RIGHT_GLB).instantiate()
+		if ResourceLoader.exists(RIGHT_GLB):
+			weapon_node = load(RIGHT_GLB).instantiate()
+		else:
+			weapon_node = Node3D.new()
+			var cc: Node3D = load(CC0_RIGHT).instantiate()
+			var reach := 0.0
+			for k in equip.get("right", {}).get("dummies", {}):
+				var d: Array = equip["right"]["dummies"][k]
+				reach = maxf(reach, Vector3(float(d[0]), float(d[1]), float(d[2])).length())   # 100 = tip, 1.28 m (WP_A_0266)
+			var sc := (reach if reach > 0.0 else 1.3) / CC0_RIGHT_TIP
+			cc.transform = Transform3D(Basis(Vector3(1, 0, 0), PI).scaled(Vector3(sc, sc, sc)), Vector3.ZERO)
+			weapon_node.add_child(cc)
 		weapon_node.transform = Transform3D(Basis(Vector3(1, 0, 0), Vector3(0, 0, -1), Vector3(0, 1, 0)), GRIP_R)
 		ba.add_child(weapon_node)
 	# left: shield front (+Z) → away from the palm (hand -X), shield X → along the arm (hand Y)
-	if ResourceLoader.exists(LEFT_GLB):
+	if ResourceLoader.exists(LEFT_GLB) or ResourceLoader.exists(CC0_LEFT):
 		var bl := BoneAttachment3D.new()
 		bl.bone_name = "hand_l"
 		sk.add_child(bl)
-		var sh: Node3D = load(LEFT_GLB).instantiate()
-		var b := Basis(Vector3(0, 1, 0), Vector3(0, 0, -1), Vector3(-1, 0, 0))
+		var sh: Node3D
+		if ResourceLoader.exists(LEFT_GLB):
+			sh = load(LEFT_GLB).instantiate()
+		else:
+			sh = Node3D.new()
+			var cs: Node3D = load(CC0_LEFT).instantiate()
+			cs.scale = Vector3.ONE * (CC0_LEFT_D / 2.0)
+			sh.add_child(cs)
+		var b := Basis(Vector3(0, 0, -1), Vector3(0, 1, 0), Vector3(1, 0, 0))
 		var grip := Vector3(0.0079, 0.0075, -0.1509)       # [game] WP_A_1521 dummy 100–130 (the handle)
-		sh.transform = Transform3D(b, GRIP_L - b * grip)
+		# MoKa 11-09 "방패 든 팔쪽이 뭔가 부자연 스러워": 예전 basis는 방패 뒷면(손잡이)이 바깥, 90° 누움 → 앞면 = 손 +X, 위 = 손 +Y;
+		# 팔이 방패 앞으로 나와 보여 SHIELD_OUT 만큼 옮김 — 방향·크기는 렌더를 보고 맞춤 [guess]
+		sh.transform = Transform3D(b, GRIP_L - b * grip + Vector3(SHIELD_OUT, 0, 0))
 		bl.add_child(sh)
 
 
@@ -426,6 +492,11 @@ func _read_input() -> Dictionary:
 		best["slow"] = true
 	if Input.is_physical_key_pressed(KEY_F1):
 		best["ov"] = true
+	if MIRROR:
+		# what MoKa sees is flipped, so a stick / key to the right must mean the picture's right; the bot's UDP input
+		# above stays as is (it reads DSR's numbers, not the picture)
+		best["lx"] = -float(best["lx"])
+		best["rx"] = -float(best["rx"])
 	return best
 
 
@@ -763,7 +834,7 @@ func _weapon_hits() -> void:
 		return
 	var ax := _dummy_axis()
 	for sg in tests:
-		if _seg_dist(sg[0], sg[1], ax[0], ax[1]) <= float(sg[2]) + DUMMY_R:
+		if _seg_dist(sg[0], sg[1], ax[0], ax[1]) <= float(sg[2]) + BODY_HIT_R:
 			hit_done = true                                   # one hit per swing
 			player_hits += 1
 			dummy_hp = maxi(0, dummy_hp - _hit_damage())

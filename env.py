@@ -2,6 +2,7 @@
 게임 어댑터 선택 — 루프(patrol/nav/learn)는 게임을 모르고, 여기서 고른 텔레메트리/패드만 쓴다.
 
   BOT_GAME=er   엘든링 (telemetry.Telemetry — CE 브릿지 symbols.json 필요)      [기본]
+  BOT_GAME=sim  Godot 연습장 경사로 (sim/godot ramp.tscn, sim/godot_link.RoomTelemetry — MoKa M1109-65). 프로세스당 하나
   BOT_GAME=dsr  다크소울 리마스터 (dsr_telemetry.DSRTelemetry — pymem 직결, 오프라인 필수)
                 프로세스당 **피드 하나**(feed.Feed)로 감싼다 — 층마다 따로 읽지 않고 같은 프레임을 본다. BOT_FEED=0 이면 예전처럼 직접 읽기.
 
@@ -12,11 +13,20 @@ from __future__ import annotations
 import os
 
 GAME = os.environ.get("BOT_GAME", "er").lower()
+SIM = GAME == "sim"          # the room plays DSR: everything that asks GAME == "dsr" behaves as in DSR
+if SIM:
+    GAME = "dsr"
 FEED = os.environ.get("BOT_FEED", "1") != "0"
 _feed = None
 
 
 def make_telemetry(names: dict | None = None):
+    if SIM:
+        import sys
+        from pathlib import Path
+        sys.path.insert(0, str(Path(__file__).resolve().parent / "sim"))
+        import godot_link
+        return godot_link.room_telemetry()
     if GAME == "dsr":
         import dsr_telemetry
         if not FEED:

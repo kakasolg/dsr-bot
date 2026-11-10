@@ -43,6 +43,20 @@ ACTIONS = {
 CLIP_CONTACT = {"Sword_Regular_A": 0.575, "Sword_Regular_B": 0.475}
 
 
+# Game-measured cancels (MoKa M1110-08: "딜레이, 휘두르는 시간, 후 딜레이가 반영 된 상태"). weapon_probe.py 11-10, Claymore
+# one-handed R1 1st (253000) at the Parish soldier: next R1 / roll / move began 0.13 s BEFORE the TAE flags (n 4 each; same
+# −0.10…−0.13 s on Longsword, Battle Axe, Shortsword and 2H Pike). The hit landed 1 frame after the TAE window opened, so the
+# attack window stays TAE. R1 2nd (253001) was not measured — it gets R1 1st's shift [guess].
+# medians (s, n) of the measured cancels — data/probe/20261110_02*_weapon_probe.jsonl (local, data/ is not in git), rows
+# filtered as weapon_report.measured: R1 1st (253000), damage seen, no x3040 / x3150 switch
+MEASURED = {253000: {"cancel_r": (1.033, 4), "cancel_roll": (1.267, 4), "cancel_move": (1.433, 4)}}
+SHIFT_FROM = {253001: 253000}                               # unmeasured → borrow this action's measured shift [guess]
+
+
+def measured_cancels() -> dict:
+    return MEASURED
+
+
 def windows(events: list, flag: int) -> list:
     return [[e["start"], e["end"]] for e in events if e["type"] == 0 and e["p"] and e["p"][0] == flag]
 
@@ -112,12 +126,32 @@ def build() -> dict:
         }
         if clip in CLIP_CONTACT:
             out[name]["clip_contact"] = CLIP_CONTACT[clip]
+    meas = measured_cancels()
+    for name, a in out.items():
+        aid = a["anim"]
+        src = SHIFT_FROM.get(aid, aid)
+        if src not in meas:
+            continue
+        ref = out[next(n for n, x in out.items() if x["anim"] == src)]
+        a["tae"] = {k: a[k] for k in ("cancel_r", "cancel_roll", "cancel_move")}
+        a["timing"] = {}
+        for k, (v, n) in meas[src].items():
+            if a[k] is None:
+                continue
+            if src == aid:
+                a[k] = v
+                a["timing"][k] = f"game n{n}"
+            else:                                             # [guess] same shift as the measured action
+                a[k] = round(a[k] + (v - ref["tae"][k]), 4)
+                a["timing"][k] = f"guess: {src} shift"
+        if a["cancel_move"] is not None:
+            a["clip_until"] = a["cancel_move"]
     eq = equipment(anims)
     for name, a in eq["attacks"].items():
         out[name]["hit"] = a
     return {"source": "data/gamefiles/tae_c0000.json (player_tae_extract.py) + GameParam (EquipParamWeapon, "
-                      "BehaviorParam_PC, AtkParam_Pc) + weapon model dummies (sim/flver_glb.py) — DSR game files; not "
-                      "yet checked against DSAnimStudio or the game", "equip": eq["equip"], "actions": out}
+                      "BehaviorParam_PC, AtkParam_Pc) + weapon model dummies (sim/flver_glb.py) — DSR game files; "
+                      "light / light2 cancels from game measurement (weapon_probe.py 11-10, see each action's timing / tae)", "equip": eq["equip"], "actions": out}
 
 
 def main() -> None:

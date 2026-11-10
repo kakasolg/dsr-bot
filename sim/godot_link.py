@@ -138,3 +138,231 @@ class SimPad:
     def keep(self) -> None:
         """Resend the current input (the room drops UDP input older than 0.5 s and falls back to pads/keyboard)."""
         self._send()
+
+
+# ── The ramp room as the bot's game (BOT_GAME=sim, MoKa M1109-65) ─────────────────────────────────────────────────
+# run.py builds its telemetry with env.make_telemetry() and its pad with control.Pad(); with BOT_GAME=sim those become
+# RoomTelemetry (one per process, like feed.Feed) and RoomPad (control.Pad's own code — timing, guard keep, sprint
+# hold, freeze — with the ViGEm device swapped for UDP to the room). Character values are the 11-09 character's
+# (settings of run 20261109_171230: Claymore 301000 one-handed, Estus 203 ×10, quick slots [203, -1, -1, -1, -1]).
+ESTUS_ID, WEAPON_ID = 203, 301000
+
+
+class RoomTelemetry(SimTelemetry):
+    LISTEN_S = 1 / 30           # listeners (track, blackbox, radar) at most this often, like feed.Feed's frames
+
+    REC_S = 0.1                 # room state recorded this often (data/runs/<time>_room.jsonl) — foe_view.py --room
+
+    def __init__(self, port: int = STATE_PORT, rec: str | None = None):
+        self.listeners: list = []
+        self._last_listen = 0.0
+        self._last_rec = 0.0
+        self.rec_path = rec or os.environ.get("BOT_ROOM_REC") or str(
+            ROOT.parent / "data" / "runs" / time.strftime("%Y%m%d_%H%M%S_room.jsonl"))
+        self._rec = open(self.rec_path, "a", encoding="utf-8")
+        super().__init__(port)
+
+    def _read(self) -> None:
+        while self._alive:
+            try:
+                data, _ = self.sock.recvfrom(65536)
+            except socket.timeout:
+                continue
+            except OSError:
+                return
+            self.last = json.loads(data)
+            now = time.time()
+            if now - self._last_rec >= self.REC_S:
+                self._last_rec = now
+                try:
+                    self._rec.write(json.dumps({"wall": round(now, 3), **self.last}) + "\n")
+                    self._rec.flush()
+                except ValueError:          # closed
+                    pass
+            if self.listeners and now - self._last_listen >= self.LISTEN_S:
+                self._last_listen = now
+                s = self.snapshot()
+                for fn in list(self.listeners):
+                    try:
+                        fn(s)
+                    except Exception:
+                        pass
+
+    def alive(self) -> bool:
+        return self._alive
+
+    def close(self) -> None:
+        super().close()
+        self._rec.close()
+
+    def snapshot(self, within: float = 60.0) -> Optional[Snapshot]:
+        d = self.state()
+        if d is None or "foes" not in d:
+            return None
+        p = Chr(ptr=1, npc_param=0, team=1, hp=int(d["hp"]), max_hp=int(d["max_hp"]), sp=int(d["sp"]),
+                max_sp=int(d["max_sp"]), x=d["x"], y=d["y"], z=d["z"], anim=int(d["anim"]), gx=d["x"], gy=d["y"],
+                gz=d["z"], heading=d["heading"], map_id=0)
+        chars = []
+        for f in d["foes"]:
+            dist = ((f["x"] - d["x"]) ** 2 + (f["y"] - d["y"]) ** 2 + (f["z"] - d["z"]) ** 2) ** 0.5
+            if dist <= within:
+                chars.append(Chr(ptr=f["ptr"], npc_param=f["npc"], team=6, hp=int(f["hp"]), max_hp=int(f["max_hp"]),
+                                 x=f["x"], y=f["y"], z=f["z"], anim=int(f["anim"]), dist=dist, heading=f["heading"],
+                                 name=f"#{f['n']}", map_id=0))
+        chars.sort(key=lambda c: c.dist)
+        return Snapshot(t=d["t"], player=p, chars=chars, cam_yaw=d["cam_yaw"], flask_hp=d.get("estus"))
+
+    # what the bot asks DSR besides the snapshot
+    def handle(self, ptr) -> Optional[int]:
+        return ptr if ptr else None
+
+    def lock_target(self) -> Optional[int]:
+        d = self.state()
+        return (d.get("lock_ptr") or -1) if d else None
+
+    def goods_count(self, item: int) -> int:
+        d = self.state() or {}
+        return int(d.get("estus", 0)) if item == ESTUS_ID else 0
+
+    def selected_item(self) -> int:
+        return ESTUS_ID
+
+    def quick_items(self) -> list[int]:
+        return [ESTUS_ID, -1, -1, -1, -1]
+
+    def grip(self) -> int:
+        return 1
+
+    def right_weapon(self) -> int:
+        return WEAPON_ID
+
+    def weapon_durability(self, weapon_id: int | None = None) -> None:
+        return None
+
+    def char_stats(self) -> dict:
+        return {"SL": None, "VIT": 22}
+
+    def equipment(self) -> dict:
+        return {}
+
+    def souls(self) -> int:
+        return 0
+
+    def humanity(self) -> int:
+        return 0
+
+    def last_bonfire(self) -> int:
+        return 1022960
+
+    def event_flag(self, fid: int) -> None:
+        return None
+
+    def menu_open(self) -> bool:
+        return False
+
+    def quit_to_title(self, timeout: float = 10.0) -> bool:
+        return False              # no quit-out in the room (run with --no-quit)
+
+    def stats(self) -> dict:
+        return {"room": True}
+
+
+_room_tm: Optional[RoomTelemetry] = None
+
+
+def room_telemetry() -> RoomTelemetry:
+    global _room_tm
+    if _room_tm is None:
+        _room_tm = RoomTelemetry()
+    return _room_tm
+
+
+class RoomDev:
+    """The part of vgamepad.VX360Gamepad control.Pad uses, sent to the room as UDP input on update() and every 0.1 s
+    (the room drops input older than 0.5 s)."""
+    BITS = {0x1000: "a", 0x2000: "b", 0x4000: "x", 0x8000: "y", 0x0100: "lb", 0x0200: "rb", 0x0080: "r3",
+            0x0002: "dd"}
+
+    NAMES = {"XUSB_GAMEPAD_A": 0x1000, "XUSB_GAMEPAD_B": 0x2000, "XUSB_GAMEPAD_X": 0x4000, "XUSB_GAMEPAD_Y": 0x8000,
+             "XUSB_GAMEPAD_LEFT_SHOULDER": 0x0100, "XUSB_GAMEPAD_RIGHT_SHOULDER": 0x0200,
+             "XUSB_GAMEPAD_RIGHT_THUMB": 0x0080, "XUSB_GAMEPAD_DPAD_DOWN": 0x0002}
+
+    class _Report:
+        wButtons = 0
+
+    def __init__(self, port: int = INPUT_PORT):
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.addr = ("127.0.0.1", port)
+        self.report = RoomDev._Report()
+        self.st = {"lx": 0.0, "ly": 0.0, "rx": 0.0, "rt": 0.0}
+        self._alive = True
+        threading.Thread(target=self._beat, daemon=True).start()
+
+    def _beat(self) -> None:
+        while self._alive:
+            time.sleep(0.1)
+            try:
+                self.update()
+            except OSError:
+                return
+
+    def reset(self) -> None:
+        self.report.wButtons = 0
+        self.st = {"lx": 0.0, "ly": 0.0, "rx": 0.0, "rt": 0.0}
+
+    def _bit(self, button) -> int:
+        # vgamepad's XUSB_BUTTON, or control._Buttons' names where vgamepad isn't installed
+        return self.NAMES.get(button, 0) if isinstance(button, str) else int(button)
+
+    def press_button(self, button) -> None:
+        self.report.wButtons |= self._bit(button)
+
+    def release_button(self, button) -> None:
+        self.report.wButtons &= ~self._bit(button)
+
+    def left_joystick_float(self, x_value_float: float, y_value_float: float) -> None:
+        self.st["lx"], self.st["ly"] = float(x_value_float), float(y_value_float)
+
+    def right_joystick_float(self, x_value_float: float, y_value_float: float) -> None:
+        self.st["rx"] = float(x_value_float)
+
+    def right_trigger_float(self, value_float: float) -> None:
+        self.st["rt"] = float(value_float)
+
+    def update(self) -> None:
+        msg = dict(self.st)
+        for bit, k in self.BITS.items():
+            msg[k] = bool(self.report.wButtons & bit)
+        self.sock.sendto(json.dumps(msg).encode(), self.addr)
+
+    def __bool__(self) -> bool:
+        return True
+
+    def close(self) -> None:
+        self._alive = False
+
+
+def room_pad():
+    """control.Pad with RoomDev in place of the ViGEm device — no pad lock, no device wait."""
+    import control
+
+    class RoomPad(control.Pad):
+        def __init__(self):
+            self._due = {}
+            self._b_since = None
+            self.epoch = 0
+            self._stick_on = False
+            self._stick_off_t = 0.0
+            self._lock = threading.RLock()
+            self._force_until = 0.0
+            self._kept = False
+            self._guard_want = False
+            self._closed = False
+            self._pad_lock = None
+            self.pad = RoomDev()
+            self.neutral()
+
+        def reconnect(self) -> None:
+            pass
+
+    return RoomPad()

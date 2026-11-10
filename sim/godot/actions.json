@@ -1,5 +1,5 @@
 {
- "source": "data/gamefiles/tae_c0000.json (player_tae_extract.py) + GameParam (EquipParamWeapon, BehaviorParam_PC, AtkParam_Pc) + weapon model dummies (sim/flver_glb.py) — DSR game files; not yet checked against DSAnimStudio or the game",
+ "source": "data/gamefiles/tae_c0000.json (player_tae_extract.py) + GameParam (EquipParamWeapon, BehaviorParam_PC, AtkParam_Pc) + weapon model dummies (sim/flver_glb.py) — DSR game files; light / light2 cancels from game measurement (weapon_probe.py 11-10, see each action's timing / tae)",
  "equip": {
   "right": {
    "row": 301000,
@@ -198,15 +198,25 @@
      0.8
     ]
    ],
-   "cancel_move": 1.5667,
-   "cancel_roll": 1.4,
-   "cancel_r": 1.1667,
+   "cancel_move": 1.433,
+   "cancel_roll": 1.267,
+   "cancel_r": 1.033,
    "input_r": [],
    "input_roll": [],
    "clip": "Sword_Regular_A",
    "lib": "ual2",
-   "clip_until": 1.5667,
+   "clip_until": 1.433,
    "clip_contact": 0.575,
+   "tae": {
+    "cancel_r": 1.1667,
+    "cancel_roll": 1.4,
+    "cancel_move": 1.5667
+   },
+   "timing": {
+    "cancel_r": "game n4",
+    "cancel_roll": "game n4",
+    "cancel_move": "game n4"
+   },
    "hit": {
     "behavior": 102505000,
     "behavior_name": "【74】クレイモア_片手通常1",
@@ -251,15 +261,25 @@
      0.7333
     ]
    ],
-   "cancel_move": 1.4667,
-   "cancel_roll": 1.3333,
-   "cancel_r": 1.1,
+   "cancel_move": 1.333,
+   "cancel_roll": 1.2003,
+   "cancel_r": 0.9663,
    "input_r": [],
    "input_roll": [],
    "clip": "Sword_Regular_B",
    "lib": "ual2",
-   "clip_until": 1.4667,
+   "clip_until": 1.333,
    "clip_contact": 0.475,
+   "tae": {
+    "cancel_r": 1.1,
+    "cancel_roll": 1.3333,
+    "cancel_move": 1.4667
+   },
+   "timing": {
+    "cancel_r": "guess: 253000 shift",
+    "cancel_roll": "guess: 253000 shift",
+    "cancel_move": "guess: 253000 shift"
+   },
    "hit": {
     "behavior": 102505010,
     "behavior_name": "【74】クレイモア_片手通常2",

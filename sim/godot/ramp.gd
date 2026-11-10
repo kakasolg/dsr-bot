@@ -1,0 +1,1178 @@
+extends "res://main.gd"
+## Firelink ramp in the practice room (MoKa M1109-65): the six ramp foes on the real map, for the bot to play against.
+##
+## Built on main.gd (player movement, DSR action timings, light attack hit capsules, lock-on, camera, UDP link) — this
+## script swaps the altar room for the ramp: map (assets/m10_02_00_00.glb, mirrored back to game coordinates),
+## floor = the Firelink NavMesh (no other collision: off the NavMesh you fall), and six foes instead of the dummy.
+## Data: assets/ramp_scene.json (sim/ramp_scene.py). Tags: [game] game files · [meas] measured on 11-09 · [guess].
+##
+## Foe behaviour, kept small and named:
+##   wake      player within the foe's wake distance (#4: same level too) → it turns on for good
+##   approach  walks / runs to the player along the bot's NavMesh graph (A*, re-planned every 0.5 s — MoKa M1109-66);
+##             straight at the player only off the NavMesh [guess: DSR's own route choice isn't read]
+##   attack    one of its TAE attacks by distance — lunges (3005 3006 3010) beyond 3 m, swings (3000 3003, 3001 after
+##             3000) inside [meas: the distances the 11-09 runs started them at]; the hit is the AtkParam_Npc capsule
+##             on the model's own weapon dummies inside the TAE window [game]; damage = AtkParam physical [game] —
+##             matches the HP drops of the 11-09 Claymore run (#2 3005 210 vs −208, 3000 165 vs −160)
+##   guard     after an attack, 40 % a 3500 shield stance for 1.0–1.6 s [meas: often seen; share is a guess];
+##             the player's hits from the front are blocked [guess]
+##   firebomb  #5 stays on its spot and throws (3008) every 3.6 s at the player's spot; it lands 2.5 s after the
+##             throw starts: −109, −30 when the player guards [meas]
+## Player additions: guard (LB / UDP "lb" / K key), stamina, Estus (X) heals at 1.0 s [guess], death.
+
+const SCENE := "res://assets/ramp_scene.json"   # `-- --scene=arena` → assets/arena_scene.json (sim/arena_scene.py, M1109-75)
+const MAP_GLB := "res://assets/m10_02_00_00.glb"
+const CHR_MODELS_PATH := "../../data/gamefiles/chr_models.json"
+const FOE_R := 0.4             # [guess] foe body capsule radius (hit test and collision)
+const FOE_H := 1.7             # [guess]
+const MAX_SP := 98.0           # [meas] radar 11-09 17:19, the Claymore character
+const SP_REGEN := 45.0         # [guess] per s
+const SP_REGEN_GUARD := 15.0   # [guess]
+const SP_COST := {"light": 25.0, "light2": 25.0, "roll": 20.0, "backstep": 15.0}   # [guess]
+const GUARD_COST := 30.0       # [guess] per blocked hit
+const GUARD_DEG := 60.0        # [guess] half-angle the shield covers
+const ESTUS := 10              # [meas] status 11-09
+const ESTUS_HEAL := 350        # [meas] ≈ +346 seen 11-09 (capped at max HP)
+const ESTUS_AT := 1.0          # [guess] s into the drink
+const THINK_S := Vector2(0.3, 0.9)   # [guess] pause between a foe's actions
+const LUNGE_M := 3.0           # [meas] lunges started at 3.5–5.7 m, swings at 0.85–2.5 m (11-09)
+const ENGAGE_M := 6.0          # [meas] lunges started up to 5.7 m
+const GUARD_SHARE := 0.4       # [guess]
+# CC0 foe stand-in (MoKa M1110-10): when the DSR foe model (assets/c2540.glb …) is missing — a fresh clone / cloud — the foe is
+# the Quaternius UAL body with a Quaternius Medieval Weapons sword / spear in hand_r. What stays DSR: the foe's timings
+# (TAE windows, clip lengths from chr_models.json) and its hit capsule sizes: AtkParam_Npc radius, and the reach = the DSR
+# dummy's distance along the weapon (c2540 dummy 11/20 0.56/0.64 m on R_Weapon) laid along the stand-in blade (hand_r +Z).
+# The swing path is the UAL clip, time-warped so its blade-forward moment falls mid TAE window [stand-in].
+const UAL_FOE := "res://assets/UAL1_Standard.glb"
+const UAL_FOE2 := "res://assets/UAL2_Standard.glb"
+const CC0_FOE_SWORD := ["res://assets/cc0/Sword.fbx", 4.63]    # blade +Y from the grip, tip y [import AABB]
+const CC0_FOE_SPEAR := ["res://assets/cc0/Spear.fbx", 0.0]     # tip read at load (AABB)
+const UAL_CLIPS := {"a00_0000": "Sword_Idle", "a00_0200": "Walk", "a00_0500": "Jog_Fwd", "attack": "ual2/Sword_Regular_A",
+	"attack2": "ual2/Sword_Regular_B", "lunge": "ual2/Sword_Dash", "throw": "ual2/OverhandThrow", "guard": "ual2/Idle_Shield",
+	"step": "Walk", "stagger": "Hit_Chest", "dead": "Death01"}
+const UAL_CONTACT := {"ual2/Sword_Regular_A": 0.575, "ual2/Sword_Regular_B": 0.475, "ual2/Sword_Dash": 0.6}   # [stand-in] fraction
+const FOE_STAGGER := "2005"    # [meas] the hit reaction seen after a Claymore light (2004–2006)
+
+var sc := {}
+var chr_models := {}
+var foes := []                 # see _build_foes
+var bombs := []                # {t, at: Vector3, from: Vector3, node}
+var guard := false
+var sp := MAX_SP
+var guard_breaks := 0          # blocked hits that emptied SP (arena, M1109-76)
+var estus_left := ESTUS
+var estus_done := false
+var dead := false
+var lock_foe := -1
+var hit_set := {}              # foes this swing already hit
+var rng := RandomNumberGenerator.new()
+var centroids := []            # NavMesh triangle centroids (ramp_scene.json) — foe path waypoints
+var ground_grid := {}          # Vector2i(1 m cell) → [[a, b, c], …] NavMesh triangles (+ #5's pad)
+const WALL_LAYER := 2           # physics layer of the room's walls (player only)
+const SAME_FLOOR_DY := 0.8     # [guess] above this height difference a foe keeps walking its route instead of
+                               # swinging (6th room run: #6 swung 125 s from a ledge 1.5 m above the player)
+const FOOT_R := 0.3            # [guess] how far from its centre a body still stands on an edge
+const FALL_DEATH_S := 2.0      # [guess] in the air this long = fell to death (≈ 20 m)
+const REPATH_S := 0.5          # [guess] how often a chasing foe re-plans its NavMesh route
+const STEP_UP := 0.45          # [guess] highest step a body walks up
+
+
+func _ready() -> void:
+	var path := SCENE
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--scene="):
+			path = "res://assets/%s_scene.json" % arg.substr(8)
+	var f := FileAccess.open(path, FileAccess.READ)
+	if f == null:
+		push_error("%s missing — python sim/ramp_scene.py / sim/arena_scene.py" % path)
+		return
+	sc = JSON.parse_string(f.get_as_text())
+	var fm := FileAccess.open(ProjectSettings.globalize_path("res://").path_join(CHR_MODELS_PATH), FileAccess.READ)
+	if fm:
+		chr_models = JSON.parse_string(fm.get_as_text())
+	rng.seed = int(OS.get_environment("RAMP_SEED")) if OS.get_environment("RAMP_SEED") != "" else 1109
+	super._ready()
+	var s: Array = sc["start"]
+	player.position = Vector3(s[0], s[1], s[2])
+	heading = float(sc["start_heading"])
+	player.rotation.y = heading
+	cam_yaw = heading + PI
+	player_hp = PLAYER_HP
+	player.collision_mask = 1 | WALL_LAYER
+
+
+# ── World ───────────────────────────────────────────────────────────────
+func _build_world() -> void:
+	var env := WorldEnvironment.new()
+	var e := Environment.new()
+	e.background_mode = Environment.BG_COLOR
+	e.background_color = Color(0.55, 0.6, 0.68)
+	e.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	e.ambient_light_color = Color(0.75, 0.75, 0.75)
+	e.ambient_light_energy = 0.9
+	env.environment = e
+	add_child(env)
+	var sun := DirectionalLight3D.new()
+	sun.rotation = Vector3(deg_to_rad(-55), deg_to_rad(35), 0)
+	add_child(sun)
+	if sc.has("flat"):
+		# the flat arena (M1109-75): a plain floor the size of its NavMesh square, a line every 2 m to read distances
+		var hf := float(sc["flat"])
+		var fl := MeshInstance3D.new()
+		var pm := PlaneMesh.new()
+		pm.size = Vector2(2.0 * hf, 2.0 * hf)
+		var fm := StandardMaterial3D.new()
+		fm.albedo_color = Color(0.42, 0.42, 0.4)
+		pm.material = fm
+		fl.mesh = pm
+		add_child(fl)
+		var gm := StandardMaterial3D.new()
+		gm.albedo_color = Color(0.3, 0.3, 0.3)
+		var x := -hf
+		while x <= hf + 0.01:
+			for horiz in [true, false]:
+				var ln := MeshInstance3D.new()
+				var bm := BoxMesh.new()
+				bm.size = Vector3(2.0 * hf, 0.01, 0.03) if horiz else Vector3(0.03, 0.01, 2.0 * hf)
+				bm.material = gm
+				ln.mesh = bm
+				ln.position = Vector3(0, 0.005, x) if horiz else Vector3(x, 0.005, 0)
+				add_child(ln)
+			x += 2.0
+	elif ResourceLoader.exists(MAP_GLB):
+		var m: Node3D = load(MAP_GLB).instantiate()
+		m.scale = Vector3(-1, 1, 1)                 # the glb is mirrored (Godot x = −game x); the room is game coords
+		add_child(m)
+		# RAMP_MAP_COLLISION=1: the map's visual meshes as collision too — off by default: the first bot run (11-09
+		# 17:43) stuck at the foot of the ramp steps (−29.4, −57.1, 45.2) for 5 min; visual steps are not the game's slope
+		if OS.get_environment("RAMP_MAP_COLLISION") == "1":
+			var mf := PackedVector3Array()
+			for mi in m.find_children("*", "MeshInstance3D", true, false):
+				var mesh: Mesh = (mi as MeshInstance3D).mesh
+				if mesh == null:
+					continue
+				var g: Transform3D = (mi as Node3D).global_transform
+				for v in mesh.get_faces():
+					mf.append(g * v)
+			if mf.size() > 0:
+				var ms := ConcavePolygonShape3D.new()
+				ms.set_faces(mf)
+				ms.backface_collision = true
+				var mb := StaticBody3D.new()
+				var mcs := CollisionShape3D.new()
+				mcs.shape = ms
+				mb.add_child(mcs)
+				add_child(mb)
+				print("ramp: map collision %d triangles" % (mf.size() / 3))
+	# floor: the NavMesh triangles as a height lookup, not as physics — the 4th room run (11-09 18:00) stuck 3 min at
+	# (−24.9, −47.2, 29.5) where two NavMesh layers lie 0.2 m apart and the upper sheet's edge stopped the capsule like
+	# a lip. Bodies stand on the highest triangle at most STEP_UP above their feet and fall when there is none (_ground)
+	var nav: Dictionary = sc["nav"]
+	var vs: Array = nav["v"]
+	var ti := 0
+	for tri in nav["t"]:
+		var q := []
+		for k in 3:
+			var p: Array = vs[int(tri[k])]
+			q.append(Vector3(p[0], p[1], p[2]))
+		_grid_add(q[0], q[1], q[2], ti)
+		ti += 1
+	for c in sc.get("centroid", []):
+		centroids.append(Vector3(c[0], c[1], c[2]))
+	var faces := PackedVector3Array()
+	# walls on open NavMesh edges with no floor beyond (sim/ramp_scene.py), 2.8 m high; edges with floor below stay open
+	for w in sc.get("walls", []):
+		var a := Vector3(w[0], w[1] - 0.3, w[2])
+		var b2 := Vector3(w[3], w[4] - 0.3, w[5])
+		var up := Vector3(0, 2.8, 0)
+		faces.append_array(PackedVector3Array([a, b2, b2 + up, a, b2 + up, a + up]))
+	var shape := ConcavePolygonShape3D.new()
+	shape.set_faces(faces)
+	shape.backface_collision = true
+	var sb := StaticBody3D.new()
+	sb.collision_layer = WALL_LAYER          # walls stop the player only — foes walk NavMesh routes (MoKa M1109-66: #4
+	sb.collision_mask = 0                    # stuck 0.3 m from its spot on a wall corner its centroid route cut)
+	var cs := CollisionShape3D.new()
+	cs.shape = shape
+	sb.add_child(cs)
+	add_child(sb)
+	var b: Array = sc["bonfire"]
+	var bf := MeshInstance3D.new()
+	var cyl := CylinderMesh.new()
+	cyl.top_radius = 0.1
+	cyl.bottom_radius = 0.4
+	cyl.height = 0.6
+	var bmat := StandardMaterial3D.new()
+	bmat.albedo_color = Color(1.0, 0.5, 0.1)
+	bmat.emission_enabled = true
+	bmat.emission = Color(1.0, 0.4, 0.05)
+	cyl.material = bmat
+	bf.mesh = cyl
+	bf.position = Vector3(b[0], b[1] + 0.3, b[2])
+	add_child(bf)
+	# main.gd's altar objects aren't built; its code still touches gate / lever_basis
+	gate = AnimatableBody3D.new()
+	add_child(gate)
+
+
+func _check_prompt() -> void:
+	prompt = false
+	prompt_why = ""
+
+
+# ── Foes ────────────────────────────────────────────────────────────────
+func _build_dummy() -> void:
+	super._build_dummy()
+	# the dummy stays as main.gd's lock-on proxy: invisible, no collision, moved onto the locked foe each frame
+	dummy.visible = false
+	dummy_body.collision_layer = 0
+	dummy_body.collision_mask = 0
+	dummy.position = Vector3(0, -500, 0)
+	dummy_hp = 0
+	_build_foes()
+
+
+func _build_foes() -> void:
+	var cols := [Color(0.85, 0.25, 0.2), Color(0.9, 0.45, 0.1)]
+	for fd in sc["foes"]:
+		var body := CharacterBody3D.new()
+		var cs := CollisionShape3D.new()
+		var cap := CapsuleShape3D.new()
+		cap.radius = FOE_R
+		cap.height = FOE_H
+		cs.shape = cap
+		cs.position.y = FOE_H / 2.0
+		body.add_child(cs)
+		var p: Array = fd["pos"]
+		if not fd.get("floor", true):                   # no NavMesh under the spawn (#5) → a 3 m pad [guess size]
+			var pad_body := _box(Vector3(3.0, 0.3, 3.0), Vector3(p[0], p[1] - 0.15, p[2]), 0.0, Color(0.45, 0.4, 0.35))
+			(pad_body as StaticBody3D).collision_layer = WALL_LAYER
+			var c0 := Vector3(p[0], p[1], p[2])
+			_grid_add(c0 + Vector3(-1.5, 0, -1.5), c0 + Vector3(1.5, 0, -1.5), c0 + Vector3(1.5, 0, 1.5))
+			_grid_add(c0 + Vector3(-1.5, 0, -1.5), c0 + Vector3(1.5, 0, 1.5), c0 + Vector3(-1.5, 0, 1.5))
+		body.position = Vector3(p[0], p[1], p[2])
+		body.rotation.y = float(fd["heading"])
+		body.floor_snap_length = 0.6
+		add_child(body)
+		var model: String = fd["model"]
+		var ual := false
+		var ap: AnimationPlayer = null
+		var sk: Skeleton3D = null
+		if ResourceLoader.exists("res://assets/%s.glb" % model):
+			var m: Node3D = load("res://assets/%s.glb" % model).instantiate()
+			m.scale = Vector3(-1, 1, 1)             # mirrored glb back to game coordinates; faces −Z like the room
+			body.add_child(m)
+			var want: Array = fd["masks"].map(func(x): return int(x))
+			for mi in m.find_children("*", "MeshInstance3D", true, false):
+				var nm := String(mi.name)
+				if nm.begins_with("mask"):
+					mi.visible = nm.substr(4, 2).to_int() in want
+			var aps := m.find_children("*", "AnimationPlayer", true, false)
+			var sks := m.find_children("*", "Skeleton3D", true, false)
+			ap = aps[0] if aps.size() > 0 else null
+			sk = sks[0] if sks.size() > 0 else null
+		elif ResourceLoader.exists(UAL_FOE):
+			ual = true
+			var m: Node3D = load(UAL_FOE).instantiate()
+			m.rotation.y = PI                       # glTF faces +Z, the room's forward is −Z (as the player, main.gd)
+			if MIRROR:
+				m.scale = Vector3(-1, 1, 1)
+			body.add_child(m)
+			var aps := m.find_children("*", "AnimationPlayer", true, false)
+			var sks := m.find_children("*", "Skeleton3D", true, false)
+			ap = aps[0] if aps.size() > 0 else null
+			sk = sks[0] if sks.size() > 0 else null
+			if ap and ResourceLoader.exists(UAL_FOE2):
+				var m2: Node = load(UAL_FOE2).instantiate()
+				var ap2 := m2.find_children("*", "AnimationPlayer", true, false)
+				if ap2.size() > 0:
+					ap.add_animation_library("ual2", ap2[0].get_animation_library(""))
+				m2.free()
+			if sk:
+				_ual_weapon(sk, _ual_reach(fd))
+		var lbl := Label3D.new()
+		lbl.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		lbl.no_depth_test = true
+		lbl.font_size = 26
+		lbl.pixel_size = 0.004
+		lbl.position.y = 2.1
+		if MIRROR:
+			lbl.scale = Vector3(-1, 1, 1)             # the picture is flipped (main.gd _build_mirror) — keep the text readable
+		body.add_child(lbl)
+		foes.append({"d": fd, "n": int(fd["n"]), "body": body, "ap": ap, "sk": sk, "label": lbl,
+			"hp": int(fd["max_hp"]), "state": "idle", "t": 0.0, "anim": -1, "clip": "", "len": 0.0,
+			"woke": false, "hit_done": false, "prev_caps": [], "wait": 0.0, "throw_t": 0.0,
+			"sp": float(fd.get("max_sp", 0)), "swing_key": -1.0, "react_at": 0.0, "will_guard": false,
+			"heading": float(fd["heading"]), "col": cols[0], "rm": 0.0, "path": [], "repath": 0.0, "air": 0.0,
+			"ual": ual})
+
+
+func _ual_reach(fd: Dictionary) -> float:
+	# longest DSR weapon dummy offset this foe's attacks use (the blade tip's distance along the weapon bone) [game]
+	var dm: Dictionary = chr_models.get(String(fd["model"]), {}).get("dummies", {})
+	var r := 0.0
+	for ws in fd["attacks"].values():
+		for w in ws:
+			for h in w.get("hit", []):
+				for k in [str(int(h["from"])), str(int(h["to"]))]:
+					if dm.has(k) and String(dm[k][0]["bone"]).to_lower().contains("weapon"):
+						var o: Array = dm[k][0]["offset"]
+						r = maxf(r, Vector3(o[0], o[1], o[2]).length())
+	return r if r > 0.0 else 0.6
+
+
+func _ual_weapon(sk: Skeleton3D, reach: float) -> void:
+	# look only: a CC0 sword (spear past 1.2 m) on hand_r, blade (+Y) → hand +Z, tip at the DSR reach
+	var w: Array = CC0_FOE_SPEAR if reach > 1.2 else CC0_FOE_SWORD
+	if not ResourceLoader.exists(String(w[0])):
+		return
+	var ba := BoneAttachment3D.new()
+	ba.bone_name = "hand_r"
+	sk.add_child(ba)
+	var mdl: Node3D = load(String(w[0])).instantiate()
+	var tip := float(w[1])
+	if tip <= 0.0:
+		for mi in mdl.find_children("*", "MeshInstance3D", true, false):
+			tip = maxf(tip, (mi as MeshInstance3D).get_aabb().end.y)
+	var sc := reach / maxf(tip, 0.01)
+	mdl.transform = Transform3D(Basis(Vector3(1, 0, 0), Vector3(0, 0, 1), Vector3(0, -1, 0)).scaled(Vector3.ONE * sc), Vector3.ZERO)
+	ba.add_child(mdl)
+
+
+func _ual_clip(fo: Dictionary, aid: int, state: String) -> String:
+	if state == "attack":
+		var lunges: Array = [3005, 3006, 3010]
+		for x in fo["d"].get("lunge", []):
+			lunges.append(int(x))
+		if aid in lunges:
+			return UAL_CLIPS["lunge"]
+		return UAL_CLIPS["attack2"] if aid % 2 == 1 else UAL_CLIPS["attack"]
+	return String(UAL_CLIPS.get(state, "Sword_Idle"))
+
+
+func _clip_name(fo: Dictionary, aid: int) -> String:
+	# the axe row plays the a01 set (TAE 3040–3044 are a01 only) [game]; otherwise a00
+	var mdl: Dictionary = chr_models.get(String(fo["d"]["model"]), {})
+	var anims: Dictionary = mdl.get("anims", {})
+	var axe: bool = int(fo["d"]["npc"]) == 254001
+	var a01 := "a01_%04d" % aid
+	if axe and anims.has(a01):
+		return a01
+	return "a00_%04d" % aid
+
+
+func _play(fo: Dictionary, aid: int, state: String) -> void:
+	fo["state"] = state
+	fo["t"] = 0.0
+	fo["anim"] = aid
+	fo["hit_done"] = false
+	fo["prev_caps"] = []
+	var clip := _clip_name(fo, aid)
+	var mdl: Dictionary = chr_models.get(String(fo["d"]["model"]), {})
+	var ai: Dictionary = mdl.get("anims", {}).get(clip, {})
+	fo["len"] = float(ai.get("duration", 1.5))
+	var rme: Variant = ai.get("root_motion_end")
+	fo["rm"] = maxf(0.0, -float(rme[2])) if rme is Array and state == "attack" else 0.0    # model faces −Z
+	# steps (701 back, 702 / 703 sideways): the whole root motion, signed — x right, z back [game hkx; sign of x: guess]
+	fo["rmv"] = Vector2(float(rme[0]), float(rme[2])) if rme is Array and state == "step" else Vector2.ZERO
+	fo["clip"] = clip
+	var ap: AnimationPlayer = fo["ap"]
+	if fo.get("ual", false) and ap:
+		var uc := _ual_clip(fo, aid, state)
+		ap.speed_scale = 1.0
+		var wins: Array = fo["d"]["attacks"].get(str(aid), [])
+		if state == "attack" and UAL_CONTACT.has(uc) and wins.size() > 0 and ap.has_animation(uc):
+			var mid := (float(wins[0]["start"]) + float(wins[0]["end"])) / 2.0
+			ap.speed_scale = UAL_CONTACT[uc] * ap.get_animation(uc).length / maxf(mid, 0.05)
+		if ap.has_animation(uc):
+			ap.play(uc, 0.1)
+		return
+	if ap and ap.has_animation(clip):
+		ap.play(clip, 0.1)
+
+
+func _loop(fo: Dictionary, clip: String) -> void:
+	var ap: AnimationPlayer = fo["ap"]
+	if fo.get("ual", false):
+		clip = String(UAL_CLIPS.get(clip, "Sword_Idle"))
+		if ap:
+			ap.speed_scale = 1.0
+	if ap and ap.has_animation(clip) and ap.current_animation != clip:
+		ap.play(clip, 0.15)
+		ap.get_animation(clip).loop_mode = Animation.LOOP_LINEAR
+
+
+func _foe_step(fo: Dictionary, dt: float) -> void:
+	var body: CharacterBody3D = fo["body"]
+	var fd: Dictionary = fo["d"]
+	fo["t"] += dt
+	var to_p := player.position - body.position
+	var dist := Vector2(to_p.x, to_p.z).length()
+	var face := atan2(to_p.x, to_p.z)               # world angle to the player
+	var vel := Vector3.ZERO
+	if fo["state"] == "dead":
+		if body.position.y > float(fd["pos"][1]) - 40.0:
+			_gravity(body, dt, Vector3.ZERO)
+		return
+	if not fo["woke"]:
+		var lvl_ok: bool = not fd.has("same_level") or absf(to_p.y) < float(fd["same_level"])
+		# arena: nobody wakes before the player moves off the start (1st/2nd arena run: both woke at 14 m while the bot was
+		# still loading and killed the standing player; the pad's heartbeat arrives seconds before the bot plays)
+		var ready := not sc.has("flat") or Vector2(player.position.x - float(sc["start"][0]),
+				player.position.z - float(sc["start"][2])).length() > 0.5
+		if dist <= float(fd["wake"]) and lvl_ok and not dead and ready:
+			fo["woke"] = true
+			fo["wait"] = rng.randf_range(THINK_S.x, THINK_S.y)
+		_gravity(body, dt, Vector3.ZERO)
+		return
+	match fo["state"]:
+		"idle", "move":
+			_turn(fo, face, dt, 6.0)
+			fo["wait"] = float(fo["wait"]) - dt
+			if dead:
+				_loop(fo, "a00_0000")
+				fo["anim"] = -1
+			elif _aggro(fo, dist):
+				pass
+			elif fd.get("stay", false) and dist > 2.5:
+				fo["anim"] = -1
+				_loop(fo, "a00_0000")
+				var th: Dictionary = fd["throw"]
+				fo["throw_t"] = float(fo["throw_t"]) + dt
+				if float(fo["throw_t"]) >= float(th["every"]) and dist <= float(fd["wake"]) + 2.0:
+					fo["throw_t"] = 0.0
+					_play(fo, 3008, "throw")
+					bombs.append({"t": 0.0, "from": body.position + Vector3(0, 1.6, 0), "at": Vector3.INF, "node": null,
+						"src": fo["n"]})
+			elif (dist > float(fd.get("lunge_m", LUNGE_M)) and (dist > float(fd.get("engage_m", ENGAGE_M)) or float(fo["wait"]) > 0.0)) \
+					or absf(to_p.y) > SAME_FLOOR_DY:
+				# chase along the NavMesh (MoKa M1109-66): path every REPATH_S, walk at the next waypoint; off the
+				# NavMesh (the player on #5's pad) or no route → straight at the player, stopping at a drop
+				var v: float = float(sc["run_v"]) if dist > 4.0 else float(sc["walk_v"])
+				fo["repath"] = float(fo["repath"]) - dt
+				if float(fo["repath"]) <= 0.0:
+					fo["repath"] = REPATH_S
+					fo["path"] = _nav_path(body.position, player.position)
+				var path: Array = fo["path"]
+				while path.size() > 1 and Vector2(path[0].x - body.position.x, path[0].z - body.position.z).length() < 0.7:
+					path.pop_front()
+				var fwd := Vector3(sin(face), 0, cos(face))
+				if path.size() > 0:
+					var to_w: Vector3 = path[0] - body.position
+					to_w.y = 0.0
+					if to_w.length() > 0.05:
+						fwd = to_w.normalized()
+						_turn(fo, atan2(fwd.x, fwd.z), dt, 8.0)
+					vel = fwd * v
+				elif _floor_ahead(body.position, fwd):
+					vel = fwd * v
+				fo["anim"] = 2255                            # [meas] what the radar shows for a walking hollow
+				_loop(fo, "a00_0500" if v > 2.0 else "a00_0200")
+				fo["state"] = "move"
+			elif float(fo["wait"]) <= 0.0:
+				_play(fo, _pick_attack(fo, dist), "attack")
+			else:
+				fo["anim"] = -1
+				_loop(fo, "a00_0000")
+		"step":
+			var rv: Vector2 = fo["rmv"]
+			if float(fo["t"]) < float(fo["len"]) and rv != Vector2.ZERO:
+				var hh := float(fo["heading"])
+				var fw := Vector3(sin(hh + PI), 0, cos(hh + PI))
+				var rt := Vector3(cos(hh), 0, -sin(hh))
+				var dv := (rt * rv.x - fw * rv.y) / maxf(float(fo["len"]), 0.1)
+				if _floor_ahead(body.position, dv.normalized()):
+					vel = dv
+			if float(fo["t"]) >= float(fo["len"]):
+				fo["state"] = "idle"
+				fo["wait"] = _think(fo) * 0.5
+		"attack", "throw":
+			if float(fo["t"]) < 0.4:
+				_turn(fo, face, dt, 4.0)                    # [guess] tracking in the wind-up
+			# the clip's root motion [game] (hkx, chr_models.json root_motion_end: 3006 lunge 6.8 m) spread evenly
+			# over the clip [guess: the real curve isn't read]; stops at a drop
+			var rm: float = float(fo["rm"])
+			if rm > 0.0 and float(fo["t"]) < float(fo["len"]):
+				var hf := float(fo["heading"]) + PI
+				var fwd2 := Vector3(sin(hf), 0, cos(hf))
+				if _floor_ahead(body.position, fwd2):
+					vel = fwd2 * (rm / maxf(float(fo["len"]), 0.1))
+			if fo["state"] == "attack":
+				_foe_hits(fo)
+			if float(fo["t"]) >= float(fo["len"]):
+				var ap := fo["anim"] as int
+				var nxt := int(fd.get("combo", {}).get(str(ap), 0))
+				if fd.has("lunge"):
+					# arena foes (M1109-75): a follow-up from the scene's combo table, else a step away, else the shield [guess shares]
+					if nxt > 0 and dist < 3.0 and rng.randf() < float(fd["combo_share"]):
+						_play(fo, nxt, "attack")
+					elif not fd["steps"].is_empty() and rng.randf() < float(fd["step_after_attack"]):
+						_play(fo, _step_id(fd), "step")
+					elif int(fd["guard_clip"]) > 0 and rng.randf() < float(fd["guard_share"]):
+						_play(fo, int(fd["guard_clip"]), "guard")
+						fo["len"] = rng.randf_range(float(fd["guard_s"][0]), float(fd["guard_s"][1]))
+					else:
+						fo["state"] = "idle"
+						fo["wait"] = _think(fo)
+				elif ap == 3000 and dist < 2.5 and rng.randf() < 0.5:
+					_play(fo, 3001, "attack")                # [meas] 3000 → 3001 seen back to back
+				elif rng.randf() < GUARD_SHARE and not fd.get("stay", false):
+					_play(fo, 3500, "guard")
+					fo["len"] = rng.randf_range(1.0, 1.6)
+				else:
+					fo["state"] = "idle"
+					fo["wait"] = rng.randf_range(THINK_S.x, THINK_S.y)
+		"guard":
+			_turn(fo, face, dt, 6.0)
+			if fd.has("lunge") and dist > 2.0:           # arena shield foe walks in behind its shield [guess]
+				vel = Vector3(sin(face), 0, cos(face)) * float(sc["walk_v"])
+			if float(fo["t"]) >= float(fo["len"]):
+				fo["state"] = "idle"
+				fo["wait"] = rng.randf_range(THINK_S.x, THINK_S.y)
+		"stagger":
+			if float(fo["t"]) >= float(fo["len"]):
+				fo["state"] = "idle"
+				fo["wait"] = rng.randf_range(THINK_S.x, THINK_S.y)
+	fo["air"] = 0.0 if _gravity(body, dt, vel) else float(fo["air"]) + dt
+	# fell off (like #5 on 11-09): FALL_DEATH_S in the air. Not "15 m under the spawn" — that killed #4 and #6 walking
+	# down the ramp after the bot (7th room run, 11-09 18:59)
+	if float(fo["air"]) > FALL_DEATH_S and fo["hp"] > 0:
+		fo["hp"] = 0
+		_die(fo)
+
+
+func _think(fo: Dictionary) -> float:
+	var ts: Array = fo["d"].get("think_s", [THINK_S.x, THINK_S.y])
+	return rng.randf_range(float(ts[0]), float(ts[1]))
+
+
+func _step_id(fd: Dictionary) -> int:
+	var st: Dictionary = fd["steps"]
+	if rng.randf() < 0.6:
+		return int(st["back"])
+	return int(st["left"] if rng.randf() < 0.5 else st["right"])
+
+
+# Arena foes "attack well" (MoKa M1109-75) — switches from the scene file, each a [guess] of how a DSR foe presses:
+#   punish_estus  the player starts an Estus sip within this many m → attack now (a lunge from afar) — MoKa M1109-71
+#                 "에스트 캐치", seen from the graveyard skeletons 11-09 [meas]
+#   steps         the player starts a swing within 3 m → sometimes a step back / sideways (its 701–703) instead of trading
+#   punish_whiff  the player's swing is in its recovery and out of reach → no think pause before the next attack
+# Returns true when it started something this frame.
+func _aggro(fo: Dictionary, dist: float) -> bool:
+	var fd: Dictionary = fo["d"]
+	if not fd.has("lunge") or dead:
+		return false
+	if act_name == "estus" and act_t < 0.6 and dist <= float(fd["punish_estus"]):
+		_play(fo, _pick_attack(fo, dist) if dist <= float(fd["lunge_m"]) else int(fd["lunge"][0]), "attack")
+		return true
+	var swinging := act_name.begins_with("light") or act_name.begins_with("heavy")
+	# ── 내 휘두름을 보고 방패를 든다 (MoKa 11-09 "병사들이 왜 이렇게 못 막아? 방패 막는 타이밍 너무 않좋잖아") ──────────
+	#  전엔 자기 공격 뒤에만 (guard_share) 또는 걸어 들어올 때만 들었다 — 내 칼을 보고 드는 일이 없었음.
+	#  휘두를 때마다 한 번 정함: guard_vs_swing 확률로, 휘두름 시작 guard_react_s 뒤 방패 → 칼날 창 (클레이모어 0.67–0.80 s [game])
+	#  끝 + 0.3 s까지 유지. 자기 공격·휘청 중엔 못 듦. 값은 [guess]
+	if swinging and int(fd["guard_clip"]) > 0 and dist < float(fd.get("guard_react_m", 3.2)):
+		var key := snappedf(t - act_t, 0.01)
+		if absf(float(fo["swing_key"]) - key) > 0.05:
+			fo["swing_key"] = key
+			var rs: Array = fd.get("guard_react_s", [0.15, 0.3])
+			fo["react_at"] = rng.randf_range(float(rs[0]), float(rs[1]))
+			fo["will_guard"] = rng.randf() < float(fd.get("guard_vs_swing", 0.0)) and float(fo["sp"]) > 0.0
+		if bool(fo["will_guard"]) and act_t >= float(fo["react_at"]):
+			var win: Array = actions[act_name]["attack"]
+			var until: float = (float(win[-1][1]) if not win.is_empty() else 1.0) + 0.3
+			_play(fo, int(fd["guard_clip"]), "guard")
+			fo["len"] = maxf(until - act_t, 0.4)
+			fo["will_guard"] = false
+			return true
+	if swinging and act_t < 0.25 and dist < 3.0 and not fd["steps"].is_empty() and rng.randf() < float(fd["step_vs_swing"]) * 0.2:
+		_play(fo, _step_id(fd), "step")
+		return true
+	if bool(fd["punish_whiff"]) and swinging and act_t > 0.6 and dist > 1.8 and dist < float(fd["engage_m"]):
+		fo["wait"] = 0.0
+	return false
+
+
+func _grid_add(a: Vector3, b: Vector3, c: Vector3, idx := -1) -> void:
+	var lo := Vector2i(floori(minf(a.x, minf(b.x, c.x))), floori(minf(a.z, minf(b.z, c.z))))
+	var hi := Vector2i(floori(maxf(a.x, maxf(b.x, c.x))), floori(maxf(a.z, maxf(b.z, c.z))))
+	for i in range(lo.x, hi.x + 1):
+		for j in range(lo.y, hi.y + 1):
+			var k := Vector2i(i, j)
+			if not ground_grid.has(k):
+				ground_grid[k] = []
+			ground_grid[k].append([a, b, c, idx])
+
+
+func _ground(p: Vector3, up: float = STEP_UP) -> float:
+	# highest floor under p.xz that is at most `up` above p.y; NAN when none
+	var best := NAN
+	for tri in ground_grid.get(Vector2i(floori(p.x), floori(p.z)), []):
+		var a: Vector3 = tri[0]
+		var b: Vector3 = tri[1]
+		var c: Vector3 = tri[2]
+		var d := (b.z - c.z) * (a.x - c.x) + (c.x - b.x) * (a.z - c.z)
+		if absf(d) < 1e-9:
+			continue
+		var l1 := ((b.z - c.z) * (p.x - c.x) + (c.x - b.x) * (p.z - c.z)) / d
+		var l2 := ((c.z - a.z) * (p.x - c.x) + (a.x - c.x) * (p.z - c.z)) / d
+		var l3 := 1.0 - l1 - l2
+		if l1 < -1e-4 or l2 < -1e-4 or l3 < -1e-4:
+			continue
+		var h := l1 * a.y + l2 * b.y + l3 * c.y
+		if h <= p.y + up and (is_nan(best) or h > best):
+			best = h
+	return best
+
+
+func _tri_at(p: Vector3) -> int:
+	# the NavMesh triangle the feet stand on: highest one at most 0.6 m above them, within 2 m below; −1 = none / the pad
+	var best := -1
+	var bh := -INF
+	for tri in ground_grid.get(Vector2i(floori(p.x), floori(p.z)), []):
+		var a: Vector3 = tri[0]
+		var b: Vector3 = tri[1]
+		var c: Vector3 = tri[2]
+		var d := (b.z - c.z) * (a.x - c.x) + (c.x - b.x) * (a.z - c.z)
+		if absf(d) < 1e-9:
+			continue
+		var l1 := ((b.z - c.z) * (p.x - c.x) + (c.x - b.x) * (p.z - c.z)) / d
+		var l2 := ((c.z - a.z) * (p.x - c.x) + (a.x - c.x) * (p.z - c.z)) / d
+		var l3 := 1.0 - l1 - l2
+		if l1 < -1e-3 or l2 < -1e-3 or l3 < -1e-3:
+			continue
+		var h := l1 * a.y + l2 * b.y + l3 * c.y
+		if h <= p.y + 0.6 and h >= p.y - 2.0 and h > bh and int(tri[3]) >= 0:
+			bh = h
+			best = int(tri[3])
+	return best
+
+
+func _nav_path(from: Vector3, to: Vector3) -> Array:
+	# A* on the bot's NavMesh graph (ramp_scene.json "graph", navmesh.graph()) from the foe's triangle to the
+	# player's → triangle centroids, then the player's spot. [] when either stands off the NavMesh or no route
+	var s := _tri_at(from)
+	var g := _tri_at(to)
+	if s < 0 or g < 0 or centroids.is_empty():
+		return []
+	if s == g:
+		return [to]
+	var graph: Array = sc["graph"]
+	var cost := {s: 0.0}
+	var prev := {}
+	var heap := [[centroids[s].distance_to(centroids[g]), s]]
+	var done := {}
+	while not heap.is_empty():
+		var cur: int = _heap_pop(heap)[1]
+		if cur == g:
+			break
+		if done.has(cur):
+			continue
+		done[cur] = true
+		for e in graph[cur]:
+			var nx := int(e[0])
+			var nc: float = float(cost[cur]) + float(e[1])
+			if nc < float(cost.get(nx, INF)):
+				cost[nx] = nc
+				prev[nx] = cur
+				_heap_push(heap, [nc + centroids[nx].distance_to(centroids[g]), nx])
+	if not prev.has(g):
+		return []
+	var seq := [g]
+	while seq[-1] != s:
+		seq.append(prev[seq[-1]])
+	seq.reverse()
+	var out := []
+	for i in range(1, seq.size()):
+		out.append(centroids[seq[i]])
+	out.append(to)
+	return out
+
+
+func _heap_push(h: Array, item: Array) -> void:
+	h.append(item)
+	var i := h.size() - 1
+	while i > 0:
+		var p := (i - 1) / 2
+		if float(h[p][0]) <= float(h[i][0]):
+			break
+		var tmp: Array = h[p]
+		h[p] = h[i]
+		h[i] = tmp
+		i = p
+
+
+func _heap_pop(h: Array) -> Array:
+	var top: Array = h[0]
+	var last: Array = h.pop_back()
+	if h.size() > 0:
+		h[0] = last
+		var i := 0
+		while true:
+			var l := 2 * i + 1
+			var r := l + 1
+			var m := i
+			if l < h.size() and float(h[l][0]) < float(h[m][0]):
+				m = l
+			if r < h.size() and float(h[r][0]) < float(h[m][0]):
+				m = r
+			if m == i:
+				break
+			var tmp: Array = h[m]
+			h[m] = h[i]
+			h[i] = tmp
+			i = m
+	return top
+
+
+func _stand(body: CharacterBody3D) -> bool:
+	# after move_and_slide: put the feet on the floor when they reached it (or are within STEP_UP below it)
+	# a body has a radius: floor under any of five points within FOOT_R holds it (8th room run: #6 started a swing over
+	# the gap between two NavMesh pieces and fell through)
+	var h := NAN
+	for o in [Vector3.ZERO, Vector3(FOOT_R, 0, 0), Vector3(-FOOT_R, 0, 0), Vector3(0, 0, FOOT_R), Vector3(0, 0, -FOOT_R)]:
+		var hh := _ground(body.position + o)
+		if not is_nan(hh) and (is_nan(h) or hh > h):
+			h = hh
+	if not is_nan(h) and body.position.y <= h + 0.08:
+		body.position.y = h
+		body.velocity.y = 0.0
+		return true
+	return false
+
+
+func _gravity(body: CharacterBody3D, dt: float, vel: Vector3) -> bool:
+	body.velocity.x = vel.x
+	body.velocity.z = vel.z
+	body.velocity.y -= 9.8 * dt
+	body.move_and_slide()
+	return _stand(body)
+
+
+func _floor_ahead(pos: Vector3, fwd: Vector3) -> bool:
+	var h := _ground(pos + fwd * 0.8)
+	return not is_nan(h) and h > pos.y - 1.5
+
+
+func _turn(fo: Dictionary, face: float, dt: float, rate: float) -> void:
+	var want := wrapf(face - PI, -PI, PI)            # heading convention: facing = heading + PI
+	var d := wrapf(want - float(fo["heading"]), -PI, PI)
+	fo["heading"] = wrapf(float(fo["heading"]) + clampf(d, -rate * dt, rate * dt), -PI, PI)
+	(fo["body"] as Node3D).rotation.y = fo["heading"]
+
+
+func _pick_attack(fo: Dictionary, dist: float) -> int:
+	var have: Dictionary = fo["d"]["attacks"]
+	var lunge := [3005, 3006, 3010]
+	var swing := [3000, 3003]
+	if fo["d"].has("lunge"):                            # arena foes: the scene's lists (sim/arena_scene.py)
+		var fd: Dictionary = fo["d"]
+		var near: Array = fd["swing"]
+		if not fd["long"].is_empty() and rng.randf() < float(fd["long_share"]):
+			near = fd["long"]
+		var pool2: Array = (fd["lunge"] if dist > float(fd["lunge_m"]) else near).filter(func(a): return have.has(str(int(a))))
+		return int(pool2[rng.randi_range(0, pool2.size() - 1)]) if not pool2.is_empty() else int(fd["swing"][0])
+	if int(fo["d"]["npc"]) == 255010:
+		lunge = [3005]                                 # [meas] #2: 3005 at 2.4–4.6 m, 3000 / 3004 close
+		swing = [3000, 3004]
+	var pool := (lunge if dist > LUNGE_M else swing).filter(func(a): return have.has(str(a)))
+	if pool.is_empty():
+		pool = [3000]
+	return int(pool[rng.randi_range(0, pool.size() - 1)])
+
+
+func _foe_caps(fo: Dictionary) -> Array:
+	# this frame's AtkParam_Npc capsules [[p0, p1, r, physical], …] while the clip time is inside a TAE window
+	var out := []
+	var sk: Skeleton3D = fo["sk"]
+	if sk == null:
+		return out
+	var mdl: Dictionary = chr_models.get(String(fo["d"]["model"]), {})
+	var dm: Dictionary = mdl.get("dummies", {})
+	var wins: Array = fo["d"]["attacks"].get(str(int(fo["anim"])), [])
+	var at: float = fo["t"]
+	for w in wins:
+		if at < float(w["start"]) or at > float(w["end"]) or not w.has("hit"):
+			continue
+		if sk.has_method("force_update_all_bone_transforms"):
+			sk.force_update_all_bone_transforms()
+		for h in w["hit"]:
+			var p0: Variant = _dmy(sk, dm, str(int(h["from"])))
+			var p1: Variant = _dmy(sk, dm, str(int(h["to"])))
+			if p0 != null and p1 != null:
+				out.append([p0, p1, float(h["radius"]), int(w.get("physical", 100)), float(w.get("stamina", -1.0))])
+	return out
+
+
+func _dmy(sk: Skeleton3D, dm: Dictionary, id: String):
+	if not dm.has(id):
+		return null
+	var d: Dictionary = dm[id][0]
+	if sk.find_bone(String(d["bone"])) < 0 and sk.find_bone("hand_r") >= 0:
+		# UAL stand-in: a hand dummy = hand_r; a weapon dummy = its DSR distance along the blade (hand_r +Z) [stand-in path]
+		var hb := sk.find_bone("hand_r")
+		var o2: Array = d["offset"]
+		var along := Vector3(0, 0, Vector3(o2[0], o2[1], o2[2]).length()) if String(d["bone"]).to_lower().contains("weapon") else Vector3.ZERO
+		return sk.global_transform * (sk.get_bone_global_pose(hb) * along)
+	var bi := sk.find_bone(String(d["bone"]))
+	if bi < 0:
+		return null
+	var o: Array = d["offset"]
+	return sk.global_transform * (sk.get_bone_global_pose(bi) * Vector3(o[0], o[1], o[2]))
+
+
+func _foe_hits(fo: Dictionary) -> void:
+	var caps := _foe_caps(fo)
+	var tests := []
+	var prev: Array = fo["prev_caps"]
+	for i in caps.size():
+		tests.append(caps[i])
+		if prev.size() == caps.size():
+			tests.append([prev[i][0], caps[i][0], caps[i][2], caps[i][3], caps[i][4]])
+			tests.append([prev[i][1], caps[i][1], caps[i][2], caps[i][3], caps[i][4]])
+	fo["prev_caps"] = caps
+	if fo["hit_done"] or dead or tests.is_empty():
+		return
+	var pax := [player.position + Vector3(0, RADIUS, 0), player.position + Vector3(0, HEIGHT - RADIUS, 0)]
+	for sg in tests:
+		if _seg_dist(sg[0], sg[1], pax[0], pax[1]) <= float(sg[2]) + RADIUS:
+			fo["hit_done"] = true
+			var hp0 := player_hp
+			_player_hit(int(sg[3]), (fo["body"] as Node3D).position, false, float(sg[4]))
+			if player_hp < hp0 and anim == 2000:                 # a real hit (not blocked, not dodged)
+				_hit_mark(sg[0], sg[1], pax[0], pax[1], RADIUS, _player_sk(), "me", hp0 - player_hp)
+			return
+
+
+func _player_hit(dmg: int, from: Vector3, bomb: bool, sp_hit: float = -1.0) -> void:
+	if act_name != "" and _in(actions[act_name]["invincible"], act_t):
+		dodged += 1
+		return
+	var to_src := atan2(from.x - player.position.x, from.z - player.position.z)
+	var facing_src := absf(rad_to_deg(wrapf(to_src - (heading + PI), -PI, PI))) <= GUARD_DEG
+	if guard and facing_src and act_name == "":
+		if bomb:
+			dmg = int(sc["foes"][4]["throw"]["dmg_guard"])
+		else:
+			# 막을 때 스태미나 = 그 공격의 StaminaAttackPower × (1 − 방패 안정성 / 100) [game 값, 공식은 guess], 방패를 넘어오는
+			# 피해 = 피해 × (1 − 물리 컷 / 100) (나무 방패 88 %) [game 값, 공식 guess]. MoKa M1109-76: "큰 중갑 병사는 휘두르면
+			# 방패로 막아도 스테미나가 다 달아서 2타 맞을 확률이 매우 높아" — 중기사 3000 80 → 45, 3001 140 → 78 (둘이면 98 을 넘음)
+			# sp_hit < 0 (램프 방: 창에 stamina 없음) → 예전 그대로 고정 GUARD_COST, 관통 피해 없음
+			var lf: Dictionary = equip.get("left", {})
+			if sp_hit < 0.0:
+				sp -= GUARD_COST
+			else:
+				sp -= sp_hit * (1.0 - float(lf.get("guard_stamina_defense", 0)) / 100.0)
+				var chip := int(round(dmg * (1.0 - float(lf.get("physical_guard_pct", 100.0)) / 100.0)))
+				player_hp = maxi(0, player_hp - chip)
+				if player_hp <= 0:
+					dead = true
+			if sp > 0.0:
+				return
+			sp = 0.0
+			guard_breaks += 1                                 # guard broken [guess]: long stagger, the next swing lands
+			stagger = 1.2
+			anim = 2000
+			return
+	player_hp = maxi(0, player_hp - dmg)
+	_end_action()
+	stagger = STAGGER_S
+	anim = 2000
+	if player_hp <= 0:
+		dead = true
+
+
+func _die(fo: Dictionary) -> void:
+	_play(fo, 2205, "dead")
+	(fo["body"] as CharacterBody3D).collision_layer = 0
+	fo["anim"] = 2205
+
+
+# ── Player hits on foes ─────────────────────────────────────────────────
+func _weapon_hits() -> void:
+	if act_name == "" or not actions[act_name]["attack"].size() or not _in(actions[act_name]["attack"], act_t):
+		prev_caps = []
+		hit_set.clear()
+		return
+	var caps := _weapon_caps()
+	var tests := []
+	for i in caps.size():
+		var c: Array = caps[i]
+		tests.append(c)
+		if prev_caps.size() == caps.size():
+			var p: Array = prev_caps[i]
+			tests.append([p[0], c[0], c[2]])
+			tests.append([p[1], c[1], c[2]])
+			tests.append([(p[0] + p[1]) / 2.0, (c[0] + c[1]) / 2.0, c[2]])
+	prev_caps = caps
+	for fo in foes:
+		if fo["hp"] <= 0 or hit_set.has(fo["n"]):
+			continue
+		var bp: Vector3 = (fo["body"] as Node3D).position
+		var ax := [bp + Vector3(0, FOE_R, 0), bp + Vector3(0, FOE_H - FOE_R, 0)]
+		for sg in tests:
+			if _seg_dist(sg[0], sg[1], ax[0], ax[1]) <= float(sg[2]) + BODY_HIT_R:
+				hit_set[fo["n"]] = true                    # one hit per swing per foe; a swing can hit several
+				player_hits += 1
+				fo["woke"] = true
+				var to_pl := atan2(player.position.x - bp.x, player.position.z - bp.z)
+				var front := absf(rad_to_deg(wrapf(to_pl - (float(fo["heading"]) + PI), -PI, PI))) <= GUARD_DEG
+				# 적 방어력 (arena 만): 피해 = a² / (a + 물리 방어) [NpcParam PhysicalDefense = game, 공식 guess] — 없으면 그대로
+				var raw := _hit_damage()
+				var pdef := float(fo["d"].get("phys_def", 0))
+				var dmg := int(round(raw * raw / (raw + pdef))) if pdef > 0.0 else raw
+				if fo["state"] == "guard" and front:
+					hitstop = 0.12                          # [guess] shield bounce
+					# 막은 적의 기력 (arena: max_sp 있을 때): 막을 때마다 guard_sp_cost [guess], 0이면 가드 깨짐 → 휘청
+					if float(fo["d"].get("max_sp", 0)) > 0.0:
+						fo["sp"] = float(fo["sp"]) - float(fo["d"].get("guard_sp_cost", 40))
+						if float(fo["sp"]) <= 0.0:
+							fo["sp"] = 0.0
+							_play(fo, int(FOE_STAGGER), "stagger")
+							fo["len"] = maxf(float(fo["len"]), 1.2)
+					var cut := float(fo["d"].get("guard_cut", 100))
+					fo["hp"] = maxi(0, int(fo["hp"]) - int(round(dmg * (1.0 - cut / 100.0))))   # NpcParam PhysicalGuardCutRate [game]
+					if fo["hp"] <= 0:
+						_die(fo)
+					break
+				fo["hp"] = maxi(0, int(fo["hp"]) - dmg)
+				_hit_mark(sg[0], sg[1], ax[0], ax[1], BODY_HIT_R, fo["sk"], "#%d" % int(fo["n"]), dmg)
+				hitstop = float(actions[act_name].get("hit", {}).get("hitstop", 0.06))
+				if fo["hp"] <= 0:
+					_die(fo)
+				elif rng.randf() < float(fo["d"].get("stagger_share", 1.0)):
+					_play(fo, int(FOE_STAGGER), "stagger")
+				break
+
+
+func _dummy_step(dt: float) -> void:
+	for fo in foes:
+		_foe_step(fo, dt)
+		var lbl: Label3D = fo["label"]
+		lbl.text = "#%d %s %d" % [fo["n"], fo["state"], fo["hp"]]
+		lbl.visible = overlay
+	_bombs_step(dt)
+
+
+func _bombs_step(dt: float) -> void:
+	if bombs.is_empty():
+		return
+	var th: Dictionary = sc["foes"][4]["throw"]
+	for b in bombs.duplicate():
+		b["t"] = float(b["t"]) + dt
+		if b["at"] == Vector3.INF and float(b["t"]) >= 1.0:          # [guess] release 1.0 s in, aimed at the player then
+			b["at"] = player.position
+			var mi := MeshInstance3D.new()
+			var sm := SphereMesh.new()
+			sm.radius = 0.12
+			sm.height = 0.24
+			var m := StandardMaterial3D.new()
+			m.albedo_color = Color(1.0, 0.5, 0.1)
+			m.emission_enabled = true
+			m.emission = Color(1.0, 0.4, 0.1)
+			sm.material = m
+			mi.mesh = sm
+			add_child(mi)
+			b["node"] = mi
+		if b["node"] != null:
+			var u := clampf((float(b["t"]) - 1.0) / (float(th["land"]) - 1.0), 0.0, 1.0)
+			var at: Vector3 = b["at"]
+			var from: Vector3 = b["from"]
+			(b["node"] as Node3D).position = from.lerp(at, u) + Vector3(0, 4.0 * u * (1.0 - u), 0)
+		if float(b["t"]) >= float(th["land"]):
+			var at2: Vector3 = b["at"]
+			if at2 != Vector3.INF and Vector2(player.position.x - at2.x, player.position.z - at2.z).length() <= float(th["radius"]) \
+					and absf(player.position.y - at2.y) < 2.0 and not dead:
+				_player_hit(int(th["dmg"]), b["from"], true)
+			if b["node"] != null:
+				(b["node"] as Node).queue_free()
+			bombs.erase(b)
+
+
+# ── Player additions ────────────────────────────────────────────────────
+func _read_input() -> Dictionary:
+	var r := super._read_input()
+	var lb: bool = r.get("lb", false)
+	if t - net_in_t >= 0.5:
+		for dev in Input.get_connected_joypads():
+			lb = lb or Input.is_joy_button_pressed(dev, JOY_BUTTON_LEFT_SHOULDER)
+		lb = lb or Input.is_physical_key_pressed(KEY_K)
+	guard = lb and not dead
+	if dead:
+		for k in ["lx", "ly", "a", "b", "rb", "x"]:
+			r[k] = 0.0 if k in ["lx", "ly"] else false
+	return r
+
+
+func _start(name: String, dir_angle: float) -> void:
+	if name == "estus":
+		if estus_left <= 0:
+			return
+		estus_left -= 1
+		estus_done = false
+	if SP_COST.has(name):
+		if sp <= 0.0:
+			return
+		sp -= float(SP_COST[name])
+	super._start(name, dir_angle)
+
+
+func _target_angle() -> float:
+	if lock_foe >= 0:
+		var bp: Vector3 = (foes[lock_foe]["body"] as Node3D).position
+		return atan2(bp.x - player.position.x, bp.z - player.position.z)
+	return super._target_angle()
+
+
+func _physics_process(dt: float) -> void:
+	if sc.is_empty():
+		return
+	_marks_step(dt)
+	_foe_sp_step(dt)
+	# lock-on proxy: main.gd locks onto `dummy`. Not locked: keep it on the live foe in range nearest the camera's
+	# centre, so R3 grabs that one (DSR: "R3 grabs the enemy nearest camera center" — souls/moves.py lock_target) [game rule,
+	# the angle-only pick is a guess]
+	var best := -1
+	var bd := 1e9
+	if lock and lock_foe >= 0 and foes[lock_foe]["hp"] > 0:
+		best = lock_foe
+	else:
+		var cy := cam_actual_yaw()
+		for i in foes.size():
+			if foes[i]["hp"] <= 0:
+				continue
+			var fp: Vector3 = (foes[i]["body"] as Node3D).position
+			if player.position.distance_to(fp) > LOCK_RANGE:
+				continue
+			var off := absf(wrapf(atan2(fp.x - player.position.x, fp.z - player.position.z) - cy, -PI, PI))
+			if off < bd:
+				bd = off
+				best = i
+	lock_foe = best
+	if best >= 0:
+		dummy.position = (foes[best]["body"] as Node3D).position
+		dummy_hp = int(foes[best]["hp"])
+	else:
+		dummy.position = Vector3(0, -500, 0)
+		dummy_hp = 0
+	sp = minf(MAX_SP, sp + (SP_REGEN_GUARD if guard else SP_REGEN) * dt * (0.0 if act_name != "" else 1.0))
+	if act_name == "estus" and not estus_done and act_t >= ESTUS_AT:
+		estus_done = true
+		player_hp = mini(PLAYER_HP, player_hp + ESTUS_HEAL)
+	super._physics_process(dt)
+	_stand(player)
+	if act_name == "" and stagger <= 0.0 and anim == 2000:
+		anim = -1                                  # hit reaction over (main.gd only resets anim on its own actions)
+
+
+# 가드 자세 (MoKa 11-09 "방패가 몸통 앞부분과 정렬이 되야 하는데 … 방패 든 팔쪽이 뭔가 부자연 스러워"): 전엔 가드해도
+# 서기·걷기 클립 그대로라 방패가 허리 옆에 늘어져 있었다 (막기 판정은 몸 앞 GUARD_DEG 원뿔만 봄 — 방패 모델 위치와 무관).
+# 이제 가드 중엔 Quaternius UAL2 Idle_Shield (왼팔을 몸 앞으로) — 모양만 [guess], DSR 가드 애니 아님. 걸으면서 막을 땐 미끄러지듯 보임
+const GUARD_CLIP := "ual2/Idle_Shield"     # glb "Idle_Shield_Loop" — Godot drops the _Loop suffix on import
+
+
+func _animate() -> void:
+	if guard and anim_player != null and act_name == "" and stagger <= 0.0 and anim_player.has_animation(GUARD_CLIP):
+		if loco_clip != GUARD_CLIP or not anim_player.is_playing():
+			anim_player.play(GUARD_CLIP, 0.12)
+			loco_clip = GUARD_CLIP
+		anim_player.speed_scale = 1.0
+		return
+	super._animate()
+
+
+# ── 맞은 부위를 빨갛게 (MoKa M1109-78 "hit가 되면 그 부위가 red로 표시") ──────────────────────────────
+#  맞은 자리 = 공격 캡슐과 몸 축 (세로 캡슐 [guess])의 가장 가까운 점을 몸 표면으로 옮긴 곳. 그 점에서 가장 가까운 뼈에 붙인
+#  빨간 공 (HIT_MARK_S 동안 옅어짐) — 몸과 같이 움직임. 판정이 몸을 세로 캡슐 하나로 보니 "부위"는 그 점의 높이·방향이 정함
+#  (DSR 부위 판정 아님). 막은 공격·회피는 표시 안 함. 마지막 표시는 state "hit_marks"에 (누가, 뼈, 피해)
+const HIT_MARK_S := 0.8
+const HIT_MARK_R := 0.12
+var marks := []          # [node, ttl, material]
+var hit_marks := []      # last few: [who, bone, dmg, t]
+var _psk: Skeleton3D = null
+
+
+func _player_sk() -> Skeleton3D:
+	if _psk == null:
+		var sks := player.find_children("*", "Skeleton3D", true, false)
+		if not sks.is_empty():
+			_psk = sks[0]
+	return _psk
+
+
+func _hit_mark(a0: Vector3, a1: Vector3, b0: Vector3, b1: Vector3, r: float, sk: Skeleton3D, who: String, dmg: int) -> void:
+	var c := Geometry3D.get_closest_points_between_segments(a0, a1, b0, b1)
+	var out: Vector3 = c[0] - c[1]
+	var at: Vector3 = c[1] + (out.normalized() * r if out.length() > 0.01 else Vector3.ZERO)
+	var parent: Node3D = self
+	var bone := "-"
+	if sk != null and sk.get_bone_count() > 0:
+		var best := 1e9
+		var bi := -1
+		for i in sk.get_bone_count():
+			var bn := sk.get_bone_name(i).to_lower()
+			if "cloth" in bn or "armor" in bn or "dmy" in bn or "sfx" in bn:     # DSR cloth / armour plates — not a body part
+				continue
+			var d := (sk.global_transform * sk.get_bone_global_pose(i).origin).distance_to(at)
+			if d < best:
+				best = d
+				bi = i
+		bone = sk.get_bone_name(maxi(bi, 0))
+		var ba := BoneAttachment3D.new()
+		ba.bone_name = bone
+		sk.add_child(ba)
+		parent = ba
+	var m := MeshInstance3D.new()
+	var sm := SphereMesh.new()
+	sm.radius = HIT_MARK_R
+	sm.height = 2.0 * HIT_MARK_R
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(1, 0, 0, 0.85)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.no_depth_test = true                    # seen through the body / shield
+	sm.material = mat
+	m.mesh = sm
+	parent.add_child(m)
+	m.global_position = at
+	marks.append([parent if parent != self else m, HIT_MARK_S, mat])
+	hit_marks.append([who, bone, dmg, snappedf(t, 0.01)])
+	if hit_marks.size() > 6:
+		hit_marks.pop_front()
+
+
+func _foe_sp_step(dt: float) -> void:
+	for fo in foes:
+		var mx := float(fo["d"].get("max_sp", 0))
+		if mx > 0.0 and fo["state"] != "guard":
+			fo["sp"] = minf(mx, float(fo["sp"]) + float(fo["d"].get("sp_regen", 30.0)) * dt)
+
+
+func _marks_step(dt: float) -> void:
+	for mk in marks.duplicate():
+		mk[1] = float(mk[1]) - dt
+		(mk[2] as StandardMaterial3D).albedo_color.a = clampf(float(mk[1]) / HIT_MARK_S, 0.0, 1.0) * 0.85
+		if float(mk[1]) <= 0.0:
+			(mk[0] as Node).queue_free()
+			marks.erase(mk)
+
+
+func _send_state() -> void:
+	var p := player.position
+	var fl := []
+	for fo in foes:
+		var bp: Vector3 = (fo["body"] as Node3D).position
+		fl.append({"ptr": 1000 + int(fo["n"]), "n": fo["n"], "npc": int(fo["d"]["npc"]), "team": 6, "hp": fo["hp"],
+			"max_hp": int(fo["d"]["max_hp"]), "x": bp.x, "y": bp.y, "z": bp.z, "heading": fo["heading"],
+			"anim": fo["anim"], "anim_time": fo["t"], "state": fo["state"], "woke": fo["woke"], "sp": fo["sp"]})
+	var d := {"t": t, "x": p.x, "y": p.y, "z": p.z, "heading": heading, "anim": anim, "speed": speed,
+		"cam_yaw": cam_actual_yaw(), "action": act_name, "anim_time": act_t if act_name != "" else null,
+		"invincible": act_name != "" and _in(actions[act_name]["invincible"], act_t),
+		"lock": lock, "lock_ptr": (1000 + int(foes[lock_foe]["n"])) if (lock and lock_foe >= 0) else 0,
+		"hp": player_hp, "max_hp": PLAYER_HP, "sp": sp, "max_sp": MAX_SP, "estus": estus_left, "guard": guard,
+		"stagger": stagger > 0.0, "dead": dead, "player_hits": player_hits, "dodged": dodged, "guard_breaks": guard_breaks, "hit_marks": hit_marks, "foes": fl,
+		"bombs": bombs.size(), "scene": sc.get("name", "ramp")}
+	udp_out.put_packet(JSON.stringify(d).to_utf8_buffer())
+	info_label.text = String(sc.get("name", "ramp")) + "  t %.1f  pos %.1f %.1f %.1f  HP %d  SP %d  estus %d  guard %s  lock #%s%s\n%s" % [t, p.x, p.y, p.z,
+		player_hp, sp, estus_left, guard, str(foes[lock_foe]["n"]) if (lock and lock_foe >= 0) else "-",
+		"  DEAD" if dead else "", ("%s %.2f" % [act_name, act_t]) if act_name != "" else ""]
