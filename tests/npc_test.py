@@ -63,4 +63,36 @@ check(f"no menu within LINES_MAX ({N.LINES_MAX}) lines → None", npc.greet(("sm
 npc, game = rig(0)
 npc.pad.press = lambda b, hold: game.presses.append(b)    # the A never opens a conversation (no talk prompt)
 check("no talk prompt (menu_open stays False) → None after one A", npc.greet(("smith",)) is None and len(game.presses) == 1)
+
+
+# ── P-155 (20261110_061503): a hurt or attacking NPC is not approached, and nothing is pressed ──
+def rig_approach(hp: int, anim: int = 9000, after_walk_hp: int | None = None):
+    calls = []
+    me = NS(x=0.0, y=0.0, z=4.5)
+    them = NS(npc_param=999999, ptr=1, x=0.0, y=0.0, z=0.0, hp=hp, max_hp=360, anim=anim)
+    pad = NS(press=lambda b, hold: calls.append("press"), neutral=lambda: calls.append("neutral"),
+             move=lambda x, y: calls.append("move"))
+    mv = NS(tm=NS(menu_open=lambda: False), pad=pad, snap=lambda within: NS(player=me, chars=[them]),
+            stick_to=lambda s, x, z, f: (0.0, 0.0), aim=lambda ptr, deg, timeout: 0.0)
+
+    def walk_to(goal, nm, tag):
+        calls.append("walk")
+        me.z = 1.0
+        if after_walk_hp is not None:
+            them.hp = after_walk_hp
+        return "arrived"
+    who = {"npc": 999999, "name": "상인 (시험)", "pos": (0.0, 0.0, 0.0)}
+    return N.Npc(mv, who, walk_to=walk_to, log=lambda m: None), calls
+
+
+N.time = Clock()
+npc, calls = rig_approach(hp=216)                          # the run's numbers: 360 → 216 before the bot's first line
+check("hurt NPC (216/360) → 'hostile', no walk, no pad call", npc.approach() == "hostile" and calls == [])
+npc, calls = rig_approach(hp=360, anim=3004)
+check("full HP but in an attack anim (3004) → 'hostile', no pad call", npc.approach() == "hostile" and calls == [])
+npc, calls = rig_approach(hp=360)
+check("unhurt, idle NPC → walks in and ends 'ok'", npc.approach() == "ok" and "walk" in calls)
+npc, calls = rig_approach(hp=360, after_walk_hp=288)
+check("hurt during the walk → 'hostile' after it, no step or press afterwards",
+      npc.approach() == "hostile" and "move" not in calls and "press" not in calls)
 print("npc_test: 전부 통과")

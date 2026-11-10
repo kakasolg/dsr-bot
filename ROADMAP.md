@@ -33,8 +33,8 @@ needing the tick loop, route data, settings object or WorldState.
 
 - [~] taurus | MoKa | verify | 11-09 close fight (M1109-10…32) — chain2 11-09: 6 kills / 6 deaths; MoKa: 여기서 마무리 | docs/boss-taurus.md · plan:taurus 
 - [~] fall-death-policy | win | verify | no fall quit-out + after-death pickup: (1)(2) seen in 3 runs; (3) death record, (4) alignment next runs | P-71 · P-72 · plan:fall-death-policy
-- [~] stage-analysis | MoKa | decide | burg-upper zones 1–8 analysed (auto + hand draft); MoKa: fix intent / response, zone 4 safe spot 0.5 m from a drop | docs/stages/burg-upper.md · plan:stage-analysis
-- [~] firebomb-hollow-close-in | win | verify | built offline 11-09: reachable firebomb hollow → sprint in, its hit doesn't send us out; ledge / drop way → rule_shot | plan:firebomb-hollow-close-in
+- [~] stage-analysis | MoKa | decide | burg-upper zones 1–8 analysed (auto+hand); MoKa: fix intent / response, zone 4 spot 0.5 m from a drop | docs/stages/burg-upper.md · plan:stage-analysis
+- [~] firebomb-hollow-close-in | win | verify | built offline 11-09: reachable firebomb hollow → sprint in, its hit no push-out; ledge → rule_shot | plan:firebomb-hollow-close-in
 - [~] zone-runs | win | doing | zone-by-zone runs; after each the three reports + `sample.py` (CLAUDE.md) | plan:zone-runs
 - [~] route-recordings | MoKa | doing | route recordings (3 done, Taurus killed in the 3rd) — more only if a zone needs it | plan:route-recordings
 
@@ -45,7 +45,6 @@ needing the tick loop, route data, settings object or WorldState.
 - [~] firebomb-measure | win | verify | hollow ~5 m: 75 one-shot 2/2 · 7 m: 18 · ≥ 9 m: no lock. crossbow 5 m: died (P-83) | plan:firebomb-measure
 - [~] firebomb-candidate | win | verify | built offline 11-09: firebombs in a quick slot = lure opener (5–10 m, lock) · 2+ coming · ledge, no --throw / limit | plan:firebomb-candidate
 - [~] bow | win | doing | skeleton 11-09 (souls/bow.py, off): switch by memory, locked shot; [win]: shop weapon tab, bow id, left-hand offsets, fire button | plan:bow
-- [~] npc-module | win | verify | built 11-09: souls/npc.Npc (approach · face · greet · close), Shop(Npc); [win]: one merchant-buy run | souls/npc.py · plan:npc-module
 
 ## 1-b. Taurus → Sunlight Altar, Claymore as main (MoKa 10-12)
 
@@ -154,7 +153,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 49 | Ramp ledge (−22,−40,13): knocked off 3× fighting the axe hollow, standing off-mesh; `rule_edge` only raised the shield | verify — `--footing` A/B (P-58) |
 | 51 | `burg-upper` zone 3 (5,−92): hit twice while backing off the edge after backstabs, −181 | open |
 | 53 | `burg-upper` zone 1 (−1.9,−14,−70): fell 4 m right after a hit, quit-out recovered | verify — sprint overshot a corner over a drop; now jogs into such corners (`nav.brake_points`) |
-| 55 | `passage-drill`: the bonfire warp revives the ramp foes → died on the way to the top | open (A/B moved to seg 1-2) |
+| 55 | passage-drill: warp revives ramp foes → died going up | open (A/B → seg 1-2) |
 | 87 | probe prep: fell, died | open |
 | 88 | `anim_time_scan foe`: NoDead switched off next to awake A → died ×2 | verify — menu exit first; worked after pilot run 2 (1/1) |
 | 89 | `parish-*`: 255041 cuts into the 255042 fight; fast 3004 lands big (3/3 runs) | parked 10-27 — not reproducible with claymore+5 (one hit per soldier, 9 runs); B-t/B offline only; revisit with weaker gear |
@@ -205,7 +204,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 107 | Item-get window left open after the resin chest (11-01 214607): close-A skipped when the window list read empty | fix built (wait ≤ 2 s, A always), offline only |
 | 108 | `burg-upper --seg 8` started on the tower top (11-01 231119): fog step misread 'before the wall' (3D distance) → walked off the ladder top, 9 m fall −110; stain got | fix built (skip fog/ladder/top-up at ladder-top height, slack 1.5 m), offline tests only; game check next |
 | 109 | `taurus` started on the tower top (11-01 233535): fog step walked off the ladder hole (9 m, −110, same as P-108 but taurus.py's own fog call), no estus (85 % > PRE_HEAL); 1 plunge 1215→714 then 3012/4100/3001 hits → died | open → MoKa: fix taurus start from tower top, or run it only before the fog |
-| 110 | Zone 5 resin chest not taken on fresh Firelink-save chains (183919, 192523, 234903): same spot/heading as the 214607 success, A ×3 → nothing; taurus then stops "resin 0" | open → cause: tap A never released outside fight loops (lid opened, Pillage A ignored; 2nd round after neutral took it 11-02 001833); fix built (release each A), offline only |
+| 110 | Zone 5 resin chest not taken on fresh Firelink-save chains (183919, 192523, 234903): A ×3 → nothing; taurus then stops "resin 0" | open → cause: tap A never released outside fight loops (lid opened, Pillage A ignored; 2nd round after neutral took it 11-02 001833); fix built (release each A), offline only |
 | 111 | Taurus (11-02 002807): on the top at 32 % HP with the boss below the ladder → no Estus, plunged (510→9), hit by 3001 while rolling after landing → died at boss HP 9 | open → MoKa 11-02: one plunge, then close fight on the bridge within the first resin, Estus between, never re-rub or climb again → PLUNGES 1, offline only |
 | 112 | `burg-upper` zone 8 top (11-02 014223): crossbowman 255002 3004 called over at 1.6 s → Estus backstep dropped the shield at 1.94 s → −330 at 2.11 s, died at 47 % | open → fix built; 11-02 022918 blocked 3004 ×20 for 0 in zone 2, 024657 zone 8 cleared (hits were 3005/3003); the 3004-backstep case not seen again |
 | 113 | `burg-upper` zone 8 (11-02 020649): through-sprint from the ladder top fell off the ledge after a hit, then walked back west into the crossbowmen with no fight → −557, died | open → fix built, offline only; 11-02 024657 zone 8: no turn-back, path not exercised |
@@ -246,6 +245,10 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 148 | Taurus 329 | open |
 | 149 | Taurus 0 dmg | open |
 | 150 | VIT lvl | open |
+| 152 | probe fall | open |
+| 153 | probe: flags off by foes → death | open |
+| 154 | ramp_test #6 flaky | open |
+| 155 | start-up swing → merchant killed | open |
 
 ## 5. Relay — [cloud] ↔ board
 

@@ -71,12 +71,30 @@ class Npc:
     def find(self, s):
         return next((c for c in (s.chars if s else ()) if c.npc_param == self.m["npc"]), None)
 
+    def hostile(self, c) -> str | None:
+        """Why this NPC must not be approached (→ no input), or None.
+        ── 맞은 NPC = 적대로 봄 (P-155, 20261110_061503) ──────────────────────────
+         · 시작 준비 중 누군가의 약공 2번으로 상인 HP 360 → 216, 적대. 그 뒤 walk_to가 그를 '따라온 적'으로 싸워 죽임.
+         · team은 맞기 전후 모두 6이라 못 씀 → HP가 최대보다 낮거나 공격 애니(3000번대)면 다가가지 않고 멈춤.
+         · 다쳤지만 적대는 아닌 NPC도 멈춤 (구분 못 함) — 사람이 보고 정함.
+        """
+        hp, mx, anim = getattr(c, "hp", None), getattr(c, "max_hp", None), getattr(c, "anim", -1)
+        if hp is not None and mx and hp < mx:
+            return f"HP {hp}/{mx}"
+        if anim is not None and 3000 <= anim < 4000:
+            return f"공격 애니 {anim}"
+        return None
+
     def approach(self) -> str:
         """Within TALK_R of the NPC (or on its stand spot), facing it within TALK_DEG. → 'ok' | 'not_found' | 'far' |
-        'not_facing' | a walk result"""
-        self.pad.neutral()
+        'not_facing' | 'hostile' (hurt or attacking: nothing pressed) | a walk result"""
         s = self.mv.snap(30.0)
         c = self.find(s)
+        why = self.hostile(c) if c is not None else None
+        if why:
+            self.log(f"   {self.tag}: {self.m['name']} 다쳤거나 적대 ({why}) — 다가가지 않음, 입력 없음 (P-155)")
+            return "hostile"
+        self.pad.neutral()
         if c is None:
             return "not_found"
         # ── 상자 사이에 앉은 상인 ([win] 11-02 try 12) ──────────────────────────────
@@ -91,6 +109,11 @@ class Npc:
             r = self.walk_to(goal, self.nm, self.m["name"])
             if r not in ("arrived", "stuck", "unreachable", "timeout"):
                 return r
+            c2 = self.find(self.mv.snap(30.0))              # hit on the way (a walk fight can swing next to him) → stop here
+            if c2 is not None and self.hostile(c2):
+                self.pad.neutral()
+                self.log(f"   {self.tag}: {self.m['name']} 걷는 동안 다침 ({self.hostile(c2)}) — 멈춤 (P-155)")
+                return "hostile"
         t0 = time.time()
         while time.time() - t0 < APPROACH_S:                # short steps in — a sitting NPC: walking into him is harmless
             s = self.mv.snap(30.0)

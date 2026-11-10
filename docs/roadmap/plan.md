@@ -688,3 +688,4 @@ Items as they left ROADMAP.md (mark, id, who, stage, result, where). Older done 
 - 2026-10-16 [x] rea-trial | cloud | verify | done: dump + analyzers off, B 5/5 + 10 new flags → `DBG_*` | docs/rea-trial.md
 - 2026-10-31 [x] ctl-linkage | MoKa | verify | closed 10-31 (MoKa): built, offline + 3 game runs checked; not done: on/off load, full decision replay, other actions | docs/ctl-experience-data.md · plan:ctl-linkage
 - 2026-11-09 [x] boss-two-hand-dodge | MoKa | done | closed 11-09 (MoKa M1109-03): Taurus = two-handed guard close-in (P-141); general boss = v2.0 boss-module | plan:boss-two-hand-dodge
+- 2026-11-10 [x] npc-module | win | verify | game 11-10 064028: merchant-buy 1/1 ok after the Npc refactor (290 ×30, 292 ×20, no retry); 061503 not reached (P-155); 2nd NPC not run | souls/npc.py · plan:npc-module
