@@ -585,7 +585,7 @@ def tethered(results, start, spot=tuple(z2["safe"]), move=True, npc=None, foes=(
             pos["p"] = zone
         return back
 
-    me = NS(tether=spot, esc=NS(escaping=False), alive=lambda: True, log=lambda *a: None, events=lambda *a, **k: None,
+    me = NS(flags=F.Field.flags, tether=spot, esc=NS(escaping=False), alive=lambda: True, log=lambda *a: None, events=lambda *a, **k: None,
             _fight_once=once, _retreat_to_zone=retreat,
             mv=NS(snap=snap))
     me._tether_far = lambda s: F.Field._tether_far(me, s)
