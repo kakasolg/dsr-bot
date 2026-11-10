@@ -316,6 +316,7 @@ class RoomDev:
         self.report = RoomDev._Report()
         self.st = {"lx": 0.0, "ly": 0.0, "rx": 0.0, "rt": 0.0}
         self._alive = True
+        self._shut = False                       # close(): nothing is sent any more
         threading.Thread(target=self._beat, daemon=True).start()
 
     def _beat(self) -> None:
@@ -349,7 +350,17 @@ class RoomDev:
     def right_trigger_float(self, value_float: float) -> None:
         self.st["rt"] = float(value_float)
 
+    def close(self) -> None:
+        """Stop the 0.1 s beat. A pad left beating keeps sending its last (neutral) state to the room's input port, so a
+        later pad's stick alternates with zeros and the player moves at a fraction of its speed (P-154)."""
+        self.reset()
+        self.update()
+        self._alive = False
+        self._shut = True
+
     def update(self) -> None:
+        if self._shut:
+            return
         msg = dict(self.st)
         for bit, k in self.BITS.items():
             msg[k] = bool(self.report.wButtons & bit)
@@ -384,5 +395,10 @@ def room_pad():
 
         def reconnect(self) -> None:
             pass
+
+        def close(self) -> None:
+            self.neutral()
+            self._closed = True
+            self.pad.close()
 
     return RoomPad()
