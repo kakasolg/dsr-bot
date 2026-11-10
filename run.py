@@ -254,12 +254,10 @@ def main() -> None:
     a = ap.parse_args()
     if a.crowd_warp and not (a.combo_only or a.drill):
         ap.error("--crowd-warp는 공격 기술 시험 (--combo-only · --drill)에서만 ([MoKa] 11-04: 정상 미션에서 사용 안 됨)")
-    if a.level_up:
-        import levelup
-        levelup.WANT = a.level_up.upper()
-    if a.kindle:
-        import kindle
-        kindle.ON = True
+    import settings
+    run_settings = settings.Settings.from_args(a).apply()   # flags → module constants in one place (--basic, --pull,
+    #                                                         --footing, --combo-only, --drill, --level-up, --kindle);
+    #                                                         before the settings record, so it holds the values this run uses
     if a.cmd == "status":
         return status()
     if a.cmd == "watch":                                    # read-only: no lock, no pad, no Log file — --radar implied
@@ -278,24 +276,11 @@ def main() -> None:
     from souls.field import Field
     from souls.watch import Blood, Escape
 
-    if a.basic:                                             # before the settings record, so it holds the constants this run uses
-        from souls import duel as duel_
-        duel_.BACKSTAB, duel_.HEAVY = False, False
-    if a.pull:                                              # same: before the settings record
-        from souls import field as field_
-        field_.NOTICE_PULL = True
-    if a.footing:                                           # same: before the settings record
-        from souls import duel as duel_f
-        duel_f.FOOTING = True
-    if a.combo_only or a.drill:                             # same: before the settings record
-        from souls import duel as duel_c
-        duel_c.COMBO_ONLY = True
-        duel_c.DRILL = a.drill
     log = Log(("room-" if env.SIM else "") + a.cmd)          # Godot room runs (BOT_GAME=sim) never pass for game runs
     import runinfo
     settings_path = Path(str(log.path).replace(".jsonl", ".settings.json"))
     t_run = time.time()
-    info, diff = runinfo.collect(log.path.stem, sys.argv, vars(a), note=a.note)
+    info, diff = runinfo.collect(log.path.stem, sys.argv, vars(a), note=a.note, overrides=run_settings.to_dict())
     log(runinfo.short(info))                                # first line — travels with the log into data/samples/
     if not runinfo.write(settings_path, info, diff):
         log(f"   ⚠ 실행 설정 기록 못 씀: {settings_path}")

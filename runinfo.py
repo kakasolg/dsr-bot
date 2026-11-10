@@ -24,7 +24,8 @@ SCHEMA = "dsr-run/0.1"
 ROOT = Path(__file__).resolve().parent              # the repo (git) — run.py's data folder may differ (tests)
 # fight / walk modules whose UPPER_CASE constants are recorded — after run.py has applied its flags (--basic etc.)
 SETTINGS_MODULES = ("souls.duel", "souls.field", "souls.missions", "souls.reflex", "souls.moves", "souls.camera",
-                    "souls.watch", "souls.props", "souls.pull", "souls.escape", "souls.afterdeath", "souls.shop", "nav")
+                    "souls.watch", "souls.props", "souls.pull", "souls.escape", "souls.afterdeath", "souls.shop", "nav",
+                    "levelup", "kindle")   # levelup / kindle since 11-10 (settings.py: --level-up / --kindle set them)
 DATA_FILES = ("data/burg-upper-map.json", "data/burg-town-map.json", "data/safe-zones.json", "data/spots.json",
               "data/enemy-map.json", "data/routes/*.json", "data/notice.json", "souls/foes.py", "souls/weapons.py")
 GIT_TIMEOUT = 5.0
@@ -247,12 +248,16 @@ def settings_sha1(d: dict) -> str:
     return _sha1(json.dumps(key, sort_keys=True, ensure_ascii=False).encode("utf-8"))
 
 
-def collect(run: str, argv: list, args: dict, note: str | None = None, root: Path = ROOT) -> tuple[dict, str | None]:
-    """The start record (constants and character come later with update()). → (record, diff text)."""
+def collect(run: str, argv: list, args: dict, note: str | None = None, root: Path = ROOT,
+            overrides: dict | None = None) -> tuple[dict, str | None]:
+    """The start record (constants and character come later with update()). `overrides` = settings.Settings.to_dict(),
+    what the flags changed from the module defaults (the full values are in `constants`). → (record, diff text)."""
     c, diff = code(root)
     d = {"schema": SCHEMA, "run": run, "started": _now(),
          "code": c, "argv": [str(x) for x in argv], "args": {k: _plain(v) for k, v in sorted(args.items())},
          "constants": constants(), "data": data_hashes(root), "game": None, "note": note or ""}
+    if overrides is not None:
+        d["overrides"] = _plain(overrides)
     d["settings_sha1"] = settings_sha1(d)
     return d, diff
 

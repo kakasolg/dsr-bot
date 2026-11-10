@@ -620,6 +620,18 @@ The items are still open in ROADMAP.md (one line each); their full text as it st
 - `radar-upgrade` (moved 2026-10-12): [~] [win] Radar upgrade check (navmesh drawn, pad slots, recording, `--replay`)
 - `radar-ai-ranges` (moved 2026-10-12): [ ] [win] Radar AI ranges (sight cone, hearing circle, leash) match the game
 - `settings-object` (moved 2026-10-12): [ ] [cloud] Settings object: one object passed in instead of ~228 module constants that `run.py` overwrites; `runinfo` saves that object
+  - 2026-11-10 MoKa "settings-object 시작해줘". Count today: 482 UPPER_CASE constants in runinfo's 13 modules (duel 154, field 116,
+    missions 68 …); run.py changed 9 of them in 7 separate blocks; `levelup.WANT` / `kindle.ON` were set but not recorded.
+  - **Step 1 (built, cloud):** `settings.py` `Settings` — `from_args(a)` (table `FLAGS`: --basic · --pull · --footing ·
+    --combo-only · --drill · --level-up · --kindle), `apply()` (one place; a misspelt name raises), `restore()` / `applied()`
+    for tests, `to_dict()`. run.py's blocks replaced by one call; runinfo saves `overrides` and now records `levelup` / `kindle`.
+    Modules still read their own globals (no reader changed). Verified: `tests/settings_test.py` (all 128 flag combinations
+    give the old blocks' constants), `runinfo_test`; one room run each side (`arena --basic`, old 1b9c7ee+fcbab01 vs new):
+    `ab.py` shows the 482 old constants identical, only `overrides` and the new levelup / kindle tables differ; both died at
+    ~66 s (--basic in the arena; not a game check).
+  - **Step 2 (next):** the fight code reads one object: `souls/duel.py` flags (BACKSTAB · HEAVY · FOOTING · COMBO_ONLY · DRILL)
+    through a `Settings` the Fight gets, module globals as defaults; `duel_golden_test` + `scene_replay` must not change.
+    Then field / missions; tests that set globals (84 lines) move to `applied()` as they are touched, not in bulk.
 - `worldstate` (moved 2026-10-12): [ ] [cloud] WorldState: who is alive / where after a bonfire rest, quit-out (byte/menu) or warp, fixed in one place (P-18, P-25, P-44, P-55)
 - `tick-loop` (moved 2026-10-12): [ ] [cloud] One tick loop (read → update state → pick one action → input) instead of `field.py`'s own loops; walking first, one part at a time, guarded by `scene_replay` + `duel_golden_test`; v1.0 keeps running meanwhile
 - `route-data` (moved 2026-10-12): [ ] [cloud] Route data (walk / careful walk / safe spot / pull / fight / ladder / fog wall / Estus bar) + one runner; `burg-upper` moved first, then new segments without zone code

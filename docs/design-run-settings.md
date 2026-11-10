@@ -61,6 +61,7 @@
 - **커밋**: `.git`에서 읽음(`ctl._commit`처럼, git 실행 파일 없이). **dirty**: `git status --porcelain --untracked-files=no` (git이 없으면 `null` — 모른다고 적음).
 - **diff**: dirty면 `git diff HEAD`를 `<run>.diff`로 (§7-①). 20:03:35 같은 실행을 나중에 정확히 다시 만들 수 있는 유일한 길.
 - **constants**: 위 모듈들의 대문자 `int/float/bool/str/tuple` — 인자 적용 **뒤** 값. 한 줄 모듈 목록(`SETTINGS_MODULES`)만 관리.
+- **overrides** (2026-11-10, `settings.py`): 인자가 기본값에서 바꾼 상수만 `{모듈: {이름: 값}}`. run.py는 `Settings.from_args(a).apply()` 한 곳에서 바꾸고 그 객체를 여기 저장. 11-10부터 `levelup` · `kindle`도 `constants`에 들어감.
 - **game**: `run.py status`가 이미 읽는 값 — 패드 없이 읽기만, 실패하면 그 칸만 `null`.
 - **note**: `--note "…"` (세이브 이름 등 사람이 붙이는 한 줄). 없으면 빈칸.
 - 쓰기 실패는 실행을 멈추지 않음 — 로그에 `⚠ settings 못 씀` 한 줄.
