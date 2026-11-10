@@ -1542,6 +1542,606 @@
     ]
    }
   },
+  "dummies": {
+   "1": [
+    {
+     "bone": "R Hand",
+     "offset": [
+      -0.09816,
+      0.00018,
+      0.01522
+     ]
+    }
+   ],
+   "2": [
+    {
+     "bone": "L Hand",
+     "offset": [
+      -0.09815,
+      -0.00018,
+      0.01521
+     ]
+    }
+   ],
+   "3": [
+    {
+     "bone": "R Calf",
+     "offset": [
+      -0.47958,
+      -0.00391,
+      0.01719
+     ]
+    }
+   ],
+   "4": [
+    {
+     "bone": "L Calf",
+     "offset": [
+      -0.47958,
+      0.00391,
+      0.01719
+     ]
+    }
+   ],
+   "5": [
+    {
+     "bone": "Pelvis",
+     "offset": [
+      -0.01464,
+      0.0,
+      -0.10234
+     ]
+    }
+   ],
+   "6": [
+    {
+     "bone": "Pelvis",
+     "offset": [
+      -0.01464,
+      -0.0,
+      0.10068
+     ]
+    }
+   ],
+   "7": [
+    {
+     "bone": "Head",
+     "offset": [
+      -0.09199,
+      -0.0,
+      0.02854
+     ]
+    }
+   ],
+   "11": [
+    {
+     "bone": "R_Weapon",
+     "offset": [
+      0.02188,
+      0.56302,
+      -0.00133
+     ]
+    }
+   ],
+   "12": [
+    {
+     "bone": "R_Weapon",
+     "offset": [
+      0.02278,
+      0.07935,
+      -0.00131
+     ]
+    }
+   ],
+   "13": [
+    {
+     "bone": "R_Weapon",
+     "offset": [
+      0.02322,
+      -0.15208,
+      -0.00129
+     ]
+    }
+   ],
+   "20": [
+    {
+     "bone": "R_Weapon",
+     "offset": [
+      0.02173,
+      0.64239,
+      -0.00134
+     ]
+    }
+   ],
+   "90": [
+    {
+     "bone": "Spine1",
+     "offset": [
+      -0.04977,
+      -0.0,
+      0.02238
+     ]
+    }
+   ],
+   "199": [
+    {
+     "bone": "Head",
+     "offset": [
+      -0.08848,
+      0.02431,
+      0.08253
+     ]
+    },
+    {
+     "bone": "Head",
+     "offset": [
+      -0.08848,
+      -0.02462,
+      0.08253
+     ]
+    }
+   ],
+   "201": [
+    {
+     "bone": "Spine1",
+     "offset": [
+      0.00551,
+      -0.0,
+      0.09965
+     ]
+    }
+   ],
+   "202": [
+    {
+     "bone": "Spine1",
+     "offset": [
+      0.00551,
+      -0.0,
+      -0.08164
+     ]
+    }
+   ],
+   "220": [
+    {
+     "bone": "Spine1",
+     "offset": [
+      -0.04977,
+      -0.0,
+      -0.02805
+     ]
+    }
+   ],
+   "240": [
+    {
+     "bone": "Pelvis",
+     "offset": [
+      -0.18246,
+      -0.0,
+      0.02569
+     ]
+    }
+   ],
+   "200": [
+    {
+     "bone": "R Calf",
+     "offset": [
+      -0.13573,
+      0.00067,
+      -0.02518
+     ]
+    },
+    {
+     "bone": "R Thigh",
+     "offset": [
+      -0.28679,
+      0.00627,
+      0.00298
+     ]
+    },
+    {
+     "bone": "R Calf",
+     "offset": [
+      -0.45558,
+      -0.00777,
+      0.00972
+     ]
+    },
+    {
+     "bone": "L Calf",
+     "offset": [
+      -0.13573,
+      -0.00067,
+      -0.02518
+     ]
+    },
+    {
+     "bone": "L Thigh",
+     "offset": [
+      -0.28679,
+      -0.00627,
+      0.00298
+     ]
+    },
+    {
+     "bone": "L Calf",
+     "offset": [
+      -0.45558,
+      0.00777,
+      0.00972
+     ]
+    },
+    {
+     "bone": "Pelvis",
+     "offset": [
+      0.07628,
+      -0.09924,
+      -0.03356
+     ]
+    },
+    {
+     "bone": "Pelvis",
+     "offset": [
+      0.07628,
+      0.09924,
+      -0.03355
+     ]
+    },
+    {
+     "bone": "Spine",
+     "offset": [
+      0.00319,
+      0.00241,
+      -0.01758
+     ]
+    },
+    {
+     "bone": "Spine1",
+     "offset": [
+      -0.17628,
+      -0.0,
+      -0.08102
+     ]
+    },
+    {
+     "bone": "Head",
+     "offset": [
+      -0.09011,
+      -0.0,
+      0.01575
+     ]
+    },
+    {
+     "bone": "R Forearm",
+     "offset": [
+      -0.05121,
+      0.01001,
+      0.00051
+     ]
+    },
+    {
+     "bone": "L UpperArm",
+     "offset": [
+      -0.28174,
+      -0.00993,
+      0.00055
+     ]
+    },
+    {
+     "bone": "R Hand",
+     "offset": [
+      -0.09723,
+      0.00185,
+      0.01482
+     ]
+    },
+    {
+     "bone": "L Hand",
+     "offset": [
+      -0.10117,
+      -0.00184,
+      0.01499
+     ]
+    },
+    {
+     "bone": "Spine",
+     "offset": [
+      -0.13485,
+      -0.0,
+      -0.08198
+     ]
+    }
+   ]
+  },
+  "body": {
+   "caps": [
+    {
+     "rag": "Ragdoll_Pelvis01",
+     "bone": "Pelvis",
+     "a": [
+      0.01064,
+      0.0,
+      -0.0
+     ],
+     "b": [
+      -0.01063,
+      -0.0,
+      -0.0
+     ],
+     "r": 0.09758
+    },
+    {
+     "rag": "Ragdoll_L Thigh01",
+     "bone": "L Thigh",
+     "a": [
+      -0.03238,
+      -0.00213,
+      0.00034
+     ],
+     "b": [
+      -0.43247,
+      -0.00213,
+      0.00034
+     ],
+     "r": 0.07844
+    },
+    {
+     "rag": "Ragdoll_R Thigh01",
+     "bone": "R Thigh",
+     "a": [
+      -0.03238,
+      0.00213,
+      0.00035
+     ],
+     "b": [
+      -0.43247,
+      0.00212,
+      0.00034
+     ],
+     "r": 0.07844
+    },
+    {
+     "rag": "Ragdoll_Spine01",
+     "bone": "Spine",
+     "a": [
+      -0.08953,
+      -0.03508,
+      -0.0
+     ],
+     "b": [
+      -0.08953,
+      0.03508,
+      -0.0
+     ],
+     "r": 0.09669
+    },
+    {
+     "rag": "Ragdoll_R Calf01",
+     "bone": "R Calf",
+     "a": [
+      -0.01396,
+      -0.00056,
+      -0.00308
+     ],
+     "b": [
+      -0.37863,
+      -0.00056,
+      -0.00308
+     ],
+     "r": 0.05373
+    },
+    {
+     "rag": "Ragdoll_L Calf01",
+     "bone": "L Calf",
+     "a": [
+      -0.01396,
+      0.00055,
+      -0.00308
+     ],
+     "b": [
+      -0.37863,
+      0.00055,
+      -0.00308
+     ],
+     "r": 0.05373
+    },
+    {
+     "rag": "Ragdoll_Spine02",
+     "bone": "Spine1",
+     "a": [
+      -0.10883,
+      -0.02742,
+      -0.0
+     ],
+     "b": [
+      -0.10883,
+      0.02742,
+      -0.0
+     ],
+     "r": 0.11754
+    },
+    {
+     "rag": "Ragdoll_L Foot01",
+     "bone": "L Foot",
+     "a": [
+      -0.04874,
+      0.0,
+      0.00777
+     ],
+     "b": [
+      -0.04874,
+      0.0,
+      0.18312
+     ],
+     "r": 0.05848
+    },
+    {
+     "rag": "Ragdoll_R Foot01",
+     "bone": "R Foot",
+     "a": [
+      -0.04874,
+      -1e-05,
+      0.00777
+     ],
+     "b": [
+      -0.04874,
+      -1e-05,
+      0.18312
+     ],
+     "r": 0.05848
+    },
+    {
+     "rag": "Ragdoll_L Clavicle01",
+     "bone": "L Clavicle",
+     "a": [
+      -0.02228,
+      -0.0,
+      -0.0
+     ],
+     "b": [
+      -0.10038,
+      0.0,
+      -0.0
+     ],
+     "r": 0.03454
+    },
+    {
+     "rag": "Ragdoll_Neck01",
+     "bone": "Neck",
+     "a": [
+      -0.02356,
+      -0.0014,
+      0.0
+     ],
+     "b": [
+      -0.02356,
+      0.0014,
+      0.0
+     ],
+     "r": 0.03353
+    },
+    {
+     "rag": "Ragdoll_R Clavicle01",
+     "bone": "R Clavicle",
+     "a": [
+      -0.02228,
+      0.0,
+      -0.0
+     ],
+     "b": [
+      -0.10038,
+      -0.0,
+      -0.0
+     ],
+     "r": 0.03454
+    },
+    {
+     "rag": "Ragdoll_Head01",
+     "bone": "Head",
+     "a": [
+      -0.08337,
+      -1e-05,
+      0.02096
+     ],
+     "b": [
+      -0.09229,
+      -1e-05,
+      0.02096
+     ],
+     "r": 0.11866
+    },
+    {
+     "rag": "Ragdoll_L UpperArm01",
+     "bone": "L UpperArm",
+     "a": [
+      -0.02046,
+      0.00048,
+      0.00125
+     ],
+     "b": [
+      -0.23993,
+      0.00048,
+      0.00126
+     ],
+     "r": 0.04659
+    },
+    {
+     "rag": "Ragdoll_R UpperArm01",
+     "bone": "R UpperArm",
+     "a": [
+      -0.02046,
+      -0.00048,
+      0.00125
+     ],
+     "b": [
+      -0.23994,
+      -0.00048,
+      0.00125
+     ],
+     "r": 0.04659
+    },
+    {
+     "rag": "Ragdoll_L Forearm01",
+     "bone": "L Forearm",
+     "a": [
+      -0.01355,
+      0.00032,
+      -8e-05
+     ],
+     "b": [
+      -0.24729,
+      0.00032,
+      -8e-05
+     ],
+     "r": 0.0393
+    },
+    {
+     "rag": "Ragdoll_R Forearm01",
+     "bone": "R Forearm",
+     "a": [
+      -0.01355,
+      -0.00032,
+      -8e-05
+     ],
+     "b": [
+      -0.24729,
+      -0.00032,
+      -8e-05
+     ],
+     "r": 0.0393
+    },
+    {
+     "rag": "Ragdoll_L Hand01",
+     "bone": "L Hand",
+     "a": [
+      -0.02832,
+      -0.0,
+      -1e-05
+     ],
+     "b": [
+      -0.07862,
+      0.0,
+      -0.0
+     ],
+     "r": 0.03902
+    },
+    {
+     "rag": "Ragdoll_R Hand01",
+     "bone": "R Hand",
+     "a": [
+      -0.07389,
+      -0.00988,
+      -0.00841
+     ],
+     "b": [
+      -0.07389,
+      0.4249,
+      -0.00841
+     ],
+     "r": 0.05873
+    }
+   ],
+   "skipped": []
+  },
   "npc_masks": {
    "254000": [
     0,
@@ -1570,6 +2170,4264 @@
    "254014": [
     1
    ]
+  },
+  "npc_attacks": {
+   "254000": {
+    "3000": [
+     {
+      "start": 0.8667,
+      "end": 1.0333,
+      "judge": 100,
+      "behavior": 225400100,
+      "atk": 254000,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 110
+     }
+    ],
+    "3001": [
+     {
+      "start": 0.8,
+      "end": 0.9333,
+      "judge": 110,
+      "behavior": 225400110,
+      "atk": 254001,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 114
+     }
+    ],
+    "3002": [
+     {
+      "start": 0.9667,
+      "end": 1.1333,
+      "judge": 120,
+      "behavior": 225400120,
+      "atk": 254002,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 100
+     }
+    ],
+    "3003": [
+     {
+      "start": 1.2333,
+      "end": 1.3333,
+      "judge": 130,
+      "behavior": 225400130,
+      "atk": 254003,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 140
+     }
+    ],
+    "3004": [
+     {
+      "start": 1.3333,
+      "end": 1.4,
+      "judge": 140,
+      "behavior": 225400140,
+      "atk": 254004,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 142
+     }
+    ],
+    "3005": [
+     {
+      "start": 0.7333,
+      "end": 0.8333,
+      "judge": 150,
+      "behavior": 225400150,
+      "atk": 254006,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 153
+     }
+    ],
+    "3006": [
+     {
+      "start": 0.7667,
+      "end": 0.8667,
+      "judge": 160,
+      "behavior": 225400160,
+      "atk": 254007,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 155
+     }
+    ],
+    "3007": [
+     {
+      "start": 0.7333,
+      "end": 0.8333,
+      "judge": 170,
+      "behavior": 225400170,
+      "atk": 254008,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 158
+     }
+    ],
+    "3009": [
+     {
+      "start": 2.0333,
+      "end": 2.1333,
+      "judge": 290,
+      "behavior": 225400290,
+      "atk": 254005,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 144
+     }
+    ],
+    "3010": [
+     {
+      "start": 1.0667,
+      "end": 1.2,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     },
+     {
+      "start": 1.3667,
+      "end": 1.4667,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     },
+     {
+      "start": 1.7333,
+      "end": 1.8333,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     },
+     {
+      "start": 1.9667,
+      "end": 2.0667,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     },
+     {
+      "start": 2.2667,
+      "end": 2.3667,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     },
+     {
+      "start": 2.5667,
+      "end": 2.7,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     }
+    ],
+    "3401": [
+     {
+      "start": 0.0,
+      "end": 0.8667,
+      "judge": 190,
+      "behavior": 225400190,
+      "atk": 254010,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 140
+     }
+    ],
+    "13000": [
+     {
+      "start": 1.4333,
+      "end": 1.5333,
+      "judge": 200,
+      "behavior": 225400200,
+      "atk": 254011,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 120
+     }
+    ],
+    "13001": [
+     {
+      "start": 1.8333,
+      "end": 1.9333,
+      "judge": 210,
+      "behavior": 225400210,
+      "atk": 254012,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 125
+     }
+    ],
+    "13002": [
+     {
+      "start": 2.4333,
+      "end": 2.5667,
+      "judge": 220,
+      "behavior": 225400220,
+      "atk": 254013,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 128
+     }
+    ],
+    "13003": [
+     {
+      "start": 1.6667,
+      "end": 1.8,
+      "judge": 230,
+      "behavior": 225400230,
+      "atk": 254014,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 150
+     }
+    ],
+    "13004": [
+     {
+      "start": 1.6667,
+      "end": 1.8,
+      "judge": 240,
+      "behavior": 225400240,
+      "atk": 254015,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 152
+     }
+    ],
+    "13005": [
+     {
+      "start": 1.3333,
+      "end": 1.4333,
+      "judge": 250,
+      "behavior": 225400250,
+      "atk": 254017,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 170
+     }
+    ],
+    "13006": [
+     {
+      "start": 1.3333,
+      "end": 1.4333,
+      "judge": 260,
+      "behavior": 225400260,
+      "atk": 254018,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 174
+     }
+    ],
+    "13007": [
+     {
+      "start": 1.3333,
+      "end": 1.4333,
+      "judge": 270,
+      "behavior": 225400270,
+      "atk": 254019,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 177
+     }
+    ],
+    "13009": [
+     {
+      "start": 2.2333,
+      "end": 2.3667,
+      "judge": 310,
+      "behavior": 225400310,
+      "atk": 254016,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 154
+     }
+    ],
+    "13010": [
+     {
+      "start": 1.5,
+      "end": 1.6333,
+      "judge": 320,
+      "behavior": 225400320,
+      "atk": 254020,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 146
+     }
+    ],
+    "13401": [
+     {
+      "start": 0.0,
+      "end": 0.8667,
+      "judge": 280,
+      "behavior": 225400280,
+      "atk": 254021,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 153
+     }
+    ]
+   },
+   "254001": {
+    "3000": [
+     {
+      "start": 0.8667,
+      "end": 1.0333,
+      "judge": 100,
+      "behavior": 225400100,
+      "atk": 254000,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 110
+     }
+    ],
+    "3001": [
+     {
+      "start": 0.8,
+      "end": 0.9333,
+      "judge": 110,
+      "behavior": 225400110,
+      "atk": 254001,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 114
+     }
+    ],
+    "3002": [
+     {
+      "start": 0.9667,
+      "end": 1.1333,
+      "judge": 120,
+      "behavior": 225400120,
+      "atk": 254002,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 100
+     }
+    ],
+    "3003": [
+     {
+      "start": 1.2333,
+      "end": 1.3333,
+      "judge": 130,
+      "behavior": 225400130,
+      "atk": 254003,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 140
+     }
+    ],
+    "3004": [
+     {
+      "start": 1.3333,
+      "end": 1.4,
+      "judge": 140,
+      "behavior": 225400140,
+      "atk": 254004,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 142
+     }
+    ],
+    "3005": [
+     {
+      "start": 0.7333,
+      "end": 0.8333,
+      "judge": 150,
+      "behavior": 225400150,
+      "atk": 254006,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 153
+     }
+    ],
+    "3006": [
+     {
+      "start": 0.7667,
+      "end": 0.8667,
+      "judge": 160,
+      "behavior": 225400160,
+      "atk": 254007,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 155
+     }
+    ],
+    "3007": [
+     {
+      "start": 0.7333,
+      "end": 0.8333,
+      "judge": 170,
+      "behavior": 225400170,
+      "atk": 254008,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 158
+     }
+    ],
+    "3009": [
+     {
+      "start": 2.0333,
+      "end": 2.1333,
+      "judge": 290,
+      "behavior": 225400290,
+      "atk": 254005,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 144
+     }
+    ],
+    "3010": [
+     {
+      "start": 1.0667,
+      "end": 1.2,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     },
+     {
+      "start": 1.3667,
+      "end": 1.4667,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     },
+     {
+      "start": 1.7333,
+      "end": 1.8333,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     },
+     {
+      "start": 1.9667,
+      "end": 2.0667,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     },
+     {
+      "start": 2.2667,
+      "end": 2.3667,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     },
+     {
+      "start": 2.5667,
+      "end": 2.7,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     }
+    ],
+    "3401": [
+     {
+      "start": 0.0,
+      "end": 0.8667,
+      "judge": 190,
+      "behavior": 225400190,
+      "atk": 254010,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 140
+     }
+    ],
+    "13000": [
+     {
+      "start": 1.4333,
+      "end": 1.5333,
+      "judge": 200,
+      "behavior": 225400200,
+      "atk": 254011,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 120
+     }
+    ],
+    "13001": [
+     {
+      "start": 1.8333,
+      "end": 1.9333,
+      "judge": 210,
+      "behavior": 225400210,
+      "atk": 254012,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 125
+     }
+    ],
+    "13002": [
+     {
+      "start": 2.4333,
+      "end": 2.5667,
+      "judge": 220,
+      "behavior": 225400220,
+      "atk": 254013,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 128
+     }
+    ],
+    "13003": [
+     {
+      "start": 1.6667,
+      "end": 1.8,
+      "judge": 230,
+      "behavior": 225400230,
+      "atk": 254014,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 150
+     }
+    ],
+    "13004": [
+     {
+      "start": 1.6667,
+      "end": 1.8,
+      "judge": 240,
+      "behavior": 225400240,
+      "atk": 254015,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 152
+     }
+    ],
+    "13005": [
+     {
+      "start": 1.3333,
+      "end": 1.4333,
+      "judge": 250,
+      "behavior": 225400250,
+      "atk": 254017,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 170
+     }
+    ],
+    "13006": [
+     {
+      "start": 1.3333,
+      "end": 1.4333,
+      "judge": 260,
+      "behavior": 225400260,
+      "atk": 254018,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 174
+     }
+    ],
+    "13007": [
+     {
+      "start": 1.3333,
+      "end": 1.4333,
+      "judge": 270,
+      "behavior": 225400270,
+      "atk": 254019,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 177
+     }
+    ],
+    "13009": [
+     {
+      "start": 2.2333,
+      "end": 2.3667,
+      "judge": 310,
+      "behavior": 225400310,
+      "atk": 254016,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 154
+     }
+    ],
+    "13010": [
+     {
+      "start": 1.5,
+      "end": 1.6333,
+      "judge": 320,
+      "behavior": 225400320,
+      "atk": 254020,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 146
+     }
+    ],
+    "13401": [
+     {
+      "start": 0.0,
+      "end": 0.8667,
+      "judge": 280,
+      "behavior": 225400280,
+      "atk": 254021,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 153
+     }
+    ]
+   },
+   "254002": {
+    "3000": [
+     {
+      "start": 0.8667,
+      "end": 1.0333,
+      "judge": 100,
+      "behavior": 225400100,
+      "atk": 254000,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 110
+     }
+    ],
+    "3001": [
+     {
+      "start": 0.8,
+      "end": 0.9333,
+      "judge": 110,
+      "behavior": 225400110,
+      "atk": 254001,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 114
+     }
+    ],
+    "3002": [
+     {
+      "start": 0.9667,
+      "end": 1.1333,
+      "judge": 120,
+      "behavior": 225400120,
+      "atk": 254002,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 100
+     }
+    ],
+    "3003": [
+     {
+      "start": 1.2333,
+      "end": 1.3333,
+      "judge": 130,
+      "behavior": 225400130,
+      "atk": 254003,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 140
+     }
+    ],
+    "3004": [
+     {
+      "start": 1.3333,
+      "end": 1.4,
+      "judge": 140,
+      "behavior": 225400140,
+      "atk": 254004,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 142
+     }
+    ],
+    "3005": [
+     {
+      "start": 0.7333,
+      "end": 0.8333,
+      "judge": 150,
+      "behavior": 225400150,
+      "atk": 254006,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 153
+     }
+    ],
+    "3006": [
+     {
+      "start": 0.7667,
+      "end": 0.8667,
+      "judge": 160,
+      "behavior": 225400160,
+      "atk": 254007,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 155
+     }
+    ],
+    "3007": [
+     {
+      "start": 0.7333,
+      "end": 0.8333,
+      "judge": 170,
+      "behavior": 225400170,
+      "atk": 254008,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 158
+     }
+    ],
+    "3009": [
+     {
+      "start": 2.0333,
+      "end": 2.1333,
+      "judge": 290,
+      "behavior": 225400290,
+      "atk": 254005,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 144
+     }
+    ],
+    "3010": [
+     {
+      "start": 1.0667,
+      "end": 1.2,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     },
+     {
+      "start": 1.3667,
+      "end": 1.4667,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     },
+     {
+      "start": 1.7333,
+      "end": 1.8333,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     },
+     {
+      "start": 1.9667,
+      "end": 2.0667,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     },
+     {
+      "start": 2.2667,
+      "end": 2.3667,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     },
+     {
+      "start": 2.5667,
+      "end": 2.7,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     }
+    ],
+    "3401": [
+     {
+      "start": 0.0,
+      "end": 0.8667,
+      "judge": 190,
+      "behavior": 225400190,
+      "atk": 254010,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 140
+     }
+    ],
+    "13000": [
+     {
+      "start": 1.4333,
+      "end": 1.5333,
+      "judge": 200,
+      "behavior": 225400200,
+      "atk": 254011,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 120
+     }
+    ],
+    "13001": [
+     {
+      "start": 1.8333,
+      "end": 1.9333,
+      "judge": 210,
+      "behavior": 225400210,
+      "atk": 254012,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 125
+     }
+    ],
+    "13002": [
+     {
+      "start": 2.4333,
+      "end": 2.5667,
+      "judge": 220,
+      "behavior": 225400220,
+      "atk": 254013,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 128
+     }
+    ],
+    "13003": [
+     {
+      "start": 1.6667,
+      "end": 1.8,
+      "judge": 230,
+      "behavior": 225400230,
+      "atk": 254014,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 150
+     }
+    ],
+    "13004": [
+     {
+      "start": 1.6667,
+      "end": 1.8,
+      "judge": 240,
+      "behavior": 225400240,
+      "atk": 254015,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 152
+     }
+    ],
+    "13005": [
+     {
+      "start": 1.3333,
+      "end": 1.4333,
+      "judge": 250,
+      "behavior": 225400250,
+      "atk": 254017,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 170
+     }
+    ],
+    "13006": [
+     {
+      "start": 1.3333,
+      "end": 1.4333,
+      "judge": 260,
+      "behavior": 225400260,
+      "atk": 254018,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 174
+     }
+    ],
+    "13007": [
+     {
+      "start": 1.3333,
+      "end": 1.4333,
+      "judge": 270,
+      "behavior": 225400270,
+      "atk": 254019,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 177
+     }
+    ],
+    "13009": [
+     {
+      "start": 2.2333,
+      "end": 2.3667,
+      "judge": 310,
+      "behavior": 225400310,
+      "atk": 254016,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 154
+     }
+    ],
+    "13010": [
+     {
+      "start": 1.5,
+      "end": 1.6333,
+      "judge": 320,
+      "behavior": 225400320,
+      "atk": 254020,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 146
+     }
+    ],
+    "13401": [
+     {
+      "start": 0.0,
+      "end": 0.8667,
+      "judge": 280,
+      "behavior": 225400280,
+      "atk": 254021,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 153
+     }
+    ]
+   },
+   "254010": {
+    "3000": [
+     {
+      "start": 0.8667,
+      "end": 1.0333,
+      "judge": 100,
+      "behavior": 225400100,
+      "atk": 254000,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 110
+     }
+    ],
+    "3001": [
+     {
+      "start": 0.8,
+      "end": 0.9333,
+      "judge": 110,
+      "behavior": 225400110,
+      "atk": 254001,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 114
+     }
+    ],
+    "3002": [
+     {
+      "start": 0.9667,
+      "end": 1.1333,
+      "judge": 120,
+      "behavior": 225400120,
+      "atk": 254002,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 100
+     }
+    ],
+    "3003": [
+     {
+      "start": 1.2333,
+      "end": 1.3333,
+      "judge": 130,
+      "behavior": 225400130,
+      "atk": 254003,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 140
+     }
+    ],
+    "3004": [
+     {
+      "start": 1.3333,
+      "end": 1.4,
+      "judge": 140,
+      "behavior": 225400140,
+      "atk": 254004,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 142
+     }
+    ],
+    "3005": [
+     {
+      "start": 0.7333,
+      "end": 0.8333,
+      "judge": 150,
+      "behavior": 225400150,
+      "atk": 254006,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 153
+     }
+    ],
+    "3006": [
+     {
+      "start": 0.7667,
+      "end": 0.8667,
+      "judge": 160,
+      "behavior": 225400160,
+      "atk": 254007,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 155
+     }
+    ],
+    "3007": [
+     {
+      "start": 0.7333,
+      "end": 0.8333,
+      "judge": 170,
+      "behavior": 225400170,
+      "atk": 254008,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 158
+     }
+    ],
+    "3009": [
+     {
+      "start": 2.0333,
+      "end": 2.1333,
+      "judge": 290,
+      "behavior": 225400290,
+      "atk": 254005,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 144
+     }
+    ],
+    "3010": [
+     {
+      "start": 1.0667,
+      "end": 1.2,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     },
+     {
+      "start": 1.3667,
+      "end": 1.4667,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     },
+     {
+      "start": 1.7333,
+      "end": 1.8333,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     },
+     {
+      "start": 1.9667,
+      "end": 2.0667,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     },
+     {
+      "start": 2.2667,
+      "end": 2.3667,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     },
+     {
+      "start": 2.5667,
+      "end": 2.7,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     }
+    ],
+    "3401": [
+     {
+      "start": 0.0,
+      "end": 0.8667,
+      "judge": 190,
+      "behavior": 225400190,
+      "atk": 254010,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 140
+     }
+    ],
+    "13000": [
+     {
+      "start": 1.4333,
+      "end": 1.5333,
+      "judge": 200,
+      "behavior": 225400200,
+      "atk": 254011,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 120
+     }
+    ],
+    "13001": [
+     {
+      "start": 1.8333,
+      "end": 1.9333,
+      "judge": 210,
+      "behavior": 225400210,
+      "atk": 254012,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 125
+     }
+    ],
+    "13002": [
+     {
+      "start": 2.4333,
+      "end": 2.5667,
+      "judge": 220,
+      "behavior": 225400220,
+      "atk": 254013,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 128
+     }
+    ],
+    "13003": [
+     {
+      "start": 1.6667,
+      "end": 1.8,
+      "judge": 230,
+      "behavior": 225400230,
+      "atk": 254014,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 150
+     }
+    ],
+    "13004": [
+     {
+      "start": 1.6667,
+      "end": 1.8,
+      "judge": 240,
+      "behavior": 225400240,
+      "atk": 254015,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 152
+     }
+    ],
+    "13005": [
+     {
+      "start": 1.3333,
+      "end": 1.4333,
+      "judge": 250,
+      "behavior": 225400250,
+      "atk": 254017,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 170
+     }
+    ],
+    "13006": [
+     {
+      "start": 1.3333,
+      "end": 1.4333,
+      "judge": 260,
+      "behavior": 225400260,
+      "atk": 254018,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 174
+     }
+    ],
+    "13007": [
+     {
+      "start": 1.3333,
+      "end": 1.4333,
+      "judge": 270,
+      "behavior": 225400270,
+      "atk": 254019,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 177
+     }
+    ],
+    "13009": [
+     {
+      "start": 2.2333,
+      "end": 2.3667,
+      "judge": 310,
+      "behavior": 225400310,
+      "atk": 254016,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 154
+     }
+    ],
+    "13010": [
+     {
+      "start": 1.5,
+      "end": 1.6333,
+      "judge": 320,
+      "behavior": 225400320,
+      "atk": 254020,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 146
+     }
+    ],
+    "13401": [
+     {
+      "start": 0.0,
+      "end": 0.8667,
+      "judge": 280,
+      "behavior": 225400280,
+      "atk": 254021,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 153
+     }
+    ]
+   },
+   "254011": {
+    "3000": [
+     {
+      "start": 0.8667,
+      "end": 1.0333,
+      "judge": 100,
+      "behavior": 225400100,
+      "atk": 254000,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 110
+     }
+    ],
+    "3001": [
+     {
+      "start": 0.8,
+      "end": 0.9333,
+      "judge": 110,
+      "behavior": 225400110,
+      "atk": 254001,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 114
+     }
+    ],
+    "3002": [
+     {
+      "start": 0.9667,
+      "end": 1.1333,
+      "judge": 120,
+      "behavior": 225400120,
+      "atk": 254002,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 100
+     }
+    ],
+    "3003": [
+     {
+      "start": 1.2333,
+      "end": 1.3333,
+      "judge": 130,
+      "behavior": 225400130,
+      "atk": 254003,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 140
+     }
+    ],
+    "3004": [
+     {
+      "start": 1.3333,
+      "end": 1.4,
+      "judge": 140,
+      "behavior": 225400140,
+      "atk": 254004,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 142
+     }
+    ],
+    "3005": [
+     {
+      "start": 0.7333,
+      "end": 0.8333,
+      "judge": 150,
+      "behavior": 225400150,
+      "atk": 254006,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 153
+     }
+    ],
+    "3006": [
+     {
+      "start": 0.7667,
+      "end": 0.8667,
+      "judge": 160,
+      "behavior": 225400160,
+      "atk": 254007,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 155
+     }
+    ],
+    "3007": [
+     {
+      "start": 0.7333,
+      "end": 0.8333,
+      "judge": 170,
+      "behavior": 225400170,
+      "atk": 254008,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 158
+     }
+    ],
+    "3009": [
+     {
+      "start": 2.0333,
+      "end": 2.1333,
+      "judge": 290,
+      "behavior": 225400290,
+      "atk": 254005,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 144
+     }
+    ],
+    "3010": [
+     {
+      "start": 1.0667,
+      "end": 1.2,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     },
+     {
+      "start": 1.3667,
+      "end": 1.4667,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     },
+     {
+      "start": 1.7333,
+      "end": 1.8333,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     },
+     {
+      "start": 1.9667,
+      "end": 2.0667,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     },
+     {
+      "start": 2.2667,
+      "end": 2.3667,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     },
+     {
+      "start": 2.5667,
+      "end": 2.7,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     }
+    ],
+    "3401": [
+     {
+      "start": 0.0,
+      "end": 0.8667,
+      "judge": 190,
+      "behavior": 225400190,
+      "atk": 254010,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 140
+     }
+    ],
+    "13000": [
+     {
+      "start": 1.4333,
+      "end": 1.5333,
+      "judge": 200,
+      "behavior": 225400200,
+      "atk": 254011,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 120
+     }
+    ],
+    "13001": [
+     {
+      "start": 1.8333,
+      "end": 1.9333,
+      "judge": 210,
+      "behavior": 225400210,
+      "atk": 254012,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 125
+     }
+    ],
+    "13002": [
+     {
+      "start": 2.4333,
+      "end": 2.5667,
+      "judge": 220,
+      "behavior": 225400220,
+      "atk": 254013,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 128
+     }
+    ],
+    "13003": [
+     {
+      "start": 1.6667,
+      "end": 1.8,
+      "judge": 230,
+      "behavior": 225400230,
+      "atk": 254014,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 150
+     }
+    ],
+    "13004": [
+     {
+      "start": 1.6667,
+      "end": 1.8,
+      "judge": 240,
+      "behavior": 225400240,
+      "atk": 254015,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 152
+     }
+    ],
+    "13005": [
+     {
+      "start": 1.3333,
+      "end": 1.4333,
+      "judge": 250,
+      "behavior": 225400250,
+      "atk": 254017,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 170
+     }
+    ],
+    "13006": [
+     {
+      "start": 1.3333,
+      "end": 1.4333,
+      "judge": 260,
+      "behavior": 225400260,
+      "atk": 254018,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 174
+     }
+    ],
+    "13007": [
+     {
+      "start": 1.3333,
+      "end": 1.4333,
+      "judge": 270,
+      "behavior": 225400270,
+      "atk": 254019,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 177
+     }
+    ],
+    "13009": [
+     {
+      "start": 2.2333,
+      "end": 2.3667,
+      "judge": 310,
+      "behavior": 225400310,
+      "atk": 254016,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 154
+     }
+    ],
+    "13010": [
+     {
+      "start": 1.5,
+      "end": 1.6333,
+      "judge": 320,
+      "behavior": 225400320,
+      "atk": 254020,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 146
+     }
+    ],
+    "13401": [
+     {
+      "start": 0.0,
+      "end": 0.8667,
+      "judge": 280,
+      "behavior": 225400280,
+      "atk": 254021,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 153
+     }
+    ]
+   },
+   "254012": {
+    "3000": [
+     {
+      "start": 0.8667,
+      "end": 1.0333,
+      "judge": 100,
+      "behavior": 225400100,
+      "atk": 254000,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 110
+     }
+    ],
+    "3001": [
+     {
+      "start": 0.8,
+      "end": 0.9333,
+      "judge": 110,
+      "behavior": 225400110,
+      "atk": 254001,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 114
+     }
+    ],
+    "3002": [
+     {
+      "start": 0.9667,
+      "end": 1.1333,
+      "judge": 120,
+      "behavior": 225400120,
+      "atk": 254002,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 100
+     }
+    ],
+    "3003": [
+     {
+      "start": 1.2333,
+      "end": 1.3333,
+      "judge": 130,
+      "behavior": 225400130,
+      "atk": 254003,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 140
+     }
+    ],
+    "3004": [
+     {
+      "start": 1.3333,
+      "end": 1.4,
+      "judge": 140,
+      "behavior": 225400140,
+      "atk": 254004,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 142
+     }
+    ],
+    "3005": [
+     {
+      "start": 0.7333,
+      "end": 0.8333,
+      "judge": 150,
+      "behavior": 225400150,
+      "atk": 254006,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 153
+     }
+    ],
+    "3006": [
+     {
+      "start": 0.7667,
+      "end": 0.8667,
+      "judge": 160,
+      "behavior": 225400160,
+      "atk": 254007,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 155
+     }
+    ],
+    "3007": [
+     {
+      "start": 0.7333,
+      "end": 0.8333,
+      "judge": 170,
+      "behavior": 225400170,
+      "atk": 254008,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 158
+     }
+    ],
+    "3009": [
+     {
+      "start": 2.0333,
+      "end": 2.1333,
+      "judge": 290,
+      "behavior": 225400290,
+      "atk": 254005,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 144
+     }
+    ],
+    "3010": [
+     {
+      "start": 1.0667,
+      "end": 1.2,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     },
+     {
+      "start": 1.3667,
+      "end": 1.4667,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     },
+     {
+      "start": 1.7333,
+      "end": 1.8333,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     },
+     {
+      "start": 1.9667,
+      "end": 2.0667,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     },
+     {
+      "start": 2.2667,
+      "end": 2.3667,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     },
+     {
+      "start": 2.5667,
+      "end": 2.7,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     }
+    ],
+    "3401": [
+     {
+      "start": 0.0,
+      "end": 0.8667,
+      "judge": 190,
+      "behavior": 225400190,
+      "atk": 254010,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 140
+     }
+    ],
+    "13000": [
+     {
+      "start": 1.4333,
+      "end": 1.5333,
+      "judge": 200,
+      "behavior": 225400200,
+      "atk": 254011,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 120
+     }
+    ],
+    "13001": [
+     {
+      "start": 1.8333,
+      "end": 1.9333,
+      "judge": 210,
+      "behavior": 225400210,
+      "atk": 254012,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 125
+     }
+    ],
+    "13002": [
+     {
+      "start": 2.4333,
+      "end": 2.5667,
+      "judge": 220,
+      "behavior": 225400220,
+      "atk": 254013,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 128
+     }
+    ],
+    "13003": [
+     {
+      "start": 1.6667,
+      "end": 1.8,
+      "judge": 230,
+      "behavior": 225400230,
+      "atk": 254014,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 150
+     }
+    ],
+    "13004": [
+     {
+      "start": 1.6667,
+      "end": 1.8,
+      "judge": 240,
+      "behavior": 225400240,
+      "atk": 254015,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 152
+     }
+    ],
+    "13005": [
+     {
+      "start": 1.3333,
+      "end": 1.4333,
+      "judge": 250,
+      "behavior": 225400250,
+      "atk": 254017,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 170
+     }
+    ],
+    "13006": [
+     {
+      "start": 1.3333,
+      "end": 1.4333,
+      "judge": 260,
+      "behavior": 225400260,
+      "atk": 254018,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 174
+     }
+    ],
+    "13007": [
+     {
+      "start": 1.3333,
+      "end": 1.4333,
+      "judge": 270,
+      "behavior": 225400270,
+      "atk": 254019,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 177
+     }
+    ],
+    "13009": [
+     {
+      "start": 2.2333,
+      "end": 2.3667,
+      "judge": 310,
+      "behavior": 225400310,
+      "atk": 254016,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 154
+     }
+    ],
+    "13010": [
+     {
+      "start": 1.5,
+      "end": 1.6333,
+      "judge": 320,
+      "behavior": 225400320,
+      "atk": 254020,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 146
+     }
+    ],
+    "13401": [
+     {
+      "start": 0.0,
+      "end": 0.8667,
+      "judge": 280,
+      "behavior": 225400280,
+      "atk": 254021,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 153
+     }
+    ]
+   },
+   "254013": {
+    "3000": [
+     {
+      "start": 0.8667,
+      "end": 1.0333,
+      "judge": 100,
+      "behavior": 225400100,
+      "atk": 254000,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 110
+     }
+    ],
+    "3001": [
+     {
+      "start": 0.8,
+      "end": 0.9333,
+      "judge": 110,
+      "behavior": 225400110,
+      "atk": 254001,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 114
+     }
+    ],
+    "3002": [
+     {
+      "start": 0.9667,
+      "end": 1.1333,
+      "judge": 120,
+      "behavior": 225400120,
+      "atk": 254002,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 100
+     }
+    ],
+    "3003": [
+     {
+      "start": 1.2333,
+      "end": 1.3333,
+      "judge": 130,
+      "behavior": 225400130,
+      "atk": 254003,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 140
+     }
+    ],
+    "3004": [
+     {
+      "start": 1.3333,
+      "end": 1.4,
+      "judge": 140,
+      "behavior": 225400140,
+      "atk": 254004,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 142
+     }
+    ],
+    "3005": [
+     {
+      "start": 0.7333,
+      "end": 0.8333,
+      "judge": 150,
+      "behavior": 225400150,
+      "atk": 254006,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 153
+     }
+    ],
+    "3006": [
+     {
+      "start": 0.7667,
+      "end": 0.8667,
+      "judge": 160,
+      "behavior": 225400160,
+      "atk": 254007,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 155
+     }
+    ],
+    "3007": [
+     {
+      "start": 0.7333,
+      "end": 0.8333,
+      "judge": 170,
+      "behavior": 225400170,
+      "atk": 254008,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 158
+     }
+    ],
+    "3009": [
+     {
+      "start": 2.0333,
+      "end": 2.1333,
+      "judge": 290,
+      "behavior": 225400290,
+      "atk": 254005,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 144
+     }
+    ],
+    "3010": [
+     {
+      "start": 1.0667,
+      "end": 1.2,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     },
+     {
+      "start": 1.3667,
+      "end": 1.4667,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     },
+     {
+      "start": 1.7333,
+      "end": 1.8333,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     },
+     {
+      "start": 1.9667,
+      "end": 2.0667,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     },
+     {
+      "start": 2.2667,
+      "end": 2.3667,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     },
+     {
+      "start": 2.5667,
+      "end": 2.7,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     }
+    ],
+    "3401": [
+     {
+      "start": 0.0,
+      "end": 0.8667,
+      "judge": 190,
+      "behavior": 225400190,
+      "atk": 254010,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 140
+     }
+    ],
+    "13000": [
+     {
+      "start": 1.4333,
+      "end": 1.5333,
+      "judge": 200,
+      "behavior": 225400200,
+      "atk": 254011,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 120
+     }
+    ],
+    "13001": [
+     {
+      "start": 1.8333,
+      "end": 1.9333,
+      "judge": 210,
+      "behavior": 225400210,
+      "atk": 254012,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 125
+     }
+    ],
+    "13002": [
+     {
+      "start": 2.4333,
+      "end": 2.5667,
+      "judge": 220,
+      "behavior": 225400220,
+      "atk": 254013,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 128
+     }
+    ],
+    "13003": [
+     {
+      "start": 1.6667,
+      "end": 1.8,
+      "judge": 230,
+      "behavior": 225400230,
+      "atk": 254014,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 150
+     }
+    ],
+    "13004": [
+     {
+      "start": 1.6667,
+      "end": 1.8,
+      "judge": 240,
+      "behavior": 225400240,
+      "atk": 254015,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 152
+     }
+    ],
+    "13005": [
+     {
+      "start": 1.3333,
+      "end": 1.4333,
+      "judge": 250,
+      "behavior": 225400250,
+      "atk": 254017,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 170
+     }
+    ],
+    "13006": [
+     {
+      "start": 1.3333,
+      "end": 1.4333,
+      "judge": 260,
+      "behavior": 225400260,
+      "atk": 254018,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 174
+     }
+    ],
+    "13007": [
+     {
+      "start": 1.3333,
+      "end": 1.4333,
+      "judge": 270,
+      "behavior": 225400270,
+      "atk": 254019,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 177
+     }
+    ],
+    "13009": [
+     {
+      "start": 2.2333,
+      "end": 2.3667,
+      "judge": 310,
+      "behavior": 225400310,
+      "atk": 254016,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 154
+     }
+    ],
+    "13010": [
+     {
+      "start": 1.5,
+      "end": 1.6333,
+      "judge": 320,
+      "behavior": 225400320,
+      "atk": 254020,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 146
+     }
+    ],
+    "13401": [
+     {
+      "start": 0.0,
+      "end": 0.8667,
+      "judge": 280,
+      "behavior": 225400280,
+      "atk": 254021,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 153
+     }
+    ]
+   },
+   "254014": {
+    "3000": [
+     {
+      "start": 0.8667,
+      "end": 1.0333,
+      "judge": 100,
+      "behavior": 225400100,
+      "atk": 254000,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 110
+     }
+    ],
+    "3001": [
+     {
+      "start": 0.8,
+      "end": 0.9333,
+      "judge": 110,
+      "behavior": 225400110,
+      "atk": 254001,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 114
+     }
+    ],
+    "3002": [
+     {
+      "start": 0.9667,
+      "end": 1.1333,
+      "judge": 120,
+      "behavior": 225400120,
+      "atk": 254002,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 100
+     }
+    ],
+    "3003": [
+     {
+      "start": 1.2333,
+      "end": 1.3333,
+      "judge": 130,
+      "behavior": 225400130,
+      "atk": 254003,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 140
+     }
+    ],
+    "3004": [
+     {
+      "start": 1.3333,
+      "end": 1.4,
+      "judge": 140,
+      "behavior": 225400140,
+      "atk": 254004,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 142
+     }
+    ],
+    "3005": [
+     {
+      "start": 0.7333,
+      "end": 0.8333,
+      "judge": 150,
+      "behavior": 225400150,
+      "atk": 254006,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 153
+     }
+    ],
+    "3006": [
+     {
+      "start": 0.7667,
+      "end": 0.8667,
+      "judge": 160,
+      "behavior": 225400160,
+      "atk": 254007,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 155
+     }
+    ],
+    "3007": [
+     {
+      "start": 0.7333,
+      "end": 0.8333,
+      "judge": 170,
+      "behavior": 225400170,
+      "atk": 254008,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 158
+     }
+    ],
+    "3009": [
+     {
+      "start": 2.0333,
+      "end": 2.1333,
+      "judge": 290,
+      "behavior": 225400290,
+      "atk": 254005,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 144
+     }
+    ],
+    "3010": [
+     {
+      "start": 1.0667,
+      "end": 1.2,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     },
+     {
+      "start": 1.3667,
+      "end": 1.4667,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     },
+     {
+      "start": 1.7333,
+      "end": 1.8333,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     },
+     {
+      "start": 1.9667,
+      "end": 2.0667,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     },
+     {
+      "start": 2.2667,
+      "end": 2.3667,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     },
+     {
+      "start": 2.5667,
+      "end": 2.7,
+      "judge": 300,
+      "behavior": 225400300,
+      "atk": 254009,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 98
+     }
+    ],
+    "3401": [
+     {
+      "start": 0.0,
+      "end": 0.8667,
+      "judge": 190,
+      "behavior": 225400190,
+      "atk": 254010,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 11,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 140
+     }
+    ],
+    "13000": [
+     {
+      "start": 1.4333,
+      "end": 1.5333,
+      "judge": 200,
+      "behavior": 225400200,
+      "atk": 254011,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 120
+     }
+    ],
+    "13001": [
+     {
+      "start": 1.8333,
+      "end": 1.9333,
+      "judge": 210,
+      "behavior": 225400210,
+      "atk": 254012,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 125
+     }
+    ],
+    "13002": [
+     {
+      "start": 2.4333,
+      "end": 2.5667,
+      "judge": 220,
+      "behavior": 225400220,
+      "atk": 254013,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 128
+     }
+    ],
+    "13003": [
+     {
+      "start": 1.6667,
+      "end": 1.8,
+      "judge": 230,
+      "behavior": 225400230,
+      "atk": 254014,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 150
+     }
+    ],
+    "13004": [
+     {
+      "start": 1.6667,
+      "end": 1.8,
+      "judge": 240,
+      "behavior": 225400240,
+      "atk": 254015,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 152
+     }
+    ],
+    "13005": [
+     {
+      "start": 1.3333,
+      "end": 1.4333,
+      "judge": 250,
+      "behavior": 225400250,
+      "atk": 254017,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 170
+     }
+    ],
+    "13006": [
+     {
+      "start": 1.3333,
+      "end": 1.4333,
+      "judge": 260,
+      "behavior": 225400260,
+      "atk": 254018,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 174
+     }
+    ],
+    "13007": [
+     {
+      "start": 1.3333,
+      "end": 1.4333,
+      "judge": 270,
+      "behavior": 225400270,
+      "atk": 254019,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 177
+     }
+    ],
+    "13009": [
+     {
+      "start": 2.2333,
+      "end": 2.3667,
+      "judge": 310,
+      "behavior": 225400310,
+      "atk": 254016,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 154
+     }
+    ],
+    "13010": [
+     {
+      "start": 1.5,
+      "end": 1.6333,
+      "judge": 320,
+      "behavior": 225400320,
+      "atk": 254020,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 146
+     }
+    ],
+    "13401": [
+     {
+      "start": 0.0,
+      "end": 0.8667,
+      "judge": 280,
+      "behavior": 225400280,
+      "atk": 254021,
+      "source": 0,
+      "hit": [
+       {
+        "from": 1,
+        "to": 20,
+        "radius": 0.2,
+        "type": 0,
+        "priority": 0
+       }
+      ],
+      "physical": 153
+     }
+    ]
+   }
   }
  }
 }

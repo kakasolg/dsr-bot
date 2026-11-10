@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import io
 import json
+import os
 import struct
 import subprocess
 import sys
@@ -38,6 +39,9 @@ from sim.flver_glb import OUT_DIR, _godot_import, _pad4, _s, _triangles, read_fl
 CACHE = ROOT / "data" / "chr"
 MODELS_JSON = ROOT / "data" / "gamefiles" / "chr_models.json"
 DUMP_PS1 = ROOT / "sim" / "hkx_dump.ps1"
+RAGDOLL_PY = ROOT / "sim" / "hkx_ragdoll.py"
+# a Python with soulstruct-havok 1.2.2 (own venv, so the project's soulstruct 2.3.2 is untouched); unset → no body capsules
+HAVOK_PYTHON = os.environ.get("HAVOK_PYTHON", "D:/dev/tools/havok-venv/Scripts/python.exe")
 POS, WEIGHT, BONE_IDX, NORMAL, UV = 0, 1, 2, 3, 5
 MIRROR = np.diag([-1.0, 1.0, 1.0, 1.0])
 
@@ -382,11 +386,59 @@ def build(model: str) -> dict:
             "meshes": [{"name": g["name"], "material": fl["materials"][m["mat"]]["name"], "mask": m["mask"],
                         "dynamic": m["dynamic"], "triangles": len(m["tris"])} for g, m in
                        zip(gl_meshes, [m for m in meshes if m["tris"]])],
-            "textures": sorted(tex), "anims": lengths}
+            "textures": sorted(tex), "anims": lengths, "dummies": dummies(fl, f_world),
+            "body": body_caps(d, model, fl, f_world)}
 
 
-def npc_masks(model: str) -> dict:
-    """{npc row: [display mask ids]} for every NPC row the Burg / Firelink MSBs give this model."""
+def dummies(fl: dict, f_world: list) -> dict:
+    """{dummy id: [{bone, offset}]} — FLVER dummy points ("model points" in AtkParam) as an offset in the space of the
+    bone they follow (attach bone), from the FLVER bind pose; mirrored like the mesh. A dummy whose parent bone is not
+    at the origin is placed in that bone's bind space first."""
+    out = {}
+    names = [b["name"] for b in fl["bones"]]
+    for d in fl["dummies"]:
+        p = np.array([*d["pos"], 1.0])
+        if d["parent_bone"] >= 0:
+            p = f_world[d["parent_bone"]] @ p
+        ab = d["attach_bone"]
+        if ab < 0:
+            continue
+        off = mirror_m(np.linalg.inv(f_world[ab])) @ (MIRROR @ p)
+        out.setdefault(str(d["ref"]), []).append({"bone": names[ab], "offset": [round(float(v), 5) for v in off[:3]]})
+    return out
+
+
+def body_caps(d: Path, model: str, fl: dict, f_world: list) -> dict:
+    """Ragdoll capsules from <model>.hkx (sim/hkx_ragdoll.py under HAVOK_PYTHON) as {caps: [{rag, bone, a, b, r}]} with
+    a / b as offsets in the bind space of the bone they follow, mirrored like the mesh — same scheme as dummies().
+    [candidate] ragdoll physics shapes; that DSR tests hits against them is not known."""
+    if not Path(HAVOK_PYTHON).exists():
+        return {"missing": f"HAVOK_PYTHON not found: {HAVOK_PYTHON}"}
+    r = subprocess.run([HAVOK_PYTHON, "-I", str(RAGDOLL_PY), str(d / f"{model}.hkx")], capture_output=True, text=True,
+                       timeout=300)
+    if r.returncode != 0:
+        return {"missing": "hkx_ragdoll.py failed: " + r.stderr[-400:]}
+    names = [b["name"] for b in fl["bones"]]
+    caps, skipped = [], []
+    for x in json.loads(r.stdout):
+        bone = x.get("bone")
+        if bone == "Master" and "Pelvis" in names:      # the mapper puts the pelvis body on Master (the root); the hip moves
+            bone = "Pelvis"
+        if "a" not in x or bone not in names:
+            skipped.append(x["rag"])
+            continue
+        inv = mirror_m(np.linalg.inv(f_world[names.index(bone)]))
+        a, b = (inv @ (MIRROR @ np.array([*x[k], 1.0])) for k in ("a", "b"))
+        caps.append({"rag": x["rag"], "bone": bone, "a": [round(float(v), 5) for v in a[:3]],
+                     "b": [round(float(v), 5) for v in b[:3]], "r": x["r"]})
+    return {"caps": caps, "skipped": skipped}
+
+
+def npc_rows(model: str) -> tuple[dict, dict]:
+    """For every NPC row the Burg / Firelink MSBs give this model: {row: [display mask ids]} and
+    {row: {anim id: [attack window]}} — each TAE type-1 window (data/gamefiles/tae.json, own reader checked against
+    DSAnimStudio) → BehaviorParam 200000000 + BehaviorVariationID × 1000 + judge → AtkParam_Npc hit slots
+    (model point start / end, radius, hit type, priority; slots with radius 0 are unused)."""
     import navmesh  # noqa: F401
     from navmesh import GAME_DIR
     from soulstruct.darksouls1r.params import GameParamBND
@@ -404,7 +456,36 @@ def npc_masks(model: str) -> dict:
         except KeyError:
             continue
         out[str(r)] = [k for k in range(16) if getattr(row, f"ModelDisplayMask{k}")]
-    return out
+    tae = json.loads((ROOT / "data" / "gamefiles" / "tae.json").read_text(encoding="utf-8"))["models"][model]["animations"]
+    attacks = {}
+    for r in out:
+        var = npc[int(r)].BehaviorVariationID
+        per = {}
+        for aid, an in tae.items():
+            for e in an.get("events", []):
+                if e["type"] != 1:
+                    continue
+                judge = e["p"][2]
+                bid = 200000000 + var * 1000 + judge
+                try:
+                    b = gp.NonPlayerBehaviors[bid]
+                    a = gp.NonPlayerAttacks[b.ReferenceID] if b.ReferenceType == 0 else None
+                except KeyError:
+                    a = None
+                w = {"start": e["start"], "end": e["end"], "judge": judge, "behavior": bid}
+                if a is None:
+                    w["missing"] = "no BehaviorParam / AtkParam_Npc row"
+                else:
+                    w["atk"] = b.ReferenceID
+                    w["source"] = a.ModelPointSource
+                    w["hit"] = [{"from": getattr(a, f"Hitbox{i}StartModelPoint"), "to": getattr(a, f"Hitbox{i}EndModelPoint"),
+                                 "radius": round(getattr(a, f"Hitbox{i}Radius"), 4), "type": getattr(a, f"Hitbox{i}HitType"),
+                                 "priority": getattr(a, f"Hitbox{i}Priority")}
+                                for i in range(4) if getattr(a, f"Hitbox{i}Radius") > 0]
+                    w["physical"] = a.PhysicalAttackPower
+                per.setdefault(aid, []).append(w)
+        attacks[r] = per
+    return out, attacks
 
 
 def main() -> None:
@@ -414,7 +495,7 @@ def main() -> None:
     data = json.loads(MODELS_JSON.read_text(encoding="utf-8")) if MODELS_JSON.exists() else {}
     for model in models:
         info = build(model)
-        info["npc_masks"] = npc_masks(model)
+        info["npc_masks"], info["npc_attacks"] = npc_rows(model)
         data[model] = info
         ok = [k for k, v in info["anims"].items() if "frames" in v]
         print(f"{model}.glb {info['glb_mb']} MB: {len(ok)}/{len(info['anims'])} anims, joints {info['bones']}, "

@@ -16,6 +16,12 @@
   every NPC row of that model with its own model and plays the recorded animation id; ids the game blends on top of
   (c2540 2255 → 2250 still pose, −1) get a walk / run / stand clip by recorded speed [guess]. `godot/chr_probe.tscn`
   renders clip sheets (`--clips= --steps= --view=front`) or dumps bone positions (`--bones=`).
+- Hitboxes (MoKa M1109-59): the replay draws each foe's AtkParam_Npc hit capsules (orange, FLVER model points, only
+  inside the TAE type-1 window) and the model's ragdoll capsules (cyan, H toggles) — those are [candidate] body
+  capsules: read from `<model>.hkx` by `sim/hkx_ragdoll.py` under `HAVOK_PYTHON` (a separate venv with
+  `soulstruct-havok==1.2.2`, default `D:/dev/tools/havok-venv`; without it no body capsules). Whether DS1 tests hits
+  against them is not known. `python sim/replay_hits.py [<run>]` compares the recorded big hits with the attackers'
+  capsules (`data/replays/<run>.hits_check.json`; the bot's body is a [guess] vertical axis).
 - Tests: `python tests/godot_room_test.py`, `python tests/godot_combat_test.py`, `python tests/replay_test.py`, `python tests/chr_glb_test.py`
   (headless; skipped without Godot / data).
 

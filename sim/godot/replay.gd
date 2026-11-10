@@ -13,7 +13,8 @@ extends Node3D
 ##
 ## Keys: Space play/pause · ←/→ 5 s · ,/. one snapshot · [ ] speed · N/P next/previous fight · 1–9 fight n ·
 ##       C camera (bot camera / orbit / top) · W/S tilt the bot camera (pitch isn't recorded) · mouse drag or ↑/↓ orbit ·
-##       wheel zoom · L labels · click the timeline = seek
+##       wheel zoom · L labels · H body capsules [candidate] · click the timeline = seek
+##       orange = foe attack capsules inside the TAE hit window [game files] · cyan = ragdoll body capsules [candidate]
 ##
 ## Godot args after "--":  --replay=<file>  --at=<s>  --dump=<s,s,…>  (headless check: prints interpolated positions)
 
@@ -49,6 +50,8 @@ var orbit_yaw := 0.0
 var orbit_pitch := -0.5
 var orbit_dist := 7.0
 var labels_on := true
+var body_on := true            # H: ragdoll body capsules [candidate hurtbox]
+var dump_body := false         # --dump-body: also dump them (they are many)
 var dragging := false
 
 var cam: Camera3D
@@ -97,6 +100,8 @@ func _ready() -> void:
 	orbit_pitch = float(args.get("pitch", str(orbit_pitch)))
 	orbit_dist = float(args.get("dist", str(orbit_dist)))
 	labels_on = args.get("labels", "1") != "0"
+	body_on = args.get("body", "1") != "0"
+	dump_body = args.has("dump-body")
 	if args.has("dump"):
 		for s in String(args["dump"]).split(","):
 			dump_times.append(float(s))
@@ -227,7 +232,8 @@ func _real_model(model: String, masks: Array, color: Color) -> Dictionary:
 			mi.visible = nm.substr(4, 2).to_int() in want
 		(mi as MeshInstance3D).material_overlay = ov
 	var aps := m.find_children("*", "AnimationPlayer", true, false)
-	return {"node": root, "ap": aps[0] if aps.size() > 0 else null}
+	var sks := m.find_children("*", "Skeleton3D", true, false)
+	return {"node": root, "ap": aps[0] if aps.size() > 0 else null, "sk": sks[0] if sks.size() > 0 else null}
 
 
 func _build_chars() -> void:
@@ -254,7 +260,7 @@ func _build_chars() -> void:
 		add_child(m["node"])
 		chars[k] = {"node": m["node"], "ap": m["ap"], "label": _label(m["node"]), "team": team, "npc": int(c["npc"]),
 			"max_hp": int(c["max_hp"]), "segs": _segments(k), "model": real[0] if real != null else "",
-			"motion": ""}
+			"motion": "", "sk": m.get("sk"), "active": [], "cap_nodes": [], "body_nodes": []}
 
 
 func _label(n: Node3D) -> Label3D:
@@ -392,6 +398,105 @@ func _pose_real(c: Dictionary, anim: int, spd: float, hp_now: int, tt: float) ->
 		ap.play(clip)
 	ap.seek(at, true)
 	ap.pause()
+	var skel: Skeleton3D = c.get("sk")
+	if skel != null and skel.has_method("force_update_all_bone_transforms"):
+		skel.force_update_all_bone_transforms()     # bone poses of this seek, not of the last frame
+	_attack_caps(c, anim if c["motion"] == "실제" else -9, at)
+	_body_caps(c)
+
+
+# ── Attack hit capsules (MoKa M1109-59) ────────────────────────────────
+# While the clip's local time is inside a TAE type-1 window, each AtkParam_Npc hit slot is a capsule from model point
+# "from" to model point "to" with its radius (sim/chr_glb.py npc_rows: TAE → BehaviorParam → AtkParam_Npc; FLVER dummy
+# points follow their attach bone). Shape and timing come from the game files; whether the engine tests the
+# capsule only at each update or swept between updates is not known — drawn as it stands at this instant.
+func _attack_caps(c: Dictionary, anim: int, at: float) -> void:
+	var act := []
+	var sk: Skeleton3D = c.get("sk")
+	var model: String = c.get("model", "")
+	if sk != null and anim >= 0:
+		var wins: Array = chr_models[model].get("npc_attacks", {}).get(str(c["npc"]), {}).get(str(anim), [])
+		var dm: Dictionary = chr_models[model].get("dummies", {})
+		for w in wins:
+			if at < float(w["start"]) or at > float(w["end"]) or not w.has("hit"):
+				continue
+			for h in w["hit"]:
+				var p0: Variant = _dummy_world(sk, dm, str(int(h["from"])))
+				var p1: Variant = _dummy_world(sk, dm, str(int(h["to"])))
+				if p0 != null and p1 != null:
+					act.append([p0, p1, float(h["radius"]), int(h["type"]), int(w["atk"])])
+	c["active"] = act
+	_draw_caps(c["cap_nodes"], act, Color(1.0, 0.55, 0.0, 0.45), true)
+
+
+# ── Body capsules [candidate] (MoKa M1109-59) ────────────────────────────
+# The model's ragdoll capsules (sim/hkx_ragdoll.py: hkpCapsuleShape per ragdoll rigid body, following the animation
+# bone the ragdoll → animation SkeletonMapper names). DS3 uses its ragdoll capsules as the hurtbox (DS3 Codex); for DS1
+# nothing was found, so these are drawn as candidates, not as the hurtbox.
+func _body_caps(c: Dictionary) -> void:
+	var sk: Skeleton3D = c.get("sk")
+	var model: String = c.get("model", "")
+	var act := []
+	if sk != null and body_on:
+		for b in chr_models[model].get("body", {}).get("caps", []):
+			var bi := sk.find_bone(String(b["bone"]))
+			if bi < 0:
+				continue
+			var g := sk.global_transform * sk.get_bone_global_pose(bi)
+			var a: Array = b["a"]
+			var e: Array = b["b"]
+			act.append([g * Vector3(a[0], a[1], a[2]), g * Vector3(e[0], e[1], e[2]), float(b["r"])])
+	c["body"] = act
+	_draw_caps(c["body_nodes"], act, Color(0.2, 0.85, 1.0, 0.35), false)
+
+
+func _draw_caps(nodes: Array, act: Array, col: Color, on_top: bool) -> void:
+	while nodes.size() < act.size():
+		var mi := MeshInstance3D.new()
+		var cm := CapsuleMesh.new()
+		cm.radial_segments = 12
+		cm.rings = 4
+		mi.mesh = cm
+		var mat := StandardMaterial3D.new()
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.no_depth_test = on_top
+		mat.albedo_color = col
+		mi.material_override = mat
+		add_child(mi)
+		nodes.append(mi)
+	for i in nodes.size():
+		var mi: MeshInstance3D = nodes[i]
+		mi.visible = i < act.size()
+		if not mi.visible:
+			continue
+		var p0: Vector3 = act[i][0]
+		var p1: Vector3 = act[i][1]
+		var r: float = act[i][2]
+		var cm: CapsuleMesh = mi.mesh
+		cm.radius = r
+		cm.height = p0.distance_to(p1) + 2.0 * r
+		var up := (p1 - p0).normalized() if p0.distance_to(p1) > 1e-4 else Vector3.UP
+		var x := up.cross(Vector3.FORWARD if absf(up.dot(Vector3.FORWARD)) < 0.9 else Vector3.RIGHT).normalized()
+		mi.global_transform = Transform3D(Basis(x, up, x.cross(up)), (p0 + p1) * 0.5)
+
+
+func _hide_caps(c: Dictionary) -> void:
+	c["active"] = []
+	c["body"] = []
+	for mi in c.get("cap_nodes", []) + c.get("body_nodes", []):
+		(mi as MeshInstance3D).visible = false
+
+
+func _dummy_world(sk: Skeleton3D, dm: Dictionary, id: String):
+	if not dm.has(id):
+		return null
+	var d: Dictionary = dm[id][0]
+	var bi := sk.find_bone(String(d["bone"]))
+	if bi < 0:
+		return null
+	var o: Array = d["offset"]
+	return sk.global_transform * (sk.get_bone_global_pose(bi) * Vector3(o[0], o[1], o[2]))
 
 
 func _pose(c: Dictionary, key: String, row: Array, tt: float) -> void:
@@ -405,6 +510,7 @@ func _pose(c: Dictionary, key: String, row: Array, tt: float) -> void:
 	if c.get("model", "") != "":
 		_pose_real(c, int(row[4]), spd, int(row[5]), tt)
 		return
+	c["active"] = []
 	var pick := _clip_for(key, int(row[4]), spd, int(row[5]))
 	var clip: String = pick[0]
 	if not ap.has_animation(clip):
@@ -432,11 +538,14 @@ func _apply(tt: float) -> void:
 		var n: Node3D = c["node"]
 		if row == null:
 			n.visible = false
+			_hide_caps(c)
 			continue
 		n.visible = _shown(key, row, tt)
 		n.position = Vector3(-float(row[0]), row[1], row[2])
 		n.rotation.y = -float(row[3])
 		_pose(c, key, row, tt)
+		if not n.visible:
+			_hide_caps(c)
 		var l: Label3D = c["label"]
 		l.visible = labels_on
 		if key == "p":
@@ -588,6 +697,9 @@ func _unhandled_input(ev: InputEvent) -> void:
 				cam_mode = (cam_mode + 1) % 3
 			KEY_L:
 				labels_on = not labels_on
+			KEY_H:
+				body_on = not body_on
+				_apply(t)
 			KEY_N:
 				var fi: int = _fight_at(t + 2.5)
 				_jump_fight(fi + 1 if fi >= 0 else _next_fight(t))
@@ -644,6 +756,20 @@ func _dump() -> void:
 	for tt in dump_times:
 		_apply(tt)
 		var cs := {}
+		var caps := {}
+		var body := {}
+		for key in chars:
+			for a in chars[key].get("active", []):
+				if not chars[key]["node"].visible:
+					continue
+				var q0: Vector3 = a[0]
+				var q1: Vector3 = a[1]
+				caps.get_or_add(key, []).append([[-q0.x, q0.y, q0.z], [-q1.x, q1.y, q1.z], a[2], a[3], a[4]])
+			if dump_body and chars[key]["node"].visible:
+				for a in chars[key].get("body", []):
+					var q0: Vector3 = a[0]
+					var q1: Vector3 = a[1]
+					body.get_or_add(key, []).append([[-q0.x, q0.y, q0.z], [-q1.x, q1.y, q1.z], a[2]])
 		for key in chars:
 			var n: Node3D = chars[key]["node"]
 			if n.visible:
@@ -655,7 +781,10 @@ func _dump() -> void:
 			for mi in (mn as Node3D).find_children("*", "MeshInstance3D", true, false):
 				k += (mi as MeshInstance3D).mesh.get_surface_count()
 			surf[(mn as Node3D).name] = k
-		out.append({"t": tt, "chars": cs, "map_surfaces": surf})
+		var row := {"t": tt, "chars": cs, "caps": caps, "map_surfaces": surf}
+		if dump_body:
+			row["body"] = body
+		out.append(row)
 	print("REPLAY_DUMP " + JSON.stringify(out))
 	dump_times.clear()
 	get_tree().quit()

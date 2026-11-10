@@ -9,6 +9,10 @@ What each check covers:
   tae         the right hand's fastest moment of each c2540 melee attack lies inside its TAE type-1 window — the motion
               (DSAnimStudio's decoder) and the hit timing (own TAE reader, checked against DSAnimStudio and in the game
               for 3000's start) are separate sources
+  body        ragdoll capsules (Havok physics data, sim/hkx_ragdoll.py) sit on the FLVER bone they follow in the bind
+              pose (each segment within BODY_TOL of its bone's origin) — two independent sources agree on where the
+              body is; and the replay room draws all of them on a Hollow, upright around its position. Whether DSR uses
+              these capsules as the hurtbox is NOT checked here (not known).
 
 python tests/chr_glb_test.py"""
 from __future__ import annotations
@@ -34,6 +38,8 @@ HKX = CACHE / MODEL / "hkx.json"
 TAE = ROOT / "data" / "gamefiles" / "tae.json"
 CLIPS = ["a00_3000", "a00_3003", "a00_0200"]
 TIMES = [0.0, 0.5, 0.9167, 0.93, 1.2833, 2.0]
+BODY_TOL = 0.12                 # m — a capsule may start a little past its joint (thigh 3 cm, hand 7 cm)
+REPLAY_AT, REPLAY_FOE = 64.71, "24"     # 11-09 02:18 run: #24 (254010) mid-attack next to the bot
 
 
 def _slerp(q0, q1, u):
@@ -119,7 +125,35 @@ def main() -> None:
     bad = [r for r in rows if not r[3]]
     check(f"tae: fastest right-hand moment inside the TAE type-1 window for {len(rows) - len(bad)}/{len(rows)} attacks"
           + (f" (outside: {[(a, round(t, 3), w) for a, t, w, _ in bad]})" if bad else ""), not bad)
+    body = info.get("body", {})
+    caps = body.get("caps", [])
+    check(f"body: ragdoll capsules read ({len(caps)}, skipped {body.get('skipped')}, {body.get('missing', '')})",
+          len(caps) >= 15 and not body.get("skipped"))
+    far = [(c["rag"], round(_seg_point(c["a"], c["b"], [0, 0, 0]), 3)) for c in caps
+           if _seg_point(c["a"], c["b"], [0, 0, 0]) > BODY_TOL]
+    check(f"body: every capsule within {BODY_TOL} m of its bone in the bind pose (far: {far})", not far)
+    r = subprocess.run([str(GL.GODOT), "--headless", "--path", str(ROOT / "sim" / "godot"), "res://replay.tscn", "--",
+                        f"--dump={REPLAY_AT}", "--dump-body"], capture_output=True, text=True, encoding="utf-8", timeout=600)
+    line = next((x for x in r.stdout.splitlines() if x.startswith("REPLAY_DUMP ")), None)
+    if line is None:
+        print("skip: replay dump (no replay data)")
+    else:
+        g = json.loads(line[len("REPLAY_DUMP "):])[0]
+        bc = g.get("body", {}).get(REPLAY_FOE, [])
+        pos = g["chars"].get(REPLAY_FOE)
+        ys = [p[1] - pos[1] for cap in bc for p in cap[:2]] if pos else []
+        xz = [np.hypot(p[0] - pos[0], p[2] - pos[2]) for cap in bc for p in cap[:2]] if pos else []
+        check(f"body in the replay: #{REPLAY_FOE} has {len(bc)} capsules, height {min(ys or [0]):.2f}–{max(ys or [0]):.2f} m, "
+              f"widest {max(xz or [0]):.2f} m from its position", len(bc) == len(caps) and -0.1 < min(ys) and
+              1.0 < max(ys) < 2.0 and max(xz) < 1.2)   # a crouched attack pose tops out near 1.2 m
     print("chr_glb_test: 전부 통과")
+
+
+def _seg_point(a, b, p) -> float:
+    a, b, p = (np.asarray(x, float) for x in (a, b, p))
+    d = b - a
+    u = 0.0 if d @ d < 1e-12 else float(np.clip((p - a) @ d / (d @ d), 0, 1))
+    return float(np.linalg.norm(a + d * u - p))
 
 
 if __name__ == "__main__":
