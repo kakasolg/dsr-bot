@@ -51,6 +51,7 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
 | 62 | `risk_report` counts escape.pick back-offs (`ev: escape`) as quit-outs (강종) → clean runs read '위험' | fixed — back-off logs `escape_pick`; `risk_report` skips old `escape` rows with `src` |
 | 76 | `altar-burg`: ladder A missed, fell 10 m | fixed — 10-13 2/2 ladder down, no fall |
 | 151 | altar unlit | fixed |
+| 154 | ramp_test #6 flaky: a leftover room pad kept sending neutral → player late | fixed (cloud 10/10; [win] not re-run) |
 | 156 | Practice room in a fresh clone: no Godot import cache → no player, input ignored | fixed (cloud headless; [win] not re-run) |
 
 ### P-1 오프라인 테스트가 Linux에서 실행 안 됨 (2026-09-27, [cloud], 1번)
@@ -2538,6 +2539,18 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
 - 원인: 모름. 바뀐 것은 플레이어 light/light2의 끊기 시간뿐이고, 이 검사는 #5 턱 위에서 #6이 내려오는지라 직접 관계는 안 보임.
 - 다음: 다시 실패하면 그때 #6의 상태(깨어남 거리·경로)를 출력해 봄. 해결 기준: 10회 연속 통과 또는 원인 확인.
 - 11-10 [win], 3ae7b5e 병합 뒤: `godot_ramp_test` 4회 중 1회 실패 (pytest 안에서, 어느 검사인지 출력은 못 남김), 단독 2회 · 전체 실행 1회는 통과. 여전히 가끔 실패.
+- 11-10 [cloud] 재현 · 원인 · 고침 (커밋 "Room pad: close() stops its beat"):
+  - 재현: 테스트의 room_six 걷기 루프를 한 프로세스에서 12회 → 6회 실패, 전부 "99.0 m, None s". 실패 때 플레이어는 45 s 안에 #5 턱에
+    못 감 (경로 57점 중 31~55번째) · HP 849 그대로 · #6은 state idle / woke False. → "#6이 안 깨어남"이 아니라 플레이어가 늦게 감.
+  - 원인: `godot_link.RoomDev`의 0.1 s 전송 스레드를 멈추는 길이 없었음. 앞 방에서 쓴 패드가 중립(스틱 0)을 같은 입력 포트로 계속 보내
+    다음 방의 스틱 1.0과 번갈아 들어감 → 방의 속도가 0.9~3.4 m/s로 오르내림 (스틱은 계속 1.0, 방 시간은 실제 시간과 같음).
+    턱 도착: 남은 패드 0개 21.1 s · 1개 30~32 s · 2개 38~43 s · 그 이상 45 s 넘김. 테스트에서는 room()의 패드가 room_six()에 남는 1개.
+    11-10의 클레이모어 끊기 시간 변경과는 무관.
+  - 고침: `RoomDev.close()` (중립 한 번 보내고 이후 전송 없음) · `RoomPad.close()`; 램프 테스트가 room() · room_six() 끝에서 `pad.close()`.
+  - 확인 (cloud, 헤드리스): 같은 12회 루프에 close를 넣으면 10회 중 10회 21.0~21.2 s 도착. `python tests/godot_ramp_test.py` 10회 연속 통과
+    (#6 4 m 안: 도착 뒤 2.1~2.2 s) — 해결 기준 "10회 연속 통과 또는 원인 확인" 둘 다. [win]에서는 안 돌림.
+  - 남은 것: 테스트 하나가 패드 1개만 남기는데도 [win]에서 3~4회 중 1회 45 s를 넘긴 이유(1개일 때 cloud는 30~32 s)는 직접 못 봄 —
+    [win]이 더 느리거나 pytest 부하로 추정. `run.py`는 프로세스당 패드 하나라 해당 없음.
 
 ### P-155 merchant-buy: 시작 준비 중에 캐릭터가 상인을 침 (입력 출처 모름) → 적대 → 봇이 망자 상인을 죽임 (11-10)
 - 실행: `20261110_061503_merchant-buy` (a1aa801+dirty), npc-module 게임 확인용. 세이브 `backup-20261012-034844-merchant-bought-knife30-firebomb67`
