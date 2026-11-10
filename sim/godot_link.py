@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import socket
 import subprocess
 import threading
@@ -27,7 +28,26 @@ GODOT = Path(os.environ.get("GODOT_PATH", "D:/dev/tools/godot/Godot_v4.7.2-stabl
 STATE_PORT, INPUT_PORT = 47811, 47812
 
 
+def ensure_imported() -> bool:
+    """Godot's import cache (`.godot/imported`, not in git) — a fresh clone has none and the room then fails on its first
+    asset load (cloud 11-10: no player body, no input, state packets still sent). Runs `--import` once when a file named
+    by an `assets/**/*.import` is missing. True when an import ran."""
+    missing = False
+    for imp in PROJECT.rglob("*.import"):
+        if ".godot" in imp.parts:
+            continue
+        m = re.search(r'^path="res://(.+?)"', imp.read_text(encoding="utf-8"), re.M)
+        if m and not (PROJECT / m.group(1)).exists():
+            missing = True
+            break
+    if missing:
+        subprocess.run([str(GODOT), "--headless", "--path", str(PROJECT), "--import"],
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=600)
+    return missing
+
+
 def start_room(headless: bool = True) -> subprocess.Popen:
+    ensure_imported()
     # the _console exe is a wrapper that starts the real exe as a child — fine headless, but a window then belongs to
     # another process; use the plain exe for a window
     exe = GODOT if headless else GODOT.with_name(GODOT.name.replace("_console", ""))

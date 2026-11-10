@@ -19,6 +19,9 @@ import drops as D
 from souls import field as F
 from souls import loot as L
 from souls import missions as MS
+import motion
+
+MS._VOID_NM = motion.load_navmeshes()[MS.MAP_A]            # _route's void check reads the offline NavMesh, not the game folder (as passage_start_test)
 
 SHORTSWORD, AXE, LONGSWORD, ARMOR = 200000, 701000, 201000, 0x10000000 | 521000
 OWNERS = [0x1C000000 + i for i in range(3)]

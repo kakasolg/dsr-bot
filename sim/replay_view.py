@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from sim import replay_extract                     # noqa: E402
-from sim.godot_link import GODOT                   # noqa: E402
+from sim.godot_link import GODOT, ensure_imported                   # noqa: E402
 
 
 def main() -> None:
@@ -28,6 +28,7 @@ def main() -> None:
     if not path.exists():
         sys.argv = ["replay_extract.py", a.run]
         replay_extract.main()
+    ensure_imported()
     exe = GODOT.with_name(GODOT.name.replace("_console", ""))
     args = [str(exe), "--path", str(ROOT / "sim" / "godot"), "res://replay.tscn", "--", f"--replay={path}"]
     if a.at is not None:

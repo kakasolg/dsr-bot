@@ -56,6 +56,7 @@ def seg_dist(p0, p1, q0, q1) -> float:
 
 
 def dump(times: list) -> list:
+    GL.ensure_imported()
     r = subprocess.run([str(GL.GODOT), "--headless", "--path", str(ROOT / "sim" / "godot"), "res://replay.tscn", "--",
                         "--dump=" + ",".join(f"{x:.4f}" for x in times)], capture_output=True, text=True,
                        encoding="utf-8", timeout=900)

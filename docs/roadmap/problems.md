@@ -51,6 +51,7 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
 | 62 | `risk_report` counts escape.pick back-offs (`ev: escape`) as quit-outs (강종) → clean runs read '위험' | fixed — back-off logs `escape_pick`; `risk_report` skips old `escape` rows with `src` |
 | 76 | `altar-burg`: ladder A missed, fell 10 m | fixed — 10-13 2/2 ladder down, no fall |
 | 151 | altar unlit | fixed |
+| 156 | Practice room in a fresh clone: no Godot import cache → no player, input ignored | fixed (cloud headless; [win] not re-run) |
 
 ### P-1 오프라인 테스트가 Linux에서 실행 안 됨 (2026-09-27, [cloud], 1번)
 - 증상: `field_*_test.py` 등이 `ModuleNotFoundError: pymem`, 이어서 `vgamepad`, `KeyError: 'TEMP'`로 실패
@@ -2536,6 +2537,7 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
   같은 파일로 단독 2회 다시 돌리니 둘 다 통과 (3.9 m · 4.0 m, 2.2 s). 바꾸기 전 파일로도 1회 통과. → 3번 중 1번, 우연히 생기는 실패로 보임.
 - 원인: 모름. 바뀐 것은 플레이어 light/light2의 끊기 시간뿐이고, 이 검사는 #5 턱 위에서 #6이 내려오는지라 직접 관계는 안 보임.
 - 다음: 다시 실패하면 그때 #6의 상태(깨어남 거리·경로)를 출력해 봄. 해결 기준: 10회 연속 통과 또는 원인 확인.
+- 11-10 [win], 3ae7b5e 병합 뒤: `godot_ramp_test` 4회 중 1회 실패 (pytest 안에서, 어느 검사인지 출력은 못 남김), 단독 2회 · 전체 실행 1회는 통과. 여전히 가끔 실패.
 
 ### P-155 merchant-buy: 시작 준비 중에 캐릭터가 상인을 침 (입력 출처 모름) → 적대 → 봇이 망자 상인을 죽임 (11-10)
 - 실행: `20261110_061503_merchant-buy` (a1aa801+dirty), npc-module 게임 확인용. 세이브 `backup-20261012-034844-merchant-bought-knife30-firebomb67`
@@ -2564,3 +2566,21 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
   가드는 이번에 걸릴 상황이 안 나옴 → 게임 확인은 보류. 83 s 약공의 출처는 여전히 모름 (재현 안 됨, 1/2).
   참고 관찰: 061503 실행 때 같은 폴더의 다른 Claude 세션("진행 사항")이 06:18:11 세이브 복원 · 06:18:35 radar watch 재시작을 함 (마지막 활동 06:18:52).
   064028 때 그 세션은 쉬는 중이었음. watch는 끄면 1초 뒤 다른 프로세스가 다시 켬 (06:40:18) — 누가 켜는지 안 봄.
+
+### P-156 Practice room in a fresh clone (cloud): no player body, input ignored — no Godot import cache (2026-11-10)
+(번호: [cloud]는 커밋 3ae7b5e에서 이 항목을 P-155로 썼음 — P-152~154 본문이 그때 저장소에 없었기 때문. 같은 날 [win]이 상인 건에 P-155를 먼저
+푸시해서 (5a4854f), 병합하며 [win]이 P-156으로 바꿈. 3ae7b5e 커밋 메시지와 코드 주석의 "P-155"는 이 항목을 가리킴.)
+- 증상: [cloud] a1aa801 새 클론 + Godot 4.7.2 (`GODOT_PATH=/opt/godot/…linux.x86_64`). `python tests/godot_combat_test.py` 가
+  "camera pulled in by the wall: 4.00 m / 4.00 m" 로 실패. 방은 상태 패킷을 계속 보내지만 플레이어가 (0, 0)에서 안 움직이고 카메라도 안 돎.
+  Godot 출력: `Cannot open file 'res://.godot/imported/UAL1_Standard.glb-….scn'` → `_build_player` 에서 null.instantiate → 이후 매 프레임 스크립트 오류.
+  `python tests/godot_ramp_test.py` 는 장면 검사 뒤 `내비메시 없음: D:/SteamLibrary/…` 로 끝남 (exit 1, 방 검사는 시작도 안 함).
+- 원인: (1) `.godot/imported` (임포트 캐시)는 git 밖 — a1aa801 의 "CC0 파일만 있을 때" 확인은 [win] 의 기존 캐시가 있는 상태였음.
+  새 클론은 `godot --headless --import` 를 한 번 돌려야 glb/fbx 를 읽을 수 있음. (2) 램프 테스트가 게임 설치 폴더의 NavMesh 와 `taskkill` 을 씀.
+- 고침: `sim/godot_link.ensure_imported()` — `*.import` 가 가리키는 캐시 파일이 없으면 `--import` 한 번 (cloud 약 9 s); `start_room`,
+  램프 테스트, `replay_view.py`, `replay_hits.py` 가 Godot 를 띄우기 전에 부름. 램프 테스트: 게임 폴더가 없으면
+  `data/samples/navmesh_m10_02_00_00.npz` (ramp_scene.py 가 바닥을 만드는 같은 메시), `taskkill` → Windows 밖에서는 pkill / kill.
+- 확인 (cloud, 헤드리스, CC0 대용 모델만, 화면으로는 안 봄): 캐시를 지운 뒤 godot_room · godot_combat 통과; godot_ramp 4회 실행 4회 통과
+  (P-154 의 "#6 안 깸"은 이 4회에서는 안 나옴 — 재현 못 함, 고친 것 아님). [win] 에서는 이 변경 뒤 재실행 안 함 (Windows 경로는 코드상 그대로).
+- 같이 고친 cloud 전용 테스트 실패 2건 (봇 코드는 안 건드림): `tests/loot_test.py` — `missions._no_void` 가 게임 폴더 NavMesh 를 읽어 exit 1 →
+  passage_start_test 와 같이 `MS._VOID_NM` 에 오프라인 NavMesh; `tests/boss_ready_test.py` — 'ready' 사건을 `glob` 순서의 마지막 파일에서 읽음
+  (Linux 는 정렬 안 됨) → `sorted`. 고치기 전 6회 중 2회 실패, 뒤 10회 중 0회 (원인은 glob 순서로 추정 — 실패한 실행의 파일 순서는 직접 못 봄).

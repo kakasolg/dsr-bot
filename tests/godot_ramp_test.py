@@ -17,6 +17,7 @@ if hasattr(_sys.stdout, "reconfigure"):
 
 import json
 import math
+import os
 import subprocess
 import time
 
@@ -68,17 +69,45 @@ def offline() -> dict | None:
     return sc
 
 
+def _stop_all() -> None:
+    """Stop every Godot (only the room uses it here). Windows: by image name (the console wrapper and its child);
+    elsewhere: by the executable's path."""
+    if os.name == "nt":
+        for exe in (GL.GODOT.name, GL.GODOT.name.replace("_console", "")):
+            subprocess.run(["taskkill", "/F", "/IM", exe], capture_output=True)
+    else:
+        subprocess.run(["pkill", "-f", str(GL.GODOT)], capture_output=True)
+        time.sleep(0.3)
+
+
+def _stop(p: subprocess.Popen) -> None:
+    if os.name == "nt":
+        subprocess.run(["taskkill", "/T", "/F", "/PID", str(p.pid)], capture_output=True)
+    else:
+        p.kill()
+        p.wait(timeout=10)
+
+
+def _firelink_nm():
+    """Firelink NavMesh: the game file where the game is installed, else [win]'s export of the same mesh
+    (data/samples/navmesh_m10_02_00_00.npz — what sim/ramp_scene.py builds the room's floor from)."""
+    import navmesh
+    if (_pl.Path(navmesh.GAME_DIR) / "map" / "m10_02_00_00" / "m10_02_00_00.nvmbnd.dcx").exists():
+        return navmesh.Navmesh("m10_02_00_00")
+    return navmesh.Navmesh.from_npz(ROOT / "data" / "samples" / "navmesh_m10_02_00_00.npz")
+
+
 def room(sc: dict) -> None:
     import navmesh
     if not GL.GODOT.exists():
         print("skip room checks — no Godot at", GL.GODOT)
         return
-    nm = navmesh.Navmesh("m10_02_00_00")
+    nm = _firelink_nm()
     rec = str(ROOT / "data" / "runs" / "godot_ramp_test_room.jsonl")
     # a room left by an earlier test (p.kill() stops the console wrapper, not its Godot child) keeps sending to the
     # same port and its packets mix with this room's — stop any Godot first (only the room uses it here)
-    for exe in (GL.GODOT.name, GL.GODOT.name.replace("_console", "")):
-        subprocess.run(["taskkill", "/F", "/IM", exe], capture_output=True)
+    _stop_all()
+    GL.ensure_imported()
     p = subprocess.Popen([str(GL.GODOT), "--headless", "--path", str(GL.PROJECT), "res://ramp.tscn"],
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     tm = GL.RoomTelemetry(rec=rec)
@@ -136,7 +165,7 @@ def room(sc: dict) -> None:
     finally:
         pad.move(0.0, 0.0)
         tm.close()
-        subprocess.run(["taskkill", "/T", "/F", "/PID", str(p.pid)], capture_output=True)
+        _stop(p)
         _pl.Path(rec).unlink(missing_ok=True)
 
 
@@ -144,10 +173,10 @@ def room_six(sc: dict) -> None:
     import navmesh
     if not GL.GODOT.exists():
         return
-    for exe in (GL.GODOT.name, GL.GODOT.name.replace("_console", "")):
-        subprocess.run(["taskkill", "/F", "/IM", exe], capture_output=True)
-    nm = navmesh.Navmesh("m10_02_00_00")
+    _stop_all()
+    nm = _firelink_nm()
     rec = str(ROOT / "data" / "runs" / "godot_ramp_test_room6.jsonl")
+    GL.ensure_imported()
     p = subprocess.Popen([str(GL.GODOT), "--headless", "--path", str(GL.PROJECT), "res://ramp.tscn"],
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     tm = GL.RoomTelemetry(rec=rec)
@@ -186,7 +215,7 @@ def room_six(sc: dict) -> None:
     finally:
         pad.move(0.0, 0.0)
         tm.close()
-        subprocess.run(["taskkill", "/T", "/F", "/PID", str(p.pid)], capture_output=True)
+        _stop(p)
         _pl.Path(rec).unlink(missing_ok=True)
 
 
