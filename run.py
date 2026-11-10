@@ -141,9 +141,39 @@ def _stain_carry(log):
     return (st, zn) if zn else None
 
 
+def _arena(fld, nm, log, limit: float = 240.0) -> str:
+    """Godot 연습장 평지 (MoKa M1109-75): 살아 있는 적 중 가장 가까운 놈부터 Field.fight — 다 죽이면 cleared, 죽으면 died.
+    미션·화톳불·줍기 없음. 적 둘이 같이 오므로 한 놈과 싸우는 동안 다른 놈이 끼어드는 상황이 그대로 생긴다."""
+    t0 = time.time()
+    while fld.mv.snap(45.0) is None and time.time() - t0 < 60.0:   # 연습장이 뜨기 전 (모델 로딩) — 첫 판이 여기서 died로 끝남
+        time.sleep(0.5)
+    t0 = time.time()
+    n = 0
+    low = False
+    while time.time() - t0 < limit:
+        if not fld.alive():
+            return "died"
+        s = fld.mv.snap(45.0)
+        foes = sorted(s.hostile(40.0), key=lambda c: c.dist) if s else []
+        if not foes:
+            return "cleared"
+        c = foes[0]
+        n += 1
+        res = fld.fight(c.ptr, nm, f"arena{n} {c.npc_param}", desperate=low)
+        log(f"   싸움 {n} ({c.npc_param}, {c.dist:.1f} m에서): {res.result}, {res.secs:.1f} s, 준 {res.dealt} · 받은 {res.taken}")
+        # low_hp: 물러나 마시기 (Field.heal — 근처에 적이면 안 마심 / 30 % 밑이면 각오하고). 그래도 낮으면 다음 싸움은 끝까지
+        #  (3판: low_hp가 0 s로 25번 되풀이)
+        low = False
+        if res.result == "low_hp":
+            fld.heal()
+            s2 = fld.mv.snap(45.0)
+            low = bool(s2 and s2.player.hp < s2.player.max_hp * 0.5)
+    return "timeout"
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["status", "watch", "burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt-one", "merchant", "to-firelink", "light-burg", "burg-upper", "quit-test", "passage-drill", "asylum", "taurus", "merchant-buy", "altar", "altar-burg", "burg-to-altar", "light-altar", "firebomb-probe", "pick-blood", "burg-altar", "parish-group1", "parish-route"])
+    ap.add_argument("cmd", choices=["status", "watch", "burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt-one", "merchant", "to-firelink", "light-burg", "burg-upper", "quit-test", "passage-drill", "asylum", "taurus", "merchant-buy", "altar", "altar-burg", "burg-to-altar", "light-altar", "firebomb-probe", "pick-blood", "burg-altar", "parish-group1", "parish-route", "arena"])
     ap.add_argument("--no-rest", action="store_true")
     ap.add_argument("--no-quit", action="store_true", help="퀵 종료(메뉴로 나갔다 오기) 안 씀 — 영상 촬영용")
     ap.add_argument("--fall-quit", action="store_true", help="낙하 때 예전처럼 퀵 종료 (기본: 기록만 하고 계속, [MoKa] 2026-10-12)")
@@ -247,7 +277,7 @@ def main() -> None:
         from souls import duel as duel_c
         duel_c.COMBO_ONLY = True
         duel_c.DRILL = a.drill
-    log = Log(a.cmd)
+    log = Log(("room-" if env.SIM else "") + a.cmd)          # Godot room runs (BOT_GAME=sim) never pass for game runs
     import runinfo
     settings_path = Path(str(log.path).replace(".jsonl", ".settings.json"))
     t_run = time.time()
@@ -337,8 +367,11 @@ def main() -> None:
             return
         log(f"   화염병(292)을 {slot + 1}번째 빈 칸에 넣음 (가진 수 {have}) → 슬롯 {tm.quick_items()}")
     # one virtual pad per machine (P0-A): refuse before any input — focus_game already sends ALT / a title-bar click
-    busy = "다른 프로세스가 가상 패드를 쥐고 있음" if control.pad_lock_held() else None
-    if busy is None:
+    busy = "다른 프로세스가 가상 패드를 쥐고 있음" if control.pad_lock_held() and not env.SIM else None
+    if busy is None and env.SIM:                 # Godot 연습장: 같은 Pad 코드, 장치만 UDP (sim/godot_link.room_pad)
+        import godot_link
+        pad = godot_link.room_pad()
+    elif busy is None:
         control.focus_game()
         try:
             pad = control.Pad()
@@ -350,7 +383,15 @@ def main() -> None:
         run_end("pad_lock_held")
         lock.release()
         return
-    if a.cmd == "asylum":
+    if a.cmd == "arena":
+        if not env.SIM:
+            log("   ⚠ arena는 Godot 연습장 전용 (BOT_GAME=sim) — 멈춤")
+            run_end("not_sim")
+            lock.release()
+            return
+        flat = navmesh.Navmesh.flat()                       # sim/arena_scene.py와 같은 40 m 평지 (MoKa M1109-75)
+        nms = {missions.MAP_A: flat, missions.MAP_B: flat}
+    elif a.cmd == "asylum":
         from souls import asylum
         nms = {asylum.MAP: navmesh.Navmesh(asylum.MAP)}
     else:
@@ -503,6 +544,10 @@ def main() -> None:
                     log(f"══ 제단: {r}")
                 else:
                     r = f"fog {fg}"
+        elif a.cmd == "arena":
+            log.zone = "arena"
+            r = _arena(fld, nms[missions.MAP_A], log)
+            log(f"══ 결과: {r}")
         elif a.cmd == "burg-loop":
             r = ms.burg_bonfire_round_trip()
         elif a.cmd == "passage-drill":

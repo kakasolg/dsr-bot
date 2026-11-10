@@ -1767,7 +1767,7 @@ def rule_after_swing(F, T):
     s = F.mv.snap(10.0) or T.s
     c = F.mv.find(s, F.ptr) or c
     single = _others_near(s, F.ptr, SINGLE_HIT_R)
-    n = 1 if single else w.combo
+    n = 1 if single or getattr(F.foe, "backstep_only", False) else w.combo   # 백스텝 상대는 한 대씩 (MoKa M1109-76)
     kick = F.foe.kick_when_idle
     dec = None
     if tr:

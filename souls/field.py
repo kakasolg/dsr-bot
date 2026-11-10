@@ -378,7 +378,7 @@ class Field:
         self.events = events or (lambda *a, **k: None)
         # reflex — first on every tick, fighting or walking (navmesh for the footing check is set when used). Unblockable attacks come from foe data (layer 3)
         self.reflex = Reflex(mv, unblockable=lambda c: (c.anim or -1) in foes_.of(c.npc_param).unblockable,
-                             bs_ok=lambda c: foes_.of(c.npc_param).kind != "shield")
+                             bs_ok=lambda c: foes_.of(c.npc_param).kind != "shield" and not foes_.of(c.npc_param).backstep_only)
         self.reflex.evade = self.style.evade
         self.reflex.bs_attack = self.style.bs_attack
         self.reflex.reflex_on = self.style.reflex_on

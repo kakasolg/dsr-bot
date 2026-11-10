@@ -200,6 +200,13 @@ class Reflex:
         now = time.time()
         lock_ptr, lock_until = self._lock
         c = next((x for x in th if x.ptr == lock_ptr), None) if now < lock_until else None
+        # ── 막을 수 없는 공격이 먼저 (MoKa M1109-76, 연습장 아레나 20261109_224755) ──────────────────────────────
+        #  망자 3004를 막는 동안 (잠금 1.3 s) 옆 중기사 3006이 시작 → 1.22 s 뒤에야 백스텝, 그 전에 −220.
+        #  막을 수 없는 공격 (foes.unblockable)이 위협 안에 있으면 잠금을 깨고 그쪽 — 백스텝은 막던 공격에서도 물러남
+        ub = [x for x in th if c is not x and (x.anim if x.anim is not None else -1) in M.ATTACK and self.unblockable(x)]
+        if ub and (c is None or not self.unblockable(c)):
+            c = min(ub, key=lambda x: M.horiz(s.player, x))
+            self._lock = (c.ptr, self._start.get(c.ptr, now) + self.lock_s(c))
         if c is None and th:
             c = next((x for x in th if x.ptr == self.prefer), None) or min(th, key=lambda x: M.horiz(s.player, x))
             self._lock = (c.ptr, self._start.get(c.ptr, now) + self.lock_s(c))

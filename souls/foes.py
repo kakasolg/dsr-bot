@@ -34,6 +34,8 @@ class Foe:
     #   "shadow" — no kick, only log candidate events (duel.ShadowKick). Default, since the meaning of raw anims 3004·3500 is unverified
     #   "act"    — actually kick. No Foe data uses this value — enabling it needs a separately approved experiment-only change
     early_kick: str = "off"
+    # 막지 말고 백스텝으로 물러났다가 휘두름이 끝나면 한 대만 (reflex: B→R1 없이 백스텝, rule_after_swing: n = 1) — M1109-76
+    backstep_only: bool = False
     note: str = ""
 
     @property
@@ -113,6 +115,16 @@ BY_NPC: dict[int, Foe] = {
     290000: SKELETON, 290002: SKELETON, 290003: SKELETON, 290004: SKELETON, 291000: SKELETON,
     223200: ASYLUM_DEMON,
 }
+
+# ── 중기사 대검 257002 (c2570) — 막으면 가드가 깨진다 ([MoKa] 2026-11-09 M1109-76) ──────────────────────────────
+#  "큰 중갑 병사는 휘두르면 방패로 막아도 스테미나가 다 달아서 2타 맞을 확률이 매우 높아. 대신 백스텝으로 물러 났다, 한대씩 때리면 되긴 하는데"
+#  · AtkParam_Npc StaminaAttackPower 80–240 [game] (3000 80 · 3001 140 · 3005 160 · 3007 240) — 나무 방패 안정성 44로 줄여도
+#    3000→3001 두 번이면 98을 넘음. 그래서 모든 공격 (3000–3007)을 unblockable로 두고 백스텝, 끝나면 약공 한 대
+#  · 확인은 Godot 연습장 아레나만 (sim/arena_scene.py) — 실제 게임에서 이 놈과 싸운 기록 없음
+#  · "옆에 병사가 하나 더 있으면 답이 없을껄?" — 둘이 붙는 상황 대처는 여기 없음 (기존 다대일 규칙 그대로)
+HEAVY_KNIGHT = Foe("중기사(대검)", kind="other", unblockable=(3000, 3001, 3002, 3003, 3004, 3005, 3006, 3007), punish_hits=1,
+                   backstep_only=True, note="막으면 스태미나가 다 닳아 2타를 맞음 — 백스텝으로 물러났다 한 대씩 (MoKa M1109-76, 연습장만)")
+BY_NPC[257002] = HEAVY_KNIGHT
 
 UNKNOWN = Foe("모르는 적", kind="other")
 
