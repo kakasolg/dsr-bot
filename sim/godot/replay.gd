@@ -25,6 +25,14 @@ const LIB2_PATH := "res://assets/UAL2_Standard.glb"
 const PLAYER_WEAPON := "res://assets/WP_A_0505.glb"    # Battle Axe — the weapon of the 11-09 02:18 run ("무기: 배틀 액스")
 const GRIP_R := Vector3(-0.02, 0.08, 0.0)              # [guess] as in main.gd
 const DEFAULT_REPLAY := "../../data/replays/20261109_021816_burg-bonfire.json"
+const CHR_MODELS := "../../data/gamefiles/chr_models.json"   # sim/chr_glb.py: model, display masks, animation lengths
+# Real-model clip choice (MoKa M1109-57). The recorded id is the TAE animation id; c2540's 2255 borrows 2250, a 2-frame
+# still pose — the game's walking runs in the Havok behavior graph on top of it, which the radar does not record. So for
+# those ids (and −1 = not read) the clip is picked from the recorded speed: [guess] clips picked by eye from the
+# anibnd (a00_0200 walk cycle, a00_0500 run cycle, a00_0000 stand), walking direction vs facing ignored.
+const MOVE_IDS := [2250, 2255, -1]
+const MOVE_CLIPS := {"stand": "a00_0000", "walk": "a00_0200", "run": "a00_0500"}
+const CLAMP_IDS := [2205]       # death fall: hold the last frame instead of looping
 const CAM_DIST := 4.0          # [game] LockCamParam camDistTarget
 const CAM_ORG_Y := 1.42        # [game] LockCamParam chrOrgOffset_Y
 const CAM_PITCH := -0.45       # [guess] the radar records yaw only — W/S tilt it
@@ -54,6 +62,8 @@ var hit_ring: MeshInstance3D
 var dump_times := []
 var map_nodes: Array = []
 var xray: Dictionary = {}      # team → overlay material (silhouette through walls)
+var chr_models := {}           # chr_models.json
+var npc_model := {}            # npc row (String) → [model, masks]
 
 
 func _ready() -> void:
@@ -70,10 +80,23 @@ func _ready() -> void:
 	rp = JSON.parse_string(f.get_as_text())
 	for fr in rp["frames"]:
 		times.append(float(fr["t"]))
+	var fm := FileAccess.open(ProjectSettings.globalize_path("res://").path_join(CHR_MODELS), FileAccess.READ)
+	if fm != null:
+		chr_models = JSON.parse_string(fm.get_as_text())
+		for model in chr_models:
+			if not ResourceLoader.exists("res://assets/%s.glb" % model):
+				continue
+			for row in chr_models[model].get("npc_masks", {}):
+				npc_model[row] = [model, chr_models[model]["npc_masks"][row]]
 	_build_world()
 	_build_chars()
 	_build_ui()
 	t = float(args.get("at", "0"))
+	cam_mode = int(args.get("cam", "0"))                    # start camera: --cam=1 --yaw= --pitch= --dist= (orbit)
+	orbit_yaw = float(args.get("yaw", str(orbit_yaw)))
+	orbit_pitch = float(args.get("pitch", str(orbit_pitch)))
+	orbit_dist = float(args.get("dist", str(orbit_dist)))
+	labels_on = args.get("labels", "1") != "0"
 	if args.has("dump"):
 		for s in String(args["dump"]).split(","):
 			dump_times.append(float(s))
@@ -167,18 +190,44 @@ func _lib2() -> AnimationLibrary:
 
 
 func _segments(key: String) -> Array:
-	# [[t_start, anim], …] — when each animation id began (consecutive snapshots with the same id = one segment)
+	# [[t_start, anim], …] — when each animation id began (consecutive snapshots with the same id = one segment).
+	# The change happened somewhere between the last snapshot with the old id and the first with the new one (~0.11 s
+	# apart); the midpoint is used, so the start is off by at most half a snapshot gap.
 	var out := []
 	var last := -2
+	var t_prev := -1.0
 	for fr in rp["frames"]:
 		var row = fr["p"] if key == "p" else fr["c"].get(key)
 		if row == null:
 			continue
 		var an := int(row[4])
+		var tf := float(fr["t"])
 		if an != last:
-			out.append([float(fr["t"]), an])
+			out.append([(t_prev + tf) * 0.5 if t_prev >= 0.0 else tf, an])
 			last = an
+		t_prev = tf
 	return out
+
+
+func _real_model(model: String, masks: Array, color: Color) -> Dictionary:
+	# the game's own model (sim/chr_glb.py): weapons / shield shown by the NPC row's display masks, x-ray outline in
+	# the team colour; faces −Z like the mannequin setup, so no extra turn
+	var root := Node3D.new()
+	var m: Node3D = load("res://assets/%s.glb" % model).instantiate()
+	root.add_child(m)
+	var want := masks.map(func(x): return int(x))
+	var ov := StandardMaterial3D.new()
+	ov.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	ov.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	ov.no_depth_test = true
+	ov.albedo_color = Color(color.r, color.g, color.b, 0.22)
+	for mi in m.find_children("*", "MeshInstance3D", true, false):
+		var nm := String(mi.name)
+		if nm.begins_with("mask"):
+			mi.visible = nm.substr(4, 2).to_int() in want
+		(mi as MeshInstance3D).material_overlay = ov
+	var aps := m.find_children("*", "AnimationPlayer", true, false)
+	return {"node": root, "ap": aps[0] if aps.size() > 0 else null}
 
 
 func _build_chars() -> void:
@@ -199,10 +248,13 @@ func _build_chars() -> void:
 	for k in rp["chars"]:
 		var c: Dictionary = rp["chars"][k]
 		var team := int(c["team"])
-		var m := _mannequin(TEAM_COLOR.get(team, Color(0.8, 0.8, 0.8)), true)
+		var real: Variant = npc_model.get(str(int(c["npc"])))
+		var col: Color = TEAM_COLOR.get(team, Color(0.8, 0.8, 0.8))
+		var m := _real_model(real[0], real[1], col) if real != null else _mannequin(col, true)
 		add_child(m["node"])
 		chars[k] = {"node": m["node"], "ap": m["ap"], "label": _label(m["node"]), "team": team, "npc": int(c["npc"]),
-			"max_hp": int(c["max_hp"]), "segs": _segments(k)}
+			"max_hp": int(c["max_hp"]), "segs": _segments(k), "model": real[0] if real != null else "",
+			"motion": ""}
 
 
 func _label(n: Node3D) -> Label3D:
@@ -318,6 +370,30 @@ func _seg_start(segs: Array, tt: float) -> float:
 	return s
 
 
+static func anim_name(anim: int) -> String:
+	return "a%02d_%04d" % [anim / 10000, anim % 10000]
+
+
+func _pose_real(c: Dictionary, anim: int, spd: float, hp_now: int, tt: float) -> void:
+	# the recorded animation id played from the game's own clip; time since the id began (restarts of the same id
+	# inside one segment wrap around)
+	var ap: AnimationPlayer = c["ap"]
+	var clip := anim_name(anim)
+	var since := tt - _seg_start(c["segs"], tt)
+	c["motion"] = "실제"
+	if anim in MOVE_IDS or not ap.has_animation(clip):
+		var kind := "run" if spd > 2.5 else ("walk" if spd > 0.3 else "stand")
+		c["motion"] = ("이동 추정 %s" % kind) if anim in MOVE_IDS else "없는 번호 → %s" % kind
+		clip = MOVE_CLIPS[kind]
+		since = tt
+	var a := ap.get_animation(clip)
+	var at := minf(since, a.length) if (anim in CLAMP_IDS or hp_now <= 0) else fmod(since, a.length)
+	if ap.current_animation != clip:
+		ap.play(clip)
+	ap.seek(at, true)
+	ap.pause()
+
+
 func _pose(c: Dictionary, key: String, row: Array, tt: float) -> void:
 	var ap: AnimationPlayer = c["ap"]
 	if ap == null:
@@ -326,6 +402,9 @@ func _pose(c: Dictionary, key: String, row: Array, tt: float) -> void:
 	var spd := 0.0
 	if prev != null:
 		spd = Vector2(row[0] - prev[0], row[2] - prev[2]).length() / 0.12
+	if c.get("model", "") != "":
+		_pose_real(c, int(row[4]), spd, int(row[5]), tt)
+		return
 	var pick := _clip_for(key, int(row[4]), spd, int(row[5]))
 	var clip: String = pick[0]
 	if not ap.has_animation(clip):
@@ -365,6 +444,8 @@ func _apply(tt: float) -> void:
 			l.modulate = Color(0.6, 0.8, 1)
 		else:
 			l.text = "#%s %d  HP %d/%d  anim %d" % [key, c["npc"], row[5], c["max_hp"], row[4]]
+			if c.get("model", "") != "":
+				l.text += "  [%s]" % c["motion"]
 			l.modulate = Color(1, 0.6, 0.5) if int(c["team"]) == 6 else Color(0.8, 0.8, 0.8)
 	var hit: Variant = _near(rp["hits"], tt, 0.5)
 	hit_ring.visible = hit != null

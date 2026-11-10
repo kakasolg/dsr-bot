@@ -10,7 +10,13 @@
   `python sim/flver_glb.py --map m10_01_00_00` and `--map m10_02_00_00` (local only). Keys at the top of `godot/replay.gd`.
   DSR is left-handed: the replay and the converted maps use Godot x = −DSR x (the practice room `main.gd` does not yet,
   so it is drawn mirrored).
-- Tests: `python tests/godot_room_test.py`, `python tests/godot_combat_test.py`, `python tests/replay_test.py`
+- Real foe models (MoKa M1109-57): `python sim/chr_glb.py c2540` → `godot/assets/c2540.glb` (FLVER skin + every
+  anibnd animation; Havok decoded by DSAnimStudio's SoulsAssetPipeline through `hkx_dump.ps1`, needs `D:/tools/dsas`)
+  and `data/gamefiles/chr_models.json` (bone check, animation lengths, NpcParam display masks). The replay then draws
+  every NPC row of that model with its own model and plays the recorded animation id; ids the game blends on top of
+  (c2540 2255 → 2250 still pose, −1) get a walk / run / stand clip by recorded speed [guess]. `godot/chr_probe.tscn`
+  renders clip sheets (`--clips= --steps= --view=front`) or dumps bone positions (`--bones=`).
+- Tests: `python tests/godot_room_test.py`, `python tests/godot_combat_test.py`, `python tests/replay_test.py`, `python tests/chr_glb_test.py`
   (headless; skipped without Godot / data).
 
 ## Character assets (not in git)
