@@ -95,7 +95,7 @@ needing the tick loop, route data, settings object or WorldState.
 ## 3. v2.0 (`docs/review-v2-2026-10-11.md`; go, done bar N/10 and order: MoKa)
 
 **Structure (review §2; proposed order §4: settings → WorldState → tick loop → route data → spots → batch runner → boss)**
-- [~] settings-object | cloud | doing | step 1: `settings.py`, flags → constants in one place, saved as `overrides` (room run); next: step 2 | docs/review-v2-2026-10-11.md · plan:settings-object
+- [~] settings-object | cloud | doing | steps 1–2: flags in one place + `overrides`; fights read `F.flags` (offline); next: step 3 | docs/review-v2-2026-10-11.md · plan:settings-object
 - [ ] worldstate | cloud | todo | WorldState: who is alive / where after a rest, quit-out or warp, in one place (P-18 · P-25 · P-44 · P-55) | docs/review-v2-2026-10-11.md
 - [ ] tick-loop | cloud | todo | one tick loop (read → state → one action → input) instead of field.py's loops; walking first | docs/review-v2-2026-10-11.md · plan:tick-loop
 - [ ] route-data | cloud | todo | route data (walk / safe spot / pull / fight / ladder / fog wall …) + one runner; `burg-upper` first | docs/review-v2-2026-10-11.md · plan:route-data

@@ -694,11 +694,41 @@ PUNISH_R = 1.6           # within reach + this, walk in and hit (with 0.9 it cou
 CONT = "continue"      # a rule acted this tick — start the next tick
 
 
+class Flags:
+    """The run's fight flags (settings-object step 2): rules read them as `F.flags.NAME`, not as module globals. A flag
+    given here (run.py → Field → duel(flags=…), a test, a scene replay) is fixed for this fight; one not given is read
+    from the module global at that moment, so code that still sets `duel.HEAVY = …` behaves as before."""
+    NAMES = ("BACKSTAB", "HEAVY", "FOOTING", "COMBO_ONLY", "DRILL", "BACKSTAB_ONLY")
+
+    def __init__(self, **given):
+        bad = set(given) - set(self.NAMES)
+        if bad:
+            raise AttributeError(f"not a fight flag: {sorted(bad)}")
+        self.__dict__["given"] = dict(given)
+
+    def __getattr__(self, k):
+        if k not in Flags.NAMES:
+            raise AttributeError(k)
+        g = self.__dict__["given"]
+        return g[k] if k in g else globals()[k]
+
+    def __setattr__(self, k, v):
+        raise AttributeError("Flags are read-only — make a new Flags(...)")
+
+    def values(self) -> dict:
+        return {k: getattr(self, k) for k in self.NAMES}
+
+    def __repr__(self) -> str:
+        return f"Flags({self.__dict__['given']})"
+
+
 class Fight:
     """What one duel remembers across ticks (the old duel() locals). Rules read and change it."""
+    flags = Flags()          # class default: a Fight made without __init__ (scene_replay, tests) reads the module globals
 
     def __init__(self, mv, weapon, ptr, nm, log, limit, low_hp, cancel, care, reflex, arena, style, wait_far, gen, events,
-                 may_approach, crowd_ok: bool = False, wall_ok: bool = False, trail=None):
+                 may_approach, crowd_ok: bool = False, wall_ok: bool = False, trail=None, flags: Flags | None = None):
+        self.flags = flags if flags is not None else Flags()   # settings-object step 2: the rules' flags (Flags)
         self.mv, self.weapon, self.ptr, self.nm, self.log, self.limit, self.low_hp = mv, weapon, ptr, nm, log, limit, low_hp
         self.cancel, self.care, self.reflex, self.arena, self.style = cancel, care, reflex, arena, style
         self.wait_far, self.may_approach = wait_far, may_approach
@@ -1070,7 +1100,7 @@ def _keep_lock(F, T) -> None:
         return
     st = state(F.ptr)
     # 콤보 시험은 여럿 있어도 지금 그놈에 락온 ([MoKa] 11-03 "콤보는 적을 락업 하는 게 필수야")
-    want = T.h <= LOCK_KEEP_R and abs(T.dy) <= LOCK_KEEP_DY and (COMBO_ONLY or not _others_near(T.s, F.ptr, ALONE_R))
+    want = T.h <= LOCK_KEEP_R and abs(T.dy) <= LOCK_KEEP_DY and (F.flags.COMBO_ONLY or not _others_near(T.s, F.ptr, ALONE_R))
     if st == "other" or (st == "target" and not want):
         press()                                            # R3 is a toggle: off now, on the right one next time if still wanted
         F.lock_t, F.lock_n = T.now, F.lock_n + 1
@@ -1287,11 +1317,11 @@ LOCK_WAIT_S = 4.0        # 콤보 전 락온을 이만큼 기다리고도 못 �
 PLANNED: dict = {}
 
 
-def _tech(c) -> str | None:
+def _tech(F, c) -> str | None:
     """This foe's technique: the drill's, else the group plan's (--combo-only). Timing rules (jump · swing backstep) key off it,
     so a route run with --combo-only uses them per foe, not only in a one-attack drill ([MoKa] 11-04 "공격 기술을 적절한 타이밍에
     못 사용 한다는 것을 개선 해야해")."""
-    return DRILL or (PLANNED.get(c.ptr) if COMBO_ONLY else None)
+    return F.flags.DRILL or (PLANNED.get(c.ptr) if F.flags.COMBO_ONLY else None)
 BS_WAIT = 0.0             # COMBO_ONLY: planned backstep combo but foe at 1.15–2.2 m → wait this long for it to come in        # COMBO_ONLY: foe ptr → planned attack, set by Field._group_plan (souls/group_plan.py) before the fight
 BS_R = 2.2               # COMBO_ONLY: within this = 붙어 있음 (1.6 reach → 2.2 after "가까운데 구르기") → backstep attack first ([MoKa] 11-03 "적이 붙어 있으면 백스텝 콤보 사용해야지")
 FOOTING = False          # run.py --footing: rule_footing on, rule_edge off (design-floor-check §3-A; [MoKa] 2026-10-11 answers to §7)
@@ -1353,7 +1383,7 @@ def rule_footing(F, T):
         막을 수 있는 휘두름은 지금처럼 막고 끝나면 옮김 · ② rule_after_swing 앞 · ③ NavMesh + 걸어 본 자리 · ④ 구르기 없이 걸음만
      같은 쪽으로 1 s 걸었는데 0.3 m도 못 가면(벽) 2 s 쉼. 기록(experiments/footing_probe.py): 싸움 중 낙하 7번 모두 2~2.5 s 전부터 위험.
     """
-    if not FOOTING:
+    if not F.flags.FOOTING:
         return None
     p, now = T.p, T.now
     g = _floor(F)
@@ -1472,7 +1502,7 @@ def rule_jump_drill(F, T):
        5.5 → 1.0 m, 옆으로 넘어감 ([MoKa] "넘어갔어"). 망자는 다가오다 가속하니 속도로 착지 거리를 못 맞춤.
      · 락온 · 기력 JUMP_SP · 앞 바닥 JUMP_FRONT m · 높이 차 1 m 안. 매번 "jump_drill" 이벤트 (h · v · 내 애니·그놈 애니 시간 · 피해).
     """
-    if _tech(T.c) != "jump_r2":
+    if _tech(F, T.c) != "jump_r2":
         return None
     s, c, h = T.s, T.c, T.h
     if h > JUMP_WAIT_FAR or abs(getattr(T, "dy", 0.0) or 0.0) > 1.0:
@@ -1538,7 +1568,7 @@ def rule_jump_dodge(F, T):
      거리가 2.4–4.3 m 생기면 rule_jump_drill이 점프 (헛침 갈래). 조건은 휘두름 백스텝과 같음 (망자 · SWING_BS_MIN..R · 시작
      SWING_BS_EARLY s 안 · 뒤 바닥 2.6 m).
     """
-    if _tech(T.c) != "jump_r2":
+    if _tech(F, T.c) != "jump_r2":
         return None
     s, c, h = T.s, T.c, T.h
     swinging = T.a in M.ATTACK and T.age is not None
@@ -1569,9 +1599,9 @@ def rule_jump_save(F, T):
      (2.6 m)에 점프할 기력이 없었음. 기력 < JUMP_DODGE_SP이고 그놈이 안 휘두를 때는 방패 내리고 (회복 −80 % 없앰) 마주 보고만
      섬 — 다른 공격 안 함. 휘두르면 아래 막기·반사 규칙이 그대로 막음.
     """
-    if _tech(T.c) != "jump_r2":
+    if _tech(F, T.c) != "jump_r2":
         return None
-    if not DRILL and sum(1 for x in T.s.hostile(JUMP_SAVE_CROWD_R) if x.hp > 0 and x.ptr != T.c.ptr
+    if not F.flags.DRILL and sum(1 for x in T.s.hostile(JUMP_SAVE_CROWD_R) if x.hp > 0 and x.ptr != T.c.ptr
                          and abs(x.y - T.s.player.y) < 1.2) > 0:
         return None                                        # 계획 점프 (드릴 밖): 다른 놈이 가까이 있으면 방패 내리지 않음
     sp = getattr(T.s.player, "sp", None)
@@ -1595,9 +1625,9 @@ def rule_swing_backstep(F, T):
      · 매번 "swing_bs" 이벤트에 h · v · 그놈 애니 · age · 결과를 남겨 시범 값과 맞춰 봄.
     """
     s, c, h = T.s, T.c, T.h
-    if not (COMBO_ONLY and DRILL in (None, "backstep_r1")) or h > SWING_BS_R + 1.5:
+    if not (F.flags.COMBO_ONLY and F.flags.DRILL in (None, "backstep_r1")) or h > SWING_BS_R + 1.5:
         return None
-    if not DRILL and PLANNED.get(c.ptr) not in (None, "backstep_r1"):
+    if not F.flags.DRILL and PLANNED.get(c.ptr) not in (None, "backstep_r1"):
         return None
     v = _closing(F, c, h)
     swinging = T.a in M.ATTACK and T.age is not None
@@ -1774,7 +1804,7 @@ def rule_after_swing(F, T):
         conds.update(faced=True, stepped=stepped, single=single)
         dec = CT.intent(F, T, s, c, "kick_combo" if kick else "strike(light, or wall heavy via _slam)", n, conds)
     try:
-        if kick and not (DRILL and DRILL != "kick_combo"):   # 드릴 중엔 방패병도 그 공격으로 (133704: 255010에 kick+light — 드릴 밖)
+        if kick and not (F.flags.DRILL and F.flags.DRILL != "kick_combo"):   # 드릴 중엔 방패병도 그 공격으로 (133704: 255010에 kick+light — 드릴 밖)
             hit = F.mv.kick_combo(s, c, n=n)
         else:
             hit = _strike(F, s, c, n=n, sp_second=w.sp_min)
@@ -1825,7 +1855,7 @@ def rule_early_kick(F, T):
     if cand and ek == "shadow":
         # Patch D: don't kick on raw anim alone — only log and fall through to the branches below (as if B8 never existed)
         F.shadow.observe(T.now, F.ptr, F.mv.tm.handle(F.ptr), T.c.npc_param, a, age, T.h, T.dy, p.sp, p.max_sp, len(T.near45), p.hp, T.c.hp)
-    if cand and ek == "act" and not (DRILL and DRILL != "kick_combo") and F.mv.face(T.s, T.c, deg=30.0):
+    if cand and ek == "act" and not (F.flags.DRILL and F.flags.DRILL != "kick_combo") and F.mv.face(T.s, T.c, deg=30.0):
         F.kick_t = T.now
         why = f"{a} {age:.2f}s" if a in foe.windup else f"휘청 {a}"
         hit = F.mv.kick_combo(T.s, T.c, n=foe.punish_hits or F.weapon.combo)
@@ -1854,7 +1884,7 @@ def prep_linger(F, T):
     if swing_over(F.foe, T.a, T.age):
         T.a = -1
     foe = F.foe
-    T.room = BACKSTAB and foe is not None and foe.circle_behind and T.now >= F.edge_until and _room_behind(F.nm, T.p, T.c)
+    T.room = F.flags.BACKSTAB and foe is not None and foe.circle_behind and T.now >= F.edge_until and _room_behind(F.nm, T.p, T.c)
     if T.room and _crowd(T.s, F.ptr) >= NO_BACKSTAB_N:
         # 둘 이상 붙었으면 뒤잡기로 돌지 않고 약공·방패 ([MoKa] 2026-10-01: 비밀 통로 지나 만나는 둘은 구조적으로 동시에 2:1 —
         # 약공·방패 플레이가 맞음). 도는 동안 다른 놈에게 맞음 (P-29: 셋에게 뒤잡기 4번 모두 실패, 사망)
@@ -1872,7 +1902,7 @@ def rule_hit_first(F, T):
     """Hit first (user: "if you'd swung even once, that enemy would have backed off") — a hollow flinches (2000·2002) from one light attack and backs off.
     When it has just started attacking (within INTERRUPT_S) or is standing still. Shield soldiers excluded (blocked by shield); if another foe swings beside us, block first."""
     foe, a, age, w = F.foe, T.a, T.age, F.weapon
-    if (foe.kind != "shield" and T.h <= w.reach and not (BACKSTAB_ONLY and T.room)
+    if (foe.kind != "shield" and T.h <= w.reach and not (F.flags.BACKSTAB_ONLY and T.room)
             and not (foe.circle_behind and F.res.dealt > 0 and a == -1 and F.circle_n < CIRCLE_MAX_SWEEPS) and abs(T.dy) <= 1.0 and (T.p.sp or 0) >= w.sp_min
             and (a == -1 or (a in M.ATTACK and age is not None and age < INTERRUPT_S
                              and (w.startup or 0.0) <= INTERRUPT_STARTUP_MAX))
@@ -1930,7 +1960,7 @@ def _sleeper_heavy(F, T) -> bool:
        관측된 배틀 액스 강공 피해는 대부분 69·75·85 (망자 HP 그대로) — 0·26·32도 있음 (빗나감·방패)
     """
     w = F.weapon
-    return (HEAVY and w.heavy_vertical and T.a == -1 and T.c.hp <= SLEEPER_HEAVY_HP
+    return (F.flags.HEAVY and w.heavy_vertical and T.a == -1 and T.c.hp <= SLEEPER_HEAVY_HP
             and (T.p.sp or 0) >= SLEEPER_HEAVY_SP and _asleep(F, T.c, T.now) and _locked(F))
 
 
@@ -2002,7 +2032,7 @@ def rule_edge(F, T):
     """Next to a cliff — go to a flat spot (it follows). Without arena, raise shield and face it:
     the NavMesh only blocks — it doesn't choose a step toward 'the wider ground' (evidence-grade gate, 2026-09-26)."""
     p, nm = T.p, F.nm
-    if (not FOOTING and nm is not None and T.a not in M.ATTACK and T.now - F.move_t > 3.0 and p.gx is not None
+    if (not F.flags.FOOTING and nm is not None and T.a not in M.ATTACK and T.now - F.move_t > 3.0 and p.gx is not None
             and nav.footing(nm, p)[0] < nav.FOOTING_MIN):
         F.move_t = T.now
         if F.arena is not None and not T.ledge and math.dist((p.x, p.y, p.z), tuple(F.arena)) > 1.5:
@@ -2061,10 +2091,10 @@ def rule_stagger_punish(F, T):
         F.note("휘청늦음", T.s, T.c)
         time.sleep(0.02)
         return CONT
-    if (a in M.STAGGER or a == M.GUARD_BROKEN) and not (BACKSTAB_ONLY and T.room) and T.h <= w.reach + 0.3 and abs(T.dy) <= 1.0 \
+    if (a in M.STAGGER or a == M.GUARD_BROKEN) and not (F.flags.BACKSTAB_ONLY and T.room) and T.h <= w.reach + 0.3 and abs(T.dy) <= 1.0 \
             and (p.sp or 0) >= w.sp_min and not _other_swinging(T.s, F.ptr):
         if F.mv.face(T.s, T.c, deg=30.0):
-            if w.heavy_punish and foe.kind == "shield" and (p.sp or 0) >= HEAVY_SP and _locked(F) and not COMBO_ONLY:
+            if w.heavy_punish and foe.kind == "shield" and (p.sp or 0) >= HEAVY_SP and _locked(F) and not F.flags.COMBO_ONLY:
                 hit = F.mv.heavy(T.s, T.c)
             else:
                 hit = _strike(F, T.s, T.c, n=foe.punish_hits or w.combo, sp_second=w.sp_min)
@@ -2235,18 +2265,18 @@ def _closing(F, c, h: float) -> float:
 
 def _entry_h(F, c, h: float) -> float:
     """Distance when the entry attack lands: now minus what the foe walks in meanwhile (never less than 0)."""
-    lead = ENTRY_LEAD.get(DRILL or PLANNED.get(c.ptr) or "", 0.9)
+    lead = ENTRY_LEAD.get(F.flags.DRILL or PLANNED.get(c.ptr) or "", 0.9)
     return max(0.0, h - max(0.0, F.__dict__.get("_hv", {}).get(c.ptr, (0, 0, 0.0))[2]) * lead)
 
 
 def _entry_try(F, T):
     """COMBO_ONLY: strike the entry combo now if the foe will be inside the entry window when it lands (None = not now)."""
     s, c, h = T.s, T.c, T.h
-    if COMBO_ONLY:
+    if F.flags.COMBO_ONLY:
         _closing(F, c, h)
-    if _tech(c) == "backstab":
+    if _tech(F, c) == "backstab":
         return None                                        # 계획 뒤잡: 진입 콤보로 뛰어들지 않고 오게 둠 (뒤잡 규칙이 돌아 들어감)
-    if (COMBO_ONLY and BS_R < _entry_h(F, c, h) <= CTB.ENTRY_MAX and abs(T.dy) <= 1.0 and (T.p.sp or 0) >= F.weapon.sp_min
+    if (F.flags.COMBO_ONLY and BS_R < _entry_h(F, c, h) <= CTB.ENTRY_MAX and abs(T.dy) <= 1.0 and (T.p.sp or 0) >= F.weapon.sp_min
             and F.mv.face(s, c, deg=30.0)):
         # 걸어 붙은 다음에 고르지 말고 거리 있을 때 진입 콤보로 들어감 (P-121, [MoKa] 11-03 "미리 거리가 있을때 하면서 들어가야지")
         hit = _combo_strike(F, s, c, phase="entry")
@@ -2273,13 +2303,13 @@ def rule_approach(F, T):
             F.log(f"      다가가지 않음 — {c.npc_param} ({c.x:.1f}, {c.y:.1f}, {c.z:.1f}) 는 안전 구역 밖 (Patch E-2)")
             return F.done("unsafe_approach")
         global _replan_t
-        if COMBO_ONLY and REPLAN is not None and now - _replan_t > 0.5:
+        if F.flags.COMBO_ONLY and REPLAN is not None and now - _replan_t > 0.5:
             _replan_t = now
             try:
                 REPLAN()
             except Exception as e:                         # 계획은 기록용 — 싸움을 멈추지 않음
                 F.log(f"      계획 다시 못 함: {e!r}")
-        if COMBO_ONLY and F.plan_for != c.ptr:
+        if F.flags.COMBO_ONLY and F.plan_for != c.ptr:
             F.plan_for = c.ptr                             # 한 놈에 한 번: 붙기 전에 계획부터 ([MoKa] 11-03 "플랜 없이 마구잡이")
             F.log("      " + CTB.engage_line(h, F.foe, c.anim))
         r = _entry_try(F, T)
@@ -2418,7 +2448,7 @@ def _slam(F, s, c, swinging: bool = False) -> float | None:
      · 양손 전환은 확실한 1:1에서만(ALONE_R 6 m 안 다른 적 없음), 3.5 m 안 다른 적이 있으면 벽 강공 안 함 ([MoKa] 2026-10-01, _heavy_ok)
      · 적이 휘두르는 중에 끊어 치기로는 안 씀 (강공은 느림)"""
     w = F.weapon
-    if (not HEAVY or not w.heavy_vertical or swinging or (s.player.sp or 0) < WALL_HEAVY_SP or not _heavy_ok(F, s)
+    if (not F.flags.HEAVY or not w.heavy_vertical or swinging or (s.player.sp or 0) < WALL_HEAVY_SP or not _heavy_ok(F, s)
             or not _locked(F)):
         return None
     return _walled(F.nm, s.player, c)
@@ -2490,13 +2520,13 @@ def _combo_strike(F, s, c, phase: str = "hit") -> "M.Hit":
         back_ok = nav.can_move(F.nm, p, math.sin(p.heading), math.cos(p.heading), 2.6)
         front_ok = nav.can_move(F.nm, p, c.x - p.x, c.z - p.z, min(3.0, front))
     k = CTB.key(h, F.foe, anim0, back_ok, front_ok)
-    if DRILL:
+    if F.flags.DRILL:
         setup = _drill_setup(F, s, c, k, h, back_ok, front_ok, phase)
         if setup is not None:
             return setup
     moves, src = CTB.entry_plan(k) if phase == "entry" else CTB.plan(k)
-    if DRILL and F.__dict__.get("_drill_n", {}).get(c.ptr, 0) <= DRILL_SETUPS:
-        moves, src = [DRILL], f"드릴 {DRILL} (MoKa 11-03 \"내가 원하는 특정 공격을 유도 할 수 있어야\")"
+    if F.flags.DRILL and F.__dict__.get("_drill_n", {}).get(c.ptr, 0) <= DRILL_SETUPS:
+        moves, src = [F.flags.DRILL], f"드릴 {F.flags.DRILL} (MoKa 11-03 \"내가 원하는 특정 공격을 유도 할 수 있어야\")"
     planned = PLANNED.get(c.ptr)
     # 132052: 1.5 s 기다려도 3/3 안 들어옴 (그놈이 1.5 m에 서서 침) → BS_WAIT 0 (끔), 코드는 남김
     if BS_WAIT > 0 and phase == "hit" and planned == "backstep_r1" and k["dist"] == "reach" and k["state"] != "swing":
@@ -2513,7 +2543,7 @@ def _combo_strike(F, s, c, phase: str = "hit") -> "M.Hit":
     fits = planned in (("roll_r1", "jump_r2") if phase == "entry" else ("backstep_r1", "kick_combo", "light"))
     # P-132: 붙어서 튕긴 놈 (방패병 말고)엔 계획이 백스텝 콤보여도 표대로 바로 약공 (MoKa 11-04 "바로 약공")
     bounced = phase == "hit" and k["state"] == "open" and k["kind"] != "shield" and moves[:1] == ["light"]
-    if fits and not DRILL and k["state"] != "swing" and not (planned == "backstep_r1" and k["dist"] == "reach") and not bounced:
+    if fits and not F.flags.DRILL and k["state"] != "swing" and not (planned == "backstep_r1" and k["dist"] == "reach") and not bounced:
         moves, src = [planned] + [m for m in moves if m != planned], "계획 → " + src
     if phase == "entry" and not moves:
         return M.Hit("entry", skipped="진입 없음 — " + src)
@@ -2528,7 +2558,7 @@ def _combo_strike(F, s, c, phase: str = "hit") -> "M.Hit":
     why, hit, used = [], None, None
     # ── 콤보는 락온한 채로 ([MoKa] 11-03 "콤보는 적을 락업 하는 게 필수야") ──────────────────
     #  락온이 그놈에 안 걸렸으면 콤보를 누르지 않고 기다림 (_keep_lock이 R3를 누름). LOCK_WAIT_S 넘게 못 잡으면 락온 없이 치고 기록
-    if COMBO_ONLY and lock in ("none", "other") and any(m != "light" for m in moves):
+    if F.flags.COMBO_ONLY and lock in ("none", "other") and any(m != "light" for m in moves):
         lw = F.__dict__.setdefault("_lock_wait", {})
         t0 = lw.setdefault(c.ptr, time.time())
         if time.time() - t0 < LOCK_WAIT_S:
@@ -2550,7 +2580,7 @@ def _combo_strike(F, s, c, phase: str = "hit") -> "M.Hit":
             used = name
             break
         why.append(f"{name}: {hit.skipped}")
-    drilling = DRILL and F.__dict__.get("_drill_n", {}).get(c.ptr, 0) <= DRILL_SETUPS
+    drilling = F.flags.DRILL and F.__dict__.get("_drill_n", {}).get(c.ptr, 0) <= DRILL_SETUPS
     if used is None and phase == "hit" and not drilling and CTB.fallback(k, why):
         hit = F.mv.light(s, c, n=1)
         if hit.presses:
@@ -2625,15 +2655,15 @@ def _drill_setup(F, s, c, k, h, back_ok, front_ok, phase):
      · 한 번 할 때마다 "drill_setup" 이벤트 (무엇을, 왜) → 공격까지 몇 단계, 어디서 막히는지가 남음.
     → None = 지금 친다, or a Hit("setup"/"wait") = 이번 틱은 준비만
     """
-    lo, hi = DRILL_BAND.get(DRILL, (0.0, 9.0))
+    lo, hi = DRILL_BAND.get(F.flags.DRILL, (0.0, 9.0))
     n = F.__dict__.setdefault("_drill_n", {})
-    if phase == "entry" and DRILL not in ("roll_r1", "jump_r2"):
+    if phase == "entry" and F.flags.DRILL not in ("roll_r1", "jump_r2"):
         return M.Hit("entry", skipped="드릴: 진입 공격 아님 — 걸어서")
     if n.get(c.ptr, 0) >= DRILL_SETUPS:
         if n.get(c.ptr) == DRILL_SETUPS:
             n[c.ptr] += 1
-            F.log(f"      드릴 {DRILL} 유도 실패 — {DRILL_SETUPS}번 준비해도 조건 안 됨 ({h:.1f} m) → 이 놈은 기본 싸움")
-            F.events("drill_setup", attack=DRILL, npc=c.npc_param, what="give_up", h=round(h, 2))
+            F.log(f"      드릴 {F.flags.DRILL} 유도 실패 — {DRILL_SETUPS}번 준비해도 조건 안 됨 ({h:.1f} m) → 이 놈은 기본 싸움")
+            F.events("drill_setup", attack=F.flags.DRILL, npc=c.npc_param, what="give_up", h=round(h, 2))
         return None if phase == "hit" else M.Hit("entry", skipped="드릴 포기")
     p = s.player
     crowd = sum(1 for x in s.hostile(DRILL_CROWD_R + 1.0) if x.hp > 0 and (x.anim or -1) not in (-1,)
@@ -2645,18 +2675,18 @@ def _drill_setup(F, s, c, k, h, back_ok, front_ok, phase):
         for x in s.hostile(DRILL_CROWD_R + 3.0):
             n[x.ptr] = DRILL_SETUPS + 1
         n[c.ptr] = DRILL_SETUPS + 1
-        F.log(f"      드릴 {DRILL} 그만 — " + (f"{crowd}놈 붙음" if crowd >= 2 else f"이 싸움에서 {lost} 맞음") + " → 표대로 싸움")
-        if DRILL == "backstep_r1" and _two_handed(F) and DRILL_BS_TWO_HAND:
+        F.log(f"      드릴 {F.flags.DRILL} 그만 — " + (f"{crowd}놈 붙음" if crowd >= 2 else f"이 싸움에서 {lost} 맞음") + " → 표대로 싸움")
+        if F.flags.DRILL == "backstep_r1" and _two_handed(F) and DRILL_BS_TWO_HAND:
             F._grip_t = time.time()
             F.mv.pad.two_hand_right()                      # 표대로 싸움은 한손·방패로 (P-123)
             F.log("      드릴 그립: 한손·방패로 되돌림")
-        F.events("drill_setup", attack=DRILL, npc=c.npc_param, what="abort", crowd=crowd, lost=lost, h=round(h, 2))
+        F.events("drill_setup", attack=F.flags.DRILL, npc=c.npc_param, what="abort", crowd=crowd, lost=lost, h=round(h, 2))
         return None if phase == "hit" else M.Hit("entry", skipped="드릴 그만")
     if k["state"] == "swing":
         return M.Hit("wait", skipped="드릴: 휘두르는 중 — 기다림")
     what = why = None
-    wait_near, hold, far = DRILL_WAIT.get(DRILL, (None, None, None))
-    if wait_near is not None and (DRILL != "backstep_r1" or back_ok is not False) and h > wait_near:
+    wait_near, hold, far = DRILL_WAIT.get(F.flags.DRILL, (None, None, None))
+    if wait_near is not None and (F.flags.DRILL != "backstep_r1" or back_ok is not False) and h > wait_near:
         # ── 백스텝 드릴은 다가가지 않고 기다림 (P-121 182931: 1.15 m까지 다가가서 누른 5번 모두 서서 휘두른 놈 1.3–2.2 m, 다가오는
         #  놈엔 0번) — MoKa 시범처럼 거리를 두고 준비, 놈이 SWING_BS_R에 들어오면 rule_swing_backstep이 장전해서 B.
         #  DRILL_BS_FAR보다 멀면 그 안까지만 다가감, 기다려도 안 오면 (DRILL_BS_IDLE s) 한 걸음씩 ──────────────────────
@@ -2667,7 +2697,7 @@ def _drill_setup(F, s, c, k, h, back_ok, front_ok, phase):
             F.mv.step(s, c.x, c.z, min(0.6, (h - hold) / 2.5 + 0.1))
             what, why = "다가감", f"{h:.1f} m — {hold} m까지 (안 옴)" if h <= far else f"{h:.1f} m > {far} m"
         else:
-            if DRILL == "backstep_r1":
+            if F.flags.DRILL == "backstep_r1":
                 _drill_grip(F, s, c)
             # 기다리는 동안 방패를 내림 — 들고 있으면 기력이 늦게 차 백스텝+R1 기력(50)이 모자람 (#7 기력 < 50 ×7, 184413 기력 22)
             #  ([MoKa] 11-03 "방패 가드의 단점이 막으면 스테미나를 많이 사용해서 다음 공격이 어려워 지는데"), 락온은 지금 미리
@@ -2677,9 +2707,9 @@ def _drill_setup(F, s, c, k, h, back_ok, front_ok, phase):
             if lock != "target" and time.time() - F.__dict__.get("_drill_lock_t", 0.0) > 1.0:
                 F._drill_lock_t = time.time()
                 ok = getattr(F.mv, "lock_target", lambda *_a, **_k: False)(c.ptr, tries=1)
-                F.events("drill_setup", attack=DRILL, npc=c.npc_param, what="lock", before=lock, ok=ok, h=round(h, 2))
+                F.events("drill_setup", attack=F.flags.DRILL, npc=c.npc_param, what="lock", before=lock, ok=ok, h=round(h, 2))
             return M.Hit("wait", skipped=f"드릴: {h:.1f} m에서 기다림 (방패 내림) — 오면 {wait_near} m에서")
-    elif DRILL == "backstep_r1" and back_ok is False:
+    elif F.flags.DRILL == "backstep_r1" and back_ok is False:
         from . import group_plan as GP
         plan = GP.make(p, [c], F.nm, foe_of=foes_.of, rings=GP.SPOT_R + (5.0, 6.0))
         if plan.spot and plan.moved > 0.3 and "뒤 바닥 없음" not in plan.spot_why:
@@ -2688,8 +2718,8 @@ def _drill_setup(F, s, c, k, h, back_ok, front_ok, phase):
         else:
             # 6 m 안에 그런 자리가 없음 — 틱마다 다시 세지 말고 바로 포기 (133704 200.5 s: "자리없음" 8번을 0.8 s에 다 씀)
             n[c.ptr] = DRILL_SETUPS
-            F.log(f"      드릴 {DRILL} 준비: 6 m 안에 뒤 바닥 2.6 m 있는 자리 없음 ({h:.1f} m)")
-            F.events("drill_setup", attack=DRILL, npc=c.npc_param, what="자리없음", h=round(h, 2))
+            F.log(f"      드릴 {F.flags.DRILL} 준비: 6 m 안에 뒤 바닥 2.6 m 있는 자리 없음 ({h:.1f} m)")
+            F.events("drill_setup", attack=F.flags.DRILL, npc=c.npc_param, what="자리없음", h=round(h, 2))
             return M.Hit("wait", skipped="드릴: 자리 없음")
     elif h > hi:
         if front_ok is False:
@@ -2702,8 +2732,8 @@ def _drill_setup(F, s, c, k, h, back_ok, front_ok, phase):
         # 뒤로 구르기는 경사로 밖으로 떨어짐 (140350 −587 낙사), 벽·턱에 몰려 죽음 (140920 −403 낙사)
         # ([MoKa] 11-03 "거리가 없으면 어떻게 구르기를 해?" · "미리 거리가 있을때 해야 하는 거지") → 이 놈은 표대로, 다음 놈을 거리에서
         n[c.ptr] = DRILL_SETUPS + 1
-        F.log(f"      드릴 {DRILL}: 이미 {h:.1f} m 붙음 (< {lo} m) — 진입 거리 놓침 → 이 놈은 표대로")
-        F.events("drill_setup", attack=DRILL, npc=c.npc_param, what="glued", h=round(h, 2), phase=phase)
+        F.log(f"      드릴 {F.flags.DRILL}: 이미 {h:.1f} m 붙음 (< {lo} m) — 진입 거리 놓침 → 이 놈은 표대로")
+        F.events("drill_setup", attack=F.flags.DRILL, npc=c.npc_param, what="glued", h=round(h, 2), phase=phase)
         return None if phase == "hit" else M.Hit("entry", skipped="드릴: 이미 붙음")
     if what is None:
         return None
@@ -2716,15 +2746,15 @@ def _drill_setup(F, s, c, k, h, back_ok, front_ok, phase):
         last[c.ptr] = time.time()
         F.mv.guard(True)
     n[c.ptr] = n.get(c.ptr, 0) + 1
-    F.log(f"      드릴 {DRILL} 준비 {n[c.ptr]}: {what} — {why}")
-    F.events("drill_setup", attack=DRILL, npc=c.npc_param, what=what, why=why, h=round(h, 2), state=k["state"],
+    F.log(f"      드릴 {F.flags.DRILL} 준비 {n[c.ptr]}: {what} — {why}")
+    F.events("drill_setup", attack=F.flags.DRILL, npc=c.npc_param, what=what, why=why, h=round(h, 2), state=k["state"],
              back=back_ok, front=front_ok, n=n[c.ptr])
     return M.Hit("wait", skipped=f"드릴 준비: {what}")
 
 
 def _strike(F, s, c, n: int, sp_second=None, swinging: bool = False) -> "M.Hit":
     """Our attack: the light (n swings), or the vertical heavy when _slam says so — a horizontal swing catches on the wall."""
-    if COMBO_ONLY:
+    if F.flags.COMBO_ONLY:
         return _combo_strike(F, s, c)
     wall = _slam(F, s, c, swinging)
     if wall is not None:
@@ -2737,7 +2767,7 @@ def _strike(F, s, c, n: int, sp_second=None, swinging: bool = False) -> "M.Hit":
 def rule_attack(F, T):
     """Default: kick an idle shield soldier looking at us (kick → light right away), else heavy or light per weapon."""
     s, c, a, w = T.s, T.c, T.a, F.weapon
-    if COMBO_ONLY:
+    if F.flags.COMBO_ONLY:
         hit = _combo_strike(F, s, c)
         if hit.kind == "wait":                             # 계획한 백스텝 거리 기다리는 중 — 매 틱 적지 않음
             F.note("계획대기", s, c)
@@ -2761,7 +2791,7 @@ def _no_drill(rule):
     """Drills never swap to another attack ([MoKa] 11-03 "점프 드릴이라고 하면서 뒤잡만 하고 있네") — backstab rules off while DRILL,
     and with --combo-only for a foe whose plan is another technique ([MoKa] 11-04: 뒤잡은 근처에 하나 · 지형 안 막힐 때만)."""
     def wrapped(F, T):
-        if DRILL is not None or _tech(T.c) not in (None, "backstab"):
+        if F.flags.DRILL is not None or _tech(F, T.c) not in (None, "backstab"):
             if rule is prep_backstab_chance:
                 r = rule(F, T)
                 T.backstab_chance = False
@@ -2834,7 +2864,7 @@ class _RuleRec:
 def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: float = 0.25,
          cancel=lambda: False, care=None, reflex=None, arena=None, style=None, wait_far: bool = False,
          gen=None, events=None, may_approach=None, crowd_ok: bool = False, wall_ok: bool = False,
-         advisor=None, tap=None, trail=None) -> DuelResult:
+         advisor=None, tap=None, trail=None, flags: Flags | None = None) -> DuelResult:
     """care: healing handler from layer 4 — care.wants(s) (wants to drink?), care.take(recheck) (drinks; recheck(s) rechecks the opening).
     Whether there's an opening is judged here (layer 3): opening(). If close, backstep to open distance and recheck next tick.
     reflex: reflex (souls/reflex.py) — first thing every tick. If it moved, this tick rests (it also blocks attacks from non-targets head-on).
@@ -2848,10 +2878,11 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
       returns is read here, and it swallows its own errors (LAYA.md).
     tap: attack_audit.DecisionTap (run.py --attack-audit, off by default) — copies what features() reads before each rule
       call, records the attack rule invocations after they return. Observation only: nothing it returns steers the fight
-      (its payload goes only to the advisor), and it swallows its own errors."""
+      (its payload goes only to the advisor), and it swallows its own errors.
+    flags: Flags (settings-object step 2) — the run's fight flags; None = the module globals."""
     from . import style as style_
     F = Fight(mv, weapon, ptr, nm, log, limit, low_hp, cancel, care, reflex, arena, style_.of(style or "guard"), wait_far, gen, events,
-              may_approach, crowd_ok, wall_ok, trail)
+              may_approach, crowd_ok, wall_ok, trail, flags)
     rr = _RuleRec() if ctl.on() else None              # P1-C: record only
     if rr is not None:
         CT.fight_start(F)                                  # counter trace (record only)

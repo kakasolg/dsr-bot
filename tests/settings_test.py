@@ -5,7 +5,8 @@
 Checks: for every run.py flag combination the constants after Settings.from_args(a).apply() are the ones the old run.py
 blocks produced (copied below as `old_blocks`) · restore() / applied() put the defaults back · a name the module lacks
 is an error · to_dict() holds only what changed · runinfo.collect records the overrides and levelup / kindle constants ·
-run.py writes no module constant itself any more.
+run.py writes no module constant itself any more. Step 2: duel.py's rules read F.flags (duel.Flags) — no bare global
+reads left, Flags given / fallback / read-only, Fight / Field defaults, the wiring run.py → Field → duel(flags=).
 """
 from __future__ import annotations
 import sys as _sys, pathlib as _pl  # repo root first (the bot's modules), then this folder
@@ -110,6 +111,45 @@ def main() -> None:
     src = (ROOT / "run.py").read_text(encoding="utf-8")
     writes = re.findall(r"^\s+(?:duel_\w*|field_\w*|levelup|kindle)\.[A-Z][A-Z0-9_]*\s*(?:,|=[^=])", src, re.M)
     check("run.py sets no fight / walk / levelup / kindle constant itself", not writes)
+
+    # step 2: the fight rules read F.flags (duel.Flags), not the module globals
+    import ast
+    from souls import field as field_mod
+    tree = ast.parse((ROOT / "souls" / "duel.py").read_text(encoding="utf-8"))
+    bare = sorted({(fn.name, n.id) for fn in ast.walk(tree) if isinstance(fn, ast.FunctionDef)
+                   for n in ast.walk(fn) if isinstance(n, ast.Name) and n.id in duel.Flags.NAMES and isinstance(n.ctx, ast.Load)})
+    check(f"duel.py: no function reads a flag as a module global ({bare})", not bare)
+    fsrc = (ROOT / "souls" / "field.py").read_text(encoding="utf-8")
+    check("field.py: no D.COMBO_ONLY / D.DRILL / … reads",
+          not re.findall(r"\bD\.(?:" + "|".join(duel.Flags.NAMES) + r")\b", fsrc))
+    f = duel.Flags(HEAVY=False, DRILL="roll_r1")
+    check("Flags: given values win, the rest follow the module globals",
+          f.HEAVY is False and f.DRILL == "roll_r1" and f.BACKSTAB is duel.BACKSTAB)
+    old = duel.BACKSTAB
+    duel.BACKSTAB = not old
+    live = duel.Flags().BACKSTAB
+    duel.BACKSTAB = old
+    check("Flags(): an unset flag reads the global at that moment (tests that set duel.X keep working)", live is (not old))
+    try:
+        duel.Flags(HEAVYY=False)
+        check("Flags: an unknown name raises", False)
+    except AttributeError:
+        check("Flags: an unknown name raises", True)
+    try:
+        f.HEAVY = True
+        check("Flags: read-only", False)
+    except AttributeError:
+        check("Flags: read-only", f.HEAVY is False)
+    check("a Fight made without __init__ (scene_replay) and Field default read the globals",
+          duel.Fight.flags.values() == duel.Flags().values() and field_mod.Field.flags.values() == duel.Flags().values())
+    import inspect
+    check("duel() and Fight take flags; Field passes its own; run.py sets Field.flags from the Settings",
+          "flags" in inspect.signature(duel.duel).parameters and "flags" in inspect.signature(duel.Fight.__init__).parameters
+          and "flags=self.flags" in fsrc and "fld.flags = duel_flags.Flags(**run_settings.overrides" in src)
+    s2 = settings.Settings.from_args(args(basic=True, drill="jump_r2"))
+    fl = duel.Flags(**s2.overrides.get("souls.duel", {}))
+    check("Flags from the Settings = what the flags mean (--basic --drill jump_r2)",
+          (fl.BACKSTAB, fl.HEAVY, fl.COMBO_ONLY, fl.DRILL) == (False, False, True, "jump_r2") and state() == default)
 
     if FAILS:
         print(f"settings_test: {len(FAILS)} 실패")

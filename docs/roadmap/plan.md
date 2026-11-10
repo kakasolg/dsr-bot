@@ -626,12 +626,25 @@ The items are still open in ROADMAP.md (one line each); their full text as it st
     --combo-only · --drill · --level-up · --kindle), `apply()` (one place; a misspelt name raises), `restore()` / `applied()`
     for tests, `to_dict()`. run.py's blocks replaced by one call; runinfo saves `overrides` and now records `levelup` / `kindle`.
     Modules still read their own globals (no reader changed). Verified: `tests/settings_test.py` (all 128 flag combinations
-    give the old blocks' constants), `runinfo_test`; one room run each side (`arena --basic`, old 1b9c7ee+fcbab01 vs new):
-    `ab.py` shows the 482 old constants identical, only `overrides` and the new levelup / kindle tables differ; both died at
-    ~66 s (--basic in the arena; not a game check).
-  - **Step 2 (next):** the fight code reads one object: `souls/duel.py` flags (BACKSTAB · HEAVY · FOOTING · COMBO_ONLY · DRILL)
-    through a `Settings` the Fight gets, module globals as defaults; `duel_golden_test` + `scene_replay` must not change.
-    Then field / missions; tests that set globals (84 lines) move to `applied()` as they are touched, not in bulk.
+    give the old blocks' constants), `runinfo_test`; one room run each side (`arena --basic`, fcbab01 vs step 1):
+    `ab.py` shows the 482 old constants identical, only `overrides` and the new levelup / kindle tables differ.
+    **Correction (same day):** those two runs (and two more) started Godot without `res://ramp.tscn`, so they ran in the
+    default practice room, not the arena (room record keys `dummy` / `lever`, HP unread) — the "both died at ~66 s" in
+    commit 45e849c says nothing about fights. The settings-record comparison above still holds.
+  - **Step 2 (built, cloud, 11-10):** `duel.Flags` (BACKSTAB · HEAVY · FOOTING · COMBO_ONLY · DRILL · BACKSTAB_ONLY): the
+    52 flag reads in duel.py's rules are `F.flags.X` (`_tech(F, c)`), field.py's 3 `D.COMBO_ONLY` / `D.DRILL` reads are
+    `self.flags.X`. run.py → `Field.flags = Flags(**overrides["souls.duel"])` → `duel(flags=)` → `Fight.flags`. A flag not
+    given reads the module global at that moment (Fight / Field class default `Flags()`), so tests that set `duel.X` and
+    `Fight.__new__` fakes behave as before; 8 test files' SimpleNamespace fakes got `flags=D.Flags()`, footing_test's
+    source check reads `not F.flags.FOOTING`. Scenes record `F.flags`; scene_replay sets `F.flags` instead of mutating globals.
+    `Settings.apply()` still writes the globals too (field / missions readers not moved yet).
+    Verified: settings_test (no bare flag read left in duel.py functions — AST; Flags given / fallback / read-only; wiring),
+    duel_golden (40320 situations, every decision same), duel_expect (82 scenes), scene_replay_test, full offline suite.
+    Room (arena scene, one run each, fcbab01 vs step 2, plain and --basic): all four ran to the end, 3 cleared, old plain
+    died — one run per side varies too much to compare; Claymore vs heavy Hollows chose no backstab / heavy in any run, so
+    the room did not show --basic reaching the fights (the tests do).
+  - **Step 3 (next):** field.py / missions.py constants the run changes (`NOTICE_PULL` …) read through the same object;
+    then stop `apply()` writing globals for modules whose readers moved. Tests that set globals move to `applied()` as touched.
 - `worldstate` (moved 2026-10-12): [ ] [cloud] WorldState: who is alive / where after a bonfire rest, quit-out (byte/menu) or warp, fixed in one place (P-18, P-25, P-44, P-55)
 - `tick-loop` (moved 2026-10-12): [ ] [cloud] One tick loop (read → update state → pick one action → input) instead of `field.py`'s own loops; walking first, one part at a time, guarded by `scene_replay` + `duel_golden_test`; v1.0 keeps running meanwhile
 - `route-data` (moved 2026-10-12): [ ] [cloud] Route data (walk / careful walk / safe spot / pull / fight / ladder / fog wall / Estus bar) + one runner; `burg-upper` moved first, then new segments without zone code

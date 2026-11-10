@@ -363,6 +363,9 @@ class LureBlock:
 
 
 class Field:
+    # the run's fight flags (settings-object step 2): run.py sets Flags from its Settings; this default reads duel's globals
+    flags = D.Flags()
+
     def __init__(self, mv: M.Moves, weapon, escape, bonfires: list, log=print, events=None, style="guard"):
         self.mv, self.w, self.esc, self.log = mv, weapon, escape, log
         self._detour = False                               # keeps walk's "detour" from recursing
@@ -830,7 +833,7 @@ class Field:
         nm = plain_nm(nm)                                  # run.py --ground: fights keep the plain NavMesh (GROUND_IN_FIGHTS)
         self._fight_n = getattr(self, "_fight_n", 0) + 1     # one id per fight() — a tether cut and re-taken stays the same fight
         self.fight_id = f"{getattr(self, 'run_id', 'run')}#f{self._fight_n:03d}"   # run.py sets run_id (runinfo, ROADMAP 1-i)
-        if D.COMBO_ONLY:
+        if self.flags.COMBO_ONLY:
             self._plan_key = None                          # 새 싸움: 계획부터 다시
             self._group_plan(ptr, nm, tag)
             # 다가가는 동안 무리가 바뀌면 다시 계획 (131637 #1: 40 m 밖 잠든 놈이라 시작 때 무리가 비어 계획 없이 싸움)
@@ -880,9 +883,9 @@ class Field:
             return
         self._plan_key = key
         plan = GP.make(p, foes, nm, foe_of=foes_.of, arc_of=lambda c: any(D._arc_open(nm, p, c)))
-        if D.DRILL:
+        if self.flags.DRILL:
             for st in plan.steps:                          # 드릴: 모든 놈에 그 공격 (134253: 방패병 계획 kick_combo가 드릴을 이김)
-                st.attack, st.why = D.DRILL, "드릴"
+                st.attack, st.why = self.flags.DRILL, "드릴"
         sig = tuple((st.ptr, st.attack) for st in plan.steps)
         if sig == getattr(self, "_plan_sig", None) and plan.moved < 0.8:
             return                                         # 같은 계획 — 다시 적지 않음 (132052: 같은 두 놈 계획 5번)
@@ -953,7 +956,8 @@ class Field:
                        wall_ok=WALL_BACK and time.time() >= getattr(self, "_wall_off_until", 0.0),
                        advisor=getattr(self, "advisor", None),   # run.py --laya-shadow: record-only (LAYA.md)
                        tap=getattr(self, "tap", None),           # run.py --attack-audit: observation only (attack_audit.py)
-                       trail=list(getattr(self, "trail", [])))   # a split with no straight-line spot backs off the way we came
+                       trail=list(getattr(self, "trail", [])),   # a split with no straight-line spot backs off the way we came
+                       flags=self.flags)                          # settings-object step 2
         finally:
             self.mv.cam_target = None
         self.log(f"   {tag}{' (끝까지)' if desperate else ''}: {r.line()}")
@@ -1633,7 +1637,7 @@ class Field:
                 continue
             coming = [c for c in s.hostile(FOLLOW_R + 2.0) if awake(c) and c.ptr not in ignore and c.anim not in (None, -1)
                       and M.horiz(s.player, c) < FOLLOW_R + 2.0 and abs(c.y - s.player.y) < FOLLOW_DY]
-            if D.COMBO_ONLY:
+            if self.flags.COMBO_ONLY:
                 # 오는 놈이 붙기 전에 계획 + 자리 (132052: 싸움 시작 때 세우니 첫 놈이 늘 0.6–3.0 m — 자리 옮김 0/7)
                 self._group_plan(None, nm, "오기 전")
             if coming:

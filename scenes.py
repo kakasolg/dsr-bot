@@ -20,7 +20,7 @@ CHAR_R = 25.0                    # characters within this of us are kept — the
                                  # a thrower on the ledge 18–19 m up); 15 m dropped it and rule_shot replayed as after_swing (P-61)
 ABS_T = 1e9                      # a float above this in the Fight's state is a wall-clock time → stored relative to now
 SKIP_F = {"mv", "nm", "log", "trail", "cancel", "care", "reflex", "style", "weapon", "foe", "last_seen", "shadow", "no_obs",
-          "res", "may_approach", "acts", "note_t"}
+          "res", "may_approach", "acts", "note_t", "flags"}   # flags: own field below (settings step 2)
 
 
 def _plain(v, now: float):
@@ -98,7 +98,7 @@ def capture(F, T) -> dict:
             "care": None if care is None else {"wants": wants},
             "nm": getattr(F.nm, "map_id", None) if F.nm is not None else None,
             "ground": type(F.nm).__name__ == "Ground",       # run.py --ground: floor checks read NavMesh + walked cells
-            "flags": {k: getattr(D, k) for k in ("BACKSTAB", "HEAVY", "BACKSTAB_ONLY", "FOOTING")}}
+            "flags": {k: getattr(F.flags, k) for k in ("BACKSTAB", "HEAVY", "BACKSTAB_ONLY", "FOOTING")}}   # the Fight's (settings step 2)
 
 
 class Tap:

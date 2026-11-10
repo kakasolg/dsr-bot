@@ -430,6 +430,8 @@ def main() -> None:
                              "since_fall_s": round(time.time() - esc.last_fall, 1) if esc.last_fall else None}
     fld = Field(mv, w, esc, bonfires=[] if a.cmd == "asylum" else [missions.FIRELINK["stand"], missions.BURG_BONFIRE],
                 log=log, events=log.event, style=a.style)
+    from souls import duel as duel_flags
+    fld.flags = duel_flags.Flags(**run_settings.overrides.get("souls.duel", {}))   # settings-object step 2: fights read these
     from souls.camera import CamFollow
     cam = CamFollow(mv, esc, log=log, events=log.event).start()   # so a viewer can see what the bot is doing (user 2026-09-26)
     mv.align_sink = cam.on_attack                          # target–body–camera at each attack press → "attack_align" ([MoKa] 10-11)

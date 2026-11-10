@@ -47,7 +47,7 @@ def scene(d: dict, anims: dict | None = None):
     mv = SimpleNamespace(guard=lambda on: calls.append(("guard", on)),
                          pad=SimpleNamespace(move=lambda x, y: calls.append(("move", round(x, 2), round(y, 2)))),
                          stick_to=lambda s_, x, z, scale=1.0: (x - me.x, z - me.z))
-    F = SimpleNamespace(nm=G, mv=mv, log=lambda *a: calls.append(("log",) + a), note=lambda *a: calls.append(("note", a[0])))
+    F = SimpleNamespace(flags=D.Flags(), nm=G, mv=mv, log=lambda *a: calls.append(("log",) + a), note=lambda *a: calls.append(("note", a[0])))
     T = SimpleNamespace(p=me, s=s, now=d["rt"], c=chars[0] if chars else None)
     return F, T, calls
 
@@ -103,7 +103,7 @@ def main() -> None:
           (D.RULES[i - 1] is D.prep_reflex or D.RULES[i - 2:i] == [D.prep_reflex, D.rule_guard_counter]) and all(r in (D.rule_swing_backstep, D.rule_jump_drill, D.rule_jump_dodge, D.rule_jump_save) for r in between))
     check("FOOTING is off by default (run.py --footing)", D.FOOTING is False and "--footing" in (ROOT / "run.py").read_text(encoding="utf-8"))
     import inspect
-    check("rule_edge stands down when FOOTING is on", "not FOOTING" in inspect.getsource(D.rule_edge))
+    check("rule_edge stands down when FOOTING is on", "not F.flags.FOOTING" in inspect.getsource(D.rule_edge))
     check("④ no roll in rule_footing", "roll" not in inspect.getsource(D.rule_footing).split('"""')[2])
     print("footing_test: 전부 통과")
 

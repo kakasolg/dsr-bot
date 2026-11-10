@@ -211,12 +211,10 @@ def replay(rec: dict) -> str | None:
     T = D.Tick(s=s, p=s.player, c=c, h=tk["h"], dy=tk["dy"], a=tk["a"], now=now)
     rec_ = lambda ret: (lambda *a, **k: ret)
     saved = {k: getattr(D, k) for k in ("_backstab", "_back_to_safe", "_separate", "_approach")}
-    flags = {k: getattr(D, k) for k in rec.get("flags", {})}
     sleep = D.time.sleep
     D._backstab, D._back_to_safe, D._separate, D._approach = rec_("not_behind"), rec_(None), rec_("no_spot"), rec_("stopped")
     D.time.sleep = lambda x: None
-    for k, v in rec.get("flags", {}).items():
-        setattr(D, k, v)
+    F.flags = D.Flags(**{k: v for k, v in rec.get("flags", {}).items() if k in D.Flags.NAMES})   # the recorded fight flags
     try:
         for rule in D.RULES:
             if rule(F, T) is not None:
@@ -226,8 +224,6 @@ def replay(rec: dict) -> str | None:
         return f"error:{type(e).__name__}"
     finally:
         for k, v in saved.items():
-            setattr(D, k, v)
-        for k, v in flags.items():
             setattr(D, k, v)
         D.time.sleep = sleep
 

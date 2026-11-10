@@ -44,7 +44,7 @@ class Mv:
 
 
 def fight(mv):
-    F = NS(mv=mv, nm=None, log=lambda *_: None, events=lambda *_a, **_k: None, notes=[])
+    F = NS(flags=D.Flags(), mv=mv, nm=None, log=lambda *_: None, events=lambda *_a, **_k: None, notes=[])
     F.note = lambda what, *_a: F.notes.append(what)
     F.record = lambda hit: None
     F.killed_if = lambda dead: "killed" if dead else D.CONT

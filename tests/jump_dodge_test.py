@@ -25,7 +25,7 @@ def check(name: str, ok: bool) -> None:
 def fight():
     mv = NS(calls=[])
     mv.backstep = lambda: mv.calls.append("B")
-    F = NS(mv=mv, nm=None, log=lambda *_: None, events=lambda *_a, **_k: None, note=lambda *_a: None)
+    F = NS(flags=D.Flags(), mv=mv, nm=None, log=lambda *_: None, events=lambda *_a, **_k: None, note=lambda *_a: None)
     return F
 
 
@@ -70,7 +70,7 @@ def main() -> None:
         names = {r.__name__ for r in D.RULES}
         check("뒤잡기 규칙은 RULES에 그대로 (이름)", {"rule_backstab", "rule_backstab_swing", "prep_backstab_chance"} <= names)
         bs = next(r for r in D.RULES if r.__name__ == "rule_backstab")
-        check("드릴 중 뒤잡기 → 안 함", bs(NS(), T) is None)
+        check("드릴 중 뒤잡기 → 안 함", bs(NS(flags=D.Flags()), T) is None)
         D.DRILL = "backstep_r1"
         F = fight()
         check("다른 드릴이면 안 함", tick(F, 3000, 0.1, 1.8) is None and F.mv.calls == [])
@@ -90,7 +90,7 @@ def main() -> None:
             check("계획 점프 · 다른 놈 가까이 → 방패 안 내림", tick2(F, [other]) is None and F.mv.calls == [])
             bs = next(r for r in D.RULES if r.__name__ == "rule_backstab")
             D.PLANNED[7] = "backstep_r1"
-            check("--combo-only 계획 백스텝 콤보 (2놈) → 뒤잡 안 함 ([MoKa] 11-04)", bs(NS(), NS(c=NS(ptr=7), backstab_chance=True)) is None)
+            check("--combo-only 계획 백스텝 콤보 (2놈) → 뒤잡 안 함 ([MoKa] 11-04)", bs(NS(flags=D.Flags()), NS(c=NS(ptr=7), backstab_chance=True)) is None)
         finally:
             D.COMBO_ONLY = saved_co
             D.PLANNED.clear()

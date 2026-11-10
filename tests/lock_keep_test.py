@@ -49,7 +49,7 @@ def rig(other=None, facing_err=0.0, dist=1.2):
     mv._r3 = lambda: (presses.append(mv.locked), r3())[1]
     mv.pad.release_due = lambda: released.append(1)
     mv.cam_target = 2
-    F = NS(mv=mv, ptr=2, lock_t=0.0, lock_n=0, note=lambda *a: None, weapon=weapons.BATTLE_AXE, nm=None, foe=None)
+    F = NS(flags=D.Flags(), mv=mv, ptr=2, lock_t=0.0, lock_n=0, note=lambda *a: None, weapon=weapons.BATTLE_AXE, nm=None, foe=None)
     return w, mv, F, presses, released
 
 

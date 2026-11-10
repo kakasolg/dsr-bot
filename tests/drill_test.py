@@ -45,7 +45,7 @@ class Mv:
 
 
 def fight():
-    return NS(mv=Mv(), nm=None, log=lambda *_: None, events=lambda *_a, **_k: None, foe=HOLLOW, hp_start=600)
+    return NS(flags=D.Flags(), mv=Mv(), nm=None, log=lambda *_: None, events=lambda *_a, **_k: None, foe=HOLLOW, hp_start=600)
 
 
 def run(drill, h, anim=-1, back=True, front=True, phase="hit", F=None, hp=600, others=()):
@@ -126,7 +126,7 @@ def main() -> None:
     seen, saved = [], D._entry_try
     D._entry_try = lambda F, T: seen.append(T.h) or "entry"
     try:
-        F = NS(weapon=NS(reach=1.6), wait_far=True, foe=HOLLOW, wait_hp0=None, style=NS(shield=True), mv=Mv())
+        F = NS(flags=D.Flags(), weapon=NS(reach=1.6), wait_far=True, foe=HOLLOW, wait_hp0=None, style=NS(shield=True), mv=Mv())
         T = NS(s=None, c=None, p=NS(hp=600), h=3.0, now=0.0, backstab_chance=False)
         r = D.rule_wait_far(F, T)
     finally:
@@ -149,7 +149,7 @@ def main() -> None:
     D.COMBO_ONLY = True
     try:
         mv = Mv(); mv.lock_state = lambda ptr: "none"
-        F = NS(mv=mv, nm=None, log=lambda *_: None, events=lambda *_a, **_k: None, foe=HOLLOW, hp_start=600,
+        F = NS(flags=D.Flags(), mv=mv, nm=None, log=lambda *_: None, events=lambda *_a, **_k: None, foe=HOLLOW, hp_start=600,
                weapon=NS(reach=1.6, combo=2))
         p = NS(x=0.0, y=0.0, z=0.0, heading=0.0, hp=600, max_hp=698, anim=-1)
         c = NS(ptr=7, npc_param=254000, x=0.0, y=0.0, z=0.9, anim=-1, hp=80)
@@ -161,7 +161,7 @@ def main() -> None:
     # P-128 (040915 구역 2): 붙어서 휘두르는 망자 (3000, 1.0 m) → 표가 [] → 서 있지 않고 가드 들고 기다림, 줄은 한 번만
     mv = Mv(); mv.lock_state = lambda ptr: "target"; guards, logs = [], []
     mv.guard = lambda on: guards.append(on)
-    F = NS(mv=mv, nm=None, log=logs.append, events=lambda *_a, **_k: None, foe=HOLLOW, hp_start=600,
+    F = NS(flags=D.Flags(), mv=mv, nm=None, log=logs.append, events=lambda *_a, **_k: None, foe=HOLLOW, hp_start=600,
            weapon=NS(reach=1.6, combo=2))
     p = NS(x=0.0, y=0.0, z=0.0, heading=0.0, hp=600, max_hp=698, anim=-1)
     c = NS(ptr=8, npc_param=254000, x=0.0, y=0.0, z=1.0, anim=3000, hp=80)
@@ -177,7 +177,7 @@ def main() -> None:
         mv.combo = lambda name, *_a, **_k: mv.calls.append((name,)) or M.Hit(name, presses=2)
         mv.snap = lambda r: None
         mv.backstep_attack = lambda *_a, **_k: mv.calls.append(("backstep_r1",)) or M.Hit("backstep_r1", presses=2)
-        F = NS(mv=mv, nm=None, log=lambda *_: None, events=lambda *_a, **_k: None, foe=foe, hp_start=600,
+        F = NS(flags=D.Flags(), mv=mv, nm=None, log=lambda *_: None, events=lambda *_a, **_k: None, foe=foe, hp_start=600,
                weapon=NS(reach=1.6, combo=2))
         p = NS(x=0.0, y=0.0, z=0.0, heading=0.0, hp=600, max_hp=698, anim=-1)
         c = NS(ptr=9, npc_param=npc, x=0.0, y=0.0, z=1.0, anim=3500, hp=80)
