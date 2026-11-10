@@ -141,6 +141,20 @@ def _stain_carry(log):
     return (st, zn) if zn else None
 
 
+def _navmesh(map_id: str, log):
+    """The map's NavMesh from the game folder. Godot room only (BOT_GAME=sim), when the game isn't installed (cloud):
+    [win]'s export of the same mesh, data/samples/navmesh_<map>.npz — what sim/ramp_scene.py builds the room's floor
+    from. Game runs never fall back (a missing game folder stops them, as before)."""
+    import env
+    import navmesh
+    npz = Path(__file__).resolve().parent / "data" / "samples" / f"navmesh_{map_id}.npz"
+    game = Path(navmesh.GAME_DIR) / "map" / map_id / f"{map_id}.nvmbnd.dcx"
+    if env.SIM and not game.exists() and npz.exists():
+        log(f"   NavMesh {map_id}: 게임 폴더 없음 → {npz.name} (연습장 전용)")
+        return navmesh.Navmesh.from_npz(npz)
+    return navmesh.Navmesh(map_id)
+
+
 def _arena(fld, nm, log, limit: float = 240.0) -> str:
     """Godot 연습장 평지 (MoKa M1109-75): 살아 있는 적 중 가장 가까운 놈부터 Field.fight — 다 죽이면 cleared, 죽으면 died.
     미션·화톳불·줍기 없음. 적 둘이 같이 오므로 한 놈과 싸우는 동안 다른 놈이 끼어드는 상황이 그대로 생긴다."""
@@ -395,7 +409,7 @@ def main() -> None:
         from souls import asylum
         nms = {asylum.MAP: navmesh.Navmesh(asylum.MAP)}
     else:
-        nms = {missions.MAP_A: navmesh.Navmesh(missions.MAP_A), missions.MAP_B: navmesh.Navmesh(missions.MAP_B)}
+        nms = {missions.MAP_A: _navmesh(missions.MAP_A, log), missions.MAP_B: _navmesh(missions.MAP_B, log)}
     props.attach(nms, log)                                  # crates earlier runs had to smash twice: paths bend around them (on each Navmesh)
     runinfo.update(settings_path, inputs=runinfo.inputs(nms, props.LAST_LOGS, own_log=str(log.path).replace(".jsonl", ".log")))
     for nm_ in nms.values():

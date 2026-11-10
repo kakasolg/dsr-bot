@@ -38,6 +38,9 @@
   player's damage on a foe is a² / (a + NpcParam PhysicalDefense) — values [game], formulas [guess].
 - A fresh clone has no Godot import cache (`godot/.godot`, not in git): `godot_link.ensure_imported()` runs `--import` once before
   the room / replay starts (P-156). Linux: set `GODOT_PATH` to the Godot 4.7.2 binary.
+- Without the game folder (cloud): `run.py` in the room reads the NavMesh from `data/samples/navmesh_<map>.npz` (room only,
+  logged), so the two commands above run from a fresh clone on the committed scene JSONs (ramp; arena = two heavy Hollows).
+  `ramp_scene.py` / `arena_scene.py` themselves need the game files — `--set mixed` cannot be made there.
 - Tests: `python tests/godot_room_test.py`, `python tests/godot_combat_test.py`, `python tests/godot_ramp_test.py`, `python tests/replay_test.py`, `python tests/chr_glb_test.py`
   (headless; skipped without Godot / data).
 
