@@ -260,9 +260,9 @@ def probe(secs: float, out: Path, within: float = 25.0, heartbeat: float = 0.5, 
 
 
 # ── level 3b, probe 3: one attack (c2540 3000) on one isolated hollow (docs/tae-verify.md B-4, MoKa 10-17) ──
-# The attacker is fixed by the setup (one target, nobody else near), never by whether the hit fits a TAE window. No memory
-# value for the animation's play position is known, so "age" = time since the ID was first observed (`age_since_seen`),
-# with both ends bounded by reads: the ID changed between two reads, the HP dropped between two reads.
+# The attacker is fixed by the setup (one target, nobody else near), never by whether the hit fits a TAE window. "Age" =
+# the foe's anim time (`at`, ChrIns anim control +0x10, docs/rea.md) at the two reads around the HP drop; records without
+# it fall back to the time since the ID was first observed (`age_since_seen`), both ends bounded by reads.
 P3_ANIM = 3000
 P3_TARGET = (254010,)   # c2540 sword hollow
 ISO_R = 25.0            # any other living foe this close (prev or this read) → ambiguous (m)
@@ -371,8 +371,11 @@ def timing3(tae: dict, combat: dict, lines: list[dict], anim: int = P3_ANIM, tar
     """Every HP drop is a sample. Valid only if: the target is the one living foe within iso_r in this and the previous
     read, within ATTRIB_R, in `anim` at both reads, the run's start was seen with both read bounds ≤ MAX_GAP, the drop's
     own bound ≤ MAX_GAP, the run ended inside the recording, is the only drop of its run, has no HP refill / HP floor in
-    it, and is not long enough to hide a same-ID restart. Valid → age_since_seen interval vs the TAE active window ± tol:
-    match / mismatch (with the offset). Speed, reach, guard and damage are not part of the verdict."""
+    it, and is not long enough to hide a same-ID restart. Valid → age interval vs the TAE active window ± tol: match /
+    mismatch (with the offset). Age = the foe's anim time at the two reads around the drop (`age_anim`, MoKa 2026-11-10:
+    verdict by anim time) when both reads carry one belonging to this run; else `age_since_seen` (records without `at`).
+    `age_since_seen` stays on every valid row as a cross-check; a row whose two ages are more than `tol` apart is marked
+    `clocks_apart` (counted, not a verdict change). Speed, reach, guard and damage are not part of the verdict."""
     head, frames = _frames(lines)
     models = npc_models(combat)
     w = [(ev["start"], ev["end"]) for ev in windows(tae["models"][models[target[0]]]["animations"], anim, (1,))]
@@ -424,9 +427,9 @@ def timing3(tae: dict, combat: dict, lines: list[dict], anim: int = P3_ANIM, tar
                 seg = frames[r["i0"]:(r["i1"] if r["i1"] is not None else len(frames))]
                 if r["end"] is not None and (rr := restart_reason(seg, f["ptr"], r["start"], ln, median, len(lens))):
                     why.append(rr)
-                pa, fa = (pf or {}).get("at"), f.get("at")
-                if pa is not None and fa is not None:
-                    row["age_anim"] = [pa, fa]          # the game's anim time at the two reads around the drop (reference)
+                pa, fa = _at(prev, f["ptr"], r["start"]), _at(fr, f["ptr"], r["start"])
+                if pa is not None and fa is not None and pa <= fa:
+                    row["age_anim"] = [pa, fa]          # the game's anim time at the two reads around the drop (verdict)
                 if any("refill" in s for s in seg):      # a hit between the read and the refill write would be hidden
                     why.append("refill_in_run")
                 if any(s["hp"] <= 1 for s in seg) or prev["hp"] <= 1:
@@ -439,11 +442,20 @@ def timing3(tae: dict, combat: dict, lines: list[dict], anim: int = P3_ANIM, tar
             a_lo, a_hi = lo - r["start"][1], hi - r["start"][0]
             row["age_since_seen"] = [round(a_lo, 4), round(a_hi, 4)]
             row["windows"] = w
-            fits = [(s, e) for s, e in w if a_hi >= s - tol and a_lo <= e + tol]
+            if "age_anim" in row:
+                g_lo, g_hi = row["age_anim"]
+                row["age_by"] = "anim"
+                apart = max(g_lo - a_hi, a_lo - g_hi, 0.0)
+                if apart > tol:
+                    row["clocks_apart"] = round(apart, 4)
+            else:
+                g_lo, g_hi = a_lo, a_hi
+                row["age_by"] = "since_seen"
+            fits = [(s, e) for s, e in w if g_hi >= s - tol and g_lo <= e + tol]
             row["status"] = "match" if fits else "mismatch"
             if not fits:
-                s, e = min(w, key=lambda se: min(abs(a_lo - se[1]), abs(a_hi - se[0])))
-                row["offset"] = round(a_lo - (e + tol), 4) if a_lo > e + tol else round(a_hi - (s - tol), 4)
+                s, e = min(w, key=lambda se: min(abs(g_lo - se[1]), abs(g_hi - se[0])))
+                row["offset"] = round(g_lo - (e + tol), 4) if g_lo > e + tol else round(g_hi - (s - tol), 4)
         hits.append(row)
     per_run: dict = {}
     for h in hits:
@@ -468,7 +480,10 @@ def timing3(tae: dict, combat: dict, lines: list[dict], anim: int = P3_ANIM, tar
     widths = sorted(h["obs_width"] for h in hits)
     dbgs = sorted({fr.get("dbg") for fr in frames if fr.get("dbg")})
     return {"anim": anim, "target": list(target), "windows": w, "tol": round(tol, 4), "iso_r": iso_r,
-            "age": "age_since_seen = time since the animation ID was first observed (play position not read)",
+            "age": "the foe's anim time (age_anim) where both reads carry it, else age_since_seen (time since the ID was "
+                   "first observed)",
+            "age_by": {k: sum(1 for h in valid if h.get("age_by") == k) for k in ("anim", "since_seen")},
+            "clocks_apart": sum(1 for h in valid if "clocks_apart" in h),
             "frames": len(frames), "samples": len(hits), "valid": len(valid), "excluded": excluded,
             "match": len(match), "mismatch": len(mismatch), "verdict": verdict, "n_min": n_min,
             "obs_width": {"median": widths[len(widths) // 2], "max": widths[-1]} if widths else None,
@@ -1273,7 +1288,7 @@ def main() -> None:
                 print(" ", h)
         print(json.dumps({k: v for k, v in r.items() if not k.startswith("rows_")}, ensure_ascii=False, indent=1))
         print(f"{r['anim']}: {r['verdict']} — 표본 {r['samples']}, 유효 {r['valid']} (일치 {r['match']} · 불일치 {r['mismatch']}), "
-              f"제외 {r['excluded']}")
+              f"제외 {r['excluded']}, 나이 기준 {r['age_by']}, 두 시계 어긋남 {r['clocks_apart']}")
     elif a.cmd == "check4":
         lines = [json.loads(l) for l in a.file.read_text(encoding="utf-8").splitlines() if l.strip()]
         r = timing_end(tae, combat, lines)

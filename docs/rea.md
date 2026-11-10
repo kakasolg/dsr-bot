@@ -239,3 +239,12 @@ A가 3000을 벗어나면 제자리로(15번). 기록 `data/samples/20261019_113
 - 2026-10-19 options pilot run 2 (`docs/design-player-options.md`): 게임에서 **같은 ID 재시작을 처음 봄** — 끝까지 재생된 3000(약 2.42 s) 뒤 ID 그대로 애니 시간이 0.017로
   돌아가 새 3000, 두 번째 피격은 애니 시간 0.90(TAE 구간 안). `restart_seen` 1/1로 잡힘. "재시작이면 새 재생이 0부터"를 공격에서도 봄 (1건).
 
+### 4차 반영 — timing3 판정을 애니 시간으로 (2026-11-10, MoKa: 선택지 1 "판정을 age_anim으로, age_since_seen은 대조 칸")
+
+- `tae_verify.timing3`: 유효 줄의 나이 = 피격 앞뒤 두 읽기의 적 애니 시간 `age_anim` (`_at`로 이 런의 값만 — 앞 애니 컨트롤 값은 안 씀).
+  두 읽기 중 하나라도 `at`이 없으면 예전대로 `age_since_seen`. 줄마다 `age_by` (`anim` · `since_seen`), 결과에 `age_by` 개수.
+- `age_since_seen`은 모든 유효 줄에 그대로 남김. 두 나이 구간이 `TOL`(1프레임)보다 더 떨어지면 그 줄에 `clocks_apart`(초), 결과에 개수 — 판정은 안 바꾸고 표시만.
+- 제외 규칙(`restart_seen` · `multi_hit_in_run` · `obs_gap` …)은 그대로. 애니 시간이면 재시작 뒤 피격도 판정할 수 있지만, 이번에는 안 풂.
+- 검증: 오프라인만. `tests/tae_verify_test.py` 새 2개(애니 시간 판정 · 두 시계 어긋남 표시 · `at` 없는 줄 · 앞 컨트롤 값 무시) 포함 40개 통과.
+  `at` 없는 옛 기록 `20261016_195233_tae-probe3.jsonl`은 바꾸기 전과 같은 결과(유효 12, 일치 12). `at`이 든 probe3 기록은 아직 없어 실제 판정 차이는 못 봄.
+- 다음([win]): `at`을 기록하는 빌드로 probe3 또는 options pilot을 돌린 첫 기록에서 `clocks_apart` 수를 먼저 본다. c2540 밖의 적에 쓸 때도 같음 (애니 시간 경로는 c2540에서만 게임 확인).

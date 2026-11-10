@@ -90,7 +90,7 @@ needing the tick loop, route data, settings object or WorldState.
 - [~] combat-table | MoKa | decide | B-22 closed at B-22d: 47 trials, 19 verification (C 19/19, B 15/15 of them), turn 37/37; open: one threshold across sides; next? | docs/tae-verify.md
 - [ ] parish-route | MoKa | parked | P-89 parked 10-27: claymore+5 one-shots each soldier, 3-at-once not seen in 9 runs; revisit with weaker gear | P-89 (problems.md 2026-10-27) · P-90 · docs/stages/new-route-20261019.md
 - [~] player-options | MoKa | decide | run 2: roll 0/17 hit, stand / circles 60/60 (c2540 3000, τ 0.6, 0.9 m) → step 2 table? | docs/design-player-options.md
-- [~] rea-anim-time | cloud | decide | `at` + restart_reason in game (pilot run 2: 1 real restart caught); next: verdicts by anim time? | docs/rea.md
+- [~] rea-anim-time | win | verify | timing3 verdict by anim time, age_since_seen as cross-check (MoKa 11-10, offline only); next: first probe3 / pilot record with `at` → `clocks_apart` | docs/rea.md
 
 ## 3. v2.0 (`docs/review-v2-2026-10-11.md`; go, done bar N/10 and order: MoKa)
 

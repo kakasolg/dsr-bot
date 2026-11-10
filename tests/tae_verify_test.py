@@ -597,3 +597,30 @@ if __name__ == "__main__":
             else:
                 fn()
             print("ok", name)
+
+
+def test_timing3_verdict_by_anim_time():
+    # MoKa 2026-11-10 (rea-anim-time, option 1): the verdict uses the foe's anim time when both reads around the drop carry
+    # it; age_since_seen stays as a cross-check and a gap of more than one frame between the two is marked clocks_apart
+    agree = with_at(run3(10, 0.95), {1: 0.017, 2: 0.95})                 # both clocks inside the window
+    behind = with_at(run3(20, 1.10), {1: 0.017, 2: 1.0})                 # anim time 0.1 s behind the wall clock (hit-stop)
+    behind[2:2] = [f3(21.097, 500, [(1, 254010, 3000, 1.5)])]            # a read just before the drop
+    behind[2]["foes"][0]["at"] = 0.997
+    plain = run3(30, 1.10)                                               # no anim time: age_since_seen as before
+    r = V.timing3(TAE, COMBAT, [{"kind": "header", "probe": 3}] + agree + behind + plain)
+    assert r["valid"] == 3 and r["match"] == 2 and r["mismatch"] == 1, r
+    assert r["age_by"] == {"anim": 2, "since_seen": 1} and r["clocks_apart"] == 1
+    moved = [h for h in r["rows_match"] if h["t"] == 21.1][0]
+    assert moved["age_by"] == "anim" and moved["age_anim"] == [0.997, 1.0] and moved["age_since_seen"][0] > 1.09
+    assert moved["clocks_apart"] > 1 / 30
+    assert "clocks_apart" not in [h for h in r["rows_match"] if h["t"] == 10.95][0]
+    assert r["rows_mismatch"][0]["age_by"] == "since_seen" and r["rows_mismatch"][0]["offset"] == 0.0304
+
+
+def test_timing3_anim_time_of_the_previous_control_is_not_used():
+    # the first read of a new 3000 can still show the previous anim's time (2.88 > wall time since the ID change + slack):
+    # not this run's, so that row falls back to age_since_seen
+    lines = run3(0, 0.95) + run3(5, 0.95) + run3(10, 0.95)
+    with_at(lines, {9: 2.88, 10: 0.95})
+    row = [h for h in V.timing3(TAE, COMBAT, lines)["rows_match"] if h["t"] == 10.95][0]
+    assert row["age_by"] == "since_seen" and "age_anim" not in row
