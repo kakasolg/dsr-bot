@@ -220,7 +220,7 @@ RS.TRACE.clear()
 run.main()
 check("run burg-altar, Taurus at HP 0 in both snapshots → zones, fog and altar all run (normal path not blocked)",
       seen == ["run_zones", "to_altar_bridge", "altar.run"])
-evs = [json.loads(l) for f in (tmp / "data" / "runs").glob("*_burg-altar.jsonl") for l in f.read_text(encoding="utf-8").splitlines()]
+evs = [json.loads(l) for f in sorted((tmp / "data" / "runs").glob("*_burg-altar.jsonl")) for l in f.read_text(encoding="utf-8").splitlines()]
 check("run burg-altar, confirmed kill → 'ready' event ok True", [e for e in evs if e.get("ev") == "ready"][-1]["ok"] is True)
 
 # ── MoKa's raw recording: dead foes stay in the snapshot at HP 0 (same session, 30 m) ─────────────────

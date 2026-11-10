@@ -36,6 +36,8 @@
   `BOT_GAME=sim python run.py arena --no-quit --no-loot --no-firebomb`. Arena only: a blocked hit costs
   StaminaAttackPower × (1 − shield GuardStaminaDefense / 100) and lets 100 − PhysicalGuardPercentage % through; the
   player's damage on a foe is a² / (a + NpcParam PhysicalDefense) — values [game], formulas [guess].
+- A fresh clone has no Godot import cache (`godot/.godot`, not in git): `godot_link.ensure_imported()` runs `--import` once before
+  the room / replay starts (P-155). Linux: set `GODOT_PATH` to the Godot 4.7.2 binary.
 - Tests: `python tests/godot_room_test.py`, `python tests/godot_combat_test.py`, `python tests/godot_ramp_test.py`, `python tests/replay_test.py`, `python tests/chr_glb_test.py`
   (headless; skipped without Godot / data).
 

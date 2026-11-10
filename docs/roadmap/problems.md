@@ -51,6 +51,7 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
 | 62 | `risk_report` counts escape.pick back-offs (`ev: escape`) as quit-outs (강종) → clean runs read '위험' | fixed — back-off logs `escape_pick`; `risk_report` skips old `escape` rows with `src` |
 | 76 | `altar-burg`: ladder A missed, fell 10 m | fixed — 10-13 2/2 ladder down, no fall |
 | 151 | altar unlit | fixed |
+| 155 | Practice room in a fresh clone: no Godot import cache → no player, input ignored | fixed (cloud headless; [win] not re-run) |
 
 ### P-1 오프라인 테스트가 Linux에서 실행 안 됨 (2026-09-27, [cloud], 1번)
 - 증상: `field_*_test.py` 등이 `ModuleNotFoundError: pymem`, 이어서 `vgamepad`, `KeyError: 'TEMP'`로 실패
@@ -2506,3 +2507,20 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
 - 원인: Altar._to_bonfire 는 길 자료의 'altar_bonfire' 자리 (불 오브젝트에서 3.8 m)까지 걷기만 하고 A를 안 누름 (10-13 체인은 화톳불을 이미 붙인 세이브).
 - 고침: Altar.light_bonfire — 오브젝트 o0200_0001 (24.35, 9.5, −22.2) 1.2 m 옆, 바라보고 A로 앉기, B로 일어남; _to_bonfire 끝에서 부름,
   run.py light-altar. 게임: 같은 자리에서 light-altar → 앉음, 마지막 화톳불 1012962 → 1012961 (한 번). 전체 경로 안에서 부르는 길은 아직 게임 미확인.
+
+### P-155 Practice room in a fresh clone (cloud): no player body, input ignored — no Godot import cache (2026-11-10)
+(번호: a1aa801 커밋 메시지가 P-154 (램프 테스트 #6 안 깸)를 언급하지만 P-152~154 본문은 저장소에 없음 — [win] 로컬에 있는 것으로 보고 155부터 씀.)
+- 증상: [cloud] a1aa801 새 클론 + Godot 4.7.2 (`GODOT_PATH=/opt/godot/…linux.x86_64`). `python tests/godot_combat_test.py` 가
+  "camera pulled in by the wall: 4.00 m / 4.00 m" 로 실패. 방은 상태 패킷을 계속 보내지만 플레이어가 (0, 0)에서 안 움직이고 카메라도 안 돎.
+  Godot 출력: `Cannot open file 'res://.godot/imported/UAL1_Standard.glb-….scn'` → `_build_player` 에서 null.instantiate → 이후 매 프레임 스크립트 오류.
+  `python tests/godot_ramp_test.py` 는 장면 검사 뒤 `내비메시 없음: D:/SteamLibrary/…` 로 끝남 (exit 1, 방 검사는 시작도 안 함).
+- 원인: (1) `.godot/imported` (임포트 캐시)는 git 밖 — a1aa801 의 "CC0 파일만 있을 때" 확인은 [win] 의 기존 캐시가 있는 상태였음.
+  새 클론은 `godot --headless --import` 를 한 번 돌려야 glb/fbx 를 읽을 수 있음. (2) 램프 테스트가 게임 설치 폴더의 NavMesh 와 `taskkill` 을 씀.
+- 고침: `sim/godot_link.ensure_imported()` — `*.import` 가 가리키는 캐시 파일이 없으면 `--import` 한 번 (cloud 약 9 s); `start_room`,
+  램프 테스트, `replay_view.py`, `replay_hits.py` 가 Godot 를 띄우기 전에 부름. 램프 테스트: 게임 폴더가 없으면
+  `data/samples/navmesh_m10_02_00_00.npz` (ramp_scene.py 가 바닥을 만드는 같은 메시), `taskkill` → Windows 밖에서는 pkill / kill.
+- 확인 (cloud, 헤드리스, CC0 대용 모델만, 화면으로는 안 봄): 캐시를 지운 뒤 godot_room · godot_combat 통과; godot_ramp 4회 실행 4회 통과
+  (P-154 의 "#6 안 깸"은 이 4회에서는 안 나옴 — 재현 못 함, 고친 것 아님). [win] 에서는 이 변경 뒤 재실행 안 함 (Windows 경로는 코드상 그대로).
+- 같이 고친 cloud 전용 테스트 실패 2건 (봇 코드는 안 건드림): `tests/loot_test.py` — `missions._no_void` 가 게임 폴더 NavMesh 를 읽어 exit 1 →
+  passage_start_test 와 같이 `MS._VOID_NM` 에 오프라인 NavMesh; `tests/boss_ready_test.py` — 'ready' 사건을 `glob` 순서의 마지막 파일에서 읽음
+  (Linux 는 정렬 안 됨) → `sorted`. 고치기 전 6회 중 2회 실패, 뒤 10회 중 0회 (원인은 glob 순서로 추정 — 실패한 실행의 파일 순서는 직접 못 봄).
