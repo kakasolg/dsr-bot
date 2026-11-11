@@ -22,6 +22,7 @@ extends "res://main.gd"
 
 const SCENE := "res://assets/ramp_scene.json"   # `-- --scene=arena` → assets/arena_scene.json (sim/arena_scene.py, M1109-75)
 const MAP_GLB := "res://assets/m10_02_00_00.glb"
+const SK_GLB := "D:/dev/tools/assets/sketchfab_ds_map/dark_souls_map.glb"   # RAMP_SK_COLLISION=1 (local only)
 const CHR_MODELS_PATH := "../../data/gamefiles/chr_models.json"
 const FOE_R := 0.4             # [guess] foe body capsule radius (hit test and collision)
 const FOE_H := 1.7             # [guess]
@@ -196,8 +197,32 @@ func _build_world() -> void:
 	for c in sc.get("centroid", []):
 		centroids.append(Vector3(c[0], c[1], c[2]))
 	var faces := PackedVector3Array()
+	# RAMP_SK_COLLISION=<glb> (or 1 = SK_GLB): the Sketchfab "Dark Souls Map" (9S, CC BY-NC, local only, MoKa M1111-21) —
+	# made from the game's collision, so steps should be slopes, unlike the visual map (RAMP_MAP_COLLISION, stuck 11-09).
+	# Its "Firelink Shrine" area replaces the NavMesh-edge walls, player only; the floor stays the NavMesh lookup.
+	var sk := OS.get_environment("RAMP_SK_COLLISION")
+	var sk_faces := PackedVector3Array() if sk == "" else _sk_faces(SK_GLB if sk == "1" else sk, "Firelink Shrine")
+	# walls only: floors / ceilings (|normal.y| > 0.6) and low risers (top < 0.5 m above the NavMesh floor) are dropped —
+	# with every face the first try (11-11) stuck at the ramp's foot (−29.7, −56.5, 43.6): the model has 0.2 m step
+	# boards there next to a slope, and a 0.2 m riser stops the capsule like the visual map's steps did on 11-09
+	var kept := 0
+	for k in range(0, sk_faces.size(), 3):
+		var a: Vector3 = sk_faces[k]
+		var b: Vector3 = sk_faces[k + 1]
+		var c: Vector3 = sk_faces[k + 2]
+		var nrm := (b - a).cross(c - a)
+		if nrm.length() < 1e-6 or absf(nrm.normalized().y) > 0.6:
+			continue
+		var top := maxf(a.y, maxf(b.y, c.y))
+		var g := _ground(Vector3((a.x + b.x + c.x) / 3.0, top, (a.z + b.z + c.z) / 3.0), 0.0)
+		if not is_nan(g) and top - g < 0.5:
+			continue
+		faces.append_array(PackedVector3Array([a, b, c]))
+		kept += 1
+	if sk_faces.size() > 0:
+		print("ramp: Sketchfab walls kept %d of %d triangles" % [kept, sk_faces.size() / 3])
 	# walls on open NavMesh edges with no floor beyond (sim/ramp_scene.py), 2.8 m high; edges with floor below stay open
-	for w in sc.get("walls", []):
+	for w in ([] if sk_faces.size() > 0 else sc.get("walls", [])):
 		var a := Vector3(w[0], w[1] - 0.3, w[2])
 		var b2 := Vector3(w[3], w[4] - 0.3, w[5])
 		var up := Vector3(0, 2.8, 0)
@@ -687,6 +712,40 @@ func _grid_add(a: Vector3, b: Vector3, c: Vector3, idx := -1) -> void:
 			if not ground_grid.has(k):
 				ground_grid[k] = []
 			ground_grid[k].append([a, b, c, idx])
+
+
+func _sk_faces(file: String, area: String) -> PackedVector3Array:
+	# one area of the Sketchfab map as triangles in room (= game) coordinates. Inside the area node the model's local
+	# (a, b, c) = game (z, y, x), offset 0 (checked against the NavMesh 11-11, M1111-19); the nodes above it are ignored
+	var out := PackedVector3Array()
+	var doc := GLTFDocument.new()
+	var st := GLTFState.new()
+	if doc.append_from_file(file, st) != OK:
+		push_error("ramp: Sketchfab map not loaded: " + file)
+		return out
+	var root := doc.generate_scene(st)
+	var node := root.find_child(area, true, false) as Node3D
+	if node == null:
+		push_error("ramp: no area " + area)
+		root.free()
+		return out
+	var to_room := Transform3D(Basis(Vector3(0, 0, 1), Vector3(0, 1, 0), Vector3(1, 0, 0)), Vector3.ZERO)
+	for mi in node.find_children("*", "MeshInstance3D", true, false):
+		var mesh: Mesh = (mi as MeshInstance3D).mesh
+		if mesh == null:
+			continue
+		# mesh → area node local: the transforms between them, without the area node's own (×1301 display scale)
+		var t := Transform3D.IDENTITY
+		var n: Node = mi
+		while n != node:
+			t = (n as Node3D).transform * t
+			n = n.get_parent()
+		var g := to_room * t
+		for v in mesh.get_faces():
+			out.append(g * v)
+	root.free()
+	print("ramp: Sketchfab collision %d triangles (%s)" % [out.size() / 3, area])
+	return out
 
 
 func _ground(p: Vector3, up: float = STEP_UP) -> float:

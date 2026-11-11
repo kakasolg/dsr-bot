@@ -35,6 +35,11 @@
   `godot_link.room_pad()` (control.Pad's code, the ViGEm device swapped for UDP). Start the room first, then e.g.
   `BOT_GAME=sim python run.py clear-ramp --no-rest --no-lure --no-quit --no-loot --no-recover --no-firebomb`;
   `python foe_view.py --room data/runs/<time>_room.jsonl` gives the same foe-side table as the real runs.
+- Sketchfab "Dark Souls Map" (9S, CC BY-NC, made from the game's collision; local only in `D:/dev/tools/assets/sketchfab_ds_map`,
+  MoKa M1111-19..21): inside each area node the model's local (a, b, c) = DSR (z, y, x), offset 0 (checked against the NavMesh).
+  `godot/sk_view.tscn` shows it with a walked path (`-- --path=<json> --shot=<png>`). Ramp room: `RAMP_SK_COLLISION=1` puts its
+  Firelink area in as the player's walls instead of the NavMesh-edge walls — walls only (floors and risers under 0.5 m dropped:
+  with every face the player stuck on 0.2 m step boards at the ramp's foot). `godot_ramp_test.py` passes with and without it (11-11).
 - Flat arena (MoKa M1109-75/76/78): `python sim/arena_scene.py [--set hollows|mixed]` → `godot/assets/arena_scene.json` (40 m flat square,
   two heavy Hollows 255010 by default, `mixed` = heavy Hollow + heavy knight 257002, arena AI switches); hits show a red ball on the
   nearest bone for 0.8 s (`ramp.gd` `_hit_mark`, state `hit_marks`); open with `-- --scene=arena`, bot with
