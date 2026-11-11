@@ -92,7 +92,7 @@ needing the tick loop, route data, settings object or WorldState.
 - [~] player-options | MoKa | decide | run 2: roll 0/17 hit, stand / circles 60/60 (c2540 3000, τ 0.6, 0.9 m) → step 2 table? | docs/design-player-options.md
 - [~] rea-anim-time | win | verify | timing3 verdict by anim time, age_since_seen as cross-check (MoKa 11-10, offline only); next: first probe3 / pilot record with `at` → `clocks_apart` | docs/rea.md
 
-## 3. v2.0 (`docs/review-v2-2026-10-11.md`; go, done bar N/10 and order: MoKa)
+## 3. v2.0 (review-v2 doc; done: now 3 tries, burg-upper ≥ 2/3, boss ≥ 1/3 — M1111-01)
 
 **Structure (review §2; proposed order §4: settings → WorldState → tick loop → route data → spots → batch runner → boss)**
 - [~] settings-object | cloud | doing | steps 1–2: flags in one place + `overrides`; fights read `F.flags` (offline); next: step 3 | docs/review-v2-2026-10-11.md · plan:settings-object
