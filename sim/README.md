@@ -62,6 +62,13 @@
   legs + bridge → altar (the bot's burg-altar route), altar → Andre's bonfire (NavMesh path — no recording exists), Andre → demon
   (MoKa's walk, `data/routes/andre-demon-20261111.json`; NavMesh has no path there, so scene `floor_patch` strips fill the gaps).
   `burg_walk.py --from N` starts at leg N.
+  Demon → Firelink by the parish elevator (M1111-35): `python sim/burg_scene.py --loop` → `assets/firelink_loop_scene.json` =
+  the firelink_demon legs + demon → Andre (MoKa's walk backwards), Andre → the elevator doors (NavMesh), `board` (stick straight
+  into the car — the car is off the NavMesh and the bot's path follow stepped back onto the mesh), `ride`, out, Firelink bonfire.
+  Scene `elevators`: car spot, top / bottom height, acceleration and top speed from the 11-11 game walk (M1111-18) [meas];
+  wait 1 s, braking and car size [guess]. The car is floor where it is (`_ground`) and carries a body standing on it; it goes
+  down once. Scene `sk_cut` drops the Sketchfab faces that model the car / door at the top as fixed walls.
+  `burg_walk.py --scene firelink_loop --from 24` starts at the demon; `tests/godot_elevator_test.py`.
   Viewer camera (M1111-34): the window shows `view_cam` (`godot/cam_director.gd`): hands-off follow toward the planned route
   5 m ahead, section profiles corridor / stairs / bridge (scene `cam_path`, ~1 m points with a tag — legs by name, stairs by
   slope; `burg_scene.py` builds it), a side shot on ladders, enter 0.25 s / hold 1.5 s, sphere check against walls. The play

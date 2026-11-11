@@ -31,6 +31,7 @@ const PROFILES := {           # [guess] all; dist m, pitch rad (negative = looki
 	"corridor": {"dist": 3.2, "pitch": -0.18, "yaw_rate": 1.6, "yaw_k": 2.5, "side": 0.0, "org_y": 1.42},
 	"stairs": {"dist": 4.6, "pitch": -0.40, "yaw_rate": 1.0, "yaw_k": 1.6, "side": 0.0, "org_y": 1.2},
 	"bridge": {"dist": 5.5, "pitch": -0.35, "yaw_rate": 0.8, "yaw_k": 1.2, "side": 0.35, "org_y": 1.42},
+	"elevator": {"dist": 3.0, "pitch": -0.95, "yaw_rate": 0.4, "yaw_k": 1.0, "side": 0.0, "org_y": 1.0},   # above, looking down the shaft (M1111-35)
 }
 
 var path: Array = []          # [[x, y, z, leg, tag], …]

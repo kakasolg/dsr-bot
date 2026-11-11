@@ -221,6 +221,8 @@ func _build_world() -> void:
 	var sk_area := String(sc.get("sk_area", "Firelink Shrine"))
 	var natural := _natural_on()
 	var sk_all := PackedVector3Array() if sk == "" and not natural else _sk_faces(SK_GLB if sk == "" or sk == "1" else sk, sk_area)
+	if sc.has("sk_cut") and sk_all.size() > 0:
+		sk_all = _sk_cut(sk_all, sc["sk_cut"])
 	var sk_faces := sk_all if sk != "" else PackedVector3Array()
 	# RAMP_LOOK=natural (MoKa M1111-23): DSR 화면용 맵 대신 Sketchfab 지형 모양에 고도 노이즈 질감(바위·풀·흙)만 입힘
 	if natural and sk_all.size() > 0:
@@ -312,6 +314,7 @@ func _build_world() -> void:
 	gate = AnimatableBody3D.new()
 	add_child(gate)
 	_build_ladders()
+	_build_elevators()
 
 
 func _check_prompt() -> void:
@@ -1026,6 +1029,27 @@ func _natural_look(tris: PackedVector3Array) -> void:
 	print("ramp: natural look on %d Sketchfab triangles, %d marked stairs" % [tris.size() / 3, stairs])
 
 
+func _sk_cut(faces: PackedVector3Array, boxes: Array) -> PackedVector3Array:
+	# scene "sk_cut": [[x0, y0, z0, x1, y1, z1], …] — Sketchfab triangles whose centre is inside a box are dropped from both the
+	# walls and the look. For model parts that move in the game but are fixed in the model (the parish elevator car / its
+	# door at the top, M1111-35: the room's own car replaces them)
+	var out := PackedVector3Array()
+	var cut := 0
+	for k in range(0, faces.size(), 3):
+		var m := (faces[k] + faces[k + 1] + faces[k + 2]) / 3.0
+		var inside := false
+		for bx in boxes:
+			if m.x >= float(bx[0]) and m.y >= float(bx[1]) and m.z >= float(bx[2]) and m.x <= float(bx[3]) and m.y <= float(bx[4]) and m.z <= float(bx[5]):
+				inside = true
+				break
+		if inside:
+			cut += 1
+		else:
+			out.append_array(PackedVector3Array([faces[k], faces[k + 1], faces[k + 2]]))
+	print("ramp: sk_cut dropped %d Sketchfab triangles" % cut)
+	return out
+
+
 func _sk_faces(file: String, area: String) -> PackedVector3Array:
 	# one area of the Sketchfab map as triangles in room (= game) coordinates. Inside the area node the model's local
 	# (a, b, c) = game (z, y, x), offset 0 (checked against the NavMesh 11-11, M1111-19); the nodes above it are ignored
@@ -1078,6 +1102,10 @@ func _ground(p: Vector3, up: float = STEP_UP) -> float:
 		var h := l1 * a.y + l2 * b.y + l3 * c.y
 		if h <= p.y + up and (is_nan(best) or h > best):
 			best = h
+	for e in elevs:                           # an elevator car is floor where it is now (M1111-35)
+		var h2 := float(e["y"])
+		if _on_car(e, p) and h2 <= p.y + up and (is_nan(best) or h2 > best):
+			best = h2
 	return best
 
 
@@ -1539,6 +1567,7 @@ func _physics_process(dt: float) -> void:
 		player_hp = mini(PLAYER_HP, player_hp + ESTUS_HEAL)
 	super._physics_process(dt)
 	_stand(player)
+	_elev_step(dt)
 	if act_name == "" and stagger <= 0.0 and anim == 2000:
 		anim = -1                                  # hit reaction over (main.gd only resets anim on its own actions)
 
@@ -1651,7 +1680,8 @@ func _send_state() -> void:
 		"lock": lock, "lock_ptr": (1000 + int(foes[lock_foe]["n"])) if (lock and lock_foe >= 0) else 0,
 		"hp": player_hp, "max_hp": PLAYER_HP, "sp": sp, "max_sp": max_sp, "estus": estus_left, "guard": guard,
 		"stagger": stagger > 0.0, "dead": dead, "player_hits": player_hits, "dodged": dodged, "guard_breaks": guard_breaks, "guard_blocks": guard_blocks, "turn": turn_n, "hit_marks": hit_marks, "foes": fl,
-		"bombs": bombs.size(), "scene": sc.get("name", "ramp"), "ladder": String(lad.get("phase", "")), "view": view_info}
+		"bombs": bombs.size(), "scene": sc.get("name", "ramp"), "ladder": String(lad.get("phase", "")), "view": view_info,
+		"elevator": String(elevs[0]["state"]) if not elevs.is_empty() else ""}
 	udp_out.put_packet(JSON.stringify(d).to_utf8_buffer())
 	info_label.text = String(sc.get("name", "ramp")) + "  t %.1f  pos %.1f %.1f %.1f  HP %d  SP %d  estus %d  guard %s  lock #%s%s\n%s" % [t, p.x, p.y, p.z,
 		player_hp, sp, estus_left, guard, str(foes[lock_foe]["n"]) if (lock and lock_foe >= 0) else "-",
@@ -1883,3 +1913,83 @@ func _ladder_pose() -> void:
 	elif ph == "exit_bot":
 		at = length * 0.06
 	anim_player.seek(at, true)
+
+
+# ── 엘리베이터 (MoKa M1111-35 "데몬에서 엘리베이터 가서 타고 내려 와서 불의 제전으로") ──────────────────────────────
+#  교구 → 불의 제전 엘리베이터. DSR: 바닥판에 올라서면 (발판 스위치) 잠깐 뒤 내려간다. 숫자 = 장면 "elevators"
+#  (sim/burg_scene.py ELEVATORS, 11-11 탐색에서 잰 높이·가속·최고 속도 [meas], 대기·감속·바닥판 크기 [guess]).
+#  바닥판은 그 순간의 높이에서 바닥이 된다 (_ground). 타고 있는 몸은 매 프레임 바닥판 높이로 옮긴다. 다시 올라가는 것,
+#  반대편 칸, 위에서 부르는 스위치는 없다 — 내려가는 한 번만.
+var elevs := []               # [{"d": row, "y", "v", "state": top | wait | down | bottom, "t", "node"}]
+
+
+func _on_car(e: Dictionary, p: Vector3) -> bool:
+	var d: Dictionary = e["d"]
+	var hf := float(d["half"])
+	return absf(p.x - float(d["at"][0])) <= hf and absf(p.z - float(d["at"][1])) <= hf
+
+
+func _build_elevators() -> void:
+	var metal := StandardMaterial3D.new()
+	metal.albedo_color = Color(0.42, 0.4, 0.37)
+	metal.roughness = 0.6
+	metal.metallic = 0.4
+	for d in sc.get("elevators", []):
+		var hf := float(d["half"])
+		var car := Node3D.new()
+		var floor_m := MeshInstance3D.new()
+		var bm := BoxMesh.new()
+		bm.size = Vector3(hf * 2.0, 0.2, hf * 2.0)
+		bm.material = metal
+		floor_m.mesh = bm
+		floor_m.position.y = -0.1
+		car.add_child(floor_m)
+		for k in 4:                            # corner posts so the car reads as a car [stand-in look]
+			var post := MeshInstance3D.new()
+			var pm := BoxMesh.new()
+			pm.size = Vector3(0.12, 2.4, 0.12)
+			pm.material = metal
+			post.mesh = pm
+			post.position = Vector3(hf * (1 if k % 2 == 0 else -1), 1.2, hf * (1 if k < 2 else -1))
+			car.add_child(post)
+		add_child(car)
+		var y := float(d["y_top"])
+		car.position = Vector3(float(d["at"][0]), y, float(d["at"][1]))
+		elevs.append({"d": d, "y": y, "v": 0.0, "state": "top", "t": 0.0, "node": car})
+
+
+func _elev_step(dt: float) -> void:
+	for e in elevs:
+		var d: Dictionary = e["d"]
+		var y := float(e["y"])
+		var riding := _on_car(e, player.position) and absf(player.position.y - y) < 0.3
+		match String(e["state"]):
+			"top":
+				if riding:
+					e["state"] = "wait"
+					e["t"] = 0.0
+			"wait":
+				e["t"] = float(e["t"]) + dt
+				if not riding:
+					e["state"] = "top"
+				elif float(e["t"]) >= float(d["wait"]):
+					e["state"] = "down"
+					print("ramp: elevator %s down" % d["name"])
+			"down":
+				var v := float(e["v"])
+				var left := y - float(d["y_bot"])
+				if v * v / (2.0 * float(d["decel"])) >= left:
+					v = maxf(0.4, v - float(d["decel"]) * dt)
+				else:
+					v = minf(float(d["v_max"]), v + float(d["accel"]) * dt)
+				y = maxf(float(d["y_bot"]), y - v * dt)
+				e["v"] = v
+				if y <= float(d["y_bot"]):
+					e["state"] = "bottom"
+					e["v"] = 0.0
+					print("ramp: elevator %s bottom" % d["name"])
+		e["y"] = y
+		(e["node"] as Node3D).position.y = y
+		if riding:
+			player.position.y = y
+			player.velocity.y = 0.0

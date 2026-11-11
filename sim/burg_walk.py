@@ -116,7 +116,7 @@ def main() -> None:
     ap.add_argument("--mode", default="walk", choices=("walk", "sprint"))
     ap.add_argument("--hold", type=float, default=3.0, help="seconds the window stays after the last leg")
     ap.add_argument("--ladders", action="store_true", help="also climb each ladder up and back down (M1111-30)")
-    ap.add_argument("--scene", default="burg", choices=("burg", "firelink_taurus", "firelink_demon"),
+    ap.add_argument("--scene", default="burg", choices=("burg", "firelink_taurus", "firelink_demon", "firelink_loop"),
                     help="firelink_taurus = from the Firelink Shrine bonfire (python sim/burg_scene.py --full, M1111-31)")
     ap.add_argument("--from", dest="from_leg", type=int, default=1,
                     help="start at leg N (the room starts at the end of leg N-1; scene copy _walk_from_scene.json)")
@@ -171,6 +171,63 @@ def main() -> None:
             here = (s.player.x, s.player.y, s.player.z)
             nm = nms[leg["map"]]
             goal = tuple(leg["pts"][-1])
+            if leg["kind"] == "board":                      # straight into an elevator car with the stick (M1111-35)
+                t1 = time.time()
+                E = min(sc.get("elevators", []), key=lambda e: math.dist(e["at"], (goal[0], goal[2])))
+                inside = E["half"] - 0.4                    # [guess] margin so the body doesn't stop on the edge
+                res = "timeout"
+                for q in leg["pts"]:
+                    t2 = time.time()
+                    while time.time() - t2 < 8.0:
+                        s = tm.snapshot()
+                        on = (abs(s.player.x - E["at"][0]) <= inside and abs(s.player.z - E["at"][1]) <= inside
+                              and abs(s.player.y - E["y_top"]) < 0.5)
+                        if on:
+                            res = "arrived"
+                            break
+                        if math.hypot(s.player.x - q[0], s.player.z - q[2]) < 0.5:
+                            break
+                        pad.move(*mv.stick_to(s, q[0], q[2], 0.6))
+                        time.sleep(0.05)
+                    if res == "arrived":
+                        break
+                pad.neutral()
+                s = tm.snapshot()
+                end = (s.player.x, s.player.y, s.player.z)
+                gap = math.dist(end, goal)
+                rows.append({"leg": i, "name": leg["name"], "map": leg["map"], "kind": "board", "goal": list(goal), "res": res,
+                             "s": round(time.time() - t1, 1), "end": [round(v, 2) for v in end], "gap": round(gap, 2)})
+                print(f"{i:2d} {leg['name']} (board): {res} · {time.time() - t1:5.1f} s · 끝 {tuple(round(v, 1) for v in end)} · "
+                      f"목표까지 {gap:.1f} m", flush=True)
+                if res != "arrived":
+                    print("   바닥판에 못 올라섬 — 여기서 멈춤", flush=True)
+                    break
+                continue
+            if leg["kind"] == "ride":                       # stand still on the car until it is down (M1111-35)
+                t1 = time.time()
+                pad.neutral()
+                last, still, res = None, 0, "timeout"
+                while time.time() - t1 < 60.0:
+                    s = tm.snapshot()
+                    y = s.player.y
+                    still = still + 1 if last is not None and abs(y - last) < 0.01 else 0
+                    last = y
+                    if abs(y - goal[1]) < 0.3 and still >= 5:
+                        res = "arrived"
+                        break
+                    time.sleep(0.1)
+                s = tm.snapshot()
+                end = (s.player.x, s.player.y, s.player.z)
+                gap = math.dist(end, goal)
+                rows.append({"leg": i, "name": leg["name"], "map": leg["map"], "kind": "ride", "goal": list(goal), "res": res,
+                             "s": round(time.time() - t1, 1), "m": round(abs(here[1] - goal[1]), 1),
+                             "end": [round(v, 2) for v in end], "gap": round(gap, 2)})
+                print(f"{i:2d} {leg['name']} (ride): {res} · {time.time() - t1:5.1f} s · 높이 {here[1]:.1f} → {end[1]:.1f} · 목표까지 {gap:.1f} m",
+                      flush=True)
+                if gap > 3.0:
+                    print("   목표 3 m 밖 — 여기서 멈춤", flush=True)
+                    break
+                continue
             if leg["kind"] == "follow":                     # the recorded points as they are, from the nearest one (_to_merchant)
                 k = min(range(len(leg["pts"])), key=lambda j: math.dist(leg["pts"][j], here))
                 path = [tuple(q) for q in leg["pts"][k:]]
