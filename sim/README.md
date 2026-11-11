@@ -43,6 +43,12 @@
   Look (M1111-23/24): by default, when the Sketchfab file is there, no DSR map on screen — the Sketchfab terrain shape drawn with
   `godot/natural_ground.gdshader` (Godot noise only, no image files: steep = rock, flat = grass / moss / dirt); `RAMP_LOOK=dsr` brings
   the DSR map back (and then the SK walls show blue). Look only, no collision change.
+  Burg (M1111-27): `python sim/burg_scene.py` → `assets/burg_scene.json` (m10_01 NavMesh, Sketchfab "Undead Burg" walls, no foes, route
+  bonfire → burg-upper safe spots → Taurus fog → bridge); `python sim/burg_walk.py [--headless] [--hold 20]` walks it with Moves.walk_path.
+  SK walls drop faces under 0.5 m tall and faces standing on NavMesh floor (a 2 m box at the barrel stairs crossed the NavMesh path).
+  Stairs (M1111-29): sun shadows; faces on sloped NavMesh are marked stairs (`_stair_mask`, vertex colour) and drawn as stone with a
+  step every 0.22 m of height — most route stairs are slabs in the Sketchfab data, so the steps are painted. `RAMP_LOOK=grey` and
+  `-- --shots=<views.json>` (fixed cameras → contact sheet) for checking shapes.
 - Flat arena (MoKa M1109-75/76/78): `python sim/arena_scene.py [--set hollows|mixed]` → `godot/assets/arena_scene.json` (40 m flat square,
   two heavy Hollows 255010 by default, `mixed` = heavy Hollow + heavy knight 257002, arena AI switches); hits show a red ball on the
   nearest bone for 0.8 s (`ramp.gd` `_hit_mark`, state `hit_marks`); open with `-- --scene=arena`, bot with

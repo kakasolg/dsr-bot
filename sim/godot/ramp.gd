@@ -114,6 +114,9 @@ func _ready() -> void:
 	heading = float(sc["start_heading"])
 	player.rotation.y = heading
 	cam_yaw = heading + PI
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--shots="):
+			_shots.call_deferred(arg.substr(8))
 	player_hp = PLAYER_HP
 	player.collision_mask = 1 | WALL_LAYER
 
@@ -131,6 +134,12 @@ func _build_world() -> void:
 	add_child(env)
 	var sun := DirectionalLight3D.new()
 	sun.rotation = Vector3(deg_to_rad(-55), deg_to_rad(35), 0)
+	# 그림자 (M1111-29, Perplexity 1단계): 4분할, 60 m 안만 — 계단 단·벽 모서리가 읽히게
+	sun.shadow_enabled = true
+	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
+	sun.directional_shadow_max_distance = 60.0
+	sun.shadow_bias = 0.03
+	sun.shadow_normal_bias = 0.5
 	add_child(sun)
 	if sc.has("flat"):
 		# the flat arena (M1109-75): a plain floor the size of its NavMesh square, a line every 2 m to read distances
@@ -201,8 +210,13 @@ func _build_world() -> void:
 	# made from the game's collision, so steps should be slopes, unlike the visual map (RAMP_MAP_COLLISION, stuck 11-09).
 	# Its "Firelink Shrine" area replaces the NavMesh-edge walls, player only; the floor stays the NavMesh lookup.
 	var sk := OS.get_environment("RAMP_SK_COLLISION")
+	if sk == "" and sc.get("sk_walls", false):
+		sk = "1"                              # scene asks for the Sketchfab walls (burg_scene.py, M1111-27)
+	if sk == "0":
+		sk = ""                               # RAMP_SK_COLLISION=0: off even when the scene asks
+	var sk_area := String(sc.get("sk_area", "Firelink Shrine"))
 	var natural := _natural_on()
-	var sk_all := PackedVector3Array() if sk == "" and not natural else _sk_faces(SK_GLB if sk == "" or sk == "1" else sk, "Firelink Shrine")
+	var sk_all := PackedVector3Array() if sk == "" and not natural else _sk_faces(SK_GLB if sk == "" or sk == "1" else sk, sk_area)
 	var sk_faces := sk_all if sk != "" else PackedVector3Array()
 	# RAMP_LOOK=natural (MoKa M1111-23): DSR 화면용 맵 대신 Sketchfab 지형 모양에 고도 노이즈 질감(바위·풀·흙)만 입힘
 	if natural and sk_all.size() > 0:
@@ -211,6 +225,7 @@ func _build_world() -> void:
 	# with every face the first try (11-11) stuck at the ramp's foot (−29.7, −56.5, 43.6): the model has 0.2 m step
 	# boards there next to a slope, and a 0.2 m riser stops the capsule like the visual map's steps did on 11-09
 	var kept := 0
+	var crossed := 0
 	for k in range(0, sk_faces.size(), 3):
 		var a: Vector3 = sk_faces[k]
 		var b: Vector3 = sk_faces[k + 1]
@@ -219,13 +234,30 @@ func _build_world() -> void:
 		if nrm.length() < 1e-6 or absf(nrm.normalized().y) > 0.6:
 			continue
 		var top := maxf(a.y, maxf(b.y, c.y))
+		# 0.5 m보다 낮은 면(계단 디딤판 앞면·연석)은 높이와 상관없이 뺌 — 11-11 성벽 마을 통 굴리는 계단 아래
+		# (53.5, 0.9, −114.3): NavMesh 밖으로 삐져나온 0.2 m 계단 앞면은 아래 NavMesh가 없어서 위 검사로 안 빠지고 캡슐을 막음
+		if top - minf(a.y, minf(b.y, c.y)) < 0.5:
+			continue
 		var g := _ground(Vector3((a.x + b.x + c.x) / 3.0, top, (a.z + b.z + c.z) / 3.0), 0.0)
 		if not is_nan(g) and top - g < 0.5:
+			continue
+		# NavMesh 바닥 위에 서 있는 면은 뺌: 게임 NavMesh는 진짜 벽에서 ~0.4 m 떨어져 끝나니(ramp_scene WALL_OUT), 면 발치
+		# (무게중심·세 변 중점, 바닥 +0.3 m)에 NavMesh 바닥이 있으면 게임에선 지나다니는 자리. 11-11 성벽 마을 계단 아래
+		# (52~55, 0.9, −116~−112): 높이 2 m·3.6×2.1 m 상자 모양 면을 NavMesh 경로가 관통 — 물체 충돌로 추정, 확인 안 함
+		var bot := minf(a.y, minf(b.y, c.y))
+		var on_floor := false
+		for q in [(a + b + c) / 3.0, (a + b) * 0.5, (b + c) * 0.5, (c + a) * 0.5]:
+			var g2 := _ground(Vector3(q.x, bot + 0.3, q.z), 0.6)
+			if not is_nan(g2) and absf(g2 - bot) < 0.4:
+				on_floor = true
+				break
+		if on_floor:
+			crossed += 1
 			continue
 		faces.append_array(PackedVector3Array([a, b, c]))
 		kept += 1
 	if sk_faces.size() > 0:
-		print("ramp: Sketchfab walls kept %d of %d triangles" % [kept, sk_faces.size() / 3])
+		print("ramp: Sketchfab walls kept %d of %d triangles (%d dropped: standing on NavMesh floor)" % [kept, sk_faces.size() / 3, crossed])
 		# 보기용: 실제로 막는 벽만 반투명으로 그림 (M1111-22 "나한테 보여 줘봐"); 자연 질감(RAMP_LOOK=natural)일 땐 안 그림
 	if sk_faces.size() > 0 and not natural:
 		var am := ArrayMesh.new()
@@ -735,6 +767,83 @@ func _grid_add(a: Vector3, b: Vector3, c: Vector3, idx := -1) -> void:
 			ground_grid[k].append([a, b, c, idx])
 
 
+var shot_mode := false
+
+
+func _update_camera(dt: float) -> void:
+	if not shot_mode:
+		super._update_camera(dt)
+
+
+func _shots(spec: String) -> void:
+	# `-- --shots=<views.json>`: still pictures from fixed cameras, a contact sheet, then quit (M1111-29 계단 확인).
+	# views.json = {"out": png, "views": [{"at": [x,y,z], "from": [x,y,z], "label": ""}…]}, game coordinates
+	var d: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(spec))
+	shot_mode = true                       # _update_camera leaves the room camera alone
+	info_label.visible = false
+	cam.far = 500
+	var sz := Vector2i(800, 500)
+	var cols := 4
+	var vs: Array = d["views"]
+	var sheet := Image.create(sz.x * cols, sz.y * int(ceil(vs.size() / float(cols))), false, Image.FORMAT_RGBA8)
+	get_window().size = sz
+	for i in vs.size():
+		var v: Dictionary = vs[i]
+		var at := Vector3(v["at"][0], v["at"][1], v["at"][2])
+		cam.position = Vector3(v["from"][0], v["from"][1], v["from"][2])
+		cam.look_at(at, Vector3.UP)
+		for _f in 4:
+			await RenderingServer.frame_post_draw
+		var im := get_viewport().get_texture().get_image()
+		im.convert(Image.FORMAT_RGBA8)
+		im.resize(sz.x, sz.y)
+		sheet.blit_rect(im, Rect2i(Vector2i.ZERO, sz), Vector2i((i % cols) * sz.x, (i / cols) * sz.y))
+	sheet.save_png(String(d["out"]))
+	print("ramp: shots saved ", d["out"])
+	get_tree().quit()
+
+
+func _nav_under(p: Vector3) -> Vector2:
+	# NavMesh under p.xz closest in height to p.y (within 1 m): (height, normal.y); (NAN, 0) when none
+	var best := Vector2(NAN, 0.0)
+	for tri in ground_grid.get(Vector2i(floori(p.x), floori(p.z)), []):
+		var a: Vector3 = tri[0]
+		var b: Vector3 = tri[1]
+		var c: Vector3 = tri[2]
+		var d := (b.z - c.z) * (a.x - c.x) + (c.x - b.x) * (a.z - c.z)
+		if absf(d) < 1e-9:
+			continue
+		var l1 := ((b.z - c.z) * (p.x - c.x) + (c.x - b.x) * (p.z - c.z)) / d
+		var l2 := ((c.z - a.z) * (p.x - c.x) + (a.x - c.x) * (p.z - c.z)) / d
+		var l3 := 1.0 - l1 - l2
+		if l1 < -1e-4 or l2 < -1e-4 or l3 < -1e-4:
+			continue
+		var h := l1 * a.y + l2 * b.y + l3 * c.y
+		if absf(h - p.y) < 1.0 and (is_nan(best.x) or absf(h - p.y) < absf(best.x - p.y)):
+			best = Vector2(h, absf((b - a).cross(c - a).normalized().y))
+	return best
+
+
+func _stair_mask(a: Vector3, b: Vector3, c: Vector3) -> float:
+	# 계단 면 표시 (M1111-29): 그 자리 게임 NavMesh가 비탈(경사 > ~17°, 계단 = 0.4–0.7)이고 면이 그 NavMesh에 붙어 있으면 계단.
+	# Sketchfab 경로 위 계단은 대부분 경사판(11-11 회색 확인) — 경사판·평평한 디딤판·0.5 m 안 앞면 모두 1. 손으로 그린 구역 없음
+	var n := (b - a).cross(c - a)
+	if n.length() < 1e-6:
+		return 0.0
+	var ny := absf(n.normalized().y)
+	var cen := (a + b + c) / 3.0
+	var top := maxf(a.y, maxf(b.y, c.y))
+	var bot := minf(a.y, minf(b.y, c.y))
+	var nav := _nav_under(Vector3(cen.x, cen.y, cen.z))
+	if is_nan(nav.x) or nav.y > 0.955:          # no NavMesh or NavMesh flatter than ~17°
+		return 0.0
+	if absf(nav.x - cen.y) > 0.45:
+		return 0.0
+	if ny > 0.5 or top - bot < 0.5:             # slab / tread (sloped or flat) or a short riser
+		return 1.0
+	return 0.0
+
+
 func _natural_on() -> bool:
 	# 기본 = 자연 질감 (MoKa M1111-24 "자연 질감으로 기본으로 해"); RAMP_LOOK=dsr → 예전 DSR 화면 맵. Sketchfab 파일이 없으면
 	# (클라우드·새 클론) 그릴 지형이 없으니 DSR 맵(있으면) 쪽으로
@@ -745,11 +854,26 @@ func _natural_look(tris: PackedVector3Array) -> void:
 	# look only (no collision): the Sketchfab area with natural_ground.gdshader; the axis swap flips winding → b, c swapped
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st.set_smooth_group(-1)                  # 면마다 평평한 법선 — 기본(0)은 같은 자리 꼭짓점 법선을 섞어 계단 단을 뭉갬 (Perplexity 11-11)
+	var stairs := 0
 	for k in range(0, tris.size(), 3):
-		st.add_vertex(tris[k])
-		st.add_vertex(tris[k + 2])
-		st.add_vertex(tris[k + 1])
+		var col := Color(_stair_mask(tris[k], tris[k + 1], tris[k + 2]), 0, 0, 1)
+		stairs += int(col.r > 0.5)
+		for q in [tris[k], tris[k + 2], tris[k + 1]]:
+			st.set_color(col)
+			st.add_vertex(q)
 	st.generate_normals()
+	if OS.get_environment("RAMP_LOOK") == "grey":
+		# 진단용 (M1111-29, Perplexity 1단계): 질감 없는 회색 — 계단이 단인지 비탈인지 모양만 봄
+		var gm := StandardMaterial3D.new()
+		gm.albedo_color = Color(0.6, 0.6, 0.6)
+		gm.roughness = 1.0
+		gm.cull_mode = BaseMaterial3D.CULL_DISABLED
+		var gmi := MeshInstance3D.new()
+		gmi.mesh = st.commit()
+		gmi.material_override = gm
+		add_child(gmi)
+		return
 	var sm := ShaderMaterial.new()
 	sm.shader = load("res://natural_ground.gdshader")
 	var specs := {"noise_fine": [FastNoiseLite.TYPE_SIMPLEX_SMOOTH, 0.02, 5, false],
@@ -773,7 +897,7 @@ func _natural_look(tris: PackedVector3Array) -> void:
 	mi.mesh = st.commit()
 	mi.material_override = sm
 	add_child(mi)
-	print("ramp: natural look on %d Sketchfab triangles" % (tris.size() / 3))
+	print("ramp: natural look on %d Sketchfab triangles, %d marked stairs" % [tris.size() / 3, stairs])
 
 
 func _sk_faces(file: String, area: String) -> PackedVector3Array:
