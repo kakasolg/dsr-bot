@@ -51,7 +51,7 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
 | 62 | `risk_report` counts escape.pick back-offs (`ev: escape`) as quit-outs (강종) → clean runs read '위험' | fixed — back-off logs `escape_pick`; `risk_report` skips old `escape` rows with `src` |
 | 76 | `altar-burg`: ladder A missed, fell 10 m | fixed — 10-13 2/2 ladder down, no fall |
 | 151 | altar unlit | fixed |
-| 154 | ramp_test #6 flaky: a leftover room pad kept sending neutral → player late | fixed (cloud 10/10; [win] not re-run) |
+| 154 | ramp_test #6 flaky: a leftover room pad kept sending neutral → player late | fixed (cloud 10/10; [win] file 10/10, full pytest 4/4) |
 | 156 | Practice room in a fresh clone: no Godot import cache → no player, input ignored | fixed (cloud headless; [win] not re-run) |
 
 ### P-1 오프라인 테스트가 Linux에서 실행 안 됨 (2026-09-27, [cloud], 1번)
@@ -2553,6 +2553,8 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
     [win]이 더 느리거나 pytest 부하로 추정. `run.py`는 프로세스당 패드 하나라 해당 없음.
   - 확인 ([win], 헤드리스, 11-10 12:10~12:20): 104aba4를 별도 작업 폴더에 풀고 이 PC의 DSR 모델·게임 데이터를 넣어 `python tests/godot_ramp_test.py` 10회 연속 통과
     (실패 0, 회당 50~52 s, #1까지 14.5~14.6 s, #6 4 m 안: 도착 뒤 매번 2.2 s). 테스트 파일만 따로 돌림 — 전에 실패가 나온 `pytest` 전체 조건으로는 안 돌림.
+  - 확인 ([win], 11-10 16:30~17:03, 2843263): 전체 `python -m pytest` 3회 — 3회 모두 `godot_ramp_test` 통과, 실패는 매번
+    `ground_test`(P-97) 하나 (169 통과, 회당 8분 38초~8분 59초). 1b9c7ee 때 1회와 합쳐 전체 pytest 조건 4회 연속 통과.
 
 ### P-155 merchant-buy: 시작 준비 중에 캐릭터가 상인을 침 (입력 출처 모름) → 적대 → 봇이 망자 상인을 죽임 (11-10)
 - 실행: `20261110_061503_merchant-buy` (a1aa801+dirty), npc-module 게임 확인용. 세이브 `backup-20261012-034844-merchant-bought-knife30-firebomb67`
