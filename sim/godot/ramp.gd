@@ -156,7 +156,7 @@ func _build_world() -> void:
 				ln.position = Vector3(0, 0.005, x) if horiz else Vector3(x, 0.005, 0)
 				add_child(ln)
 			x += 2.0
-	elif ResourceLoader.exists(MAP_GLB):
+	elif ResourceLoader.exists(MAP_GLB) and not _natural_on():
 		var m: Node3D = load(MAP_GLB).instantiate()
 		m.scale = Vector3(-1, 1, 1)                 # the glb is mirrored (Godot x = −game x); the room is game coords
 		add_child(m)
@@ -201,7 +201,12 @@ func _build_world() -> void:
 	# made from the game's collision, so steps should be slopes, unlike the visual map (RAMP_MAP_COLLISION, stuck 11-09).
 	# Its "Firelink Shrine" area replaces the NavMesh-edge walls, player only; the floor stays the NavMesh lookup.
 	var sk := OS.get_environment("RAMP_SK_COLLISION")
-	var sk_faces := PackedVector3Array() if sk == "" else _sk_faces(SK_GLB if sk == "1" else sk, "Firelink Shrine")
+	var natural := _natural_on()
+	var sk_all := PackedVector3Array() if sk == "" and not natural else _sk_faces(SK_GLB if sk == "" or sk == "1" else sk, "Firelink Shrine")
+	var sk_faces := sk_all if sk != "" else PackedVector3Array()
+	# RAMP_LOOK=natural (MoKa M1111-23): DSR 화면용 맵 대신 Sketchfab 지형 모양에 고도 노이즈 질감(바위·풀·흙)만 입힘
+	if natural and sk_all.size() > 0:
+		_natural_look(sk_all)
 	# walls only: floors / ceilings (|normal.y| > 0.6) and low risers (top < 0.5 m above the NavMesh floor) are dropped —
 	# with every face the first try (11-11) stuck at the ramp's foot (−29.7, −56.5, 43.6): the model has 0.2 m step
 	# boards there next to a slope, and a 0.2 m riser stops the capsule like the visual map's steps did on 11-09
@@ -221,6 +226,22 @@ func _build_world() -> void:
 		kept += 1
 	if sk_faces.size() > 0:
 		print("ramp: Sketchfab walls kept %d of %d triangles" % [kept, sk_faces.size() / 3])
+		# 보기용: 실제로 막는 벽만 반투명으로 그림 (M1111-22 "나한테 보여 줘봐"); 자연 질감(RAMP_LOOK=natural)일 땐 안 그림
+	if sk_faces.size() > 0 and not natural:
+		var am := ArrayMesh.new()
+		var arr := []
+		arr.resize(Mesh.ARRAY_MAX)
+		arr[Mesh.ARRAY_VERTEX] = faces
+		am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+		var wm := StandardMaterial3D.new()
+		wm.albedo_color = Color(0.45, 0.75, 1.0, 0.28)
+		wm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		wm.cull_mode = BaseMaterial3D.CULL_DISABLED
+		wm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		var wmi := MeshInstance3D.new()
+		wmi.mesh = am
+		wmi.material_override = wm
+		add_child(wmi)
 	# walls on open NavMesh edges with no floor beyond (sim/ramp_scene.py), 2.8 m high; edges with floor below stay open
 	for w in ([] if sk_faces.size() > 0 else sc.get("walls", [])):
 		var a := Vector3(w[0], w[1] - 0.3, w[2])
@@ -712,6 +733,47 @@ func _grid_add(a: Vector3, b: Vector3, c: Vector3, idx := -1) -> void:
 			if not ground_grid.has(k):
 				ground_grid[k] = []
 			ground_grid[k].append([a, b, c, idx])
+
+
+func _natural_on() -> bool:
+	# 기본 = 자연 질감 (MoKa M1111-24 "자연 질감으로 기본으로 해"); RAMP_LOOK=dsr → 예전 DSR 화면 맵. Sketchfab 파일이 없으면
+	# (클라우드·새 클론) 그릴 지형이 없으니 DSR 맵(있으면) 쪽으로
+	return OS.get_environment("RAMP_LOOK") != "dsr" and FileAccess.file_exists(SK_GLB)
+
+
+func _natural_look(tris: PackedVector3Array) -> void:
+	# look only (no collision): the Sketchfab area with natural_ground.gdshader; the axis swap flips winding → b, c swapped
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for k in range(0, tris.size(), 3):
+		st.add_vertex(tris[k])
+		st.add_vertex(tris[k + 2])
+		st.add_vertex(tris[k + 1])
+	st.generate_normals()
+	var sm := ShaderMaterial.new()
+	sm.shader = load("res://natural_ground.gdshader")
+	var specs := {"noise_fine": [FastNoiseLite.TYPE_SIMPLEX_SMOOTH, 0.02, 5, false],
+			"noise_large": [FastNoiseLite.TYPE_SIMPLEX_SMOOTH, 0.006, 3, false],
+			"noise_cells": [FastNoiseLite.TYPE_CELLULAR, 0.03, 1, true]}
+	for key in specs:
+		var sp: Array = specs[key]
+		var fn := FastNoiseLite.new()
+		fn.noise_type = sp[0]
+		fn.frequency = sp[1]
+		fn.fractal_octaves = sp[2]
+		if sp[3]:
+			fn.cellular_return_type = FastNoiseLite.RETURN_DISTANCE2_SUB
+		var nt := NoiseTexture2D.new()
+		nt.width = 512
+		nt.height = 512
+		nt.seamless = true
+		nt.noise = fn
+		sm.set_shader_parameter(key, nt)
+	var mi := MeshInstance3D.new()
+	mi.mesh = st.commit()
+	mi.material_override = sm
+	add_child(mi)
+	print("ramp: natural look on %d Sketchfab triangles" % (tris.size() / 3))
 
 
 func _sk_faces(file: String, area: String) -> PackedVector3Array:

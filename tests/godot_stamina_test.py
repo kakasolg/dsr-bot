@@ -50,6 +50,8 @@ def main() -> None:
             time.sleep(0.3)
         st = tm.state()
         check(f"room up, max stamina {st['max_sp']} from --max-sp (END 40 = 160)", st["max_sp"] == MAX_SP and st["sp"] == MAX_SP)
+        # 자연 질감이 기본이 된 뒤(M1111-24) 방이 막 떠서 첫 프레임들이 느릴 때 R1이 씹힘 (RAMP_LOOK=dsr 에선 통과) — 잠깐 기다림
+        time.sleep(1.5)
 
         # one swing: stamina stays until the blade window, then drops by the weapon's cost
         pad.press(control.B.XUSB_GAMEPAD_RIGHT_SHOULDER, 0.08)

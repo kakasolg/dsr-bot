@@ -40,6 +40,9 @@
   `godot/sk_view.tscn` shows it with a walked path (`-- --path=<json> --shot=<png>`). Ramp room: `RAMP_SK_COLLISION=1` puts its
   Firelink area in as the player's walls instead of the NavMesh-edge walls — walls only (floors and risers under 0.5 m dropped:
   with every face the player stuck on 0.2 m step boards at the ramp's foot). `godot_ramp_test.py` passes with and without it (11-11).
+  Look (M1111-23/24): by default, when the Sketchfab file is there, no DSR map on screen — the Sketchfab terrain shape drawn with
+  `godot/natural_ground.gdshader` (Godot noise only, no image files: steep = rock, flat = grass / moss / dirt); `RAMP_LOOK=dsr` brings
+  the DSR map back (and then the SK walls show blue). Look only, no collision change.
 - Flat arena (MoKa M1109-75/76/78): `python sim/arena_scene.py [--set hollows|mixed]` → `godot/assets/arena_scene.json` (40 m flat square,
   two heavy Hollows 255010 by default, `mixed` = heavy Hollow + heavy knight 257002, arena AI switches); hits show a red ball on the
   nearest bone for 0.8 s (`ramp.gd` `_hit_mark`, state `hit_marks`); open with `-- --scene=arena`, bot with
