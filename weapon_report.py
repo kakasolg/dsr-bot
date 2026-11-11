@@ -67,7 +67,68 @@ PPLX_LETTERS = {"Shortsword": [("C/C", 0)], "Longsword": [("C/C", 0)], "Claymore
                 "Battle Axe": [("C/D", 0)], "Morning Star": [("C/-", 0), ("B/-", 6)], "Pike": [("D/C", 0), ("D/B", 14)],
                 "Halberd": [("D/D", 0), ("D/C", 1)]}          # (letters, from level)
 KO_W = {"Shortsword": "숏소드", "Longsword": "롱소드", "Claymore": "클레이모어", "Zweihander": "츠바이헨더",
-        "Battle Axe": "배틀 액스", "Morning Star": "모닝스타", "Pike": "파이크", "Halberd": "할버드"}
+        "Battle Axe": "배틀 액스", "Morning Star": "모닝스타", "Pike": "파이크", "Halberd": "할버드",
+        "Dagger": "대거", "Bandit's Knife": "도적의 단도", "Broadsword": "브로드소드", "Uchigatana": "우치가타나",
+        "Mace": "메이스", "Spear": "스피어", "Bastard Sword": "바스타드 소드", "Greatsword": "그레이트소드",
+        "Great Club": "그레이트 클럽", "Scimitar": "시미터", "Rapier": "레이피어", "Hand Axe": "핸드 액스", "Club": "클럽",
+        "Reinforced Club": "강화 클럽", "War Pick": "워 픽", "Caestus": "세스터스"}
+
+
+SCL = ROOT / "data" / "gamefiles" / "weapon_scaling.json"       # weapon_scaling.py [게임 파일 + 추정 공식]
+
+
+# 11-10 게임 상태 화면에서 읽은 한손 공격력 (data/shop/20261110_upgrade 스크린샷 21·28·33·80·85): (무기, 강화, 근, 기, 숫자)
+AR_SEEN = [("Battle Axe", 1, 14, 9, 118), ("Battle Axe", 1, 24, 10, 138), ("Zweihander", 1, 24, 10, 189),
+           ("Zweihander", 5, 24, 10, 257), ("Battle Axe", 5, 24, 10, 188),
+           ("Zweihander", 5, 32, 10, 279), ("Battle Axe", 5, 32, 10, 204),
+           # 반반 (BASE 복원 뒤, data/shop/20261110_upgrade_half 19·65 및 status-p5-20-20 / 75)
+           ("Longsword", 1, 16, 12, 105), ("Claymore", 1, 16, 12, 136), ("Longsword", 5, 16, 12, 144), ("Claymore", 5, 16, 12, 185),
+           ("Longsword", 5, 20, 20, 171), ("Claymore", 5, 20, 20, 220), ("Longsword", 5, 25, 25, 185), ("Claymore", 5, 25, 25, 239),
+           # 기량 (BASE 복원 뒤, data/shop/20261110_upgrade_dex)
+           ("Halberd", 1, 16, 12, 141), ("Rapier", 1, 16, 12, 92), ("Halberd", 5, 16, 12, 192), ("Rapier", 5, 16, 12, 125),
+           ("Halberd", 5, 16, 20, 216), ("Rapier", 5, 16, 20, 148), ("Halberd", 5, 16, 30, 236), ("Rapier", 5, 16, 30, 166)]
+
+
+# 11-11 타이타나이트 데몬에 R1 1타, 근16/기30: +5 = data/probe/20261111_002707·002855, +1 = 20261111_003727·003915 (BASE 복원 뒤 같은 능력치)
+# (무기, 잡기, 모션 %, +1 공격력, +1 피해, +5 공격력, +5 피해) — 공격력은 계산값
+DEMON_HITS = [("Rapier", "한손", "100", 122, 21, 166, 44), ("Longsword", "한손", "100", 129, 24, 176, 52),
+              ("Battle Axe", "한손", "100", 142, 34, 193, 74), ("Claymore", "한손", "100", 166, 45, 227, 97),
+              ("Halberd", "한손", "100", 173, 55, 236, 117), ("Zweihander", "양손", "120?", 211, 119, 288, 206)]
+
+
+# 11-11 스태미나 소모 켜고 R1 12초 연타 (weapon_probe.py --modes sustain): +1 = data/probe/20261111_013349·013433·013610,
+# +5 = 20261111_013727·013923. (무기, 잡기, 한 타 스태미나, 첫 바 타수, 첫 바 끝 s, 바닥난 뒤 타 간격 s, +1 피해, +5 피해)
+# 롱소드+1 첫 바는 6으로 찍혔지만 첫 바 셈을 고치기 전 기록 — 로그로는 5타 3.12 s (+5와 같음)
+SUSTAIN = [("Rapier", "한손", 20, 5, 3.04, 1.25, 21, 44), ("Longsword", "한손", 20, 5, 3.14, 1.45, 24, 52),
+           ("Battle Axe", "한손", 25, 4, 3.72, 1.73, 34, 74), ("Claymore", "한손", 30, 4, 3.72, 2.29, 45, 97),
+           ("Halberd", "한손", 30, 4, 3.82, 2.04, 55, 117), ("Zweihander", "양손", 60, 2, 2.23, 2.72, 119, 206)]
+
+
+# 11-11 지구력 → 최대 스태미나 (데몬 백업 세이브, 화톳불 레벨업 뒤 메모리 +0x3FC로 읽음, MoKa M1111-05)
+END_STAMINA = [(14, 98), (16, 102), (18, 106), (20, 110), (22, 115), (23, 117), (24, 119), (25, 121), (26, 124), (28, 129),
+               (30, 133), (32, 139), (34, 144), (36, 149), (38, 154), (40, 160)]
+
+
+def scaling_tables():
+    """MoKa 11-10 1단계: per category (근력 · 반반 · 기량) the AR of every weapon of that category along that category's
+    stat line, +1 and +5, one- and two-handed. → (curves, {cat: (points, rows)}) or None without the JSON.
+    rows: [weapon, req 'S/D', grip, ar+1 per point..., ar+5 per point...]; None = requirement not met."""
+    if not SCL.exists():
+        return None
+    d = json.loads(SCL.read_text(encoding="utf-8"))
+    out = {}
+    for cat, pts in d["lines"].items():
+        pts = [tuple(p) for p in pts]
+        rows = []
+        for name, v in sorted(d["weapons"].items(), key=lambda x: x[1]["row"]):
+            if v["category"] != cat:
+                continue
+            for grip in ("1H", "2H"):
+                ar = {(r["level"], r["str"], r["dex"]): r["ar"] for r in v["rows"] if r["grip"] == grip and r["line"] == cat}
+                rows.append([("★ " if v.get("pick") else "") + KO_W.get(name, name), f"{v['req_str']}/{v['req_dex']}", grip,
+                             [ar[(1, s, dx)] for s, dx in pts], [ar[(5, s, dx)] for s, dx in pts]])
+        out[cat] = (pts, rows)
+    return d["curves"], out
 
 
 def _pplx_letter(name, lv):
@@ -90,7 +151,7 @@ F = lambda t: None if t is None else round(t * 30)          # TAE steps are 1/30
 
 def load():
     mot = json.loads(MOT.read_text(encoding="utf-8"))["weapons"]
-    probe = [json.loads(l) for p in PROBE for l in p.read_text(encoding="utf-8").splitlines() if l.strip()]
+    probe = [dict(json.loads(l), _file=p.stem) for p in PROBE for l in p.read_text(encoding="utf-8").splitlines() if l.strip()]
     return {int(k): v for k, v in mot.items()}, probe
 
 
@@ -274,6 +335,19 @@ def build_xlsx(mot, probe, meas, dps, path: Path, meas2=None):
                            "배틀 액스 +2 하나만 1 다름 (파일 114, fandom 113). 메뉴에 뜨는 값은 안 봄. 마법·화염·번개는 전 단계 0 (파일)."])
         ws.append(["등급 글자", "게임 파일엔 숫자만 있고 글자 기준이 없어 판정 못 함. 위키 글자는 한 기준으로 설명됨: 50 이하 D · 51~77 C · "
                               "82.5부터 B — 모닝스타 +6 B, 파이크 +14 B, 할버드 +1 C가 파일 숫자가 그 선을 넘는 단계와 맞음 [추정 기준]."])
+    sc = scaling_tables()
+    if sc:
+        curves, cats = sc
+        for cat, (pts, rows) in cats.items():
+            lab = [f"근{s}/기{d}" for s, d in pts]
+            sheet(f"계산_{cat}", ["무기", "요구 근/기", "잡기"] + [f"+1 {x}" for x in lab] + [f"+5 {x}" for x in lab],
+                  [[r[0], r[1], r[2]] + ["미달" if a is None else a for a in r[3]] + ["미달" if a is None else a for a in r[4]]
+                   for r in rows], {1: 14})
+            ws = wb[f"계산_{cat}"]
+            ws.append([])
+            ws.append(["읽는 법", "공격력(물리) = 기본×강화 + 기본×강화×(보정×강화 배율/100)×곡선(능력치)/100, 근력·기량 각각 더함, 내림. "
+                                 "양손은 근력×1.5. 값은 [게임 파일], 공식은 [추정 — 2단계에서 게임으로 확인]. '미달' = 요구치 못 채움 (페널티 모름)."])
+            ws.append(["곡선 (CalcCorrectGraph 0, 24종 모두)", " · ".join(f"능력치 {k} → {v}%" for k, v in curves["0"]["at"].items())])
     sheet("출처", ["ID", "내용"], [
         ["게임 파일", "weapon_motions.py → data/gamefiles/weapon_motions.json (DSR: c0000.anibnd TAE, GameParam)"],
         ["게임 실측", "weapon_probe.py → data/probe/20261110_*.jsonl (2026-11-10. 새벽: 교구 병사 255041, 락온 1.4 m. "
@@ -287,7 +361,7 @@ def build_xlsx(mot, probe, meas, dps, path: Path, meas2=None):
     wb.save(path)
 
 
-def build_pdf(mot, meas, dps, path: Path, meas2=None):
+def build_pdf(mot, meas, dps, path: Path, meas2=None, probe=()):
     meas2 = meas2 or {}
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4
@@ -421,7 +495,143 @@ def build_pdf(mot, meas, dps, path: Path, meas2=None):
             "보정 등급 글자는 게임 파일 (GameParam)에 없고 숫자만 있어 위키 글자를 판정하지 못했다. 다만 위키 글자는 한 기준으로 모순 없이 "
             "설명된다: 50 이하 D (할버드 기량 50) · 51~77 C (클레이모어 51, 파이크 기량 77) · 82.5부터 B (모닝스타 +6). 그 기준이면 "
             "모닝스타 +6 B, 파이크 +14 B, 할버드 +1 C가 파일 숫자가 선을 넘는 단계와 정확히 맞는다 [추정 기준]. 단계별 전체 값은 xlsx '강화_대조'.", P))
-    st.append(Paragraph("8. 남은 것", H2))
+    sc = scaling_tables()
+    if sc:
+        curves, cats = sc
+        st.append(Paragraph("8. 능력치·강화별 공격력 계산표 (1단계): 근력 · 반반 · 기량", H2))
+        at = curves["0"]["at"]
+        st.append(Paragraph(
+            "MoKa 11-10: +1과 +5를 비교하고, 근력·기량별로 어떤 무기가 강한지 — 먼저 게임 파일로 계산하고, 게임에서는 몇 점만 확인한다. "
+            "무기 24종을 +0 보정 비율로 셋으로 나눴다: 근력 보정 몫 0.6 이상 '근력', 0.4 이하 '기량', 나머지 '반반'. 카테고리마다 올릴 능력치 줄을 "
+            "BASE 세이브(SL14, 근력 14, 기량 9)에서 시작해 정했다 (기량 줄은 할버드 요구 근력 16에 맞춰 근력 16). ★ = MoKa가 고른 대표 무기 (인기 무기, 게임에서 잴 것): "
+            "근력 츠바이헨더·배틀 액스, 반반 롱소드·클레이모어, 기량 할버드·레이피어 — 할버드는 비율로는 반반(근력 몫 0.43)이지만 MoKa가 기량 대표로 정해 기량으로 옮겼다. "
+            "나머지는 추가 보강. 값: 기본 공격력·요구치·보정·강화 배율·능력치 곡선은 [게임 파일], "
+            "공식(기본×강화 + 기본×강화×보정×곡선, 양손 근력×1.5, 내림)은 [추정] — 2단계에서 상태 화면 숫자와 실제 피해로 확인한다. "
+            "요구치 미달 칸은 비웠다 (게임의 페널티 값을 모름; 파이크 근력 16에서 느린 363030과 피해 1이 나온 것만 실측). "
+            f"능력치 곡선 (24종 모두 같은 CalcCorrectGraph 0): 10 → {at['10']}% · 20 → {at['20']}% · 30 → {at['30']}% · "
+            f"40 → {at['40']}% · 99 → {at['99']}% — 10~20 구간이 1당 3.5%로 가장 가파르고, 20~40은 1당 2.25%, 40 뒤는 1당 0.25%.", P))
+        f0 = lambda a: "-" if a is None else str(a)
+        for cat, (pts, rows) in cats.items():
+            st.append(Paragraph(f"8-{'근반기'.index(cat[0]) + 1}. {cat} — 한손, 칸 = +1 / +5", P))
+            data = [["무기", "요구 근/기"] + [f"근{s}<br/>기{d}" for s, d in pts]]
+            for r in rows:
+                if r[2] != "1H":
+                    continue
+                data.append([r[0], r[1]] + [f"{f0(a)} / {f0(b)}" for a, b in zip(r[3], r[4])])
+            best = ["가장 셈 (+5)", ""]
+            for i in range(len(pts)):
+                c = [(r[4][i], r[0]) for r in rows if r[2] == "1H" and r[4][i] is not None]
+                best.append(max(c)[1] if c else "-")
+            data.append(best)
+            n = len(pts)
+            st.append(table(data, [22 * mm, 13 * mm] + [(182 - 35) / n * mm] * n))
+            st.append(Spacer(1, 2 * mm))
+        sw = json.loads(SCL.read_text(encoding="utf-8"))["weapons"]
+        calc = lambda n, lv, s, d: next(r["ar"] for r in sw[n]["rows"] if r["level"] == lv and r["grip"] == "1H" and r["str"] == s and r["dex"] == d)
+        data = [["무기", "강화", "근/기", "상태 화면", "계산", "같음"]]
+        for n, lv, s, d, seen in AR_SEEN:
+            c = calc(n, lv, s, d) if (s, d) != (14, 9) else 118
+            data.append([KO_W.get(n, n), f"+{lv}", f"{s}/{d}", str(seen), str(c), "O" if c == seen else "X"])
+        st.append(Paragraph(
+            "8-4. 게임 대조 (근력·반반·기량, 한손) — 상태 화면 R Weapon 숫자 vs 계산. 11-10 BASE 세이브에서 화톳불(무기 강화상자)로 레벨업·강화하며 "
+            "읽었고, 카테고리마다 BASE로 되돌려 다시 시작했다. "
+            f"{sum(r[-1] == 'O' for r in data[1:])}/{len(data) - 1} 같음 → 공식은 대표 무기 6종·이 능력치에서 [게임 확인]. "
+            "상태 화면 숫자만 본 것이고 실제 피해(적 방어·모션 배율)는 아직 안 쟀다. 근14/기9 계산은 표 줄 밖이라 직접 계산(118.47).", P))
+        st.append(table(data, [30 * mm, 14 * mm, 18 * mm, 24 * mm, 18 * mm, 14 * mm]))
+        st.append(Spacer(1, 2 * mm))
+        data = [["무기", "잡기", "공격력<br/>+1 / +5", "피해<br/>+1 / +5", "공격력<br/>배수", "피해<br/>배수", "피해/공격력<br/>+1 / +5", "죽이는 타수<br/>+1 / +5"]]
+        for n, g, mv, a1, d1, a5, d5 in DEMON_HITS:
+            data.append([KO_W.get(n, n), g, f"{a1} / {a5}", f"{d1} / {d5}", f"{a5 / a1:.2f}", f"{d5 / d1:.2f}",
+                         f"{d1 / a1:.2f} / {d5 / a5:.2f}", f"{math.ceil(1506 / d1)} / {math.ceil(1506 / d5)}"])
+        st.append(Paragraph(
+            "8-5. 타이타나이트 데몬(NpcParam 230001, HP 1506, 물리 방어 파일값 168)에 R1 1타 — 11-11, 근16/기30 SL37, 6종 모두 +5. "
+            "weapon_probe.py (캐릭터 무적·적 공격/이동/AI 끔, 매 타 전에 적 HP 되돌림), 무기마다 3번 쳐서 3번 모두 같은 값. "
+            "공격력은 계산값(할버드·레이피어 한손은 이 능력치에서 상태 화면 확인, 나머지는 공식으로만). 모션 % = AtkParam_Pc 첫 타 "
+            "PhysicalAttackPowerPercentage — 한손 R1은 6종 모두 100, 츠바이 양손은 첫 타 행이 어느 것인지 안 확인 [추정 120]. "
+            "같은 모션 100인데 공격력 166→236 (1.42배)에서 피해는 44→117 (2.66배): 방어가 높은 적에게는 공격력 차이가 피해에서 크게 벌어진다. "
+            "+1 → +5 (같은 근16/기30, +1은 BASE 복원 뒤 다시 올려 잼): 공격력은 모두 1.36배인데 한손 피해는 2.10~2.18배, 츠바이 양손은 1.73배. "
+            "레이피어+5(166)와 클레이모어+1(166)이 44·45 — 모션이 같으면 피해는 무기가 아니라 공격력으로 정해짐. "
+            "후보 식 [추정]: DS3식 방어 곡선에 방어 216을 넣으면 한손 10점이 평균 4.3 차이로 맞음 (파일 168 × 1.2 = 202 근처, HP도 파일 1255 → 게임 1506 = 1.2배).", P))
+        st.append(table(data, [22 * mm, 11 * mm, 22 * mm, 20 * mm, 16 * mm, 16 * mm, 26 * mm, 24 * mm]))
+        st.append(Spacer(1, 2 * mm))
+        data = [["무기", "잡기", "한 타<br/>스태미나", "첫 바<br/>타수 / 초", "몰아치기 DPS<br/>+1 / +5", "바닥 뒤<br/>타 간격", "지속 DPS<br/>+1 / +5",
+                 "1506 잡는 시간 s<br/>+1 / +5"]]
+        for n, g, cost, k, tk, gap, d1, d5 in SUSTAIN:
+            def kill(d):
+                n_ = math.ceil(1506 / d)
+                return tk / max(k - 1, 1) * (min(n_, k) - 1) + max(0, n_ - k) * gap
+            data.append([KO_W.get(n, n), g, str(cost), f"{k} / {tk:.1f}", f"{d1 * k / tk:.0f} / {d5 * k / tk:.0f}", f"{gap:.2f}",
+                         f"{d1 / gap:.0f} / {d5 / gap:.0f}", f"{kill(d1):.0f} / {kill(d5):.0f}"])
+        st.append(Paragraph(
+            "8-6. 스태미나를 넣은 DPS (MoKa M1111-03) — 같은 데몬, 스태미나 소모를 켜고 R1을 12초 계속 누름 (캐릭터 무적, 데몬 공격·AI 끔). "
+            "최대 스태미나 98 (지구력 14), 회복은 6종 모두 초당 45 (게임에서 잰 값, 손 뗀 뒤 0.05~1.3 s 지나 시작). 스태미나는 휘두를 때 빠지고 0 아래로 내려가도 "
+            "그 타는 나감 (98→…→−2). '첫 바' = 가득 찬 상태에서 바닥날 때까지, '바닥 뒤 타 간격' = 그 뒤 회복분으로 한 타씩 칠 때의 간격. "
+            "타수·간격은 +1과 +5가 같고 피해만 바뀜. 실제 싸움에서는 구르기·막기용 스태미나를 남기므로 이 값은 위쪽 한계. "
+            "죽이는 시간 = 첫 바를 쓰고 바닥 뒤 간격으로 계속 쳤을 때 [계산, 측정 로그로].", P))
+        st.append(table(data, [22 * mm, 11 * mm, 16 * mm, 20 * mm, 26 * mm, 16 * mm, 24 * mm, 28 * mm]))
+        st.append(Spacer(1, 2 * mm))
+        st.append(Paragraph(
+            "8-7. 츠바이헨더 두 타에 필요한 지구력 (MoKa M1111-05: '츠바이는 두 번 때릴 수 있게 지구력을 올리는 게 보통'). "
+            "한 타 스태미나는 게임 파일 BehaviorParam_PC (츠바이 양손 R1 = 60, 한손 R1 = 45; 양손 R1 모션 120) — 실측과 같음. "
+            "구르기 30 · 백스텝 20 (데몬 앞에서 잼). 지구력 1당 최대 스태미나 +2~3: "
+            + " · ".join(f"{e}→{s}" for e, s in END_STAMINA) + ". "
+            "두 타(120)가 마이너스 없이 = 지구력 25 (121). 두 타 + 구르기(150) = 지구력 37 근처 (36→149, 38→154). "
+            "지구력 40 (160)에서 같은 데몬 연타: 츠바이 양손 첫 바 3타 (160→100→40→−20), 12초 DPS 86 → 103; 할버드 6타, 78 → 88. "
+            "회복은 지구력과 상관없이 초당 45. 무게: 장비 무게 46% (24.9/54)와 23% (18.4/80)에서 한 타 소모·회복이 같았음 — "
+            "50% 넘는 무거운 장비는 아직 안 잼 (MoKa M1111-06: 방어구·전체 무게도 영향).", P))
+        fr = fight_rows(probe)
+        if fr:
+            ends = sorted({k[2] for k in fr})
+            data = [["무기", "잡기", "한 타<br/>피해"] + [f"지구력 {SP_END.get(e, '?')} (최대 {e})<br/>처치 s · 타수 · 쫓은 s · 피격" for e in ends]]
+            for (w, g) in sorted({k[:2] for k in fr}, key=lambda k: min(r["kill_s"] or 999 for kk, rs in fr.items() if kk[:2] == k for r in rs)):
+                cells = []
+                for e in ends:
+                    rs = fr.get((w, g, e), [])
+                    cells.append("<br/>".join(f"{r['kill_s']:.0f} · {r['hits']} · {r['far_s']:.0f} · {r['taken_hits']}" if r["killed"]
+                                              else f"못 잡음 {r['secs']:.0f} s" for r in rs) or "-")
+                top = max((statistics.mode([h[1] for h in r["hit_log"]]) for (w_, g_, _), rs in fr.items() if (w_, g_) == (w, g)
+                           for r in rs if r["hit_log"]), default=None)
+                data.append([NAME.get(w) or OTHER.get(w) or KO_W.get(RAPIER.get(w, ""), str(w)), "양손" if g == "2H" else "한손", str(top)] + cells)
+            st.append(Paragraph(
+                "8-8. 실전 처치 시간 (MoKa M1111-08: '제한 시키지 말고 실제 전투를 시키고, 캐릭터는 무적') — 같은 데몬 (HP 1506), 데몬의 AI·공격·이동을 켜고 "
+                "스태미나 소모도 켬. 플레이어만 죽지 않게 (NO_DEAD, HP 반 아래면 다시 채움). 모든 무기 같은 정책: 락온, 2.3 m 밖이면 걸어 붙고 안이면 스태미나 > 0일 때 R1 연타 "
+                "— 회피·가드·구르기 없음, 데몬 공격도 다 맞음. 4 m 앞에서 시작, 무기 +5, 근력 16 · 기량 30, 판마다 데몬 살아 있는 세이브 복원. "
+                "'처치 s' = 시작부터 HP 0까지, '쫓은 s' = 2.3 m 밖이라 걷던 시간 (데몬이 물러나거나 맞아서 밀린 시간 포함), '피격' = 맞은 횟수 "
+                "(무적이 아니면 피격 합이 최대 HP 849를 넘은 판은 죽었음). 판마다 데몬 행동이 달라 같은 무기도 차이가 큼 — 한두 판이라 순위는 [잠정]. "
+                "한 타 피해 = 가장 많이 나온 값 (그 밖의 작은 값은 마지막 타의 남은 HP, 큰 값은 데몬이 공격 중일 때 맞은 것으로 보임 [추정]). "
+                "읽은 것: 처치에 드는 타수는 무기마다 거의 고정 (한 타 피해로 정해짐), 시간 차이는 대부분 '쫓은 s' — 데몬이 물러나고 밀어내는 데서 생김. "
+                "2.3 m 안에서 스태미나가 바닥나 못 친 시간은 판마다 0~9 s라, 지구력 40의 효과는 이 판수로는 쫓은 시간 차이에 묻힘. "
+                "받은 피해 합이 최대 HP 849 아래인 판은 할버드 지구력 40 한 판 (828)뿐 — 회피 없이 맞받아 치면 나머지는 다 죽음.", P))
+            st.append(table(data, [24 * mm, 12 * mm, 14 * mm] + [(182 - 50) / len(ends) * mm] * len(ends)))
+            st.append(Spacer(1, 2 * mm))
+        fm = fight_rows(probe, mortal=True)
+        if fm:
+            ends = sorted({k[2] for k in fm})
+            data = [["무기", "잡기"] + [f"지구력 {SP_END.get(e, '?')} (최대 {e})<br/>깎은 % · 버틴 s · 타수 · 피격" for e in ends]]
+            def cut(k):
+                v = [r["foe_cut_pct"] for kk, rs in fm.items() if kk[:2] == k for r in rs]
+                return -sum(v) / len(v)
+            for (w, g) in sorted({k[:2] for k in fm}, key=cut):
+                cells = []
+                for e in ends:
+                    rs = fm.get((w, g, e), [])
+                    cells.append("<br/>".join((f"처치 {r['secs']:.0f} s · {r['hits']} · {r['taken_hits']}" if r["killed"] else
+                                               f"{r['foe_cut_pct']:.0f}% · {r['secs']:.0f} · {r['hits']} · {r['taken_hits']}") for r in rs) or "-")
+                data.append([NAME.get(w) or OTHER.get(w) or KO_W.get(RAPIER.get(w, ""), str(w)), "양손" if g == "2H" else "한손"] + cells)
+            st.append(Paragraph(
+                "8-9. 무적 끄고 죽을 때까지 (MoKa M1111-09: '무적도 꺼버리고 … 하던 방식 그대로 … 캐릭터 죽을때 까지') — 8-8과 같은 정책·무기·세이브, "
+                "무적(NO_DEAD)은 데몬 앞으로 옮겨 착지할 때까지만 (P-158: 끄고 옮기면 17 m 낙하 피해) — HP 가득이 1 s 유지된 뒤 끄고 시작, HP를 다시 채우지 않음, 에스트 안 마심. "
+                "'깎은 %' = 죽을 때 데몬 HP가 1506에서 얼마나 줄었나. 캐릭터 최대 HP 849. 무기별 공략 방법은 일부러 안 씀 (같은 조건 비교). "
+                "읽은 것: 모든 판이 데몬에게 4~6대 맞고 죽음 (한 대 200~290), 버틴 시간 9~34 s. 같은 무기도 판마다 5~90%로 갈려 판수 2~3으로는 순위가 [잠정] — "
+                "중앙값은 할버드·츠바이가 위, 배틀 액스·레이피어가 아래. 지구력 40의 효과는 안 보임. 시작 HP가 덜 찬 판과 P-158 무효 판은 표에서 뺌. "
+                "뒤쪽 4판부터 데몬 동작 번호도 남김 (trace 7번째, 피격 기록 3번째: 3000~3006 = 공격으로 보임 [추정]).", P))
+            st.append(table(data, [24 * mm, 12 * mm] + [(182 - 36) / len(ends) * mm] * len(ends)))
+            st.append(Spacer(1, 2 * mm))
+        st.append(Spacer(1, 2 * mm))
+        st.append(Paragraph(
+            "양손 값과 +0·+15는 xlsx '계산_근력 · 계산_반반 · 계산_기량'과 data/gamefiles/weapon_scaling.json. '가장 셈'은 한 대 공격력(물리)만 본 것 — "
+            "연타 속도·모션 배율·적 방어를 넣은 DPS는 3단계.", P))
+    st.append(Paragraph("9. 남은 것", H2))
     for line in ("R1 2·3타, R2·구르기·백스텝·점프 공격, 클레이모어 양손의 프레임을 게임에서 재기 (지금은 파일 값만). 츠바이헨더 한손은 튕김 때문에 3~6판뿐.",
                  "실측이 플래그보다 0.08~0.13 s 빠른 이유 (입력 선행 받기인지, 애니 시계를 읽는 방식 탓인지), 할버드 구르기 0.2 s.",
                  "클레이모어 양손 R2(744300)의 판정 — TAE 다른 애니 참조를 따라가 읽기.",
@@ -429,6 +639,25 @@ def build_pdf(mot, meas, dps, path: Path, meas2=None):
         st.append(Paragraph("· " + line, P))
     SimpleDocTemplate(str(path), pagesize=A4, leftMargin=14 * mm, rightMargin=14 * mm, topMargin=14 * mm,
                       bottomMargin=14 * mm, title="롱소드·클레이모어·츠바이헨더 프레임 비교").build(st)
+
+
+SP_END = {v: k for k, v in END_STAMINA}
+RAPIER = {601000: "Rapier"}
+
+
+def fight_rows(probe, mortal=False):
+    """{(weapon base, grip, max stamina): [fight rows]} — weapon_probe.py --modes fight (M1111-08). Max stamina = the first
+    trace sample (fight() fills stamina before it starts)."""
+    out = {}
+    for r in probe:
+        if r.get("mode") != "fight" or not r.get("trace") or bool(r.get("mortal")) != mortal:
+            continue
+        if r.get("mortal") and "20261111_053225" <= r.get("_file", "") <= "20261111_054203_weapon_probe":   # P-158: 낙하 피해로 무효
+            continue
+        if r.get("mortal") and r["trace"][0][3] < r.get("player_max_hp", 0):          # 착지 피해가 남은 채 시작 (P-158 두 번째)
+            continue
+        out.setdefault((r["weapon"] - r["weapon"] % 100, r.get("grip", "1H"), r["trace"][0][2]), []).append(r)
+    return out
 
 
 def _r2(xs, ys):
@@ -493,7 +722,7 @@ def main():
     x, p = OUTDIR / "weapon_frames_LS_CL_ZW.xlsx", OUTDIR / "weapon_frames_LS_CL_ZW.pdf"
     meas2 = measured(probe, "2H")
     build_xlsx(mot, probe, meas, dps, x, meas2)
-    build_pdf(mot, meas, dps, p, meas2)
+    build_pdf(mot, meas, dps, p, meas2, probe)
     print("2H", meas2)
     for d in dps:
         print(d)

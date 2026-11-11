@@ -25,10 +25,16 @@ const MAP_GLB := "res://assets/m10_02_00_00.glb"
 const CHR_MODELS_PATH := "../../data/gamefiles/chr_models.json"
 const FOE_R := 0.4             # [guess] foe body capsule radius (hit test and collision)
 const FOE_H := 1.7             # [guess]
-const MAX_SP := 98.0           # [meas] radar 11-09 17:19, the Claymore character
-const SP_REGEN := 45.0         # [guess] per s
+const MAX_SP := 98.0           # [meas] END 14 (radar 11-09; 11-11 memory +0x3FC). Scene "player_max_sp" overrides (END table: PDF 8-7)
+# ── 스태미나 (MoKa M1111-03/05, 11-11 타이타나이트 데몬 앞 실측) ──────────────────────
+#  · 회복 초당 45 — 6종 무기·지구력 14/40 모두 같음 [meas]. 동작 중엔 안 참 (손 뗀 뒤 0.05~1.3 s 지나 오름 = 동작 끝)
+#  · 공격 한 타 = 그 무기 BehaviorParam StaminaCost (actions.json hit.stamina) [game] — 실측 20·25·30·60과 같음
+#  · 공격 스태미나는 누른 순간이 아니라 칼날 판정 즈음 빠짐 (롱소드: 0.4 s까지 98, 0.6 s 78, 맞은 때 0.57 s) [meas]
+#  · 0보다 크면 공격·구르기가 나가고 0 아래로 내려감 (98→…→18→−2) [meas]
+#  · 구르기 30 · 백스텝 20 [meas]. 방어구·무게 영향은 46%·23%에서 없음, 무거운 장비는 안 잼 (M1111-06, 향후 과제)
+const SP_REGEN := 45.0         # [meas] per s
 const SP_REGEN_GUARD := 15.0   # [guess]
-const SP_COST := {"light": 25.0, "light2": 25.0, "roll": 20.0, "backstep": 15.0}   # [guess]
+const SP_COST := {"light": 25.0, "light2": 25.0, "roll": 30.0, "backstep": 20.0}   # roll/backstep [meas]; light = fallback only [guess]
 const GUARD_COST := 30.0       # [guess] per blocked hit
 const GUARD_DEG := 60.0        # [guess] half-angle the shield covers
 const ESTUS := 10              # [meas] status 11-09
@@ -58,7 +64,9 @@ var chr_models := {}
 var foes := []                 # see _build_foes
 var bombs := []                # {t, at: Vector3, from: Vector3, node}
 var guard := false
+var max_sp := MAX_SP
 var sp := MAX_SP
+var sp_due := {}               # attack stamina still to take: {"act": name, "at": s, "cost": SP} — taken at the blade window
 var guard_breaks := 0          # blocked hits that emptied SP (arena, M1109-76)
 var guard_blocks := 0          # player hits a foe's shield took (arena) — block rate = guard_blocks / player_hits
 var turn_n := -1               # arena "turns": the foe whose turn it is to attack (MoKa 11-10)
@@ -89,7 +97,13 @@ func _ready() -> void:
 		push_error("%s missing — python sim/ramp_scene.py / sim/arena_scene.py" % path)
 		return
 	sc = JSON.parse_string(f.get_as_text())
-	var fm := FileAccess.open(ProjectSettings.globalize_path("res://").path_join(CHR_MODELS_PATH), FileAccess.READ)
+	# 최대 스태미나: 장면 "player_max_sp" 또는 `-- --max-sp=160` (지구력 40, PDF 8-7) — 없으면 지구력 14의 98
+	max_sp = float(sc.get("player_max_sp", MAX_SP))
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--max-sp="):
+			max_sp = float(arg.substr(9))
+	sp = max_sp
+	var fm :=FileAccess.open(ProjectSettings.globalize_path("res://").path_join(CHR_MODELS_PATH), FileAccess.READ)
 	if fm:
 		chr_models = JSON.parse_string(fm.get_as_text())
 	rng.seed = int(OS.get_environment("RAMP_SEED")) if OS.get_environment("RAMP_SEED") != "" else 1109
@@ -1089,10 +1103,15 @@ func _start(name: String, dir_angle: float) -> void:
 			return
 		estus_left -= 1
 		estus_done = false
-	if SP_COST.has(name):
+	var a: Dictionary = actions.get(name, {})
+	var hit_sp := float((a.get("hit", {}) as Dictionary).get("stamina", -1.0)) if a.has("hit") else -1.0
+	if hit_sp >= 0.0 or SP_COST.has(name):
 		if sp <= 0.0:
 			return
-		sp -= float(SP_COST[name])
+		if hit_sp >= 0.0 and a["attack"].size():
+			sp_due = {"act": name, "at": float(a["attack"][0][0]), "cost": hit_sp}
+		else:
+			sp -= float(SP_COST[name]) if hit_sp < 0.0 else hit_sp
 	super._start(name, dir_angle)
 
 
@@ -1134,7 +1153,13 @@ func _physics_process(dt: float) -> void:
 	else:
 		dummy.position = Vector3(0, -500, 0)
 		dummy_hp = 0
-	sp = minf(MAX_SP, sp + (SP_REGEN_GUARD if guard else SP_REGEN) * dt * (0.0 if act_name != "" else 1.0))
+	if not sp_due.is_empty():
+		if act_name != String(sp_due["act"]):
+			sp_due = {}            # cut before the blade (hit reaction, roll cancel) → not taken [guess]
+		elif act_t >= float(sp_due["at"]):
+			sp -= float(sp_due["cost"])
+			sp_due = {}
+	sp = minf(max_sp, sp + (SP_REGEN_GUARD if guard else SP_REGEN) * dt * (0.0 if act_name != "" else 1.0))
 	if act_name == "estus" and not estus_done and act_t >= ESTUS_AT:
 		estus_done = true
 		player_hp = mini(PLAYER_HP, player_hp + ESTUS_HEAL)
@@ -1248,7 +1273,7 @@ func _send_state() -> void:
 		"cam_yaw": cam_actual_yaw(), "action": act_name, "anim_time": act_t if act_name != "" else null,
 		"invincible": act_name != "" and _in(actions[act_name]["invincible"], act_t),
 		"lock": lock, "lock_ptr": (1000 + int(foes[lock_foe]["n"])) if (lock and lock_foe >= 0) else 0,
-		"hp": player_hp, "max_hp": PLAYER_HP, "sp": sp, "max_sp": MAX_SP, "estus": estus_left, "guard": guard,
+		"hp": player_hp, "max_hp": PLAYER_HP, "sp": sp, "max_sp": max_sp, "estus": estus_left, "guard": guard,
 		"stagger": stagger > 0.0, "dead": dead, "player_hits": player_hits, "dodged": dodged, "guard_breaks": guard_breaks, "guard_blocks": guard_blocks, "turn": turn_n, "hit_marks": hit_marks, "foes": fl,
 		"bombs": bombs.size(), "scene": sc.get("name", "ramp")}
 	udp_out.put_packet(JSON.stringify(d).to_utf8_buffer())

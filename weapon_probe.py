@@ -87,6 +87,15 @@ def analyze(samples: list, t_press: float, attack: set, hp0: int, mode: str) -> 
     return out
 
 
+def fight_stats(hits: list, taken: list, kill_t: float | None, secs: float, hp0: int) -> dict:
+    """hits: [(t, dmg, sp)] on the foe, taken: [(t, dmg)] on the player. kill_t None = not killed within the limit."""
+    dmg = sum(h[1] for h in hits)
+    t = kill_t if kill_t is not None else secs
+    return {"killed": kill_t is not None, "kill_s": kill_t, "secs": round(secs, 1), "foe_hp0": hp0, "hits": len(hits),
+            "damage_total": dmg, "per_hit": sorted({h[1] for h in hits}), "dps": round(dmg / t, 1) if t > 0 else None,
+            "first_hit_s": hits[0][0] if hits else None, "taken_hits": len(taken), "taken_total": sum(x[1] for x in taken)}
+
+
 def summary(rows: list, table: dict | None = None) -> list[str]:
     """Median per weapon and mode, next to weapon_table.py's TAE numbers when that row exists."""
     lines = []
@@ -276,6 +285,158 @@ class Probe:
         self.tm.pm.write_int(foe_ptr + OFF_HP, mhp)
         return {**analyze(samples, t0, attack, hp0, mode), **geo}
 
+    def sustain(self, foe_ptr: int, attack: set, secs: float = 15.0, regen_s: float = 4.0) -> dict:
+        """R1을 secs초 동안 계속 누름 — 스태미나 소모 켠 채 (MoKa M1111-03: DPS엔 스태미나가 주는 동안 때릴 수 있는 횟수가 들어가야).
+        스태미나를 가득 채우고 시작. 적 HP가 줄 때마다 한 타로 세고 (피해 = 줄어든 만큼) 반 아래로 가면 다시 채움.
+        끝나고 regen_s초 손을 떼고 스태미나가 차는 속도를 잼."""
+        import control
+        from dsr_telemetry import OFF_HP, OFF_MAXHP, OFF_SP, OFF_MAXSP
+        B = control.B
+        self.pad.move(0.0, 0.0)
+        pp = self.tm.player_ptr()
+        time.sleep(1.0)
+        mhp = self.tm.i32(foe_ptr + OFF_MAXHP)
+        self.tm.pm.write_int(foe_ptr + OFF_HP, mhp)
+        msp = self.tm.i32(pp + OFF_MAXSP)
+        self.tm.pm.write_int(pp + OFF_SP, msp)
+        time.sleep(0.2)
+        prev = self.tm.i32(foe_ptr + OFF_HP)
+        hits, trace = [], []
+        t0 = time.time()
+        down, next_mash, empty_at = False, t0, None
+        while time.time() - t0 < secs:
+            now = time.time()
+            if now >= next_mash:
+                down = not down
+                self.pad.hold(B.XUSB_GAMEPAD_RIGHT_SHOULDER, down)
+                next_mash = now + MASH
+            hp = self.tm.i32(foe_ptr + OFF_HP)
+            sp = self.tm.i32(pp + OFF_SP)
+            if hp < prev:
+                hits.append((round(now - t0, 3), prev - hp, sp))
+            if hp < mhp // 2:
+                self.tm.pm.write_int(foe_ptr + OFF_HP, mhp)
+                hp = mhp
+            prev = hp
+            if empty_at is None and sp <= 0:
+                empty_at = round(now - t0, 3)
+            if not trace or now - t0 - trace[-1][0] >= 0.05:
+                trace.append((round(now - t0, 3), sp, self._anim(pp)))
+            time.sleep(POLL)
+        self.pad.hold(B.XUSB_GAMEPAD_RIGHT_SHOULDER, False)
+        t_stop = time.time()
+        regen = []
+        while time.time() - t_stop < regen_s:
+            regen.append((round(time.time() - t_stop, 3), self.tm.i32(pp + OFF_SP)))
+            time.sleep(0.05)
+        self.tm.pm.write_int(foe_ptr + OFF_HP, mhp)
+        # 첫 바 = 스태미나가 처음 0 이하가 된 타까지 (11-11 롱소드+1: 98→78→58→38→18→−2 다섯 타, 그 뒤는 회복분으로 1.4 s에 한 타)
+        k = next((i for i, h in enumerate(hits) if h[2] <= 0), len(hits) - 1)
+        first_bar = hits[:k + 1]
+        # 회복 속도: 손 뗀 뒤 처음 오르기 시작한 때부터 가득 차기 전까지의 기울기
+        rise = [(t, v) for t, v in regen if v < msp]
+        moving = [(t, v) for (t, v), (_, v0) in zip(rise[1:], rise) if v > v0]
+        rate = None
+        if len(moving) >= 2 and moving[-1][0] > moving[0][0]:
+            rate = round((moving[-1][1] - moving[0][1]) / (moving[-1][0] - moving[0][0]), 1)
+        delay = round(moving[0][0], 2) if moving else None
+        total = sum(h[1] for h in hits)
+        return {"mode": "sustain", "secs": secs, "max_stamina": msp, "hits": len(hits), "damage_total": total,
+                "dps": round(total / secs, 1), "empty_at": empty_at, "first_bar_hits": len(first_bar),
+                "first_bar_damage": sum(h[1] for h in first_bar), "per_hit": sorted({h[1] for h in hits}),
+                "regen_per_s": rate, "regen_delay": delay, "hit_log": hits, "stamina_trace": trace[::4]}
+
+    def fight(self, foe_ptr: int, attack: set, limit: float = 240.0, reach: float = 2.3, mortal: bool = False) -> dict:
+        """실전 (MoKa M1111-08): 적은 AI·공격·이동 그대로, 적 HP도 안 건드림. 플레이어만 NO_DEAD + HP 반 아래면 다시 채움.
+        정책은 모든 무기 같음 — 락온, reach m 밖이면 걸어 붙고, 안이면 스태미나 > 0일 때 R1 연타 (회피·가드 없음).
+        죽을 때까지 (또는 limit초) — 처치 시간, 타수, 받은 피격, 거리 밖에 있던 시간을 남김."""
+        import control
+        from dsr_telemetry import OFF_HP, OFF_MAXHP, OFF_SP, OFF_MAXSP
+        B = control.B
+        pp = self.tm.player_ptr()
+        php_max = self.tm.i32(pp + OFF_MAXHP)
+        self.tm.pm.write_int(pp + OFF_SP, self.tm.i32(pp + OFF_MAXSP))
+        if mortal:                                          # 착지 낙하 피해를 지우고 무적 끔 (P-158)
+            # 11-11 0545..: 1 s 뒤 채운 두 판은 착지 피해가 그 뒤에 들어와 542·570으로 시작 → HP가 1 s 동안 가득 있을 때까지 다시 채움
+            t_ = time.time()
+            full_since = None
+            while time.time() - t_ < 8.0:
+                if self.tm.i32(pp + OFF_HP) < php_max:
+                    self.tm.pm.write_int(pp + OFF_HP, php_max)
+                    full_since = None
+                elif full_since is None:
+                    full_since = time.time()
+                elif time.time() - full_since >= 1.0:
+                    break
+                time.sleep(0.1)
+            self.tm.set_dbg(self.tm.DBG_PLAYER_NO_DEAD, False)
+            time.sleep(0.1)
+        hp0 = prev = self.tm.i32(foe_ptr + OFF_HP)
+        my_prev = self.tm.i32(pp + OFF_HP)
+        hits, taken, trace = [], [], []          # trace: (t, 거리, 스태미나, 내 HP, 데몬 HP, 내 동작, 데몬 동작)
+        t0 = last = time.time()
+        far_s = empty_s = 0.0
+        down, next_mash, next_lock, kill_t, stop = False, t0, t0, None, None
+        while time.time() - t0 < limit:
+            now = time.time()
+            dt, last = now - last, now
+            s, f = self.find(foe_ptr)
+            hp = self.tm.i32(foe_ptr + OFF_HP)
+            sp = self.tm.i32(pp + OFF_SP)
+            my = self.tm.i32(pp + OFF_HP)
+            if hp < prev:
+                hits.append((round(now - t0, 3), prev - hp, sp))
+            prev = hp
+            fa = self._anim(foe_ptr)                         # 데몬 동작 번호 (MoKa M1111-10) — 어떤 공격에 맞았나
+            if my < my_prev:
+                taken.append((round(now - t0, 3), my_prev - my, fa))
+            if not mortal and my < php_max // 2:
+                self.tm.pm.write_int(pp + OFF_HP, php_max)
+                my = php_max
+            my_prev = my
+            if hp <= 0:
+                kill_t = round(now - t0, 2)
+                break
+            stop = self.alive_here()
+            if my <= 0 or (stop and (mortal or stop != "dead")):     # --mortal (M1111-09): 죽으면 끝
+                stop = stop or "dead"
+                break
+            stop = None
+            if s is None or f is None:
+                time.sleep(0.02)
+                continue
+            d = math.hypot(f.x - s.player.x, f.z - s.player.z)
+            if now >= next_lock and self.mv.lock_state(foe_ptr) != "target":
+                self.mv.lock_target(foe_ptr, tries=1, aim=False)
+                next_lock = time.time() + 2.0
+            if d > reach:
+                far_s += dt
+                if down:
+                    down = False
+                    self.pad.hold(B.XUSB_GAMEPAD_RIGHT_SHOULDER, False)
+                self.pad.move(*self.mv.stick_to(s, f.x, f.z))
+            else:
+                self.pad.move(0.0, 0.0)
+                if sp <= 0:
+                    empty_s += dt
+                if sp > 0 and now >= next_mash:
+                    down = not down
+                    self.pad.hold(B.XUSB_GAMEPAD_RIGHT_SHOULDER, down)
+                    next_mash = now + MASH
+                elif sp <= 0 and down:
+                    down = False
+                    self.pad.hold(B.XUSB_GAMEPAD_RIGHT_SHOULDER, False)
+            if not trace or now - t0 - trace[-1][0] >= 0.1:
+                trace.append((round(now - t0, 2), round(d, 2), sp, my, hp, self._anim(pp), fa))
+            time.sleep(0.01)
+        self.pad.hold(B.XUSB_GAMEPAD_RIGHT_SHOULDER, False)
+        self.pad.move(0.0, 0.0)
+        hp_end = max(0, self.tm.i32(foe_ptr + OFF_HP) or 0)
+        return dict(fight_stats(hits, taken, kill_t, time.time() - t0, hp0), mode="fight", stop=stop, reach=reach, mortal=mortal,
+                    foe_hp_end=hp_end, foe_cut_pct=round(100 * (hp0 - hp_end) / hp0, 1) if hp0 else None,
+                    far_s=round(far_s, 1), empty_s=round(empty_s, 1), player_max_hp=php_max, hit_log=hits, taken_log=taken,
+                    trace=trace)
+
     def _anim(self, pp):
         from dsr_telemetry import OFF_MAPDATA
         if not pp:                                      # 11-10: 위치 쓰기 직후 한 번 player_ptr가 비어 멈춤
@@ -339,6 +500,13 @@ def run(a) -> None:
     #  한 대 피해가 적 최대 HP를 넘으면 (성벽 마을 적 53–102) 첫 판에 죽고, 죽은 적은 HP를 써 넣어도 x3040 변형·피해 0 (P-153).
     #  ALL_NO_DEAD면 HP가 1에서 멈춤 → 맞은 순간(HP 감소)은 그대로 읽히고 swing()이 바로 최대치로 되돌림. 피해 값은 최대 HP − 1로 잘림.
     flags = FLAGS + (("DBG_ALL_NO_DEAD",) if a.foe_no_dead else ())
+    if "sustain" in a.modes.split(","):
+        flags = tuple(f for f in flags if f != "DBG_ALL_NO_STAMINA_CONSUME")   # 스태미나가 줄어야 의미가 있음 (M1111-03)
+    if "fight" in a.modes.split(","):
+        # 실전 (M1111-08): 적을 묶는 플래그 없이 — 플레이어 NO_DEAD만. 적 NO_DEAD도 안 씀 (죽어야 처치 시간)
+        # --mortal (M1111-09)도 자리 옮길 때는 NO_DEAD를 켬 — fight()가 시작 직전에 HP를 채우고 끔.
+        # 11-11 053225..054203: 끄고 옮기자 화톳불(y 15) → 데몬(y −2.6) 17 m 낙하 피해로 12판이 싸우기 전·직후 죽음 (P-158)
+        flags = ("DBG_PLAYER_NO_DEAD",)
     lock = BotLock()
     if not lock.acquire():
         raise SystemExit("봇이 돌고 있음 (data/bot.lock)")
@@ -346,7 +514,7 @@ def run(a) -> None:
     path = OUT / f"{time.strftime('%Y%m%d_%H%M%S')}_weapon_probe.jsonl"
     rows = []
     table = json.loads(TABLE.read_text(encoding="utf-8")) if TABLE.exists() else None
-    tm = pad = pr = home = None
+    tm = pad = pr = home = stop = None
     try:
         control.focus_game()
         time.sleep(0.8)
@@ -360,8 +528,9 @@ def run(a) -> None:
         home = (s0.player.x, s0.player.y + 0.3, s0.player.z) if s0 else None
         s = tm.snapshot(within=80.0)
         # 안드레이(264000)·상인(251001)도 team 6으로 읽힘 (11-10 교구) — 절대 대상으로 고르지 않음
-        cands = [c for c in s.chars if c.hp > 0 and (a.foe is None or c.npc_param == a.foe) and c.team == 6
-                 and c.npc_param not in NPC_NEVER]
+        # 타이타나이트 데몬(230001)은 깨기 전 team 0으로 읽힘 (11-11) → --foe로 지정한 적은 team을 안 봄
+        cands = [c for c in s.chars if c.hp > 0 and (a.foe is None or c.npc_param == a.foe)
+                 and (c.team == 6 or a.foe is not None) and c.npc_param not in NPC_NEVER]
         if not cands:
             raise SystemExit(f"대상 적 없음 (--foe {a.foe})")
         for f in flags:
@@ -436,15 +605,23 @@ def run(a) -> None:
                             break
                         mv.lock_target(foe.ptr)
                     time.sleep(a.rest)
-                    r = pr.swing(foe.ptr, mode, attack, after_blade)
+                    if mode == "fight":
+                        r = pr.fight(foe.ptr, attack, a.fight_s, a.reach, a.mortal)
+                        if r.get("stop") == "dead":
+                            stop = "dead"
+                    elif mode == "sustain":
+                        r = pr.sustain(foe.ptr, attack, a.sustain_s)
+                    else:
+                        r = pr.swing(foe.ptr, mode, attack, after_blade)
                     r.update({"wall_foe": round(nm.wall_dist(f_.x, f_.y, f_.z), 2), "wall_me": round(nm.wall_dist(s.player.x, s.player.y, s.player.z), 2)})
                     r.update({"weapon": w, "category": cat, "grip": "2H" if two else "1H", "rep": k, "dist": round(math.hypot(f_.x - s.player.x, f_.z - s.player.z), 2) if f_ else None})
                     rows.append(r)
                     with path.open("a", encoding="utf-8") as fh:
                         fh.write(json.dumps(r, ensure_ascii=False) + "\n")
-                    print(f"   {w} {mode} #{k}: " + ", ".join(f"{k2} {v}" for k2, v in r.items() if k2 not in ("weapon", "mode", "rep", "category")))
+                    print(f"   {w} {mode} #{k}: " + ", ".join(f"{k2} {v}" for k2, v in r.items() if k2 not in ("weapon", "mode", "rep", "category", "hit_log", "taken_log", "trace", "stamina_trace")))
     finally:
-        if pr is not None:
+        # --mortal로 죽었으면 (M1111-09) 패드·워프로 정리하지 않음 — 사망 화면·로딩 중. 세이브 복원으로 되돌림
+        if pr is not None and stop != "dead":
             try:
                 mv.unlock()
             except Exception:
@@ -458,7 +635,7 @@ def run(a) -> None:
             except Exception:
                 pass
             pr.restore_slots()
-        if tm is not None and home is not None:
+        if tm is not None and home is not None and stop != "dead":
             # 플래그를 끄기 전에 시작 자리(화톳불 근처)로 — 11-10: 적 옆에 둔 채 플래그를 끄자 교구 위 망자 무리 사이에서
             # 몇 분 서 있다 죽은 것으로 보임 (P-153)
             try:
@@ -499,6 +676,10 @@ def main() -> None:
     ap.add_argument("--safe-back", type=float, default=SAFE_BACK, help="floor needed behind the standing spot (m); below 6 only without roll / move modes (P-152)")
     ap.add_argument("--shots", action="store_true", help="screen at 0.6 s and 0.95 s after each press → data/probe/shots/<run>/")
     ap.add_argument("--rest", type=float, default=0.0, help="extra wait before each swing (s) — lets a knocked-down foe stand up")
+    ap.add_argument("--sustain-s", type=float, default=15.0, help="sustain mode: seconds of R1 mashing with stamina use on")
+    ap.add_argument("--fight-s", type=float, default=240.0, help="fight mode: give up after this many seconds")
+    ap.add_argument("--reach", type=float, default=2.3, help="fight mode: swing when the foe is within this (m), else walk in")
+    ap.add_argument("--mortal", action="store_true", help="fight mode: no invincibility, no HP refill, stop when the character dies (M1111-09)")
     ap.add_argument("--report", default=None)
     a = ap.parse_args()
     if a.report:

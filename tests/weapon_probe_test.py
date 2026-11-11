@@ -50,3 +50,12 @@ class _Mesh:
 def test_safe_line_needs_floor_behind():
     assert W.safe_line(_Mesh(10.0), 0, 5, 0, 1, 0, 1.4, 7.4)
     assert not W.safe_line(_Mesh(4.0), 0, 5, 0, 1, 0, 1.4, 7.4)
+
+
+def test_fight_stats():
+    from weapon_probe import fight_stats
+    r = fight_stats([(1.0, 100, 70), (2.5, 120, 40)], [(2.0, 300)], 10.0, 12.0, 1506)
+    assert r["killed"] and r["kill_s"] == 10.0 and r["hits"] == 2 and r["damage_total"] == 220 and r["dps"] == 22.0
+    assert r["taken_hits"] == 1 and r["taken_total"] == 300 and r["first_hit_s"] == 1.0
+    r = fight_stats([], [], None, 240.0, 1506)
+    assert not r["killed"] and r["dps"] == 0.0 and r["first_hit_s"] is None

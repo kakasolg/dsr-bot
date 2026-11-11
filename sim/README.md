@@ -44,12 +44,17 @@
   scene `turns`): one foe attacks at a time, the other waits 4.5 m off behind its shield; a hit attacker backs off (701) and
   hands the turn over; an Estus sip still brings both [guess]. The heavy Hollow's shield is 9910 and deliberately more
   defensive than the game (seen 7 % of bot swings blocked, biased sample) — state `guard_blocks` / `player_hits` = block rate.
+- Player stamina (MoKa M1111-03/05/07, `ramp.gd`, measured at the Titanite Demon 11-11): an attack costs the weapon's
+  BehaviorParam StaminaCost (`actions.json` hit.stamina; Claymore 1H R1 30) taken at the blade window, any stamina > 0 lets
+  an action start and go below 0, roll 30 · backstep 20, regen 45 per s while no action runs, max 98 (END 14) —
+  `-- --max-sp=160` (END 40) or scene `player_max_sp`; END → max stamina table in `docs/weapons/weapon_frames_LS_CL_ZW.pdf` 8-7.
+  Heavy armour (load > 50 %) not measured. `python tests/godot_stamina_test.py`.
 - A fresh clone has no Godot import cache (`godot/.godot`, not in git): `godot_link.ensure_imported()` runs `--import` once before
   the room / replay starts (P-156). Linux: set `GODOT_PATH` to the Godot 4.7.2 binary.
 - Without the game folder (cloud): `run.py` in the room reads the NavMesh from `data/samples/navmesh_<map>.npz` (room only,
   logged), so the two commands above run from a fresh clone on the committed scene JSONs (ramp; arena = two heavy Hollows).
   `ramp_scene.py` / `arena_scene.py` themselves need the game files — `--set mixed` cannot be made there.
-- Tests: `python tests/godot_room_test.py`, `python tests/godot_combat_test.py`, `python tests/godot_ramp_test.py`, `python tests/replay_test.py`, `python tests/chr_glb_test.py`
+- Tests: `python tests/godot_room_test.py`, `python tests/godot_combat_test.py`, `python tests/godot_ramp_test.py`, `python tests/godot_stamina_test.py`, `python tests/replay_test.py`, `python tests/chr_glb_test.py`
   (headless; skipped without Godot / data).
 
 ## Character and weapon assets
