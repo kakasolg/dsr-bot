@@ -258,8 +258,8 @@ class Missions:
                 ok = self.mv.tm.bonfire_warp(FIRELINK_ID, log=self.log)
                 r = "warped" if ok else "warp_failed"
                 time.sleep(2.0)
-                if ok and getattr(self.f, "loot", None) is not None:
-                    self.f.loot.reset("warp")
+                if ok:
+                    Field._world_event(self.f, "warp", why="passage_drill")   # → forget_foes + loot reset (worldstate step 1)
             else:
                 r = self.f.walk_to(tuple(FIRELINK["stand"]), na, f"드릴{n} 화톳불로")
             self.log(f"   드릴 {n}: 화톳불까지 {r} {time.time() - t0:.1f} s")

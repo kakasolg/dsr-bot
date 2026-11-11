@@ -663,6 +663,27 @@ The items are still open in ROADMAP.md (one line each); their full text as it st
     worth it with the tick loop / WorldState. Tests that set globals move to `applied()` as touched. Proposal: close
     settings-object after a [win] game run with `--basic` (and `--level-up` / `--kindle` if a run uses them).
 - `worldstate` (moved 2026-10-12): [ ] [cloud] WorldState: who is alive / where after a bonfire rest, quit-out (byte/menu) or warp, fixed in one place (P-18, P-25, P-44, P-55)
+  - 2026-11-11 MoKa "worldstate 진행해줘". Before: the events that bring foes back were handled per feature — rest_at:
+    forget_foes + loot reset; wait_respawn: forget_foes (+ loot reset if it was a death); passage_drill warp: loot reset
+    only; Escape crowd warp: gen +1 only; quit-out: gen +1 and `revive_risk` for byte, read by nobody but the log;
+    "were they revived" was pass_ramp's own survivor scan.
+  - **Step 1 (built, cloud):** `souls/world.py` `WorldState` — `EVENTS` table (revive: rest · respawn · warp · byte
+    quit-out yes, menu quit-out no — P-25's 10-10 game check; run start unknown), `event(kind)` counts, logs a `world`
+    event and calls listeners; `kill(npc, pos)` (+ `world_kill` log event), `killed(npc, pos)` → True / False (alive
+    again) / None (unknown), `since(n)` / `revived_since(n)`. Field owns it and hands it to Escape; `Field._on_world`:
+    every revive → forget_foes, rest / respawn / warp → loot reset. Call sites: rest_at, wait_respawn (death only),
+    Field.fight 'killed', passage_drill warp, Escape crowd warp and completed quit-out, run.py run start.
+    Behaviour changes (small, on purpose): a warp (passage_drill, Escape) and a byte quit-out now also forget pointer
+    memory; an Escape crowd warp also resets the loot list. Escape's events run in its thread (listener: a dict pop +
+    loot reset). Readers (field.clear identity binding, pass_ramp, passage_drill) unchanged.
+    Verified offline: `tests/world_test.py` (table, killed / since, listener per kind, call sites) + related tests.
+    Room, arena, 2 runs: `world` run_start logged; run 2 cleared with 2 kills but only **1 `world_kill`** — the other
+    foe died from a shadow kick between fights (79.8 s), outside Field.fight. So `killed()` misses kills made outside
+    Field.fight — no reader uses it yet.
+  - **Step 2 (next):** record deaths wherever they happen (HP 0 in two snapshots, as field.clear does — one detector, not
+    per caller), then readers ask the WorldState: pass_ramp (instead of its own scan), passage_drill after a warp (P-55:
+    knows the ramp is back), field.clear's re-bind after a revive. P-44 (lit-bonfire list vs save restore) is outside the
+    bot run — a save-restore step, not this object.
 - `tick-loop` (moved 2026-10-12): [ ] [cloud] One tick loop (read → update state → pick one action → input) instead of `field.py`'s own loops; walking first, one part at a time, guarded by `scene_replay` + `duel_golden_test`; v1.0 keeps running meanwhile
 - `route-data` (moved 2026-10-12): [ ] [cloud] Route data (walk / careful walk / safe spot / pull / fight / ladder / fog wall / Estus bar) + one runner; `burg-upper` moved first, then new segments without zone code
 - `batch-ab` (moved 2026-10-12): [ ] [cloud]+[win] Batch A/B runner: save restore · warp · N runs · `ab.py` report → "pass rate n/10 per segment"
