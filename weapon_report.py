@@ -51,6 +51,40 @@ PPLX_APS = {(201000, "1H"): 1.52, (201000, "2H"): 1.40, (301000, "1H"): 1.01, (3
 PPLX_POISE = {(201000, "1H"): 20, (201000, "2H"): 30, (301000, "1H"): 35, (301000, "2H"): 52.5, (350000, "1H"): 50,
               (350000, "2H"): 75}
 TARGET_POISE = [0, 20, 40, 53, 60, 80]
+# Perplexity 11-10 (MoKa "강화별로 강화 수치"): regular upgrade +0..+15 base physical attack and scaling letters STR/DEX,
+# sources darksouls.wikidot.com upgrade tables (Battle Axe: darksouls.fandom.com) — [외부]
+UPG = ROOT / "data" / "gamefiles" / "weapon_upgrades.json"        # weapon_upgrades.py [게임 파일]
+PPLX_UPGRADE = {
+    "Shortsword": [78, 85, 93, 101, 109, 117, 124, 132, 140, 148, 156, 163, 171, 179, 187, 195],
+    "Longsword": [80, 88, 96, 104, 112, 120, 128, 136, 144, 152, 160, 168, 176, 184, 192, 200],
+    "Claymore": [103, 113, 123, 133, 144, 154, 164, 175, 185, 195, 206, 216, 226, 236, 247, 257],
+    "Zweihander": [130, 143, 156, 169, 182, 195, 208, 221, 234, 247, 260, 273, 286, 299, 312, 325],
+    "Battle Axe": [95, 104, 113, 123, 133, 142, 152, 161, 171, 180, 190, 199, 209, 218, 228, 237],
+    "Morning Star": [83, 91, 99, 107, 116, 124, 132, 141, 149, 157, 166, 174, 182, 190, 199, 207],
+    "Pike": [86, 94, 103, 111, 120, 129, 137, 146, 154, 163, 172, 180, 189, 197, 206, 215],
+    "Halberd": [110, 121, 132, 143, 154, 165, 176, 187, 198, 209, 220, 231, 242, 253, 264, 275]}
+PPLX_LETTERS = {"Shortsword": [("C/C", 0)], "Longsword": [("C/C", 0)], "Claymore": [("C/C", 0)], "Zweihander": [("C/D", 0)],
+                "Battle Axe": [("C/D", 0)], "Morning Star": [("C/-", 0), ("B/-", 6)], "Pike": [("D/C", 0), ("D/B", 14)],
+                "Halberd": [("D/D", 0), ("D/C", 1)]}          # (letters, from level)
+KO_W = {"Shortsword": "숏소드", "Longsword": "롱소드", "Claymore": "클레이모어", "Zweihander": "츠바이헨더",
+        "Battle Axe": "배틀 액스", "Morning Star": "모닝스타", "Pike": "파이크", "Halberd": "할버드"}
+
+
+def _pplx_letter(name, lv):
+    return [l for l, f in PPLX_LETTERS[name] if lv >= f][-1]
+
+
+def upgrade_rows():
+    """Game file upgrade values vs Perplexity (+0..+15), one row per weapon and level. [] without the JSON."""
+    if not UPG.exists():
+        return []
+    rows = []
+    for name, v in json.loads(UPG.read_text(encoding="utf-8"))["weapons"].items():
+        for lv in v["levels"]:
+            l, g, p = lv["level"], lv["phys"], PPLX_UPGRADE[name][lv["level"]]
+            fl = math.floor(g + 1e-3)          # 소수 배율의 103.9999… 오차를 넘겨 내림
+            rows.append([KO_W[name], l, lv["phys_rate"], g, fl, p, p - fl, lv["str"], lv["dex"], _pplx_letter(name, l)])
+    return rows
 F = lambda t: None if t is None else round(t * 30)          # TAE steps are 1/30 s
 
 
@@ -228,6 +262,18 @@ def build_xlsx(mot, probe, meas, dps, path: Path, meas2=None):
     ws.append(["무게·길이 상관 (R², 23종)", " · ".join(f"{k}: 무게 {a} / 길이 {b}" for k, (a, b) in r2.items())
                + " — 무거운 무기가 느린 묶음에 많아서 생긴 상관. 같은 묶음 안에서는 영향 0. 스태미나만 묶음 안에서도 다를 수 있음 (스피어 25 · 파이크 30)."])
     ws.append(["실측 − TAE (묶음별)", " · ".join(f"{c}: " + ", ".join(f"{n} {m} {d:+.3f}" for n, m, d in v) for c, v in sorted(off.items()))])
+    urows = upgrade_rows()
+    if urows:
+        sheet("강화_대조", ["무기", "강화", "물리 배율", "게임 파일 물리 (계산)", "파일 내림", "Perplexity 물리", "차이 (P − 내림)", "근력 보정 수치",
+                          "기량 보정 수치", "Perplexity 등급 근/기"], urows, {1: 12})
+        ws = wb["강화_대조"]
+        ws.append([])
+        ws.append(["읽는 법", "일반 강화 +0~+15. 게임 파일 = EquipParamWeapon 기본 공격력 × ReinforceParamWeapon 배율, 보정 수치도 같은 식 "
+                             "[게임 파일, weapon_upgrades.py]. Perplexity = 위키 강화표 (wikidot, 배틀 액스는 fandom) [외부]."])
+        ws.append(["결론", "8종 모두 같은 강화표 (배율 +1마다 0.1, +15 = 2.5배). 위키 물리값 = 파일 계산의 소수점 내림, 128칸 중 "
+                           "배틀 액스 +2 하나만 1 다름 (파일 114, fandom 113). 메뉴에 뜨는 값은 안 봄. 마법·화염·번개는 전 단계 0 (파일)."])
+        ws.append(["등급 글자", "게임 파일엔 숫자만 있고 글자 기준이 없어 판정 못 함. 위키 글자는 한 기준으로 설명됨: 50 이하 D · 51~77 C · "
+                              "82.5부터 B — 모닝스타 +6 B, 파이크 +14 B, 할버드 +1 C가 파일 숫자가 그 선을 넘는 단계와 맞음 [추정 기준]."])
     sheet("출처", ["ID", "내용"], [
         ["게임 파일", "weapon_motions.py → data/gamefiles/weapon_motions.json (DSR: c0000.anibnd TAE, GameParam)"],
         ["게임 실측", "weapon_probe.py → data/probe/20261110_*.jsonl (2026-11-10. 새벽: 교구 병사 255041, 락온 1.4 m. "
@@ -351,7 +397,31 @@ def build_pdf(mot, meas, dps, path: Path, meas2=None):
                                                      for c, v in sorted(off.items())) +
         ". 대부분 −0.1 s (30 fps 3프레임), 대검·특대검(25 · 26)은 −0.133 s (4프레임), 할버드 구르기만 −0.2 s — 묶음마다 1~2종만 재서 "
         "이 차이가 묶음 규칙인지는 아직 가설이다.", P))
-    st.append(Paragraph("7. 남은 것", H2))
+    urows = upgrade_rows()
+    if urows:
+        st.append(Paragraph("7. 강화 수치 (일반 +0~+15): 파일 vs Perplexity", H2))
+        st.append(Paragraph(
+            "Perplexity에 테스트한 무기 8종의 일반 강화표를 물었고 (출처 darksouls.wikidot 강화표, 배틀 액스는 fandom) [외부], "
+            "게임 파일 (EquipParamWeapon 기본 공격력 × ReinforceParamWeapon 배율) [게임 파일]과 대조했다. "
+            "8종 모두 같은 강화표를 쓴다: 물리 배율 +1마다 0.1, +15에서 2.5배. 보정 수치 배율은 +1·+6·+11·+14에서 오르고 +15에서 1.2배. "
+            "위키 물리값은 파일 계산값의 소수점 내림과 같다 (클레이모어 +5: 154.5 → 154) — 128칸 중 배틀 액스 +2 하나만 1 다르다 "
+            "(파일 114, fandom 113). 게임 메뉴에 실제로 뜨는 값은 안 봤다. 마법·화염·번개는 전 단계 0 [게임 파일].", P))
+        data = [["무기", "+0", "+5", "+10", "+15", "위키와 다른 단계 (위키 − 파일 내림)", "근력 보정 +0→+15", "기량 보정 +0→+15", "위키 등급 근/기"]]
+        by = {}
+        for r in urows:
+            by.setdefault(r[0], []).append(r)
+        for n, rs in by.items():
+            dif = ", ".join(f"+{r[1]} {r[6]:+d}" for r in rs if r[6]) or "없음"
+            let = " → ".join(f"{l}" + (f" (+{fr}부터)" if fr else "") for l, fr in PPLX_LETTERS[next(k for k, v in KO_W.items() if v == n)])
+            data.append([n] + [str(rs[i][4]) for i in (0, 5, 10, 15)] + [dif, f"{rs[0][7]:g} → {rs[15][7]:g}",
+                                                                      f"{rs[0][8]:g} → {rs[15][8]:g}", let])
+        st.append(table(data, [17 * mm, 11 * mm, 11 * mm, 11 * mm, 11 * mm, 44 * mm, 20 * mm, 20 * mm, 37 * mm]))
+        st.append(Spacer(1, 3 * mm))
+        st.append(Paragraph(
+            "보정 등급 글자는 게임 파일 (GameParam)에 없고 숫자만 있어 위키 글자를 판정하지 못했다. 다만 위키 글자는 한 기준으로 모순 없이 "
+            "설명된다: 50 이하 D (할버드 기량 50) · 51~77 C (클레이모어 51, 파이크 기량 77) · 82.5부터 B (모닝스타 +6). 그 기준이면 "
+            "모닝스타 +6 B, 파이크 +14 B, 할버드 +1 C가 파일 숫자가 선을 넘는 단계와 정확히 맞는다 [추정 기준]. 단계별 전체 값은 xlsx '강화_대조'.", P))
+    st.append(Paragraph("8. 남은 것", H2))
     for line in ("R1 2·3타, R2·구르기·백스텝·점프 공격, 클레이모어 양손의 프레임을 게임에서 재기 (지금은 파일 값만). 츠바이헨더 한손은 튕김 때문에 3~6판뿐.",
                  "실측이 플래그보다 0.08~0.13 s 빠른 이유 (입력 선행 받기인지, 애니 시계를 읽는 방식 탓인지), 할버드 구르기 0.2 s.",
                  "클레이모어 양손 R2(744300)의 판정 — TAE 다른 애니 참조를 따라가 읽기.",

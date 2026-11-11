@@ -1,0 +1,1357 @@
+{
+ "source": "weapon_upgrades.py (GameParam EquipParamWeapon + ReinforceParamWeapon)",
+ "weapons": {
+  "Shortsword": {
+   "row": 200000,
+   "upgrade_id": 0,
+   "base_phys": 78,
+   "str": 51.0,
+   "dex": 51.0,
+   "levels": [
+    {
+     "level": 0,
+     "phys_rate": 1.0,
+     "phys": 78.0,
+     "str": 51.0,
+     "dex": 51.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 1,
+     "phys_rate": 1.1,
+     "phys": 85.8,
+     "str": 53.55,
+     "dex": 53.55,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 2,
+     "phys_rate": 1.2,
+     "phys": 93.6,
+     "str": 53.55,
+     "dex": 53.55,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 3,
+     "phys_rate": 1.3,
+     "phys": 101.4,
+     "str": 53.55,
+     "dex": 53.55,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 4,
+     "phys_rate": 1.4,
+     "phys": 109.2,
+     "str": 53.55,
+     "dex": 53.55,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 5,
+     "phys_rate": 1.5,
+     "phys": 117.0,
+     "str": 53.55,
+     "dex": 53.55,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 6,
+     "phys_rate": 1.6,
+     "phys": 124.8,
+     "str": 56.1,
+     "dex": 56.1,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 7,
+     "phys_rate": 1.7,
+     "phys": 132.6,
+     "str": 56.1,
+     "dex": 56.1,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 8,
+     "phys_rate": 1.8,
+     "phys": 140.4,
+     "str": 56.1,
+     "dex": 56.1,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 9,
+     "phys_rate": 1.9,
+     "phys": 148.2,
+     "str": 56.1,
+     "dex": 56.1,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 10,
+     "phys_rate": 2.0,
+     "phys": 156.0,
+     "str": 56.1,
+     "dex": 56.1,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 11,
+     "phys_rate": 2.1,
+     "phys": 163.8,
+     "str": 58.65,
+     "dex": 58.65,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 12,
+     "phys_rate": 2.2,
+     "phys": 171.6,
+     "str": 58.65,
+     "dex": 58.65,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 13,
+     "phys_rate": 2.3,
+     "phys": 179.4,
+     "str": 58.65,
+     "dex": 58.65,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 14,
+     "phys_rate": 2.4,
+     "phys": 187.2,
+     "str": 61.2,
+     "dex": 61.2,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 15,
+     "phys_rate": 2.5,
+     "phys": 195.0,
+     "str": 61.2,
+     "dex": 61.2,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    }
+   ]
+  },
+  "Longsword": {
+   "row": 201000,
+   "upgrade_id": 0,
+   "base_phys": 80,
+   "str": 51.0,
+   "dex": 51.0,
+   "levels": [
+    {
+     "level": 0,
+     "phys_rate": 1.0,
+     "phys": 80.0,
+     "str": 51.0,
+     "dex": 51.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 1,
+     "phys_rate": 1.1,
+     "phys": 88.0,
+     "str": 53.55,
+     "dex": 53.55,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 2,
+     "phys_rate": 1.2,
+     "phys": 96.0,
+     "str": 53.55,
+     "dex": 53.55,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 3,
+     "phys_rate": 1.3,
+     "phys": 104.0,
+     "str": 53.55,
+     "dex": 53.55,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 4,
+     "phys_rate": 1.4,
+     "phys": 112.0,
+     "str": 53.55,
+     "dex": 53.55,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 5,
+     "phys_rate": 1.5,
+     "phys": 120.0,
+     "str": 53.55,
+     "dex": 53.55,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 6,
+     "phys_rate": 1.6,
+     "phys": 128.0,
+     "str": 56.1,
+     "dex": 56.1,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 7,
+     "phys_rate": 1.7,
+     "phys": 136.0,
+     "str": 56.1,
+     "dex": 56.1,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 8,
+     "phys_rate": 1.8,
+     "phys": 144.0,
+     "str": 56.1,
+     "dex": 56.1,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 9,
+     "phys_rate": 1.9,
+     "phys": 152.0,
+     "str": 56.1,
+     "dex": 56.1,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 10,
+     "phys_rate": 2.0,
+     "phys": 160.0,
+     "str": 56.1,
+     "dex": 56.1,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 11,
+     "phys_rate": 2.1,
+     "phys": 168.0,
+     "str": 58.65,
+     "dex": 58.65,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 12,
+     "phys_rate": 2.2,
+     "phys": 176.0,
+     "str": 58.65,
+     "dex": 58.65,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 13,
+     "phys_rate": 2.3,
+     "phys": 184.0,
+     "str": 58.65,
+     "dex": 58.65,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 14,
+     "phys_rate": 2.4,
+     "phys": 192.0,
+     "str": 61.2,
+     "dex": 61.2,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 15,
+     "phys_rate": 2.5,
+     "phys": 200.0,
+     "str": 61.2,
+     "dex": 61.2,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    }
+   ]
+  },
+  "Claymore": {
+   "row": 301000,
+   "upgrade_id": 0,
+   "base_phys": 103,
+   "str": 51.0,
+   "dex": 51.0,
+   "levels": [
+    {
+     "level": 0,
+     "phys_rate": 1.0,
+     "phys": 103.0,
+     "str": 51.0,
+     "dex": 51.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 1,
+     "phys_rate": 1.1,
+     "phys": 113.3,
+     "str": 53.55,
+     "dex": 53.55,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 2,
+     "phys_rate": 1.2,
+     "phys": 123.6,
+     "str": 53.55,
+     "dex": 53.55,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 3,
+     "phys_rate": 1.3,
+     "phys": 133.9,
+     "str": 53.55,
+     "dex": 53.55,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 4,
+     "phys_rate": 1.4,
+     "phys": 144.2,
+     "str": 53.55,
+     "dex": 53.55,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 5,
+     "phys_rate": 1.5,
+     "phys": 154.5,
+     "str": 53.55,
+     "dex": 53.55,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 6,
+     "phys_rate": 1.6,
+     "phys": 164.8,
+     "str": 56.1,
+     "dex": 56.1,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 7,
+     "phys_rate": 1.7,
+     "phys": 175.1,
+     "str": 56.1,
+     "dex": 56.1,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 8,
+     "phys_rate": 1.8,
+     "phys": 185.4,
+     "str": 56.1,
+     "dex": 56.1,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 9,
+     "phys_rate": 1.9,
+     "phys": 195.7,
+     "str": 56.1,
+     "dex": 56.1,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 10,
+     "phys_rate": 2.0,
+     "phys": 206.0,
+     "str": 56.1,
+     "dex": 56.1,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 11,
+     "phys_rate": 2.1,
+     "phys": 216.3,
+     "str": 58.65,
+     "dex": 58.65,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 12,
+     "phys_rate": 2.2,
+     "phys": 226.6,
+     "str": 58.65,
+     "dex": 58.65,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 13,
+     "phys_rate": 2.3,
+     "phys": 236.9,
+     "str": 58.65,
+     "dex": 58.65,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 14,
+     "phys_rate": 2.4,
+     "phys": 247.2,
+     "str": 61.2,
+     "dex": 61.2,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 15,
+     "phys_rate": 2.5,
+     "phys": 257.5,
+     "str": 61.2,
+     "dex": 61.2,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    }
+   ]
+  },
+  "Zweihander": {
+   "row": 350000,
+   "upgrade_id": 0,
+   "base_phys": 130,
+   "str": 60.0,
+   "dex": 26.0,
+   "levels": [
+    {
+     "level": 0,
+     "phys_rate": 1.0,
+     "phys": 130.0,
+     "str": 60.0,
+     "dex": 26.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 1,
+     "phys_rate": 1.1,
+     "phys": 143.0,
+     "str": 63.0,
+     "dex": 27.3,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 2,
+     "phys_rate": 1.2,
+     "phys": 156.0,
+     "str": 63.0,
+     "dex": 27.3,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 3,
+     "phys_rate": 1.3,
+     "phys": 169.0,
+     "str": 63.0,
+     "dex": 27.3,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 4,
+     "phys_rate": 1.4,
+     "phys": 182.0,
+     "str": 63.0,
+     "dex": 27.3,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 5,
+     "phys_rate": 1.5,
+     "phys": 195.0,
+     "str": 63.0,
+     "dex": 27.3,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 6,
+     "phys_rate": 1.6,
+     "phys": 208.0,
+     "str": 66.0,
+     "dex": 28.6,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 7,
+     "phys_rate": 1.7,
+     "phys": 221.0,
+     "str": 66.0,
+     "dex": 28.6,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 8,
+     "phys_rate": 1.8,
+     "phys": 234.0,
+     "str": 66.0,
+     "dex": 28.6,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 9,
+     "phys_rate": 1.9,
+     "phys": 247.0,
+     "str": 66.0,
+     "dex": 28.6,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 10,
+     "phys_rate": 2.0,
+     "phys": 260.0,
+     "str": 66.0,
+     "dex": 28.6,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 11,
+     "phys_rate": 2.1,
+     "phys": 273.0,
+     "str": 69.0,
+     "dex": 29.9,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 12,
+     "phys_rate": 2.2,
+     "phys": 286.0,
+     "str": 69.0,
+     "dex": 29.9,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 13,
+     "phys_rate": 2.3,
+     "phys": 299.0,
+     "str": 69.0,
+     "dex": 29.9,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 14,
+     "phys_rate": 2.4,
+     "phys": 312.0,
+     "str": 72.0,
+     "dex": 31.2,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 15,
+     "phys_rate": 2.5,
+     "phys": 325.0,
+     "str": 72.0,
+     "dex": 31.2,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    }
+   ]
+  },
+  "Battle Axe": {
+   "row": 701000,
+   "upgrade_id": 0,
+   "base_phys": 95,
+   "str": 60.0,
+   "dex": 30.0,
+   "levels": [
+    {
+     "level": 0,
+     "phys_rate": 1.0,
+     "phys": 95.0,
+     "str": 60.0,
+     "dex": 30.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 1,
+     "phys_rate": 1.1,
+     "phys": 104.5,
+     "str": 63.0,
+     "dex": 31.5,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 2,
+     "phys_rate": 1.2,
+     "phys": 114.0,
+     "str": 63.0,
+     "dex": 31.5,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 3,
+     "phys_rate": 1.3,
+     "phys": 123.5,
+     "str": 63.0,
+     "dex": 31.5,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 4,
+     "phys_rate": 1.4,
+     "phys": 133.0,
+     "str": 63.0,
+     "dex": 31.5,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 5,
+     "phys_rate": 1.5,
+     "phys": 142.5,
+     "str": 63.0,
+     "dex": 31.5,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 6,
+     "phys_rate": 1.6,
+     "phys": 152.0,
+     "str": 66.0,
+     "dex": 33.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 7,
+     "phys_rate": 1.7,
+     "phys": 161.5,
+     "str": 66.0,
+     "dex": 33.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 8,
+     "phys_rate": 1.8,
+     "phys": 171.0,
+     "str": 66.0,
+     "dex": 33.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 9,
+     "phys_rate": 1.9,
+     "phys": 180.5,
+     "str": 66.0,
+     "dex": 33.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 10,
+     "phys_rate": 2.0,
+     "phys": 190.0,
+     "str": 66.0,
+     "dex": 33.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 11,
+     "phys_rate": 2.1,
+     "phys": 199.5,
+     "str": 69.0,
+     "dex": 34.5,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 12,
+     "phys_rate": 2.2,
+     "phys": 209.0,
+     "str": 69.0,
+     "dex": 34.5,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 13,
+     "phys_rate": 2.3,
+     "phys": 218.5,
+     "str": 69.0,
+     "dex": 34.5,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 14,
+     "phys_rate": 2.4,
+     "phys": 228.0,
+     "str": 72.0,
+     "dex": 36.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 15,
+     "phys_rate": 2.5,
+     "phys": 237.5,
+     "str": 72.0,
+     "dex": 36.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    }
+   ]
+  },
+  "Morning Star": {
+   "row": 802000,
+   "upgrade_id": 0,
+   "base_phys": 83,
+   "str": 75.0,
+   "dex": 0.0,
+   "levels": [
+    {
+     "level": 0,
+     "phys_rate": 1.0,
+     "phys": 83.0,
+     "str": 75.0,
+     "dex": 0.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 1,
+     "phys_rate": 1.1,
+     "phys": 91.3,
+     "str": 78.75,
+     "dex": 0.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 2,
+     "phys_rate": 1.2,
+     "phys": 99.6,
+     "str": 78.75,
+     "dex": 0.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 3,
+     "phys_rate": 1.3,
+     "phys": 107.9,
+     "str": 78.75,
+     "dex": 0.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 4,
+     "phys_rate": 1.4,
+     "phys": 116.2,
+     "str": 78.75,
+     "dex": 0.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 5,
+     "phys_rate": 1.5,
+     "phys": 124.5,
+     "str": 78.75,
+     "dex": 0.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 6,
+     "phys_rate": 1.6,
+     "phys": 132.8,
+     "str": 82.5,
+     "dex": 0.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 7,
+     "phys_rate": 1.7,
+     "phys": 141.1,
+     "str": 82.5,
+     "dex": 0.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 8,
+     "phys_rate": 1.8,
+     "phys": 149.4,
+     "str": 82.5,
+     "dex": 0.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 9,
+     "phys_rate": 1.9,
+     "phys": 157.7,
+     "str": 82.5,
+     "dex": 0.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 10,
+     "phys_rate": 2.0,
+     "phys": 166.0,
+     "str": 82.5,
+     "dex": 0.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 11,
+     "phys_rate": 2.1,
+     "phys": 174.3,
+     "str": 86.25,
+     "dex": 0.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 12,
+     "phys_rate": 2.2,
+     "phys": 182.6,
+     "str": 86.25,
+     "dex": 0.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 13,
+     "phys_rate": 2.3,
+     "phys": 190.9,
+     "str": 86.25,
+     "dex": 0.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 14,
+     "phys_rate": 2.4,
+     "phys": 199.2,
+     "str": 90.0,
+     "dex": 0.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 15,
+     "phys_rate": 2.5,
+     "phys": 207.5,
+     "str": 90.0,
+     "dex": 0.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    }
+   ]
+  },
+  "Pike": {
+   "row": 1050000,
+   "upgrade_id": 0,
+   "base_phys": 86,
+   "str": 22.0,
+   "dex": 70.0,
+   "levels": [
+    {
+     "level": 0,
+     "phys_rate": 1.0,
+     "phys": 86.0,
+     "str": 22.0,
+     "dex": 70.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 1,
+     "phys_rate": 1.1,
+     "phys": 94.6,
+     "str": 23.1,
+     "dex": 73.5,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 2,
+     "phys_rate": 1.2,
+     "phys": 103.2,
+     "str": 23.1,
+     "dex": 73.5,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 3,
+     "phys_rate": 1.3,
+     "phys": 111.8,
+     "str": 23.1,
+     "dex": 73.5,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 4,
+     "phys_rate": 1.4,
+     "phys": 120.4,
+     "str": 23.1,
+     "dex": 73.5,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 5,
+     "phys_rate": 1.5,
+     "phys": 129.0,
+     "str": 23.1,
+     "dex": 73.5,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 6,
+     "phys_rate": 1.6,
+     "phys": 137.6,
+     "str": 24.2,
+     "dex": 77.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 7,
+     "phys_rate": 1.7,
+     "phys": 146.2,
+     "str": 24.2,
+     "dex": 77.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 8,
+     "phys_rate": 1.8,
+     "phys": 154.8,
+     "str": 24.2,
+     "dex": 77.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 9,
+     "phys_rate": 1.9,
+     "phys": 163.4,
+     "str": 24.2,
+     "dex": 77.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 10,
+     "phys_rate": 2.0,
+     "phys": 172.0,
+     "str": 24.2,
+     "dex": 77.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 11,
+     "phys_rate": 2.1,
+     "phys": 180.6,
+     "str": 25.3,
+     "dex": 80.5,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 12,
+     "phys_rate": 2.2,
+     "phys": 189.2,
+     "str": 25.3,
+     "dex": 80.5,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 13,
+     "phys_rate": 2.3,
+     "phys": 197.8,
+     "str": 25.3,
+     "dex": 80.5,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 14,
+     "phys_rate": 2.4,
+     "phys": 206.4,
+     "str": 26.4,
+     "dex": 84.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 15,
+     "phys_rate": 2.5,
+     "phys": 215.0,
+     "str": 26.4,
+     "dex": 84.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    }
+   ]
+  },
+  "Halberd": {
+   "row": 1100000,
+   "upgrade_id": 0,
+   "base_phys": 110,
+   "str": 38.0,
+   "dex": 50.0,
+   "levels": [
+    {
+     "level": 0,
+     "phys_rate": 1.0,
+     "phys": 110.0,
+     "str": 38.0,
+     "dex": 50.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 1,
+     "phys_rate": 1.1,
+     "phys": 121.0,
+     "str": 39.9,
+     "dex": 52.5,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 2,
+     "phys_rate": 1.2,
+     "phys": 132.0,
+     "str": 39.9,
+     "dex": 52.5,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 3,
+     "phys_rate": 1.3,
+     "phys": 143.0,
+     "str": 39.9,
+     "dex": 52.5,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 4,
+     "phys_rate": 1.4,
+     "phys": 154.0,
+     "str": 39.9,
+     "dex": 52.5,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 5,
+     "phys_rate": 1.5,
+     "phys": 165.0,
+     "str": 39.9,
+     "dex": 52.5,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 6,
+     "phys_rate": 1.6,
+     "phys": 176.0,
+     "str": 41.8,
+     "dex": 55.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 7,
+     "phys_rate": 1.7,
+     "phys": 187.0,
+     "str": 41.8,
+     "dex": 55.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 8,
+     "phys_rate": 1.8,
+     "phys": 198.0,
+     "str": 41.8,
+     "dex": 55.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 9,
+     "phys_rate": 1.9,
+     "phys": 209.0,
+     "str": 41.8,
+     "dex": 55.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 10,
+     "phys_rate": 2.0,
+     "phys": 220.0,
+     "str": 41.8,
+     "dex": 55.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 11,
+     "phys_rate": 2.1,
+     "phys": 231.0,
+     "str": 43.7,
+     "dex": 57.5,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 12,
+     "phys_rate": 2.2,
+     "phys": 242.0,
+     "str": 43.7,
+     "dex": 57.5,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 13,
+     "phys_rate": 2.3,
+     "phys": 253.0,
+     "str": 43.7,
+     "dex": 57.5,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 14,
+     "phys_rate": 2.4,
+     "phys": 264.0,
+     "str": 45.6,
+     "dex": 60.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    },
+    {
+     "level": 15,
+     "phys_rate": 2.5,
+     "phys": 275.0,
+     "str": 45.6,
+     "dex": 60.0,
+     "magic": 0.0,
+     "fire": 0.0,
+     "lightning": 0.0
+    }
+   ]
+  }
+ }
+}
