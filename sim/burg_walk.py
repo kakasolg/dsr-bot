@@ -1,6 +1,6 @@
 """Walk the character from the Undead Burg bonfire to the Taurus bridge in the practice room, no foes (MoKa M1111-27).
 
-  python sim/burg_walk.py [--headless] [--mode walk|sprint] [--hold 20] [--ladders]
+  python sim/burg_walk.py [--headless] [--mode walk|sprint] [--hold 20] [--ladders] [--scene burg|firelink_taurus|firelink_demon]
 
 Starts the room on burg_scene.json (`python sim/burg_scene.py` first), then walks each leg of the scene's route with the
 bot's own Moves.walk_path on the m10_01 NavMesh (the room's pad and telemetry, as `BOT_GAME=sim`). Prints per leg: result,
@@ -87,22 +87,59 @@ def ladder_round_trip(tm, pad, mv, nm, L: dict) -> dict:
     return row
 
 
+def _view_watch(tm, stop: list, out: dict) -> None:
+    """Viewer camera state from the room's packets ("view", ramp.gd _update_view) every 0.1 s → section changes with time and
+    place, how often it was off the planned route, the largest wall pull (MoKa M1111-34)."""
+    import threading
+
+    def run():
+        t0, prev, n, off, pull = time.time(), None, 0, 0, 0.0
+        while not stop[0]:
+            d = getattr(tm, "last", None) or {}
+            v = d.get("view") or {}
+            if v:
+                n += 1
+                off += int(v.get("idx", 0)) < 0
+                pull = max(pull, float(v.get("pull", 0.0)))
+                cur = v["mode"] if v.get("mode") == "ladder" else v.get("prof")
+                if cur != prev:
+                    out["changes"].append([round(time.time() - t0, 1), cur, [round(d.get("x", 0), 1), round(d.get("y", 0), 1), round(d.get("z", 0), 1)]])
+                    prev = cur
+            out.update({"samples": n, "off_route": off, "max_pull": round(pull, 2)})
+            time.sleep(0.1)
+    threading.Thread(target=run, daemon=True).start()
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--headless", action="store_true")
     ap.add_argument("--mode", default="walk", choices=("walk", "sprint"))
     ap.add_argument("--hold", type=float, default=3.0, help="seconds the window stays after the last leg")
     ap.add_argument("--ladders", action="store_true", help="also climb each ladder up and back down (M1111-30)")
+    ap.add_argument("--scene", default="burg", choices=("burg", "firelink_taurus", "firelink_demon"),
+                    help="firelink_taurus = from the Firelink Shrine bonfire (python sim/burg_scene.py --full, M1111-31)")
+    ap.add_argument("--from", dest="from_leg", type=int, default=1,
+                    help="start at leg N (the room starts at the end of leg N-1; scene copy _walk_from_scene.json)")
+    ap.add_argument("--room-arg", action="append", default=[],
+                    help="passed on to the room, e.g. --room-arg=--cam=play or --room-arg=--view-snaps=<dir>,4")
     a = ap.parse_args()
     os.environ["BOT_GAME"] = "sim"
     import godot_link as GL
     import navmesh
     from souls import moves
 
-    sc = json.loads((GL.PROJECT / "assets" / "burg_scene.json").read_text(encoding="utf-8"))
+    sc = json.loads((GL.PROJECT / "assets" / f"{a.scene}_scene.json").read_text(encoding="utf-8"))
+    room_scene = a.scene
+    if a.from_leg > 1:                                       # a copy that starts further on: only the later legs
+        legs0 = sc.get("legs") or [{"name": f"구간 {i}", "kind": "find", "map": "B", "pts": [q]}
+                                   for i, q in enumerate(sc["route"][1:], 1)]
+        sc["start"] = legs0[a.from_leg - 2]["pts"][-1]
+        sc["legs"] = legs0[a.from_leg - 1:]
+        room_scene = "_walk_from"
+        (GL.PROJECT / "assets" / "_walk_from_scene.json").write_text(json.dumps(sc), encoding="utf-8")
     GL.ensure_imported()
     exe = GL.GODOT if a.headless else GL.GODOT.with_name(GL.GODOT.name.replace("_console", ""))
-    args = [str(exe), "--path", str(GL.PROJECT), "res://ramp.tscn", "--", "--scene=burg"]
+    args = [str(exe), "--path", str(GL.PROJECT), "res://ramp.tscn", "--", f"--scene={room_scene}"] + a.room_arg
     if a.headless:
         args.insert(1, "--headless")
     tm = GL.room_telemetry()                                # ports first: a clash (another room / test) fails before a room starts
@@ -114,38 +151,61 @@ def main() -> None:
         while tm.snapshot() is None and time.time() - t0 < 90:
             time.sleep(0.3)
         time.sleep(1.5)                                     # first frames after load are slow (godot_stamina_test)
-        nm = navmesh.Navmesh("m10_01_00_00")
+        nms = {"A": navmesh.Navmesh("m10_02_00_00"), "B": navmesh.Navmesh("m10_01_00_00")}   # as souls/missions.py MAP_A / MAP_B
         mv = moves.Moves(tm, pad)
-        pts = sc["route"]
-        lads = {L["name"]: L for L in sc.get("ladders", [])}
-        if a.ladders and "burg-bonfire" in lads:
-            rows.append(ladder_round_trip(tm, pad, mv, nm, lads["burg-bonfire"]))
-        for i, goal in enumerate(pts[1:], 1):
-            if a.ladders and i == len(pts) - 1 and "taurus" in lads:
-                rows.append(ladder_round_trip(tm, pad, mv, nm, lads["taurus"]))     # past the fog, before the bridge
+        legs = sc.get("legs") or [{"name": f"구간 {i}", "kind": "find", "map": "B", "pts": [q]}
+                                  for i, q in enumerate(sc["route"][1:], 1)]
+        lads = [L for L in sc.get("ladders", [])] if a.ladders else []
+        t_all = time.time()
+        view = {"changes": []}
+        vstop = [False]
+        _view_watch(tm, vstop, view)
+        for i, leg in enumerate(legs, 1):
             s = tm.snapshot()
             here = (s.player.x, s.player.y, s.player.z)
-            path = nm.find_path(here, tuple(goal))
-            length = sum(math.dist(p, q) for p, q in zip(path, path[1:])) if path else 0.0
+            for L in list(lads):                            # a ladder whose bottom is right here → up and back down first
+                if math.dist((here[0], here[2]), tuple(L["at"])) < 6.0 and abs(here[1] - L["y_bot"]) < 2.5:
+                    rows.append(ladder_round_trip(tm, pad, mv, nms["B"], L))
+                    lads.remove(L)
+            s = tm.snapshot()
+            here = (s.player.x, s.player.y, s.player.z)
+            nm = nms[leg["map"]]
+            goal = tuple(leg["pts"][-1])
+            if leg["kind"] == "follow":                     # the recorded points as they are, from the nearest one (_to_merchant)
+                k = min(range(len(leg["pts"])), key=lambda j: math.dist(leg["pts"][j], here))
+                path = [tuple(q) for q in leg["pts"][k:]]
+            else:
+                path = nm.find_path(here, goal)
+            length = sum(math.dist(p, q) for p, q in zip([here] + list(path or []), path or [])) if path else 0.0
             t1 = time.time()
             res = mv.walk_path(path, nm, mode=a.mode, tol=0.8, timeout_per=12.0) if path else "no path"
             pad.neutral()
             s = tm.snapshot()
             end = (s.player.x, s.player.y, s.player.z)
             gap = math.dist(end, goal)
-            rows.append({"leg": i, "goal": goal, "res": res, "s": round(time.time() - t1, 1), "m": round(length, 1),
-                         "end": [round(v, 2) for v in end], "gap": round(gap, 2)})
-            print(f"구간 {i:2d} → {tuple(goal)}: {res} · {time.time() - t1:5.1f} s · 경로 {length:5.1f} m · 끝 "
+            rows.append({"leg": i, "name": leg["name"], "map": leg["map"], "kind": leg["kind"], "goal": list(goal), "res": res,
+                         "s": round(time.time() - t1, 1), "m": round(length, 1), "end": [round(v, 2) for v in end],
+                         "gap": round(gap, 2)})
+            print(f"{i:2d} {leg['name']} ({leg['map']}·{leg['kind']}): {res} · {time.time() - t1:5.1f} s · 경로 {length:5.1f} m · 끝 "
                   f"{tuple(round(v, 1) for v in end)} · 목표까지 {gap:.1f} m", flush=True)
             if gap > 3.0:
                 print("   목표 3 m 밖 — 여기서 멈춤", flush=True)
                 break
+        print(f"전체 {time.time() - t_all:.0f} s", flush=True)
+        vstop[0] = True
+        ch = view["changes"]
+        gaps = [b[0] - a[0] for a, b in zip(ch, ch[1:])]
+        print(f"보는 카메라: 구간 바뀜 {max(0, len(ch) - 1)}번 · 가장 짧은 유지 {min(gaps) if gaps else 0:.1f} s · 경로 밖 "
+              f"{view.get('off_route', 0)}/{view.get('samples', 0)} 표본 · 벽에 당겨진 최대 {view.get('max_pull', 0)} m", flush=True)
+        for c in ch:
+            print(f"   {c[0]:6.1f} s {c[1]:9s} {tuple(c[2])}", flush=True)
+        rows.append({"view": view})
         time.sleep(a.hold)
     finally:
         pad.neutral()
         pad.close()
         room.kill()
-    out = ROOT / "data" / "runs" / f"{time.strftime('%Y%m%d_%H%M%S')}_room-burg-walk.json"
+    out = ROOT / "data" / "runs" / f"{time.strftime('%Y%m%d_%H%M%S')}_room-{a.scene.replace('_', '-')}-walk.json"
     out.write_text(json.dumps(rows, ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"→ {out}")
 

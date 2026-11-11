@@ -54,6 +54,20 @@
   stick up/down one 0.62 m step per 0.5 s (7011/7012, 7021/7022), auto step-off at the top (7013) and bottom (7023), B held going
   down = slide (guess). No gravity, no attacks while on it; the body pose is the UAL `ClimbUp_1m` clip as a stand-in.
   `burg_walk.py --ladders` climbs each ladder up and back down the way the bot does (face, A, stick).
+  Firelink → Taurus (M1111-31): `python sim/burg_scene.py --full` → `assets/firelink_taurus_scene.json` (both NavMesh sheets
+  m10_02 + m10_01 merged, Sketchfab areas `"Firelink Shrine|Undead Burg"`, scene `legs` = the bot's own route: ramp top, passage,
+  Burg, storeroom, merchant, Burg bonfire, burg-upper safe spots, fog, bridge); `python sim/burg_walk.py --scene firelink_taurus`.
+  Burg scenes stand only on NavMesh triangles the bot's path graph uses (no Disable / Degenerate / Wall 8 / Hole 2048 — `_floor`).
+  Taurus → Titanite Demon (M1111-32): `python sim/burg_scene.py --demon` → `assets/firelink_demon_scene.json` = the Firelink → Taurus
+  legs + bridge → altar (the bot's burg-altar route), altar → Andre's bonfire (NavMesh path — no recording exists), Andre → demon
+  (MoKa's walk, `data/routes/andre-demon-20261111.json`; NavMesh has no path there, so scene `floor_patch` strips fill the gaps).
+  `burg_walk.py --from N` starts at leg N.
+  Viewer camera (M1111-34): the window shows `view_cam` (`godot/cam_director.gd`): hands-off follow toward the planned route
+  5 m ahead, section profiles corridor / stairs / bridge (scene `cam_path`, ~1 m points with a tag — legs by name, stairs by
+  slope; `burg_scene.py` builds it), a side shot on ladders, enter 0.25 s / hold 1.5 s, sphere check against walls. The play
+  camera (`cam`, `cam_yaw`) still moves as before and is what the bot steers by — only not drawn. F2 or `-- --cam=play` shows it;
+  `-- --view-snaps=<dir>,<s>` saves the window every s seconds. Numbers are guesses. `burg_walk.py` prints section changes and
+  passes `--room-arg=…` on. `python tests/godot_viewcam_test.py` checks the director's rules on made-up routes (not the picture).
 - Flat arena (MoKa M1109-75/76/78): `python sim/arena_scene.py [--set hollows|mixed]` → `godot/assets/arena_scene.json` (40 m flat square,
   two heavy Hollows 255010 by default, `mixed` = heavy Hollow + heavy knight 257002, arena AI switches); hits show a red ball on the
   nearest bone for 0.8 s (`ramp.gd` `_hit_mark`, state `hit_marks`); open with `-- --scene=arena`, bot with

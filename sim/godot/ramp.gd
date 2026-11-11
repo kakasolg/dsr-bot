@@ -203,6 +203,10 @@ func _build_world() -> void:
 			q.append(Vector3(p[0], p[1], p[2]))
 		_grid_add(q[0], q[1], q[2], ti)
 		ti += 1
+	# floor patches (burg_scene.py floor_patches, M1111-32): strips along a recorded walk where the NavMesh has no floor
+	for tri in sc.get("floor_patch", []):
+		_grid_add(Vector3(tri[0][0], tri[0][1], tri[0][2]), Vector3(tri[1][0], tri[1][1], tri[1][2]),
+			Vector3(tri[2][0], tri[2][1], tri[2][2]), -1)
 	for c in sc.get("centroid", []):
 		centroids.append(Vector3(c[0], c[1], c[2]))
 	var faces := PackedVector3Array()
@@ -774,6 +778,126 @@ var shot_mode := false
 func _update_camera(dt: float) -> void:
 	if not shot_mode:
 		super._update_camera(dt)
+		_update_view(dt)
+
+
+# ── Viewer camera (MoKa M1111-34) ─────────────────────────────────────────
+# What the window shows: view_cam, driven by CamDirector (follow + sections + ladder side shot). The play camera `cam` keeps
+# moving exactly as before and stays what cam_yaw / the bot's stick and the lock-on proxy read — it is only not drawn.
+# `-- --cam=play` or F2 shows the play camera instead.
+const VIEW_R := 0.25          # [guess] m sphere kept clear of walls around the viewer camera
+const VIEW_MIN := 0.6         # [guess] closest it comes to the look point
+const VIEW_RECOVER := 2.0     # [guess] 1/s the arm grows back after a wall pulled it in (≈ 0.5 s)
+var view_cam: Camera3D
+var director                  # cam_director.gd (preloaded: no class_name cache needed headless)
+var view_on := true
+var view_key := false
+var view_arm := -1.0
+var view_side := 0.0          # ladder shot side chosen at its start (1 / -1), 0 = not chosen
+var view_info := {}
+var view_shape := SphereShape3D.new()
+const VIEW_FAN := [Vector2(0, 0), Vector2(0, 0.35), Vector2(0, 0.7), Vector2(0, 1.0), Vector2(0.5, 0), Vector2(-0.5, 0),
+	Vector2(0.5, 0.35), Vector2(-0.5, 0.35), Vector2(1.0, 0.35), Vector2(-1.0, 0.35), Vector2(0.5, 0.7), Vector2(-0.5, 0.7)]
+	# (swing rad around up, raise rad) tried when the arm is blocked [guess]
+const VIEW_FAN_SLACK := 0.3   # [guess] m short of the full arm before the fan is tried
+const VIEW_FAN_COST := 0.8    # [guess] m of clearance one radian of change must buy
+const VIEW_FAN_RATE := 3.0    # [guess] 1/s toward the chosen direction
+var view_fan := Vector2.ZERO
+var view_snap_dir := ""
+var view_snap_every := 4.0
+var view_snap_next := 2.0
+
+
+func _build_view() -> void:
+	for arg in OS.get_cmdline_user_args():
+		if arg == "--cam=play":
+			view_on = false
+		if arg.begins_with("--view-snaps="):
+			var parts := arg.substr(13).split(",")
+			view_snap_dir = parts[0]
+			if parts.size() > 1:
+				view_snap_every = float(parts[1])
+	view_cam = Camera3D.new()
+	view_cam.fov = CAM_FOV
+	cam.get_parent().add_child(view_cam)
+	director = preload("res://cam_director.gd").new()
+	var L := []
+	for i in sc.get("ladders", []).size():
+		L.append(_ladder(i))
+	director.setup(sc.get("cam_path", []), L, cam_yaw)
+	view_shape.radius = VIEW_R
+	(view_cam if view_on else cam).current = true
+
+
+func _view_clear(org: Vector3, want: Vector3) -> float:
+	# how far from org toward want a VIEW_R sphere gets before a wall (m); a start already inside a wall → VIEW_MIN
+	var space := get_world_3d().direct_space_state
+	var qp := PhysicsShapeQueryParameters3D.new()
+	qp.shape = view_shape
+	qp.collision_mask = 1 | WALL_LAYER
+	qp.exclude = [player.get_rid()]
+	qp.transform = Transform3D(Basis(), org)
+	if not space.intersect_shape(qp, 1).is_empty():      # cast_motion ignores shapes the start already overlaps
+		return VIEW_MIN
+	qp.motion = want - org
+	var r := space.cast_motion(qp)
+	return maxf(VIEW_MIN, org.distance_to(want) * float(r[0]))
+
+
+func _view_turn(dir: Vector3, o: Vector2) -> Vector3:
+	# dir swung o.x rad around up and raised o.y rad (elevation capped below straight down-looking)
+	var az := atan2(dir.x, dir.z) + o.x
+	var el := clampf(asin(clampf(dir.y, -1.0, 1.0)) + o.y, -0.6, 1.35)
+	return Vector3(cos(el) * sin(az), sin(el), cos(el) * cos(az))
+
+
+func _update_view(dt: float) -> void:
+	if director == null:
+		_build_view()
+	var f2 := Input.is_physical_key_pressed(KEY_F2)
+	if f2 and not view_key:
+		view_on = not view_on
+		(view_cam if view_on else cam).current = true
+	view_key = f2
+	var w: Dictionary = director.step(dt, player.position, int(lad.get("i", -1)) if not lad.is_empty() else -1)
+	var want: Vector3 = w["pos"]
+	var look: Vector3 = w["look"]
+	if w["mode"] == "ladder" and not w["blending"] and not (w["alt"] as Dictionary).is_empty():
+		if view_side == 0.0:          # pick the side with more room once, then keep it (no flipping mid-climb)
+			view_side = 1.0 if _view_clear(look, want) >= _view_clear(look, w["alt"]["pos"]) - 0.3 else -1.0
+		if view_side < 0.0:
+			want = w["alt"]["pos"]
+	elif w["mode"] == "follow":
+		view_side = 0.0
+	var full := look.distance_to(want)
+	var dir0 := (want - look).normalized() if full > 1e-3 else Vector3.BACK
+	# blocked → fan of sphere casts (Uncharted 3: find free space): raise and/or swing the arm toward the most open direction,
+	# moved there smoothly; back to (0, 0) once the wanted direction is clear again
+	var fan_want := Vector2.ZERO
+	if _view_clear(look, want) < full - VIEW_FAN_SLACK:
+		var best := -INF
+		for o in VIEW_FAN:
+			var c := _view_clear(look, look + _view_turn(dir0, o) * full)
+			var score := minf(c, full) - VIEW_FAN_COST * (absf(o.x) + absf(o.y))
+			if score > best:
+				best = score
+				fan_want = o
+	view_fan = view_fan.lerp(fan_want, 1.0 - exp(-VIEW_FAN_RATE * dt))
+	var dir := _view_turn(dir0, view_fan)
+	var clear := minf(full, _view_clear(look, look + dir * full))
+	view_arm = clear if view_arm < 0.0 or clear < view_arm else lerpf(view_arm, clear, 1.0 - exp(-VIEW_RECOVER * dt))
+	var pos := look + dir * view_arm
+	view_cam.position = pos
+	if pos.distance_to(look) > 1e-3 and absf(dir.y) < 0.999:
+		view_cam.look_at(look, Vector3.UP)
+	director.shown = {"pos": pos, "look": look}
+	if view_snap_dir != "" and t >= view_snap_next and DisplayServer.get_name() != "headless":
+		# `-- --view-snaps=<dir>[,<s>]`: what the window shows every <s> s (default 4) → <dir>/view_<t>.png (camera check)
+		view_snap_next = t + view_snap_every
+		var im := get_viewport().get_texture().get_image()
+		im.save_png(view_snap_dir.path_join("view_%05.1f_%s.png" % [t, w["mode"] if w["mode"] == "ladder" else w["prof"]]))
+	view_info = {"on": view_on, "mode": w["mode"], "prof": w["prof"], "idx": w["idx"], "pull": snappedf(full - view_arm, 0.01),
+		"switches": director.switches}
 
 
 func _shots(spec: String) -> void:
@@ -781,6 +905,7 @@ func _shots(spec: String) -> void:
 	# views.json = {"out": png, "views": [{"at": [x,y,z], "from": [x,y,z], "label": ""}…]}, game coordinates
 	var d: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(spec))
 	shot_mode = true                       # _update_camera leaves the room camera alone
+	cam.current = true
 	info_label.visible = false
 	cam.far = 500
 	var sz := Vector2i(800, 500)
@@ -911,25 +1036,25 @@ func _sk_faces(file: String, area: String) -> PackedVector3Array:
 		push_error("ramp: Sketchfab map not loaded: " + file)
 		return out
 	var root := doc.generate_scene(st)
-	var node := root.find_child(area, true, false) as Node3D
-	if node == null:
-		push_error("ramp: no area " + area)
-		root.free()
-		return out
 	var to_room := Transform3D(Basis(Vector3(0, 0, 1), Vector3(0, 1, 0), Vector3(1, 0, 0)), Vector3.ZERO)
-	for mi in node.find_children("*", "MeshInstance3D", true, false):
-		var mesh: Mesh = (mi as MeshInstance3D).mesh
-		if mesh == null:
+	for one in area.split("|"):            # "Firelink Shrine|Undead Burg" — several areas, same game coordinates (M1111-31)
+		var node := root.find_child(one, true, false) as Node3D
+		if node == null:
+			push_error("ramp: no area " + one)
 			continue
-		# mesh → area node local: the transforms between them, without the area node's own (×1301 display scale)
-		var t := Transform3D.IDENTITY
-		var n: Node = mi
-		while n != node:
-			t = (n as Node3D).transform * t
-			n = n.get_parent()
-		var g := to_room * t
-		for v in mesh.get_faces():
-			out.append(g * v)
+		for mi in node.find_children("*", "MeshInstance3D", true, false):
+			var mesh: Mesh = (mi as MeshInstance3D).mesh
+			if mesh == null:
+				continue
+			# mesh → area node local: the transforms between them, without the area node's own (×1301 display scale)
+			var t := Transform3D.IDENTITY
+			var n: Node = mi
+			while n != node:
+				t = (n as Node3D).transform * t
+				n = n.get_parent()
+			var g := to_room * t
+			for v in mesh.get_faces():
+				out.append(g * v)
 	root.free()
 	print("ramp: Sketchfab collision %d triangles (%s)" % [out.size() / 3, area])
 	return out
@@ -1526,11 +1651,14 @@ func _send_state() -> void:
 		"lock": lock, "lock_ptr": (1000 + int(foes[lock_foe]["n"])) if (lock and lock_foe >= 0) else 0,
 		"hp": player_hp, "max_hp": PLAYER_HP, "sp": sp, "max_sp": max_sp, "estus": estus_left, "guard": guard,
 		"stagger": stagger > 0.0, "dead": dead, "player_hits": player_hits, "dodged": dodged, "guard_breaks": guard_breaks, "guard_blocks": guard_blocks, "turn": turn_n, "hit_marks": hit_marks, "foes": fl,
-		"bombs": bombs.size(), "scene": sc.get("name", "ramp"), "ladder": String(lad.get("phase", ""))}
+		"bombs": bombs.size(), "scene": sc.get("name", "ramp"), "ladder": String(lad.get("phase", "")), "view": view_info}
 	udp_out.put_packet(JSON.stringify(d).to_utf8_buffer())
 	info_label.text = String(sc.get("name", "ramp")) + "  t %.1f  pos %.1f %.1f %.1f  HP %d  SP %d  estus %d  guard %s  lock #%s%s\n%s" % [t, p.x, p.y, p.z,
 		player_hp, sp, estus_left, guard, str(foes[lock_foe]["n"]) if (lock and lock_foe >= 0) else "-",
 		"  DEAD" if dead else "", ("%s %.2f" % [act_name, act_t]) if act_name != "" else (("ladder %s %d" % [lad["phase"], anim]) if not lad.is_empty() else "")]
+	if not view_info.is_empty():
+		info_label.text += "\ncam %s · %s%s  (F2)" % ["view" if view_on else "play", view_info["mode"] if view_info["mode"] == "ladder" else view_info["prof"],
+			"" if view_info["idx"] >= 0 else " · off route"]
 
 
 # ── 사다리 (MoKa M1111-30 "사다리도 만들고 캐릭터가 올라가고, 내려 가는것도 다크 소울과 유사한 메카니즘으로") ──────────
