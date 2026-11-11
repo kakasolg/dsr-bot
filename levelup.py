@@ -97,17 +97,19 @@ def level(tm, press, stat: str, log=print, up_to: int | None = None) -> str:
     return got
 
 
-def maybe(tm, tap, log=print) -> str | None:
-    """Seated at a bonfire: level WANT if set (farm.rest, missions.light_burg_bonfire). tap(vgamepad button) = farm.rest press · Moves.press."""
-    if not WANT:
+def maybe(tm, tap, log=print, want: str | None = None) -> str | None:
+    """Seated at a bonfire: level `want` if set (farm.rest, missions.light_burg_bonfire). tap(vgamepad button) = farm.rest press · Moves.press.
+    want: the run's value (Settings.get("levelup", "WANT"), settings-object step 3); None = this module's WANT."""
+    want = WANT if want is None else want
+    if not want:
         return None
     import vgamepad
     B = vgamepad.XUSB_BUTTON
     keys = {"A": B.XUSB_GAMEPAD_A, "B": B.XUSB_GAMEPAD_B, "DOWN": B.XUSB_GAMEPAD_DPAD_DOWN,
             "LEFT": B.XUSB_GAMEPAD_DPAD_LEFT, "RIGHT": B.XUSB_GAMEPAD_DPAD_RIGHT}
-    stat, _, cap = WANT.partition("=")             # "STR" (as far as souls go) or "STR=16" (up to 16)
+    stat, _, cap = want.partition("=")             # "STR" (as far as souls go) or "STR=16" (up to 16)
     r = level(tm, lambda k: tap(keys[k]), stat, log, up_to=int(cap) if cap else None)
-    log(f"   레벨업 ({WANT}): {r}")
+    log(f"   레벨업 ({want}): {r}")
     return r
 
 

@@ -1653,7 +1653,8 @@ class Missions:
         after = tm.last_bonfire()
         if sat:
             import levelup
-            levelup.maybe(tm, self.mv.press, log=self.log)  # run.py --level-up ([MoKa] 10-31 "모은 소울로 업그레이드")
+            st = getattr(self.mv, "settings", None)       # the run's Settings (settings-object step 3)
+            levelup.maybe(tm, self.mv.press, log=self.log, want=st.get("levelup", "WANT") if st is not None else None)  # run.py --level-up ([MoKa] 10-31 "모은 소울로 업그레이드")
         for _ in range(6):
             if not (tm.sitting() or tm.menu_open()):
                 break

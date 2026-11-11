@@ -151,6 +151,45 @@ def main() -> None:
     check("Flags from the Settings = what the flags mean (--basic --drill jump_r2)",
           (fl.BACKSTAB, fl.HEAVY, fl.COMBO_ONLY, fl.DRILL) == (False, False, True, "jump_r2") and state() == default)
 
+    # step 3: run.py no longer applies the overrides to module globals; every reader of a FLAGS value has the run's object
+    check("run.py builds the Settings without apply()",
+          "Settings.from_args(a)" in src and "Settings.from_args(a).apply()" not in src and ".apply()" not in src)
+    check("run.py hands the Settings to Moves and Field",
+          "mv.settings = run_settings" in src and "fld.settings = run_settings" in src)
+    st = settings.Settings.from_args(args(pull=True, level_up="end", kindle=True))
+    check("Settings.get: the override, else the module's value now",
+          st.get("souls.field", "NOTICE_PULL") is True and st.get("levelup", "WANT") == "END" and st.get("kindle", "ON") is True
+          and st.get("souls.field", "GROUP_R") == field.GROUP_R and state() == default)
+    for f_, names in (("souls/field.py", {"NOTICE_PULL"}), ("levelup.py", {"WANT"}), ("kindle.py", {"ON"})):
+        t = ast.parse((ROOT / f_).read_text(encoding="utf-8"))
+        loads = sorted({(fn.name, n.lineno) for fn in ast.walk(t) if isinstance(fn, ast.FunctionDef) for n in ast.walk(fn)
+                        if isinstance(n, ast.Name) and n.id in names and isinstance(n.ctx, ast.Load)})
+        allowed = {"levelup.py": {"maybe"}, "kindle.py": {"maybe"}}.get(f_, set())   # the `None → module value` fallback
+        check(f"{f_}: no other function reads {sorted(names)} as a global ({loads})", {fn for fn, _ in loads} <= allowed)
+    check("field.py reads NOTICE_PULL through self.settings (2 places)",
+          fsrc.count('self.settings.get("souls.field", "NOTICE_PULL")') == 2)
+    farm_src = (ROOT / "farm.py").read_text(encoding="utf-8")
+    mv_src = (ROOT / "souls" / "moves.py").read_text(encoding="utf-8")
+    mi_src = (ROOT / "souls" / "missions.py").read_text(encoding="utf-8")
+    check("Moves.rest → farm.rest(settings=) → kindle.maybe(on=) / levelup.maybe(want=); missions passes want",
+          'settings=getattr(self, "settings", None)' in mv_src and 'on=settings.get("kindle", "ON")' in farm_src
+          and 'want=settings.get("levelup", "WANT")' in farm_src and 'want=st.get("levelup", "WANT")' in mi_src)
+
+    class _Tm:
+        def last_bonfire(self):
+            return 0                                      # not the Burg bonfire
+    check("kindle.maybe(on=False) stops before reading the game; on=None follows kindle.ON (off)",
+          kindle.maybe(None, None, None, None, on=False) is None and kindle.maybe(None, None, None, None) is None)
+    check("kindle.maybe(on=True) goes on to the bonfire check (not the Burg one → None)",
+          kindle.maybe(_Tm(), None, None, None, on=True) is None)
+    check("levelup.maybe(want='') / want=None with WANT None → no level-up", levelup.maybe(None, None, want="") is None
+          and levelup.maybe(None, None) is None)
+
+    rec3, _ = runinfo.collect("t", ["run.py"], {}, overrides=st.to_dict(), root=ROOT)
+    check("runinfo: constants = module defaults overlaid with the overrides (globals untouched)",
+          rec3["constants"]["souls.field"]["NOTICE_PULL"] is True and rec3["constants"]["levelup"]["WANT"] == "END"
+          and rec3["constants"]["kindle"]["ON"] is True and field.NOTICE_PULL is False and state() == default)
+
     if FAILS:
         print(f"settings_test: {len(FAILS)} 실패")
         sys.exit(1)

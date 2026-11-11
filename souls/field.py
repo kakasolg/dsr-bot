@@ -18,6 +18,7 @@ import control
 import ctl
 import drops as drops_
 import nav
+import settings as _settings
 
 from . import duel as D
 from . import escape as escape_
@@ -363,8 +364,9 @@ class LureBlock:
 
 
 class Field:
-    # the run's fight flags (settings-object step 2): run.py sets Flags from its Settings; this default reads duel's globals
+    # the run's settings (settings-object steps 2–3): run.py sets both from its Settings; these defaults read the globals
     flags = D.Flags()
+    settings = _settings.Settings()
 
     def __init__(self, mv: M.Moves, weapon, escape, bonfires: list, log=print, events=None, style="guard"):
         self.mv, self.w, self.esc, self.log = mv, weapon, escape, log
@@ -1772,7 +1774,7 @@ class Field:
                 unreachable.append(f"#{i}")
                 pending.pop(0)
                 continue
-            if not lure and NOTICE_PULL and k == 0 and e.get("lure", True):
+            if not lure and self.settings.get("souls.field", "NOTICE_PULL") and k == 0 and e.get("lure", True):
                 pr = self.notice_pull(c.ptr, nm, arena, f"#{i}")
                 self.log(f"   #{i} 몸으로 끌기: {pr}")
                 tried[i] = 1                               # came → the 'incoming foe' branch takes it; no_reaction / stayed / thrower → go to it next round
@@ -2386,7 +2388,7 @@ class Field:
                 lured[c.ptr] = lured.get(c.ptr, 0) + 1
                 here = (p.x, p.y, p.z)
                 lr = self.lure(c.ptr, (c.x, c.y, c.z), nm, f"{tag}: {c.npc_param}", arena=here)
-                if lr == "no_knife" and NOTICE_PULL:
+                if lr == "no_knife" and self.settings.get("souls.field", "NOTICE_PULL"):
                     pr = self.notice_pull(c.ptr, nm, here, f"{tag}: {c.npc_param}")
                     lr = {"came": "lured", "stayed": "awake", "thrower": lr}.get(pr, pr)   # thrower: as before --pull (no knife)
                     if pr == "no_reaction":

@@ -123,10 +123,11 @@ def offer(tm, tap, log=print) -> str:
     return " · ".join(out)
 
 
-def maybe(tm, tap, stand_up, sit_down, log=print) -> str | None:
+def maybe(tm, tap, stand_up, sit_down, log=print, on: bool | None = None) -> str | None:
     """Seated (farm.rest, after the level-up). Burg bonfire only, Estus below 10 only.
-    stand_up() / sit_down() → bool: farm.rest's B-out and A-in (items can't be used seated)."""
-    if not ON or tm.last_bonfire() != BURG_BONFIRE:
+    stand_up() / sit_down() → bool: farm.rest's B-out and A-in (items can't be used seated).
+    on: the run's value (Settings.get("kindle", "ON"), settings-object step 3); None = this module's ON."""
+    if not (ON if on is None else on) or tm.last_bonfire() != BURG_BONFIRE:
         return None
     e = max((tm.goods_count(i) or 0) for i in ESTUS_IDS)
     if e >= ESTUS_KINDLED:

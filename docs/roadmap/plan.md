@@ -649,8 +649,19 @@ The items are still open in ROADMAP.md (one line each); their full text as it st
     021816 burg-bonfire 25/39, 012015 burg-upper 240/241, 011128 clear-ramp 85/90 same rule as then (the misses predate
     step 2). Not checked: whether any of these runs used --basic, so a flag-off path in replay is not shown. Game check
     of --basic: not run.
-  - **Step 3 (next):** field.py / missions.py constants the run changes (`NOTICE_PULL` …) read through the same object;
-    then stop `apply()` writing globals for modules whose readers moved. Tests that set globals move to `applied()` as touched.
+  - **Step 3 (built, cloud, 11-11, after [win]'s step-2 check 96db4f5):** every reader of a run-changed value has the run's
+    object: `Settings.get(module, name)` (override, else the module's value now); `Field.settings` (class default empty)
+    → field.py's 2 `NOTICE_PULL` reads; `Moves.settings` → `farm.rest(settings=)` → `kindle.maybe(on=)` /
+    `levelup.maybe(want=)`, missions' level-up passes `want=`. run.py builds the Settings **without `apply()`** — module
+    globals stay at their defaults during a run; `runinfo.collect` overlays the overrides on `constants`, so the record
+    still shows the values the run uses. `apply()` / `applied()` stay for tests and tools (`levelup.main`, `kindle.main`
+    set their own globals). Verified offline: settings_test (AST: no other bare reader of the moved names; wiring;
+    kindle / levelup take the passed value; runinfo overlay with globals untouched), full suite. Room: one arena run
+    `--basic --pull` (correct scene): ran to the end, died (one run, outcome not compared); record `overrides` +
+    overlaid constants BACKSTAB / HEAVY False, NOTICE_PULL True. Not checked in game: --pull, --level-up, --kindle.
+  - **Next:** the other ~470 constants are not run-changed, so they need no object for A/B today; moving them is only
+    worth it with the tick loop / WorldState. Tests that set globals move to `applied()` as touched. Proposal: close
+    settings-object after a [win] game run with `--basic` (and `--level-up` / `--kindle` if a run uses them).
 - `worldstate` (moved 2026-10-12): [ ] [cloud] WorldState: who is alive / where after a bonfire rest, quit-out (byte/menu) or warp, fixed in one place (P-18, P-25, P-44, P-55)
 - `tick-loop` (moved 2026-10-12): [ ] [cloud] One tick loop (read → update state → pick one action → input) instead of `field.py`'s own loops; walking first, one part at a time, guarded by `scene_replay` + `duel_golden_test`; v1.0 keeps running meanwhile
 - `route-data` (moved 2026-10-12): [ ] [cloud] Route data (walk / careful walk / safe spot / pull / fight / ladder / fog wall / Estus bar) + one runner; `burg-upper` moved first, then new segments without zone code

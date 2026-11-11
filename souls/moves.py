@@ -995,7 +995,7 @@ class Moves:
 
     def rest(self, nm, bonfire: dict) -> bool:
         """Walk to the bonfire, sit, and stand up (farm.rest). All enemies revive and HP·Estus refill."""
-        return farm.rest(self.tm, self.pad, nm, bonfire)
+        return farm.rest(self.tm, self.pad, nm, bonfire, settings=getattr(self, "settings", None))   # run's Settings (step 3)
 
     def press(self, button, hold: float = 0.1, gap: float = 0.1) -> None:
         """Single press for menus (press, release, gap). Menu inputs 0.1 s apart (user: back-to-back inputs tangle the input buffer)."""
