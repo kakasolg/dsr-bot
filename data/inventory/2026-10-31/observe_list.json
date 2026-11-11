@@ -1,0 +1,1560 @@
+{
+ "scope": "data/observe/*.jsonl (observe_record.py recordings)",
+ "method": "length_s = max(ms) - min(ms) over all lines; play_kind from pad line slot i (0 = human pad, 1 = bot virtual pad per request); zone_hint = nearest data/spots.json point within 20 m of the first world line's player pos (coordinates only — the recording has no map id), else null; no melee / combat time is computed (needs a definition)",
+ "totals_by_kind": {
+  "human (slot 0)": {
+   "files": 40,
+   "length_s": 11046.1,
+   "markers": 72
+  },
+  "mixed": {
+   "files": 17,
+   "length_s": 16553.8,
+   "markers": 10
+  },
+  "no pad lines": {
+   "files": 1,
+   "length_s": 18641.8,
+   "markers": 0
+  }
+ },
+ "files": [
+  {
+   "file": "data/observe/20260926_075757.jsonl",
+   "bytes": 9120838,
+   "length_s": 224.8,
+   "end_duration_s": 224.8,
+   "end_reason": "ctrl_c",
+   "world_lines": 2248,
+   "pad_lines": 447,
+   "pad_lines_by_slot": {
+    "0": 447
+   },
+   "markers_f9": 0,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "human (slot 0)",
+   "first_player_pos": [
+    -35.272,
+    -51.377,
+    33.23
+   ],
+   "zone_hint": {
+    "spot": "burg-approach",
+    "spot_map": "m10_02_00_00",
+    "dist_m": 2.2
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260926_080150.jsonl",
+   "bytes": 6088131,
+   "length_s": 168.2,
+   "end_duration_s": 168.2,
+   "end_reason": "ctrl_c",
+   "world_lines": 1682,
+   "pad_lines": 1417,
+   "pad_lines_by_slot": {
+    "0": 1417
+   },
+   "markers_f9": 5,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "human (slot 0)",
+   "first_player_pos": [
+    -33.157,
+    -52.271,
+    36.048
+   ],
+   "zone_hint": {
+    "spot": "burg-approach",
+    "spot_map": "m10_02_00_00",
+    "dist_m": 1.9
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260926_081905.jsonl",
+   "bytes": 1207505,
+   "length_s": 46.2,
+   "end_duration_s": 46.2,
+   "end_reason": "ctrl_c",
+   "world_lines": 463,
+   "pad_lines": 40,
+   "pad_lines_by_slot": {
+    "0": 40
+   },
+   "markers_f9": 1,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "human (slot 0)",
+   "first_player_pos": [
+    -32.676,
+    -51.1,
+    34.067
+   ],
+   "zone_hint": {
+    "spot": "burg-approach",
+    "spot_map": "m10_02_00_00",
+    "dist_m": 0.8
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260926_083705.jsonl",
+   "bytes": 6039182,
+   "length_s": 190.5,
+   "end_duration_s": null,
+   "end_reason": null,
+   "world_lines": 1906,
+   "pad_lines": 4469,
+   "pad_lines_by_slot": {
+    "0": 4469
+   },
+   "markers_f9": 2,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "human (slot 0)",
+   "first_player_pos": [
+    -51.051,
+    -60.582,
+    55.495
+   ],
+   "zone_hint": {
+    "spot": "firelink-bonfire",
+    "spot_map": "m10_02_00_00",
+    "dist_m": 0.8
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260926_084654.jsonl",
+   "bytes": 4323153,
+   "length_s": 133.5,
+   "end_duration_s": null,
+   "end_reason": null,
+   "world_lines": 1336,
+   "pad_lines": 5286,
+   "pad_lines_by_slot": {
+    "0": 5286
+   },
+   "markers_f9": 0,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "human (slot 0)",
+   "first_player_pos": [
+    -34.23,
+    -51.667,
+    34.406
+   ],
+   "zone_hint": {
+    "spot": "burg-approach",
+    "spot_map": "m10_02_00_00",
+    "dist_m": 0.9
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260926_090241.jsonl",
+   "bytes": 3099239,
+   "length_s": 103.7,
+   "end_duration_s": null,
+   "end_reason": null,
+   "world_lines": 1038,
+   "pad_lines": 2037,
+   "pad_lines_by_slot": {
+    "0": 1,
+    "1": 2036
+   },
+   "markers_f9": 0,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "mixed",
+   "first_player_pos": [
+    -53.164,
+    -60.547,
+    56.499
+   ],
+   "zone_hint": {
+    "spot": "firelink-bonfire",
+    "spot_map": "m10_02_00_00",
+    "dist_m": 1.6
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260926_091308.jsonl",
+   "bytes": 4259982,
+   "length_s": 133.4,
+   "end_duration_s": null,
+   "end_reason": null,
+   "world_lines": 1335,
+   "pad_lines": 3511,
+   "pad_lines_by_slot": {
+    "0": 1,
+    "1": 3510
+   },
+   "markers_f9": 0,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "mixed",
+   "first_player_pos": [
+    -24.366,
+    -33.706,
+    9.668
+   ],
+   "zone_hint": {
+    "spot": "burg-ramp",
+    "spot_map": "m10_02_00_00",
+    "dist_m": 12.2
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260926_092141.jsonl",
+   "bytes": 4533100,
+   "length_s": 141.5,
+   "end_duration_s": null,
+   "end_reason": null,
+   "world_lines": 1416,
+   "pad_lines": 3582,
+   "pad_lines_by_slot": {
+    "0": 1,
+    "1": 3581
+   },
+   "markers_f9": 0,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "mixed",
+   "first_player_pos": [
+    -25.422,
+    -33.714,
+    9.086
+   ],
+   "zone_hint": {
+    "spot": "burg-ramp",
+    "spot_map": "m10_02_00_00",
+    "dist_m": 13.2
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260926_092612.jsonl",
+   "bytes": 3534126,
+   "length_s": 106.7,
+   "end_duration_s": null,
+   "end_reason": null,
+   "world_lines": 1068,
+   "pad_lines": 3030,
+   "pad_lines_by_slot": {
+    "0": 2,
+    "1": 3028
+   },
+   "markers_f9": 0,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "mixed",
+   "first_player_pos": [
+    -24.262,
+    -33.704,
+    9.717
+   ],
+   "zone_hint": {
+    "spot": "burg-ramp",
+    "spot_map": "m10_02_00_00",
+    "dist_m": 12.2
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260926_094231.jsonl",
+   "bytes": 2648104,
+   "length_s": 79.3,
+   "end_duration_s": null,
+   "end_reason": null,
+   "world_lines": 794,
+   "pad_lines": 2056,
+   "pad_lines_by_slot": {
+    "0": 1,
+    "1": 2055
+   },
+   "markers_f9": 0,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "mixed",
+   "first_player_pos": [
+    -47.319,
+    -59.868,
+    53.17
+   ],
+   "zone_hint": {
+    "spot": "firelink-bonfire",
+    "spot_map": "m10_02_00_00",
+    "dist_m": 5.2
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260926_094836.jsonl",
+   "bytes": 3411654,
+   "length_s": 109.8,
+   "end_duration_s": null,
+   "end_reason": null,
+   "world_lines": 1099,
+   "pad_lines": 2477,
+   "pad_lines_by_slot": {
+    "0": 1,
+    "1": 2476
+   },
+   "markers_f9": 0,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "mixed",
+   "first_player_pos": [
+    -28.688,
+    -49.118,
+    30.187
+   ],
+   "zone_hint": {
+    "spot": "burg-approach",
+    "spot_map": "m10_02_00_00",
+    "dist_m": 6.6
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260926_101202.jsonl",
+   "bytes": 6692243,
+   "length_s": 210.2,
+   "end_duration_s": 210.2,
+   "end_reason": "time",
+   "world_lines": 2036,
+   "pad_lines": 2897,
+   "pad_lines_by_slot": {
+    "0": 2897
+   },
+   "markers_f9": 0,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "human (slot 0)",
+   "first_player_pos": [
+    -19.387,
+    -39.374,
+    15.244
+   ],
+   "zone_hint": {
+    "spot": "burg-ramp",
+    "spot_map": "m10_02_00_00",
+    "dist_m": 3.5
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260926_101538.jsonl",
+   "bytes": 5556789,
+   "length_s": 210.2,
+   "end_duration_s": 210.2,
+   "end_reason": "time",
+   "world_lines": 2102,
+   "pad_lines": 2002,
+   "pad_lines_by_slot": {
+    "0": 2002
+   },
+   "markers_f9": 0,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "human (slot 0)",
+   "first_player_pos": [
+    -50.196,
+    -60.546,
+    56.528
+   ],
+   "zone_hint": {
+    "spot": "firelink-bonfire",
+    "spot_map": "m10_02_00_00",
+    "dist_m": 1.8
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260926_101913.jsonl",
+   "bytes": 6480788,
+   "length_s": 210.1,
+   "end_duration_s": 210.1,
+   "end_reason": "time",
+   "world_lines": 2102,
+   "pad_lines": 4416,
+   "pad_lines_by_slot": {
+    "0": 4416
+   },
+   "markers_f9": 0,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "human (slot 0)",
+   "first_player_pos": [
+    -24.312,
+    -33.705,
+    9.688
+   ],
+   "zone_hint": {
+    "spot": "burg-ramp",
+    "spot_map": "m10_02_00_00",
+    "dist_m": 12.2
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260926_130030.jsonl",
+   "bytes": 9069446,
+   "length_s": 300.1,
+   "end_duration_s": 300.1,
+   "end_reason": "time",
+   "world_lines": 3001,
+   "pad_lines": 2983,
+   "pad_lines_by_slot": {
+    "0": 2983
+   },
+   "markers_f9": 0,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "human (slot 0)",
+   "first_player_pos": [
+    -26.297,
+    -49.205,
+    21.822
+   ],
+   "zone_hint": {
+    "spot": "burg-ramp",
+    "spot_map": "m10_02_00_00",
+    "dist_m": 12.3
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260926_131752.jsonl",
+   "bytes": 10507035,
+   "length_s": 300.1,
+   "end_duration_s": 300.1,
+   "end_reason": "time",
+   "world_lines": 3001,
+   "pad_lines": 4125,
+   "pad_lines_by_slot": {
+    "0": 4125
+   },
+   "markers_f9": 0,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "human (slot 0)",
+   "first_player_pos": [
+    -24.346,
+    -33.705,
+    9.669
+   ],
+   "zone_hint": {
+    "spot": "burg-ramp",
+    "spot_map": "m10_02_00_00",
+    "dist_m": 12.2
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260926_132053.jsonl",
+   "bytes": 11440375,
+   "length_s": 300.1,
+   "end_duration_s": 300.1,
+   "end_reason": "time",
+   "world_lines": 3001,
+   "pad_lines": 1753,
+   "pad_lines_by_slot": {
+    "0": 1753
+   },
+   "markers_f9": 0,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "human (slot 0)",
+   "first_player_pos": [
+    -31.26,
+    -53.871,
+    38.628
+   ],
+   "zone_hint": {
+    "spot": "burg-approach",
+    "spot_map": "m10_02_00_00",
+    "dist_m": 5.4
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260926_133016.jsonl",
+   "bytes": 9145222,
+   "length_s": 300.1,
+   "end_duration_s": 300.1,
+   "end_reason": "time",
+   "world_lines": 3001,
+   "pad_lines": 2373,
+   "pad_lines_by_slot": {
+    "0": 2373
+   },
+   "markers_f9": 0,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "human (slot 0)",
+   "first_player_pos": [
+    -29.088,
+    -57.745,
+    46.252
+   ],
+   "zone_hint": {
+    "spot": "burg-approach",
+    "spot_map": "m10_02_00_00",
+    "dist_m": 14.2
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260926_133546.jsonl",
+   "bytes": 8833794,
+   "length_s": 300.1,
+   "end_duration_s": 300.1,
+   "end_reason": "time",
+   "world_lines": 2934,
+   "pad_lines": 4299,
+   "pad_lines_by_slot": {
+    "0": 4299
+   },
+   "markers_f9": 0,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "human (slot 0)",
+   "first_player_pos": [
+    -24.249,
+    -33.704,
+    9.721
+   ],
+   "zone_hint": {
+    "spot": "burg-ramp",
+    "spot_map": "m10_02_00_00",
+    "dist_m": 12.2
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260926_133827.jsonl",
+   "bytes": 9178695,
+   "length_s": 300.1,
+   "end_duration_s": 300.1,
+   "end_reason": "time",
+   "world_lines": 2935,
+   "pad_lines": 2155,
+   "pad_lines_by_slot": {
+    "0": 2155
+   },
+   "markers_f9": 0,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "human (slot 0)",
+   "first_player_pos": [
+    -30.991,
+    -50.387,
+    33.817
+   ],
+   "zone_hint": {
+    "spot": "burg-approach",
+    "spot_map": "m10_02_00_00",
+    "dist_m": 2.6
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260926_134451.jsonl",
+   "bytes": 8924515,
+   "length_s": 300.1,
+   "end_duration_s": 300.1,
+   "end_reason": "time",
+   "world_lines": 3002,
+   "pad_lines": 2337,
+   "pad_lines_by_slot": {
+    "0": 2337
+   },
+   "markers_f9": 0,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "human (slot 0)",
+   "first_player_pos": [
+    -30.042,
+    -49.733,
+    31.784
+   ],
+   "zone_hint": {
+    "spot": "burg-approach",
+    "spot_map": "m10_02_00_00",
+    "dist_m": 4.5
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260926_135222.jsonl",
+   "bytes": 8723852,
+   "length_s": 300.1,
+   "end_duration_s": 300.1,
+   "end_reason": "time",
+   "world_lines": 3002,
+   "pad_lines": 3615,
+   "pad_lines_by_slot": {
+    "0": 3615
+   },
+   "markers_f9": 0,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "human (slot 0)",
+   "first_player_pos": [
+    -29.472,
+    -49.26,
+    29.347
+   ],
+   "zone_hint": {
+    "spot": "burg-approach",
+    "spot_map": "m10_02_00_00",
+    "dist_m": 6.7
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260926_140708.jsonl",
+   "bytes": 5909814,
+   "length_s": 196.3,
+   "end_duration_s": null,
+   "end_reason": null,
+   "world_lines": 1964,
+   "pad_lines": 3940,
+   "pad_lines_by_slot": {
+    "0": 3940
+   },
+   "markers_f9": 1,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "human (slot 0)",
+   "first_player_pos": [
+    -33.778,
+    -51.596,
+    34.443
+   ],
+   "zone_hint": {
+    "spot": "burg-approach",
+    "spot_map": "m10_02_00_00",
+    "dist_m": 0.5
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260926_152540.jsonl",
+   "bytes": 22745495,
+   "length_s": 900.1,
+   "end_duration_s": 900.1,
+   "end_reason": "time",
+   "world_lines": 9002,
+   "pad_lines": 3612,
+   "pad_lines_by_slot": {
+    "0": 1198,
+    "1": 2414
+   },
+   "markers_f9": 0,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "mixed",
+   "first_player_pos": [
+    -50.514,
+    -60.559,
+    55.88
+   ],
+   "zone_hint": {
+    "spot": "firelink-bonfire",
+    "spot_map": "m10_02_00_00",
+    "dist_m": 1.3
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260926_155129.jsonl",
+   "bytes": 23781123,
+   "length_s": 900.1,
+   "end_duration_s": 900.1,
+   "end_reason": "time",
+   "world_lines": 9002,
+   "pad_lines": 10582,
+   "pad_lines_by_slot": {
+    "0": 1217,
+    "1": 9365
+   },
+   "markers_f9": 0,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "mixed",
+   "first_player_pos": [
+    -30.12,
+    -49.696,
+    31.482
+   ],
+   "zone_hint": {
+    "spot": "burg-approach",
+    "spot_map": "m10_02_00_00",
+    "dist_m": 4.6
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260926_160200.jsonl",
+   "bytes": 18765808,
+   "length_s": 600.2,
+   "end_duration_s": 600.2,
+   "end_reason": "time",
+   "world_lines": 6002,
+   "pad_lines": 8974,
+   "pad_lines_by_slot": {
+    "0": 1218,
+    "1": 7756
+   },
+   "markers_f9": 0,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "mixed",
+   "first_player_pos": [
+    -29.698,
+    -49.32,
+    27.615
+   ],
+   "zone_hint": {
+    "spot": "burg-approach",
+    "spot_map": "m10_02_00_00",
+    "dist_m": 7.9
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260926_160646.jsonl",
+   "bytes": 26657865,
+   "length_s": 600.2,
+   "end_duration_s": 600.2,
+   "end_reason": "time",
+   "world_lines": 6002,
+   "pad_lines": 12428,
+   "pad_lines_by_slot": {
+    "0": 6,
+    "1": 12422
+   },
+   "markers_f9": 0,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "mixed",
+   "first_player_pos": [
+    -50.445,
+    -60.559,
+    55.695
+   ],
+   "zone_hint": {
+    "spot": "firelink-bonfire",
+    "spot_map": "m10_02_00_00",
+    "dist_m": 1.4
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260926_161024.jsonl",
+   "bytes": 65918766,
+   "length_s": 1200.0,
+   "end_duration_s": 1200.0,
+   "end_reason": "time",
+   "world_lines": 11981,
+   "pad_lines": 23515,
+   "pad_lines_by_slot": {
+    "0": 11549,
+    "1": 11966
+   },
+   "markers_f9": 5,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "mixed",
+   "first_player_pos": [
+    -29.195,
+    -49.178,
+    29.163
+   ],
+   "zone_hint": {
+    "spot": "burg-approach",
+    "spot_map": "m10_02_00_00",
+    "dist_m": 7.0
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260926_161923.jsonl",
+   "bytes": 99835233,
+   "length_s": 1800.0,
+   "end_duration_s": 1800.0,
+   "end_reason": "time",
+   "world_lines": 17914,
+   "pad_lines": 35694,
+   "pad_lines_by_slot": {
+    "0": 12234,
+    "1": 23460
+   },
+   "markers_f9": 5,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "mixed",
+   "first_player_pos": [
+    -47.319,
+    -59.868,
+    53.17
+   ],
+   "zone_hint": {
+    "spot": "firelink-bonfire",
+    "spot_map": "m10_02_00_00",
+    "dist_m": 5.2
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260926_162815.jsonl",
+   "bytes": 64197441,
+   "length_s": 1200.0,
+   "end_duration_s": 1200.0,
+   "end_reason": "time",
+   "world_lines": 11914,
+   "pad_lines": 24137,
+   "pad_lines_by_slot": {
+    "0": 670,
+    "1": 23467
+   },
+   "markers_f9": 0,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "mixed",
+   "first_player_pos": [
+    -29.033,
+    -13.504,
+    -72.713
+   ],
+   "zone_hint": {
+    "spot": "undead-merchant",
+    "spot_map": "m10_01_00_00",
+    "dist_m": 12.9
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260926_163921.jsonl",
+   "bytes": 66790094,
+   "length_s": 1200.0,
+   "end_duration_s": 1200.0,
+   "end_reason": "time",
+   "world_lines": 11924,
+   "pad_lines": 23157,
+   "pad_lines_by_slot": {
+    "0": 639,
+    "1": 22518
+   },
+   "markers_f9": 0,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "mixed",
+   "first_player_pos": [
+    -47.491,
+    -59.948,
+    54.882
+   ],
+   "zone_hint": {
+    "spot": "firelink-bonfire",
+    "spot_map": "m10_02_00_00",
+    "dist_m": 4.4
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260926_165117.jsonl",
+   "bytes": 46655962,
+   "length_s": 830.4,
+   "end_duration_s": null,
+   "end_reason": null,
+   "world_lines": 8305,
+   "pad_lines": 10460,
+   "pad_lines_by_slot": {
+    "0": 8,
+    "1": 10452
+   },
+   "markers_f9": 0,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "mixed",
+   "first_player_pos": [
+    -47.319,
+    -59.868,
+    53.17
+   ],
+   "zone_hint": {
+    "spot": "firelink-bonfire",
+    "spot_map": "m10_02_00_00",
+    "dist_m": 5.2
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260926_172544.jsonl",
+   "bytes": 67121026,
+   "length_s": 1200.2,
+   "end_duration_s": 1200.2,
+   "end_reason": "time",
+   "world_lines": 11993,
+   "pad_lines": 20257,
+   "pad_lines_by_slot": {
+    "0": 6,
+    "1": 20251
+   },
+   "markers_f9": 0,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "mixed",
+   "first_player_pos": [
+    -47.319,
+    -59.868,
+    53.17
+   ],
+   "zone_hint": {
+    "spot": "firelink-bonfire",
+    "spot_map": "m10_02_00_00",
+    "dist_m": 5.2
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260927_183723.jsonl",
+   "bytes": 32808929,
+   "length_s": 447.8,
+   "end_duration_s": null,
+   "end_reason": null,
+   "world_lines": 4479,
+   "pad_lines": 21767,
+   "pad_lines_by_slot": {
+    "0": 21767
+   },
+   "markers_f9": 0,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "human (slot 0)",
+   "first_player_pos": [
+    1.465,
+    -10.02,
+    -60.449
+   ],
+   "zone_hint": {
+    "spot": "burg-bonfire",
+    "spot_map": "m10_01_00_00",
+    "dist_m": 0.8
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260927_184707.jsonl",
+   "bytes": 19313095,
+   "length_s": 326.1,
+   "end_duration_s": null,
+   "end_reason": null,
+   "world_lines": 3262,
+   "pad_lines": 13972,
+   "pad_lines_by_slot": {
+    "0": 13972
+   },
+   "markers_f9": 1,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "human (slot 0)",
+   "first_player_pos": [
+    -51.044,
+    -60.576,
+    55.774
+   ],
+   "zone_hint": {
+    "spot": "firelink-bonfire",
+    "spot_map": "m10_02_00_00",
+    "dist_m": 0.8
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260927_185353.jsonl",
+   "bytes": 13619512,
+   "length_s": 178.4,
+   "end_duration_s": null,
+   "end_reason": null,
+   "world_lines": 1785,
+   "pad_lines": 7407,
+   "pad_lines_by_slot": {
+    "0": 7407
+   },
+   "markers_f9": 2,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "human (slot 0)",
+   "first_player_pos": [
+    -7.791,
+    -10.011,
+    -70.61
+   ],
+   "zone_hint": {
+    "spot": "burg-bonfire",
+    "spot_map": "m10_01_00_00",
+    "dist_m": 13.4
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260927_191346.jsonl",
+   "bytes": 279385579,
+   "length_s": 5448.2,
+   "end_duration_s": null,
+   "end_reason": null,
+   "world_lines": 54398,
+   "pad_lines": 96705,
+   "pad_lines_by_slot": {
+    "0": 10,
+    "1": 96695
+   },
+   "markers_f9": 0,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "mixed",
+   "first_player_pos": [
+    -47.319,
+    -59.868,
+    53.17
+   ],
+   "zone_hint": {
+    "spot": "firelink-bonfire",
+    "spot_map": "m10_02_00_00",
+    "dist_m": 5.2
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260927_224452.jsonl",
+   "bytes": 5655604,
+   "length_s": 136.0,
+   "end_duration_s": null,
+   "end_reason": null,
+   "world_lines": 1349,
+   "pad_lines": 4744,
+   "pad_lines_by_slot": {
+    "0": 4744
+   },
+   "markers_f9": 0,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "human (slot 0)",
+   "first_player_pos": [
+    -37.072,
+    -33.869,
+    -0.945
+   ],
+   "zone_hint": null,
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260927_224715.jsonl",
+   "bytes": 3573997,
+   "length_s": 113.2,
+   "end_duration_s": null,
+   "end_reason": null,
+   "world_lines": 1133,
+   "pad_lines": 1744,
+   "pad_lines_by_slot": {
+    "0": 1744
+   },
+   "markers_f9": 3,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "human (slot 0)",
+   "first_player_pos": [
+    -17.011,
+    -39.464,
+    16.986
+   ],
+   "zone_hint": {
+    "spot": "burg-ramp",
+    "spot_map": "m10_02_00_00",
+    "dist_m": 2.6
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260928_221908.jsonl",
+   "bytes": 19752432,
+   "length_s": 392.8,
+   "end_duration_s": null,
+   "end_reason": null,
+   "world_lines": 3929,
+   "pad_lines": 17310,
+   "pad_lines_by_slot": {
+    "0": 17310
+   },
+   "markers_f9": 0,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "human (slot 0)",
+   "first_player_pos": [
+    -15.343,
+    184.739,
+    -46.55
+   ],
+   "zone_hint": null,
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260929_010243.jsonl",
+   "bytes": 131055,
+   "length_s": 18641.8,
+   "end_duration_s": null,
+   "end_reason": null,
+   "world_lines": 0,
+   "pad_lines": 0,
+   "pad_lines_by_slot": {},
+   "markers_f9": 0,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "no pad lines",
+   "first_player_pos": null,
+   "zone_hint": null,
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20260929_061447.jsonl",
+   "bytes": 21268446,
+   "length_s": 535.6,
+   "end_duration_s": null,
+   "end_reason": null,
+   "world_lines": 4364,
+   "pad_lines": 17749,
+   "pad_lines_by_slot": {
+    "0": 17749
+   },
+   "markers_f9": 10,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "human (slot 0)",
+   "first_player_pos": [
+    -13.75,
+    184.75,
+    -44.5
+   ],
+   "zone_hint": null,
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20261002_065653.jsonl",
+   "bytes": 45677539,
+   "length_s": 495.3,
+   "end_duration_s": null,
+   "end_reason": null,
+   "world_lines": 4954,
+   "pad_lines": 20173,
+   "pad_lines_by_slot": {
+    "0": 20173
+   },
+   "markers_f9": 3,
+   "hdr_radius_m": 40.0,
+   "hdr_present": true,
+   "play_kind": "human (slot 0)",
+   "first_player_pos": [
+    -29.436,
+    -49.265,
+    28.44
+   ],
+   "zone_hint": {
+    "spot": "burg-approach",
+    "spot_map": "m10_02_00_00",
+    "dist_m": 7.4
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20261002_123237.jsonl",
+   "bytes": 23676741,
+   "length_s": 207.5,
+   "end_duration_s": null,
+   "end_reason": null,
+   "world_lines": 2076,
+   "pad_lines": 8022,
+   "pad_lines_by_slot": {
+    "0": 8022
+   },
+   "markers_f9": 5,
+   "hdr_radius_m": 40.0,
+   "hdr_present": true,
+   "play_kind": "human (slot 0)",
+   "first_player_pos": [
+    -47.154,
+    -33.601,
+    -10.372
+   ],
+   "zone_hint": null,
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20261002_124925.jsonl",
+   "bytes": 28852720,
+   "length_s": 264.6,
+   "end_duration_s": null,
+   "end_reason": null,
+   "world_lines": 2647,
+   "pad_lines": 14878,
+   "pad_lines_by_slot": {
+    "0": 14878
+   },
+   "markers_f9": 4,
+   "hdr_radius_m": 40.0,
+   "hdr_present": true,
+   "play_kind": "human (slot 0)",
+   "first_player_pos": [
+    -47.563,
+    -33.597,
+    -10.666
+   ],
+   "zone_hint": null,
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20261002_132649.jsonl",
+   "bytes": 18324124,
+   "length_s": 240.8,
+   "end_duration_s": null,
+   "end_reason": null,
+   "world_lines": 2409,
+   "pad_lines": 7175,
+   "pad_lines_by_slot": {
+    "0": 7175
+   },
+   "markers_f9": 4,
+   "hdr_radius_m": 40.0,
+   "hdr_present": true,
+   "play_kind": "human (slot 0)",
+   "first_player_pos": [
+    -50.758,
+    -60.569,
+    55.691
+   ],
+   "zone_hint": {
+    "spot": "firelink-bonfire",
+    "spot_map": "m10_02_00_00",
+    "dist_m": 1.0
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20261006_145144.jsonl",
+   "bytes": 26161214,
+   "length_s": 453.8,
+   "end_duration_s": 453.8,
+   "end_reason": "ctrl_c",
+   "world_lines": 4539,
+   "pad_lines": 20233,
+   "pad_lines_by_slot": {
+    "0": 20233
+   },
+   "markers_f9": 6,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "human (slot 0)",
+   "first_player_pos": [
+    1.529,
+    -10.02,
+    -60.771
+   ],
+   "zone_hint": {
+    "spot": "burg-bonfire",
+    "spot_map": "m10_01_00_00",
+    "dist_m": 0.5
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20261006_151029.jsonl",
+   "bytes": 10343375,
+   "length_s": 161.1,
+   "end_duration_s": null,
+   "end_reason": null,
+   "world_lines": 1600,
+   "pad_lines": 5206,
+   "pad_lines_by_slot": {
+    "0": 5206
+   },
+   "markers_f9": 2,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "human (slot 0)",
+   "first_player_pos": [
+    1.919,
+    -10.02,
+    -61.151
+   ],
+   "zone_hint": {
+    "spot": "burg-bonfire",
+    "spot_map": "m10_01_00_00",
+    "dist_m": 0.2
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20261006_151317.jsonl",
+   "bytes": 27241894,
+   "length_s": 452.7,
+   "end_duration_s": 452.7,
+   "end_reason": "ctrl_c",
+   "world_lines": 4528,
+   "pad_lines": 20602,
+   "pad_lines_by_slot": {
+    "0": 20602
+   },
+   "markers_f9": 8,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "human (slot 0)",
+   "first_player_pos": [
+    0.105,
+    -10.02,
+    -59.165
+   ],
+   "zone_hint": {
+    "spot": "burg-bonfire",
+    "spot_map": "m10_01_00_00",
+    "dist_m": 2.6
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20261006_173431.jsonl",
+   "bytes": 31630280,
+   "length_s": 578.5,
+   "end_duration_s": 578.5,
+   "end_reason": "ctrl_c",
+   "world_lines": 5786,
+   "pad_lines": 24445,
+   "pad_lines_by_slot": {
+    "0": 24445
+   },
+   "markers_f9": 7,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "human (slot 0)",
+   "first_player_pos": [
+    2.384,
+    -10.02,
+    -61.291
+   ],
+   "zone_hint": {
+    "spot": "burg-bonfire",
+    "spot_map": "m10_01_00_00",
+    "dist_m": 0.7
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20261006_190154.jsonl",
+   "bytes": 3650834,
+   "length_s": 68.7,
+   "end_duration_s": 68.7,
+   "end_reason": "ctrl_c",
+   "world_lines": 687,
+   "pad_lines": 1630,
+   "pad_lines_by_slot": {
+    "0": 1630
+   },
+   "markers_f9": 1,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "human (slot 0)",
+   "first_player_pos": [
+    22.905,
+    -0.267,
+    -96.26
+   ],
+   "zone_hint": null,
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20261012_064450.jsonl",
+   "bytes": 21048112,
+   "length_s": 337.1,
+   "end_duration_s": null,
+   "end_reason": null,
+   "world_lines": 3372,
+   "pad_lines": 14371,
+   "pad_lines_by_slot": {
+    "0": 14371
+   },
+   "markers_f9": 0,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "human (slot 0)",
+   "first_player_pos": [
+    -2.261,
+    -10.018,
+    -64.858
+   ],
+   "zone_hint": {
+    "spot": "burg-bonfire",
+    "spot_map": "m10_01_00_00",
+    "dist_m": 5.4
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20261012_065219.jsonl",
+   "bytes": 6109211,
+   "length_s": 88.1,
+   "end_duration_s": null,
+   "end_reason": null,
+   "world_lines": 882,
+   "pad_lines": 2281,
+   "pad_lines_by_slot": {
+    "0": 2281
+   },
+   "markers_f9": 0,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "human (slot 0)",
+   "first_player_pos": [
+    -24.058,
+    -13.364,
+    -63.363
+   ],
+   "zone_hint": {
+    "spot": "undead-merchant",
+    "spot_map": "m10_01_00_00",
+    "dist_m": 17.0
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20261012_065359.jsonl",
+   "bytes": 22561542,
+   "length_s": 329.9,
+   "end_duration_s": null,
+   "end_reason": null,
+   "world_lines": 3300,
+   "pad_lines": 12477,
+   "pad_lines_by_slot": {
+    "0": 12477
+   },
+   "markers_f9": 0,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "human (slot 0)",
+   "first_player_pos": [
+    -30.946,
+    -15.837,
+    -78.272
+   ],
+   "zone_hint": {
+    "spot": "undead-merchant",
+    "spot_map": "m10_01_00_00",
+    "dist_m": 13.9
+   },
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20261012_150833.jsonl",
+   "bytes": 27648822,
+   "length_s": 596.4,
+   "end_duration_s": 596.4,
+   "end_reason": "ctrl_c",
+   "world_lines": 5965,
+   "pad_lines": 16877,
+   "pad_lines_by_slot": {
+    "0": 16877
+   },
+   "markers_f9": 4,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "human (slot 0)",
+   "first_player_pos": [
+    2.379,
+    15.814,
+    -115.667
+   ],
+   "zone_hint": null,
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20261013_160732.jsonl",
+   "bytes": 7509442,
+   "length_s": 203.6,
+   "end_duration_s": null,
+   "end_reason": null,
+   "world_lines": 1631,
+   "pad_lines": 6122,
+   "pad_lines_by_slot": {
+    "0": 6122
+   },
+   "markers_f9": 2,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "human (slot 0)",
+   "first_player_pos": [
+    -21.302,
+    9.468,
+    -101.765
+   ],
+   "zone_hint": null,
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20261013_172318.jsonl",
+   "bytes": 9819602,
+   "length_s": 279.5,
+   "end_duration_s": null,
+   "end_reason": null,
+   "world_lines": 2796,
+   "pad_lines": 4733,
+   "pad_lines_by_slot": {
+    "0": 4733
+   },
+   "markers_f9": 0,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "human (slot 0)",
+   "first_player_pos": [
+    -21.994,
+    9.468,
+    -103.173
+   ],
+   "zone_hint": null,
+   "broken_or_unparsed": 0
+  },
+  {
+   "file": "data/observe/20261019_201734.jsonl",
+   "bytes": 5481552,
+   "length_s": 167.8,
+   "end_duration_s": null,
+   "end_reason": null,
+   "world_lines": 1679,
+   "pad_lines": 5349,
+   "pad_lines_by_slot": {
+    "0": 5349
+   },
+   "markers_f9": 1,
+   "hdr_radius_m": 30.0,
+   "hdr_present": true,
+   "play_kind": "human (slot 0)",
+   "first_player_pos": [
+    87.576,
+    14.969,
+    106.44
+   ],
+   "zone_hint": {
+    "spot": "andre-bonfire",
+    "spot_map": "m10_01_00_00",
+    "dist_m": 1.0
+   },
+   "broken_or_unparsed": 0
+  }
+ ]
+}

@@ -164,7 +164,12 @@ def test_clear_unsafe_no_retreat() -> None:
         return D.DuelResult(r)
     f.fight = fight
     f.lure_result = "no_reaction"
-    r = f.clear([dict(T3)], nm=None, arena=ARENA, lure=True)
+    from souls import field as F
+    old, F.UNSAFE_PAUSE = F.UNSAFE_PAUSE, 0.05                      # the P-60 arena wait — keep the test quick
+    try:
+        r = f.clear([dict(T3)], nm=None, arena=ARENA, lure=True)
+    finally:
+        F.UNSAFE_PAUSE = old
     assert r == "cleared" and f.recovers == [], (r, f.recovers)
     # 끌어오기가 첫 시도라 첫 싸움부터 '(2번째)' — unsafe_approach 는 시도로 안 세니 두 번째 싸움도 같은 번호여야 한다
     assert f.fights[0]["may"] is not None and f.fights[1]["tag"] == f.fights[0]["tag"], f.fights
@@ -197,6 +202,34 @@ def test_loop_fix_pause() -> None:
     gaps = [b - a for a, b in zip(times, times[1:])]
     assert len(times) >= 2 and all(g >= 0.35 for g in gaps), (times, gaps)
     print(f"ok  loop fix: after 'unsafe_approach' the next fight waits UNSAFE_PAUSE (gaps {[round(g, 2) for g in gaps]} s); default {old} s")
+
+
+def test_p60_pending_target_pause() -> None:
+    """P-60 (10-11 060959 52.4 s): the queue's own target, awake but standing still off the flat (anim −1 → not 'coming'),
+    reopened 'unsafe_approach' 24× in 1.4 s. Now the queue branch waits / defends on the flat UNSAFE_PAUSE between tries too."""
+    import time
+    from souls import field as F
+    w = World(player=ARENA)
+    w.add(3, 0x1013, 254000, SPAWN3)
+    f = make_field(w)
+    old = F.UNSAFE_PAUSE
+    F.UNSAFE_PAUSE = 0.4
+    times = []
+
+    def fight(ptr, nm, tag, arena=None, desperate=False, limit=45.0, wait_far=False, leash=None, may_approach=None):
+        times.append(time.time())
+        if len(times) >= 3:
+            w.chars[ptr].hp = 0
+            return D.DuelResult("killed")
+        return D.DuelResult("unsafe_approach")
+    f.fight = fight
+    try:
+        r = f.clear([dict(T3, lure=False)], nm=None, arena=ARENA, lure=False)
+    finally:
+        F.UNSAFE_PAUSE = old
+    gaps = [b - a for a, b in zip(times, times[1:])]
+    assert r == "cleared" and len(times) == 3 and all(g >= 0.35 for g in gaps), (r, times, gaps)
+    print(f"ok  P-60: queue target → 'unsafe_approach' → next try after UNSAFE_PAUSE (gaps {[round(g, 2) for g in gaps]} s), 3 fights not 24")
 
 
 def test_ranged_exception() -> None:
@@ -237,6 +270,7 @@ if __name__ == "__main__":
     test_e2_approach_stops_on_stale_goal()
     test_clear_unsafe_no_retreat()
     test_loop_fix_pause()
+    test_p60_pending_target_pause()
     test_ranged_exception()
     test_settle_within_half_metre()
     print("전부 통과")

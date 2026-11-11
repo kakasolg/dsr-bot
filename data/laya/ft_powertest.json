@@ -1,0 +1,130 @@
+{
+ "name": "powertest",
+ "checkpoint": "/home/moka/laya-ft/powertest",
+ "test_runs": [
+  "a3"
+ ],
+ "n": 95,
+ "fights": 7,
+ "agreement": 0.863,
+ "majority_baseline": {
+  "label": "guard",
+  "rate": 0.547
+ },
+ "per_label": {
+  "approach": "3/4",
+  "attack": "4/5",
+  "guard": "43/52",
+  "hold_position": "32/34"
+ },
+ "chosen": {
+  "approach": 8,
+  "attack": 9,
+  "guard": 44,
+  "hold_position": 34
+ },
+ "order_flip_rate": 0.042,
+ "top_p_median": 1.0,
+ "latency_ms": {
+  "p50": 20.4,
+  "p95": 22.9
+ },
+ "mistakes": [
+  {
+   "label": "guard",
+   "choice": "attack",
+   "top_p": 0.9998,
+   "conf": 0.9987,
+   "rev_choice": "attack",
+   "fight": "a3:1790903194.959"
+  },
+  {
+   "label": "guard",
+   "choice": "approach",
+   "top_p": 0.4568,
+   "conf": 0.239,
+   "rev_choice": "approach",
+   "fight": "a3:1790903194.959"
+  },
+  {
+   "label": "hold_position",
+   "choice": "approach",
+   "top_p": 0.4407,
+   "conf": 0.2348,
+   "rev_choice": "hold_position",
+   "fight": "a3:1790903194.959"
+  },
+  {
+   "label": "guard",
+   "choice": "attack",
+   "top_p": 1.0,
+   "conf": 1.0,
+   "rev_choice": "attack",
+   "fight": "a3:1790903194.959"
+  },
+  {
+   "label": "guard",
+   "choice": "approach",
+   "top_p": 0.4594,
+   "conf": 0.2588,
+   "rev_choice": "approach",
+   "fight": "a3:1790903194.959"
+  },
+  {
+   "label": "hold_position",
+   "choice": "approach",
+   "top_p": 0.3876,
+   "conf": 0.2417,
+   "rev_choice": "approach",
+   "fight": "a3:1790903194.959"
+  },
+  {
+   "label": "guard",
+   "choice": "attack",
+   "top_p": 1.0,
+   "conf": 1.0,
+   "rev_choice": "attack",
+   "fight": "a3:1790903207.091"
+  },
+  {
+   "label": "attack",
+   "choice": "guard",
+   "top_p": 0.9872,
+   "conf": 0.9616,
+   "rev_choice": "guard",
+   "fight": "a3:1790903218.195"
+  },
+  {
+   "label": "guard",
+   "choice": "attack",
+   "top_p": 0.9998,
+   "conf": 0.9987,
+   "rev_choice": "attack",
+   "fight": "a3:1790903243.700"
+  },
+  {
+   "label": "guard",
+   "choice": "hold_position",
+   "top_p": 0.8316,
+   "conf": 0.5571,
+   "rev_choice": "hold_position",
+   "fight": "a3:1790903243.700"
+  },
+  {
+   "label": "approach",
+   "choice": "hold_position",
+   "top_p": 0.8535,
+   "conf": 0.5986,
+   "rev_choice": "hold_position",
+   "fight": "a3:1790903243.700"
+  },
+  {
+   "label": "guard",
+   "choice": "attack",
+   "top_p": 0.9998,
+   "conf": 0.9985,
+   "rev_choice": "attack",
+   "fight": "a3:1790903272.059"
+  }
+ ]
+}

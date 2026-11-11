@@ -1,0 +1,20 @@
+[    0.1] run 20261108_193922_taurus · code 9d1a060 · taurus --radar --ctl --ctl-scenes --note P-119 check after P-131 run 1/3 (9d1a060), Claymore save chain, after burg-upper 1-8 + savepoint reload · settings 4e9bb59a · note P-119 check after P-131 run 1/3 (9d1a060), Claymore save chain, after burg-upper 1-8 + savepoint reload
+[    0.1] ctl: 기록만 → D:\dev\dsr-bot\data\runs\20261108_193922_taurus.ctl.jsonl
+[    0.1] ctl scenes: 싸움 결정마다 그 순간의 입력 기록 (scene_replay.py 로 다시 돌림, 판단엔 반영 안 함)
+[    0.3] radar: sending — python radar_server.py -> http://127.0.0.1:47801, python overlay.py
+[   11.9]    물건 비켜 가기 (지난 실행에서 2번 이상 부숨): o1130_13 o1130_28 o1132_06 o1133_11 o1150_01 o1321_0021
+[   13.5] 무기: 클레이모어 (약공 2연타, 닿는 거리 1.8 m, 강공 안 씀)
+[   13.5] 콤보 거리: 닿는 거리 1.8 m (잰 무기 1.6 m, +0.20) → 백스텝 콤보 ≤ 1.35 m, 점프 진입 ≤ 4.7 m
+[   13.5] 스타일: guard
+[   13.5] 캐릭터: SL 17 VIT 22 END 14 STR 16 DEX 10 | 반지 -1,143 왼손 1462000
+[   13.5] 드롭 줍기: 끔 (이 명령엔 연결 안 됨)
+[   13.9]    타우로스 진입 검사: 멈춤 — 황금 송진 2개가 가방에만 있음 — 퀵슬롯에 넣어야 함 (MoKa, 자동 장착 안 함) | 석궁병 dead / dead, 송진 개수 2, 송진 퀵슬롯 없음, 송진 상자 기록 있음, 송진 문 확인 불가 (기록 번호 모름), 에스트 8
+[   13.9] ══ 타우로스: 멈춤: 황금 송진 2개가 가방에만 있음 — 퀵슬롯에 넣어야 함 (MoKa, 자동 장착 안 함)
+[   13.9] ══ 결과: 멈춤: 황금 송진 2개가 가방에만 있음 — 퀵슬롯에 넣어야 함 (MoKa, 자동 장착 안 함)
+[   13.9] 카메라 정렬: 기록 없음
+[   13.9] 정렬 (몸 30° 또는 락온): 기록 없음
+[   13.9] 가드 유지: 휘두르는 적 2.5 m 안에서 방패 직접 듦 0번
+[   13.9] ctl scenes: scenes kept 0, errors 0, capture 0 ms total
+[   13.9] ══ 위험 판정: 깨끗  (결과 멈춤: 황금 송진 2개가 가방에만 있음 — 퀵슬롯에 넣어야 함 (MoKa, 자동 장착 안 함), 최저 HP 100%, 큰 피격 0번 -0)  
+[   13.9] 실행 설정 기록: 20261108_193922_taurus.settings.json
+[   13.9] 텔레메트리 피드: {'frames': 375, 'read_ms': 4.9, 'fresh': 44, 'waited': 0, 'direct': 9, 'none': 0, 'stale': 0}

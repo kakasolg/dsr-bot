@@ -73,6 +73,9 @@ def blocking(map_id: str | None, me, goal, props: list[dict] | None = None) -> l
     return [o for _, o in sorted(out, key=lambda t: t[0])]
 
 
+LAST_LOGS: list[str] | None = None   # the log files the last learned() call read (runinfo.inputs)
+
+
 def learned(min_runs: int = LEARN_MIN_RUNS, logs: list[str] | None = None) -> set[str]:
     """Props smashed ("길 막은 … 부숨 시도") in at least min_runs different runs — from the same logs hotspots.py reads
     (data/samples/*.txt, data/runs/*.log; copies of one run count once). The bot learns its crates from its own runs:
@@ -82,6 +85,8 @@ def learned(min_runs: int = LEARN_MIN_RUNS, logs: list[str] | None = None) -> se
     root = Path(__file__).resolve().parent.parent
     if logs is None:
         logs = glob.glob(str(root / "data" / "samples" / "*.txt")) + glob.glob(str(root / "data" / "runs" / "*.log"))
+    global LAST_LOGS
+    LAST_LOGS = list(logs)                                 # record only: runinfo.inputs hashes what this run learned from
     runs = hotspots.dedupe({p: hotspots.parse(p) for p in logs})
     seen: dict[str, set] = {}
     for p, evs in runs.items():

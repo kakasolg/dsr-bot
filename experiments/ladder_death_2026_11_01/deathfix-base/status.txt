@@ -1,0 +1,101 @@
+ M .claude/launch.json
+ M CLAUDE.md
+ M ROADMAP.md
+ M data/stages/burg-upper.json
+ M docs/boss-taurus.md
+ M docs/roadmap/problems.md
+ M docs/stages/burg-upper.md
+ M farm.py
+ M overlay.py
+ M places.py
+ M radar_server.py
+ M run.py
+ M souls/afterdeath.py
+ M souls/missions.py
+ M souls/moves.py
+ M souls/taurus.py
+ M tests/afterdeath_test.py
+ M tests/burg_upper_test.py
+ M tests/places_test.py
+ M tests/roll_test.py
+?? boss_ready.py
+?? data/samples/20261031_153842_burg-upper.jsonl
+?? data/samples/20261031_153842_burg-upper.settings.json
+?? data/samples/20261031_153842_burg-upper.track.jsonl
+?? data/samples/20261031_153842_burg-upper.txt
+?? data/samples/20261031_154702_burg-bonfire.jsonl
+?? data/samples/20261031_154702_burg-bonfire.settings.json
+?? data/samples/20261031_154702_burg-bonfire.track.jsonl
+?? data/samples/20261031_154702_burg-bonfire.txt
+?? data/samples/20261031_155357_burg-altar.jsonl
+?? data/samples/20261031_155357_burg-altar.settings.json
+?? data/samples/20261031_155357_burg-altar.track.jsonl
+?? data/samples/20261031_155357_burg-altar.txt
+?? data/samples/20261031_155929_burg-altar.jsonl
+?? data/samples/20261031_155929_burg-altar.settings.json
+?? data/samples/20261031_155929_burg-altar.track.jsonl
+?? data/samples/20261031_155929_burg-altar.txt
+?? data/samples/20261031_225341_taurus.jsonl
+?? data/samples/20261031_225341_taurus.settings.json
+?? data/samples/20261031_225341_taurus.track.jsonl
+?? data/samples/20261031_225341_taurus.txt
+?? data/samples/20261031_230005_burg-upper.jsonl
+?? data/samples/20261031_230005_burg-upper.settings.json
+?? data/samples/20261031_230005_burg-upper.track.jsonl
+?? data/samples/20261031_230005_burg-upper.txt
+?? data/samples/20261031_230111_taurus.jsonl
+?? data/samples/20261031_230111_taurus.settings.json
+?? data/samples/20261031_230111_taurus.track.jsonl
+?? data/samples/20261031_230111_taurus.txt
+?? data/samples/20261031_230917_taurus.jsonl
+?? data/samples/20261031_230917_taurus.settings.json
+?? data/samples/20261031_230917_taurus.track.jsonl
+?? data/samples/20261031_230917_taurus.txt
+?? data/samples/20261031_235045_taurus.jsonl
+?? data/samples/20261031_235045_taurus.settings.json
+?? data/samples/20261031_235045_taurus.track.jsonl
+?? data/samples/20261031_235045_taurus.txt
+?? data/samples/20261031_235622_taurus.jsonl
+?? data/samples/20261031_235622_taurus.settings.json
+?? data/samples/20261031_235622_taurus.track.jsonl
+?? data/samples/20261031_235622_taurus.txt
+?? data/samples/20261101_000027_taurus.jsonl
+?? data/samples/20261101_000027_taurus.settings.json
+?? data/samples/20261101_000027_taurus.track.jsonl
+?? data/samples/20261101_000027_taurus.txt
+?? data/samples/20261101_000637_taurus.jsonl
+?? data/samples/20261101_000637_taurus.settings.json
+?? data/samples/20261101_000637_taurus.track.jsonl
+?? data/samples/20261101_000637_taurus.txt
+?? data/samples/20261101_000849_taurus.jsonl
+?? data/samples/20261101_000849_taurus.settings.json
+?? data/samples/20261101_000849_taurus.track.jsonl
+?? data/samples/20261101_000849_taurus.txt
+?? data/samples/20261101_001326_taurus.jsonl
+?? data/samples/20261101_001326_taurus.settings.json
+?? data/samples/20261101_001326_taurus.track.jsonl
+?? data/samples/20261101_001326_taurus.txt
+?? data/samples/20261101_001740_taurus.jsonl
+?? data/samples/20261101_001740_taurus.settings.json
+?? data/samples/20261101_001740_taurus.track.jsonl
+?? data/samples/20261101_001740_taurus.txt
+?? data/samples/20261101_002326_taurus.jsonl
+?? data/samples/20261101_002326_taurus.settings.json
+?? data/samples/20261101_002326_taurus.track.jsonl
+?? data/samples/20261101_002326_taurus.txt
+?? data/samples/20261101_002546_taurus.jsonl
+?? data/samples/20261101_002546_taurus.settings.json
+?? data/samples/20261101_002546_taurus.track.jsonl
+?? data/samples/20261101_002546_taurus.txt
+?? data/samples/20261101_003317_taurus.jsonl
+?? data/samples/20261101_003317_taurus.settings.json
+?? data/samples/20261101_003317_taurus.track.jsonl
+?? data/samples/20261101_003317_taurus.txt
+?? experiments/g4_2026_10_31/
+?? levelup.py
+?? shot_review.py
+?? tests/boss_ready_test.py
+?? tests/levelup_test.py
+?? tests/shot_review_test.py
+?? tests/taurus_dodge_test.py
+?? tests/taurus_way_test.py

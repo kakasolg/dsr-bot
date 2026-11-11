@@ -1,0 +1,56 @@
+run 20261031_005154_burg-bonfire · ctl sha256 cc9ef93c499e9248 (4912 lines) · settings sha256 37703bf18d4d379c · checker sha256 9deb9fefba46b45a · repo HEAD 0f79b09
+kinds: {'hdr': 1, 'sync': 23, 'life': 3, 'pad': 2901, 'neutral': 39, 'dec.goto': 310, 'dec.counter': 60, 'span.fight': 24, 'span.cycle': 732, 'span.obs': 360, 'pad.override': 17, 'span.rule': 360, 'dec.reflex': 8, 'dec.rule': 39, 'span.action': 14, 'scene': 17, 'dec.walk_retreat': 3, 'end': 1}
+end: {'seq': 4911, 'pc': 181646690746100, 'written': 4911, 'dropped': 0, 'lost': 0, 'write_errors': 0, 'last_error': None, 'writer_joined': True, 'complete': True, '_L': 4912}
+gap records: [] · broken lines: 0 · lines after end: 0
+life: [(3, 'start', None), (4905, 'normal_exit', '경사로 cleared'), (4909, 'atexit', None)]
+fight: 12 · paired 12 · start without end [] · end without start []
+cycle: 366 · paired 366 · start without end [] · end without start []
+action: 7 · paired 7 · start without end [] · end without start []
+fight results: Counter({'killed': 9, 'shot': 1, 'unsafe_approach': 1, 'lost': 1})
+cycle parent not a fight: []
+cycle end kinds: {'rule_cont': 353, 'rule_result': 7, 'sense_result': 5, 'sense_cont': 1}
+cycle src: {'direct': 360, None: 6} · resnap true: 0
+span.rule 360 · cycles with picked 360 · rule↔picked mismatch [] · picked without span.rule []
+picked rules: {'approach': 8, 'reflex': 166, 'after_swing': 5, 'face_first': 3, 'wait_far': 134, 'downed': 5, 'block': 14, 'shot': 1, 'finish_first': 1, 'edge': 3, 'stamina': 4, 'late_windup_block': 15, 'stagger_punish': 1}
+none_pad (rule returned None after writing the pad): {} in 0 cycles
+span.rule pc order broken: []
+actions: {'light': 6, 'kick_combo': 1} · parent kinds {'cycle': 7} · rule_id set 7 / 7 · rule_id → emitted span.rule 7
+action parent dangling: []
+action end reasons (dead = target HP 0): {('light', 'dead'): 5, ('kick_combo', 'dead'): 1, ('light', 'early'): 1}
+action with hit: 7 · with ret: 0
+pad th=MainThread: 2755 records (+dup 744) · with cycle_id 1816 · with action_id 38
+pad th=Thread-7 (_run): 143 records (+dup 111) · with cycle_id 0 · with action_id 0
+pad th=Thread-8 (_run): 3 records (+dup 5) · with cycle_id 0 · with action_id 0
+main pad without ids inside an open cycle: 0 [] · inside a fight but between cycles: 0 (callers {})
+main pad cycle_id outside that cycle's seq range: []
+other threads with a main id: []
+pad.override: 17 {('neutral', 'MainThread', True): 8, ('neutral', 'MainThread', False): 6, ('guard_off', 'MainThread', True): 3}
+pad.drop: 0
+scenes 17 · inside exactly one cycle 17 · none 0 · cycles with picked and a scene 17/360
+input (obs) per cycle: {'partial': 16, 'sense_only': 344, 'no_obs': 6} · examples {'no_obs': '4090: sense_result', 'partial': '2: obs L188 · reads in sense 1, after 826, resnap False', 'sense_only': '27: obs L1174'}
+writer complete (end record) ≠ input restorable — they are reported apart
+settings end: {'result': '경사로 cleared', 'end_read': {'t': 1793433224.786311, 'hp': [616, 616], 'estus': 9, 'pos': [-30.06, -49.37, 29.0], 'src': 'feed', 'fseq': 6063, 'age_s': 0.011}, 'last_valid_obs': {'t': 1793433224.786311, 'fseq': 6063, 'hp': 616, 'max_hp': 616, 'pos': [-30.06, -49.37, 29.0]}, 'end_state_known': True}
+
+── vs-scene (consistency of two records of one read, not an independent sensor check)
+input status by cycle kind: {('rule_cont', 'partial'): 9, ('rule_cont', 'sense_only'): 344, ('rule_result', 'partial'): 7, ('sense_result', 'no_obs'): 5, ('sense_cont', 'no_obs'): 1}
+(snapshot() calls in sense, after) for cycles with span.obs: {(1, 0): 344, (1, 1): 2, (1, 826): 1, (1, 99): 1, (1, 98): 1, (1, 166): 1, (1, 182): 1, (1, 348): 1, (1, 2): 1, (1, 124): 1, (1, 76): 1, (1, 160): 1}
+partial by picked rule: {'approach': 8, 'after_swing': 5, 'shot': 1, 'finish_first': 1, 'stagger_punish': 1}
+sense_only by picked rule: {'reflex': 166, 'face_first': 3, 'wait_far': 134, 'downed': 5, 'block': 14, 'edge': 3, 'stamina': 4, 'late_windup_block': 15}
+span.obs lines 360 · bytes min 26273 med 33939 max 44517 total 13535478 of file 14769571 · chars per obs min 74 med 97.0 max 128
+scene L1335 ↔ span.obs (cycle 447): player same True · chars ≤25 m same True (4 vs 4) · cam_yaw same True · t same True · span.obs chars beyond 25 m 89 · target 235320528 == scene tick ptr 235320528
+scene L2257 ↔ span.obs (cycle 4080): player same True · chars ≤25 m same True (4 vs 4) · cam_yaw same True · t same True · span.obs chars beyond 25 m 93 · target 235299936 == scene tick ptr 235299936
+scene L2442 ↔ span.obs (cycle 4117): player same True · chars ≤25 m same True (7 vs 7) · cam_yaw same True · t same True · span.obs chars beyond 25 m 100 · target 235340496 == scene tick ptr 235340496
+scene L2885 ↔ span.obs (cycle 4507): player same True · chars ≤25 m same True (4 vs 4) · cam_yaw same True · t same True · span.obs chars beyond 25 m 92 · target 235340496 == scene tick ptr 235340496
+scene L3383 ↔ span.obs (cycle 4519): player same True · chars ≤25 m same True (4 vs 4) · cam_yaw same True · t same True · span.obs chars beyond 25 m 91 · target 235313872 == scene tick ptr 235313872
+scene L3629 ↔ span.obs (cycle 5190): player same True · chars ≤25 m same True (7 vs 7) · cam_yaw same True · t same True · span.obs chars beyond 25 m 121 · target 235327184 == scene tick ptr 235327184
+scene L3646 ↔ span.obs (cycle 5199): player same True · chars ≤25 m same True (7 vs 7) · cam_yaw same True · t same True · span.obs chars beyond 25 m 121 · target 235327184 == scene tick ptr 235327184
+scene L3802 ↔ span.obs (cycle 5366): player same True · chars ≤25 m same True (7 vs 7) · cam_yaw same True · t same True · span.obs chars beyond 25 m 117 · target 235313872 == scene tick ptr 235313872
+scene L3809 ↔ span.obs (cycle 5383): player same True · chars ≤25 m same True (7 vs 7) · cam_yaw same True · t same True · span.obs chars beyond 25 m 117 · target 235313872 == scene tick ptr 235313872
+scene L3837 ↔ span.obs (cycle 5437): player same True · chars ≤25 m same True (7 vs 7) · cam_yaw same True · t same True · span.obs chars beyond 25 m 118 · target 235313872 == scene tick ptr 235313872
+scene L3929 ↔ span.obs (cycle 5702): player same True · chars ≤25 m same True (7 vs 7) · cam_yaw same True · t same True · span.obs chars beyond 25 m 117 · target 235313872 == scene tick ptr 235313872
+scene L3941 ↔ span.obs (cycle 5756): player same True · chars ≤25 m same True (7 vs 7) · cam_yaw same True · t same True · span.obs chars beyond 25 m 118 · target 235313872 == scene tick ptr 235313872
+scene L3965 ↔ span.obs (cycle 5773): player same True · chars ≤25 m same True (7 vs 7) · cam_yaw same True · t same True · span.obs chars beyond 25 m 118 · target 235313872 == scene tick ptr 235313872
+scene L3975 ↔ span.obs (cycle 5798): player same True · chars ≤25 m same True (7 vs 7) · cam_yaw same True · t same True · span.obs chars beyond 25 m 118 · target 235313872 == scene tick ptr 235313872
+scene L4077 ↔ span.obs (cycle 6098): player same True · chars ≤25 m same True (7 vs 7) · cam_yaw same True · t same True · span.obs chars beyond 25 m 118 · target 235313872 == scene tick ptr 235313872
+scene L4171 ↔ span.obs (cycle 6263): player same True · chars ≤25 m same True (7 vs 7) · cam_yaw same True · t same True · span.obs chars beyond 25 m 118 · target 235313872 == scene tick ptr 235313872
+scene L4461 ↔ span.obs (cycle 6732): player same True · chars ≤25 m same True (6 vs 6) · cam_yaw same True · t same True · span.obs chars beyond 25 m 121 · target 235333840 == scene tick ptr 235333840

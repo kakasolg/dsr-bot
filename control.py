@@ -23,6 +23,7 @@ import ctypes
 import ctypes.wintypes
 
 import ctl
+import ctlspan
 
 # vgamepad (ViGEmBus) is Windows-only. Offline tests only need the button constants,
 # so fall back to a stand-in; creating a real pad still requires vgamepad.
@@ -139,6 +140,7 @@ def _report(dev) -> dict:
 # machine-wide: one virtual pad at a time. Two pads (watchdog's rescue pad next to a live bot's) mix inputs in the game.
 # Every script gets it through Pad(); the OS drops it when the holder dies (botlock.BotLock, its own file)
 PAD_LOCK_PATH = Path(__file__).resolve().parent / "data" / "pad.lock"
+LB_BIT = 0x0100            # XUSB_GAMEPAD_LEFT_SHOULDER in the XInput report (fixed by XInput, same as vgamepad's value)
 
 
 class PadBusy(RuntimeError):
@@ -235,11 +237,28 @@ class Pad:
             self._frozen_by = me
             self.epoch += 1
             self._due.clear()
+            self._b_since = None
+            # P-91: freeze 전 keep_guard·guard 의도가 남으면 홀더의 neutral()이 LB를 실제 장치에 누른다 — 버린다.
+            # 위협이 이어지면 guardkeep이 unfreeze 뒤 다음 poll에서 다시 건다.
+            self._force_until = 0.0
+            self._kept = False
+            self._guard_want = False
             if self._vpad is not None:
                 self._vpad.reset()
                 self._send("freeze", self._vpad)
             ctl.emit("esc", ev="freeze", ok=True, take=take, holder=me, ep=self.epoch)
         return True
+
+    def _blocked(self) -> bool:
+        """Another thread holds the freeze — call with self._lock held.
+
+        ── 얼린 동안 비홀더 호출 (P-91, P-92) ──────────────────────────────
+         · 출력만 _NullPad로 버리면 의도·예약(_force_until, _kept, _guard_want, _b_since, _due)은 바뀌어서, 홀더의
+           neutral()이 그걸 실제 장치에 누르거나(LB·B) unfreeze 뒤 sprint(True)가 아무것도 안 누른다.
+         · 그래서 의도·예약을 쓰는 메서드는 lock 안 첫 줄에서 이걸 보고 아무것도 안 바꾸고 돌아간다 (epoch도 그대로).
+           move/look/press/_r2는 출력과 스틱 기록만 써서 그대로 둔다. release_all/close/reconnect는 종료·복구 경로라 예외.
+         · 허용 여부는 lock 안 검사 시점이 정한다 — tap의 release_stick 대기(lock 밖) 중에 freeze가 시작되면 버린다."""
+        return self._frozen_by is not None and threading.get_ident() != self._frozen_by
 
     def unfreeze(self) -> None:
         """Only the thread holding the freeze lifts it — a nudge that was overtaken by a quit-out must not unfreeze it."""
@@ -258,6 +277,7 @@ class Pad:
 
     def __init__(self):
         self._due: dict = {}      # 버튼 → 뗄 시각 (tap 이 자지 않도록)
+        self._b_since = None      # 달리기 B를 누른 시각 (sprint) — SPRINT_MIN_HOLD_S 전엔 떼지 않는다
         # +1 whenever the report is wiped behind the callers' backs (neutral·freeze·unfreeze·reconnect·close) — nav.Mover sees
         # it change and forgets what it thinks it holds, so the next set() presses it again (P0-D)
         self.epoch = 0
@@ -265,7 +285,10 @@ class Pad:
         self._stick_off_t = 0.0   # 왼스틱을 마지막으로 놓은 시각
         # 반사 스레드(reflex.py)와 판단 루프가 같이 누른다 — 보고서(report)를 동시에 고치지 않게 잠근다
         self._lock = threading.RLock()
-        self.force_guard = False  # 반사 스레드가 켜면 판단 루프가 가드를 내려도 무시한다 (적 공격 중)
+        # 가드 유지 (souls/guardkeep.py): 이 시각까지는 판단 루프가 가드를 내려도 무시한다 (2.5 m 안 적이 휘두르는 중)
+        self._force_until = 0.0
+        self._kept = False        # LB was pressed by keep_guard, not by a caller
+        self._guard_want = False  # what the callers last asked for LB
         self._closed = False
         self._pad_lock = None
         if vg is None:
@@ -291,6 +314,7 @@ class Pad:
         try:
             self.epoch += 1
             self._due.clear()
+            self._b_since = None
             self._note_stick(0.0, 0.0)
             v = self._vpad
             if v is not None:
@@ -386,15 +410,16 @@ class Pad:
         try:
             drop = d is _NULL_PAD
             rep = None if drop else _report(d)
-            key = ("drop", m) if drop else ("pad", tuple(rep.values()))
+            tg = ctlspan.pad_tags()                      # --ctl-spans: this thread's cycle / action ids ({} otherwise)
+            key = (("drop", m) if drop else ("pad", tuple(rep.values()))) + tuple(tg.values())
             if key == self._ctl_key:
                 self._ctl_fold += 1
                 return
             fold, self._ctl_fold, self._ctl_key = self._ctl_fold, 0, key
             if drop:
-                ctl.emit("pad.drop", m=m, caller=_site(), frz=self._frozen_by, closed=self._closed, dup=fold)
+                ctl.emit("pad.drop", m=m, caller=_site(), frz=self._frozen_by, closed=self._closed, dup=fold, **tg)
             else:
-                ctl.emit("pad", m=m, caller=_site(), **rep, frz=self._frozen_by, ep=self.epoch, up_us=up_us, dup=fold)
+                ctl.emit("pad", m=m, caller=_site(), **rep, frz=self._frozen_by, ep=self.epoch, up_us=up_us, dup=fold, **tg)
         except Exception:
             pass
 
@@ -408,14 +433,35 @@ class Pad:
         except Exception:
             pass
 
+    def _override_rec(self, m: str) -> None:
+        """--ctl-spans: keep_guard's hold kept LB down through this guard(False) / neutral() call — one 'pad.override'
+        record (who asked: caller + this thread's ids). Record only; never raises."""
+        if not ctlspan.on():
+            return
+        try:
+            ctl.emit("pad.override", m=m, kept="LB", caller=_site(), ep=self.epoch, **ctlspan.pad_tags(mark=False))
+        except Exception:
+            pass
+
     def neutral(self, why: str | None = None) -> None:
         """why: optional reason, only for the P1 record (the call site is recorded anyway)."""
         with self._lock:
+            if self._blocked():
+                return
             self.epoch += 1
             self._note_stick(0.0, 0.0)
             self.pad.reset()
+            self._guard_want = False
             if self.force_guard:
                 self.pad.press_button(B.XUSB_GAMEPAD_LEFT_SHOULDER)
+                self._override_rec("neutral")
+            young = self._b_since is not None and time.time() - self._b_since < SPRINT_MIN_HOLD_S
+            self._due.pop(B.XUSB_GAMEPAD_B, None)
+            if young:                                    # P-70: still too fresh to let go — keep B (stick is 0: no move)
+                self.pad.press_button(B.XUSB_GAMEPAD_B)
+                self._due[B.XUSB_GAMEPAD_B] = self._b_since + SPRINT_MIN_HOLD_S
+            else:
+                self._b_since = None
             self._send("neutral")
             self._neutral_rec(why)
 
@@ -445,6 +491,10 @@ class Pad:
         if button == B.XUSB_GAMEPAD_RIGHT_SHOULDER and not stick_ok:
             self.release_stick()
         with self._lock:
+            if self._blocked():                          # also when the freeze began during release_stick's wait
+                return
+            if button == B.XUSB_GAMEPAD_B:
+                self._b_since = None                     # a deliberate B tap (dodge) — not a sprint hold any more
             self.pad.press_button(button)
             self._send("tap")
             self._due[button] = time.time() + hold
@@ -467,21 +517,64 @@ class Pad:
         if not self._due:
             return
         with self._lock:
+            if self._blocked():
+                return
             now = time.time()
             done = [b for b, t in self._due.items() if now >= t]
             for b in done:
                 self.pad.release_button(b)
                 del self._due[b]
+                if b == B.XUSB_GAMEPAD_B:
+                    self._b_since = None
             if done:
                 self._send("release_due")
 
+    @property
+    def force_guard(self) -> bool:
+        return time.time() < self._force_until
+
+    @force_guard.setter
+    def force_guard(self, on: bool) -> None:
+        self._force_until = float("inf") if on else 0.0
+
+    def keep_guard(self, until: float) -> bool:
+        """Hold LB until `until` whatever the callers do (guard(False) / neutral() are ignored meanwhile). → pressed it now."""
+        with self._lock:
+            if self._blocked():
+                return False
+            self._force_until = max(self._force_until, until)
+            if self.guard_held():
+                return False
+            self.pad.press_button(B.XUSB_GAMEPAD_LEFT_SHOULDER)
+            self._send("keep_guard")
+            self._kept = True
+            return True
+
+    def unkeep(self) -> None:
+        """After the hold ran out: let LB go again if keep_guard pressed it and no caller has asked for it since."""
+        with self._lock:
+            if self._blocked() or not self._kept or self.force_guard:
+                return
+            self._kept = False
+            if not self._guard_want and self.guard_held():
+                self.pad.release_button(B.XUSB_GAMEPAD_LEFT_SHOULDER)
+                self._send("unkeep")
+
     def guard_held(self) -> bool:
-        return bool(self.pad.report.wButtons & B.XUSB_GAMEPAD_LEFT_SHOULDER) if self.pad else False
+        # XInput's LB bit — not B.XUSB_GAMEPAD_LEFT_SHOULDER: without vgamepad (cloud, offline tests) B gives names, and int & str raised
+        return bool(self.pad.report.wButtons & LB_BIT) if self.pad else False
 
     def hold(self, button, on: bool) -> None:
         with self._lock:
-            if not on and button == B.XUSB_GAMEPAD_LEFT_SHOULDER and self.force_guard:
+            if self._blocked():
                 return
+            if button == B.XUSB_GAMEPAD_LEFT_SHOULDER:
+                self._guard_want = on
+                if on:
+                    self._kept = False
+                elif self.force_guard:
+                    self._override_rec("guard_off")
+                    return
             (self.pad.press_button if on else self.pad.release_button)(button)
             self._send("hold")
 
@@ -543,13 +636,37 @@ class Pad:
         팔을 벌린 자세 확인). 같은 프레임·스틱 30 ms 먼저·중립에서 튕기기 세 방식 모두 333100.
         쓰임새(사용자): 방패 든 적의 가드를 깨서 틈을 만들거나, 그 틈에 빠져나갈 때."""
         with self._lock:
+            if self._blocked():
+                return
             self._note_stick(sx, sy)
             self.pad.left_joystick_float(x_value_float=sx, y_value_float=sy)
             self.pad.press_button(B.XUSB_GAMEPAD_RIGHT_SHOULDER)
             self._send("kick")
             self._due[B.XUSB_GAMEPAD_RIGHT_SHOULDER] = time.time() + 0.06
     def lock_on(self) -> None: self.tap(B.XUSB_GAMEPAD_RIGHT_THUMB, 0.06)
-    def sprint(self, on: bool) -> None: self.hold(B.XUSB_GAMEPAD_B, on)
+    def sprint(self, on: bool) -> None:
+        """Run = hold B. A hold released within SPRINT_MIN_HOLD_S reads as a tap — roll (walking), jump (running), backstep
+        (standing): 10-12 zone 1, a 0.1 s sprint leg between braked stair points rolled us off the stairs three runs in a
+        row (P-70; P-67 was the jump). So a release that comes too soon is put off to SPRINT_MIN_HOLD_S after the press,
+        and sprint(True) meanwhile cancels it (one continuous hold). Deliberate taps (dodge, backstep) go through tap()."""
+        b = B.XUSB_GAMEPAD_B
+        with self._lock:
+            if self._blocked():
+                return
+            if on:
+                self._due.pop(b, None)
+                if self._b_since is None:
+                    self._b_since = time.time()
+                    self.pad.press_button(b)
+                    self._send("hold")
+                return
+            left = (self._b_since + SPRINT_MIN_HOLD_S - time.time()) if self._b_since is not None else 0.0
+            if left > 0:
+                self._due[b] = time.time() + left
+                return
+            self._b_since = None
+            self.pad.release_button(b)
+            self._send("hold")
     def guard(self, on: bool) -> None: self.hold(B.XUSB_GAMEPAD_LEFT_SHOULDER, on)
 
     def two_hand_right(self) -> None:
@@ -566,6 +683,10 @@ class Pad:
 #  0.25 s 는 feed.WAIT 를 빌린 값이고 실측 근거는 없다. 실제 게임 검증 전에는 정책 상수로 올리지 않는다
 NO_OBS_NEUTRAL_S = 0.25
 
+# ── 임시값 (P-70, 근거: 10-12 패드 기록 — 0.09·0.10 s B는 점프·구르기, 0.68 s는 아무 일 없음) ─────────────
+#  달리기 B를 누르고 이보다 빨리 떼면 탭으로 읽힌다. 경계값은 안 잼 (0.3 s 안팎으로 알려짐) — 여유를 둠
+SPRINT_MIN_HOLD_S = 0.45
+
 
 class NoObs:
     """No snapshot this tick → stick to 0 at once; still none after NO_OBS_NEUTRAL_S → everything released (once per gap).
@@ -580,14 +701,18 @@ class NoObs:
         now = time.time()
         if self.since is None:
             self.since, self.full = now, False
+            ctl.emit("obs", ev="noobs_stick0")              # P1-D: transitions only, record only
         self.pad.move(0.0, 0.0)
         if not self.full and now - self.since >= NO_OBS_NEUTRAL_S:
             self.full = True
             full = self.on_full or getattr(self.pad, "neutral", None)
             if full is not None:
                 full()
+            ctl.emit("obs", ev="noobs_full", after_ms=round((now - self.since) * 1000, 1))
 
     def seen(self) -> None:
+        if self.since is not None:
+            ctl.emit("obs", ev="noobs_recovered", dur_ms=round((time.time() - self.since) * 1000, 1), full=self.full)
         self.since = None
 
 

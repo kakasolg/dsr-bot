@@ -1,0 +1,19 @@
+trials (B-22's rows): 46 — distinct (record, hollow, run start): 46
+  player relocated after the return, before the run ended: 30 trials (home warp 30, other 0; at anim time [0.9333, 1.05, 1.0667, 1.5333, 1.55, 1.5667, 1.5833, 1.6, 1.6167]) — reads from there on are left out
+  unknown_active    37  hit 13 / miss 24  records ['144513']  kinds ['early', 'sweep']
+  valid              9  hit 3 / miss 6  records ['173608']  kinds ['early', 'sweep']
+segment distance vs brute force (400×400 samples): max |diff| 0.0000 m over 177 pairs
+
+time shift of the capsule pose vs the record's anim time (game frames of 1/60 s); gaps in m
+shift | class          | hits: max hit_gap | misses: min live_gap | separable | interval    | + live frames before a hit (no drop yet): min | interval with them
+-2    | valid          | n  3 max  0.705 | n  6 min  0.324 | NO  | —              | n  3 min 0.377 | — (not separable)
+-1    | valid          | n  3 max  0.378 | n  6 min  0.531 | yes | [0.378, 0.531) | n  3 min 0.138 | — (not separable)
++0    | valid          | n  3 max  0.139 | n  6 min  0.739 | yes | [0.139, 0.739) | n  3 min -0.117 | — (not separable)
++1    | valid          | n  3 max  0.126 | n  6 min  0.876 | yes | [0.126, 0.876) | n  3 min -0.027 | — (not separable)
++2    | valid          | n  3 max  0.331 | n  6 min  1.009 | yes | [0.331, 1.009) | n  3 min -0.091 | — (not separable)
+-2    | valid+unknown_active | n 16 max  0.706 | n 30 min  0.313 | NO  | —              | n  9 min 0.127 | — (not separable)
+-1    | valid+unknown_active | n 16 max  0.379 | n 30 min  0.525 | yes | [0.379, 0.525) | n  9 min -0.102 | — (not separable)
++0    | valid+unknown_active | n 16 max  0.140 | n 30 min  0.737 | yes | [0.140, 0.737) | n  9 min -0.117 | — (not separable)
++1    | valid+unknown_active | n 16 max  0.138 | n 30 min  0.875 | yes | [0.138, 0.875) | n  9 min -0.027 | — (not separable)
++2    | valid+unknown_active | n 16 max  0.345 | n 30 min  1.009 | yes | [0.345, 1.009) | n  9 min -0.091 | — (not separable)
+→ data\samples\20261019_dsas-hitbox-trials.csv

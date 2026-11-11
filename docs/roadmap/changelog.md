@@ -2,6 +2,12 @@
 
 > Archived verbatim from ROADMAP.md on 2026-10-09 (Korean original, nothing removed). The live ROADMAP.md keeps one-line English summaries that point here.
 
+- 2026-10-09: [win] P1-D done (1-l): `Snapshot.fseq`/`pc` filled by `Feed` (P1-C records now carry `fseq`), `obs`/`esc`/watchdog events, `run.py --ctl-frames` (with `--ctl`) → `<run>.frames.jsonl`; `tests/ctl_obs_test.py`. Full entry + 4-a overlay idea note (not to build) in `docs/roadmap/plan.md`.
+- 2026-10-09: `main` and the work branch fast-forwarded to the same commit (09-28 … 10-06 work + this restructure).
+- 2026-10-09: [MoKa] old public issues #2 #5 #7 #9 #10 #14 closed (P-17/18/21/25 stay tracked in the problem index).
+- 2026-10-09: [MoKa] cancelled all 11 "old open items" (15 archive lines marked `[-]` in `docs/roadmap/plan.md`); section removed.
+- 2026-10-09: ROADMAP restructured — open items only, English; history moved verbatim to `docs/roadmap/`; relay section restored; problem index added. `tests/roadmap_test.py` keeps this file small and the index complete.
+
 - 2026-10-06: 1-m 추가 — 다음 구간 성벽 마을 화톳불 → 타우로스 데몬 ([MoKa] 결정: 화염병 할로우는 빨리 붙기, 타우로스는 낙하 공격으로 시작)
 
 - 2026-10-01: 1-i Laya 섀도 모드 추가 ([MoKa] 요청) — 기록만, 모델은 WSL Ubuntu의 별도 프로세스, 설치는 승인 뒤

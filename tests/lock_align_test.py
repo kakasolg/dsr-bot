@@ -36,7 +36,7 @@ def make(dy=0.0, body_deg=60.0, cam_deg=50.0):
     def lock_on():
         st["presses"].append((st["body"], st["cam"]))
         st["locked"] = abs(st["cam"]) <= M.LOCK_CAM_DEG and abs(st["body"]) <= M.LOCK_BODY_DEG
-    mv.pad = N(lock_on=lock_on, release_due=lambda: None)
+    mv.pad = N(lock_on=lock_on, release_due=lambda: None, move=lambda x, y: None)
     return mv, st
 
 

@@ -7,12 +7,14 @@
   · light(n=2): R1 → 0.45 s 뒤 R1, 첫 R1 은 스틱을 놓고 0.16 s 지난 뒤 (control.Pad.release_stick 규칙)
   · guard_ok=False 면 guard(True) 가 패드에 안 간다 (백스텝 스타일)
   · combo("roll_r1"): 스틱 앞 + B → 0.85 s 뒤 R1
+  · combo("jump_r2"): 점프 → JUMP_TO_R1 s 뒤 R1 (MoKa 11-04 "점프 공격 + 약공"), 죽었거나 맞았어도 R1 (MoKa 11-08 "무조건")
 """
 from __future__ import annotations
 import sys as _sys, pathlib as _pl  # repo root first (the bot's modules), then this folder
 _sys.path[:0] = [str(_pl.Path(__file__).resolve().parent.parent), str(_pl.Path(__file__).resolve().parent)]
 
 import sys
+import threading
 import time
 
 sys.path.insert(0, ".")
@@ -63,6 +65,9 @@ class FakePad:
     def _r2(self, hold):
         self._rec("R2")
 
+    def jump_attack(self, fwd, hold=0.12):
+        self._rec("jump")
+
     def guard(self, on):
         self._rec("guard", on)
 
@@ -86,11 +91,23 @@ class FakeTm:
     """스냅샷: 플레이어는 원점, heading 0 (정면 = -z 쪽… rel_angle 규약: fwd = heading+π), 적은 정면 1.2 m."""
     def __init__(self):
         self.anim = -1
+        self.foe_hp = 75
 
     def snapshot(self, within=40.0):
         p = Chr(1, 0, 0, 700, 700, 0.0, 0.0, 0.0, sp=90, max_sp=90, anim=self.anim, heading=0.0)
-        c = Chr(10, 254000, 6, 75, 75, 0.0, 0.0, -1.2, anim=-1, dist=1.2)
+        c = Chr(10, 254000, 6, self.foe_hp, 75, 0.0, 0.0, -1.2, anim=getattr(self, "foe_anim", -1), dist=1.2)
         return Snapshot(t=time.time(), player=p, chars=[c], cam_yaw=0.0)
+
+
+def dodge_on_b(pad, tm, anim, late=0.0):
+    """B 를 누르면 late s 뒤 내 애니가 anim (690 백스텝 · 710 구르기) — 게임이 회피를 보여 주는 것처럼."""
+    tap = pad.tap
+
+    def wrapped(button, hold=0.08, stick_ok=False):
+        tap(button, hold, stick_ok)
+        if button == B.XUSB_GAMEPAD_B:
+            threading.Timer(late, lambda: setattr(tm, "anim", anim)).start()
+    pad.tap = wrapped
 
 
 def taps(pad, name):
@@ -109,6 +126,7 @@ def main() -> None:
     pad, tm = FakePad(), FakeTm()
     mv = M.Moves(tm, pad)
     s = tm.snapshot(); c = s.chars[0]
+    dodge_on_b(pad, tm, 690)
     pad.move(0.0, 1.0)                                   # 직전에 앞으로 밀고 있었다
     t0 = time.time()
     h = mv.combo("backstep_r1", s, c, nm=None)
@@ -120,6 +138,13 @@ def main() -> None:
         check(sticks_before_b and sticks_before_b[-1] == [0.0, 0.0], f"B 직전 스틱 중립 {sticks_before_b[-1] if sticks_before_b else None}")
         check(b[0] - (0.0) >= 0.14, f"스틱 놓고 {b[0]:.2f} s 뒤 B (≥ 0.16 s 규칙)")
 
+    # 1b) 140(막기 등) 중이라 백스텝이 0.4 s 늦게 나오면 R1 도 690 이 보인 뒤 0.30 s 이후 (P-121 125142)
+    pad, tm = FakePad(), FakeTm(); mv = M.Moves(tm, pad); s = tm.snapshot(); c = s.chars[0]
+    dodge_on_b(pad, tm, 690, late=0.4)
+    h = mv.combo("backstep_r1", s, c, nm=None)
+    b, r1 = taps(pad, "B"), taps(pad, "R1")
+    check(len(b) == 1 and len(r1) == 1 and r1[0] - b[0] >= 0.68, f"늦은 백스텝: B{b} R1{r1} (B 뒤 ≥ 0.4+0.30 s)")
+
     # 2) 약공 2연타 타이밍
     pad, tm = FakePad(), FakeTm(); mv = M.Moves(tm, pad); s = tm.snapshot(); c = s.chars[0]
     pad.move(0.3, 0.9)
@@ -130,6 +155,16 @@ def main() -> None:
         check(0.38 <= r1[1] - r1[0] <= 0.55, f"R1 간격 {r1[1]-r1[0]:.2f} s (0.45)")
         check(r1[0] >= 0.14, f"첫 R1 은 스틱 놓고 {r1[0]:.2f} s 뒤")
 
+    # 2b) 약공×3 도중 상대가 stop_on 애니 (타우로스 701 백스텝)면 남은 R1 끊음 — [MoKa] 11-09 "끊고 다시 붙어"
+    pad, tm = FakePad(), FakeTm(); mv = M.Moves(tm, pad); s = tm.snapshot(); c = s.chars[0]
+    threading.Timer(0.2, lambda: setattr(tm, "foe_anim", 701)).start()
+    h = mv.light(s, c, n=3, sp_second=0, stop_on=frozenset({701}))
+    r1 = taps(pad, "R1")
+    check(len(r1) == 1 and h.cut is not None and h.cut[1] == 701, f"light×3, 0.2 s에 701 → R1 {len(r1)}번 (1), cut {h.cut}")
+    pad, tm = FakePad(), FakeTm(); mv = M.Moves(tm, pad); s = tm.snapshot(); c = s.chars[0]
+    h = mv.light(s, c, n=3, sp_second=0, stop_on=frozenset({701}))
+    check(len(taps(pad, "R1")) == 3 and h.cut is None, f"light×3, 701 없음 → R1 {len(taps(pad, 'R1'))}번 (3)")
+
     # 3) guard_ok=False 면 방패가 안 간다
     pad, tm = FakePad(), FakeTm(); mv = M.Moves(tm, pad); mv.guard_ok = False
     mv.guard(True)
@@ -139,12 +174,45 @@ def main() -> None:
 
     # 4) 구르기 약공: 앞스틱 + B, 0.85 s 뒤 R1
     pad, tm = FakePad(), FakeTm(); mv = M.Moves(tm, pad); s = tm.snapshot(); c = s.chars[0]
+    dodge_on_b(pad, tm, 710)
     h = mv.combo("roll_r1", s, c, nm=None)
     b, r1 = taps(pad, "B"), taps(pad, "R1")
     sticks_before_b = [v for t, k, *v in pad.log if k == "stick" and t <= (b[0] if b else 9)]
     check(len(b) == 1 and len(r1) == 1 and sticks_before_b and sticks_before_b[-1] != [0.0, 0.0], f"roll_r1: 스틱 {sticks_before_b[-1] if sticks_before_b else None} B{b} R1{r1}")
     if b and r1:
         check(0.5 <= r1[0] - b[0] <= 0.65, f"B → R1 간격 {r1[0]-b[0]:.2f} s (0.55)")
+
+    # 5) 점프 공격 + 약공 (MoKa 11-04 판정 19 · 22): 점프 → JUMP_TO_R1 s 뒤 R1 하나
+    pad, tm = FakePad(), FakeTm(); mv = M.Moves(tm, pad); s = tm.snapshot(); c = s.chars[0]
+    h = mv.combo("jump_r2", s, c, nm=None)
+    j = [t for t, k, *v in pad.log if k == "jump"]
+    r1 = taps(pad, "R1")
+    check(len(j) == 1 and len(r1) == 1, f"jump_r2: 점프 {j} R1 {r1}")
+    if j and r1:
+        check(abs((r1[0] - j[0]) - M.Moves.JUMP_TO_R1) <= 0.08, f"점프 → R1 {r1[0]-j[0]:.2f} s ({M.Moves.JUMP_TO_R1})")
+
+    # 5b) 점프에 죽어도 R1 누름 (MoKa 11-08 "무조건 점프 공격, 약공이 자동으로 나가야해")
+    pad, tm = FakePad(), FakeTm(); mv = M.Moves(tm, pad); s = tm.snapshot(); c = s.chars[0]
+    ja = pad.jump_attack
+    pad.jump_attack = lambda fwd, hold=0.12: (ja(fwd), threading.Timer(0.3, lambda: setattr(tm, "foe_hp", 0)).start())
+    h = mv.combo("jump_r2", s, c, nm=None)
+    check(h.dead and len(taps(pad, "R1")) == 1, f"점프에 죽어도 R1 (dead {h.dead}, R1 {taps(pad, 'R1')})")
+
+    # 5c) 점프 중에 맞아도 R1 누름 (MoKa 11-08 "무조건")
+    pad, tm = FakePad(), FakeTm(); mv = M.Moves(tm, pad); s = tm.snapshot(); c = s.chars[0]
+    real = tm.snapshot
+    hurt = {"on": False}
+
+    def snap2(within=40.0):
+        sn = real(within)
+        if hurt["on"]:
+            sn.player.hp = 551
+        return sn
+    tm.snapshot = snap2
+    ja = pad.jump_attack
+    pad.jump_attack = lambda fwd, hold=0.12: (ja(fwd), threading.Timer(0.4, lambda: hurt.update(on=True)).start())
+    h = mv.combo("jump_r2", s, c, nm=None)
+    check(h.taken > 0 and len(taps(pad, "R1")) == 1, f"점프 중 맞아도 R1 (taken {h.taken}, R1 {taps(pad, 'R1')}, skipped {h.skipped})")
 
     print("\n전체:", "OK" if ok else "FAIL")
     sys.exit(0 if ok else 1)

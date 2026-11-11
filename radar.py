@@ -4,7 +4,7 @@
   r = Radar()               # 127.0.0.1:47800 (RADAR_PORT)
   r.attach(tm)              # follows the feed's frames (at most RATE_HZ per second)
   r.follow(mv)              # + what layer 4 is doing: target (mv.cam_target), path (mv.show_path), held spot (mv.show_spot),
-                            #   prop just swung at (mv.show_smash)
+                            #   prop just swung at (mv.show_smash), enemy drops being picked up (mv.show_drops)
   r.say("retreat: 2 foes closing")  # one decision line (run.py's Log does this for every log line)
 
   python radar.py watch      read-only watch — no bot: the radar follows the game while a person plays by hand
@@ -34,6 +34,8 @@ POLL_WITHIN = 40.0     # radius for the fallback poll (no feed)
 MAX_PATH = 200          # path points sent (evenly thinned)
 SPOT_FRESH = 2.0       # s — a held spot older than this is no longer shown
 SMASH_FRESH = 10.0     # s — a prop swung at stays highlighted this long
+DROPS_FRESH = 30.0     # s — enemy drops (field.pick_drops) stay on the map this long after the last update
+MAX_DROPS = 40
 ITEM_CHECK_S = 1.0     # s between pickup-flag reads
 ITEM_R = 40.0          # m — only treasures this close to the player are checked
 GAMEFILES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "gamefiles")
@@ -84,6 +86,9 @@ def intent_dict(mv) -> dict:
     sm = getattr(mv, "show_smash", None)
     if sm and time.time() - sm[2] < SMASH_FRESH:
         out["smash"] = sm[0]
+    dr = getattr(mv, "show_drops", None)
+    if dr and time.time() - dr[0] < DROPS_FRESH:
+        out["drops"] = [[_r(d[0]), _r(d[1]), _r(d[2]), d[3], d[4], bool(d[5])] for d in dr[1][:MAX_DROPS]]
     return out
 
 

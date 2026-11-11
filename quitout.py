@@ -49,6 +49,7 @@ def _press(pad, b, gap: float, min_gap: float = MENU_GAP) -> None:
 
 
 VERIFIED_GAP = 0.02
+START_LEFT_S = 0.23  # START 누른 때부터 LEFT 까지 최소 — 메뉴가 그 전엔 입력을 버림 (quit_out 안 설명, 2026-10-10 실측 200 ms + 여유)
 A_EVERY = 0.5        # 재접속 중 A 간격 (예전 1.2)
 LAST_STEPS: dict[str, float] = {}   # 마지막 quit_out 의 단계별 걸린 시간 (ms) — 어디가 느린지
 
@@ -179,6 +180,7 @@ def quit_out(tm, pad, gap: float = 0.08, settle: float = 0.1, timeout: float = 8
         LAST_STEPS[name] = round((now - tl[0]) * 1000)
         tl[0] = now
     for _ in range(5):                                       # 1) START → 플래그가 1→0 으로 **바뀌는 것**을 확인
+        t_start = time.time()
         _press(pad, B.XUSB_GAMEPAD_START, 0.0, VERIFIED_GAP)
         if _wait(tm.menu_open, 0.25):
             break
@@ -192,6 +194,15 @@ def quit_out(tm, pad, gap: float = 0.08, settle: float = 0.1, timeout: float = 8
     for move, sel, expect in ((B.XUSB_GAMEPAD_DPAD_LEFT, "systab", "system"),
                               (B.XUSB_GAMEPAD_DPAD_UP, "quitsel", "confirm_quit")):
         time.sleep(settle)
+        if sel == "systab":
+            # ── 메뉴가 LEFT 를 받기까지 ─────────────────────────────
+            #  · 플래그·화면 값·탭 글자는 START 50 ms 뒤 벌써 '열림'인데 LEFT 는 ~200 ms 부터 먹힘
+            #    (experiments/menu_open_probe.py 2026-10-10: 140 ms 0/5, 170 ms 2/5, 200 ms 5/5, 230 ms 10/10, MoKa가 화면으로 확인)
+            #  · 지금까지는 그 프로세스의 첫 화면 찍기(115 ms)가 우연히 그 시간을 벌어 줬다 — 같은 실행의 두 번째 퀵 종료는
+            #    찍기가 33 ms라 LEFT 가 ~135 ms에 나가 씹히고 0.8 s 기다린 뒤 다시 누름 → START 뒤 START_LEFT_S 전엔 안 누름
+            rest = START_LEFT_S - (time.time() - t_start)
+            if rest > 0:
+                time.sleep(rest)
         # 한 번 누르고 설명 글자가 다 나타날 때까지 기다린다 (글자가 서서히 나타나서 0.35 s 로는 부족 — 다시 눌렀다가
         # 한 칸 더 넘어간 적 있음). 재시도는 **아직 원래 칸일 때만** (아이템 탭 설명이 그대로면 입력이 씹힌 것)
         for _ in range(2):

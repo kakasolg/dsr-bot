@@ -1,0 +1,130 @@
+--- /c/Users/moka/AppData/Local/Temp/claude/D--dev-dsr-bot/27855c87-f4a7-4693-b937-fcda3713d341/scratchpad/deathfix2-base/missions.py	2026-11-01 01:55:47.810960300 -0700
++++ souls/missions.py	2026-11-01 01:04:05.243263200 -0800
+@@ -684,9 +684,6 @@
+         self.f._settle(bottom, tol=0.4)
+         for attempt in range(LADDER_TRIES):
+             s = self._ladder_ready()
+-            if not self.f.alive():                         # 20261101_002546: HP 0 after the entry check, then A ×3 on the corpse
+-                self.mv.pad.neutral()
+-                return "dead"
+             # ── 이미 사다리를 보고 있으면 돌기 0.45 s를 건너뜀 (20261101_001326) ──────────────────
+             #  구르기 뒤 몸이 사다리에서 15~20° (헤딩 −105°) — 돌기 스틱에도 헤딩은 그대로였고, 그 0.45 s 사이 3002에 맞음
+             #  (710 끝 53.6 → A 54.62, 피격 54.51). 같은 헤딩에서 A는 바로 먹힘 (000637 54.6 → 7010 54.72).
+@@ -695,13 +692,17 @@
+             #  moves.face처럼 0.55로, 매번 새 스냅숏으로 LADDER_FACE_DEG 안에 들 때까지 (최대 LADDER_TURN_S) 돈 뒤 A.
+             t_turn = time.time()
+             turned = False
+-            while (s is not None and s.cam_yaw is not None and getattr(s.player, "heading", None) is not None
++            while (s is not None and not self._ladder_dead(s) and s.cam_yaw is not None
++                   and getattr(s.player, "heading", None) is not None
+                    and abs(math.degrees(M.rel_angle(s.player, NS(x=face[0], z=face[2])))) > LADDER_FACE_DEG
+                    and time.time() - t_turn < LADDER_TURN_S):
+                 self.mv.pad.move(*self.mv.stick_to(s, face[0], face[2], 0.55))
+                 turned = True
+                 time.sleep(0.05)
+                 s = self.mv.snap(5.0)
++            if self._ladder_dead(s, tag):                  # 20261101_002546: HP 0 after the entry check, then A ×3 on the corpse
++                self.mv.pad.neutral()
++                return "dead"
+             if turned:
+                 self.mv.pad.move(0.0, 0.0)
+                 time.sleep(0.1)
+@@ -713,16 +714,21 @@
+                 #  (보스 쪽)으로 달리기가 돼 7 m 끌려가 맞았다. 붙었는지(애니 7000대) 보고 아니면 다시 사다리를 본다.
+                 self.log(f"   {tag}: 사다리 안 잡힘 ({attempt + 1}/{LADDER_TRIES}) — 오르기 입력 안 함")
+                 self.mv.pad.neutral()                      # A 떼기 — 10-31 235045: 눌린 채 남아 다음 A 두 번이 새 입력이 안 됨
++                if self._ladder_dead(self.mv.snap(5.0), tag):
++                    return "dead"
+                 self.f._settle(bottom, tol=0.4)
+                 continue
+             y0 = s.player.y
+-            t0, moved = time.time(), False
++            t0, moved, died = time.time(), False, False
+             while time.time() - t0 < LADDER_CLIMB_S:
+                 self.mv.pad.move(0.0, 1.0)                 # stick up = climb
+                 time.sleep(0.1)
+                 s = self.mv.snap(5.0)
+                 if s is None:
+                     continue
++                if self._ladder_dead(s, tag):
++                    died = True
++                    break
+                 moved = moved or s.player.y > y0 + 0.4
+                 if s.player.y >= top_y - 0.3:
+                     time.sleep(0.8)                        # keep pushing — step off the top
+@@ -730,14 +736,38 @@
+                 if not moved and time.time() - t0 > 2.5:
+                     break                                  # not on the ladder — face it again and A
+             self.mv.pad.neutral()
++            if died:
++                return "dead"
+             s = self.mv.snap(5.0)
+             if s is not None and s.player.y >= top_y - 0.6:
+                 self.log(f"   {tag}: 사다리 올라감 (y {s.player.y:.1f})")
+                 return "ok"
+             self.log(f"   {tag}: 사다리 안 올라감 ({attempt + 1}/{LADDER_TRIES}, y {None if s is None else round(s.player.y, 1)})")
++            if self._ladder_dead(s, tag):
++                return "dead"
+             self.f._settle(bottom, tol=0.4)
+         return "fail"
+ 
++    def _ladder_dead(self, s, tag: str | None = None) -> bool:
++        """
++        ── 사다리 루틴의 사망 판정 (20261101_002546) ─────────────────────────────
++         · 이미 읽은 스냅숏의 HP 0 = 사망. alive()로 다시 확인하지 않는다 — DS1에서 HP 0은 되돌아오지 않고,
++           Field.alive도 읽기 한 번의 HP로 판정한다. 살아 있는 경로에 읽기를 더하지 않으려고 손에 든 스냅숏을 쓴다.
++         · 스냅숏 없음 = 읽기 실패이지 사망 증거가 아니다 → 입구와 같은 정책(Field.alive: 다시 읽고 그래도 없으면 False).
++         · 판정 시점은 '읽은 순간'이다 — 실제 사망과 그 읽기 사이의 입력은 막지 못한다.
++         tag: log the verdict under it (None = no log: the turn loop's per-read check)."""
++        if s is None:
++            dead = not self.f.alive()
++            if dead and tag:
++                self.log(f"   {tag}: 사다리 — 스냅숏 없음, alive() 거짓 → 'dead' (읽기 실패, HP 0은 못 봄)")
++            return dead
++        hp = getattr(s.player, "hp", None)
++        if hp is not None and hp <= 0:
++            if tag:
++                self.log(f"   {tag}: 사다리 — 스냅숏 HP 0 → 중단")
++            return True
++        return False
++
+     def _ladder_ready(self):
+         """Wait until a roll (700s), a hit stagger or Estus is over — A pressed in one is dropped. Free means free for
+         LADDER_FREE_S in a row: 20261101_000027 710 ended at 55.58, −1 for 0.05 s, then a hit stun (2017) at 55.63 — A at 56.06
+--- /c/Users/moka/AppData/Local/Temp/claude/D--dev-dsr-bot/27855c87-f4a7-4693-b937-fcda3713d341/scratchpad/deathfix2-base/burg_upper_test.py	2026-11-01 01:55:47.820472300 -0700
++++ tests/burg_upper_test.py	2026-11-01 01:02:50.671830600 -0800
+@@ -339,7 +339,8 @@
+         pos["busy"] -= 1
+         if not pos["busy"]:
+             pos["anim"] = -1
+-    return NS(player=NS(x=49.16, y=pos["y"], z=-117.1, anim=pos["anim"], heading=pos.get("heading")), cam_yaw=0.0)
++    return NS(player=NS(x=49.16, y=pos["y"], z=-117.1, anim=pos["anim"], heading=pos.get("heading"), hp=pos.get("hp")),
++              cam_yaw=0.0)
+ m = MS.Missions.__new__(MS.Missions)
+ m.log = lambda *a: None
+ m.f = NS(walk_to=lambda *a, **k: "arrived", walk=lambda *a, **k: "arrived", alive=lambda: True, _settle=lambda *a, **k: 0.0)
+@@ -427,12 +428,14 @@
+ # 20261101_002546: HP 0 at 82.53, after the entry check (nav.goto ended 82.51) — then A at 82.66 · 84.02 · 85.38 on the corpse
+ base_f = m.f
+ def dies_in_settle(settles_alive):
+-    """Fake Field whose alive() reads the fake HP; HP drops to 0 at the n-th _settle (entry settle = 1st)."""
++    """Fake Field whose alive() reads the fake HP; HP drops to 0 at the n-th _settle (entry settle = 1st), in the
++    snapshots too (the real snapshot carries player.hp)."""
+     life = {"hp": 377, "n": 0}
++    pos["hp"] = 377
+     def settle(*a, **k):
+         life["n"] += 1
+         if life["n"] > settles_alive:
+-            life["hp"] = 0
++            life["hp"] = pos["hp"] = 0
+             lad_log.append(("died",))
+         return 0.0
+     return NS(walk_to=base_f.walk_to, walk=base_f.walk, alive=lambda: life["hp"] > 0, _settle=settle)
+@@ -462,6 +465,7 @@
+ r = m._before(z8["before"][1], None, "t")
+ check("ladder: alive throughout → A, mount, climbs as before", r == "ok" and pos["y"] >= 24.2 and ("A", -1) in lad_log)
+ m.f = base_f
++pos.pop("hp")
+ 
+ from souls import field as F  # noqa: E402
+ # 10-06j: the shield soldier shut the door west of the zone 5 safe spot ([MoKa] "a 눌러, 방패병이 문을 닫았어")

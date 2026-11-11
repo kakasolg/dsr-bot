@@ -1,0 +1,73 @@
+{
+ "run": "20261030_225853_parish-group1",
+ "source": "data/runs/20261030_225853_parish-group1.ctl.jsonl",
+ "lines": 2149,
+ "bytes": 524889,
+ "broken_lines": 0,
+ "counts": {
+  "fight": 3,
+  "fight_paired": 3,
+  "cycle": 91,
+  "cycle_paired": 91,
+  "rule": 91,
+  "action": 3,
+  "action_paired": 3,
+  "span.obs": 0,
+  "scene": 3,
+  "pad": 1710,
+  "pad.override": 4,
+  "dec.rule": 15
+ },
+ "record_kinds": {
+  "hdr": 1,
+  "sync": 13,
+  "life": 3,
+  "pad": 1710,
+  "neutral": 13,
+  "dec.goto": 80,
+  "dec.counter": 18,
+  "span.fight": 6,
+  "span.cycle": 182,
+  "span.rule": 91,
+  "dec.rule": 15,
+  "dec.reflex": 3,
+  "span.action": 6,
+  "scene": 3,
+  "pad.override": 4,
+  "end": 1
+ },
+ "cycle_kind": {
+  "rule_cont": 88,
+  "rule_result": 3
+ },
+ "picked": {
+  "face_first": 1,
+  "edge": 1,
+  "approach": 3,
+  "block": 41,
+  "reflex": 42,
+  "after_swing": 3
+ },
+ "fight_result": {
+  "killed": 3
+ },
+ "action_name": {
+  "light": 3
+ },
+ "action_end": {
+  "dead": 3
+ },
+ "obs_status": {
+  "no_obs": 91
+ },
+ "obs_chars_per_record": null,
+ "ctl_end": {
+  "written": 2148,
+  "dropped": 0,
+  "lost": 0,
+  "write_errors": 0,
+  "writer_joined": true,
+  "complete": true
+ },
+ "note": "counts from ctl_check.load/spans/input_status (checker = ctl_check.py at this commit); obs_status covers every cycle id"
+}

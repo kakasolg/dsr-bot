@@ -1,0 +1,403 @@
+{"t": 9.26, "ev": "style", "style": "guard"}
+{"t": 9.26, "ev": "char", "stats": {"VIT": 12, "ATN": 8, "END": 14, "STR": 14, "DEX": 9, "INT": 8, "FTH": 10, "RES": 11, "SL": 4, "소울": 2280, "누적소울": 2280, "인간성": 0}, "equip": {"왼손1": 1462000, "오른손1": 701000, "왼손2": 900000, "오른손2": 900000, "화살": 50000, "머리": 51000, "몸": 52000, "팔": 53000, "반지1": -1, "반지2": -1}}
+{"t": 9.27, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 9.83, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 10.34, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 10.84, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 11.35, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 11.85, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 12.36, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 12.87, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 13.38, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 13.88, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 14.39, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 14.9, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 15.4, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 15.9, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 16.41, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 16.92, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 17.42, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 17.93, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 18.5, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 19.03, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 19.53, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 20.04, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 20.56, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 20.58, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 39.95, "dy": 10.92, "body": 8.1, "cam": -155.1, "lock": false, "ok": true}
+{"t": 21.06, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 21.36, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 39.77, "dy": 10.95, "body": 74.5, "cam": -118.0, "lock": false, "ok": false}
+{"t": 21.57, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 21.98, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 39.29, "dy": 10.71, "body": 76.3, "cam": -30.5, "lock": false, "ok": false}
+{"t": 22.08, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 22.49, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 38.55, "dy": 10.25, "body": 54.9, "cam": 1.9, "lock": false, "ok": false}
+{"t": 22.59, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 23.08, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 37.45, "dy": 9.74, "body": 57.3, "cam": 7.2, "lock": false, "ok": false}
+{"t": 23.1, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 23.6, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 23.6, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 37.35, "dy": 9.37, "body": 88.1, "cam": 8.9, "lock": false, "ok": false}
+{"t": 24.12, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 24.25, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 37.3, "dy": 9.02, "body": 95.6, "cam": 8.9, "lock": false, "ok": false}
+{"t": 24.62, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 24.91, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 37.96, "dy": 8.08, "body": 117.3, "cam": 10.7, "lock": false, "ok": false}
+{"t": 25.13, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 25.44, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 37.82, "dy": 7.96, "body": 38.5, "cam": 9.6, "lock": false, "ok": false}
+{"t": 25.64, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 25.98, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 36.42, "dy": 7.99, "body": 40.3, "cam": 8.0, "lock": false, "ok": false}
+{"t": 26.16, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 26.52, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 35.08, "dy": 7.93, "body": 42.2, "cam": 7.3, "lock": false, "ok": false}
+{"t": 26.67, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 27.06, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 33.72, "dy": 7.94, "body": 44.3, "cam": 5.9, "lock": false, "ok": false}
+{"t": 27.18, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 27.67, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 32.22, "dy": 8.07, "body": 40.2, "cam": 6.5, "lock": false, "ok": false}
+{"t": 27.68, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 28.19, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 28.22, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 30.71, "dy": 8.77, "body": 27.2, "cam": 6.3, "lock": false, "ok": true}
+{"t": 28.7, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 28.78, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 29.76, "dy": 9.31, "body": 58.2, "cam": 8.4, "lock": false, "ok": false}
+{"t": 29.2, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 29.46, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 29.03, "dy": 9.23, "body": 53.1, "cam": 7.5, "lock": false, "ok": false}
+{"t": 29.71, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 30.0, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 27.98, "dy": 9.41, "body": 56.3, "cam": 8.4, "lock": false, "ok": false}
+{"t": 30.21, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 30.54, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 26.2, "dy": 9.31, "body": -9.9, "cam": 3.7, "lock": false, "ok": true}
+{"t": 30.72, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 31.05, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 24.52, "dy": 8.97, "body": -10.6, "cam": -0.1, "lock": false, "ok": true}
+{"t": 31.24, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 31.59, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 22.74, "dy": 8.59, "body": -17.4, "cam": -5.6, "lock": false, "ok": true}
+{"t": 31.74, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 32.12, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 21.02, "dy": 7.94, "body": -14.4, "cam": -9.7, "lock": false, "ok": true}
+{"t": 32.25, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 32.65, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 19.3, "dy": 7.2, "body": -6.2, "cam": -3.9, "lock": false, "ok": true}
+{"t": 32.76, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 33.17, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 17.61, "dy": 6.35, "body": 1.0, "cam": -7.7, "lock": false, "ok": true}
+{"t": 33.27, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 33.7, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 16.02, "dy": 5.56, "body": -10.9, "cam": -5.1, "lock": false, "ok": true}
+{"t": 33.78, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 34.22, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 14.29, "dy": 4.53, "body": -23.5, "cam": -8.1, "lock": false, "ok": true}
+{"t": 34.28, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 34.74, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 13.07, "dy": 3.66, "body": -61.0, "cam": -8.7, "lock": false, "ok": false}
+{"t": 34.8, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 35.3, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 35.33, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 11.92, "dy": 2.83, "body": -47.7, "cam": -8.5, "lock": false, "ok": false}
+{"t": 35.81, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 35.98, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 10.3, "dy": 1.9, "body": -42.1, "cam": -7.7, "lock": false, "ok": false}
+{"t": 36.32, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 36.51, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 8.86, "dy": 1.55, "body": -8.1, "cam": -9.8, "lock": false, "ok": true}
+{"t": 36.82, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 37.03, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 7.12, "dy": 0.98, "body": -10.1, "cam": -5.0, "lock": false, "ok": true}
+{"t": 37.33, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 37.55, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 5.4, "dy": 0.68, "body": -13.4, "cam": -9.3, "lock": false, "ok": true}
+{"t": 37.84, "ev": "vital", "hp": 616, "max": 616, "near": 1}
+{"t": 38.07, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 2.7, "dy": 0.51, "body": -21.3, "cam": -9.4, "lock": false, "ok": true}
+{"t": 38.35, "ev": "vital", "hp": 616, "max": 616, "near": 1}
+{"t": 38.43, "ev": "guard_keep", "until": 0.93}
+{"t": 38.57, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 2.42, "dy": 0.46, "body": -22.7, "cam": -2.2, "lock": true, "ok": true}
+{"t": 38.86, "ev": "vital", "hp": 616, "max": 616, "near": 1}
+{"t": 39.08, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 1.59, "dy": -0.12, "body": -1.3, "cam": 13.8, "lock": true, "ok": true}
+{"t": 39.36, "ev": "vital", "hp": 616, "max": 616, "near": 1}
+{"t": 39.6, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 1.79, "dy": -0.36, "body": -26.7, "cam": 3.3, "lock": true, "ok": true}
+{"t": 39.86, "ev": "vital", "hp": 616, "max": 616, "near": 1}
+{"t": 40.11, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 1.35, "dy": -0.29, "body": 0.1, "cam": 22.6, "lock": true, "ok": true}
+{"t": 40.37, "ev": "vital", "hp": 616, "max": 616, "near": 1}
+{"t": 40.62, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 1.28, "dy": -0.1, "body": -3.4, "cam": 17.5, "lock": true, "ok": true}
+{"t": 40.88, "ev": "vital", "hp": 616, "max": 616, "near": 1}
+{"t": 41.33, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 1.01, "dy": 0.05, "body": -28.7, "cam": 0.6, "lock": false, "ok": true}
+{"t": 41.39, "ev": "vital", "hp": 616, "max": 616, "near": 2}
+{"t": 41.89, "ev": "vital", "hp": 616, "max": 616, "near": 2}
+{"t": 42.04, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 0.85, "dy": -0.1, "body": -78.8, "cam": -38.1, "lock": false, "ok": false}
+{"t": 42.42, "ev": "vital", "hp": 616, "max": 616, "near": 2}
+{"t": 42.61, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 0.85, "dy": -0.11, "body": 10.2, "cam": 5.6, "lock": false, "ok": true}
+{"t": 42.92, "ev": "vital", "hp": 616, "max": 616, "near": 2}
+{"t": 43.14, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 2.0, "dy": -0.28, "body": 6.9, "cam": 2.3, "lock": false, "ok": true}
+{"t": 43.43, "ev": "vital", "hp": 616, "max": 616, "near": 2}
+{"t": 43.64, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 1.08, "dy": -0.16, "body": 16.4, "cam": 12.3, "lock": false, "ok": true}
+{"t": 43.65, "ev": "attack_align", "kind": "light", "dmg": 75, "npc": 254000, "d": 0.96, "dy": -0.13, "body": 12.2, "cam": 7.6, "lock": false, "ok": true}
+{"t": 43.65, "ev": "duel", "tag": "#1 254000", "npc": 254000, "result": "killed", "secs": 23.2, "dealt": 75, "taken": 0, "fight": "20261101_152928_clear-ramp#f001"}
+{"t": 43.93, "ev": "vital", "hp": 616, "max": 616, "near": 1}
+{"t": 44.18, "ev": "align", "src": "attacker", "fight": false, "npc": 254002, "d": 16.31, "dy": 10.56, "body": 93.2, "cam": -121.4, "lock": false, "ok": false}
+{"t": 44.43, "ev": "vital", "hp": 616, "max": 616, "near": 1}
+{"t": 44.82, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 3.69, "dy": 1.01, "body": -142.1, "cam": -105.1, "lock": false, "ok": false}
+{"t": 44.94, "ev": "vital", "hp": 616, "max": 616, "near": 1}
+{"t": 45.43, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 3.4, "dy": 0.93, "body": 3.7, "cam": -30.3, "lock": false, "ok": true}
+{"t": 45.45, "ev": "vital", "hp": 616, "max": 616, "near": 1}
+{"t": 45.93, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 3.02, "dy": 0.85, "body": 4.5, "cam": -5.8, "lock": false, "ok": true}
+{"t": 45.96, "ev": "vital", "hp": 616, "max": 616, "near": 1}
+{"t": 46.44, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 2.53, "dy": 0.67, "body": 1.1, "cam": 0.8, "lock": true, "ok": true}
+{"t": 46.46, "ev": "vital", "hp": 616, "max": 616, "near": 1}
+{"t": 46.95, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 1.79, "dy": 0.13, "body": 2.2, "cam": 17.0, "lock": true, "ok": true}
+{"t": 46.97, "ev": "vital", "hp": 616, "max": 616, "near": 1}
+{"t": 47.47, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 1.28, "dy": -0.26, "body": 6.8, "cam": 28.5, "lock": true, "ok": true}
+{"t": 47.48, "ev": "vital", "hp": 616, "max": 616, "near": 1}
+{"t": 47.98, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 1.26, "dy": -0.14, "body": 0.1, "cam": 23.0, "lock": true, "ok": true}
+{"t": 47.99, "ev": "vital", "hp": 616, "max": 616, "near": 1}
+{"t": 48.49, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 1.61, "dy": 0.17, "body": -1.3, "cam": 15.0, "lock": true, "ok": true}
+{"t": 48.5, "ev": "vital", "hp": 616, "max": 616, "near": 1}
+{"t": 49.0, "ev": "vital", "hp": 616, "max": 616, "near": 1}
+{"t": 49.01, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 1.45, "dy": 0.2, "body": 1.4, "cam": 6.4, "lock": true, "ok": true}
+{"t": 49.51, "ev": "vital", "hp": 616, "max": 616, "near": 1}
+{"t": 49.52, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 0.9, "dy": 0.07, "body": 3.4, "cam": 2.2, "lock": false, "ok": true}
+{"t": 50.02, "ev": "vital", "hp": 616, "max": 616, "near": 1}
+{"t": 50.05, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 0.78, "dy": 0.07, "body": 23.3, "cam": 23.3, "lock": false, "ok": true}
+{"t": 50.52, "ev": "vital", "hp": 616, "max": 616, "near": 1}
+{"t": 50.57, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 0.63, "dy": 0.07, "body": 18.1, "cam": 17.5, "lock": false, "ok": true}
+{"t": 51.03, "ev": "vital", "hp": 616, "max": 616, "near": 1}
+{"t": 51.11, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 0.87, "dy": 0.07, "body": 20.7, "cam": 6.3, "lock": false, "ok": true}
+{"t": 51.54, "ev": "vital", "hp": 616, "max": 616, "near": 1}
+{"t": 51.62, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 0.99, "dy": 0.07, "body": 19.8, "cam": 5.4, "lock": false, "ok": true}
+{"t": 51.77, "ev": "attack_align", "kind": "light", "dmg": 59, "npc": 254000, "d": 0.63, "dy": 0.07, "body": 17.9, "cam": 17.4, "lock": false, "ok": true}
+{"t": 51.77, "ev": "duel", "tag": "#3 제자리로: 따라온 254000", "npc": 254000, "result": "killed", "secs": 7.1, "dealt": 59, "taken": 0, "fight": "20261101_152928_clear-ramp#f002"}
+{"t": 52.04, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 52.41, "ev": "align", "src": "attacker", "fight": false, "npc": 254002, "d": 16.98, "dy": 9.93, "body": 129.9, "cam": 42.7, "lock": false, "ok": false}
+{"t": 52.55, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 52.93, "ev": "align", "src": "attacker", "fight": false, "npc": 254002, "d": 16.68, "dy": 9.93, "body": 129.7, "cam": 7.2, "lock": false, "ok": false}
+{"t": 53.06, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 53.46, "ev": "align", "src": "last", "fight": false, "npc": 254002, "d": 17.3, "dy": 10.01, "body": -176.1, "cam": 7.0, "lock": false, "ok": false}
+{"t": 53.56, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 53.61, "ev": "duel", "tag": "#3 254000", "npc": null, "result": "killed", "secs": 0.0, "dealt": 0, "taken": 0, "fight": "20261101_152928_clear-ramp#f003"}
+{"t": 53.97, "ev": "align", "src": "fight", "fight": true, "npc": 255010, "d": 14.26, "dy": -0.32, "body": -1.0, "cam": 9.5, "lock": false, "ok": true}
+{"t": 54.07, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 54.48, "ev": "align", "src": "fight", "fight": true, "npc": 255010, "d": 12.59, "dy": -0.43, "body": -1.2, "cam": 7.1, "lock": false, "ok": true}
+{"t": 54.58, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 54.99, "ev": "align", "src": "fight", "fight": true, "npc": 255010, "d": 10.92, "dy": -0.45, "body": -1.3, "cam": 4.6, "lock": false, "ok": true}
+{"t": 55.09, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 55.49, "ev": "align", "src": "fight", "fight": true, "npc": 255010, "d": 9.17, "dy": -0.51, "body": -1.5, "cam": 2.8, "lock": false, "ok": true}
+{"t": 55.59, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 56.01, "ev": "align", "src": "fight", "fight": true, "npc": 255010, "d": 5.91, "dy": -0.53, "body": -2.0, "cam": 1.0, "lock": false, "ok": true}
+{"t": 56.11, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 56.29, "ev": "guard_keep", "until": 1.3}
+{"t": 56.52, "ev": "align", "src": "fight", "fight": true, "npc": 255010, "d": 3.21, "dy": -0.47, "body": -0.4, "cam": -0.6, "lock": true, "ok": true}
+{"t": 56.64, "ev": "vital", "hp": 616, "max": 616, "near": 1}
+{"t": 57.04, "ev": "align", "src": "fight", "fight": true, "npc": 255010, "d": 1.07, "dy": -0.1, "body": 0.6, "cam": 0.2, "lock": true, "ok": true}
+{"t": 57.15, "ev": "vital", "hp": 616, "max": 616, "near": 1}
+{"t": 57.55, "ev": "align", "src": "fight", "fight": true, "npc": 255010, "d": 1.51, "dy": -0.01, "body": -13.6, "cam": -5.6, "lock": true, "ok": true}
+{"t": 57.67, "ev": "vital", "hp": 616, "max": 616, "near": 1}
+{"t": 58.07, "ev": "align", "src": "fight", "fight": true, "npc": 255010, "d": 1.44, "dy": -0.01, "body": 4.5, "cam": 1.2, "lock": true, "ok": true}
+{"t": 58.19, "ev": "vital", "hp": 616, "max": 616, "near": 1}
+{"t": 58.6, "ev": "align", "src": "fight", "fight": true, "npc": 255010, "d": 1.29, "dy": -0.06, "body": 12.7, "cam": 4.6, "lock": true, "ok": true}
+{"t": 58.7, "ev": "vital", "hp": 616, "max": 616, "near": 1}
+{"t": 59.11, "ev": "align", "src": "fight", "fight": true, "npc": 255010, "d": 1.68, "dy": -0.1, "body": -0.9, "cam": 2.0, "lock": true, "ok": true}
+{"t": 59.21, "ev": "vital", "hp": 616, "max": 616, "near": 1}
+{"t": 59.38, "ev": "attack_align", "kind": "kick+light", "dmg": 85, "npc": 255010, "d": 0.85, "dy": -0.04, "body": -9.8, "cam": -10.1, "lock": true, "ok": true}
+{"t": 59.54, "ev": "duel", "tag": "#2 255010", "npc": 255010, "result": "killed", "secs": 5.9, "dealt": 85, "taken": 0, "fight": "20261101_152928_clear-ramp#f004"}
+{"t": 59.62, "ev": "align", "src": "fight", "fight": true, "npc": 254002, "d": 8.47, "dy": 10.08, "body": 1.8, "cam": 4.8, "lock": false, "ok": true}
+{"t": 59.71, "ev": "vital", "hp": 616, "max": 616, "near": 0}
+{"t": 60.15, "ev": "align", "src": "fight", "fight": true, "npc": 254002, "d": 8.74, "dy": 10.15, "body": -156.7, "cam": 1.5, "lock": false, "ok": false}
+{"t": 60.22, "ev": "vital", "hp": 503, "max": 616, "near": 0}
+{"t": 60.67, "ev": "align", "src": "fight", "fight": true, "npc": 254002, "d": 9.01, "dy": 10.16, "body": -157.1, "cam": 0.5, "lock": false, "ok": false}
+{"t": 60.73, "ev": "vital", "hp": 503, "max": 616, "near": 0}
+{"t": 61.19, "ev": "align", "src": "fight", "fight": true, "npc": 254002, "d": 10.0, "dy": 9.94, "body": 152.4, "cam": 4.1, "lock": false, "ok": false}
+{"t": 61.23, "ev": "vital", "hp": 503, "max": 616, "near": 0}
+{"t": 61.41, "ev": "hit", "n": 1, "lost": 113, "hp": 503, "max": 616, "secs": 0.0, "blame": [{"npc": 255010, "ptr": 482949264, "anim": 9910, "d": 1.14, "dy": -0.06, "face": 0}]}
+{"t": 61.74, "ev": "align", "src": "fight", "fight": true, "npc": 254002, "d": 11.7, "dy": 9.61, "body": 156.8, "cam": 8.5, "lock": false, "ok": false}
+{"t": 61.74, "ev": "vital", "hp": 503, "max": 616, "near": 0}
+{"t": 62.25, "ev": "vital", "hp": 503, "max": 616, "near": 0}
+{"t": 62.27, "ev": "align", "src": "fight", "fight": true, "npc": 254002, "d": 13.35, "dy": 9.52, "body": 159.7, "cam": 8.0, "lock": false, "ok": false}
+{"t": 62.76, "ev": "vital", "hp": 503, "max": 616, "near": 0}
+{"t": 62.79, "ev": "align", "src": "fight", "fight": true, "npc": 254002, "d": 15.05, "dy": 9.38, "body": 162.2, "cam": 5.8, "lock": false, "ok": false}
+{"t": 63.27, "ev": "vital", "hp": 503, "max": 616, "near": 0}
+{"t": 63.45, "ev": "align", "src": "fight", "fight": true, "npc": 254002, "d": 17.14, "dy": 9.01, "body": 163.4, "cam": 5.5, "lock": false, "ok": false}
+{"t": 63.77, "ev": "vital", "hp": 503, "max": 616, "near": 0}
+{"t": 64.09, "ev": "align", "src": "fight", "fight": true, "npc": 254002, "d": 17.35, "dy": 8.57, "body": 59.3, "cam": 9.1, "lock": false, "ok": false}
+{"t": 64.28, "ev": "vital", "hp": 503, "max": 616, "near": 0}
+{"t": 64.6, "ev": "align", "src": "fight", "fight": true, "npc": 254002, "d": 16.06, "dy": 7.61, "body": 45.0, "cam": 9.2, "lock": false, "ok": false}
+{"t": 64.79, "ev": "vital", "hp": 503, "max": 616, "near": 0}
+{"t": 65.11, "ev": "align", "src": "fight", "fight": true, "npc": 254002, "d": 14.58, "dy": 7.14, "body": 27.2, "cam": 9.2, "lock": false, "ok": true}
+{"t": 65.3, "ev": "vital", "hp": 503, "max": 616, "near": 0}
+{"t": 65.62, "ev": "align", "src": "fight", "fight": true, "npc": 254002, "d": 12.91, "dy": 6.17, "body": -14.5, "cam": 6.4, "lock": false, "ok": true}
+{"t": 65.81, "ev": "vital", "hp": 503, "max": 616, "near": 0}
+{"t": 66.13, "ev": "align", "src": "fight", "fight": true, "npc": 254002, "d": 11.37, "dy": 5.06, "body": -24.5, "cam": -3.5, "lock": false, "ok": true}
+{"t": 66.31, "ev": "vital", "hp": 503, "max": 616, "near": 0}
+{"t": 66.66, "ev": "align", "src": "fight", "fight": true, "npc": 254002, "d": 9.62, "dy": 3.72, "body": -13.3, "cam": -9.9, "lock": false, "ok": true}
+{"t": 66.82, "ev": "vital", "hp": 503, "max": 616, "near": 0}
+{"t": 67.17, "ev": "align", "src": "fight", "fight": true, "npc": 254002, "d": 7.94, "dy": 2.55, "body": 28.1, "cam": -0.9, "lock": false, "ok": true}
+{"t": 67.33, "ev": "vital", "hp": 503, "max": 616, "near": 0}
+{"t": 67.83, "ev": "align", "src": "fight", "fight": true, "npc": 254002, "d": 6.45, "dy": 1.51, "body": 66.0, "cam": 12.7, "lock": false, "ok": false}
+{"t": 67.84, "ev": "vital", "hp": 503, "max": 616, "near": 0}
+{"t": 68.34, "ev": "vital", "hp": 503, "max": 616, "near": 0}
+{"t": 68.53, "ev": "align", "src": "fight", "fight": true, "npc": 254002, "d": 5.77, "dy": 0.81, "body": 51.7, "cam": 21.0, "lock": false, "ok": false}
+{"t": 68.86, "ev": "vital", "hp": 503, "max": 616, "near": 0}
+{"t": 69.14, "ev": "align", "src": "fight", "fight": true, "npc": 254002, "d": 4.79, "dy": 0.21, "body": 8.1, "cam": 17.7, "lock": false, "ok": true}
+{"t": 69.36, "ev": "vital", "hp": 503, "max": 616, "near": 2}
+{"t": 69.68, "ev": "align", "src": "fight", "fight": true, "npc": 254002, "d": 3.03, "dy": 0.12, "body": -0.7, "cam": 8.0, "lock": false, "ok": true}
+{"t": 69.87, "ev": "vital", "hp": 503, "max": 616, "near": 2}
+{"t": 70.22, "ev": "align", "src": "fight", "fight": true, "npc": 254002, "d": 2.06, "dy": 0.03, "body": 31.6, "cam": 3.6, "lock": false, "ok": false}
+{"t": 70.38, "ev": "vital", "hp": 503, "max": 616, "near": 2}
+{"t": 70.74, "ev": "align", "src": "fight", "fight": true, "npc": 254002, "d": 2.06, "dy": 0.03, "body": 31.6, "cam": 3.6, "lock": false, "ok": false}
+{"t": 70.89, "ev": "vital", "hp": 503, "max": 616, "near": 2}
+{"t": 71.25, "ev": "align", "src": "fight", "fight": true, "npc": 254002, "d": 2.02, "dy": 0.03, "body": 0.0, "cam": 3.6, "lock": false, "ok": true}
+{"t": 71.39, "ev": "vital", "hp": 503, "max": 616, "near": 2}
+{"t": 71.82, "ev": "align", "src": "fight", "fight": true, "npc": 254002, "d": 2.02, "dy": 0.03, "body": 0.0, "cam": 3.6, "lock": false, "ok": true}
+{"t": 71.92, "ev": "vital", "hp": 503, "max": 616, "near": 2}
+{"t": 72.37, "ev": "align", "src": "fight", "fight": true, "npc": 254002, "d": 2.3, "dy": 0.05, "body": 118.9, "cam": 3.7, "lock": false, "ok": false}
+{"t": 72.42, "ev": "vital", "hp": 503, "max": 616, "near": 2}
+{"t": 72.92, "ev": "align", "src": "fight", "fight": true, "npc": 254001, "d": 1.21, "dy": -0.09, "body": 2.7, "cam": 172.6, "lock": false, "ok": true}
+{"t": 72.93, "ev": "vital", "hp": 503, "max": 616, "near": 2}
+{"t": 73.43, "ev": "align", "src": "fight", "fight": true, "npc": 254001, "d": 2.0, "dy": -0.13, "body": 4.6, "cam": 117.4, "lock": false, "ok": true}
+{"t": 73.43, "ev": "vital", "hp": 503, "max": 616, "near": 2}
+{"t": 73.93, "ev": "align", "src": "fight", "fight": true, "npc": 254001, "d": 2.07, "dy": -0.13, "body": 5.3, "cam": 69.0, "lock": false, "ok": true}
+{"t": 73.94, "ev": "vital", "hp": 503, "max": 616, "near": 2}
+{"t": 74.44, "ev": "align", "src": "fight", "fight": true, "npc": 254001, "d": 1.99, "dy": -0.12, "body": 9.8, "cam": 24.7, "lock": false, "ok": true}
+{"t": 74.45, "ev": "vital", "hp": 503, "max": 616, "near": 2}
+{"t": 74.95, "ev": "align", "src": "fight", "fight": true, "npc": 254001, "d": 1.55, "dy": -0.09, "body": 9.4, "cam": 2.9, "lock": true, "ok": true}
+{"t": 74.96, "ev": "vital", "hp": 400, "max": 616, "near": 2}
+{"t": 75.46, "ev": "align", "src": "fight", "fight": true, "npc": 254001, "d": 1.19, "dy": -0.07, "body": 8.2, "cam": -0.7, "lock": true, "ok": true}
+{"t": 75.47, "ev": "vital", "hp": 400, "max": 616, "near": 2}
+{"t": 75.97, "ev": "align", "src": "fight", "fight": true, "npc": 254001, "d": 0.85, "dy": -0.08, "body": 7.0, "cam": -17.4, "lock": false, "ok": true}
+{"t": 75.98, "ev": "vital", "hp": 400, "max": 616, "near": 2}
+{"t": 76.13, "ev": "duel", "tag": "#5 254002", "npc": 254002, "result": "losing", "secs": 16.6, "dealt": 0, "taken": 216, "fight": "20261101_152928_clear-ramp#f005"}
+{"t": 76.16, "ev": "guard_keep", "until": 1.3}
+{"t": 76.36, "ev": "hit", "n": 2, "lost": 103, "hp": 400, "max": 616, "secs": 0.0, "blame": [{"npc": 254002, "ptr": 482922640, "anim": 3003, "d": 0.83, "dy": 0.04, "face": 0}, {"npc": 254001, "ptr": 482935952, "anim": 3000, "d": 1.9, "dy": -0.11, "face": 1}]}
+{"t": 76.48, "ev": "vital", "hp": 400, "max": 616, "near": 2}
+{"t": 76.61, "ev": "align", "src": "attacker", "fight": false, "npc": 254002, "d": 0.85, "dy": 0.0, "body": -48.2, "cam": -101.1, "lock": false, "ok": false}
+{"t": 76.69, "ev": "escape_pick", "src": "R", "point": [-13.498538097616587, -38.99706522623698, 11.408594296064743], "kept": 6, "cands": 9}
+{"t": 76.7, "ev": "break_out", "hits": 0, "foes": 2, "dir": 60}
+{"t": 76.99, "ev": "vital", "hp": 400, "max": 616, "near": 2}
+{"t": 77.14, "ev": "align", "src": "attacker", "fight": false, "npc": 254002, "d": 1.24, "dy": 0.05, "body": -159.9, "cam": -79.6, "lock": false, "ok": false}
+{"t": 77.5, "ev": "vital", "hp": 329, "max": 616, "near": 2}
+{"t": 77.67, "ev": "align", "src": "attacker", "fight": false, "npc": 254002, "d": 1.67, "dy": 0.08, "body": -162.7, "cam": -85.0, "lock": false, "ok": false}
+{"t": 77.88, "ev": "guard_keep", "until": 0.79}
+{"t": 78.01, "ev": "vital", "hp": 329, "max": 616, "near": 2}
+{"t": 78.17, "ev": "align", "src": "attacker", "fight": false, "npc": 254002, "d": 2.05, "dy": 0.04, "body": -166.5, "cam": -86.1, "lock": false, "ok": false}
+{"t": 78.52, "ev": "vital", "hp": 329, "max": 616, "near": 2}
+{"t": 78.68, "ev": "align", "src": "attacker", "fight": false, "npc": 254002, "d": 1.92, "dy": 0.03, "body": -173.9, "cam": -97.5, "lock": false, "ok": false}
+{"t": 79.03, "ev": "vital", "hp": 329, "max": 616, "near": 2}
+{"t": 79.17, "ev": "roll", "why": "break_out", "want": 56, "got": 55, "off": 1}
+{"t": 79.26, "ev": "align", "src": "attacker", "fight": false, "npc": 254001, "d": 0.97, "dy": -0.09, "body": -121.0, "cam": -44.9, "lock": false, "ok": false}
+{"t": 79.54, "ev": "vital", "hp": 329, "max": 616, "near": 2}
+{"t": 79.86, "ev": "align", "src": "attacker", "fight": false, "npc": 254002, "d": 2.29, "dy": -0.07, "body": 145.6, "cam": -6.9, "lock": false, "ok": false}
+{"t": 80.05, "ev": "vital", "hp": 266, "max": 616, "near": 2}
+{"t": 80.55, "ev": "align", "src": "attacker", "fight": false, "npc": 254001, "d": 2.98, "dy": -0.1, "body": 149.5, "cam": 39.7, "lock": false, "ok": false}
+{"t": 80.56, "ev": "vital", "hp": 266, "max": 616, "near": 2}
+{"t": 81.07, "ev": "vital", "hp": 266, "max": 616, "near": 2}
+{"t": 81.23, "ev": "align", "src": "attacker", "fight": false, "npc": 254002, "d": 4.86, "dy": -0.1, "body": 163.6, "cam": -8.9, "lock": false, "ok": false}
+{"t": 81.59, "ev": "vital", "hp": 266, "max": 616, "near": 0}
+{"t": 81.77, "ev": "align", "src": "attacker", "fight": false, "npc": 254001, "d": 6.09, "dy": -0.14, "body": 175.4, "cam": 3.4, "lock": false, "ok": false}
+{"t": 82.1, "ev": "vital", "hp": 266, "max": 616, "near": 0}
+{"t": 82.34, "ev": "align", "src": "attacker", "fight": false, "npc": 254001, "d": 5.68, "dy": -0.13, "body": -12.2, "cam": 2.4, "lock": false, "ok": true}
+{"t": 82.61, "ev": "vital", "hp": 266, "max": 616, "near": 2}
+{"t": 82.86, "ev": "align", "src": "attacker", "fight": false, "npc": 254001, "d": 3.83, "dy": -0.09, "body": -17.2, "cam": -6.0, "lock": false, "ok": true}
+{"t": 83.12, "ev": "vital", "hp": 266, "max": 616, "near": 2}
+{"t": 83.52, "ev": "align", "src": "attacker", "fight": false, "npc": 254001, "d": 1.61, "dy": -0.04, "body": -40.2, "cam": -3.1, "lock": false, "ok": false}
+{"t": 83.63, "ev": "vital", "hp": 266, "max": 616, "near": 2}
+{"t": 84.1, "ev": "align", "src": "fight", "fight": true, "npc": 254001, "d": 1.11, "dy": -0.02, "body": -4.0, "cam": -6.5, "lock": false, "ok": true}
+{"t": 84.13, "ev": "vital", "hp": 266, "max": 616, "near": 2}
+{"t": 84.65, "ev": "align", "src": "fight", "fight": true, "npc": 254001, "d": 0.85, "dy": -0.02, "body": 2.0, "cam": -0.5, "lock": false, "ok": true}
+{"t": 84.65, "ev": "vital", "hp": 266, "max": 616, "near": 2}
+{"t": 85.15, "ev": "vital", "hp": 174, "max": 616, "near": 2}
+{"t": 85.18, "ev": "align", "src": "fight", "fight": true, "npc": 254001, "d": 1.32, "dy": -0.02, "body": 11.4, "cam": 1.5, "lock": false, "ok": true}
+{"t": 85.59, "ev": "attack_align", "kind": "light", "dmg": 0, "npc": 254001, "d": 0.85, "dy": -0.02, "body": 6.2, "cam": 3.7, "lock": false, "ok": true}
+{"t": 85.67, "ev": "vital", "hp": 174, "max": 616, "near": 2}
+{"t": 85.71, "ev": "align", "src": "fight", "fight": true, "npc": 254001, "d": 1.41, "dy": -0.02, "body": 8.7, "cam": -7.5, "lock": true, "ok": true}
+{"t": 86.17, "ev": "vital", "hp": 174, "max": 616, "near": 2}
+{"t": 86.22, "ev": "align", "src": "fight", "fight": true, "npc": 254001, "d": 1.54, "dy": -0.04, "body": 9.6, "cam": -3.9, "lock": false, "ok": true}
+{"t": 86.29, "ev": "hit", "n": 3, "lost": 92, "hp": 174, "max": 616, "secs": 0.0, "blame": [{"npc": 254001, "ptr": 482935952, "anim": 3000, "d": 0.85, "dy": -0.02, "face": 1}, {"npc": 254002, "ptr": 482922640, "anim": 3008, "d": 2.17, "dy": -0.06, "face": 39}]}
+{"t": 86.67, "ev": "vital", "hp": 174, "max": 616, "near": 2}
+{"t": 86.8, "ev": "align", "src": "fight", "fight": true, "npc": 254001, "d": 1.17, "dy": -0.02, "body": 13.3, "cam": -0.2, "lock": false, "ok": true}
+{"t": 87.21, "ev": "vital", "hp": 174, "max": 616, "near": 2}
+{"t": 87.35, "ev": "align", "src": "fight", "fight": true, "npc": 254002, "d": 2.47, "dy": -0.05, "body": -4.4, "cam": -18.0, "lock": false, "ok": true}
+{"t": 87.72, "ev": "vital", "hp": 174, "max": 616, "near": 2}
+{"t": 87.86, "ev": "align", "src": "fight", "fight": true, "npc": 254002, "d": 2.44, "dy": -0.05, "body": 0.0, "cam": -4.1, "lock": false, "ok": true}
+{"t": 88.22, "ev": "vital", "hp": 174, "max": 616, "near": 2}
+{"t": 88.37, "ev": "align", "src": "fight", "fight": true, "npc": 254002, "d": 1.59, "dy": -0.05, "body": 1.2, "cam": -2.5, "lock": false, "ok": true}
+{"t": 88.73, "ev": "vital", "hp": 174, "max": 616, "near": 2}
+{"t": 88.89, "ev": "align", "src": "fight", "fight": true, "npc": 254002, "d": 1.33, "dy": -0.06, "body": 6.2, "cam": 2.8, "lock": false, "ok": true}
+{"t": 89.24, "ev": "vital", "hp": 174, "max": 616, "near": 2}
+{"t": 89.4, "ev": "align", "src": "fight", "fight": true, "npc": 254002, "d": 1.31, "dy": -0.18, "body": 11.6, "cam": 9.7, "lock": false, "ok": true}
+{"t": 89.54, "ev": "attack_align", "kind": "light", "dmg": 59, "npc": 254002, "d": 1.71, "dy": -0.05, "body": 0.3, "cam": -3.6, "lock": false, "ok": true}
+{"t": 89.75, "ev": "vital", "hp": 174, "max": 616, "near": 2}
+{"t": 89.92, "ev": "align", "src": "fight", "fight": true, "npc": 254002, "d": 1.52, "dy": -0.27, "body": -11.5, "cam": 2.1, "lock": false, "ok": true}
+{"t": 90.26, "ev": "vital", "hp": 174, "max": 616, "near": 2}
+{"t": 90.33, "ev": "attack_align", "kind": "light", "dmg": 16, "npc": 254002, "d": 1.44, "dy": -0.23, "body": 12.1, "cam": 6.9, "lock": false, "ok": true}
+{"t": 90.43, "ev": "align", "src": "fight", "fight": true, "npc": 254001, "d": 1.74, "dy": -0.14, "body": 21.2, "cam": 24.3, "lock": false, "ok": true}
+{"t": 90.77, "ev": "vital", "hp": 174, "max": 616, "near": 1}
+{"t": 90.95, "ev": "align", "src": "fight", "fight": true, "npc": 254001, "d": 2.33, "dy": -0.51, "body": 20.6, "cam": 5.9, "lock": false, "ok": true}
+{"t": 91.28, "ev": "vital", "hp": 174, "max": 616, "near": 1}
+{"t": 91.34, "ev": "attack_align", "kind": "light", "dmg": 16, "npc": 254001, "d": 1.6, "dy": -0.13, "body": 21.3, "cam": 25.7, "lock": false, "ok": true}
+{"t": 91.34, "ev": "duel", "tag": "오는 놈 254001", "npc": 254001, "result": "killed", "secs": 7.7, "dealt": 91, "taken": 92, "fight": "20261101_152928_clear-ramp#f006"}
+{"t": 91.79, "ev": "vital", "hp": 174, "max": 616, "near": 0}
+{"t": 92.3, "ev": "vital", "hp": 174, "max": 616, "near": 0}
+{"t": 92.8, "ev": "vital", "hp": 174, "max": 616, "near": 0}
+{"t": 93.31, "ev": "vital", "hp": 474, "max": 616, "near": 0}
+{"t": 93.55, "ev": "estus", "ok": true, "hp": [174, 474], "left": 9, "why": null}
+{"t": 93.62, "ev": "duel", "tag": "#5 254002 (2번째)", "npc": null, "result": "killed", "secs": 0.0, "dealt": 0, "taken": 0, "fight": "20261101_152928_clear-ramp#f007"}
+{"t": 93.69, "ev": "duel", "tag": "#4 254001", "npc": null, "result": "killed", "secs": 0.1, "dealt": 0, "taken": 0, "fight": "20261101_152928_clear-ramp#f008"}
+{"t": 93.78, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 9.49, "dy": 5.69, "body": -66.8, "cam": -77.9, "lock": false, "ok": false}
+{"t": 93.81, "ev": "vital", "hp": 474, "max": 616, "near": 0}
+{"t": 94.32, "ev": "vital", "hp": 474, "max": 616, "near": 0}
+{"t": 94.36, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 9.73, "dy": 5.67, "body": 142.5, "cam": -6.8, "lock": false, "ok": false}
+{"t": 94.82, "ev": "vital", "hp": 474, "max": 616, "near": 0}
+{"t": 94.89, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 10.76, "dy": 5.57, "body": 96.0, "cam": 4.6, "lock": false, "ok": false}
+{"t": 95.33, "ev": "vital", "hp": 474, "max": 616, "near": 0}
+{"t": 95.43, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 10.02, "dy": 5.52, "body": 2.0, "cam": 6.2, "lock": false, "ok": true}
+{"t": 95.84, "ev": "vital", "hp": 474, "max": 616, "near": 0}
+{"t": 95.95, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 8.38, "dy": 4.5, "body": 2.4, "cam": 6.1, "lock": false, "ok": true}
+{"t": 96.34, "ev": "vital", "hp": 474, "max": 616, "near": 1}
+{"t": 96.49, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 5.44, "dy": 3.39, "body": -14.0, "cam": 6.8, "lock": false, "ok": true}
+{"t": 96.85, "ev": "vital", "hp": 474, "max": 616, "near": 2}
+{"t": 97.04, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 1.99, "dy": 1.24, "body": 7.6, "cam": 2.0, "lock": true, "ok": true}
+{"t": 97.04, "ev": "guard_keep", "until": 1.3}
+{"t": 97.18, "ev": "duel", "tag": "#6 254000", "npc": 254000, "result": "unsafe_approach", "secs": 3.5, "dealt": 0, "taken": 0, "fight": "20261101_152928_clear-ramp#f009"}
+{"t": 97.37, "ev": "vital", "hp": 474, "max": 616, "near": 2}
+{"t": 97.56, "ev": "align", "src": "attacker", "fight": false, "npc": 254000, "d": 2.25, "dy": 1.4, "body": -1.3, "cam": 1.8, "lock": true, "ok": true}
+{"t": 97.88, "ev": "vital", "hp": 474, "max": 616, "near": 2}
+{"t": 98.08, "ev": "align", "src": "attacker", "fight": false, "npc": 254000, "d": 2.62, "dy": 1.63, "body": -2.0, "cam": 0.4, "lock": true, "ok": true}
+{"t": 98.4, "ev": "vital", "hp": 474, "max": 616, "near": 2}
+{"t": 98.63, "ev": "align", "src": "attacker", "fight": false, "npc": 254000, "d": 2.2, "dy": 1.37, "body": -2.0, "cam": 0.3, "lock": true, "ok": true}
+{"t": 98.9, "ev": "vital", "hp": 474, "max": 616, "near": 2}
+{"t": 99.17, "ev": "align", "src": "attacker", "fight": false, "npc": 254000, "d": 1.42, "dy": 0.88, "body": 1.3, "cam": 2.7, "lock": true, "ok": true}
+{"t": 99.41, "ev": "vital", "hp": 474, "max": 616, "near": 2}
+{"t": 99.71, "ev": "align", "src": "last", "fight": false, "npc": 254000, "d": 2.1, "dy": 1.3, "body": -7.3, "cam": -3.6, "lock": true, "ok": true}
+{"t": 99.91, "ev": "vital", "hp": 474, "max": 616, "near": 2}
+{"t": 100.22, "ev": "align", "src": "last", "fight": false, "npc": 254000, "d": 2.19, "dy": 1.36, "body": -7.1, "cam": -3.3, "lock": true, "ok": true}
+{"t": 100.42, "ev": "vital", "hp": 474, "max": 616, "near": 2}
+{"t": 100.74, "ev": "align", "src": "last", "fight": false, "npc": 254000, "d": 2.04, "dy": 1.26, "body": -4.9, "cam": -1.0, "lock": true, "ok": true}
+{"t": 100.93, "ev": "vital", "hp": 474, "max": 616, "near": 2}
+{"t": 101.25, "ev": "align", "src": "attacker", "fight": false, "npc": 254000, "d": 1.76, "dy": 1.09, "body": -8.5, "cam": -4.0, "lock": true, "ok": true}
+{"t": 101.43, "ev": "vital", "hp": 474, "max": 616, "near": 2}
+{"t": 101.77, "ev": "align", "src": "last", "fight": false, "npc": 254000, "d": 0.84, "dy": 0.51, "body": 2.3, "cam": -4.7, "lock": true, "ok": true}
+{"t": 101.94, "ev": "vital", "hp": 474, "max": 616, "near": 2}
+{"t": 102.32, "ev": "align", "src": "last", "fight": false, "npc": 254000, "d": 2.0, "dy": 1.24, "body": -17.4, "cam": -4.8, "lock": true, "ok": true}
+{"t": 102.45, "ev": "vital", "hp": 474, "max": 616, "near": 2}
+{"t": 102.84, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 1.99, "dy": 1.23, "body": -14.9, "cam": -2.3, "lock": true, "ok": true}
+{"t": 102.96, "ev": "vital", "hp": 474, "max": 616, "near": 2}
+{"t": 103.37, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 1.9, "dy": 1.15, "body": -11.3, "cam": 0.6, "lock": true, "ok": true}
+{"t": 103.47, "ev": "vital", "hp": 474, "max": 616, "near": 2}
+{"t": 103.9, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 1.53, "dy": 0.94, "body": -14.0, "cam": -2.6, "lock": true, "ok": true}
+{"t": 103.98, "ev": "vital", "hp": 474, "max": 616, "near": 2}
+{"t": 104.44, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 1.61, "dy": 0.95, "body": -18.4, "cam": -6.6, "lock": true, "ok": true}
+{"t": 104.48, "ev": "vital", "hp": 474, "max": 616, "near": 2}
+{"t": 104.96, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 1.88, "dy": 1.14, "body": -3.1, "cam": -5.1, "lock": true, "ok": true}
+{"t": 104.99, "ev": "vital", "hp": 474, "max": 616, "near": 2}
+{"t": 105.47, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 1.22, "dy": 0.74, "body": -2.9, "cam": -2.0, "lock": true, "ok": true}
+{"t": 105.5, "ev": "vital", "hp": 474, "max": 616, "near": 2}
+{"t": 105.7, "ev": "attack_align", "kind": "light", "dmg": 74, "npc": 254000, "d": 0.84, "dy": 0.49, "body": -3.0, "cam": -4.4, "lock": true, "ok": true}
+{"t": 105.98, "ev": "align", "src": "fight", "fight": true, "npc": 254000, "d": 1.43, "dy": 0.87, "body": 0.9, "cam": 0.3, "lock": true, "ok": true}
+{"t": 106.01, "ev": "vital", "hp": 474, "max": 616, "near": 2}
+{"t": 106.43, "ev": "attack_align", "kind": "light", "dmg": 1, "npc": 254000, "d": 1.38, "dy": 0.84, "body": -3.1, "cam": -0.3, "lock": true, "ok": true}
+{"t": 106.43, "ev": "duel", "tag": "오는 놈 254000", "npc": 254000, "result": "killed", "secs": 4.0, "dealt": 75, "taken": 0, "fight": "20261101_152928_clear-ramp#f010"}
+{"t": 106.46, "ev": "duel", "tag": "#6 254000", "npc": null, "result": "killed", "secs": 0.0, "dealt": 0, "taken": 0, "fight": "20261101_152928_clear-ramp#f011"}
+{"t": 106.53, "ev": "vital", "hp": 474, "max": 616, "near": 1}
+{"t": 107.04, "ev": "vital", "hp": 474, "max": 616, "near": 1}
+{"t": 107.55, "ev": "vital", "hp": 474, "max": 616, "near": 1}
+{"t": 108.06, "ev": "vital", "hp": 474, "max": 616, "near": 1}
+{"t": 108.57, "ev": "vital", "hp": 474, "max": 616, "near": 1}
+{"t": 109.08, "ev": "vital", "hp": 474, "max": 616, "near": 1}
+{"t": 109.59, "ev": "vital", "hp": 474, "max": 616, "near": 1}
+{"t": 110.11, "ev": "vital", "hp": 474, "max": 616, "near": 0}
+{"t": 110.61, "ev": "vital", "hp": 474, "max": 616, "near": 0}
+{"t": 111.11, "ev": "vital", "hp": 474, "max": 616, "near": 0}
+{"t": 111.63, "ev": "vital", "hp": 474, "max": 616, "near": 0}
+{"t": 112.14, "ev": "vital", "hp": 474, "max": 616, "near": 0}
+{"t": 112.64, "ev": "vital", "hp": 474, "max": 616, "near": 0}
+{"t": 113.15, "ev": "vital", "hp": 474, "max": 616, "near": 0}
+{"t": 113.66, "ev": "vital", "hp": 474, "max": 616, "near": 0}
+{"t": 114.17, "ev": "vital", "hp": 474, "max": 616, "near": 0}
+{"t": 114.68, "ev": "vital", "hp": 474, "max": 616, "near": 0}
+{"t": 115.19, "ev": "vital", "hp": 474, "max": 616, "near": 0}
+{"t": 115.7, "ev": "vital", "hp": 474, "max": 616, "near": 0}
+{"t": 116.21, "ev": "vital", "hp": 474, "max": 616, "near": 0}
+{"t": 116.71, "ev": "vital", "hp": 474, "max": 616, "near": 0}
+{"t": 117.22, "ev": "vital", "hp": 474, "max": 616, "near": 0}
+{"t": 117.73, "ev": "vital", "hp": 474, "max": 616, "near": 0}
+{"t": 118.24, "ev": "vital", "hp": 474, "max": 616, "near": 0}
+{"t": 118.48, "ev": "result", "cmd": "clear-ramp", "result": "cleared"}

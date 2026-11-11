@@ -73,6 +73,12 @@ class FakePad:
     def neutral(self):
         self.calls.append(("neutral",))
 
+    def unkeep(self):
+        self.calls.append(("unkeep",))
+
+    def release_due(self):
+        self.calls.append(("release_due",))
+
     def look(self, x, y):
         self.calls.append(("look", x, y))
 

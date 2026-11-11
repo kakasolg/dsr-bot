@@ -9,6 +9,11 @@
   python run.py merchant                 from here to the merchant (no rest)
   python run.py light-burg               from here (Undead Burg), just light the bonfire
   python run.py burg-upper [--seg 1-7]   Undead Burg bonfire → Taurus fog wall, MoKa's safe-spot zones (ROADMAP 1-m; zone 1 rests first)
+  python run.py taurus                   Taurus Demon from in front of its fog wall: bridge → ladder → resin → plunge → fight close
+                                         (start: `python savepoint.py restore backup-20261011-235526-zone8-top-taurus-start`)
+  python run.py altar                    Hellkite bridge entry → stairs → cover → dash past the Hellkite → Claymore → Sunlight Altar
+                                         (start: `python savepoint.py restore backup-20261012-152651-altar-bridge-entry-no-drake`)
+  python run.py altar-burg               Sunlight Altar → back over the bridge → down the kicked ladder → Undead Burg bonfire
   python run.py quit-test                kill #1 and compare ramp enemy survival before/after quit-out (does quit-out revive dead enemies?)
 
   python run.py watch --radar            no bot: read-only radar while you play by hand (no pad input, no memory writes;
@@ -21,6 +26,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import sys
 import threading
 import time
@@ -28,6 +34,9 @@ from pathlib import Path
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
+
+# run.py는 DSR 전용 — env.py 기본값(er)은 옛 엘든링 루프용이라 여기서 덮음
+os.environ.setdefault("BOT_GAME", "dsr")
 
 ROOT = Path(__file__).resolve().parent
 
@@ -45,6 +54,7 @@ class Log:
         self._lock = threading.Lock()          # the black box writer thread writes to the same file
         self.t0 = time.time()
         self.on_line = None                    # radar hook (--radar): gets each log line, must not raise
+        self.zone = None                       # "burg-upper:5" while a zone / segment runs — added to every event (runinfo, ROADMAP 1-i)
 
     def __call__(self, msg: str) -> None:
         line = f"[{time.time() - self.t0:7.1f}] {msg}"
@@ -57,10 +67,48 @@ class Log:
 
     def event(self, _ev: str, **kw) -> None:
         # the arg used to be named kind; it collided with the quit-out result's kind and stopped the bot (2026-09-24)
-        line = json.dumps({"t": round(time.time() - self.t0, 2), "ev": _ev, **kw}, ensure_ascii=False, default=str)
+        z = {"zone": self.zone} if self.zone and "zone" not in kw else {}
+        line = json.dumps({"t": round(time.time() - self.t0, 2), "ev": _ev, **z, **kw}, ensure_ascii=False, default=str)
         with self._lock:
             self.ev.write(line + "\n")
             self.ev.flush()
+
+
+def _shop(a, mv, nm, fld, log) -> str:
+    """At the Undead Merchant: buy a.buy (souls/shop.py). → 'shop ok' | 'shop partial' | 'shop <why>'"""
+    from souls import shop as shop_
+    items = shop_.parse_items(a.buy or "")
+    if not items:
+        return "shop: --buy 없음"
+    shoot = None
+    if a.shop_shots:
+        import shot
+        out = Path(__file__).resolve().parent / "data" / "shop" / time.strftime("%Y%m%d")
+        out.mkdir(parents=True, exist_ok=True)
+
+        def shoot(tag: str) -> None:                       # same files as pad_step.py: <nn>_<tag>.jpg, 960 px JPEG
+            n = len(list(out.glob("*.jpg"))) + 1
+            png = out / f"{n:02d}_bot_{tag}.png"
+            shot.shot(png)
+            from PIL import Image
+            Image.open(png).convert("RGB").save(png.with_suffix(".jpg"), quality=70)
+            png.unlink()
+    res = shop_.Shop(mv, nm, log=log, events=log.event, shoot=shoot, walk_to=fld.walk_to).buy(items)
+    log(f"── 상점: {res['result']} — " + ", ".join(f"{x['goods']} {x.get('bought', 0)}/{x['want']}" for x in res["items"]))
+    _quick_slot(mv.tm, [x["goods"] for x in res["items"] if x.get("bought")], log)
+    return f"shop {res['result']}"
+
+
+def _quick_slot(tm, goods, log) -> None:
+    """Bought items into an empty quick slot — the bot can only use quick-slot items (Missions._has).
+    산 직후 퀵 슬롯에 없으면 burg-upper --throw 의 나이프 유인이 그냥 몸 유인으로 넘어간다 ([MoKa] 11-02 "원거리에서 하나씩 유인")"""
+    import steam_state
+    for g in goods:
+        if g in (tm.quick_items() or []):
+            continue
+        slot = tm.equip_quick_item(g) if steam_state.check().get("offline") is True else None
+        log(f"   상점: {g} 퀵 슬롯 " + (f"{slot + 1}번째 칸에 넣음 → {tm.quick_items()}" if slot is not None
+                                   else f"못 넣음 (Steam 오프라인 확인 안 됨 또는 빈 칸 없음, 슬롯 {tm.quick_items()})"))
 
 
 def status() -> None:
@@ -77,13 +125,85 @@ def status() -> None:
 
 
 LURE_CMDS = {"burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt-one"}   # knife lures (souls/field.py lure)
+# commands whose missions call Missions._loot (clear_ramp · clear_burg_town · upper_zone · hunt_one); others: no drop pickup
+LOOT_CMDS = {"clear-ramp", "burg-bonfire", "burg-loop", "clear-burg-town", "hunt-one", "merchant", "burg-upper", "burg-altar",
+             "pick-blood"}
+ESTUS_HOME = 1        # --level-up: this many estus left after a zone → back to the bonfire instead of the next zone ([MoKa] 10-31)
+
+
+def _stain_carry(log):
+    """--pick-stain: the stain on record (data/bloodstain.json) and its burg-upper zone → afterdeath carry, or None."""
+    import places
+    from souls.watch import Blood
+    st = Blood.read()
+    zn = places.upper_zone(*st["pos"]) if st and st.get("pos") else None
+    log(f"   핏자국 기록: {st} → 구역 {zn}" if zn else f"   핏자국 기록 없음/상층 밖: {st}")
+    return (st, zn) if zn else None
+
+
+def _navmesh(map_id: str, log):
+    """The map's NavMesh from the game folder. Godot room only (BOT_GAME=sim), when the game isn't installed (cloud):
+    [win]'s export of the same mesh, data/samples/navmesh_<map>.npz — what sim/ramp_scene.py builds the room's floor
+    from. Game runs never fall back (a missing game folder stops them, as before)."""
+    import env
+    import navmesh
+    npz = Path(__file__).resolve().parent / "data" / "samples" / f"navmesh_{map_id}.npz"
+    game = Path(navmesh.GAME_DIR) / "map" / map_id / f"{map_id}.nvmbnd.dcx"
+    if env.SIM and not game.exists() and npz.exists():
+        log(f"   NavMesh {map_id}: 게임 폴더 없음 → {npz.name} (연습장 전용)")
+        return navmesh.Navmesh.from_npz(npz)
+    return navmesh.Navmesh(map_id)
+
+
+def _arena(fld, nm, log, limit: float = 240.0) -> str:
+    """Godot 연습장 평지 (MoKa M1109-75): 살아 있는 적 중 가장 가까운 놈부터 Field.fight — 다 죽이면 cleared, 죽으면 died.
+    미션·화톳불·줍기 없음. 적 둘이 같이 오므로 한 놈과 싸우는 동안 다른 놈이 끼어드는 상황이 그대로 생긴다."""
+    t0 = time.time()
+    while fld.mv.snap(45.0) is None and time.time() - t0 < 60.0:   # 연습장이 뜨기 전 (모델 로딩) — 첫 판이 여기서 died로 끝남
+        time.sleep(0.5)
+    t0 = time.time()
+    n = 0
+    low = False
+    while time.time() - t0 < limit:
+        if not fld.alive():
+            return "died"
+        s = fld.mv.snap(45.0)
+        foes = sorted(s.hostile(40.0), key=lambda c: c.dist) if s else []
+        if not foes:
+            return "cleared"
+        c = foes[0]
+        n += 1
+        res = fld.fight(c.ptr, nm, f"arena{n} {c.npc_param}", desperate=low)
+        log(f"   싸움 {n} ({c.npc_param}, {c.dist:.1f} m에서): {res.result}, {res.secs:.1f} s, 준 {res.dealt} · 받은 {res.taken}")
+        # low_hp: 물러나 마시기 (Field.heal — 근처에 적이면 안 마심 / 30 % 밑이면 각오하고). 그래도 낮으면 다음 싸움은 끝까지
+        #  (3판: low_hp가 0 s로 25번 되풀이)
+        low = False
+        if res.result == "low_hp":
+            fld.heal()
+            s2 = fld.mv.snap(45.0)
+            low = bool(s2 and s2.player.hp < s2.player.max_hp * 0.5)
+    return "timeout"
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["status", "watch", "burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt-one", "merchant", "light-burg", "burg-upper", "quit-test", "passage-drill", "asylum"])
+    ap.add_argument("cmd", choices=["status", "watch", "burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt-one", "merchant", "to-firelink", "light-burg", "burg-upper", "quit-test", "passage-drill", "asylum", "taurus", "merchant-buy", "altar", "altar-burg", "burg-to-altar", "light-altar", "firebomb-probe", "pick-blood", "burg-altar", "parish-group1", "parish-route", "arena"])
     ap.add_argument("--no-rest", action="store_true")
     ap.add_argument("--no-quit", action="store_true", help="퀵 종료(메뉴로 나갔다 오기) 안 씀 — 영상 촬영용")
+    ap.add_argument("--fall-quit", action="store_true", help="낙하 때 예전처럼 퀵 종료 (기본: 기록만 하고 계속, [MoKa] 2026-10-12)")
+    ap.add_argument("--buy", default=None, help="상인에게서 살 것 '290:30,292:20' (goods:개수 — 290 투척 나이프, 292 화염병). "
+                    "merchant-buy: 지금 선 곳에서 · burg-bonfire --seg …5: 상인 도착 뒤 (souls/shop.py)")
+    ap.add_argument("--drops", action="store_true", help="(예전 옵션) 이제 기본값 — 드롭 줍기는 LOOT_CMDS에서 늘 켜짐, 끄려면 --no-loot")
+    ap.add_argument("--no-loot", action="store_true", help="적 드롭 자동 줍기 끔 (souls/loot.py) — 진단·비교용, 예전 동작 그대로")
+    ap.add_argument("--no-firebomb", action="store_true", help="화염병을 후보로 안 씀 (firebomb-candidate: 퀵 슬롯에 292가 있으면 유인 첫 투척 · "
+                    "둘 이상 다가올 때 · 턱 위 화염병 망자에 씀)")
+    ap.add_argument("--throw", action="store_true", help="burg-upper: 투척 나이프로 유인 (달려가기 전), 화염병 — 둘 이상 다가올 때 · 턱 위 화염병 망자 "
+                    "(souls/missions.py FB_*; 퀵 슬롯에 290 · 292, [MoKa] 2026-10-12)")
+    ap.add_argument("--shop-shots", action="store_true", help="상점 단계마다 스크린샷 data/shop/<날짜>/ (pad_step.py처럼)")
+    ap.add_argument("--no-guard-keep", action="store_true", help="가드 유지 스레드 끔 (souls/guardkeep.py — 2.5 m 안 적이 휘두르는 동안 LB 유지; A/B 비교용)")
+    ap.add_argument("--dists", default="5,8,12,15", help="firebomb-probe: 254010까지 거리들 (m)")
+    ap.add_argument("--fb-target", default="hollow", choices=["hollow", "crossbow"], help="firebomb-probe: 구역 1 첫 망자 또는 석궁병 255002")
+    ap.add_argument("--no-recover", action="store_true", help="burg-upper: 죽으면 그대로 끝 (기본: 핏자국이 값지면 화톳불부터 다시 가서 회수, souls/afterdeath.py)")
     ap.add_argument("--i", type=int, default=5, help="hunt-one: BURG_TOWN 몇 번째 (5 = 석궁병 255002)")
     ap.add_argument("--seg", default=None, help="asylum: 구간 번호 또는 범위 (기본 1; 1 = 감방 → 사다리 → 첫 화톳불, 2-3 = 이어서, ROADMAP 1-h). "
                     "burg-bonfire: 구역 하나 또는 범위만 하고 멈춤 — 1 경사로 · 2 비밀 통로 · 3 마을 #1~#3 · 4 마을 #4~#6 · 5 상인 · 6 화톳불 (기본: 전부). burg-upper: 안전 자리 구역 1~7 (기본: 전부, 7 = 안개벽 앞)")
@@ -99,11 +219,45 @@ def main() -> None:
                          "Laya 추론·행동 반영 없음, 패드·규칙엔 반영 안 함. outcome proxy, not human-verified tactical label, not a safety validation")
     ap.add_argument("--ctl", action="store_true",
                     help="P1: controller timing events → data/runs/<시각>_<명령>.ctl.jsonl (ctl.py) — 기본 꺼짐. 기록만, 패드·규칙엔 반영 안 함")
+    ap.add_argument("--ctl-frames", action="store_true",
+                    help="P1-D: --ctl 과 함께, 피드 프레임마다 한 줄 → data/runs/<시각>_<명령>.frames.jsonl (~9 KB/s) — 기본 꺼짐. 기록만")
+    ap.add_argument("--ctl-scenes", action="store_true",
+                    help="--ctl 에 더해 싸움 결정마다 그 순간의 입력을 .ctl.jsonl 에 'scene' 으로 (scenes.py) — python scene_replay.py 로 다시 돌림. 기록만")
+    ap.add_argument("--ctl-spans", action="store_true",
+                    help="--ctl 에 더해 싸움 루프의 관측→사이클→규칙→동작→패드 연결 기록 (span.*, 패드 기록에 cycle_id·action_id, ctlspan.py). 기록만")
+    ap.add_argument("--pull", action="store_true",
+                    help="나이프 없을 때 몸으로 끌기 — 알아채는 거리(data/notice.json) 바로 안까지만 다가가 하나만 깨우고 달려서 돌아옴 "
+                         "(souls/pull.py, field.NOTICE_PULL, [MoKa] 2026-10-11). 기본 꺼짐 (A/B용)")
+    ap.add_argument("--ground", action="store_true",
+                    help="걷기의 바닥 확인에 NavMesh + 걸어 본 자리(ground.py, data/walked/) — 통로·다리 아치처럼 NavMesh가 빈 곳을 낭떠러지로 안 봄. "
+                         "싸움·물러남·낙하 감지는 NavMesh 그대로 (field.GROUND_IN_FIGHTS, P-56). 기본 꺼짐 (A/B용)")
+    ap.add_argument("--crowd-warp", action="store_true",
+                    help="셋 이상 몰려 와 이미 붙어 있으면 마지막 화톳불로 워프 (게임 메모리 호출; 멀면 메뉴 퀵 종료는 늘 함) — 공격 기술 시험 "
+                         "(--combo-only · --drill)에서만, 정상 미션엔 안 씀 ([MoKa] 11-04 \"지금은 공격 기술 drill 이니 예외 상황으로 치자. "
+                         "정상적 미션에서 사용 하면 않됨\")")
+    ap.add_argument("--combo-only", action="store_true",
+                    help="시험: 공격은 구르기 약공·백스텝 약공·점프 공격만 (souls/duel.py COMBO_ONLY, [MoKa] 2026-11-03 P-121)")
+    ap.add_argument("--drill", default=None, choices=["backstep_r1", "roll_r1", "jump_r2", "kick_combo"],
+                    help="시험: 이 공격만 — 조건(자리·거리)부터 만들고 침, 다른 공격으로 안 바꿈 (--combo-only 포함, duel.DRILL, P-121)")
+    ap.add_argument("--footing", action="store_true",
+                    help="싸움 중 발밑이 위험하면(바닥 지도에서 발밑 바닥 없음, 또는 좁은데 밀리면 떨어짐) 넓은 쪽으로 방패 든 채 한 걸음 — "
+                         "duel.rule_footing, rule_edge 대신 (P-58·P-49, [MoKa] 2026-10-11). 기본 꺼짐 (A/B용)")
+    ap.add_argument("--note", default=None, help="한 줄 메모 — 실행 설정 기록(<run>.settings.json)과 로그 첫 줄에 남음 (예: 세이브 이름)")
+    ap.add_argument("--pick-stain", action="store_true", help="burg-upper: 시작 전 핏자국 기록(data/bloodstain.json)을 그 구역을 지난 뒤 주움")
+    ap.add_argument("--level-up", metavar="STAT", help="화톳불에서 쉴 때마다 소울로 이 능력치를 올림 (VIT …, levelup.py)")
+    ap.add_argument("--kindle", action="store_true",
+                    help="성벽 마을 화톳불에서 쉴 때 인간성 2 → 되살리기 → 불 지피기 (에스트 10병, kindle.py)")
     ap.add_argument("--no-lure", action="store_true", help="나이프로 한 놈씩 깨우지 않고 예전처럼 걸어가 붙는다 (비교용)")
     ap.add_argument("--style", choices=["guard", "backstep", "rush"], default="guard",
                     help="guard: 방패로 받고 휘청에 친다 (기본) | backstep: 양손, 백스텝으로 피하고 헛친 뒤 약공 | "
                          "rush: 양손, 막지도 피하지도 않고 계속 공격, 에스트로 버틴다 (사용자 제안, 실험)")
     a = ap.parse_args()
+    if a.crowd_warp and not (a.combo_only or a.drill):
+        ap.error("--crowd-warp는 공격 기술 시험 (--combo-only · --drill)에서만 ([MoKa] 11-04: 정상 미션에서 사용 안 됨)")
+    import settings
+    run_settings = settings.Settings.from_args(a)          # flags → one object (--basic, --pull, --footing, --combo-only,
+    #   --drill, --level-up, --kindle). Step 3: not applied to module globals — Field / Moves / fights read it; the settings
+    #   record overlays it on the module defaults
     if a.cmd == "status":
         return status()
     if a.cmd == "watch":                                    # read-only: no lock, no pad, no Log file — --radar implied
@@ -118,16 +272,49 @@ def main() -> None:
     import env
     import navmesh
     from botlock import BotLock
-    from souls import missions, moves, props, weapons
+    from souls import afterdeath, missions, moves, props, weapons
     from souls.field import Field
     from souls.watch import Blood, Escape
 
-    log = Log(a.cmd)
+    log = Log(("room-" if env.SIM else "") + a.cmd)          # Godot room runs (BOT_GAME=sim) never pass for game runs
+    import runinfo
+    settings_path = Path(str(log.path).replace(".jsonl", ".settings.json"))
+    t_run = time.time()
+    info, diff = runinfo.collect(log.path.stem, sys.argv, vars(a), note=a.note, overrides=run_settings.to_dict())
+    log(runinfo.short(info))                                # first line — travels with the log into data/samples/
+    if not runinfo.write(settings_path, info, diff):
+        log(f"   ⚠ 실행 설정 기록 못 씀: {settings_path}")
+
+    end_ctx: dict = {}                                      # tm / mv once they exist — run_end reads the end state with them
+
+    def run_end(result) -> None:                            # once; never raises (runinfo.end)
+        try:
+            st = runinfo.end_state(end_ctx.get("tm"), end_ctx.get("mv"))
+        except Exception:
+            st = {"end_read": None, "last_valid_obs": None, "end_state_known": False}
+        runinfo.end(settings_path, result=result, secs=round(time.time() - t_run, 1), **st)
     import ctl
+    if a.ctl_scenes or a.ctl_spans:
+        a.ctl = True                                        # the scenes / spans go into the .ctl.jsonl
     if a.ctl:                                               # before the Pad exists: atexit then closes the pad first, this after
         ctl.start(str(log.path).replace(".jsonl", ".ctl.jsonl"), run=log.path.stem, argv=sys.argv, cmd=a.cmd)
         ctl.emit("life", ev="start", cmd=a.cmd, args=vars(a))
         log(f"ctl: 기록만 → {str(log.path).replace('.jsonl', '.ctl.jsonl')}")
+        if a.ctl_spans:
+            import ctlspan
+            ctlspan.ON = True
+            log("ctl spans: 싸움 루프 관측→사이클→규칙→동작→패드 연결 기록 (판단엔 반영 안 함)")
+        if a.ctl_frames:
+            ctl.start_frames(str(log.path).replace(".jsonl", ".frames.jsonl"), run=log.path.stem)
+            log(f"ctl: 프레임 기록 → {str(log.path).replace('.jsonl', '.frames.jsonl')}")
+    elif a.ctl_frames:
+        log("   ⚠ --ctl-frames 는 --ctl 과 함께만 — 프레임 기록 안 함")
+    scene_tap = None
+    if a.ctl_scenes:
+        import scenes
+        from souls import duel as duel_scenes
+        scene_tap = duel_scenes.SCENE_TAP = scenes.Tap()
+        log("ctl scenes: 싸움 결정마다 그 순간의 입력 기록 (scene_replay.py 로 다시 돌림, 판단엔 반영 안 함)")
     lock = BotLock()
     # watchdog.py also polls briefly, grabbing and releasing at once — overlapping that instant can fail once, so retry a few times
     # (measured 2026-09-25: with a single try and no retry, 6 of 10 runs overlapped and failed immediately)
@@ -138,11 +325,15 @@ def main() -> None:
     else:
         log("   ⚠ 이미 다른 본체가 실행 중 — 겹쳐 켜면 패드가 부딪힌다, 멈춤")
         ctl.emit("life", ev="normal_exit", result="bot_lock_held")
+        run_end("bot_lock_held")
         return
     tm = env.make_telemetry({})
     import track
     track_ = track.Track(str(log.path).replace(".jsonl", ".track.jsonl")).attach(tm)   # planned vs actual path (track_report.py)
     log.on_line = track_.say
+    if hasattr(track_, "write"):
+        track_.write({"type": "run", "run": info["run"], "commit": info["code"]["commit"], "dirty": info["code"]["dirty"],
+                      "argv": info["argv"], "settings_sha1": info["settings_sha1"]})
     if a.radar:
         import radar
         radar_ = radar.Radar().attach(tm)
@@ -161,11 +352,25 @@ def main() -> None:
                 log(f"   ⚠ 투척 나이프(290)가 퀵 슬롯에 없음 (슬롯 {quick}, 가진 수 {have}) — 못 넣음: {why}. "
                     f"넣고 다시 켜거나 --no-lure. 멈춤 (게임 입력 없음)")
                 ctl.emit("life", ev="normal_exit", result="no_knife_slot")
+                run_end("no_knife_slot")
                 return
             log(f"   투척 나이프(290)가 퀵 슬롯에 없어서 {slot + 1}번째 빈 칸에 넣음 (가진 수 {have}) → 슬롯 {tm.quick_items()}")
+    if a.cmd == "firebomb-probe" and moves.ITEM_FIREBOMB not in tm.quick_items():
+        import steam_state
+        have = tm.goods_count(moves.ITEM_FIREBOMB) or 0
+        slot = tm.equip_quick_item(moves.ITEM_FIREBOMB) if have and steam_state.check().get("offline") is True else None
+        if slot is None:
+            log(f"   ⚠ 화염병(292)을 퀵 슬롯에 못 넣음 (슬롯 {tm.quick_items()}, 가진 수 {have}) — 멈춤 (게임 입력 없음)")
+            ctl.emit("life", ev="normal_exit", result="no_firebomb_slot")
+            run_end("no_firebomb_slot")
+            return
+        log(f"   화염병(292)을 {slot + 1}번째 빈 칸에 넣음 (가진 수 {have}) → 슬롯 {tm.quick_items()}")
     # one virtual pad per machine (P0-A): refuse before any input — focus_game already sends ALT / a title-bar click
-    busy = "다른 프로세스가 가상 패드를 쥐고 있음" if control.pad_lock_held() else None
-    if busy is None:
+    busy = "다른 프로세스가 가상 패드를 쥐고 있음" if control.pad_lock_held() and not env.SIM else None
+    if busy is None and env.SIM:                 # Godot 연습장: 같은 Pad 코드, 장치만 UDP (sim/godot_link.room_pad)
+        import godot_link
+        pad = godot_link.room_pad()
+    elif busy is None:
         control.focus_game()
         try:
             pad = control.Pad()
@@ -174,25 +379,46 @@ def main() -> None:
     if busy is not None:
         log(f"   ⚠ {busy} — 패드 둘이 부딪힌다, 멈춤 (게임 입력 없음)")
         ctl.emit("life", ev="normal_exit", result="pad_lock_held")
+        run_end("pad_lock_held")
         lock.release()
         return
-    if a.cmd == "asylum":
+    if a.cmd == "arena":
+        if not env.SIM:
+            log("   ⚠ arena는 Godot 연습장 전용 (BOT_GAME=sim) — 멈춤")
+            run_end("not_sim")
+            lock.release()
+            return
+        flat = navmesh.Navmesh.flat()                       # sim/arena_scene.py와 같은 40 m 평지 (MoKa M1109-75)
+        nms = {missions.MAP_A: flat, missions.MAP_B: flat}
+    elif a.cmd == "asylum":
         from souls import asylum
         nms = {asylum.MAP: navmesh.Navmesh(asylum.MAP)}
     else:
-        nms = {missions.MAP_A: navmesh.Navmesh(missions.MAP_A), missions.MAP_B: navmesh.Navmesh(missions.MAP_B)}
+        nms = {missions.MAP_A: _navmesh(missions.MAP_A, log), missions.MAP_B: _navmesh(missions.MAP_B, log)}
     props.attach(nms, log)                                  # crates earlier runs had to smash twice: paths bend around them (on each Navmesh)
+    runinfo.update(settings_path, inputs=runinfo.inputs(nms, props.LAST_LOGS, own_log=str(log.path).replace(".jsonl", ".log")))
     for nm_ in nms.values():
         nm_.edge_kinds()                                    # sort wall/drop/seam edges now — the first wall check mid-fight took ~1 s (2026-09-30)
     mv = moves.Moves(tm, pad)
+    mv.settings = run_settings                             # settings-object step 3: farm.rest → kindle / levelup read it
+    end_ctx.update(tm=tm, mv=mv)
     track_.follow(mv)
     if a.radar:
         radar_.follow(mv)                                   # target · path · held spot on the radar
     w = weapons.of(tm.right_weapon())
     mv.weapon = w
     log(f"무기: {w.name} (약공 {w.combo}연타, 닿는 거리 {w.reach} m, 강공 {'씀' if w.use_heavy else '안 씀'})")
-    esc = Escape(pad, list(nms.values()), log=log, events=log.event)
+    from souls import combo_table as combo_table_
+    log(combo_table_.set_weapon(w))                         # P-121 표 거리를 무기 닿는 거리에 맞춤 (11-04 클레이모어)
+    esc = Escape(pad, list(nms.values()), log=log, events=log.event)   # fall / ledge watch: always the plain NavMesh (also with --ground)
+    if a.ground:                                            # walks and fights read floor through the walked-cell map (design-floor-check §3-C)
+        import ground
+        nms = {k: ground.for_map(v) for k, v in nms.items()}
+        log("ground: 걷기의 바닥 확인 = NavMesh + 걸어 본 자리 (" + ", ".join(f"{k} {len(g.walked)}칸" for k, g in nms.items())
+            + ") — 싸움·물러남·낙하 감지는 NavMesh 그대로")
     esc.quit_ok = not a.no_quit
+    esc.fall_quit = a.fall_quit
+    esc.crowd_warp = a.crowd_warp
     if a.no_quit:
         import os
         os.environ["BOT_NO_WARP"] = "1"                   # also disable farm.rest's warp to the bonfire
@@ -200,10 +426,21 @@ def main() -> None:
     blood = Blood(log=log).start()
     from blackbox import BlackBox
     bbox = BlackBox(tm, log.path, events=log.event, log=log).start()
+    blood.cause = bbox.take_fatal                          # "death" event: fall / hit split of the killing bundle
+    blood.context = lambda: {"zone": log.zone, "escape": "busy" if esc.escaping else "idle",
+                             "since_fall_s": round(time.time() - esc.last_fall, 1) if esc.last_fall else None}
     fld = Field(mv, w, esc, bonfires=[] if a.cmd == "asylum" else [missions.FIRELINK["stand"], missions.BURG_BONFIRE],
                 log=log, events=log.event, style=a.style)
+    from souls import duel as duel_flags
+    fld.flags = duel_flags.Flags(**run_settings.overrides.get("souls.duel", {}))   # settings-object step 2: fights read these
+    fld.settings = run_settings                            # step 3: Field's own run values (NOTICE_PULL)
     from souls.camera import CamFollow
-    cam = CamFollow(mv, esc, log=log).start()          # so a viewer can see what the bot is doing (user 2026-09-26)
+    cam = CamFollow(mv, esc, log=log, events=log.event).start()   # so a viewer can see what the bot is doing (user 2026-09-26)
+    mv.align_sink = cam.on_attack                          # target–body–camera at each attack press → "attack_align" ([MoKa] 10-11)
+    gk = None
+    if not a.no_guard_keep:
+        from souls.guardkeep import GuardKeep
+        gk = GuardKeep(pad, shield=lambda: mv.guard_ok, log=log, events=log.event).start()   # [MoKa] 10-12 "미리 방패를 내리잖아"
     log(f"스타일: {a.style}")
     laya_ch = None
     if a.laya_shadow:
@@ -225,10 +462,10 @@ def main() -> None:
         purpose = attack_audit.run_purpose()
         if purpose:
             log(f"attack audit 실행 목적: {purpose}")
-    if a.basic:
-        from souls import duel as duel_
-        duel_.BACKSTAB, duel_.HEAVY = False, False
+    if a.basic:                                             # flags were set before the settings record (top of main)
         log("기본 플레이: 방패 + 약공만 (뒤잡기·강공 끔)")
+    if a.pull:
+        log("몸으로 끌기: 나이프 없으면 알아채는 거리 바로 안까지만 다가가 하나만 깨움 (souls/pull.py)")
     log.event("style", style=a.style)
     try:   # log character state each run — level-ups, rings (poise) and weapon change results, and without records batch comparisons got muddy (user 2026-09-25)
         st, eq = tm.char_stats(), tm.equipment()
@@ -236,40 +473,155 @@ def main() -> None:
         log.event("char", stats=st, equip=eq)
     except Exception as ex:
         log(f"캐릭터 상태 읽기 실패: {ex!r}")
+    runinfo.update(settings_path, game=runinfo.game(tm, mv, w))
+    fld.run_id = log.path.stem                              # fight ids: <run>#f001 … (Field.fight)
+    fld.firebomb = not a.no_firebomb
     ms = missions.Missions(fld, nms, log=log, lure=not a.no_lure)
+    ms.throw = a.throw
+    # 적 드롭 줍기: 연결된 명령에선 기본으로 켬 ([MoKa] 11-01 "일반 진행 중 자동으로 수행하는 공통 루틴"). 기준은 지금(처치 전)
+    if getattr(fld, "world", None) is not None:            # worldstate: what the save holds is not known yet
+        fld.world.event("run_start", why=a.cmd)
+    loot = getattr(fld, "loot", None)
+    if loot is not None:
+        loot.on = a.cmd in LOOT_CMDS and not a.no_loot
+        if loot.on:
+            loot.reset("run start")
+    log(f"드롭 줍기: {'켬' if loot is not None and loot.on else '끔'}" + (" (--no-loot)" if a.no_loot else "" if a.cmd in LOOT_CMDS else " (이 명령엔 연결 안 됨)"))
+    result = "exception"
     try:
         if a.cmd == "burg-bonfire" and a.seg:
             lo, _, hi = a.seg.partition("-")
             r = None
             for n in range(int(lo), int(hi or lo) + 1):
+                log.zone = f"burg:{n}"
+                w0 = esc.warps
                 r = ms.burg_segment(n)
                 log(f"══ 구역 {n} ({ms.BURG_SEGMENTS[n]}) 끝: {r}")
+                if esc.warps != w0:
+                    # [MoKa] 11-04 "워프 하면 봇이 다음 선택을 못함" — 132055: 워프로 불의 제전에 간 채 다음 구간 길을 찾다 no_path
+                    #  → 여기서 끝내고 'warped' (사슬이 쉬고 경사로부터 다시, burg-upper의 P-126과 같은 뜻)
+                    log(f"══ 구역 {n}에서 화톳불로 워프됨 — 이 단계 그만")
+                    r = "warped"
+                    break
                 if not fld.alive():
                     break
+                if a.buy and ms.BURG_SEGMENTS[n] == "merchant" and r == "상인 도착":
+                    r = _shop(a, mv, nms[missions.MAP_B], fld, log)   # then on to 6 if asked
         elif a.cmd == "burg-bonfire":
             r = ms.burg_bonfire()
         elif a.cmd == "burg-upper":
             lo, _, hi = (a.seg or f"1-{len(ms.UPPER_SEGMENTS)}").partition("-")
-            r = None
-            for n in range(int(lo), int(hi or lo) + 1):
-                r = ms.upper_segment(n)
-                log(f"══ 구역 {n} ({ms.UPPER_SEGMENTS[n]}) 끝: {r}")
-                if not fld.alive() or r in ("died", "no_estus", "휴식 실패"):
-                    break
+            # a death → respawn → worth the stain? then from zone 1 (rests at the bonfire) and pick it up on the way ([MoKa] 10-12)
+            r = afterdeath.run_zones(
+                int(lo), int(hi or lo), ms.upper_segment, alive=fld.alive, respawn=lambda: fld.wait_respawn(45.0),
+                read_stain=Blood.read, pick=lambda: fld.pick_blood(nms[missions.MAP_B], near=afterdeath.PICK_NEAR),
+                log=log, event=log.event, set_zone=lambda n: setattr(log, "zone", None if n is None else f"burg-upper:{n}"),
+                recover=not a.no_recover, label=lambda n: ms.UPPER_SEGMENTS[n],
+                # --level-up = soul farming: 에스트 1개 남으면 다음 구역 안 가고 화톳불로 돌아가 쉰다 ([MoKa] 10-31)
+                low=(lambda: f"에스트 {fld.estus_left()}개 남음" if fld.estus_left() <= ESTUS_HOME else None) if a.level_up else None,
+                carry=_stain_carry(log) if a.pick_stain else None)
+            if r == "estus_low" and fld.alive():
+                ok = fld.rest_at(nms[missions.MAP_B], missions.SPOTS["burg-bonfire"])
+                log(f"══ 화톳불로 돌아가 쉼: {'ok' if ok else '실패'}")
+        elif a.cmd == "burg-altar":
+            # whole chain ([MoKa] 10-13): Burg bonfire → zones 1–7 → zone 8's fog wall → Taurus bridge → Hellkite bridge → altar bonfire
+            # 타우로스를 잡은 캐릭터 전용 — 처치가 확인 안 되면 아무것도 안 하고 멈춤 ([MoKa] 10-31, 10-31 155929: 살아 있는 보스 앞 다리로 감)
+            import boss_ready
+            v = boss_ready.altar(tm)
+            log(f"══ 진입 검사 (burg-altar): {v.line()}")
+            log.event("ready", what="burg-altar", ok=v.ok, stop=v.stop, facts=v.facts)
+            lo, _, hi = (a.seg or "1-7").partition("-")
+            if not v.ok:
+                r = "멈춤: " + " · ".join(v.stop)
+            else:
+                r = afterdeath.run_zones(
+                    int(lo), int(hi or lo), ms.upper_segment, alive=fld.alive, respawn=lambda: fld.wait_respawn(45.0),
+                    read_stain=Blood.read, pick=lambda: fld.pick_blood(nms[missions.MAP_B], near=afterdeath.PICK_NEAR),
+                    log=log, event=log.event, set_zone=lambda n: setattr(log, "zone", None if n is None else f"burg-upper:{n}"),
+                    recover=not a.no_recover, label=lambda n: ms.UPPER_SEGMENTS[n])
+            if v.ok and fld.alive() and r not in ("died", "no_estus", "휴식 실패"):
+                log.zone = "altar"
+                fg = ms.to_altar_bridge()
+                log(f"══ 구역 8 안개벽: {fg}")
+                if fg == "ok":
+                    from souls import altar
+                    r = altar.Altar(fld, nms[missions.MAP_B], missions.DATA, log=log, events=log.event).run()
+                    log(f"══ 제단: {r}")
+                else:
+                    r = f"fog {fg}"
+        elif a.cmd == "arena":
+            log.zone = "arena"
+            r = _arena(fld, nms[missions.MAP_A], log)
+            log(f"══ 결과: {r}")
         elif a.cmd == "burg-loop":
             r = ms.burg_bonfire_round_trip()
         elif a.cmd == "passage-drill":
             r = ms.passage_drill(rounds=5)
         elif a.cmd == "clear-ramp":
             if not a.no_rest:
-                ms.start_fresh()
-            r = ms.clear_ramp(lure=not a.no_lure)
+                ms.start_fresh()                            # --level-up: the rest levels first
+            ms.firelink_humanity()
+            # P-129: 다른 이름으로 잡힌 놈 (끼어든 · 오는 놈)이 칸에 안 적혀 "left #N?"로 끝남 (050019 · 051800) — 미션과 같이 pass_ramp가
+            #  살아 있는 적을 찾아 보고, 없으면 지나감 ("passed: …")
+            ok, r = ms.pass_ramp(lure=not a.no_lure)
+            if ok and r != "cleared":
+                r = f"passed: {r}"
+            if r == "cleared" and fld.alive() and not a.no_recover:
+                # 경사로 핏자국 (P-121 182029 양손 드릴 사망, 소울 2661): 비운 뒤 줍기 — pick_blood가 근처 산 적·화톳불 옆을 걸러 냄
+                log(f"── 경사로 핏자국: {fld.pick_blood(nms[missions.MAP_A], near=60.0)}")
         elif a.cmd == "clear-burg-town":
             r = ms.clear_burg_town()
         elif a.cmd == "hunt-one":
             r = ms.hunt_one(a.i)
+        elif a.cmd == "merchant-buy":
+            r = _shop(a, mv, nms[missions.MAP_B], fld, log)
         elif a.cmd == "merchant":
             r = ms.to_merchant()
+        elif a.cmd == "to-firelink":
+            r = ms.to_firelink()                        # 상인·화톳불에 쉬지 않고 선 캐릭터를 걸어서 되돌림 (P-121 나이프 산 뒤 드릴로)
+        elif a.cmd == "pick-blood":
+            # bloodstain in burg-upper zone 1 (10-13 firebomb-probe death): clear zone 1 first — pick_blood needs no live foe near it
+            log.zone = "pick-blood"
+            z = ms.upper_segment(1)
+            log(f"══ 구역 1: {z}")
+            r = fld.pick_blood(nms[missions.MAP_B], near=60.0)
+            log(f"══ 핏자국: {r}")
+        elif a.cmd == "firebomb-probe":
+            from souls import firebomb_probe
+            log.zone = "firebomb-probe"
+            r = firebomb_probe.run(ms, [float(x) for x in a.dists.split(",")], log, target=a.fb_target)
+        elif a.cmd == "taurus":
+            from souls import taurus
+            log.zone = "taurus"
+            r = taurus.Taurus(fld, nms[missions.MAP_B], ms, log=log, events=log.event).run()
+            log(f"══ 타우로스: {r}")
+        elif a.cmd in ("parish-group1", "parish-route"):
+            # MoKa demo 10-19: Andre's bonfire → first c2550 group (docs/stages/new-route-20261019.md §5)
+            from souls import parish
+            log.zone = "parish"
+            r = parish.Group1(fld, nms[missions.MAP_B], missions.DATA, missions.SPOTS["andre-bonfire"],
+                              log=log, events=log.event).run(walkway=a.cmd == "parish-route")
+            log(f"══ {a.cmd}: {r}")
+        elif a.cmd == "altar":
+            from souls import altar
+            log.zone = "altar"
+            r = altar.Altar(fld, nms[missions.MAP_B], missions.DATA, log=log, events=log.event).run()
+            log(f"══ 제단: {r}")
+        elif a.cmd == "burg-to-altar":
+            from souls import altar
+            log.zone = "altar"
+            r = altar.Altar(fld, nms[missions.MAP_B], missions.DATA, log=log, events=log.event).from_burg_bonfire()
+            log(f"══ 성벽 마을 화톳불 → 태양의 제단: {r}")
+        elif a.cmd == "light-altar":
+            from souls import altar
+            ok = altar.Altar(fld, nms[missions.MAP_B], missions.DATA, log=log, events=log.event).light_bonfire()
+            r = "lit" if ok else "not lit"
+            log(f"══ 태양의 제단 화톳불: {r}")
+        elif a.cmd == "altar-burg":
+            from souls import altar
+            log.zone = "altar"
+            r = altar.Altar(fld, nms[missions.MAP_B], missions.DATA, log=log, events=log.event).back_to_burg()
+            log(f"══ 제단 → 성벽 마을 화톳불: {r}")
         elif a.cmd == "asylum":
             lo, _, hi = (a.seg or "1").partition("-")
             segs = list(range(int(lo), int(hi or lo) + 1))
@@ -292,6 +644,7 @@ def main() -> None:
                     plan = [(n0, cut)] + plan[si + 1:]
                     log(f"수용소: 첫 단계에서 {math.dist(first, here):.0f} m — 가장 가까운 구간 {n0}의 {j0 + 1}번째 단계부터 이어감")
                 for n, steps in plan:                      # back to back — standing idle between segments got us beaten to 152/616
+                    log.zone = f"asylum:{n}"
                     log(f"수용소 구간 {n}: {len(steps)}단계 ({steps[0].get('label') or steps[0]['type']} → {steps[-1].get('label') or steps[-1]['type']})")
                     r = run_.run(steps, f"수용소{n}")
                     if r != "done":
@@ -301,6 +654,8 @@ def main() -> None:
             r = ms.light_burg_bonfire()
         else:
             r = quit_test(ms, mv, esc, log)
+        log.zone = None
+        result = r
         log(f"══ 결과: {r}")
         log.event("result", cmd=a.cmd, result=r)
         ctl.emit("life", ev="normal_exit", result=r)
@@ -310,16 +665,20 @@ def main() -> None:
         pad.neutral()
         esc.quit_ok = esc.nudge_ok = False      # the Escape thread keeps watching but only logs (fire → skipped)
         cam.stop()                              # camera follow would keep turning the right stick through the cleanup waits
+        if gk is not None:
+            gk.stop()                           # same for guard keep: it re-raises LB on every nearby swing, and a live keep_guard window makes neutral() press LB again
         pad.neutral()
         log("══ 사용자 중지 (Ctrl+C) — 입력 중립, 퀵 종료 안 함")
         log.event("user_stop", cmd=a.cmd)
         ctl.emit("life", ev="user_stop")
+        result = "user_stop"
         raise
     except BaseException as ex:
         # if the bot stops, the character stands idle next to enemies and dies (twice on 2026-09-24) — quit out to shake enemies before stopping
         import traceback
         log(f"══ 오류로 멈춤: {ex!r}\n{traceback.format_exc()}")
         ctl.emit("life", ev="exception_exit", exc=type(ex).__name__, msg=repr(ex)[:200])
+        result = f"exception:{type(ex).__name__}"
         if not esc.escaping:
             try:
                 esc.fire(f"봇 오류({type(ex).__name__}) — 적 떼어내고 멈춤", "shake")
@@ -340,11 +699,19 @@ def main() -> None:
                 pass
             cam.stop()
             log(cam.stats())
+            log(cam.align_stats())
+            if gk is not None:
+                gk.stop()
+                log(gk.stats())
             esc.stop()
             blood.stop()
             bbox.stop()
             if audit_tap is not None:
                 log(f"attack audit: {audit_tap.close()}")
+            if scene_tap is not None:
+                log(f"ctl scenes: {scene_tap.summary()}")
+            if a.ground:
+                log("ground: 걸어 본 자리로 바닥이라 답한 횟수 " + ", ".join(f"{k} {getattr(g, 'filled', 0)}" for k, g in nms.items()))
             if laya_ch is not None:
                 adv = getattr(fld, "advisor", None)
                 log(f"laya shadow: {laya_ch.close()}" + (f" · advisor 오류 {adv.errors} ({adv.last_error})" if adv and adv.errors else ""))
@@ -356,6 +723,11 @@ def main() -> None:
         finally:
             pad.neutral()
             lock.release()     # only after the final neutral (P0-B) — the watchdog or the next bot may take over from here
+            try:
+                run_end(result)
+                log(f"실행 설정 기록: {settings_path.name}")
+            except Exception:
+                pass
             if hasattr(tm, "stats"):
                 log(f"텔레메트리 피드: {tm.stats()}")   # frames = underlying read count, fresh/waited = frames received by layers, direct = fallback
 

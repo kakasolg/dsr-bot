@@ -20,6 +20,7 @@ sys.path.insert(0, ".")
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
+import ctl
 import env
 import quitout
 from botlock import BotLock
@@ -102,21 +103,26 @@ def rescue(tm) -> None:
         log("   (참고: 봇 잠금은 다른 프로세스가 쥐고 있음)")
     else:
         lock.release()
+    ctl.emit("wd", ev="bot_lock", held=held_by_other)                    # P1-D: record only
     # ── 패드 하나 원칙 ([MoKa] 2026-10-02 P0-A) ─────────────────────────────
     #  봇이 살아서 패드 잠금을 쥐고 있으면 구조하지 않는다 — 가상 패드 둘이 동시에 넣는 것보다 구조를 포기하는 쪽이 안전.
     #  잠금 확인은 어떤 입력보다도 먼저 (focus_game 도 ALT 키·제목줄 클릭을 보낸다)
     if control.pad_lock_held():
         log("   event=skip reason=pad_lock_held — 다른 프로세스가 가상 패드를 쥐고 있음, 패드 안 만들고 입력 안 보냄")
+        ctl.emit("wd", ev="skip", reason="pad_lock_held", at="probe")
         return
     try:
         pad = control.Pad()
     except control.PadBusy as ex:              # probe 와 생성 사이에 누가 잡음
         log(f"   event=skip reason=pad_lock_held — {ex}")
+        ctl.emit("wd", ev="skip", reason="pad_lock_held", at="create")
         return
+    ctl.emit("wd", ev="rescue_start")
     try:
         _rescue(tm, pad)
     finally:
         pad.close()                            # 잠금을 바로 놓는다 — 다음 본체가 패드를 만들 수 있게
+        ctl.emit("wd", ev="pad_close")
 
 
 def _rescue(tm, pad) -> None:
@@ -129,6 +135,7 @@ def _rescue(tm, pad) -> None:
     if mv.select_item(117, timeout=3.0):
         ok = mv.darksign(missions.FIRELINK["stand"])
         log(f"   다크사인 {ok} — 됐으면 화톳불(알려진 안전 지역)로 순간이동")
+        ctl.emit("wd", ev="result", how="darksign", ok=bool(ok))
         if ok:
             return
         log("   다크사인 실패 — 퀵 종료로 대신")
@@ -141,16 +148,25 @@ def _rescue(tm, pad) -> None:
         t = quitout.quit_out(tm, pad)
         if t is None:
             log("   퀵 종료 재시도도 실패 — 메뉴가 이미 열려 있거나 조작 불가 상태일 수 있음")
+            ctl.emit("wd", ev="result", how="quitout", ok=False)
             return
     rt = quitout.reload(pad)
     log(f"   퀵 종료 {t:.1f}s, 재접속 {rt}")
+    ctl.emit("wd", ev="result", how="quitout", ok=True, quit_s=round(t, 2), reload_s=rt)
     watch_safety(tm, pad)
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--stall", type=float, default=3.0, help="이만큼 위치·애니가 안 바뀌면 멈춘 것으로 본다")
+    ap.add_argument("--ctl", action="store_true",
+                    help="P1: 감시 판단 기록 → data/runs/<시각>_watchdog.ctl.jsonl (ctl.py) — 기본 꺼짐. 기록만, 판단·패드엔 반영 안 함")
     a = ap.parse_args()
+    if a.ctl:
+        stamp = time.strftime("%Y%m%d_%H%M%S")
+        (ROOT / "data" / "runs").mkdir(parents=True, exist_ok=True)
+        ctl.start(ROOT / "data" / "runs" / f"{stamp}_watchdog.ctl.jsonl", run=f"{stamp}_watchdog", argv=sys.argv, cmd="watchdog")
+        ctl.emit("wd", ev="start", stall_s=a.stall)
     log(f"watchdog 시작 — 캐릭터가 {a.stall:.0f} s 넘게 안 움직이면(위치·애니 정지) 개입")
     tm = env.make_telemetry({})
     last_state = None
@@ -180,6 +196,8 @@ def main() -> None:
                 last_state, last_change_t = state, now
             elif now - last_change_t > a.stall and now > cooldown_until:
                 log(f"멈춰 있음({now - last_change_t:.1f}s) — HP {p.hp}, 위치 ({p.x:.1f}, {p.y:.1f}, {p.z:.1f}), 애니 {p.anim}")
+                ctl.emit("wd", ev="stall", stall_s=round(now - last_change_t, 2), hp=p.hp,
+                         pos=[round(p.x, 2), round(p.y, 2), round(p.z, 2)], anim=p.anim)
                 rescue(tm)
                 last_state, last_change_t, cooldown_until = None, time.time(), time.time() + COOLDOWN_S
             time.sleep(POLL)

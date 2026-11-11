@@ -1,0 +1,1436 @@
+{
+ "tool": "DSAnimStudio 4.9.9 SoulsAssetPipeline.Animation.TAE + TAE.Template.DS1.xml",
+ "files": [
+  {
+   "name": "N:\\FRPG\\data\\Model\\chr\\c2540\\taeNew\\x64\\c2540.tae",
+   "id": 202540,
+   "format": "DS1",
+   "animations": 170
+  }
+ ],
+ "anims": [
+  {
+   "anim": 3000,
+   "events": [
+    {
+     "type": 128,
+     "name": "PlaySound_CenterBody",
+     "start": 0.5,
+     "end": 0.53333336,
+     "param_hex": "08-00-00-00-69-BF-23-0F",
+     "params": {
+      "SoundType": "8",
+      "SoundID": "254001001"
+     }
+    },
+    {
+     "type": 128,
+     "name": "PlaySound_CenterBody",
+     "start": 0.8,
+     "end": 0.8333333,
+     "param_hex": "01-00-00-00-30-11-00-00",
+     "params": {
+      "SoundType": "1",
+      "SoundID": "4400"
+     }
+    },
+    {
+     "type": 118,
+     "name": "SpawnFFX_Blade",
+     "start": 0.8333333,
+     "end": 0.96666664,
+     "param_hex": "FA-00-00-00-00-00-0B-00-0C-00-01-00",
+     "params": {
+      "FFXID": "250",
+      "DummyPolySource": "0",
+      "DummyPolyBladeBaseID": "11",
+      "DummyPolyBladeTipID": "12",
+      "SlotID": "1"
+     }
+    },
+    {
+     "type": 1,
+     "name": "InvokeAttackBehavior",
+     "start": 0.8666667,
+     "end": 1.0333333,
+     "param_hex": "00-00-00-00-00-00-00-00-64-00-00-00",
+     "params": {
+      "AttackType": "0",
+      "AttackIndex": "0",
+      "BehaviorJudgeID": "100"
+     }
+    },
+    {
+     "type": 128,
+     "name": "PlaySound_CenterBody",
+     "start": 0.8666667,
+     "end": 0.9,
+     "param_hex": "08-00-00-00-E9-03-00-00",
+     "params": {
+      "SoundType": "8",
+      "SoundID": "1001"
+     }
+    },
+    {
+     "type": 128,
+     "name": "PlaySound_CenterBody",
+     "start": 1.6,
+     "end": 1.6333333,
+     "param_hex": "08-00-00-00-E9-03-00-00",
+     "params": {
+      "SoundType": "8",
+      "SoundID": "1001"
+     }
+    },
+    {
+     "type": 128,
+     "name": "PlaySound_CenterBody",
+     "start": 1.8333334,
+     "end": 1.8666667,
+     "param_hex": "08-00-00-00-69-BF-23-0F",
+     "params": {
+      "SoundType": "8",
+      "SoundID": "254001001"
+     }
+    },
+    {
+     "type": 128,
+     "name": "PlaySound_CenterBody",
+     "start": 2.3333333,
+     "end": 2.3666666,
+     "param_hex": "08-00-00-00-E9-03-00-00",
+     "params": {
+      "SoundType": "8",
+      "SoundID": "1001"
+     }
+    },
+    {
+     "type": 0,
+     "name": "JumpTable",
+     "start": 0.8333333,
+     "end": 0.8666667,
+     "param_hex": "05-00-00-00-00-00-00-00-FF-FF-FF-FF-00-00-00-00",
+     "params": {
+      "JumpTableID": "5",
+      "ArgA": "0",
+      "ArgB": "-1",
+      "ArgC": "0",
+      "ArgD": "0",
+      "ArgE": "0"
+     }
+    },
+    {
+     "type": 0,
+     "name": "JumpTable",
+     "start": 0.0,
+     "end": 0.36666667,
+     "param_hex": "07-00-00-00-00-00-00-00-FF-FF-FF-FF-00-00-00-00",
+     "params": {
+      "JumpTableID": "7",
+      "ArgA": "0",
+      "ArgB": "-1",
+      "ArgC": "0",
+      "ArgD": "0",
+      "ArgE": "0"
+     }
+    },
+    {
+     "type": 0,
+     "name": "JumpTable",
+     "start": 0.8666667,
+     "end": 1.4,
+     "param_hex": "07-00-00-00-00-00-00-00-FF-FF-FF-FF-00-00-00-00",
+     "params": {
+      "JumpTableID": "7",
+      "ArgA": "0",
+      "ArgB": "-1",
+      "ArgC": "0",
+      "ArgD": "0",
+      "ArgE": "0"
+     }
+    },
+    {
+     "type": 0,
+     "name": "JumpTable",
+     "start": 1.6,
+     "end": 1.7,
+     "param_hex": "07-00-00-00-00-00-00-00-FF-FF-FF-FF-00-00-00-00",
+     "params": {
+      "JumpTableID": "7",
+      "ArgA": "0",
+      "ArgB": "-1",
+      "ArgC": "0",
+      "ArgD": "0",
+      "ArgE": "0"
+     }
+    },
+    {
+     "type": 0,
+     "name": "JumpTable",
+     "start": 1.8333334,
+     "end": 2.1333334,
+     "param_hex": "07-00-00-00-00-00-00-00-FF-FF-FF-FF-00-00-00-00",
+     "params": {
+      "JumpTableID": "7",
+      "ArgA": "0",
+      "ArgB": "-1",
+      "ArgC": "0",
+      "ArgD": "0",
+      "ArgE": "0"
+     }
+    },
+    {
+     "type": 0,
+     "name": "JumpTable",
+     "start": 2.3333333,
+     "end": 2.8333333,
+     "param_hex": "07-00-00-00-00-00-00-00-FF-FF-FF-FF-00-00-00-00",
+     "params": {
+      "JumpTableID": "7",
+      "ArgA": "0",
+      "ArgB": "-1",
+      "ArgC": "0",
+      "ArgD": "0",
+      "ArgE": "0"
+     }
+    },
+    {
+     "type": 0,
+     "name": "JumpTable",
+     "start": 1.1666666,
+     "end": 2.8333333,
+     "param_hex": "17-00-00-00-00-00-00-00-FF-FF-FF-FF-00-00-00-00",
+     "params": {
+      "JumpTableID": "23",
+      "ArgA": "0",
+      "ArgB": "-1",
+      "ArgC": "0",
+      "ArgD": "0",
+      "ArgE": "0"
+     }
+    },
+    {
+     "type": 0,
+     "name": "JumpTable",
+     "start": 2.3666666,
+     "end": 2.8333333,
+     "param_hex": "4E-00-00-00-00-00-00-00-FF-FF-FF-FF-00-00-00-00",
+     "params": {
+      "JumpTableID": "78",
+      "ArgA": "0",
+      "ArgB": "-1",
+      "ArgC": "0",
+      "ArgD": "0",
+      "ArgE": "0"
+     }
+    },
+    {
+     "type": 0,
+     "name": "JumpTable",
+     "start": 2.3666666,
+     "end": 3.8,
+     "param_hex": "4F-00-00-00-00-00-00-00-FF-FF-FF-FF-00-00-00-00",
+     "params": {
+      "JumpTableID": "79",
+      "ArgA": "0",
+      "ArgB": "-1",
+      "ArgC": "0",
+      "ArgD": "0",
+      "ArgE": "0"
+     }
+    },
+    {
+     "type": 66,
+     "name": "AddSpEffect_Multiplayer",
+     "start": 0.9,
+     "end": 1.4,
+     "param_hex": "1F-00-00-00",
+     "params": {
+      "SpEffectID": "31"
+     }
+    },
+    {
+     "type": 0,
+     "name": "JumpTable",
+     "start": 2.3666666,
+     "end": 2.8666666,
+     "param_hex": "56-00-00-00-00-00-00-00-FF-FF-FF-FF-00-00-00-00",
+     "params": {
+      "JumpTableID": "86",
+      "ArgA": "0",
+      "ArgB": "-1",
+      "ArgC": "0",
+      "ArgD": "0",
+      "ArgE": "0"
+     }
+    },
+    {
+     "type": 16,
+     "name": "Blend",
+     "start": 0.0,
+     "end": 0.26666668,
+     "param_hex": "",
+     "params": {}
+    },
+    {
+     "type": 112,
+     "name": "SpawnFFX_ByFloor",
+     "start": 0.43333334,
+     "end": 0.46666667,
+     "param_hex": "1C-0C-00-00-04-00-00-00",
+     "params": {
+      "FFXID": "3100",
+      "DummyPolyID": "4"
+     }
+    },
+    {
+     "type": 128,
+     "name": "PlaySound_CenterBody",
+     "start": 0.46666667,
+     "end": 0.5,
+     "param_hex": "01-00-00-00-80-BB-23-0F",
+     "params": {
+      "SoundType": "1",
+      "SoundID": "254000000"
+     }
+    },
+    {
+     "type": 112,
+     "name": "SpawnFFX_ByFloor",
+     "start": 0.76666665,
+     "end": 0.8,
+     "param_hex": "1C-0C-00-00-03-00-00-00",
+     "params": {
+      "FFXID": "3100",
+      "DummyPolyID": "3"
+     }
+    },
+    {
+     "type": 128,
+     "name": "PlaySound_CenterBody",
+     "start": 0.8333333,
+     "end": 0.8666667,
+     "param_hex": "01-00-00-00-80-BB-23-0F",
+     "params": {
+      "SoundType": "1",
+      "SoundID": "254000000"
+     }
+    },
+    {
+     "type": 112,
+     "name": "SpawnFFX_ByFloor",
+     "start": 1.0,
+     "end": 1.0333333,
+     "param_hex": "80-0C-00-00-03-00-00-00",
+     "params": {
+      "FFXID": "3200",
+      "DummyPolyID": "3"
+     }
+    },
+    {
+     "type": 112,
+     "name": "SpawnFFX_ByFloor",
+     "start": 1.5,
+     "end": 1.5333333,
+     "param_hex": "1C-0C-00-00-03-00-00-00",
+     "params": {
+      "FFXID": "3100",
+      "DummyPolyID": "3"
+     }
+    },
+    {
+     "type": 128,
+     "name": "PlaySound_CenterBody",
+     "start": 1.5666667,
+     "end": 1.6,
+     "param_hex": "01-00-00-00-80-BB-23-0F",
+     "params": {
+      "SoundType": "1",
+      "SoundID": "254000000"
+     }
+    },
+    {
+     "type": 128,
+     "name": "PlaySound_CenterBody",
+     "start": 1.8,
+     "end": 1.8333334,
+     "param_hex": "01-00-00-00-80-BB-23-0F",
+     "params": {
+      "SoundType": "1",
+      "SoundID": "254000000"
+     }
+    },
+    {
+     "type": 112,
+     "name": "SpawnFFX_ByFloor",
+     "start": 1.8333334,
+     "end": 1.8666667,
+     "param_hex": "1C-0C-00-00-04-00-00-00",
+     "params": {
+      "FFXID": "3100",
+      "DummyPolyID": "4"
+     }
+    },
+    {
+     "type": 128,
+     "name": "PlaySound_CenterBody",
+     "start": 2.3,
+     "end": 2.3333333,
+     "param_hex": "01-00-00-00-80-BB-23-0F",
+     "params": {
+      "SoundType": "1",
+      "SoundID": "254000000"
+     }
+    }
+   ]
+  },
+  {
+   "anim": 3003,
+   "events": [
+    {
+     "type": 128,
+     "name": "PlaySound_CenterBody",
+     "start": 0.43333334,
+     "end": 0.46666667,
+     "param_hex": "08-00-00-00-69-BF-23-0F",
+     "params": {
+      "SoundType": "8",
+      "SoundID": "254001001"
+     }
+    },
+    {
+     "type": 118,
+     "name": "SpawnFFX_Blade",
+     "start": 1.1666666,
+     "end": 1.3,
+     "param_hex": "FA-00-00-00-00-00-0B-00-0C-00-01-00",
+     "params": {
+      "FFXID": "250",
+      "DummyPolySource": "0",
+      "DummyPolyBladeBaseID": "11",
+      "DummyPolyBladeTipID": "12",
+      "SlotID": "1"
+     }
+    },
+    {
+     "type": 128,
+     "name": "PlaySound_CenterBody",
+     "start": 1.2,
+     "end": 1.2333333,
+     "param_hex": "01-00-00-00-30-11-00-00",
+     "params": {
+      "SoundType": "1",
+      "SoundID": "4400"
+     }
+    },
+    {
+     "type": 1,
+     "name": "InvokeAttackBehavior",
+     "start": 1.2333333,
+     "end": 1.3333334,
+     "param_hex": "00-00-00-00-00-00-00-00-82-00-00-00",
+     "params": {
+      "AttackType": "0",
+      "AttackIndex": "0",
+      "BehaviorJudgeID": "130"
+     }
+    },
+    {
+     "type": 128,
+     "name": "PlaySound_CenterBody",
+     "start": 1.2666667,
+     "end": 1.3,
+     "param_hex": "08-00-00-00-E9-03-00-00",
+     "params": {
+      "SoundType": "8",
+      "SoundID": "1001"
+     }
+    },
+    {
+     "type": 128,
+     "name": "PlaySound_CenterBody",
+     "start": 1.9666667,
+     "end": 2.0,
+     "param_hex": "08-00-00-00-69-BF-23-0F",
+     "params": {
+      "SoundType": "8",
+      "SoundID": "254001001"
+     }
+    },
+    {
+     "type": 128,
+     "name": "PlaySound_CenterBody",
+     "start": 2.5666666,
+     "end": 2.6,
+     "param_hex": "08-00-00-00-E9-03-00-00",
+     "params": {
+      "SoundType": "8",
+      "SoundID": "1001"
+     }
+    },
+    {
+     "type": 0,
+     "name": "JumpTable",
+     "start": 1.2,
+     "end": 1.2333333,
+     "param_hex": "05-00-00-00-00-00-00-00-FF-FF-FF-FF-00-00-00-00",
+     "params": {
+      "JumpTableID": "5",
+      "ArgA": "0",
+      "ArgB": "-1",
+      "ArgC": "0",
+      "ArgD": "0",
+      "ArgE": "0"
+     }
+    },
+    {
+     "type": 0,
+     "name": "JumpTable",
+     "start": 1.5,
+     "end": 2.9666667,
+     "param_hex": "17-00-00-00-00-00-00-00-FF-FF-FF-FF-00-00-00-00",
+     "params": {
+      "JumpTableID": "23",
+      "ArgA": "0",
+      "ArgB": "-1",
+      "ArgC": "0",
+      "ArgD": "0",
+      "ArgE": "0"
+     }
+    },
+    {
+     "type": 0,
+     "name": "JumpTable",
+     "start": 2.5666666,
+     "end": 2.9333334,
+     "param_hex": "4E-00-00-00-00-00-00-00-FF-FF-FF-FF-00-00-00-00",
+     "params": {
+      "JumpTableID": "78",
+      "ArgA": "0",
+      "ArgB": "-1",
+      "ArgC": "0",
+      "ArgD": "0",
+      "ArgE": "0"
+     }
+    },
+    {
+     "type": 66,
+     "name": "AddSpEffect_Multiplayer",
+     "start": 1.3,
+     "end": 1.8,
+     "param_hex": "1F-00-00-00",
+     "params": {
+      "SpEffectID": "31"
+     }
+    },
+    {
+     "type": 0,
+     "name": "JumpTable",
+     "start": 2.0333333,
+     "end": 3.6333334,
+     "param_hex": "4F-00-00-00-00-00-00-00-FF-FF-FF-FF-00-00-00-00",
+     "params": {
+      "JumpTableID": "79",
+      "ArgA": "0",
+      "ArgB": "-1",
+      "ArgC": "0",
+      "ArgD": "0",
+      "ArgE": "0"
+     }
+    },
+    {
+     "type": 0,
+     "name": "JumpTable",
+     "start": 0.5,
+     "end": 1.0333333,
+     "param_hex": "07-00-00-00-00-00-00-00-FF-FF-FF-FF-00-00-00-00",
+     "params": {
+      "JumpTableID": "7",
+      "ArgA": "0",
+      "ArgB": "-1",
+      "ArgC": "0",
+      "ArgD": "0",
+      "ArgE": "0"
+     }
+    },
+    {
+     "type": 0,
+     "name": "JumpTable",
+     "start": 1.2666667,
+     "end": 1.8333334,
+     "param_hex": "07-00-00-00-00-00-00-00-FF-FF-FF-FF-00-00-00-00",
+     "params": {
+      "JumpTableID": "7",
+      "ArgA": "0",
+      "ArgB": "-1",
+      "ArgC": "0",
+      "ArgD": "0",
+      "ArgE": "0"
+     }
+    },
+    {
+     "type": 0,
+     "name": "JumpTable",
+     "start": 1.9666667,
+     "end": 2.4,
+     "param_hex": "07-00-00-00-00-00-00-00-FF-FF-FF-FF-00-00-00-00",
+     "params": {
+      "JumpTableID": "7",
+      "ArgA": "0",
+      "ArgB": "-1",
+      "ArgC": "0",
+      "ArgD": "0",
+      "ArgE": "0"
+     }
+    },
+    {
+     "type": 0,
+     "name": "JumpTable",
+     "start": 2.5666666,
+     "end": 3.0666666,
+     "param_hex": "07-00-00-00-00-00-00-00-FF-FF-FF-FF-00-00-00-00",
+     "params": {
+      "JumpTableID": "7",
+      "ArgA": "0",
+      "ArgB": "-1",
+      "ArgC": "0",
+      "ArgD": "0",
+      "ArgE": "0"
+     }
+    },
+    {
+     "type": 224,
+     "name": "SetTurnSpeed",
+     "start": 1.0333333,
+     "end": 1.2666667,
+     "param_hex": "00-00-70-43",
+     "params": {
+      "TurnSpeed": "240"
+     }
+    },
+    {
+     "type": 0,
+     "name": "JumpTable",
+     "start": 2.5666666,
+     "end": 2.9666667,
+     "param_hex": "56-00-00-00-00-00-00-00-FF-FF-FF-FF-00-00-00-00",
+     "params": {
+      "JumpTableID": "86",
+      "ArgA": "0",
+      "ArgB": "-1",
+      "ArgC": "0",
+      "ArgD": "0",
+      "ArgE": "0"
+     }
+    },
+    {
+     "type": 16,
+     "name": "Blend",
+     "start": 0.0,
+     "end": 0.26666668,
+     "param_hex": "",
+     "params": {}
+    },
+    {
+     "type": 112,
+     "name": "SpawnFFX_ByFloor",
+     "start": 0.1,
+     "end": 0.13333334,
+     "param_hex": "1C-0C-00-00-04-00-00-00",
+     "params": {
+      "FFXID": "3100",
+      "DummyPolyID": "4"
+     }
+    },
+    {
+     "type": 128,
+     "name": "PlaySound_CenterBody",
+     "start": 0.4,
+     "end": 0.43333334,
+     "param_hex": "01-00-00-00-80-BB-23-0F",
+     "params": {
+      "SoundType": "1",
+      "SoundID": "254000000"
+     }
+    },
+    {
+     "type": 112,
+     "name": "SpawnFFX_ByFloor",
+     "start": 0.7,
+     "end": 0.73333335,
+     "param_hex": "1C-0C-00-00-03-00-00-00",
+     "params": {
+      "FFXID": "3100",
+      "DummyPolyID": "3"
+     }
+    },
+    {
+     "type": 112,
+     "name": "SpawnFFX_ByFloor",
+     "start": 0.93333334,
+     "end": 0.96666664,
+     "param_hex": "80-0C-00-00-03-00-00-00",
+     "params": {
+      "FFXID": "3200",
+      "DummyPolyID": "3"
+     }
+    },
+    {
+     "type": 128,
+     "name": "PlaySound_CenterBody",
+     "start": 1.2333333,
+     "end": 1.2666667,
+     "param_hex": "01-00-00-00-80-BB-23-0F",
+     "params": {
+      "SoundType": "1",
+      "SoundID": "254000000"
+     }
+    },
+    {
+     "type": 112,
+     "name": "SpawnFFX_ByFloor",
+     "start": 1.5666667,
+     "end": 1.6,
+     "param_hex": "1C-0C-00-00-04-00-00-00",
+     "params": {
+      "FFXID": "3100",
+      "DummyPolyID": "4"
+     }
+    },
+    {
+     "type": 112,
+     "name": "SpawnFFX_ByFloor",
+     "start": 1.7,
+     "end": 1.7333333,
+     "param_hex": "1C-0C-00-00-03-00-00-00",
+     "params": {
+      "FFXID": "3100",
+      "DummyPolyID": "3"
+     }
+    },
+    {
+     "type": 128,
+     "name": "PlaySound_CenterBody",
+     "start": 1.9333333,
+     "end": 1.9666667,
+     "param_hex": "01-00-00-00-80-BB-23-0F",
+     "params": {
+      "SoundType": "1",
+      "SoundID": "254000000"
+     }
+    },
+    {
+     "type": 128,
+     "name": "PlaySound_CenterBody",
+     "start": 2.5333333,
+     "end": 2.5666666,
+     "param_hex": "01-00-00-00-80-BB-23-0F",
+     "params": {
+      "SoundType": "1",
+      "SoundID": "254000000"
+     }
+    }
+   ]
+  },
+  {
+   "anim": 3010,
+   "events": [
+    {
+     "type": 16,
+     "name": "Blend",
+     "start": 0.0,
+     "end": 0.26666668,
+     "param_hex": "",
+     "params": {}
+    },
+    {
+     "type": 112,
+     "name": "SpawnFFX_ByFloor",
+     "start": 0.6,
+     "end": 0.6333333,
+     "param_hex": "80-0C-00-00-03-00-00-00",
+     "params": {
+      "FFXID": "3200",
+      "DummyPolyID": "3"
+     }
+    },
+    {
+     "type": 128,
+     "name": "PlaySound_CenterBody",
+     "start": 0.93333334,
+     "end": 0.96666664,
+     "param_hex": "01-00-00-00-80-BB-23-0F",
+     "params": {
+      "SoundType": "1",
+      "SoundID": "254000000"
+     }
+    },
+    {
+     "type": 1,
+     "name": "InvokeAttackBehavior",
+     "start": 1.0666667,
+     "end": 1.2,
+     "param_hex": "00-00-00-00-00-00-00-00-2C-01-00-00",
+     "params": {
+      "AttackType": "0",
+      "AttackIndex": "0",
+      "BehaviorJudgeID": "300"
+     }
+    },
+    {
+     "type": 1,
+     "name": "InvokeAttackBehavior",
+     "start": 1.3666667,
+     "end": 1.4666667,
+     "param_hex": "00-00-00-00-01-00-00-00-2C-01-00-00",
+     "params": {
+      "AttackType": "0",
+      "AttackIndex": "1",
+      "BehaviorJudgeID": "300"
+     }
+    },
+    {
+     "type": 112,
+     "name": "SpawnFFX_ByFloor",
+     "start": 1.3666667,
+     "end": 1.4,
+     "param_hex": "80-0C-00-00-04-00-00-00",
+     "params": {
+      "FFXID": "3200",
+      "DummyPolyID": "4"
+     }
+    },
+    {
+     "type": 112,
+     "name": "SpawnFFX_ByFloor",
+     "start": 1.4,
+     "end": 1.4333333,
+     "param_hex": "1C-0C-00-00-03-00-00-00",
+     "params": {
+      "FFXID": "3100",
+      "DummyPolyID": "3"
+     }
+    },
+    {
+     "type": 128,
+     "name": "PlaySound_CenterBody",
+     "start": 1.6,
+     "end": 1.6333333,
+     "param_hex": "01-00-00-00-80-BB-23-0F",
+     "params": {
+      "SoundType": "1",
+      "SoundID": "254000000"
+     }
+    },
+    {
+     "type": 1,
+     "name": "InvokeAttackBehavior",
+     "start": 1.7333333,
+     "end": 1.8333334,
+     "param_hex": "00-00-00-00-02-00-00-00-2C-01-00-00",
+     "params": {
+      "AttackType": "0",
+      "AttackIndex": "2",
+      "BehaviorJudgeID": "300"
+     }
+    },
+    {
+     "type": 1,
+     "name": "InvokeAttackBehavior",
+     "start": 1.9666667,
+     "end": 2.0666666,
+     "param_hex": "00-00-00-00-02-00-00-00-2C-01-00-00",
+     "params": {
+      "AttackType": "0",
+      "AttackIndex": "2",
+      "BehaviorJudgeID": "300"
+     }
+    },
+    {
+     "type": 112,
+     "name": "SpawnFFX_ByFloor",
+     "start": 2.1333334,
+     "end": 2.1666667,
+     "param_hex": "1C-0C-00-00-04-00-00-00",
+     "params": {
+      "FFXID": "3100",
+      "DummyPolyID": "4"
+     }
+    },
+    {
+     "type": 128,
+     "name": "PlaySound_CenterBody",
+     "start": 2.1666667,
+     "end": 2.2,
+     "param_hex": "01-00-00-00-80-BB-23-0F",
+     "params": {
+      "SoundType": "1",
+      "SoundID": "254000000"
+     }
+    },
+    {
+     "type": 1,
+     "name": "InvokeAttackBehavior",
+     "start": 2.2666667,
+     "end": 2.3666666,
+     "param_hex": "00-00-00-00-02-00-00-00-2C-01-00-00",
+     "params": {
+      "AttackType": "0",
+      "AttackIndex": "2",
+      "BehaviorJudgeID": "300"
+     }
+    },
+    {
+     "type": 1,
+     "name": "InvokeAttackBehavior",
+     "start": 2.5666666,
+     "end": 2.7,
+     "param_hex": "00-00-00-00-02-00-00-00-2C-01-00-00",
+     "params": {
+      "AttackType": "0",
+      "AttackIndex": "2",
+      "BehaviorJudgeID": "300"
+     }
+    },
+    {
+     "type": 112,
+     "name": "SpawnFFX_ByFloor",
+     "start": 2.9666667,
+     "end": 3.0,
+     "param_hex": "1C-0C-00-00-04-00-00-00",
+     "params": {
+      "FFXID": "3100",
+      "DummyPolyID": "4"
+     }
+    },
+    {
+     "type": 128,
+     "name": "PlaySound_CenterBody",
+     "start": 3.3333333,
+     "end": 3.3666666,
+     "param_hex": "01-00-00-00-80-BB-23-0F",
+     "params": {
+      "SoundType": "1",
+      "SoundID": "254000000"
+     }
+    },
+    {
+     "type": 128,
+     "name": "PlaySound_CenterBody",
+     "start": 3.7,
+     "end": 3.7333333,
+     "param_hex": "01-00-00-00-80-BB-23-0F",
+     "params": {
+      "SoundType": "1",
+      "SoundID": "254000000"
+     }
+    },
+    {
+     "type": 128,
+     "name": "PlaySound_CenterBody",
+     "start": 0.96666664,
+     "end": 1.0,
+     "param_hex": "08-00-00-00-69-BF-23-0F",
+     "params": {
+      "SoundType": "8",
+      "SoundID": "254001001"
+     }
+    },
+    {
+     "type": 0,
+     "name": "JumpTable",
+     "start": 1.0333333,
+     "end": 1.0666667,
+     "param_hex": "05-00-00-00-00-00-00-00-FF-FF-FF-FF-00-00-00-00",
+     "params": {
+      "JumpTableID": "5",
+      "ArgA": "0",
+      "ArgB": "-1",
+      "ArgC": "0",
+      "ArgD": "0",
+      "ArgE": "0"
+     }
+    },
+    {
+     "type": 0,
+     "name": "JumpTable",
+     "start": 1.3333334,
+     "end": 1.3666667,
+     "param_hex": "05-00-00-00-00-00-00-00-FF-FF-FF-FF-00-00-00-00",
+     "params": {
+      "JumpTableID": "5",
+      "ArgA": "0",
+      "ArgB": "-1",
+      "ArgC": "0",
+      "ArgD": "0",
+      "ArgE": "0"
+     }
+    },
+    {
+     "type": 112,
+     "name": "SpawnFFX_ByFloor",
+     "start": 1.4,
+     "end": 1.4333333,
+     "param_hex": "B8-0B-00-00-04-00-00-00",
+     "params": {
+      "FFXID": "3000",
+      "DummyPolyID": "4"
+     }
+    },
+    {
+     "type": 112,
+     "name": "SpawnFFX_ByFloor",
+     "start": 1.4333333,
+     "end": 1.4666667,
+     "param_hex": "B8-0B-00-00-03-00-00-00",
+     "params": {
+      "FFXID": "3000",
+      "DummyPolyID": "3"
+     }
+    },
+    {
+     "type": 128,
+     "name": "PlaySound_CenterBody",
+     "start": 1.6666666,
+     "end": 1.7,
+     "param_hex": "08-00-00-00-E9-03-00-00",
+     "params": {
+      "SoundType": "8",
+      "SoundID": "1001"
+     }
+    },
+    {
+     "type": 0,
+     "name": "JumpTable",
+     "start": 1.7,
+     "end": 1.7333333,
+     "param_hex": "05-00-00-00-00-00-00-00-FF-FF-FF-FF-00-00-00-00",
+     "params": {
+      "JumpTableID": "5",
+      "ArgA": "0",
+      "ArgB": "-1",
+      "ArgC": "0",
+      "ArgD": "0",
+      "ArgE": "0"
+     }
+    },
+    {
+     "type": 0,
+     "name": "JumpTable",
+     "start": 1.9333333,
+     "end": 1.9666667,
+     "param_hex": "05-00-00-00-00-00-00-00-FF-FF-FF-FF-00-00-00-00",
+     "params": {
+      "JumpTableID": "5",
+      "ArgA": "0",
+      "ArgB": "-1",
+      "ArgC": "0",
+      "ArgD": "0",
+      "ArgE": "0"
+     }
+    },
+    {
+     "type": 128,
+     "name": "PlaySound_CenterBody",
+     "start": 2.2,
+     "end": 2.2333333,
+     "param_hex": "08-00-00-00-69-BF-23-0F",
+     "params": {
+      "SoundType": "8",
+      "SoundID": "254001001"
+     }
+    },
+    {
+     "type": 0,
+     "name": "JumpTable",
+     "start": 2.2333333,
+     "end": 2.2666667,
+     "param_hex": "05-00-00-00-00-00-00-00-FF-FF-FF-FF-00-00-00-00",
+     "params": {
+      "JumpTableID": "5",
+      "ArgA": "0",
+      "ArgB": "-1",
+      "ArgC": "0",
+      "ArgD": "0",
+      "ArgE": "0"
+     }
+    },
+    {
+     "type": 0,
+     "name": "JumpTable",
+     "start": 2.5333333,
+     "end": 2.5666666,
+     "param_hex": "05-00-00-00-00-00-00-00-FF-FF-FF-FF-00-00-00-00",
+     "params": {
+      "JumpTableID": "5",
+      "ArgA": "0",
+      "ArgB": "-1",
+      "ArgC": "0",
+      "ArgD": "0",
+      "ArgE": "0"
+     }
+    },
+    {
+     "type": 128,
+     "name": "PlaySound_CenterBody",
+     "start": 3.4,
+     "end": 3.4333334,
+     "param_hex": "08-00-00-00-69-BF-23-0F",
+     "params": {
+      "SoundType": "8",
+      "SoundID": "254001001"
+     }
+    },
+    {
+     "type": 128,
+     "name": "PlaySound_CenterBody",
+     "start": 3.7333333,
+     "end": 3.7666667,
+     "param_hex": "08-00-00-00-E9-03-00-00",
+     "params": {
+      "SoundType": "8",
+      "SoundID": "1001"
+     }
+    },
+    {
+     "type": 0,
+     "name": "JumpTable",
+     "start": 0.0,
+     "end": 0.6,
+     "param_hex": "07-00-00-00-00-00-00-00-FF-FF-FF-FF-00-00-00-00",
+     "params": {
+      "JumpTableID": "7",
+      "ArgA": "0",
+      "ArgB": "-1",
+      "ArgC": "0",
+      "ArgD": "0",
+      "ArgE": "0"
+     }
+    },
+    {
+     "type": 0,
+     "name": "JumpTable",
+     "start": 0.96666664,
+     "end": 1.4333333,
+     "param_hex": "07-00-00-00-00-00-00-00-FF-FF-FF-FF-00-00-00-00",
+     "params": {
+      "JumpTableID": "7",
+      "ArgA": "0",
+      "ArgB": "-1",
+      "ArgC": "0",
+      "ArgD": "0",
+      "ArgE": "0"
+     }
+    },
+    {
+     "type": 128,
+     "name": "PlaySound_CenterBody",
+     "start": 1.0,
+     "end": 1.0333333,
+     "param_hex": "01-00-00-00-30-11-00-00",
+     "params": {
+      "SoundType": "1",
+      "SoundID": "4400"
+     }
+    },
+    {
+     "type": 118,
+     "name": "SpawnFFX_Blade",
+     "start": 1.0333333,
+     "end": 1.1666666,
+     "param_hex": "FA-00-00-00-00-00-0B-00-0C-00-01-00",
+     "params": {
+      "FFXID": "250",
+      "DummyPolySource": "0",
+      "DummyPolyBladeBaseID": "11",
+      "DummyPolyBladeTipID": "12",
+      "SlotID": "1"
+     }
+    },
+    {
+     "type": 128,
+     "name": "PlaySound_CenterBody",
+     "start": 1.3333334,
+     "end": 1.3666667,
+     "param_hex": "01-00-00-00-30-11-00-00",
+     "params": {
+      "SoundType": "1",
+      "SoundID": "4400"
+     }
+    },
+    {
+     "type": 128,
+     "name": "PlaySound_CenterBody",
+     "start": 1.6666666,
+     "end": 1.7,
+     "param_hex": "01-00-00-00-30-11-00-00",
+     "params": {
+      "SoundType": "1",
+      "SoundID": "4400"
+     }
+    },
+    {
+     "type": 0,
+     "name": "JumpTable",
+     "start": 1.6666666,
+     "end": 2.0333333,
+     "param_hex": "07-00-00-00-00-00-00-00-FF-FF-FF-FF-00-00-00-00",
+     "params": {
+      "JumpTableID": "7",
+      "ArgA": "0",
+      "ArgB": "-1",
+      "ArgC": "0",
+      "ArgD": "0",
+      "ArgE": "0"
+     }
+    },
+    {
+     "type": 118,
+     "name": "SpawnFFX_Blade",
+     "start": 1.7,
+     "end": 1.8333334,
+     "param_hex": "FA-00-00-00-00-00-0B-00-0C-00-01-00",
+     "params": {
+      "FFXID": "250",
+      "DummyPolySource": "0",
+      "DummyPolyBladeBaseID": "11",
+      "DummyPolyBladeTipID": "12",
+      "SlotID": "1"
+     }
+    },
+    {
+     "type": 128,
+     "name": "PlaySound_CenterBody",
+     "start": 1.9333333,
+     "end": 1.9666667,
+     "param_hex": "01-00-00-00-30-11-00-00",
+     "params": {
+      "SoundType": "1",
+      "SoundID": "4400"
+     }
+    },
+    {
+     "type": 0,
+     "name": "JumpTable",
+     "start": 2.2,
+     "end": 3.2,
+     "param_hex": "07-00-00-00-00-00-00-00-FF-FF-FF-FF-00-00-00-00",
+     "params": {
+      "JumpTableID": "7",
+      "ArgA": "0",
+      "ArgB": "-1",
+      "ArgC": "0",
+      "ArgD": "0",
+      "ArgE": "0"
+     }
+    },
+    {
+     "type": 128,
+     "name": "PlaySound_CenterBody",
+     "start": 2.2,
+     "end": 2.2333333,
+     "param_hex": "01-00-00-00-30-11-00-00",
+     "params": {
+      "SoundType": "1",
+      "SoundID": "4400"
+     }
+    },
+    {
+     "type": 118,
+     "name": "SpawnFFX_Blade",
+     "start": 2.2333333,
+     "end": 2.3666666,
+     "param_hex": "FA-00-00-00-00-00-0B-00-0C-00-01-00",
+     "params": {
+      "FFXID": "250",
+      "DummyPolySource": "0",
+      "DummyPolyBladeBaseID": "11",
+      "DummyPolyBladeTipID": "12",
+      "SlotID": "1"
+     }
+    },
+    {
+     "type": 118,
+     "name": "SpawnFFX_Blade",
+     "start": 2.5,
+     "end": 2.6333334,
+     "param_hex": "FA-00-00-00-00-00-0B-00-0C-00-01-00",
+     "params": {
+      "FFXID": "250",
+      "DummyPolySource": "0",
+      "DummyPolyBladeBaseID": "11",
+      "DummyPolyBladeTipID": "12",
+      "SlotID": "1"
+     }
+    },
+    {
+     "type": 128,
+     "name": "PlaySound_CenterBody",
+     "start": 2.5333333,
+     "end": 2.5666666,
+     "param_hex": "01-00-00-00-30-11-00-00",
+     "params": {
+      "SoundType": "1",
+      "SoundID": "4400"
+     }
+    },
+    {
+     "type": 0,
+     "name": "JumpTable",
+     "start": 3.4,
+     "end": 3.5333333,
+     "param_hex": "07-00-00-00-00-00-00-00-FF-FF-FF-FF-00-00-00-00",
+     "params": {
+      "JumpTableID": "7",
+      "ArgA": "0",
+      "ArgB": "-1",
+      "ArgC": "0",
+      "ArgD": "0",
+      "ArgE": "0"
+     }
+    },
+    {
+     "type": 0,
+     "name": "JumpTable",
+     "start": 3.5333333,
+     "end": 4.0333333,
+     "param_hex": "56-00-00-00-00-00-00-00-FF-FF-FF-FF-00-00-00-00",
+     "params": {
+      "JumpTableID": "86",
+      "ArgA": "0",
+      "ArgB": "-1",
+      "ArgC": "0",
+      "ArgD": "0",
+      "ArgE": "0"
+     }
+    },
+    {
+     "type": 0,
+     "name": "JumpTable",
+     "start": 3.5333333,
+     "end": 4.0,
+     "param_hex": "4E-00-00-00-00-00-00-00-FF-FF-FF-FF-00-00-00-00",
+     "params": {
+      "JumpTableID": "78",
+      "ArgA": "0",
+      "ArgB": "-1",
+      "ArgC": "0",
+      "ArgD": "0",
+      "ArgE": "0"
+     }
+    },
+    {
+     "type": 66,
+     "name": "AddSpEffect_Multiplayer",
+     "start": 2.6333334,
+     "end": 3.1,
+     "param_hex": "1F-00-00-00",
+     "params": {
+      "SpEffectID": "31"
+     }
+    },
+    {
+     "type": 0,
+     "name": "JumpTable",
+     "start": 3.1666667,
+     "end": 4.6,
+     "param_hex": "4F-00-00-00-00-00-00-00-FF-FF-FF-FF-00-00-00-00",
+     "params": {
+      "JumpTableID": "79",
+      "ArgA": "0",
+      "ArgB": "-1",
+      "ArgC": "0",
+      "ArgD": "0",
+      "ArgE": "0"
+     }
+    }
+   ]
+  }
+ ],
+ "note": "2026-10-16 [win] tae-verify step 2: c2540 animations 3000 / 3003 / 3010 read by DSAnimStudio 4.9.9 parser (SoulsAssetPipeline.Animation.TAE, run headless from PowerShell) with Res/TAE.Template.DS1.xml; start/end = float32 seconds as stored; param_hex = event parameter bytes (little endian); 3040-3044 not present.",
+ "comparison": {
+  "rows": [
+   {
+    "anim": "3000",
+    "their_n": 30,
+    "our_n": 30
+   },
+   {
+    "anim": "3003",
+    "their_n": 28,
+    "our_n": 28
+   },
+   {
+    "anim": "3010",
+    "their_n": 49,
+    "our_n": 49
+   }
+  ],
+  "diffs": [
+   [
+    "3000",
+    "p length",
+    "4 x s32 [0, 0, 100, 128]",
+    "3 x s32 (12 bytes) [0, 0, 100] {'AttackType': '0', 'AttackIndex': '0', 'BehaviorJudgeID': '100'}",
+    "s32",
+    "type 1 InvokeAttackBehavior"
+   ],
+   [
+    "3003",
+    "p length",
+    "4 x s32 [0, 0, 130, 128]",
+    "3 x s32 (12 bytes) [0, 0, 130] {'AttackType': '0', 'AttackIndex': '0', 'BehaviorJudgeID': '130'}",
+    "s32",
+    "type 1 InvokeAttackBehavior"
+   ],
+   [
+    "3010",
+    "p length",
+    "4 x s32 [0, 0, 300, 1]",
+    "3 x s32 (12 bytes) [0, 0, 300] {'AttackType': '0', 'AttackIndex': '0', 'BehaviorJudgeID': '300'}",
+    "s32",
+    "type 1 InvokeAttackBehavior"
+   ],
+   [
+    "3010",
+    "p length",
+    "4 x s32 [0, 1, 300, 112]",
+    "3 x s32 (12 bytes) [0, 1, 300] {'AttackType': '0', 'AttackIndex': '1', 'BehaviorJudgeID': '300'}",
+    "s32",
+    "type 1 InvokeAttackBehavior"
+   ],
+   [
+    "3010",
+    "p length",
+    "4 x s32 [0, 2, 300, 1]",
+    "3 x s32 (12 bytes) [0, 2, 300] {'AttackType': '0', 'AttackIndex': '2', 'BehaviorJudgeID': '300'}",
+    "s32",
+    "type 1 InvokeAttackBehavior"
+   ],
+   [
+    "3010",
+    "p length",
+    "4 x s32 [0, 2, 300, 112]",
+    "3 x s32 (12 bytes) [0, 2, 300] {'AttackType': '0', 'AttackIndex': '2', 'BehaviorJudgeID': '300'}",
+    "s32",
+    "type 1 InvokeAttackBehavior"
+   ],
+   [
+    "3010",
+    "p length",
+    "4 x s32 [0, 2, 300, 1]",
+    "3 x s32 (12 bytes) [0, 2, 300] {'AttackType': '0', 'AttackIndex': '2', 'BehaviorJudgeID': '300'}",
+    "s32",
+    "type 1 InvokeAttackBehavior"
+   ],
+   [
+    "3010",
+    "p length",
+    "4 x s32 [0, 2, 300, 112]",
+    "3 x s32 (12 bytes) [0, 2, 300] {'AttackType': '0', 'AttackIndex': '2', 'BehaviorJudgeID': '300'}",
+    "s32",
+    "type 1 InvokeAttackBehavior"
+   ]
+  ]
+ }
+}

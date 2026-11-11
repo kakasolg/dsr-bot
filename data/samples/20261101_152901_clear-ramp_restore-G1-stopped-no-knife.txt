@@ -1,0 +1,3 @@
+[    0.1] run 20261101_152901_clear-ramp · code 6ccafc0+dirty(25) · clear-ramp --radar --note MoKa 11-01 retest from Firelink-arrival save e2da9f35 (restored 152837), G1, loot default on, humanity 0 · settings cc043177 · note MoKa 11-01 retest from Firelink-arrival save e2da9f35 (restored 152837), G1, loot default on, humanity 0
+[    0.3] radar: sending — python radar_server.py -> http://127.0.0.1:47801, python overlay.py
+[    0.3]    ⚠ 투척 나이프(290)가 퀵 슬롯에 없음 (슬롯 [201, -1, -1, -1, -1], 가진 수 0) — 못 넣음: 나이프 없음. 넣고 다시 켜거나 --no-lure. 멈춤 (게임 입력 없음)

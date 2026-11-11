@@ -1,0 +1,32 @@
+time 2026-11-01T04:23:35-08:00
+base_backup_sl2 \e2da9f357d47067e3a5eff405165bbdbe38f7650d4014c327f512e11aeb55710
+live_sl2 \41e2b3bb7cd8830a699145216e3ff289fec41115d014cbe1b6b695fa59a744ff mtime 2026-11-01 04:20:02.140761100 -0800
+HEAD 6ccafc0f636c0976ea4289251ae5896afe2a7bee branch claude/dsr-bot-project-review-r3hh9f
+dirty_tracked:
+ M .claude/launch.json
+ M CLAUDE.md
+ M ROADMAP.md
+ M data/stages/burg-upper.json
+ M docs/boss-taurus.md
+ M docs/roadmap/problems.md
+ M docs/stages/burg-upper.md
+ M farm.py
+ M overlay.py
+ M places.py
+ M radar_server.py
+ M run.py
+ M souls/afterdeath.py
+ M souls/missions.py
+ M souls/moves.py
+ M souls/taurus.py
+ M tests/afterdeath_test.py
+ M tests/burg_upper_test.py
+ M tests/places_test.py
+ M tests/roll_test.py
+script_sha256:
+fb3d4526c56c2ab65f0bd28d5f42cc8ae0fdbcb2ec951b81666f82450ed5793a *experiments/item_pickup_2026_11_01/humanity_probe.py
+d773a2978053b07cf243b8a434684c1f9ea275a6351c7850e637fbc8db940b3b *experiments/item_pickup_2026_11_01/humanity_probe_test.py
+tracked_diff_sha256 6c2820b2fc7b7667c3079c8edf53ae2a879ea7af3fae1fb3c7165e616bfc01fe
+used_modules_diff (git diff HEAD --stat for imported files):
+ souls/moves.py | 10 ++++++----
+ 1 file changed, 6 insertions(+), 4 deletions(-)

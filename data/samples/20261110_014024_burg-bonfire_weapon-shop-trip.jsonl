@@ -1,0 +1,1121 @@
+{"t": 92.27, "ev": "style", "style": "guard"}
+{"t": 92.27, "ev": "char", "stats": {"VIT": 22, "ATN": 8, "END": 14, "STR": 16, "DEX": 10, "INT": 8, "FTH": 10, "RES": 11, "SL": 17, "소울": 1045, "누적소울": 19178, "인간성": 1}, "equip": {"왼손1": 1462000, "오른손1": 301003, "왼손2": 900000, "오른손2": 900000, "화살": 50000, "머리": 51000, "몸": 52000, "팔": 53000, "반지1": -1, "반지2": 143}}
+{"t": 92.27, "ev": "vital", "hp": 1018, "max": 1018, "near": 0}
+{"t": 92.8, "ev": "vital", "hp": 1018, "max": 1018, "near": 0}
+{"t": 93.33, "ev": "vital", "hp": 1018, "max": 1018, "near": 0}
+{"t": 93.85, "ev": "vital", "hp": 1018, "max": 1018, "near": 0}
+{"t": 94.36, "ev": "vital", "hp": 1018, "max": 1018, "near": 0}
+{"t": 94.87, "ev": "vital", "hp": 1018, "max": 1018, "near": 0}
+{"t": 95.39, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 95.92, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 96.43, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 96.95, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 97.45, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 97.97, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 98.48, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 98.99, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 99.5, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 100.02, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 100.37, "ev": "walk_fail", "zone": "burg:1", "tag": "화톳불로", "i": 2, "n": 26, "q": [-50.08, -54.49, 90.94], "pos": [-52.05, -54.6, 86.42], "r": "stuck", "fails": 1}
+{"t": 100.52, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 101.02, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 101.53, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 102.04, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 102.55, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 103.07, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 103.59, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 104.1, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 104.61, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 105.12, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 105.63, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 106.16, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 106.67, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 107.19, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 107.7, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 108.2, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 108.71, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 109.22, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 109.73, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 110.24, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 110.75, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 111.26, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 111.78, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 112.28, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 112.79, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 113.3, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 113.81, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 114.31, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 114.82, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 115.32, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 115.83, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 116.34, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 116.85, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 117.35, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 117.86, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 118.37, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 118.88, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 119.39, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 119.91, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 120.43, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 120.93, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 121.43, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 121.94, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 122.44, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 122.95, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 123.45, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 123.96, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 124.47, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 124.98, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 125.49, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 125.99, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 126.5, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 127.01, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 127.52, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 128.03, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 128.53, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 129.04, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 129.56, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 130.06, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 130.57, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 131.06, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 40.58, "dy": 10.53, "body": 11.6, "cam": -107.4, "lock": false, "ok": true}
+{"t": 131.08, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 131.58, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 131.84, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 40.51, "dy": 10.82, "body": 92.6, "cam": -67.6, "lock": false, "ok": false}
+{"t": 132.09, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 132.37, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 39.84, "dy": 10.91, "body": 55.1, "cam": 0.8, "lock": false, "ok": false}
+{"t": 132.6, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 132.88, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 38.86, "dy": 10.59, "body": 57.1, "cam": 8.6, "lock": false, "ok": false}
+{"t": 133.11, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 133.38, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 37.98, "dy": 9.96, "body": 59.2, "cam": 9.3, "lock": false, "ok": false}
+{"t": 133.62, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 133.89, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 37.39, "dy": 9.68, "body": 86.9, "cam": 9.6, "lock": false, "ok": false}
+{"t": 134.13, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 134.43, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 37.3, "dy": 9.3, "body": 77.3, "cam": 8.7, "lock": false, "ok": false}
+{"t": 134.64, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 135.09, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 37.35, "dy": 8.74, "body": 94.5, "cam": 8.7, "lock": false, "ok": false}
+{"t": 135.15, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 135.63, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 38.06, "dy": 7.98, "body": 118.5, "cam": 9.4, "lock": false, "ok": false}
+{"t": 135.66, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 136.17, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 136.21, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 37.59, "dy": 7.99, "body": 37.9, "cam": 6.3, "lock": false, "ok": false}
+{"t": 136.68, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 136.86, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 35.9, "dy": 7.99, "body": 40.0, "cam": 5.9, "lock": false, "ok": false}
+{"t": 137.18, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 137.54, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 34.19, "dy": 7.92, "body": 42.5, "cam": 6.3, "lock": false, "ok": false}
+{"t": 137.7, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 138.13, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 32.77, "dy": 7.98, "body": 49.6, "cam": 6.6, "lock": false, "ok": false}
+{"t": 138.21, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 138.66, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 31.31, "dy": 8.46, "body": 39.7, "cam": 10.8, "lock": false, "ok": false}
+{"t": 138.72, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 139.2, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 30.05, "dy": 9.24, "body": 98.6, "cam": 9.0, "lock": false, "ok": false}
+{"t": 139.22, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 139.7, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 29.61, "dy": 9.26, "body": 88.8, "cam": 10.4, "lock": false, "ok": false}
+{"t": 139.73, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 140.25, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 140.26, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 28.73, "dy": 9.27, "body": 54.0, "cam": 7.2, "lock": false, "ok": false}
+{"t": 140.75, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 140.95, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 27.08, "dy": 9.47, "body": 21.2, "cam": 4.8, "lock": false, "ok": true}
+{"t": 141.25, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 141.5, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 25.22, "dy": 9.12, "body": -11.6, "cam": 1.9, "lock": false, "ok": true}
+{"t": 141.77, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 142.05, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 23.49, "dy": 8.74, "body": -17.2, "cam": -3.4, "lock": false, "ok": true}
+{"t": 142.28, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 142.6, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 21.64, "dy": 8.19, "body": -13.9, "cam": -8.7, "lock": false, "ok": true}
+{"t": 142.79, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 143.14, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 19.91, "dy": 7.44, "body": -6.1, "cam": -3.7, "lock": false, "ok": true}
+{"t": 143.29, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 143.64, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 18.32, "dy": 6.73, "body": -29.1, "cam": -6.1, "lock": false, "ok": true}
+{"t": 143.8, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 144.24, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 16.44, "dy": 5.74, "body": -10.1, "cam": -4.8, "lock": false, "ok": true}
+{"t": 144.31, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 144.77, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 14.65, "dy": 4.78, "body": -22.6, "cam": -7.1, "lock": false, "ok": true}
+{"t": 144.82, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 145.29, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 13.3, "dy": 3.85, "body": -58.7, "cam": -6.5, "lock": false, "ok": false}
+{"t": 145.32, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 145.81, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 12.26, "dy": 3.1, "body": -78.5, "cam": -10.2, "lock": false, "ok": false}
+{"t": 145.83, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 146.33, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 11.09, "dy": 2.31, "body": -38.8, "cam": -8.2, "lock": false, "ok": false}
+{"t": 146.34, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 146.85, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 146.87, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 9.76, "dy": 1.63, "body": -45.7, "cam": -11.2, "lock": false, "ok": false}
+{"t": 147.36, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 147.49, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 7.82, "dy": 1.23, "body": -9.1, "cam": -3.5, "lock": false, "ok": true}
+{"t": 147.86, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 148.02, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 6.06, "dy": 0.8, "body": -11.9, "cam": -6.9, "lock": false, "ok": true}
+{"t": 148.38, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 1}
+{"t": 148.55, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 3.53, "dy": 0.57, "body": -17.4, "cam": -5.8, "lock": false, "ok": true}
+{"t": 148.87, "ev": "guard_keep", "zone": "burg:1", "until": 1.3}
+{"t": 148.9, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 1}
+{"t": 149.08, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 1.45, "dy": 0.29, "body": -3.9, "cam": -5.0, "lock": true, "ok": true}
+{"t": 149.41, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 1}
+{"t": 149.63, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 0.85, "dy": 0.2, "body": -3.6, "cam": -1.5, "lock": true, "ok": true}
+{"t": 149.91, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 1}
+{"t": 150.14, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 1.92, "dy": 0.24, "body": -15.1, "cam": -0.9, "lock": true, "ok": true}
+{"t": 150.43, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 1}
+{"t": 150.66, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 1.21, "dy": -0.3, "body": 0.3, "cam": 21.5, "lock": true, "ok": true}
+{"t": 150.94, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 1}
+{"t": 151.16, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 1.22, "dy": -0.23, "body": -3.5, "cam": 21.4, "lock": true, "ok": true}
+{"t": 151.45, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 1}
+{"t": 151.68, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 0.8, "dy": -0.03, "body": 0.1, "cam": 23.6, "lock": false, "ok": true}
+{"t": 151.95, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 1}
+{"t": 152.2, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 1.01, "dy": -0.03, "body": -0.3, "cam": 24.0, "lock": false, "ok": true}
+{"t": 152.46, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 152.93, "ev": "align", "zone": "burg:1", "src": "attacker", "fight": true, "npc": 254002, "d": 14.81, "dy": 10.45, "body": -179.0, "cam": -118.5, "lock": false, "ok": false}
+{"t": 152.97, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 153.48, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 1}
+{"t": 153.56, "ev": "align", "zone": "burg:1", "src": "last", "fight": true, "npc": 254002, "d": 15.0, "dy": 10.45, "body": -179.0, "cam": -44.5, "lock": false, "ok": false}
+{"t": 153.99, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 1}
+{"t": 154.09, "ev": "align", "zone": "burg:1", "src": "attacker", "fight": true, "npc": 254002, "d": 14.62, "dy": 10.45, "body": -179.0, "cam": -1.9, "lock": false, "ok": false}
+{"t": 154.49, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 1}
+{"t": 154.6, "ev": "align", "zone": "burg:1", "src": "attacker", "fight": true, "npc": 254002, "d": 14.75, "dy": 10.45, "body": -179.0, "cam": -2.0, "lock": false, "ok": false}
+{"t": 155.0, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 1}
+{"t": 155.12, "ev": "duel", "zone": "burg:1", "tag": "#1 254000", "npc": 254000, "result": "killed", "secs": 24.2, "dealt": 0, "taken": 0, "fight": "20261110_014024_burg-bonfire#f001"}
+{"t": 155.17, "ev": "align", "zone": "burg:1", "src": "attacker", "fight": false, "npc": 254002, "d": 15.02, "dy": 10.42, "body": 138.6, "cam": -0.5, "lock": false, "ok": false}
+{"t": 155.5, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 1}
+{"t": 155.72, "ev": "align", "zone": "burg:1", "src": "attacker", "fight": false, "npc": 254002, "d": 16.07, "dy": 10.24, "body": 141.5, "cam": 11.6, "lock": false, "ok": false}
+{"t": 156.01, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 156.27, "ev": "align", "zone": "burg:1", "src": "last", "fight": false, "npc": 254002, "d": 17.57, "dy": 10.1, "body": 145.6, "cam": 7.7, "lock": false, "ok": false}
+{"t": 156.51, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 156.8, "ev": "align", "zone": "burg:1", "src": "last", "fight": false, "npc": 254002, "d": 18.24, "dy": 10.08, "body": 147.0, "cam": 3.5, "lock": false, "ok": false}
+{"t": 157.01, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 157.34, "ev": "align", "zone": "burg:1", "src": "last", "fight": false, "npc": 254002, "d": 18.24, "dy": 10.08, "body": 147.0, "cam": 3.6, "lock": false, "ok": false}
+{"t": 157.53, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 1}
+{"t": 157.84, "ev": "align", "zone": "burg:1", "src": "attacker", "fight": false, "npc": 254000, "d": 2.27, "dy": 0.22, "body": 142.5, "cam": -0.9, "lock": false, "ok": false}
+{"t": 158.04, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 1}
+{"t": 158.39, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 1.61, "dy": 0.21, "body": -0.7, "cam": -4.2, "lock": true, "ok": true}
+{"t": 158.56, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 1}
+{"t": 158.9, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 1.75, "dy": 0.18, "body": -6.0, "cam": -5.2, "lock": true, "ok": true}
+{"t": 159.06, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 1}
+{"t": 159.41, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 1.57, "dy": -0.01, "body": -1.1, "cam": 16.4, "lock": true, "ok": true}
+{"t": 159.57, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 1}
+{"t": 159.93, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 1.56, "dy": -0.4, "body": -1.2, "cam": 20.6, "lock": true, "ok": true}
+{"t": 160.08, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 1}
+{"t": 160.45, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 2.29, "dy": -0.22, "body": -1.4, "cam": 15.4, "lock": true, "ok": true}
+{"t": 160.58, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 1}
+{"t": 160.98, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 1.73, "dy": 0.11, "body": 1.6, "cam": 25.2, "lock": true, "ok": true}
+{"t": 161.1, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 1}
+{"t": 161.48, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 1.38, "dy": 0.51, "body": -0.8, "cam": 22.1, "lock": true, "ok": true}
+{"t": 161.6, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 1}
+{"t": 162.0, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 0.91, "dy": 0.39, "body": -3.6, "cam": -3.0, "lock": true, "ok": true}
+{"t": 162.12, "ev": "vital", "zone": "burg:1", "hp": 1018, "max": 1018, "near": 1}
+{"t": 162.52, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 1.21, "dy": 0.62, "body": -12.4, "cam": -15.6, "lock": true, "ok": true}
+{"t": 162.63, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 1}
+{"t": 162.72, "ev": "attack_align", "zone": "burg:1", "kind": "light", "dmg": 0, "npc": 254000, "d": 1.22, "dy": 0.48, "body": -4.0, "cam": 11.3, "lock": false, "ok": true}
+{"t": 163.05, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 1.23, "dy": 0.54, "body": -7.8, "cam": -9.4, "lock": true, "ok": true}
+{"t": 163.14, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 1}
+{"t": 163.56, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 1.58, "dy": 0.38, "body": -6.4, "cam": -1.2, "lock": true, "ok": true}
+{"t": 163.65, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 1}
+{"t": 164.08, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 1.91, "dy": 0.33, "body": 0.8, "cam": 14.8, "lock": true, "ok": true}
+{"t": 164.16, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 1}
+{"t": 164.59, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 1.45, "dy": 0.2, "body": 0.1, "cam": 23.9, "lock": true, "ok": true}
+{"t": 164.67, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 1}
+{"t": 165.12, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 1.27, "dy": 0.14, "body": -1.6, "cam": 5.7, "lock": true, "ok": true}
+{"t": 165.19, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 1}
+{"t": 165.63, "ev": "attack_align", "zone": "burg:1", "kind": "light", "dmg": 75, "npc": 254000, "d": 1.32, "dy": 0.14, "body": -2.2, "cam": 16.7, "lock": true, "ok": true}
+{"t": 165.69, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 165.78, "ev": "duel", "zone": "burg:1", "tag": "오는 놈 254000", "npc": 254000, "result": "killed", "secs": 7.9, "dealt": 75, "taken": 60, "fight": "20261110_014024_burg-bonfire#f002"}
+{"t": 165.85, "ev": "duel", "zone": "burg:1", "tag": "#3 254000 (2번째)", "npc": null, "result": "killed", "secs": 0.1, "dealt": 0, "taken": 0, "fight": "20261110_014024_burg-bonfire#f003"}
+{"t": 165.92, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 255010, "d": 14.71, "dy": -0.37, "body": -4.1, "cam": -1.2, "lock": false, "ok": true}
+{"t": 166.2, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 166.47, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 255010, "d": 14.61, "dy": -0.38, "body": -52.7, "cam": -1.4, "lock": false, "ok": false}
+{"t": 166.71, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 167.08, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 255010, "d": 13.73, "dy": -0.25, "body": -56.3, "cam": -8.3, "lock": false, "ok": false}
+{"t": 167.22, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 167.63, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 255010, "d": 13.54, "dy": -0.22, "body": -57.5, "cam": -3.9, "lock": false, "ok": false}
+{"t": 167.72, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 168.15, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 255010, "d": 13.43, "dy": -0.23, "body": -0.0, "cam": -4.0, "lock": false, "ok": true}
+{"t": 168.23, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 168.67, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 255010, "d": 13.36, "dy": -0.23, "body": -0.0, "cam": -2.5, "lock": true, "ok": true}
+{"t": 168.73, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 169.18, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 255010, "d": 13.37, "dy": -0.23, "body": 0.1, "cam": -2.5, "lock": true, "ok": true}
+{"t": 169.24, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 169.71, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 255010, "d": 13.37, "dy": -0.23, "body": 0.1, "cam": -2.5, "lock": true, "ok": true}
+{"t": 169.75, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 170.23, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 255010, "d": 12.94, "dy": -0.25, "body": 0.1, "cam": -2.4, "lock": true, "ok": true}
+{"t": 170.25, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 170.71, "ev": "lure", "zone": "burg:1", "tag": "#2", "n": 1, "dist": 13.4, "locked": true, "aim_off": null, "hit": 34, "woke": true, "knives": 76, "arm": {"right": 1.5, "left": 1.5, "moved": 0.0}}
+{"t": 170.77, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 170.79, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 255010, "d": 13.2, "dy": -0.28, "body": 0.0, "cam": -2.8, "lock": false, "ok": true}
+{"t": 171.27, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 171.32, "ev": "align", "zone": "burg:1", "src": "attacker", "fight": false, "npc": 254002, "d": 16.94, "dy": 10.14, "body": 163.3, "cam": -3.3, "lock": false, "ok": false}
+{"t": 171.81, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 171.89, "ev": "align", "zone": "burg:1", "src": "last", "fight": false, "npc": 254002, "d": 17.01, "dy": 10.14, "body": 163.4, "cam": -3.0, "lock": false, "ok": false}
+{"t": 172.31, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 172.44, "ev": "align", "zone": "burg:1", "src": "last", "fight": false, "npc": 254002, "d": 17.01, "dy": 10.14, "body": 163.4, "cam": -3.0, "lock": false, "ok": false}
+{"t": 172.83, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 172.96, "ev": "align", "zone": "burg:1", "src": "last", "fight": false, "npc": 254002, "d": 17.01, "dy": 10.14, "body": 163.4, "cam": -3.0, "lock": false, "ok": false}
+{"t": 173.34, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 173.51, "ev": "align", "zone": "burg:1", "src": "last", "fight": false, "npc": 254002, "d": 17.01, "dy": 10.14, "body": 163.4, "cam": -3.0, "lock": false, "ok": false}
+{"t": 173.82, "ev": "guard_keep", "zone": "burg:1", "until": 1.3}
+{"t": 173.84, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 1}
+{"t": 174.04, "ev": "align", "zone": "burg:1", "src": "attacker", "fight": false, "npc": 255010, "d": 4.3, "dy": 0.1, "body": 165.3, "cam": -1.0, "lock": false, "ok": false}
+{"t": 174.35, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 1}
+{"t": 174.56, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 255010, "d": 2.23, "dy": 0.03, "body": -0.3, "cam": -1.1, "lock": true, "ok": true}
+{"t": 174.86, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 1}
+{"t": 175.09, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 255010, "d": 1.88, "dy": 0.08, "body": -10.4, "cam": -4.8, "lock": true, "ok": true}
+{"t": 175.36, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 1}
+{"t": 175.61, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 255010, "d": 1.74, "dy": 0.07, "body": -10.2, "cam": -0.3, "lock": true, "ok": true}
+{"t": 175.87, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 1}
+{"t": 175.89, "ev": "attack_align", "zone": "burg:1", "kind": "light", "dmg": 51, "npc": 255010, "d": 1.25, "dy": 0.02, "body": -5.8, "cam": -5.7, "lock": true, "ok": true}
+{"t": 175.89, "ev": "guard_counter", "zone": "burg:1", "anim": 20140, "npc": 255010, "dist": 1.25, "dmg": 51, "taken": 0}
+{"t": 176.04, "ev": "duel", "zone": "burg:1", "tag": "오는 놈 255010", "npc": 255010, "result": "killed", "secs": 1.9, "dealt": 51, "taken": 0, "fight": "20261110_014024_burg-bonfire#f004"}
+{"t": 176.12, "ev": "align", "zone": "burg:1", "src": "attacker", "fight": false, "npc": 254002, "d": 16.04, "dy": 10.13, "body": 8.5, "cam": 8.3, "lock": false, "ok": true}
+{"t": 176.37, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 176.64, "ev": "align", "zone": "burg:1", "src": "last", "fight": false, "npc": 254002, "d": 16.07, "dy": 10.13, "body": 8.5, "cam": 8.4, "lock": false, "ok": true}
+{"t": 176.88, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 177.15, "ev": "align", "zone": "burg:1", "src": "last", "fight": false, "npc": 254002, "d": 16.36, "dy": 10.12, "body": 178.3, "cam": 9.0, "lock": false, "ok": false}
+{"t": 177.38, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 177.71, "ev": "align", "zone": "burg:1", "src": "last", "fight": false, "npc": 254002, "d": 16.99, "dy": 10.12, "body": 173.8, "cam": 2.4, "lock": false, "ok": false}
+{"t": 177.89, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 178.24, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254002, "d": 17.24, "dy": 10.07, "body": 108.6, "cam": 5.4, "lock": false, "ok": false}
+{"t": 178.41, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 178.82, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254002, "d": 17.05, "dy": 9.66, "body": 52.8, "cam": 8.2, "lock": false, "ok": false}
+{"t": 178.91, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 179.33, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254002, "d": 16.83, "dy": 9.21, "body": 128.9, "cam": 10.6, "lock": false, "ok": false}
+{"t": 179.42, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 179.87, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254002, "d": 17.49, "dy": 8.72, "body": 61.5, "cam": 9.4, "lock": false, "ok": false}
+{"t": 179.93, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 180.43, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 180.5, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254002, "d": 15.91, "dy": 7.56, "body": 13.8, "cam": 5.9, "lock": false, "ok": true}
+{"t": 180.94, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 181.02, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254002, "d": 14.23, "dy": 7.09, "body": 6.8, "cam": 8.3, "lock": false, "ok": true}
+{"t": 181.45, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 181.53, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254002, "d": 12.49, "dy": 5.89, "body": -12.1, "cam": 4.2, "lock": false, "ok": true}
+{"t": 181.96, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 182.04, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254002, "d": 10.88, "dy": 4.67, "body": -25.7, "cam": -3.0, "lock": false, "ok": true}
+{"t": 182.47, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 182.55, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254002, "d": 10.11, "dy": 4.07, "body": -27.9, "cam": -9.4, "lock": false, "ok": true}
+{"t": 182.98, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 183.06, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254002, "d": 9.94, "dy": 3.95, "body": -0.1, "cam": -9.5, "lock": false, "ok": true}
+{"t": 183.49, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 183.58, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254002, "d": 9.94, "dy": 3.95, "body": -0.1, "cam": -0.9, "lock": true, "ok": true}
+{"t": 184.0, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 184.1, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254002, "d": 9.95, "dy": 3.95, "body": 0.0, "cam": -0.7, "lock": true, "ok": true}
+{"t": 184.51, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 184.62, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254002, "d": 9.94, "dy": 3.95, "body": -0.1, "cam": -0.8, "lock": true, "ok": true}
+{"t": 185.01, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 185.14, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254002, "d": 9.52, "dy": 3.62, "body": 0.0, "cam": -0.7, "lock": true, "ok": true}
+{"t": 185.47, "ev": "lure", "zone": "burg:1", "tag": "#5", "n": 1, "dist": 10.7, "locked": true, "aim_off": null, "hit": 44, "woke": true, "knives": 75, "arm": {"right": 0.9, "left": 0.85, "moved": 0.0}}
+{"t": 185.52, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 185.67, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254002, "d": 9.59, "dy": 3.58, "body": 0.1, "cam": -0.7, "lock": false, "ok": true}
+{"t": 186.03, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 186.21, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254002, "d": 9.56, "dy": 3.56, "body": 0.3, "cam": 0.0, "lock": true, "ok": true}
+{"t": 186.54, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 186.72, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254002, "d": 9.56, "dy": 3.56, "body": -0.0, "cam": 0.0, "lock": true, "ok": true}
+{"t": 187.05, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 187.25, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254002, "d": 9.51, "dy": 3.52, "body": -0.2, "cam": -0.1, "lock": true, "ok": true}
+{"t": 187.55, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 187.77, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254002, "d": 9.12, "dy": 3.27, "body": -0.1, "cam": 0.1, "lock": true, "ok": true}
+{"t": 187.97, "ev": "lure", "zone": "burg:1", "tag": "#5", "n": 2, "dist": 10.2, "locked": true, "aim_off": null, "hit": 31, "woke": true, "knives": 74, "arm": {"right": 0.85, "left": 0.9, "moved": 0.0}}
+{"t": 188.06, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 188.57, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 189.08, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 189.58, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 190.09, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 190.61, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 191.12, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 191.63, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 192.14, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 192.65, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 192.95, "ev": "align", "zone": "burg:1", "src": "nearest", "fight": false, "npc": 254001, "d": 7.01, "dy": 4.73, "body": -133.1, "cam": -29.4, "lock": false, "ok": false}
+{"t": 193.15, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 193.51, "ev": "align", "zone": "burg:1", "src": "nearest", "fight": false, "npc": 254001, "d": 6.73, "dy": 2.27, "body": -131.4, "cam": -8.1, "lock": false, "ok": false}
+{"t": 193.65, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 194.03, "ev": "align", "zone": "burg:1", "src": "nearest", "fight": false, "npc": 254001, "d": 6.59, "dy": 0.65, "body": -130.0, "cam": -6.8, "lock": false, "ok": false}
+{"t": 194.16, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 194.58, "ev": "align", "zone": "burg:1", "src": "nearest", "fight": false, "npc": 254001, "d": 6.57, "dy": 0.64, "body": -129.4, "cam": -6.2, "lock": false, "ok": false}
+{"t": 194.68, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 195.19, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 195.69, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 196.19, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 196.72, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 197.24, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 0}
+{"t": 197.74, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 1}
+{"t": 198.11, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254001, "d": 2.25, "dy": 0.24, "body": -127.5, "cam": -4.3, "lock": false, "ok": false}
+{"t": 198.26, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 1}
+{"t": 198.63, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254001, "d": 1.72, "dy": 0.19, "body": -0.9, "cam": 4.5, "lock": false, "ok": true}
+{"t": 198.76, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 1}
+{"t": 199.16, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254001, "d": 1.46, "dy": 0.18, "body": -1.2, "cam": 4.3, "lock": false, "ok": true}
+{"t": 199.28, "ev": "vital", "zone": "burg:1", "hp": 958, "max": 1018, "near": 1}
+{"t": 199.76, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254001, "d": 1.21, "dy": 0.06, "body": 12.6, "cam": 9.1, "lock": false, "ok": true}
+{"t": 199.78, "ev": "vital", "zone": "burg:1", "hp": 879, "max": 1018, "near": 1}
+{"t": 200.27, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254001, "d": 1.36, "dy": 0.07, "body": 9.9, "cam": -12.5, "lock": true, "ok": true}
+{"t": 200.29, "ev": "vital", "zone": "burg:1", "hp": 879, "max": 1018, "near": 1}
+{"t": 200.47, "ev": "guard_keep", "zone": "burg:1", "until": 0.71}
+{"t": 200.78, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254001, "d": 1.46, "dy": 0.09, "body": 8.4, "cam": -9.3, "lock": true, "ok": true}
+{"t": 200.79, "ev": "vital", "zone": "burg:1", "hp": 879, "max": 1018, "near": 1}
+{"t": 201.29, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254001, "d": 1.56, "dy": 0.08, "body": 11.7, "cam": 1.0, "lock": true, "ok": true}
+{"t": 201.3, "ev": "vital", "zone": "burg:1", "hp": 879, "max": 1018, "near": 1}
+{"t": 201.8, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 1}
+{"t": 201.8, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254001, "d": 0.98, "dy": 0.02, "body": -2.9, "cam": 11.2, "lock": true, "ok": true}
+{"t": 202.31, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254001, "d": 1.09, "dy": 0.07, "body": -8.7, "cam": 13.6, "lock": true, "ok": true}
+{"t": 202.32, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 1}
+{"t": 202.4, "ev": "guard_keep", "zone": "burg:1", "until": 1.3}
+{"t": 202.81, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254001, "d": 1.29, "dy": -0.26, "body": 4.8, "cam": 34.6, "lock": true, "ok": true}
+{"t": 202.83, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 1}
+{"t": 203.25, "ev": "hit", "zone": "burg:1", "n": 1, "lost": 85, "hp": 794, "max": 1018, "secs": 0.0, "blame": [{"npc": 254001, "ptr": 472343696, "anim": 3001, "d": 0.85, "dy": 0.01, "face": 2}]}
+{"t": 203.31, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254001, "d": 1.28, "dy": -0.32, "body": 2.6, "cam": 30.3, "lock": true, "ok": true}
+{"t": 203.33, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 1}
+{"t": 203.82, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254001, "d": 1.33, "dy": 0.05, "body": 7.8, "cam": 36.5, "lock": true, "ok": true}
+{"t": 203.84, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 1}
+{"t": 204.32, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254001, "d": 1.38, "dy": 0.17, "body": 8.4, "cam": 21.9, "lock": false, "ok": true}
+{"t": 204.36, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 1}
+{"t": 204.84, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254001, "d": 2.05, "dy": 0.36, "body": 14.7, "cam": 17.7, "lock": false, "ok": true}
+{"t": 204.86, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 1}
+{"t": 205.02, "ev": "guard_keep", "zone": "burg:1", "until": 1.3}
+{"t": 205.37, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254001, "d": 2.01, "dy": 0.35, "body": 15.4, "cam": -0.2, "lock": true, "ok": true}
+{"t": 205.37, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 1}
+{"t": 205.87, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254001, "d": 1.33, "dy": 0.3, "body": 2.9, "cam": 19.9, "lock": true, "ok": true}
+{"t": 205.88, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 1}
+{"t": 206.39, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254001, "d": 1.12, "dy": 0.26, "body": -1.1, "cam": 4.3, "lock": true, "ok": true}
+{"t": 206.39, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 1}
+{"t": 206.89, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 207.19, "ev": "duel", "zone": "burg:1", "tag": "#4 던질 자리로: 따라온 254001", "npc": 254001, "result": "killed", "secs": 7.3, "dealt": 0, "taken": 85, "fight": "20261110_014024_burg-bonfire#f005"}
+{"t": 207.41, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 207.91, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 208.42, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 208.93, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 209.45, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 209.95, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 210.46, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 210.96, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 211.47, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 211.98, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 212.49, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 212.56, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 12.49, "dy": 8.76, "body": 4.2, "cam": 25.5, "lock": false, "ok": true}
+{"t": 213.0, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 213.11, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 11.39, "dy": 7.72, "body": 55.5, "cam": 8.3, "lock": false, "ok": false}
+{"t": 213.51, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 213.64, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 10.85, "dy": 7.0, "body": 82.0, "cam": 11.1, "lock": false, "ok": false}
+{"t": 214.02, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 214.15, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 10.78, "dy": 6.77, "body": 0.0, "cam": 6.5, "lock": false, "ok": true}
+{"t": 214.53, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 214.66, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 10.61, "dy": 6.72, "body": 0.0, "cam": 1.7, "lock": false, "ok": true}
+{"t": 215.04, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 215.18, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 10.61, "dy": 6.72, "body": 0.0, "cam": 0.6, "lock": true, "ok": true}
+{"t": 215.55, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 215.69, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 10.63, "dy": 6.72, "body": 0.0, "cam": 0.6, "lock": true, "ok": true}
+{"t": 216.06, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 216.21, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 10.55, "dy": 6.71, "body": -0.1, "cam": 0.5, "lock": true, "ok": true}
+{"t": 216.57, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 216.71, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 10.18, "dy": 6.57, "body": 0.1, "cam": 0.7, "lock": true, "ok": true}
+{"t": 217.01, "ev": "lure", "zone": "burg:1", "tag": "#6", "n": 1, "dist": 12.6, "locked": true, "aim_off": null, "hit": 43, "woke": true, "knives": 73, "arm": {"right": 1.5, "left": 1.5, "moved": 0.0}}
+{"t": 217.08, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 217.23, "ev": "align", "zone": "burg:1", "src": "last", "fight": false, "npc": 254000, "d": 10.34, "dy": 6.58, "body": -0.2, "cam": 0.2, "lock": false, "ok": true}
+{"t": 217.58, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 217.75, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 8.91, "dy": 6.24, "body": 92.8, "cam": -2.9, "lock": false, "ok": false}
+{"t": 218.09, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 218.2, "ev": "duel", "zone": "burg:1", "tag": "#6 254000 (2번째)", "npc": 254000, "result": "unsafe_approach", "secs": 0.8, "dealt": 0, "taken": 0, "fight": "20261110_014024_burg-bonfire#f006"}
+{"t": 218.35, "ev": "align", "zone": "burg:1", "src": "last", "fight": false, "npc": 254000, "d": 6.6, "dy": 4.75, "body": -177.1, "cam": 9.1, "lock": false, "ok": false}
+{"t": 218.6, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 218.87, "ev": "align", "zone": "burg:1", "src": "last", "fight": false, "npc": 254000, "d": 6.46, "dy": 3.79, "body": -147.1, "cam": -11.9, "lock": false, "ok": false}
+{"t": 219.11, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 219.49, "ev": "align", "zone": "burg:1", "src": "last", "fight": false, "npc": 254000, "d": 7.34, "dy": 3.24, "body": -161.6, "cam": -20.2, "lock": false, "ok": false}
+{"t": 219.62, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 220.09, "ev": "align", "zone": "burg:1", "src": "last", "fight": false, "npc": 254000, "d": 9.45, "dy": 3.51, "body": 149.5, "cam": -4.7, "lock": false, "ok": false}
+{"t": 220.13, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 220.61, "ev": "align", "zone": "burg:1", "src": "last", "fight": false, "npc": 254000, "d": 10.93, "dy": 4.15, "body": 148.3, "cam": -2.7, "lock": false, "ok": false}
+{"t": 220.64, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 221.12, "ev": "align", "zone": "burg:1", "src": "last", "fight": false, "npc": 254000, "d": 11.23, "dy": 5.29, "body": 130.7, "cam": 11.1, "lock": false, "ok": false}
+{"t": 221.15, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 221.65, "ev": "align", "zone": "burg:1", "src": "last", "fight": false, "npc": 254000, "d": 10.88, "dy": 6.19, "body": 136.7, "cam": 10.2, "lock": false, "ok": false}
+{"t": 221.66, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 222.17, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 222.17, "ev": "align", "zone": "burg:1", "src": "last", "fight": false, "npc": 254000, "d": 10.86, "dy": 6.49, "body": -150.7, "cam": 9.4, "lock": false, "ok": false}
+{"t": 222.67, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 222.69, "ev": "align", "zone": "burg:1", "src": "last", "fight": false, "npc": 254000, "d": 10.84, "dy": 6.75, "body": -159.3, "cam": 9.6, "lock": false, "ok": false}
+{"t": 223.18, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 223.21, "ev": "align", "zone": "burg:1", "src": "last", "fight": false, "npc": 254000, "d": 10.56, "dy": 6.82, "body": -55.3, "cam": 1.1, "lock": false, "ok": false}
+{"t": 223.69, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 223.76, "ev": "align", "zone": "burg:1", "src": "last", "fight": false, "npc": 254000, "d": 8.11, "dy": 6.29, "body": -131.0, "cam": -11.9, "lock": false, "ok": false}
+{"t": 224.2, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 224.38, "ev": "align", "zone": "burg:1", "src": "last", "fight": false, "npc": 254000, "d": 7.58, "dy": 5.47, "body": -131.8, "cam": -18.0, "lock": false, "ok": false}
+{"t": 224.71, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 225.01, "ev": "align", "zone": "burg:1", "src": "last", "fight": false, "npc": 254000, "d": 7.84, "dy": 5.37, "body": -137.9, "cam": -4.4, "lock": false, "ok": false}
+{"t": 225.21, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 225.53, "ev": "align", "zone": "burg:1", "src": "last", "fight": false, "npc": 254000, "d": 7.26, "dy": 5.11, "body": -136.7, "cam": -3.3, "lock": false, "ok": false}
+{"t": 225.73, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 226.11, "ev": "align", "zone": "burg:1", "src": "last", "fight": false, "npc": 254000, "d": 7.01, "dy": 4.76, "body": -133.9, "cam": -0.5, "lock": false, "ok": false}
+{"t": 226.23, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 226.62, "ev": "align", "zone": "burg:1", "src": "nearest", "fight": false, "npc": 254000, "d": 6.84, "dy": 2.75, "body": -132.1, "cam": 1.4, "lock": false, "ok": false}
+{"t": 226.75, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 227.19, "ev": "align", "zone": "burg:1", "src": "nearest", "fight": false, "npc": 254000, "d": 6.71, "dy": 0.66, "body": -130.5, "cam": 2.9, "lock": false, "ok": false}
+{"t": 227.25, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 227.73, "ev": "align", "zone": "burg:1", "src": "nearest", "fight": false, "npc": 254000, "d": 6.7, "dy": 0.65, "body": -130.1, "cam": 3.3, "lock": false, "ok": false}
+{"t": 227.76, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 228.27, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 228.79, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 229.29, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 229.79, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 230.31, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 230.57, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 6.45, "dy": 0.62, "body": -130.0, "cam": 3.4, "lock": false, "ok": false}
+{"t": 230.81, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 231.13, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 2.76, "dy": 0.38, "body": -6.8, "cam": -2.6, "lock": true, "ok": true}
+{"t": 231.32, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 1}
+{"t": 231.65, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 2.14, "dy": 0.35, "body": -4.2, "cam": -6.1, "lock": true, "ok": true}
+{"t": 231.82, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 1}
+{"t": 232.16, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 1.7, "dy": 0.36, "body": -4.1, "cam": -26.6, "lock": true, "ok": true}
+{"t": 232.33, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 1}
+{"t": 232.68, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 1.21, "dy": 0.22, "body": 6.3, "cam": -21.6, "lock": true, "ok": true}
+{"t": 232.83, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 1}
+{"t": 233.19, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 0.75, "dy": 0.01, "body": 0.1, "cam": -16.3, "lock": false, "ok": true}
+{"t": 233.34, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 1}
+{"t": 233.7, "ev": "align", "zone": "burg:1", "src": "fight", "fight": true, "npc": 254000, "d": 1.09, "dy": 0.01, "body": -0.2, "cam": -16.1, "lock": false, "ok": true}
+{"t": 233.85, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 1}
+{"t": 234.05, "ev": "duel", "zone": "burg:1", "tag": "오는 놈 254000", "npc": 254000, "result": "killed", "secs": 3.5, "dealt": 0, "taken": 0, "fight": "20261110_014024_burg-bonfire#f007"}
+{"t": 234.08, "ev": "duel", "zone": "burg:1", "tag": "#6 254000 (2번째)", "npc": null, "result": "killed", "secs": 0.0, "dealt": 0, "taken": 0, "fight": "20261110_014024_burg-bonfire#f008"}
+{"t": 234.42, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 234.96, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 235.47, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 235.97, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 236.48, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 236.98, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 237.49, "ev": "vital", "zone": "burg:1", "hp": 794, "max": 1018, "near": 0}
+{"t": 238.0, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 0}
+{"t": 238.51, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 0}
+{"t": 239.02, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 0}
+{"t": 239.53, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 0}
+{"t": 240.04, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 0}
+{"t": 240.55, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 0}
+{"t": 241.06, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 0}
+{"t": 241.56, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 0}
+{"t": 242.07, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 0}
+{"t": 242.57, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 0}
+{"t": 243.08, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 0}
+{"t": 243.59, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 0}
+{"t": 244.09, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 0}
+{"t": 244.61, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 0}
+{"t": 245.11, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 0}
+{"t": 245.62, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 0}
+{"t": 246.12, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 0}
+{"t": 246.63, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 1}
+{"t": 247.13, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 1}
+{"t": 247.65, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 1}
+{"t": 248.15, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 0}
+{"t": 248.67, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 0}
+{"t": 249.17, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 0}
+{"t": 249.69, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 0}
+{"t": 250.19, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 0}
+{"t": 250.7, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 0}
+{"t": 251.21, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 0}
+{"t": 251.73, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 0}
+{"t": 252.23, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 0}
+{"t": 252.74, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 0}
+{"t": 253.25, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 0}
+{"t": 253.75, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 0}
+{"t": 254.26, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 0}
+{"t": 254.77, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 0}
+{"t": 255.27, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 0}
+{"t": 255.78, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 0}
+{"t": 256.29, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 0}
+{"t": 256.79, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 0}
+{"t": 257.3, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 0}
+{"t": 257.81, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 0}
+{"t": 258.32, "ev": "vital", "zone": "burg:2", "hp": 794, "max": 1018, "near": 0}
+{"t": 258.82, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 259.32, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 259.83, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 260.35, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 260.85, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 261.37, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 261.87, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 262.39, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 1}
+{"t": 262.89, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 1}
+{"t": 263.4, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 1}
+{"t": 263.91, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 1}
+{"t": 264.33, "ev": "align", "zone": "burg:3", "src": "nearest", "fight": false, "npc": 254010, "d": 8.88, "dy": 0.84, "body": -53.0, "cam": -62.0, "lock": false, "ok": false}
+{"t": 264.42, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 264.92, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 265.55, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 266.06, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 266.3, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254010, "d": 6.94, "dy": -0.0, "body": -53.1, "cam": -51.4, "lock": false, "ok": false}
+{"t": 266.56, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 266.88, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254010, "d": 6.2, "dy": -0.0, "body": 1.9, "cam": -2.6, "lock": true, "ok": true}
+{"t": 267.07, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 267.41, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254010, "d": 5.9, "dy": -0.0, "body": 0.1, "cam": -2.1, "lock": true, "ok": true}
+{"t": 267.6, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 267.96, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254010, "d": 4.75, "dy": -0.0, "body": -0.9, "cam": -0.5, "lock": true, "ok": true}
+{"t": 268.09, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 1}
+{"t": 268.49, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254010, "d": 0.85, "dy": 0.0, "body": -5.6, "cam": -27.7, "lock": true, "ok": true}
+{"t": 268.6, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 1}
+{"t": 269.01, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254010, "d": 1.84, "dy": -0.0, "body": -4.7, "cam": -15.2, "lock": true, "ok": true}
+{"t": 269.11, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 1}
+{"t": 269.52, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254010, "d": 1.78, "dy": -0.0, "body": -0.4, "cam": 5.1, "lock": true, "ok": true}
+{"t": 269.61, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 1}
+{"t": 270.03, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254010, "d": 1.77, "dy": -0.0, "body": -2.1, "cam": 4.2, "lock": true, "ok": true}
+{"t": 270.12, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 1}
+{"t": 270.55, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254010, "d": 1.37, "dy": -0.0, "body": -1.8, "cam": 0.0, "lock": true, "ok": true}
+{"t": 270.63, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 1}
+{"t": 270.93, "ev": "attack_align", "zone": "burg:3", "kind": "light", "dmg": 75, "npc": 254010, "d": 1.77, "dy": -0.0, "body": -2.1, "cam": 4.2, "lock": true, "ok": true}
+{"t": 271.08, "ev": "duel", "zone": "burg:3", "tag": "#1 이동: 끌어온 254010", "npc": 254010, "result": "killed", "secs": 4.3, "dealt": 75, "taken": 0, "fight": "20261110_014024_burg-bonfire#f009"}
+{"t": 271.21, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 271.72, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 271.77, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254011, "d": 11.09, "dy": 0.5, "body": 0.9, "cam": 2.4, "lock": false, "ok": true}
+{"t": 272.24, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 272.31, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254011, "d": 11.09, "dy": 0.5, "body": 0.9, "cam": 2.4, "lock": false, "ok": true}
+{"t": 272.75, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 272.84, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254011, "d": 11.09, "dy": 0.5, "body": 0.9, "cam": 2.4, "lock": false, "ok": true}
+{"t": 273.26, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 273.35, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254011, "d": 11.09, "dy": 0.5, "body": 0.9, "cam": 0.8, "lock": true, "ok": true}
+{"t": 273.76, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 273.86, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254011, "d": 11.1, "dy": 0.5, "body": 0.1, "cam": 0.6, "lock": true, "ok": true}
+{"t": 274.27, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 274.39, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254011, "d": 11.11, "dy": 0.5, "body": 0.0, "cam": 0.5, "lock": true, "ok": true}
+{"t": 274.78, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 274.91, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254011, "d": 10.68, "dy": 0.5, "body": 0.1, "cam": 0.5, "lock": true, "ok": true}
+{"t": 275.29, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 275.31, "ev": "lure", "zone": "burg:3", "tag": "#1 이동: 254011", "n": 1, "dist": 11.1, "locked": true, "aim_off": null, "hit": 44, "woke": true, "knives": 72, "arm": {"right": 1.0, "left": 0.4, "moved": 0.0}}
+{"t": 275.42, "ev": "align", "zone": "burg:3", "src": "last", "fight": false, "npc": 254011, "d": 10.81, "dy": 0.5, "body": -0.2, "cam": 0.2, "lock": false, "ok": true}
+{"t": 275.81, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 275.94, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254011, "d": 9.79, "dy": 0.5, "body": -0.3, "cam": -0.1, "lock": false, "ok": true}
+{"t": 276.32, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 276.47, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254011, "d": 7.92, "dy": -0.0, "body": -0.3, "cam": -0.1, "lock": false, "ok": true}
+{"t": 276.82, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 276.98, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254011, "d": 6.02, "dy": -0.0, "body": -0.3, "cam": -0.2, "lock": true, "ok": true}
+{"t": 277.33, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 1}
+{"t": 277.52, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254011, "d": 4.34, "dy": -0.0, "body": -0.4, "cam": -0.2, "lock": true, "ok": true}
+{"t": 277.87, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 1}
+{"t": 278.05, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254011, "d": 3.32, "dy": -0.0, "body": 1.2, "cam": 1.7, "lock": true, "ok": true}
+{"t": 278.38, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 1}
+{"t": 278.6, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254011, "d": 1.4, "dy": 0.0, "body": -2.0, "cam": 20.9, "lock": true, "ok": true}
+{"t": 278.89, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 1}
+{"t": 279.11, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254011, "d": 1.0, "dy": 0.0, "body": -9.5, "cam": -7.6, "lock": true, "ok": true}
+{"t": 279.41, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 1}
+{"t": 279.63, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254011, "d": 1.09, "dy": -0.0, "body": -2.2, "cam": 20.2, "lock": true, "ok": true}
+{"t": 279.92, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 1}
+{"t": 280.14, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254011, "d": 1.28, "dy": -0.0, "body": 3.5, "cam": 26.0, "lock": true, "ok": true}
+{"t": 280.43, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 1}
+{"t": 280.66, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254011, "d": 1.27, "dy": -0.0, "body": 2.0, "cam": -0.3, "lock": true, "ok": true}
+{"t": 280.93, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 1}
+{"t": 281.33, "ev": "duel", "zone": "burg:3", "tag": "#1 이동: 끌어온 254011", "npc": 254011, "result": "killed", "secs": 5.7, "dealt": 0, "taken": 0, "fight": "20261110_014024_burg-bonfire#f010"}
+{"t": 281.44, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 281.95, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 282.06, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254010, "d": 8.81, "dy": 0.61, "body": 52.7, "cam": 55.6, "lock": false, "ok": false}
+{"t": 282.46, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 282.66, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254010, "d": 8.84, "dy": 0.61, "body": 52.6, "cam": 4.2, "lock": false, "ok": false}
+{"t": 282.97, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 283.16, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254010, "d": 8.85, "dy": 0.61, "body": 52.5, "cam": 4.1, "lock": false, "ok": false}
+{"t": 283.54, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 283.72, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254010, "d": 8.85, "dy": 0.61, "body": 52.5, "cam": 4.0, "lock": false, "ok": false}
+{"t": 284.05, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 284.23, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254010, "d": 8.85, "dy": 0.61, "body": 52.5, "cam": 4.0, "lock": false, "ok": false}
+{"t": 284.56, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 284.75, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254010, "d": 8.68, "dy": 0.61, "body": 0.0, "cam": 3.9, "lock": false, "ok": true}
+{"t": 285.07, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 285.26, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254010, "d": 8.68, "dy": 0.61, "body": 0.0, "cam": 0.7, "lock": false, "ok": true}
+{"t": 285.58, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 285.76, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254010, "d": 8.68, "dy": 0.61, "body": 0.0, "cam": 0.5, "lock": false, "ok": true}
+{"t": 285.98, "ev": "lure", "zone": "burg:3", "tag": "#2 이동: 254010", "n": 1, "dist": 8.9, "locked": false, "aim_off": null, "hit": null, "woke": null, "knives": null, "arm": {"right": 1.5, "left": 1.5, "moved": 0.0}}
+{"t": 286.08, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 286.3, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254010, "d": 8.68, "dy": 0.61, "body": 0.0, "cam": 0.5, "lock": false, "ok": true}
+{"t": 286.58, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 286.84, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254010, "d": 8.68, "dy": 0.61, "body": 0.0, "cam": 0.5, "lock": false, "ok": true}
+{"t": 287.1, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 287.39, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254010, "d": 8.68, "dy": 0.61, "body": 0.0, "cam": 0.5, "lock": false, "ok": true}
+{"t": 287.61, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 287.96, "ev": "align", "zone": "burg:3", "src": "last", "fight": false, "npc": 254010, "d": 8.68, "dy": 0.61, "body": 0.0, "cam": 0.5, "lock": false, "ok": true}
+{"t": 288.13, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 288.48, "ev": "align", "zone": "burg:3", "src": "last", "fight": false, "npc": 254010, "d": 8.47, "dy": 0.61, "body": -66.6, "cam": -5.0, "lock": false, "ok": false}
+{"t": 288.65, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 289.05, "ev": "align", "zone": "burg:3", "src": "last", "fight": false, "npc": 254010, "d": 7.9, "dy": 0.61, "body": -79.1, "cam": -13.2, "lock": false, "ok": false}
+{"t": 289.17, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 289.68, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 289.74, "ev": "align", "zone": "burg:3", "src": "last", "fight": false, "npc": 254010, "d": 7.79, "dy": 0.61, "body": -96.3, "cam": -18.6, "lock": false, "ok": false}
+{"t": 290.19, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 290.29, "ev": "align", "zone": "burg:3", "src": "last", "fight": false, "npc": 254010, "d": 7.87, "dy": 0.61, "body": -99.8, "cam": -6.1, "lock": false, "ok": false}
+{"t": 290.7, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 290.81, "ev": "align", "zone": "burg:3", "src": "last", "fight": false, "npc": 254010, "d": 7.87, "dy": 0.61, "body": -99.8, "cam": -6.2, "lock": false, "ok": false}
+{"t": 291.21, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 291.31, "ev": "align", "zone": "burg:3", "src": "last", "fight": false, "npc": 254010, "d": 7.87, "dy": 0.61, "body": -99.8, "cam": -6.2, "lock": false, "ok": false}
+{"t": 291.71, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 291.85, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254012, "d": 11.32, "dy": 0.56, "body": -63.4, "cam": 30.2, "lock": false, "ok": false}
+{"t": 292.22, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 292.41, "ev": "align", "zone": "burg:3", "src": "last", "fight": false, "npc": 254012, "d": 10.9, "dy": 0.56, "body": -63.3, "cam": 6.7, "lock": false, "ok": false}
+{"t": 292.75, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 292.95, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254012, "d": 10.54, "dy": 0.56, "body": -63.3, "cam": 6.8, "lock": false, "ok": false}
+{"t": 293.29, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 293.5, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254012, "d": 9.85, "dy": 0.33, "body": -29.3, "cam": 2.5, "lock": false, "ok": true}
+{"t": 293.8, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 294.14, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254012, "d": 7.6, "dy": 0.06, "body": -15.7, "cam": -5.1, "lock": false, "ok": true}
+{"t": 294.31, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 294.66, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254012, "d": 5.65, "dy": 0.04, "body": 16.9, "cam": -1.4, "lock": false, "ok": true}
+{"t": 294.82, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 0}
+{"t": 295.2, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254012, "d": 4.04, "dy": 0.0, "body": -24.6, "cam": -0.3, "lock": false, "ok": true}
+{"t": 295.33, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 1}
+{"t": 295.74, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254012, "d": 2.26, "dy": 0.0, "body": 7.2, "cam": 1.7, "lock": false, "ok": true}
+{"t": 295.83, "ev": "vital", "zone": "burg:3", "hp": 794, "max": 1018, "near": 2}
+{"t": 296.26, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254012, "d": 1.9, "dy": 0.0, "body": -3.9, "cam": -4.4, "lock": true, "ok": true}
+{"t": 296.34, "ev": "vital", "zone": "burg:3", "hp": 764, "max": 1018, "near": 2}
+{"t": 296.79, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254012, "d": 1.55, "dy": 0.0, "body": -2.6, "cam": -1.9, "lock": false, "ok": true}
+{"t": 296.85, "ev": "vital", "zone": "burg:3", "hp": 764, "max": 1018, "near": 2}
+{"t": 297.3, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254012, "d": 1.7, "dy": 0.0, "body": 53.4, "cam": -1.7, "lock": false, "ok": false}
+{"t": 297.36, "ev": "vital", "zone": "burg:3", "hp": 764, "max": 1018, "near": 2}
+{"t": 297.86, "ev": "vital", "zone": "burg:3", "hp": 764, "max": 1018, "near": 2}
+{"t": 297.87, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254012, "d": 2.88, "dy": 0.0, "body": 139.7, "cam": -4.7, "lock": false, "ok": false}
+{"t": 298.37, "ev": "vital", "zone": "burg:3", "hp": 704, "max": 1018, "near": 2}
+{"t": 298.4, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254012, "d": 4.18, "dy": 0.0, "body": -170.9, "cam": -5.8, "lock": false, "ok": false}
+{"t": 298.88, "ev": "vital", "zone": "burg:3", "hp": 704, "max": 1018, "near": 2}
+{"t": 298.91, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254012, "d": 4.98, "dy": 0.04, "body": -160.6, "cam": -4.6, "lock": false, "ok": false}
+{"t": 299.38, "ev": "vital", "zone": "burg:3", "hp": 704, "max": 1018, "near": 1}
+{"t": 299.43, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254010, "d": 2.37, "dy": 0.05, "body": -15.2, "cam": -24.0, "lock": false, "ok": true}
+{"t": 299.9, "ev": "vital", "zone": "burg:3", "hp": 704, "max": 1018, "near": 1}
+{"t": 299.95, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254010, "d": 2.36, "dy": 0.05, "body": -14.8, "cam": -5.4, "lock": false, "ok": true}
+{"t": 300.42, "ev": "vital", "zone": "burg:3", "hp": 704, "max": 1018, "near": 1}
+{"t": 300.51, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254010, "d": 1.8, "dy": 0.05, "body": -13.1, "cam": -3.6, "lock": false, "ok": true}
+{"t": 300.93, "ev": "vital", "zone": "burg:3", "hp": 704, "max": 1018, "near": 2}
+{"t": 301.05, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254010, "d": 2.55, "dy": 0.06, "body": -15.9, "cam": -6.4, "lock": false, "ok": true}
+{"t": 301.44, "ev": "vital", "zone": "burg:3", "hp": 704, "max": 1018, "near": 2}
+{"t": 301.59, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254010, "d": 2.04, "dy": 0.04, "body": -16.3, "cam": -6.9, "lock": false, "ok": true}
+{"t": 301.69, "ev": "attack_align", "zone": "burg:3", "kind": "light", "dmg": 75, "npc": 254010, "d": 1.43, "dy": 0.05, "body": -12.4, "cam": -2.9, "lock": false, "ok": true}
+{"t": 301.69, "ev": "guard_counter", "zone": "burg:3", "anim": 20140, "npc": 254010, "dist": 1.43, "dmg": 75, "taken": 0}
+{"t": 302.02, "ev": "vital", "zone": "burg:3", "hp": 704, "max": 1018, "near": 1}
+{"t": 302.14, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254012, "d": 2.67, "dy": 0.0, "body": 3.8, "cam": 1.8, "lock": true, "ok": true}
+{"t": 302.53, "ev": "vital", "zone": "burg:3", "hp": 704, "max": 1018, "near": 1}
+{"t": 302.67, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254012, "d": 1.48, "dy": 0.0, "body": -5.1, "cam": -11.7, "lock": true, "ok": true}
+{"t": 303.04, "ev": "vital", "zone": "burg:3", "hp": 704, "max": 1018, "near": 1}
+{"t": 303.18, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254012, "d": 1.17, "dy": 0.0, "body": -3.3, "cam": -9.1, "lock": true, "ok": true}
+{"t": 303.56, "ev": "vital", "zone": "burg:3", "hp": 704, "max": 1018, "near": 1}
+{"t": 303.71, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254012, "d": 1.94, "dy": 0.0, "body": -2.9, "cam": -4.3, "lock": true, "ok": true}
+{"t": 304.06, "ev": "vital", "zone": "burg:3", "hp": 704, "max": 1018, "near": 1}
+{"t": 304.23, "ev": "align", "zone": "burg:3", "src": "fight", "fight": true, "npc": 254012, "d": 1.76, "dy": 0.0, "body": -3.0, "cam": -5.9, "lock": true, "ok": true}
+{"t": 304.45, "ev": "attack_align", "zone": "burg:3", "kind": "light", "dmg": 75, "npc": 254012, "d": 0.88, "dy": 0.0, "body": -4.3, "cam": -4.2, "lock": true, "ok": true}
+{"t": 304.45, "ev": "guard_counter", "zone": "burg:3", "anim": 20140, "npc": 254012, "dist": 0.88, "dmg": 75, "taken": 0}
+{"t": 304.57, "ev": "vital", "zone": "burg:3", "hp": 704, "max": 1018, "near": 0}
+{"t": 304.6, "ev": "duel", "zone": "burg:3", "tag": "#2 이동: 끌어온 254012", "npc": 254012, "result": "killed", "secs": 12.0, "dealt": 150, "taken": 90, "fight": "20261110_014024_burg-bonfire#f011"}
+{"t": 305.1, "ev": "vital", "zone": "burg:3", "hp": 704, "max": 1018, "near": 0}
+{"t": 305.61, "ev": "vital", "zone": "burg:3", "hp": 704, "max": 1018, "near": 0}
+{"t": 306.12, "ev": "vital", "zone": "burg:3", "hp": 704, "max": 1018, "near": 0}
+{"t": 306.62, "ev": "vital", "zone": "burg:3", "hp": 1018, "max": 1018, "near": 0}
+{"t": 306.81, "ev": "estus", "zone": "burg:3", "ok": true, "hp": [704, 1018], "left": 9, "why": null}
+{"t": 307.19, "ev": "vital", "zone": "burg:3", "hp": 1018, "max": 1018, "near": 0}
+{"t": 307.73, "ev": "vital", "zone": "burg:3", "hp": 1018, "max": 1018, "near": 0}
+{"t": 308.24, "ev": "vital", "zone": "burg:3", "hp": 1018, "max": 1018, "near": 0}
+{"t": 308.75, "ev": "vital", "zone": "burg:3", "hp": 1018, "max": 1018, "near": 0}
+{"t": 309.25, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 309.75, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 310.27, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 310.78, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 311.28, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 311.8, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 312.31, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 312.82, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 313.32, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 313.83, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 314.34, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 314.86, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 315.39, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 315.9, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 316.43, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 316.94, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 317.45, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 317.95, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 318.45, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 318.97, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 319.48, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 319.99, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 320.49, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 321.0, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 321.5, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 322.0, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 322.51, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 323.02, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 323.53, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 324.04, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 324.56, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 325.07, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 325.58, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 326.08, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 326.59, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 327.13, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 327.63, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 328.13, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 328.64, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 329.15, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 329.66, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 330.17, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 330.68, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 331.18, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 331.69, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 332.19, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 332.7, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 333.22, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 333.72, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 334.23, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 334.74, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 335.25, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 335.75, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 336.26, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 336.78, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 337.3, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 337.81, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 338.32, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 338.84, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 339.46, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 339.96, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 340.47, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 340.97, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 341.47, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 341.97, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 342.48, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 342.99, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 343.51, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 344.02, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 344.53, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 345.05, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 345.56, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 346.07, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 346.57, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 347.08, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 347.59, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 348.07, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 254010, "d": 15.99, "dy": 1.68, "body": 17.3, "cam": 11.6, "lock": false, "ok": true}
+{"t": 348.1, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 348.61, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 348.62, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 254010, "d": 15.73, "dy": 1.68, "body": 18.1, "cam": 3.5, "lock": false, "ok": true}
+{"t": 349.12, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 349.13, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 254010, "d": 15.46, "dy": 1.68, "body": 21.6, "cam": 7.1, "lock": false, "ok": true}
+{"t": 349.62, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 349.68, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 254010, "d": 15.38, "dy": 1.68, "body": 21.2, "cam": 6.6, "lock": false, "ok": true}
+{"t": 350.15, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 350.22, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 254010, "d": 15.32, "dy": 1.68, "body": 21.5, "cam": 6.9, "lock": false, "ok": true}
+{"t": 350.65, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 350.74, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 255002, "d": 23.04, "dy": 4.61, "body": 5.7, "cam": 7.2, "lock": false, "ok": true}
+{"t": 351.17, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 351.28, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 255002, "d": 21.2, "dy": 3.58, "body": 6.2, "cam": 7.3, "lock": false, "ok": true}
+{"t": 351.67, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 351.83, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 255002, "d": 19.36, "dy": 3.58, "body": 6.8, "cam": 7.6, "lock": false, "ok": true}
+{"t": 352.18, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 352.35, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 254010, "d": 5.07, "dy": -0.0, "body": 20.1, "cam": 7.6, "lock": false, "ok": true}
+{"t": 352.36, "ev": "guard_keep", "zone": "burg:4", "until": 1.3}
+{"t": 352.69, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 353.03, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 255002, "d": 17.79, "dy": 3.58, "body": 8.1, "cam": -2.8, "lock": false, "ok": true}
+{"t": 353.21, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 353.58, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 255002, "d": 17.8, "dy": 3.58, "body": 8.1, "cam": -2.7, "lock": false, "ok": true}
+{"t": 353.71, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 354.08, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 254010, "d": 2.12, "dy": -0.0, "body": -0.7, "cam": -2.1, "lock": true, "ok": true}
+{"t": 354.22, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 354.63, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 254010, "d": 1.2, "dy": 0.0, "body": -1.5, "cam": -28.2, "lock": true, "ok": true}
+{"t": 354.73, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 355.16, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 254010, "d": 1.25, "dy": 0.0, "body": -2.9, "cam": -25.8, "lock": true, "ok": true}
+{"t": 355.24, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 355.69, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 254010, "d": 0.69, "dy": 0.0, "body": 0.1, "cam": -24.8, "lock": false, "ok": true}
+{"t": 355.74, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 355.78, "ev": "guard_keep", "zone": "burg:4", "until": 1.3}
+{"t": 356.23, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 254010, "d": 1.09, "dy": 0.0, "body": -0.2, "cam": -26.1, "lock": false, "ok": true}
+{"t": 356.25, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 2}
+{"t": 356.59, "ev": "duel", "zone": "burg:4", "tag": "#4 이동: 오는 놈 254010", "npc": 254010, "result": "killed", "secs": 2.7, "dealt": 0, "taken": 0, "fight": "20261110_014024_burg-bonfire#f012"}
+{"t": 356.76, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 356.95, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 254010, "d": 0.58, "dy": -0.0, "body": 174.6, "cam": 112.7, "lock": false, "ok": false}
+{"t": 357.28, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 357.61, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 254010, "d": 0.36, "dy": -0.0, "body": 178.6, "cam": 42.6, "lock": false, "ok": false}
+{"t": 357.79, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 358.3, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 358.35, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 254010, "d": 1.15, "dy": 0.0, "body": 5.0, "cam": 160.0, "lock": false, "ok": true}
+{"t": 358.81, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 358.89, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 254010, "d": 0.9, "dy": 0.0, "body": 8.2, "cam": 163.0, "lock": false, "ok": true}
+{"t": 359.32, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 359.43, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 254010, "d": 0.85, "dy": 0.0, "body": 22.7, "cam": 176.9, "lock": false, "ok": true}
+{"t": 359.82, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 360.24, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": true, "npc": 255002, "d": 13.7, "dy": 3.58, "body": 23.6, "cam": -18.5, "lock": false, "ok": true}
+{"t": 360.33, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 360.75, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": true, "npc": 255002, "d": 13.54, "dy": 3.58, "body": 148.3, "cam": -1.9, "lock": false, "ok": false}
+{"t": 360.84, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 361.1, "ev": "duel", "zone": "burg:4", "tag": "#4 이동: 오는 놈 254010", "npc": 254010, "result": "killed", "secs": 4.5, "dealt": 0, "taken": 0, "fight": "20261110_014024_burg-bonfire#f013"}
+{"t": 361.35, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 361.57, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 254010, "d": 3.06, "dy": -0.0, "body": 2.8, "cam": -32.5, "lock": false, "ok": true}
+{"t": 361.85, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 362.12, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 254010, "d": 2.91, "dy": -0.0, "body": 8.8, "cam": 1.0, "lock": true, "ok": true}
+{"t": 362.36, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 362.63, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 254010, "d": 2.8, "dy": -0.0, "body": 15.7, "cam": 3.0, "lock": true, "ok": true}
+{"t": 362.88, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 363.16, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 254010, "d": 2.61, "dy": -0.0, "body": 0.4, "cam": 2.4, "lock": true, "ok": true}
+{"t": 363.42, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 363.66, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 254010, "d": 2.42, "dy": -0.0, "body": 1.2, "cam": 4.2, "lock": true, "ok": true}
+{"t": 363.93, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 364.22, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 254010, "d": 2.13, "dy": -0.0, "body": -0.7, "cam": 4.5, "lock": true, "ok": true}
+{"t": 364.43, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 364.75, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 254010, "d": 1.67, "dy": -0.0, "body": 1.3, "cam": 10.7, "lock": true, "ok": true}
+{"t": 364.95, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 365.29, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 254010, "d": 0.95, "dy": 0.0, "body": 5.8, "cam": 38.5, "lock": true, "ok": true}
+{"t": 365.46, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 365.84, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 254010, "d": 1.66, "dy": 0.0, "body": -1.7, "cam": 1.7, "lock": true, "ok": true}
+{"t": 365.97, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 366.39, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 254010, "d": 1.3, "dy": 0.0, "body": 1.6, "cam": 28.6, "lock": true, "ok": true}
+{"t": 366.48, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 366.93, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 254010, "d": 1.3, "dy": 0.0, "body": 0.2, "cam": 21.3, "lock": true, "ok": true}
+{"t": 366.99, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 367.48, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 254010, "d": 0.99, "dy": 0.0, "body": 0.0, "cam": 15.1, "lock": false, "ok": true}
+{"t": 367.51, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 368.01, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": true, "npc": 255002, "d": 11.87, "dy": 3.58, "body": 150.7, "cam": 164.7, "lock": false, "ok": false}
+{"t": 368.01, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 368.04, "ev": "duel", "zone": "burg:4", "tag": "#4 이동: 오는 놈 254010", "npc": 254010, "result": "killed", "secs": 6.9, "dealt": 0, "taken": 0, "fight": "20261110_014024_burg-bonfire#f014"}
+{"t": 368.52, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 368.52, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 255002, "d": 11.85, "dy": 3.58, "body": 150.7, "cam": 126.8, "lock": false, "ok": false}
+{"t": 369.03, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 369.14, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 255002, "d": 12.02, "dy": 3.58, "body": 151.1, "cam": 53.3, "lock": false, "ok": false}
+{"t": 369.54, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 369.69, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 255002, "d": 11.69, "dy": 3.58, "body": 150.1, "cam": 1.2, "lock": false, "ok": false}
+{"t": 370.05, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 370.24, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 255002, "d": 11.83, "dy": 3.58, "body": 150.6, "cam": 1.7, "lock": false, "ok": false}
+{"t": 370.55, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 370.8, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 255002, "d": 12.01, "dy": 3.58, "body": 145.9, "cam": 3.3, "lock": false, "ok": false}
+{"t": 371.07, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 371.33, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 255002, "d": 12.75, "dy": 3.58, "body": 152.9, "cam": 10.5, "lock": false, "ok": false}
+{"t": 371.57, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 371.87, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 255002, "d": 12.8, "dy": 3.58, "body": -26.7, "cam": -1.0, "lock": false, "ok": true}
+{"t": 372.07, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 372.4, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 255002, "d": 11.21, "dy": 3.58, "body": -30.9, "cam": -9.9, "lock": false, "ok": false}
+{"t": 372.58, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 372.98, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 255002, "d": 9.61, "dy": 3.58, "body": -68.9, "cam": -12.5, "lock": false, "ok": false}
+{"t": 373.09, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 373.49, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 255002, "d": 7.89, "dy": 3.58, "body": 5.7, "cam": -5.1, "lock": false, "ok": true}
+{"t": 373.62, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 373.99, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 255002, "d": 6.21, "dy": 3.58, "body": 7.8, "cam": -1.3, "lock": false, "ok": true}
+{"t": 374.12, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 374.53, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 255002, "d": 4.4, "dy": 3.59, "body": 10.7, "cam": 4.4, "lock": false, "ok": true}
+{"t": 374.62, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 375.06, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 255002, "d": 3.91, "dy": 3.59, "body": 12.1, "cam": 6.8, "lock": false, "ok": true}
+{"t": 375.13, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 375.58, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 255002, "d": 3.94, "dy": 3.58, "body": 12.1, "cam": 6.8, "lock": false, "ok": true}
+{"t": 375.64, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 376.12, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 255002, "d": 3.93, "dy": 3.58, "body": 12.1, "cam": 6.9, "lock": false, "ok": true}
+{"t": 376.16, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 376.66, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 376.68, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 255002, "d": 3.44, "dy": 3.59, "body": 21.8, "cam": 10.3, "lock": false, "ok": true}
+{"t": 377.17, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 377.37, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 255002, "d": 3.41, "dy": 3.68, "body": 113.8, "cam": 29.5, "lock": false, "ok": false}
+{"t": 377.67, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 377.95, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 255002, "d": 3.85, "dy": 2.63, "body": 114.9, "cam": 19.2, "lock": false, "ok": false}
+{"t": 378.18, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 378.46, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 255002, "d": 3.91, "dy": 2.59, "body": 115.4, "cam": 9.1, "lock": false, "ok": false}
+{"t": 378.7, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 378.99, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 255002, "d": 3.87, "dy": 2.59, "body": 115.7, "cam": 9.4, "lock": false, "ok": false}
+{"t": 379.2, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 379.56, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 255002, "d": 3.88, "dy": 2.59, "body": 115.6, "cam": 9.3, "lock": false, "ok": false}
+{"t": 379.7, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 380.13, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255002, "d": 3.99, "dy": 2.18, "body": 106.0, "cam": 8.7, "lock": false, "ok": false}
+{"t": 380.21, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 380.73, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 380.8, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255002, "d": 5.15, "dy": 0.53, "body": 131.5, "cam": 17.4, "lock": false, "ok": false}
+{"t": 381.24, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 381.44, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255002, "d": 5.6, "dy": 0.23, "body": 76.6, "cam": 16.6, "lock": false, "ok": false}
+{"t": 381.74, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 382.1, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255002, "d": 5.47, "dy": 0.22, "body": 99.6, "cam": 20.0, "lock": false, "ok": false}
+{"t": 382.25, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 382.61, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255002, "d": 4.02, "dy": 0.16, "body": -5.5, "cam": 8.3, "lock": false, "ok": true}
+{"t": 382.76, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 383.16, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255002, "d": 2.21, "dy": 0.03, "body": -9.3, "cam": 1.9, "lock": false, "ok": true}
+{"t": 383.28, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 383.69, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255002, "d": 1.72, "dy": 0.04, "body": -10.3, "cam": -0.1, "lock": true, "ok": true}
+{"t": 383.8, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 384.25, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255002, "d": 1.74, "dy": 0.04, "body": 0.9, "cam": -0.2, "lock": true, "ok": true}
+{"t": 384.31, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 384.76, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255002, "d": 1.71, "dy": 0.04, "body": 0.7, "cam": -0.4, "lock": true, "ok": true}
+{"t": 384.82, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 385.2, "ev": "attack_align", "zone": "burg:4", "kind": "light", "dmg": 85, "npc": 255002, "d": 1.75, "dy": 0.04, "body": -10.4, "cam": -0.2, "lock": true, "ok": true}
+{"t": 385.2, "ev": "guard_counter", "zone": "burg:4", "anim": 20140, "npc": 255002, "dist": 1.75, "dmg": 85, "taken": 0}
+{"t": 385.34, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 385.36, "ev": "duel", "zone": "burg:4", "tag": "#4 이동: 따라온 255002", "npc": 255002, "result": "killed", "secs": 5.6, "dealt": 85, "taken": 0, "fight": "20261110_014024_burg-bonfire#f015"}
+{"t": 385.85, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 386.09, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 254012, "d": 21.73, "dy": 8.01, "body": 32.5, "cam": -147.4, "lock": false, "ok": false}
+{"t": 386.36, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 386.72, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 254012, "d": 20.23, "dy": 8.02, "body": 34.6, "cam": -58.1, "lock": false, "ok": false}
+{"t": 386.87, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 387.26, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 254012, "d": 18.76, "dy": 8.17, "body": 37.3, "cam": -5.1, "lock": false, "ok": false}
+{"t": 387.38, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 387.78, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 254012, "d": 17.53, "dy": 8.2, "body": 145.6, "cam": 5.0, "lock": false, "ok": false}
+{"t": 387.89, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 388.32, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 254012, "d": 19.07, "dy": 8.19, "body": 148.8, "cam": 8.6, "lock": false, "ok": false}
+{"t": 388.4, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 388.91, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 388.96, "ev": "align", "zone": "burg:4", "src": "last", "fight": false, "npc": 254012, "d": 20.04, "dy": 8.14, "body": -173.7, "cam": 2.2, "lock": false, "ok": false}
+{"t": 389.41, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 389.48, "ev": "align", "zone": "burg:4", "src": "last", "fight": false, "npc": 254012, "d": 20.05, "dy": 8.14, "body": -173.7, "cam": 2.3, "lock": false, "ok": false}
+{"t": 389.92, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 390.0, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 254012, "d": 20.05, "dy": 8.14, "body": -173.7, "cam": 2.2, "lock": false, "ok": false}
+{"t": 390.43, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 390.52, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 254012, "d": 19.72, "dy": 8.14, "body": 58.5, "cam": 6.2, "lock": false, "ok": false}
+{"t": 390.94, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 391.06, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 254012, "d": 19.52, "dy": 8.12, "body": 115.2, "cam": 10.6, "lock": false, "ok": false}
+{"t": 391.45, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 391.59, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 254012, "d": 20.32, "dy": 8.15, "body": 119.6, "cam": 10.5, "lock": false, "ok": false}
+{"t": 391.96, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 392.17, "ev": "align", "zone": "burg:4", "src": "last", "fight": false, "npc": 254012, "d": 21.37, "dy": 8.15, "body": 124.4, "cam": 9.5, "lock": false, "ok": false}
+{"t": 392.47, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 392.7, "ev": "align", "zone": "burg:4", "src": "last", "fight": false, "npc": 254012, "d": 22.42, "dy": 8.15, "body": 128.1, "cam": 9.5, "lock": false, "ok": false}
+{"t": 392.98, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 393.23, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 254012, "d": 22.67, "dy": 8.15, "body": 128.4, "cam": 3.2, "lock": false, "ok": false}
+{"t": 393.49, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 393.75, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 254012, "d": 22.67, "dy": 8.15, "body": 128.4, "cam": 3.2, "lock": false, "ok": false}
+{"t": 393.99, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 394.27, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 254012, "d": 22.67, "dy": 8.15, "body": 128.4, "cam": 3.2, "lock": false, "ok": false}
+{"t": 394.51, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 394.78, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 254012, "d": 22.67, "dy": 8.15, "body": 128.4, "cam": 3.2, "lock": false, "ok": false}
+{"t": 395.03, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 395.33, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 254012, "d": 22.67, "dy": 8.15, "body": 128.4, "cam": 3.2, "lock": false, "ok": false}
+{"t": 395.54, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 395.88, "ev": "align", "zone": "burg:4", "src": "last", "fight": false, "npc": 254012, "d": 21.78, "dy": 8.15, "body": -49.5, "cam": -10.9, "lock": false, "ok": false}
+{"t": 396.04, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 396.42, "ev": "align", "zone": "burg:4", "src": "last", "fight": false, "npc": 254012, "d": 20.64, "dy": 8.15, "body": -52.4, "cam": -7.1, "lock": false, "ok": false}
+{"t": 396.55, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 396.95, "ev": "align", "zone": "burg:4", "src": "last", "fight": false, "npc": 254012, "d": 19.57, "dy": 8.14, "body": -56.9, "cam": -10.3, "lock": false, "ok": false}
+{"t": 397.06, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 397.47, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 254012, "d": 19.25, "dy": 8.14, "body": -58.2, "cam": -8.4, "lock": false, "ok": false}
+{"t": 397.57, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 398.0, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 254012, "d": 19.25, "dy": 8.14, "body": -58.2, "cam": -8.5, "lock": false, "ok": false}
+{"t": 398.08, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 398.51, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 254012, "d": 19.25, "dy": 8.14, "body": -58.2, "cam": -8.5, "lock": false, "ok": false}
+{"t": 398.59, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 399.09, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 254012, "d": 19.25, "dy": 8.14, "body": -58.2, "cam": -8.5, "lock": false, "ok": false}
+{"t": 399.09, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 399.61, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 399.65, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 254012, "d": 18.23, "dy": 8.18, "body": -54.0, "cam": -16.3, "lock": false, "ok": false}
+{"t": 400.13, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 400.18, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 254012, "d": 18.69, "dy": 8.19, "body": -116.8, "cam": -11.1, "lock": false, "ok": false}
+{"t": 400.65, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 400.72, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 254012, "d": 20.05, "dy": 8.26, "body": -153.9, "cam": -8.0, "lock": false, "ok": false}
+{"t": 401.15, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 401.23, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 254012, "d": 21.38, "dy": 9.24, "body": -155.8, "cam": -6.4, "lock": false, "ok": false}
+{"t": 401.66, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 401.74, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 254012, "d": 21.38, "dy": 9.24, "body": -155.8, "cam": -6.9, "lock": false, "ok": false}
+{"t": 402.17, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 402.26, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 254012, "d": 21.94, "dy": 9.2, "body": -148.8, "cam": 0.0, "lock": false, "ok": false}
+{"t": 402.72, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 402.77, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 254012, "d": 21.94, "dy": 9.2, "body": -148.8, "cam": 0.0, "lock": false, "ok": false}
+{"t": 403.25, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 403.34, "ev": "align", "zone": "burg:4", "src": "last", "fight": false, "npc": 254012, "d": 21.94, "dy": 9.2, "body": -148.8, "cam": 0.0, "lock": false, "ok": false}
+{"t": 403.76, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 403.98, "ev": "align", "zone": "burg:4", "src": "attacker", "fight": false, "npc": 254012, "d": 22.74, "dy": 10.3, "body": -151.3, "cam": -4.3, "lock": false, "ok": false}
+{"t": 404.27, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 404.77, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 405.28, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 405.79, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 406.3, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 406.81, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 407.32, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 407.83, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 408.34, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 408.85, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 409.35, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 409.85, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 410.36, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 410.9, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 411.41, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 411.92, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 412.43, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 412.94, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 413.45, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 413.96, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 414.47, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 414.98, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 415.49, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 416.01, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 416.24, "ev": "align", "zone": "burg:4", "src": "nearest", "fight": false, "npc": 255000, "d": 8.76, "dy": 1.1, "body": 4.4, "cam": -1.5, "lock": false, "ok": true}
+{"t": 416.51, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 416.89, "ev": "align", "zone": "burg:4", "src": "nearest", "fight": false, "npc": 255000, "d": 8.7, "dy": 1.11, "body": 23.9, "cam": 20.1, "lock": false, "ok": true}
+{"t": 417.02, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 417.53, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 418.03, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 418.54, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 419.01, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255000, "d": 4.46, "dy": 1.1, "body": 12.1, "cam": -5.0, "lock": false, "ok": true}
+{"t": 419.06, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 419.53, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255000, "d": 4.46, "dy": 1.1, "body": 17.2, "cam": 0.3, "lock": true, "ok": true}
+{"t": 419.58, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 420.09, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255000, "d": 4.43, "dy": 1.1, "body": 2.1, "cam": 3.7, "lock": true, "ok": true}
+{"t": 420.09, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 420.6, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 420.65, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255000, "d": 4.43, "dy": 1.1, "body": 7.9, "cam": 5.7, "lock": false, "ok": true}
+{"t": 421.1, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 421.15, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255000, "d": 4.43, "dy": 1.1, "body": 12.5, "cam": 10.2, "lock": false, "ok": true}
+{"t": 421.61, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 421.66, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255000, "d": 4.43, "dy": 1.1, "body": 17.1, "cam": 6.8, "lock": false, "ok": true}
+{"t": 422.12, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 2}
+{"t": 422.2, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255000, "d": 4.4, "dy": 1.1, "body": -1.2, "cam": 0.8, "lock": false, "ok": true}
+{"t": 422.67, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 1}
+{"t": 422.72, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255000, "d": 4.3, "dy": 1.1, "body": -4.0, "cam": -2.0, "lock": false, "ok": true}
+{"t": 423.18, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 2}
+{"t": 423.26, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255000, "d": 2.71, "dy": 0.84, "body": 27.6, "cam": -0.4, "lock": false, "ok": true}
+{"t": 423.71, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 2}
+{"t": 423.79, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255000, "d": 1.59, "dy": 0.03, "body": -172.9, "cam": 3.2, "lock": false, "ok": false}
+{"t": 424.21, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 2}
+{"t": 424.32, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255000, "d": 2.92, "dy": 0.9, "body": 178.2, "cam": -10.4, "lock": false, "ok": false}
+{"t": 424.72, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 2}
+{"t": 425.02, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255000, "d": 4.92, "dy": 1.1, "body": 160.9, "cam": -10.4, "lock": false, "ok": false}
+{"t": 425.23, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 425.56, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255000, "d": 6.61, "dy": 1.1, "body": -153.6, "cam": -7.3, "lock": false, "ok": false}
+{"t": 425.76, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 426.11, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255000, "d": 6.05, "dy": 1.1, "body": -2.2, "cam": -5.8, "lock": false, "ok": true}
+{"t": 426.27, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 0}
+{"t": 426.76, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255000, "d": 3.86, "dy": 1.1, "body": -10.5, "cam": -5.7, "lock": false, "ok": true}
+{"t": 426.78, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 2}
+{"t": 427.29, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 2}
+{"t": 427.38, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255000, "d": 2.21, "dy": 0.28, "body": -55.1, "cam": -17.5, "lock": false, "ok": false}
+{"t": 427.8, "ev": "vital", "zone": "burg:4", "hp": 1018, "max": 1018, "near": 2}
+{"t": 427.88, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255000, "d": 1.72, "dy": 0.22, "body": 10.1, "cam": 3.4, "lock": false, "ok": true}
+{"t": 428.32, "ev": "vital", "zone": "burg:4", "hp": 934, "max": 1018, "near": 2}
+{"t": 428.46, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255000, "d": 2.15, "dy": 0.52, "body": 11.9, "cam": 5.3, "lock": false, "ok": true}
+{"t": 428.71, "ev": "evade", "zone": "burg:4", "kind": "hold", "dist": 2.18, "eanim": 3009, "npc": 255000, "taken": 84}
+{"t": 428.84, "ev": "vital", "zone": "burg:4", "hp": 934, "max": 1018, "near": 2}
+{"t": 429.02, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255000, "d": 2.63, "dy": 0.86, "body": 12.6, "cam": 6.6, "lock": false, "ok": true}
+{"t": 429.34, "ev": "vital", "zone": "burg:4", "hp": 934, "max": 1018, "near": 2}
+{"t": 429.53, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255000, "d": 2.46, "dy": 0.83, "body": 0.1, "cam": 6.8, "lock": false, "ok": true}
+{"t": 429.68, "ev": "hit", "zone": "burg:4", "n": 2, "lost": 84, "hp": 934, "max": 1018, "secs": 0.0, "blame": [{"npc": 255000, "ptr": 458700560, "anim": 3009, "d": 1.57, "dy": 0.22, "face": 0}, {"npc": 251001, "ptr": 253565808, "anim": 9000, "d": 11.17, "dy": -6.06, "face": 102}]}
+{"t": 429.84, "ev": "vital", "zone": "burg:4", "hp": 934, "max": 1018, "near": 2}
+{"t": 430.06, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255000, "d": 2.34, "dy": 0.85, "body": 0.4, "cam": 7.1, "lock": false, "ok": true}
+{"t": 430.35, "ev": "vital", "zone": "burg:4", "hp": 934, "max": 1018, "near": 2}
+{"t": 430.57, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255000, "d": 2.09, "dy": 0.91, "body": -2.0, "cam": 4.8, "lock": false, "ok": true}
+{"t": 430.86, "ev": "vital", "zone": "burg:4", "hp": 934, "max": 1018, "near": 2}
+{"t": 431.1, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255000, "d": 1.59, "dy": 0.69, "body": -0.7, "cam": 5.7, "lock": false, "ok": true}
+{"t": 431.26, "ev": "attack_align", "zone": "burg:4", "kind": "light", "dmg": 85, "npc": 255000, "d": 1.57, "dy": 0.85, "body": 1.7, "cam": 8.4, "lock": false, "ok": true}
+{"t": 431.26, "ev": "guard_counter", "zone": "burg:4", "anim": 20140, "npc": 255000, "dist": 1.57, "dmg": 85, "taken": 0}
+{"t": 431.26, "ev": "duel", "zone": "burg:4", "tag": "#6 이동: 끌어온 255000", "npc": 255000, "result": "killed", "secs": 11.8, "dealt": 85, "taken": 84, "fight": "20261110_014024_burg-bonfire#f016"}
+{"t": 431.38, "ev": "vital", "zone": "burg:4", "hp": 934, "max": 1018, "near": 1}
+{"t": 431.79, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255000, "d": 2.01, "dy": 0.21, "body": 7.3, "cam": -0.9, "lock": false, "ok": true}
+{"t": 431.89, "ev": "vital", "zone": "burg:4", "hp": 934, "max": 1018, "near": 1}
+{"t": 432.36, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255000, "d": 1.95, "dy": 0.18, "body": -4.8, "cam": -1.1, "lock": true, "ok": true}
+{"t": 432.39, "ev": "vital", "zone": "burg:4", "hp": 934, "max": 1018, "near": 1}
+{"t": 432.88, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255000, "d": 1.95, "dy": 0.18, "body": -8.3, "cam": -0.4, "lock": true, "ok": true}
+{"t": 432.9, "ev": "vital", "zone": "burg:4", "hp": 934, "max": 1018, "near": 1}
+{"t": 433.41, "ev": "vital", "zone": "burg:4", "hp": 934, "max": 1018, "near": 1}
+{"t": 433.46, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255000, "d": 1.96, "dy": 0.18, "body": 3.1, "cam": 5.1, "lock": true, "ok": true}
+{"t": 433.92, "ev": "vital", "zone": "burg:4", "hp": 934, "max": 1018, "near": 1}
+{"t": 433.97, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255000, "d": 1.96, "dy": 0.17, "body": 14.9, "cam": 5.7, "lock": true, "ok": true}
+{"t": 434.42, "ev": "vital", "zone": "burg:4", "hp": 934, "max": 1018, "near": 1}
+{"t": 434.53, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255000, "d": 1.93, "dy": 0.15, "body": 6.4, "cam": 5.8, "lock": true, "ok": true}
+{"t": 434.93, "ev": "vital", "zone": "burg:4", "hp": 934, "max": 1018, "near": 1}
+{"t": 435.1, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255000, "d": 1.93, "dy": 0.15, "body": 18.7, "cam": 6.2, "lock": true, "ok": true}
+{"t": 435.44, "ev": "vital", "zone": "burg:4", "hp": 934, "max": 1018, "near": 1}
+{"t": 435.64, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255000, "d": 1.6, "dy": -0.04, "body": 2.9, "cam": 6.9, "lock": true, "ok": true}
+{"t": 435.95, "ev": "vital", "zone": "burg:4", "hp": 934, "max": 1018, "near": 1}
+{"t": 436.18, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255000, "d": 2.29, "dy": -0.05, "body": 10.9, "cam": 3.9, "lock": true, "ok": true}
+{"t": 436.46, "ev": "vital", "zone": "burg:4", "hp": 934, "max": 1018, "near": 1}
+{"t": 436.71, "ev": "align", "zone": "burg:4", "src": "fight", "fight": true, "npc": 255000, "d": 2.51, "dy": -0.05, "body": 9.9, "cam": 2.5, "lock": true, "ok": true}
+{"t": 436.96, "ev": "vital", "zone": "burg:4", "hp": 934, "max": 1018, "near": 1}
+{"t": 437.11, "ev": "attack_align", "zone": "burg:4", "kind": "kick+light", "dmg": 85, "npc": 255000, "d": 1.72, "dy": -0.02, "body": 3.2, "cam": 6.5, "lock": true, "ok": true}
+{"t": 437.27, "ev": "duel", "zone": "burg:4", "tag": "#6 이동: 끌어온 255000", "npc": 255000, "result": "killed", "secs": 5.3, "dealt": 85, "taken": 0, "fight": "20261110_014024_burg-bonfire#f017"}
+{"t": 437.47, "ev": "vital", "zone": "burg:4", "hp": 934, "max": 1018, "near": 0}
+{"t": 437.98, "ev": "vital", "zone": "burg:4", "hp": 934, "max": 1018, "near": 0}
+{"t": 438.48, "ev": "vital", "zone": "burg:4", "hp": 934, "max": 1018, "near": 0}
+{"t": 438.99, "ev": "vital", "zone": "burg:4", "hp": 934, "max": 1018, "near": 0}
+{"t": 439.55, "ev": "vital", "zone": "burg:5", "hp": 934, "max": 1018, "near": 0}
+{"t": 440.05, "ev": "vital", "zone": "burg:5", "hp": 934, "max": 1018, "near": 0}
+{"t": 440.56, "ev": "vital", "zone": "burg:5", "hp": 934, "max": 1018, "near": 0}
+{"t": 441.07, "ev": "vital", "zone": "burg:5", "hp": 934, "max": 1018, "near": 0}
+{"t": 441.58, "ev": "vital", "zone": "burg:5", "hp": 934, "max": 1018, "near": 0}
+{"t": 442.08, "ev": "vital", "zone": "burg:5", "hp": 934, "max": 1018, "near": 0}
+{"t": 442.59, "ev": "vital", "zone": "burg:5", "hp": 934, "max": 1018, "near": 0}
+{"t": 443.11, "ev": "vital", "zone": "burg:5", "hp": 934, "max": 1018, "near": 0}
+{"t": 443.62, "ev": "vital", "zone": "burg:5", "hp": 934, "max": 1018, "near": 0}
+{"t": 444.14, "ev": "vital", "zone": "burg:5", "hp": 934, "max": 1018, "near": 0}
+{"t": 444.64, "ev": "vital", "zone": "burg:5", "hp": 934, "max": 1018, "near": 0}
+{"t": 445.15, "ev": "vital", "zone": "burg:5", "hp": 934, "max": 1018, "near": 0}
+{"t": 445.66, "ev": "vital", "zone": "burg:5", "hp": 934, "max": 1018, "near": 0}
+{"t": 446.17, "ev": "vital", "zone": "burg:5", "hp": 934, "max": 1018, "near": 0}
+{"t": 446.68, "ev": "vital", "zone": "burg:5", "hp": 934, "max": 1018, "near": 0}
+{"t": 447.19, "ev": "vital", "zone": "burg:5", "hp": 934, "max": 1018, "near": 0}
+{"t": 447.7, "ev": "vital", "zone": "burg:5", "hp": 934, "max": 1018, "near": 0}
+{"t": 448.21, "ev": "vital", "zone": "burg:5", "hp": 934, "max": 1018, "near": 0}
+{"t": 448.71, "ev": "vital", "zone": "burg:5", "hp": 934, "max": 1018, "near": 0}
+{"t": 449.22, "ev": "vital", "zone": "burg:5", "hp": 934, "max": 1018, "near": 0}
+{"t": 449.73, "ev": "vital", "zone": "burg:5", "hp": 934, "max": 1018, "near": 0}
+{"t": 450.24, "ev": "vital", "zone": "burg:5", "hp": 934, "max": 1018, "near": 0}
+{"t": 450.27, "ev": "result", "cmd": "burg-bonfire", "result": "상인 도착"}

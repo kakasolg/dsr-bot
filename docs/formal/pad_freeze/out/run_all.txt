@@ -1,0 +1,200 @@
+current      quit   m3               S1_MenuClean              VIOLATED  distinct=1667    depth=9   trace=5
+current      quit   m3               S1b_MenuNoB               VIOLATED  distinct=1369    depth=8   trace=4
+current      quit   m3               S3_Handoff                HOLDS     distinct=637758  depth=21  trace=
+current      quit   m3               S4_ReSprint               VIOLATED  distinct=3384    depth=9   trace=6
+current      quit   m3               S4_ReGuard                HOLDS     distinct=637758  depth=21  trace=
+current      quit   m3               S5_StaleNoKill            HOLDS     distinct=637758  depth=21  trace=
+current      quit   m3               S6_NoOrphanLB             VIOLATED  distinct=3853    depth=8   trace=7
+current      quit   m3 noguard       S6_NoOrphanLB             VIOLATED  distinct=3018    depth=9   trace=6
+current      quit   m3 noguard       S6_post                   VIOLATED  distinct=13422   depth=10  trace=10
+current      tapper m3               S2_NoOrphanA              VIOLATED  distinct=1894    depth=7   trace=5
+current      tapper m3               S5_StaleNoKill            HOLDS     distinct=694660  depth=21  trace=
+current      quit   m4               S1_MenuClean              VIOLATED  distinct=1364    depth=9   trace=6
+current      quit   m4               S1b_MenuNoB               VIOLATED  distinct=1426    depth=7   trace=4
+current      quit   m4               S3_Handoff                HOLDS     distinct=2382891 depth=23  trace=
+current      quit   m4               S4_ReSprint               VIOLATED  distinct=4364    depth=9   trace=6
+current      quit   m4               S4_ReGuard                HOLDS     distinct=2382891 depth=23  trace=
+current      quit   m4               S5_StaleNoKill            HOLDS     distinct=2382891 depth=23  trace=
+current      quit   m4               S6_NoOrphanLB             VIOLATED  distinct=3621    depth=8   trace=6
+current      quit   m4 noguard       S6_NoOrphanLB             VIOLATED  distinct=3458    depth=9   trace=6
+current      quit   m4 noguard       S6_post                   VIOLATED  distinct=21048   depth=12  trace=11
+current      tapper m4               S2_NoOrphanA              VIOLATED  distinct=2652    depth=8   trace=6
+current      tapper m4               S5_StaleNoKill            HOLDS     distinct=2478509 depth=23  trace=
+current      quit   m3               R1_menuAfterBlockedCall   VIOLATED  distinct=501     depth=6   trace=4
+current      quit   m3               R1_menuWithKeep           VIOLATED  distinct=663     depth=8   trace=4
+current      quit   m3               R1_menuWithYoungB         VIOLATED  distinct=500     depth=8   trace=5
+current      quit   m3               R3_nudgeUnfreezeLate      VIOLATED  distinct=1326    depth=7   trace=4
+current      quit   m3               R4_resprintAfterQuit      VIOLATED  distinct=3372    depth=9   trace=9
+current      quit   m3               R4_reguardAfterQuit       VIOLATED  distinct=4130    depth=9   trace=9
+current      quit   m3               R5_newerPressRipe         VIOLATED  distinct=3213    depth=8   trace=6
+current      quit   m3 noguard       R6_afterQuitWithKeep      VIOLATED  distinct=3018    depth=8   trace=8
+current      tapper m3               R2_ripeAWhileFrozen       VIOLATED  distinct=437     depth=7   trace=5
+current      tapper m3               R5_newerPressRipe         VIOLATED  distinct=1047    depth=9   trace=7
+current      quit   m3          hold S5_StaleNoKill            VIOLATED  distinct=7222    depth=9   trace=5
+current      quit   m3          hold S5f_FrozenDueNoKill       VIOLATED  distinct=26765   depth=11  trace=8
+current      quit   m4          hold S5f_FrozenDueNoKill       VIOLATED  distinct=37361   depth=10  trace=8
+current      quit   m3          hold R5_newerPressRipe         VIOLATED  distinct=3429    depth=8   trace=7
+current      tapper m3          hold S5_StaleNoKill            VIOLATED  distinct=8196    depth=9   trace=6
+current      tapper m3          hold S5f_FrozenDueNoKill       VIOLATED  distinct=50365   depth=12  trace=8
+current      tapper m4          hold S5f_FrozenDueNoKill       VIOLATED  distinct=37426   depth=10  trace=8
+current      tapper m3          hold R5_newerPressRipe         VIOLATED  distinct=1404    depth=8   trace=5
+block        quit   m3               S1_MenuClean              VIOLATED  distinct=1089    depth=8   trace=4
+block        quit   m3               S1b_MenuNoB               HOLDS     distinct=69871   depth=20  trace=
+block        quit   m3               S3_Handoff                HOLDS     distinct=69871   depth=20  trace=
+block        quit   m3               S4_ReSprint               HOLDS     distinct=69871   depth=20  trace=
+block        quit   m3               S4_ReGuard                HOLDS     distinct=69871   depth=20  trace=
+block        quit   m3               S5_StaleNoKill            HOLDS     distinct=69871   depth=20  trace=
+block        quit   m3               S6_NoOrphanLB             VIOLATED  distinct=3239    depth=11  trace=5
+block        quit   m3 noguard       S6_NoOrphanLB             HOLDS     distinct=30824   depth=20  trace=
+block        quit   m3 noguard       S6_post                   HOLDS     distinct=30824   depth=20  trace=
+block        tapper m3               S2_NoOrphanA              HOLDS     distinct=98527   depth=20  trace=
+block        tapper m3               S5_StaleNoKill            HOLDS     distinct=98527   depth=20  trace=
+block        quit   m4               S1_MenuClean              VIOLATED  distinct=1624    depth=9   trace=4
+block        quit   m4               S1b_MenuNoB               HOLDS     distinct=239045  depth=22  trace=
+block        quit   m4               S3_Handoff                HOLDS     distinct=239045  depth=22  trace=
+block        quit   m4               S4_ReSprint               HOLDS     distinct=239045  depth=22  trace=
+block        quit   m4               S4_ReGuard                HOLDS     distinct=239045  depth=22  trace=
+block        quit   m4               S5_StaleNoKill            HOLDS     distinct=239045  depth=22  trace=
+block        quit   m4               S6_NoOrphanLB             VIOLATED  distinct=3200    depth=11  trace=8
+block        quit   m4 noguard       S6_NoOrphanLB             HOLDS     distinct=85783   depth=22  trace=
+block        quit   m4 noguard       S6_post                   HOLDS     distinct=85783   depth=22  trace=
+block        tapper m4               S2_NoOrphanA              HOLDS     distinct=306163  depth=22  trace=
+block        tapper m4               S5_StaleNoKill            HOLDS     distinct=306163  depth=22  trace=
+block        quit   m3               R1_menuAfterBlockedCall   VIOLATED  distinct=174     depth=8   trace=4
+block        quit   m3               R1_menuWithKeep           VIOLATED  distinct=1775    depth=8   trace=4
+block        quit   m3               R1_menuWithYoungB         HOLDS     distinct=69871   depth=20  trace=
+block        quit   m3               R3_nudgeUnfreezeLate      VIOLATED  distinct=862     depth=10  trace=4
+block        quit   m3               R4_resprintAfterQuit      VIOLATED  distinct=2894    depth=10  trace=9
+block        quit   m3               R4_reguardAfterQuit       VIOLATED  distinct=3444    depth=9   trace=9
+block        quit   m3               R5_newerPressRipe         HOLDS     distinct=69871   depth=21  trace=
+block        quit   m3 noguard       R6_afterQuitWithKeep      VIOLATED  distinct=2675    depth=10  trace=9
+block        tapper m3               R2_ripeAWhileFrozen       VIOLATED  distinct=345     depth=8   trace=5
+block        tapper m3               R5_newerPressRipe         VIOLATED  distinct=1155    depth=9   trace=6
+block        quit   m3          hold S5_StaleNoKill            VIOLATED  distinct=4570    depth=11  trace=5
+block        quit   m3          hold S5f_FrozenDueNoKill       HOLDS     distinct=82565   depth=20  trace=
+block        quit   m4          hold S5f_FrozenDueNoKill       HOLDS     distinct=309958  depth=22  trace=
+block        quit   m3          hold R5_newerPressRipe         VIOLATED  distinct=3079    depth=9   trace=4
+block        tapper m3          hold S5_StaleNoKill            VIOLATED  distinct=4701    depth=10  trace=5
+block        tapper m3          hold S5f_FrozenDueNoKill       HOLDS     distinct=119928  depth=20  trace=
+block        tapper m4          hold S5f_FrozenDueNoKill       HOLDS     distinct=420365  depth=23  trace=
+block        tapper m3          hold R5_newerPressRipe         VIOLATED  distinct=1024    depth=7   trace=5
+ownerNeutral quit   m3               S1_MenuClean              HOLDS     distinct=316881  depth=20  trace=
+ownerNeutral quit   m3               S1b_MenuNoB               HOLDS     distinct=316881  depth=20  trace=
+ownerNeutral quit   m3               S3_Handoff                HOLDS     distinct=316881  depth=20  trace=
+ownerNeutral quit   m3               S4_ReSprint               VIOLATED  distinct=4177    depth=9   trace=6
+ownerNeutral quit   m3               S4_ReGuard                HOLDS     distinct=316881  depth=20  trace=
+ownerNeutral quit   m3               S5_StaleNoKill            HOLDS     distinct=316881  depth=20  trace=
+ownerNeutral quit   m3               S6_NoOrphanLB             VIOLATED  distinct=4785    depth=10  trace=5
+ownerNeutral quit   m3 noguard       S6_NoOrphanLB             HOLDS     distinct=140905  depth=20  trace=
+ownerNeutral quit   m3 noguard       S6_post                   HOLDS     distinct=140905  depth=20  trace=
+ownerNeutral tapper m3               S2_NoOrphanA              VIOLATED  distinct=3224    depth=7   trace=5
+ownerNeutral tapper m3               S5_StaleNoKill            HOLDS     distinct=456982  depth=20  trace=
+ownerNeutral quit   m4               S1_MenuClean              HOLDS     distinct=1182771 depth=22  trace=
+ownerNeutral quit   m4               S1b_MenuNoB               HOLDS     distinct=1182771 depth=22  trace=
+ownerNeutral quit   m4               S3_Handoff                HOLDS     distinct=1182771 depth=22  trace=
+ownerNeutral quit   m4               S4_ReSprint               VIOLATED  distinct=2772    depth=10  trace=9
+ownerNeutral quit   m4               S4_ReGuard                HOLDS     distinct=1182771 depth=22  trace=
+ownerNeutral quit   m4               S5_StaleNoKill            HOLDS     distinct=1182771 depth=22  trace=
+ownerNeutral quit   m4               S6_NoOrphanLB             VIOLATED  distinct=4102    depth=8   trace=5
+ownerNeutral quit   m4 noguard       S6_NoOrphanLB             HOLDS     distinct=395779  depth=22  trace=
+ownerNeutral quit   m4 noguard       S6_post                   HOLDS     distinct=395779  depth=22  trace=
+ownerNeutral tapper m4               S2_NoOrphanA              VIOLATED  distinct=3083    depth=9   trace=6
+ownerNeutral tapper m4               S5_StaleNoKill            HOLDS     distinct=1617135 depth=22  trace=
+ownerNeutral quit   m3               R1_menuAfterBlockedCall   VIOLATED  distinct=383     depth=8   trace=4
+ownerNeutral quit   m3               R1_menuWithKeep           VIOLATED  distinct=908     depth=8   trace=5
+ownerNeutral quit   m3               R1_menuWithYoungB         VIOLATED  distinct=446     depth=8   trace=5
+ownerNeutral quit   m3               R3_nudgeUnfreezeLate      VIOLATED  distinct=1223    depth=8   trace=4
+ownerNeutral quit   m3               R4_resprintAfterQuit      VIOLATED  distinct=5636    depth=9   trace=9
+ownerNeutral quit   m3               R4_reguardAfterQuit       VIOLATED  distinct=6399    depth=10  trace=9
+ownerNeutral quit   m3               R5_newerPressRipe         VIOLATED  distinct=4150    depth=10  trace=7
+ownerNeutral quit   m3 noguard       R6_afterQuitWithKeep      VIOLATED  distinct=3835    depth=8   trace=8
+ownerNeutral tapper m3               R2_ripeAWhileFrozen       VIOLATED  distinct=772     depth=7   trace=5
+ownerNeutral tapper m3               R5_newerPressRipe         VIOLATED  distinct=1322    depth=8   trace=5
+ownerNeutral quit   m3          hold S5_StaleNoKill            VIOLATED  distinct=9556    depth=10  trace=6
+ownerNeutral quit   m3          hold S5f_FrozenDueNoKill       VIOLATED  distinct=25021   depth=12  trace=11
+ownerNeutral quit   m4          hold S5f_FrozenDueNoKill       VIOLATED  distinct=22012   depth=10  trace=8
+ownerNeutral quit   m3          hold R5_newerPressRipe         VIOLATED  distinct=2950    depth=9   trace=7
+ownerNeutral tapper m3          hold S5_StaleNoKill            VIOLATED  distinct=10358   depth=9   trace=8
+ownerNeutral tapper m3          hold S5f_FrozenDueNoKill       VIOLATED  distinct=33566   depth=10  trace=8
+ownerNeutral tapper m4          hold S5f_FrozenDueNoKill       VIOLATED  distinct=22201   depth=10  trace=8
+ownerNeutral tapper m3          hold R5_newerPressRipe         VIOLATED  distinct=1081    depth=8   trace=5
+both         quit   m3               S1_MenuClean              HOLDS     distinct=70834   depth=20  trace=
+both         quit   m3               S1b_MenuNoB               HOLDS     distinct=70834   depth=20  trace=
+both         quit   m3               S3_Handoff                HOLDS     distinct=70834   depth=20  trace=
+both         quit   m3               S4_ReSprint               HOLDS     distinct=70834   depth=20  trace=
+both         quit   m3               S4_ReGuard                HOLDS     distinct=70834   depth=20  trace=
+both         quit   m3               S5_StaleNoKill            HOLDS     distinct=70834   depth=20  trace=
+both         quit   m3               S6_NoOrphanLB             VIOLATED  distinct=3328    depth=11  trace=8
+both         quit   m3 noguard       S6_NoOrphanLB             HOLDS     distinct=31745   depth=20  trace=
+both         quit   m3 noguard       S6_post                   HOLDS     distinct=31745   depth=20  trace=
+both         tapper m3               S2_NoOrphanA              HOLDS     distinct=104641  depth=20  trace=
+both         tapper m3               S5_StaleNoKill            HOLDS     distinct=104641  depth=20  trace=
+both         quit   m4               S1_MenuClean              HOLDS     distinct=247331  depth=22  trace=
+both         quit   m4               S1b_MenuNoB               HOLDS     distinct=247331  depth=22  trace=
+both         quit   m4               S3_Handoff                HOLDS     distinct=247331  depth=22  trace=
+both         quit   m4               S4_ReSprint               HOLDS     distinct=247331  depth=22  trace=
+both         quit   m4               S4_ReGuard                HOLDS     distinct=247331  depth=22  trace=
+both         quit   m4               S5_StaleNoKill            HOLDS     distinct=247331  depth=22  trace=
+both         quit   m4               S6_NoOrphanLB             VIOLATED  distinct=3530    depth=11  trace=5
+both         quit   m4 noguard       S6_NoOrphanLB             HOLDS     distinct=89213   depth=22  trace=
+both         quit   m4 noguard       S6_post                   HOLDS     distinct=89213   depth=22  trace=
+both         tapper m4               S2_NoOrphanA              HOLDS     distinct=330137  depth=22  trace=
+both         tapper m4               S5_StaleNoKill            HOLDS     distinct=330137  depth=22  trace=
+both         quit   m3               R1_menuAfterBlockedCall   VIOLATED  distinct=230     depth=8   trace=5
+both         quit   m3               R1_menuWithKeep           VIOLATED  distinct=2783    depth=10  trace=4
+both         quit   m3               R1_menuWithYoungB         HOLDS     distinct=70834   depth=20  trace=
+both         quit   m3               R3_nudgeUnfreezeLate      VIOLATED  distinct=670     depth=9   trace=4
+both         quit   m3               R4_resprintAfterQuit      VIOLATED  distinct=2612    depth=10  trace=9
+both         quit   m3               R4_reguardAfterQuit       VIOLATED  distinct=2122    depth=10  trace=9
+both         quit   m3               R5_newerPressRipe         HOLDS     distinct=70834   depth=20  trace=
+both         quit   m3 noguard       R6_afterQuitWithKeep      VIOLATED  distinct=1790    depth=11  trace=9
+both         tapper m3               R2_ripeAWhileFrozen       VIOLATED  distinct=639     depth=9   trace=5
+both         tapper m3               R5_newerPressRipe         VIOLATED  distinct=714     depth=9   trace=5
+both         quit   m3          hold S5_StaleNoKill            VIOLATED  distinct=5249    depth=11  trace=6
+both         quit   m3          hold S5f_FrozenDueNoKill       HOLDS     distinct=85640   depth=20  trace=
+both         quit   m4          hold S5f_FrozenDueNoKill       HOLDS     distinct=329710  depth=22  trace=
+both         quit   m3          hold R5_newerPressRipe         VIOLATED  distinct=3233    depth=10  trace=5
+both         tapper m3          hold S5_StaleNoKill            VIOLATED  distinct=4026    depth=10  trace=10
+both         tapper m3          hold S5f_FrozenDueNoKill       HOLDS     distinct=128781  depth=20  trace=
+both         tapper m4          hold S5f_FrozenDueNoKill       HOLDS     distinct=458131  depth=23  trace=
+both         tapper m3          hold R5_newerPressRipe         VIOLATED  distinct=933     depth=8   trace=5
+minimal      quit   m3               S1_MenuClean              HOLDS     distinct=53785   depth=20  trace=
+minimal      quit   m3               S1b_MenuNoB               HOLDS     distinct=53785   depth=20  trace=
+minimal      quit   m3               S3_Handoff                HOLDS     distinct=53785   depth=20  trace=
+minimal      quit   m3               S4_ReSprint               HOLDS     distinct=53785   depth=20  trace=
+minimal      quit   m3               S4_ReGuard                HOLDS     distinct=53785   depth=20  trace=
+minimal      quit   m3               S5_StaleNoKill            HOLDS     distinct=53785   depth=20  trace=
+minimal      quit   m3               S6_NoOrphanLB             VIOLATED  distinct=2418    depth=9   trace=5
+minimal      quit   m3 noguard       S6_NoOrphanLB             HOLDS     distinct=24920   depth=20  trace=
+minimal      quit   m3 noguard       S6_post                   HOLDS     distinct=24920   depth=20  trace=
+minimal      tapper m3               S2_NoOrphanA              HOLDS     distinct=72757   depth=20  trace=
+minimal      tapper m3               S5_StaleNoKill            HOLDS     distinct=72757   depth=20  trace=
+minimal      quit   m4               S1_MenuClean              HOLDS     distinct=198807  depth=22  trace=
+minimal      quit   m4               S1b_MenuNoB               HOLDS     distinct=198807  depth=22  trace=
+minimal      quit   m4               S3_Handoff                HOLDS     distinct=198807  depth=22  trace=
+minimal      quit   m4               S4_ReSprint               HOLDS     distinct=198807  depth=22  trace=
+minimal      quit   m4               S4_ReGuard                HOLDS     distinct=198807  depth=22  trace=
+minimal      quit   m4               S5_StaleNoKill            HOLDS     distinct=198807  depth=22  trace=
+minimal      quit   m4               S6_NoOrphanLB             VIOLATED  distinct=3514    depth=10  trace=5
+minimal      quit   m4 noguard       S6_NoOrphanLB             HOLDS     distinct=73069   depth=22  trace=
+minimal      quit   m4 noguard       S6_post                   HOLDS     distinct=73069   depth=22  trace=
+minimal      tapper m4               S2_NoOrphanA              HOLDS     distinct=241897  depth=22  trace=
+minimal      tapper m4               S5_StaleNoKill            HOLDS     distinct=241897  depth=22  trace=
+minimal      quit   m3               R1_menuAfterBlockedCall   VIOLATED  distinct=412     depth=7   trace=5
+minimal      quit   m3               R1_menuWithKeep           HOLDS     distinct=53785   depth=20  trace=
+minimal      quit   m3               R1_menuWithYoungB         HOLDS     distinct=53785   depth=20  trace=
+minimal      quit   m3               R3_nudgeUnfreezeLate      VIOLATED  distinct=873     depth=9   trace=4
+minimal      quit   m3               R4_resprintAfterQuit      VIOLATED  distinct=2038    depth=10  trace=9
+minimal      quit   m3               R4_reguardAfterQuit       VIOLATED  distinct=3411    depth=10  trace=10
+minimal      quit   m3               R5_newerPressRipe         HOLDS     distinct=53785   depth=20  trace=
+minimal      quit   m3 noguard       R6_afterQuitWithKeep      VIOLATED  distinct=2049    depth=11  trace=9
+minimal      tapper m3               R2_ripeAWhileFrozen       VIOLATED  distinct=347     depth=8   trace=5
+minimal      tapper m3               R5_newerPressRipe         VIOLATED  distinct=940     depth=8   trace=5
+minimal      quit   m3          hold S5_StaleNoKill            VIOLATED  distinct=3592    depth=10  trace=6
+minimal      quit   m3          hold S5f_FrozenDueNoKill       HOLDS     distinct=65126   depth=20  trace=
+minimal      quit   m4          hold S5f_FrozenDueNoKill       HOLDS     distinct=261469  depth=22  trace=
+minimal      quit   m3          hold R5_newerPressRipe         VIOLATED  distinct=2553    depth=10  trace=5
+minimal      tapper m3          hold S5_StaleNoKill            VIOLATED  distinct=3683    depth=10  trace=5
+minimal      tapper m3          hold S5f_FrozenDueNoKill       HOLDS     distinct=91814   depth=20  trace=
+minimal      tapper m4          hold S5f_FrozenDueNoKill       HOLDS     distinct=342705  depth=23  trace=
+minimal      tapper m3          hold R5_newerPressRipe         VIOLATED  distinct=577     depth=8   trace=6

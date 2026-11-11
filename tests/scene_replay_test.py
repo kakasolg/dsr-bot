@@ -1,0 +1,146 @@
+"""Exact-input scenes (scenes.py) and their replay (scene_replay.py) — docs/design-scene-expectations.md 3.3. No game.
+
+  python tests/scene_replay_test.py
+
+Checks:
+  · round trip: fights run with the tap on (MoKa's expectation scenes + golden situations without a fake NavMesh), every
+    kept decision replayed from its record → the same rule, 100 %
+  · the tap doesn't change a single decision (golden traces with and without it are equal) and never raises — not even
+    when its sink raises
+  · which decisions are kept: attacks etc. always; a pose rule (block, wait …) only while the target staggers or winds up,
+    once per change
+  · a real run's scene whose body was 42.5° off replays to the same rule (the fake face() answers like Moves.face)
+  · a real run's scene where the foe's attack anim changed mid-chain replays to the same rule (the fake reflex restarts the
+    age like Reflex.update)
+  · timestamps / sets / int-keyed dicts survive restore() with a new clock
+"""
+from __future__ import annotations
+import sys as _sys, pathlib as _pl  # repo root first (the bot's modules), then this folder
+_sys.path[:0] = [str(_pl.Path(__file__).resolve().parent.parent), str(_pl.Path(__file__).resolve().parent)]
+
+import collections
+import itertools
+import json
+import sys
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+
+import duel_expect_test as E
+import duel_golden_test as G
+import scene_replay as R
+import scene_world as W
+import scenes
+from souls import duel as D
+
+
+def check(name: str, ok: bool) -> None:
+    print(("ok   " if ok else "FAIL ") + name)
+    if not ok:
+        raise SystemExit(1)
+
+
+def golden_sample(step: int = 9) -> list[dict]:
+    """golden situations whose floor checks aren't faked: no stand-in NavMesh (the terrain / axe sets hand duel one with no
+    map id, which a replay can't load — real runs record the map and replay loads data/samples/navmesh_<map>.npz) and
+    room behind the foe (golden patches duel._room_behind to say 'no room'; with no NavMesh the real check says yes)."""
+    return [sc for sc in G.situations() if sc["room"]][::step]
+
+
+def main() -> None:
+    got: list = []
+    D.SCENE_TAP = scenes.Tap(sink=got.append)
+    try:
+        for r in E.load():
+            W.decide(r["situation"])
+        n_expect = len(got)
+        for sc in golden_sample():
+            G.run(sc)
+    finally:
+        D.SCENE_TAP = None
+    json.loads(json.dumps(got))                                    # records are plain JSON
+    same = collections.Counter(R.replay(r) == r["rule"] for r in got)
+    bad = [(r["rule"], R.replay(r)) for r in got if R.replay(r) != r["rule"]][:5]
+    check(f"round trip: {len(got)} kept decisions ({n_expect} from the expectation scenes) replay to the same rule — {bad}",
+          len(got) > 300 and same[False] == 0)
+    rules = collections.Counter(r["rule"] for r in got)
+    check(f"kept: attacks and pose rules in a stagger both appear ({dict(rules.most_common(6))})",
+          all(rules[k] > 0 for k in ("stagger_punish", "finish_first", "attack")) and any(k in D.FOLD_RULES for k in rules))
+
+    sample = golden_sample(37)
+    plain = [G.run(sc) for sc in sample]
+    D.SCENE_TAP = scenes.Tap(sink=lambda rec: None)
+    try:
+        tapped = [G.run(sc) for sc in sample]
+    finally:
+        D.SCENE_TAP = None
+    check(f"the tap changes no decision ({len(sample)} golden situations, traces equal)", plain == tapped)
+
+    def boom(rec):
+        raise RuntimeError("sink down")
+    tap = scenes.Tap(sink=boom)
+    D.SCENE_TAP = tap
+    try:
+        traces = [G.run(sc) for sc in sample[:40]]
+    finally:
+        D.SCENE_TAP = None
+    check("a failing sink: no raise, decisions unchanged, errors counted",
+          traces == plain[:40] and tap.errors > 0 and "errors" in tap.summary())
+
+    # which decisions are kept
+    from types import SimpleNamespace as NS
+    kept = []
+    tap = scenes.Tap(sink=kept.append)
+    F = NS(foe=NS(windup=(3004,)))
+    T = lambda a: NS(a=a, c=NS(ptr=2))
+    for rule, a in (("block", 3003), ("block", 3500), ("block", 3500), ("wait_far", 3500), ("block", 3004), ("attack", -1)):
+        tap.pre = {"x": 1}
+        tap.decided(F, T(a), rule, D.CONT)
+    check("pose rule kept only in a stagger / windup and once per change; attacks always",
+          [k["rule"] for k in kept] == ["block", "wait_far", "block", "attack"])
+
+    # 2026-10-09 burg-upper run: body 42.5° off an HP 11 foe — the game's face(deg=30) said no, so finish_first passed and
+    # after_swing (deg 45) acted; a replay whose face() always says yes picked finish_first
+    rec = json.loads((_pl.Path(__file__).resolve().parent / "expect" / "scene_after_swing_42deg.json").read_text(encoding="utf-8"))
+    check(f"real scene, body 42.5° off: replay face() answers like Moves.face → {R.replay(rec)}", R.replay(rec) == "after_swing")
+    # 2026-10-10 ramp run: the hollow went 3000 → 3002 (3.9 s into the first) — prep_reflex's update() restarted the age, so
+    # prep_linger kept it swinging and backstab_swing acted; a replay reflex with the recorded age fixed picked hit_first.
+    # This record predates the `anim` field, so it also checks the _aprev fallback.
+    rec = json.loads((_pl.Path(__file__).resolve().parent / "expect" / "scene_backstab_swing_new_anim.json").read_text(encoding="utf-8"))
+    check(f"real scene, new attack anim mid-chain: replay reflex restarts the age like Reflex.update → {R.replay(rec)}",
+          R.replay(rec) == "backstab_swing")
+
+    now = 2_000_000_000.0
+    v = scenes._plain({"t": now - 1.5, "s": {3, 4}, "d": {7: (1.0, now - 0.2)}, "x": [now + 2]}, now)
+    back = scenes.restore(v, 100.0)
+    check("restore: times shift to the new clock, sets and int keys come back",
+          abs(back["t"] - 98.5) < 1e-9 and back["s"] == {3, 4} and abs(back["d"][7][1] - 99.8) < 1e-6 and abs(back["x"][0] - 102.0) < 1e-9)
+    # P-61 (pull r2 071213 · 071815 · 072731): the firebomb hollow 18–19 m up on the ledge hit us (−62) — the game said rule_shot,
+    # but scenes kept characters within 15 m only (duel.SHOT_SCAN_R is 25), so the replay had no thrower and picked after_swing
+    def thrower_hits(mv, w):
+        w.add(5, 0x1005, 254002, (0.0, -38.4, 19.4), anim=-1)     # ledge firebomb hollow, +11 m up, 19.4 m off
+        snap, n = mv.snap, {"k": 0}
+
+        def snap2(within=40.0):
+            n["k"] += 1
+            if n["k"] == 3:                                          # between the first and second tick: −62 from afar
+                w.player.hp -= 62
+            return snap(within)
+        mv.snap = snap2
+    shot: list = []
+    D.SCENE_TAP = scenes.Tap(sink=shot.append)
+    try:
+        trace = G.run(dict(foe="hollow", anim=-1, h=7.0, sp=90, low=False, back=False, room=False, other=False, wait=False,
+                           style="guard", reflex=False), mv_hook=thrower_hits)
+    finally:
+        D.SCENE_TAP = None
+    rec = next((r for r in shot if r["rule"] == "shot"), None)
+    check(f"P-61: CHAR_R {scenes.CHAR_R} m covers duel.SHOT_SCAN_R {D.SHOT_SCAN_R} m", scenes.CHAR_R >= D.SHOT_SCAN_R)
+    check(f"P-61: a thrower 19.4 m off hits us → the scene keeps it and replays to shot ({trace[-1]}, replay "
+          f"{R.replay(rec) if rec else None})", rec is not None and any(c["npc_param"] == 254002 for c in rec["snap"]["chars"])
+          and R.replay(rec) == "shot")
+    print("scene_replay_test: 전부 통과")
+
+
+if __name__ == "__main__":
+    main()

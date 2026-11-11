@@ -9,6 +9,7 @@ neutral are what get tested; only the ViGEm device underneath is fake. Not a tes
 from __future__ import annotations
 
 import threading
+import time
 import weakref
 from pathlib import Path
 
@@ -51,6 +52,7 @@ class Rec:
 
     def __init__(self, dev: "FakeVX360"):
         self.sent: list[dict] = []
+        self.times: list[float] = []              # time.time() of each report in sent (same index)
         self.removed = False
         self._dev = weakref.ref(dev)
 
@@ -76,6 +78,7 @@ class FakeVX360:
         self.report = _Report(self)
         self.rec = Rec(self)
         self.sent = self.rec.sent
+        self.times = self.rec.times
         self.fail_next: str | None = None          # method name that raises once (exception-path tests)
         vg.devices.append(self.rec)
 
@@ -96,6 +99,7 @@ class FakeVX360:
         self._maybe_fail("update")
         with self.vg.lock:
             self.sent.append({"th": threading.current_thread().name, **self.state()})
+            self.times.append(time.time())           # when each report went out (sprint_hold_test), kept apart from the report
 
     def press_button(self, button) -> None:
         self.buttons.add(button)

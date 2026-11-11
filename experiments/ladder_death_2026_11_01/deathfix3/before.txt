@@ -1,0 +1,18 @@
+ok   alive: turns, A, mounts, climbs → 'ok'
+ok   alive: snapshot reads not above the code before this change (31 here, alive() reads included)
+     (normal path: 31 snapshot reads, 2 alive() calls)
+FAIL HP 0 while turning → 'dead', no A and no stick after the first HP-0 read, no settle
+ok   HP 0 while turning → device left with nothing held
+FAIL HP 0 while climbing → 'dead', no stick-up after the first HP-0 read, no retry settle
+ok   HP 0 while climbing → device left with nothing held
+FAIL A not taken, HP 0 before the retry → 'dead', no retry settle and no second A
+ok   HP 0 in the read before A → 'dead', A never pressed
+ok   no snapshot before A and alive() can't read either → 'dead' (existing policy), A never pressed
+ok   no snapshot before A, alive() reads HP > 0 → carries on, climbs ('ok')
+FAIL force_guard: HP 0 on the ladder → no A / stick after the HP-0 read; LB stays (guardkeep's)
+FAIL sprint B 0 s old at the HP-0 read → no A / stick after it; B stays (P-70), its release left scheduled
+ok   another thread holds the freeze → 'dead', nothing from this routine reached the device
+5 failed
+new_exit=1
+
+all ok

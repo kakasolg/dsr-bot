@@ -1,0 +1,21 @@
+[    0.1] run 20261012_153818_altar-burg · code d687e48+dirty(3) · altar-burg --radar --note from altar bonfire after altar run 1 · settings b5abb25e · note from altar bonfire after altar run 1
+[    0.3] radar: sending — python radar_server.py -> http://127.0.0.1:47801, python overlay.py
+[    7.2]    물건 비켜 가기 (지난 실행에서 2번 이상 부숨): o1132_06 o1150_01 o1321_0021
+[    8.2] 무기: 클레이모어 (약공 2연타, 닿는 거리 1.8 m, 강공 안 씀)
+[    8.2] 스타일: guard
+[    8.2] 캐릭터: SL 20 VIT 18 END 14 STR 16 DEX 17 | 반지 147,-1 왼손 1462000
+[    8.3]    시작: 헬카이트 (20.6, 18.9, -29.0) 애니 7006
+[   23.9]    계단 아래로: arrived
+[   28.7]    사다리 위로: arrived
+[   31.2]    ⤺ 턱 위 미끄러짐 (바닥 9 m 아래, 1.2 m 내려옴) — 안전 자리로 되돌림
+[   33.4]    ⚠ 낙하: 낙사 (발밑 바닥 10 m 아래) @ [-3.61, -0.07, -62.46] — 퀵 종료 안 함, 계속
+[   35.6]    사다리 내려감 (y -10.0)
+[   36.3]    ▣ 블랙박스 #1: 0.0 s 동안 -143 → HP 599/742, 낙하 -143 (10.1 m)
+[   37.7]    성벽 마을 화톳불로: arrived
+[   37.7] ══ 제단 → 성벽 마을 화톳불: arrived
+[   37.7] ══ 결과: arrived
+[   37.7] 카메라 정렬: 기록 없음
+[   37.7] 정렬 (몸 30° · 카메라 10° 또는 락온): 기록 없음
+[   37.7] ══ 위험 판정: 위험  (결과 arrived, 최저 HP 81%, 큰 피격 1번 -143)  낙하×1
+[   37.7] 실행 설정 기록: 20261012_153818_altar-burg.settings.json
+[   37.7] 텔레메트리 피드: {'frames': 1892, 'read_ms': 4.8, 'fresh': 2606, 'waited': 6, 'direct': 497, 'none': 0, 'stale': 0}

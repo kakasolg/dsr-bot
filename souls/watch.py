@@ -1,16 +1,19 @@
 """Layer 4 helper — watchers running separately from the decision loop: emergency escape (quit-out) and bloodstain tracking.
 
 Quit-out (menu → Quit Game → Continue) **resets only enemy positions/alertness; dead enemies stay dead** (user confirmed 2026-09-24).
+The fast byte quit-out (ChrClassWarp+0x19) does NOT keep them dead (P-25, game check 2026-10-10) — only falls use it (Escape._quit).
 Resting (bonfire) revives every enemy. So to shake enemies off, use this instead of resting.
 """
 from __future__ import annotations
 
 import collections
 import json
+import math
 import threading
 import time
 from pathlib import Path
 
+import ctl
 import env
 import navmesh
 import quitout
@@ -25,7 +28,7 @@ NO_GROUND = (1500, 1550, 121500, 1600, 6074, 6174)
 class Escape:
     """Emergency escape. Polls at 50 Hz; when firing, freezes the pad (Pad.freeze) so decision-loop input doesn't mix with menu input.
       · Fatal fall: falling (motion 1550, or dropped more than 2.5 m in 0.4 s) and the floor underfoot is more than 8 m below
-        → after quitting you stand again at the edge before the fall
+        → recorded only (fall_seen, MoKa 10-12); with fall_quit (--fall-quit) the old quit-out: you stand again at the edge before the fall
       · Imminent death: two or more within 3.5 m and **predicted HP 2.8 s ahead** below 15 % (once per 60 s — it restarts on the spot)
         — you keep getting hit during the 2.4~2.5 s of quit input (once ended 298 → 24). Hence it watches incoming damage rate
     gen is +1 on every quit-and-return — all enemy pointers change, so upper layers re-find enemies when gen changes."""
@@ -35,21 +38,54 @@ class Escape:
     LEDGE_DROP = 3.0          # floor underfoot lower than this but not yet falling = on a cliff ledge
     LEDGE_SLIDE = 0.6         # (tuned 0.4~0.7 on 2 falls + a human recording: 0.6/0.5 fire 1.1~1.2 s before the fall, 1 false alarm) dropped this far below the last safe spot = sliding (bridges keep the same height, so they don't trigger)
     NUDGE_COOLDOWN = 0.6
+    NUDGE_FUTILE = 2          # P-81: this many nudges in a row that leave us where the last one started → stop until we move or stand
+                              # on floor again (clay18-1 zone 6: 23 nudges, 1 s apart, standing 1 m down on solid ground off the mesh;
+                              # pull-off2 ramp ledge: 22 at 3.5 m down — no nudge moved us, each froze the pad and dropped the guard)
+    NUDGE_SAME_R = 0.5        # … "where it started": within this (horizontal) and NUDGE_SAME_DY (height)
+    NUDGE_SAME_DY = 0.15      # standing: ±0.1 m in both runs; a 0.35 m/s slide (152400) drops ≥ 0.2 m between nudges
     LEDGE_CREEP = 0.5         # descending while moving less than this in 1 s = sliding (stairs move faster)
     CROWD_COOLDOWN = 60.0     # avoid repeating at the same spot
+    # ── 셋 이상 몰려 오면 실패 ([MoKa] 2026-11-04) ──────────────────────────────
+    #  "5명이 몰려 오면, 고수 들도 답이 없어. 그냥 quit menu 해서 몹들이 원위치로 보내는 것이 최선이야. 문제는 적들 근처에서는
+    #   quit menu도 소용 없으니 그때는 화톳불 근처로 워프가 다음 해법이지. 일단 3명 이상 몰려 오면 실패라고 생각해야되."
+    #  011442 burg-upper 구역 2-1: 유인에 254011 둘 + 255001 + 254010 둘 → 계획 5놈, 사망 (P-117 AGAIN).
+    #  · CROWD3_R 안에 깨어 있는 적 CROWD3_N 이상이 CROWD3_HOLD s 이어지면: 제일 가까운 놈이 CROWD3_QUIT_R 넘게 멀면 메뉴 퀵 종료
+    #    (죽인 놈은 그대로, 나머지는 제자리·경계 풀림 — quit_reload와 같은 menu 길), 붙어 있으면 crowd_warp일 때 마지막 화톳불로 워프
+    #    (게임 메모리 호출 — run.py --crowd-warp일 때만), 아니면 기록만 하고 아래 층 (fall_back)에 맡김.
+    #  · 2026-09-28 [MoKa] "둘러싸였을 때는 퀵 종료하면 안 되고 후퇴해야 해"와 같은 뜻: 붙은 뒤엔 퀵 종료 안 함 (그 자리에서 다시 맞음).
+    CROWD3_N = 3
+    CROWD3_R = 12.0
+    CROWD3_DY = 2.5
+    CROWD3_HOLD = 0.3
+    CROWD3_QUIT_R = 4.0       # 제일 가까운 놈이 이보다 멀면 퀵 종료 (메뉴 입력 ~2 s 동안 닿지 않을 거리 — 망자 달리기 ~3.6 m/s × 1 s 남짓)
+    CROWD3_MAX = 3            # 한 실행에서 이만큼 나간 뒤엔 더 안 나감 (같은 유인을 되풀이하는 고리 막기) — 기록만
     QUIT_S = 2.8
 
     def __init__(self, pad, nms: list, log=print, events=None):
         self.pad, self.nms, self.log, self.events = pad, nms, log, events
         self.escaping = False
         self.gen = 0
+        self.world = None                                  # souls/world.WorldState — Field hands it over (worldstate step 1)
         self.quit_ok = True                                # False = never use quit-out (exit to menu and back) (for video recording, run.py --no-quit)
+        # [MoKa] 2026-10-12: "낙사시 퀵 종료 포기하고, 최대한 도망치던가 반격 하던가" — a fall is only recorded; the layers above
+        # keep running (flee / fight back) and a death is handled after respawn (souls/afterdeath.py). Quit-outs after falls put the
+        # bot back on the same ledge, blind and with the pad frozen: 5 of 5 fall deaths after one came from that (P-71).
+        # True = the old fall quit-out (run.py --fall-quit).
+        self.fall_quit = False
+        self.planned = None           # a drop we mean to make (Taurus plunge, asylum plunge, the crow) → not a fall: logged, no "fall" event
         self.nudge_ok = True                               # False = no ledge nudge-back (a deliberate drop — souls/asylum plunge onto the demon)
         self.last_fall = self.last_crowd = 0.0
+        self.crowd3_ok = True                              # False = no "3+ foes" quit-out / warp (tests, deliberate group fights)
+        self.crowd_warp = False                            # True = warp to the last bonfire when 3+ are already close (run.py --crowd-warp)
+        self.crowd3_n = 0                                  # 3+ escapes this run
+        self.warps = 0                                     # successful bonfire warps this run — the zone runner restarts on a change
+        self._crowd3_since = None
         self.last_fall_pos = None     # so upper layers back away from the edge right after a fatal-fall escape
         self.safe_pos = None          # last spot with floor directly underfoot (_ledge)
         self.last_nudge = 0.0
         self.nudges = 0
+        self._nudge_at = None         # where the last nudge started (x, y, z) — P-81: same spot again = it didn't work
+        self._futile = 0              # nudges in a row that left us where the one before started
         self._pos = collections.deque(maxlen=120)
         self._lock = threading.Lock()
         self._stop = False
@@ -101,9 +137,33 @@ class Escape:
             # 둘러싸였을 때 퀵 종료는 없앰 ([MoKa] 2026-09-28: "둘러싸였을 때는 퀵 종료하면 안 되고 후퇴해야 해") — 그 자리에서 다시
             # 시작해 같은 적 옆에서 이어 싸움 (Bandit Bot: 동시 피격 한 번에 피해 속도가 튀어 HP 65 %에서 걸림 → HP 441로 이어 싸우다 사망).
             # 둘러싸임은 duel 'crowd' → Field.fall_back 이 맡는다
+            if not why and not falling and self.crowd3_ok and now - self.last_crowd > self.CROWD_COOLDOWN:
+                why, kind = self._crowd3(s, p, now)
+            if why and kind == "crowd3_warp":
+                self.warp_last(why, tm, p)
+                why = None
             if why:
-                self.fire(why, kind, tm, p)
+                if kind == "fall" and not self.fall_quit:
+                    self.fall_seen(why, p)
+                else:
+                    self.fire(why, kind, tm, p)
             time.sleep(0.02)
+
+    def fall_seen(self, why: str, p=None) -> dict:
+        """A fall under the no-quit policy (fall_quit False): record it and keep the cooldown, nothing else — no freeze, no input,
+        so the layers above keep the pad to flee or fight wherever we land. → the event row"""
+        pos = None if p is None else [round(p.x, 2), round(p.y, 2), round(p.z, 2)]
+        self.last_fall, self.last_fall_pos = time.time(), pos
+        if self.planned:                                   # [win] 10-12: Taurus plunges came out as 낙하×2 in risk_report
+            self.log(f"   (계획된 낙하: {self.planned}) {why} @ {pos}")
+            ctl.emit("esc", ev="fall_planned", why=why, planned=self.planned, pos0=pos)
+            return {"why": why, "kind": "fall", "pos0": pos, "planned": self.planned}
+        self.log(f"   ⚠ 낙하: {why} @ {pos} — 퀵 종료 안 함, 계속")
+        row = {"why": why, "kind": "fall", "pos0": pos, "hp": None if p is None else p.hp}
+        ctl.emit("esc", ev="fall_seen", why=why, pos0=pos)  # record only
+        if self.events:
+            self.events("fall", **row)                     # not "escape" — risk_report counts those as quit-outs
+        return row
 
     def _back_to_mesh(self, secs: float = 2.5) -> str | None:
         """After a fatal-fall quit-out: the game restarts at the spot just before the fall (on the ledge) — left alone it slides again,
@@ -143,6 +203,7 @@ class Escape:
         drop = self.floor_drop(p)
         if drop is not None and drop < 0.6:
             self.safe_pos = (p.x, p.y, p.z)
+            self._nudge_at, self._futile = None, 0
             return
         # no walkable floor underfoot (None — below that ledge were only inactive tiles) or more than 3 m below.
         # descending stairs also leaves the mesh empty and y dropping — but then we move fast sideways. Ledge sliding moved under 0.8 m in 1 s
@@ -154,16 +215,40 @@ class Escape:
         old = [q for q in self._pos if now - q[0] <= 1.0]
         if len(old) < 3 or ((p.x - old[0][1]) ** 2 + (p.z - old[0][2]) ** 2) ** 0.5 > self.LEDGE_CREEP:
             return
+        if not self._nudge_worth(p):
+            return
         import control
         import nav
         st = control.world_to_stick(sp[0] - p.x, sp[2] - p.z, s.cam_yaw, nav.YAW_OFFSET, nav.FLIP_X)
         if not self._nudge(st):
             return
+        self._nudge_at = (p.x, p.y, p.z)
         self.last_nudge = time.time()
         self.nudges += 1
         self.log(f"   ⤺ 턱 위 미끄러짐 (바닥 {'없음' if drop is None else f'{drop:.0f} m 아래'}, {sp[1] - p.y:.1f} m 내려옴) — 안전 자리로 되돌림")
         if self.events:
             self.events("ledge", drop=None if drop is None else round(drop, 1), slide=round(sp[1] - p.y, 2), pos=[round(p.x, 2), round(p.y, 2), round(p.z, 2)])
+
+    def _nudge_worth(self, p) -> bool:
+        """P-81: False once NUDGE_FUTILE nudges in a row left us where the one before started — we stand there (solid floor the
+        NavMesh doesn't have, or held against foes), so another nudge only freezes the pad and drops the guard again. Moving away from
+        that spot or standing on floor again (_ledge) re-arms it."""
+        q = self._nudge_at
+        same = (q is not None and ((p.x - q[0]) ** 2 + (p.z - q[2]) ** 2) ** 0.5 <= self.NUDGE_SAME_R
+                and abs(p.y - q[1]) <= self.NUDGE_SAME_DY)
+        if not same:
+            self._futile = 0
+            return True
+        if self._futile >= self.NUDGE_FUTILE:
+            return False
+        self._futile += 1
+        if self._futile < self.NUDGE_FUTILE:
+            return True
+        self.log(f"   ⤺ 턱 되돌림 {self.NUDGE_FUTILE}번째도 제자리 ({p.x:.1f},{p.y:.1f},{p.z:.1f}) — 움직이거나 바닥에 설 때까지 그만")
+        ctl.emit("esc", ev="nudge_futile", pos=[round(p.x, 2), round(p.y, 2), round(p.z, 2)])
+        if self.events:
+            self.events("ledge_futile", pos=[round(p.x, 2), round(p.y, 2), round(p.z, 2)])
+        return False
 
     NUDGE_S = 0.35
 
@@ -172,20 +257,109 @@ class Escape:
         input is dropped meanwhile (guard included — [MoKa] accepted the guard being down for NUDGE_S); nav.Mover presses
         it again after unfreeze (Pad.epoch). False = a quit-out holds the pad, no nudge."""
         if not self.pad.freeze(take=False):
+            ctl.emit("esc", ev="nudge_yield")              # P1-D: record only
             return False
+        t0 = time.perf_counter()
+        ctl.emit("esc", ev="nudge_start", stick=[round(st[0], 3), round(st[1], 3)])
         try:
             self.pad.move(st[0], st[1])
             time.sleep(self.NUDGE_S)
         finally:
             self.pad.neutral()
             self.pad.unfreeze()
+            ctl.emit("esc", ev="nudge_end", dt_ms=round((time.perf_counter() - t0) * 1000, 1))
         return True
+
+    def _crowd3(self, s, p, now: float) -> tuple[str | None, str | None]:
+        """3+ awake foes within CROWD3_R for CROWD3_HOLD s → (why, 'crowd3' | 'crowd3_warp') or (None, None) (see CROWD3_* above)."""
+        near = sorted(math.hypot(c.x - p.x, c.z - p.z) for c in s.hostile(self.CROWD3_R)
+                      if (c.hp or 0) > 0 and not 9000 <= (c.anim or 0) < 9100 and abs(c.y - p.y) < self.CROWD3_DY)
+        if len(near) < self.CROWD3_N:
+            self._crowd3_since = None
+            return None, None
+        if self._crowd3_since is None:
+            self._crowd3_since = now
+        if now - self._crowd3_since < self.CROWD3_HOLD:
+            return None, None
+        self._crowd3_since = None
+        self.last_crowd = now
+        what = f"{len(near)}놈 몰려 옴 (가장 가까운 {near[0]:.1f} m) — 실패로 봄"
+        if self.crowd3_n >= self.CROWD3_MAX:
+            self.log(f"   ⚠ {what} — 이 실행에서 {self.crowd3_n}번 나가서 이번엔 안 나감 (기록만)")
+            if self.events:
+                self.events("crowd3", n=len(near), near=round(near[0], 2), action="capped")
+            return None, None
+        self.crowd3_n += 1
+        if near[0] > self.CROWD3_QUIT_R:
+            if self.events:
+                self.events("crowd3", n=len(near), near=round(near[0], 2), action="quit")
+            return what + " → 메뉴 퀵 종료 (몹 원위치)", "crowd3"
+        if self.crowd_warp:
+            if self.events:
+                self.events("crowd3", n=len(near), near=round(near[0], 2), action="warp")
+            return what + " → 붙어 있어 퀵 종료 소용없음, 화톳불 워프", "crowd3_warp"
+        self.log(f"   ⚠ {what} — 붙어 있어 퀵 종료 안 함, 워프 꺼짐 (--crowd-warp 없음) → 아래 층이 물러남")
+        if self.events:
+            self.events("crowd3", n=len(near), near=round(near[0], 2), action="close_no_warp")
+        return None, None
+
+    def warp_last(self, why: str, tm, p) -> bool:
+        """Warp to the last rested bonfire (tm.bonfire_warp — game memory call, run.py --crowd-warp only). Pad frozen meanwhile."""
+        with self._lock:
+            bid = tm.last_bonfire()
+            self.log(f"   ⚠ 워프: {why} — 화톳불 {bid}")
+            self.escaping = True
+            self.pad.freeze()
+            try:
+                ok = bool(bid) and tm.bonfire_warp(bid, log=self.log)
+            finally:
+                self.pad.neutral()
+                self.pad.unfreeze()
+            time.sleep(2.0)
+            self._hp.clear()
+            self._y.clear()
+            self.gen += 1
+            self.warps += 1 if ok else 0
+            if ok and self.world is not None:
+                self.world.event("warp", why="crowd3_warp", bonfire=bid)
+            self.escaping = False
+            self.log(f"   ⚠ 워프 결과: {'ok' if ok else 'failed'}")
+            if self.events:
+                self.events("escape", why=why, kind="crowd3_warp", ok=ok, bonfire=bid)
+            return ok
+
+    def _quit(self, tm, kind: str, res: dict) -> float | None:
+        """
+        ── 어느 퀵 종료로 나가나 (P-25) ──────────────────────────────
+         · byte (ChrClassWarp+0x19 = 1, 곧장 타이틀, 월드에서 1.1 s) — **그 지역에서 죽인 적이 되살아남**
+           (2026-10-10 게임 확인: byte → Continue 직후 255041·255042 셋이 다시 섬 / menu → 넷 번 모두 죽은 그대로. 세이브는 둘 다 씀)
+         · menu (Quit Game, 입력 0.94 s + 저장 1.0 s = 1.95 s) — 죽인 적은 그대로. 떨어지는 중엔 메뉴가 안 열린다고 봄
+         · 그래서 낙사(fall)만 byte, 나머지(shake …)는 menu. 첫 방식이 실패하면 다른 방식으로
+         · byte로 나갔으면 res["revive_risk"] = True — 위 층은 esc.gen 이 바뀌면 적을 새로 찾는다 (field 신원 묶기, pass_ramp 생존 확인)
+        """
+        byte = lambda: (lambda t0: time.time() - t0 if tm.quit_to_title(timeout=2.0) else None)(time.time())
+
+        def menu():
+            q = quitout.quit_out(tm, self.pad, gap=quitout.MENU_GAP, settle=0.03, ready_wait=0.05)
+            res["quit_steps"] = dict(quitout.LAST_STEPS)
+            return q
+        order = (("byte", byte), ("menu", menu)) if kind == "fall" else (("menu", menu), ("byte", byte))
+        for i, (how, go) in enumerate(order):
+            if i:
+                quitout.close_menu(tm, self.pad)          # a half-open menu from the first try
+            res["how"] = how
+            q = go()
+            if q is not None:
+                res["revive_risk"] = how == "byte"
+                return q
+        return None
 
     def fire(self, why: str, kind: str, tm=None, p=None) -> dict:
         """Quit to menu and come back. Upper layers also call this to shake off enemies (kind='shake'). → result"""
         if not self.quit_ok:
             # user 2026-09-26: quit-outs in the video make it unfit for YouTube — when disabled, just log and keep fighting
             self.log(f"   (퀵 종료 꺼짐) {why} — 나가지 않고 계속")
+            ctl.emit("esc", ev="fire_skipped", kind=kind, why=why)          # P1-D: record only
             self.last_crowd = self.last_fall = time.time()   # keep the cooldown — so the same line isn't printed every tick
             return {"why": why, "kind": kind, "skipped": True}
         with self._lock:
@@ -196,18 +370,14 @@ class Escape:
             pos0 = None if p is None else [round(p.x, 2), round(p.y, 2), round(p.z, 2)]
             self.log(f"   ⚠ 퀵 종료: {why} @ {pos0}")
             self.escaping = True
+            t_fire = time.perf_counter()
+            ctl.emit("esc", ev="fire_start", kind=kind, why=why, pos0=pos0)  # P1-D: record only
             self.pad.freeze()
             res: dict = {"why": why, "kind": kind, "pos0": pos0}
             try:
-                # straight to title without the menu (ChrClassWarp+0x19, 0.58 s) — the menu route takes 2~2.8 s and the menu wouldn't open mid-fall.
-                # fall back to the old menu route if that fails
-                t_q = time.time()
-                q = time.time() - t_q if tm.quit_to_title(timeout=2.0) else None
-                res["how"] = "byte" if q is not None else "menu"
-                if q is None:
-                    q = quitout.quit_out(tm, self.pad, gap=quitout.MENU_GAP, settle=0.03, ready_wait=0.05)
-                    res["quit_steps"] = dict(quitout.LAST_STEPS)
+                q = self._quit(tm, kind, res)
                 res["quit_s"] = None if q is None else round(q, 2)
+                ctl.emit("esc", ev="quit", how=res["how"], ok=q is not None, quit_s=res["quit_s"])
                 if q is None:
                     quitout.close_menu(tm, self.pad)
                 else:
@@ -216,6 +386,8 @@ class Escape:
                     time.sleep(1.0)
                     if kind == "fall":
                         res["back"] = self._back_to_mesh()
+                    if res.get("revive_risk"):
+                        self.log("   ⚠ byte 퀵 종료 — 이 지역에서 죽인 적이 되살아났을 수 있음 (P-25)")
             finally:
                 self.pad.neutral()
                 self.pad.unfreeze()
@@ -233,6 +405,10 @@ class Escape:
             self._y.clear()
             self.gen += 1
             self.escaping = False
+            if res.get("quit_s") is not None and self.world is not None:   # back in the world after a quit-out
+                self.world.event("quit_" + res["how"], why=kind)
+            ctl.emit("esc", ev="fire_end", kind=kind, gen=self.gen, dt_ms=round((time.perf_counter() - t_fire) * 1000, 1),
+                     how=res.get("how"), quit_s=res.get("quit_s"), reload_s=res.get("reload_s"), back=res.get("back"))
             self.log(f"   ⚠ 퀵 종료 결과: {res}")
             if self.events:
                 self.events("escape", **res)
@@ -253,8 +429,11 @@ class Blood:
     and going to pick one up and pressing A sat at the bonfire, reviving every killed enemy (measured twice, 2026-09-24).
     So it records **only when souls actually dropped after respawn**. While alive, a one-shot soul gain equal to the bloodstain counts as recovery and clears it."""
 
-    def __init__(self, log=print):
+    def __init__(self, log=print, context=None, cause=None):
         self.log = log
+        # death record ([cloud] 2026-10-12, docs/analysis-death-2026-10-12.md §3 a): context() at the death moment (escape state …),
+        # cause() after the respawn (BlackBox.take_fatal: fall / hit split of the killing bundle) → one "death" event per real death
+        self.context, self.cause = context, cause
         self._stop = False
         self.th = threading.Thread(target=self._run, daemon=True)
 
@@ -268,6 +447,7 @@ class Blood:
     def _run(self) -> None:
         tm = env.make_telemetry({})
         last, pending, prev_souls, last_attach = None, None, None, time.time()
+        seen_sent = False                                  # death_seen sent; re-armed only after HP > 0 is seen again
         while not self._stop:
             try:
                 s = tm.snapshot(within=1.0)
@@ -284,12 +464,15 @@ class Blood:
                 continue
             p = s.player
             if p.hp is not None and p.hp > 0:
+                seen_sent = False
                 souls = tm.souls() or 0
                 if pending is not None:                    # alive — did we really die?
                     if souls < pending["souls"] or (pending["souls"] == 0 and (tm.humanity() or 0) < pending["humanity"]):
+                        ctx = pending.pop("ctx", None)
                         rec = {**pending, "t": time.strftime("%Y-%m-%d %H:%M:%S")}
                         BLOODSTAIN.write_text(json.dumps(rec, ensure_ascii=False), encoding="utf-8")
                         self.log(f"   ✝ 죽음 — 핏자국 {rec['pos']} (소울 {rec['souls']}, 인간성 {rec['humanity']})")
+                        self._death_event(rec, ctx)
                     pending = None
                     prev_souls = souls
                 rec = self.read()
@@ -303,7 +486,39 @@ class Blood:
                     last = {"pos": [round(p.x, 2), round(p.y, 2), round(p.z, 2)], "souls": souls, "humanity": tm.humanity() or 0}
             elif pending is None and last is not None and (last["souls"] > 0 or last["humanity"] > 0):
                 pending = dict(last)
+                if self.context is not None:
+                    try:                                   # record only — must not stop this thread
+                        pending["ctx"] = self.context()
+                    except Exception:
+                        pass
+                ev = getattr(self.log, "event", None)      # run.py's Log has it; the default print does not
+                if ev is not None and not seen_sent:
+                    seen_sent = True
+                    try:                                   # record only — must not stop this thread
+                        ev("death_seen", hp=p.hp, max_hp=p.max_hp, anim=p.anim,
+                           pos=[None if v is None else round(v, 2) for v in (p.x, p.y, p.z)])
+                    except Exception:
+                        pass
             time.sleep(0.2)
+
+    def _death_event(self, rec: dict, ctx: dict | None) -> None:
+        """One "death" line: where / what was dropped, the state at the death moment, and the cause from the black box
+        (cause 'fall' | 'hit', or 'unknown' with no feed). Record only."""
+        ev = getattr(self.log, "event", None)
+        if ev is None:
+            return
+        try:
+            fatal = self.cause() if self.cause is not None else None
+            row = {"pos": rec["pos"], "souls": rec["souls"], "humanity": rec["humanity"], **(ctx or {})}
+            row.update({"cause": "unknown"} if not fatal else
+                       {"cause": fatal["cause"], "lost_hit": fatal.get("lost_hit"), "lost_fall": fatal.get("lost_fall"),
+                        "drop_m": fatal.get("drop_m"), "blame": fatal.get("blame"), "hit_n": fatal.get("n")})
+            ev("death", **row)
+            what = (f"낙하 {row.get('drop_m')} m (-{row.get('lost_fall')})" + (f" + 피격 -{row['lost_hit']}" if row.get("lost_hit") else "")
+                    if row["cause"] == "fall" else "피격" if row["cause"] == "hit" else "원인 모름 (블랙박스 없음)")
+            self.log(f"   ✝ 사망 원인: {what}")
+        except Exception:
+            pass
 
     def start(self) -> "Blood":
         self.th.start()

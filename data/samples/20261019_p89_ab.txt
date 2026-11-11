@@ -1,0 +1,26 @@
+== baseline
+20261019_205059_parish-group1: 처치 2/3 ['killed', 'killed', 'not_seen'], 17.4 s, 싸움 중 받은 피해 90, HP [793, 703], 에스트 [10, 10] (시범: 3/3, 42 s, 받은 피해 609, 에스트 1)
+   255041·3004 decisions (rule, age): [] → strikes before 2.3 s: 0, late_windup_block ticks on 255041: 0
+   drops ≥20: [{'dmg': 85, 'n41_anim': 3500, 'n41_d': 1.81, 'n41_age': 0.41, 'age_from_bundle_start': False, 'n42_anim': 3003, 'n42_d': 2.68}]
+   big hits during 255041 3004: 0 · 255042-bolt-like: 1
+20261019_205348_parish-group1: 남은 적 0 · 싸움 결과 ['killed', 'killed', 'not_seen'], 19.3 s, 싸움 중 받은 피해 361, HP [793, 793], 에스트 [10, 9] (시범: 3/3, 42 s, 받은 피해 609, 에스트 1)
+   255041·3004 decisions (rule, age): [('after_swing', 1.63)] → strikes before 2.3 s: 1, late_windup_block ticks on 255041: 0
+   drops ≥20: [{'dmg': 257, 'n41_anim': 3004, 'n41_d': 1.16, 'n41_age': 2.09, 'age_from_bundle_start': False, 'n42_anim': 3001, 'n42_d': 3.81}, {'dmg': 102, 'n41_anim': -1, 'n41_d': 11.05, 'n41_age': 5.35, 'age_from_bundle_start': False, 'n42_anim': 3001, 'n42_d': 4.07}]
+   big hits during 255041 3004: 1 · 255042-bolt-like: 1
+20261019_205644_parish-route: 남은 적 0 · 싸움 결과 ['killed', 'killed', 'not_seen'], 17.8 s, 싸움 중 받은 피해 261, HP [793, 791], 에스트 [10, 9] (시범: 3/3, 42 s, 받은 피해 609, 에스트 1)
+   255041·3004 decisions (rule, age): [('after_swing', 1.63)] → strikes before 2.3 s: 1, late_windup_block ticks on 255041: 0
+   drops ≥20: [{'dmg': 257, 'n41_anim': 3004, 'n41_d': 0.85, 'n41_age': 2.08, 'age_from_bundle_start': False, 'n42_anim': -1, 'n42_d': 4.0}]
+   big hits during 255041 3004: 1 · 255042-bolt-like: 0
+== new
+20261019_212609_parish-group1: 남은 적 0 · 싸움 결과 ['killed', 'killed', 'killed'], 15.0 s, 싸움 중 받은 피해 7, HP [793, 786], 에스트 [10, 10] (시범: 3/3, 42 s, 받은 피해 609, 에스트 1)
+   255041·3004 decisions (rule, age): [('approach', 1.94), ('late_windup_block', 2.08), ('face_first', 2.47), ('late_windup_block', 2.51)] → strikes before 2.3 s: 0, late_windup_block ticks on 255041: 30
+   drops ≥20: []
+   big hits during 255041 3004: 0 · 255042-bolt-like: 0
+20261019_212803_parish-group1: 남은 적 0 · 싸움 결과 ['killed', 'killed', 'not_seen'], 14.4 s, 싸움 중 받은 피해 4, HP [793, 789], 에스트 [10, 10] (시범: 3/3, 42 s, 받은 피해 609, 에스트 1)
+   255041·3004 decisions (rule, age): [] → strikes before 2.3 s: 0, late_windup_block ticks on 255041: 0
+   drops ≥20: []
+   big hits during 255041 3004: 0 · 255042-bolt-like: 0
+20261019_212954_parish-group1: 남은 적 0 · 싸움 결과 ['low_hp', 'low_hp', 'killed'], 34.8 s, 싸움 중 받은 피해 445, HP [793, 640], 에스트 [10, 9] (시범: 3/3, 42 s, 받은 피해 609, 에스트 1)
+   255041·3004 decisions (rule, age): [] → strikes before 2.3 s: 0, late_windup_block ticks on 255041: 0
+   drops ≥20: [{'dmg': 174, 'n41_anim': 3003, 'n41_d': 1.99, 'n41_age': 1.57, 'age_from_bundle_start': False, 'n42_anim': 3000, 'n42_d': 1.93}, {'dmg': 174, 'n41_anim': 3003, 'n41_d': 1.99, 'n41_age': 1.57, 'age_from_bundle_start': False, 'n42_anim': 3000, 'n42_d': 1.93}, {'dmg': 257, 'n41_anim': 3004, 'n41_d': 0.85, 'n41_age': 2.08, 'age_from_bundle_start': False, 'n42_anim': 3004, 'n42_d': 1.11}, {'dmg': 147, 'n41_anim': -1, 'n41_d': 6.75, 'n41_age': 2.45, 'age_from_bundle_start': False, 'n42_anim': 3000, 'n42_d': 1.67}]
+   big hits during 255041 3004: 1 · 255042-bolt-like: 0

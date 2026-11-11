@@ -1,0 +1,76 @@
+
+### 1 normal (death while climbing): _before → 'dead'
+  calls after the first HP-0 read (t, thread, method, report sent?):
+    (0.65, 'MainThread', 'neutral', True)
+  reports after the HP-0 read: ['btn=- L=(0.00,0.00) R=(0.00,0.00) th=MainThread']
+  A  device now : btn=- L=(0.00,0.00) R=(0.00,0.00)
+     last report: btn=- L=(0.00,0.00) R=(0.00,0.00) (th=MainThread)
+     pad        : due=['A@0.30'] b_since=None force_guard=False kept=False guard_want=False frozen_by=None
+  +1.0 s, no pad call: device btn=- L=(0.00,0.00) R=(0.00,0.00) · due=['A@0.30'] b_since=None force_guard=False kept=False guard_want=False frozen_by=None · reports +0
+  B  run.py finally 1st neutral: device btn=- L=(0.00,0.00) R=(0.00,0.00) · due=['A@0.30'] b_since=None force_guard=False kept=False guard_want=False frozen_by=None
+     … +5 s, gk.stop, 2nd neutral: device btn=- L=(0.00,0.00) R=(0.00,0.00) · due=['A@0.30'] b_since=None force_guard=False kept=False guard_want=False frozen_by=None · reports +2
+  C  + release_due (assumed): device btn=- L=(0.00,0.00) R=(0.00,0.00) · due=[] b_since=None force_guard=False kept=False guard_want=False frozen_by=None · reports +1
+
+### 2a force_guard setter (tests only): _before → 'dead'
+  calls after the first HP-0 read (t, thread, method, report sent?):
+    (7.3, 'MainThread', 'neutral', True)
+  reports after the HP-0 read: ["btn=['LEFT_SHOULDER'] L=(0.00,0.00) R=(0.00,0.00) th=MainThread"]
+  A  device now : btn=['LEFT_SHOULDER'] L=(0.00,0.00) R=(0.00,0.00)
+     last report: btn=['LEFT_SHOULDER'] L=(0.00,0.00) R=(0.00,0.00) (th=MainThread)
+     pad        : due=['A@6.95'] b_since=None force_guard=True kept=False guard_want=False frozen_by=None
+  +1.0 s, no pad call: device btn=['LEFT_SHOULDER'] L=(0.00,0.00) R=(0.00,0.00) · due=['A@6.95'] b_since=None force_guard=True kept=False guard_want=False frozen_by=None · reports +0
+  B  run.py finally 1st neutral: device btn=['LEFT_SHOULDER'] L=(0.00,0.00) R=(0.00,0.00) · due=['A@6.95'] b_since=None force_guard=True kept=False guard_want=False frozen_by=None
+     … +5 s, gk.stop, 2nd neutral: device btn=- L=(0.00,0.00) R=(0.00,0.00) · due=['A@6.95'] b_since=None force_guard=False kept=False guard_want=False frozen_by=None · reports +2
+  C  + release_due (assumed): device btn=- L=(0.00,0.00) R=(0.00,0.00) · due=[] b_since=None force_guard=False kept=False guard_want=False frozen_by=None · reports +1
+
+### 2b keep_guard window from a guardkeep thread: _before → 'dead'
+  calls after the first HP-0 read (t, thread, method, report sent?):
+    (13.95, 'MainThread', 'neutral', True)
+  reports after the HP-0 read: ["btn=['LEFT_SHOULDER'] L=(0.00,0.00) R=(0.00,0.00) th=MainThread"]
+  A  device now : btn=['LEFT_SHOULDER'] L=(0.00,0.00) R=(0.00,0.00)
+     last report: btn=['LEFT_SHOULDER'] L=(0.00,0.00) R=(0.00,0.00) (th=MainThread)
+     pad        : due=['A@13.60'] b_since=None force_guard=True kept=True guard_want=False frozen_by=None
+  +3.0 s, no pad call: device btn=['LEFT_SHOULDER'] L=(0.00,0.00) R=(0.00,0.00) · due=['A@13.60'] b_since=None force_guard=False kept=True guard_want=False frozen_by=None · reports +0
+  B  run.py finally 1st neutral: device btn=- L=(0.00,0.00) R=(0.00,0.00) · due=['A@13.60'] b_since=None force_guard=False kept=True guard_want=False frozen_by=None
+     … +5 s, gk.stop, 2nd neutral: device btn=- L=(0.00,0.00) R=(0.00,0.00) · due=['A@13.60'] b_since=None force_guard=False kept=False guard_want=False frozen_by=None · reports +2
+  C  + release_due (assumed): device btn=- L=(0.00,0.00) R=(0.00,0.00) · due=[] b_since=None force_guard=False kept=False guard_want=False frozen_by=None · reports +1
+
+### 3 sprint B pressed + release scheduled at the HP-0 read: _before → 'dead'
+  calls after the first HP-0 read (t, thread, method, report sent?):
+    (22.6, 'MainThread', 'neutral', True)
+  reports after the HP-0 read: ["btn=['B'] L=(0.00,0.00) R=(0.00,0.00) th=MainThread"]
+  A  device now : btn=['B'] L=(0.00,0.00) R=(0.00,0.00)
+     last report: btn=['B'] L=(0.00,0.00) R=(0.00,0.00) (th=MainThread)
+     pad        : due=['A@22.25', 'B@23.05'] b_since=22.6 force_guard=False kept=False guard_want=False frozen_by=None
+  +1.0 s, no pad call: device btn=['B'] L=(0.00,0.00) R=(0.00,0.00) · due=['A@22.25', 'B@23.05'] b_since=22.6 force_guard=False kept=False guard_want=False frozen_by=None · reports +0
+  B  run.py finally 1st neutral: device btn=- L=(0.00,0.00) R=(0.00,0.00) · due=['A@22.25'] b_since=None force_guard=False kept=False guard_want=False frozen_by=None
+     … +5 s, gk.stop, 2nd neutral: device btn=- L=(0.00,0.00) R=(0.00,0.00) · due=['A@22.25'] b_since=None force_guard=False kept=False guard_want=False frozen_by=None · reports +2
+  C  + release_due (assumed): device btn=- L=(0.00,0.00) R=(0.00,0.00) · due=[] b_since=None force_guard=False kept=False guard_want=False frozen_by=None · reports +1
+
+### 3b same, run.py's first neutral 0.1 s after the return: _before → 'dead'
+  calls after the first HP-0 read (t, thread, method, report sent?):
+    (29.25, 'MainThread', 'neutral', True)
+  reports after the HP-0 read: ["btn=['B'] L=(0.00,0.00) R=(0.00,0.00) th=MainThread"]
+  A  device now : btn=['B'] L=(0.00,0.00) R=(0.00,0.00)
+     last report: btn=['B'] L=(0.00,0.00) R=(0.00,0.00) (th=MainThread)
+     pad        : due=['A@28.90', 'B@29.70'] b_since=29.25 force_guard=False kept=False guard_want=False frozen_by=None
+  +0.1 s, no pad call: device btn=['B'] L=(0.00,0.00) R=(0.00,0.00) · due=['A@28.90', 'B@29.70'] b_since=29.25 force_guard=False kept=False guard_want=False frozen_by=None · reports +0
+  B  run.py finally 1st neutral: device btn=['B'] L=(0.00,0.00) R=(0.00,0.00) · due=['A@28.90', 'B@29.70'] b_since=29.25 force_guard=False kept=False guard_want=False frozen_by=None
+     … +5 s, gk.stop, 2nd neutral: device btn=- L=(0.00,0.00) R=(0.00,0.00) · due=['A@28.90'] b_since=None force_guard=False kept=False guard_want=False frozen_by=None · reports +2
+  C  + release_due (assumed): device btn=- L=(0.00,0.00) R=(0.00,0.00) · due=[] b_since=None force_guard=False kept=False guard_want=False frozen_by=None · reports +1
+
+### 4 another thread holds the freeze (quit-out): _before → 'dead'
+  calls after the first HP-0 read (t, thread, method, report sent?):
+    (35.65, 'MainThread', 'release_due', False)
+    (35.7, 'MainThread', 'release_due', False)
+    (35.75, 'MainThread', 'release_due', False)
+    (35.8, 'MainThread', 'neutral', False)
+  reports after the HP-0 read: (none)
+  A  device now : btn=- L=(0.00,0.00) R=(0.00,0.00)
+     last report: btn=- L=(0.00,0.00) R=(0.00,0.00) (th=quitout)
+     pad        : due=[] b_since=None force_guard=False kept=False guard_want=False frozen_by=other
+  +1.0 s, no pad call: device btn=- L=(0.00,0.00) R=(0.00,0.00) · due=[] b_since=None force_guard=False kept=False guard_want=False frozen_by=other · reports +0
+  holder's finally neutral → unfreeze: device btn=- L=(0.00,0.00) R=(0.00,0.00) · due=[] b_since=None force_guard=False kept=False guard_want=False frozen_by=None
+  B  run.py finally 1st neutral: device btn=- L=(0.00,0.00) R=(0.00,0.00) · due=[] b_since=None force_guard=False kept=False guard_want=False frozen_by=None
+     … +5 s, gk.stop, 2nd neutral: device btn=- L=(0.00,0.00) R=(0.00,0.00) · due=[] b_since=None force_guard=False kept=False guard_want=False frozen_by=None · reports +2
+  C  + release_due (assumed): device btn=- L=(0.00,0.00) R=(0.00,0.00) · due=[] b_since=None force_guard=False kept=False guard_want=False frozen_by=None · reports +0

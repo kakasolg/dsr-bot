@@ -1,0 +1,1 @@
+{"pos": [-47.4, -59.82, 53.29], "heading": 2.5307273864746094, "anim": -1, "hp": 616, "last_bonfire": 1022960, "right_weapon": 701000, "estus_201": 3, "estus_205": 0, "souls": 2280, "humanity": 0, "menu_open": false, "quick": [201, -1, -1, -1, -1], "char": "Asylum Test"}

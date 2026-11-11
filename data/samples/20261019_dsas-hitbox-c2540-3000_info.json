@@ -1,0 +1,40 @@
+{
+  "frame_duration": 0.03333334,
+  "frame_count": 75,
+  "duration": 2.466667,
+  "root_motion": {
+    "forward": "<0, 0, 1, 0>",
+    "up": "<0, 1, 0, 0>",
+    "first": "<0, 0, 0, 0>",
+    "last": "<0, 0, -1.364, 0>"
+  },
+  "dummies": [
+    {
+      "id": 1,
+      "parent_bone": 42,
+      "parent_name": "Model_Dmy",
+      "attach_bone": 20,
+      "attach_name": "R Hand",
+      "follow": true,
+      "pos": "<-0.76459473, 1.4338198, -0.009280578>",
+      "fwd": "<0, 0, -0.27979785>",
+      "use_up": true,
+      "up": "<0, 0.08235574, 0>"
+    },
+    {
+      "id": 11,
+      "parent_bone": 42,
+      "parent_name": "Model_Dmy",
+      "attach_bone": 27,
+      "attach_name": "R_Weapon",
+      "follow": true,
+      "pos": "<-0.7645946, 1.43382, -0.57189393>",
+      "fwd": "<0, 0, -0.27979785>",
+      "use_up": true,
+      "up": "<0, 0.08235574, 0>"
+    }
+  ]
+}
+
+   t frame30 dsas_active hit dmy1 dmy2 radius    ax   ay    az
+   - ------- ----------- --- ---- ---- ------    --   --    --

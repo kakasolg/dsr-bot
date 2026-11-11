@@ -1,0 +1,27 @@
+[    0.1] run 20261104_131617_burg-bonfire · code ed7bed4+dirty(8) · burg-bonfire --seg 2-6 --buy 290:25 --no-lure --level-up VIT --kindle --radar --ctl --ctl-scenes --combo-only --crowd-warp --note Battle Axe run 1 (same save as Claymore, axe +0 swapped in menu), P-132 bounce → light (uncommitted), --combo-only --crowd-warp · settings cae8d667 · note Battle Axe run 1 (same save as Claymore, axe +0 swapped in menu), P-132 bounce → light (uncommitted), --combo-only --crowd-warp
+[    0.1] ctl: 기록만 → D:\dev\dsr-bot\data\runs\20261104_131617_burg-bonfire.ctl.jsonl
+[    0.1] ctl scenes: 싸움 결정마다 그 순간의 입력 기록 (scene_replay.py 로 다시 돌림, 판단엔 반영 안 함)
+[    0.3] radar: sending — python radar_server.py -> http://127.0.0.1:47801, python overlay.py
+[   11.9]    물건 비켜 가기 (지난 실행에서 2번 이상 부숨): o1130_13 o1130_28 o1132_06 o1133_11 o1150_01 o1321_0021
+[   13.8] 무기: 배틀 액스 (약공 2연타, 닿는 거리 1.6 m, 강공 안 씀)
+[   13.8] 콤보 거리: 닿는 거리 1.6 m (잰 무기 1.6 m, +0.00) → 백스텝 콤보 ≤ 1.15 m, 점프 진입 ≤ 4.5 m
+[   13.8] 스타일: guard
+[   13.8] 캐릭터: SL 17 VIT 22 END 14 STR 16 DEX 10 | 반지 -1,143 왼손 1462000
+[   15.3]    드롭 기준 (run start): baseline: 0 records
+[   15.3] 드롭 줍기: 켬
+[   15.6]    상인 길: 가장 가까운 곳 A0 (23.8 m)
+[   43.2]    ⚠ 낙하: 낙사 (바닥 모름, 0.8 s 에 4.0 m) @ [-25.56, -37.76, 10.99] — 퀵 종료 안 함, 계속
+[   43.7]       통로: 8/36번 점 (-25.3, -33.9, 6.7) 못 감 (unreachable, 1번째) — 나 (-25.7, -43.5, 11.2), 10.7 m
+[   44.7] ══ 구역 2 (passage) 끝: 통로 dead
+[   44.7] ══ 결과: 통로 dead
+[   46.2]    ▣ 블랙박스 #1: 0.0 s 동안 -819 → HP 0/1018, 낙하 -819 (28.3 m)
+[   51.8]    ✝ 죽음 — 핏자국 [-25.21, -33.73, 10.1] (소울 1037, 인간성 1)
+[   51.8]    ✝ 사망 원인: 낙하 28.3 m (-819)
+[   54.3]    드롭 기준 (respawn): baseline: 0 records
+[   55.8] 카메라 정렬: 기록 없음
+[   55.8] 정렬 (몸 30° 또는 락온): 기록 없음
+[   55.9] 가드 유지: 휘두르는 적 2.5 m 안에서 방패 직접 듦 0번
+[   55.9] ctl scenes: scenes kept 0, errors 0, capture 0 ms total
+[   55.9] ══ 위험 판정: 사망  (결과 통로 dead, 최저 HP 0%, 큰 피격 1번 -819)  원인:fall(28.3 m)
+[   55.9] 실행 설정 기록: 20261104_131617_burg-bonfire.settings.json
+[   55.9] 텔레메트리 피드: {'frames': 2673, 'read_ms': 4.3, 'fresh': 5203, 'waited': 28, 'direct': 700, 'none': 53, 'stale': 0}

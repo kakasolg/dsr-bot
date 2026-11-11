@@ -1,0 +1,191 @@
+{
+ "scope": "~/Videos/*.mp4 (OBS FilePath = ~/Videos; subfolders Captures / NVIDIA / Radeon ReLive hold no video files); files not sent",
+ "method": "metadata from Windows shell properties (Length, Frame width/height, Frame rate) and file creation time (local, = OBS start time in the name); bot run interval = log file name time + last [t] in the log; observe interval = file name time + length_s; overlap = any shared second (clock offsets not corrected)",
+ "other": "~/Videos/2026-09-26 18-10-51.en.srt exists (subtitle, not opened)",
+ "videos": [
+  {
+   "file": "~/Videos/2026-09-26 18-02-07.mp4",
+   "bytes": 378020489,
+   "start_local": "2026-09-26T18:02:07",
+   "length_s": 490,
+   "resolution": "1280x720",
+   "fps": "30.00",
+   "overlapping_bot_runs": [
+    "20260926_180226_burg-bonfire"
+   ],
+   "overlapping_observe": [],
+   "mentioned_in_repo_files": [],
+   "sync_marks": "none found in run / observe files; video start known only from file creation time (1 s); on-screen markers not checked"
+  },
+  {
+   "file": "~/Videos/2026-09-26 18-10-51.mp4",
+   "bytes": 356563945,
+   "start_local": "2026-09-26T18:10:51",
+   "length_s": 462,
+   "resolution": "1280x720",
+   "fps": "30.00",
+   "overlapping_bot_runs": [
+    "20260926_181110_burg-bonfire"
+   ],
+   "overlapping_observe": [],
+   "mentioned_in_repo_files": [],
+   "sync_marks": "none found in run / observe files; video start known only from file creation time (1 s); on-screen markers not checked"
+  },
+  {
+   "file": "~/Videos/2026-10-03 16-14-41.mp4",
+   "bytes": 596948427,
+   "start_local": "2026-10-03T16:14:41",
+   "length_s": 779,
+   "resolution": "1920x1080",
+   "fps": "30.00",
+   "overlapping_bot_runs": [
+    "20261003_161613_asylum",
+    "20261003_162321_asylum",
+    "20261003_162451_asylum"
+   ],
+   "overlapping_observe": [],
+   "mentioned_in_repo_files": [],
+   "sync_marks": "none found in run / observe files; video start known only from file creation time (1 s); on-screen markers not checked"
+  },
+  {
+   "file": "~/Videos/2026-10-03 16-28-18.mp4",
+   "bytes": 321374899,
+   "start_local": "2026-10-03T16:28:18",
+   "length_s": 416,
+   "resolution": "1920x1080",
+   "fps": "30.00",
+   "overlapping_bot_runs": [
+    "20261003_162828_asylum"
+   ],
+   "overlapping_observe": [],
+   "mentioned_in_repo_files": [
+    "docs/roadmap/problems.md"
+   ],
+   "sync_marks": "none found in run / observe files; video start known only from file creation time (1 s); on-screen markers not checked"
+  },
+  {
+   "file": "~/Videos/2026-10-03 16-47-09.mp4",
+   "bytes": 425688756,
+   "start_local": "2026-10-03T16:47:09",
+   "length_s": 554,
+   "resolution": "1920x1080",
+   "fps": "30.00",
+   "overlapping_bot_runs": [
+    "20261003_164719_burg-bonfire"
+   ],
+   "overlapping_observe": [],
+   "mentioned_in_repo_files": [
+    "docs/roadmap/problems.md"
+   ],
+   "sync_marks": "none found in run / observe files; video start known only from file creation time (1 s); on-screen markers not checked"
+  },
+  {
+   "file": "~/Videos/2026-10-03 17-05-27.mp4",
+   "bytes": 592983822,
+   "start_local": "2026-10-03T17:05:27",
+   "length_s": 769,
+   "resolution": "1920x1080",
+   "fps": "30.00",
+   "overlapping_bot_runs": [
+    "20261003_170537_asylum",
+    "20261003_171244_burg-bonfire"
+   ],
+   "overlapping_observe": [],
+   "mentioned_in_repo_files": [
+    "docs/roadmap/problems.md"
+   ],
+   "sync_marks": "none found in run / observe files; video start known only from file creation time (1 s); on-screen markers not checked"
+  },
+  {
+   "file": "~/Videos/2026-10-03 17-24-53.mp4",
+   "bytes": 510204430,
+   "start_local": "2026-10-03T17:24:53",
+   "length_s": 665,
+   "resolution": "1920x1080",
+   "fps": "30.00",
+   "overlapping_bot_runs": [
+    "20261003_172504_burg-bonfire"
+   ],
+   "overlapping_observe": [],
+   "mentioned_in_repo_files": [
+    "docs/roadmap/problems.md"
+   ],
+   "sync_marks": "none found in run / observe files; video start known only from file creation time (1 s); on-screen markers not checked"
+  },
+  {
+   "file": "~/Videos/2026-10-03 17-37-12.mp4",
+   "bytes": 5813063,
+   "start_local": "2026-10-03T17:37:12",
+   "length_s": 7,
+   "resolution": "1920x1080",
+   "fps": "30.00",
+   "overlapping_bot_runs": [],
+   "overlapping_observe": [],
+   "mentioned_in_repo_files": [],
+   "sync_marks": "none found in run / observe files; video start known only from file creation time (1 s); on-screen markers not checked"
+  },
+  {
+   "file": "~/Videos/2026-10-03 17-38-32.mp4",
+   "bytes": 372373962,
+   "start_local": "2026-10-03T17:38:32",
+   "length_s": 482,
+   "resolution": "1920x1080",
+   "fps": "30.00",
+   "overlapping_bot_runs": [
+    "20261003_173841_burg-bonfire"
+   ],
+   "overlapping_observe": [],
+   "mentioned_in_repo_files": [
+    "docs/roadmap/problems.md"
+   ],
+   "sync_marks": "none found in run / observe files; video start known only from file creation time (1 s); on-screen markers not checked"
+  },
+  {
+   "file": "~/Videos/2026-10-03 17-52-15.mp4",
+   "bytes": 133578600,
+   "start_local": "2026-10-03T17:52:15",
+   "length_s": 173,
+   "resolution": "1920x1080",
+   "fps": "30.00",
+   "overlapping_bot_runs": [
+    "20261003_175227_asylum"
+   ],
+   "overlapping_observe": [],
+   "mentioned_in_repo_files": [
+    "docs/roadmap/problems.md"
+   ],
+   "sync_marks": "none found in run / observe files; video start known only from file creation time (1 s); on-screen markers not checked"
+  },
+  {
+   "file": "~/Videos/2026-10-03 18-02-24.mp4",
+   "bytes": 69650581,
+   "start_local": "2026-10-03T18:02:24",
+   "length_s": 92,
+   "resolution": "1920x1080",
+   "fps": "30.00",
+   "overlapping_bot_runs": [
+    "20261003_180234_asylum"
+   ],
+   "overlapping_observe": [],
+   "mentioned_in_repo_files": [],
+   "sync_marks": "none found in run / observe files; video start known only from file creation time (1 s); on-screen markers not checked"
+  },
+  {
+   "file": "~/Videos/2026-10-03 18-04-29.mp4",
+   "bytes": 593900843,
+   "start_local": "2026-10-03T18:04:29",
+   "length_s": 770,
+   "resolution": "1920x1080",
+   "fps": "30.00",
+   "overlapping_bot_runs": [
+    "20261003_180438_asylum",
+    "20261003_181058_burg-bonfire"
+   ],
+   "overlapping_observe": [],
+   "mentioned_in_repo_files": [
+    "docs/roadmap/problems.md"
+   ],
+   "sync_marks": "none found in run / observe files; video start known only from file creation time (1 s); on-screen markers not checked"
+  }
+ ]
+}

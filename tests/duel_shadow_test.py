@@ -102,6 +102,9 @@ class DuelMv(FakeMv):
     def heavy(self, s, c):
         return M.Hit("heavy", presses=1)
 
+    def lock_state(self, ptr):                         # duel._keep_lock: no lock-on in this fake (its pad has no R3)
+        return "none"
+
     def kick_combo(self, s, c, n=2):
         self.kicks.append(c.ptr)
         self.w.chars[c.ptr].hp = 0

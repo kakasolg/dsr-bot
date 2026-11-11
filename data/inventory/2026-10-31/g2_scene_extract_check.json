@@ -1,0 +1,319 @@
+{
+ "manifest": {
+  "runs": 55,
+  "scenes": 1475,
+  "n_matches_list": true
+ },
+ "target_check": {
+  "not_scene": [],
+  "missing": [],
+  "rule_mismatch": [],
+  "not_in_links": [],
+  "read_failed": [],
+  "ok": 1475,
+  "result": "all match"
+ },
+ "extracted": {
+  "total": 1475,
+  "by_split": {
+   "train": 730,
+   "val": 134,
+   "test": 233,
+   "shift_zone": 292,
+   "shift_ref": 64,
+   "pending": 22
+  }
+ },
+ "output": {
+  "file": "g2_scene_extract.jsonl",
+  "uncompressed_bytes": 10994695,
+  "written_bytes": 10994695,
+  "gzip": false
+ },
+ "missing_by_field": {
+  "schema": 0,
+  "rule": 0,
+  "out": 0,
+  "meta.commit": 0,
+  "meta.dirty": 0,
+  "meta.diff_sha1": 1421,
+  "meta.cmd": 0,
+  "meta.seg": 459,
+  "weapon.id": 0,
+  "weapon.name": 0,
+  "style": 0,
+  "flags": 0,
+  "nm": 0,
+  "ground": 0,
+  "snap.t": 0,
+  "snap.cam_yaw": 0,
+  "snap.player": 0,
+  "snap.chars": 0,
+  "tick.ptr": 0,
+  "tick.h": 0,
+  "tick.dy": 0,
+  "tick.a": 0,
+  "res.dealt": 0,
+  "res.hits": 0,
+  "res.npc": 0,
+  "res.wall_back": 0,
+  "reflex.age": 660,
+  "reflex.start": 0,
+  "reflex.prefer": 0,
+  "reflex.anim": 0,
+  "care.wants": 0,
+  "fight": 0
+ },
+ "settings_read": "all 55 read",
+ "style_by_run": {
+  "20261011_144208_burg-bonfire": {
+   "guard": 13
+  },
+  "20261011_144434_burg-bonfire": {
+   "guard": 13
+  },
+  "20261011_144701_burg-bonfire": {
+   "guard": 12
+  },
+  "20261011_145120_burg-bonfire": {
+   "guard": 13
+  },
+  "20261011_161435_burg-bonfire": {
+   "guard": 18
+  },
+  "20261011_170346_burg-upper": {
+   "guard": 34
+  },
+  "20261011_171918_burg-upper": {
+   "guard": 47
+  },
+  "20261011_174753_burg-upper": {
+   "guard": 48
+  },
+  "20261012_003442_burg-upper": {
+   "guard": 7
+  },
+  "20261012_004844_burg-upper": {
+   "guard": 40
+  },
+  "20261012_010457_burg-upper": {
+   "guard": 63
+  },
+  "20261012_030444_burg-upper": {
+   "guard": 76
+  },
+  "20261012_033810_burg-bonfire": {
+   "guard": 46
+  },
+  "20261012_054128_burg-bonfire": {
+   "guard": 17
+  },
+  "20261012_060343_burg-upper": {
+   "guard": 62
+  },
+  "20261012_074829_burg-upper": {
+   "guard": 8
+  },
+  "20261012_075054_burg-upper": {
+   "guard": 18
+  },
+  "20261012_220230_burg-upper": {
+   "guard": 9
+  },
+  "20261012_220422_burg-upper": {
+   "guard": 20
+  },
+  "20261012_225154_burg-upper": {
+   "guard": 28
+  },
+  "20261013_003435_burg-upper": {
+   "guard": 4
+  },
+  "20261013_003654_burg-upper": {
+   "guard": 35
+  },
+  "20261013_005647_burg-upper": {
+   "guard": 47
+  },
+  "20261013_010935_burg-upper": {
+   "guard": 30
+  },
+  "20261013_171039_altar": {
+   "guard": 8
+  },
+  "20261013_175209_clear-ramp": {
+   "guard": 14
+  },
+  "20261011_145345_burg-bonfire": {
+   "guard": 29
+  },
+  "20261012_003844_burg-upper": {
+   "guard": 4
+  },
+  "20261012_024340_burg-upper": {
+   "guard": 57
+  },
+  "20261012_053935_burg-bonfire": {
+   "guard": 7
+  },
+  "20261012_223957_burg-upper": {
+   "guard": 37
+  },
+  "20261011_144914_burg-bonfire": {
+   "guard": 15
+  },
+  "20261012_003639_burg-upper": {
+   "guard": 7
+  },
+  "20261012_005843_burg-upper": {
+   "guard": 38
+  },
+  "20261012_025301_burg-upper": {
+   "guard": 82
+  },
+  "20261012_033444_burg-bonfire": {
+   "guard": 7
+  },
+  "20261012_222804_burg-upper": {
+   "guard": 16
+  },
+  "20261013_011929_burg-upper": {
+   "guard": 68
+  },
+  "20261013_050945_burg-altar": {
+   "guard": 31
+  },
+  "20261013_055418_burg-altar": {
+   "guard": 27
+  },
+  "20261013_060542_burg-altar": {
+   "guard": 53
+  },
+  "20261013_061331_burg-altar": {
+   "guard": 52
+  },
+  "20261013_062448_burg-altar": {
+   "guard": 20
+  },
+  "20261013_183926_burg-altar": {
+   "guard": 33
+  },
+  "20261013_185234_burg-altar": {
+   "guard": 39
+  },
+  "20261013_190105_burg-altar": {
+   "guard": 37
+  },
+  "20261019_205059_parish-group1": {
+   "guard": 3
+  },
+  "20261019_205348_parish-group1": {
+   "guard": 3
+  },
+  "20261019_205644_parish-route": {
+   "guard": 6
+  },
+  "20261019_212609_parish-group1": {
+   "guard": 7
+  },
+  "20261019_212803_parish-group1": {
+   "guard": 5
+  },
+  "20261019_212954_parish-group1": {
+   "guard": 34
+  },
+  "20261019_232719_parish-group1": {
+   "guard": 3
+  },
+  "20261027_202130_parish-group1": {
+   "guard": 3
+  },
+  "20261012_215634_burg-upper": {
+   "guard": 22
+  }
+ },
+ "fight_arena_not_null": 166,
+ "dirty_diff_touches": {
+  "20261012_003442_burg-upper": {
+   "source": "diff file",
+   "duel.py": "no",
+   "scenes.py": "no"
+  },
+  "20261012_075054_burg-upper": {
+   "source": "diff file",
+   "duel.py": "yes",
+   "scenes.py": "no"
+  },
+  "20261012_003844_burg-upper": {
+   "source": "diff file",
+   "duel.py": "no",
+   "scenes.py": "no"
+  },
+  "20261012_003639_burg-upper": {
+   "source": "diff file",
+   "duel.py": "no",
+   "scenes.py": "no"
+  },
+  "20261019_205059_parish-group1": {
+   "source": "diff file",
+   "duel.py": "no",
+   "scenes.py": "no"
+  },
+  "20261019_205348_parish-group1": {
+   "source": "diff file",
+   "duel.py": "no",
+   "scenes.py": "no"
+  },
+  "20261019_205644_parish-route": {
+   "source": "diff file",
+   "duel.py": "no",
+   "scenes.py": "no"
+  },
+  "20261019_232719_parish-group1": {
+   "source": "diff file",
+   "duel.py": "yes",
+   "scenes.py": "no"
+  },
+  "20261027_202130_parish-group1": {
+   "source": "diff file",
+   "duel.py": "no",
+   "scenes.py": "no"
+  }
+ },
+ "sizes": {
+  "fight_bytes": {
+   "n": 1475,
+   "mean": 1200.26,
+   "min": 667,
+   "max": 2154
+  },
+  "chars": {
+   "n": 1475,
+   "mean": 13.12,
+   "min": 3,
+   "max": 22
+  },
+  "hostile": {
+   "n": 1475,
+   "mean": 9.45,
+   "min": 1,
+   "max": 21
+  },
+  "other": {
+   "n": 1475,
+   "mean": 3.66,
+   "min": 0,
+   "max": 10
+  },
+  "line_bytes": {
+   "n": 1475,
+   "mean": 7454.03,
+   "min": 3015,
+   "max": 10473
+  }
+ },
+ "notes": [
+  "hostile = hp > 0 and team != player team, within the captured chars (<= 25 m)",
+  "values are copied from the scene record as captured; meta from data/runs/<run>.settings.json"
+ ]
+}

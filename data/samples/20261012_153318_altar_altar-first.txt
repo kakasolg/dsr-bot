@@ -1,0 +1,25 @@
+[    0.1] run 20261012_153318_altar · code e2f9eda+dirty(1) · altar --radar --note save altar-bridge-entry-no-drake, first altar run · settings 7b1be853 · note save altar-bridge-entry-no-drake, first altar run
+[    0.3] radar: sending — python radar_server.py -> http://127.0.0.1:47801, python overlay.py
+[   10.0]    물건 비켜 가기 (지난 실행에서 2번 이상 부숨): o1132_06 o1150_01 o1321_0021
+[   11.3] 무기: 클레이모어 (약공 2연타, 닿는 거리 1.8 m, 강공 안 씀)
+[   11.3] 스타일: guard
+[   11.3] 캐릭터: SL 20 VIT 18 END 14 STR 16 DEX 17 | 반지 147,-1 왼손 1462000
+[   11.3]    시작: 헬카이트 안 보임
+[   22.0]    ▣ 블랙박스 #1: 0.0 s 동안 -183 → HP 403/742, 추정 공격 애니 중인 적 없음 (투사체·낙하·범위 밖?)
+[   22.9]       에스트: {'ok': False, 'hp': [403, 403], 'left': 9, 'why': '끊김 (개수 그대로)'}
+[   25.1]       에스트: {'ok': False, 'hp': [403, 403], 'left': 9, 'why': '끊김 (개수 그대로)'}
+[   28.1]       에스트: {'ok': True, 'hp': [403, 742], 'left': 8, 'why': None}
+[   29.9]    ① → ② 계단 아래 (질주): arrived
+[   37.9]    ② → ③: arrived
+[   59.4]    ③ 헬카이트 착지 21.5 s: 헬카이트 (8.6, 9.5, -48.0) 애니 -1
+[   74.2]    ③ → ④ 테라스 (질주): arrived
+[   81.7]    ④ 헬카이트 떠남 7.6 s: 헬카이트 (20.6, 18.9, -29.0) 애니 7006
+[   81.7]    클레이모어: 이미 주움 (플래그 켜짐) — 건너뜀
+[   87.9]    제단 화톳불로: arrived
+[   87.9] ══ 제단: arrived
+[   87.9] ══ 결과: arrived
+[   87.9] 카메라 정렬: 기록 없음
+[   87.9] 정렬 (몸 30° · 카메라 10° 또는 락온): 기록 없음
+[   87.9] ══ 위험 판정: 깨끗  (결과 arrived, 최저 HP 54%, 큰 피격 1번 -183)  
+[   88.0] 실행 설정 기록: 20261012_153318_altar.settings.json
+[   88.0] 텔레메트리 피드: {'frames': 4852, 'read_ms': 3.1, 'fresh': 6165, 'waited': 5, 'direct': 1530, 'none': 0, 'stale': 0}

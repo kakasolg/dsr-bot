@@ -1,0 +1,163 @@
+# Git / file baseline for experiments/ladder_death_2026_11_01 (generated 2026-11-01, before this folder was written)
+repo: D:/dev/dsr-bot
+branch: claude/dsr-bot-project-review-r3hh9f
+HEAD: 6ccafc0f636c0976ea4289251ae5896afe2a7bee
+HEAD subject: Inventory 2026-10-31: Cloud manifest files + README sha256 fix (inventory summary only, no code/behaviour change)
+staged: (none — git diff --cached empty)
+python: Python 3.12.10 (.venv); OS: Windows 11 Pro 10.0.26300; shell used: Git Bash
+
+## blob ids at HEAD (git rev-parse HEAD:<path>)
+ff4dfeb7c2c5da48b2b713ad989ab6984364e2e7  souls/missions.py
+4db0a1a704eab43e46d2159188cd50ce040a2761  tests/burg_upper_test.py
+e9f9b33b72f36b0204986d5589ea0ccd24bbd6f7  control.py
+8d4c8aaa17fda2f16e6fa8ff107e8d8f475d2924  tests/pad_fakes.py
+a136839e5d5c6becb0d898c35ede58acb9b213a7  souls/field.py
+fc82d959577a5727c1e1511b63bd1733ce036467  souls/guardkeep.py
+7663247ddb56a2ab78bf1536882fef85080804de  souls/watch.py
+de02a334b3f5267f884e455614535cd5dc5a5599  souls/taurus.py
+fda2fee147641ee96b2468c4f830edaf9a41d3f8  run.py
+
+## sha256 of the working tree at the start of this preservation step (uncommitted files; data/samples left out)
+352d90b2d27db831287c1c5143d9e32bbf09286ba3173ceca90584ff05379c20 *boss_ready.py
+c6ba43a33d61c6a63e5a1c6a5690b206bb76f094689aa22c15b9b9ba05d20755 *experiments/g4_2026_10_31/CONTRACT_v1.md
+d5ea9eb5acf39cfe77a3fc58532f185a7c5a1706fb4e137f79b27c2693da699b *experiments/g4_2026_10_31/INTERVENTION_LOG.md
+c50bd1e4d7431e48808b42ed9aed3a39b4037f9af1a9548674bf078979da4194 *experiments/g4_2026_10_31/collection_contract.json
+f46e73aa54c017e571308090078f064e9fb09179550c1a92d0456c6be11d409e *experiments/g4_2026_10_31/collection_hashes.py
+901859d09403a67c69fae4d733e7b00d33db5551fabc9345333e7d0d9fe1e671 *experiments/g4_2026_10_31/g4_extract.py
+c03066ff9a36ccd530fe860daf0a0405a181441f1f56a00f451c45a205778a8b *experiments/g4_2026_10_31/logs/g4-U1-20261031.after.txt
+353cf4c6b07b25de5d0983221f0ae0fc92c7c30f81ded0d782bd29b0b0341312 *experiments/g4_2026_10_31/logs/g4-U1-20261031.ctl_check.txt
+aff00ccb7850749d8a67f7ba4e9e686478ffb449d32414d785879c28d2666593 *experiments/g4_2026_10_31/logs/g4-U1-20261031.restore.txt
+e38f1446725f21d7078fcaba2251eca95bd06807a9c5288c74ad2586bc849227 *experiments/g4_2026_10_31/logs/g4-U1-20261031.run.txt
+cfee1fe7066882c2acdb6b991add53f1826ca3386c69fd285a672c18b5c1acbe *experiments/g4_2026_10_31/logs/g4-U1-20261031.status.txt
+12213acb07a2674088e94d55d303be168a3a000ffe73d1d1ed12c4f15b3b327d *levelup.py
+afe0bff8c4d48701bcd5c395629f2c6aef4e51e05113235d8094fd2c45dca9b9 *shot_review.py
+3f6c7569f4641148e257a1be35094e1bb8acdffd184d531f5f7c39419f351d9e *tests/boss_ready_test.py
+673df8e3c43b2ca726e28a82faa071370b9c67f53e04ef84f5b5b5cc4d84ac9e *tests/burg_upper_ladder_death_test.py
+cd49ec13e01c24b631dc1883e83ac8214cbc91f377a3b40d395b3729b3027433 *tests/levelup_test.py
+9a147f7901d0bffcfbdf343d530522583dd2564b21119d0f801ae114bfd370b3 *tests/shot_review_test.py
+6956980ba97e9b5ca640d821668b4062aa722d3ed1ea364d3e13769423be6cd9 *tests/taurus_dodge_test.py
+81aead799c5b7833caa3c3529c9b785ebca6b036a4913cbf0ed95d46b53da7b0 *tests/taurus_way_test.py
+45a2d99b73661abebc665dfa18a2c52c1f05ca2ad0c5e953407b0b91204d96b1 *.claude/launch.json
+54c1a06ca06a756d421e2684a4859c73338464509f8abe2d057f981a3930f3b0 *CLAUDE.md
+fbe5a531479d16485e015ded6d6d33c3246a6f3770f9cd52c682a86c943f905d *ROADMAP.md
+4d1ec0e8dac280a6756b1ed5e781d083d1425bd71a3b2dfd9e77ea53943a944b *data/stages/burg-upper.json
+c9ab8eb30fb970c8cdc38d3af224739bd4bd068e09cd6427ca3b0b559ddfc740 *docs/boss-taurus.md
+d268f1d2d96102236900ad2ab113816c5db6b760877d6ef79395c6b64455e1a9 *docs/roadmap/problems.md
+cd5e14f2943af3c6d5aeb038b3e249414c1c0b72cdf2b624e6a15208d138d5bf *docs/stages/burg-upper.md
+60d7023dfaf673a5cacf663f51b634bdb1724df433eb64fe3bd43d7c1a25d410 *farm.py
+8a428e66e872d7ba1d5cae6c1f743da90d0b5fe8bf0149e1608c8f71a89cf5c6 *overlay.py
+a8fb7f126d9107b7d3e10bf33e3c16c07897bc51b233251e60212e4ea3f4645a *places.py
+47e9fbb64509fc3006278380c634cce671b11d97188d544131f6e5d7c311b5e9 *radar_server.py
+5a49aee8c816a965c92d591056ed24465b4f57df2c65c15b5de49f095de05405 *run.py
+b0fe6329b20d891e3c50cad5b7551ba37285e8b782396804d5eb0ce4a3b2f4ad *souls/afterdeath.py
+06fb601ca136592699b4f2b4b6d1fc1ad68e7c4f774185d37b163115462be01d *souls/missions.py
+178014bb125e0ff18759a5b36244759cae4d9595a2c4b1d79e4245bc4c947ce6 *souls/moves.py
+88edbdc58066e62c63883af22394daf72bf285270588f6277342315dd6aeca5f *souls/taurus.py
+4ddad1b24c38bb56b2ff1b4ee6578c83a7391023ec1dfdc9ab3419b8af466c20 *tests/afterdeath_test.py
+fe33b23b2a3f5dbaeb6ce42ae3aacbc4f1c712eccc7bca3db26885c656a3654d *tests/burg_upper_test.py
+ce6d6b9b5784d26b3b1611e5cc260c23087f0b558aaf807c4e5d9cdcd5628a32 *tests/places_test.py
+b86949077b785244fc88ffb843742e8e688d2fe66d557026de548544cdeecdef *tests/roll_test.py
+
+## git status --porcelain at the start of this preservation step
+ M .claude/launch.json
+ M CLAUDE.md
+ M ROADMAP.md
+ M data/stages/burg-upper.json
+ M docs/boss-taurus.md
+ M docs/roadmap/problems.md
+ M docs/stages/burg-upper.md
+ M farm.py
+ M overlay.py
+ M places.py
+ M radar_server.py
+ M run.py
+ M souls/afterdeath.py
+ M souls/missions.py
+ M souls/moves.py
+ M souls/taurus.py
+ M tests/afterdeath_test.py
+ M tests/burg_upper_test.py
+ M tests/places_test.py
+ M tests/roll_test.py
+?? boss_ready.py
+?? data/samples/20261031_153842_burg-upper.jsonl
+?? data/samples/20261031_153842_burg-upper.settings.json
+?? data/samples/20261031_153842_burg-upper.track.jsonl
+?? data/samples/20261031_153842_burg-upper.txt
+?? data/samples/20261031_154702_burg-bonfire.jsonl
+?? data/samples/20261031_154702_burg-bonfire.settings.json
+?? data/samples/20261031_154702_burg-bonfire.track.jsonl
+?? data/samples/20261031_154702_burg-bonfire.txt
+?? data/samples/20261031_155357_burg-altar.jsonl
+?? data/samples/20261031_155357_burg-altar.settings.json
+?? data/samples/20261031_155357_burg-altar.track.jsonl
+?? data/samples/20261031_155357_burg-altar.txt
+?? data/samples/20261031_155929_burg-altar.jsonl
+?? data/samples/20261031_155929_burg-altar.settings.json
+?? data/samples/20261031_155929_burg-altar.track.jsonl
+?? data/samples/20261031_155929_burg-altar.txt
+?? data/samples/20261031_225341_taurus.jsonl
+?? data/samples/20261031_225341_taurus.settings.json
+?? data/samples/20261031_225341_taurus.track.jsonl
+?? data/samples/20261031_225341_taurus.txt
+?? data/samples/20261031_230005_burg-upper.jsonl
+?? data/samples/20261031_230005_burg-upper.settings.json
+?? data/samples/20261031_230005_burg-upper.track.jsonl
+?? data/samples/20261031_230005_burg-upper.txt
+?? data/samples/20261031_230111_taurus.jsonl
+?? data/samples/20261031_230111_taurus.settings.json
+?? data/samples/20261031_230111_taurus.track.jsonl
+?? data/samples/20261031_230111_taurus.txt
+?? data/samples/20261031_230917_taurus.jsonl
+?? data/samples/20261031_230917_taurus.settings.json
+?? data/samples/20261031_230917_taurus.track.jsonl
+?? data/samples/20261031_230917_taurus.txt
+?? data/samples/20261031_235045_taurus.jsonl
+?? data/samples/20261031_235045_taurus.settings.json
+?? data/samples/20261031_235045_taurus.track.jsonl
+?? data/samples/20261031_235045_taurus.txt
+?? data/samples/20261031_235622_taurus.jsonl
+?? data/samples/20261031_235622_taurus.settings.json
+?? data/samples/20261031_235622_taurus.track.jsonl
+?? data/samples/20261031_235622_taurus.txt
+?? data/samples/20261101_000027_taurus.jsonl
+?? data/samples/20261101_000027_taurus.settings.json
+?? data/samples/20261101_000027_taurus.track.jsonl
+?? data/samples/20261101_000027_taurus.txt
+?? data/samples/20261101_000637_taurus.jsonl
+?? data/samples/20261101_000637_taurus.settings.json
+?? data/samples/20261101_000637_taurus.track.jsonl
+?? data/samples/20261101_000637_taurus.txt
+?? data/samples/20261101_000849_taurus.jsonl
+?? data/samples/20261101_000849_taurus.settings.json
+?? data/samples/20261101_000849_taurus.track.jsonl
+?? data/samples/20261101_000849_taurus.txt
+?? data/samples/20261101_001326_taurus.jsonl
+?? data/samples/20261101_001326_taurus.settings.json
+?? data/samples/20261101_001326_taurus.track.jsonl
+?? data/samples/20261101_001326_taurus.txt
+?? data/samples/20261101_001740_taurus.jsonl
+?? data/samples/20261101_001740_taurus.settings.json
+?? data/samples/20261101_001740_taurus.track.jsonl
+?? data/samples/20261101_001740_taurus.txt
+?? data/samples/20261101_002326_taurus.jsonl
+?? data/samples/20261101_002326_taurus.settings.json
+?? data/samples/20261101_002326_taurus.track.jsonl
+?? data/samples/20261101_002326_taurus.txt
+?? data/samples/20261101_002546_taurus.jsonl
+?? data/samples/20261101_002546_taurus.settings.json
+?? data/samples/20261101_002546_taurus.track.jsonl
+?? data/samples/20261101_002546_taurus.txt
+?? data/samples/20261101_003317_taurus.jsonl
+?? data/samples/20261101_003317_taurus.settings.json
+?? data/samples/20261101_003317_taurus.track.jsonl
+?? data/samples/20261101_003317_taurus.txt
+?? experiments/g4_2026_10_31/
+?? levelup.py
+?? shot_review.py
+?? tests/boss_ready_test.py
+?? tests/burg_upper_ladder_death_test.py
+?? tests/levelup_test.py
+?? tests/shot_review_test.py
+?? tests/taurus_dodge_test.py
+?? tests/taurus_way_test.py

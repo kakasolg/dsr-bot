@@ -1,0 +1,18 @@
+[    0.1] run 20261027_201456_parish-group1 · code 137086b+dirty(2) · parish-group1 --radar --ctl --ctl-scenes --note P-89 three-soldier scene recording (MoKa 10-27: 셋이 문제); controller off, slot 0 free · settings 6c57416b · note P-89 three-soldier scene recording (MoKa 10-27: 셋이 문제); controller off, slot 0 free
+[    0.1] ctl: 기록만 → D:\dev\dsr-bot\data\runs\20261027_201456_parish-group1.ctl.jsonl
+[    0.1] ctl scenes: 싸움 결정마다 그 순간의 입력 기록 (scene_replay.py 로 다시 돌림, 판단엔 반영 안 함)
+[    0.4] radar: sending — python radar_server.py -> http://127.0.0.1:47801, python overlay.py
+[   11.5]    물건 비켜 가기 (지난 실행에서 2번 이상 부숨): o1130_13 o1132_06 o1150_01 o1321_0021
+[   12.6] 무기: 클레이모어 (약공 2연타, 닿는 거리 1.8 m, 강공 안 씀)
+[   12.6] 스타일: guard
+[   12.6] 캐릭터: SL 23 VIT 20 END 15 STR 16 DEX 17 | 반지 147,146 왼손 1453000
+[   12.7] ── 화톳불로: here
+[   57.9] ══ parish-group1: 휴식 실패
+[   57.9] ══ 결과: 휴식 실패
+[   57.9] 카메라 정렬: 기록 없음
+[   57.9] 정렬 (몸 30° 또는 락온): 기록 없음
+[   57.9] 가드 유지: 휘두르는 적 2.5 m 안에서 방패 직접 듦 0번
+[   57.9] ctl scenes: scenes kept 0, errors 0, capture 0 ms total
+[   58.0] ══ 위험 판정: 깨끗  (결과 휴식 실패, 최저 HP 100%, 큰 피격 0번 -0)  
+[   58.0] 실행 설정 기록: 20261027_201456_parish-group1.settings.json
+[   58.0] 텔레메트리 피드: {'frames': 3173, 'read_ms': 4.1, 'fresh': 5086, 'waited': 12, 'direct': 792, 'none': 0, 'stale': 0}

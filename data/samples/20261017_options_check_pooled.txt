@@ -1,0 +1,249 @@
+  {'t': 36654.5608, 'rep': 1, 'opt': 'stand', 'tau': 0.6, 'run_len': 1.1984, 'input_age': [0.6014, 0.6067], 'd_start': 1.11, 'hit': True, 'lost': 57, 'hit_age': [0.9104, 0.9205], 'd_hit': 0.85, 'angle_hit': 2.4, 'foe_turn': 1.2, 'turn': 4.3, 'roll_seen': False, 'reasons': ['refill_in_run'], 'file': '20261017_003758_options.jsonl'}
+  {'t': 36666.94169, 'rep': 2, 'opt': 'circle_cw', 'tau': 0.6, 'run_len': 1.2017, 'input_age': [0.6015, 0.6064], 'd_start': 1.75, 'hit': True, 'lost': 57, 'hit_age': [0.8801, 0.89], 'd_hit': 0.85, 'angle_hit': 2.8, 'foe_turn': 19.0, 'turn': 22.2, 'roll_seen': False, 'reasons': ['refill_in_run'], 'file': '20261017_003758_options.jsonl'}
+  {'t': 36677.82548, 'rep': 3, 'opt': 'circle_ccw', 'tau': 0.6, 'run_len': 1.2008, 'input_age': [0.6007, 0.6058], 'd_start': 1.08, 'hit': True, 'lost': 57, 'hit_age': [0.914, 0.9244], 'd_hit': 0.85, 'angle_hit': -6.6, 'foe_turn': -14.6, 'turn': -21.9, 'roll_seen': False, 'reasons': ['refill_in_run'], 'file': '20261017_003758_options.jsonl'}
+  {'t': 36695.19243, 'rep': 4, 'opt': 'roll_cw', 'tau': 0.6, 'run_len': 1.2002, 'input_age': [0.6011, 0.6079], 'd_start': 0.85, 'hit': False, 'foe_turn': 30.5, 'turn': 73.7, 'roll_seen': True, 'reasons': [], 'file': '20261017_003758_options.jsonl'}
+  {'t': 36701.32597, 'rep': 5, 'opt': 'stand', 'tau': 0.6, 'run_len': 1.1997, 'input_age': [0.6022, 0.6072], 'd_start': 1.47, 'hit': True, 'lost': 57, 'hit_age': [0.8952, 0.905], 'd_hit': 0.85, 'angle_hit': 1.5, 'foe_turn': 24.9, 'turn': 8.6, 'roll_seen': False, 'reasons': ['refill_in_run'], 'file': '20261017_003758_options.jsonl'}
+  {'t': 36710.15783, 'rep': 6, 'opt': 'circle_cw', 'tau': 0.6, 'run_len': 1.201, 'input_age': [0.6013, 0.6064], 'd_start': 1.49, 'hit': True, 'lost': 57, 'hit_age': [0.88, 0.8902], 'd_hit': 0.85, 'angle_hit': 0.7, 'foe_turn': 3.6, 'turn': 4.9, 'roll_seen': False, 'reasons': [], 'file': '20261017_003758_options.jsonl'}
+  {'t': 36719.79226, 'rep': 7, 'opt': 'circle_ccw', 'tau': 0.6, 'run_len': 1.2008, 'input_age': [0.6023, 0.6075], 'd_start': 0.95, 'hit': True, 'lost': 57, 'hit_age': [0.912, 0.9224], 'd_hit': 0.85, 'angle_hit': -6.6, 'foe_turn': -19.2, 'turn': -23.8, 'roll_seen': False, 'reasons': [], 'file': '20261017_003758_options.jsonl'}
+  {'t': 36729.94328, 'rep': 8, 'opt': 'roll_cw', 'tau': 0.6, 'run_len': 1.1998, 'input_age': [0.6014, 0.6065], 'd_start': 1.5, 'hit': False, 'foe_turn': 29.5, 'turn': 80.4, 'roll_seen': True, 'reasons': [], 'file': '20261017_003758_options.jsonl'}
+  {'t': 36751.54168, 'rep': 9, 'opt': 'stand', 'tau': 0.6, 'run_len': 1.2018, 'input_age': [0.6018, 0.6069], 'd_start': 0.85, 'hit': True, 'lost': 57, 'hit_age': [0.8963, 0.9065], 'd_hit': 0.85, 'angle_hit': 1.5, 'foe_turn': 1.8, 'turn': 2.3, 'roll_seen': False, 'reasons': [], 'file': '20261017_003758_options.jsonl'}
+  {'t': 36756.82536, 'rep': 10, 'opt': 'circle_cw', 'tau': 0.6, 'run_len': 1.2008, 'input_age': [0.602, 0.6069], 'd_start': 0.91, 'hit': True, 'lost': 57, 'hit_age': [0.8793, 0.8892], 'd_hit': 0.85, 'angle_hit': 4.0, 'foe_turn': 13.1, 'turn': 20.5, 'roll_seen': False, 'reasons': ['refill_in_run'], 'file': '20261017_003758_options.jsonl'}
+  {'t': 36762.1091, 'rep': 11, 'opt': 'circle_ccw', 'tau': 0.6, 'run_len': 1.1992, 'input_age': [0.6014, 0.6062], 'd_start': 1.03, 'hit': True, 'lost': 57, 'hit_age': [0.9141, 0.9236], 'd_hit': 0.85, 'angle_hit': -6.6, 'foe_turn': -20.3, 'turn': -23.5, 'roll_seen': False, 'reasons': [], 'file': '20261017_003758_options.jsonl'}
+  {'t': 36767.39176, 'rep': 12, 'opt': 'roll_cw', 'tau': 0.6, 'd_start': 0.91, 'hit': False, 'foe_turn': 0.0, 'turn': -7.6, 'roll_seen': False, 'reasons': ['run_open', 'no_input'], 'file': '20261017_003758_options.jsonl'}
+  {'t': 36829.17576, 'rep': 1, 'opt': 'stand', 'tau': 0.6, 'run_len': 2.4175, 'input_age': [0.6001, 0.6056], 'd_start': 0.93, 'hit': True, 'lost': 57, 'hit_age': [0.8966, 0.9073], 'd_hit': 0.85, 'angle_hit': -0.0, 'foe_turn': 2.1, 'turn': 0.4, 'roll_seen': False, 'reasons': ['restart_possible'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 36841.55807, 'rep': 2, 'opt': 'circle_cw', 'tau': 0.6, 'run_len': 1.2012, 'input_age': [0.6021, 0.6073], 'd_start': 0.85, 'hit': True, 'lost': 57, 'hit_age': [0.8798, 0.8906], 'd_hit': 0.85, 'angle_hit': 0.9, 'foe_turn': 3.0, 'turn': 2.9, 'roll_seen': False, 'reasons': ['not_isolated'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 36853.25792, 'rep': 3, 'opt': 'circle_ccw', 'tau': 0.6, 'run_len': 1.2006, 'input_age': [0.6009, 0.606], 'd_start': 1.0, 'hit': True, 'lost': 57, 'hit_age': [0.9145, 0.9252], 'd_hit': 0.85, 'angle_hit': 2.4, 'foe_turn': 1.9, 'turn': 3.5, 'roll_seen': False, 'reasons': ['not_isolated'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 36861.29283, 'rep': 4, 'opt': 'roll_cw', 'tau': 0.6, 'run_len': 1.1987, 'input_age': [0.6012, 0.6068], 'd_start': 1.15, 'hit': False, 'foe_turn': 1.6, 'turn': 12.3, 'roll_seen': True, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 36872.09284, 'rep': 5, 'opt': 'stand', 'tau': 0.6, 'run_len': 1.1995, 'input_age': [0.6004, 0.6057], 'd_start': 2.28, 'hit': True, 'lost': 57, 'hit_age': [0.9112, 0.9219], 'd_hit': 1.12, 'angle_hit': 1.8, 'foe_turn': 2.1, 'turn': 3.9, 'roll_seen': False, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 36877.37488, 'rep': 6, 'opt': 'circle_cw', 'tau': 0.6, 'run_len': 1.2005, 'input_age': [0.6012, 0.6068], 'd_start': 0.91, 'hit': True, 'lost': 57, 'hit_age': [0.8805, 0.8913], 'd_hit': 0.85, 'angle_hit': 0.8, 'foe_turn': -3.7, 'turn': 0.6, 'roll_seen': False, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 36882.65859, 'rep': 7, 'opt': 'circle_ccw', 'tau': 0.6, 'run_len': 1.2006, 'input_age': [0.6022, 0.6073], 'd_start': 0.91, 'hit': True, 'lost': 57, 'hit_age': [0.9132, 0.9236], 'd_hit': 0.83, 'angle_hit': 2.8, 'foe_turn': -7.7, 'turn': -1.5, 'roll_seen': False, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 36894.62521, 'rep': 8, 'opt': 'roll_cw', 'tau': 0.6, 'run_len': 1.2015, 'input_age': [0.6003, 0.6053], 'd_start': 1.01, 'hit': False, 'foe_turn': 0.5, 'turn': 9.4, 'roll_seen': True, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 36899.90873, 'rep': 9, 'opt': 'stand', 'tau': 0.6, 'run_len': 1.2004, 'input_age': [0.6022, 0.6072], 'd_start': 0.92, 'hit': True, 'lost': 57, 'hit_age': [0.8975, 0.908], 'd_hit': 0.85, 'angle_hit': 1.6, 'foe_turn': -13.7, 'turn': -1.0, 'roll_seen': False, 'reasons': ['not_isolated'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 36905.19157, 'rep': 10, 'opt': 'circle_cw', 'tau': 0.6, 'run_len': 1.2009, 'input_age': [0.6011, 0.6062], 'd_start': 0.91, 'hit': True, 'lost': 57, 'hit_age': [0.881, 0.8913], 'd_hit': 0.85, 'angle_hit': 0.8, 'foe_turn': -3.3, 'turn': 1.0, 'roll_seen': False, 'reasons': ['refill_in_run'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 36930.17572, 'rep': 11, 'opt': 'circle_ccw', 'tau': 0.6, 'run_len': 1.2005, 'input_age': [0.6015, 0.6067], 'd_start': 1.01, 'hit': True, 'lost': 57, 'hit_age': [0.9133, 0.9238], 'd_hit': 0.85, 'angle_hit': 2.4, 'foe_turn': -0.2, 'turn': 3.2, 'roll_seen': False, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 36935.45951, 'rep': 12, 'opt': 'roll_cw', 'tau': 0.6, 'run_len': 1.2, 'input_age': [0.6022, 0.6076], 'd_start': 0.91, 'hit': False, 'foe_turn': -2.5, 'turn': 23.6, 'roll_seen': True, 'reasons': ['not_isolated'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 36947.15943, 'rep': 13, 'opt': 'stand', 'tau': 0.6, 'run_len': 1.1993, 'input_age': [0.601, 0.6065], 'd_start': 0.94, 'hit': True, 'lost': 57, 'hit_age': [0.8952, 0.9058], 'd_hit': 0.85, 'angle_hit': 1.5, 'foe_turn': 1.9, 'turn': 2.5, 'roll_seen': False, 'reasons': ['not_isolated'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 36955.24278, 'rep': 14, 'opt': 'circle_cw', 'tau': 0.6, 'run_len': 3.6161, 'input_age': [0.6001, 0.6056], 'd_start': 1.15, 'hit': True, 'lost': 57, 'hit_age': [0.8782, 0.8892], 'd_hit': 0.85, 'angle_hit': 0.7, 'foe_turn': 2.3, 'turn': 3.7, 'roll_seen': False, 'reasons': ['restart_possible', 'refill_in_run', 'multi_hit_in_run'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 36968.44358, 'rep': 15, 'opt': 'circle_ccw', 'tau': 0.6, 'run_len': 1.1996, 'input_age': [0.6011, 0.6064], 'd_start': 2.28, 'hit': True, 'lost': 57, 'hit_age': [0.9135, 0.9238], 'd_hit': 1.09, 'angle_hit': -7.1, 'foe_turn': -10.2, 'turn': -17.3, 'roll_seen': False, 'reasons': ['refill_in_run'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 36973.72571, 'rep': 16, 'opt': 'roll_cw', 'tau': 0.6, 'run_len': 1.2007, 'input_age': [0.6015, 0.6069], 'd_start': 0.91, 'hit': False, 'foe_turn': 0.0, 'turn': 7.4, 'roll_seen': True, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 36979.00803, 'rep': 17, 'opt': 'stand', 'tau': 0.6, 'run_len': 1.2025, 'input_age': [0.6007, 0.6061], 'd_start': 0.92, 'hit': True, 'lost': 57, 'hit_age': [0.8974, 0.908], 'd_hit': 0.85, 'angle_hit': 1.5, 'foe_turn': -18.5, 'turn': -2.1, 'roll_seen': False, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 36984.29344, 'rep': 18, 'opt': 'circle_cw', 'tau': 0.6, 'run_len': 1.2002, 'input_age': [0.6015, 0.607], 'd_start': 0.91, 'hit': True, 'lost': 57, 'hit_age': [0.88, 0.8908], 'd_hit': 0.84, 'angle_hit': 0.8, 'foe_turn': -3.6, 'turn': 0.7, 'roll_seen': False, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 36989.57546, 'rep': 19, 'opt': 'circle_ccw', 'tau': 0.6, 'run_len': 1.2, 'input_age': [0.6021, 0.6082], 'd_start': 0.91, 'hit': True, 'lost': 57, 'hit_age': [0.9129, 0.9247], 'd_hit': 0.85, 'angle_hit': 2.4, 'foe_turn': -4.8, 'turn': 1.2, 'roll_seen': False, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 36994.85972, 'rep': 20, 'opt': 'roll_cw', 'tau': 0.6, 'run_len': 1.1997, 'input_age': [0.6005, 0.6056], 'd_start': 0.91, 'hit': False, 'foe_turn': -3.2, 'turn': 8.2, 'roll_seen': True, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37016.676, 'rep': 21, 'opt': 'stand', 'tau': 0.6, 'run_len': 2.4176, 'input_age': [0.6007, 0.606], 'd_start': 0.88, 'hit': True, 'lost': 57, 'hit_age': [0.8962, 0.9066], 'd_hit': 0.85, 'angle_hit': 1.5, 'foe_turn': 0.2, 'turn': 2.1, 'roll_seen': False, 'reasons': ['not_isolated', 'restart_possible'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37027.80976, 'rep': 22, 'opt': 'circle_cw', 'tau': 0.6, 'run_len': 3.6164, 'input_age': [0.602, 0.6074], 'd_start': 1.01, 'hit': True, 'lost': 57, 'hit_age': [0.8789, 0.8897], 'd_hit': 0.85, 'angle_hit': 0.8, 'foe_turn': 2.7, 'turn': 3.4, 'roll_seen': False, 'reasons': ['restart_possible', 'multi_hit_in_run'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37035.50845, 'rep': 23, 'opt': 'circle_ccw', 'tau': 0.6, 'run_len': 1.2008, 'input_age': [0.6019, 0.6071], 'd_start': 0.92, 'hit': True, 'lost': 57, 'hit_age': [0.9132, 0.9235], 'd_hit': 0.85, 'angle_hit': -9.5, 'foe_turn': -34.7, 'turn': -32.3, 'roll_seen': False, 'reasons': ['not_isolated'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37068.31012, 'rep': 24, 'opt': 'roll_cw', 'tau': 0.6, 'run_len': 1.1983, 'input_age': [0.6004, 0.6059], 'd_start': 1.11, 'hit': False, 'foe_turn': 6.1, 'turn': 11.7, 'roll_seen': True, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37079.72464, 'rep': 25, 'opt': 'stand', 'tau': 0.6, 'run_len': 1.2014, 'input_age': [0.6017, 0.6071], 'd_start': 1.01, 'hit': True, 'lost': 57, 'hit_age': [0.8974, 0.9081], 'd_hit': 0.85, 'angle_hit': 1.6, 'foe_turn': 1.3, 'turn': 2.8, 'roll_seen': False, 'reasons': ['not_isolated'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37084.25822, 'rep': 26, 'opt': 'circle_cw', 'tau': 0.6, 'run_len': 1.1998, 'input_age': [0.6004, 0.6054], 'd_start': 1.51, 'hit': True, 'lost': 57, 'hit_age': [0.8817, 0.8919], 'd_hit': 0.84, 'angle_hit': 0.7, 'foe_turn': -12.6, 'turn': 6.7, 'roll_seen': False, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37089.5436, 'rep': 27, 'opt': 'circle_ccw', 'tau': 0.6, 'run_len': 1.2002, 'input_age': [0.6004, 0.6056], 'd_start': 0.91, 'hit': True, 'lost': 57, 'hit_age': [0.9114, 0.9217], 'd_hit': 0.85, 'angle_hit': -9.5, 'foe_turn': -24.0, 'turn': -30.0, 'roll_seen': False, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37097.80925, 'rep': 28, 'opt': 'roll_cw', 'tau': 0.6, 'run_len': 1.2002, 'input_age': [0.6013, 0.6068], 'd_start': 2.35, 'hit': False, 'foe_turn': 3.1, 'turn': 10.1, 'roll_seen': True, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37115.275, 'rep': 29, 'opt': 'stand', 'tau': 0.6, 'run_len': 1.1993, 'input_age': [0.6006, 0.6058], 'd_start': 0.85, 'hit': True, 'lost': 57, 'hit_age': [0.8973, 0.9076], 'd_hit': 0.85, 'angle_hit': 1.6, 'foe_turn': 1.8, 'turn': 2.3, 'roll_seen': False, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37120.5601, 'rep': 30, 'opt': 'circle_cw', 'tau': 0.6, 'run_len': 1.1994, 'input_age': [0.6021, 0.6073], 'd_start': 0.91, 'hit': True, 'lost': 57, 'hit_age': [0.8789, 0.8893], 'd_hit': 0.85, 'angle_hit': 0.7, 'foe_turn': -3.7, 'turn': 0.5, 'roll_seen': False, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37132.94155, 'rep': 31, 'opt': 'circle_ccw', 'tau': 0.6, 'run_len': 1.2013, 'input_age': [0.6009, 0.606], 'd_start': 1.11, 'hit': True, 'lost': 57, 'hit_age': [0.9145, 0.9252], 'd_hit': 0.84, 'angle_hit': 2.4, 'foe_turn': 0.7, 'turn': 3.7, 'roll_seen': False, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37138.22601, 'rep': 32, 'opt': 'roll_cw', 'tau': 0.6, 'run_len': 1.1985, 'input_age': [0.6018, 0.607], 'd_start': 0.91, 'hit': False, 'foe_turn': -2.7, 'turn': 11.7, 'roll_seen': True, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37143.509, 'rep': 33, 'opt': 'stand', 'tau': 0.6, 'run_len': 1.2004, 'input_age': [0.6011, 0.6062], 'd_start': 0.91, 'hit': True, 'lost': 57, 'hit_age': [0.8971, 0.9071], 'd_hit': 0.85, 'angle_hit': 1.5, 'foe_turn': -3.8, 'turn': 1.2, 'roll_seen': False, 'reasons': ['not_isolated'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37147.99372, 'rep': 34, 'opt': 'circle_cw', 'tau': 0.6, 'run_len': 2.4163, 'input_age': [0.6025, 0.6078], 'd_start': 0.99, 'hit': True, 'lost': 57, 'hit_age': [0.8785, 0.8889], 'd_hit': 0.85, 'angle_hit': 0.7, 'foe_turn': 0.2, 'turn': 19.1, 'roll_seen': False, 'reasons': ['restart_possible'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37162.07643, 'rep': 35, 'opt': 'circle_ccw', 'tau': 0.6, 'run_len': 1.1997, 'input_age': [0.602, 0.607], 'd_start': 1.15, 'hit': True, 'lost': 57, 'hit_age': [0.9122, 0.9224], 'd_hit': 0.85, 'angle_hit': -9.5, 'foe_turn': -16.6, 'turn': -25.9, 'roll_seen': False, 'reasons': ['not_isolated'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37178.64344, 'rep': 36, 'opt': 'roll_cw', 'tau': 0.6, 'run_len': 1.2001, 'input_age': [0.6005, 0.6059], 'd_start': 0.85, 'hit': False, 'foe_turn': 4.9, 'turn': 9.8, 'roll_seen': True, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37188.79231, 'rep': 37, 'opt': 'stand', 'tau': 0.6, 'run_len': 3.6504, 'input_age': [0.6007, 0.6061], 'd_start': 1.22, 'hit': True, 'lost': 57, 'hit_age': [0.8953, 0.9059], 'd_hit': 0.85, 'angle_hit': 1.5, 'foe_turn': 1.8, 'turn': 4.1, 'roll_seen': False, 'reasons': ['not_isolated', 'restart_possible', 'refill_in_run', 'multi_hit_in_run'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37195.50845, 'rep': 38, 'opt': 'circle_cw', 'tau': 0.6, 'run_len': 1.1999, 'input_age': [0.6004, 0.6055], 'd_start': 0.98, 'hit': True, 'lost': 57, 'hit_age': [0.8807, 0.8911], 'd_hit': 0.85, 'angle_hit': 0.8, 'foe_turn': 2.3, 'turn': 20.3, 'roll_seen': False, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37211.7925, 'rep': 39, 'opt': 'circle_ccw', 'tau': 0.6, 'run_len': 1.1991, 'input_age': [0.6014, 0.6066], 'd_start': 1.01, 'hit': True, 'lost': 57, 'hit_age': [0.9138, 0.9241], 'd_hit': 0.85, 'angle_hit': -9.5, 'foe_turn': -18.3, 'turn': -27.9, 'roll_seen': False, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37217.07554, 'rep': 40, 'opt': 'roll_cw', 'tau': 0.6, 'run_len': 1.2007, 'input_age': [0.6004, 0.6053], 'd_start': 0.91, 'hit': False, 'foe_turn': -0.9, 'turn': 9.1, 'roll_seen': True, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37228.77504, 'rep': 41, 'opt': 'stand', 'tau': 0.6, 'run_len': 1.2014, 'input_age': [0.6018, 0.6068], 'd_start': 0.85, 'hit': True, 'lost': 57, 'hit_age': [0.8962, 0.9064], 'd_hit': 0.85, 'angle_hit': 1.5, 'foe_turn': 1.8, 'turn': 2.3, 'roll_seen': False, 'reasons': ['not_isolated'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37253.77481, 'rep': 42, 'opt': 'circle_cw', 'tau': 0.6, 'run_len': 1.2003, 'input_age': [0.6015, 0.607], 'd_start': 0.85, 'hit': True, 'lost': 57, 'hit_age': [0.8806, 0.8913], 'd_hit': 0.85, 'angle_hit': 0.7, 'foe_turn': 2.2, 'turn': 1.9, 'roll_seen': False, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37259.05851, 'rep': 43, 'opt': 'circle_ccw', 'tau': 0.6, 'run_len': 1.2013, 'input_age': [0.6021, 0.6073], 'd_start': 0.91, 'hit': True, 'lost': 57, 'hit_age': [0.9132, 0.9233], 'd_hit': 0.85, 'angle_hit': 2.4, 'foe_turn': -4.4, 'turn': 1.6, 'roll_seen': False, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37264.34147, 'rep': 44, 'opt': 'roll_cw', 'tau': 0.6, 'run_len': 1.2008, 'input_age': [0.6021, 0.6074], 'd_start': 0.91, 'hit': False, 'foe_turn': -3.0, 'turn': 8.7, 'roll_seen': True, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37269.62549, 'rep': 45, 'opt': 'stand', 'tau': 0.6, 'run_len': 3.6159, 'input_age': [0.6013, 0.6062], 'd_start': 0.91, 'hit': True, 'lost': 57, 'hit_age': [0.8966, 0.9069], 'd_hit': 0.85, 'angle_hit': 1.6, 'foe_turn': -3.9, 'turn': 1.2, 'roll_seen': False, 'reasons': ['not_isolated', 'restart_possible', 'multi_hit_in_run'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37301.35911, 'rep': 46, 'opt': 'circle_cw', 'tau': 0.6, 'run_len': 1.2012, 'input_age': [0.6009, 0.6061], 'd_start': 1.11, 'hit': True, 'lost': 57, 'hit_age': [0.8785, 0.8888], 'd_hit': 0.85, 'angle_hit': 4.0, 'foe_turn': 17.2, 'turn': 21.9, 'roll_seen': False, 'reasons': ['not_isolated', 'refill_in_run'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37306.64346, 'rep': 47, 'opt': 'circle_ccw', 'tau': 0.6, 'run_len': 2.448, 'input_age': [0.6013, 0.6064], 'd_start': 0.92, 'hit': True, 'lost': 57, 'hit_age': [0.9111, 0.9215], 'd_hit': 0.85, 'angle_hit': 2.4, 'foe_turn': -4.5, 'turn': 1.9, 'roll_seen': False, 'reasons': ['restart_possible'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37315.50898, 'rep': 48, 'opt': 'roll_cw', 'tau': 0.6, 'run_len': 1.1989, 'input_age': [0.602, 0.6072], 'd_start': 0.85, 'hit': False, 'foe_turn': 3.3, 'turn': 36.1, 'roll_seen': True, 'reasons': ['not_isolated'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37322.47655, 'rep': 49, 'opt': 'stand', 'tau': 0.6, 'run_len': 1.1983, 'input_age': [0.6003, 0.6054], 'd_start': 1.17, 'hit': True, 'lost': 57, 'hit_age': [0.8961, 0.9062], 'd_hit': 0.85, 'angle_hit': 1.6, 'foe_turn': 2.5, 'turn': 4.1, 'roll_seen': False, 'reasons': ['not_isolated'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37327.75784, 'rep': 50, 'opt': 'circle_cw', 'tau': 0.6, 'run_len': 1.2, 'input_age': [0.6024, 0.6077], 'd_start': 0.92, 'hit': True, 'lost': 57, 'hit_age': [0.8809, 0.8913], 'd_hit': 0.85, 'angle_hit': 0.8, 'foe_turn': -7.5, 'turn': 1.5, 'roll_seen': False, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37337.31013, 'rep': 51, 'opt': 'circle_ccw', 'tau': 0.6, 'run_len': 2.4818, 'input_age': [0.6023, 0.6078], 'd_start': 2.32, 'hit': True, 'lost': 57, 'hit_age': [0.9121, 0.923], 'd_hit': 1.14, 'angle_hit': -6.8, 'foe_turn': -9.0, 'turn': -16.8, 'roll_seen': False, 'reasons': ['not_isolated', 'restart_possible'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37341.30821, 'rep': 52, 'opt': 'roll_cw', 'tau': 0.6, 'run_len': 2.434, 'input_age': [0.6022, 0.6071], 'd_start': 1.08, 'hit': False, 'foe_turn': 177.0, 'turn': 131.4, 'roll_seen': True, 'reasons': ['not_isolated', 'restart_possible'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37356.67648, 'rep': 53, 'opt': 'stand', 'tau': 0.6, 'run_len': 1.1982, 'input_age': [0.6016, 0.6068], 'd_start': 0.85, 'hit': True, 'lost': 57, 'hit_age': [0.8945, 0.9051], 'd_hit': 0.85, 'angle_hit': 1.5, 'foe_turn': 1.8, 'turn': 2.3, 'roll_seen': False, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37385.14364, 'rep': 54, 'opt': 'circle_cw', 'tau': 0.6, 'run_len': 1.1982, 'input_age': [0.6024, 0.6075], 'd_start': 1.11, 'hit': True, 'lost': 57, 'hit_age': [0.8795, 0.8896], 'd_hit': 0.85, 'angle_hit': 4.1, 'foe_turn': 18.1, 'turn': 22.8, 'roll_seen': False, 'reasons': ['not_isolated'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37411.67614, 'rep': 55, 'opt': 'circle_ccw', 'tau': 0.6, 'run_len': 1.1998, 'input_age': [0.6019, 0.6073], 'd_start': 0.85, 'hit': True, 'lost': 57, 'hit_age': [0.9114, 0.9224], 'd_hit': 0.85, 'angle_hit': 2.4, 'foe_turn': 1.5, 'turn': 3.0, 'roll_seen': False, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37416.95977, 'rep': 56, 'opt': 'roll_cw', 'tau': 0.6, 'run_len': 3.6159, 'input_age': [0.6011, 0.6063], 'd_start': 0.91, 'hit': True, 'lost': 57, 'hit_age': [3.329, 3.3393], 'd_hit': 1.19, 'angle_hit': 1.6, 'foe_turn': 64.2, 'turn': 69.4, 'roll_seen': True, 'reasons': ['not_isolated', 'restart_possible'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37436.07506, 'rep': 57, 'opt': 'stand', 'tau': 0.6, 'run_len': 1.2011, 'input_age': [0.6009, 0.6062], 'd_start': 2.21, 'hit': True, 'lost': 57, 'hit_age': [0.9131, 0.9237], 'd_hit': 1.05, 'angle_hit': 1.9, 'foe_turn': 2.3, 'turn': 4.2, 'roll_seen': False, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37449.64197, 'rep': 58, 'opt': 'circle_cw', 'tau': 0.6, 'run_len': 1.1992, 'input_age': [0.601, 0.6061], 'd_start': 2.21, 'hit': True, 'lost': 57, 'hit_age': [0.8976, 0.9075], 'd_hit': 0.93, 'angle_hit': 2.9, 'foe_turn': 5.3, 'turn': 8.3, 'roll_seen': False, 'reasons': ['not_isolated'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37453.09307, 'rep': 59, 'opt': 'circle_ccw', 'tau': 0.6, 'run_len': 1.1989, 'input_age': [0.6016, 0.607], 'd_start': 0.94, 'hit': True, 'lost': 57, 'hit_age': [0.9118, 0.9233], 'd_hit': 0.85, 'angle_hit': 2.4, 'foe_turn': 4.9, 'turn': 3.2, 'roll_seen': False, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37458.37546, 'rep': 60, 'opt': 'roll_cw', 'tau': 0.6, 'run_len': 1.2014, 'input_age': [0.6022, 0.6078], 'd_start': 0.91, 'hit': False, 'foe_turn': -3.5, 'turn': 8.0, 'roll_seen': True, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37463.67663, 'rep': 61, 'opt': 'stand', 'tau': 0.6, 'run_len': 3.6321, 'input_age': [0.6004, 0.6054], 'd_start': 1.09, 'hit': True, 'lost': 57, 'hit_age': [0.8951, 0.9059], 'd_hit': 0.85, 'angle_hit': 1.5, 'foe_turn': 9.1, 'turn': 4.7, 'roll_seen': False, 'reasons': ['not_isolated', 'restart_possible', 'refill_in_run', 'multi_hit_in_run'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37482.64197, 'rep': 62, 'opt': 'circle_cw', 'tau': 0.6, 'run_len': 1.1997, 'input_age': [0.6003, 0.6054], 'd_start': 1.01, 'hit': True, 'lost': 57, 'hit_age': [0.8789, 0.8896], 'd_hit': 0.85, 'angle_hit': 0.8, 'foe_turn': 1.4, 'turn': 2.1, 'roll_seen': False, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37495.25847, 'rep': 63, 'opt': 'circle_ccw', 'tau': 0.6, 'run_len': 2.4176, 'input_age': [0.6004, 0.6057], 'd_start': 2.28, 'hit': True, 'lost': 57, 'hit_age': [0.9129, 0.9235], 'd_hit': 1.0, 'angle_hit': -7.3, 'foe_turn': -9.0, 'turn': -16.3, 'roll_seen': False, 'reasons': ['restart_possible'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37508.71029, 'rep': 64, 'opt': 'roll_cw', 'tau': 0.6, 'run_len': 1.1982, 'input_age': [0.601, 0.6064], 'd_start': 2.0, 'hit': False, 'foe_turn': 20.7, 'turn': 27.6, 'roll_seen': True, 'reasons': ['not_isolated'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37523.54281, 'rep': 65, 'opt': 'stand', 'tau': 0.6, 'run_len': 1.2007, 'input_age': [0.6015, 0.6067], 'd_start': 1.04, 'hit': True, 'lost': 57, 'hit_age': [0.8964, 0.907], 'd_hit': 0.85, 'angle_hit': 1.5, 'foe_turn': 1.3, 'turn': 3.1, 'roll_seen': False, 'reasons': ['not_isolated'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37528.04321, 'rep': 66, 'opt': 'circle_cw', 'tau': 0.6, 'run_len': 1.1991, 'input_age': [0.6004, 0.6055], 'd_start': 2.16, 'hit': True, 'lost': 57, 'hit_age': [0.8941, 0.9046], 'd_hit': 1.0, 'angle_hit': 1.2, 'foe_turn': 20.8, 'turn': 5.7, 'roll_seen': False, 'reasons': ['refill_in_run'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37536.87515, 'rep': 67, 'opt': 'circle_ccw', 'tau': 0.6, 'run_len': 1.2007, 'input_age': [0.6023, 0.6076], 'd_start': 1.11, 'hit': True, 'lost': 57, 'hit_age': [0.914, 0.9242], 'd_hit': 0.85, 'angle_hit': 2.3, 'foe_turn': -0.4, 'turn': 2.6, 'roll_seen': False, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37544.74348, 'rep': 68, 'opt': 'roll_cw', 'tau': 0.6, 'run_len': 1.1983, 'input_age': [0.6023, 0.6074], 'd_start': 1.01, 'hit': False, 'foe_turn': 1.3, 'turn': 8.9, 'roll_seen': True, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37548.19251, 'rep': 69, 'opt': 'stand', 'tau': 0.6, 'run_len': 1.1996, 'input_age': [0.6007, 0.6061], 'd_start': 0.93, 'hit': True, 'lost': 57, 'hit_age': [0.8964, 0.9068], 'd_hit': 0.85, 'angle_hit': 1.5, 'foe_turn': 5.8, 'turn': 3.3, 'roll_seen': False, 'reasons': ['not_isolated'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37553.47555, 'rep': 70, 'opt': 'circle_cw', 'tau': 0.6, 'run_len': 1.2013, 'input_age': [0.6018, 0.6069], 'd_start': 0.91, 'hit': True, 'lost': 57, 'hit_age': [0.8809, 0.8912], 'd_hit': 0.84, 'angle_hit': 0.7, 'foe_turn': -3.0, 'turn': 1.1, 'roll_seen': False, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37558.75946, 'rep': 71, 'opt': 'circle_ccw', 'tau': 0.6, 'run_len': 1.2007, 'input_age': [0.6004, 0.6056], 'd_start': 0.91, 'hit': True, 'lost': 57, 'hit_age': [0.912, 0.9225], 'd_hit': 0.84, 'angle_hit': 2.5, 'foe_turn': -4.8, 'turn': 1.2, 'roll_seen': False, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37564.04204, 'rep': 72, 'opt': 'roll_cw', 'tau': 0.6, 'run_len': 1.2014, 'input_age': [0.6017, 0.6068], 'd_start': 0.91, 'hit': False, 'foe_turn': -3.1, 'turn': 8.7, 'roll_seen': True, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37575.74137, 'rep': 73, 'opt': 'stand', 'tau': 0.6, 'run_len': 1.2001, 'input_age': [0.6005, 0.6056], 'd_start': 0.85, 'hit': True, 'lost': 57, 'hit_age': [0.8963, 0.9069], 'd_hit': 0.85, 'angle_hit': 1.6, 'foe_turn': 1.8, 'turn': 2.3, 'roll_seen': False, 'reasons': ['not_isolated', 'refill_in_run'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37579.99315, 'rep': 74, 'opt': 'circle_cw', 'tau': 0.6, 'run_len': 1.1999, 'input_age': [0.6009, 0.6065], 'd_start': 0.98, 'hit': True, 'lost': 57, 'hit_age': [0.8793, 0.8902], 'd_hit': 0.85, 'angle_hit': 0.7, 'foe_turn': 1.4, 'turn': 19.8, 'roll_seen': False, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37599.7748, 'rep': 75, 'opt': 'circle_ccw', 'tau': 0.6, 'run_len': 1.2015, 'input_age': [0.6002, 0.6054], 'd_start': 1.11, 'hit': True, 'lost': 57, 'hit_age': [0.9138, 0.9244], 'd_hit': 0.85, 'angle_hit': -9.4, 'foe_turn': -20.6, 'turn': -29.3, 'roll_seen': False, 'reasons': ['refill_in_run'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37611.19186, 'rep': 76, 'opt': 'roll_cw', 'tau': 0.6, 'run_len': 1.1996, 'input_age': [0.6014, 0.6065], 'd_start': 1.01, 'hit': False, 'foe_turn': 1.4, 'turn': 9.7, 'roll_seen': True, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37618.20802, 'rep': 77, 'opt': 'stand', 'tau': 0.6, 'run_len': 1.2015, 'input_age': [0.6018, 0.6068], 'd_start': 1.56, 'hit': True, 'lost': 57, 'hit_age': [0.8982, 0.908], 'd_hit': 0.85, 'angle_hit': 1.5, 'foe_turn': 3.4, 'turn': 5.4, 'roll_seen': False, 'reasons': ['not_isolated'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37622.71019, 'rep': 78, 'opt': 'circle_cw', 'tau': 0.6, 'run_len': 1.1995, 'input_age': [0.6022, 0.6076], 'd_start': 0.99, 'hit': True, 'lost': 57, 'hit_age': [0.879, 0.8896], 'd_hit': 0.84, 'angle_hit': 0.7, 'foe_turn': 0.6, 'turn': 18.8, 'roll_seen': False, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37634.40834, 'rep': 79, 'opt': 'circle_ccw', 'tau': 0.6, 'run_len': 1.2, 'input_age': [0.6003, 0.6053], 'd_start': 0.85, 'hit': True, 'lost': 57, 'hit_age': [0.9125, 0.9229], 'd_hit': 0.85, 'angle_hit': -9.5, 'foe_turn': -9.9, 'turn': -21.7, 'roll_seen': False, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37640.85898, 'rep': 80, 'opt': 'roll_cw', 'tau': 0.6, 'run_len': 1.2004, 'input_age': [0.6018, 0.6069], 'd_start': 1.01, 'hit': False, 'foe_turn': 1.3, 'turn': 9.1, 'roll_seen': True, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37669.11065, 'rep': 81, 'opt': 'stand', 'tau': 0.6, 'run_len': 1.1999, 'input_age': [0.602, 0.6077], 'd_start': 1.01, 'hit': True, 'lost': 57, 'hit_age': [0.8947, 0.9062], 'd_hit': 0.85, 'angle_hit': 1.6, 'foe_turn': 1.3, 'turn': 2.8, 'roll_seen': False, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37672.55935, 'rep': 82, 'opt': 'circle_cw', 'tau': 0.6, 'run_len': 1.1987, 'input_age': [0.602, 0.6076], 'd_start': 0.93, 'hit': True, 'lost': 57, 'hit_age': [0.8784, 0.8891], 'd_hit': 0.81, 'angle_hit': 3.6, 'foe_turn': 19.8, 'turn': 21.6, 'roll_seen': False, 'reasons': ['not_isolated'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37677.86029, 'rep': 83, 'opt': 'circle_ccw', 'tau': 0.6, 'run_len': 1.1988, 'input_age': [0.601, 0.6062], 'd_start': 0.91, 'hit': True, 'lost': 57, 'hit_age': [0.9122, 0.9226], 'd_hit': 0.85, 'angle_hit': 2.4, 'foe_turn': -4.4, 'turn': 1.9, 'roll_seen': False, 'reasons': ['refill_in_run'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37685.72589, 'rep': 84, 'opt': 'roll_cw', 'tau': 0.6, 'run_len': 2.417, 'input_age': [0.6005, 0.6059], 'd_start': 1.01, 'hit': False, 'foe_turn': 70.5, 'turn': 70.5, 'roll_seen': True, 'reasons': ['not_isolated', 'restart_possible'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37688.65925, 'rep': 85, 'opt': 'stand', 'tau': 0.6, 'run_len': 3.6165, 'input_age': [0.6007, 0.6061], 'd_start': 0.75, 'hit': True, 'lost': 57, 'hit_age': [0.8952, 0.9058], 'd_hit': 0.81, 'angle_hit': 1.6, 'foe_turn': -20.8, 'turn': -3.0, 'roll_seen': False, 'reasons': ['restart_possible', 'refill_in_run', 'multi_hit_in_run'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37696.35883, 'rep': 86, 'opt': 'circle_cw', 'tau': 0.6, 'run_len': 1.2003, 'input_age': [0.6012, 0.607], 'd_start': 0.91, 'hit': True, 'lost': 57, 'hit_age': [0.8785, 0.8896], 'd_hit': 0.82, 'angle_hit': 0.6, 'foe_turn': 0.9, 'turn': 4.7, 'roll_seen': False, 'reasons': [], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37714.19137, 'rep': 87, 'opt': 'circle_ccw', 'tau': 0.6, 'run_len': 1.1998, 'input_age': [0.6014, 0.6062], 'd_start': 1.17, 'hit': True, 'lost': 57, 'hit_age': [0.9132, 0.9233], 'd_hit': 0.85, 'angle_hit': 2.4, 'foe_turn': 2.4, 'turn': 4.8, 'roll_seen': False, 'reasons': ['not_isolated', 'refill_in_run'], 'file': '20261017_004056_options.jsonl'}
+  {'t': 37725.79256, 'rep': 88, 'opt': 'roll_cw', 'tau': 0.6, 'd_start': 1.11, 'hit': False, 'foe_turn': 0.0, 'turn': -1.6, 'roll_seen': False, 'reasons': ['run_open', 'no_input'], 'file': '20261017_004056_options.jsonl'}
+{
+ "anim": 3000,
+ "target": [
+  254010
+ ],
+ "tau": 0.6,
+ "age": "age_since_seen (play position not read)",
+ "reps": 100,
+ "valid": 51,
+ "excluded": {
+  "refill_in_run": 10,
+  "run_open": 2,
+  "restart_possible": 7,
+  "not_isolated": 30
+ },
+ "per_option": {
+  "stand": {
+   "valid": 7,
+   "of": 25,
+   "hits": 7,
+   "rate": 1.0,
+   "halves": [
+    [
+     3,
+     3
+    ],
+    [
+     4,
+     4
+    ]
+   ],
+   "stable": true,
+   "roll_seen": 0,
+   "turn_median": 2.3
+  },
+  "circle_cw": {
+   "valid": 13,
+   "of": 25,
+   "hits": 13,
+   "rate": 1.0,
+   "halves": [
+    [
+     6,
+     6
+    ],
+    [
+     7,
+     7
+    ]
+   ],
+   "stable": true,
+   "roll_seen": 0,
+   "turn_median": 2.1
+  },
+  "circle_ccw": {
+   "valid": 14,
+   "of": 25,
+   "hits": 14,
+   "rate": 1.0,
+   "halves": [
+    [
+     7,
+     7
+    ],
+    [
+     7,
+     7
+    ]
+   ],
+   "stable": true,
+   "roll_seen": 0,
+   "turn_median": 1.2
+  },
+  "roll_cw": {
+   "valid": 17,
+   "of": 25,
+   "hits": 0,
+   "rate": 0.0,
+   "halves": [
+    [
+     0,
+     8
+    ],
+    [
+     0,
+     9
+    ]
+   ],
+   "stable": true,
+   "roll_seen": 17,
+   "turn_median": 9.4
+  }
+ },
+ "pairs": [
+  {
+   "pair": [
+    "stand",
+    "circle_cw"
+   ],
+   "p": 1.0
+  },
+  {
+   "pair": [
+    "stand",
+    "circle_ccw"
+   ],
+   "p": 1.0
+  },
+  {
+   "pair": [
+    "stand",
+    "roll_cw"
+   ],
+   "p": 0.0
+  },
+  {
+   "pair": [
+    "circle_cw",
+    "circle_ccw"
+   ],
+   "p": 1.0
+  },
+  {
+   "pair": [
+    "circle_cw",
+    "roll_cw"
+   ],
+   "p": 0.0
+  },
+  {
+   "pair": [
+    "circle_ccw",
+    "roll_cw"
+   ],
+   "p": 0.0
+  }
+ ],
+ "stand_control": {
+  "rate": 1.0,
+  "ok": true
+ },
+ "rule": {
+  "n_min": 16,
+  "half_diff": 0.3,
+  "pair_p": 0.01,
+  "status": "proposed (MoKa may change)"
+ },
+ "verdict": "표본 부족"
+}

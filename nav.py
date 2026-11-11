@@ -156,6 +156,66 @@ def ground_ahead(terrain, p, dx: float, dz: float, reach: float = 1.2) -> bool:
     return True
 
 
+MOVE_STEP = 0.5           # can_move: look at the floor this often along the way …
+MOVE_STEP_DROP = BACK_MAX_DROP   # … each point at most this much below the last one (a ramp goes down ~0.2 per 0.5 m). Was 0.8: it
+                          # blocked real stair steps down (asylum (34,193,−24)) the old 1.2 m-from-here check let through
+MOVE_STEP_UP = 1.0
+ROLL_CHECK_M = 3.0        # a roll covers ≤ 2.5 m (design-floor-check §2-c) once the stick is let go at its start (Moves.roll_toward)
+
+
+def can_move(terrain, p, dx: float, dz: float, dist: float) -> bool:
+    """Floor all the way for a move of `dist` m in direction (dx, dz): every MOVE_STEP, following ramps — each floor point within
+    MOVE_STEP_DROP below / MOVE_STEP_UP above the one before. The guide's can_move(direction, distance)
+    (docs/guide-control-priority.md §5-3). Unlike ground_ahead (two points, a fixed drop from where we stand) it neither misses a
+    gap between its points nor calls a long ramp a drop (P-73: a roll checked at 1.25 / 2.5 m from just off the ramp's mesh;
+    design-floor-check: "3.0 m almost always fails on the ramp"). True if terrain is None."""
+    if terrain is None:
+        return True
+    n = math.hypot(dx, dz)
+    if n < 1e-6:
+        return True
+    ux, uz, y = dx / n, dz / n, p.gy
+    ds = [k * MOVE_STEP for k in range(1, int(dist / MOVE_STEP + 1e-6) + 1)]
+    if not ds or ds[-1] < dist - 1e-6:
+        ds.append(dist)                                    # the end point itself (2.6 m: 0.5 … 2.5 and 2.6)
+    for d in ds:
+        hit = terrain.floor_at(p.gx + ux * d, p.gz + uz * d, y)
+        if hit is None or hit[0] < y - MOVE_STEP_DROP or hit[0] > y + MOVE_STEP_UP:
+            return False
+        y = hit[0]
+    return True
+
+
+def side_room(terrain, p, fx: float, fz: float, maxd: float = 1.5, step: float = 0.05) -> tuple[float, float] | None:
+    """Floor left on my right and left when facing (fx, fz): metres of NavMesh floor before an edge (wall or drop — the mesh can't
+    tell which), up to maxd. Right = (fz, −fx) (rel_angle: + is right, world yaw = atan2(dx, dz)). → (right, left), None without
+    floor_at (test stubs). Used for arm room before a throw (P-135)."""
+    f = getattr(terrain, "floor_at", None)
+    n = math.hypot(fx, fz)
+    if f is None or n < 1e-6:
+        return None
+    fx, fz = fx / n, fz / n
+    out = []
+    for ux, uz in ((fz, -fx), (-fz, fx)):
+        y, d = p.gy, 0.0
+        while d < maxd - 1e-9:
+            hit = f(p.gx + ux * (d + step), p.gz + uz * (d + step), y)
+            if hit is None or hit[0] < y - MOVE_STEP_DROP or hit[0] > y + MOVE_STEP_UP:
+                break
+            d += step
+            y = hit[0]
+        out.append(round(d, 2))
+    return out[0], out[1]
+
+
+def in_sight(terrain, a, b) -> bool:
+    """Point b (feet) in sight from a (feet) — Navmesh.clear_sight. Lock-on needs it: bot lock-on 2–10 m on the way 6/41, every
+    failure with a position had the straight line blocked (docs/throwables.md). True if terrain has no NavMesh geometry
+    (None, test stubs) — not checked."""
+    f = getattr(terrain, "clear_sight", None)
+    return True if f is None else f(a, b)
+
+
 def safe_heading(terrain, p, dx: float, dz: float, reach: float = 1.2):
     """If (dx, dz) has floor, use it; otherwise try turning ±30°/±60°. If none, None (stop).
     Also used when heading straight for a path point — after being pushed off the path in a fight, the straight line to the path point may cross a cliff
@@ -168,6 +228,29 @@ def safe_heading(terrain, p, dx: float, dz: float, reach: float = 1.2):
         if ground_ahead(terrain, p, math.sin(a), math.cos(a), reach):
             return math.sin(a), math.cos(a)
     return None
+
+
+PUSH_M = 1.5              # footing_state: floor this far behind us, away from each foe close by (design-floor-check §2-c: hits and swings
+                          # move us 0.8 m in 0.5 s at the 90th percentile, up to 3.0 m)
+PUSH_FOE_R = 3.0          # … for foes this close (same level)
+
+
+def footing_state(terrain, p, foes) -> dict:
+    """Is where we stand dangerous to fight on (design-floor-check §3-A)? foes: [(x, y, z)] of awake foes near us.
+    → {'on': floor underfoot, 'foot': nav.footing fraction, 'push': [(x, z) of foes whose push ends with no floor], 'danger': bool}
+    danger = no floor underfoot, or thin footing (< FOOTING_MIN) with a foe that can push us over."""
+    base = getattr(terrain, "nm", terrain)                 # ground.Ground → its NavMesh
+    if (hasattr(base, "border_dist") and base.on_mesh(p.gx, p.gy, p.gz)
+            and base.border_dist(p.gx, p.gy, p.gz) > max(FOOTING_R, PUSH_M) + 0.2):
+        return {"on": True, "foot": 1.0, "push": [], "danger": False}   # on the mesh, no edge within reach: every probe has floor (~0.2 ms, else ~4)
+    on = terrain is None or terrain.on_mesh(p.gx, p.gy, p.gz)
+    foot, _ = footing(terrain, p)
+    push = []
+    for x, y, z in foes:
+        h = math.hypot(p.gx - x, p.gz - z)
+        if 0.05 < h < PUSH_FOE_R and abs(y - p.gy) < 1.2 and not ground_ahead(terrain, p, p.gx - x, p.gz - z, reach=PUSH_M):
+            push.append((x, z))
+    return {"on": on, "foot": foot, "push": push, "danger": (not on) or (foot < FOOTING_MIN and bool(push))}
 
 
 def safe_back(terrain, p, dx: float, dz: float):
@@ -248,19 +331,74 @@ def path_tolerances(path: list, default: float = 1.0, steep: bool = True) -> lis
     return tols
 
 
+BRAKE_R = 3.5            # sprinting at a brake corner: jog (no B) for the last this many metres to it (P-53)
+BRAKE_OVERSHOOT_M = 3.0  # a corner brakes when running on past it this far leaves the floor …
+BRAKE_DROP_R = 3.5       # … and a drop edge (floor > 1.5 m below beyond it, not a wall) is this close to the corner
+
+
+def _level_floor(terrain, q, dx: float, dz: float, reach: float) -> bool:
+    """Floor at our level every metre out to reach (not lower than BACK_MAX_DROP, not higher than the distance — a slope).
+    Stricter than ground_ahead, which takes a floor far above as floor: past the P-53 corner the only NavMesh floor is a roof
+    19 m up. (ground_ahead keeps that: on 0.75 % of the steps the bot really took — the secret passage, Firelink stairs — the
+    level's own floor is missing from the NavMesh and the floor above is what lets it walk.)"""
+    n = math.hypot(dx, dz)
+    d = 1.0
+    while d <= reach + 1e-6:
+        h = terrain.floor_at(q[0] + dx / n * d, q[2] + dz / n * d, q[1])
+        if h is None or h[0] < q[1] - BACK_MAX_DROP or h[0] > q[1] + max(1.2, d):
+            return False
+        d += 1.0
+    return True
+
+
+def brake_points(path: list, terrain) -> list[bool]:
+    """
+    ── 낭떠러지 옆 모퉁이에선 질주를 멈춘다 (P-53, 2026-10-11 [cloud]) ──────────────────────────────
+     burg-upper 구역 1 (10-09 234512): 끌어온 254010에게서 안전 자리로 질주해 돌아오다 (−5.4,−9.9,−69.6)의 55° 모퉁이에서
+     꺾지 못하고 그대로 동쪽으로 3 m 지나쳐 4 m 낙하 → 퀵 종료. 모퉁이는 CORNER_TOL로 정확히 밟지만, 질주(~5 m/s)의 관성이 남음.
+     모퉁이(turn > CORNER_DEG)에서 들어온 방향으로 BRAKE_OVERSHOOT_M 계속 가면 바닥이 없고, 낙차 가장자리(벽이 아님)가
+     BRAKE_DROP_R 안이면 그 점은 brake — follow가 그 점 BRAKE_R 앞부터 'sprint'를 'walk'(B 안 누름, 뜀)로 바꿈.
+    """
+    out = []
+    for i, q in enumerate(path):
+        b = False
+        if (terrain is not None and hasattr(terrain, "drop_dist") and 0 < i < len(path) - 1 and len(q) > 2
+                and turn_deg(path, i) > CORNER_DEG):
+            k = i - 1
+            while k > 0 and math.dist((q[0], q[2]), (path[k][0], path[k][2])) < 0.3:
+                k -= 1
+            dx, dz = q[0] - path[k][0], q[2] - path[k][2]
+            b = (math.hypot(dx, dz) > 1e-6 and not _level_floor(terrain, q, dx, dz, BRAKE_OVERSHOOT_M)
+                 and terrain.drop_dist(q[0], q[1], q[2]) < BRAKE_DROP_R)
+        out.append(b)
+    return out
+
+
+def braked(mode_fn, q):
+    """mode_fn for one brake point q: whatever mode_fn says (goto's default when None), but 'sprint' → 'walk' within BRAKE_R of q."""
+    def fn(s):
+        p = s.player
+        d = math.hypot(q[0] - p.gx, q[2] - p.gz)
+        m = mode_fn(s) if mode_fn else ("sprint" if d > SPRINT_BEYOND else "walk")
+        return "walk" if m == "sprint" and d < BRAKE_R else m
+    return fn
+
+
 def follow(tm, pad, path: list, terrain=None, mode_fn=None, on_tick=None, default_tol: float = 1.0,
            timeout_per: float = 12.0, stop_fn=None, log=lambda *a: None) -> str:
     """Follow a path (the caller does the trim). Each point is judged with path_tolerances. If stop_fn(snapshot) is true, 'stopped'.
+    A corner with a drop past it (brake_points) is approached jogging, not sprinting (P-53).
     → 'arrived' | goto's failure value | 'stopped'. After 3 consecutive failures, that failure value."""
     tols = path_tolerances(path, default_tol)
+    brakes = brake_points(path, terrain)
     fails = 0
     # Keep one movement state (run B hold) for the whole path. Previously a new Mover per point pressed and released B —
     # with short gaps between points, a 'short B' = roll/backstep (jump if running) and it fell off ramps (2026-09-24 review)
     mover = Mover(pad)
     try:
-        for q, tol in zip(path, tols):
+        for q, tol, brake in zip(path, tols, brakes):
             r = goto(tm, pad, tuple(q), tolerance=tol, timeout=timeout_per, log=log, terrain=terrain,
-                     on_tick=on_tick, mode_fn=mode_fn, mover=mover)
+                     on_tick=on_tick, mode_fn=braked(mode_fn, q) if brake else mode_fn, mover=mover)
             if r in ("dead", "retreat"):
                 return r
             if stop_fn is not None:
@@ -360,7 +498,10 @@ def goto(tm: telemetry.Telemetry, pad: control.Pad, target: tuple[float, float],
             if on_tick:
                 on_tick(s, dist)
             if dist <= tolerance and (ty is None or abs(p.gy - ty) <= ARRIVE_DY):
-                pad.neutral()
+                # a passed-in mover (follow / Field._walk) keeps its B hold into the next point; the caller stops it.
+                # P-67: a neutral here bumped pad.epoch → Mover re-pressed B at every point → 0.09 s B taps while running = jump (anim 900)
+                if own_mover:
+                    pad.neutral()
                 return _end(rec, "arrived")
 
             # stuck detection

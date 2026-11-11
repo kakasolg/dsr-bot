@@ -27,10 +27,16 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
 import control
+import math
+
 import dsr_telemetry
+import nav
+import navmesh
 from dsr_telemetry import OFF_SP
 
 ACTIVE_VALS = (5, 257)
+MAPS = ("m10_02_00_00", "m10_01_00_00")   # Firelink · Undead Burg — the floor check uses whichever the player stands on
+FLOOR_AHEAD_M = 1.5
 WINDOW = 2.5
 CHAIN_DELAYS = [0.25, 0.35, 0.45, 0.55, 0.65, 0.75, 0.85, 0.95]
 HEAVY_WINDOW = 3.5
@@ -43,6 +49,7 @@ class Probe:
         self.pad = control.Pad()
         self.guard = guard
         self.heavy = heavy
+        self.nms = [navmesh.Navmesh(m) for m in MAPS]
 
     def press(self):
         if self.heavy:
@@ -59,7 +66,17 @@ class Probe:
 
     def safe(self) -> bool:
         s = self.tm.snapshot(within=12.0)
-        return s is not None and not s.hostile(12.0)
+        if s is None or s.hostile(12.0):
+            return False
+        # every swing steps forward a little (≈22 swings in one run) — stop before the floor ahead runs out (10-13: 3.7 m edge at the Taurus tower)
+        p = s.player
+        if p.heading is None:
+            return False
+        fx, fz = -math.sin(p.heading), -math.cos(p.heading)
+        if not any(nav.ground_ahead(nm, p, fx, fz, reach=FLOOR_AHEAD_M) for nm in self.nms):
+            print(f"   앞 {FLOOR_AHEAD_M} m에 바닥 없음 — 중단")
+            return False
+        return True
 
     def wait_full_sp(self, timeout=8.0):
         t0 = time.time()
@@ -107,7 +124,11 @@ def summarize(idle, rows):
         if a0 in ACTIVE_VALS and on is None:
             on = t
         elif a0 not in ACTIVE_VALS and on is not None:
-            act.append((on, t)); on = None
+            if act and on - act[-1][1] < 0.05:             # +0xA0 flickers 5 ↔ 257 ↔ other within one blade window (Claymore 10-13)
+                act[-1] = (act[-1][0], t)
+            else:
+                act.append((on, t))
+            on = None
     end = next((t for t, a, a0, sp in rows[1:] if a == anim0 and t > 0.2), None)
     return drops, act, end
 

@@ -12,14 +12,24 @@ data/*
 !data/enemy-map.json
 !data/safe-zones.json
 !data/spots.json
+# notice distance per foe type (experiments/notice_probe.py --json data/notice.json — souls/pull.py reads it)
+!data/notice.json
 !data/routes/
 data/routes/*
 !data/routes/firelink-merchant-run.json
 !data/routes/passage-merchant.json
+!data/routes/altar-demo-20261012.json
 !data/routes/user-climb.json
 !data/routes/asylum-fresh.json
 !data/gamefiles/
 !data/samples/
+# shop / menu screenshots (pad_step.py, docs/shop-undead-merchant.md) — 960 px JPEGs, the record [cloud] builds menu routines from
+!data/shop/
+!data/stages/
+# floor map: positions where the bot / demos stood (ground.py build — rebuilt from data/samples, small npz)
+!data/walked/
+data/samples/*.diff
+# ↑ a run's uncommitted diff (runinfo) stays local — sample.py doesn't copy it; this keeps a hand copy out too
 *.out
 *.err
 *.log
@@ -31,6 +41,7 @@ data/labels/*
 !data/labels/*_labels.jsonl
 !data/labels/*_reveals.jsonl
 !data/labels/*_run_notes.jsonl
+!data/labels/*_cases.jsonl
 # Laya fine-tune results (small JSON); checkpoints stay in WSL ~/laya-ft
 !data/laya/
 data/laya/*
@@ -42,3 +53,6 @@ data/laya/*
 !data/labels/*_scene_meta.jsonl
 !data/labels/*_rereview_priority.json
 !data/labels/*_rereview_notes.jsonl
+
+# OBS recordings copied in by hand (61 GB on 11-11) — never in git
+video/

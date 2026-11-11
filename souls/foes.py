@@ -15,6 +15,8 @@ class Foe:
     kick_when_idle: bool = False    # raises shield when standing still (anim -1) → break it with a kick, then hit
     circle_behind: bool = False     # shield only blocks a frontal cone — if idle, circle behind and light attack (most effective, user 2026-09-25)
     ranged: bool = False            # throws from afar (firebomb) — won't come if we wait, keeps throwing → run in and close
+    throws: bool | None = None      # really throws (duel.rule_shot's thrower) — None = same as ranged. Separate because ranged also
+                                    # drives lure / waiting, where a wrong label is what MoKa approved (AXE_HOLLOW, P-59)
     avoid: bool = False             # don't fight at current level (route around)
     singles: tuple = ()             # single-hit attack anims — safe to counter right after blocking
     combos: tuple = ()              # start anims of chained attacks — block to the end, then counter
@@ -22,13 +24,23 @@ class Foe:
     punish_hits: int | None = None  # light attacks in a stagger (bounced off guard) counter — None = per weapon. 1 for foes with short stagger
     windup: tuple = ()              # attacks that land long after starting — within windup_act_s, kick first to interrupt; beyond it, block
     windup_act_s: float = 1.2
+    windup_land_s: float | None = None   # when the windup lands (s after it starts) — before that duel.swing_over never calls it ended (P-66)
     kick_on_stagger: bool = False   # kick immediately on post-attack stagger (3500) — it soon backs out of reach
+    # 3500 길이 (s) — rule_stagger_punish는 휘청 경과 + 무기 startup이 이걸 넘으면 안 침 (P-80). 10-12 블랙박스 60 Hz 중앙값:
+    # 망자 254010 1.54 (n 360) · 254000 1.54 · 254011 1.55 / 방패병 255001 1.38 (n 31) · 255010 1.06 · 255000 0.85 · 석궁 255002 1.37
+    stagger_s: float = 1.5
     # How to do the early kick under the windup·kick_on_stagger conditions above (Patch D, 2026-09-26):
     #   "off"    — do nothing
     #   "shadow" — no kick, only log candidate events (duel.ShadowKick). Default, since the meaning of raw anims 3004·3500 is unverified
     #   "act"    — actually kick. No Foe data uses this value — enabling it needs a separately approved experiment-only change
     early_kick: str = "off"
+    # 막지 말고 백스텝으로 물러났다가 휘두름이 끝나면 한 대만 (reflex: B→R1 없이 백스텝, rule_after_swing: n = 1) — M1109-76
+    backstep_only: bool = False
     note: str = ""
+
+    @property
+    def thrower(self) -> bool:
+        return self.ranged if self.throws is None else self.throws
 
 
 # Hollow c2540 (Lua 2026-09-24): when close, half are single 3008, the rest 2–3 hit combos (3003→3004→3009, 3005~3007)
@@ -36,7 +48,10 @@ class Foe:
 # not just SHIELD, the hollow combo's 3009 must not be blocked either (same anim number, same danger). Added to unblockable.
 _HOLLOW = dict(kind="hollow", circle_behind=True, singles=(3008,), combos=(3003, 3005), unblockable=(3009,))
 HOLLOW = Foe("망자(칼)", **_HOLLOW)
-FIREBOMB_HOLLOW = Foe("망자(화염병)", ranged=True, **_HOLLOW,
+# 3008 = 던지기: 10-12 guardkeep1 170 s, 6.1 m에서 3008 시작 → 다가오며 1.65 s에 1.67 m에서 −104. 그 전 1.63 s에 rule_after_swing이
+# SWING_S(1.6) 넘었다고 '끝'으로 보고 약공 → 맞교환 (준 피해 0). windup으로 두면 swing_over가 1.7 + LAND_PAD 전엔 끝으로 안 봄,
+# rule_late_windup_block이 1.0 s부터 떨어질 때까지 막음 (AXE_HOLLOW 3004와 같은 방식). early_kick은 off 그대로
+FIREBOMB_HOLLOW = Foe("망자(화염병)", ranged=True, windup=(3008,), windup_act_s=1.0, windup_land_s=1.7, **_HOLLOW,
                       note="위 턱에서 안 내려오고 화염병만 — 방패로 받아도 56~224. 경사로에선 #5(254002)가 던진다 — 시범 140708: 스폰 자리에서 3.5 s 마다 3008, 나이프 두 번(75→31→0)으로 죽음")
 # 2026-09-26 observation recordings (observe 090241·091308·092141), ramp #2 255010, user: "the kick has to come in one beat earlier":
 #  · 3004 lands 2.0–2.1 s after start regardless of approach speed (0.1–1.3 m/s) (4 times). Two hits after 1.6 s took −220·−323,
@@ -48,10 +63,12 @@ FIREBOMB_HOLLOW = Foe("망자(화염병)", ranged=True, **_HOLLOW,
 #  hit_first swung and took −118 both times. windup=(3004,), windup_act_s=1.0 → rule_late_windup_block keeps the shield up until it lands.
 #  ranged stays True for now: the lure/waiting the ramp runs do with it is what MoKa approved — the 'thrower' label is wrong
 #  (LAYA.md 13), fixing it changes those decisions and needs its own runs.
-AXE_HOLLOW = Foe("망자(도끼 양손)", ranged=True, windup=(3004,), windup_act_s=1.0, **_HOLLOW,
+#  throws=False (P-59, 2026-10-11): rule_shot no longer takes it for a thrower (game 10-11 061145: "원거리 피격 −108: 254001 7.9 m,
+#  애니 −1" while 255010 swung at 1.26 m); lure / waiting still see ranged=True.
+AXE_HOLLOW = Foe("망자(도끼 양손)", ranged=True, throws=False, windup=(3004,), windup_act_s=1.0, windup_land_s=1.7, **_HOLLOW,
                  note="경사로 #4. 방패 없이 도끼를 양손으로 — 3003 뒤 3004가 1.7 s에 떨어짐, 1.0 s부터 그때까지 막기 유지 (MoKa 2026-10-01)")
-SHIELD = Foe("방패 병사", kind="shield", kick_when_idle=True, circle_behind=False, unblockable=(3009,), punish_hits=1,
-             windup=(3004,), windup_act_s=1.2, kick_on_stagger=True, early_kick="shadow",
+SHIELD = Foe("방패 병사", kind="shield", kick_when_idle=True, circle_behind=False, unblockable=(3009,), punish_hits=1, stagger_s=1.35,
+             windup=(3004,), windup_act_s=1.2, windup_land_s=2.1, kick_on_stagger=True, early_kick="shadow",
              note="가만히 서면 방패를 들어 약공이 12 씩만 (6번 쳐도 못 잡음). 가드 올린 채면 발차기로 휘청 (위키). "
                   "내가 가드만 하면 가드 브레이크 3009 로 깨러 온다 (Lua IsTargetGuard) — 2026-09-24 실측: 3009 를 막다 가드가 깨져"
                   "(내 애니 160) 스태미나 42→14, 밀려나 경사로에서 낙사. 3009 는 막지 말고 피한다. "
@@ -70,17 +87,44 @@ BY_NPC: dict[int, Foe] = {
     # 255001: [MoKa] 2026-10-06 "255000은 방패, 롱소드 망자이고, 255001은 방패, 창 망자" — 성벽 마을 위쪽(구역 2·5). 등록 전엔 기본값이라
     # 3004(창 찌르기) 중 '먼저 치기' 두 번에 −232씩, 친 건 방패에 0 (P-46, 10-06h)
     255001: SHIELD,
+    # 255041 (교구 앞 무리, P-89): windup 값만 — SHIELD 전체(발차기·kind shield)는 아님. 다른 필드는 UNKNOWN과 같다.
+    #  · windup_land_s 2.1 · windup_act_s 1.2: SHIELD 값 그대로. 출처 = 255010 관찰 녹화 2026-09-26(10 Hz, 3004가 시작 2.0~2.1 s 뒤 닿음 4번,
+    #    0.4~0.7 s 발차기는 끊음 → act 1.2는 그 사이에서 고른 설계값, 경계를 잰 값 아님) · P-66(0aa4dac).
+    #  · 255041에 맞는 근거: 10-19 parish run2·run3 블랙박스 2.08·2.09 s 피격(−257), 시범 10 Hz 2.1 s. 255010·255001과 NpcParam
+    #    AnimationIDOffset 10000 · DefaultAI 255001 · ModelDisplayMask · BehaviorVariation 25500이 같음. 다른 것: SpEffect 7003(레벨3:
+    #    공격 ×1.25 · 방어 ×1.27 · HP ×1.2 · 스태미나 ×1.1) 대 7002(×1.125 · 1.0 · 1.0 · 1.05) — 시간 필드 차이는 목록에 없음, 피해량은 다름.
+    #  · 13004(offset 적용 TAE, 2.03–2.17 s)로 읽는 것은 런타임 미확인 가설 (P-89).
+    255041: Foe("망자 병사(255041)", kind="other", windup=(3004,), windup_act_s=1.2, windup_land_s=2.1,
+                note="3004가 시작 ~2.1 s 뒤에 닿음 — 1.6 s에 '끝'으로 보고 치지 않고 1.2 s부터 닿을 때까지 막음 (P-89, 런타임 확인 전)"),
     # 255002 is a crossbowman, not a shield soldier — 3000/3001 are firing motions, not a guard stance. Anim struct +0xA0 turns 1 and
     # 0.3–0.7 s later an impact hits my shield (my anim 140, SP −7) every 2.7 s (2026-09-25 measured, user "I'm getting hit by arrows, it's right in front").
     # As SHIELD, wait_far said "not approaching" and just blocked for 8 minutes. The fire motion number doesn't change, so anim changes don't reveal it.
-    255002: Foe("석궁 병사", kind="shield", ranged=True, kick_when_idle=True, unblockable=(3009,), punish_hits=1,
-                note="3000/3001 = 석궁 발사 (방패 들고 쏜다). 기다리지 말고 붙어 발차기 → 약공. 뒤잡기 안 됨 — 벽에 붙어 서 있음 (사용자 2026-09-28)"),
+    # [MoKa] 2026-10-11: "석궁병은 방패가 없는데 발차기 할 필요가 없음" — 구역 8에서 발차기+약공 콤보(2.5 s) 중 −228·−156 (P-66 다시 나옴).
+    # 방패병(kind shield · kick_when_idle)에서 뺌: 발차기 없이 약공, 방패 전제 판단(먼저 치기 금지·방패병 양손 전환)도 안 씀
+    # ── 3004는 시작 2.1 s 뒤에 닿음 (P-112, 11-02 014223 구역 8 사망) ──────────────────────────────
+    #  블랙박스 9개 중 8개가 2.08~2.11 s에 −225~−384 (10-06 202244 · 10-11 171918 ×2 · 174753 · 10-13 011929 · 11-01 173025 ·
+    #  11-02 014223). windup 없을 땐 1.6 s(SWING_S)에 '끝'으로 봐서 014223은 1.94 s에 에스트용 백스텝으로 방패를 내리고 −330 → 사망.
+    #  255041(P-89)과 같은 값: 1.2 s부터 닿을 때까지 막음. early_kick은 off(방패 없음, 발차기 안 함)
+    255002: Foe("석궁 병사", kind="other", ranged=True, unblockable=(3009,), punish_hits=1, stagger_s=1.35,
+                windup=(3004,), windup_act_s=1.2, windup_land_s=2.1,
+                note="3000/3001 = 석궁 발사. 기다리지 말고 붙어 약공 — 방패 없음, 발차기 안 함 ([MoKa] 2026-10-11). "
+                     "뒤잡기 안 됨 — 벽에 붙어 서 있음 (사용자 2026-09-28)"),
     # 254013·254014 (next to the Undead Burg bonfire, HP150): not shield soldiers but bodiless phantoms — user "there's nothing there, why is it swinging"
     # (2026-09-25). 254013 is filtered at layer 0 by its inactive flag, 254014 by body overlap (dsr_telemetry.PHANTOM_R). The entries below are kept.
     254013: SHIELD, 254014: SHIELD,
     290000: SKELETON, 290002: SKELETON, 290003: SKELETON, 290004: SKELETON, 291000: SKELETON,
     223200: ASYLUM_DEMON,
 }
+
+# ── 중기사 대검 257002 (c2570) — 막으면 가드가 깨진다 ([MoKa] 2026-11-09 M1109-76) ──────────────────────────────
+#  "큰 중갑 병사는 휘두르면 방패로 막아도 스테미나가 다 달아서 2타 맞을 확률이 매우 높아. 대신 백스텝으로 물러 났다, 한대씩 때리면 되긴 하는데"
+#  · AtkParam_Npc StaminaAttackPower 80–240 [game] (3000 80 · 3001 140 · 3005 160 · 3007 240) — 나무 방패 안정성 44로 줄여도
+#    3000→3001 두 번이면 98을 넘음. 그래서 모든 공격 (3000–3007)을 unblockable로 두고 백스텝, 끝나면 약공 한 대
+#  · 확인은 Godot 연습장 아레나만 (sim/arena_scene.py) — 실제 게임에서 이 놈과 싸운 기록 없음
+#  · "옆에 병사가 하나 더 있으면 답이 없을껄?" — 둘이 붙는 상황 대처는 여기 없음 (기존 다대일 규칙 그대로)
+HEAVY_KNIGHT = Foe("중기사(대검)", kind="other", unblockable=(3000, 3001, 3002, 3003, 3004, 3005, 3006, 3007), punish_hits=1,
+                   backstep_only=True, note="막으면 스태미나가 다 닳아 2타를 맞음 — 백스텝으로 물러났다 한 대씩 (MoKa M1109-76, 연습장만)")
+BY_NPC[257002] = HEAVY_KNIGHT
 
 UNKNOWN = Foe("모르는 적", kind="other")
 

@@ -1,0 +1,16 @@
+[    0.1] run 20261101_164048_light-burg · code 6ccafc0+dirty(26) · light-burg --radar --note MoKa 11-01: back to the Burg bonfire after burg-upper zone 3 (stopped there) so MoKa can kindle by hand · settings 5ddbc50f · note MoKa 11-01: back to the Burg bonfire after burg-upper zone 3 (stopped there) so MoKa can kindle by hand
+[    0.3] radar: sending — python radar_server.py -> http://127.0.0.1:47801, python overlay.py
+[    7.9]    물건 비켜 가기 (지난 실행에서 2번 이상 부숨): o1130_13 o1132_06 o1133_11 o1150_01 o1321_0021
+[    9.5] 무기: 배틀 액스 (약공 2연타, 닿는 거리 1.6 m, 강공 안 씀)
+[    9.5] 스타일: guard
+[    9.5] 캐릭터: SL 8 VIT 16 END 14 STR 14 DEX 9 | 반지 -1,-1 왼손 1462000
+[    9.5] 드롭 줍기: 끔 (이 명령엔 연결 안 됨)
+[   17.6]    카메라: 오른스틱 +x → cam_yaw + (+/− 펄스 한 쌍으로 배움)
+[   34.7] ── 성벽 마을 화톳불: 앉음 True, 마지막 화톳불 1012962 → 1012962 — 귀환 지점 바뀜
+[   34.7] ══ 결과: lit
+[   34.7] 카메라 정렬: 싸움 밖 중앙 10° · 90 % 15° · 10° 안 75% (177번)
+[   34.7] 정렬 (몸 30° 또는 락온): 싸움 밖 몸 중앙 87° · 30° 안 0% · 정렬 0% (177틱)
+[   34.7] 가드 유지: 휘두르는 적 2.5 m 안에서 방패 직접 듦 0번
+[   34.8] ══ 위험 판정: 깨끗  (결과 lit, 최저 HP 84%, 큰 피격 0번 -0)  
+[   34.8] 실행 설정 기록: 20261101_164048_light-burg.settings.json
+[   34.8] 텔레메트리 피드: {'frames': 1711, 'read_ms': 4.8, 'fresh': 3486, 'waited': 17, 'direct': 293, 'none': 0, 'stale': 0}

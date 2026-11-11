@@ -1,0 +1,22 @@
+[    0.1] run 20261110_064028_merchant-buy · code a1aa801+dirty(12) · merchant-buy --buy 290:30,292:20 --shop-shots --radar --ctl --note P-155 repro with ctl + hostile guard, npc-module check; save backup-20261012-034844-merchant-bought-knife30-firebomb67 · settings e146b383 · note P-155 repro with ctl + hostile guard, npc-module check; save backup-20261012-034844-merchant-bought-knife30-firebomb67
+[    0.1] ctl: 기록만 → D:\dev\dsr-bot\data\runs\20261110_064028_merchant-buy.ctl.jsonl
+[    0.5] radar: sending — python radar_server.py -> http://127.0.0.1:47801, python overlay.py
+[   89.0]    물건 비켜 가기 (지난 실행에서 2번 이상 부숨): o1130_13 o1130_28 o1132_06 o1133_11 o1150_01 o1321_0021
+[   90.9] 무기: 배틀 액스 (약공 2연타, 닿는 거리 1.6 m, 강공 안 씀)
+[   90.9] 콤보 거리: 닿는 거리 1.6 m (잰 무기 1.6 m, +0.00) → 백스텝 콤보 ≤ 1.15 m, 점프 진입 ≤ 4.5 m
+[   90.9] 스타일: guard
+[   90.9] 캐릭터: SL 18 VIT 18 END 14 STR 14 DEX 17 | 반지 147,-1 왼손 1462000
+[   90.9] 드롭 줍기: 끔 (이 명령엔 연결 안 됨)
+[   91.1]    상점: 망자 상인 1.88 m, 몸 0°
+[  118.8]    상점: 290 ×30 → ok (개수 30→60, 소울 2742→2442, 1번)
+[  132.4]    상점: 292 ×20 → ok (개수 67→87, 소울 2442→1442, 1번)
+[  140.6] ── 상점: ok — 290 30/30, 292 20/20
+[  140.7]    상점: 290 퀵 슬롯 3번째 칸에 넣음 → [205, 311, 290, -1, -1]
+[  140.7]    상점: 292 퀵 슬롯 4번째 칸에 넣음 → [205, 311, 290, 292, -1]
+[  140.7] ══ 결과: shop ok
+[  140.7] 카메라 정렬: 기록 없음
+[  140.7] 정렬 (몸 30° 또는 락온): 기록 없음
+[  140.8] 가드 유지: 휘두르는 적 2.5 m 안에서 방패 직접 듦 0번
+[  140.8] ══ 위험 판정: 깨끗  (결과 shop ok, 최저 HP 90%, 큰 피격 0번 -0)  
+[  140.8] 실행 설정 기록: 20261110_064028_merchant-buy.settings.json
+[  140.8] 텔레메트리 피드: {'frames': 3088, 'read_ms': 4.3, 'fresh': 4741, 'waited': 34, 'direct': 819, 'none': 0, 'stale': 0}

@@ -1,6 +1,7 @@
 """Radar server — receives radar.py's UDP packets and serves the radar page. Local only (127.0.0.1).
 
   python radar_server.py              → open http://127.0.0.1:47801 in a browser (second monitor or OBS browser source)
+  python radar_server.py --bind <tailscale ip>   → view from another tailnet device (POST/warp stays local-only)
   python radar_server.py --demo       fake world (no game, no bot) — to see or develop the page on any OS
   python run.py burg-bonfire --radar  the bot sends; start this server first or later, either order works
   python radar.py watch               no bot (playing by hand): read-only sender so the map keeps following the game
@@ -108,6 +109,27 @@ def match_ai(chars: list[dict], enemies: dict[int, list]) -> dict[str, list]:
     return out
 
 
+def load_drop_names(folder: Path = GAMEFILES) -> dict[int, str]:
+    """item code (category bits | id, as in a drop record) → English name, from drop_tables.py's *-drops.json."""
+    out: dict[int, str] = {}
+
+    def walk(o):
+        if isinstance(o, dict):
+            if "category_raw" in o and "id" in o and o.get("name") and (o["category_raw"] or 0) >= 0:
+                out[(o["category_raw"] or 0) | o["id"]] = o["name"]
+            for v in o.values():
+                walk(v)
+        elif isinstance(o, list):
+            for v in o:
+                walk(v)
+    for path in sorted(folder.glob("*-drops.json")):
+        try:
+            walk(json.loads(path.read_text(encoding="utf-8")))
+        except (OSError, ValueError):
+            continue
+    return out
+
+
 def load_items(folder: Path = GAMEFILES) -> list[list]:
     """[x, y, z, kind, label, flags] for every extracted treasure (msb_extract.py treasures)."""
     out = []
@@ -130,6 +152,7 @@ class State:
         self.props = props if props is not None else load_props()
         self.items = items if items is not None else load_items()
         self.enemies = enemies if enemies is not None else load_enemies()
+        self.drop_names = load_drop_names()     # enemy drop item names (bot's field.pick_drops sends codes only)
         self.labels = places.Labels()          # foe names fixed per foe ("ramp#2 shield", "hollow-12") — MoKa can point at one
         self.lock = threading.Lock()
         self.recorder = None                  # radar_record.Recorder — every message received is also saved
@@ -203,13 +226,16 @@ class State:
                             and abs(o[1] - p["y"]) < PROP_DY and math.hypot(o[0] - p["x"], o[2] - p["z"]) < PROP_R]
             out["ai"] = match_ai(snap.get("chars") or [], self.enemies)
             out["zone"] = places.zone(p["x"], p["y"], p["z"], en=self.english)
-            out["labels"] = {str(c["ptr"]): self.labels.of(c, en=self.english) for c in snap.get("chars") or []
+            out["where"] = places.where(p["x"], p["y"], p["z"])     # Korean, finer — overlay line ([MoKa] 10-31)
+            out["labels"] = {str(c["ptr"]): self.labels.of(c, en=False) for c in snap.get("chars") or []   # Korean ([MoKa] 10-31)
                              if c.get("team") in places_HOSTILE and c.get("x") is not None}
             # items: [x, y, z, kind, label] not yet picked up (any of its flags set = taken)
             out["items"] = [o[:5] for o in self.items if math.hypot(o[0] - p["x"], o[2] - p["z"]) < PROP_R
                             and abs(o[1] - p["y"]) < ITEM_DY and not (set(o[5]) & picked)]
             if self.mesh is not None:
                 out["mesh"] = self.mesh.near(p["x"], p["y"], p["z"])
+        if snap and snap.get("drops"):
+            out["drop_names"] = {str(d[3]): self.drop_names[d[3]] for d in snap["drops"] if d[3] in self.drop_names}
         return out
 
 
@@ -337,7 +363,7 @@ def demo_loop(port: int) -> None:
                  spd=rng.uniform(-0.3, 0.3), hp=200) for i in range(6)]
     lines = ["walk: ramp bottom -> waiting spot", "lure: knife at Hollow #3", "fight: Hollow #3 (4.2 m)",
              "attack anim 3004 -> roll", "retreat: 2 foes closing", "stagger -> light x2"]
-    mv = _C(cam_target=None, show_path=None, show_spot=None, show_smash=None)
+    mv = _C(cam_target=None, show_path=None, show_spot=None, show_smash=None, show_drops=None)
     r.follow(mv)
     t0, k = time.time(), 0
     while True:
@@ -364,6 +390,9 @@ def demo_loop(port: int) -> None:
         else:
             mv.cam_target, mv.show_path = None, None
             mv.show_spot = ("waiting spot", (px - 4.0, 0.0, pz + 2.0), time.time())
+        mv.show_drops = (time.time(), [(3.0, 0.0, 4.0, 0x10000000 | 523000, "pending", phase == 0),
+                                       (3.6, 0.0, 4.3, 701000, "taken" if phase else "pending", phase == 0),
+                                       (-6.0, 0.0, -3.0, 0x40000000 | 292, "gone", False)])
         player = _C(ptr=1, name="", npc_param=0, team=1, hp=int(420 + 150 * math.sin(t / 5)), max_hp=600, sp=90, max_sp=120,
                     x=px, y=0.0, z=pz, dist=0.0, heading=t / 4 % (2 * math.pi), anim=None)
         r.snapshot(_C(t=time.time(), player=player, chars=chars, cam_yaw=t / 6 % (2 * math.pi), flask_hp=3, max_flask_hp=5))
@@ -382,11 +411,14 @@ def main() -> None:
     ap.add_argument("--replay", metavar="FILE", help="play back a radar recording (data/radar/*.jsonl) or an observe_record.py file")
     ap.add_argument("--no-record", action="store_true", help="don't save this session to data/radar/")
     ap.add_argument("--no-pad", action="store_true", help="don't read the controller (XInput)")
-    ap.add_argument("--maps", default="m10_02_00_00,m10_01_00_00", help="NavMesh maps to draw (read from the game install)")
+    ap.add_argument("--maps", default=None, help="NavMesh maps to draw, comma-separated (read from the game install); "
+                                                 "default: every map extracted to data/gamefiles (msb_extract.py)")
     ap.add_argument("--no-mesh", action="store_true", help="don't draw the NavMesh")
+    ap.add_argument("--bind", default="127.0.0.1", help="HTTP address, e.g. this PC's Tailscale IP to watch from another device "
+                                                       "(view only: POST/warp still needs Host 127.0.0.1/localhost)")
     a = ap.parse_args()
     try:                                  # bind before anything else: a second server must stop here, not share the ports
-        srv = RadarHTTPServer(("127.0.0.1", a.http), None)
+        srv = RadarHTTPServer((a.bind, a.http), None)
         udp_sock = bind_udp(a.udp) if not a.replay else None
     except OSError as e:
         sys.exit(f"radar: port {a.http} (HTTP) or {a.udp} (UDP) already in use - another radar_server.py is running? ({e})\n"
@@ -408,6 +440,9 @@ def main() -> None:
             state.mesh = radar_mesh.MeshView([radar_mesh.rect_mesh([(-14, -4, 6, 4, 0.0), (6, -4, 14, 4, 0.0), (6, 4, 14, 16, 0.0),
                                                                     (6, -16, 14, -4, 0.0), (-14, -16, -6, -4, 1.5)])])
         else:
+            # 맵들이 한 월드 좌표를 쓰는 것으로 보인다 (추출한 y 범위: Depths 위 / Blighttown 아래, 2026-10-07) — 같이 실어도
+            # 높이 거르기(MESH_DY)로 지금 층만 그린다. 그래서 추출한 맵을 전부 싣는다.
+            a.maps = a.maps or ",".join(sorted(f.stem for f in GAMEFILES.glob("m*.json"))) or "m10_02_00_00,m10_01_00_00"
             state.mesh = radar_mesh.load(a.maps.split(","))
             print(f"navmesh: {'drawn (' + a.maps + ')' if state.mesh else 'not found (game install / soulstruct) — radar without floor'}")
     if a.replay:
@@ -431,7 +466,7 @@ def main() -> None:
     state.warp = radar_warp.Warper(lambda line: state.put({"type": "say", "t": time.time(), "line": line}),
                                    enabled=not (a.demo or a.replay))
     srv.RequestHandlerClass = make_handler(state)
-    print(f"radar: http://127.0.0.1:{a.http}  (UDP {a.udp}{', demo' if a.demo else ''})")
+    print(f"radar: http://{a.bind}:{a.http}  (UDP {a.udp}{', demo' if a.demo else ''})")
     try:
         srv.serve_forever()
     except KeyboardInterrupt:

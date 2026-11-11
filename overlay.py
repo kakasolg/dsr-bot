@@ -65,8 +65,9 @@ def lines(state: dict | None, now: float | None = None) -> list[tuple[str, str]]
     if age is not None and age > 2:
         out.append((f"stale {age:.0f} s", WARN))
     p = snap["player"]
-    if state.get("zone"):
-        out.append((f"zone: {state['zone']}", C_ZONE))
+    xz = f"({p['x']:.1f}, {p['z']:.1f})" if p.get("x") is not None else ""
+    if state.get("where") or state.get("zone"):
+        out.append((f"zone: {state.get('where') or state['zone']}  {xz}", C_ZONE))
     hp, mhp = p.get("hp") or 0, p.get("max_hp") or 0
     frac = hp / mhp if mhp else 0
     out.append((f"HP {hp}/{mhp} ({frac:.0%})  SP {p.get('sp')}/{p.get('max_sp')}  Estus {snap.get('flask_hp', '?')}",

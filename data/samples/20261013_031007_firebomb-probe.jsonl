@@ -1,0 +1,187 @@
+{"t": 8.4, "ev": "style", "style": "guard"}
+{"t": 8.4, "ev": "char", "stats": {"VIT": 18, "ATN": 8, "END": 14, "STR": 16, "DEX": 17, "INT": 8, "FTH": 10, "RES": 11, "SL": 20, "소울": 2718, "누적소울": 31963, "인간성": 1}, "equip": {"왼손1": 1462000, "오른손1": 301000, "왼손2": 900000, "오른손2": 900000, "화살": 50000, "머리": 51000, "몸": 52000, "팔": 53000, "반지1": 147, "반지2": -1}}
+{"t": 8.41, "ev": "vital", "hp": 742, "max": 742, "near": 0}
+{"t": 8.98, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 9.48, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 9.99, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 10.49, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 11.01, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 11.51, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 12.02, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 12.53, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 13.03, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 13.53, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 14.04, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 14.55, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 15.05, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 15.56, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 16.07, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 16.58, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 17.09, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 17.59, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 18.1, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 18.61, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 1}
+{"t": 19.12, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 1}
+{"t": 19.62, "ev": "align", "zone": "firebomb-probe", "src": "attacker", "fight": false, "npc": 254012, "d": 19.11, "dy": 6.08, "body": -137.6, "cam": -60.2, "lock": false, "ok": false}
+{"t": 19.62, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 20.12, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 2}
+{"t": 20.13, "ev": "align", "zone": "firebomb-probe", "src": "attacker", "fight": false, "npc": 254012, "d": 19.92, "dy": 6.04, "body": -139.5, "cam": -68.6, "lock": false, "ok": false}
+{"t": 20.63, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 2}
+{"t": 20.64, "ev": "align", "zone": "firebomb-probe", "src": "attacker", "fight": false, "npc": 255002, "d": 4.47, "dy": 0.19, "body": -3.4, "cam": 29.1, "lock": false, "ok": true}
+{"t": 21.15, "ev": "align", "zone": "firebomb-probe", "src": "attacker", "fight": false, "npc": 255002, "d": 4.47, "dy": 0.19, "body": -2.7, "cam": 1.5, "lock": false, "ok": true}
+{"t": 21.15, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 2}
+{"t": 21.66, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 2}
+{"t": 21.66, "ev": "align", "zone": "firebomb-probe", "src": "attacker", "fight": false, "npc": 255002, "d": 4.54, "dy": 0.19, "body": -2.8, "cam": 0.4, "lock": true, "ok": true}
+{"t": 22.17, "ev": "vital", "zone": "firebomb-probe", "hp": 671, "max": 742, "near": 2}
+{"t": 22.19, "ev": "align", "zone": "firebomb-probe", "src": "attacker", "fight": false, "npc": 255002, "d": 4.7, "dy": 0.21, "body": 0.2, "cam": 0.3, "lock": true, "ok": true}
+{"t": 22.48, "ev": "guard_keep", "zone": "firebomb-probe", "until": 1.08}
+{"t": 22.68, "ev": "vital", "zone": "firebomb-probe", "hp": 671, "max": 742, "near": 2}
+{"t": 22.73, "ev": "align", "zone": "firebomb-probe", "src": "attacker", "fight": false, "npc": 254010, "d": 1.67, "dy": -0.03, "body": 127.2, "cam": 127.3, "lock": false, "ok": false}
+{"t": 23.19, "ev": "vital", "zone": "firebomb-probe", "hp": 613, "max": 742, "near": 2}
+{"t": 23.27, "ev": "align", "zone": "firebomb-probe", "src": "attacker", "fight": false, "npc": 254010, "d": 1.14, "dy": -0.05, "body": 139.6, "cam": 139.7, "lock": false, "ok": false}
+{"t": 23.7, "ev": "vital", "zone": "firebomb-probe", "hp": 613, "max": 742, "near": 2}
+{"t": 23.79, "ev": "align", "zone": "firebomb-probe", "src": "attacker", "fight": false, "npc": 254010, "d": 1.49, "dy": -0.05, "body": 135.3, "cam": 132.8, "lock": false, "ok": false}
+{"t": 24.01, "ev": "guard_keep", "zone": "firebomb-probe", "until": 0.75}
+{"t": 24.2, "ev": "vital", "zone": "firebomb-probe", "hp": 613, "max": 742, "near": 2}
+{"t": 24.32, "ev": "align", "zone": "firebomb-probe", "src": "attacker", "fight": false, "npc": 254010, "d": 0.91, "dy": -0.05, "body": 139.2, "cam": 136.5, "lock": false, "ok": false}
+{"t": 24.71, "ev": "vital", "zone": "firebomb-probe", "hp": 551, "max": 742, "near": 2}
+{"t": 24.84, "ev": "firebomb_probe", "zone": "firebomb-probe", "d": 5.0, "stood": 4.94, "result": "not_thrown", "locked": true, "hit": 0, "target_woke": true, "others_woke": [[254010, 4.5]], "left": 44, "why": "안 던져짐 (개수 그대로)"}
+{"t": 24.87, "ev": "align", "zone": "firebomb-probe", "src": "attacker", "fight": false, "npc": 254010, "d": 1.06, "dy": -0.05, "body": 136.9, "cam": 130.8, "lock": false, "ok": false}
+{"t": 25.21, "ev": "vital", "zone": "firebomb-probe", "hp": 472, "max": 742, "near": 2}
+{"t": 25.5, "ev": "align", "zone": "firebomb-probe", "src": "fight", "fight": true, "npc": 254010, "d": 0.85, "dy": -0.04, "body": 131.7, "cam": 48.6, "lock": false, "ok": false}
+{"t": 25.64, "ev": "guard_keep", "zone": "firebomb-probe", "until": 0.32}
+{"t": 25.72, "ev": "vital", "zone": "firebomb-probe", "hp": 421, "max": 742, "near": 2}
+{"t": 26.01, "ev": "align", "zone": "firebomb-probe", "src": "fight", "fight": true, "npc": 254010, "d": 0.97, "dy": -0.05, "body": 138.9, "cam": 15.4, "lock": false, "ok": false}
+{"t": 26.23, "ev": "vital", "zone": "firebomb-probe", "hp": 421, "max": 742, "near": 2}
+{"t": 26.54, "ev": "align", "zone": "firebomb-probe", "src": "fight", "fight": true, "npc": 254010, "d": 0.93, "dy": -0.05, "body": 138.6, "cam": 125.1, "lock": false, "ok": false}
+{"t": 26.74, "ev": "vital", "zone": "firebomb-probe", "hp": 421, "max": 742, "near": 2}
+{"t": 27.06, "ev": "align", "zone": "firebomb-probe", "src": "fight", "fight": true, "npc": 254010, "d": 0.86, "dy": -0.04, "body": 138.6, "cam": 96.3, "lock": false, "ok": false}
+{"t": 27.16, "ev": "hit", "zone": "firebomb-probe", "n": 1, "lost": 321, "hp": 421, "max": 742, "secs": 3.68, "blame": [{"npc": 255002, "ptr": 467500064, "anim": 3000, "d": 4.47, "dy": 0.19, "face": 0}]}
+{"t": 27.24, "ev": "vital", "zone": "firebomb-probe", "hp": 421, "max": 742, "near": 2}
+{"t": 27.54, "ev": "guard_keep", "zone": "firebomb-probe", "until": 1.3}
+{"t": 27.59, "ev": "align", "zone": "firebomb-probe", "src": "fight", "fight": true, "npc": 254010, "d": 0.92, "dy": -0.05, "body": 134.2, "cam": 45.4, "lock": false, "ok": false}
+{"t": 27.75, "ev": "vital", "zone": "firebomb-probe", "hp": 421, "max": 742, "near": 2}
+{"t": 28.1, "ev": "align", "zone": "firebomb-probe", "src": "fight", "fight": true, "npc": 254010, "d": 0.95, "dy": -0.04, "body": 126.6, "cam": 106.8, "lock": false, "ok": false}
+{"t": 28.27, "ev": "vital", "zone": "firebomb-probe", "hp": 421, "max": 742, "near": 2}
+{"t": 28.61, "ev": "align", "zone": "firebomb-probe", "src": "fight", "fight": true, "npc": 254010, "d": 0.85, "dy": -0.04, "body": 116.4, "cam": 113.5, "lock": false, "ok": false}
+{"t": 28.77, "ev": "vital", "zone": "firebomb-probe", "hp": 375, "max": 742, "near": 2}
+{"t": 29.12, "ev": "align", "zone": "firebomb-probe", "src": "fight", "fight": true, "npc": 254010, "d": 0.85, "dy": -0.05, "body": 136.4, "cam": 95.8, "lock": false, "ok": false}
+{"t": 29.28, "ev": "vital", "zone": "firebomb-probe", "hp": 329, "max": 742, "near": 2}
+{"t": 29.64, "ev": "align", "zone": "firebomb-probe", "src": "fight", "fight": true, "npc": 254010, "d": 0.94, "dy": -0.05, "body": 172.5, "cam": 76.2, "lock": false, "ok": false}
+{"t": 29.79, "ev": "vital", "zone": "firebomb-probe", "hp": 237, "max": 742, "near": 2}
+{"t": 30.16, "ev": "align", "zone": "firebomb-probe", "src": "fight", "fight": true, "npc": 254010, "d": 1.2, "dy": -0.13, "body": -172.9, "cam": 43.4, "lock": false, "ok": false}
+{"t": 30.3, "ev": "vital", "zone": "firebomb-probe", "hp": 145, "max": 742, "near": 2}
+{"t": 30.68, "ev": "align", "zone": "firebomb-probe", "src": "fight", "fight": true, "npc": 254010, "d": 1.81, "dy": -0.14, "body": -167.4, "cam": 8.5, "lock": false, "ok": false}
+{"t": 30.81, "ev": "vital", "zone": "firebomb-probe", "hp": 75, "max": 742, "near": 2}
+{"t": 31.2, "ev": "align", "zone": "firebomb-probe", "src": "fight", "fight": true, "npc": 254010, "d": 1.95, "dy": -0.15, "body": -171.8, "cam": -157.0, "lock": false, "ok": false}
+{"t": 31.31, "ev": "vital", "zone": "firebomb-probe", "hp": 75, "max": 742, "near": 2}
+{"t": 31.72, "ev": "align", "zone": "firebomb-probe", "src": "fight", "fight": true, "npc": 254010, "d": 1.97, "dy": -0.15, "body": -174.2, "cam": -121.8, "lock": false, "ok": false}
+{"t": 31.82, "ev": "vital", "zone": "firebomb-probe", "hp": 75, "max": 742, "near": 2}
+{"t": 32.22, "ev": "align", "zone": "firebomb-probe", "src": "fight", "fight": true, "npc": 254010, "d": 1.72, "dy": -0.14, "body": -171.7, "cam": -77.3, "lock": false, "ok": false}
+{"t": 32.26, "ev": "hit", "zone": "firebomb-probe", "n": 2, "lost": 346, "hp": 75, "max": 742, "secs": 2.14, "blame": [{"npc": 254010, "ptr": 467260448, "anim": 3010, "d": 0.85, "dy": -0.04, "face": 3}, {"npc": 255002, "ptr": 467500064, "anim": 3001, "d": 4.18, "dy": 0.16, "face": 0}]}
+{"t": 32.33, "ev": "vital", "zone": "firebomb-probe", "hp": 75, "max": 742, "near": 2}
+{"t": 32.74, "ev": "align", "zone": "firebomb-probe", "src": "fight", "fight": true, "npc": 254010, "d": 1.3, "dy": -0.08, "body": -168.4, "cam": -16.6, "lock": false, "ok": false}
+{"t": 32.84, "ev": "vital", "zone": "firebomb-probe", "hp": 25, "max": 742, "near": 2}
+{"t": 33.27, "ev": "align", "zone": "firebomb-probe", "src": "fight", "fight": true, "npc": 254010, "d": 1.07, "dy": 0.03, "body": -171.4, "cam": 2.5, "lock": false, "ok": false}
+{"t": 33.35, "ev": "vital", "zone": "firebomb-probe", "hp": 0, "max": 742, "near": 2}
+{"t": 33.41, "ev": "death_seen", "zone": "firebomb-probe", "hp": 0, "max_hp": 742, "anim": 6020, "pos": [-11.55, -9.85, -71.32]}
+{"t": 33.78, "ev": "align", "zone": "firebomb-probe", "src": "fight", "fight": true, "npc": 254010, "d": 0.9, "dy": 0.02, "body": -175.7, "cam": -1.8, "lock": false, "ok": false}
+{"t": 33.86, "ev": "vital", "zone": "firebomb-probe", "hp": 0, "max": 742, "near": 2}
+{"t": 34.03, "ev": "duel", "zone": "firebomb-probe", "tag": "화염병 5 m 뒤 254010", "npc": 254010, "result": "me_dead", "secs": 8.8, "dealt": 0, "taken": 472, "fight": "20261013_031007_firebomb-probe#f001"}
+{"t": 34.3, "ev": "align", "zone": "firebomb-probe", "src": "attacker", "fight": false, "npc": 254010, "d": 0.99, "dy": 0.03, "body": -168.0, "cam": 5.9, "lock": false, "ok": false}
+{"t": 34.37, "ev": "vital", "zone": "firebomb-probe", "hp": 0, "max": 742, "near": 2}
+{"t": 34.85, "ev": "align", "zone": "firebomb-probe", "src": "attacker", "fight": false, "npc": 254010, "d": 1.13, "dy": 0.02, "body": -176.5, "cam": -2.6, "lock": false, "ok": false}
+{"t": 34.85, "ev": "hit", "zone": "firebomb-probe", "n": 3, "lost": 75, "hp": 0, "max": 742, "secs": 0.86, "blame": [{"npc": 254010, "ptr": 467260448, "anim": 3010, "d": 1.42, "dy": -0.12, "face": 0}, {"npc": 255002, "ptr": 467500064, "anim": 3000, "d": 2.6, "dy": 0.04, "face": 0}]}
+{"t": 34.87, "ev": "vital", "zone": "firebomb-probe", "hp": 0, "max": 742, "near": 2}
+{"t": 35.37, "ev": "align", "zone": "firebomb-probe", "src": "attacker", "fight": false, "npc": 254010, "d": 1.14, "dy": 0.02, "body": -179.1, "cam": -5.3, "lock": false, "ok": false}
+{"t": 35.37, "ev": "vital", "zone": "firebomb-probe", "hp": 0, "max": 742, "near": 2}
+{"t": 35.87, "ev": "vital", "zone": "firebomb-probe", "hp": 0, "max": 742, "near": 2}
+{"t": 35.93, "ev": "align", "zone": "firebomb-probe", "src": "attacker", "fight": false, "npc": 254010, "d": 0.85, "dy": 0.02, "body": -174.3, "cam": -0.4, "lock": false, "ok": false}
+{"t": 36.37, "ev": "vital", "zone": "firebomb-probe", "hp": 0, "max": 742, "near": 2}
+{"t": 36.6, "ev": "align", "zone": "firebomb-probe", "src": "attacker", "fight": false, "npc": 254010, "d": 0.85, "dy": 0.03, "body": -167.6, "cam": -4.0, "lock": false, "ok": false}
+{"t": 36.89, "ev": "vital", "zone": "firebomb-probe", "hp": 0, "max": 742, "near": 2}
+{"t": 37.1, "ev": "align", "zone": "firebomb-probe", "src": "attacker", "fight": false, "npc": 254010, "d": 0.85, "dy": 0.03, "body": -162.3, "cam": 1.3, "lock": false, "ok": false}
+{"t": 37.4, "ev": "vital", "zone": "firebomb-probe", "hp": 0, "max": 742, "near": 2}
+{"t": 37.63, "ev": "align", "zone": "firebomb-probe", "src": "attacker", "fight": false, "npc": 254010, "d": 0.85, "dy": 0.03, "body": -157.5, "cam": 6.2, "lock": false, "ok": false}
+{"t": 37.9, "ev": "vital", "zone": "firebomb-probe", "hp": 0, "max": 742, "near": 2}
+{"t": 38.18, "ev": "align", "zone": "firebomb-probe", "src": "attacker", "fight": false, "npc": 254010, "d": 0.93, "dy": 0.03, "body": -165.2, "cam": -1.5, "lock": false, "ok": false}
+{"t": 38.41, "ev": "vital", "zone": "firebomb-probe", "hp": 0, "max": 742, "near": 2}
+{"t": 38.71, "ev": "align", "zone": "firebomb-probe", "src": "last", "fight": false, "npc": 254010, "d": 1.0, "dy": 0.03, "body": -169.6, "cam": -5.9, "lock": false, "ok": false}
+{"t": 38.92, "ev": "vital", "zone": "firebomb-probe", "hp": 0, "max": 742, "near": 2}
+{"t": 39.24, "ev": "align", "zone": "firebomb-probe", "src": "last", "fight": false, "npc": 254010, "d": 1.0, "dy": 0.03, "body": -169.6, "cam": -5.9, "lock": false, "ok": false}
+{"t": 39.43, "ev": "vital", "zone": "firebomb-probe", "hp": 0, "max": 742, "near": 2}
+{"t": 39.75, "ev": "align", "zone": "firebomb-probe", "src": "last", "fight": false, "npc": 254010, "d": 1.0, "dy": 0.03, "body": -169.6, "cam": -5.9, "lock": false, "ok": false}
+{"t": 39.93, "ev": "vital", "zone": "firebomb-probe", "hp": 0, "max": 742, "near": 2}
+{"t": 40.26, "ev": "align", "zone": "firebomb-probe", "src": "last", "fight": false, "npc": 254010, "d": 1.0, "dy": 0.03, "body": -169.6, "cam": -5.9, "lock": false, "ok": false}
+{"t": 40.44, "ev": "vital", "zone": "firebomb-probe", "hp": 0, "max": 742, "near": 2}
+{"t": 40.78, "ev": "align", "zone": "firebomb-probe", "src": "last", "fight": false, "npc": 254010, "d": 1.0, "dy": 0.03, "body": -169.6, "cam": -5.9, "lock": false, "ok": false}
+{"t": 40.95, "ev": "vital", "zone": "firebomb-probe", "hp": 0, "max": 742, "near": 2}
+{"t": 41.33, "ev": "align", "zone": "firebomb-probe", "src": "last", "fight": false, "npc": 254010, "d": 1.0, "dy": 0.03, "body": -169.6, "cam": -5.9, "lock": false, "ok": false}
+{"t": 41.46, "ev": "vital", "zone": "firebomb-probe", "hp": 0, "max": 742, "near": 2}
+{"t": 41.85, "ev": "align", "zone": "firebomb-probe", "src": "last", "fight": false, "npc": 254010, "d": 1.0, "dy": 0.03, "body": -169.6, "cam": -5.9, "lock": false, "ok": false}
+{"t": 41.96, "ev": "vital", "zone": "firebomb-probe", "hp": 0, "max": 742, "near": 2}
+{"t": 42.37, "ev": "align", "zone": "firebomb-probe", "src": "last", "fight": false, "npc": 254010, "d": 1.0, "dy": 0.03, "body": -169.6, "cam": -5.9, "lock": false, "ok": false}
+{"t": 42.47, "ev": "vital", "zone": "firebomb-probe", "hp": 0, "max": 742, "near": 2}
+{"t": 42.89, "ev": "align", "zone": "firebomb-probe", "src": "last", "fight": false, "npc": 254010, "d": 1.0, "dy": 0.03, "body": -169.6, "cam": -5.9, "lock": false, "ok": false}
+{"t": 42.98, "ev": "vital", "zone": "firebomb-probe", "hp": 0, "max": 742, "near": 2}
+{"t": 44.3, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 44.46, "ev": "death", "pos": [-11.55, -9.85, -71.32], "souls": 2718, "humanity": 1, "zone": "firebomb-probe", "escape": "idle", "since_fall_s": null, "cause": "hit", "lost_hit": 75, "lost_fall": 0, "drop_m": null, "blame": [{"npc": 254010, "ptr": 467260448, "anim": 3010, "d": 1.42, "dy": -0.12, "face": 0}, {"npc": 255002, "ptr": 467500064, "anim": 3000, "d": 2.6, "dy": 0.04, "face": 0}], "hit_n": 3}
+{"t": 44.8, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 45.31, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 45.81, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 46.32, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 46.84, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 47.35, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 47.87, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 48.38, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 48.89, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 49.39, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 49.9, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 50.41, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 50.93, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 51.43, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 51.94, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 52.45, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 52.96, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 53.48, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 53.99, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 54.5, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 55.02, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 55.53, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 56.03, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 0}
+{"t": 56.54, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 1}
+{"t": 57.05, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 1}
+{"t": 57.15, "ev": "align", "zone": "firebomb-probe", "src": "attacker", "fight": false, "npc": 254010, "d": 4.64, "dy": -1.5, "body": 97.7, "cam": 99.2, "lock": false, "ok": false}
+{"t": 57.56, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 1}
+{"t": 57.66, "ev": "guard_keep", "zone": "firebomb-probe", "until": 0.79}
+{"t": 57.69, "ev": "align", "zone": "firebomb-probe", "src": "attacker", "fight": false, "npc": 254010, "d": 2.07, "dy": 0.06, "body": 49.1, "cam": 68.1, "lock": false, "ok": false}
+{"t": 58.06, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 1}
+{"t": 58.22, "ev": "align", "zone": "firebomb-probe", "src": "last", "fight": false, "npc": 254010, "d": 2.13, "dy": 0.0, "body": 52.3, "cam": 57.5, "lock": false, "ok": false}
+{"t": 58.57, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 1}
+{"t": 58.74, "ev": "align", "zone": "firebomb-probe", "src": "last", "fight": false, "npc": 254010, "d": 2.23, "dy": 0.02, "body": 52.1, "cam": 0.9, "lock": true, "ok": true}
+{"t": 59.08, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 1}
+{"t": 59.27, "ev": "align", "zone": "firebomb-probe", "src": "last", "fight": false, "npc": 254010, "d": 2.16, "dy": 0.0, "body": 56.3, "cam": 27.5, "lock": false, "ok": false}
+{"t": 59.48, "ev": "guard_keep", "zone": "firebomb-probe", "until": 1.3}
+{"t": 59.59, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 1}
+{"t": 59.79, "ev": "align", "zone": "firebomb-probe", "src": "attacker", "fight": false, "npc": 254010, "d": 1.95, "dy": 0.0, "body": 54.9, "cam": 23.2, "lock": true, "ok": true}
+{"t": 60.1, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 1}
+{"t": 60.3, "ev": "align", "zone": "firebomb-probe", "src": "attacker", "fight": false, "npc": 254010, "d": 1.15, "dy": 0.0, "body": 59.9, "cam": 2.6, "lock": false, "ok": false}
+{"t": 60.61, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 1}
+{"t": 60.82, "ev": "align", "zone": "firebomb-probe", "src": "last", "fight": false, "npc": 254010, "d": 2.14, "dy": 0.0, "body": 57.2, "cam": 47.4, "lock": false, "ok": false}
+{"t": 61.13, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 1}
+{"t": 61.36, "ev": "align", "zone": "firebomb-probe", "src": "last", "fight": false, "npc": 254010, "d": 2.18, "dy": 0.0, "body": 58.8, "cam": 0.9, "lock": true, "ok": true}
+{"t": 61.56, "ev": "firebomb_probe", "zone": "firebomb-probe", "d": 7.0, "stood": 6.92, "result": "not_thrown", "locked": false, "hit": null, "target_woke": null, "others_woke": [[254010, 4.5]], "left": null, "why": "락온 안 걸림 — 안 던짐 (락온 없는 나이프는 오늘 0/5) · R3 때 몸 3° 카메라 -3° 높이 0.2 m"}
+{"t": 61.65, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 1}
+{"t": 61.88, "ev": "align", "zone": "firebomb-probe", "src": "last", "fight": false, "npc": 254010, "d": 2.09, "dy": 0.0, "body": 63.1, "cam": 5.1, "lock": false, "ok": false}
+{"t": 62.16, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 1}
+{"t": 62.39, "ev": "align", "zone": "firebomb-probe", "src": "fight", "fight": true, "npc": 254010, "d": 2.11, "dy": 0.0, "body": -4.2, "cam": -2.7, "lock": true, "ok": true}
+{"t": 62.67, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 1}
+{"t": 62.97, "ev": "align", "zone": "firebomb-probe", "src": "fight", "fight": true, "npc": 254010, "d": 1.88, "dy": 0.0, "body": -3.3, "cam": -1.7, "lock": true, "ok": true}
+{"t": 63.18, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 1}
+{"t": 63.5, "ev": "align", "zone": "firebomb-probe", "src": "fight", "fight": true, "npc": 254010, "d": 2.37, "dy": 0.0, "body": 1.1, "cam": -2.8, "lock": true, "ok": true}
+{"t": 63.69, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 1}
+{"t": 64.03, "ev": "align", "zone": "firebomb-probe", "src": "fight", "fight": true, "npc": 254010, "d": 2.62, "dy": 0.06, "body": -1.9, "cam": -4.4, "lock": true, "ok": true}
+{"t": 64.19, "ev": "vital", "zone": "firebomb-probe", "hp": 742, "max": 742, "near": 1}
+{"t": 64.39, "ev": "attack_align", "zone": "firebomb-probe", "kind": "light", "dmg": 75, "npc": 254010, "d": 1.59, "dy": 0.0, "body": 1.5, "cam": -2.9, "lock": true, "ok": true}
+{"t": 64.54, "ev": "duel", "zone": "firebomb-probe", "tag": "화염병 7 m 뒤 254010", "npc": 254010, "result": "killed", "secs": 2.6, "dealt": 75, "taken": 0, "fight": "20261013_031007_firebomb-probe#f002"}
+{"t": 64.55, "ev": "result", "cmd": "firebomb-probe", "result": "done"}

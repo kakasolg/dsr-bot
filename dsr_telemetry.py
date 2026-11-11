@@ -57,6 +57,7 @@ try:
 except ImportError:
     pymem = None
 
+import ctlspan
 from telemetry import Chr, Snapshot   # same shape as Elden Ring → nav/patrol use it as-is
 
 AOBS = {
@@ -228,6 +229,7 @@ class DSRTelemetry:
         return math.atan2(fx, fz)
 
     def snapshot(self, within: float = 60.0) -> Optional[Snapshot]:
+        ctlspan.snap_read()                             # counts it if a duel cycle is open on this thread (record only)
         pp = self.player_ptr()
         if not pp:
             return None
@@ -286,6 +288,32 @@ class DSRTelemetry:
         pp = self.player_ptr()
         return self.i32(pp + OFF_LOCK_TARGET) if pp else None
 
+    def anim_time(self, p: int) -> Optional[float]:
+        """Play time (s) of the character's most recently started animation — the game's own clock for the current anim.
+        Path from DS1 Overhaul's PlayerInsStruct.h, checked in game 10-19 (docs/rea.md 3차): ChrIns +0x68 ChrCtrl → +0x18 anim
+        queue (+0x0 count, +0x8 entries of 0x78) → entry +0x8 FrpgDefaultAnimationControl: +0x10 time, +0x14 blend weight.
+        A new anim starts another entry at one frame (0.017) while the old one fades out, so the newest = the smallest time
+        among entries with weight > 0. Looping anims (idle) wrap to 0."""
+        ctrl = self.q(p + OFF_MAPDATA) if p else None
+        q = self.q(ctrl + 0x18) if ctrl else None
+        n, arr = (self.i32(q), self.q(q + 0x8)) if q else (None, None)
+        if not (arr and n and 0 < n <= 32):
+            return None
+        best = None
+        for i in range(n):
+            c = self.q(arr + i * 0x78 + 0x8)
+            w = self.f32(c + 0x14) if c else None
+            t = self.f32(c + 0x10) if w else None
+            if w and w > 0.01 and t is not None and (best is None or t < best):
+                best = t
+        return best
+
+    def hitbox(self, p: int) -> Optional[int]:
+        """ChrIns +0x2E0 (int32): −1 off, another value (per attack) while the attack hitbox of AttackIndex 0 is live.
+        Found 10-19 (docs/tae-verify.md B-19, hit_flag_scan): on from TAE start + 1 frame to TAE end + 1 frame, 7 hollow
+        attacks + one type-5 event; c2540 only. NOT set for AttackIndex 1 / 2 windows (3010 windows 2–6)."""
+        return self.i32(p + 0x2E0) if p else None
+
     def last_grace(self) -> Optional[int]:
         return self.last_bonfire()
 
@@ -300,6 +328,21 @@ class DSRTelemetry:
         except pymem.exception.PymemError:
             return False
         return flag == 1 and a is not None and 7700 <= a < 7800 and a % 10 == 1   # 7720 = sitting down (flag 0), 77x1 = seated (7701/7711/7721)
+
+    def sitting_state(self) -> Optional[bool]:
+        """sitting() with unknown kept apart: True · False · None (no player pointer or a read failed).
+        sitting() itself stays as is — it returns False for unknown and its callers rely on that."""
+        pp = self.player_ptr()
+        if not pp:
+            return None
+        a = self.i32(pp + OFF_ANIM2)
+        if a is None:
+            return None
+        try:
+            flag = self.pm.read_uchar(pp + OFF_ANIM2 + 4)
+        except pymem.exception.PymemError:
+            return None
+        return flag == 1 and 7700 <= a < 7800 and a % 10 == 1
 
     def face(self, pad, heading: float, tries: int = 5, tol: float = 0.25) -> bool:
         """Turn the character to heading (+0x4 angle, measured world yaw = heading + π) — rotate in place with short stick taps.
@@ -528,8 +571,13 @@ class DSRTelemetry:
         return self.i32(w + OFF_LASTBONFIRE) if w else None
 
     # ── writes (for resets) ──
-    # ChrDbg byte flags (DSR-Gadget order — +0x1 PlayerExterminate confirmed by measurement with kill_player)
-    DBG_PLAYER_NO_DEAD, DBG_PLAYER_HIDE, DBG_ALL_NO_DAMAGE = 0x0, 0x6, 0x9
+    # ChrDbg byte flags. Names = the game's own "CHR DBG" debug-menu labels, read from a memory dump (rea-trial round 2,
+    # 2026-10-16); +0x0 / +0x1 also measured in play. +0xE has no label. Writes are for offline use only.
+    DBG_PLAYER_NO_DEAD, DBG_PLAYER_EXTERMINATE = 0x0, 0x1
+    DBG_ALL_NO_STAMINA_CONSUME, DBG_ALL_NO_MP_CONSUME, DBG_ALL_NO_ARROW_CONSUME, DBG_ALL_NO_MAGIC_QTY_CONSUME = 0x2, 0x3, 0x4, 0x5
+    DBG_PLAYER_HIDE, DBG_PLAYER_SILENCE = 0x6, 0x7
+    DBG_ALL_NO_DEAD, DBG_ALL_NO_DAMAGE, DBG_ALL_NO_HIT, DBG_ALL_NO_ATTACK = 0x8, 0x9, 0xA, 0xB
+    DBG_ALL_NO_MOVE, DBG_ALL_NO_UPDATE_AI, DBG_ALL_QUIET = 0xC, 0xD, 0xF
 
     def set_dbg(self, off: int, on: bool) -> None:
         """Turn a debug flag on/off (offline only). User: "make the character invincible and have it climb up in that state"."""
@@ -540,7 +588,7 @@ class DSRTelemetry:
 
     def kill_player(self) -> None:
         """ChrDbg.PlayerExterminate — turn on, then off after confirming death (if left on, it dies again right after respawning)."""
-        a = self.static["ChrDbg"] + 0x1
+        a = self.static["ChrDbg"] + self.DBG_PLAYER_EXTERMINATE
         self.pm.write_uchar(a, 1)
         for _ in range(40):
             time.sleep(0.1)

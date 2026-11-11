@@ -48,19 +48,20 @@ def run_walk(path, fog_ok=True, me=ME):
 
 
 def test_walk_crosses_once() -> None:
-    r, calls, logs = run_walk([BEYOND, (-49.0, -21.8, -36.0)], me=(-50.1, -22.7, -31.2))   # already at the wall
+    r, calls, logs = run_walk([BEYOND, (-49.0, -21.8, -36.0)], me=(-49.95, -22.0, -32.6))  # already at the wall
     assert r == "arrived" and [c[0] for c in calls] == ["fog", "go", "go"], calls
     assert calls[0][2] is True, calls[0]                                     # known wall: A without the prompt check
     assert any("안개벽" in l and "통과" in l for l in logs), logs[-3:]
     r, calls, logs = run_walk([BEYOND], me=(-50.4, -22.7, -26.0))           # 6 m back: walk to the front spot first
     assert [c[0] for c in calls] == ["front", "fog", "go"], calls
     front = calls[0][1]
-    assert 0.4 < ((front[0] - F.FOG_WALLS[0][0]) ** 2 + (front[2] - F.FOG_WALLS[0][2]) ** 2) ** 0.5 < 0.8 and front[2] > F.FOG_WALLS[0][2], front
+    c = F.FOG_WALLS[0]
+    assert 0.4 < ((front[0] - c[0]) ** 2 + (front[2] - c[2]) ** 2) ** 0.5 < 0.8 and front[2] > c[2], front
     print("ok  walk: at the wall → fog_through once; farther back → walk to the spot before the wall first; then the points as before")
 
 
 def test_no_wall_left_walks_on() -> None:
-    r, calls, logs = run_walk([BEYOND], fog_ok=False, me=(-50.1, -22.7, -31.2))   # A did nothing (wall gone) → just walk on
+    r, calls, logs = run_walk([BEYOND], fog_ok=False, me=(-49.95, -22.0, -32.6))   # A did nothing (wall gone) → just walk on
     assert r == "arrived" and [c[0] for c in calls] == ["fog", "go"], calls
     assert any("못 지나감" in l for l in logs), logs[-3:]
     print("ok  no wall any more → one try, then the walk carries on")
@@ -101,10 +102,82 @@ def test_known_wall_presses_without_prompt() -> None:
     print("ok  fog_through: known wall → A without the prompt and passes; unknown wall without a prompt → no A")
 
 
+def test_known_wall_turns_before_a() -> None:
+    import math
+    import screen_prompt as L
+    old = L.prompt_px
+    L.prompt_px = lambda: 0
+    sleep = F.time.sleep
+    F.time.sleep = lambda s: None
+    try:
+        f = make_field(World(player=(-50.1, -22.7, -31.2)))               # facing +z: the wall (−z) is 180° behind (161915: 89–111°)
+        order = []
+        f.mv.stick_to = lambda s, x, z, scale: (0.0, scale)
+
+        def move(x, y, f=f):
+            if y == 0.55:                                                     # the turn stick: body now faces the next point
+                p = f.mv.w.player
+                p.heading = math.atan2(BEYOND[0] - p.x, BEYOND[2] - p.z) - math.pi
+                order.append("turn")
+        f.mv.pad.move = move
+        f.mv.press = lambda b, hold=0.1, gap=0.1: order.append("A")
+        f.fog_through(BEYOND, known=True)
+        assert order[:2] == ["turn", "A"], order
+        assert any("누를 때 몸 +0°" in l or "누를 때 몸 -0°" in l for l in f.logs), f.logs[-2:]
+    finally:
+        L.prompt_px = old
+        F.time.sleep = sleep
+    print("ok  fog_through: known wall 180° behind → turn until facing the next point, then A (the log says the angle at A)")
+
+
+def test_fog_flag() -> None:
+    import types
+    seen = {}
+    for flag, want in ((True, ["go"]), (False, ["fog", "go"]), (None, ["fog", "go"])):
+        f = make_field(World(player=(-49.95, -22.0, -32.6)))
+        f.mv.tm = types.SimpleNamespace(event_flag=lambda fid, v=flag: seen.setdefault("fid", fid) and v)
+        calls = []
+        f.fog_through = lambda toward, known=False: calls.append("fog") or True
+        f.walk = lambda pts, nm, tag, **k: calls.append("front") or "arrived"
+        f._follow = lambda q, *a, **k: calls.append("go") or "arrived"
+        assert F.Field._walk(f, [BEYOND], Nm(), "#4 이동") == "arrived"
+        assert calls == want, (flag, calls)
+        assert any("플래그 11010090" in l for l in f.logs), f.logs[-3:]
+    assert seen["fid"] == 11010090
+    print("ok  fog flag 11010090: True (passed) → walk on without A; False / unreadable → stand at the wall and A as before")
+
+
+def test_door_retry() -> None:
+    import types
+    door = F.DOORS[0]
+    for r, at, state, want_a in (("stuck", door, False, True), ("timeout", door, False, True), ("stuck", door, None, True),
+                                 ("stuck", door, True, False), ("arrived", door, False, False), ("stuck", (0.0, -6.0, 0.0), False, False)):
+        f = make_field(World(player=at))
+        f.mv.tm = types.SimpleNamespace(event_flag=lambda fid, v=state: v if fid == 61010510 else True)
+        presses = []
+        f.mv.pad.interact = lambda: presses.append("A")
+        sleep = F.time.sleep
+        F.time.sleep = lambda s: None
+        try:
+            out = F.Field._door_retry(f, r, (24.1, -5.7, -99.0), "t", lambda: "arrived")
+        finally:
+            F.time.sleep = sleep
+        assert (presses == ["A"]) is want_a and out == ("arrived" if want_a else r), (r, at, state, presses, out)
+    f = make_field(World(player=door))
+    f.mv.tm = types.SimpleNamespace(event_flag=lambda fid: fid == 11010140)
+    assert F.Field.door_flags(f, door) == {11010140: True, 61010510: False}
+    assert F.Field.door_open(f, door) is False and F.Field.door_open(f, (0.0, 0.0, 0.0)) is None
+    print("ok  door: walk back stuck next to a shut door (state flag False / unreadable) → A once, walk again; "
+          "open (True) → no A (A shuts it, 11-01); arrived or no door → nothing")
+
+
 if __name__ == "__main__":
     test_geometry()
     test_walk_crosses_once()
     test_no_wall_left_walks_on()
     test_walk_elsewhere_untouched()
     test_known_wall_presses_without_prompt()
+    test_known_wall_turns_before_a()
+    test_fog_flag()
+    test_door_retry()
     print("전부 통과")

@@ -46,7 +46,7 @@ def setup(h=1.2, shield=False, others=(), aimed=True, sp=98):
             light=lambda s_, c_, n=1, sp_second=None: calls.append(("light", n)) or M.Hit("light", presses=n, dmg=75, dead=True),
             kick_combo=lambda s_, c_, n=1: calls.append(("kick", n)) or M.Hit("kick+light", presses=n + 1, dmg=85, dead=True),
             guard=lambda on: calls.append(("guard", on)))
-    F = NS(weapon=weapons.BATTLE_AXE, ptr=7, foe=NS(kick_when_idle=shield), mv=mv, reflex=NS(_start={7: time.time() - 0.9}),
+    F = NS(flags=D.Flags(), weapon=weapons.BATTLE_AXE, ptr=7, foe=NS(kick_when_idle=shield), mv=mv, reflex=NS(_start={7: time.time() - 0.9}),
            record=lambda hit: None, note=lambda *a: None, log=lambda *a: None, killed_if=lambda dead: "killed" if dead else D.CONT)
     T = NS(a=3003, age=0.9, now=time.time(), h=h, dy=0.0, p=player, c=foe, s=s)
     return F, T, foe, calls

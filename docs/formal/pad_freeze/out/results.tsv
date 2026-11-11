@@ -1,0 +1,201 @@
+name	variant	script	maxops	nguard	nhold	prop	verdict	completed	generated	distinct	depth	trace
+current_quit_m3_S1_MenuClean	current	quit	3	True	False	S1_MenuClean	VIOLATED	False	3952	1667	9	5
+current_quit_m3_S1b_MenuNoB	current	quit	3	True	False	S1b_MenuNoB	VIOLATED	False	3108	1369	8	4
+current_quit_m3_S3_Handoff	current	quit	3	True	False	S3_Handoff	HOLDS	True	3526375	637758	21	
+current_quit_m3_S4_ReSprint	current	quit	3	True	False	S4_ReSprint	VIOLATED	False	9261	3384	9	6
+current_quit_m3_S4_ReGuard	current	quit	3	True	False	S4_ReGuard	HOLDS	True	3526375	637758	21	
+current_quit_m3_S5_StaleNoKill	current	quit	3	True	False	S5_StaleNoKill	HOLDS	True	3526375	637758	21	
+current_quit_m3_S6_NoOrphanLB	current	quit	3	True	False	S6_NoOrphanLB	VIOLATED	False	10800	3853	8	7
+current_quit_m3_noguard_S6_NoOrphanLB	current	quit	3	False	False	S6_NoOrphanLB	VIOLATED	False	8648	3018	9	6
+current_quit_m3_noguard_S6_post	current	quit	3	False	False	S6_post	VIOLATED	False	45710	13422	10	10
+current_tapper_m3_S2_NoOrphanA	current	tapper	3	True	False	S2_NoOrphanA	VIOLATED	False	4694	1894	7	5
+current_tapper_m3_S5_StaleNoKill	current	tapper	3	True	False	S5_StaleNoKill	HOLDS	True	3922782	694660	21	
+current_quit_m4_S1_MenuClean	current	quit	4	True	False	S1_MenuClean	VIOLATED	False	3235	1364	9	6
+current_quit_m4_S1b_MenuNoB	current	quit	4	True	False	S1b_MenuNoB	VIOLATED	False	3243	1426	7	4
+current_quit_m4_S3_Handoff	current	quit	4	True	False	S3_Handoff	HOLDS	True	16464821	2382891	23	
+current_quit_m4_S4_ReSprint	current	quit	4	True	False	S4_ReSprint	VIOLATED	False	12418	4364	9	6
+current_quit_m4_S4_ReGuard	current	quit	4	True	False	S4_ReGuard	HOLDS	True	16464821	2382891	23	
+current_quit_m4_S5_StaleNoKill	current	quit	4	True	False	S5_StaleNoKill	HOLDS	True	16464821	2382891	23	
+current_quit_m4_S6_NoOrphanLB	current	quit	4	True	False	S6_NoOrphanLB	VIOLATED	False	9837	3621	8	6
+current_quit_m4_noguard_S6_NoOrphanLB	current	quit	4	False	False	S6_NoOrphanLB	VIOLATED	False	9446	3458	9	6
+current_quit_m4_noguard_S6_post	current	quit	4	False	False	S6_post	VIOLATED	False	77540	21048	12	11
+current_tapper_m4_S2_NoOrphanA	current	tapper	4	True	False	S2_NoOrphanA	VIOLATED	False	7218	2652	8	6
+current_tapper_m4_S5_StaleNoKill	current	tapper	4	True	False	S5_StaleNoKill	HOLDS	True	17324317	2478509	23	
+current_quit_m3_R1_menuAfterBlockedCall	current	quit	3	True	False	R1_menuAfterBlockedCall	VIOLATED	False	1037	501	6	4
+current_quit_m3_R1_menuWithKeep	current	quit	3	True	False	R1_menuWithKeep	VIOLATED	False	1221	663	8	4
+current_quit_m3_R1_menuWithYoungB	current	quit	3	True	False	R1_menuWithYoungB	VIOLATED	False	893	500	8	5
+current_quit_m3_R3_nudgeUnfreezeLate	current	quit	3	True	False	R3_nudgeUnfreezeLate	VIOLATED	False	3063	1326	7	4
+current_quit_m3_R4_resprintAfterQuit	current	quit	3	True	False	R4_resprintAfterQuit	VIOLATED	False	10569	3372	9	9
+current_quit_m3_R4_reguardAfterQuit	current	quit	3	True	False	R4_reguardAfterQuit	VIOLATED	False	11925	4130	9	9
+current_quit_m3_R5_newerPressRipe	current	quit	3	True	False	R5_newerPressRipe	VIOLATED	False	8831	3213	8	6
+current_quit_m3_noguard_R6_afterQuitWithKeep	current	quit	3	False	False	R6_afterQuitWithKeep	VIOLATED	False	8175	3018	8	8
+current_tapper_m3_R2_ripeAWhileFrozen	current	tapper	3	True	False	R2_ripeAWhileFrozen	VIOLATED	False	992	437	7	5
+current_tapper_m3_R5_newerPressRipe	current	tapper	3	True	False	R5_newerPressRipe	VIOLATED	False	2327	1047	9	7
+current_quit_m3_hold_S5_StaleNoKill	current	quit	3	True	True	S5_StaleNoKill	VIOLATED	False	24897	7222	9	5
+current_quit_m3_hold_S5f_FrozenDueNoKill	current	quit	3	True	True	S5f_FrozenDueNoKill	VIOLATED	False	107691	26765	11	8
+current_quit_m4_hold_S5f_FrozenDueNoKill	current	quit	4	True	True	S5f_FrozenDueNoKill	VIOLATED	False	163584	37361	10	8
+current_quit_m3_hold_R5_newerPressRipe	current	quit	3	True	True	R5_newerPressRipe	VIOLATED	False	11333	3429	8	7
+current_tapper_m3_hold_S5_StaleNoKill	current	tapper	3	True	True	S5_StaleNoKill	VIOLATED	False	31341	8196	9	6
+current_tapper_m3_hold_S5f_FrozenDueNoKill	current	tapper	3	True	True	S5f_FrozenDueNoKill	VIOLATED	False	230650	50365	12	8
+current_tapper_m4_hold_S5f_FrozenDueNoKill	current	tapper	4	True	True	S5f_FrozenDueNoKill	VIOLATED	False	174318	37426	10	8
+current_tapper_m3_hold_R5_newerPressRipe	current	tapper	3	True	True	R5_newerPressRipe	VIOLATED	False	3624	1404	8	5
+block_quit_m3_S1_MenuClean	block	quit	3	True	False	S1_MenuClean	VIOLATED	False	3749	1089	8	4
+block_quit_m3_S1b_MenuNoB	block	quit	3	True	False	S1b_MenuNoB	HOLDS	True	375165	69871	20	
+block_quit_m3_S3_Handoff	block	quit	3	True	False	S3_Handoff	HOLDS	True	375165	69871	20	
+block_quit_m3_S4_ReSprint	block	quit	3	True	False	S4_ReSprint	HOLDS	True	375165	69871	20	
+block_quit_m3_S4_ReGuard	block	quit	3	True	False	S4_ReGuard	HOLDS	True	375165	69871	20	
+block_quit_m3_S5_StaleNoKill	block	quit	3	True	False	S5_StaleNoKill	HOLDS	True	375165	69871	20	
+block_quit_m3_S6_NoOrphanLB	block	quit	3	True	False	S6_NoOrphanLB	VIOLATED	False	11773	3239	11	5
+block_quit_m3_noguard_S6_NoOrphanLB	block	quit	3	False	False	S6_NoOrphanLB	HOLDS	True	159551	30824	20	
+block_quit_m3_noguard_S6_post	block	quit	3	False	False	S6_post	HOLDS	True	159551	30824	20	
+block_tapper_m3_S2_NoOrphanA	block	tapper	3	True	False	S2_NoOrphanA	HOLDS	True	576391	98527	20	
+block_tapper_m3_S5_StaleNoKill	block	tapper	3	True	False	S5_StaleNoKill	HOLDS	True	576391	98527	20	
+block_quit_m4_S1_MenuClean	block	quit	4	True	False	S1_MenuClean	VIOLATED	False	5835	1624	9	4
+block_quit_m4_S1b_MenuNoB	block	quit	4	True	False	S1b_MenuNoB	HOLDS	True	1535960	239045	22	
+block_quit_m4_S3_Handoff	block	quit	4	True	False	S3_Handoff	HOLDS	True	1535960	239045	22	
+block_quit_m4_S4_ReSprint	block	quit	4	True	False	S4_ReSprint	HOLDS	True	1535960	239045	22	
+block_quit_m4_S4_ReGuard	block	quit	4	True	False	S4_ReGuard	HOLDS	True	1535960	239045	22	
+block_quit_m4_S5_StaleNoKill	block	quit	4	True	False	S5_StaleNoKill	HOLDS	True	1535960	239045	22	
+block_quit_m4_S6_NoOrphanLB	block	quit	4	True	False	S6_NoOrphanLB	VIOLATED	False	12595	3200	11	8
+block_quit_m4_noguard_S6_NoOrphanLB	block	quit	4	False	False	S6_NoOrphanLB	HOLDS	True	520314	85783	22	
+block_quit_m4_noguard_S6_post	block	quit	4	False	False	S6_post	HOLDS	True	520314	85783	22	
+block_tapper_m4_S2_NoOrphanA	block	tapper	4	True	False	S2_NoOrphanA	HOLDS	True	2112616	306163	22	
+block_tapper_m4_S5_StaleNoKill	block	tapper	4	True	False	S5_StaleNoKill	HOLDS	True	2112616	306163	22	
+block_quit_m3_R1_menuAfterBlockedCall	block	quit	3	True	False	R1_menuAfterBlockedCall	VIOLATED	False	378	174	8	4
+block_quit_m3_R1_menuWithKeep	block	quit	3	True	False	R1_menuWithKeep	VIOLATED	False	6396	1775	8	4
+block_quit_m3_R1_menuWithYoungB	block	quit	3	True	False	R1_menuWithYoungB	HOLDS	True	375165	69871	20	
+block_quit_m3_R3_nudgeUnfreezeLate	block	quit	3	True	False	R3_nudgeUnfreezeLate	VIOLATED	False	3171	862	10	4
+block_quit_m3_R4_resprintAfterQuit	block	quit	3	True	False	R4_resprintAfterQuit	VIOLATED	False	10616	2894	10	9
+block_quit_m3_R4_reguardAfterQuit	block	quit	3	True	False	R4_reguardAfterQuit	VIOLATED	False	13268	3444	9	9
+block_quit_m3_R5_newerPressRipe	block	quit	3	True	False	R5_newerPressRipe	HOLDS	True	375165	69871	21	
+block_quit_m3_noguard_R6_afterQuitWithKeep	block	quit	3	False	False	R6_afterQuitWithKeep	VIOLATED	False	10737	2675	10	9
+block_tapper_m3_R2_ripeAWhileFrozen	block	tapper	3	True	False	R2_ripeAWhileFrozen	VIOLATED	False	895	345	8	5
+block_tapper_m3_R5_newerPressRipe	block	tapper	3	True	False	R5_newerPressRipe	VIOLATED	False	4043	1155	9	6
+block_quit_m3_hold_S5_StaleNoKill	block	quit	3	True	True	S5_StaleNoKill	VIOLATED	False	18855	4570	11	5
+block_quit_m3_hold_S5f_FrozenDueNoKill	block	quit	3	True	True	S5f_FrozenDueNoKill	HOLDS	True	474812	82565	20	
+block_quit_m4_hold_S5f_FrozenDueNoKill	block	quit	4	True	True	S5f_FrozenDueNoKill	HOLDS	True	2143250	309958	22	
+block_quit_m3_hold_R5_newerPressRipe	block	quit	3	True	True	R5_newerPressRipe	VIOLATED	False	13470	3079	9	4
+block_tapper_m3_hold_S5_StaleNoKill	block	tapper	3	True	True	S5_StaleNoKill	VIOLATED	False	23092	4701	10	5
+block_tapper_m3_hold_S5f_FrozenDueNoKill	block	tapper	3	True	True	S5f_FrozenDueNoKill	HOLDS	True	744304	119928	20	
+block_tapper_m4_hold_S5f_FrozenDueNoKill	block	tapper	4	True	True	S5f_FrozenDueNoKill	HOLDS	True	3073243	420365	23	
+block_tapper_m3_hold_R5_newerPressRipe	block	tapper	3	True	True	R5_newerPressRipe	VIOLATED	False	3985	1024	7	5
+ownerNeutral_quit_m3_S1_MenuClean	ownerNeutral	quit	3	True	False	S1_MenuClean	HOLDS	True	1714223	316881	20	
+ownerNeutral_quit_m3_S1b_MenuNoB	ownerNeutral	quit	3	True	False	S1b_MenuNoB	HOLDS	True	1714223	316881	20	
+ownerNeutral_quit_m3_S3_Handoff	ownerNeutral	quit	3	True	False	S3_Handoff	HOLDS	True	1714223	316881	20	
+ownerNeutral_quit_m3_S4_ReSprint	ownerNeutral	quit	3	True	False	S4_ReSprint	VIOLATED	False	11869	4177	9	6
+ownerNeutral_quit_m3_S4_ReGuard	ownerNeutral	quit	3	True	False	S4_ReGuard	HOLDS	True	1714223	316881	20	
+ownerNeutral_quit_m3_S5_StaleNoKill	ownerNeutral	quit	3	True	False	S5_StaleNoKill	HOLDS	True	1714223	316881	20	
+ownerNeutral_quit_m3_S6_NoOrphanLB	ownerNeutral	quit	3	True	False	S6_NoOrphanLB	VIOLATED	False	13706	4785	10	5
+ownerNeutral_quit_m3_noguard_S6_NoOrphanLB	ownerNeutral	quit	3	False	False	S6_NoOrphanLB	HOLDS	True	765731	140905	20	
+ownerNeutral_quit_m3_noguard_S6_post	ownerNeutral	quit	3	False	False	S6_post	HOLDS	True	765731	140905	20	
+ownerNeutral_tapper_m3_S2_NoOrphanA	ownerNeutral	tapper	3	True	False	S2_NoOrphanA	VIOLATED	False	8839	3224	7	5
+ownerNeutral_tapper_m3_S5_StaleNoKill	ownerNeutral	tapper	3	True	False	S5_StaleNoKill	HOLDS	True	2603021	456982	20	
+ownerNeutral_quit_m4_S1_MenuClean	ownerNeutral	quit	4	True	False	S1_MenuClean	HOLDS	True	7901999	1182771	22	
+ownerNeutral_quit_m4_S1b_MenuNoB	ownerNeutral	quit	4	True	False	S1b_MenuNoB	HOLDS	True	7901999	1182771	22	
+ownerNeutral_quit_m4_S3_Handoff	ownerNeutral	quit	4	True	False	S3_Handoff	HOLDS	True	7901999	1182771	22	
+ownerNeutral_quit_m4_S4_ReSprint	ownerNeutral	quit	4	True	False	S4_ReSprint	VIOLATED	False	7385	2772	10	9
+ownerNeutral_quit_m4_S4_ReGuard	ownerNeutral	quit	4	True	False	S4_ReGuard	HOLDS	True	7901999	1182771	22	
+ownerNeutral_quit_m4_S5_StaleNoKill	ownerNeutral	quit	4	True	False	S5_StaleNoKill	HOLDS	True	7901999	1182771	22	
+ownerNeutral_quit_m4_S6_NoOrphanLB	ownerNeutral	quit	4	True	False	S6_NoOrphanLB	VIOLATED	False	12961	4102	8	5
+ownerNeutral_quit_m4_noguard_S6_NoOrphanLB	ownerNeutral	quit	4	False	False	S6_NoOrphanLB	HOLDS	True	2593494	395779	22	
+ownerNeutral_quit_m4_noguard_S6_post	ownerNeutral	quit	4	False	False	S6_post	HOLDS	True	2593494	395779	22	
+ownerNeutral_tapper_m4_S2_NoOrphanA	ownerNeutral	tapper	4	True	False	S2_NoOrphanA	VIOLATED	False	8418	3083	9	6
+ownerNeutral_tapper_m4_S5_StaleNoKill	ownerNeutral	tapper	4	True	False	S5_StaleNoKill	HOLDS	True	11232478	1617135	22	
+ownerNeutral_quit_m3_R1_menuAfterBlockedCall	ownerNeutral	quit	3	True	False	R1_menuAfterBlockedCall	VIOLATED	False	591	383	8	4
+ownerNeutral_quit_m3_R1_menuWithKeep	ownerNeutral	quit	3	True	False	R1_menuWithKeep	VIOLATED	False	1967	908	8	5
+ownerNeutral_quit_m3_R1_menuWithYoungB	ownerNeutral	quit	3	True	False	R1_menuWithYoungB	VIOLATED	False	856	446	8	5
+ownerNeutral_quit_m3_R3_nudgeUnfreezeLate	ownerNeutral	quit	3	True	False	R3_nudgeUnfreezeLate	VIOLATED	False	3024	1223	8	4
+ownerNeutral_quit_m3_R4_resprintAfterQuit	ownerNeutral	quit	3	True	False	R4_resprintAfterQuit	VIOLATED	False	17893	5636	9	9
+ownerNeutral_quit_m3_R4_reguardAfterQuit	ownerNeutral	quit	3	True	False	R4_reguardAfterQuit	VIOLATED	False	21153	6399	10	9
+ownerNeutral_quit_m3_R5_newerPressRipe	ownerNeutral	quit	3	True	False	R5_newerPressRipe	VIOLATED	False	12435	4150	10	7
+ownerNeutral_quit_m3_noguard_R6_afterQuitWithKeep	ownerNeutral	quit	3	False	False	R6_afterQuitWithKeep	VIOLATED	False	12121	3835	8	8
+ownerNeutral_tapper_m3_R2_ripeAWhileFrozen	ownerNeutral	tapper	3	True	False	R2_ripeAWhileFrozen	VIOLATED	False	1800	772	7	5
+ownerNeutral_tapper_m3_R5_newerPressRipe	ownerNeutral	tapper	3	True	False	R5_newerPressRipe	VIOLATED	False	3066	1322	8	5
+ownerNeutral_quit_m3_hold_S5_StaleNoKill	ownerNeutral	quit	3	True	True	S5_StaleNoKill	VIOLATED	False	36222	9556	10	6
+ownerNeutral_quit_m3_hold_S5f_FrozenDueNoKill	ownerNeutral	quit	3	True	True	S5f_FrozenDueNoKill	VIOLATED	False	100815	25021	12	11
+ownerNeutral_quit_m4_hold_S5f_FrozenDueNoKill	ownerNeutral	quit	4	True	True	S5f_FrozenDueNoKill	VIOLATED	False	101873	22012	10	8
+ownerNeutral_quit_m3_hold_R5_newerPressRipe	ownerNeutral	quit	3	True	True	R5_newerPressRipe	VIOLATED	False	9679	2950	9	7
+ownerNeutral_tapper_m3_hold_S5_StaleNoKill	ownerNeutral	tapper	3	True	True	S5_StaleNoKill	VIOLATED	False	39748	10358	9	8
+ownerNeutral_tapper_m3_hold_S5f_FrozenDueNoKill	ownerNeutral	tapper	3	True	True	S5f_FrozenDueNoKill	VIOLATED	False	151536	33566	10	8
+ownerNeutral_tapper_m4_hold_S5f_FrozenDueNoKill	ownerNeutral	tapper	4	True	True	S5f_FrozenDueNoKill	VIOLATED	False	93941	22201	10	8
+ownerNeutral_tapper_m3_hold_R5_newerPressRipe	ownerNeutral	tapper	3	True	True	R5_newerPressRipe	VIOLATED	False	2629	1081	8	5
+both_quit_m3_S1_MenuClean	both	quit	3	True	False	S1_MenuClean	HOLDS	True	378081	70834	20	
+both_quit_m3_S1b_MenuNoB	both	quit	3	True	False	S1b_MenuNoB	HOLDS	True	378081	70834	20	
+both_quit_m3_S3_Handoff	both	quit	3	True	False	S3_Handoff	HOLDS	True	378081	70834	20	
+both_quit_m3_S4_ReSprint	both	quit	3	True	False	S4_ReSprint	HOLDS	True	378081	70834	20	
+both_quit_m3_S4_ReGuard	both	quit	3	True	False	S4_ReGuard	HOLDS	True	378081	70834	20	
+both_quit_m3_S5_StaleNoKill	both	quit	3	True	False	S5_StaleNoKill	HOLDS	True	378081	70834	20	
+both_quit_m3_S6_NoOrphanLB	both	quit	3	True	False	S6_NoOrphanLB	VIOLATED	False	12505	3328	11	8
+both_quit_m3_noguard_S6_NoOrphanLB	both	quit	3	False	False	S6_NoOrphanLB	HOLDS	True	164383	31745	20	
+both_quit_m3_noguard_S6_post	both	quit	3	False	False	S6_post	HOLDS	True	164383	31745	20	
+both_tapper_m3_S2_NoOrphanA	both	tapper	3	True	False	S2_NoOrphanA	HOLDS	True	611356	104641	20	
+both_tapper_m3_S5_StaleNoKill	both	tapper	3	True	False	S5_StaleNoKill	HOLDS	True	611356	104641	20	
+both_quit_m4_S1_MenuClean	both	quit	4	True	False	S1_MenuClean	HOLDS	True	1586170	247331	22	
+both_quit_m4_S1b_MenuNoB	both	quit	4	True	False	S1b_MenuNoB	HOLDS	True	1586170	247331	22	
+both_quit_m4_S3_Handoff	both	quit	4	True	False	S3_Handoff	HOLDS	True	1586170	247331	22	
+both_quit_m4_S4_ReSprint	both	quit	4	True	False	S4_ReSprint	HOLDS	True	1586170	247331	22	
+both_quit_m4_S4_ReGuard	both	quit	4	True	False	S4_ReGuard	HOLDS	True	1586170	247331	22	
+both_quit_m4_S5_StaleNoKill	both	quit	4	True	False	S5_StaleNoKill	HOLDS	True	1586170	247331	22	
+both_quit_m4_S6_NoOrphanLB	both	quit	4	True	False	S6_NoOrphanLB	VIOLATED	False	13405	3530	11	5
+both_quit_m4_noguard_S6_NoOrphanLB	both	quit	4	False	False	S6_NoOrphanLB	HOLDS	True	543262	89213	22	
+both_quit_m4_noguard_S6_post	both	quit	4	False	False	S6_post	HOLDS	True	543262	89213	22	
+both_tapper_m4_S2_NoOrphanA	both	tapper	4	True	False	S2_NoOrphanA	HOLDS	True	2276900	330137	22	
+both_tapper_m4_S5_StaleNoKill	both	tapper	4	True	False	S5_StaleNoKill	HOLDS	True	2276900	330137	22	
+both_quit_m3_R1_menuAfterBlockedCall	both	quit	3	True	False	R1_menuAfterBlockedCall	VIOLATED	False	418	230	8	5
+both_quit_m3_R1_menuWithKeep	both	quit	3	True	False	R1_menuWithKeep	VIOLATED	False	10136	2783	10	4
+both_quit_m3_R1_menuWithYoungB	both	quit	3	True	False	R1_menuWithYoungB	HOLDS	True	378081	70834	20	
+both_quit_m3_R3_nudgeUnfreezeLate	both	quit	3	True	False	R3_nudgeUnfreezeLate	VIOLATED	False	2440	670	9	4
+both_quit_m3_R4_resprintAfterQuit	both	quit	3	True	False	R4_resprintAfterQuit	VIOLATED	False	10084	2612	10	9
+both_quit_m3_R4_reguardAfterQuit	both	quit	3	True	False	R4_reguardAfterQuit	VIOLATED	False	7435	2122	10	9
+both_quit_m3_R5_newerPressRipe	both	quit	3	True	False	R5_newerPressRipe	HOLDS	True	378081	70834	20	
+both_quit_m3_noguard_R6_afterQuitWithKeep	both	quit	3	False	False	R6_afterQuitWithKeep	VIOLATED	False	6185	1790	11	9
+both_tapper_m3_R2_ripeAWhileFrozen	both	tapper	3	True	False	R2_ripeAWhileFrozen	VIOLATED	False	1688	639	9	5
+both_tapper_m3_R5_newerPressRipe	both	tapper	3	True	False	R5_newerPressRipe	VIOLATED	False	2475	714	9	5
+both_quit_m3_hold_S5_StaleNoKill	both	quit	3	True	True	S5_StaleNoKill	VIOLATED	False	23071	5249	11	6
+both_quit_m3_hold_S5f_FrozenDueNoKill	both	quit	3	True	True	S5f_FrozenDueNoKill	HOLDS	True	487492	85640	20	
+both_quit_m4_hold_S5f_FrozenDueNoKill	both	quit	4	True	True	S5f_FrozenDueNoKill	HOLDS	True	2270476	329710	22	
+both_quit_m3_hold_R5_newerPressRipe	both	quit	3	True	True	R5_newerPressRipe	VIOLATED	False	13897	3233	10	5
+both_tapper_m3_hold_S5_StaleNoKill	both	tapper	3	True	True	S5_StaleNoKill	VIOLATED	False	18110	4026	10	10
+both_tapper_m3_hold_S5f_FrozenDueNoKill	both	tapper	3	True	True	S5f_FrozenDueNoKill	HOLDS	True	797552	128781	20	
+both_tapper_m4_hold_S5f_FrozenDueNoKill	both	tapper	4	True	True	S5f_FrozenDueNoKill	HOLDS	True	3348621	458131	23	
+both_tapper_m3_hold_R5_newerPressRipe	both	tapper	3	True	True	R5_newerPressRipe	VIOLATED	False	3584	933	8	5
+minimal_quit_m3_S1_MenuClean	minimal	quit	3	True	False	S1_MenuClean	HOLDS	True	269113	53785	20	
+minimal_quit_m3_S1b_MenuNoB	minimal	quit	3	True	False	S1b_MenuNoB	HOLDS	True	269113	53785	20	
+minimal_quit_m3_S3_Handoff	minimal	quit	3	True	False	S3_Handoff	HOLDS	True	269113	53785	20	
+minimal_quit_m3_S4_ReSprint	minimal	quit	3	True	False	S4_ReSprint	HOLDS	True	269113	53785	20	
+minimal_quit_m3_S4_ReGuard	minimal	quit	3	True	False	S4_ReGuard	HOLDS	True	269113	53785	20	
+minimal_quit_m3_S5_StaleNoKill	minimal	quit	3	True	False	S5_StaleNoKill	HOLDS	True	269113	53785	20	
+minimal_quit_m3_S6_NoOrphanLB	minimal	quit	3	True	False	S6_NoOrphanLB	VIOLATED	False	9888	2418	9	5
+minimal_quit_m3_noguard_S6_NoOrphanLB	minimal	quit	3	False	False	S6_NoOrphanLB	HOLDS	True	122711	24920	20	
+minimal_quit_m3_noguard_S6_post	minimal	quit	3	False	False	S6_post	HOLDS	True	122711	24920	20	
+minimal_tapper_m3_S2_NoOrphanA	minimal	tapper	3	True	False	S2_NoOrphanA	HOLDS	True	398061	72757	20	
+minimal_tapper_m3_S5_StaleNoKill	minimal	tapper	3	True	False	S5_StaleNoKill	HOLDS	True	398061	72757	20	
+minimal_quit_m4_S1_MenuClean	minimal	quit	4	True	False	S1_MenuClean	HOLDS	True	1226286	198807	22	
+minimal_quit_m4_S1b_MenuNoB	minimal	quit	4	True	False	S1b_MenuNoB	HOLDS	True	1226286	198807	22	
+minimal_quit_m4_S3_Handoff	minimal	quit	4	True	False	S3_Handoff	HOLDS	True	1226286	198807	22	
+minimal_quit_m4_S4_ReSprint	minimal	quit	4	True	False	S4_ReSprint	HOLDS	True	1226286	198807	22	
+minimal_quit_m4_S4_ReGuard	minimal	quit	4	True	False	S4_ReGuard	HOLDS	True	1226286	198807	22	
+minimal_quit_m4_S5_StaleNoKill	minimal	quit	4	True	False	S5_StaleNoKill	HOLDS	True	1226286	198807	22	
+minimal_quit_m4_S6_NoOrphanLB	minimal	quit	4	True	False	S6_NoOrphanLB	VIOLATED	False	14436	3514	10	5
+minimal_quit_m4_noguard_S6_NoOrphanLB	minimal	quit	4	False	False	S6_NoOrphanLB	HOLDS	True	432506	73069	22	
+minimal_quit_m4_noguard_S6_post	minimal	quit	4	False	False	S6_post	HOLDS	True	432506	73069	22	
+minimal_tapper_m4_S2_NoOrphanA	minimal	tapper	4	True	False	S2_NoOrphanA	HOLDS	True	1592270	241897	22	
+minimal_tapper_m4_S5_StaleNoKill	minimal	tapper	4	True	False	S5_StaleNoKill	HOLDS	True	1592270	241897	22	
+minimal_quit_m3_R1_menuAfterBlockedCall	minimal	quit	3	True	False	R1_menuAfterBlockedCall	VIOLATED	False	1060	412	7	5
+minimal_quit_m3_R1_menuWithKeep	minimal	quit	3	True	False	R1_menuWithKeep	HOLDS	True	269113	53785	20	
+minimal_quit_m3_R1_menuWithYoungB	minimal	quit	3	True	False	R1_menuWithYoungB	HOLDS	True	269113	53785	20	
+minimal_quit_m3_R3_nudgeUnfreezeLate	minimal	quit	3	True	False	R3_nudgeUnfreezeLate	VIOLATED	False	3100	873	9	4
+minimal_quit_m3_R4_resprintAfterQuit	minimal	quit	3	True	False	R4_resprintAfterQuit	VIOLATED	False	8737	2038	10	9
+minimal_quit_m3_R4_reguardAfterQuit	minimal	quit	3	True	False	R4_reguardAfterQuit	VIOLATED	False	14013	3411	10	10
+minimal_quit_m3_R5_newerPressRipe	minimal	quit	3	True	False	R5_newerPressRipe	HOLDS	True	269113	53785	20	
+minimal_quit_m3_noguard_R6_afterQuitWithKeep	minimal	quit	3	False	False	R6_afterQuitWithKeep	VIOLATED	False	7770	2049	11	9
+minimal_tapper_m3_R2_ripeAWhileFrozen	minimal	tapper	3	True	False	R2_ripeAWhileFrozen	VIOLATED	False	1000	347	8	5
+minimal_tapper_m3_R5_newerPressRipe	minimal	tapper	3	True	False	R5_newerPressRipe	VIOLATED	False	3478	940	8	5
+minimal_quit_m3_hold_S5_StaleNoKill	minimal	quit	3	True	True	S5_StaleNoKill	VIOLATED	False	18330	3592	10	6
+minimal_quit_m3_hold_S5f_FrozenDueNoKill	minimal	quit	3	True	True	S5f_FrozenDueNoKill	HOLDS	True	347723	65126	20	
+minimal_quit_m4_hold_S5f_FrozenDueNoKill	minimal	quit	4	True	True	S5f_FrozenDueNoKill	HOLDS	True	1738708	261469	22	
+minimal_quit_m3_hold_R5_newerPressRipe	minimal	quit	3	True	True	R5_newerPressRipe	VIOLATED	False	12567	2553	10	5
+minimal_tapper_m3_hold_S5_StaleNoKill	minimal	tapper	3	True	True	S5_StaleNoKill	VIOLATED	False	17510	3683	10	5
+minimal_tapper_m3_hold_S5f_FrozenDueNoKill	minimal	tapper	3	True	True	S5f_FrozenDueNoKill	HOLDS	True	531508	91814	20	
+minimal_tapper_m4_hold_S5f_FrozenDueNoKill	minimal	tapper	4	True	True	S5f_FrozenDueNoKill	HOLDS	True	2396021	342705	23	
+minimal_tapper_m3_hold_R5_newerPressRipe	minimal	tapper	3	True	True	R5_newerPressRipe	VIOLATED	False	2162	577	8	6

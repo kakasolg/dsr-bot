@@ -6,6 +6,8 @@ Checks:
     ledge nudges are switched off for the cleanup; camera follow is stopped; a user_stop event is written
   · other exceptions: unchanged — Escape.fire(..., "shake") as before
   · every path: the last pad call is neutral and it comes before the bot lock's release, even if cleanup raises
+  · --ground: missions (walks, fights) read floor through ground.Ground, the fall / ledge watch keeps the plain NavMesh
+  · runinfo: the first log line is the run's settings line and <run>.settings.json gets its end result on every path
 """
 from __future__ import annotations
 import sys as _sys, pathlib as _pl  # repo root first (the bot's modules), then this folder
@@ -27,7 +29,7 @@ import env
 import navmesh
 import run
 import track
-from souls import camera, field, missions, moves, props, watch, weapons
+from souls import camera, field, guardkeep, missions, moves, props, watch, weapons
 
 TRACE: list = []
 
@@ -63,6 +65,7 @@ class FakeEsc:
 
     def __init__(self, pad, nms, log=None, events=None):
         self.escaping, self.quit_ok, self.nudge_ok = False, True, True
+        self.nms = nms
         FakeEsc.last = self
 
     def start(self): return self
@@ -78,6 +81,15 @@ class FakeCam:
     def start(self): return self
     def stop(self): TRACE.append("cam.stop")
     def stats(self): return "cam"
+    def align_stats(self): return "align"
+    def on_attack(self, **row): pass
+
+
+class FakeGuard:
+    def __init__(self, *a, **k): pass
+    def start(self): return self
+    def stop(self): TRACE.append("gk.stop")
+    def stats(self): return "gk"
 
 
 class FakeLock:
@@ -90,6 +102,7 @@ class FakeBox:
 
     def __init__(self, *a, **k): pass
     def start(self): return self
+    def take_fatal(self): return None
 
     def stop(self):
         TRACE.append("bbox.stop")
@@ -99,8 +112,10 @@ class FakeBox:
 
 class FakeMissions:
     exc: BaseException | None = None
+    nms = None
 
-    def __init__(self, *a, **k): pass
+    def __init__(self, fld=None, nms=None, *a, **k):
+        FakeMissions.nms = nms
 
     def to_merchant(self):
         TRACE.append("mission")
@@ -124,14 +139,15 @@ def install(tmp: Path) -> None:
     blackbox.BlackBox = FakeBox
     field.Field = lambda *a, **k: types.SimpleNamespace(alive=lambda: True, wait_respawn=lambda t: True)
     camera.CamFollow = FakeCam
+    guardkeep.GuardKeep = FakeGuard
     missions.Missions = FakeMissions
     botlock.BotLock = FakeLock
 
 
-def go(exc: BaseException, boom: bool = False) -> BaseException | None:
+def go(exc: BaseException, boom: bool = False, extra=()) -> BaseException | None:
     TRACE.clear()
     FakeMissions.exc, FakeBox.boom = exc, boom
-    sys.argv = ["run.py", "merchant"]
+    sys.argv = ["run.py", "merchant", *extra]
     try:
         run.main()
     except BaseException as e:                    # noqa: BLE001 — the test wants to see whatever main lets out
@@ -149,6 +165,17 @@ def final_order_ok() -> bool:
     return bool(pad_calls) and TRACE[pad_calls[-1]] == "neutral" and pad_calls[-1] < rel
 
 
+def settings(tmp: Path) -> dict | None:
+    """The newest run's settings record (runinfo) — runs in one second share a name; each run rewrites it."""
+    fs = sorted((tmp / "data" / "runs").glob("*_merchant.settings.json"))
+    return json.loads(fs[-1].read_text(encoding="utf-8")) if fs else None
+
+
+def first_line(tmp: Path) -> str:
+    fs = sorted((tmp / "data" / "runs").glob("*_merchant.log"))
+    return fs[-1].read_text(encoding="utf-8").splitlines()[0] if fs else ""
+
+
 def main() -> None:
     tmp = Path(tempfile.mkdtemp(prefix="runstop_"))
     install(tmp)
@@ -160,20 +187,35 @@ def main() -> None:
     check("Ctrl+C: 퀵 종료(fire) 안 부름", not any(isinstance(x, tuple) and x[0] == "fire" for x in TRACE))
     check("Ctrl+C: 정리 중 퀵 종료·턱 되돌림 꺼짐", FakeEsc.last.quit_ok is False and FakeEsc.last.nudge_ok is False)
     check("Ctrl+C: 카메라 따라가기를 정리 대기 전에 멈춤", "cam.stop" in after("mission")[:3])
+    # 가드 유지가 살아 있으면 정리 대기(최대 40 s + 30 s) 동안 휘두르는 적마다 LB를 다시 든다 — 멈춘 뒤 neutral 한 번 더
+    a_ = after("mission")
+    check("Ctrl+C: 가드 유지를 정리 대기 전에 멈추고 그 뒤 neutral",
+          "gk.stop" in a_[:4] and "neutral" in a_[a_.index("gk.stop"):][:2] if "gk.stop" in a_ else False)
     check("Ctrl+C: 마지막 패드 호출은 neutral, 잠금 풀기 전", final_order_ok())
     events = [json.loads(l) for f in (tmp / "data" / "runs").glob("*_merchant.jsonl") for l in f.read_text(encoding="utf-8").splitlines()]
     check("Ctrl+C: user_stop 사건 기록", any(ev.get("ev") == "user_stop" for ev in events))
+    st = settings(tmp)
+    check("Ctrl+C: 실행 설정 기록 — 끝 결과 user_stop", st is not None and (st.get("end") or {}).get("result") == "user_stop")
+    check("로그 첫 줄 = 실행 설정 한 줄 (run · code · 인자)", first_line(tmp).split("] ", 1)[-1].startswith("run ") and " · code " in first_line(tmp))
 
     # 2) other exception: unchanged — shake quit-out
     e = go(RuntimeError("bug"))
     check("오류: 예외 그대로 나감", isinstance(e, RuntimeError))
     check("오류: 예전처럼 fire(shake)", ("fire", "shake") in TRACE)
     check("오류: 마지막 패드 호출은 neutral, 잠금 풀기 전", final_order_ok())
+    check("오류: 실행 설정 기록 — 끝 결과 exception:RuntimeError", ((settings(tmp) or {}).get("end") or {}).get("result") == "exception:RuntimeError")
 
     # 3) cleanup itself raises — the final neutral and the release still happen, in that order
     e = go(KeyboardInterrupt(), boom=True)
     check("정리 실패: 그래도 neutral → 잠금 풀기", "lock.release" in TRACE and final_order_ok())
     check("정리 실패: fire 안 부름", not any(isinstance(x, tuple) and x[0] == "fire" for x in TRACE))
+    check("정리 실패: 실행 설정 끝 기록은 그래도 남음", ((settings(tmp) or {}).get("end") or {}).get("result") == "user_stop")
+    # 4) --ground: walks and fights get ground.Ground, the fall / ledge watch keeps the plain NavMesh
+    e = go(KeyboardInterrupt(), extra=("--ground",))
+    check("--ground: missions get Ground, Escape the plain NavMesh",
+          FakeMissions.nms and all(type(v).__name__ == "Ground" for v in FakeMissions.nms.values())
+          and FakeEsc.last.nms and all(type(v).__name__ != "Ground" for v in FakeEsc.last.nms))
+    check("--ground: recorded in the settings (args.ground)", ((settings(tmp) or {}).get("args") or {}).get("ground") is True)
     print("run_stop_test: 전부 통과")
 
 

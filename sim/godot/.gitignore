@@ -1,0 +1,10 @@
+.godot/
+# DSR-derived models / maps / textures stay local (public repo; sim/flver_glb.py, sim/chr_glb.py rebuild them)
+assets/*.glb
+assets/*.import
+assets/*.png
+# CC0 stand-ins are kept in git so a fresh clone (cloud) has a full room — MoKa M1110-10
+!assets/UAL1_Standard.glb
+!assets/UAL2_Standard.glb
+!assets/UAL1_Standard.glb.import
+!assets/UAL2_Standard.glb.import

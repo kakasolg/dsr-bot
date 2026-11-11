@@ -51,6 +51,8 @@ MAX_SIMPLIFY_SLOPE = 0.25
 PUSH_MAX_DY = 1.0           # if the floor height at the point keep_inside pushed changes by more than this, it's another level — don't push
 CLIFF_MARGIN = 2.2          # keep the path this far from measured cliff points (cliffscan.py)   # sections steeper than this are not simplified and keep original points (must follow stairs/slopes)
 CELL = 0.5
+SIGHT_EYE, SIGHT_CHEST = 1.5, 1.2   # clear_sight: line from our eyes to the target's chest (m above the feet)
+SIGHT_TOL = 0.3            # NavMesh floor sits a little off the real one; the closest locked throw had floor 0.6 m under the line
 
 
 class Navmesh:
@@ -62,6 +64,7 @@ class Navmesh:
         if not path.exists():
             raise SystemExit(f"내비메시 없음: {path}")
         bnd = NVMBND.from_path(path)
+        self.src = [str(path), str(Path(game_dir) / "map" / "MapStudio" / f"{map_id}.msb")]   # record only (runinfo.inputs)
         # apply MSB placement (translate, Y rotation) per piece — Firelink Shrine/Undead Burg are all 0 so it went unnoticed, but in the Asylum (m18_01)
         # every piece sits at y +200, 200 m off from game coordinates (data 8.4 vs actual 184.7)
         place: dict[str, tuple] = {}
@@ -127,6 +130,38 @@ class Navmesh:
         for ti, gi in zip(d["gate_tri"].tolist(), d["gate_id"].tolist()):
             groups.setdefault(int(gi), []).append(int(ti))
         nm._gates = [sorted(g) for _, g in sorted(groups.items())]
+        return nm
+
+    @classmethod
+    def flat(cls, half: float = 20.0, cell: float = 2.0, y: float = 0.0, map_id: str = "flat") -> "Navmesh":
+        """A square of flat floor (−half…half in x and z at height y), one piece, no gates — the Godot practice room's
+        flat arena (MoKa M1109-75; sim/arena_scene.py builds the room's floor from the same call). Not a DSR map."""
+        n = int(round(2 * half / cell))
+        xs = np.linspace(-half, half, n + 1)
+        nm = cls.__new__(cls)
+        nm.map_id = map_id
+        nm.model_tri_offset = {}
+        nm.src = [f"flat {2 * half:g} m square, {cell:g} m cells, y {y:g}"]
+        nm.v = np.array([[x, y, z] for z in xs for x in xs], dtype=np.float64)
+        tris = []
+        for j in range(n):
+            for i in range(n):
+                a, b, c, d = j * (n + 1) + i, j * (n + 1) + i + 1, (j + 1) * (n + 1) + i + 1, (j + 1) * (n + 1) + i
+                tris += [[a, b, c], [a, c, d]]
+        nm.t = np.array(tris, dtype=np.int64)
+        nm.flags = np.zeros(len(tris), dtype=np.int64)
+        nm.piece = np.zeros(len(tris), dtype=np.int64)
+        # neighbours by shared edge, in the edge order the game's NVM uses: (0,1) (1,2) (2,0)
+        owner: dict[tuple[int, int], list[int]] = {}
+        for ti, tr in enumerate(tris):
+            for k in range(3):
+                owner.setdefault(tuple(sorted((tr[k], tr[(k + 1) % 3]))), []).append(ti)
+        adj = [[next((o for o in owner[tuple(sorted((tr[k], tr[(k + 1) % 3])))] if o != ti), -1) for k in range(3)]
+               for ti, tr in enumerate(tris)]
+        nm.adj = np.array(adj, dtype=np.int64)
+        nm.centroid = (nm.v[nm.t[:, 0]] + nm.v[nm.t[:, 1]] + nm.v[nm.t[:, 2]]) / 3.0
+        nm.a, nm.b, nm.c = nm.v[nm.t[:, 0]], nm.v[nm.t[:, 1]], nm.v[nm.t[:, 2]]
+        nm._gates = []
         return nm
 
     def __len__(self) -> int:
@@ -365,6 +400,15 @@ class Navmesh:
         d[np.abs(near[:, 1] - y) > dy] = np.inf
         return float(d.min())
 
+    def ladder_dist(self, x: float, y: float, z: float, dy: float = 3.0) -> float:
+        """Horizontal distance to the nearest Ladder-flag triangle within dy (inf if none)."""
+        m = (self.flags & 1024) != 0
+        if not m.any():
+            return math.inf
+        c = self.centroid[m]
+        c = c[np.abs(c[:, 1] - y) <= dy]
+        return float(np.hypot(c[:, 0] - x, c[:, 2] - z).min()) if len(c) else math.inf
+
     def wall_dist(self, x: float, y: float, z: float, dy: float = 2.0) -> float:
         """Horizontal distance to the nearest 'wall' edge (edge_kinds) on this level — a wall to put our back to."""
         return self._edge_dist(self.edge_kinds()["wall"], x, y, z, dy)
@@ -496,6 +540,28 @@ class Navmesh:
             if hit[2] != prev_tri and prev_tri not in self.adj[hit[2]] and hit[2] not in self.adj[prev_tri]:
                 return False          # jumped to a non-neighbor face = a wall/step in between
             prev_y, prev_tri = hit[0], hit[2]
+        return True
+
+    def clear_sight(self, p0, p1, eye: float = SIGHT_EYE, chest: float = SIGHT_CHEST, step: float = 0.5) -> bool:
+        """Can p0 (feet) see p1 (feet) — what lock-on needs (docs/throwables.md: bot lock-on 2–10 m 6/41, every failure with a
+        position had the straight line blocked). The NavMesh has no walls, so: the eye→chest line must pass **over floor the
+        NavMesh knows** at every sample — some triangle (any level, any flags) at or below the line. No mesh at all under it =
+        inside a building or a wall; only floor above it = through a ledge or under a structure. Floor far below (a drop, the
+        ramp under the ledge) doesn't block. Unlike clear_line (can I walk it) a ledge 6 m up is in sight.
+        Recorded knife throws with both positions (tests/sight_test.py, 12 runs): all 30 locked ones pass, 5 of the 6 failed
+        ones are blocked; the sixth (5 m, flat, floor all the way) is a railing or a prop. Wrong the other way too: [win]'s
+        10-12 probe locked on (1/1) over a 3.5 m no-mesh patch between two floors at our level — a low prop reads the same as
+        a wall. So it picks spots (field._lure), it doesn't forbid throws; the real answer is the collision mesh."""
+        p0, p1 = np.asarray(p0, float), np.asarray(p1, float)
+        d = float(np.linalg.norm(p1[[0, 2]] - p0[[0, 2]]))
+        n = max(2, int(d / step))
+        y0, y1 = p0[1] + eye, p1[1] + chest
+        for k in range(1, n):
+            f = k / n
+            ray = y0 + (y1 - y0) * f
+            q = p0 + (p1 - p0) * f
+            if not any(y <= ray + SIGHT_TOL for y, _, _ in self.tris_at(float(q[0]), float(q[2]))):
+                return False
         return True
 
     def keep_inside(self, path: list, margin: float = 1.2) -> list:

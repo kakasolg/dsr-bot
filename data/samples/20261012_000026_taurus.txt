@@ -1,0 +1,22 @@
+[    0.1] run 20261012_000026_taurus · code 7d62af8+dirty(1) · taurus --ctl-scenes --radar --note taurus try 1 from backup-20261011-235526-zone8-top-taurus-start · settings 4280f406 · note taurus try 1 from backup-20261011-235526-zone8-top-taurus-start
+[    0.1] ctl: 기록만 → D:\dev\dsr-bot\data\runs\20261012_000026_taurus.ctl.jsonl
+[    0.1] ctl scenes: 싸움 결정마다 그 순간의 입력 기록 (scene_replay.py 로 다시 돌림, 판단엔 반영 안 함)
+[    0.4] radar: sending — python radar_server.py -> http://127.0.0.1:47801, python overlay.py
+[   10.4]    물건 비켜 가기 (지난 실행에서 2번 이상 부숨): o1132_06 o1150_01 o1321_0021
+[   11.7] 무기: 배틀 액스 (약공 2연타, 닿는 거리 1.6 m, 강공 안 씀)
+[   11.7] 스타일: guard
+[   11.7] 캐릭터: SL 18 VIT 18 END 14 STR 14 DEX 17 | 반지 147,-1 왼손 1462000
+[   18.0]    안개벽: A → 2.5 m 이동
+[   18.0]    타우로스: 안개벽 통과
+[   18.1]    타우로스 나옴: HP 1215, 57.0 m — 사다리로
+[   29.6]    타우로스: 사다리 올라감 (y 24.8)
+[   30.4]    타우로스: 양손 grip 3
+[   33.0]    타우로스: 황금 송진 바름 (3 → 2)
+[   63.4]    타우로스: 30 s 동안 사다리 밑으로 안 옴
+[   63.4] ══ 타우로스: 낙하 안 함
+[   63.4] ══ 결과: 낙하 안 함
+[   63.4] 카메라 정렬: 기록 없음
+[   63.4] ctl scenes: scenes kept 0, errors 0, capture 0 ms total
+[   63.4] ══ 위험 판정: 깨끗  (결과 낙하 안 함, 최저 HP 92%, 큰 피격 0번 -0)  
+[   63.4] 실행 설정 기록: 20261012_000026_taurus.settings.json
+[   63.4] 텔레메트리 피드: {'frames': 3491, 'read_ms': 2.4, 'fresh': 4158, 'waited': 9, 'direct': 932, 'none': 0, 'stale': 0}

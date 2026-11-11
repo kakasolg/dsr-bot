@@ -1,0 +1,6 @@
+복원할 것: backup-20260929-080235-asylum-test-full-bot-run-firelink (sl2 e2da9f35) None · 지금 {'pos': [48.53, 17.38, -117.94], 'hp': 276, 'max_hp': 742, 'estus': 3, 'char': 'Asylum Test'}
+  타이틀로 (키보드, 3.1 s)
+  백업 backup-20261101-042428-before-restore-20260929-080235-asylum-test-full-bot-run (sl2 97542d86)
+  sl2 되돌림 (e2da9f35)
+  이어하기 (키보드, 8.6 s)
+돌아옴: {'pos': [-47.5, -59.77, 53.42], 'hp': 616, 'max_hp': 616, 'estus': 3, 'char': 'Asylum Test'}

@@ -9,24 +9,35 @@ Rules that live only in this layer (not repeated elsewhere):
 """
 from __future__ import annotations
 
+import functools
+import inspect
 import math
 import time
 from dataclasses import dataclass, field
 
 import control
+import ctlspan
 import farm
 import nav
 import quitout
 
 ATTACK = range(3000, 3500)       # enemy attack anims (common to DS1 humanoids)
 GUARD_BROKEN = 9600              # guard broken, staggered (after kicking a shield soldier) — an opening
+FALLING = (1500, 1550, 121500)  # falling: 1500 a foe going off a ledge (P-69), 1550 / 121500 our own (watch.FALL_ANIMS)
+HIT_STUN = range(2000, 2100)     # my own hit reactions (2004 in P-73) — a roll pressed in one comes out late
 STAGGER = range(3500, 3600)      # stagger — bounced off my shield etc. **An opening, not an attack** (2026-09-24: treating this as an attack made it just guard for 12 s)
+def my_attack(anim) -> bool:
+    """My own weapon attack anim: <weapon>3xxx one-handed / <weapon>4xxx two-handed — 203xxx knife · 253xxx Claymore · 303xxx Battle Axe.
+    Before 11-04 only 300000–310000 counted, so a Claymore swing read as "not attacking" ([MoKa] 11-04 "클레이모어 … 주력으로")."""
+    return anim is not None and 200000 <= anim < 400000 and (anim // 1000) % 10 in (3, 4)
+
+
 DOWNED = range(9900, 10000)      # knocked down·lying·getting up (9920 = getting up)
 GETTING_UP = 9920
 ESTUS_IDS = range(200, 216)      # Estus item ID varies by upgrade level (new character 201)
 ITEM_DARKSIGN = 117
 ITEM_KNIFE = 290                 # throwing knife (must be in a quick slot to be selectable)
-ITEM_FIREBOMB = 292              # firebomb — emergencies only (user: 50 souls, 'a bomb is better than dying'). id from the DS1 goods table, not yet measured
+ITEM_FIREBOMB = 292              # firebomb — 50 souls at the Undead Merchant; id confirmed in memory 2026-10-12 (docs/shop-undead-merchant.md)
 PHANTOM_SWINGS = 3                # this many whiffs (in reach·0 damage·not moving) → treat as a phantom
 OTHERS_R = 3.5                    # radius for checking who else got hit by a horizontal slash
 REPAIR_POWDER = 280               # repair powder item ID
@@ -47,6 +58,7 @@ class Hit:
     e_anims: list = field(default_factory=list)
     my_anims: list = field(default_factory=list)
     skipped: str | None = None
+    cut: tuple | None = None      # (t, target anim, presses so far) when stop_on cut the chain
     others: int = 0               # number of non-target enemies whose HP also dropped (Claymore horizontal slash — user: "nearby enemies take damage too")
 
     def as_dict(self) -> dict:
@@ -76,6 +88,58 @@ def rel_angle(p, c) -> float:
     return (math.atan2(c.x - p.x, c.z - p.z) - fwd + math.pi) % (2 * math.pi) - math.pi
 
 
+ALIGN_BODY_DEG = 30.0    # alignment record ([MoKa] 10-11 "공격 대상과 캐릭터 정렬, 카메라 방향 일치도 우선순위가 높은 작업"): body within this
+ALIGN_CAM_DEG = 10.0     # camera within this (= camera.DEADBAND) — recorded only, not part of 'ok' (below)
+
+
+def _aligned(si: int):
+    """Record target–body–camera at the moment an attack is pressed (args[si] = snapshot, args[si + 1] = target), then the
+    damage it did — Moves.align_sink(**row) if set (run.py → "attack_align" event). Record only; never changes the attack."""
+    def deco(fn):
+        @functools.wraps(fn)
+        def w(self, *a, **k):
+            sink = self.align_sink
+            if sink is None:
+                return fn(self, *a, **k)
+            try:
+                pre = self.align_of(a[si], a[si + 1])
+            except Exception:
+                pre = None
+            hit = fn(self, *a, **k)
+            if pre is not None:
+                try:
+                    sink(kind=getattr(hit, "kind", fn.__name__), dmg=getattr(hit, "dmg", None), **pre)
+                except Exception:
+                    pass
+            return hit
+        return w
+    return deco
+
+
+def _span(fn):
+    """run.py --ctl-spans: a span.action start / end record around a blocking move, only inside the duel loop (a ctlspan
+    cycle open on this thread). Record only — the move runs the same with or without it (ctlspan.py)."""
+    sig = inspect.signature(fn)
+
+    @functools.wraps(fn)
+    def w(self, *a, **k):
+        if not ctlspan.active():
+            return fn(self, *a, **k)
+        try:
+            args = sig.bind(self, *a, **k).arguments
+        except Exception:
+            args = {}
+        aid = ctlspan.action_start(fn.__name__, args)
+        try:
+            ret = fn(self, *a, **k)
+        except BaseException as e:
+            ctlspan.action_end(aid, exc=e)
+            raise
+        ctlspan.action_end(aid, ret)
+        return ret
+    return w
+
+
 LOOK_MAX_S = 0.25         # longest single camera tap (≈ 37° at full stick)
 LOCK_BODY_DEG = 20.0     # before R3: body within this of the target …
 LOCK_CAM_DEG = 6.0       # … and camera within this (R3 grabs whatever is nearest camera centre)
@@ -91,16 +155,24 @@ class Moves:
         self.guard_ok = True     # False = never raise the shield (backstep style. User: "Don't guard when backstepping — dodge and attack, keep it simple")
         self.cam_target = None   # enemy ptr for the camera to face — set by layer 4 (field.fight·lure), followed by camera.CamFollow
         self.cam_busy = False    # this layer is using the camera directly (knife lock-on) — CamFollow stays hands off
+        self.swung: dict = {}    # ptr → last time seen in an attack anim (_note_swings, every snapshot) — duel.rule_shot
+        self.align_sink = None   # callable(**row) — target–body–camera at each attack press (_aligned; run.py → "attack_align")
         # what layer 4 is doing, for viewers only (radar.py reads these; nothing in the bot reads them back)
         self.show_path = None    # (tag, [(x, y, z), ...]) while field.walk follows a path
         self.show_spot = None    # (tag, (x, y, z), time) — last spot field._hold_at held
         self.show_smash = None   # (prop name, (x, y, z), time) — last prop field._smash_blocking swung at
+        self.show_drops = None   # (time, [(x, y, z, item, state, aim)]) — field.pick_drops' DropBook (aim = the cluster being visited)
 
     # ── Camera ───────────────────────────────────────────────
     # User 2026-09-26: "This game has auto lock-on, so … press the right stick again to release, point the camera at the enemy you want, press the stick".
     # R3 grabs the enemy nearest the camera center — turning only the body and pressing R3 twice still re-locked the neighbor (clear-ramp 090241, #3 instead of #2 shield soldier).
-    # Which way cam_yaw turns when pushing right stick x positive is not yet measured, so it is learned from the first pulse.
+    # Which way cam_yaw turns when pushing right stick x positive is not yet measured, so it is learned — from a +x / −x pulse pair
+    # (P-65: one +x pulse learned it backwards in 20261011_060748 while the camera was drifting on its own — the whole run turned the
+    # camera away, median 158° off). The pair cancels a steady drift; LOOK_WRONG pulses in a row that move the camera against the
+    # learned sign forget it, and the next pulse learns again.
     LOOK_SIGN: int | None = None
+    LOOK_WRONG = 3
+    _look_wrong = 0
 
     def cam_err(self, s, x: float, z: float) -> float | None:
         """Angle (°) from camera forward (cam_yaw + nav.YAW_OFFSET — same rule as world_to_stick) to (x, z)."""
@@ -109,19 +181,26 @@ class Moves:
         ang = math.atan2(x - s.player.x, z - s.player.z)
         return math.degrees((ang - (s.cam_yaw + nav.YAW_OFFSET) + math.pi) % (2 * math.pi) - math.pi)
 
+    def align_of(self, s, c) -> dict:
+        """Target–body–camera in one row: body / cam = how far (°, + right) the target is off my facing / the camera centre,
+        d / dy = distance / height to it, lock = locked on it, ok = body ≤ ALIGN_BODY_DEG or locked.
+        ── 카메라는 정렬 판정에서 뺌 ([MoKa] 2026-10-13 "카메라 어긋남 상관 없으면 닫아줘") ──
+         10-12/13 클레이모어 런: 공격 순간 몸은 늘 |25°| 안, '어긋남'은 전부 락온 없는 카메라 11–54°뿐이고 대부분 맞음
+         (3런 6/6, blockfix1 2/2, guardkeep1 2/2) → 카메라는 맞힘을 안 깎음. cam 값은 기록으로 남김"""
+        body = None if s.player.heading is None else math.degrees(rel_angle(s.player, c))
+        cam = self.cam_err(s, c.x, c.z)
+        lock = self.lock_state(c.ptr) == "target"
+        ok = lock or (body is not None and abs(body) <= ALIGN_BODY_DEG)
+        return {"npc": c.npc_param, "d": round(horiz(s.player, c), 2), "dy": round(c.y - s.player.y, 2),
+                "body": None if body is None else round(body, 1), "cam": None if cam is None else round(cam, 1), "lock": lock, "ok": ok}
+
     def look_pulse(self, err: float, dur: float = 0.06) -> None:
         """One short right-stick pulse toward err. If the sign is unknown, learn it from this pulse."""
         if Moves.LOOK_SIGN is None:
-            s0 = self.snap(5.0)
-            self.pad.look(0.6, 0.0)
-            time.sleep(0.08)
-            self.pad.look(0.0, 0.0)
-            time.sleep(0.12)
-            s1 = self.snap(5.0)
-            if s0 and s1 and s0.cam_yaw is not None and s1.cam_yaw is not None:
-                d = (s1.cam_yaw - s0.cam_yaw + math.pi) % (2 * math.pi) - math.pi
-                if abs(d) > math.radians(0.5):
-                    Moves.LOOK_SIGN = 1 if d > 0 else -1
+            d = [self._yaw_step(x, 0.08) for x in (0.6, -0.6)]
+            if None not in d and abs(d[0] - d[1]) > math.radians(1.0):
+                Moves.LOOK_SIGN = 1 if d[0] - d[1] > 0 else -1     # steady drift is in both and cancels
+                Moves._look_wrong = 0
             return
         # ── 오른스틱 세기·시간 → 카메라가 도는 양 (2026-10-01 실측, 마을 마당에 서서 한 방향으로 3번씩, 0.7 s 기다림) ──
         #  0.35 → 0°/s (데드존 — 예전 펄스는 오차 20° 밑에선 0.35~0.4라 카메라가 18° 어긋난 채 멈춤, 락온 실패 3번)
@@ -129,10 +208,32 @@ class Moves:
         e = abs(err)
         mag, rate = (1.0, 150.0) if e >= 20 else (0.7, 70.0) if e >= 8 else (0.6, 50.0)
         hold = max(0.03, min(LOOK_MAX_S, e / rate * 0.8))
-        self.pad.look(Moves.LOOK_SIGN * (1 if err > 0 else -1) * mag, 0.0)
+        want = 1 if err > 0 else -1                        # cam_err > 0: cam_yaw has to grow to reach the target (cam_err's sign rule)
+        y0 = self.snap(5.0)
+        self.pad.look(Moves.LOOK_SIGN * want * mag, 0.0)
         time.sleep(hold)
         self.pad.look(0.0, 0.0)
+        y1 = self.snap(5.0)
+        if y0 is not None and y1 is not None and y0.cam_yaw is not None and y1.cam_yaw is not None:
+            d = (y1.cam_yaw - y0.cam_yaw + math.pi) % (2 * math.pi) - math.pi
+            if abs(d) > math.radians(2.0):                 # it turned — the right way (err shrinks) or the wrong way
+                Moves._look_wrong = Moves._look_wrong + 1 if (d > 0) != (want > 0) else 0
+                if Moves._look_wrong >= Moves.LOOK_WRONG:
+                    Moves.LOOK_SIGN, Moves._look_wrong = None, 0
 
+    def _yaw_step(self, x: float, dur: float) -> float | None:
+        """Right stick x for dur, then let it settle → how much cam_yaw turned (rad), or None."""
+        s0 = self.snap(5.0)
+        self.pad.look(x, 0.0)
+        time.sleep(dur)
+        self.pad.look(0.0, 0.0)
+        time.sleep(0.12)
+        s1 = self.snap(5.0)
+        if not (s0 and s1 and s0.cam_yaw is not None and s1.cam_yaw is not None):
+            return None
+        return (s1.cam_yaw - s0.cam_yaw + math.pi) % (2 * math.pi) - math.pi
+
+    @_span
     def look_at(self, ptr, tol: float = 5.0, timeout: float = 1.5) -> float | None:
         """Turn the camera toward the target (right stick). While locked on the right stick switches targets, so unlock before calling. → last remaining offset (°)."""
         t, err = time.time(), None
@@ -151,13 +252,57 @@ class Moves:
 
     # ── Observing ────────────────────────────────────────────────
     def snap(self, within: float = 40.0):
-        return self.tm.snapshot(within=within)
+        s = self.tm.snapshot(within=within)
+        if s is not None:
+            self._note_swings(s)
+            self._note_deaths(s)
+        return s
+
+    def _note_deaths(self, s) -> None:
+        """One death detector for every snapshot read through here (worldstate step 2): a foe seen alive, then at HP 0 in two
+        snapshots with different times, is reported once to on_death(c) — Field sets it to WorldState.kill. Same rule as
+        field.clear's (two consecutive zero-HP snapshots). Field clears `_deaths` when pointers change (a load)."""
+        cb = self.__dict__.get("on_death")
+        if cb is None:
+            return
+        d = self.__dict__.setdefault("_deaths", {})         # ptr → [seen alive, zero count, last zero t, reported]
+        t = getattr(s, "t", None)
+        for c in getattr(s, "chars", ()):
+            st = d.get(c.ptr)
+            if c.hp is not None and c.hp > 0:
+                d[c.ptr] = [True, 0, None, False]
+                continue
+            if st is None or not st[0] or st[3] or c.hp is None:
+                continue                                    # never seen alive (a corpse from before) / already reported
+            if st[2] != t:
+                st[1] += 1
+                st[2] = t
+            if st[1] >= 2:
+                st[3] = True
+                try:
+                    cb(c)
+                except Exception:
+                    pass
+
+    def _note_swings(self, s) -> None:
+        """Perception kept by every snapshot read through here, from any thread (the decision loop, an attack move's _watch, the
+        camera): ptr → last time seen in an attack anim. duel.rule_shot reads it — during a multi-second attack move the decision
+        loop doesn't tick, so a swing seen only there was missed and the hit taken for a thrower's (P-66 b, 161435 80.6 s)."""
+        sw = self.__dict__.get("swung")
+        if sw is None:
+            sw = self.__dict__.setdefault("swung", {})
+        now = time.time()
+        for c in getattr(s, "chars", ()):
+            if c.anim is not None and c.anim in ATTACK and c.hp > 0:
+                sw[c.ptr] = now
 
     @staticmethod
     def find(s, ptr):
         return next((x for x in s.chars if x.ptr == ptr), None) if s else None
 
     def stick_to(self, s, x: float, z: float, scale: float = 1.0) -> tuple[float, float]:
+        if s.cam_yaw is None:                              # no camera yaw (death / loading, P-68) — can't steer, so don't move
+            return 0.0, 0.0
         st = control.world_to_stick(x - s.player.x, z - s.player.z, s.cam_yaw, nav.YAW_OFFSET, nav.FLIP_X)
         return st[0] * scale, st[1] * scale
 
@@ -178,13 +323,15 @@ class Moves:
         self.pad.guard(on and self.guard_ok)
 
     # ── Attacks ─────────────────────────────────────────────────
-    def _watch(self, hit: Hit, ptr, hp0: int, ehp0: int, secs: float, on_tick=None, early_exit=None) -> None:
+    def _watch(self, hit: Hit, ptr, hp0: int, ehp0: int, secs: float, on_tick=None, early_exit=None, keys_left=None) -> None:
+        # keys_left(): a combo still has keys to press — a dead target doesn't end the watch before them (P-133 jump → light)
         t1 = time.time()
         my_min, e_min = hp0, ehp0
         s0 = self.snap(4.0)
         side0 = {c.ptr: c.hp for c in s0.hostile(OTHERS_R)} if s0 else {}
         side0.pop(ptr, None)
         side_min = dict(side0)
+        why = "window"                                     # only for the span.action record (ctlspan.watch_end)
         while time.time() - t1 < secs:
             self.pad.release_due()
             if on_tick is not None:
@@ -192,6 +339,7 @@ class Moves:
             s2 = self.snap(10.0)
             if s2:
                 my_min = min(my_min, s2.player.hp)
+                hit.taken = hp0 - my_min                   # live — combo ticks read it (P-133: no follow-up light after a hit)
                 c2 = self.find(s2, ptr)
                 e_min = 0 if c2 is None else min(e_min, c2.hp)
                 for x in s2.chars:
@@ -201,19 +349,27 @@ class Moves:
                     hit.e_anims.append((round(time.time() - t1, 2), c2.anim))
                 if not hit.my_anims or hit.my_anims[-1][1] != s2.player.anim:
                     hit.my_anims.append((round(time.time() - t1, 2), s2.player.anim))
-                if e_min <= 0:
+                if e_min <= 0 and (keys_left is None or not keys_left()):
+                    why = "gone" if c2 is None else "dead"
                     break
                 # once an attack anim has played and returned to -1 (standing) with nothing left to press, finish — avoids waiting out the rest blind
                 if (early_exit is not None and early_exit(time.time() - t1, hit) and len(hit.my_anims) >= 2
                         and hit.my_anims[-1][1] in (-1, None)):
+                    why = "early"
                     break
             time.sleep(0.01)
         hit.dmg, hit.dead, hit.taken = ehp0 - e_min, e_min <= 0, hp0 - my_min
         hit.others = sum(1 for k, v in side0.items() if side_min[k] < v)
+        ctlspan.watch_end(why)
 
-    def light(self, s, c, n: int = 1, sp_second: int = 40) -> Hit:
-        """Light attack (R1) n times (1 or 2). The second at SECOND_R1_AT after the first R1, only if stamina exceeds sp_second.
-        The shield goes up after the last attack anim starts (so the second R1 isn't overridden by guard)."""
+    @_span
+    @_aligned(0)
+    def light(self, s, c, n: int = 1, sp_second: int = 40, stop_on=frozenset()) -> Hit:
+        """Light attack (R1) n times (1, 2 or 3). Each further R1 at SECOND_R1_AT after the previous one, only if stamina exceeds
+        sp_second at the start. The shield goes up after the last attack anim starts (so a buffered R1 isn't overridden by guard).
+        n = 3: [MoKa] 11-09 타우로스 "다리에 붙었으면 바로 공격하고 3대를 연속으로 때려봐" — same chain step again, unmeasured.
+        stop_on: target anims that cut the chain — no further R1 once the target is seen in one, exit when my swing ends
+        ([MoKa] 11-09 "끊고 다시 붙어": 타우로스 701 백스텝 중 남은 약공이 빈 데를 침, 121803 첫 사슬 3.9 s)."""
         hit = Hit("light")
         ptr, hp0, ehp0 = c.ptr, s.player.hp, c.hp
         w = self.weapon
@@ -227,23 +383,30 @@ class Moves:
         self.pad.guard(hold)
         self.pad.tap(B.XUSB_GAMEPAD_RIGHT_SHOULDER, 0.06)      # stick wait is handled by Pad
         hit.presses = 1
-        want_second = n >= 2 and (s.player.sp or 0) >= sp_second
-        state = {"second": not want_second, "guard": hold}
+        target = max(1, min(3, n)) if n >= 2 and (s.player.sp or 0) >= sp_second else 1
+        extra = (target - 2) * chain if target >= 2 else 0.0   # a third R1 shifts the guard / watch / exit times by one chain step
+        state = {"k": 1, "guard": hold, "cut": False}
 
         def tick(t, h):
-            if not state["second"] and t >= chain:
-                state["second"] = True
+            if stop_on and not state["cut"] and h.e_anims and h.e_anims[-1][1] in stop_on and state["k"] < target:
+                state["cut"] = True
+                h.cut = (round(t, 2), h.e_anims[-1][1], state["k"])
+            if state["cut"]:
+                return
+            if state["k"] < target and t >= chain * state["k"]:
+                state["k"] += 1
                 if not h.dead:
                     self.pad.tap(B.XUSB_GAMEPAD_RIGHT_SHOULDER, 0.06)
-                    h.presses = 2
+                    h.presses = state["k"]
             # shield 0.6 s (0.35 s for a single hit) after the last R1 — pressing LB earlier can override the buffered R1 with guard
-            if not state["guard"] and state["second"] and t >= (g2 if h.presses == 2 else g1):
+            if not state["guard"] and state["k"] >= target and t >= (g2 + extra if target >= 2 else g1):
                 state["guard"] = True
                 self.guard(True)
         # when holding, the game signals the end — exit as soon as my anim returns to -1 (cancel frame)
-        exit_at = (lambda t, h: state["second"] and t > chain + 0.1) if hold else \
-                  (lambda t, h: state["second"] and t > (g2 - 0.3 if h.presses == 2 else g1 - 0.05))
-        self._watch(hit, ptr, hp0, ehp0, w2 if want_second else w1, tick, early_exit=exit_at)
+        exit_at = (lambda t, h: state["cut"] or (state["k"] >= target and t > chain + extra + 0.1)) if hold else                   (lambda t, h: state["cut"] or (state["k"] >= target and t > (g2 - 0.3 + extra if target >= 2 else g1 - 0.05)))
+        self._watch(hit, ptr, hp0, ehp0, w2 + extra if target >= 2 else w1, tick, early_exit=exit_at)
+        if state["cut"] and not state["guard"]:
+            self.guard(True)
         self.pad.move(0.0, 0.0)
         self._phantom_check(s, c, hit)
         return hit
@@ -262,6 +425,8 @@ class Moves:
         else:
             self._zero.pop(c.ptr, None)
 
+    @_span
+    @_aligned(0)
     def heavy(self, s, c) -> Hit:
         """Heavy attack (R2) — press with the stick released (forward+R2 is a jump attack). Called by upper layers only when the weapon uses heavies."""
         hit = Hit("heavy", presses=1)
@@ -277,6 +442,8 @@ class Moves:
                         lambda t, h: self.guard(True) if t > 0.9 else None)
         return hit
 
+    @_span
+    @_aligned(0)
     def kick(self, s, c) -> Hit:
         """Kick = stick toward the target + R1 in the same input (control.kick). Breaks a shield guard (wiki: guarding enemies stagger)."""
         hit = Hit("kick", presses=1)
@@ -292,6 +459,8 @@ class Moves:
         self._watch(hit, ptr, hp0, ehp0, 1.2)
         return hit
 
+    @_span
+    @_aligned(0)
     def kick_combo(self, s, c, n: int = 2) -> Hit:
         """Kick → n light hits right as the guard breaks (one move, bypasses the decision loop).
         User: "The gap between the kick and the attack is too long, the shield soldier guards again and it fails" — the kick lands and 9600 (guard broken)·9920
@@ -325,6 +494,7 @@ class Moves:
         self._phantom_check(s, c, hit)          # count kick combos too — counting only light attacks alternated with the phantom and stalled at 2
         return hit
 
+    @_span
     def backstep(self) -> None:
         """Stick neutral + tap B. DS1 registers on B release — press 0.1 s after releasing the stick (otherwise it rolls)."""
         self.pad.release_stick()
@@ -335,7 +505,18 @@ class Moves:
             self.pad.release_due()
             time.sleep(0.02)
 
-    def backstep_attack(self, s, c, nm=None) -> Hit:
+    def step(self, s, x: float, z: float, secs: float, guard: bool = True) -> None:
+        """Walk toward local (x, z) for secs (stick, guard up), then neutral — a small set-up move before a drilled combo."""
+        self.pad.guard(guard)
+        self.pad.move(*self.stick_to(s, x, z))
+        t0 = time.time()
+        while time.time() - t0 < secs:
+            self.pad.release_due()
+            time.sleep(0.02)
+        self.pad.move(0.0, 0.0)
+
+    @_span
+    def backstep_attack(self, s, c, nm=None, front: float = 2.2, r1_at: float | None = None, swing: int | None = None) -> Hit:
         """Backstep + R1 as **one move** (user 2026-09-24: "Backstep then attack must not be two moves, it has to be one").
         Stick neutral → B → R1 after BS_TO_R1. Needs floor 2.6 m behind·3.0 m ahead (it lunges forward). Body must face the target within 40°."""
         hit = Hit("bsattack", presses=0)
@@ -345,30 +526,53 @@ class Moves:
             return hit
         if nm is not None:
             back = (math.sin(p.heading), math.cos(p.heading))
-            if not nav.ground_ahead(nm, p, back[0], back[1], reach=2.6):
+            if not nav.can_move(nm, p, back[0], back[1], 2.6):
                 hit.skipped = "뒤에 바닥 없음"
                 return hit
-            if not nav.ground_ahead(nm, p, -back[0], -back[1], reach=2.2):
+            if not nav.can_move(nm, p, -back[0], -back[1], front):
                 hit.skipped = "앞에 바닥 없음"
                 return hit
         if abs(math.degrees(rel_angle(p, c))) > 40:
             hit.skipped = "몸이 딴 데"
             return hit
-        return self.combo("backstep_r1", s, c, nm=None)   # floor already checked above
+        return self.combo("backstep_r1", s, c, nm=None, r1_at=r1_at, swing=swing)   # floor already checked above
+
+    # ── 점프 공격 + 약공 ([MoKa] 11-04 판정 19 · 22 "점프 공격 + 약공을 콤보로 만들었어야 함", "점프 공격은 첫 공격이 실패해도 2타 공격이
+    #  확정적으로 들어가기 때문에 … 점프 공격 이후에는 그냥 약공이 더 자연스러운 선택") ─────────────────────────────────
+    #  점프를 누르고 JUMP_TO_R1 s 뒤 R1 — 점프 칼날은 누른 뒤 ~1.04 s (클레이모어 253600, observe 20261104_132739 1번), 애니 전체 ~2.3 s
+    #  (132116 · 133513, 배틀 액스 303600 4번). 칼날 직후에 눌러 게임이 받아 둔 뒤 이어 칠 첫 틈에 약공이 나가게 하려는 값 — 그 틈이 언제인지,
+    #  1.1 s 입력이 버려지지 않는지는 게임 확인 전 (가설). 죽었거나 맞았어도 R1은 누름 ([MoKa] 11-08 "무조건").
+    JUMP_TO_R1 = 1.1
+    COMBO_ALWAYS = ("jump_r2",)      # every key is pressed even after the target died (MoKa 11-08 "무조건")
 
     # ── Combo = sequence (user 2026-09-24: "Make attack combos a single sequence — roll light, jump heavy, backstep light, like that") ──
     # one row = (time s, action). Actions: "stick_fwd" stick toward target | "stick_off" release stick | "B" | "R1" | "R2" (trigger)
+    #   | "jump" stick toward target + R2 in the same report
+    # 게임 실측 (P-121, 11-03 방 안, 한손, experiments/combo_probe.py, 앞뒤 바닥 확인 뒤): backstep_r1 690 → 303500 (B 뒤 0.87–0.90 s,
+    # 1.5–1.8 m) 2/2 · roll_r1 710 → 303900 (1.1 s, 2.9–5.5 m) 2/2 · jump_r2 303600 (3.25 m) 1/1 — 예전 행(스틱 먼저, 0.1 s 뒤 R2)은
+    # 303300 강공(0.31 m)이었음. 애니가 화면의 백스텝 공격·구르기 공격·점프 공격과 같은지는 MoKa 확인 대기
     # times: steps before B are relative to start, **steps after B are relative to the moment B was pressed** (so gaps hold even with the 0.16 s stick-release wait)
     # results observed with a single _watch. Add a new combo as one row here; upper layers call it by name only.
     COMBOS = {
         "backstep_r1": ((0.0, "stick_off"), (0.0, "B"), (BS_TO_R1, "R1")),                 # backstep light — lunges 1.7~2.8 m forward
         "roll_r1":     ((0.0, "stick_fwd"), (0.3, "B"), (0.55, "R1")),                      # roll light — R1 0.55 s after B (post-B times are relative to B)
-        "jump_r2":     ((0.0, "stick_fwd"), (0.1, "R2"), (0.25, "stick_off")),             # jump heavy — forward+R2 (control chart)
+        "jump_r2":     ((0.0, "jump"), (JUMP_TO_R1, "R1")),                                 # jump attack (stick + R2 in one report, Pad.jump_attack) → light
     }
-    COMBO_WATCH = {"backstep_r1": BS_TO_R1 + 1.1, "roll_r1": 2.0, "jump_r2": 1.8}
+    COMBO_WATCH = {"backstep_r1": BS_TO_R1 + 1.1, "roll_r1": 2.0, "jump_r2": JUMP_TO_R1 + 1.1}
+    COMBO_TAIL = {"jump_r2": 0.9}                          # watch this long after the last key (default 0.4) — the follow-up light lands ~0.7 s after R1
+    # 공격 키는 회피 동작(690 백스텝 · 710 구르기)이 실제로 보인 뒤 AFTER_DODGE s 이후에 — B 기준 시간만으로는 140(막기 등) 중에
+    # B가 늦게 먹혀 R1이 먼저 들어가 버려짐 (P-121 125142: 140에서 시작한 백스텝 콤보 4/4가 690만, 303500 없음). 안 보이면
+    # B 뒤 DODGE_WAIT s에 그냥 누름.
+    COMBO_GATE = {"backstep_r1": range(690, 700), "roll_r1": range(700, 800)}
+    AFTER_DODGE, DODGE_WAIT = 0.30, 0.9
 
-    def combo(self, name: str, s, c, nm=None, need_back: float = 0.0, need_front: float = 3.0) -> Hit:
-        """One combo as one move. Floor check: need_back m behind·need_front m ahead (roll·jump move forward)."""
+    @_span
+    @_aligned(1)
+    def combo(self, name: str, s, c, nm=None, need_back: float = 0.0, need_front: float = 3.0,
+              r1_at: float | None = None, swing: int | None = None) -> Hit:
+        """One combo as one move. Floor check: need_back m behind·need_front m ahead (roll·jump move forward).
+        r1_at: the attack key not before this time.time() (the foe's live window ends then). swing: the foe's attack anim
+        we dodge — if it chains into another attack before the key, the key is not pressed (hit.skipped says so)."""
         hit = Hit(name, presses=0)
         p = s.player
         if p.heading is None or s.cam_yaw is None:
@@ -376,10 +580,10 @@ class Moves:
             return hit
         if nm is not None:
             back = (math.sin(p.heading), math.cos(p.heading))
-            if need_back and not nav.ground_ahead(nm, p, back[0], back[1], reach=need_back):
+            if need_back and not nav.can_move(nm, p, back[0], back[1], need_back):
                 hit.skipped = "뒤에 바닥 없음"
                 return hit
-            if need_front and not nav.ground_ahead(nm, p, c.x - p.x, c.z - p.z, reach=need_front):
+            if need_front and not nav.can_move(nm, p, c.x - p.x, c.z - p.z, need_front):
                 hit.skipped = "앞에 바닥 없음"
                 return hit
         if abs(math.degrees(rel_angle(p, c))) > 40:
@@ -406,11 +610,15 @@ class Moves:
             elif act == "R2":
                 self.pad._r2(0.12)
                 hit.presses += 1
+            elif act == "jump":
+                self.pad.jump_attack(fwd)
+                hit.presses += 1
 
         # times are **relative to the moment B was pressed** — with absolute times R1 moved earlier by the stick-release wait (0.16 s), turning 0.45 into 0.29 (caught by moves_test)
         state["anchor"] = None
 
         t_start = time.time()
+        gate = self.COMBO_GATE.get(name)
 
         def tick(t, h):
             while state["i"] < len(steps):
@@ -419,26 +627,79 @@ class Moves:
                 base = state["anchor"] if (state["anchor"] is not None and st_t > 0) else t_start
                 if now - base < st_t:
                     break
+                # P-133: 점프 뒤 약공은 조건 없이 ([MoKa] 11-08 "무조건 점프 공격, 약공이 자동으로 나가야해") — 죽었거나 맞았어도 누름
+                #  (그 전 "죽으면 · 맞으면 안 누름"은 MoKa가 약공이 안 나온다고 본 이유)
+                if act in ("R1", "R2") and r1_at is not None and now < r1_at:
+                    break
+                if act in ("R1", "R2") and swing is not None and any(a in ATTACK and a != swing for _ta, a in h.e_anims):
+                    # 휘두름이 다음 공격으로 이어짐 (c2540 3000→3001→3002) — 지금 누르면 그 공격에 맞음, 백스텝만 하고 끝
+                    hit.skipped = "연속 공격 — 공격 키 안 누름"
+                    state["i"] = len(steps)
+                    break
+                if gate is not None and state["anchor"] is not None and act in ("R1", "R2"):
+                    seen = next((ta for ta, a in h.my_anims if a in gate and t_start + ta >= state["anchor"] - 0.05), None)
+                    if seen is None and now - state["anchor"] < self.DODGE_WAIT:
+                        break
+                    if seen is not None and now - (t_start + seen) < self.AFTER_DODGE:
+                        break
                 do(act)
                 if act == "B" and state["anchor"] is None:
                     state["anchor"] = time.time()          # post-B step times are relative to the moment B was pressed
                 state["i"] += 1
         self._watch(hit, c.ptr, hp0, ehp0, self.COMBO_WATCH[name] + 0.3, tick,
-                    early_exit=lambda t, h: state["i"] >= len(steps) and time.time() > (state["anchor"] or t_start) + steps[-1][0] + 0.4)
+                    keys_left=(lambda: state["i"] < len(steps)) if name in self.COMBO_ALWAYS else None,
+                    early_exit=lambda t, h: state["i"] >= len(steps) and time.time() > (state["anchor"] or t_start) + steps[-1][0]
+                    + self.COMBO_TAIL.get(name, 0.4))
         self.pad.move(0.0, 0.0)
         return hit
 
-    def roll_toward(self, s, x: float, z: float) -> None:
-        """Stick that way + tap B = roll (breaking boxes etc.)."""
-        self.pad.move(*self.stick_to(s, x, z))
-        time.sleep(0.3)                                      # time to turn the body
-        self.pad.dodge()
-        t0 = time.time()
-        while time.time() - t0 < 1.2:
-            self.pad.release_due()
-            time.sleep(0.02)
-        self.pad.move(0.0, 0.0)
-        time.sleep(0.2)
+    @_span
+    def roll_toward(self, s, x: float, z: float, hold: bool = False) -> dict:
+        """Stick that way + tap B = roll. → {'want', 'got', 'off'} — the direction meant and the one taken (degrees, atan2(dx, dz)).
+
+        P-73 (20261012_033444 68.0 s): the stick is camera-relative and was worked out from a snapshot taken before the roll;
+        the camera thread kept turning toward an attacker (−70° → −10° in 0.6 s) while the stick was held, so the roll went
+        −126° instead of −30° — off the ramp, 22.4 m. Now: the camera holds still (cam_busy, as for knife throws) from before
+        the stick is worked out until the roll is under way; the stick comes from a fresh snapshot; wait out a hit stagger
+        first (the 0.3 s turn is lost in it); let go of the stick once the roll starts — the old 1.2 s hold walked ~1 m on
+        after it, past where the floor was checked (nav.ROLL_CHECK_M).
+        hold=True: the old 1.2 s stick hold — only toward a spot with a wall behind it (Taurus's ladder foot). With the stick
+        let go the roll (710) played 2.0 s there (10-31 225341 · 235622 · 20261101_000027); held, ~1.0 s (before f2333dc 20/20)."""
+        busy, self.cam_busy = self.cam_busy, True
+        try:
+            time.sleep(0.06)                                 # a camera pulse already going finishes (CamFollow ticks 0.05 s)
+            t0 = time.time()
+            s1 = self.snap(10.0) or s
+            while s1 is not None and (s1.player.anim or -1) in HIT_STUN and time.time() - t0 < 0.8:
+                time.sleep(0.05)
+                s1 = self.snap(10.0) or s1
+            p0 = (s1.player.x, s1.player.z)
+            want = math.degrees(math.atan2(x - p0[0], z - p0[1]))
+            self.pad.move(*self.stick_to(s1, x, z))
+            time.sleep(0.3)                                  # time to turn the body
+            self.pad.dodge()
+            t0 = time.time()
+            while time.time() - t0 < 1.2:
+                self.pad.release_due()
+                s2 = self.snap(10.0)
+                if not hold and s2 is not None and s2.player.anim is not None and 700 <= s2.player.anim < 800 and time.time() - t0 > 0.1:
+                    break                                    # rolling — its direction is set
+                time.sleep(0.02)
+            self.pad.move(0.0, 0.0)
+            t0 = time.time()
+            while time.time() - t0 < (0.2 if hold else 0.9):  # the roll plays out
+                self.pad.release_due()
+                time.sleep(0.03)
+            s3 = self.snap(10.0)
+        finally:
+            self.cam_busy = busy
+        if s3 is None:
+            return {"want": round(want), "got": None, "off": None}
+        dx, dz = s3.player.x - p0[0], s3.player.z - p0[1]
+        if math.hypot(dx, dz) < 0.5:
+            return {"want": round(want), "got": None, "off": None}
+        got = math.degrees(math.atan2(dx, dz))
+        return {"want": round(want), "got": round(got), "off": round(abs((got - want + 180) % 360 - 180))}
 
     # ── Items ───────────────────────────────────────────────
     def estus_id(self) -> int | None:
@@ -462,6 +723,7 @@ class Moves:
                 time.sleep(0.01)
         return self.tm.selected_item() == item
 
+    @_span
     def drink(self, safe) -> dict:
         """One sip of Estus. Only when safe(snapshot) is true — selecting the slot takes up to 3 s, so check **again after selecting**.
         → {"ok": did the count drop, "hp": [before, after], "left": remaining count, "why": reason it couldn't drink}"""
@@ -583,8 +845,8 @@ class Moves:
 
     def unlock(self) -> None:
         if self.tm.lock_target() not in (None, -1):
-            self.pad.lock_on()                    # R3 is a toggle
-            time.sleep(0.15)
+            self._r3(0.15)                        # R3 is a toggle; _r3 also lets it go — a bare sleep left R3 down, so the next
+                                                  # lock_on() was the same press and never locked (2026-10-12 probe: 2nd try 0/2)
 
     def _r3(self, wait: float = 0.3) -> None:
         self.pad.lock_on()
@@ -647,12 +909,17 @@ class Moves:
         return {"body": round(math.degrees(rel_angle(s.player, c))), "cam": None if cam is None else round(cam),
                 "dy": round(c.y - s.player.y, 1), "dist": round(horiz(s.player, c), 1)}
 
+    @_span
     def lock_target(self, ptr, tries: int = 3, aim: bool = True) -> bool:
         """Lock on to ptr the way the user does: body toward it, camera on it (R3 grabs the enemy nearest camera center), R3, check;
         a neighbour grabbed → release and retry. → True when locked on ptr. self.last_lock = alignment at the last R3 (log)."""
         self.last_lock = {}
         if self.lock_state(ptr) == "target":
             return True
+        # ── 락온 시도는 서서 (P-70 다시, 10-13 staggerfix1) ──────────────────────
+        #  face()가 계단 위에서 스틱을 0.55로 밀어 둔 채 _backstab이 여기로 와서 R3 2번(~2.5 s) 하는 동안 아무도 스틱을 안 놓아
+        #  3.9 m 걸어 계단 옆으로 낙사. 락온 시도 동안 스틱은 가운데
+        self.pad.move(0.0, 0.0)
         for _ in range(tries):
             if self.lock_state(ptr) == "none":
                 self.last_lock = self._lock_align(ptr, aim)
@@ -664,6 +931,7 @@ class Moves:
             st = self.lock_state(ptr)
             if st == "target":
                 return True
+            self.last_lock = {**(self.last_lock or {}), "got": st}   # P-131: 실패 때 R3가 이웃을 잡았는지 (other) 아무도 못 잡았는지 (none)
             if st == "other":
                 self.pad.lock_on()                # locked the neighbor → release and retry
                 t = time.time()
@@ -679,7 +947,8 @@ class Moves:
             al = getattr(self, "last_lock", {}) or {}
             return {"ok": False, "locked": False, "dist": round(c.dist, 1), "align": al,
                     "why": "락온 안 걸림 — 안 던짐 (락온 없는 나이프는 오늘 0/5)"
-                           + (f" · R3 때 몸 {al.get('body')}° 카메라 {al.get('cam')}° 높이 {al.get('dy')} m" if al else "")}
+                           + (f" · R3 때 몸 {al.get('body')}° 카메라 {al.get('cam')}° 높이 {al.get('dy')} m" if al else "")
+                           + (f" · 잡힌 것 {al['got']}" if al.get("got") else "")}
         if not locked:
             # User 2026-09-24: "Aim problem when throwing knives — align direction with the enemy". Resetting the camera behind the body after aligning the body
             # makes camera direction = body direction (before, the camera from walking was looking sideways)
@@ -735,14 +1004,15 @@ class Moves:
         """Menu → Quit Game → Continue. Enemies return to their spawn spots and drop aggro. Dead enemies stay dead (user confirmed 2026-09-24).
         Resting (bonfire) revives all enemies, so use this when you only need to shake enemies off."""
         self.pad.neutral()
-        # Skip the menu — ChrClassWarp+0x19 = 1 sends the game straight to the title (2026-09-25, user: "No need to operate the menu
-        # to quit"). The menu way took 2~2.8 s and the menu won't open while falling, so it couldn't prevent fall deaths. Fall back to the menu if it fails.
-        t0, how = time.time(), "byte"
+        # Menu first: the byte quit-out (ChrClassWarp+0x19) brings killed foes back (P-25, game check 2026-10-10) — byte only if the
+        # menu fails. Falls don't come here (Escape._quit uses byte for them).
+        how = "menu"
         quitout.LAST_STEPS.clear()
-        q = time.time() - t0 if self.tm.quit_to_title(timeout=2.0) else None
+        q = quitout.quit_out(self.tm, self.pad, gap=quitout.MENU_GAP, settle=0.03, ready_wait=0.05)
         if q is None:
-            how = "menu"
-            q = quitout.quit_out(self.tm, self.pad, gap=quitout.MENU_GAP, settle=0.1, ready_wait=0.05)
+            quitout.close_menu(self.tm, self.pad)
+            t0, how = time.time(), "byte"
+            q = time.time() - t0 if self.tm.quit_to_title(timeout=2.0) else None
         if q is None:
             quitout.close_menu(self.tm, self.pad)
             return {"ok": False}
@@ -752,7 +1022,7 @@ class Moves:
 
     def rest(self, nm, bonfire: dict) -> bool:
         """Walk to the bonfire, sit, and stand up (farm.rest). All enemies revive and HP·Estus refill."""
-        return farm.rest(self.tm, self.pad, nm, bonfire)
+        return farm.rest(self.tm, self.pad, nm, bonfire, settings=getattr(self, "settings", None))   # run's Settings (step 3)
 
     def press(self, button, hold: float = 0.1, gap: float = 0.1) -> None:
         """Single press for menus (press, release, gap). Menu inputs 0.1 s apart (user: back-to-back inputs tangle the input buffer)."""

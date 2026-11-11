@@ -16,17 +16,25 @@ from pathlib import Path
 
 import control
 import ctl
+import drops as drops_
 import nav
+import settings as _settings
 
 from . import duel as D
+from . import escape as escape_
 from . import foes as foes_
+from . import loot as loot_
 from . import moves as M
 from . import props as props_
+from . import pull as pull_
 from .reflex import Reflex
 from . import style as style_
 from .watch import Blood
+from . import world as world_
 
 FOLLOW_R = 4.5           # while walking the path, fight any awake foe that closes within this (horizontal)
+GROUP_R = 12.0          # COMBO_ONLY 무리 계획: 이 안의 적을 한 무리로 (P-121)
+GROUP_MOVE_SAFE = 3.5   # 첫 놈이 이보다 가까우면 자리 안 옮김
 FOLLOW_DY = 2.5          # foe following on stairs — up to this height difference
 SAFE_R = 6.0             # estus: no awake foe within this, and
 SAFE_ATTACK_R = 8.0      #          nobody swinging within this
@@ -36,15 +44,34 @@ RESYNC_BACK, RESYNC_AHEAD = 3, 15   # range for re-picking the waypoint after a 
 #    2번 놓쳐야 켜져서 안 켜짐, [MoKa]가 A. 첫 방문 캐릭터에만 걸림 (그전 실행들은 이미 지난 캐릭터)
 #  · 길이 이 벽을 가로지르면 걷기 전에 벽 앞에 서서 A — 안내창 판정 없이 (흰 빛 뒤라 어두운 상자 판정이 안 됨, 10-03b 4번 실패).
 #    벽이 없어졌으면 A가 아무 일도 안 하고 2 m 안 움직임 → 그냥 걸음
-FOG_WALLS = [(-50.0, -22.3, -32.0)]
+# 위치는 m10_01 MSB 벽 오브젝트 o1419_0000 (id 1011700, roty −25°) 중심. 예전 손 좌표 (−50.0, −22.3, −32.0)는 1.2 m 앞이라 그 앞 0.6 m에
+# 서면 벽에서 ~2.7 m — 11-01 161915에서 A 6번 0.1~1.6 m만 움직임 (P-99도 같은 자리)
+FOG_WALLS = [(-49.8, -21.81, -33.2)]
+# 벽 → 이벤트 플래그 (dsr_telemetry.event_flag). True = 지나감/해제 — 11-01 m10_01 emevd 조사에서 벽 삭제 조건으로 추정, 지난 세이브에서
+# True, 불의 제전 세이브 복원 뒤(161915) False를 읽음. 못 읽음(None) → 예전처럼 A
+FOG_FLAGS = {(-49.8, -21.81, -33.2): 11010090}
 FOG_PASS_R = 1.5         # the line to the next point passes this close (horizontal) to a wall's center → it crosses the wall
 FOG_DY = 2.5
+FOG_FACE_DEG = 30.0      # known wall: turn until the body is this close to the next point before A (161915: A at 89–111° off)
+FOG_TURN_S = 1.5
 FOG_FRONT_M = 0.6        # stand this far before the wall, on the line to the point, then fog_through (1.2 too far — 10-03b)
+# ── 사다리 옆에선 '모르는 안개벽' A 안 누름 (11-01 173020) ─────────────────────────────
+#  구역 5 사다리 발치 (6.9, −4.5, −100.4)에서 4번 막힌 뒤 화면 아래 안내("사다리 오르기")를 안개벽 안내로 보고 A → 사다리에 매달려 3 m
+#  올라감(애니 7010·7030), 위에서 또 A → 중간에 걸림. 87–196 s를 거기서 씀. NavMesh Ladder 면(1024)에서 이 거리 안이면 A 대신 그냥 실패로
+LADDER_NO_A_M = 2.5
 
 
 # Doors a foe can shut behind itself. 성벽 마을 위쪽 구역 5 안전 자리 서쪽 문 — 10-06j 255000이 지나가며 닫아 봇이 안전 자리로 못 돌아가고
 # 같은 자리에서 4번 막힘. [MoKa]: "a 눌러, 방패병이 문을 닫았어" → (21.0,−103.8)에서 A, 열리고 지나감. 위치는 막힌 자리와 다음 길 점 사이
 DOORS = [(20.2, -6.0, -103.4)]
+# 11-01 m10_01 맵 오브젝트 조사로 더한 문 (잠긴 문·한쪽만 열리는 문·매복 문은 뺌)
+DOORS += [(-1.51, -10.0, -96.68), (-13.32, -13.47, -69.61), (23.69, -14.99, -101.68)]
+# 문 → 상태 플래그 (MSB ObjAct의 obj_act_flag, 61010xxx). True = 지금 열림, False = 닫힘.
+# 11-01 구역 5 문(1011310): 닫힘·"Ⓐ: Open" 때 False → A → True("Ⓐ: Close") → A → False("Ⓐ: Open") → A → True — 두 방향 다 1번씩.
+# 열린 문에 A를 누르면 닫힌다(같은 날 화면). 그래서 True면 A를 안 누른다. 11…(obj_act_entity_id)은 "한 번 열었음" 기록이라
+# 닫아도 True로 남음 — 로그에만. 적이 문을 닫을 때(10-06j)도 61…이 False가 되는지는 아직 못 봄
+DOOR_FLAGS = {(20.2, -6.0, -103.4): (11010140, 61010510), (-1.51, -10.0, -96.68): (11010111, 61010518),
+              (-13.32, -13.47, -69.61): (None, 61010512), (23.69, -14.99, -101.68): (None, 61010513)}
 DOOR_R = 2.5             # stuck this close (horizontal, same level) to a door → press A once
 DOOR_OPEN_S = 1.5        # …then wait this long for it to swing before walking on
 
@@ -165,10 +192,16 @@ RETREAT_GUARD_R = 4.0    # retreat: shield up while an awake foe is within this 
 SMASH_TRIES = 2          # swings (x2 attacks) per blocking prop per walk — a prop that won't break isn't hit forever
 SMASH_WALK_S = 2.0       # s to step up to it
 SMASH_R = 1.3            # m — light attack reach from the prop's origin
+SMASH_NPC_R = 3.0        # m — a non-hostile character (merchant …) this close to us or the prop: don't swing (P-82)
+# friendly NPCs by npc_param — team doesn't tell them apart: the Undead Merchant reads team 6 (= hostile) before anyone hits him
+FRIENDLY_NPCS = {251001}   # Undead Merchant (souls/shop.UNDEAD_MERCHANT)
 SMASH_FACE_S = 1.2       # s to turn toward it
 SMASH_SWING_S = 0.7      # s per light attack
 REPAIR_FRAC = 0.4        # repair powder when weapon durability is below this fraction of max (field.repair)
 RANGED_R = 25.0          #          and no awake, moving 'thrower' (foes.ranged) within this
+DESPERATE_HP = 0.3       # estus: below this share of max HP, throwers alone (none within DESPERATE_R) no longer block a sip
+DESPERATE_R = 4.0        #          …but a thrower this close still does
+LAST_SIP_R = 3.5         #          …and a melee foe this close, or one swinging within SAFE_R (P-139)
 BONFIRE_NO_A = 6.0
 # 에스트는 아끼지 말고 자주 ([MoKa] 2026-09-28: "열심히 에스트 마시면서 플레이하는 것이 최선" — 규칙을 더할수록 문제가 생김).
 # Bandit Bot e 실행: 최저 HP 10 %까지 떨어지고도 에스트 5개가 남음 → 0.5 / 0.6 에서 올림
@@ -199,6 +232,36 @@ WALL_OFF_S = 20.0        # after backing to a wall (or finding none), fight wher
 CROWD_OFF_S = 60.0       # …then fight in place this long (the old 45 % HP retreat still applies) before trying again
 
 
+ESCAPE_PICK = True         # back off toward where the foes are not (souls/escape.py, [MoKa] 2026-10-10: "20m 이내에 적이 어디 있는지
+                           # 파악 하고, 없는 쪽으로 … 보통 진입했던 반대 방향인데, 그것도 체크는 해야지") — False: the old way (path home, roll straight away)
+TRAIL_STEP = 1.0           # walk trail: a point every this many metres (the way we came, for escape)
+TRAIL_MAX = 80
+NOTICE_PULL = False        # run.py --pull: no knives → wake one foe by walking just into its notice range, run back (souls/pull.py,
+                           # [MoKa] 2026-10-11 "하나만 나를 인지하게 해서 유인을 하는데 이 과정이 지금 없는 것 같음") — off until the A/B
+GROUND_IN_FIGHTS = False   # run.py --ground: walks read floor through ground.Ground; fights / recover / wall-back keep the plain
+                           # NavMesh — the A/B on-run death at the P-49 ledge (P-56) changed 109 toward-foe floor answers there
+
+
+def plain_nm(nm):
+    """The NavMesh under a ground.Ground (run.py --ground) — for fight-side floor checks while GROUND_IN_FIGHTS is off."""
+    if GROUND_IN_FIGHTS:
+        return nm
+    base = getattr(nm, "nm", None)
+    return base if hasattr(base, "floor_at") else nm
+
+
+def npc_near(s, me, pos):
+    """A live friendly NPC (FRIENDLY_NPCS — the merchant 251001 …) within SMASH_NPC_R of me or of pos, or None (P-82)."""
+    if s is None:
+        return None
+    for c in getattr(s, "chars", ()):
+        if c.npc_param not in FRIENDLY_NPCS or (c.hp or 0) <= 0:
+            continue
+        if min(math.hypot(c.x - me[0], c.z - me[2]), math.hypot(c.x - pos[0], c.z - pos[2])) < SMASH_NPC_R:
+            return c
+    return None
+
+
 def awake(c) -> bool:
     return c.hp > 0 and not (9000 <= (c.anim or 0) < 9100)
 
@@ -209,14 +272,46 @@ COMING_LIMIT = 12.0      # an interloper not killed within this gets disengaged 
 LURE_R = 10.0            # knife throw distance — with lock-on, 11.9 and 11.4 m missed, 10.8 m hit (2026-09-24, thrown items fly ~10 m)
 LURE_TRIES = 3
 LURE_DY = 1.5            # max height diff between throw spot and target / current spot — so we don't jump down to a foe below a cliff (2026-09-24 run 8)
+SIGHT_STEP_M = 1.0       # throw spots: look for a clear line (Navmesh.clear_sight) this often along the path
 LURE_ABORT_R = 10.0              # abort throwing if another awake, moving foe is within this
 PICK_TRIES = 3           # A presses to pick up a bloodstain
+ROLL_OFF_DEG = 45.0     # a roll that went this far from where it was aimed is logged (P-73: −30° meant, −126° taken)
+BLOOD_CLEAR_R = 15.0    # pick a stain up only with no living foe this close to me or to the stain, and stop the walk if one
+                        # comes this close ([MoKa] 2026-10-12: stains were left alone on purpose — fetching one must not cause a new mistake)
+# ── 적 드롭 줍기 (2026-11-01, 스크래치 testloop.py loop10 10회 · step.py) ──────────────────────────
+#  · 안내·A는 수평 ~1.0 m 안에서만 됐다 (0.97·1.04 m 됨, 1.17·1.42 m 안 됨). 시체 다리를 밀면 드롭이 0.1–0.7 m 밀림
+#    ([MoKa] "바디에 부딪히면서 아이템이 밀려 나가", "그 직전에 멈춰야 해") → 걸어서는 DROP_STAND_M 앞까지, 나머지는 짧은 펄스.
+#  · 펄스 0.4×0.15 s ≈ 0.22–0.25 m (0.35×0.12 s는 안 움직임), 두 번 안 움직이면 0.5×0.2 s.
+#  · r03: 창을 닫으려던 A가 옆 드롭을 주웠다 → 닫기 A 뒤 목록이 비었는지 / 늘었는지 본다 (늘면 그것도 주운 것).
+DROP_STAND_M = 1.8       # walk_to stops this far short of the drop (on the line from me), then pulses
+DROP_PICK_M = 0.95       # …pulse until this close (horizontal), then A
+DROP_PULSE = (0.4, 0.15)
+DROP_BUMP = (0.5, 0.2)
+DROP_PULSES = 25         # pulses per visit before the approach counts as failed
+DROP_WAIT_S = 1.5        # after A: wait this long for the window list to change
+DROP_CLOSE_TRIES = 3     # closing A presses (each may pick a neighbour instead — r03)
+DROP_VISITS = 12         # visits per pick_drops call (DropBook also caps visits per drop)
+DROP_NEAR = 25.0         # only drops this close to me, within DROP_DY in height
+DROP_DY = 6.0
+TREASURE_PICK_M = 0.6      # a corpse treasure: 11-01 humanity_probe picked it 0.48 m from the MSB position (one A)
 CAREFUL_LEG = 4.0        # careful_walk_to: walk this far, then stop and look
 CAREFUL_LOOK_S = 1.5     # …stand this long (guard up) watching who comes
 CAREFUL_COME_R = 12.0    # an awake, moving foe this close (same level) → wait for it here and fight it alone
 CAREFUL_MAX_S = 240.0
+ARM_ROOM = 0.8            # P-135: NavMesh floor wanted on my right before a throw — 11-08 수동: 0.6 / 0.45 m 14.3 m 피해 0, 0.85 / 0.2 m 12.8 m 맞음 ([MoKa] "오른팔이 가동범위가 확보"); 194800 0.2 m 피해 0
+ARM_EDGE_KEEP = 0.15      # never move closer than this to the left edge
+ARM_MIN_SHIFT = 0.05      # smaller shifts aren't worth a stick tap
+ARM_SETTLE_TOL = 0.08
+ARM_SETTLE_SCALE = nav.FACE_STICK   # 0.45 — 11-08 202047: 0.25 is inside the stick deadzone (nav.FACE_STICK "below 0.4 doesn't even turn"), moved 0.00 m 3 times
 LURE_MIN, LURE_MAX = 6.0, 13.0   # throw conditions on flat ground — closer than this and just walking wakes it; farther and lock-on fails
 KNIFE_LOW = 5            # warn below this — going to buy from the merchant is a later task (user 2026-09-24)
+# ── 화염병도 후보 (ROADMAP firebomb-candidate, [MoKa] 10-12 · 10-13 M1013-03 "앞으로 화염병 위주로 플레이 해봐") ─────────────
+#  유인 첫 투척: 잠든 목표가 같은 높이 FB_OPEN_DY 안 · FB_OPEN_MIN–FB_OPEN_MAX m면 나이프 대신 화염병 (락온 필수 — 없으면 그 자리에서 나이프).
+#  근거 (docs/throwables.md): MoKa 시범 락온 + 높이차 ≤ 1.5 m + 5.8–10.1 m 9/9 한 방, 락온 없음 0/8, 아래 1.7–3.1 m 피해 6.
+#  봇 락온은 9 m 넘으면 거의 안 걸림 (firebomb-measure: ~5 m 75 한 방 2/2 · 7 m 18 · ≥ 9 m 락온 없음) — 그 거리에선 락온 실패 → 나이프.
+#  개수 제한 없음: 남아 있으면 씀, 없거나 퀵 슬롯에 없으면 지금과 같음. Field.firebomb = False (run.py --no-firebomb)로 끔.
+FB_OPEN_MIN, FB_OPEN_MAX = 5.0, 10.1
+FB_OPEN_DY = 1.5
 HOLD_TRIES = 3           # hold-the-spot targets (lure_at.hold): lure attempts; wait HOLD_WAIT in place between them
 HOLD_WAIT = 8.0
 MISSING_S = 5.0          # if a bound target stays missing from snapshots this long → 'unknown' (not treated as death)
@@ -240,6 +335,8 @@ ZONES = [tuple(z["pos"]) for z in json.loads((Path(__file__).resolve().parent.pa
                                               .read_text(encoding="utf-8"))["zones"]]
 TETHER_R = 8.0          # fight.tether: a fight this far (horizontal) from the zone's safe spot is cut and taken back there (P-45)
 TETHER_TRIES = 3        # …at most this many cuts per fight, then fight on where it is
+TETHER_CONTACT_R = 2.5  # …and no cut while a live foe is this close (same level): walking off guard-up with foes on us is
+                        # taking hits (P-74: 3 cuts at tick 0 with two foes at 0.8–2.4 m, 37 s, −1565, no attack) — the duel's job
 ZONE_REACH = 15.0       # before fighting a chaser, if a marked spot is within this (horizontal, same floor 1.5 m), retreat there and receive it
 UNSAFE_PAUSE = 5.0       # incoming foe not engaged due to E-2 — wait/defend ticks on flat ground this long, then re-check (user: "even 2 seconds is short, wait 5 seconds")
 CLOSE_MELEE_R = 3.0      # end a contact fight if another foe is within this (wider than duel.SWITCH_R 2.5 — cut before switching targets)
@@ -268,9 +365,16 @@ class LureBlock:
 
 
 class Field:
+    # the run's settings (settings-object steps 2–3): run.py sets both from its Settings; these defaults read the globals
+    flags = D.Flags()
+    settings = _settings.Settings()
+
     def __init__(self, mv: M.Moves, weapon, escape, bonfires: list, log=print, events=None, style="guard"):
         self.mv, self.w, self.esc, self.log = mv, weapon, escape, log
         self._detour = False                               # keeps walk's "detour" from recursing
+        self.smash_ok = True                               # False = a caller (souls/altar_andre) forbids _smash: a blocking prop ends the walk
+        self.firebomb = True                               # firebomb-candidate: firebombs are a choice while any are held in a quick slot
+        self.denial = None                                 # set once by a forbidden action; walk() then returns "denied" — never cleared here
         self._crowd_hits: list[float] = []                 # times of recent 'crowd' fall-backs (CROWD_MAX per CROWD_WINDOW_S)
         self._wall_off_until = 0.0
         self._crowd_off_until = 0.0                        # fall_back 이 길이 없어 못 물러났으면 잠깐 둘러싸여도 싸운다 (같은 자리에서 무한 반복 방지)
@@ -280,12 +384,31 @@ class Field:
         self.events = events or (lambda *a, **k: None)
         # reflex — first on every tick, fighting or walking (navmesh for the footing check is set when used). Unblockable attacks come from foe data (layer 3)
         self.reflex = Reflex(mv, unblockable=lambda c: (c.anim or -1) in foes_.of(c.npc_param).unblockable,
-                             bs_ok=lambda c: foes_.of(c.npc_param).kind != "shield")
+                             bs_ok=lambda c: foes_.of(c.npc_param).kind != "shield" and not foes_.of(c.npc_param).backstep_only)
         self.reflex.evade = self.style.evade
         self.reflex.bs_attack = self.style.bs_attack
         self.reflex.reflex_on = self.style.reflex_on
         mv.guard_ok = self.style.shield
         self.reflex.events = self.events
+        self.loot = loot_.Loot(self)                       # drops after fights (souls/loot.py) — off until run.py turns it on
+        # rest / respawn / warp / quit-out in one place (souls/world.py, worldstate step 1); Escape reports its own there
+        self.world = world_.WorldState(log=log, events=self.events)
+        self.world.on(self._on_world)
+        # one death detector in every snapshot read (Moves._note_deaths, worldstate step 2) → the WorldState's kills
+        mv.on_death = lambda c: self.world.kill(c.npc_param, (c.x, c.y, c.z), ptr=c.ptr)
+        if escape is not None and getattr(escape, "world", None) is None:
+            escape.world = self.world
+
+    def _on_world(self, kind: str, info: dict) -> None:
+        """WorldState listener — what an event means for Field's memory. Killed foes back (rest · respawn · warp · byte
+        quit-out) → drop pointer memory (forget_foes). Rest · respawn · warp → the loot list starts again, as before
+        (a quit-out keeps it, as before — whether drops survive a reload is not known)."""
+        if info.get("revive"):
+            self.forget_foes()
+        if info.get("ptrs") and hasattr(self, "mv"):
+            self.mv.__dict__.pop("_deaths", None)           # new pointers after a load — the death detector starts over
+        if kind in ("rest", "respawn", "warp") and getattr(self, "loot", None) is not None:
+            self.loot.reset(kind)
 
     # ── State─────────────────────────────────────────────────
     def snap_settled(self, within: float = 5.0):
@@ -320,15 +443,19 @@ class Field:
 
     def wait_respawn(self, timeout: float = 45.0) -> bool:
         """If dead, wait until standing up at the bonfire (no snapshot during loading)."""
-        t0 = time.time()
+        t0, was_dead = time.time(), None
         while time.time() - t0 < timeout:
             try:
                 s = self.mv.snap(5.0)
             except Exception:
                 s = None
+            if was_dead is None:
+                was_dead = not (s and s.player.hp and s.player.hp > 0)
             if s and s.player.hp and s.player.hp > 0 and s.player.hp >= s.player.max_hp * 0.99:
                 self.forget_foes()
                 time.sleep(1.0)
+                if was_dead:
+                    Field._world_event(self, "respawn", why="wait_respawn")   # (a fake Field in tests works too)
                 return True
             time.sleep(0.5)
         return False
@@ -350,6 +477,26 @@ class Field:
                 return False
         return True
 
+    def desperate(self, s) -> bool:
+        """Low HP and only throwers keep safe() false — drink anyway (one bolt is less than one sip).
+        No thrower within DESPERATE_R, no awake melee foe within LAST_SIP_R, none swinging within SAFE_R."""
+        # ── 원거리 때문에 영영 못 마시는 경우 (MoKa 11-01 "가)+나) 고치기") ──────────────
+        #  214607 구역 8 탑 위: 석궁병 둘이 6–8 m에서 쏘는 동안 safe()가 계속 False → HP 116에서 3번 안 마시고 사망.
+        if s.player.hp >= s.player.max_hp * DESPERATE_HP:
+            return False
+        # ── 30 % 아래면 근접 적이 있어도 마심 (P-139, [MoKa] 11-08 "30% 이하이면 에스트 마시고 뭔가 해야 하는데 않했음") ──────
+        #  221120 구역 4: 굴러서 물러난 뒤 HP 79, 가장 가까운 망자 3.8 m → SAFE_R 6 m에 걸려 "안 마심"만 4번, 그대로 사망.
+        #  이제 근접 적은 LAST_SIP_R 안이거나 지금 휘두르는 중 (SAFE_R 안)일 때만 막음. 3.8 m에서 한 모금이 닿기 전에 끝나는지는 게임에서 안 잼
+        for c in s.hostile(RANGED_R):
+            if not awake(c):
+                continue
+            ranged = foes_.of(c.npc_param).ranged
+            if c.dist < (DESPERATE_R if ranged else LAST_SIP_R):
+                return False
+            if not ranged and (c.anim or -1) in M.ATTACK and c.dist < SAFE_R:
+                return False
+        return True
+
     # ── Healing─────────────────────────────────────────────────
     def heal(self, frac: float = 0.7, sips: int = 3) -> None:
         self.repair()
@@ -360,10 +507,14 @@ class Field:
             if self.estus_left() <= 0:
                 self.log("      에스트 없음")
                 return
+            ok = self.safe
             if not self.safe(s):
-                self.log("      에스트: 근처에 적 — 안 마심")
-                return
-            r = self.mv.drink(self.safe)
+                if not self.desperate(s):
+                    self.log("      에스트: 근처에 적 — 안 마심")
+                    return
+                self.log(f"      에스트: HP {s.player.hp}/{s.player.max_hp}, 근접 적 없음 — 원거리에 맞을 각오로 마심")
+                ok = lambda sn: self.safe(sn) or self.desperate(sn)   # noqa: E731
+            r = self.mv.drink(ok)
             self.log(f"      에스트: {r}")
             self.events("estus", **r)
             if not r["ok"]:
@@ -393,17 +544,26 @@ class Field:
             time.sleep(0.2)
 
     def shake_off(self, why: str) -> dict:
-        """Quit-out sends foes back to spawn (aggro reset, dead foes stay dead)."""
+        """Quit-out sends foes back to spawn (aggro reset, dead foes stay dead — menu quit-out; Escape._quit picks it for 'shake', P-25)."""
         return self.esc.fire(why, "shake")
 
-    def retreat(self, nm, home) -> str:
-        """Retreat along the path toward the bonfire — stop once safe (foes go back once out of their aggro range)."""
+    def retreat(self, nm, home, choice=None) -> str:
+        """Back off — toward escape.pick's place when there is one (where the foes are not; usually the way we came), else
+        along the path toward the bonfire — stop once safe (foes go back once out of their aggro range)."""
+        if getattr(self, "tether", None) is not None:
+            home = tuple(self.tether)                      # in a zone the safe spot is home, not the bonfire ([MoKa] 10-12, P-74)
         s = self.mv.snap(5.0)
-        if s is None or home is None:
+        if s is None or (home is None and (choice is None or choice.point is None)):
             return "no_home"
-        path = nm.find_path((s.player.x, s.player.y, s.player.z), tuple(home)) if nm is not None else None
+        me = (s.player.x, s.player.y, s.player.z)
+        goal = tuple(choice.point) if choice is not None and choice.point is not None else (tuple(home) if home else None)
+        path = nm.find_path(me, goal) if nm is not None else None
+        if not path and goal != (tuple(home) if home else None) and home:
+            goal = tuple(home)
+            path = nm.find_path(me, goal) if nm is not None else None
         if not path:
             return "no_path"                               # (spinning in place → recover returns False → next fight is to-the-end)
+        bonfire, home = home, goal
         t0 = time.time()
         last = [None]
 
@@ -424,8 +584,22 @@ class Field:
             p = sn.player
             return time.time() - t0 > 1.0 and any(awake(c) and (c.anim or -1) in M.ATTACK and M.horiz(p, c) < CHASER_STOP_R
                                                   for c in sn.hostile(CHASER_STOP_R + 1.0))
-        return self.mv.walk_path(nav.trim_path(path[1:], tuple(home)), nm, mode,   # walk, not run: running safety is only a NavMesh estimate (evidence-grade gate, 2026-09-26)
-                                 stop=lambda sn: (time.time() - t0 > 3.0 and clear(sn)) or chased(sn))
+        stop = lambda sn: (time.time() - t0 > 3.0 and clear(sn)) or chased(sn)
+        def walk_back(first=path):
+            if first is None:                              # again after a door: from where we stand now
+                sn = self.mv.snap(5.0)
+                first = nm.find_path((sn.player.x, sn.player.y, sn.player.z), tuple(home)) if sn is not None else None
+                if not first:
+                    return "no_path"
+            return self.mv.walk_path(nav.trim_path(first[1:], tuple(home)), nm, mode, stop=stop)
+        r = self._door_retry(walk_back(), home, "후퇴", lambda: walk_back(None))   # walk, not run: running safety is only a NavMesh estimate (evidence-grade gate, 2026-09-26)
+        if r == "arrived" and bonfire and home != tuple(bonfire):   # reached the escape place but not clear yet → on toward the bonfire, as before
+            sn = self.mv.snap(RETREAT_CLEAR_R + 1.0)
+            if sn is not None and not clear(sn):
+                path = nm.find_path((sn.player.x, sn.player.y, sn.player.z), tuple(bonfire))
+                if path:
+                    r = self.mv.walk_path(nav.trim_path(path[1:], tuple(bonfire)), nm, mode, stop=stop)
+        return r
 
     def fall_back(self, nm) -> str:
         """Surrounded (duel 'crowd') — walk back toward home (the way we came: Firelink / the Burg entrance) with the guard up
@@ -457,6 +631,7 @@ class Field:
         """Three or more on us (duel wall_back) — walk with the guard up to the nearest wall spot that isn't toward them and has no drop
         close, so they can only come from the front, one or two at a time. Corners first. Then the caller fights the nearest.
         No spot / no path → fight where we stand (WALL_OFF_S)."""
+        nm = plain_nm(nm)
         t0 = time.time()
         self._wall_off_until = t0 + WALL_OFF_S
         s = self.mv.snap(WALL_BACK_R + 2.0)
@@ -512,14 +687,84 @@ class Field:
         near = any(awake(c) and M.horiz(p, c) < RETREAT_GUARD_R and abs(c.y - p.y) < FOLLOW_DY for c in sn.hostile(RETREAT_GUARD_R + 1.0))
         return "guard" if near else "walk"
 
+    def _note_trail(self, sn) -> None:
+        """Where we walked (newest last) — the way we came, for escape.pick."""
+        p = getattr(sn, "player", None)
+        if p is None or p.x is None:
+            return
+        tr = self.__dict__.setdefault("trail", [])
+        q = (p.x, p.y, p.z)
+        if not tr or math.dist(q, tr[-1]) >= TRAIL_STEP:
+            tr.append(q)
+            del tr[:-TRAIL_MAX]
+
+    def _gap(self, nm, s, prefer=None):
+        """escape.gap_dir for where we stand: foes within GAP_R block their side unless they stagger / are down."""
+        p = s.player
+        close = [(c.x, c.z, (c.anim or -1) not in M.STAGGER and (c.anim or -1) not in M.DOWNED)
+                 for c in s.hostile(escape_.GAP_R + 1.0) if awake(c) and M.horiz(p, c) < escape_.GAP_R and abs(c.y - p.y) < FOLLOW_DY]
+        ok = (lambda dx, dz: True) if nm is None else (lambda dx, dz: nav.can_move(nm, p, dx, dz, nav.ROLL_CHECK_M))   # P-73
+        return escape_.gap_dir((p.x, p.y, p.z), close, ok, prefer)
+
+    def _zone(self):
+        """The zone's safe spot and TETHER_R while missions.upper_zone ties fights to it — back-offs stay inside ([MoKa] 10-12)."""
+        t = getattr(self, "tether", None)
+        return (t[0], t[1], t[2], TETHER_R) if t is not None else None
+
+    def escape_choice(self, nm, s):
+        """escape.pick for where we stand now (None when ESCAPE_PICK is off or it can't be worked out)."""
+        if not ESCAPE_PICK or nm is None or s is None:
+            return None
+        p = s.player
+        me = (p.x, p.y, p.z)
+        try:
+            foes = [(c.x, c.y, c.z, awake(c) and (c.anim not in (None, -1) or M.horiz(p, c) < 2.0))
+                    for c in s.hostile(escape_.SCAN_R + 2.0) if c.hp > 0]
+            home = nm.find_path(me, tuple(self.home)) if self.home else None
+            ch = escape_.pick(nm, me, foes, list(getattr(self, "trail", [])), home, zone=self._zone())
+        except Exception as e:
+            self.log(f"   물러날 쪽 계산 실패 ({e!r}) — 예전처럼")
+            return None
+        self.log(f"   {ch.line()}")
+        # "escape_pick", not "escape": that name is watch.Escape's quit-out, which risk_report counts as 강종 (P-62)
+        self.events("escape_pick", src=ch.src, point=ch.point, kept=sum(1 for t in ch.table if t[2] is not None), cands=len(ch.table))
+        return ch
+
+    def leave_fire(self, nm, shot_from, tag: str) -> str:
+        """duel 'shot' (a thrower hit us, nobody swinging near): back off to escape.pick's place beyond the thrower's reach
+        (duel.SHOT_REACH) — the way we came if it is out of reach, else the farthest from it (10-11 video review)."""
+        nm = plain_nm(nm)
+        s = self.mv.snap(escape_.SCAN_R + 2.0)
+        if s is None or shot_from is None or nm is None:
+            return "no_snapshot"
+        p = s.player
+        me = (p.x, p.y, p.z)
+        try:
+            foes = [(c.x, c.y, c.z, awake(c) and (c.anim not in (None, -1) or M.horiz(p, c) < 2.0))
+                    for c in s.hostile(escape_.SCAN_R + 2.0) if c.hp > 0]
+            home = nm.find_path(me, tuple(self.home)) if self.home else None
+            ch = escape_.pick(nm, me, foes, list(getattr(self, "trail", [])), home,
+                              avoid=[(shot_from[0], shot_from[1], shot_from[2], D.SHOT_REACH)], zone=self._zone())
+        except Exception as e:
+            self.log(f"   {tag}: 사선 밖 계산 실패 ({e!r})")
+            return "error"
+        self.log(f"   {tag}: {shot_from[3]}의 사선 밖으로 — {ch.line()}")
+        self.events("leave_fire", npc=shot_from[3], src=ch.src, point=ch.point)
+        if ch.point is None:
+            return "no_spot"
+        r = self.retreat(nm, None, choice=ch)
+        self.log(f"   {tag}: 사선 밖으로 물러남: {r}")
+        return r
+
     def recover(self, why: str, nm=None) -> bool:
         """When a fight goes wrong. → is it worth continuing
           · if safe, estus up to 90 %
           · foe close and HP low: retreat toward the bonfire, drink once safe
           · no quit-out to shake off — it restarted in the same place and re-engaged immediately (repeated 5 times, HP 659 → 24, user:
             "this spot is bad for force-quitting")"""
+        nm = plain_nm(nm)
         s = self.mv.snap(15.0)
-        if s is None:
+        if s is None or not s.player.hp:                   # dead (P-68): nothing to recover — the caller's alive() ends it
             return False
         # 'losing' (duel: took 35 % of max HP, dealt under half the foe's) counts as low whatever the HP — it ends at ~65 % from a full
         # start, and with only the 60 % line we stood there, didn't drink (foe near) and opened a new fight at once (0 'losing' acted, 10-01)
@@ -529,21 +774,45 @@ class Field:
         #  붙은 적이 있으면 그 반대로 한 번 구르고 나서 물러남. 뒤가 낭떠러지면 구르지 않고 그 자리에서 싸움(→ False)
         p = s.player
         stuck_on = [c for c in s.hostile(CHASER_ROLL_R + 1.0) if awake(c) and M.horiz(p, c) < CHASER_ROLL_R and abs(c.y - p.y) < FOLLOW_DY]
+        ch = self.escape_choice(nm, s) if (not self.safe(s) and low and not why.endswith("crowd")) else None
         if not self.safe(s) and low and stuck_on and not why.endswith("crowd"):
+            # ── 빈틈으로 구르기, 없으면 약공으로 틈을 만들기 ([MoKa] 2026-10-10, souls/escape.gap_dir) ──
+            #  "주변에 적이 애워싸면, 빈틈이 있다면 그 방향으로 구르고, 없으면 한 두대 약공 때리고 상대가 틈을 만들어 주면
+            #   그 방향으로 비벼 들어가서 빠져 나가야지." 예전엔 가장 가까운 놈의 반대쪽만 보고, 거기 바닥이 없으면 그 자리에서
+            #  끝까지 싸웠다 (P-46 · P-56 경사로 턱 사망)
+            prefer = ch.point if ch is not None else None
+            dirn, hits = self._gap(nm, s, prefer), 0
+            while dirn is None and hits < escape_.BREAK_HITS:
+                near = [c for c in s.hostile(escape_.GAP_R + 1.0) if awake(c) and M.horiz(s.player, c) < escape_.GAP_R]
+                if not near:
+                    break
+                c = min(near, key=lambda x: M.horiz(s.player, x))
+                hit = self.mv.light(s, c, n=1)
+                hits += 1
+                self.log(f"   {why}: 빈틈 없음 — {c.npc_param} {M.horiz(s.player, c):.1f} m에 약공 ({hits}/{escape_.BREAK_HITS}): "
+                         f"{getattr(hit, 'kind', hit)} 피해 {getattr(hit, 'dmg', '?')}")
+                s = self.mv.snap(15.0) or s
+                dirn = self._gap(nm, s, prefer)
+            p = s.player
             c = min(stuck_on, key=lambda x: M.horiz(p, x))
             d = M.horiz(p, c) or 1.0
-            dx, dz = (p.x - c.x) / d, (p.z - c.z) / d
-            if nm is not None and not nav.ground_ahead(nm, p, dx, dz, reach=2.5):
-                self.log(f"   {why}: {c.npc_param} {d:.1f} m 붙어 있고 뒤에 바닥 없음 — 구르지 않고 그 자리에서 싸움")
+            if dirn is None:
+                self.log(f"   {why}: {c.npc_param} {d:.1f} m 붙어 있고 빠져나갈 빈틈 없음 (약공 {hits}번 뒤) — 그 자리에서 싸움")
                 return False
-            self.log(f"   {why}: {c.npc_param} {d:.1f} m 붙어 있음 — 반대로 구른 뒤 물러남")
-            self.mv.roll_toward(s, p.x + dx * 3.0, p.z + dz * 3.0)
+            dx, dz = dirn
+            self.log(f"   {why}: {len(stuck_on)}명 붙어 있음 — 빈틈 쪽 ({math.degrees(math.atan2(dx, dz)):+.0f}°)"
+                     + (f"으로 약공 {hits}번 뒤" if hits else "으로") + " 구른 뒤 물러남")
+            self.events("break_out", hits=hits, foes=len(stuck_on), dir=round(math.degrees(math.atan2(dx, dz))))
+            rr = self.mv.roll_toward(s, p.x + dx * 3.0, p.z + dz * 3.0) or {}
+            self.events("roll", why="break_out", **rr)
+            if rr.get("off") is not None and rr["off"] > ROLL_OFF_DEG:
+                self.log(f"   {why}: 구르기 방향 어긋남 — {rr['want']}° 대신 {rr['got']}° ({rr['off']}°)")
             s = self.mv.snap(15.0) or s
         if not self.safe(s) and low and not why.endswith("crowd"):   # crowd: fall_back already split them — fight the one that followed
             # no Darksign — like resting it revives every killed foe (user 2026-09-24) and also loses souls and humanity.
             # worse than dying (after death the bloodstain can recover them). Used while engaged, we sometimes died to hits during its 2~3 s
-            r = self.retreat(nm, self.home)
-            self.log(f"   {why}: 적이 가깝고 HP {s.player.hp} — 화톳불 쪽으로 물러남: {r}")
+            r = self.retreat(nm, self.home, choice=ch)
+            self.log(f"   {why}: 적이 가깝고 HP {s.player.hp} — 물러남: {r}")
         self.heal(0.9, sips=4)
         s = self.mv.snap(5.0)
         return bool(s and s.player.hp >= s.player.max_hp * 0.6)
@@ -582,6 +851,14 @@ class Field:
          싸움이 안전 자리에서 TETHER_R 넘게 벗어나면 그 틱에 끊고, 가드 든 채 안전 자리로 물러나 거기서 다시 받는다(wait_far).
          TETHER_TRIES번 끊은 뒤엔 묶지 않고 끝까지 — 안 따라오는 놈과 끊고 물러나기만 되풀이하지 않게.
          원거리 적(foes.ranged — 석궁·화염병)은 묶지 않음: 10-06c 구역 1 석궁 255002가 안 따라와 3번 끊고 돌아오기만 15 s."""
+        nm = plain_nm(nm)                                  # run.py --ground: fights keep the plain NavMesh (GROUND_IN_FIGHTS)
+        self._fight_n = getattr(self, "_fight_n", 0) + 1     # one id per fight() — a tether cut and re-taken stays the same fight
+        self.fight_id = f"{getattr(self, 'run_id', 'run')}#f{self._fight_n:03d}"   # run.py sets run_id (runinfo, ROADMAP 1-i)
+        if self.flags.COMBO_ONLY:
+            self._plan_key = None                          # 새 싸움: 계획부터 다시
+            self._group_plan(ptr, nm, tag)
+            # 다가가는 동안 무리가 바뀌면 다시 계획 (131637 #1: 40 m 밖 잠든 놈이라 시작 때 무리가 비어 계획 없이 싸움)
+            D.REPLAN = lambda: self._group_plan(ptr, nm, tag, move=False)
         spot = getattr(self, "tether", None)
         if spot is not None and callable(getattr(self.mv, "find", None)):
             c = self.mv.find(self.mv.snap(SEEK_R), ptr)
@@ -593,21 +870,83 @@ class Field:
             r = self._fight_once(ptr, nm, tag, arena, desperate, limit, wait_far or k > 0, leash, may_approach, far)
             if r.result != "cancel" or far is None or not far() or self.esc.escaping or not self.alive():
                 return r
-            zr = self._retreat_to_zone(spot, nm)
-            s = self.mv.snap(5.0)
-            if zr == "stuck" and s is not None and door_near((s.player.x, s.player.y, s.player.z)) is not None:
-                self.open_door(spot, tag)                  # 10-06j: the shield soldier shut the door on the way back
-                zr = self._retreat_to_zone(spot, nm)
+            zr = self._retreat_to_zone(spot, nm)            # 10-06j: the shield soldier shut the door on the way back → A once
+            zr = self._door_retry(zr, spot, tag, lambda: self._retreat_to_zone(spot, nm))
             self.log(f"   {tag}: 안전 자리에서 {TETHER_R:.0f} m 넘게 벗어남 — 싸움 끊고 가드 든 채 안전 자리로: {zr}")
             self.events("tether", tag=tag, result=zr, n=k + 1)
             if zr == "dead":
                 return r
+            if zr != "arrived":
+                # P-74: a way back that failed once (blocked, timeout) fails again — the next fight would be cut at its first
+                # tick and walk off again; fight where we are instead
+                self.log(f"   {tag}: 안전 자리로 못 감 ({zr}) — 묶지 않고 여기서 싸움")
+                spot = None
         return r
 
+    def _group_plan(self, ptr, nm, tag: str, move: bool = True) -> None:
+        """
+        ── 싸우기 전에 무리 전체 계획 (P-121, [MoKa] 2026-11-03) ──────────────────────────────
+         "첫 번째 적은 백스텝 콤보, 두번째 적은 점프 공격, 세번째 방패병은 백스텝 공격 이런 식의 미리 계획을 하고, 거기에 맞는 플랜,
+          좋은 위치를 확보 해야" · "그러지 않으면 데이타를 확보 못해" · "계획이 없으니 그냥 하던데로 하잖아. 이러면 의미가 없지."
+         · 근처(GROUP_R) 깨어 있는 적이 바뀔 때마다 group_plan.make: 놈마다 공격 + 서 있을 자리(첫 놈 반대쪽 뒤 바닥·낭떠러지 거리·
+           다음 놈 진입 거리). 첫 놈이 GROUP_MOVE_SAFE m보다 멀면 그 자리로 가드 든 채 걸어감.
+         · 계획은 D.PLANNED (ptr → 공격) — _combo_strike가 표보다 먼저 시도하고, "combo" 이벤트에 planned·followed로 남김.
+        """
+        from . import group_plan as GP
+        s = self.mv.snap(GROUP_R + 2.0)
+        if s is None:
+            return
+        p = s.player
+        foes = [c for c in s.hostile(SEEK_R) if c.hp > 0 and abs(c.y - p.y) < FOLLOW_DY
+                and (c.ptr == ptr or (awake(c) and M.horiz(p, c) < GROUP_R))]
+        key = frozenset(c.ptr for c in foes)
+        if not foes or key == getattr(self, "_plan_key", None):
+            return
+        self._plan_key = key
+        plan = GP.make(p, foes, nm, foe_of=foes_.of, arc_of=lambda c: any(D._arc_open(nm, p, c)))
+        if self.flags.DRILL:
+            for st in plan.steps:                          # 드릴: 모든 놈에 그 공격 (134253: 방패병 계획 kick_combo가 드릴을 이김)
+                st.attack, st.why = self.flags.DRILL, "드릴"
+        sig = tuple((st.ptr, st.attack) for st in plan.steps)
+        if sig == getattr(self, "_plan_sig", None) and plan.moved < 0.8:
+            return                                         # 같은 계획 — 다시 적지 않음 (132052: 같은 두 놈 계획 5번)
+        self._plan_sig = sig
+        for line in plan.lines():
+            self.log(f"   {line}")
+        D.PLANNED.clear()
+        D.PLANNED.update({st.ptr: st.attack for st in plan.steps})
+        self.events("group_plan", tag=tag, spot=[round(v, 2) for v in plan.spot] if plan.spot else None, moved=round(plan.moved, 2),
+                    spot_why=plan.spot_why, steps=[dict(ptr=st.ptr, npc=st.npc, dist=st.dist, attack=st.attack, why=st.why)
+                                                   for st in plan.steps])
+        near = min(M.horiz(p, c) for c in foes)
+        if not move or plan.spot is None or plan.moved < 0.8:
+            return
+        if near < GROUP_MOVE_SAFE:
+            self.log(f"   자리 못 옮김 — 첫 놈이 {near:.1f} m (< {GROUP_MOVE_SAFE} m), 여기서")
+            self.events("group_spot", result="too_close", near=round(near, 2))
+            return
+        q = plan.spot
+        path = nm.find_path((p.x, p.y, p.z), q) if nm is not None else None
+        if not path:
+            self.log("   자리로 가는 길 없음 — 여기서")
+            return
+        stop = lambda sn: (M.horiz(sn.player, types.SimpleNamespace(x=q[0], z=q[2])) < 0.5
+                           or any(awake(c) and M.horiz(sn.player, c) < GROUP_MOVE_SAFE - 0.5 for c in sn.hostile(GROUP_MOVE_SAFE)))
+        r = self.mv.walk_path(path[1:], nm, "guard", stop=stop)
+        s2 = self.mv.snap(5.0)
+        off = None if s2 is None else math.hypot(s2.player.x - q[0], s2.player.z - q[2])
+        self.log(f"   자리로: {r}" + (f", 남은 {off:.1f} m" if off is not None else ""))
+        self.events("group_spot", result=r, off=None if off is None else round(off, 2))
+
     def _tether_far(self, spot):
+        """Cut the fight: more than TETHER_R from the safe spot and nobody on us (TETHER_CONTACT_R, P-74)."""
         def far() -> bool:
             s = self.mv.snap(5.0)
-            return s is not None and math.hypot(s.player.x - spot[0], s.player.z - spot[2]) > TETHER_R
+            if s is None or math.hypot(s.player.x - spot[0], s.player.z - spot[2]) <= TETHER_R:
+                return False
+            p = s.player
+            return not any(c.hp > 0 and M.horiz(p, c) < TETHER_CONTACT_R and abs(c.y - p.y) < FOLLOW_DY
+                           for c in s.hostile(TETHER_CONTACT_R + 1.0))
         return far
 
     def _fight_once(self, ptr, nm, tag: str, arena, desperate: bool, limit: float, wait_far: bool, leash, may_approach,
@@ -637,17 +976,22 @@ class Field:
                        crowd_ok=CROWD_FALL_BACK and time.time() >= self._crowd_off_until,
                        wall_ok=WALL_BACK and time.time() >= getattr(self, "_wall_off_until", 0.0),
                        advisor=getattr(self, "advisor", None),   # run.py --laya-shadow: record-only (LAYA.md)
-                       tap=getattr(self, "tap", None))           # run.py --attack-audit: observation only (attack_audit.py)
+                       tap=getattr(self, "tap", None),           # run.py --attack-audit: observation only (attack_audit.py)
+                       trail=list(getattr(self, "trail", [])),   # a split with no straight-line spot backs off the way we came
+                       flags=self.flags)                          # settings-object step 2
         finally:
             self.mv.cam_target = None
         self.log(f"   {tag}{' (끝까지)' if desperate else ''}: {r.line()}")
-        self.events("duel", tag=tag, npc=r.npc, result=r.result, secs=round(r.secs, 1), dealt=r.dealt, taken=r.taken)
+        self.events("duel", tag=tag, npc=r.npc, result=r.result, secs=round(r.secs, 1), dealt=r.dealt, taken=r.taken,
+                    fight=getattr(self, "fight_id", None))
         if r.result == "crowd" and r.wall_back:
             self.back_to_wall(nm)
         elif r.result == "crowd" and self._crowd_capped():
             pass                                           # too many in a row — fight in place (crowd_ok stays off for CROWD_OFF_S)
         elif r.result == "crowd":
             self.fall_back(nm)
+        elif r.result == "shot":
+            self.leave_fire(nm, r.shot_from, tag)
         if r.result == "killed":
             self.heal(0.7)
         return r
@@ -662,6 +1006,146 @@ class Field:
         time.sleep(hold)
         c1 = self.mv.find(self.mv.snap(SEEK_R), ptr)
         return c1 is not None and c1.anim in (-1, None) and math.dist((c0.x, c0.y, c0.z), (c1.x, c1.y, c1.z)) < 0.3
+
+    def notice_pull(self, ptr, nm, back_to, tag: str) -> str:
+        """── 몸으로 끌기 ([MoKa] 2026-10-11, souls/pull.py) ──────────────────────────────
+         나이프 없이 하나만 깨운다: 그놈이 알아채는 거리(data/notice.json) 바로 안까지만 다가가되, 다른 잠잠한 적의 알아채는 거리
+         + MARGIN 안으로는 안 들어감. 알아채는 거리 + NEAR부터는 STEP만 걷고 LOOK_S 멈춰 지켜봄. 그놈이 움직이거나 애니가 생기면
+         (다른 놈이 깨도) 곧바로 back_to로 달려서 돌아감 — 깨어 있는 적이 NEAR_BACK_R 안이면 돌아서지 않음(P-45). 몸만 돌려 쳐다보면
+         더 다가가지 않고 WAIT_S 지켜봄(기록에서 그렇게 돈 104번 중 15번만 왔다). back_to None → escape.pick이 고른 쪽.
+        던지는 적(foes.Foe.thrower — 화염병·석궁)은 깨워도 제자리에서 던지기만 하므로 끌지 않음 (10-11 on#1, 254002).
+        → 'came' | 'stayed' (깼지만 COME_S 안에 안 옴) | 'thrower' (아무것도 안 함) | 'awake' (이미 깨어 있음, 아무것도 안 함)
+          | 'no_reaction' | 'no_path' | 'gone' | 'dead' | 'no_snapshot'"""
+        nm = plain_nm(nm)
+        s = self.mv.snap(SEEK_R)
+        if s is None:
+            return "no_snapshot"
+        c = self.mv.find(s, ptr)
+        if c is None or c.hp <= 0:
+            return "gone"
+        calm = lambda x: x.anim in (None, -1) or 9000 <= x.anim < 9100
+        if not calm(c):
+            return "awake"
+        if foes_.of(c.npc_param).thrower:
+            self.log(f"   {tag}: {c.npc_param}는 던지는 적 — 깨워도 안 오므로 몸으로 끌지 않음")
+            return "thrower"
+        p = s.player
+        me = (p.x, p.y, p.z)
+        table = self.__dict__.get("_notice")
+        if table is None:
+            table = self._notice = pull_.load_table()
+        rf = lambda x: pull_.notice_r(table, x.npc_param, pull_.facing(getattr(x, "heading", None), x.x, x.z, p.x, p.z))
+        rt = rf(c)
+        quiet = [o for o in s.hostile(40.0) if o.ptr != ptr and calm(o)]
+        others = [(o.x, o.y, o.z, rf(o)) for o in quiet]
+        goal = (c.x, c.y, c.z)
+        path = nm.find_path(me, goal) if nm is not None else None
+        if not path:
+            return "no_path"
+        pts, why, reach = pull_.plan(path, goal, others, rt)
+        far, stops = pull_.split(pts, goal, rt)
+        self.log(f"   {tag}: 몸으로 끌기 — {c.npc_param} 알아채는 거리 {rt:.1f} m, 다가갈 수 있는 데까지 {reach:.1f} m "
+                 f"({ {'min_r': '최소 거리', 'other': '더 가면 다른 적도 깸', 'end': '길 끝'}[why] })")
+        self.events("pull", tag=tag, npc=c.npc_param, rt=rt, reach=round(reach, 2), why=why)
+        w = pull_.Watch(c)
+        watch_ids = {o.ptr for o in quiet}
+        st = {"why": None}
+
+        def check(sn, turn_counts=True) -> bool:
+            c2 = self.mv.find(sn, ptr)
+            if c2 is None or c2.hp <= 0:
+                st["why"] = "gone"
+                return True
+            r = w.update(c2, (sn.player.x, sn.player.y, sn.player.z), time.time())
+            if r in ("anim", "move") or (r == "turn" and turn_counts):
+                st["why"] = r
+                return True
+            o = next((o for o in sn.hostile(40.0) if o.ptr in watch_ids and not calm(o)), None)
+            if o is not None:
+                st["why"], st["other"] = "other", o.npc_param
+                return True
+            return False
+
+        def look(secs: float, turn_counts: bool) -> None:
+            t0 = time.time()
+            while time.time() - t0 < secs and self.alive():
+                sn = self.mv.snap(SEEK_R)
+                if sn is not None and check(sn, turn_counts):
+                    return
+                time.sleep(0.05)
+
+        if far:
+            self.mv.walk_path(far, nm, "walk", stop=check)
+        for q in stops:
+            if st["why"] is not None or not self.alive():
+                break
+            self.mv.walk_path([q], nm, "walk", stop=check, timeout_per=3.0)
+            self.mv.pad.move(0.0, 0.0)
+            if st["why"] is None:
+                look(pull_.LOOK_S, True)
+        if not self.alive():
+            return "dead"
+        if st["why"] in (None, "turn"):                     # end of the plan, or it looked at us: guard and watch
+            turned = st["why"] == "turn"
+            st["why"] = None
+            self.mv.guard(True)
+            look(pull_.WAIT_S, False)
+            self.mv.guard(False)
+            if st["why"] is None:
+                self.log(f"   {tag}: {'쳐다보기만 하고' if turned else '다가가도'} 안 옴 — {pull_.WAIT_S:.0f} s 기다림")
+                return "no_reaction"
+        if st["why"] == "gone":
+            return "gone"
+        who = f"다른 적 {st.get('other')}" if st["why"] == "other" else f"{c.npc_param}({ {'anim': '애니', 'move': '움직임'}[st['why']] })"
+        self.log(f"   {tag}: {who} 깸 — 돌아감")
+        return self._pull_back(nm, back_to, ptr, tag, goal)
+
+    def _pull_back(self, nm, back_to, ptr, tag: str, stood) -> str:
+        """Run back to back_to (or escape.pick's choice) after waking one — unless an awake foe is already close — then watch up to
+        pull.COME_S whether it comes (off where it stood, nearer to us). → 'came' | 'stayed' | 'dead'"""
+        s = self.mv.snap(SEEK_R)
+        if s is None:
+            return "came"
+        p = s.player
+        near = [x for x in s.hostile(pull_.NEAR_BACK_R + 1.0) if awake(x) and x.anim not in (None, -1) and M.horiz(p, x) < pull_.NEAR_BACK_R
+                and abs(x.y - p.y) < FOLLOW_DY]
+        if back_to is None:
+            ch = self.escape_choice(nm, s)
+            back_to = ch.point if ch is not None else None
+        if near:
+            self.log(f"   {tag}: {near[0].npc_param} {M.horiz(p, near[0]):.1f} m — 가까워 돌아서지 않고 그 자리에서 받음")
+        elif back_to is not None and math.hypot(p.x - back_to[0], p.z - back_to[2]) > 1.5:
+            path = nm.find_path((p.x, p.y, p.z), tuple(back_to)) if nm is not None else None
+            if path:
+                caught = lambda sn: (math.hypot(sn.player.x - back_to[0], sn.player.z - back_to[2]) < 1.5
+                                     or any(awake(x) and x.anim not in (None, -1) and M.horiz(sn.player, x) < 1.5 for x in sn.hostile(3.0)))
+                r = self.mv.walk_path(nav.trim_path(path[1:], tuple(back_to)), nm, "sprint", stop=caught)
+                self.log(f"   {tag}: 달려서 ({back_to[0]:.1f},{back_to[1]:.1f},{back_to[2]:.1f})로 돌아감: {r}")
+                if r == "dead" or not self.alive():
+                    return "dead"
+        s = self.mv.snap(SEEK_R)
+        c = self.mv.find(s, ptr) if s is not None else None
+        if c is not None:
+            self.mv.face(s, c, deg=20.0)
+        self.mv.guard(True)
+        t0, off = time.time(), 0.0
+        while True:
+            if s is not None:
+                c = self.mv.find(s, ptr)
+                if c is None or c.hp <= 0:
+                    return "came"                          # gone from the list / killed meanwhile — the queue sorts it out
+                p = s.player
+                off = math.hypot(c.x - stood[0], c.z - stood[2])
+                if off >= pull_.COME_M and M.horiz(p, c) < math.hypot(p.x - stood[0], p.z - stood[2]):
+                    return "came"
+            if time.time() - t0 >= pull_.COME_S:
+                break
+            if not self.alive():
+                return "dead"
+            time.sleep(0.05)
+            s = self.mv.snap(SEEK_R)
+        self.log(f"   {tag}: 깼지만 {pull_.COME_S:.0f} s 동안 안 옴 — 제자리 (선 자리에서 {off:.1f} m)")
+        return "stayed"
 
     def lure(self, ptr, spawn, nm, tag: str, arena=None, lure_at: dict | None = None) -> str:
         """Wake just one foe (user 2026-09-24: "best is to pull them one at a time and hit", "you have throwing knives, one at a time from afar").
@@ -698,16 +1182,24 @@ class Field:
         d_arena = math.dist(tuple(arena), goal) if arena is not None else None
         if lure_at and lure_at.get("spot"):
             spot = tuple(lure_at["spot"])
-        elif d_arena is not None and LURE_MIN <= d_arena <= LURE_MAX:
-            spot = tuple(arena)
         else:
-            # flat ground too close (#1: 5 m — walking there just wakes it) or too far → first point on the path within LURE_R
-            path = nm.find_path(here, goal)
-            if not path:
-                return "no_path"
-            spot = next((tuple(q) for q in path if math.dist(tuple(q), goal) <= LURE_R and abs(q[1] - goal[1]) <= LURE_DY), None)
+            # A clear line first (lock-on needs one): the arena if the target is in sight from there, else the first point along
+            # the path LURE_MIN–LURE_R out with it in sight. NavMesh sight is a preference, not a veto — it can't tell a low prop
+            # from a wall (10-12 probe: locked 1/1 over a no-mesh patch it calls blocked), so with no spot in sight the old one
+            # (arena in range, else the first point in range) stays and lock-on decides — no lock, no throw (throw_knife).
+            arena_ok = d_arena is not None and LURE_MIN <= d_arena <= LURE_MAX
+            spot = tuple(arena) if arena_ok and nav.in_sight(nm, tuple(arena), goal) else None
             if spot is None:
-                return "no_spot"                              # foes below/above a cliff have no throw spot — take the usual path (run 8: jumped down to #2 below the cliff)
+                path = nm.find_path(here, goal)
+                spot = self._sight_spot(nm, path or [], goal, LURE_R)
+                if spot is None:
+                    spot = tuple(arena) if arena_ok else self._sight_spot(nm, path or [], goal, LURE_R, sight=False)
+                    if spot is not None and hasattr(nm, "clear_sight"):
+                        self.log(f"   {tag}: 직선이 트인 던질 자리 없음 (NavMesh) — 락온으로 확인")
+                if spot is None:
+                    # flat ground too close (#1: 5 m — walking there just wakes it) or too far, or foes below/above a cliff —
+                    # take the usual path (run 8: jumped down to #2 below the cliff)
+                    return "no_spot" if path else "no_path"
         if math.dist(here, spot) > (HOLD_SPOT_TOL if lure_at else 1.5):
             r = self.walk_to(spot, nm, f"{tag} 던질 자리로", tol=HOLD_SPOT_TOL if lure_at else None) \
                 if math.dist(here, spot) > 1.5 else "arrived"
@@ -741,6 +1233,9 @@ class Field:
                 return "interrupted"
             if not want and not self._asleep(ptr):
                 return "lured" if n > 1 else "awake"
+            r = self._into_sight(ptr, nm, tag, s, cn, lure_at)
+            if r:
+                return r
             if n > 1 and not locked_once and lure_at:
                 self.log(f"   {tag}: 락온 안 걸림 — 이 놈은 {lo:.0f} m 안으로 다가가지 않는다")
                 return "no_lock"
@@ -750,17 +1245,29 @@ class Field:
                 if c is None:
                     return "dead"
                 path = nm.find_path((s.player.x, s.player.y, s.player.z), (c.x, c.y, c.z)) if (s := self.mv.snap(5.0)) else None
-                want = max(LURE_MIN, c.dist - 4.0)
-                nxt = next((tuple(q) for q in (path or []) if math.dist(tuple(q), (c.x, c.y, c.z)) <= want and abs(q[1] - c.y) <= LURE_DY
-                            and abs(q[1] - s.player.y) <= LURE_DY), None)
+                closer = max(LURE_MIN, c.dist - 4.0)       # (was `want` — the knife-hit count, which made the rest of the loop count hits)
+                nxt = next((q for sight in (True, False) for q in self._sight_spots(nm, path or [], (c.x, c.y, c.z), closer, sight)
+                            if abs(q[1] - s.player.y) <= LURE_DY), None)   # a point in sight if there is one
                 if nxt is None:
                     return "no_spot"
-                self.log(f"   {tag}: 락온 안 걸림 — {want:.0f} m 까지 다가감")
+                self.log(f"   {tag}: 락온 안 걸림 — {closer:.0f} m 까지 다가감")
                 if self.walk_to(nxt, nm, f"{tag} 더 가까이") == "dead":
                     return "dead"
                 if not self._asleep(ptr):
                     return "lured"
-            r = self.mv.throw_knife(ptr, require_lock=True)
+            arm = self._arm_room(ptr, nm, tag)
+            r = None
+            if n == 1 and not want and self.fb_opener(s.player, cn):
+                r = self.mv.throw_firebomb(ptr)            # 유인을 화염병으로 염 (firebomb-candidate) — 락온 실패면 아래에서 나이프
+                self.log(f"   {tag}: 화염병으로 유인 ({cn.dist:.1f} m, 높이 {cn.y - s.player.y:+.1f}) → 락온 {r.get('locked')}, "
+                         f"피해 {r.get('hit')}{' | ' + r['why'] if r.get('why') else ''}")
+                self.events("throw", item="firebomb", why="lure_open", **{k: r.get(k) for k in ("dist", "locked", "hit", "woke", "knives")})
+                if not r.get("ok"):
+                    r = None
+            if r is None:
+                r = self.mv.throw_knife(ptr, require_lock=True)
+            if arm is not None:
+                r["arm"] = arm
             if want and r.get("why") and not (self.mv.tm.goods_count(M.ITEM_KNIFE) or 0) and self._emergency():
                 r = self.mv.throw_firebomb(ptr)            # firebomb only when out of knives and about to die
                 self.log(f"   {tag}: 나이프 없음 + 위기 — 화염병 → 피해 {r.get('hit')}")
@@ -770,7 +1277,7 @@ class Field:
             self.log(f"   {tag}: 나이프 {n} ({r.get('dist')} m, 락온 {r.get('locked')}, 조준 {r.get('aim_off')}°) → "
                      f"피해 {r.get('hit')}, {'움직임' if r.get('woke') else '반응 없음'}{' | ' + r['why'] if r.get('why') else ''}"
                      f"{' | 다른 놈 깸 ' + str(len(others)) if others else ''}")
-            self.events("lure", tag=tag, n=n, **{k: r.get(k) for k in ("dist", "locked", "aim_off", "hit", "woke", "knives")})
+            self.events("lure", tag=tag, n=n, **{k: r.get(k) for k in ("dist", "locked", "aim_off", "hit", "woke", "knives", "arm")})
             if want:
                 hits += 1 if (r.get("hit") or 0) > 0 else 0
                 cn = self.mv.find(self.mv.snap(SEEK_R), ptr)
@@ -786,6 +1293,52 @@ class Field:
             if not r.get("ok"):
                 time.sleep(0.5)
         return "lured" if hits else "no_reaction"
+
+    def _sight_spots(self, nm, path: list, goal, reach: float, sight: bool = True):
+        """Points along path every SIGHT_STEP_M LURE_MIN–reach from goal (closer, walking up wakes it anyway — a spot round the
+        corner 2 m from it is no throw spot), about its height (LURE_DY) and — with sight — with goal in sight from there.
+        The path's own points are far apart on straight stretches (simplified), so the line between is walked too."""
+        pts = [tuple(q) for q in path]
+        for a, b in zip(pts, pts[1:] + pts[-1:]):
+            k = max(1, int(math.dist(a, b) / SIGHT_STEP_M)) if a != b else 1
+            for i in range(k):
+                q = tuple(a[j] + (b[j] - a[j]) * i / k for j in range(3))
+                if LURE_MIN <= math.dist(q, goal) <= reach and abs(q[1] - goal[1]) <= LURE_DY and (not sight or nav.in_sight(nm, q, goal)):
+                    yield q
+
+    def _sight_spot(self, nm, path: list, goal, reach: float, sight: bool = True):
+        return next(self._sight_spots(nm, path, goal, reach, sight), None)
+
+    def _into_sight(self, ptr, nm, tag: str, s, c, lure_at) -> str | None:
+        """Right before a throw: target not in sight from here (it moved, or we stopped short) and a spot in sight along the
+        path → walk there first. Not from a preset lure_at spot (those never go closer). No such spot → throw from here and
+        let lock-on decide (NavMesh sight misses low props). → None (throw) | 'dead' | 'lured' (woke on the way)"""
+        here, at = (s.player.x, s.player.y, s.player.z), (c.x, c.y, c.z)
+        if lure_at or nm is None or nav.in_sight(nm, here, at):
+            return None
+        nxt = self._sight_spot(nm, nm.find_path(here, at) or [], at, LURE_R)
+        if nxt is None or math.dist(nxt, here) < 1.0:
+            self.log(f"   {tag}: {c.dist:.1f} m 직선이 막힘 (NavMesh), 트인 자리 없음 — 락온으로 확인")
+            return None
+        self.log(f"   {tag}: {c.dist:.1f} m 직선이 막힘 (NavMesh) — 트인 자리로 {math.dist(nxt, here):.1f} m")
+        self.events("lure", tag=tag, dist=round(c.dist, 1), why="sight_move")
+        if self.walk_to(nxt, nm, f"{tag} 트인 자리로") == "dead":
+            return "dead"
+        c2 = self.mv.find(self.mv.snap(SEEK_R), ptr)
+        if c2 is None or c2.hp <= 0:
+            return "dead"
+        return None if self._asleep(ptr) else "lured"
+
+    def has_firebomb(self) -> bool:
+        """Firebombs on: held and in a quick slot (the bot can only pick quick-slot items)."""
+        if not getattr(self, "firebomb", True):
+            return False
+        quick = getattr(self.mv.tm, "quick_items", None)
+        return (self.mv.tm.goods_count(M.ITEM_FIREBOMB) or 0) > 0 and (not callable(quick) or M.ITEM_FIREBOMB in (quick() or []))
+
+    def fb_opener(self, p, c) -> bool:
+        """Open a lure on sleeping foe c with a firebomb rather than a knife? (FB_OPEN_*: same level, MoKa's one-shot range)"""
+        return (self.has_firebomb() and abs(c.y - p.y) <= FB_OPEN_DY and FB_OPEN_MIN <= M.horiz(p, c) <= FB_OPEN_MAX)
 
     def _emergency(self) -> bool:
         """About to die — HP under 35 % and no estus (condition for firebombs, user: 'bombs are better than dying')."""
@@ -1105,6 +1658,9 @@ class Field:
                 continue
             coming = [c for c in s.hostile(FOLLOW_R + 2.0) if awake(c) and c.ptr not in ignore and c.anim not in (None, -1)
                       and M.horiz(s.player, c) < FOLLOW_R + 2.0 and abs(c.y - s.player.y) < FOLLOW_DY]
+            if self.flags.COMBO_ONLY:
+                # 오는 놈이 붙기 전에 계획 + 자리 (132052: 싸움 시작 때 세우니 첫 놈이 늘 0.6–3.0 m — 자리 옮김 0/7)
+                self._group_plan(None, nm, "오기 전")
             if coming:
                 c = min(coming, key=lambda x: M.horiz(s.player, x))
                 tried[c.ptr] = tried.get(c.ptr, 0) + 1
@@ -1237,6 +1793,13 @@ class Field:
                 unreachable.append(f"#{i}")
                 pending.pop(0)
                 continue
+            if not lure and self.settings.get("souls.field", "NOTICE_PULL") and k == 0 and e.get("lure", True):
+                pr = self.notice_pull(c.ptr, nm, arena, f"#{i}")
+                self.log(f"   #{i} 몸으로 끌기: {pr}")
+                tried[i] = 1                               # came → the 'incoming foe' branch takes it; no_reaction / stayed / thrower → go to it next round
+                if pr == "dead":
+                    return "died"
+                continue
             if lure and k == 0 and e.get("lure", True) and not la.get("hold"):
                 lr = self.lure(c.ptr, e["pos"], nm, f"#{i}", arena=arena, lure_at=e.get("lure_at"))
                 self.log(f"   #{i} 끌어오기: {lr}")
@@ -1251,7 +1814,12 @@ class Field:
             r = self.fight(c.ptr, nm, f"#{i} {e['npc']}" + (f" ({tried[i]}번째)" if tried[i] > 1 else ""), arena=arena, desperate=desperate,
                            may_approach=self._approach_guard(arena, pending, binds))
             if r.result in ("unsafe_approach", "crowd"):
-                tried[i] = k                               # E-2: don't count as an attempt — E-1 arena wait next round (crowd: fell back, go again)
+                tried[i] = k                               # E-2: don't count as an attempt (crowd: fell back, go again)
+                if r.result == "unsafe_approach" and arena is not None:
+                    # P-60 (10-11 060959 52.4 s): an awake target standing still off the flat (anim −1, so not 'coming', same height,
+                    # so no E-1 wait) reopened this fight 24× in 1.4 s with no guard — wait / defend on the flat like the 'coming' branch
+                    if self._arena_wait(arena, nm, ignore, UNSAFE_PAUSE) == "died":
+                        return "died"
                 continue
             if r.result == "killed":
                 pending.pop(0)
@@ -1390,6 +1958,7 @@ class Field:
         """_walk's mode_fn: 'retreat' or the walk mode. The same four checks in the same order as before, stopping at the
         first true one — threat_now updates the reflex, and _chaser is not called once threat_now said yes. P1-C: with
         run.py --ctl, which check fired is recorded (record only)."""
+        self._note_trail(sn)
         c = None
         if self.reflex.threat_now(sn):
             why = "threat"
@@ -1456,6 +2025,8 @@ class Field:
             # a breakable prop on the way (the NavMesh doesn't know crates) — break it and try the same point again, before
             # detouring: the detour's navmesh path runs through the same crate (2026-09-27 burg-bonfire #6, ROADMAP P-6)
             if self._smash_blocking(nm, pp, q, st.smashed, tag, mover, why=f"점 못 감 ({r})"):
+                if getattr(self, "denial", None):
+                    return "denied"                        # not 'retry': no detour, door or fog wall after a refusal
                 st.fails = 0
                 return "retry"
             d, dy = math.dist(pp, q), pp[1] - q[1]
@@ -1477,16 +2048,23 @@ class Field:
                     r2 = self.walk_to(q, nm, f"{tag} 돌아서", done=done)
                 finally:
                     self._detour = False
+                if getattr(self, "denial", None):
+                    return "denied"
                 if r2 == "arrived":
                     st.fails = 0
                     return "next"
         door = door_near((s3.player.x, s3.player.y, s3.player.z)) if s3 else None
         if st.fails >= 2 and door is not None and door not in st.doored:
             st.doored.add(door)
-            self.open_door(q, tag)
-            st.fails = 0
-            return "retry"
-        if st.fails >= 2 and self.fog_through(q):
+            if self.open_door(q, tag, door):
+                st.fails = 0
+                return "retry"
+        ladder = getattr(nm, "ladder_dist", None)
+        by_ladder = bool(s3 and callable(ladder) and ladder(s3.player.x, s3.player.y, s3.player.z) <= LADDER_NO_A_M)
+        if st.fails >= 2 and by_ladder and st.fails == 2:
+            self.log(f"      {tag}: 사다리 옆에서 막힘 — 안개벽 A 안 누름")
+            self.events("ladder_no_a", tag=tag, pos=[round(v, 2) for v in pp])
+        if st.fails >= 2 and not by_ladder and self.fog_through(q):
             st.fails = 0                        # passed the fog wall — restart from the nearest point
             s2 = self.mv.snap(5.0)
             if s2:
@@ -1506,11 +2084,13 @@ class Field:
                                    smashed={},         # smashed: prop name → swings this walk (props_.blocking)
                                    fogged=set(),       # FOG_WALLS already tried this walk (fog_ahead)
                                    doored=set())       # DOORS already opened this walk (one A each — a second A shuts it)
-        self.reflex.nm = nm
+        self.reflex.nm = plain_nm(nm)                        # reflex rolls / backsteps: plain NavMesh (GROUND_IN_FIGHTS)
         mover = nav.Mover(self.mv.pad)
         no_obs = control.NoObs(self.mv.pad, on_full=mover.stop)   # no snapshot: stick off now, everything off after a while (P0-C)
         try:
             while not plan.done:
+                if getattr(self, "denial", None):
+                    return "denied"                        # a nested walk (detour, fog front) or on_stuck already refused
                 if self.esc.escaping:
                     time.sleep(0.2)
                     continue
@@ -1525,17 +2105,24 @@ class Field:
                 if done is not None and done(s):
                     mover.stop()
                     return "arrived"                       # caller-defined 'no need to go further'
-                if s.player.hp < s.player.max_hp * WALK_HEAL and self.safe(s) and self.estus_left() > 0:
+                if (s.player.hp < s.player.max_hp * WALK_HEAL and getattr(self, "walk_heal", True) and self.safe(s)
+                        and self.estus_left() > 0):
                     mover.stop()                           # damage taken while walking (firebombs etc.) — don't defer until the next fight
                     self.heal(0.7)
                 fog = fog_ahead((s.player.x, s.player.y, s.player.z), q)
                 if fog is not None and fog not in st.fogged:
                     st.fogged.add(fog)
-                    mover.stop()
-                    self._fog_cross(fog, (s.player.x, s.player.y, s.player.z), q, nm, tag)
-                    continue
-                f_q = nm.floor_at(q[0], q[2], q[1]) if len(q) > 2 else None
-                f_p = nm.floor_at(s.player.x, s.player.z, s.player.y)
+                    gone = self.fog_gone(fog)
+                    self.log(f"   {tag}: 안개벽 ({fog[0]:.1f}, {fog[1]:.1f}, {fog[2]:.1f}) 플래그 {FOG_FLAGS.get(fog)} = {gone} — "
+                             + ("해제됨, A 없이 걸음" if gone else "있음(또는 못 읽음) → 벽 앞에서 A"))
+                    if not gone:
+                        mover.stop()
+                        self._fog_cross(fog, (s.player.x, s.player.y, s.player.z), q, nm, tag)
+                        continue
+                base = getattr(nm, "nm", None)              # run.py --ground: whether to check floor at all stays the NavMesh's call
+                base = base if hasattr(base, "floor_at") else nm   # (a plain NavMesh / test fake: itself)
+                f_q = base.floor_at(q[0], q[2], q[1]) if len(q) > 2 else None   # (73 off-mesh steps would newly be checked, 9 blocked — 2026-10-10)
+                f_p = base.floor_at(s.player.x, s.player.z, s.player.y)
                 terr = nm if (f_q is not None and abs(f_q[0] - q[1]) < 2.0 and f_p is not None and abs(f_p[0] - s.player.y) < 2.0) else None
                 g0 = self.esc.gen
 
@@ -1544,10 +2131,20 @@ class Field:
                     return self._smash_blocking(nm, (p.x, p.y, p.z), q, st.smashed, tag, mover,
                                                 why=f"막힘 감지 ({nav.STUCK_WINDOW:.0f} s 동안 {nav.STUCK_MIN_PROGRESS} m 미만)")
 
+                # done() every tick, not only between points (10-13 firebomb-probe: "stop 8 m from it" walked on to 4.9 m — the next
+                # point was 3 m further): goto's mode_fn sees each snapshot, 'retreat' ends goto at once, then it's 'arrived' here
                 r = self._follow(q, t, terr, mover, on_stuck,
-                                 mode_fn=lambda sn: self._walk_mode(sn, st, g0, mode))
+                                 mode_fn=lambda sn: "retreat" if getattr(self, "denial", None) or (done is not None and done(sn))
+                                 else self._walk_mode(sn, st, g0, mode))
                 if r == "dead":
                     return "dead"
+                if getattr(self, "denial", None):
+                    return "denied"                        # before 'retreat' / 'arrived' handling: no chaser fight, no next point
+                if r == "retreat" and done is not None:
+                    s_done = self.mv.snap(40.0)
+                    if s_done is not None and done(s_done):
+                        mover.stop()
+                        return "arrived"
                 if self.esc.gen != g0:                     # left and returned via quit-out — restart from the nearest point
                     self._resync_plan(plan, nm, window=False)
                     continue
@@ -1558,8 +2155,8 @@ class Field:
                     continue
                 if r != "arrived":
                     step = self._walk_missed(plan, st, q, r, nm, mover, done)
-                    if step == "stuck":
-                        return "stuck"
+                    if step in ("stuck", "denied"):
+                        return step
                     if step == "retry":
                         continue
                 else:
@@ -1576,6 +2173,28 @@ class Field:
                      if smashed.get(o["name"], 0) < SMASH_TRIES), None)
         if prop is None:
             return False
+        npc = npc_near(self.mv.snap(10.0), me, prop["pos"])
+        if npc is not None:
+            # ── NPC 옆에선 휘두르지 않음 (P-82, 2026-10-13 상인 사망) ──────────────────────
+            #  merchant-buy: 망자 상인(251001) 몸에 막힌 걸 옆 상자 o1129 탓으로 읽고 약공 → 상인이 맞고 적대 → 봇이 상인을 죽임 (되돌릴 수 없음).
+            #  아는 NPC(FRIENDLY_NPCS — 팀 값으론 구분 안 됨, 상인도 team 6)가 나나 그 물건 SMASH_NPC_R 안이면 부수지 않음 — 막힌 건 대개 그 몸
+            self.log(f"      {tag}: 앞길 {prop['model']} 옆에 NPC {npc.npc_param} ({npc.dist:.1f} m) — 부수지 않음")
+            smashed[prop["name"]] = SMASH_TRIES
+            return False
+        if not getattr(self, "smash_ok", True):
+            # ── 부수기 금지 (souls/altar_andre, 첫 이동 검증) ──────────────────────────────
+            #  안드레 근처: 막은 게 상자인지 NPC 몸인지 모른다 (P-82 상인). 휘두르지 않고, 우회·문·안개벽으로도 넘어가지 않고
+            #  걷기를 끝낸다. True = "처리됨"이라 goto는 탈출 동작 없이 다음 틱으로 가고, 그 틱의 mode_fn이 denial을 보고
+            #  'retreat'으로 goto를 끝낸다 (그 사이 입력은 pad.neutral뿐 — nav.goto 455–574 정적 추적)
+            if mover is not None:
+                mover.stop()                               # release run (B) — the only input after a refusal
+            if not getattr(self, "denial", None):
+                self.denial = {"kind": "denied", "op": "smash", "reason": "자동 장애물 부수기 금지 (smash_ok False)",
+                               "detail": {"tag": tag, "prop": prop["name"], "model": prop["model"],
+                                          "pos": list(prop["pos"]), "me": [round(v, 2) for v in me], "why": why}}
+                self.log(f"      {tag}: {why or '막힘'} — 앞길에 {prop['model']} ({prop['name']}), 부수기 금지 → 걷기 끝냄")
+                self.events("denied", **self.denial)
+            return True
         smashed[prop["name"]] = smashed.get(prop["name"], 0) + 1
         self.log(f"      {tag}: {why or '막힘'} — 앞길에 {prop['model']} ({prop['name']}, {math.dist(me, prop['pos']):.1f} m)")
         if mover is not None:
@@ -1614,6 +2233,45 @@ class Field:
         self.log(f"      {tag}: 길 막은 {prop['model']} ({prop['name']}) 부숨 시도 — ({q[0]:.1f},{q[1]:.1f},{q[2]:.1f})")
         self.events("smash", tag=tag, prop=prop["name"], model=prop["model"], pos=q)
 
+    def fog_gone(self, fog):
+        """FOG_FLAGS → True (passed / dissolved) · False (still there) · None (no flag for it, or unreadable)."""
+        fid = FOG_FLAGS.get(tuple(fog))
+        fn = getattr(getattr(self.mv, "tm", None), "event_flag", None)
+        if fid is None or fn is None:
+            return None
+        try:
+            return fn(fid)
+        except Exception:
+            return None
+
+    def door_flags(self, door) -> dict:
+        """DOOR_FLAGS of a door → {flag: value} (record flag, state flag), for the log."""
+        fn = getattr(getattr(self.mv, "tm", None), "event_flag", None)
+        out = {}
+        for fid in DOOR_FLAGS.get(tuple(door), ()):
+            if fid is None:
+                continue
+            try:
+                out[fid] = fn(fid) if fn else None
+            except Exception:
+                out[fid] = None
+        return out
+
+    def door_open(self, door):
+        """State flag of a known door → True (open now) · False (shut) · None (no flag / unreadable)."""
+        fid = DOOR_FLAGS.get(tuple(door), (None, None))[1]
+        return self.door_flags(door).get(fid) if fid is not None else None
+
+    def _door_retry(self, r: str, toward, tag: str, again):
+        """A walk back (tether / retreat) ended short next to a known shut door → A once, walk again. → again()'s result or r."""
+        if r not in ("stuck", "timeout", "lost"):
+            return r
+        s = self.mv.snap(5.0)
+        door = door_near((s.player.x, s.player.y, s.player.z)) if s is not None else None
+        if door is None or not self.open_door(toward, tag, door):
+            return r
+        return again()
+
     def fog_through(self, toward, known: bool = False) -> bool:
         """If stuck before a fog wall: turn toward the next waypoint, and press A when the prompt appears (user: "press A at the fog wall", "align direction").
         We stood beside the fog pushing into the wall → 'blocked' (2026-09-24). The prompt only appears when facing the fog.
@@ -1627,21 +2285,43 @@ class Field:
         for scale in (0.5, 0.7):
             self.mv.pad.move(*self.mv.stick_to(s, toward[0], toward[2], scale))
             time.sleep(0.3)
+            if known:
+                # ── 벽을 볼 때까지 돌기 (11-01 161915) ──────────────────────────────
+                #  스틱 0.3 s 뒤 A를 누른 순간 몸 방향이 89~111° — 벽(−25°)에서 90° 가까이 어긋나 A 14번이 0.1~1.6 m.
+                #  사다리(missions LADDER_FACE_DEG)처럼 매번 새 스냅숏으로 FOG_FACE_DEG 안에 들 때까지 (최대 FOG_TURN_S) 돈 뒤 A
+                t_turn = time.time()
+                while time.time() - t_turn < FOG_TURN_S:
+                    sn = self.mv.snap(5.0)
+                    if (sn is None or sn.cam_yaw is None or getattr(sn.player, "heading", None) is None
+                            or abs(math.degrees(M.rel_angle(sn.player, types.SimpleNamespace(x=toward[0], z=toward[2])))) <= FOG_FACE_DEG):
+                        break
+                    self.mv.pad.move(*self.mv.stick_to(sn, toward[0], toward[2], 0.55))
+                    time.sleep(0.05)
             self.mv.pad.move(0.0, 0.0)
             time.sleep(0.4)
             if known or L.prompt_px() >= 850:
+                sa = self.mv.snap(5.0)
+                at = ""
+                if sa is not None and getattr(sa.player, "heading", None) is not None:
+                    off = math.degrees(M.rel_angle(sa.player, types.SimpleNamespace(x=toward[0], z=toward[2])))
+                    at = f" (누를 때 몸 {off:+.0f}° 어긋남, 다음 점까지 {math.hypot(toward[0] - sa.player.x, toward[2] - sa.player.z):.1f} m)"
                 self.mv.press(M.B.XUSB_GAMEPAD_A, 0.3)
                 time.sleep(4.5)
                 s2 = self.mv.snap(5.0)
                 moved = math.dist(p0, (s2.player.x, s2.player.y, s2.player.z)) if s2 else 0.0
-                self.log(f"   안개벽: A → {moved:.1f} m 이동")
+                self.log(f"   안개벽: A → {moved:.1f} m 이동{at}")
                 if moved > 2.0 or not known:
                     return moved > 2.0
             s = self.mv.snap(5.0) or s                     # known wall, A didn't take: push a bit harder and press again
         return False
 
-    def open_door(self, toward, tag: str) -> None:
-        """Stuck at a known door: face the next point and press A once (a second A would shut it again), wait for it to swing."""
+    def open_door(self, toward, tag: str, door=None) -> bool:
+        """Stuck at a known door: face the next point and press A once (a second A would shut it again), wait for it to swing.
+        Its state flag says open → no A (A would shut it). → A pressed?"""
+        if door is not None and self.door_open(door) is True:
+            self.log(f"   {tag}: 문 앞에서 막힘 — 문은 열려 있음 (플래그 {self.door_flags(door)}), A 안 누름")
+            self.events("door", tag=tag, door=list(door), flags={str(k): v for k, v in self.door_flags(door).items()}, pressed=False)
+            return False
         s = self.mv.snap(5.0)
         if s is not None and s.cam_yaw is not None:
             self.mv.pad.move(*self.mv.stick_to(s, toward[0], toward[2], 0.4))
@@ -1650,8 +2330,10 @@ class Field:
             time.sleep(0.2)
         self.mv.pad.interact()
         time.sleep(DOOR_OPEN_S)
-        self.log(f"   {tag}: 문 앞에서 막힘 — A로 문 열기")
-        self.events("door", tag=tag)
+        fl = self.door_flags(door) if door is not None else {}
+        self.log(f"   {tag}: 문 앞에서 막힘 — A로 문 열기" + (f" (문 {door}, 누른 뒤 플래그 {fl})" if door is not None else ""))
+        self.events("door", tag=tag, door=list(door) if door is not None else None, flags={str(k): v for k, v in fl.items()}, pressed=True)
+        return True
 
     def _fog_cross(self, fog, p, q, nm, tag: str) -> bool:
         """Known fog wall between us and q: stand FOG_FRONT_M before it on the line to q, then fog_through (turn, A on the prompt).
@@ -1661,6 +2343,8 @@ class Field:
         front = (fog[0] - dx / n * FOG_FRONT_M, fog[1], fog[2] - dz / n * FOG_FRONT_M)
         if math.hypot(front[0] - p[0], front[2] - p[2]) > 0.8:
             self.walk([front], nm, f"{tag} 안개벽 앞")
+            if getattr(self, "denial", None):
+                return False                               # no A after a refusal; the outer _walk returns 'denied' next
         ok = self.fog_through(q, known=True)
         self.log(f"   {tag}: 안개벽 ({fog[0]:.1f}, {fog[1]:.1f}, {fog[2]:.1f}) {'통과' if ok else '못 지나감 — 그대로 걸음'}")
         self.events("fog_cross", tag=tag, fog=list(fog), ok=ok)
@@ -1723,6 +2407,11 @@ class Field:
                 lured[c.ptr] = lured.get(c.ptr, 0) + 1
                 here = (p.x, p.y, p.z)
                 lr = self.lure(c.ptr, (c.x, c.y, c.z), nm, f"{tag}: {c.npc_param}", arena=here)
+                if lr == "no_knife" and self.settings.get("souls.field", "NOTICE_PULL"):
+                    pr = self.notice_pull(c.ptr, nm, here, f"{tag}: {c.npc_param}")
+                    lr = {"came": "lured", "stayed": "awake", "thrower": lr}.get(pr, pr)   # thrower: as before --pull (no knife)
+                    if pr == "no_reaction":
+                        lured[c.ptr] = 2                   # didn't come from here — walk on
                 self.log(f"   {tag}: {c.npc_param} 끌어오기 {lured[c.ptr]}번째 — {lr}")
                 if lr == "dead":
                     continue
@@ -1750,7 +2439,7 @@ class Field:
             getattr(self.mv.pad, "guard", lambda on: None)(False)
         return "timeout"
 
-    def _settle(self, spot, tol: float = None, tries: int = 10) -> float:
+    def _settle(self, spot, tol: float = None, tries: int = 10, scale: float = 0.45) -> float:
         """Last few steps — short stick taps to get within tol of spot (horizontal). Throw-spot tolerance 1.5 m clashed with the 13 m lure minimum,
         giving 12.8~13.0 m → 'too_close' (R3 101913, 134451 three times) — user-approved 2026-09-26 'to 0.5 m'. → remaining distance"""
         tol = HOLD_SPOT_TOL if tol is None else tol
@@ -1762,15 +2451,55 @@ class Field:
             d = math.hypot(s.player.x - spot[0], s.player.z - spot[2])
             if d <= tol:
                 break
-            self.mv.pad.move(*self.mv.stick_to(s, spot[0], spot[2], 0.45))
+            self.mv.pad.move(*self.mv.stick_to(s, spot[0], spot[2], scale))
             time.sleep(0.12)
             self.mv.pad.move(0.0, 0.0)
             time.sleep(0.12)
         return d if d is not None else 0.0
 
+    def _arm_room(self, ptr, nm, tag: str) -> dict | None:
+        """
+        ── 오른팔 가동 공간 (P-135, [MoKa] 11-08) ──────────────────────────────
+         "양 옆이 좁은 통로에 특히 우측 벽에 붙어 있는 상태로 나이프를 던지면, 오른손이 벽에 부딪혀서 던지는 것이 실패한거야" ·
+         "좌측 벽으로 미세 조정으로 붙어서, 오른 팔이 움직이게 하는 가동 공간을 확보". 194800 구역 4: 던진 자리 오른쪽 바닥 0.2 m ·
+         왼쪽 0.8 m → 13.0 m 락온인데 피해 0; 시범 063807이 맞힌 자리는 0.5 / 0.5 m (통로 가운데).
+         오른쪽 바닥이 ARM_ROOM보다 좁으면 왼쪽 가장자리 ARM_EDGE_KEEP까지 붙어 섬 ([MoKa] 11-08 "좌측으로 붙어서 우측 확보 해야함";
+         처음엔 가운데로 갔음). NavMesh 가장자리는 벽인지 낭떠러지인지 모르고, 벽 표면보다 안쪽일 수 있음 (가설).
+         → None (안 잼) | {"right", "left", "moved"}
+        """
+        s = self.mv.snap(SEEK_R)
+        c = self.mv.find(s, ptr) if s is not None else None
+        if c is None or nm is None:
+            return None
+        p = s.player
+        room = nav.side_room(nm, p, c.x - p.x, c.z - p.z)
+        if room is None:
+            return None
+        right, left = room
+        out = {"right": right, "left": left, "moved": 0.0}
+        if right >= ARM_ROOM:
+            return out
+        shift = left - ARM_EDGE_KEEP                       # [MoKa] 11-08 "좌측으로 붙어서 우측 확보 해야함" — 가운데가 아니라 왼쪽 벽에 붙음
+        if shift < ARM_MIN_SHIFT:
+            self.log(f"   {tag}: 오른쪽 바닥 {right:.2f} m · 왼쪽 {left:.2f} m — 옮길 자리 없음, 그대로 던짐")
+            return out
+        n = math.hypot(c.x - p.x, c.z - p.z)
+        fx, fz = (c.x - p.x) / n, (c.z - p.z) / n
+        goal = (p.x - fz * shift, p.y, p.z + fx * shift)       # left of facing = (−fz, fx) (nav.side_room)
+        self._settle(goal, tol=ARM_SETTLE_TOL, scale=ARM_SETTLE_SCALE)
+        s2 = self.mv.snap(SEEK_R)
+        p2 = s2.player if s2 is not None else p
+        r2 = nav.side_room(nm, p2, c.x - p2.x, c.z - p2.z) or (None, None)
+        out.update(moved=round(math.hypot(p2.x - p.x, p2.z - p.z), 2), right_after=r2[0], left_after=r2[1])
+        self.log(f"   {tag}: 오른팔 공간 — 오른쪽 바닥 {right:.2f} m · 왼쪽 {left:.2f} m → 왼쪽으로 {out['moved']:.2f} m "
+                 f"(뒤: 오른쪽 {r2[0]} · 왼쪽 {r2[1]})")
+        return out
+
     # ── Bloodstain────────────────────────────────────────────────
     def pick_blood(self, nm, near: float = 20.0, bonfire_ok: bool = False) -> str | None:
-        """bonfire_ok: we'll sit at this bonfire anyway, so A accidentally sitting is fine (bloodstain next to the Undead Burg bonfire)."""
+        """bonfire_ok: we'll sit at this bonfire anyway, so A accidentally sitting is fine (bloodstain next to the Undead Burg bonfire).
+        Only with no living foe within BLOOD_CLEAR_R of me or the stain, and the walk stops if one comes that close → 'foes_near'
+        (try again later). → None (no stain / too far) | 'near_bonfire' | 'foes_near' | 'got' | 'miss' | a walk result"""
         b = Blood.read()
         if not b:
             return None
@@ -1781,7 +2510,19 @@ class Field:
         s = self.mv.snap(5.0)
         if s is None or math.dist((s.player.x, s.player.y, s.player.z), pos) > near:
             return None
-        r = self.walk_to(pos, nm, "핏자국")
+        foes = self._foes_by(s, pos)
+        if foes:
+            self.log(f"   핏자국 {pos}: 근처에 적 {len(foes)} ({', '.join(foes[:3])}) — 안 감")
+            return "foes_near"
+        seen: list = []
+
+        def foe_came(sn) -> bool:                          # walk's done(): stop at once — a fight is not what we came for
+            seen[:] = self._foes_by(sn, pos)
+            return bool(seen)
+        r = self.walk_to(pos, nm, "핏자국", done=foe_came)
+        if seen:
+            self.log(f"   핏자국: 가는 길에 적 ({', '.join(seen[:3])}) — 멈춤")
+            return "foes_near"
         if r != "arrived":
             return r
         souls0 = self.mv.tm.souls() or 0
@@ -1797,6 +2538,252 @@ class Field:
         self.log(f"   핏자국: {'회수' if got else '못 주움'} (소울 {souls0} → {self.mv.tm.souls()})")
         return "got" if got else "miss"
 
+    # ── One named fixed treasure (souls/loot.TREASURES) ─────────────────────────────────────────────
+    def pick_treasure(self, nm, tr: dict, window=None) -> dict:
+        """Walk to a fixed treasure, press A, and judge by memory: its ItemFlag (event_flag) going True and the goods count
+        going up (count is compared, never read alone — 11-01 humanity_probe: the count was already 1 before). Not a scan:
+        tr names one corpse (loot.TREASURES). → {'result': already · foes_near · got · miss · unknown · walk …, 'flag', 'goods'}
+        result 'unknown': the flag can't be read — nothing is pressed."""
+        tm = self.mv.tm
+        window = window or (lambda: drops_.itemget_nodes(tm))
+        pos, flag, item = tuple(tr["pos"]), tr["flag"], tr["item"]
+        f0 = tm.event_flag(flag)
+        out = {"result": "unknown", "flag": [f0], "goods": [tm.goods_count(item)]}
+        if f0 is None:
+            return out
+        if f0:
+            out["result"] = "already"
+            return out
+        s = self.mv.snap(5.0)
+        if s is None:
+            out["result"] = "no_snapshot"
+            return out
+        if any(math.dist(pos, bf) < BONFIRE_NO_A for bf in self.bonfires):
+            out["result"] = "near_bonfire"
+            return out
+        foes = self._foes_by(s, pos)
+        if foes:
+            self.log(f"   {tr['name']}: 근처에 적 {len(foes)} ({', '.join(foes[:3])}) — 안 감")
+            out["result"] = "foes_near"
+            return out
+        d = drops_.Rec(0, pos, item, tr.get("count", 1), None)
+        got, why = self._drop_visit(types.SimpleNamespace(rec=d), nm, window, pick_m=TREASURE_PICK_M)
+        f1, g1 = tm.event_flag(flag), tm.goods_count(item)
+        out["flag"].append(f1)
+        out["goods"].append(g1)
+        g0 = out["goods"][0]
+        more = g0 is not None and g1 is not None and g1 > g0
+        if why:
+            out["result"] = why
+        elif f1 and more:
+            out["result"] = "got"
+        elif f1:
+            out["result"] = "flag_only"                    # flag set but no count change (count unreadable or another item)
+        else:
+            out["result"] = "miss" if f1 is False else "unknown"
+        out["window"] = got
+        self.log(f"   {tr['name']} ({tr['label']}): {out['result']} — flag {f0}→{f1}, 개수 {g0}→{g1}, 창 {got}"
+                 + (f" ({why})" if why else ""))
+        return out
+
+    # ── Enemy drops (drops.DropBook keeps which ones are left; this walks, presses and reports) ──────────────
+    def pick_drops(self, nm, book, back=None, scan=None, window=None) -> dict:
+        """Pick up the drops book knows of, nearest cluster first, after a fight is over. Stops when none is left, a living foe
+        is within BLOOD_CLEAR_R of me or the drop (no fight here — the caller clears first), I die, or DROP_VISITS is used.
+        A visit counts only what the item-get window list shows (drops.new_nodes); book.visited decides what is taken.
+        back: walk there at the end (the spot the caller's next step starts from). scan / window: drops.scan /
+        drops.itemget_nodes by default (fakes in tests). → {'result', 'visits', 'taken', 'unexpected'}"""
+        tm = self.mv.tm
+        scan = scan or (lambda: drops_.scan(tm))
+        window = window or (lambda: drops_.itemget_nodes(tm))
+        out = {"result": "done", "visits": 0, "taken": 0, "unexpected": 0}
+        s = self.mv.snap(60.0)
+        if s is None:
+            out["result"] = "no_snapshot"
+            return out
+        book.observe_chars(s.chars, time.time())
+        book.observe(scan(), time.time())
+        self._show_drops(book)
+        self._close_window(window, "시작 전")
+        try:
+            for _ in range(DROP_VISITS):
+                s = self.mv.snap(60.0)
+                if s is None or not self.alive():
+                    out["result"] = "dead" if s is not None else "no_snapshot"
+                    break
+                me = (s.player.x, s.player.y, s.player.z)
+                # 화톳불 옆 드롭은 안 감: A가 앉기로 먹히면 휴식 = 적 전부 부활 (pick_blood의 BONFIRE_NO_A와 같은 이유)
+                cl = book.select(me, lambda q, me=me: (math.dist(q, me) <= DROP_NEAR and abs(q[1] - me[1]) <= DROP_DY
+                                                       and nm.on_mesh(*q, dy=1.5)
+                                                       and not any(math.dist(q, bf) < BONFIRE_NO_A
+                                                                   for bf in getattr(self, "bonfires", ()))))
+                if not cl:
+                    break
+                d = cl[0]
+                self._show_drops(book, cl)
+                foes = self._foes_by(s, d.rec.pos)
+                if foes:
+                    self.log(f"   드롭 {d.rec.item:#x}: 근처에 적 {len(foes)} ({', '.join(foes[:3])}) — 줍기 멈춤")
+                    out["result"], out["at"] = "foes_near", cl
+                    break
+                got, why = self._drop_visit(d, nm, window)
+                if why == "foes_near":
+                    out["result"], out["at"] = "foes_near", cl
+                    break
+                s = self.mv.snap(5.0)
+                me = (s.player.x, s.player.y, s.player.z) if s is not None else me
+                r = book.visited(cl, got, me, why=why)
+                out["visits"] += 1
+                out["taken"] += len(r["taken"])
+                out["unexpected"] += len(r["unexpected"])
+                self.log(f"   드롭 {len(cl)}개 자리 ({', '.join(f'{x.rec.item:#x}' for x in cl)}): 창 "
+                         f"{'못 읽음' if got is None else [f'{i:#x}×{n}' for i, n in got]}"
+                         f" → 주움 {[f'{x.rec.item:#x}' for x in r['taken']]}"
+                         + (f", 애매 {len(r['ambiguous'])}" if r["ambiguous"] else "")
+                         + (f", 후보 밖 {r['unexpected']}" if r["unexpected"] else "") + (f" ({why})" if why else ""))
+                book.observe(scan(), time.time())          # records move with pushed corpses; a closing A may have taken more
+                self._show_drops(book)
+            else:
+                out["result"] = "visit_cap"
+        finally:
+            self.mv.pad.move(0.0, 0.0)
+        self._show_drops(book)
+        left = book.pending()
+        if left:
+            self.log(f"   드롭 남음 {len(left)}: {[f'{x.rec.item:#x}' for x in left]}")
+        if back is not None and out["result"] in ("done", "visit_cap") and self.alive():
+            r = self.walk_to(tuple(back), nm, "드롭 뒤 제자리로")
+            self.log(f"   드롭 뒤 제자리로: {r}")
+        return out
+
+    def _show_drops(self, book, aim=()) -> None:
+        """Viewers only (radar): every drop the book knows, its state, and which ones this visit aims at."""
+        ids = {d.rec.ident for d in aim}
+        self.mv.show_drops = (time.time(), [(*d.rec.pos, d.rec.item, d.state, d.rec.ident in ids) for d in book.drops.values()])
+
+    def _drop_visit(self, d, nm, window, pick_m: float = DROP_PICK_M) -> tuple[list | None, str]:
+        """Walk to DROP_STAND_M short of d, pulse to DROP_PICK_M, A, then close the window. → (window items this visit or
+        None if unreadable / not reached, why). why 'foes_near' = stopped for a foe (not a visit)."""
+        tm = self.mv.tm
+        seen: list = []
+
+        def where():
+            if not d.rec.addr:                             # a fixed treasure (pick_treasure): no record, it doesn't move
+                return d.rec.pos
+            r = drops_.read_rec(tm, d.rec) if hasattr(tm, "pm") else d.rec
+            return r.pos if r is not None else None
+
+        def foe_came(sn) -> bool:
+            seen[:] = self._foes_by(sn, d.rec.pos)
+            return bool(seen)
+        s = self.mv.snap(5.0)
+        if s is None:
+            return None, "no snapshot"
+        q = where()
+        if q is None:
+            return None, "record changed"
+        dx, dz = q[0] - s.player.x, q[2] - s.player.z
+        hd = math.hypot(dx, dz)
+        if hd > DROP_STAND_M + 0.3:
+            k = (hd - DROP_STAND_M) / hd
+            stand = (s.player.x + dx * k, q[1], s.player.z + dz * k)
+            if not nm.on_mesh(*stand, dy=1.5):
+                stand = q                                  # no floor short of it — walk_to's trim stops near the goal anyway
+            r = self.walk_to(stand, nm, "드롭", done=foe_came)
+            if seen:
+                return None, "foes_near"
+            if r not in ("arrived", "done"):
+                return None, f"walk {r}"
+        r = self._creep_to(where, pick_m, stop=foe_came)
+        if r == "foes_near":
+            return None, "foes_near"
+        if r != "near":
+            return None, f"approach {r}"
+        got = self._press_for_window(window)
+        if got == []:                                       # inside 0.95 m with no window: one more pulse, one more A (loop10 had 2)
+            self._creep_to(where, pick_m - 0.25, pulses=1)
+            got = self._press_for_window(window)
+        if got:
+            got = got + self._close_window(window, "드롭")
+        return got, ""
+
+    def _creep_to(self, where, stop_d: float, pulses: int = DROP_PULSES, stop=None) -> str:
+        """Short stick pulses toward where() (live drop position) until horizontal ≤ stop_d → 'near' | 'height' | 'lost' | 'timeout'
+        | 'foes_near' (stop(snapshot) true — a foe came while creeping in)."""
+        still = 0
+        for _ in range(pulses):
+            s = self.mv.snap(5.0)
+            q = where()
+            if q is None:
+                return "lost"
+            if stop is not None and s is not None and stop(s):
+                return "foes_near"
+            if s is None or s.cam_yaw is None:
+                time.sleep(0.2)
+                continue
+            if math.hypot(q[0] - s.player.x, q[2] - s.player.z) <= stop_d:
+                return "near"
+            if abs(q[1] - s.player.y) > 2.0:
+                return "height"
+            sc, secs = DROP_BUMP if still >= 2 else DROP_PULSE
+            self.mv.pad.move(*self.mv.stick_to(s, q[0], q[2], sc))
+            time.sleep(secs)
+            self.mv.pad.move(0.0, 0.0)
+            time.sleep(0.35)
+            s2 = self.mv.snap(5.0)
+            if s2 is not None:
+                still = still + 1 if math.hypot(s2.player.x - s.player.x, s2.player.z - s.player.z) < 0.03 else 0
+        s = self.mv.snap(5.0)
+        q = where()
+        if s is not None and q is not None and math.hypot(q[0] - s.player.x, q[2] - s.player.z) <= stop_d:
+            return "near"
+        return "timeout"
+
+    def _press_for_window(self, window) -> list | None:
+        """A once; → window items it added ([] none, None unreadable)."""
+        before = window()
+        self.mv.press(M.B.XUSB_GAMEPAD_A)
+        t0, after = time.time(), before
+        while time.time() - t0 < DROP_WAIT_S:
+            after = window()
+            if after is not None and after != before:
+                break
+            time.sleep(0.05)
+        return drops_.new_nodes(before, after)
+
+    def _close_window(self, window, tag: str) -> list:
+        """Close an open item-get window with A, at most DROP_CLOSE_TRIES. → items a closing A picked instead (r03)."""
+        extra: list = []
+        for _ in range(DROP_CLOSE_TRIES):
+            cur = window()
+            if not cur:                                     # [] closed · None unreadable (then pressing blind could sit/pick — don't)
+                if cur is None:
+                    self.log(f"   획득 창 ({tag}): 목록 못 읽음 — 닫기 A 안 누름")
+                return extra
+            time.sleep(1.0)
+            self.mv.press(M.B.XUSB_GAMEPAD_A)
+            t0, after = time.time(), cur
+            while time.time() - t0 < DROP_WAIT_S:
+                after = window()
+                if after is not None and after != cur:
+                    break
+                time.sleep(0.05)
+            more = drops_.new_nodes(cur, after) or []
+            if more:
+                self.log(f"   획득 창 ({tag}): 닫기 A가 {[f'{i:#x}' for i, _n in more]} 를 더 주움")
+                extra += more
+        if window():
+            self.log(f"   획득 창 ({tag}): A {DROP_CLOSE_TRIES}번 뒤에도 열림")
+        return extra
+
+    @staticmethod
+    def _foes_by(s, pos, r: float = None) -> list[str]:
+        """Living foes within r of me or of pos (awake or not — walking up to a sleeping one wakes it). → 'npc d m' labels"""
+        r = BLOOD_CLEAR_R if r is None else r
+        me = (s.player.x, s.player.y, s.player.z)
+        return [f"{c.npc_param} {c.dist:.0f} m" for c in s.hostile(r + math.dist(me, pos))
+                if c.dist < r or math.dist((c.x, c.y, c.z), pos) < r]
+
     # ── Rest─────────────────────────────────────────────────
     def rest_at(self, nm, bonfire: dict) -> bool:
         """Walk to the bonfire fighting along the way and rest. **Every foe revives** — only when starting a fresh run."""
@@ -1810,8 +2797,16 @@ class Field:
             if r == "dead":
                 self.wait_respawn()
         ok = self.mv.rest(nm, bonfire)
-        self.forget_foes()
+        Field._world_event(self, "rest", why="rest_at")   # → forget_foes + loot reset (Field._on_world)
         return ok
+
+    def _world_event(self, kind: str, **kw) -> None:
+        """Field's own events into its WorldState; a Field built without __init__ (tests) does the old side effects directly."""
+        w = getattr(self, "world", None)
+        if w is not None:
+            w.event(kind, **kw)
+        else:
+            Field._on_world(self, kind, dict(world_.EVENTS[kind]))
 
 
 class Care:

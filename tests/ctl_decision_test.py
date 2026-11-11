@@ -89,6 +89,9 @@ class WalkSelf:
         self.calls.append("_chaser")
         return self._chaser_v
 
+    def _note_trail(self, sn):                    # escape trail (souls/escape.py) — not one of the four checks, not logged
+        pass
+
 
 def test_walk_mode(tmp: Path) -> None:
     foe = types.SimpleNamespace(ptr=0xAB, npc_param=250023)

@@ -150,6 +150,9 @@ def main() -> None:
                             key=os.path.getmtime)   # newest run last — by name, data/samples/ sorted after data/runs/ and a copy became "this time"
     runs = dedupe({p: parse(p) for p in logs})
     if not a.all:
+        import runinfo
+        for p in list(runs)[-a.last:]:                     # which code / arguments 'this time' ran with (runinfo first line)
+            print(f"this time: {Path(p).name} — {runinfo.describe(p)}")
         print(compare(runs, a.last, a.radius))
         return
     events = [e for evs in runs.values() for e in evs]

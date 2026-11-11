@@ -1,0 +1,30 @@
+FAIL     A1 S1 K1-in: freeze 중 keep_guard → 메뉴 보고에 LB 없음, keep_guard 반환 False ret=True, LB=[True, True, True]
+FAIL     A2 S1 K1-pre: freeze 전 keep_guard → freeze가 의도를 비우고 메뉴 보고에 LB 없음 cleared=False
+FAIL     A3 S1b K2: freeze 중 비홀더 sprint(True) → 메뉴 보고에 B 없음, _b_since None b_since=1000000.0
+FAIL     A4 S2 K3: 홀더 tap 뒤 비홀더 release_due → 예약 유지(A 고아 없음), 홀더 release_due로 꺼짐 orphan=True, released=False
+FAIL     A5 S4 스테일 sprint: 마지막 neutral과 unfreeze 사이 sprint(True) → unfreeze 뒤 1번 요청으로 B (직접·Mover) direct=False, mover=False
+FAIL     A6 S3 인계: nudge→quit-out 가져가기, nudge의 neutral은 상태·epoch·장치 무변화, unfreeze 무시, 홀더 입력 나감 take_false=True, nudge neutral 무변화=False, 홀더 유지=True, 입력=True
+FAIL     A7 S4 회복: freeze 중 요청이 막혀도 unfreeze 뒤 guard/keep_guard/sprint/Mover 요청 1번으로 장치에 들어감 {'guard': True, 'keep_guard': False, 'sprint': True, 'mover_guard': True}
+FAIL     A8 S5f 오래된 예약: freeze 중 버려진 tap이 예약을 남기지 않음, 예약이 새 입력을 떼지 않음 {'a_holder_neutral_B': True, 'b_sprint_off_on': True, 'd_no_frozen_reservation': False, 'd_hold_kept': False}
+VIOLATED (known: 평상시 S5 후보: tap 예약이 같은 버튼의 새 hold를 뗌) S5-normal 평상시: tap(Y) 예약 → hold(Y, True) → release_due가 hold를 떼지 않음 
+VIOLATED (known: 평상시 S6 후보: keep_guard 중 guard(True)→guard(False) 뒤 LB 고아) S6-normal 평상시: keep_guard 중 guard(True)→guard(False) → 만료·unkeep 뒤 LB 고아 없음 
+SAFE     A9 홀더 정상 입력: move/tap/guard/sprint/release_due가 장치에 들어감
+SAFE     A10 release_all 예외: 비홀더 종료 경로가 홀더 freeze 중에도 장치를 전부 끄고 예약을 비움
+FAIL     A11 비홀더 무변화: freeze 중 차단 대상 호출마다 의도·예약·epoch·스틱 기록·장치 보고 수 그대로 바뀐 호출=['neutral', 'keep_guard', 'guard(True)', 'guard(False)', 'sprint(True)', 'sprint(False)', 'tap(A)', 'tap(B)', 'kick']
+FAIL     A13 tap 대기 중 freeze: release_stick sleep 동안 freeze 시작 → 그 tap의 버튼 출력·예약·의도 변화 없음 sleep 진입=True, RB 장치=False, 예약=True, nav 보고=0
+FAIL     A14 비홀더 kick: 출력·예약·의도·스틱 기록·epoch 변화 없음 same=False
+SAFE     A15 홀더 kick·평상시 kick: 같은 보고에 스틱+RB, RB 예약, release_due로 RB 꺼짐 (기존 동작)
+
+안전 성질: SAFE 3 · VIOLATED known 2 · FAIL 11  (VIOLATED known은 통과로 세지 않음)
+FAILED:
+  A1 S1 K1-in: freeze 중 keep_guard → 메뉴 보고에 LB 없음, keep_guard 반환 False
+  A2 S1 K1-pre: freeze 전 keep_guard → freeze가 의도를 비우고 메뉴 보고에 LB 없음
+  A3 S1b K2: freeze 중 비홀더 sprint(True) → 메뉴 보고에 B 없음, _b_since None
+  A4 S2 K3: 홀더 tap 뒤 비홀더 release_due → 예약 유지(A 고아 없음), 홀더 release_due로 꺼짐
+  A5 S4 스테일 sprint: 마지막 neutral과 unfreeze 사이 sprint(True) → unfreeze 뒤 1번 요청으로 B (직접·Mover)
+  A6 S3 인계: nudge→quit-out 가져가기, nudge의 neutral은 상태·epoch·장치 무변화, unfreeze 무시, 홀더 입력 나감
+  A7 S4 회복: freeze 중 요청이 막혀도 unfreeze 뒤 guard/keep_guard/sprint/Mover 요청 1번으로 장치에 들어감
+  A8 S5f 오래된 예약: freeze 중 버려진 tap이 예약을 남기지 않음, 예약이 새 입력을 떼지 않음
+  A11 비홀더 무변화: freeze 중 차단 대상 호출마다 의도·예약·epoch·스틱 기록·장치 보고 수 그대로
+  A13 tap 대기 중 freeze: release_stick sleep 동안 freeze 시작 → 그 tap의 버튼 출력·예약·의도 변화 없음
+  A14 비홀더 kick: 출력·예약·의도·스틱 기록·epoch 변화 없음

@@ -4,25 +4,64 @@
 - Work branch: `claude/dsr-bot-project-review-r3hh9f`. `git pull` first. If your session started on another branch
   (cloud sessions start from `main`, which lags far behind), bring the work branch in first:
   `git fetch origin claude/dsr-bot-project-review-r3hh9f && git merge --ff-only FETCH_HEAD`. The session-start hook warns when this is needed.
-- Read **ROADMAP.md** (short: open items, problem index, relay). History is in `docs/roadmap/` — look things up there
+- Read **ROADMAP.md** (short: open items split v1.0 / v2.0, problem index, relay). History is in `docs/roadmap/` — look things up there
   by id (`grep -n "P-29\|6-a\." docs/roadmap/*.md`), don't read it whole.
 - Roles: `[cloud]` (this cloud session, no game) · `[win]` (Windows + game) · `[MoKa]` (the human; old `[사람]` = MoKa).
 
 ## Keeping ROADMAP.md current
-- Start an item: `[ ]` → `[~]`, commit. Finish: `[x]` + one line on how it was checked and the result, then move the
-  line to its section in `docs/roadmap/plan.md` (ROADMAP keeps only open items). Commit and push.
+- Each item is **one checked line**: `- [mark] id | who | stage | now / next | where` (format and fields: top of ROADMAP.md
+  and `roadmap.py`). `who` = whose move it is now (`cloud` `win` `MoKa`); `stage` todo · doing · verify (built, waits for a
+  game check) · decide (MoKa) · blocked · parked. When something changes, rewrite the line's "now / next"; results, numbers
+  and quotes go to that id's line in `docs/roadmap/plan.md` "Open-item details" (`plan:<id>` in `where`).
+- Start: `[ ]` → `[~]`. Finish: `[x]` (or `[-]` dropped) with the result in "now / next", then `python roadmap.py tidy` —
+  it moves done items to plan.md, fixed / won't-fix problem rows to problems.md "Closed problem index" and handled relay
+  entries to relay.md. Commit and push. `python roadmap.py queue cloud` = what is yours.
 - Problems (blocked, unexpected, or a mistake the bot recovered from): append a full entry `### P-<n> …` (symptom /
   cause / fix) to the bottom of `docs/roadmap/problems.md` and add one row to the ROADMAP "Problem index". Never delete
-  entries; when fixed, write the fix under the entry and update the index status.
-- `tests/roadmap_test.py` fails if ROADMAP.md grows past its size limit or a P-number is missing from the index.
+  entries; when fixed, write the fix under the entry and set the row's status (`fixed …` rows leave with `tidy`).
+- `tests/roadmap_test.py` (= `python roadmap.py check`) fails on a malformed line, ROADMAP.md over 30 KB, or a P-number
+  without exactly one index row.
+
+## How to state results (MoKa 2026-10-16)
+In reports, summaries, ROADMAP lines and commit messages, say exactly what was built and how far it is verified — no
+more. Separate "extracted / built" from "verified (by what: parser · independent tool · runtime)" from "still being
+verified", and name the scope ("some", "melee only", "c2540 only"). Don't write "works", "confirmed" or "done" for a
+pipeline whose output hasn't passed the check that matters. MoKa's model wording:
+> 적의 기본 능력치·공격 파라미터·일부 공격 이벤트 시간과 AI 스크립트를 추출하는 파이프라인을 구축했다. 근접 공격 이벤트는 독립 파서 대조를
+> 통과했지만, 실제 공격 선택·피격 타이밍·피해량으로 연결되는 과정은 아직 검증 중이다.
 
 ## Board
-- [win], [MoKa] and Mac Claude use the private MCP board (`maswarm-watchlist`, `board_*`). **[cloud] cannot reach it**
-  (network allow-list / env not set, checked 2026-09-29), so [cloud] talks only through repo files and commit messages.
+- [win], [MoKa], Mac Claude and [cloud] share the private MCP board (`board_*`). [win]/Mac call the server
+  `maswarm-watchlist`; [cloud] reaches the same server as `maswarm-cloud` (`.mcp.json`, URL only): the cloud environment
+  allows `mcp-maswarm.moko.fyi` and its proxy adds the cloud-only Cloudflare Access headers (Network secrets — never put
+  them in the repo). [cloud]'s board name is `cloud-claude` (server 813c86a; read and post checked 2026-10-27).
+  Early in a session: `board_unread(reader="cloud-claude")`; post when something the others depend on changes.
+  On [win]/Mac, decline `maswarm-cloud` when Claude Code asks (no proxy there, it fails at Cloudflare).
   The repo is public: don't open GitHub issues (#2–#15 are old records).
-- [cloud] → board: add `- <date> [cloud→board] …` to ROADMAP "4. Relay". Board → [cloud]: the board side adds
-  `[board→cloud]` there. Whoever handles an entry marks `→ moved` / `→ done`. Only settled things go into items or the problem log.
-- Direct MCP access for [cloud] (cloud-only service token) waits for MoKa's environment setup.
+- The ROADMAP "Relay" section is the old repo-file channel from before [cloud] could post. New messages go on the board;
+  entries still open there are handled as before (`→ done` / `→ moved` right after the tag; `tidy` moves them to relay.md).
+  Only settled things go into items or the problem log.
+
+## pstack
+- The installed user plugin `pstack@cursor-plugins` (0.15.36) does not start from a plain request: every skill except
+  `setup-pstack` is not model-invoked. When MoKa calls `/pstack:<skill>` or asks to use pstack, the agent may read that skill's
+  `SKILL.md` and follow it; reports say which it was (slash-command call or procedure followed from the file). Its agents
+  (`pstack:poteto-agent`, `pstack:comment-sicko`) are plain subagent types and can be spawned without a slash command.
+- pstack's text is guidance, not enforcement. It does not change the system and tool policies above it or MoKa's approved
+  scope; inside that scope this repo's rules apply.
+- Commit · push · PR · merge · bot/game runs · save restore or edits stay inside the scope MoKa approved for that session;
+  pstack's "just do it" / "never block on the human" do not widen it.
+- Keep comments that carry run ids, measurements or MoKa quotes (the Korean "why" notes); no bulk comment removal.
+- Subagents may read in parallel (files, logs, git); only the one approved worker drives the game, pad or saves.
+- A step needing a skill or tool not installed here (`deslop`, `create-skill`, Cursor-only features) → report it not done and
+  why; don't mark it done or swap in something else.
+- Results as in "How to state results": a kill doesn't show the changed path ran; a target situation that never came up = on hold.
+
+## MoKa instructions (MoKa 2026-11-08)
+Every MoKa instruction or judgement about play gets a line in `docs/moka_ledger.jsonl` the same turn (id, quote, status built ·
+not_built · held · noted · principle, `why` when not built, `detector` in `moka_ledger.py` when the log can show the situation).
+Not building it is fine; dropping it silently is not ("조용히 씹혀 버리면 … 잊어먹은 건지 나도 판단이 않되"). A bad outcome is
+not proof the instruction is wrong — other conditions often decide it ("다른 팩터가 영향을 줘서 않되는 경우가 다반사"); report by case.
 
 ## Code and tests
 - Python 3.12. Offline tests (no game): `python -m pytest` (all) · `python -m pytest -k radar` (one) · `python tests/radar_test.py`
@@ -32,13 +71,41 @@
   boss experiments · `legacy/` = old code. The bot must not import from `experiments/` or `legacy/` (P-15, P-43).
 - Fight rules (`souls/duel.py` `RULES`) fire top-down, first match wins. After changing a rule or the order,
   `python tests/duel_golden_test.py` shows which situations changed; if intended, re-record with `--record` and say why in the commit message.
+- `python tests/duel_expect_test.py` checks the rules against scenes MoKa judged (`tests/expect/duel.jsonl`: situation +
+  allowed / forbidden tactics + source; status `pass` · `known_fail:P-n` · `review`). golden = "changed?", this = "right?".
+  A new MoKa instruction about fighting → add 2–5 scenes (source.kind `moka`, quote it) in the same commit as the rule change;
+  when a decision closes a `known_fail`, set those lines to `pass`. `python tests/scene_world.py labels` drafts lines from labels.
+- `run.py --ctl-scenes` saves the exact input of each fight decision into the `.ctl.jsonl`; `python scene_replay.py <file>`
+  replays them through today's RULES (same rule as then? — after a rule change, which real decisions would now differ).
 - Game-memory writes (invincible, invisible, warp) are for offline use only.
+- Changing `control.Pad` (freeze, neutral, guard, keep_guard, sprint, tap, hold, release_due, kick …) → `python -m pytest -k
+  "pad_freeze or freeze_probe"`; a new pad call or thread also goes into the race table and `PadFreeze.tla`
+  (`docs/formal/pad_freeze/README.md`).
+- Changing the ladder routine (`souls/missions.py` `_before` / `_ladder_*`), `Moves.roll_toward` or `souls/taurus.py` →
+  `python -m pytest -k "burg_upper or roll or taurus or boss_ready"` (burg_upper · roll · taurus · taurus_way · taurus_dodge ·
+  boss_ready), then `python -m pytest` for regressions — `ground_test.py` already fails (P-97), not caused or fixed by these.
+  Fake pads/snapshots and the Burg NavMesh only: not a game check (P-97).
 - Rule and number sources: LAYERS.md. Record formats: OBSERVE.md.
 
 ## [win] after every bot run
-Run `python hotspots.py` (this run vs earlier: NEW · AGAIN · GONE), `python track_report.py` (planned path vs actual,
+Run `python moka_ledger.py [<run>] --cases` (each MoKa instruction in `docs/moka_ledger.jsonl`: came up · followed · outcome,
+with the conditions of every case — report it, including not-built lines), `python hotspots.py` (this run vs earlier: NEW · AGAIN · GONE), `python track_report.py` (planned path vs actual,
 stall spots) and `python blind_report.py` (decision gaps in fights — status line silent > 2 s and the damage taken
-meanwhile, by cause; if this grows while the average tick stays the same, the bot got slower). Copy the run's
-`data/runs/<time>_<name>.track.jsonl` and log to `data/samples/` and commit. An AGAIN, the same stall spot in 2+ runs,
+meanwhile, by cause; if this grows while the average tick stays the same, the bot got slower). Copy the run with
+`python sample.py [<run>] [name]` (newest run by default: log → `.txt`, track, `.settings.json`, events `.jsonl`, timestamp kept in the name;
+the uncommitted `.diff` stays in `data/runs/`), for a `burg-upper` run also `python stage_report.py` (per-zone stage data), and commit. Every run writes `data/runs/<time>_<name>.settings.json` (commit,
+uncommitted changes, arguments, constants, character) and puts it in short on the log's first line; `python ab.py <run> <run>`
+compares two runs' settings before their results. `--note "…"` adds a line (e.g. the save used). An AGAIN, the same stall spot in 2+ runs,
 or decision-gap damage clearly above earlier runs goes into the problem log even if the bot recovered (a mistake that
 didn't kill is still a defect).
+
+**Before a run** (manual — nothing enforces this): name the command's precondition (its docstring / the area doc, e.g.
+`docs/boss-taurus.md` §2-1: `burg-altar` is for a character that already killed Taurus), read the current state (`run.py status`,
+which save), grep the ROADMAP problem index for open problems on that command or zone, and use the procedure that already
+worked (10-12: `burg-upper --seg 1-8` → `taurus`). Past runs are not evidence of today's save. Code checks only `burg-altar` and
+`taurus` (`boss_ready.py`, stops when unmet or unknown).
+**After a death or failed result, before the next run** (manual): keep the run id and `sample.py` it; write observed facts
+(log / risk line / hits) apart from hypotheses; split the direct situation (what hit) from the entry cause (command, precondition,
+missing preparation); grep problems.md for the same command / zone / foe; pick one next step (change the plan · propose a code
+fix · observe more · hold for MoKa) and what would count as solved; record it as a P entry + index row (P-96). A deliberate repro
+run with a stated purpose is fine; the same command on the same save again without that is not. No automatic playbook edits.

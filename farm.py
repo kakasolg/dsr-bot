@@ -64,7 +64,7 @@ def log(msg: str) -> None:
 WARP_NEAR_M = 20.0    # rest 의 순간이동 폴백은 이 거리 안에서만
 
 
-def rest(tm, pad, nm, bonfire, mode: str = "walk") -> bool:
+def rest(tm, pad, nm, bonfire, mode: str = "walk", settings=None) -> bool:
     """화톳불까지 가서 앉는다 — 적 리스폰·HP·성배 충전. 앉는 데 2.5 s 걸린다(anim2 -1 → 7710 → 7711).
     돌아갈 땐 걷는다 — 사용자: "최소한 돌아갈 땐 천천히. 뛰다가 구석에 박힌다" (예전: 달리기·도착 판정 2 m).
     가파른 곳 입구는 정확히 밟고(nav.path_tolerances), 끝에서 지나치지 않는다(nav.trim_path)."""
@@ -131,6 +131,34 @@ def rest(tm, pad, nm, bonfire, mode: str = "walk") -> bool:
     except Exception:
         pass
     time.sleep(1.0)
+
+    def stand_up() -> bool:
+        for _ in range(6):
+            if not seated():
+                return True
+            press(vgamepad.XUSB_BUTTON.XUSB_GAMEPAD_B)
+            time.sleep(1.0)
+        return not seated()
+
+    def sit_down() -> bool:
+        for _ in range(3):
+            control.focus_game()
+            press(vgamepad.XUSB_BUTTON.XUSB_GAMEPAD_A)
+            for _ in range(16):
+                time.sleep(0.25)
+                if seated():
+                    return True
+        return False
+
+    import kindle
+    B = vgamepad.XUSB_BUTTON
+    menu = {"A": B.XUSB_GAMEPAD_A, "DOWN": B.XUSB_GAMEPAD_DPAD_DOWN, "LEFT": B.XUSB_GAMEPAD_DPAD_LEFT}
+    kindle.maybe(tm, lambda k: press(menu[k]), stand_up, sit_down,
+                 log=lambda m: print(m, flush=True),
+                 on=settings.get("kindle", "ON") if settings is not None else None)           # run.py --kindle: 성벽 마을 화톳불에서 인간성 2 → 되살리기 → 불 지피기 ([MoKa] 11-01)
+    import levelup                          # after kindling: a level-up leaves the cursor off "Leave"
+    levelup.maybe(tm, press, log=lambda m: print(m, flush=True),
+                  want=settings.get("levelup", "WANT") if settings is not None else None)   # run.py --level-up: 앉은 김에 소울로 능력치 ([MoKa] 10-31)
     for _ in range(6):                      # 일어나기 = 메뉴 닫기
         if not seated():
             break

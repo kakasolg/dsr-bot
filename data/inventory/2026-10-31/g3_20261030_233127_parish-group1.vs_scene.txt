@@ -1,0 +1,41 @@
+run 20261030_233127_parish-group1 · ctl sha256 c3db4c82e0304efa (4286 lines) · settings sha256 d59c79cde11edfe2 · checker sha256 9deb9fefba46b45a · repo HEAD 0f79b09
+kinds: {'hdr': 1, 'sync': 23, 'life': 3, 'pad': 3731, 'neutral': 16, 'dec.goto': 188, 'dec.counter': 21, 'span.fight': 4, 'span.cycle': 136, 'span.obs': 67, 'span.rule': 67, 'dec.rule': 13, 'dec.reflex': 3, 'span.action': 6, 'pad.override': 3, 'scene': 3, 'end': 1}
+end: {'seq': 4285, 'pc': 176817008579700, 'written': 4285, 'dropped': 0, 'lost': 0, 'write_errors': 0, 'last_error': None, 'writer_joined': True, 'complete': True, '_L': 4286}
+gap records: [] · broken lines: 0 · lines after end: 0
+life: [(3, 'start', None), (4280, 'normal_exit', 'cleared'), (4283, 'atexit', None)]
+fight: 2 · paired 2 · start without end [] · end without start []
+cycle: 68 · paired 68 · start without end [] · end without start []
+action: 3 · paired 3 · start without end [] · end without start []
+fight results: Counter({'killed': 2})
+cycle parent not a fight: []
+cycle end kinds: {'rule_cont': 65, 'rule_result': 2, 'sense_cont': 1}
+cycle src: {'direct': 67, None: 1} · resnap true: 0
+span.rule 67 · cycles with picked 67 · rule↔picked mismatch [] · picked without span.rule []
+picked rules: {'face_first': 1, 'edge': 1, 'approach': 3, 'block': 33, 'reflex': 26, 'after_swing': 3}
+none_pad (rule returned None after writing the pad): {} in 0 cycles
+span.rule pc order broken: []
+actions: {'light': 3} · parent kinds {'cycle': 3} · rule_id set 3 / 3 · rule_id → emitted span.rule 3
+action parent dangling: []
+action end reasons (dead = target HP 0): {('light', 'dead'): 3}
+action with hit: 3 · with ret: 0
+pad th=MainThread: 3697 records (+dup 228) · with cycle_id 368 · with action_id 14
+pad th=Thread-7 (_run): 34 records (+dup 1) · with cycle_id 0 · with action_id 0
+main pad without ids inside an open cycle: 0 [] · inside a fight but between cycles: 0 (callers {})
+main pad cycle_id outside that cycle's seq range: []
+other threads with a main id: []
+pad.override: 3 {('guard_off', 'MainThread', True): 1, ('neutral', 'MainThread', True): 2}
+pad.drop: 0
+scenes 3 · inside exactly one cycle 3 · none 0 · cycles with picked and a scene 3/67
+input (obs) per cycle: {'sense_only': 61, 'partial': 6, 'no_obs': 1} · examples {'no_obs': '814: sense_cont', 'partial': '28: obs L3455 · reads in sense 1, after 108, resnap False', 'sense_only': '2: obs L3443'}
+writer complete (end record) ≠ input restorable — they are reported apart
+settings end: {'result': 'cleared', 'end_read': {'t': 1793428395.0005293, 'hp': [616, 793], 'estus': 10, 'pos': [26.18, 26.6, 99.96], 'src': 'feed', 'fseq': 5840, 'age_s': 0.009}, 'last_valid_obs': {'t': 1793428395.0005293, 'fseq': 5840, 'hp': 616, 'max_hp': 793, 'pos': [26.18, 26.6, 99.96]}, 'end_state_known': True}
+
+── vs-scene (consistency of two records of one read, not an independent sensor check)
+input status by cycle kind: {('rule_cont', 'sense_only'): 61, ('rule_cont', 'partial'): 4, ('rule_result', 'partial'): 2, ('sense_cont', 'no_obs'): 1}
+(snapshot() calls in sense, after) for cycles with span.obs: {(1, 0): 61, (1, 71): 2, (1, 108): 1, (1, 22): 1, (1, 122): 1, (1, 99): 1}
+partial by picked rule: {'approach': 3, 'after_swing': 3}
+sense_only by picked rule: {'face_first': 1, 'edge': 1, 'block': 33, 'reflex': 26}
+span.obs lines 67 · bytes min 22023 med 23072 max 23089 total 1538274 of file 2535891 · chars per obs min 64 med 67 max 67
+scene L3838 ↔ span.obs (cycle 770): player same True · chars ≤25 m same True (7 vs 7) · cam_yaw same True · t same True · span.obs chars beyond 25 m 60 · target 241724480 == scene tick ptr 241724480
+scene L3904 ↔ span.obs (cycle 805): player same True · chars ≤25 m same True (7 vs 7) · cam_yaw same True · t same True · span.obs chars beyond 25 m 60 · target 241731136 == scene tick ptr 241731136
+scene L4189 ↔ span.obs (cycle 1206): player same True · chars ≤25 m same True (10 vs 10) · cam_yaw same True · t same True · span.obs chars beyond 25 m 56 · target 241737792 == scene tick ptr 241737792

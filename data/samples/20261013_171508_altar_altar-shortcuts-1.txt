@@ -1,0 +1,29 @@
+[    0.0] run 20261013_171508_altar · code 22b21af · altar --radar --ctl-scenes --note altar retry: straight to bonfire when no landing (shortcuts-open save) · settings 14b82f86 · note altar retry: straight to bonfire when no landing (shortcuts-open save)
+[    0.0] ctl: 기록만 → D:\dev\dsr-bot\data\runs\20261013_171508_altar.ctl.jsonl
+[    0.0] ctl scenes: 싸움 결정마다 그 순간의 입력 기록 (scene_replay.py 로 다시 돌림, 판단엔 반영 안 함)
+[    0.2] radar: sending — python radar_server.py -> http://127.0.0.1:47801, python overlay.py
+[    7.2]    물건 비켜 가기 (지난 실행에서 2번 이상 부숨): o1130_13 o1132_06 o1150_01 o1321_0021
+[    8.2] 무기: 클레이모어 (약공 2연타, 닿는 거리 1.8 m, 강공 안 씀)
+[    8.2] 스타일: guard
+[    8.2] 캐릭터: SL 23 VIT 20 END 15 STR 16 DEX 17 | 반지 147,146 왼손 1474000
+[    8.3]    시작: 헬카이트 안 보임
+[   16.5]    카메라: 오른스틱 +x → cam_yaw + (+/− 펄스 한 쌍으로 배움)
+[   19.0]    ▣ 블랙박스 #1: 0.0 s 동안 -130 → HP 663/793, 추정 255040 애니 3500 2.65 m 정면±6°, 255040 애니 9930 6.76 m 정면±14°
+[   25.7]    ① → ② 계단 아래 (질주): arrived
+[   27.9]       에스트: {'ok': True, 'hp': [663, 793], 'left': 7, 'why': None}
+[   27.9]    ② 아래층 2.2 s — HP 793
+[   35.2]    ② → ③: arrived
+[   56.6]    ③ 헬카이트 착지 21.4 s: 헬카이트 (8.3, 11.1, -47.6) 애니 -1
+[   69.4]    ③ → ④ 테라스 (질주): arrived
+[   74.3]    ④ 헬카이트 떠남 4.8 s: 헬카이트 (20.6, 18.9, -29.0) 애니 7006
+[   74.3]    클레이모어: 이미 주움 (플래그 켜짐) — 건너뜀
+[   80.8]    제단 화톳불로: arrived
+[   80.8] ══ 제단: arrived
+[   80.8] ══ 결과: arrived
+[   80.9] 카메라 정렬: 싸움 밖 중앙 7° · 90 % 148° · 10° 안 68% (19번)
+[   80.9] 정렬 (몸 30° 또는 락온): 싸움 밖 몸 중앙 22° · 30° 안 53% · 정렬 53% (19틱)
+[   80.9] 가드 유지: 휘두르는 적 2.5 m 안에서 방패 직접 듦 1번
+[   80.9] ctl scenes: scenes kept 0, errors 0, capture 0 ms total
+[   80.9] ══ 위험 판정: 깨끗  (결과 arrived, 최저 HP 84%, 큰 피격 1번 -130, 범인 255040×1)  
+[   80.9] 실행 설정 기록: 20261013_171508_altar.settings.json
+[   80.9] 텔레메트리 피드: {'frames': 4367, 'read_ms': 3.0, 'fresh': 9632, 'waited': 10, 'direct': 1435, 'none': 0, 'stale': 0}

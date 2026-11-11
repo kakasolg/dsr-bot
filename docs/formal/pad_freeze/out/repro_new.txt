@@ -1,0 +1,24 @@
+REPRODUCED     K1-pre  freeze 전 keep_guard → 홀더 neutral이 LB를 실제 장치에 누르고 메뉴 입력 내내 유지
+               freeze 전 LB=True, freeze 직후 LB 꺼짐=True, neutral 뒤 LB=True, 메뉴 보고 2개 모두 LB=True; freeze 중 다른 스레드 호출 0회
+REPRODUCED     LB-orphan-a  freeze 중 unkeep 뒤 LB 고아 (메뉴 창 안)
+               unkeep 뒤 아무도 원하지 않는 LB가 장치에=True, 메뉴 보고 LB=True, 마지막 neutral 뒤 LB=False, unfreeze 뒤 LB=False
+NOT REPRODUCED LB-orphan-b  같은 순서에서 unfreeze 이후까지 LB 고아
+               홀더의 마지막 neutral(watch.py:308)이 force_guard 끝난 뒤라 LB를 리셋함
+REPRODUCED     LB-orphan-d  메뉴 뒤·마지막 neutral 앞 keep_guard → 얼린 채 만료·unkeep → unfreeze 뒤 LB 고아 (TLC 순서)
+               unfreeze 직후 LB=True, unkeep 한 번 더 뒤 LB=True, gw=False, kept=False, fg=False
+REPRODUCED     LB-orphan-c  freeze 중 keep_guard + guard(True) → unfreeze 뒤 LB 고아
+               unfreeze·만료·unkeep 뒤 LB 장치=True, gw=False, kept=False, fg=False
+REPRODUCED     stale-sprint  마지막 neutral과 unfreeze 사이 sprint(True) → unfreeze 뒤 sprint(True)가 B를 못 누름 (unfreeze 때 경과 0.0 s)
+               unfreeze 뒤 sprint(True) 1회 B 꺼짐=True, 2회=True, 5 s 뒤 release_due 후 B 꺼짐=True, _b_since 남음=True
+REPRODUCED     stale-sprint  마지막 neutral과 unfreeze 사이 sprint(True) → unfreeze 뒤 sprint(True)가 B를 못 누름 (unfreeze 때 경과 1.0 s)
+               unfreeze 뒤 sprint(True) 1회 B 꺼짐=True, 2회=True, 5 s 뒤 release_due 후 B 꺼짐=True, _b_since 남음=True
+NOT REPRODUCED stale-sprint-mover-a  nav.Mover 경유, set('sprint')가 홀더 마지막 neutral 앞 (→ unfreeze 뒤 반복)
+               freeze 전 B=True, 마지막 neutral 뒤 B=True, 끝에 B=True, Mover.mode=sprint
+REPRODUCED     stale-sprint-mover-b  nav.Mover 경유, set('sprint')가 마지막 neutral과 unfreeze 사이 (→ unfreeze 뒤 반복)
+               끝에 B=False, Mover.mode=sprint, _b_since 남음=True
+REPRODUCED     S5-normal  tap(Y) 예약 → hold(Y, True) → release_due가 새 hold를 뗌 (freeze 무관, API 수준)
+               hold(Y, True) 중 release_due 뒤 Y 꺼짐=True
+REPRODUCED     S5f  freeze 중 버려진 tap(Y)의 예약 → unfreeze 뒤 hold(Y, True)를 release_due가 뗌
+               freeze 중 tap 뒤 _due에 Y 남음=True, unfreeze 뒤 hold로 Y 켜짐=True, release_due 뒤 Y 꺼짐=True
+
+9/11 reproduced

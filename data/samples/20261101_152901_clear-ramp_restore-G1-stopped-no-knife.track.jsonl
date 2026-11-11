@@ -1,0 +1,4 @@
+{"rt": 0.0, "type": "run", "run": "20261101_152901_clear-ramp", "commit": "6ccafc0f636c0976ea4289251ae5896afe2a7bee", "dirty": true, "argv": ["run.py", "clear-ramp", "--radar", "--note", "MoKa 11-01 retest from Firelink-arrival save e2da9f35 (restored 152837), G1, loot default on, humanity 0"], "settings_sha1": "cc043177d4c3bdff3d5ae8a8df4bd2011364b0e3"}
+{"rt": 0.04, "type": "say", "line": "radar: sending — python radar_server.py -> http://127.0.0.1:47801, python overlay.py"}
+{"rt": 0.04, "type": "say", "line": "   ⚠ 투척 나이프(290)가 퀵 슬롯에 없음 (슬롯 [201, -1, -1, -1, -1], 가진 수 0) — 못 넣음: 나이프 없음. 넣고 다시 켜거나 --no-lure. 멈춤 (게임 입력 없음)"}
+{"rt": 0.04, "type": "snap", "player": {"ptr": 483185136, "name": "", "npc": 0, "team": 1, "hp": 616, "max_hp": 616, "sp": 98, "max_sp": 98, "x": -47.4, "y": -59.82, "z": 53.29, "dist": 0.0, "heading": 2.531, "anim": -1}, "chars": []}

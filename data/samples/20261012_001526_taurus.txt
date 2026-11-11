@@ -1,0 +1,25 @@
+[    0.0] run 20261012_001526_taurus · code c036f87 · taurus --ctl-scenes --radar --note taurus try 8 (c036f87) · settings fabf6ab2 · note taurus try 8 (c036f87)
+[    0.0] ctl: 기록만 → D:\dev\dsr-bot\data\runs\20261012_001526_taurus.ctl.jsonl
+[    0.0] ctl scenes: 싸움 결정마다 그 순간의 입력 기록 (scene_replay.py 로 다시 돌림, 판단엔 반영 안 함)
+[    0.3] radar: sending — python radar_server.py -> http://127.0.0.1:47801, python overlay.py
+[    6.7]    물건 비켜 가기 (지난 실행에서 2번 이상 부숨): o1132_06 o1150_01 o1321_0021
+[    7.8] 무기: 배틀 액스 (약공 2연타, 닿는 거리 1.6 m, 강공 안 씀)
+[    7.8] 스타일: guard
+[    7.8] 캐릭터: SL 18 VIT 18 END 14 STR 14 DEX 17 | 반지 147,-1 왼손 1462000
+[   14.1]    안개벽: A → 2.5 m 이동
+[   14.1]    타우로스: 안개벽 통과
+[   14.9]    타우로스: 양손 grip 3
+[   18.5]    타우로스: 황금 송진 바름 (3 → 2)
+[   28.2]    타우로스 나옴: HP 1215, 23.4 m — 사다리로
+[   40.9]    카메라: 오른스틱 +x → cam_yaw + (+/− 펄스 한 쌍으로 배움)
+[   43.3]    타우로스: 사다리 올라감 (y 24.8)
+[   43.3]    타우로스 낙하: 4.6 m, 높이 9.0 m, 그놈 애니 4003, 송진 25 s 전
+[   49.6]    타우로스 낙하 공격: HP 1215 → 684, 내 HP 680
+[   57.4]    타우로스 처치 — 8 s, 약공 4번, 내 HP 680
+[   57.4] ══ 타우로스: killed
+[   57.4] ══ 결과: killed
+[   57.4] 카메라 정렬: 싸움 밖 중앙 3° · 90 % 10° · 10° 안 87% (151번)
+[   57.4] ctl scenes: scenes kept 0, errors 0, capture 0 ms total
+[   57.5] ══ 위험 판정: 깨끗  (결과 killed, 최저 HP 92%, 큰 피격 0번 -0)  
+[   57.5] 실행 설정 기록: 20261012_001526_taurus.settings.json
+[   57.5] 텔레메트리 피드: {'frames': 3065, 'read_ms': 2.3, 'fresh': 13456, 'waited': 9, 'direct': 828, 'none': 0, 'stale': 0}

@@ -26,6 +26,7 @@ if hasattr(sys.stdout, "reconfigure"):
 from field_fakes import World
 from souls import duel as D
 from souls import moves as M
+from souls import reflex as R
 from souls import weapons
 
 GOLDEN = Path(__file__).with_name("duel_golden.json.gz")
@@ -40,8 +41,19 @@ class Mv:
         self.w, self.t = w, trace
         self.tm = type("Tm", (), {"handle": staticmethod(lambda p: p + 0x1000)})()
         self.pad = type("Pad", (), {"move": lambda _s, x, y: trace.append(("move", round(x, 2), round(y, 2))),
-                                    "guard": lambda _s, on: trace.append(("pad_guard", on))})()
+                                    "guard": lambda _s, on: trace.append(("pad_guard", on)),
+                                    "lock_on": lambda _s: self._r3()})()
         self.cam_busy = False
+        self.cam_target, self.locked = None, None          # R3 locks whatever the camera follows (duel._sense sets cam_target)
+
+    def _r3(self):
+        self.locked = None if self.locked is not None else self.cam_target
+
+    def lock_state(self, ptr):
+        return "none" if self.locked is None else "target" if self.locked == ptr else "other"
+
+    def unlock(self):
+        self.locked = None
 
     def snap(self, within=40.0):
         return self.w.snapshot(within)
@@ -82,8 +94,14 @@ class Mv:
 
 
 class Reflex:
+    # the real guard-hit counter (P-136) — runs only when our anim is …140; scene_world sets mv for its my_anim_seq scenes
+    mv, events, guard_counter_on, _gc_done, gc_last = None, None, True, False, None
+    guard_counter = R.Reflex.guard_counter
+    note_bounce, at_bounce = R.Reflex.note_bounce, R.Reflex.at_bounce      # wall-bounce spots (P-139)
+
     def __init__(self, fires, trace):
         self.fires, self.t, self.prefer, self.last_hit = fires, trace, None, None
+        self.bounces = []
 
     def update(self, s):
         pass
@@ -180,9 +198,9 @@ def run(sc, advisor=None, tap=None, mv_hook=None) -> list:
 
     rec = lambda name, ret: (lambda *a, **k: (trace.append((name,)), ret)[1])
     saved = {k: getattr(D, k) for k in ("_backstab", "_back_to_safe", "_separate", "_approach", "_room_behind")}
-    nav_saved = (D.nav.footing, D.nav.ground_ahead)
+    nav_saved = (D.nav.footing, D.nav.ground_ahead, D.nav.can_move)
     D.nav.footing = lambda nm_, p, r=1.0: (0.2 if sc.get("edge") else 3.0,)
-    D.nav.ground_ahead = lambda *a, **k: bool(sc.get("ground", True))
+    D.nav.ground_ahead = D.nav.can_move = lambda *a, **k: bool(sc.get("ground", True))
     sleep = D.time.sleep
     D._backstab, D._back_to_safe = rec("backstab", "not_behind"), rec("back_to_safe", None)
     D._separate, D._approach = rec("separate", "no_spot"), rec("approach", "stopped")
@@ -199,7 +217,7 @@ def run(sc, advisor=None, tap=None, mv_hook=None) -> list:
         for k, v in saved.items():
             setattr(D, k, v)
         D.time.sleep = sleep
-        D.nav.footing, D.nav.ground_ahead = nav_saved
+        D.nav.footing, D.nav.ground_ahead, D.nav.can_move = nav_saved
     return [list(x) for x in trace]
 
 

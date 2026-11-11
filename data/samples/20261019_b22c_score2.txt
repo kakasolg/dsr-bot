@@ -1,0 +1,27 @@
+gates 31
+excluded (first reason): {'timing_end:refill_in_run': 3, 'turned': 20}
+scored trials: 8
+spot (F, L)     pred  pred_gap | n  outcomes            | live_gap (actual, min over live reads)
+(1.4, 0.0)     HIT    -0.120 | 0                       | 
+(1.6, 0.0)     HIT     0.012 | 2  HIT HIT              | -0.032 -0.003
+(1.8, 0.0)     none    0.205 | 2  MISS HIT             | 0.7 0.199
+(2.0, 0.0)     none    0.402 | 2  MISS MISS            | 0.398 0.811
+(2.4, 0.0)     MISS    0.800 | 2  MISS MISS            | 0.765 0.765
+(1.0, -1.2)    HIT    -0.024 | 0                       | 
+(1.2, -1.2)    HIT     0.101 | 0                       | 
+(1.2, -1.6)    none    0.408 | 0                       | 
+(1.8, -1.6)    MISS    0.818 | 0                       | 
+(2.4, -1.2)    MISS    1.079 | 0                       | 
+(1.4, 0.4)     HIT     0.116 | 0                       | 
+(1.0, 0.8)     none    0.278 | 0                       | 
+(1.0, 1.2)     none    0.673 | 0                       | 
+(1.6, 1.2)     MISS    0.812 | 0                       | 
+(1.0, 1.6)     MISS    1.053 | 0                       | 
+
+verification (predicted HIT / MISS spots): 4 / 4 agree
+  front L=0  4 / 4
+  left L<0   0 / 0
+  right L>0  0 / 0
+
+effective threshold (this record, actual positions, shift 0): hits' gap at the drop, max 0.199; misses' min live gap ≥ 0.398
+→ data\samples\20261019_b22c_score2.csv
