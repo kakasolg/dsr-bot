@@ -3,6 +3,11 @@
 - `godot/` — Godot 4.7.2 project. Godot itself: `D:/dev/tools/godot` (override with `GODOT_PATH`).
 - `godot_link.py` — bot side: room state → `telemetry.Snapshot` (UDP 47811), UDP pad input (47812).
 - `build_actions.py` — `godot/actions.json` from the DSR player TAE (`player_tae_extract.py` → `data/gamefiles/tae_c0000.json`).
+  `--weapon <EquipParamWeapon row>` (default Claymore 301000, MoKa 11-10): the light attacks are that weapon's attack-animation
+  category (x3000 / x3001) — every weapon of one category has the same TAE times whatever its weight or length
+  (`weapon_report.py` sheet 무기_묶음) — and the cancels are the game-measured ones of that category (`MEASURED`, one or two weapons
+  measured per category), or TAE − 0.1 s [guess] for a category nobody measured. The room loads `assets/<equip.right.model>.glb`
+  (`python sim/flver_glb.py WP_A_xxxx`, local; all 24 weapon-table models converted 11-10), and `godot_link` reports that row.
 - `flver_glb.py` — DSR weapon / shield models (`parts/WP_A_xxxx.partsbnd.dcx`) → `godot/assets/*.glb` + Godot import;
   dummy points → `data/gamefiles/weapon_models.json`. Then `build_actions.py` (equipment rows, AtkParam_Pc hitboxes).
 - Scene replay (MoKa M1109-55/56): `python sim/replay_view.py [<run>] [--at <s>]` opens `godot/replay.tscn` on
@@ -35,13 +40,21 @@
   nearest bone for 0.8 s (`ramp.gd` `_hit_mark`, state `hit_marks`); open with `-- --scene=arena`, bot with
   `BOT_GAME=sim python run.py arena --no-quit --no-loot --no-firebomb`. Arena only: a blocked hit costs
   StaminaAttackPower × (1 − shield GuardStaminaDefense / 100) and lets 100 − PhysicalGuardPercentage % through; the
-  player's damage on a foe is a² / (a + NpcParam PhysicalDefense) — values [game], formulas [guess].
+  player's damage on a foe is a² / (a + NpcParam PhysicalDefense) — values [game], formulas [guess]. Turns (MoKa 11-10,
+  scene `turns`): one foe attacks at a time, the other waits 4.5 m off behind its shield; a hit attacker backs off (701) and
+  hands the turn over; an Estus sip still brings both [guess]. The heavy Hollow's shield is 9910 and deliberately more
+  defensive than the game (seen 7 % of bot swings blocked, biased sample) — state `guard_blocks` / `player_hits` = block rate.
+- Player stamina (MoKa M1111-03/05/07, `ramp.gd`, measured at the Titanite Demon 11-11): an attack costs the weapon's
+  BehaviorParam StaminaCost (`actions.json` hit.stamina; Claymore 1H R1 30) taken at the blade window, any stamina > 0 lets
+  an action start and go below 0, roll 30 · backstep 20, regen 45 per s while no action runs, max 98 (END 14) —
+  `-- --max-sp=160` (END 40) or scene `player_max_sp`; END → max stamina table in `docs/weapons/weapon_frames_LS_CL_ZW.pdf` 8-7.
+  Heavy armour (load > 50 %) not measured. `python tests/godot_stamina_test.py`.
 - A fresh clone has no Godot import cache (`godot/.godot`, not in git): `godot_link.ensure_imported()` runs `--import` once before
   the room / replay starts (P-156). Linux: set `GODOT_PATH` to the Godot 4.7.2 binary.
 - Without the game folder (cloud): `run.py` in the room reads the NavMesh from `data/samples/navmesh_<map>.npz` (room only,
   logged), so the two commands above run from a fresh clone on the committed scene JSONs (ramp; arena = two heavy Hollows).
   `ramp_scene.py` / `arena_scene.py` themselves need the game files — `--set mixed` cannot be made there.
-- Tests: `python tests/godot_room_test.py`, `python tests/godot_combat_test.py`, `python tests/godot_ramp_test.py`, `python tests/replay_test.py`, `python tests/chr_glb_test.py`
+- Tests: `python tests/godot_room_test.py`, `python tests/godot_combat_test.py`, `python tests/godot_ramp_test.py`, `python tests/godot_stamina_test.py`, `python tests/replay_test.py`, `python tests/chr_glb_test.py`
   (headless; skipped without Godot / data).
 
 ## Character and weapon assets

@@ -53,3 +53,6 @@ data/laya/*
 !data/labels/*_scene_meta.jsonl
 !data/labels/*_rereview_priority.json
 !data/labels/*_rereview_notes.jsonl
+
+# OBS recordings copied in by hand (61 GB on 11-11) — never in git
+video/

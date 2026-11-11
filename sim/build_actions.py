@@ -23,19 +23,30 @@ MODELS = ROOT / "data" / "gamefiles" / "weapon_models.json"     # sim/flver_glb.
 # The room's equipment (MoKa M1109-54): the 11-09 character's Claymore and Wooden Shield. EquipParamWeapon rows;
 # a weapon's AttackAnimationCategory is the TAE section of its attacks (Claymore 25 → a25 → 25xxxx), and
 # BehaviorParam_PC row = 100000000 + BehaviorVariationID × 1000 + the attack event's judge id (TAE type 1, p[2]).
-RIGHT, LEFT = 301000, 1400000
+RIGHT, LEFT = 301000, 1400000          # right: default; `--weapon <row>` picks another (MoKa 11-10 "연습장 무기에서도 적용")
 
 # DSR id → (name, clip, clip library, note). Which roll family (700 / 710 / 720) a character gets depends on equip load
-# — 710 (mid roll) is [guess] for the room's default character.
-ACTIONS = {
+# — 710 (mid roll) is [guess] for the room's default character. light / light2 are filled by actions_for(weapon).
+BASE_ACTIONS = {
     700: ("roll_fast", "Roll", "", "fast roll forward (equip load < 25 %)"),
     710: ("roll", "Roll", "", "mid roll forward — room default [guess]"),
     690: ("backstep", "Roll", "", "backstep — no CC0 clip: Roll played backward [stand-in]"),
-    253000: ("light", "Sword_Regular_A", "ual2", "Claymore one-handed light 1 (BehaviorParam_PC 102505000)"),
-    253001: ("light2", "Sword_Regular_B", "ual2", "Claymore one-handed light 2 (BehaviorParam_PC 102505010)"),
     7585: ("estus", "Consume", "ual2", "Estus"),
     8000: ("lever", "Interact", "", "pull lever (ObjActParam 1200 PlayerActionAnimation)"),
 }
+
+
+def actions_for(category: int, name: str) -> dict:
+    """The weapon's one-handed R1 1st / 2nd = TAE section `category` (EquipParamWeapon AttackAnimationCategory) ·10000
+    + 3000 / 3001. 11-10 (weapon_report.py '무기_묶음'): every weapon of one category has the same startup and cancel
+    times whatever its weight or blade length — so the action follows the category, not the weapon."""
+    a = dict(BASE_ACTIONS)
+    a[category * 10000 + 3000] = ("light", "Sword_Regular_A", "ual2", f"{name} one-handed light 1 (category {category})")
+    a[category * 10000 + 3001] = ("light2", "Sword_Regular_B", "ual2", f"{name} one-handed light 2 (category {category})")
+    return a
+
+
+ACTIONS = actions_for(25, "Claymore")
 
 # Where the stand-in clip's blade is furthest forward, as a fraction of the clip (sampled in Godot: hand_r + 1.28 m
 # along the blade, 2026-11-09). The room time-warps the clip so this moment falls in the middle of the DSR attack
@@ -47,10 +58,22 @@ CLIP_CONTACT = {"Sword_Regular_A": 0.575, "Sword_Regular_B": 0.475}
 # one-handed R1 1st (253000) at the Parish soldier: next R1 / roll / move began 0.13 s BEFORE the TAE flags (n 4 each; same
 # −0.10…−0.13 s on Longsword, Battle Axe, Shortsword and 2H Pike). The hit landed 1 frame after the TAE window opened, so the
 # attack window stays TAE. R1 2nd (253001) was not measured — it gets R1 1st's shift [guess].
-# medians (s, n) of the measured cancels — data/probe/20261110_02*_weapon_probe.jsonl (local, data/ is not in git), rows
-# filtered as weapon_report.measured: R1 1st (253000), damage seen, no x3040 / x3150 switch
-MEASURED = {253000: {"cancel_r": (1.033, 4), "cancel_roll": (1.267, 4), "cancel_move": (1.433, 4)}}
-SHIFT_FROM = {253001: 253000}                               # unmeasured → borrow this action's measured shift [guess]
+# medians (s, n) of the measured cancels — data/probe/20261110_*_weapon_probe.jsonl (local, data/ is not in git), rows
+# filtered as weapon_report.measured: R1 1st (x3000), damage seen, no x3040 / x3150 switch. Keyed by the R1 1st anim id,
+# i.e. by animation category: 11-10 저녁 무기 8종 실측 — 같은 묶음이면 TAE가 같으므로 잰 무기의 값을 묶음 전체에 씀
+# (233000 = 롱소드 + 숏소드 합친 판수, 실측도 둘이 같았음). 묶음마다 1~2종만 잼 — 묶음 안 다른 무기는 [class] 값.
+MEASURED = {
+    233000: {"cancel_r": (0.667, 13), "cancel_roll": (0.8, 14), "cancel_move": (0.933, 12)},     # Longsword · Shortsword
+    253000: {"cancel_r": (1.033, 4), "cancel_roll": (1.267, 4), "cancel_move": (1.433, 4)},      # Claymore
+    263000: {"cancel_r": (1.633, 3), "cancel_roll": (1.733, 6), "cancel_move": (1.933, 6)},      # Zweihander (튕김 뺌, P-157)
+    303000: {"cancel_r": (1.0, 7), "cancel_roll": (1.017, 5), "cancel_move": (1.133, 5)},        # Battle Axe
+    333000: {"cancel_r": (1.083, 5), "cancel_roll": (1.067, 5), "cancel_move": (1.2, 5)},        # Morning Star
+    363000: {"cancel_r": (0.767, 5), "cancel_roll": (0.8, 5), "cancel_move": (0.967, 5)},        # Pike (근력 24)
+    383000: {"cancel_r": (1.067, 5), "cancel_roll": (0.967, 5), "cancel_move": (1.233, 5)},      # Halberd (구르기 −0.2 s, 원인 안 봄)
+}
+MEASURED_BY = {233000: "Longsword+Shortsword", 253000: "Claymore", 263000: "Zweihander", 303000: "Battle Axe",
+               333000: "Morning Star", 363000: "Pike", 383000: "Halberd"}
+DEFAULT_SHIFT = -0.1        # [guess] 묶음을 안 잰 무기: 잰 묶음 대부분이 TAE보다 0.1 s 이름 (대검·특대검만 0.133)
 
 
 def measured_cancels() -> dict:
@@ -106,7 +129,24 @@ def equipment(anims: dict) -> dict:
     return {"equip": out, "attacks": attacks}
 
 
-def build() -> dict:
+def weapon_row(rid: int):
+    import navmesh  # noqa: F401
+    from navmesh import GAME_DIR
+    from soulstruct.darksouls1r.params import GameParamBND
+    gp = GameParamBND.from_path(GAME_DIR / "param" / "GameParam" / "GameParam.parambnd.dcx")
+    return gp.Weapons[rid]
+
+
+def build(weapon: int | None = None) -> dict:
+    global RIGHT, ACTIONS
+    if weapon is not None:
+        RIGHT = weapon
+        w = weapon_row(weapon)
+        names = {v["row"]: n for n, v in json.loads((ROOT / "data" / "gamefiles" / "weapon_table.json").read_text(
+            encoding="utf-8"))["weapons"].items()}
+        ACTIONS = actions_for(w.AttackAnimationCategory, names.get(weapon - weapon % 100, str(weapon)))
+    light1 = next(aid for aid, x in ACTIONS.items() if x[0] == "light")
+    shift_from = {light1 + 1: light1}                       # R1 2nd not measured → R1 1st's shift [guess]
     anims = json.loads(SRC.read_text(encoding="utf-8"))["animations"]
     out = {}
     for aid, (name, clip, lib, note) in ACTIONS.items():
@@ -129,18 +169,24 @@ def build() -> dict:
     meas = measured_cancels()
     for name, a in out.items():
         aid = a["anim"]
-        src = SHIFT_FROM.get(aid, aid)
-        if src not in meas:
+        if name not in ("light", "light2"):
             continue
+        src = shift_from.get(aid, aid)
         ref = out[next(n for n, x in out.items() if x["anim"] == src)]
         a["tae"] = {k: a[k] for k in ("cancel_r", "cancel_roll", "cancel_move")}
         a["timing"] = {}
-        for k, (v, n) in meas[src].items():
+        by = MEASURED_BY.get(src)
+        for k in ("cancel_r", "cancel_roll", "cancel_move"):
             if a[k] is None:
                 continue
+            if src not in meas:                               # 이 묶음은 안 잼 → 공통 차이 [guess]
+                a[k] = round(a[k] + DEFAULT_SHIFT, 4)
+                a["timing"][k] = f"guess: TAE {DEFAULT_SHIFT:+} (category not measured)"
+                continue
+            v, n = meas[src][k]
             if src == aid:
                 a[k] = v
-                a["timing"][k] = f"game n{n}"
+                a["timing"][k] = f"game n{n} ({by}, same category)"
             else:                                             # [guess] same shift as the measured action
                 a[k] = round(a[k] + (v - ref["tae"][k]), 4)
                 a["timing"][k] = f"guess: {src} shift"
@@ -157,7 +203,10 @@ def build() -> dict:
 def main() -> None:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
-    d = build()
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--weapon", type=int, default=RIGHT, help="EquipParamWeapon row in the right hand (default Claymore 301000)")
+    d = build(ap.parse_args().weapon)
     OUT.write_text(json.dumps(d, ensure_ascii=False, indent=1), encoding="utf-8")
     for k, a in d["actions"].items():
         print(f"{k:9s} {a['anim']:6d} len {a['length']:.2f}  inv {a['invincible']}  move-cancel {a['cancel_move']}  "

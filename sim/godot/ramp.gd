@@ -25,10 +25,16 @@ const MAP_GLB := "res://assets/m10_02_00_00.glb"
 const CHR_MODELS_PATH := "../../data/gamefiles/chr_models.json"
 const FOE_R := 0.4             # [guess] foe body capsule radius (hit test and collision)
 const FOE_H := 1.7             # [guess]
-const MAX_SP := 98.0           # [meas] radar 11-09 17:19, the Claymore character
-const SP_REGEN := 45.0         # [guess] per s
+const MAX_SP := 98.0           # [meas] END 14 (radar 11-09; 11-11 memory +0x3FC). Scene "player_max_sp" overrides (END table: PDF 8-7)
+# ── 스태미나 (MoKa M1111-03/05, 11-11 타이타나이트 데몬 앞 실측) ──────────────────────
+#  · 회복 초당 45 — 6종 무기·지구력 14/40 모두 같음 [meas]. 동작 중엔 안 참 (손 뗀 뒤 0.05~1.3 s 지나 오름 = 동작 끝)
+#  · 공격 한 타 = 그 무기 BehaviorParam StaminaCost (actions.json hit.stamina) [game] — 실측 20·25·30·60과 같음
+#  · 공격 스태미나는 누른 순간이 아니라 칼날 판정 즈음 빠짐 (롱소드: 0.4 s까지 98, 0.6 s 78, 맞은 때 0.57 s) [meas]
+#  · 0보다 크면 공격·구르기가 나가고 0 아래로 내려감 (98→…→18→−2) [meas]
+#  · 구르기 30 · 백스텝 20 [meas]. 방어구·무게 영향은 46%·23%에서 없음, 무거운 장비는 안 잼 (M1111-06, 향후 과제)
+const SP_REGEN := 45.0         # [meas] per s
 const SP_REGEN_GUARD := 15.0   # [guess]
-const SP_COST := {"light": 25.0, "light2": 25.0, "roll": 20.0, "backstep": 15.0}   # [guess]
+const SP_COST := {"light": 25.0, "light2": 25.0, "roll": 30.0, "backstep": 20.0}   # roll/backstep [meas]; light = fallback only [guess]
 const GUARD_COST := 30.0       # [guess] per blocked hit
 const GUARD_DEG := 60.0        # [guess] half-angle the shield covers
 const ESTUS := 10              # [meas] status 11-09
@@ -58,8 +64,12 @@ var chr_models := {}
 var foes := []                 # see _build_foes
 var bombs := []                # {t, at: Vector3, from: Vector3, node}
 var guard := false
+var max_sp := MAX_SP
 var sp := MAX_SP
+var sp_due := {}               # attack stamina still to take: {"act": name, "at": s, "cost": SP} — taken at the blade window
 var guard_breaks := 0          # blocked hits that emptied SP (arena, M1109-76)
+var guard_blocks := 0          # player hits a foe's shield took (arena) — block rate = guard_blocks / player_hits
+var turn_n := -1               # arena "turns": the foe whose turn it is to attack (MoKa 11-10)
 var estus_left := ESTUS
 var estus_done := false
 var dead := false
@@ -87,7 +97,13 @@ func _ready() -> void:
 		push_error("%s missing — python sim/ramp_scene.py / sim/arena_scene.py" % path)
 		return
 	sc = JSON.parse_string(f.get_as_text())
-	var fm := FileAccess.open(ProjectSettings.globalize_path("res://").path_join(CHR_MODELS_PATH), FileAccess.READ)
+	# 최대 스태미나: 장면 "player_max_sp" 또는 `-- --max-sp=160` (지구력 40, PDF 8-7) — 없으면 지구력 14의 98
+	max_sp = float(sc.get("player_max_sp", MAX_SP))
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--max-sp="):
+			max_sp = float(arg.substr(9))
+	sp = max_sp
+	var fm :=FileAccess.open(ProjectSettings.globalize_path("res://").path_join(CHR_MODELS_PATH), FileAccess.READ)
 	if fm:
 		chr_models = JSON.parse_string(fm.get_as_text())
 	rng.seed = int(OS.get_environment("RAMP_SEED")) if OS.get_environment("RAMP_SEED") != "" else 1109
@@ -363,6 +379,7 @@ func _clip_name(fo: Dictionary, aid: int) -> String:
 
 func _play(fo: Dictionary, aid: int, state: String) -> void:
 	fo["state"] = state
+	fo["holding"] = false
 	fo["t"] = 0.0
 	fo["anim"] = aid
 	fo["hit_done"] = false
@@ -429,11 +446,14 @@ func _foe_step(fo: Dictionary, dt: float) -> void:
 		"idle", "move":
 			_turn(fo, face, dt, 6.0)
 			fo["wait"] = float(fo["wait"]) - dt
+			fo["holding"] = false
 			if dead:
 				_loop(fo, "a00_0000")
 				fo["anim"] = -1
 			elif _aggro(fo, dist):
 				pass
+			elif not _turn_ok(fo):
+				vel = _hold(fo, dist, face)
 			elif fd.get("stay", false) and dist > 2.5:
 				fo["anim"] = -1
 				_loop(fo, "a00_0000")
@@ -524,8 +544,10 @@ func _foe_step(fo: Dictionary, dt: float) -> void:
 					fo["wait"] = rng.randf_range(THINK_S.x, THINK_S.y)
 		"guard":
 			_turn(fo, face, dt, 6.0)
-			if fd.has("lunge") and dist > 2.0:           # arena shield foe walks in behind its shield [guess]
+			if fd.has("lunge") and dist > 2.0 and _turn_ok(fo):   # arena shield foe walks in behind its shield [guess]
 				vel = Vector3(sin(face), 0, cos(face)) * float(sc["walk_v"])
+			elif not _turn_ok(fo) and dist < float(sc["turns"]["hold_m"]) - 0.6:
+				vel = -Vector3(sin(face), 0, cos(face)) * float(sc["walk_v"])   # not its turn: backs off behind the shield
 			if float(fo["t"]) >= float(fo["len"]):
 				fo["state"] = "idle"
 				fo["wait"] = rng.randf_range(THINK_S.x, THINK_S.y)
@@ -533,12 +555,75 @@ func _foe_step(fo: Dictionary, dt: float) -> void:
 			if float(fo["t"]) >= float(fo["len"]):
 				fo["state"] = "idle"
 				fo["wait"] = rng.randf_range(THINK_S.x, THINK_S.y)
+				# arena: 맞고 차례를 넘긴 놈은 백스텝으로 빠지고, 아니면 바로 방패 (MoKa 11-10) [guess]
+				if bool(fo.get("retreat", false)) and not fd.get("steps", {}).is_empty():
+					fo["retreat"] = false
+					_play(fo, int(fd["steps"]["back"]), "step")
+				elif int(fd.get("guard_clip", 0)) > 0 and rng.randf() < float(fd.get("guard_after_stagger", 0.0)):
+					_play(fo, int(fd["guard_clip"]), "guard")
+					fo["len"] = rng.randf_range(float(fd["guard_s"][0]), float(fd["guard_s"][1]))
 	fo["air"] = 0.0 if _gravity(body, dt, vel) else float(fo["air"]) + dt
 	# fell off (like #5 on 11-09): FALL_DEATH_S in the air. Not "15 m under the spawn" — that killed #4 and #6 walking
 	# down the ramp after the bot (7th room run, 11-09 18:59)
 	if float(fo["air"]) > FALL_DEATH_S and fo["hp"] > 0:
 		fo["hp"] = 0
 		_die(fo)
+
+
+# ── 교대 공격 (MoKa 11-10 "하나가 hp줄면 뒤로 빠지고, 다음 몹이 뒤에 있다가, 교대로 들어 가잖아?") ─────────────────
+#  scene "turns" (arena_scene.py TURNS) 있을 때만: 한 번에 한 놈이 공격 차례. 차례 놈이 죽거나 깨어 있지 않으면 가장 가까운
+#  산 놈에게. 차례가 아닌 놈은 hold_m에서 방패 들고 대기 (_hold). 에스트 캐치는 _aggro에서 먼저 → 둘 다 달려듦.
+func _turn_ok(fo: Dictionary) -> bool:
+	if not sc.has("turns"):
+		return true
+	for f in foes:
+		if int(f["n"]) == turn_n and int(f["hp"]) > 0 and bool(f["woke"]):
+			return int(fo["n"]) == turn_n
+	turn_n = _nearest_foe(-1)
+	return int(fo["n"]) == turn_n
+
+
+func _nearest_foe(skip: int) -> int:
+	var best := -1
+	var bd := INF
+	for f in foes:
+		if int(f["n"]) == skip or int(f["hp"]) <= 0 or not bool(f["woke"]):
+			continue
+		var d := ((f["body"] as Node3D).position - player.position).length()
+		if d < bd:
+			bd = d
+			best = int(f["n"])
+	return best
+
+
+func _pass_turn(fo: Dictionary) -> void:
+	var nx := _nearest_foe(int(fo["n"]))
+	if nx >= 0:
+		turn_n = nx
+
+
+func _hold(fo: Dictionary, dist: float, face: float) -> Vector3:
+	var tr: Dictionary = sc["turns"]
+	var want := float(tr["hold_m"])
+	var body: CharacterBody3D = fo["body"]
+	if absf(dist - want) > 0.6:
+		var dir := Vector3(sin(face), 0, cos(face)) * (1.0 if dist > want else -1.0)
+		fo["anim"] = 2255
+		_loop(fo, "a00_0500" if dist > want + 3.0 else "a00_0200")
+		fo["state"] = "move"
+		if _floor_ahead(body.position, dir):
+			return dir * (float(sc["run_v"]) if dist > want + 3.0 else float(sc["walk_v"]))
+		return Vector3.ZERO
+	var gc := int(fo["d"].get("guard_clip", 0))
+	if bool(tr.get("hold_guard", false)) and gc > 0:
+		fo["holding"] = true                       # counts as a guard in _weapon_hits
+		fo["anim"] = gc
+		_loop(fo, "guard" if fo.get("ual", false) else _clip_name(fo, gc))
+	else:
+		fo["anim"] = -1
+		_loop(fo, "a00_0000")
+	fo["state"] = "idle"
+	return Vector3.ZERO
 
 
 func _think(fo: Dictionary) -> float:
@@ -921,8 +1006,9 @@ func _weapon_hits() -> void:
 				var raw := _hit_damage()
 				var pdef := float(fo["d"].get("phys_def", 0))
 				var dmg := int(round(raw * raw / (raw + pdef))) if pdef > 0.0 else raw
-				if fo["state"] == "guard" and front:
+				if (fo["state"] == "guard" or bool(fo.get("holding", false))) and front:
 					hitstop = 0.12                          # [guess] shield bounce
+					guard_blocks += 1
 					# 막은 적의 기력 (arena: max_sp 있을 때): 막을 때마다 guard_sp_cost [guess], 0이면 가드 깨짐 → 휘청
 					if float(fo["d"].get("max_sp", 0)) > 0.0:
 						fo["sp"] = float(fo["sp"]) - float(fo["d"].get("guard_sp_cost", 40))
@@ -940,8 +1026,15 @@ func _weapon_hits() -> void:
 				hitstop = float(actions[act_name].get("hit", {}).get("hitstop", 0.06))
 				if fo["hp"] <= 0:
 					_die(fo)
-				elif rng.randf() < float(fo["d"].get("stagger_share", 1.0)):
-					_play(fo, int(FOE_STAGGER), "stagger")
+				else:
+					if sc.has("turns") and int(fo["n"]) == turn_n and rng.randf() < float(sc["turns"]["back_on_hit"]):
+						fo["retreat"] = true                # backs off after the stagger, the next foe comes in
+						_pass_turn(fo)
+					if rng.randf() < float(fo["d"].get("stagger_share", 1.0)):
+						_play(fo, int(FOE_STAGGER), "stagger")
+					elif bool(fo.get("retreat", false)) and not fo["d"].get("steps", {}).is_empty():
+						fo["retreat"] = false
+						_play(fo, int(fo["d"]["steps"]["back"]), "step")
 				break
 
 
@@ -1010,10 +1103,15 @@ func _start(name: String, dir_angle: float) -> void:
 			return
 		estus_left -= 1
 		estus_done = false
-	if SP_COST.has(name):
+	var a: Dictionary = actions.get(name, {})
+	var hit_sp := float((a.get("hit", {}) as Dictionary).get("stamina", -1.0)) if a.has("hit") else -1.0
+	if hit_sp >= 0.0 or SP_COST.has(name):
 		if sp <= 0.0:
 			return
-		sp -= float(SP_COST[name])
+		if hit_sp >= 0.0 and a["attack"].size():
+			sp_due = {"act": name, "at": float(a["attack"][0][0]), "cost": hit_sp}
+		else:
+			sp -= float(SP_COST[name]) if hit_sp < 0.0 else hit_sp
 	super._start(name, dir_angle)
 
 
@@ -1055,7 +1153,13 @@ func _physics_process(dt: float) -> void:
 	else:
 		dummy.position = Vector3(0, -500, 0)
 		dummy_hp = 0
-	sp = minf(MAX_SP, sp + (SP_REGEN_GUARD if guard else SP_REGEN) * dt * (0.0 if act_name != "" else 1.0))
+	if not sp_due.is_empty():
+		if act_name != String(sp_due["act"]):
+			sp_due = {}            # cut before the blade (hit reaction, roll cancel) → not taken [guess]
+		elif act_t >= float(sp_due["at"]):
+			sp -= float(sp_due["cost"])
+			sp_due = {}
+	sp = minf(max_sp, sp + (SP_REGEN_GUARD if guard else SP_REGEN) * dt * (0.0 if act_name != "" else 1.0))
 	if act_name == "estus" and not estus_done and act_t >= ESTUS_AT:
 		estus_done = true
 		player_hp = mini(PLAYER_HP, player_hp + ESTUS_HEAL)
@@ -1169,8 +1273,8 @@ func _send_state() -> void:
 		"cam_yaw": cam_actual_yaw(), "action": act_name, "anim_time": act_t if act_name != "" else null,
 		"invincible": act_name != "" and _in(actions[act_name]["invincible"], act_t),
 		"lock": lock, "lock_ptr": (1000 + int(foes[lock_foe]["n"])) if (lock and lock_foe >= 0) else 0,
-		"hp": player_hp, "max_hp": PLAYER_HP, "sp": sp, "max_sp": MAX_SP, "estus": estus_left, "guard": guard,
-		"stagger": stagger > 0.0, "dead": dead, "player_hits": player_hits, "dodged": dodged, "guard_breaks": guard_breaks, "hit_marks": hit_marks, "foes": fl,
+		"hp": player_hp, "max_hp": PLAYER_HP, "sp": sp, "max_sp": max_sp, "estus": estus_left, "guard": guard,
+		"stagger": stagger > 0.0, "dead": dead, "player_hits": player_hits, "dodged": dodged, "guard_breaks": guard_breaks, "guard_blocks": guard_blocks, "turn": turn_n, "hit_marks": hit_marks, "foes": fl,
 		"bombs": bombs.size(), "scene": sc.get("name", "ramp")}
 	udp_out.put_packet(JSON.stringify(d).to_utf8_buffer())
 	info_label.text = String(sc.get("name", "ramp")) + "  t %.1f  pos %.1f %.1f %.1f  HP %d  SP %d  estus %d  guard %s  lock #%s%s\n%s" % [t, p.x, p.y, p.z,

@@ -41,12 +41,20 @@ FOES = [
      "lunge": [3005, 3008], "swing": [3000, 3003, 3004, 3006], "combo": {"3000": 3001, "3001": 3002, "3004": 3006},
      "combo_share": 0.6, "long": [3007], "long_share": 0.2,
      "lunge_m": 2.8, "engage_m": 5.5, "think_s": [0.15, 0.45],
-     "guard_clip": 3500, "guard_share": 0.45, "guard_s": [0.8, 1.4],
+     # 방패 = 9910 (AI 스크립트 LeaveTarget / SidewayMove의 가드 id, c2550 a00_9910 1.33 s [game]). 전엔 3500이었는데 그건
+     # 내 방패에 튕긴 휘청 (moves.STAGGER) — 봇이 "빈틈"으로 읽어 막는 적에게 칼을 넣었다 (11-10)
+     "guard_clip": 9910, "guard_share": 0.7, "guard_s": [0.8, 1.4],
      # c2550 TAE has 701 back 3.5 m, 702 / 703 sideways 3.5 m [game]
-     "steps": {"back": 701, "right": 702, "left": 703}, "step_after_attack": 0.35, "step_vs_swing": 0.5,
+     "steps": {"back": 701, "right": 702, "left": 703}, "step_after_attack": 0.35, "step_vs_swing": 0.1,
      "punish_estus": 9.0, "punish_whiff": True, "stagger_share": 1.0,
-     # MoKa 11-09 "방패 막는 타이밍 너무 않좋잖아": 내 휘두름을 보고 방패 (ramp.gd _aggro) [guess]
-     "guard_vs_swing": 0.85, "guard_react_s": [0.15, 0.3], "guard_react_m": 3.2, "guard_sp_cost": 40, "sp_regen": 30.0},
+     # ── 방패 수비율: 실측보다 일부러 높게 (MoKa 11-10 "더 수비적으로 적용해서 수비 성공률은 올려봐") ─────────────
+     #  · 실측 (288 runs, 봇 공격 3481회, track ~3 Hz, 휘두름 −0.2..+0.9 s): 방패병 255xxx 가드 7% · 스텝 1% · 맞음 81%.
+     #    봇은 주로 빈틈에 치니 표본이 치우쳐 있음 [meas, biased]. 연습장은 그 위로 올린 연습 상대 [MoKa 선택]
+     #  · 내 휘두름을 보고 0.95로 방패, 칼날 창 (클레이모어 0.67 s~) 전에 올라오게 반응 0.08–0.18 s, 3.6 m 안 [guess]
+     #  · 스텝은 실측 1–2%에 맞춰 step_vs_swing 0.1 (× 0.2 = 2%, ramp.gd _aggro)
+     #  · 자기 공격 뒤 방패 0.7 (전 0.45), 휘청에서 풀리면 바로 방패 (ramp.gd stagger) [guess]
+     "guard_vs_swing": 0.95, "guard_react_s": [0.08, 0.18], "guard_react_m": 3.6, "guard_after_stagger": 0.8,
+     "guard_sp_cost": 40, "sp_regen": 30.0},
     {"name": "heavy knight · greatsword", "model": "c2570", "npc": 257002, "think": 25700, "max_hp": 310,
      "pos": [2.5, 0.0, 7.0], "battle_start": 20, "wake": 20.0, "wake_tag": "game",
      # 3005 6.3 m lunge, 3000 / 3001 / 3006 2.25 m, 3002–3004 ~1.5 m, 3007 0.6 m [game root motion]
@@ -78,6 +86,13 @@ def _match_player(f: dict, attacks: dict, npc) -> dict:
     return {"max_hp": hp, "max_sp": sp, "game_hp": f["max_hp"], "game_sp": int(npc.MaxStamina),
             "match": f"character dies in {to_die} hits (avg {avg:.0f}); Claymore light {per_hit:.0f} × {to_die} × {STRONGER}"}
 
+
+# ── 교대 공격 (MoKa 11-10 "하나가 hp줄면 뒤로 빠지고, 다음 몹이 뒤에 있다가, 교대로 들어 가잖아?") ─────────────
+#  · 한 번에 한 놈만 공격 (turn), 나머지는 hold_m 거리에서 방패 들고 대기. 공격하던 놈이 맞고 살면 back_on_hit 확률로
+#    뒤로 빠지고 (701 백스텝) 차례를 넘김. 죽어도 넘김. 에스트를 마시면 둘 다 달려듦 (punish_estus, "에스트 마시면, 둘이
+#    동시에 달려 들고"). 거리·확률은 [guess] — 게임 AI 스크립트엔 HP 조건이 없고 (HusiFight_*), NpcThinkParam
+#    TeamAttackEffectivity 25 [game]가 동시 공격 비율로 보이지만 [guess]
+TURNS = {"hold_m": 4.5, "back_on_hit": 0.8, "hold_guard": True}
 
 SETS = {"mixed": [0, 1], "hollows": [0, 0]}   # FOES indices; a repeated foe goes to the next slot's position
 SLOTS = [[-2.5, 0.0, 6.0], [2.5, 0.0, 7.0]]
@@ -124,7 +139,7 @@ def main(which: str = "hollows") -> None:
     out = {"source": "sim/arena_scene.py", "name": "arena", "set": which, "flat": HALF, "walls": walls, "graph": graph,
            "centroid": [[round(float(x), 3) for x in c] for c in nm.centroid], "graph_same_mesh": True,
            "bonfire": [HALF - 1.0, 0.0, -HALF + 1.0], "start": START, "start_heading": START_HEADING,
-           "walk_v": WALK_V, "run_v": RUN_V,
+           "walk_v": WALK_V, "run_v": RUN_V, "turns": TURNS,
            "nav": {"v": [[round(float(x), 3) for x in p] for p in nm.v], "t": nm.t.tolist()}, "foes": foes}
     OUT.write_text(json.dumps(out), encoding="utf-8")
     print(f"{OUT}: {len(nm.t)} floor triangles, {len(walls)} wall edges, "

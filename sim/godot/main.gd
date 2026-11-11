@@ -69,7 +69,9 @@ const WEAPON_R := 0.2          # [guess]
 # Hitboxes, hitstop and damage come from actions.json "hit" (AtkParam_Pc) and "equip" (EquipParamWeapon) — [game].
 # How a model sits in the Quaternius hand is [guess]: hand_r / hand_l rest axes are y = along the fingers,
 # z = character forward, x = up (right) / down (left); DSR weapon models have the blade along -Y, grip at the origin.
-const RIGHT_GLB := "res://assets/WP_A_0266.glb"    # Claymore (EquipParamWeapon 301000, WeaponModel 266)
+const RIGHT_GLB := "res://assets/WP_A_0266.glb"    # Claymore (EquipParamWeapon 301000, WeaponModel 266) — default
+# 11-10: the right weapon comes from actions.json equip.right.model (`python sim/build_actions.py --weapon <row>`); its model
+# glb is `python sim/flver_glb.py WP_A_xxxx` (local only). Missing → CC0 Claymore scaled to that weapon's tip dummy.
 const LEFT_GLB := "res://assets/WP_A_1521.glb"     # Wooden Shield (1400000, WeaponModel 1521)
 # CC0 stand-ins (MoKa M1110-10: "Quaternius 공개 사용 하고 무기도 공개에서 찾아서 최대 한 유사한거"): Quaternius Medieval
 # Weapons (CC0, assets/cc0/License.txt). Used only when the DSR model above is missing (a fresh clone / cloud). The weapon
@@ -389,12 +391,15 @@ func _attach_equipment(model: Node3D) -> void:
 		return
 	var sk: Skeleton3D = sks[0]
 	# right: weapon -Y (blade) → hand +Z (forward in the rest pose), weapon X (blade width) → hand X
-	if ResourceLoader.exists(RIGHT_GLB) or ResourceLoader.exists(CC0_RIGHT):
+	var right_glb := RIGHT_GLB
+	if equip.get("right", {}).has("model"):
+		right_glb = "res://assets/%s.glb" % equip["right"]["model"]
+	if ResourceLoader.exists(right_glb) or ResourceLoader.exists(CC0_RIGHT):
 		var ba := BoneAttachment3D.new()
 		ba.bone_name = "hand_r"
 		sk.add_child(ba)
-		if ResourceLoader.exists(RIGHT_GLB):
-			weapon_node = load(RIGHT_GLB).instantiate()
+		if ResourceLoader.exists(right_glb):
+			weapon_node = load(right_glb).instantiate()
 		else:
 			weapon_node = Node3D.new()
 			var cc: Node3D = load(CC0_RIGHT).instantiate()

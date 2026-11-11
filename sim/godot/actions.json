@@ -177,10 +177,57 @@
    "lib": "",
    "clip_until": 0.9333
   },
+  "estus": {
+   "anim": 7585,
+   "length": 2.3,
+   "note": "Estus",
+   "invincible": [],
+   "no_turn": [
+    [
+     0.0,
+     2.3
+    ]
+   ],
+   "attack": [],
+   "cancel_move": null,
+   "cancel_roll": null,
+   "cancel_r": null,
+   "input_r": [],
+   "input_roll": [],
+   "clip": "Consume",
+   "lib": "ual2",
+   "clip_until": 2.3
+  },
+  "lever": {
+   "anim": 8000,
+   "length": 3.3333,
+   "note": "pull lever (ObjActParam 1200 PlayerActionAnimation)",
+   "invincible": [
+    [
+     0.0,
+     2.8667
+    ]
+   ],
+   "no_turn": [
+    [
+     0.0,
+     3.3333
+    ]
+   ],
+   "attack": [],
+   "cancel_move": 2.8667,
+   "cancel_roll": 2.8667,
+   "cancel_r": 2.8667,
+   "input_r": [],
+   "input_roll": [],
+   "clip": "Interact",
+   "lib": "",
+   "clip_until": 2.8667
+  },
   "light": {
    "anim": 253000,
    "length": 3.0333,
-   "note": "Claymore one-handed light 1 (BehaviorParam_PC 102505000)",
+   "note": "Claymore one-handed light 1 (category 25)",
    "invincible": [],
    "no_turn": [
     [
@@ -213,9 +260,9 @@
     "cancel_move": 1.5667
    },
    "timing": {
-    "cancel_r": "game n4",
-    "cancel_roll": "game n4",
-    "cancel_move": "game n4"
+    "cancel_r": "game n4 (Claymore, same category)",
+    "cancel_roll": "game n4 (Claymore, same category)",
+    "cancel_move": "game n4 (Claymore, same category)"
    },
    "hit": {
     "behavior": 102505000,
@@ -243,7 +290,7 @@
   "light2": {
    "anim": 253001,
    "length": 3.4,
-   "note": "Claymore one-handed light 2 (BehaviorParam_PC 102505010)",
+   "note": "Claymore one-handed light 2 (category 25)",
    "invincible": [],
    "no_turn": [
     [
@@ -302,53 +349,6 @@
      }
     ]
    }
-  },
-  "estus": {
-   "anim": 7585,
-   "length": 2.3,
-   "note": "Estus",
-   "invincible": [],
-   "no_turn": [
-    [
-     0.0,
-     2.3
-    ]
-   ],
-   "attack": [],
-   "cancel_move": null,
-   "cancel_roll": null,
-   "cancel_r": null,
-   "input_r": [],
-   "input_roll": [],
-   "clip": "Consume",
-   "lib": "ual2",
-   "clip_until": 2.3
-  },
-  "lever": {
-   "anim": 8000,
-   "length": 3.3333,
-   "note": "pull lever (ObjActParam 1200 PlayerActionAnimation)",
-   "invincible": [
-    [
-     0.0,
-     2.8667
-    ]
-   ],
-   "no_turn": [
-    [
-     0.0,
-     3.3333
-    ]
-   ],
-   "attack": [],
-   "cancel_move": 2.8667,
-   "cancel_roll": 2.8667,
-   "cancel_r": 2.8667,
-   "input_r": [],
-   "input_roll": [],
-   "clip": "Interact",
-   "lib": "",
-   "clip_until": 2.8667
   }
  }
 }

@@ -53,6 +53,7 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
 | 151 | altar unlit | fixed |
 | 154 | ramp_test #6 flaky: a leftover room pad kept sending neutral → player late | fixed (cloud 10/10; [win] file 10/10, full pytest 4/4) |
 | 156 | Practice room in a fresh clone: no Godot import cache → no player, input ignored | fixed (cloud headless; [win] not re-run) |
+| 158 | probe --mortal: warp without NO_DEAD = 17 m fall damage, 12 runs void | fixed (NO_DEAD until landing) |
 
 ### P-1 오프라인 테스트가 Linux에서 실행 안 됨 (2026-09-27, [cloud], 1번)
 - 증상: `field_*_test.py` 등이 `ModuleNotFoundError: pymem`, 이어서 `vgamepad`, `KeyError: 'TEMP'`로 실패
@@ -2633,3 +2634,17 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
   - 고침 (11-10 표 반영 때): 위에 적은 TAE 264000 끊기 플래그 "1.533 · 1.633 · 1.700"에서 이동은 1.767이 맞음 (`weapon_report.py` `tae_2h`: 플래그 4 · 26 · 11 =
     1.533 · 1.633 · 1.767) → 실측과의 차이는 세 가지 모두 −0.133 s. 표(`docs/weapons/weapon_frames_LS_CL_ZW.xlsx` · `.pdf`)에는 안 튕긴 판을 모두 합친 값이 들어감:
     맞음 0.783 (10판) · 다음 R1 1.400 (6) · 구르기 1.500 (9) · 이동 1.633 (6); 롱소드 양손 0.550 · 0.700 · 0.867 · 1.033 (5판씩).
+  - 11-10 저녁 (근력 24, MoKa "근력 부족해서 테스트 못한것도"): 츠바이헨더 **한손** R1(263000) — `180114` (254011, 1.4 m, 20판 중 15판 튕김 263150,
+    누른 순간 2.9 m 이상인 판만 안 튕김) · `180530` (254010 안 튕기는 자리, 1.6 m, `--shots`): 한 대마다 적이 밀려 벽 거리 2.36 → 0.2 m, 벽에
+    붙은 뒤 chain · roll 10판 중 7판 튕김 · `180803` (254010 마을, chain 3판 뒤 캐릭터가 낭떠러지로 떨어져(y −26.0) 도구가 멈춤 — 화톳불로 돌아옴, HP 가득).
+    안 튕긴 판: 맞음 1.067 (1.6 m, 5판 — 애니가 3.2 s 창보다 길어 'did not end'로 남음, 맞음 값은 씀) · 다음 R1 1.633 (3) · 구르기 1.733 (6) ·
+    이동 1.933 (6), TAE 1.767 · 1.867 · 2.067보다 0.134 s 이름 (양손과 같은 차이). 같은 저녁 254011(벽 5.2 m)도 할버드 20판 동안 5.2 → 1.39 m로 밀림 —
+    "같은 자리에서 여러 판"은 적이 밀리는 만큼 매번 벽에 가까워짐. 남은 것: 적을 판마다 제자리로 돌리는 방법 없음 (적 위치 쓰기는 안 해 봄).
+
+### P-158 weapon_probe --mortal: 무적을 끄고 자리를 옮기자 17 m 낙하 피해로 싸우기 전·직후 죽음 (11-11)
+- 증상: `--modes fight --mortal` 12판 (data/probe/20261111_053225..054203) 모두 1~17 s 안에 죽음. 3판은 싸움 시작 전 `멈춤: dead`,
+  받은 피격 합 55·11로 죽은 판도 있음 (최대 HP 849).
+- 원인: `place()`가 화톳불(y 15.0)에서 데몬 앞(y −2.6)으로 `pos_warp` — 게임이 17 m 낙하로 보고 착지 피해를 줌. 앞선 무적 판에서는
+  NO_DEAD가 막아 줬고, 그 판들도 시작 HP가 644였던 것(849 − 205)이 같은 착지 피해였음.
+- 수정: `--mortal`도 자리 옮길 때는 NO_DEAD 켬 → `fight()`가 1 s 기다려 HP를 최대로 쓰고 NO_DEAD를 끈 뒤 시작. 12판은 무효로 둠
+  (보고서 8-9는 수정 뒤 판만 씀 — 파일은 남김, 앞 12판은 `mortal` 표시가 있어 걸러야 함).
