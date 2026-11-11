@@ -40,7 +40,10 @@
   nearest bone for 0.8 s (`ramp.gd` `_hit_mark`, state `hit_marks`); open with `-- --scene=arena`, bot with
   `BOT_GAME=sim python run.py arena --no-quit --no-loot --no-firebomb`. Arena only: a blocked hit costs
   StaminaAttackPower × (1 − shield GuardStaminaDefense / 100) and lets 100 − PhysicalGuardPercentage % through; the
-  player's damage on a foe is a² / (a + NpcParam PhysicalDefense) — values [game], formulas [guess].
+  player's damage on a foe is a² / (a + NpcParam PhysicalDefense) — values [game], formulas [guess]. Turns (MoKa 11-10,
+  scene `turns`): one foe attacks at a time, the other waits 4.5 m off behind its shield; a hit attacker backs off (701) and
+  hands the turn over; an Estus sip still brings both [guess]. The heavy Hollow's shield is 9910 and deliberately more
+  defensive than the game (seen 7 % of bot swings blocked, biased sample) — state `guard_blocks` / `player_hits` = block rate.
 - A fresh clone has no Godot import cache (`godot/.godot`, not in git): `godot_link.ensure_imported()` runs `--import` once before
   the room / replay starts (P-156). Linux: set `GODOT_PATH` to the Godot 4.7.2 binary.
 - Without the game folder (cloud): `run.py` in the room reads the NavMesh from `data/samples/navmesh_<map>.npz` (room only,
