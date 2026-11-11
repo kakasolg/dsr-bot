@@ -139,6 +139,12 @@ def return_legs() -> list[dict]:
             {"name": "불의 제전 화톳불", "kind": "find", "map": "A", "pts": [FIRELINK_STAND]}]
 
 
+# 경사 꼭대기(구간 1 목표 -20.6,-36.0,11.9)는 NavMesh A 가장자리에 걸쳐 있다: x -20.2..-20.6, z 11.0..11.4 에는 바닥 삼각형이
+# 없고 바로 아래가 낭떠러지다(y -132). 창 모드 전체 루프(20261111_145320)에서 도착 직후 0.6 m 밀려 떨어졌다. 게임에선 그
+# 자리에 난간/벽이 있으니, 방에서만 가장자리를 따라 1 m 남짓 바닥을 이어 붙인다 — DSR 지형 값이 아니라 방 전용 받침.
+RAMP_TOP_PATCH = [[-21.7, -35.25, 10.8], [-21.7, -35.25, 12.0], [-19.1, -36.85, 12.6], [-19.1, -36.85, 10.8]]
+
+
 def floor_patches(legs: list[dict], d) -> list[list[list[float]]]:
     """Strips of floor (1.6 m wide) along 'follow' legs wherever the NavMesh has no standable triangle within 1 m of a recorded
     point — the recorded body positions are where a character really stood [meas]. Andre's forge floor (y 5.4) and the slope
@@ -169,6 +175,9 @@ def floor_patches(legs: list[dict], d) -> list[list[list[float]]]:
             q = [[a[0] + ox, a[1], a[2] + oz], [a[0] - ox, a[1], a[2] - oz], [b[0] - ox, b[1], b[2] - oz], [b[0] + ox, b[1], b[2] + oz]]
             q = [[round(v, 3) for v in r] for r in q]
             out += [[q[0], q[1], q[2]], [q[0], q[2], q[3]]]
+    if legs and legs[0].get("name") == "경사 꼭대기":
+        q = RAMP_TOP_PATCH
+        out += [[q[0], q[1], q[2]], [q[0], q[2], q[3]]]
     return out
 
 
