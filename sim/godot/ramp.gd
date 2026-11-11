@@ -307,6 +307,7 @@ func _build_world() -> void:
 	# main.gd's altar objects aren't built; its code still touches gate / lever_basis
 	gate = AnimatableBody3D.new()
 	add_child(gate)
+	_build_ladders()
 
 
 func _check_prompt() -> void:
@@ -1370,6 +1371,9 @@ func _target_angle() -> float:
 func _physics_process(dt: float) -> void:
 	if sc.is_empty():
 		return
+	if not lad.is_empty() or _ladder_try_mount():
+		_ladder_frame(dt)
+		return
 	_marks_step(dt)
 	_foe_sp_step(dt)
 	# lock-on proxy: main.gd locks onto `dummy`. Not locked: keep it on the live foe in range nearest the camera's
@@ -1421,6 +1425,8 @@ const GUARD_CLIP := "ual2/Idle_Shield"     # glb "Idle_Shield_Loop" — Godot dr
 
 
 func _animate() -> void:
+	if not lad.is_empty():
+		return                                   # _ladder_pose drives the clip
 	if guard and anim_player != null and act_name == "" and stagger <= 0.0 and anim_player.has_animation(GUARD_CLIP):
 		if loco_clip != GUARD_CLIP or not anim_player.is_playing():
 			anim_player.play(GUARD_CLIP, 0.12)
@@ -1520,8 +1526,232 @@ func _send_state() -> void:
 		"lock": lock, "lock_ptr": (1000 + int(foes[lock_foe]["n"])) if (lock and lock_foe >= 0) else 0,
 		"hp": player_hp, "max_hp": PLAYER_HP, "sp": sp, "max_sp": max_sp, "estus": estus_left, "guard": guard,
 		"stagger": stagger > 0.0, "dead": dead, "player_hits": player_hits, "dodged": dodged, "guard_breaks": guard_breaks, "guard_blocks": guard_blocks, "turn": turn_n, "hit_marks": hit_marks, "foes": fl,
-		"bombs": bombs.size(), "scene": sc.get("name", "ramp")}
+		"bombs": bombs.size(), "scene": sc.get("name", "ramp"), "ladder": String(lad.get("phase", ""))}
 	udp_out.put_packet(JSON.stringify(d).to_utf8_buffer())
 	info_label.text = String(sc.get("name", "ramp")) + "  t %.1f  pos %.1f %.1f %.1f  HP %d  SP %d  estus %d  guard %s  lock #%s%s\n%s" % [t, p.x, p.y, p.z,
 		player_hp, sp, estus_left, guard, str(foes[lock_foe]["n"]) if (lock and lock_foe >= 0) else "-",
-		"  DEAD" if dead else "", ("%s %.2f" % [act_name, act_t]) if act_name != "" else ""]
+		"  DEAD" if dead else "", ("%s %.2f" % [act_name, act_t]) if act_name != "" else (("ladder %s %d" % [lad["phase"], anim]) if not lad.is_empty() else "")]
+
+
+# ── 사다리 (MoKa M1111-30 "사다리도 만들고 캐릭터가 올라가고, 내려 가는것도 다크 소울과 유사한 메카니즘으로") ──────────
+#  DSR 방식: 사다리 앞(아래) 또는 위 가장자리에서 사다리 쪽을 보고 A → 붙음 (아래 7010 / 위 7020). 붙은 뒤 스틱 위·아래로
+#  한 칸씩 (7011·7012 / 7021·7022 번갈아), 스틱을 놓으면 그 자리에 매달려 있음, 꼭대기 근처에서 위로 밀면 올라섬 (7013),
+#  바닥 근처에서 아래로 밀면 내려섬 (7023). 내려가는 중 B를 누르고 있으면 미끄러져 내려감. 매달린 동안 공격·구르기·에스트 없음.
+#  숫자 = 실제 게임 녹화 트랙 (0.5 s 간격): 타우로스 사다리 오르기 10-11 174753 · 10-12 000026 / 000208, 성벽 마을 화톳불
+#  사다리 내려가기·오르기 10-13 043024 · 181000. 애니 번호·길이는 c0000 TAE [game]. 몸 모양은 Quaternius ClimbUp_1m을 빌림 [stand-in]
+#
+#  ── 알려진 한계 ──────────────────────────────
+#   · 한 칸 0.5 s·0.62 m는 0.5 s 간격 녹화에서 잰 평균 — TAE 7011 길이 1.17 s와 다름 (녹화 간격이 애니 전환을 다 못 봄) [meas]
+#   · 미끄러져 내려가기 (7030, 4 m/s)는 녹화 없음 [guess]. 매달린 채 맞아서 떨어지기는 안 만듦
+#   · 잡는 거리 0.9 m·각도 45°는 [guess] (봇은 35° 넘게 벗어나면 돌아선 뒤 A — souls/missions.py LADDER_FACE_DEG)
+const LADDER_STEP_S := 0.5          # [meas] 7011↔7012 / 7021↔7022 every ~0.5 s
+const LADDER_STEP_M := 0.62         # [meas] ~1.25 m/s up (16.35→23.35 in 5.6 s) and down
+const LADDER_MOUNT_BOT_S := 0.5     # [meas] 7010 → first climb anim 0.5 s later, +0.5 m
+const LADDER_MOUNT_BOT_DY := 0.5
+const LADDER_MOUNT_TOP_S := 2.0     # [meas] 7020 → first down anim 2.0 s later, −2.0 m, body turned to face the ladder
+const LADDER_MOUNT_TOP_DY := 2.0
+const LADDER_EXIT_TOP_AT := 1.0     # [meas] 7013 starts ~1.0 m below the top floor
+const LADDER_EXIT_TOP_S := 1.0      # [meas] 7013 → free 1.0–1.5 s
+const LADDER_EXIT_TOP_FWD := 0.9    # [meas] ends ~0.9 m past the rung line, on the top floor
+const LADDER_EXIT_BOT_AT := 0.4     # [meas] 7023 starts 0.1–0.4 m above the floor
+const LADDER_EXIT_BOT_S := 1.0      # [meas] 7023 → free ~1.0 s
+const LADDER_SLIDE_V := 4.0         # [guess] B held going down
+const LADDER_SLIDE_ANIM := 7030     # [guess] TAE has 7030–7038; which one is the slide is not checked
+const LADDER_GRAB_M := 0.9          # [guess]
+const LADDER_GRAB_DEG := 45.0       # [guess]
+const LADDER_TOP_OFF := 0.85        # [meas] top stand = rung line + face × 0.85 (10-13 Burg bonfire ladder)
+const LADDER_PLANE := 0.35          # [guess] rails this far ahead of the climber's centre
+const CLIMB_CLIP := "ual2/ClimbUp_1m"
+var lad := {}                       # ladder in use: {"i", "phase", "pt", "from", "y0", "par"}
+
+
+func _ladder(i: int) -> Dictionary:
+	var L: Dictionary = sc["ladders"][i]
+	var f := Vector3(float(L["face"][0]), 0, float(L["face"][1])).normalized()
+	return {"at": Vector3(float(L["at"][0]), 0, float(L["at"][1])), "f": f, "bot": float(L["y_bot"]), "top": float(L["y_top"])}
+
+
+func _build_ladders() -> void:
+	if not sc.has("ladders"):
+		return
+	var wood := StandardMaterial3D.new()
+	wood.albedo_color = Color(0.38, 0.27, 0.16)
+	wood.roughness = 0.9
+	for i in sc["ladders"].size():
+		var L := _ladder(i)
+		var f: Vector3 = L["f"]
+		var right := Vector3(f.z, 0, -f.x)
+		var base: Vector3 = L["at"] + f * LADDER_PLANE
+		var y0: float = L["bot"]
+		var y1: float = float(L["top"]) + 1.0          # rails stand up past the top floor as a handhold [guess]
+		for sgn in [-1.0, 1.0]:
+			var r := MeshInstance3D.new()
+			var bm := BoxMesh.new()
+			bm.size = Vector3(0.06, y1 - y0, 0.06)
+			bm.material = wood
+			r.mesh = bm
+			add_child(r)
+			r.position = base + right * 0.23 * sgn + Vector3(0, (y0 + y1) * 0.5, 0)
+			r.rotation.y = atan2(f.x, f.z)
+		var y := y0 + 0.3
+		while y < float(L["top"]) + 0.2:
+			var g := MeshInstance3D.new()
+			var gm := BoxMesh.new()
+			gm.size = Vector3(0.46, 0.04, 0.045)
+			gm.material = wood
+			g.mesh = gm
+			add_child(g)
+			g.position = base + Vector3(0, y, 0)
+			g.rotation.y = atan2(f.x, f.z)
+			y += 0.31                                     # two rungs per 0.62 m step [guess]
+	print("ramp: %d ladders" % sc["ladders"].size())
+
+
+func _ladder_try_mount() -> bool:
+	if not sc.has("ladders") or act_name != "" or stagger > 0.0 or dead:
+		return false
+	var inp := _read_input()
+	if not (bool(inp["a"]) and not btn_was.get("a", false)):
+		return false
+	var p := player.position
+	var flat := Vector3(p.x, 0, p.z)
+	var fw := Vector3(sin(heading + PI), 0, cos(heading + PI))
+	for i in sc["ladders"].size():
+		var L := _ladder(i)
+		var f: Vector3 = L["f"]
+		var at: Vector3 = L["at"]
+		if flat.distance_to(at) < LADDER_GRAB_M and absf(p.y - float(L["bot"])) < 0.6 \
+				and rad_to_deg(fw.angle_to(f)) < LADDER_GRAB_DEG:
+			lad = {"i": i, "phase": "mount_bot", "pt": 0.0, "from": p, "y0": float(L["bot"]), "par": 0}
+		elif flat.distance_to(at + f * LADDER_TOP_OFF) < LADDER_GRAB_M and absf(p.y - float(L["top"])) < 0.6 \
+				and rad_to_deg(fw.angle_to(-f)) < LADDER_GRAB_DEG:
+			lad = {"i": i, "phase": "mount_top", "pt": 0.0, "from": p, "y0": float(L["top"]), "par": 0}
+		if not lad.is_empty():
+			btn_was["a"] = true
+			speed = 0.0
+			lock = false
+			print("ramp: ladder %d %s" % [i, lad["phase"]])
+			return true
+	return false
+
+
+func _ladder_frame(dt: float) -> void:
+	t += dt
+	var inp := _read_input()
+	btn_was["a"] = bool(inp["a"])
+	cam_yaw = wrapf(cam_yaw - float(inp["rx"]) * CAM_TURN * dt, -PI, PI)
+	var ly: float = inp["ly"]
+	var b_held: bool = inp["b"]
+	var L := _ladder(int(lad["i"]))
+	var f: Vector3 = L["f"]
+	var at: Vector3 = L["at"]
+	var fr: Vector3 = lad["from"]
+	var p := player.position
+	lad["pt"] = float(lad["pt"]) + dt
+	var k := 0.0
+	match String(lad["phase"]):
+		"mount_bot":
+			anim = 7010
+			k = minf(1.0, float(lad["pt"]) / LADDER_MOUNT_BOT_S)
+			p = Vector3(lerpf(fr.x, at.x, k), float(lad["y0"]) + LADDER_MOUNT_BOT_DY * k, lerpf(fr.z, at.z, k))
+			heading = atan2(f.x, f.z) - PI
+			if k >= 1.0:
+				_ladder_phase("on", p)
+		"mount_top":
+			anim = 7020
+			k = minf(1.0, float(lad["pt"]) / LADDER_MOUNT_TOP_S)
+			p = Vector3(lerpf(fr.x, at.x, k), float(lad["y0"]) - LADDER_MOUNT_TOP_DY * k, lerpf(fr.z, at.z, k))
+			heading = lerp_angle(atan2(-f.x, -f.z) - PI, atan2(f.x, f.z) - PI, k)
+			if k >= 1.0:
+				_ladder_phase("on", p)
+		"on":
+			p = Vector3(at.x, p.y, at.z)
+			if ly > 0.5:
+				_ladder_phase("exit_top" if p.y >= float(L["top"]) - LADDER_EXIT_TOP_AT - 0.05 else "up", p)
+			elif ly < -0.5:
+				if b_held:
+					_ladder_phase("slide", p)
+				elif p.y - LADDER_STEP_M <= float(L["bot"]) + LADDER_EXIT_BOT_AT:
+					_ladder_phase("exit_bot", p)
+				else:
+					_ladder_phase("down", p)
+		"up", "down":
+			var up := String(lad["phase"]) == "up"
+			var even := int(lad["par"]) % 2 == 0
+			anim = (7011 if even else 7012) if up else (7021 if even else 7022)
+			k = minf(1.0, float(lad["pt"]) / LADDER_STEP_S)
+			p.y = float(lad["y0"]) + (LADDER_STEP_M if up else -LADDER_STEP_M) * k
+			if k >= 1.0:
+				lad["par"] = int(lad["par"]) + 1
+				_ladder_phase("on", p)
+		"slide":
+			anim = LADDER_SLIDE_ANIM
+			p.y -= LADDER_SLIDE_V * dt
+			if p.y <= float(L["bot"]) + LADDER_EXIT_BOT_AT:
+				_ladder_phase("exit_bot", p)
+			elif not b_held or ly > -0.5:
+				_ladder_phase("on", p)
+		"exit_top":
+			anim = 7013
+			k = minf(1.0, float(lad["pt"]) / LADDER_EXIT_TOP_S)
+			var dst: Vector3 = at + f * LADDER_EXIT_TOP_FWD
+			p = Vector3(lerpf(fr.x, dst.x, k), lerpf(fr.y, float(L["top"]), k), lerpf(fr.z, dst.z, k))
+			if k >= 1.0:
+				_ladder_off(p)
+				return
+		"exit_bot":
+			anim = 7023
+			k = minf(1.0, float(lad["pt"]) / LADDER_EXIT_BOT_S)
+			p.y = lerpf(fr.y, float(L["bot"]), k)
+			if k >= 1.0:
+				_ladder_off(p)
+				return
+	player.position = p
+	player.velocity = Vector3.ZERO
+	player.rotation.y = heading
+	_ladder_pose()
+	_update_camera(dt)
+	_draw_debug()
+	_send_state()
+
+
+func _ladder_phase(ph: String, p: Vector3) -> void:
+	lad["phase"] = ph
+	lad["pt"] = 0.0
+	lad["from"] = p
+	lad["y0"] = p.y
+
+
+func _ladder_off(p: Vector3) -> void:
+	player.position = p
+	player.velocity = Vector3.ZERO
+	print("ramp: ladder off at %.2f %.2f %.2f" % [p.x, p.y, p.z])
+	lad = {}
+	anim = -1
+	speed = 0.0
+	loco_clip = ""
+	_stand(player)
+	_send_state()
+
+
+func _ladder_pose() -> void:
+	# 모양만 [stand-in]: ClimbUp_1m 앞부분 (두 손을 위로 뻗은 자세)을 한 칸마다 앞뒤로, 올라서기 (7013)는 그 클립 끝까지
+	if anim_player == null or not anim_player.has_animation(CLIMB_CLIP):
+		return
+	var length := anim_player.get_animation(CLIMB_CLIP).length
+	if anim_player.current_animation != CLIMB_CLIP:
+		anim_player.play(CLIMB_CLIP, 0.15)
+		loco_clip = CLIMB_CLIP
+	anim_player.speed_scale = 0.0
+	var ph := String(lad["phase"])
+	var pt := float(lad["pt"])
+	var at := length * 0.10
+	if ph == "up" or ph == "down":
+		at = length * (0.10 + 0.10 * sin(PI * minf(1.0, pt / LADDER_STEP_S)))
+	elif ph == "exit_top":
+		at = length * lerpf(0.25, 1.0, minf(1.0, pt / LADDER_EXIT_TOP_S))
+	elif ph == "mount_top":
+		at = length * lerpf(0.9, 0.12, minf(1.0, pt / LADDER_MOUNT_TOP_S))
+	elif ph == "exit_bot":
+		at = length * 0.06
+	anim_player.seek(at, true)

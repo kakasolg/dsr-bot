@@ -27,6 +27,14 @@ START = [1.7, -10.02, -61.2]           # [meas] burg-bonfire stand
 START_HEADING = -1.5708                # [meas] burg-bonfire heading
 FOG = {"front": [52.07, 17.21, -118.55], "beyond": [49.62, 16.79, -118.74]}   # souls/taurus.py FOG
 TRIGGER = [22.9, 15.9, -120.9]         # souls/taurus.py TRIGGER — the boss jumps down at the bridge's far end
+# 사다리 (MoKa M1111-30): at = 매달린 동안의 몸 위치 (x, z), face = 사다리를 볼 때의 방향, y_bot / y_top = 아래·위 바닥 높이.
+# 전부 실제 게임 녹화 트랙에서 [meas]
+LADDERS = [
+    {"name": "taurus", "at": [49.07, -117.08], "face": [0.974, 0.225], "y_bot": 15.82, "y_top": 24.82,
+     "src": "tracks 20261011_174753 · 20261012_000026 / 000208 (climb up, 7010→7013)"},
+    {"name": "burg-bonfire", "at": [-2.98, -62.61], "face": [-0.42, -0.91], "y_bot": -10.02, "y_top": -0.05,
+     "src": "tracks 20261013_043024 · 20261013_181000 (down 7020→7023, up 7010→7013)"},
+]
 
 
 def route() -> list[list[float]]:
@@ -40,7 +48,7 @@ def main() -> None:
     v, t = d["v"], d["t"]
     out = {"source": "sim/burg_scene.py", "name": "burg", "sk_area": "Undead Burg", "sk_walls": True,
            "walls": [], "graph": [], "centroid": [], "graph_same_mesh": [], "bonfire": BONFIRE, "start": START,
-           "start_heading": START_HEADING, "route": route(),
+           "start_heading": START_HEADING, "route": route(), "ladders": LADDERS,
            "nav": {"v": [[round(float(x), 3) for x in p] for p in v.tolist()], "t": t.tolist()}, "foes": []}
     OUT.write_text(json.dumps(out), encoding="utf-8")
     print(f"{OUT.relative_to(ROOT)}: NavMesh {len(v)} v / {len(t)} t, route {len(out['route'])} points, no foes")

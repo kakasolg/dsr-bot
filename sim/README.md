@@ -49,6 +49,11 @@
   Stairs (M1111-29): sun shadows; faces on sloped NavMesh are marked stairs (`_stair_mask`, vertex colour) and drawn as stone with a
   step every 0.22 m of height — most route stairs are slabs in the Sketchfab data, so the steps are painted. `RAMP_LOOK=grey` and
   `-- --shots=<views.json>` (fixed cameras → contact sheet) for checking shapes.
+  Ladders (M1111-30): scene `ladders` (Taurus ladder, Burg bonfire ladder; position, facing, floor heights from game tracks). Wooden
+  rails + rungs, and a DSR-like climb in `ramp.gd` (`_ladder_*`): A at the bottom facing it (7010) or at the top edge facing it (7020),
+  stick up/down one 0.62 m step per 0.5 s (7011/7012, 7021/7022), auto step-off at the top (7013) and bottom (7023), B held going
+  down = slide (guess). No gravity, no attacks while on it; the body pose is the UAL `ClimbUp_1m` clip as a stand-in.
+  `burg_walk.py --ladders` climbs each ladder up and back down the way the bot does (face, A, stick).
 - Flat arena (MoKa M1109-75/76/78): `python sim/arena_scene.py [--set hollows|mixed]` → `godot/assets/arena_scene.json` (40 m flat square,
   two heavy Hollows 255010 by default, `mixed` = heavy Hollow + heavy knight 257002, arena AI switches); hits show a red ball on the
   nearest bone for 0.8 s (`ramp.gd` `_hit_mark`, state `hit_marks`); open with `-- --scene=arena`, bot with
