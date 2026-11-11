@@ -70,9 +70,11 @@ class WorldState:
             fn(kind, out)
         return out
 
-    def kill(self, npc: int | None, pos: tuple | None) -> None:
-        """A foe died (Field.fight 'killed')."""
-        self.kills.append({"npc": npc, "pos": tuple(pos) if pos else None, "t": time.time(), "rev": self.revives})
+    def kill(self, npc: int | None, pos: tuple | None, ptr: int | None = None) -> None:
+        """A foe died (Moves' death detector, step 2). The same ptr already noted since the last revive is not noted again."""
+        if ptr is not None and any(k.get("ptr") == ptr and k["rev"] == self.revives for k in self.kills):
+            return
+        self.kills.append({"npc": npc, "pos": tuple(pos) if pos else None, "t": time.time(), "rev": self.revives, "ptr": ptr})
         try:
             self.events("world_kill", npc=npc, pos=[round(v, 2) for v in pos] if pos else None, rev=self.revives,
                         kills=len(self.kills))

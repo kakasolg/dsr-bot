@@ -394,6 +394,8 @@ class Field:
         # rest / respawn / warp / quit-out in one place (souls/world.py, worldstate step 1); Escape reports its own there
         self.world = world_.WorldState(log=log, events=self.events)
         self.world.on(self._on_world)
+        # one death detector in every snapshot read (Moves._note_deaths, worldstate step 2) → the WorldState's kills
+        mv.on_death = lambda c: self.world.kill(c.npc_param, (c.x, c.y, c.z), ptr=c.ptr)
         if escape is not None and getattr(escape, "world", None) is None:
             escape.world = self.world
 
@@ -403,6 +405,8 @@ class Field:
         (a quit-out keeps it, as before — whether drops survive a reload is not known)."""
         if info.get("revive"):
             self.forget_foes()
+        if info.get("ptrs") and hasattr(self, "mv"):
+            self.mv.__dict__.pop("_deaths", None)           # new pointers after a load — the death detector starts over
         if kind in ("rest", "respawn", "warp") and getattr(self, "loot", None) is not None:
             self.loot.reset(kind)
 
@@ -989,20 +993,8 @@ class Field:
         elif r.result == "shot":
             self.leave_fire(nm, r.shot_from, tag)
         if r.result == "killed":
-            self._world_kill(ptr, r.npc)
             self.heal(0.7)
         return r
-
-    def _world_kill(self, ptr, npc) -> None:
-        """Note the kill in the WorldState (npc + where it died) — one snapshot; nothing here can stop the fight's caller."""
-        w = getattr(self, "world", None)
-        if w is None:
-            return
-        try:
-            c = self.mv.find(self.mv.snap(SEEK_R), ptr)
-            w.kill(npc if npc is not None else getattr(c, "npc_param", None), (c.x, c.y, c.z) if c is not None else None)
-        except Exception:
-            w.kill(npc, None)
 
     def _asleep(self, ptr, hold: float = 0.4) -> bool:
         """Stood (anim -1) without moving for hold? No comparison with map spawn coords — a foe standing 6 m from its spawn

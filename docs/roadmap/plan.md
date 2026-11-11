@@ -680,10 +680,21 @@ The items are still open in ROADMAP.md (one line each); their full text as it st
     Room, arena, 2 runs: `world` run_start logged; run 2 cleared with 2 kills but only **1 `world_kill`** — the other
     foe died from a shadow kick between fights (79.8 s), outside Field.fight. So `killed()` misses kills made outside
     Field.fight — no reader uses it yet.
-  - **Step 2 (next):** record deaths wherever they happen (HP 0 in two snapshots, as field.clear does — one detector, not
-    per caller), then readers ask the WorldState: pass_ramp (instead of its own scan), passage_drill after a warp (P-55:
-    knows the ramp is back), field.clear's re-bind after a revive. P-44 (lit-bonfire list vs save restore) is outside the
-    bot run — a save-restore step, not this object.
+  - Correction (step 2 day): step 1's `fld.world.event` in run.py broke `run_stop_test` (its fake Field has no world) — the
+    step-1 full suite ran while room runs used the Godot port, so its 4 failures were read as noise; fixed in step 2.
+  - **Step 2 (built, cloud, 11-11):** one death detector — `Moves._note_deaths` in `Moves.snap` (every snapshot read
+    through it): a foe seen alive, then HP 0 in two snapshots with different times → `on_death(c)` once (again only after
+    it is seen alive); Field sets `mv.on_death` → `WorldState.kill(npc, pos, ptr)` (same ptr once per revive); a load
+    (ptrs change) clears it. The per-fight `_world_kill` is gone. Readers: `pass_ramp` — if a revive-type event (byte
+    quit-out) came during the clear, 'cleared' is scanned for survivors too and cleared again (P-25 gap: field.clear
+    never revisits a target it counted dead); `passage_drill` — after its warp, live ramp foes → stops before the top
+    (`드릴 n 경사로 되살아남 k`, P-55) instead of walking up into them. Menu quit-out and no-world paths as before.
+    Verified offline: world_test (detector on fake snapshots, dedupe, load clears, pass_ramp 4 cases, drill 2 cases),
+    ramp_passed_test, full suite 170 pass / ground_test (P-97). Room, arena, 1 run: 2 kills → 2 `world_kill` (one in a
+    fight that ended 'stuck', which step 1 missed). Not seen in game: byte quit-out → re-clear, drill stop.
+  - **Next:** field.clear's identity re-bind could read the WorldState instead of `esc.gen` (same meaning today, no gain
+    yet); `killed()` has no reader — the per-spawn question needs spawn identity, not kill position. P-44 (lit-bonfire
+    list vs save restore) is outside a bot run — a save-restore step.
 - `tick-loop` (moved 2026-10-12): [ ] [cloud] One tick loop (read → update state → pick one action → input) instead of `field.py`'s own loops; walking first, one part at a time, guarded by `scene_replay` + `duel_golden_test`; v1.0 keeps running meanwhile
 - `route-data` (moved 2026-10-12): [ ] [cloud] Route data (walk / careful walk / safe spot / pull / fight / ladder / fog wall / Estus bar) + one runner; `burg-upper` moved first, then new segments without zone code
 - `batch-ab` (moved 2026-10-12): [ ] [cloud]+[win] Batch A/B runner: save restore · warp · N runs · `ab.py` report → "pass rate n/10 per segment"

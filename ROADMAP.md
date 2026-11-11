@@ -96,7 +96,7 @@ needing the tick loop, route data, settings object or WorldState.
 
 **Structure (review §2; proposed order §4: settings → WorldState → tick loop → route data → spots → batch runner → boss)**
 - [~] settings-object | win | verify | steps 1–3 built: one object, readers take it, no globals (offline); next: [win] game run | docs/review-v2-2026-10-11.md · plan:settings-object
-- [~] worldstate | cloud | doing | step 1: `souls/world.py`, all revive events in one place (offline + room); next: kill detector, readers | plan:worldstate
+- [~] worldstate | win | verify | steps 1–2: events in one place, one death detector, pass_ramp / passage_drill read it; next: game | plan:worldstate
 - [ ] tick-loop | cloud | todo | one tick loop (read → state → one action → input) instead of field.py's loops; walking first | docs/review-v2-2026-10-11.md · plan:tick-loop
 - [ ] route-data | cloud | todo | route data (walk / safe spot / pull / fight / ladder / fog wall …) + one runner; `burg-upper` first | docs/review-v2-2026-10-11.md · plan:route-data
 - [ ] batch-ab | cloud+win | todo | batch A/B runner: save restore · warp · N runs · `ab.py` → pass rate n/10 per segment | docs/review-v2-2026-10-11.md

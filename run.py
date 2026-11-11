@@ -479,7 +479,8 @@ def main() -> None:
     ms = missions.Missions(fld, nms, log=log, lure=not a.no_lure)
     ms.throw = a.throw
     # 적 드롭 줍기: 연결된 명령에선 기본으로 켬 ([MoKa] 11-01 "일반 진행 중 자동으로 수행하는 공통 루틴"). 기준은 지금(처치 전)
-    fld.world.event("run_start", why=a.cmd)                # worldstate: what the save holds is not known yet
+    if getattr(fld, "world", None) is not None:            # worldstate: what the save holds is not known yet
+        fld.world.event("run_start", why=a.cmd)
     loot = getattr(fld, "loot", None)
     if loot is not None:
         loot.on = a.cmd in LOOT_CMDS and not a.no_loot
