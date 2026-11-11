@@ -22,7 +22,8 @@ MOT = ROOT / "data" / "gamefiles" / "weapon_motions.json"
 PROBE = sorted((ROOT / "data" / "probe").glob("*_weapon_probe.jsonl"))
 OUTDIR = ROOT / "docs" / "weapons"
 NAME = {201000: "롱소드", 301000: "클레이모어", 350000: "츠바이헨더"}
-OTHER = {701000: "배틀 액스", 200000: "숏소드", 1050000: "파이크"}      # measured 11-10, not in the 3-weapon table — 게임_실측 only
+OTHER = {701000: "배틀 액스", 200000: "숏소드", 1050000: "파이크",
+         1100000: "할버드", 802000: "모닝스타"}      # measured 11-10, not in the 3-weapon table — 게임_실측 only
 WTABLE = ROOT / "data" / "gamefiles" / "weapon_table.json"
 
 
@@ -67,7 +68,9 @@ def measured(probe, grip="1H"):
         for mode, key in (("single", "hit"), ("chain", "end"), ("roll", "end"), ("move", "end")):
             v = [r[key] for r in probe if r["weapon"] - r["weapon"] % 100 == w and r["mode"] == mode and r.get(key) is not None
                  and r.get("grip", "1H") == grip
-                 and not r.get("note") and not r.get("error") and (mode != "single" or r.get("damage"))
+                 and not r.get("note") and (mode != "single" or r.get("damage"))
+                 # 츠바이헨더 한손 R1은 애니가 3.2 s 창보다 길어 'did not end'로 남음 — 맞는 순간(hit)은 그대로 씀 (11-10 180530)
+                 and (not r.get("error") or (key == "hit" and r["error"] == "attack did not end in the window"))
                  and r.get("anim") is not None and r["anim"] % 10000 == off        # R1 1st only (Pike gave 363030, 11-10)
                  and not (40 <= (r.get("next_anim") or 0) % 1000 < 50)             # x3040: swing on a dead foe (P-153)
                  and (r.get("next_anim") or 0) % 1000 != 150]          # x3150 = wall bounce (first-run stick bug), not a cancel
@@ -137,21 +140,25 @@ def build_xlsx(mot, probe, meas, dps, path: Path, meas2=None):
     sheet("읽어보기", ["항목", "설명"], [
         ["범위", "Dark Souls Remastered, 무기 +0, 오른손. 롱소드(201000) · 클레이모어(301000) · 츠바이헨더(350000), 한손(1H)·양손(2H)."],
         ["등급", "[게임 파일] = DSR 설치 폴더의 TAE(c0000)·EquipParamWeapon·BehaviorParam_PC·AtkParam_Pc에서 읽은 값. "
-                 "[게임 실측] = 실행 중 게임에서 잰 값 (weapon_probe.py, 2026-11-10, R1 1타만: 롱소드 한손·양손, 클레이모어 한손, 츠바이헨더 양손). "
+                 "[게임 실측] = 실행 중 게임에서 잰 값 (weapon_probe.py, 2026-11-10, R1 1타만: 롱소드 한손·양손, 클레이모어 한손, 츠바이헨더 한손·양손; "
+                 "비교용 배틀 액스·숏소드·할버드·모닝스타 한손, 파이크 한손·양손). "
                  "[외부] = Perplexity 시트의 APS(커뮤니티)·강인도(위키)."],
         ["시간·프레임", "초(s)와 30 fps 프레임(f). TAE 이벤트는 1/30 s 단위. 60 fps 프레임 = 30 fps 프레임 × 2."],
         ["선딜", "애니메이션 시작 → 첫 공격 판정 시작 (TAE type 1). 누름 → 애니 시작은 게임 실측 0.003~0.018 s (1프레임 안)."],
         ["활성", "공격 판정 구간 합. '판정 끝' = 마지막 판정 끝."],
         ["후딜", "판정 끝 → 그 행동이 처음 허용되는 순간: 다음 R (TAE 플래그 4) · 구르기 (26) · 이동 (11). '끝까지' = 애니 전체 길이."],
-        ["실측과의 차이", "게임에서 잰 R1 1타(롱소드 한손·양손, 클레이모어 한손, 츠바이헨더 양손)의 끊기가 TAE 플래그보다 0.03~0.13 s 일렀음 (다음 R·구르기·이동 모두). "
+        ["실측과의 차이", "게임에서 잰 R1 1타의 끊기가 TAE 플래그보다 0.08~0.13 s 일렀음 (다음 R·구르기·이동 모두, 잰 무기 8종). "
+                         "예외 하나: 할버드 한손 구르기는 0.20 s 이름 (0.967 vs 1.167, 5판 모두 같음 — 원인 안 봄). "
                          "그래서 파일의 후딜은 '늦어도 이때' 값. 맞는 순간은 판정 시작 뒤 1~3 프레임."],
         ["강인도", "무기 BasePoiseDamage × AtkParam PoiseAttackPercentage / 100. 공식은 추정이나, 결과가 위키 값(Perplexity S3)과 6개 R1 모두 같음."],
         ["스태미나", "BehaviorParam_PC StaminaCost (휘두를 때 드는 기력). '가드 깎기'는 AtkParam StaminaAttackPower (상대 방패 기력)."],
         ["DPS 지수", "+0, 능력치 보정 없음, 적 방어 무시: 무기 기본 물리 공격력 × 모션 배율(%) / R1 연타 주기. 실제 피해 비교가 아니라 같은 조건의 상대 비교."],
         ["모션 이름", "게임에서 한 번씩 해 보고 애니 번호로 확인 (11-10, 클레이모어): R1 x3000→x3001→x3002, R2 x3300, 구르기 R1 x3900, "
                     "백스텝 R1·달리기 R1 둘 다 x3500, 앞+R2 점프 x3600, 양손 +1000. R2 2타(x3301)는 번호 규칙으로 붙임 (안 해 봄)."],
-        ["츠바이헨더 실측", "양손 R1만 잼 (요구 근력 24, 캐릭터 16 → 한손은 미달이라 안 잼). 옆에 벽이 있으면 칼끝이 닿아 튕김(264150)으로 넘어감 — "
-                          "튕긴 판은 뺐고, 끊기 값은 벽이 옆에 없는 자리의 5판씩 (P-157). 맞는 시각은 거리에 따라 0.783 (1.6 m 이내) ~ 0.850 s (3.0 m)."],
+        ["츠바이헨더 실측", "양손 R1: 옆에 벽이 있으면 칼끝이 닿아 튕김(264150)으로 넘어감 — "
+                          "튕긴 판은 뺐고, 끊기 값은 벽이 옆에 없는 자리의 5판씩 (P-157). 맞는 시각은 거리에 따라 0.783 (1.6 m 이내) ~ 0.850 s (3.0 m). "
+                          "한손 R1: 근력 24가 된 뒤 11-10 저녁에 잼 (전엔 16이라 미달). 한 대마다 적이 밀려 벽에 붙으면 튕김(263150)이 나와 "
+                          "20판 중 다수를 뺐음 — 다음 R1 3판 · 구르기 6판 · 이동 6판, 맞는 순간 1.067 s (1.6 m, 5판)."],
         ["빈칸", "클레이모어 양손 R2 (744300): 게임에서 이 애니가 나왔지만 추출한 TAE에 판정 이벤트가 없음 (다른 애니를 가리키는 이벤트만) — 채우지 않음. "
                 "츠바이헨더는 R2 2타 애니가 없음."],
     ], {1: 14, 2: 120})
@@ -210,10 +217,22 @@ def build_xlsx(mot, probe, meas, dps, path: Path, meas2=None):
                                    "같음" if PPLX_POISE.get((d["row"], d["grip"])) == d["poise"] else "다름",
                                    d["aps_pplx"], d["aps_tae"], round(1 / d["cycle_game"], 3) if d["cycle_game"] else None]
                                   for d in dps])
+    crow, r2, by_cat, differ, off = class_table(meas)
+    sheet("무기_묶음", ["무기", "보고서 이름", "애니 묶음", "무게", "칼 길이 m", "선딜 s", "다음R 허용 s", "구르기 허용 s", "이동 허용 s",
+                       "스태미나", "실측 맞음 s", "실측 다음R s", "실측 구르기 s", "실측 이동 s"], crow, {1: 16, 2: 12})
+    ws = wb["무기_묶음"]
+    ws.append([])
+    ws.append(["읽는 법", "한손 R1 1타. 애니 묶음 = EquipParamWeapon AttackAnimationCategory (TAE 구역). [게임 파일] + 실측 칸 [게임 실측]."])
+    ws.append(["결론", "같은 묶음 안의 무기는 무게·길이가 달라도 선딜·끊기 시점이 모두 같음 "
+                       f"(묶음 {len(by_cat)}개 중 다른 값이 있는 묶음 {len(differ)}개). 게임 실측도 숏소드 = 롱소드 (4개 값 모두 같음)."])
+    ws.append(["무게·길이 상관 (R², 23종)", " · ".join(f"{k}: 무게 {a} / 길이 {b}" for k, (a, b) in r2.items())
+               + " — 무거운 무기가 느린 묶음에 많아서 생긴 상관. 같은 묶음 안에서는 영향 0. 스태미나만 묶음 안에서도 다를 수 있음 (스피어 25 · 파이크 30)."])
+    ws.append(["실측 − TAE (묶음별)", " · ".join(f"{c}: " + ", ".join(f"{n} {m} {d:+.3f}" for n, m, d in v) for c, v in sorted(off.items()))])
     sheet("출처", ["ID", "내용"], [
         ["게임 파일", "weapon_motions.py → data/gamefiles/weapon_motions.json (DSR: c0000.anibnd TAE, GameParam)"],
         ["게임 실측", "weapon_probe.py → data/probe/20261110_*.jsonl (2026-11-10. 새벽: 교구 병사 255041, 락온 1.4 m. "
-                      "롱소드 한손·양손: 성벽 마을 병사 255001, 1.4 m. 츠바이헨더 양손: 성벽 마을 망자 병사 254010, 1.6 m)"],
+                      "롱소드 한손·양손: 성벽 마을 병사 255001, 1.4 m. 츠바이헨더 양손: 성벽 마을 망자 병사 254010, 1.6 m. "
+                      "저녁 (근력 24): 할버드·모닝스타·파이크 한손 망자 254011 1.4 m, 츠바이헨더 한손 254010 · 254011 1.4~1.6 m)"],
         ["모션 번호", "게임에서 모션 한 번씩 (교구 화톳불, 클레이모어 한손·양손, 2026-11-10)"],
         ["외부 S1", "r/darksouls 'Comprehensive List of Attacks-Per-Second Multipliers' (Perplexity 시트의 APS)"],
         ["외부 S3", "darksouls.fandom.com Poise (Dark Souls) (Perplexity 시트의 강인도)"],
@@ -256,8 +275,8 @@ def build_pdf(mot, meas, dps, path: Path, meas2=None):
         "세 무기의 한손·양손 모션(R1 1~3타, R2, 구르기 R1, 백스텝·달리기 R1, 점프 공격)마다 선딜·활성·판정 끝·다음 행동 허용 시점·"
         "스태미나·모션 배율·강인도를 DSR 게임 파일에서 뽑았다 [게임 파일]. 모션 이름은 게임에서 한 번씩 해 보고 애니 번호로 맞췄다. "
         "강인도는 Perplexity 시트의 위키 값과 R1 여섯 칸이 모두 같았다 (독립 출처 대조 통과). 프레임은 R1 1타만 게임에서 쟀다 [게임 실측]: "
-        "롱소드 한손·양손, 클레이모어 한손, 츠바이헨더 양손 (한손은 요구 근력 미달이라 안 잼). R1 2·3타와 나머지 모션, 클레이모어 양손, "
-        "츠바이헨더 한손은 파일 값만 있다. 클레이모어 양손 R2는 빈칸이다.", P))
+        "롱소드 한손·양손, 클레이모어 한손, 츠바이헨더 한손·양손 (한손은 근력 24가 된 뒤 잼, 튕긴 판이 많아 횟수 적음). "
+        "R1 2·3타와 나머지 모션, 클레이모어 양손은 파일 값만 있다. 클레이모어 양손 R2는 빈칸이다.", P))
     st.append(Paragraph("2. R1 연타: DPS 지수 · 강인도/초 · 스태미나/초 [게임 파일]", H2))
     data = [["무기", "잡기", "선딜 s", "연타 주기 s", "실측 보정 주기", "Perplexity APS 주기", "1타 피해 지수", "DPS 지수", "강인도/타",
              "강인도/초", "스태미나/타", "스태미나/초"]]
@@ -289,9 +308,11 @@ def build_pdf(mot, meas, dps, path: Path, meas2=None):
     st.append(table(data, [25 * mm, 35 * mm, 20 * mm, 15 * mm, 20 * mm, 20 * mm]))
     st.append(Paragraph(
         "배틀 액스·숏소드(비교용)와 클레이모어 '이동'은 11-10 두 번째 측정에서 잼. 파이크는 R1에 보통 첫 공격(363000) 대신 느린 363030이 나와 "
-        "한손으로는 못 잼 — 요구 근력 24, 캐릭터 16 (MoKa: 요구 스탯 미달). 양손(근력 ×1.5 = 24)으로 잼. 적이 연타에 죽은 뒤의 판(x3040)·벽 튕김(x3150)은 뺐음 (P-153). 횟수는 표에 있음. "
+        "한손으로는 못 잼 — 요구 근력 24, 캐릭터 16 (MoKa: 요구 스탯 미달). 양손(근력 ×1.5 = 24)으로 잼. 근력 24가 된 뒤(11-10 저녁) 한손 R1은 "
+        "보통 첫 공격 363000으로 나와 20판 모두 잼 — 미달 때 363030이 나온 것과 맞음. 적이 연타에 죽은 뒤의 판(x3040)·벽 튕김(x3150)은 뺐음 (P-153). 횟수는 표에 있음. "
         "츠바이헨더 양손 R1은 옆에 벽이 있으면 칼끝이 닿아 튕김(264150)으로 넘어간다 (화면으로 확인, P-157) — 튕긴 판은 빼고 벽이 옆에 없는 자리에서 잰 값이다. "
-        "맞는 시각은 거리에 따라 0.783 (1.6 m 이내) ~ 0.850 s (3.0 m). 츠바이헨더 한손은 요구 근력 24 미달(캐릭터 16)이라 안 쟀다.", P))
+        "맞는 시각은 거리에 따라 0.783 (1.6 m 이내) ~ 0.850 s (3.0 m). 츠바이헨더 한손도 한 대마다 적이 밀려 벽에 붙으면 튕겨(263150) 튕긴 판을 뺐다. "
+        "할버드·모닝스타 한손은 5판씩 튕김 없음. 할버드 한손 구르기만 플래그보다 0.20 s 이름 (다른 무기는 0.08~0.13 s).", P))
     st.append(Paragraph("5. 경직(강인도) 비교", H2))
     data = [["무기", "잡기", "강인도/타"] + [f"상대 {p}: 타수 / 초" for p in TARGET_POISE[1:]]]
     for d in dps:
@@ -305,14 +326,73 @@ def build_pdf(mot, meas, dps, path: Path, meas2=None):
     st.append(Paragraph(
         "타수 = 올림(상대 강인도 / 강인도 1타), 시간 = 선딜 + (타수−1) × 연타 주기 [계산]. 강인도 회복·경직 면역·피격 뒤 리셋은 넣지 않았다. "
         "강인도 1타 공식(무기 기본 강인도 × AtkParam %)은 추정이지만 위키 값과 같다.", P))
-    st.append(Paragraph("6. 남은 것", H2))
-    for line in ("R1 2·3타, R2·구르기·백스텝·점프 공격, 클레이모어 양손, 츠바이헨더 한손의 프레임을 게임에서 재기 (지금은 파일 값만).",
-                 "실측이 플래그보다 0.03~0.13 s 빠른 이유 (입력 선행 받기인지, 애니 시계를 읽는 방식 탓인지).",
+    st.append(Paragraph("6. 무게·길이와 프레임: 규칙은 '무기 종류(애니 묶음)'", H2))
+    crow, r2, by_cat, differ, off = class_table(meas)
+    st.append(Paragraph(
+        f"게임 파일의 무기 {len(crow)}종(세스터스는 한손 R1 값이 없어 뺌)을 공격 애니 묶음(EquipParamWeapon AttackAnimationCategory = TAE 구역)으로 "
+        f"나누면, 같은 묶음 안의 무기는 무게·칼 길이가 달라도 선딜·다음 R·구르기·이동 허용 시점이 모두 같다 (묶음 {len(by_cat)}개 중 다른 값이 있는 묶음 "
+        f"{len(differ)}개) [게임 파일]. 예: 스피어 3.5 / 1.72 m와 파이크 10 / 2.48 m, 숏소드 2.0 / 1.10 m와 롱소드 3.0 / 1.31 m. "
+        "게임에서도 숏소드와 롱소드의 맞음 · 다음 R1 · 구르기 · 이동 네 값이 같았다 [게임 실측]. 즉 무게나 길이로 계산하는 공식은 없고, "
+        "묶음마다 정해진 표다.", P))
+    data = [["묶음", "무기 (무게)", "선딜", "다음R", "구르기", "이동"]]
+    tab_w = {r[0]: r[3] for r in crow}
+    for c, m in sorted(by_cat.items()):
+        t = m[0][1]
+        data.append([c, ", ".join(f"{n} ({tab_w[n]:g})" for n, _ in m)] + [f(x) for x in t])
+    st.append(table(data, [12 * mm, 90 * mm, 17 * mm, 17 * mm, 17 * mm, 17 * mm]))
+    st.append(Spacer(1, 3 * mm))
+    st.append(Paragraph(
+        "23종을 한꺼번에 보면 무거울수록 느리다 — R² " + " · ".join(f"{k} 무게 {a} / 길이 {b}" for k, (a, b) in r2.items()) +
+        ". 무거운 무기가 느린 묶음에 많아서 생긴 상관이고, 같은 묶음 안에서는 영향이 없다. 그래서 weapon_table.py의 평균식"
+        "(선딜 ≈ a + b·길이 + c·무게)은 묶음 사이 경향일 뿐 무기 하나의 값을 맞히는 공식이 아니다. 스태미나만 묶음 안에서도 다를 수 있다 "
+        "(스피어 25 · 파이크 30). 봇에 쓸 때: 새 무기는 묶음 번호만 보고, 같은 묶음에서 잰 값을 쓴다.", P))
+    st.append(Paragraph(
+        "실측 − TAE 끊기 플래그 (묶음별): " + " · ".join(f"{c}: " + ", ".join(f"{n} {m} {d:+.3f}" for n, m, d in v)
+                                                     for c, v in sorted(off.items())) +
+        ". 대부분 −0.1 s (30 fps 3프레임), 대검·특대검(25 · 26)은 −0.133 s (4프레임), 할버드 구르기만 −0.2 s — 묶음마다 1~2종만 재서 "
+        "이 차이가 묶음 규칙인지는 아직 가설이다.", P))
+    st.append(Paragraph("7. 남은 것", H2))
+    for line in ("R1 2·3타, R2·구르기·백스텝·점프 공격, 클레이모어 양손의 프레임을 게임에서 재기 (지금은 파일 값만). 츠바이헨더 한손은 튕김 때문에 3~6판뿐.",
+                 "실측이 플래그보다 0.08~0.13 s 빠른 이유 (입력 선행 받기인지, 애니 시계를 읽는 방식 탓인지), 할버드 구르기 0.2 s.",
                  "클레이모어 양손 R2(744300)의 판정 — TAE 다른 애니 참조를 따라가 읽기.",
                  "실제 피해: 능력치·강화·적 방어를 넣은 DPS (지금은 +0 지수)."):
         st.append(Paragraph("· " + line, P))
     SimpleDocTemplate(str(path), pagesize=A4, leftMargin=14 * mm, rightMargin=14 * mm, topMargin=14 * mm,
                       bottomMargin=14 * mm, title="롱소드·클레이모어·츠바이헨더 프레임 비교").build(st)
+
+
+def _r2(xs, ys):
+    """R² of a one-variable least-squares line (pure python — the report runs without numpy)."""
+    n = len(xs)
+    mx, my = sum(xs) / n, sum(ys) / n
+    sxx = sum((x - mx) ** 2 for x in xs)
+    sxy = sum((x - mx) * (y - my) for x, y in zip(xs, ys))
+    syy = sum((y - my) ** 2 for y in ys)
+    return round(sxy * sxy / (sxx * syy), 2) if sxx and syy else None
+
+
+def class_table(meas):
+    """MoKa 11-10 "길이나 무게에 의한 규칙이나 공식": every weapon in weapon_table.json by attack-animation category
+    (TAE section) with weight, blade reach, the 1H R1 1st TAE times and the game measurement where there is one.
+    → (rows, per-key R² for weight / reach, categories whose members differ, measured − TAE per category)."""
+    tab = json.loads(WTABLE.read_text(encoding="utf-8"))["weapons"]
+    ws = sorted(((n, v) for n, v in tab.items() if v.get("light")), key=lambda x: (x[1]["category"], x[1]["weight"]))
+    keys = ("startup", "cancel_r", "cancel_roll", "cancel_move")
+    rows, by_cat, off = [], {}, {}
+    for n, v in ws:
+        lt, rid = v["light"], v["row"]
+        m = [meas.get((rid, mode)) for mode in ("single", "chain", "roll", "move")]
+        rows.append([n, NAME.get(rid) or OTHER.get(rid, ""), v["category"], v["weight"], lt.get("hit_reach")]
+                    + [lt[k] for k in keys] + [lt["stamina"]] + [x[0] if x else None for x in m])
+        by_cat.setdefault(v["category"], []).append((n, tuple(lt[k] for k in keys)))
+        for mode, k in (("chain", "cancel_r"), ("roll", "cancel_roll"), ("move", "cancel_move")):
+            if (rid, mode) in meas:
+                off.setdefault(v["category"], []).append((n, mode, round(meas[(rid, mode)][0] - lt[k], 3)))
+    pts = [(v["weight"], v["light"]["hit_reach"], v["light"]) for _, v in ws if v["light"].get("hit_reach")]
+    r2 = {k: (_r2([p[0] for p in pts], [p[2][k] for p in pts]), _r2([p[1] for p in pts], [p[2][k] for p in pts]))
+          for k in keys + ("stamina",)}
+    differ = {c: m for c, m in by_cat.items() if len({t for _, t in m}) > 1}
+    return rows, r2, by_cat, differ, off
 
 
 def summary_lines(mot, dps):

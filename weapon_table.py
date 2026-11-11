@@ -36,6 +36,7 @@ WEAPONS = {
     # bought 11-10 (M1110-01/02) — measured in game by weapon_probe.py
     "Shortsword": 200000, "Scimitar": 400000, "Rapier": 601000, "Hand Axe": 700000, "Club": 800000,
     "Reinforced Club": 809000, "War Pick": 803000, "Caestus": 901000, "Pike": 1050000,
+    "Morning Star": 802000,     # 11-10 장착 확인 (손 슬롯 802000, 화면의 철퇴 아이콘) — weapon_probe 측정
 }
 FLAG_MOVE, FLAG_ROLL, FLAG_R = 11, 26, 4
 

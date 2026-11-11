@@ -168,6 +168,15 @@ class SimPad:
 ESTUS_ID, WEAPON_ID = 203, 301000
 
 
+def room_weapon() -> int:
+    """The room's right weapon = actions.json equip.right.row (sim/build_actions.py --weapon); Claymore if unreadable."""
+    try:
+        p = Path(__file__).resolve().parent / "godot" / "actions.json"
+        return int(json.loads(p.read_text(encoding="utf-8"))["equip"]["right"]["row"])
+    except Exception:
+        return WEAPON_ID
+
+
 class RoomTelemetry(SimTelemetry):
     LISTEN_S = 1 / 30           # listeners (track, blackbox, radar) at most this often, like feed.Feed's frames
 
@@ -254,7 +263,7 @@ class RoomTelemetry(SimTelemetry):
         return 1
 
     def right_weapon(self) -> int:
-        return WEAPON_ID
+        return room_weapon()
 
     def weapon_durability(self, weapon_id: int | None = None) -> None:
         return None

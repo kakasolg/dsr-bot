@@ -3,6 +3,11 @@
 - `godot/` — Godot 4.7.2 project. Godot itself: `D:/dev/tools/godot` (override with `GODOT_PATH`).
 - `godot_link.py` — bot side: room state → `telemetry.Snapshot` (UDP 47811), UDP pad input (47812).
 - `build_actions.py` — `godot/actions.json` from the DSR player TAE (`player_tae_extract.py` → `data/gamefiles/tae_c0000.json`).
+  `--weapon <EquipParamWeapon row>` (default Claymore 301000, MoKa 11-10): the light attacks are that weapon's attack-animation
+  category (x3000 / x3001) — every weapon of one category has the same TAE times whatever its weight or length
+  (`weapon_report.py` sheet 무기_묶음) — and the cancels are the game-measured ones of that category (`MEASURED`, one or two weapons
+  measured per category), or TAE − 0.1 s [guess] for a category nobody measured. The room loads `assets/<equip.right.model>.glb`
+  (`python sim/flver_glb.py WP_A_xxxx`, local; all 24 weapon-table models converted 11-10), and `godot_link` reports that row.
 - `flver_glb.py` — DSR weapon / shield models (`parts/WP_A_xxxx.partsbnd.dcx`) → `godot/assets/*.glb` + Godot import;
   dummy points → `data/gamefiles/weapon_models.json`. Then `build_actions.py` (equipment rows, AtkParam_Pc hitboxes).
 - Scene replay (MoKa M1109-55/56): `python sim/replay_view.py [<run>] [--at <s>]` opens `godot/replay.tscn` on
