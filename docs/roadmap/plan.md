@@ -643,6 +643,12 @@ The items are still open in ROADMAP.md (one line each); their full text as it st
     Room (arena scene, one run each, fcbab01 vs step 2, plain and --basic): all four ran to the end, 3 cleared, old plain
     died — one run per side varies too much to compare; Claymore vs heavy Hollows chose no backstab / heavy in any run, so
     the room did not show --basic reaching the fights (the tests do).
+    [win] check (11-10, 2843263 fast-forwarded from 1b9c7ee, no uncommitted change in `souls/`): full offline suite 3× —
+    169 pass, only `ground_test` fails (P-97). `scene_replay.py` on 5 [win] runs with scenes, 2843263 vs 45e849c (before
+    step 2, own worktree): full output identical, 0 lines differ — 171230 clear-ramp 26/26, 022350 burg-upper 170/227,
+    021816 burg-bonfire 25/39, 012015 burg-upper 240/241, 011128 clear-ramp 85/90 same rule as then (the misses predate
+    step 2). Not checked: whether any of these runs used --basic, so a flag-off path in replay is not shown. Game check
+    of --basic: not run.
   - **Step 3 (next):** field.py / missions.py constants the run changes (`NOTICE_PULL` …) read through the same object;
     then stop `apply()` writing globals for modules whose readers moved. Tests that set globals move to `applied()` as touched.
 - `worldstate` (moved 2026-10-12): [ ] [cloud] WorldState: who is alive / where after a bonfire rest, quit-out (byte/menu) or warp, fixed in one place (P-18, P-25, P-44, P-55)
