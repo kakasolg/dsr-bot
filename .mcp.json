@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "maswarm-cloud": {
+      "type": "http",
+      "url": "https://mcp-maswarm.moko.fyi/mcp"
+    }
+  }
+}
