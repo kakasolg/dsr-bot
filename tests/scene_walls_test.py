@@ -4,7 +4,8 @@
 
 Checks on made-up floors: a lone square gets walls on all four open sides, pushed out WALL_OUT · a side two triangles
 share (even with copies of the corner points < 1 cm apart, as two NavMesh sheets have) gets none · a side with floor
-below beyond it stays open, one facing higher floor (> 0.5 m up) gets a wall · floor_patch counts as floor beyond.
+below beyond it stays open, one facing higher floor (> 0.5 m up) gets a wall · floor_patch counts as floor beyond ·
+a wall across the scene's own route (cam_path) is left out.
 On the committed scenes: every scene that asks for Sketchfab walls carries edge_walls (a fresh clone has no Sketchfab
 file), the ramp room's rule agrees with ramp_scene.py's `walls` for most segments, ramp.gd falls back to them.
 """
@@ -65,6 +66,12 @@ def main() -> None:
     patch = [[[4.0, 0.0, 0.0], [8.0, 0.0, 0.0], [8.0, 0.0, 4.0]], [[4.0, 0.0, 0.0], [8.0, 0.0, 4.0], [4.0, 0.0, 4.0]]]
     w5 = W.edge_walls(scene([square(0, 0, 4)], patch=patch))
     check("a floor_patch strip beyond an edge counts as floor (no wall there; patches get no walls of their own)", len(w5) == 3)
+
+    sc6 = scene([square(0, 0, 4)])
+    sc6["cam_path"] = [[2.0, 0.0, 2.0, 0, "default"], [6.0, 0.0, 2.0, 0, "default"]]   # the route leaves over the +x side
+    w6 = np.array(W.edge_walls(sc6))
+    check("a wall that would cross the scene's own route (cam_path) is left out — 3 walls, none on the +x side",
+          len(w6) == 3 and not any(min(r[0], r[3]) > 4.0 for r in w6))
 
     assets = ROOT / "sim" / "godot" / "assets"
     sk = {p.name: json.loads(p.read_text(encoding="utf-8")) for p in assets.glob("*_scene.json") if not p.name.startswith("_")}

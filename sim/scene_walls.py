@@ -25,6 +25,8 @@ WALL_OUT = 0.4      # as ramp_scene.WALL_OUT [guess] — NavMesh agent radius
 BEYOND = 0.8        # look for floor this far past the edge (ramp_scene)
 UP = 0.5            # floor beyond counts if at most this above the edge (ramp_scene)
 CELL = 2.0          # grid cell for the floor lookup (m)
+ROUTE_GAP = 5.0     # cam_path points farther apart than this are not joined (a jump in the list, not a walk)
+ROUTE_DY = 3.0      # a route segment crosses a wall only if its height is within this of the wall's (m)
 KEY = 2             # vertex rounding (1 cm) to find shared sides — the two NavMesh sheets have separate vertex lists whose
                     # copies of one point differ by < 1 cm (mm rounding walled the Burg route at (12.2, −6.0, −93.5), 11-12)
 
@@ -65,8 +67,24 @@ def _heights(tris: np.ndarray, grid: dict, x: float, z: float) -> list[float]:
     return out
 
 
+def _cross(a0, a1, b0, b1) -> bool:
+    """Do segments a and b cross in x-z?"""
+    def o(p, q, r):
+        return (q[0] - p[0]) * (r[2] - p[2]) - (q[2] - p[2]) * (r[0] - p[0])
+    return o(a0, a1, b0) * o(a0, a1, b1) < 0 and o(b0, b1, a0) * o(b0, b1, a1) < 0
+
+
+def _route(scene: dict) -> list:
+    """The scene's route as segments (cam_path: the walked / planned route the room camera follows)."""
+    pts = [np.asarray(p[:3], dtype=float) for p in scene.get("cam_path") or []]
+    return [(a, b) for a, b in zip(pts, pts[1:]) if float(np.hypot(*(b - a)[[0, 2]])) <= ROUTE_GAP]
+
+
 def edge_walls(scene: dict) -> list[list[float]]:
-    """[x0, y0, z0, x1, y1, z1] per wall segment — same shape as a scene's `walls`."""
+    """[x0, y0, z0, x1, y1, z1] per wall segment — same shape as a scene's `walls`. A wall that would cross the scene's own
+    route (cam_path) is left out: the route was walked in the game, and where it leaves the NavMesh floor (steps the
+    NavMesh doesn't cover — ramp top at (−18.5…−20, −39 → −36, 14 → 12.7), 11-12) the floor data alone looks like a void."""
+    route = _route(scene)
     tris = _tris(scene)
     n_nav = len(scene["nav"]["t"])
     grid = _grid(tris)
@@ -96,7 +114,11 @@ def edge_walls(scene: dict) -> list[list[float]]:
             ln = float(np.hypot(nx, nz)) or 1.0
             sgn = 1.0 if nx * d[0] + nz * d[2] > 0 else -1.0
             off = np.array([nx / ln * sgn * WALL_OUT, 0.0, nz / ln * sgn * WALL_OUT])
-            walls.append([round(float(x), 3) for x in (*(p0 + off), *(p1 + off))])
+            w0, w1 = p0 + off, p1 + off
+            ylo, yhi = min(w0[1], w1[1]) - ROUTE_DY, max(w0[1], w1[1]) + ROUTE_DY
+            if any(_cross(w0, w1, a, b) and ylo <= (a[1] + b[1]) / 2 <= yhi for a, b in route):
+                continue                                    # on the scene's route — leave it open
+            walls.append([round(float(x), 3) for x in (*w0, *w1)])
     return walls
 
 
