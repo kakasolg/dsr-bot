@@ -35,6 +35,14 @@ SEP_R = 4.0              # if the target and another awake foe are both within t
 SEP_RUN = 5.0            # run this far — hollows (slow) and the shield soldier lunge (3–4.5 m/s) arrive staggered in time
 SEP_COOLDOWN = 5.0       # so we don't just keep running
 SEP_MAX = 3              # at most this many per fight
+# ── 떼어놓기 = 동작 실행기 (P-164, MoKa 11-12 "1번 2번 진행해줘", docs/tick-vs-fsm-review-2026-11-12.md §4-②) ──────────
+#  P-164 (20261111_235422): 떼어놓기 걷기 동안 다른 규칙 0 (막기·반사·에스트 포함), 점마다 2.5 s뿐 전체 마감 없음, 끝나면 두 적이
+#  0.8 m에 붙은 채로 'arrived'(거짓 성공) → 152.7–157 s HP 583 → 0. 값은 모두 [제안] — 측정 전
+SEP_DEADLINE = 4.0       # the whole walk (SEP_RUN 5 m at walking ~1.6 m/s ≈ 3 s, + 1 s) — then stop and let the rules act
+SEP_HP_ABORT = 0.15      # stop the walk once this share of max HP is lost during it (being hit while walking off)
+PIN_R = 1.5              # at the end, this many m: a foe this close is still "on us"
+SEP_PINNED_N = 2         # … and this many such foes (the pair we tried to split) = the split failed → 'pinned', not 'arrived'
+HOLD_LOG_S = 1.0         # record any rule call that held the pad at least this long ('rule_hold' event, review §4-①)
 SEP_ESCAPE = True        # no straight-line spot → back off along the NavMesh toward where the foes are not (souls/escape.pick) —
                          # 74 of 112 splits in data/samples ended 'no_spot' and stood there (10-11 video review, 10-03e stairs 255000 ×2)
 SEP_ESCAPE_M = 7.0       # … walking at most this much of its path
@@ -389,13 +397,37 @@ def _separate(mv, s, ptr, others: list, nm, arena, cancel, trail=None) -> str:
         if not way:
             return "no_spot"
         how = "escape_"
-    r = mv.walk_path(way, nm, "walk", stop=lambda sn: cancel(), timeout_per=2.5)   # run → walk (evidence-grade gate, 2026-09-26)
+    t0, hp0, mhp = time.time(), p.hp or 0, p.max_hp or 0
+    why = {}
+
+    def stop(sn):                                          # executor: cancel · overall deadline · hit while walking (P-164)
+        if cancel():
+            return True
+        if time.time() - t0 > SEP_DEADLINE:
+            why["stop"] = "deadline"
+            return True
+        if mhp and hp0 - (sn.player.hp or 0) >= SEP_HP_ABORT * mhp:
+            why["stop"] = "hp"
+            return True
+        return False
+    r = mv.walk_path(way, nm, "walk", stop=stop, timeout_per=2.5)   # run → walk (evidence-grade gate, 2026-09-26)
     mv.guard(True)
     s2 = mv.snap(10.0)
     c2 = mv.find(s2, ptr) if s2 else None
     if c2 is not None:
         mv.face(s2, c2, deg=20.0)
+    if why.get("stop") and r == "stopped":
+        r = why["stop"]                                    # 'deadline' / 'hp' instead of a bare 'stopped'
+    if s2 is not None and _pinned(s2) >= SEP_PINNED_N:
+        return how + "pinned"                              # honest result: the pair is still on us, whatever the walk said
     return how + r
+
+
+def _pinned(s) -> int:
+    """Awake hostile foes within PIN_R at our level (the split's check at its end, P-164)."""
+    p = s.player
+    return sum(1 for x in s.hostile(PIN_R + 1.0) if x.hp > 0 and M.horiz(p, x) < PIN_R and abs(x.y - p.y) < 2.0
+               and not (9000 <= (x.anim or 0) < 9100))
 
 
 def _escape_way(s, nm, here, trail) -> list:
@@ -1178,6 +1210,11 @@ def rule_separate(F, T):
         F.log(f"      떼어놓기 {F.sep_n}: {T.c.npc_param}({T.h:.1f} m) + " + ", ".join(f"{x.npc_param}({M.horiz(T.p, x):.1f} m, {x.anim})" for x in pair)
               + f" → {r}")
         F.note(f"떼어놓기:{r}", T.s, T.c)
+        ev = getattr(F, "events", None)                    # (a Fight made without __init__ — scene_replay — has none)
+        if ev is not None and r != "no_spot":
+            ev("separate", npc=T.c.npc_param, n=F.sep_n, result=r)
+        if r.endswith("pinned"):
+            F.sep_n = SEP_MAX                              # the split failed with both still on us — don't walk off again this fight
         if r != "no_spot":
             return CONT
     return None
@@ -2920,6 +2957,21 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
         sp.end(res)
 
 
+def _record_hold(F, T, name: str, secs: float) -> None:
+    """A rule call that held the pad ≥ HOLD_LOG_S (no other rule ran meanwhile): what it was, how long, HP and foes on us
+    before / after — 'rule_hold' event + a log line (review §4-①: "152–157 s 동안 무엇이 패드를 쥐었나"). Record only, never raises."""
+    try:
+        s2 = F.mv.snap(10.0)
+        p2 = s2.player if s2 is not None else None
+        F.events("rule_hold", rule=name, secs=round(secs, 2), hp0=T.p.hp, hp1=getattr(p2, "hp", None),
+                 on0=_pinned(T.s), on1=_pinned(s2) if s2 is not None else None,
+                 npc=getattr(T.c, "npc_param", None))
+        F.log(f"      ({name} {secs:.1f} s 동안 다른 규칙 없음 · HP {T.p.hp} → {getattr(p2, 'hp', '?')} · "
+              f"붙은 적 {_pinned(T.s)} → {_pinned(s2) if s2 is not None else '?'})")
+    except Exception:
+        pass
+
+
 def _duel_loop(F, rr, advisor, tap, sp) -> DuelResult:
     """duel()'s while loop. sp: ctlspan.Fight or None — its calls only write records."""
     while True:
@@ -2957,12 +3009,15 @@ def _duel_loop(F, rr, advisor, tap, sp) -> DuelResult:
             tok = tap.freeze(F, T) if tap is not None else None
             if sp is not None:
                 sp.rule_enter()
+            t_rule = time.time()
             out = rule(F, T)
             if out is None:
                 if sp is not None:
                     sp.rule_none(rule.__name__.removeprefix("rule_").removeprefix("prep_"))
                 continue
             name = picked = rule.__name__.removeprefix("rule_").removeprefix("prep_")
+            if time.time() - t_rule >= HOLD_LOG_S:
+                _record_hold(F, T, name, time.time() - t_rule)
             if sp is not None:
                 sp.rule_return(name, out)
             F.res.rules[name] = F.res.rules.get(name, 0) + 1

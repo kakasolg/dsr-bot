@@ -102,3 +102,24 @@ P-164 (run 20261111_235422): 두 적이 0.8–1.3 m에 붙은 채 152.7–157 s�
 
 전체 성공 기준 (게임): v2.0 완료 기준 그대로 (클레이모어 세이브, 지금 3번: burg-upper ≥ 2/3, 타우로스 ≥ 1/3, 사망만 실패, 회수 없음
 — M1111-36~41), 거기에 **판단 공백 최대치**(blind_report)와 **거짓 성공 0**(동작 결과가 끝난 뒤 세계와 맞는지)을 같이 봄.
+
+---
+
+## 5. 만든 것 (MoKa 11-12 "1번 2번 진행해줘")
+
+**①  기록 — `rule_hold` (행동 안 바뀜).** `duel._duel_loop`가 규칙 호출마다 시간을 재고, 한 번에 `HOLD_LOG_S` 1.0 s 넘게 패드를 쥔 규칙은
+`rule_hold` 이벤트 (규칙 · 초 · HP 전/후 · 1.5 m 안 붙은 적 수 전/후 · 그놈 npc) + 로그 줄 "(규칙 N s 동안 다른 규칙 없음 …)".
+P-164 같은 실행에서 "무엇이 몇 초 패드를 쥐었나"가 한 줄로 나옴. 연습장 아레나 1번 (헤드리스): 14건 — 휘두름 끝 공격 4 · 에스트 4 ·
+공격 3 · 다가가기 2 · 떼어놓기 1 (1.2–2.6 s).
+
+**②  떼어놓기 실행기 — `duel._separate`.** 걷기 멈춤 조건에 (a) 전체 마감 `SEP_DEADLINE` 4.0 s → 결과 `deadline`, (b) 걷는 동안 최대 HP의
+`SEP_HP_ABORT` 15 % 잃으면 → `hp` 를 더함 (예전: `cancel()`뿐, 점마다 2.5 s). 끝에 1.5 m (`PIN_R`) 안 적이 2 (`SEP_PINNED_N`) 이상이면
+걷기가 뭐라 했든 **`pinned`** (P-164의 거짓 성공). `rule_separate`는 `pinned`면 이 싸움에서 더 떼어놓지 않음 (`sep_n = SEP_MAX`) —
+다음 틱부터 다른 규칙 (`rule_low_sip` · 막기 · 구르기)이 돎. `separate` 이벤트 (결과). 값은 모두 [제안], 측정 전.
+
+검증: `tests/separate_exec_test.py` (가짜 세계: 마감 · HP · pinned · 깨끗한 도착 · 한 놈만 붙음 · rule_hold 이벤트), golden · 장면 ·
+scene_replay · counter_trace 변화 없음 (golden·장면은 `_separate`를 가짜로 바꿔 돌리므로 이 실행기는 그쪽 테스트에 안 닿음),
+전체 오프라인 181 중 180 통과 (ground_test P-97). 연습장 1번: 떼어놓기 1번 `arrived` (붙은 적 1 → 0). 게임 미확인 — 특히
+`pinned` 갈래는 연습장에서도 안 나옴.
+
+그 김에: `tests/merchant_trip_test.py` ([win] P-172)가 cloud에서 게임 폴더 NavMesh를 읽다 멈춰서, `loot_test`처럼 오프라인 NavMesh를 씀.

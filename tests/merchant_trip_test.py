@@ -9,6 +9,8 @@ _sys.path.insert(1, str(_pl.Path(__file__).resolve().parent))
 from types import SimpleNamespace
 
 from souls import missions as MS
+import motion
+MS._VOID_NM = motion.load_navmeshes()[MS.MAP_A]            # _route's void check reads the offline NavMesh, not the game folder (as loot_test)
 
 top, route, R = MS._route()
 
