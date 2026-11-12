@@ -2724,3 +2724,15 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
   상황으로 보고 바꾸지 못함(M1111-71/72).
 - 수정(andre_route.py, 게임 확인 전): clear의 fight는 6 s씩만, HP 55 % 미만 + 3 m 안 적 → 적 반대쪽 두 번 구르고 에스트.
   Field.fight의 떼어놓기 뒤 정지는 저장소 코드 문제로 남김(아직 안 고침).
+
+### P-165 Plaza soldiers above Andre ignored the stair-top lure (11-12, M1111-82)
+- **Symptom:** `andre_route.py --plaza3`, run 20261112_022802: from the plaza stair top (42.2, 26.6, 107.0), about 12 m from the
+  nearest soldier, the bot showed itself 5 times and went back to the stair foot. None of the three soldiers moved: their
+  distance from the foot stayed 20.8 / 21.4 / 25.7 m. Retry 023142, stepping one point closer each pass (37.8 → 35.4 → 33.0):
+  at 35.4 one 255041 followed and died at the foot (0 taken). 255042 (30.3, 113.4) showed an animation at 33.0 but did not
+  follow, and 255041 (26.2, 100.0) never reacted. Run 023503 (`plaza_go`) walked to each and killed both: 255042 took 89
+  from me after a shield bounce + light; 255041 0 taken. HP 849 → 671 overall, estus unused, souls 2800 → 3040.
+- **Cause (observed, not proven):** these two hold their post. They wake only within a few metres, or not until struck. The
+  first 89 damage came during the walk to 255042 (before 111.6 s), source not split out.
+- **Fix:** `plaza_rounds` steps the lure spot closer each pass (`LURE_SPOTS`). `plaza_go` walks to the remaining ones one at a
+  time, nearest first. Checked in this one run only; the walk timeouts at (32.9, 112.6) and (27.0, 102.8) are NEW hotspots.

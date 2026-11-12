@@ -30,6 +30,16 @@ L = missions.SPOTS["altar-lever"]
 #  ALTAR_GATE_OPEN 11010621 — 제단 레버 1011120/게이트 1011121, 켜지면 열린 채 고정. 백업 181431 False · 시도 4 뒤 True.
 #  GATE2_CLOSED 61010610 — 아래 계단 위 게이트 1011101 (7.9, 19.8, 40.4), 켜짐 = 닫힘(애니 2 + 내브메시 1013100 막음).
 #   영역 1012200에 들어오면 병사 6010이 레버 1011100으로 닫음(Event 11015116/11010609). MoKa가 말한 게이트인지는 가설 → 기록만.
+# 안드레 → 교구 광장 병사 3 (MoKa M1111-82 "몹 3마리 있는데 가서 3마리 처치 하고 대기"): 11-12 메모리 255041 (30.5, 26.6, 103.3) ·
+#  255042 (30.3, 26.6, 113.4) · 255041 (26.2, 26.6, 100.0). 10-19 녹화(안드레 화톳불 → 광장)를 따라 광장 계단 밑(점 17)까지 가서,
+#  계단 위(점 19)에서 보이고 내려와 계단 밑에서 하나씩 (M1111-61 끌어내기 원칙). 대장간 → 화톳불 계단 = MoKa 11-11 걸음(거꾸로).
+STAIR_FOOT = (50.6, 21.5, 107.5)
+STAIR_TOP = (42.2, 26.6, 107.0)
+# 11-12 1차 (plaza3): 계단 위(병사까지 ~12 m)에서 보이기 5번 — 아무도 안 깸 (남은 적 거리 21 m 그대로). 보이는 자리를
+#  한 번에 한 칸씩 광장 쪽으로 (10-19 녹화 점 19 → 20 → 21), 깬 놈(애니 바뀜·다가옴)이 있으면 바로 계단 밑으로
+LURE_SPOTS = [STAIR_TOP, (37.8, 26.6, 107.2), (35.4, 26.6, 107.4), (33.0, 26.6, 107.7)]
+PLAZA = (32.0, 26.6, 107.0)
+FORGE_UP = [(88.3, 5.4, 106.8), (89.9, 5.4, 104.8), (91.4, 5.4, 103.2), (92.1, 5.4, 104.0)]
 ALTAR_GATE_OPEN = 11010621
 GATE2_CLOSED = 61010610
 
@@ -269,8 +279,81 @@ class Route:
         s = self.state("drop")
         return "landed" if s and s.player.y < 17.5 else "not dropped"
 
-    def run(self, first=0):
-        steps = [
+    def plaza_left(self):
+        """Live hostiles on the plaza level (y > 24) within 22 m of the plaza — the soldiers MoKa means."""
+        s = self.mv.snap(90.0)
+        return [c for c in s.hostile(90.0) if c.hp > 0 and c.y > 24.0 and math.dist((c.x, c.y, c.z), PLAZA) < 22.0] if s else []
+
+    def plaza_rounds(self):
+        """Show at the stair top, back to the foot, fight there; up to 5 rounds until nobody is left on the plaza."""
+        n = 0
+        for k in range(5):
+            left = self.plaza_left()
+            self.say(f"  광장 남은 적 {[(c.npc_param, round(c.dist, 1)) for c in left]}")
+            if not left:
+                return f"cleared {n}"
+            spot = LURE_SPOTS[min(k, len(LURE_SPOTS) - 1)]
+            d0 = {c.ptr: c.dist for c in left}
+            r = self.walk([spot], f"보이기 {k + 1} ({spot[0]:.1f}, {spot[2]:.1f})")
+            if r == "dead":
+                return "dead"
+            time.sleep(1.2)
+            s = self.mv.snap(30.0)
+            woke = [c.npc_param for c in s.hostile(30.0) if c.ptr in d0 and c.anim not in (None, -1, 0)] if s else []
+            self.say(f"  보이기 {k + 1}: 깬(애니) {woke}")
+            r = self.walk([STAIR_FOOT], "계단 밑으로")
+            if r == "dead":
+                return "dead"
+            r = self.clear(7.0, 8.0, "계단 밑", center=STAIR_FOOT)
+            if r == "dead":
+                return "dead"
+            if isinstance(r, str) and r.startswith("cleared"):
+                n += int(r.split()[1]) if r.split()[1:] and r.split()[1].isdigit() else 0
+            self.heal_if(0.6)
+        left = self.plaza_left()
+        return f"cleared {n}" if not left else f"left {len(left)}"
+
+    def plaza_go(self):
+        """Soldiers that stay on their post (11-12: 255042 at the crossbow spot and 255041 by the plaza steps never followed
+        five lures) — walk to each, nearest first, and fight it there. One at a time: the next only after the last is dead."""
+        n = 0
+        for k in range(4):
+            left = self.plaza_left()
+            if not left:
+                return f"cleared {n}"
+            s = self.mv.snap(40.0)
+            c = min(left, key=lambda c: c.dist)
+            p = s.player
+            d = max(c.dist, 0.1)
+            goal = (c.x + (p.x - c.x) / d * 3.0, c.y, c.z + (p.z - c.z) / d * 3.0)
+            self.say(f"  다가감 {k + 1}: {c.npc_param} ({c.x:.1f}, {c.z:.1f}) {c.dist:.1f} m")
+            r = self.walk([goal], f"{c.npc_param} 앞으로")
+            if r == "dead":
+                return "dead"
+            r = self.clear(6.0, 5.0, f"광장 {c.npc_param}")
+            if r == "dead":
+                return "dead"
+            if isinstance(r, str) and r.startswith("cleared") and r.split()[1:] and r.split()[1].isdigit():
+                n += int(r.split()[1])
+            self.heal_if(0.6)
+        left = self.plaza_left()
+        return f"cleared {n}" if not left else f"left {len(left)}"
+
+    def plaza3_steps(self):
+        import json
+        pts = [tuple(q) for q in json.load(open("data/routes/new-route-20261019.json", encoding="utf-8"))["points"]]
+        dem = [tuple(q) for q in json.load(open("data/routes/andre-demon-20261111.json", encoding="utf-8"))["points"]]
+        up = FORGE_UP + list(reversed(dem[:28])) + [ANDRE_STAND]
+        return [
+            ("forge_up", lambda: self.walk(up, "대장간 → 화톳불 (MoKa 계단 걸음 거꾸로)")),
+            ("to_stair_foot", lambda: self.walk(pts[1:18], "화톳불 → 광장 계단 밑")),
+            ("heal", lambda: (self.heal_if(0.7), "ok")[1]),
+            ("plaza3", self.plaza_rounds),
+            ("plaza_go", self.plaza_go),
+        ]
+
+    def run(self, first=0, plan="altar"):
+        steps = self.plaza3_steps() if plan == "plaza3" else [
             ("lever", self.lever),
             ("gate", lambda: self.walk([(5.9, 16.0, -4.6), (6.9, 16.0, 0.6)], "게이트 안 (첫 적)")),
             ("stairs", lambda: self.walk([(10.2, 16.0, 4.7), (13.5, 16.4, 8.7), (13.9, 18.1, 13.5), (15.3, 20.7, 17.7),
@@ -322,12 +405,16 @@ class Route:
                     redo += 1
                     self.say(f"  {name}: 아래층으로 떨어짐 (y {s.player.y:.1f}) — 사다리 1부터 다시 ({redo}/2)")
                     i = names.index("to_ladder1"); continue
+                if name == "plaza3" and isinstance(r, str) and r.startswith("left"):
+                    r = "ok"
                 ok = r in ("arrived", "done", "ok", "pulled", "landed", "rested", "gate open") or (isinstance(r, str) and r.startswith("cleared"))
                 if not ok:
                     result = f"stopped at {i} {name}: {r}"; break
                 i += 1
             s = self.mv.snap(10.0)
-            if result == "ok" and s:
+            if result == "ok" and s and plan == "plaza3":
+                result = f"plaza3 done, plaza foes left {len(self.plaza_left())}, HP {s.player.hp}, estus {self.mv.estus_left()}"
+            elif result == "ok" and s:
                 d = math.dist((s.player.x, s.player.y, s.player.z), TARGET)
                 d2 = math.dist((s.player.x, s.player.y, s.player.z), ANDRE_STAND)
                 result = f"rested at Andre (d {d2:.1f} m)" if d2 < 3 else (f"reached (d {d:.1f} m)" if d < 5 else f"ended {d:.1f} m from target")
@@ -351,4 +438,5 @@ class Route:
 
 
 if __name__ == "__main__":
-    Route().run(int(sys.argv[1]) if len(sys.argv) > 1 else 0)
+    a = [x for x in sys.argv[1:] if not x.startswith("--")]
+    Route().run(int(a[0]) if a else 0, "plaza3" if "--plaza3" in sys.argv else "altar")

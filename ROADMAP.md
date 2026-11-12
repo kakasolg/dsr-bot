@@ -251,10 +251,11 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 155 | start-up swing → merchant killed | open |
 | 157 | probe: ZW 2H R1 bounce = side wall; spot by hand | open |
 | 159 | Andre: timeout cut | open |
-| 160 | Andre: idle seg, boar | open |
-| 161 | plaza 1: drop hit | open |
-| 162 | plaza 2: ladder fall | open |
-| 164 | plaza 4: pinned by 2 | open |
+| 160 | idle seg, boar | open |
+| 161 | drop hit | open |
+| 162 | ladder fall | open |
+| 164 | pinned by 2 | open |
+| 165 | plaza: lure ignored | open |
 
 ## 5. Relay — [cloud] ↔ board
 
