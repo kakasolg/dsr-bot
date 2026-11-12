@@ -26,6 +26,12 @@ ANDRE_STAND = (88.46, 14.97, 106.96)   # spots.json andre-bonfire (sitting_verif
 FOG = (0.7, 27.6, 37.1)
 HOLLOWS = {255040, 255041, 255042, 250050, 250053, 349002}
 L = missions.SPOTS["altar-lever"]
+# 게이트 상태 (MoKa M1111-70/71/77 — '닫혀 있으면 상태값 읽어서 연다'). soulstruct vanilla m10_01_00_00.evs.py + 세이브 비교 (11-12):
+#  ALTAR_GATE_OPEN 11010621 — 제단 레버 1011120/게이트 1011121, 켜지면 열린 채 고정. 백업 181431 False · 시도 4 뒤 True.
+#  GATE2_CLOSED 61010610 — 아래 계단 위 게이트 1011101 (7.9, 19.8, 40.4), 켜짐 = 닫힘(애니 2 + 내브메시 1013100 막음).
+#   영역 1012200에 들어오면 병사 6010이 레버 1011100으로 닫음(Event 11015116/11010609). MoKa가 말한 게이트인지는 가설 → 기록만.
+ALTAR_GATE_OPEN = 11010621
+GATE2_CLOSED = 61010610
 
 
 class Route:
@@ -64,7 +70,12 @@ class Route:
             self.say(f"[{tag}] no snapshot"); return None
         p = s.player
         near = sorted((round(c.dist, 1), c.npc_param, c.hp) for c in s.chars if c.hp > 0 and c.npc_param != 100000 and c.dist < 20)[:7]
-        self.say(f"[{tag}] {time.strftime('%H:%M:%S')} pos ({p.x:.2f}, {p.y:.2f}, {p.z:.2f}) HP {p.hp} estus {self.mv.estus_left()} near {near}")
+        g1, g2 = self.tm.event_flag(ALTAR_GATE_OPEN), self.tm.event_flag(GATE2_CLOSED)
+        self.say(f"[{tag}] {time.strftime('%H:%M:%S')} pos ({p.x:.2f}, {p.y:.2f}, {p.z:.2f}) HP {p.hp} estus {self.mv.estus_left()} "
+                 f"gate altar_open={g1} gate2_closed={g2} near {near}")
+        if g2 != getattr(self, "_g2", g2):
+            self.say(f"  ⚑ 두 번째 게이트 플래그 {GATE2_CLOSED}: {self._g2} → {g2} (pos ({p.x:.1f}, {p.y:.1f}, {p.z:.1f}))")
+        self._g2 = g2
         return s
 
     def dead(self):
@@ -191,6 +202,22 @@ class Route:
 
     # ── steps ──
     def lever(self):
+        g = self.tm.event_flag(ALTAR_GATE_OPEN)
+        self.say(f"  lever: 제단 게이트 플래그 {ALTAR_GATE_OPEN} = {g}")
+        if g is True:
+            return "gate open"          # 한 번 열면 안 닫힘 (MoKa M1111-77) → 레버로 안 감
+        if g is None:
+            self.say("  lever: 플래그 못 읽음 → 안내·걷기로 판단 (예전 방식)")
+        r = self._pull_lever()
+        if r == "pulled":
+            time.sleep(1.0)
+            g2 = self.tm.event_flag(ALTAR_GATE_OPEN)
+            self.say(f"  lever: 당긴 뒤 플래그 {ALTAR_GATE_OPEN} = {g2}")
+            if g2 is False:
+                return "pulled but flag off"
+        return r
+
+    def _pull_lever(self):
         ap, st = tuple(L["approach"]["stand"]), tuple(L["stand"])
         lv = L["objact"]["pos"]
         self.mv.walk_path([ap], self.nm, tol=0.3, timeout_per=10)

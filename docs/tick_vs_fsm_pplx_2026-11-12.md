@@ -186,3 +186,63 @@ Don't find flags by toggling them on the normal save.
 - `field.FOG_WALLS` is a static list: it knows where fogs are, not whether they're up now.
 - The altar lever / gate pair fits as the first case: lever already in `missions.SPOTS["altar-lever"]`; save backup 181431 =
   not pulled. MoKa M1111-15 also says a hollow closes a door on the way to the parish, which would be the reversible-door case.
+
+## Follow-up 2: repo-aware (Perplexity reads kakasolg/dsr-bot at df3184b; 01:0x, MoKa M1111-76/77)
+Perplexity has the repo connected (MoKa 11-12). It asked about the actual code: P-164 in `souls/duel.py` / `souls/field.py` /
+`andre_route.py`, and the gate flags in the vanilla m10_01 script. It said its file reads were cut short: it did not see the
+full `RULES`, `rule_separate` or `Field.fight` bodies, nor the gate events. It said what it could not confirm.
+
+**P-164: its candidates, in the order it would check them:**
+1. **The whole lethal stretch was inside `_separate()` → `Moves.walk_path()`** (its strongest candidate). `_separate` walks
+   synchronously with only `cancel()` as the stop and `timeout_per=2.5` per point, not a total deadline. No other rule can
+   run until it returns. The "떼어놓기 … escape_arrived" line, the 14.1 s status and `me_dead` share one timestamp (158.2),
+   so the "5 s idle after separation" was probably still the separation walk. *Checked here against the track:* from
+   152.7 to 157 s the player stood at (0.7, 38.5) with two foes at 0.8–1.3 m, HP 429 → 0. That is consistent with walking
+   blocked inside the escape, not proven.
+   Fix: a total deadline plus an emergency abort (HP drop, close pressure, death) checked inside the walk.
+2. **The fight came from clear()'s return walk.** The tag "따라온 놈 back" = `walk_to(center)` met a follower and started
+   its own fight. clear()'s low-HP logic can't run until that nested walk/fight returns.
+   Fix: one absolute deadline passed down to nested walks and fights, or the return walk hands control back on contact.
+3. `limit=6.0` is checked between actions, not pre-emptive. A long walk or a nested fight can run past it. (That patch was
+   made after P-164 and is not game-checked.)
+4. **`_separate()` reports movement success, not separation success.** No check after the walk that the two foes are apart.
+   Fix: add `separation_result` from the after-snapshot and don't repeat the same escape in the same situation.
+   `_pair_close()` can't be the success check as is (it returns empty when a foe is attacking).
+5. The entry check (no foe in an attack anim) isn't repeated during the walk. 3500–3599 = stagger, not attack.
+6. Estus can be refused legally next to two foes (`OPEN_R` 3.0, `SAFE_R` 6.0, `LAST_SIP_R` 3.5). 10 unused Estus is
+   not proof of a bug. The new roll × 2 + heal can still be refused. Log the refusal reason and don't log "마심" until
+   the count drops.
+7. Rule starvation (`rule_hit_first`, `rule_stagger_punish`, `rule_attack` conditions) only matters once the trace shows
+   ticks actually ran in that stretch.
+
+It proposed narrow regression tests:
+- separation walk overruns while HP drops → control returns in time
+- arrival with both foes adjacent → not "separated"
+- stagger turns into an attack mid-walk → re-check
+- clear()'s return walk meets a foe → same deadline
+- roll + heal gets no opening → no false "drank"
+
+It noted `Moves._span` / ctlspan records already bracket blocking moves.
+
+**Gates: it did not confirm any id (cut-off reads). Checked here instead** (`.venv` soulstruct
+`darksouls1ptde/events/vanilla/m10_01_00_00.evs.py` + `data/gamefiles/m10_01_00_00.json` + live flag reads):
+- **Sunlight Altar gate:**
+  - Lever 1011120 (o1200_1001, obj_act 11010620) and gate 1011121 (o1201_1001, (19.0, 9.4, −21.9)).
+  - Event 11010621: when its flag is on, the gate is set to its open end anim 4 and the lever is disabled. So it is open for
+    good, as MoKa said.
+  - **Flag 11010621:** False in backup 181431 (lever not pulled), True after try 4 pulled it. Checked by script + two save
+    states. Not checked against the screen.
+- **Second gate:**
+  - Gate 1011101 (o1201_1000, (7.9, 19.8, 40.4)) and lever 1011100 ((2.9, 19.8, 42.3)), above the lower stairs.
+  - State flag **61010610**: on → closed anim 2 and navmesh face 1013100 disabled (Constructor and Event 11010600).
+  - Event 11015116: player in region 1012200, gate open, 11010607 off → 11015115 on → Event 11010609 activates lever 1011100.
+    Soldier 6010 (c2550, starts (4.7, 17.8, 24.9)) is tied to the lever by 11010607.
+  - Live: False in backup 181431, True after try 4 (which died at the lower stairs).
+  - Whether this is the gate MoKa meant ("closes even when invisible, reopens after clearing from Andre's bonfire") is a
+    hypothesis: position fits, reopening condition not traced.
+- **Fog walls:**
+  - `Event_11010090` slots: slot 0 obj 1011700 → flag 11010090 (already `field.FOG_FLAGS`); slot 1 obj 1011702 → its
+    slot flag (likely 11010091, not checked).
+  - `andre_route` appends the parish fog (0.7, 27.6, 37.1) to `FOG_WALLS` without a `FOG_FLAGS` entry. Missing mapping.
+- **Existing door flags:** `field.DOOR_FLAGS` already maps 4 Burg doors to (record flag, state flag), e.g. 1011310 →
+  (11010140, 61010510). Lever gates are not in it yet.
