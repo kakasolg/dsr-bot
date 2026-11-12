@@ -2783,3 +2783,17 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
 - **Walk-in hit:** one hit on 3200/3210 when within 2.9 m.
 - **Fight area:** back-off directions that leave the plaza box (x 20.5–36.5, z 101–114, a guess) get a score penalty.
 - **Checks so far:** `tests/knight_try_test.py` (11) checks the pure `decide()` against the demo scenes. Nothing yet shows the bot's walking speed (WALK_MPS 2.0 is a guess), the aggro from LURE, or the knight's response in game.
+
+### P-168 Heavy knight try 3 (11-12 065353): the knight never noticed the bot, so there was no fight, and the bot timed out
+- **Command:** knight_try.py v3 (M1111-88) after a restore to 025343 (HP 671 → one Estus → 849).
+- **What happened:**
+  - The bot reached LURE (23.8, 28.2, 108.3), after 1 stall of 2 s on the way at (26.8, 105.1).
+  - The knight 257001 stayed idle at 17 m (anim −1).
+  - After BAIT_AFTER_S (12 s) the bot walked straight at him with the stick (`stick_to`, no NavMesh path). It went from 16.2 m to 10.84 m by about 27 s, then stood stuck at 10.84 m until the 150 s limit.
+  - End position (17.9, 28.4, 111.0), at the church door. Nothing hit anyone, HP 849.
+  - The bot was stopped in its wait-guard loop. No foe was engaged; a c3490 was at 3.9 m. Andre 1321/1322 False.
+- **Cause (hypothesis):**
+  - The straight-line stick walk got stuck at the door frame.
+  - At 10.8 m, from where the bot stood, the knight did not notice it (heading 0 = facing +z, away from the door side).
+  - MoKa's demos: the knight was already out by the door when the recording started (06-25 demo), or came out about 8.6 s after MoKa stood at LURE (06-28 demo). What MoKa did before the recording started is not recorded.
+- **Next (not built):** bait with a NavMesh walk (`self.walk`) toward the knight's front until he reacts (anim ≠ −1 or he moves), then go back to LURE. Solved = the knight comes out onto the plaza and the duel rules get to run.

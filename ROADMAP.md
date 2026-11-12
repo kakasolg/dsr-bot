@@ -256,8 +256,9 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 162 | ladder fall | open |
 | 164 | pinned by 2 | open |
 | 165 | lure ignored | open |
-| 166 | knight: wall rolls, died | open |
-| 167 | knight 2: 0 dealt; v3 built | open |
+| 166 | knight 1 died | open |
+| 167 | knight 2: 0 dealt | open |
+| 168 | knight 3: no aggro | open |
 
 ## 5. Relay — [cloud] ↔ board
 
