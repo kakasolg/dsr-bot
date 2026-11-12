@@ -2736,3 +2736,30 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
   first 89 damage came during the walk to 255042 (before 111.6 s), source not split out.
 - **Fix:** `plaza_rounds` steps the lure spot closer each pass (`LURE_SPOTS`). `plaza_go` walks to the remaining ones one at a
   time, nearest first. Checked in this one run only; the walk timeouts at (32.9, 112.6) and (27.0, 102.8) are NEW hotspots.
+
+### P-166 Heavy knight 257001 in the parish church: died on the first try (11-12, M1111-85)
+- **Run:** `knight_try.py 257001`, 20261112_030049 (sample `…_knight-try`, tick log `.knight.jsonl`). Start HP 671/849,
+  estus 10, Claymore +5. Died at 44 s, never drank. Souls 3040 → bloodstain in the church; respawned at Andre's bonfire.
+- **Observed (tick log, game anim + anim_time):**
+  - The knight chains attacks: 3000 (0.57 → 3.32 s) → 3003 (cut at 1.87 s) → 3004 back to back. 9910 / 9920 = short
+    anims (0.3 s) before he moves or attacks.
+  - Rolls at window − 0.6 s against 3000 / 3003 / 3004 at 4 m: 0 damage taken. No hit back: the next attack started
+    before the bot closed the 3–5 m.
+  - The rolls for 3004 / 3007 / 3002 / 3002 did not move (`got None`). NavMesh: the spot (14.6, 29.3, 114.6) is 0.3 m from
+    the wall, (16.9, 29.3, 117.2) 0.66 m, and 1–4 m "away from the knight" is off the mesh. The bot rolled into the church
+    wall.
+  - 3007 hit at d 1.4–2.2 (671 → 502, my anim 2053).
+  - One light hit in 3002's recovery (at 1.63 s, d 1.78): dealt 64 (Claymore +5 light ≈ 64 of 372 → about 6 hits), took
+    445 at anim_time 3.13 (502 → 57). The anim id stayed 3002 up to 5.0 s, so a follow-up attack under the same id is likely.
+  - HP 57: `Field.heal` refused (foe within its safe radius, not "desperate") and the loop called it again with no wait
+    (hundreds of `heal` lines). The next 3002 killed me.
+- **Causes:**
+  - (1) Roll direction = straight away from the knight, with no floor/wall check. The 6 m approach spot was set against
+    the wall.
+  - (2) Attack chains: "after the window, step in" assumed one attack per anim.
+  - (3) The heal refusal had no fallback (roll out first / drink anyway).
+- **Next (not done):**
+  - Roll toward open floor (NavMesh), sideways when the back is a wall.
+  - Punish only after a chain ends (anim_time past the last window and no new attack id), or bait one attack from 4 m.
+  - Heal: roll out to > 5 m, then drink.
+  - Read 3002's later window (3.1 s?) from TAE.
