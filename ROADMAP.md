@@ -262,6 +262,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 169 | knight 3b: died in church | open |
 | 170 | knight 3c: 25 rolls, 2 hits | open |
 | 171 | LURE walk stalls (26.8, 105.1) | open |
+| 172 | merchant cmd skips ramp clear, HP 12% | open |
 
 ## 5. Relay — [cloud] ↔ board
 

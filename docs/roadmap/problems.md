@@ -2850,3 +2850,8 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
 - **Cause (hypothesis):** the first walk has no NavMesh path (plan 0 m) from the save spot (26.9, 102.7) to LURE, which is up the stair foot (y 26.6 → 28.2). It goes straight and hits the stairs.
 - **Effect:** about 3 s lost; no damage. The bot recovered every time, but this is a repeated stall, so it gets an entry.
 - **Next (not built):** add a waypoint at the stair foot, or start the walk from the turn-back path.
+
+### P-172 `run.py merchant` skips the ramp clear → 3 foes chase up the ramp, HP 12% (2026-11-12 `074631`)
+- Symptom: from Firelink, `run.py merchant` walked up the ramp ("꼭대기로") with 254000/254001/255010 following; 3 at once, HP 849 → 100 (lowest 12%), 9 big hits −1213. Recovered (kick+light, backstab, Estus), reached the merchant at 331 s; bought 292 ×99 after.
+- Cause: `merchant` calls `to_merchant()` only; `burg-bonfire --seg 1-5` (the procedure that worked, 10-12, 0 deaths) runs `pass_ramp()` first. MoKa: "가라고 해도 차례대로 죽이면서 가야지" (M1112-02); survival came from Claymore +5, not the route (M1112-03).
+- Next: use `burg-bonfire --seg 1-5 --buy` for merchant trips; whether `merchant` itself should call `pass_ramp()` first = MoKa.
