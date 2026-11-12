@@ -40,6 +40,11 @@ STAIR_TOP = (42.2, 26.6, 107.0)
 LURE_SPOTS = [STAIR_TOP, (37.8, 26.6, 107.2), (35.4, 26.6, 107.4), (33.0, 26.6, 107.7)]
 PLAZA = (32.0, 26.6, 107.0)
 FORGE_UP = [(88.3, 5.4, 106.8), (89.9, 5.4, 104.8), (91.4, 5.4, 103.2), (92.1, 5.4, 104.0)]
+# 안드레 적대 (MoKa M1111-83 "안드레이 적대적이면 세이브 리스토어 해야해"): soulstruct vanilla m10_01_00_00.evs.py
+#  Event_11010510(character=6190, flag=1321) — 플레이어가 때려 HP ≤ 90 %면 1321 켜고 팀을 HostileAlly로, SaveRequest.
+#  Event_11010520 — 죽으면 1320..1339 끄고 1322. 11-12 읽음: 1320 True · 1321 False · 1322 False (적대 아님).
+#  켜지면 단계를 멈추고 대기 가드도 안 함 → 백업 복원 (복원 자체는 사람/세션이 함 — 어느 백업인지 고르는 일이라)
+ANDRE_HOSTILE, ANDRE_DEAD = 1321, 1322
 ALTAR_GATE_OPEN = 11010621
 GATE2_CLOSED = 61010610
 
@@ -86,7 +91,18 @@ class Route:
         if g2 != getattr(self, "_g2", g2):
             self.say(f"  ⚑ 두 번째 게이트 플래그 {GATE2_CLOSED}: {self._g2} → {g2} (pos ({p.x:.1f}, {p.y:.1f}, {p.z:.1f}))")
         self._g2 = g2
+        a = self.andre_bad()
+        if a:
+            self.say(f"  ⚑ 안드레 {a} (플래그 {ANDRE_HOSTILE}/{ANDRE_DEAD}) — 세이브 복원 필요 (MoKa M1111-83)")
         return s
+
+    def andre_bad(self):
+        """'hostile' / 'dead' when Andre's event flag says so (1321 / 1322), else None."""
+        if self.tm.event_flag(ANDRE_DEAD):
+            return "dead"
+        if self.tm.event_flag(ANDRE_HOSTILE):
+            return "hostile"
+        return None
 
     def dead(self):
         return not self.f.alive()
@@ -399,6 +415,8 @@ class Route:
                 self.state(name)
                 if self.dead() or r == "dead":
                     result = f"died at {i} {name}"; break
+                if self.andre_bad():
+                    result = f"ANDRE {self.andre_bad().upper()} after {i} {name} — restore a backup (M1111-83)"; break
                 s = self.mv.snap(5.0)
                 if name in UPPER and s and s.player.y < 20.0 and redo < 2:
                     # 아래층으로 떨어짐 → 사다리 1부터 다시 (아래층 마당으로 걸어가 코뿔소 근처로 가지 않게)
@@ -423,10 +441,10 @@ class Route:
             self.state("end")
             print(f"RESULT {result} · log {self.log.path}")
             # stay guarded instead of standing idle (P-160): fight what comes within 5 m until killed by TaskStop
-            if not self.dead():
+            if not self.dead() and not self.andre_bad():
                 try:
-                    while True:
-                        self.clear(5.0, 3600, "대기 가드")
+                    while not self.andre_bad():
+                        self.clear(5.0, 60, "대기 가드")
                 except KeyboardInterrupt:
                     pass
             try:
