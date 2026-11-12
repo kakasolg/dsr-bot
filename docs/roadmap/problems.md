@@ -2797,3 +2797,30 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
   - At 10.8 m, from where the bot stood, the knight did not notice it (heading 0 = facing +z, away from the door side).
   - MoKa's demos: the knight was already out by the door when the recording started (06-25 demo), or came out about 8.6 s after MoKa stood at LURE (06-28 demo). What MoKa did before the recording started is not recorded.
 - **Next (not built):** bait with a NavMesh walk (`self.walk`) toward the knight's front until he reacts (anim ≠ −1 or he moves), then go back to LURE. Solved = the knight comes out onto the plaza and the duel rules get to run.
+
+### P-169 Heavy knight try 3b (11-12 070213, knight_try v3.1): the bait walked into the church, the fight drifted south, 256000 joined, and the bot died with 0 damage dealt
+**Observed (log · knight.jsonl · track)**
+- The bot reached LURE after the same 2 s stall at (26.8, 105.1). hotspots marks it AGAIN: 2 of 2 runs.
+- The bait walk (`walk_to` to the knight, stop on reaction) never stopped early. The knight stayed idle, and the walk ended "arrived" at (11.3, 109.8), inside the church, 8.4 m from him.
+- At 18.65 s he started 3005 (the 6.3 m lunge). After that the bot never went back to LURE, because the walk back runs only after a "done" stop.
+- Rolls, 5 in all, every one 3.7–6 m from the knight:
+  - **3005:** rolled (want 179°). Not hit.
+  - **3000 at d 3.7:** decide said "wait" at 4.0 m, then "roll" at 1.43 s. Hit −220 during the roll; 3001 followed at d 1.29.
+  - **3001:** rolled. Not hit.
+  - **3003:** rolled. Not hit.
+  - **3002 at 0.68 s:** rolled. Hit −169 during it, at knight at = 0.27, before any window.
+  - Every roll went south or west (want −150…−160°). The bot went from (12.7, 105) to (7.6, 92).
+- More damage while the knight was idle or recovering: −169 (38.9 s, knight 3002 at 4.5 s) and −134 (43.0 s, knight anim −1). Hollow soldier 256000 came within 2.2 m at 135 s and 0.85 m at the end. Which foe dealt each of these 3 hits is not confirmed.
+- Heal never ran. HP fell to 157, but the knight was always under 6.5 m away.
+- Died at (7.6, 92.2). The bot hit 0 times; knight HP stayed 372.
+
+**Causes (hypotheses)**
+- **Bait:** the walk ended inside the church because the knight didn't react until the bot was almost on him.
+- **No way back:** once he did react, nothing walks back to LURE.
+- **Plaza penalty does nothing in the church:** every direction from inside the church is "outside the plaza", so all directions get the same −1.
+- **"wait" when the attack starts out of reach:** decide treats the knight as harmless at ≥ 4.0 m. During his windup he closes in, and the bot is left with only a late roll. MoKa's distances (3.3–4.0 m) were where MoKa stood; they did not include the knight's step forward.
+
+**Next (not built)**
+- After any bait, always walk back to LURE (also when the walk ends "arrived"), and stop baiting at the church door instead of walking in.
+- Measure the knight's forward step per attack from this run's d over time, before trusting WAIT_M.
+- Points the bot back toward LURE / the plaza, not just away from the knight.

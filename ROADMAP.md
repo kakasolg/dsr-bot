@@ -210,7 +210,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 112 | `burg-upper` zone 8 top (11-02 014223): crossbowman 255002 3004 called over at 1.6 s → Estus backstep dropped the shield at 1.94 s → −330 at 2.11 s, died at 47 % | open → fix built; 022918 blocked 3004 ×20 for 0, 024657 zone 8 cleared; 3004-backstep case not seen again |
 | 113 | `burg-upper` zone 8 (11-02 020649): through-sprint from the ladder top fell off the ledge after a hit, then walked back west into the crossbowmen with no fight → −557, died | open → fix built, offline; 11-02 024657 z8: no turn-back, not exercised |
 | 114 | shop (11-02 040229): bot reached the Undead Merchant, walk to his centre blocked by boxes at 3.7 m → not_facing, 0 knives | open → stand spot + quick slot; game: bought 25 in 4/4 |
-| 115 | `burg-upper` zone 6 (11-02 040854): barrel soldier came down to the safe spot, kill step said "안 보임" (spawn-height search), 2nd hit not sipped → zone 7 at HP 326, died | open → fix built; game: wait ended at 3.6 / 3.4 m (try 16·20), follow-lookup and re-sip paths not exercised |
+| 115 | `burg-upper` zone 6 (11-02 040854): barrel soldier at the safe spot, kill step "안 보임", 2nd hit not sipped → died | open → fix built; game: wait ended at 3.6 / 3.4 m (try 16·20), follow-lookup and re-sip not exercised |
 | 116 | `burg-bonfire` town #6 (11-02 042357): two shield 255000 together, one in anim 3007 for 10 s+; 4 hits while closing in → died (before the shop, no knives) | open |
 | 117 | burg-upper z2: knife lure 0/5 (044545); 11-04 011442 AGAIN: 5 foes, backstep combo into swings → died | open → MoKa |
 | 118 | `taurus` close fight (11-02 051424): no Estus at 320/698 (40 % rule), next −242 → died, boss ~161 left | open → drink below two hits (490); 11-03 try 21: ran in game (drank at 456), death was P-119 |
@@ -259,6 +259,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 166 | knight 1 died | open |
 | 167 | knight 2: 0 dealt | open |
 | 168 | knight 3: no aggro | open |
+| 169 | knight 3b: lured in church, died | open |
 
 ## 5. Relay — [cloud] ↔ board
 
