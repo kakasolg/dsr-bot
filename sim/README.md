@@ -98,8 +98,8 @@
   Sketchfab file, which a fresh clone doesn't have: `ramp.gd` then prints one line and uses the scene's `edge_walls`
   (`python sim/scene_walls.py` — NavMesh-edge walls from the scene's own floor, the ramp room's rule; `burg_scene.py`
   writes them too). `burg_walk.py` reads the NavMesh like `run.py` (`godot_link.room_navmesh`). Look: no Sketchfab
-  terrain or DSR map on screen in cloud (headless anyway). Checked in cloud 11-12: `burg_walk.py --headless --ladders`
-  10 legs + both ladders. Edge walls are left open where they would cross the scene's own route (`cam_path`): the ramp-top
+  terrain or DSR map on screen in cloud (headless anyway). Checked in cloud 11-12 (headless): `burg_walk.py --ladders`
+  10 legs + both ladders; `--scene firelink_loop` all 29 legs incl. the elevator, 453 s ([win] 454 s). Edge walls are left open on and within 0.6 m of the scene's own route (`cam_path`): the ramp-top
   steps aren't NavMesh floor and looked like a void (the loop stopped at leg 1). The edge walls are not the game's walls: on the ramp room they match `ramp_scene.py`'s for
   1293 / 1452 segments (`tests/scene_walls_test.py`).
 - Tests: `python tests/godot_room_test.py`, `python tests/godot_combat_test.py`, `python tests/godot_ramp_test.py`, `python tests/godot_stamina_test.py`, `python tests/replay_test.py`, `python tests/chr_glb_test.py`
