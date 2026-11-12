@@ -26,7 +26,9 @@ BEYOND = 0.8        # look for floor this far past the edge (ramp_scene)
 UP = 0.5            # floor beyond counts if at most this above the edge (ramp_scene)
 CELL = 2.0          # grid cell for the floor lookup (m)
 ROUTE_GAP = 5.0     # cam_path points farther apart than this are not joined (a jump in the list, not a walk)
-ROUTE_DY = 3.0      # a route segment crosses a wall only if its height is within this of the wall's (m)
+ROUTE_DY = 3.0      # a route segment counts for a wall only if its height is within this of the wall's (m)
+ROUTE_CLEAR = 0.6   # no wall closer than this to the route (x-z) — a wall end 0.4 m from it held the player's capsule at
+                    # the ramp-top step (−16.3, −38.8, 14.6), 11-12
 KEY = 2             # vertex rounding (1 cm) to find shared sides — the two NavMesh sheets have separate vertex lists whose
                     # copies of one point differ by < 1 cm (mm rounding walled the Burg route at (12.2, −6.0, −93.5), 11-12)
 
@@ -74,6 +76,19 @@ def _cross(a0, a1, b0, b1) -> bool:
     return o(a0, a1, b0) * o(a0, a1, b1) < 0 and o(b0, b1, a0) * o(b0, b1, a1) < 0
 
 
+def _seg_dist(a0, a1, b0, b1) -> float:
+    """Shortest x-z distance between segments a and b (0 if they cross)."""
+    if _cross(a0, a1, b0, b1):
+        return 0.0
+
+    def pt(p, q0, q1):
+        d = (q1 - q0)[[0, 2]]
+        L = float(d @ d)
+        u = 0.0 if L < 1e-12 else min(1.0, max(0.0, float((p - q0)[[0, 2]] @ d) / L))
+        return float(np.hypot(*((q0 + u * (q1 - q0)) - p)[[0, 2]]))
+    return min(pt(a0, b0, b1), pt(a1, b0, b1), pt(b0, a0, a1), pt(b1, a0, a1))
+
+
 def _route(scene: dict) -> list:
     """The scene's route as segments (cam_path: the walked / planned route the room camera follows)."""
     pts = [np.asarray(p[:3], dtype=float) for p in scene.get("cam_path") or []]
@@ -82,7 +97,7 @@ def _route(scene: dict) -> list:
 
 def edge_walls(scene: dict) -> list[list[float]]:
     """[x0, y0, z0, x1, y1, z1] per wall segment — same shape as a scene's `walls`. A wall that would cross the scene's own
-    route (cam_path) is left out: the route was walked in the game, and where it leaves the NavMesh floor (steps the
+    route (cam_path) or stand within ROUTE_CLEAR of it is left out: the route was walked in the game, and where it leaves the NavMesh floor (steps the
     NavMesh doesn't cover — ramp top at (−18.5…−20, −39 → −36, 14 → 12.7), 11-12) the floor data alone looks like a void."""
     route = _route(scene)
     tris = _tris(scene)
@@ -116,8 +131,8 @@ def edge_walls(scene: dict) -> list[list[float]]:
             off = np.array([nx / ln * sgn * WALL_OUT, 0.0, nz / ln * sgn * WALL_OUT])
             w0, w1 = p0 + off, p1 + off
             ylo, yhi = min(w0[1], w1[1]) - ROUTE_DY, max(w0[1], w1[1]) + ROUTE_DY
-            if any(_cross(w0, w1, a, b) and ylo <= (a[1] + b[1]) / 2 <= yhi for a, b in route):
-                continue                                    # on the scene's route — leave it open
+            if any(ylo <= (a[1] + b[1]) / 2 <= yhi and _seg_dist(w0, w1, a, b) < ROUTE_CLEAR for a, b in route):
+                continue                                    # on / beside the scene's route — leave it open
             walls.append([round(float(x), 3) for x in (*w0, *w1)])
     return walls
 
