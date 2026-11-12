@@ -1,0 +1,50 @@
+{"t": 91.65, "ev": "style", "style": "guard"}
+{"t": 91.65, "ev": "char", "stats": {"VIT": 22, "ATN": 8, "END": 14, "STR": 16, "DEX": 10, "INT": 8, "FTH": 10, "RES": 11, "SL": 17, "소울": 5110, "누적소울": 12207, "인간성": 0}, "equip": {"왼손1": 1462000, "오른손1": 701000, "왼손2": 900000, "오른손2": 301005, "화살": 50000, "머리": 51000, "몸": 52000, "팔": 53000, "반지1": -1, "반지2": -1}}
+{"t": 91.66, "ev": "vital", "hp": 737, "max": 849, "near": 0}
+{"t": 91.67, "ev": "world", "kind": "run_start", "why": "merchant-buy", "revive": null, "ptrs": true, "n": 1, "revives": 1}
+{"t": 92.19, "ev": "vital", "hp": 737, "max": 849, "near": 0}
+{"t": 92.69, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 93.2, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 93.7, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 94.21, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 94.75, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 95.26, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 95.8, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 96.31, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 96.85, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 97.35, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 97.9, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 98.42, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 98.95, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 99.46, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 100.0, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 100.52, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 101.05, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 101.55, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 102.1, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 102.61, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 103.15, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 103.67, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 104.18, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 104.69, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 105.19, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 105.71, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 106.22, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 106.74, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 107.26, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 107.34, "ev": "shop", "goods": 292, "want": 99, "asked": 99, "bought": 99, "price": 50, "souls0": 5110, "souls1": 160, "count0": 0, "count1": 99, "tries": 1, "result": "ok"}
+{"t": 107.76, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 108.27, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 108.78, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 109.29, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 109.8, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 110.3, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 110.81, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 111.32, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 111.84, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 112.34, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 112.84, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 113.35, "ev": "vital", "hp": 737, "max": 849, "near": 1}
+{"t": 113.86, "ev": "vital", "hp": 737, "max": 849, "near": 0}
+{"t": 114.37, "ev": "vital", "hp": 737, "max": 849, "near": 0}
+{"t": 114.66, "ev": "result", "cmd": "merchant-buy", "result": "shop ok"}

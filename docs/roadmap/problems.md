@@ -2774,3 +2774,85 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
   the fight move south toward the other foes. The duel loop only started after the 6 m walk, mid-attack.
 - **Next (not built):** short evasion (backstep or sideways roll) so the knight stays in reach; punish from further (walk in ≤ 3 m when
   ≥ 1.4 s left); keep the fight inside the church (reject roll/wait spots south of z ≈ 105); run the duel loop during the approach.
+
+**P-167 v3 built, 2026-11-12 (not run in game):** knight_try.py v3 is based on MoKa's one-hand demo (M1111-87, observe 20261112_062835).
+- **Where it waits:** at the plaza stair foot (LURE (23.5, 108.3)) instead of entering the church. The duel loop runs from there, so the approach is covered too.
+- **Dodging:** in a swing window it walks out of reach (4.0 m; 3005 9.0 m). It rolls only when walking can't make it in time.
+- **Punishing:** after the window it walks in and does one light attack, but only when enough of the anim is left for the walk plus 1.2 s.
+- **Chains:** no punish after 3000 (the 3000→3001 chain hit MoKa).
+- **Walk-in hit:** one hit on 3200/3210 when within 2.9 m.
+- **Fight area:** back-off directions that leave the plaza box (x 20.5–36.5, z 101–114, a guess) get a score penalty.
+- **Checks so far:** `tests/knight_try_test.py` (11) checks the pure `decide()` against the demo scenes. Nothing yet shows the bot's walking speed (WALK_MPS 2.0 is a guess), the aggro from LURE, or the knight's response in game.
+
+### P-168 Heavy knight try 3 (11-12 065353): the knight never noticed the bot, so there was no fight, and the bot timed out
+- **Command:** knight_try.py v3 (M1111-88) after a restore to 025343 (HP 671 → one Estus → 849).
+- **What happened:**
+  - The bot reached LURE (23.8, 28.2, 108.3), after 1 stall of 2 s on the way at (26.8, 105.1).
+  - The knight 257001 stayed idle at 17 m (anim −1).
+  - After BAIT_AFTER_S (12 s) the bot walked straight at him with the stick (`stick_to`, no NavMesh path). It went from 16.2 m to 10.84 m by about 27 s, then stood stuck at 10.84 m until the 150 s limit.
+  - End position (17.9, 28.4, 111.0), at the church door. Nothing hit anyone, HP 849.
+  - The bot was stopped in its wait-guard loop. No foe was engaged; a c3490 was at 3.9 m. Andre 1321/1322 False.
+- **Cause (hypothesis):**
+  - The straight-line stick walk got stuck at the door frame.
+  - At 10.8 m, from where the bot stood, the knight did not notice it (heading 0 = facing +z, away from the door side).
+  - MoKa's demos: the knight was already out by the door when the recording started (06-25 demo), or came out about 8.6 s after MoKa stood at LURE (06-28 demo). What MoKa did before the recording started is not recorded.
+- **Next (not built):** bait with a NavMesh walk (`self.walk`) toward the knight's front until he reacts (anim ≠ −1 or he moves), then go back to LURE. Solved = the knight comes out onto the plaza and the duel rules get to run.
+
+### P-169 Heavy knight try 3b (11-12 070213, knight_try v3.1): the bait walked into the church, the fight drifted south, 256000 joined, and the bot died with 0 damage dealt
+**Observed (log · knight.jsonl · track)**
+- The bot reached LURE after the same 2 s stall at (26.8, 105.1). hotspots marks it AGAIN: 2 of 2 runs.
+- The bait walk (`walk_to` to the knight, stop on reaction) never stopped early. The knight stayed idle, and the walk ended "arrived" at (11.3, 109.8), inside the church, 8.4 m from him.
+- At 18.65 s he started 3005 (the 6.3 m lunge). After that the bot never went back to LURE, because the walk back runs only after a "done" stop.
+- Rolls, 5 in all, every one 3.7–6 m from the knight:
+  - **3005:** rolled (want 179°). Not hit.
+  - **3000 at d 3.7:** decide said "wait" at 4.0 m, then "roll" at 1.43 s. Hit −220 during the roll; 3001 followed at d 1.29.
+  - **3001:** rolled. Not hit.
+  - **3003:** rolled. Not hit.
+  - **3002 at 0.68 s:** rolled. Hit −169 during it, at knight at = 0.27, before any window.
+  - Every roll went south or west (want −150…−160°). The bot went from (12.7, 105) to (7.6, 92).
+- More damage while the knight was idle or recovering: −169 (38.9 s, knight 3002 at 4.5 s) and −134 (43.0 s, knight anim −1). Hollow soldier 256000 came within 2.2 m at 135 s and 0.85 m at the end. Which foe dealt each of these 3 hits is not confirmed.
+- Heal never ran. HP fell to 157, but the knight was always under 6.5 m away.
+- Died at (7.6, 92.2). The bot hit 0 times; knight HP stayed 372.
+
+**Causes (hypotheses)**
+- **Bait:** the walk ended inside the church because the knight didn't react until the bot was almost on him.
+- **No way back:** once he did react, nothing walks back to LURE.
+- **Plaza penalty does nothing in the church:** every direction from inside the church is "outside the plaza", so all directions get the same −1.
+- **"wait" when the attack starts out of reach:** decide treats the knight as harmless at ≥ 4.0 m. During his windup he closes in, and the bot is left with only a late roll. MoKa's distances (3.3–4.0 m) were where MoKa stood; they did not include the knight's step forward.
+
+**Next (not built)**
+- After any bait, always walk back to LURE (also when the walk ends "arrived"), and stop baiting at the church door instead of walking in.
+- Measure the knight's forward step per attack from this run's d over time, before trusting WAIT_M.
+- Points the bot back toward LURE / the plaza, not just away from the knight.
+
+### P-170 Heavy knight try 3c (11-12 071108, knight_try v3.2): the fight stayed on the plaza, but 25 rolls and only 2 hits landed; died at 119 s
+**Observed (knight.jsonl, log)**
+- **Bait:** the knight did not react at the church door (11.7 m) or one step inside (10.2 m). He came out with 3005 while the bot was walking back to LURE. The fight then stayed near LURE (end (25.4, 108.9)); the plaza retreat worked this time.
+- **Rolls and hits:** 25 rolls; 4 hits tried, 2 landed (79 + 79, knight 372 → 214).
+- **Hits taken:**
+  - 3003 at 0.45 s: −227.
+  - 3004 at 0.12 s: −188.
+  - During a roll for 3002's late window: −318. The roll went 63° off.
+- **End:** died during a roll for 3000; 3001 followed. Heal never ran.
+- **Reaction speed:**
+  - Ticks every 0.031 s (median), so reading the anim is fast.
+  - Each `roll_toward` blocks 1.37–2.48 s (0.3 s turn + up to 1.2 s waiting for the roll + 0.9 s play-out). The bot sees nothing new during that time.
+  - So when a window ends, the bot is often still in its roll and too far away to punish.
+
+**MoKa 11-12:** "기사가 휘두르면 바로 한대 때려야 하는데 그게 않되네" (M1111-89).
+
+**Cause (hypothesis):** too many long, blocking rolls, where MoKa walked; the punish comes after the roll, not right after the swing.
+
+**Next (not built):** no rolls except when walking can't make it. Stand just out of reach and step in the moment the window ends. Make the roll non-blocking if one is still needed.
+
+### P-171 Walk to LURE stalls 2–2.5 s at (26.8, 26.6, 105.1) in every knight run from the 025343 save (11-12 065353 · 070213 · 071108 · 072018)
+- **Seen:** hotspots says AGAIN, 4 of 4 runs. track_report: "광장 계단 아래 (LURE)" walked 2.4 m of a 0 m plan, off the path by up to 6.5 m, "NOT REACHED", stuck. The turn-back walk ("돌아서", 9.5 m) then reaches LURE every time.
+- **Cause (hypothesis):** the first walk has no NavMesh path (plan 0 m) from the save spot (26.9, 102.7) to LURE, which is up the stair foot (y 26.6 → 28.2). It goes straight and hits the stairs.
+- **Effect:** about 3 s lost; no damage. The bot recovered every time, but this is a repeated stall, so it gets an entry.
+- **Next (not built):** add a waypoint at the stair foot, or start the walk from the turn-back path.
+
+### P-172 `run.py merchant` skips the ramp clear → 3 foes chase up the ramp, HP 12% (2026-11-12 `074631`)
+- Symptom: from Firelink, `run.py merchant` walked up the ramp ("꼭대기로") with 254000/254001/255010 following; 3 at once, HP 849 → 100 (lowest 12%), 9 big hits −1213. Recovered (kick+light, backstab, Estus), reached the merchant at 331 s; bought 292 ×99 after.
+- Cause: `merchant` calls `to_merchant()` only; `burg-bonfire --seg 1-5` (the procedure that worked, 10-12, 0 deaths) runs `pass_ramp()` first. MoKa: "가라고 해도 차례대로 죽이면서 가야지" (M1112-07); survival came from Claymore +5, not the route (M1112-08).
+- Next: use `burg-bonfire --seg 1-5 --buy` for merchant trips.
+- Fix (11-12, M1112-10): `run.py merchant` → `Missions.merchant_trip`: below the ramp (nearest route point A0, > 6 m) with live or unreadable ramp foes → `pass_ramp()` first. Offline only (`tests/merchant_trip_test.py`); not run in the game.

@@ -121,6 +121,8 @@ class FakeMissions:
         TRACE.append("mission")
         raise FakeMissions.exc
 
+    merchant_trip = to_merchant         # run.py merchant → Missions.merchant_trip (P-172)
+
 
 def install(tmp: Path) -> None:
     run.ROOT = tmp
