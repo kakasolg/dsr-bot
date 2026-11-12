@@ -1,0 +1,11 @@
+{"t": 114.07, "ev": "walk_fail", "tag": "게이트 안 (첫 적)", "i": 0, "n": 2, "q": [5.9, 16.0, -4.6], "pos": [12.36, 13.59, -12.26], "r": "unreachable", "fails": 1}
+{"t": 120.29, "ev": "guard_counter", "anim": 20140, "npc": 255041, "dist": 0.91, "dmg": 57, "taken": 0}
+{"t": 123.14, "ev": "world_kill", "npc": 255041, "pos": [5.51, 15.52, -9.86], "rev": 0, "kills": 1}
+{"t": 123.14, "ev": "duel", "tag": "게이트 안 (첫 적) 돌아서: 따라온 255041", "npc": 255041, "result": "killed", "secs": 5.4, "dealt": 102, "taken": 0, "fight": "run#f001"}
+{"t": 143.13, "ev": "crowd3", "n": 3, "near": 2.04, "action": "close_no_warp"}
+{"t": 143.68, "ev": "duel", "tag": "따라온 놈 250050", "npc": 250050, "result": "killed", "secs": 1.9, "dealt": 63, "taken": 0, "fight": "run#f002"}
+{"t": 143.78, "ev": "world_kill", "npc": 250050, "pos": [1.27, 13.0, 40.19], "rev": 0, "kills": 2}
+{"t": 146.52, "ev": "guard_counter", "anim": 20140, "npc": 250050, "dist": 1.82, "dmg": 0, "taken": 61}
+{"t": 148.67, "ev": "world_kill", "npc": 250050, "pos": [-0.76, 13.0, 37.71], "rev": 0, "kills": 3}
+{"t": 150.86, "ev": "guard_counter", "anim": 20140, "npc": 250050, "dist": 0.85, "dmg": 0, "taken": 154}
+{"t": 158.23, "ev": "duel", "tag": "따라온 놈 back: 따라온 250050", "npc": 250050, "result": "me_dead", "secs": 14.1, "dealt": 63, "taken": 794, "fight": "run#f003"}

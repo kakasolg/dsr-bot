@@ -1,0 +1,2 @@
+{"t": 111.84, "ev": "guard_counter", "anim": 20140, "npc": 255041, "dist": 1.19, "dmg": 57, "taken": 0}
+{"t": 114.71, "ev": "duel", "tag": "seg-to: 따라온 255041", "npc": 255041, "result": "killed", "secs": 5.5, "dealt": 102, "taken": 0, "fight": "run#f001"}
