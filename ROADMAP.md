@@ -259,7 +259,8 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 166 | knight 1 died | open |
 | 167 | knight 2: 0 dealt | open |
 | 168 | knight 3: no aggro | open |
-| 169 | knight 3b: lured in church, died | open |
+| 169 | knight 3b: died in church | open |
+| 170 | knight 3c: 25 rolls, 2 hits | open |
 
 ## 5. Relay — [cloud] ↔ board
 

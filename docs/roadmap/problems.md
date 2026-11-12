@@ -2824,3 +2824,23 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
 - After any bait, always walk back to LURE (also when the walk ends "arrived"), and stop baiting at the church door instead of walking in.
 - Measure the knight's forward step per attack from this run's d over time, before trusting WAIT_M.
 - Points the bot back toward LURE / the plaza, not just away from the knight.
+
+### P-170 Heavy knight try 3c (11-12 071108, knight_try v3.2): the fight stayed on the plaza, but 25 rolls and only 2 hits landed; died at 119 s
+**Observed (knight.jsonl, log)**
+- **Bait:** the knight did not react at the church door (11.7 m) or one step inside (10.2 m). He came out with 3005 while the bot was walking back to LURE. The fight then stayed near LURE (end (25.4, 108.9)); the plaza retreat worked this time.
+- **Rolls and hits:** 25 rolls; 4 hits tried, 2 landed (79 + 79, knight 372 → 214).
+- **Hits taken:**
+  - 3003 at 0.45 s: −227.
+  - 3004 at 0.12 s: −188.
+  - During a roll for 3002's late window: −318. The roll went 63° off.
+- **End:** died during a roll for 3000; 3001 followed. Heal never ran.
+- **Reaction speed:**
+  - Ticks every 0.031 s (median), so reading the anim is fast.
+  - Each `roll_toward` blocks 1.37–2.48 s (0.3 s turn + up to 1.2 s waiting for the roll + 0.9 s play-out). The bot sees nothing new during that time.
+  - So when a window ends, the bot is often still in its roll and too far away to punish.
+
+**MoKa 11-12:** "기사가 휘두르면 바로 한대 때려야 하는데 그게 않되네" (M1111-89).
+
+**Cause (hypothesis):** too many long, blocking rolls, where MoKa walked; the punish comes after the roll, not right after the swing.
+
+**Next (not built):** no rolls except when walking can't make it. Stand just out of reach and step in the moment the window ends. Make the roll non-blocking if one is still needed.
