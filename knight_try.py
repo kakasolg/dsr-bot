@@ -1,7 +1,7 @@
 """Heavy knight (c2570, NpcParam 257001) in the Undead Parish church — one try of MoKa's plan (M1111-85):
 "중갑 기사는 느리니 무기를 들어올리면 뒤로 피하고 한대 때리면 됨".
 
-  python knight_try.py [npc_param]      default 257001 (10.7, 29.3, 119.0); 257002 (−1.6, 28.5, 108.1) is the 744-HP one
+  python knight_try.py [npc_param] [--brawl]   --brawl = v4: two-handed, keep hitting (M1111-90); default 257001 (10.7, 29.3, 119.0); 257002 (−1.6, 28.5, 108.1) is the 744-HP one
 
 Loop: keep ~3.5 m. When the knight starts an attack anim (TAE window table below, chr_models.json npc_attacks) roll straight
 back so the roll's i-frames sit on the hit window; when the window has passed and he is still in that anim, step in and hit
@@ -72,6 +72,8 @@ HEAL_HP = 0.45
 WALL_OK_M = 1.5      # wait with at least this much floor to the nearest wall
 HEAL_CLEAR_M = 6.5    # Field.safe needs no awake foe within SAFE_R 6 m
 LIMIT_S = 150.0
+BRAWL_HIT_M = 2.4     # [guess] 2H R1 — MoKa 양손 시연은 1.7 · 3.9(걸어 들어가며) · 2.8 m에서 누름
+BRAWL = "--brawl" in sys.argv
 
 
 def in_plaza(x, z):
@@ -348,6 +350,88 @@ class KnightTry(andre_route.Route):
             time.sleep(0.05)
         return f"timeout (rolls {rolls}, hits {hits})"
 
+    def two_hand(self):
+        """Y 홀드 + RB 토글을 grip 3 (양손)이 될 때까지 (souls/field.py와 같은 방식, 최대 3번)."""
+        for _ in range(3):
+            if self.tm.grip() == 3:
+                break
+            self.pad.two_hand_right()
+            time.sleep(0.5)
+        self.rec("grip", grip=self.tm.grip())
+        return self.tm.grip() == 3
+
+    def brawl(self):
+        """v4 (MoKa 11-12 '양잡고 계속 때리기', M1111-90): 양손 클레이모어로 붙어서 계속 친다 — 피하기 없음.
+        MoKa 양손 시연 (M1111-86, observe 062525): 2H R1 133 × 3 = 372, 16 s, 맞은 건 1번 (−318).
+        LURE에서 기다리기·깨우기는 v3.2와 같고, 기사가 다가오면 (APPROACH_M 안) 그때부터 친다.
+        힐: HP < HEAL_HP면 6.5 m 밖으로 걸어 나가서 (v2와 같은 규칙)."""
+        mv, pad = self.mv, self.pad
+        t_end = time.time() + LIMIT_S
+        far_since = None
+        baits = swings = 0
+        heal_try = 0.0
+        while time.time() < t_end:
+            if self.dead():
+                return "dead"
+            if self.andre_bad():
+                return "andre"
+            s = mv.snap(20.0)
+            k = self.knight(s)
+            if not k:
+                self.rec("knight_gone")
+                return f"killed (swings {swings})"
+            p = s.player
+            at = self.tm.anim_time(k.ptr)
+            self.rec("tick", anim=k.anim, at=None if at is None else round(at, 3), d=round(k.dist, 2), khp=k.hp, hp=p.hp,
+                     sp=p.sp, my_anim=p.anim, grip=self.tm.grip())
+            if self.tm.grip() != 3:
+                pad.move(0, 0)
+                self.two_hand()
+                continue
+            if p.hp < HEAL_HP * p.max_hp and mv.estus_left() > 0:
+                if k.dist < HEAL_CLEAR_M:
+                    ax, az, _, _ = self.open_dir(s, k, 2.0)
+                    pad.guard(False)
+                    pad.move(*mv.stick_to(s, ax, az, 1.0))
+                    time.sleep(0.05)
+                    continue
+                if time.time() - heal_try > 2.0:
+                    pad.move(0, 0)
+                    heal_try = time.time()
+                    self.rec("heal", hp=p.hp, d=round(k.dist, 2))
+                    self.f.heal(0.7, sips=1)
+                    continue
+            if k.dist > APPROACH_M and k.anim == -1:
+                # 아직 안 깬 기사: LURE에서 기다렸다가 깨우기 (v3.2)
+                if far_since is None:
+                    far_since = time.time()
+                if time.time() - far_since > BAIT_AFTER_S and baits < BAIT_TRIES:
+                    pad.move(0, 0)
+                    baits += 1
+                    self.bait()
+                    far_since = None
+                    continue
+                if math.hypot(p.x - LURE[0], p.z - LURE[2]) > 1.5:
+                    pad.move(*mv.stick_to(s, LURE[0], LURE[2], 0.8))
+                else:
+                    pad.move(0, 0); mv.face(s, k)
+                time.sleep(0.05)
+                continue
+            far_since = None
+            if k.dist > BRAWL_HIT_M:
+                pad.guard(False)
+                pad.move(*mv.stick_to(s, k.x, k.z, 1.0))
+                time.sleep(0.03)
+                continue
+            pad.move(0, 0)
+            self.rec("swing", anim=k.anim, at=None if at is None else round(at, 3), d=round(k.dist, 2), khp=k.hp, hp=p.hp)
+            h = mv.light(s, k, n=2)
+            swings += 1
+            s2 = mv.snap(20.0); k2 = self.knight(s2)
+            self.rec("swing_done", dealt=h.dmg, taken=h.taken, khp=None if not k2 else k2.hp,
+                     hp=s2.player.hp if s2 else None, k_anim=None if not k2 else k2.anim)
+        return f"timeout (swings {swings})"
+
     def go(self):
         result = "?"
         try:
@@ -357,7 +441,9 @@ class KnightTry(andre_route.Route):
             self.state("lure")
             if r not in ("arrived",) and not (isinstance(r, str) and r.startswith("cleared")):
                 self.say(f"  다가가기: {r} — 그래도 싸움 시작")
-            result = self.duel()
+            if BRAWL:
+                self.two_hand()
+            result = self.brawl() if BRAWL else self.duel()
         finally:
             self.pad.guard(False); self.pad.neutral()
             s = self.state("end")
@@ -378,4 +464,5 @@ class KnightTry(andre_route.Route):
 
 
 if __name__ == "__main__":
-    KnightTry(int(sys.argv[1]) if len(sys.argv) > 1 else 257001).go()
+    _args = [a for a in sys.argv[1:] if not a.startswith('--')]
+    KnightTry(int(_args[0]) if _args else 257001).go()
