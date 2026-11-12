@@ -1,0 +1,48 @@
+{"t": 113.75, "ev": "walk_fail", "tag": "게이트 안 (첫 적)", "i": 0, "n": 2, "q": [5.9, 16.0, -4.6], "pos": [12.29, 13.59, -12.32], "r": "unreachable", "fails": 1}
+{"t": 120.08, "ev": "guard_counter", "anim": 20140, "npc": 255041, "dist": 1.33, "dmg": 57, "taken": 0}
+{"t": 121.96, "ev": "world_kill", "npc": 255041, "pos": [5.24, 16.0, -7.81], "rev": 0, "kills": 1}
+{"t": 121.96, "ev": "duel", "tag": "게이트 안 (첫 적) 돌아서: 따라온 255041", "npc": 255041, "result": "killed", "secs": 4.3, "dealt": 102, "taken": 0, "fight": "run#f001"}
+{"t": 143.09, "ev": "crowd3", "n": 3, "near": 0.85, "action": "close_no_warp"}
+{"t": 143.27, "ev": "guard_counter", "anim": 20140, "npc": 250050, "dist": 0.85, "dmg": 63, "taken": 0}
+{"t": 143.29, "ev": "world_kill", "npc": 250050, "pos": [0.15, 13.0, 38.59], "rev": 0, "kills": 2}
+{"t": 145.07, "ev": "duel", "tag": "따라온 놈 250050", "npc": 250050, "result": "killed", "secs": 1.0, "dealt": 6, "taken": 0, "fight": "run#f002"}
+{"t": 145.15, "ev": "world_kill", "npc": 250050, "pos": [-1.31, 13.0, 40.65], "rev": 0, "kills": 3}
+{"t": 148.4, "ev": "guard_counter", "anim": 20140, "npc": 250050, "dist": 1.0, "dmg": 6, "taken": 0}
+{"t": 148.4, "ev": "duel", "tag": "따라온 놈 back: 따라온 250050", "npc": 250050, "result": "killed", "secs": 3.2, "dealt": 6, "taken": 0, "fight": "run#f003"}
+{"t": 148.41, "ev": "world_kill", "npc": 250050, "pos": [-1.91, 13.0, 40.16], "rev": 0, "kills": 4}
+{"t": 153.59, "ev": "guard_counter", "anim": 20140, "npc": 255041, "dist": 1.31, "dmg": 57, "taken": 0}
+{"t": 157.7, "ev": "guard_counter", "anim": 20140, "npc": 255041, "dist": 0.91, "dmg": 45, "taken": 0}
+{"t": 157.7, "ev": "duel", "tag": "따라온 놈 back: 따라온 255041", "npc": 255041, "result": "killed", "secs": 9.3, "dealt": 102, "taken": 0, "fight": "run#f004"}
+{"t": 158.97, "ev": "world_kill", "npc": 255041, "pos": [1.27, 13.0, 40.04], "rev": 0, "kills": 5}
+{"t": 174.02, "ev": "guard_counter", "anim": 20140, "npc": 250050, "dist": 0.87, "dmg": 63, "taken": 0}
+{"t": 174.02, "ev": "duel", "tag": "사다리 1 앞 (안 싸움): 따라온 250050", "npc": 250050, "result": "killed", "secs": 1.9, "dealt": 63, "taken": 0, "fight": "run#f005"}
+{"t": 174.04, "ev": "world_kill", "npc": 250050, "pos": [-9.99, 16.64, 36.39], "rev": 0, "kills": 6}
+{"t": 176.56, "ev": "duel", "tag": "사다리 1 앞 (안 싸움): 따라온 250050", "npc": 250050, "result": "killed", "secs": 2.1, "dealt": 63, "taken": 0, "fight": "run#f006"}
+{"t": 178.02, "ev": "world_kill", "npc": 250050, "pos": [-9.9, 16.64, 38.61], "rev": 0, "kills": 7}
+{"t": 191.09, "ev": "altar", "what": "ladder_up", "ok": true, "tries": 1}
+{"t": 193.89, "ev": "guard_counter", "anim": 20140, "npc": 250050, "dist": 0.9, "dmg": 63, "taken": 0}
+{"t": 193.89, "ev": "duel", "tag": "사다리 구멍에서 떨어짐: 따라온 250050", "npc": 250050, "result": "killed", "secs": 1.9, "dealt": 63, "taken": 0, "fight": "run#f007"}
+{"t": 193.96, "ev": "world_kill", "npc": 250050, "pos": [-8.39, 22.78, 27.18], "rev": 0, "kills": 8}
+{"t": 195.98, "ev": "duel", "tag": "사다리 구멍에서 떨어짐: 따라온 250050", "npc": 250050, "result": "killed", "secs": 2.0, "dealt": 6, "taken": 0, "fight": "run#f008"}
+{"t": 197.1, "ev": "world_kill", "npc": 250050, "pos": [-7.4, 22.78, 27.85], "rev": 0, "kills": 9}
+{"t": 212.75, "ev": "altar", "what": "ladder_up", "ok": true, "tries": 1}
+{"t": 221.85, "ev": "fog_cross", "tag": "안개벽", "fog": [0.7, 27.6, 37.1], "ok": true}
+{"t": 233.65, "ev": "walk_fail", "tag": "통로", "i": 2, "n": 10, "q": [21.3, 32.5, 48.8], "pos": [15.85, 29.54, 45.98], "r": "unreachable", "fails": 1}
+{"t": 246.24, "ev": "guard_counter", "anim": 20140, "npc": 256000, "dist": 1.08, "dmg": 33, "taken": 0}
+{"t": 253.18, "ev": "guard_counter", "anim": 20140, "npc": 256000, "dist": 0.85, "dmg": 33, "taken": 0}
+{"t": 266.74, "ev": "duel", "tag": "통로: 따라온 256000", "npc": 256000, "result": "killed", "secs": 23.1, "dealt": 129, "taken": 447, "fight": "run#f009"}
+{"t": 266.84, "ev": "world_kill", "npc": 256000, "pos": [37.24, 29.81, 59.88], "rev": 0, "kills": 10}
+{"t": 266.85, "ev": "duel", "tag": "통로: 따라온 255040", "npc": 255040, "result": "low_hp", "secs": 0.0, "dealt": 0, "taken": 0, "fight": "run#f010"}
+{"t": 266.96, "ev": "escape_pick", "src": "R", "point": [37.29035441080729, 29.71779505411784, 69.44784545898438], "kept": 12, "cands": 12}
+{"t": 272.52, "ev": "estus", "ok": true, "hp": [234, 534], "left": 9, "why": null}
+{"t": 274.74, "ev": "estus", "ok": true, "hp": [534, 834], "left": 8, "why": null}
+{"t": 293.13, "ev": "guard_counter", "anim": 20140, "npc": 255041, "dist": 1.9, "dmg": 0, "taken": 0}
+{"t": 299.95, "ev": "guard_counter", "anim": 20140, "npc": 255041, "dist": 1.72, "dmg": 0, "taken": 0}
+{"t": 301.97, "ev": "guard_counter", "anim": 20140, "npc": 255041, "dist": 0.91, "dmg": 57, "taken": 0}
+{"t": 302.64, "ev": "world_kill", "npc": 255041, "pos": [27.23, 26.6, 94.7], "rev": 0, "kills": 11}
+{"t": 304.89, "ev": "duel", "tag": "광장 안전 자리: 따라온 255041", "npc": 255041, "result": "killed", "secs": 19.1, "dealt": 124, "taken": 106, "fight": "run#f011"}
+{"t": 306.65, "ev": "world_kill", "npc": 255041, "pos": [29.28, 26.75, 95.65], "rev": 0, "kills": 12}
+{"t": 332.29, "ev": "guard_counter", "anim": 20140, "npc": 255042, "dist": 1.38, "dmg": 57, "taken": 0}
+{"t": 334.19, "ev": "world_kill", "npc": 255042, "pos": [30.33, 26.6, 114.54], "rev": 0, "kills": 13}
+{"t": 334.19, "ev": "duel", "tag": "석궁병 자리: 따라온 255042", "npc": 255042, "result": "killed", "secs": 8.5, "dealt": 102, "taken": 0, "fight": "run#f012"}
+{"t": 376.53, "ev": "walk_fail", "tag": "안드레 화톳불로", "i": 15, "n": 24, "q": [88.07, 20.6, 113.0], "pos": [87.34, 22.01, 109.5], "r": "timeout", "fails": 1}
