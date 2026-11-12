@@ -251,13 +251,17 @@ def settings_sha1(d: dict) -> str:
 def collect(run: str, argv: list, args: dict, note: str | None = None, root: Path = ROOT,
             overrides: dict | None = None) -> tuple[dict, str | None]:
     """The start record (constants and character come later with update()). `overrides` = settings.Settings.to_dict(),
-    what the flags changed from the module defaults (the full values are in `constants`). → (record, diff text)."""
+    what the flags changed from the module defaults; `constants` = the module values overlaid with them (what the run
+    uses — run.py no longer writes them into the modules, settings-object step 3). → (record, diff text)."""
     c, diff = code(root)
     d = {"schema": SCHEMA, "run": run, "started": _now(),
          "code": c, "argv": [str(x) for x in argv], "args": {k: _plain(v) for k, v in sorted(args.items())},
          "constants": constants(), "data": data_hashes(root), "game": None, "note": note or ""}
     if overrides is not None:
         d["overrides"] = _plain(overrides)
+        for m, kv in (overrides or {}).items():           # settings-object step 3: run.py no longer writes the overrides
+            for k, v in kv.items():                        # into the modules — the record shows the values the run uses
+                d["constants"].setdefault(m, {})[k] = _plain(v)
     d["settings_sha1"] = settings_sha1(d)
     return d, diff
 

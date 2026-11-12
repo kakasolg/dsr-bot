@@ -255,7 +255,34 @@ class Moves:
         s = self.tm.snapshot(within=within)
         if s is not None:
             self._note_swings(s)
+            self._note_deaths(s)
         return s
+
+    def _note_deaths(self, s) -> None:
+        """One death detector for every snapshot read through here (worldstate step 2): a foe seen alive, then at HP 0 in two
+        snapshots with different times, is reported once to on_death(c) — Field sets it to WorldState.kill. Same rule as
+        field.clear's (two consecutive zero-HP snapshots). Field clears `_deaths` when pointers change (a load)."""
+        cb = self.__dict__.get("on_death")
+        if cb is None:
+            return
+        d = self.__dict__.setdefault("_deaths", {})         # ptr → [seen alive, zero count, last zero t, reported]
+        t = getattr(s, "t", None)
+        for c in getattr(s, "chars", ()):
+            st = d.get(c.ptr)
+            if c.hp is not None and c.hp > 0:
+                d[c.ptr] = [True, 0, None, False]
+                continue
+            if st is None or not st[0] or st[3] or c.hp is None:
+                continue                                    # never seen alive (a corpse from before) / already reported
+            if st[2] != t:
+                st[1] += 1
+                st[2] = t
+            if st[1] >= 2:
+                st[3] = True
+                try:
+                    cb(c)
+                except Exception:
+                    pass
 
     def _note_swings(self, s) -> None:
         """Perception kept by every snapshot read through here, from any thread (the decision loop, an attack move's _watch, the
@@ -995,7 +1022,7 @@ class Moves:
 
     def rest(self, nm, bonfire: dict) -> bool:
         """Walk to the bonfire, sit, and stand up (farm.rest). All enemies revive and HP·Estus refill."""
-        return farm.rest(self.tm, self.pad, nm, bonfire)
+        return farm.rest(self.tm, self.pad, nm, bonfire, settings=getattr(self, "settings", None))   # run's Settings (step 3)
 
     def press(self, button, hold: float = 0.1, gap: float = 0.1) -> None:
         """Single press for menus (press, release, gap). Menu inputs 0.1 s apart (user: back-to-back inputs tangle the input buffer)."""

@@ -649,9 +649,52 @@ The items are still open in ROADMAP.md (one line each); their full text as it st
     021816 burg-bonfire 25/39, 012015 burg-upper 240/241, 011128 clear-ramp 85/90 same rule as then (the misses predate
     step 2). Not checked: whether any of these runs used --basic, so a flag-off path in replay is not shown. Game check
     of --basic: not run.
-  - **Step 3 (next):** field.py / missions.py constants the run changes (`NOTICE_PULL` …) read through the same object;
-    then stop `apply()` writing globals for modules whose readers moved. Tests that set globals move to `applied()` as touched.
+  - **Step 3 (built, cloud, 11-11, after [win]'s step-2 check 96db4f5):** every reader of a run-changed value has the run's
+    object: `Settings.get(module, name)` (override, else the module's value now); `Field.settings` (class default empty)
+    → field.py's 2 `NOTICE_PULL` reads; `Moves.settings` → `farm.rest(settings=)` → `kindle.maybe(on=)` /
+    `levelup.maybe(want=)`, missions' level-up passes `want=`. run.py builds the Settings **without `apply()`** — module
+    globals stay at their defaults during a run; `runinfo.collect` overlays the overrides on `constants`, so the record
+    still shows the values the run uses. `apply()` / `applied()` stay for tests and tools (`levelup.main`, `kindle.main`
+    set their own globals). Verified offline: settings_test (AST: no other bare reader of the moved names; wiring;
+    kindle / levelup take the passed value; runinfo overlay with globals untouched), full suite. Room: one arena run
+    `--basic --pull` (correct scene): ran to the end, died (one run, outcome not compared); record `overrides` +
+    overlaid constants BACKSTAB / HEAVY False, NOTICE_PULL True. Not checked in game: --pull, --level-up, --kindle.
+  - **Next:** the other ~470 constants are not run-changed, so they need no object for A/B today; moving them is only
+    worth it with the tick loop / WorldState. Tests that set globals move to `applied()` as touched. Proposal: close
+    settings-object after a [win] game run with `--basic` (and `--level-up` / `--kindle` if a run uses them).
 - `worldstate` (moved 2026-10-12): [ ] [cloud] WorldState: who is alive / where after a bonfire rest, quit-out (byte/menu) or warp, fixed in one place (P-18, P-25, P-44, P-55)
+  - 2026-11-11 MoKa "worldstate 진행해줘". Before: the events that bring foes back were handled per feature — rest_at:
+    forget_foes + loot reset; wait_respawn: forget_foes (+ loot reset if it was a death); passage_drill warp: loot reset
+    only; Escape crowd warp: gen +1 only; quit-out: gen +1 and `revive_risk` for byte, read by nobody but the log;
+    "were they revived" was pass_ramp's own survivor scan.
+  - **Step 1 (built, cloud):** `souls/world.py` `WorldState` — `EVENTS` table (revive: rest · respawn · warp · byte
+    quit-out yes, menu quit-out no — P-25's 10-10 game check; run start unknown), `event(kind)` counts, logs a `world`
+    event and calls listeners; `kill(npc, pos)` (+ `world_kill` log event), `killed(npc, pos)` → True / False (alive
+    again) / None (unknown), `since(n)` / `revived_since(n)`. Field owns it and hands it to Escape; `Field._on_world`:
+    every revive → forget_foes, rest / respawn / warp → loot reset. Call sites: rest_at, wait_respawn (death only),
+    Field.fight 'killed', passage_drill warp, Escape crowd warp and completed quit-out, run.py run start.
+    Behaviour changes (small, on purpose): a warp (passage_drill, Escape) and a byte quit-out now also forget pointer
+    memory; an Escape crowd warp also resets the loot list. Escape's events run in its thread (listener: a dict pop +
+    loot reset). Readers (field.clear identity binding, pass_ramp, passage_drill) unchanged.
+    Verified offline: `tests/world_test.py` (table, killed / since, listener per kind, call sites) + related tests.
+    Room, arena, 2 runs: `world` run_start logged; run 2 cleared with 2 kills but only **1 `world_kill`** — the other
+    foe died from a shadow kick between fights (79.8 s), outside Field.fight. So `killed()` misses kills made outside
+    Field.fight — no reader uses it yet.
+  - Correction (step 2 day): step 1's `fld.world.event` in run.py broke `run_stop_test` (its fake Field has no world) — the
+    step-1 full suite ran while room runs used the Godot port, so its 4 failures were read as noise; fixed in step 2.
+  - **Step 2 (built, cloud, 11-11):** one death detector — `Moves._note_deaths` in `Moves.snap` (every snapshot read
+    through it): a foe seen alive, then HP 0 in two snapshots with different times → `on_death(c)` once (again only after
+    it is seen alive); Field sets `mv.on_death` → `WorldState.kill(npc, pos, ptr)` (same ptr once per revive); a load
+    (ptrs change) clears it. The per-fight `_world_kill` is gone. Readers: `pass_ramp` — if a revive-type event (byte
+    quit-out) came during the clear, 'cleared' is scanned for survivors too and cleared again (P-25 gap: field.clear
+    never revisits a target it counted dead); `passage_drill` — after its warp, live ramp foes → stops before the top
+    (`드릴 n 경사로 되살아남 k`, P-55) instead of walking up into them. Menu quit-out and no-world paths as before.
+    Verified offline: world_test (detector on fake snapshots, dedupe, load clears, pass_ramp 4 cases, drill 2 cases),
+    ramp_passed_test, full suite 170 pass / ground_test (P-97). Room, arena, 1 run: 2 kills → 2 `world_kill` (one in a
+    fight that ended 'stuck', which step 1 missed). Not seen in game: byte quit-out → re-clear, drill stop.
+  - **Next:** field.clear's identity re-bind could read the WorldState instead of `esc.gen` (same meaning today, no gain
+    yet); `killed()` has no reader — the per-spawn question needs spawn identity, not kill position. P-44 (lit-bonfire
+    list vs save restore) is outside a bot run — a save-restore step.
 - `tick-loop` (moved 2026-10-12): [ ] [cloud] One tick loop (read → update state → pick one action → input) instead of `field.py`'s own loops; walking first, one part at a time, guarded by `scene_replay` + `duel_golden_test`; v1.0 keeps running meanwhile
 - `route-data` (moved 2026-10-12): [ ] [cloud] Route data (walk / careful walk / safe spot / pull / fight / ladder / fog wall / Estus bar) + one runner; `burg-upper` moved first, then new segments without zone code
 - `batch-ab` (moved 2026-10-12): [ ] [cloud]+[win] Batch A/B runner: save restore · warp · N runs · `ab.py` report → "pass rate n/10 per segment"

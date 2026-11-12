@@ -65,6 +65,7 @@ class Escape:
         self.pad, self.nms, self.log, self.events = pad, nms, log, events
         self.escaping = False
         self.gen = 0
+        self.world = None                                  # souls/world.WorldState — Field hands it over (worldstate step 1)
         self.quit_ok = True                                # False = never use quit-out (exit to menu and back) (for video recording, run.py --no-quit)
         # [MoKa] 2026-10-12: "낙사시 퀵 종료 포기하고, 최대한 도망치던가 반격 하던가" — a fall is only recorded; the layers above
         # keep running (flee / fight back) and a death is handled after respawn (souls/afterdeath.py). Quit-outs after falls put the
@@ -319,6 +320,8 @@ class Escape:
             self._y.clear()
             self.gen += 1
             self.warps += 1 if ok else 0
+            if ok and self.world is not None:
+                self.world.event("warp", why="crowd3_warp", bonfire=bid)
             self.escaping = False
             self.log(f"   ⚠ 워프 결과: {'ok' if ok else 'failed'}")
             if self.events:
@@ -402,6 +405,8 @@ class Escape:
             self._y.clear()
             self.gen += 1
             self.escaping = False
+            if res.get("quit_s") is not None and self.world is not None:   # back in the world after a quit-out
+                self.world.event("quit_" + res["how"], why=kind)
             ctl.emit("esc", ev="fire_end", kind=kind, gen=self.gen, dt_ms=round((time.perf_counter() - t_fire) * 1000, 1),
                      how=res.get("how"), quit_s=res.get("quit_s"), reload_s=res.get("reload_s"), back=res.get("back"))
             self.log(f"   ⚠ 퀵 종료 결과: {res}")

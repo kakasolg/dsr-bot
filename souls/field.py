@@ -18,6 +18,7 @@ import control
 import ctl
 import drops as drops_
 import nav
+import settings as _settings
 
 from . import duel as D
 from . import escape as escape_
@@ -29,6 +30,7 @@ from . import pull as pull_
 from .reflex import Reflex
 from . import style as style_
 from .watch import Blood
+from . import world as world_
 
 FOLLOW_R = 4.5           # while walking the path, fight any awake foe that closes within this (horizontal)
 GROUP_R = 12.0          # COMBO_ONLY 무리 계획: 이 안의 적을 한 무리로 (P-121)
@@ -363,8 +365,9 @@ class LureBlock:
 
 
 class Field:
-    # the run's fight flags (settings-object step 2): run.py sets Flags from its Settings; this default reads duel's globals
+    # the run's settings (settings-object steps 2–3): run.py sets both from its Settings; these defaults read the globals
     flags = D.Flags()
+    settings = _settings.Settings()
 
     def __init__(self, mv: M.Moves, weapon, escape, bonfires: list, log=print, events=None, style="guard"):
         self.mv, self.w, self.esc, self.log = mv, weapon, escape, log
@@ -388,6 +391,24 @@ class Field:
         mv.guard_ok = self.style.shield
         self.reflex.events = self.events
         self.loot = loot_.Loot(self)                       # drops after fights (souls/loot.py) — off until run.py turns it on
+        # rest / respawn / warp / quit-out in one place (souls/world.py, worldstate step 1); Escape reports its own there
+        self.world = world_.WorldState(log=log, events=self.events)
+        self.world.on(self._on_world)
+        # one death detector in every snapshot read (Moves._note_deaths, worldstate step 2) → the WorldState's kills
+        mv.on_death = lambda c: self.world.kill(c.npc_param, (c.x, c.y, c.z), ptr=c.ptr)
+        if escape is not None and getattr(escape, "world", None) is None:
+            escape.world = self.world
+
+    def _on_world(self, kind: str, info: dict) -> None:
+        """WorldState listener — what an event means for Field's memory. Killed foes back (rest · respawn · warp · byte
+        quit-out) → drop pointer memory (forget_foes). Rest · respawn · warp → the loot list starts again, as before
+        (a quit-out keeps it, as before — whether drops survive a reload is not known)."""
+        if info.get("revive"):
+            self.forget_foes()
+        if info.get("ptrs") and hasattr(self, "mv"):
+            self.mv.__dict__.pop("_deaths", None)           # new pointers after a load — the death detector starts over
+        if kind in ("rest", "respawn", "warp") and getattr(self, "loot", None) is not None:
+            self.loot.reset(kind)
 
     # ── State─────────────────────────────────────────────────
     def snap_settled(self, within: float = 5.0):
@@ -433,8 +454,8 @@ class Field:
             if s and s.player.hp and s.player.hp > 0 and s.player.hp >= s.player.max_hp * 0.99:
                 self.forget_foes()
                 time.sleep(1.0)
-                if was_dead and getattr(self, "loot", None) is not None:
-                    self.loot.reset("respawn")
+                if was_dead:
+                    Field._world_event(self, "respawn", why="wait_respawn")   # (a fake Field in tests works too)
                 return True
             time.sleep(0.5)
         return False
@@ -1772,7 +1793,7 @@ class Field:
                 unreachable.append(f"#{i}")
                 pending.pop(0)
                 continue
-            if not lure and NOTICE_PULL and k == 0 and e.get("lure", True):
+            if not lure and self.settings.get("souls.field", "NOTICE_PULL") and k == 0 and e.get("lure", True):
                 pr = self.notice_pull(c.ptr, nm, arena, f"#{i}")
                 self.log(f"   #{i} 몸으로 끌기: {pr}")
                 tried[i] = 1                               # came → the 'incoming foe' branch takes it; no_reaction / stayed / thrower → go to it next round
@@ -2386,7 +2407,7 @@ class Field:
                 lured[c.ptr] = lured.get(c.ptr, 0) + 1
                 here = (p.x, p.y, p.z)
                 lr = self.lure(c.ptr, (c.x, c.y, c.z), nm, f"{tag}: {c.npc_param}", arena=here)
-                if lr == "no_knife" and NOTICE_PULL:
+                if lr == "no_knife" and self.settings.get("souls.field", "NOTICE_PULL"):
                     pr = self.notice_pull(c.ptr, nm, here, f"{tag}: {c.npc_param}")
                     lr = {"came": "lured", "stayed": "awake", "thrower": lr}.get(pr, pr)   # thrower: as before --pull (no knife)
                     if pr == "no_reaction":
@@ -2776,10 +2797,16 @@ class Field:
             if r == "dead":
                 self.wait_respawn()
         ok = self.mv.rest(nm, bonfire)
-        self.forget_foes()
-        if getattr(self, "loot", None) is not None:
-            self.loot.reset("rest")
+        Field._world_event(self, "rest", why="rest_at")   # → forget_foes + loot reset (Field._on_world)
         return ok
+
+    def _world_event(self, kind: str, **kw) -> None:
+        """Field's own events into its WorldState; a Field built without __init__ (tests) does the old side effects directly."""
+        w = getattr(self, "world", None)
+        if w is not None:
+            w.event(kind, **kw)
+        else:
+            Field._on_world(self, kind, dict(world_.EVENTS[kind]))
 
 
 class Care:

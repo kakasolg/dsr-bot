@@ -219,6 +219,13 @@ func _build_world() -> void:
 	if sk == "0":
 		sk = ""                               # RAMP_SK_COLLISION=0: off even when the scene asks
 	var sk_area := String(sc.get("sk_area", "Firelink Shrine"))
+	var sk_file := SK_GLB if sk == "" or sk == "1" else sk
+	var sk_missing := sk != "" and not FileAccess.file_exists(sk_file)
+	if sk_missing:
+		# a fresh clone (cloud) has no Sketchfab file (local only on [win]) → the scene's NavMesh-edge walls instead
+		# (sim/scene_walls.py `edge_walls`, same rule as ramp_scene.py's `walls`), not two engine errors and no walls
+		print("ramp: Sketchfab walls asked but %s is not here — using the scene's edge_walls (%d)" % [sk_file, sc.get("edge_walls", []).size()])
+		sk = ""
 	var natural := _natural_on()
 	var sk_all := PackedVector3Array() if sk == "" and not natural else _sk_faces(SK_GLB if sk == "" or sk == "1" else sk, sk_area)
 	if sc.has("sk_cut") and sk_all.size() > 0:
@@ -281,7 +288,7 @@ func _build_world() -> void:
 		wmi.material_override = wm
 		add_child(wmi)
 	# walls on open NavMesh edges with no floor beyond (sim/ramp_scene.py), 2.8 m high; edges with floor below stay open
-	for w in ([] if sk_faces.size() > 0 else sc.get("walls", [])):
+	for w in ([] if sk_faces.size() > 0 else (sc.get("edge_walls", []) if sk_missing else sc.get("walls", []))):
 		var a := Vector3(w[0], w[1] - 0.3, w[2])
 		var b2 := Vector3(w[3], w[4] - 0.3, w[5])
 		var up := Vector3(0, 2.8, 0)

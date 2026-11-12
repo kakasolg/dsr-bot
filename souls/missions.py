@@ -252,17 +252,25 @@ class Missions:
         path_in = _with_entry_corner(route)
         i0 = next(i for i, q in enumerate(path_in) if math.dist(q, PASSAGE_A0) < 0.3)
         path_in = path_in[:i0 + 4]                         # a0 + 3 points into the passage
+        w = getattr(self.f, "world", None)
         for n in range(1, rounds + 1):
             t0 = time.time()
+            n0 = w.n if w is not None else 0
             if warp_back:                                  # the way out stalls/fell (P-17) — warp back, to repeat only the way in
                 ok = self.mv.tm.bonfire_warp(FIRELINK_ID, log=self.log)
                 r = "warped" if ok else "warp_failed"
                 time.sleep(2.0)
-                if ok and getattr(self.f, "loot", None) is not None:
-                    self.f.loot.reset("warp")
+                if ok:
+                    Field._world_event(self.f, "warp", why="passage_drill")   # → forget_foes + loot reset (worldstate step 1)
             else:
                 r = self.f.walk_to(tuple(FIRELINK["stand"]), na, f"드릴{n} 화톳불로")
             self.log(f"   드릴 {n}: 화톳불까지 {r} {time.time() - t0:.1f} s")
+            if w is not None and w.revived_since(n0):      # P-55: the warp brought the ramp back — don't walk up into it
+                alive = self.ramp_survivors()
+                if alive:
+                    self.log(f"   드릴 {n}: {'·'.join(w.since(n0))} 뒤 경사로 적 {len(alive)}마리 살아 있음 "
+                             f"({' '.join(str(c.npc_param) for c in alive[:6])}) — 꼭대기로 안 감 (P-55)")
+                    return f"드릴 {n} 경사로 되살아남 {len(alive)}"
             t1 = time.time()
             r = self.f.walk_to(top, na, f"드릴{n} 꼭대기로")
             if r != "arrived":
@@ -313,18 +321,25 @@ class Missions:
     def pass_ramp(self, lure: bool | None = None) -> tuple[bool, str]:
         """Clear the ramp and decide whether to go on. → (passed, result line).
         'left #N?' only → look for live ramp foes: none → pass (P-18); some → clear again, at most RAMP_RETRIES times, then stop
-        (P-25: a quit-out revived killed foes — walking on with them alive behind us is how 28-bandit-c died)."""
+        (P-25: a quit-out revived killed foes — walking on with them alive behind us is how 28-bandit-c died).
+        worldstate step 2: if the WorldState saw an event that brings killed foes back while the ramp was cleared (a byte
+        quit-out), 'cleared' is checked for survivors too — field.clear never revisits a target it already counted dead."""
+        w = getattr(self.f, "world", None)
+        n0 = w.n if w is not None else 0
         r = self.clear_ramp(lure)
         for k in range(RAMP_RETRIES):
-            if not self._only_unknown(r):
+            revived = w is not None and w.revived_since(n0)
+            if not self._only_unknown(r) and not (revived and r == "cleared"):
                 break
             alive = self.ramp_survivors()
             if not alive:
                 break
+            why = f"정리 중 {'·'.join(w.since(n0))} 있었음" if revived else "퀵 종료로 되살아났을 수 있음(P-25)"
             self.log(f"   경사로 {r} — 그런데 살아 있는 적 {len(alive)}마리 ({' '.join(str(c.npc_param) for c in alive[:6])}): "
-                     f"퀵 종료로 되살아났을 수 있음(P-25) — 경사로를 다시 ({k + 1}/{RAMP_RETRIES})")
+                     f"{why} — 경사로를 다시 ({k + 1}/{RAMP_RETRIES})")
+            n0 = w.n if w is not None else 0
             r = self.clear_ramp(lure)
-        if self._only_unknown(r) and self.ramp_survivors():
+        if (self._only_unknown(r) or (w is not None and w.revived_since(n0) and r == "cleared")) and self.ramp_survivors():
             return False, f"{r} (살아 있는 적 남음)"
         return self.ramp_passed(r), r
 
@@ -1653,7 +1668,8 @@ class Missions:
         after = tm.last_bonfire()
         if sat:
             import levelup
-            levelup.maybe(tm, self.mv.press, log=self.log)  # run.py --level-up ([MoKa] 10-31 "모은 소울로 업그레이드")
+            st = getattr(self.mv, "settings", None)       # the run's Settings (settings-object step 3)
+            levelup.maybe(tm, self.mv.press, log=self.log, want=st.get("levelup", "WANT") if st is not None else None)  # run.py --level-up ([MoKa] 10-31 "모은 소울로 업그레이드")
         for _ in range(6):
             if not (tm.sitting() or tm.menu_open()):
                 break

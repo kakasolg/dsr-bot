@@ -255,9 +255,9 @@ def main() -> None:
     if a.crowd_warp and not (a.combo_only or a.drill):
         ap.error("--crowd-warp는 공격 기술 시험 (--combo-only · --drill)에서만 ([MoKa] 11-04: 정상 미션에서 사용 안 됨)")
     import settings
-    run_settings = settings.Settings.from_args(a).apply()   # flags → module constants in one place (--basic, --pull,
-    #                                                         --footing, --combo-only, --drill, --level-up, --kindle);
-    #                                                         before the settings record, so it holds the values this run uses
+    run_settings = settings.Settings.from_args(a)          # flags → one object (--basic, --pull, --footing, --combo-only,
+    #   --drill, --level-up, --kindle). Step 3: not applied to module globals — Field / Moves / fights read it; the settings
+    #   record overlays it on the module defaults
     if a.cmd == "status":
         return status()
     if a.cmd == "watch":                                    # read-only: no lock, no pad, no Log file — --radar implied
@@ -400,6 +400,7 @@ def main() -> None:
     for nm_ in nms.values():
         nm_.edge_kinds()                                    # sort wall/drop/seam edges now — the first wall check mid-fight took ~1 s (2026-09-30)
     mv = moves.Moves(tm, pad)
+    mv.settings = run_settings                             # settings-object step 3: farm.rest → kindle / levelup read it
     end_ctx.update(tm=tm, mv=mv)
     track_.follow(mv)
     if a.radar:
@@ -432,6 +433,7 @@ def main() -> None:
                 log=log, events=log.event, style=a.style)
     from souls import duel as duel_flags
     fld.flags = duel_flags.Flags(**run_settings.overrides.get("souls.duel", {}))   # settings-object step 2: fights read these
+    fld.settings = run_settings                            # step 3: Field's own run values (NOTICE_PULL)
     from souls.camera import CamFollow
     cam = CamFollow(mv, esc, log=log, events=log.event).start()   # so a viewer can see what the bot is doing (user 2026-09-26)
     mv.align_sink = cam.on_attack                          # target–body–camera at each attack press → "attack_align" ([MoKa] 10-11)
@@ -477,6 +479,8 @@ def main() -> None:
     ms = missions.Missions(fld, nms, log=log, lure=not a.no_lure)
     ms.throw = a.throw
     # 적 드롭 줍기: 연결된 명령에선 기본으로 켬 ([MoKa] 11-01 "일반 진행 중 자동으로 수행하는 공통 루틴"). 기준은 지금(처치 전)
+    if getattr(fld, "world", None) is not None:            # worldstate: what the save holds is not known yet
+        fld.world.event("run_start", why=a.cmd)
     loot = getattr(fld, "loot", None)
     if loot is not None:
         loot.on = a.cmd in LOOT_CMDS and not a.no_loot

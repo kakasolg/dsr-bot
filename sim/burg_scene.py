@@ -276,6 +276,8 @@ def main() -> None:
     for p in out["cam_path"]:
         tags[p[4]] = tags.get(p[4], 0) + 1
     print(f"cam_path: {len(out['cam_path'])} points {tags}")
+    import scene_walls                                     # NavMesh-edge walls for a clone without the Sketchfab file
+    out["edge_walls"] = scene_walls.edge_walls(out)        # (cloud) — ramp.gd uses them only when it is missing
     dst.write_text(json.dumps(out), encoding="utf-8")
     print(f"{dst.relative_to(ROOT)}: NavMesh {len(v)} v / {len(t)} t, route {len(out['route'])} points, no foes")
 

@@ -4,9 +4,10 @@ One object holds what a run changes from the module defaults. run.py builds it f
 it in one place (`apply`), and runinfo saves it (`to_dict`) next to the full constants table. Before this, run.py set
 `duel.BACKSTAB`, `field.NOTICE_PULL`, `levelup.WANT` … in separate blocks, and `levelup` / `kindle` were not in the record.
 
-Step 1 does not change how the bot reads settings: the modules still read their own UPPER_CASE globals, `apply` writes
-the overrides there. Later steps pass the object in instead (plan:settings-object). Behaviour must stay the same: the
-constants after `apply` are the ones the old blocks produced (tests/settings_test.py).
+Step 1: one place. Step 2: the fight rules read `duel.Flags` (F.flags) built from it. Step 3: every reader of a value in
+FLAGS reads the run's object (Field.settings · Moves.settings → farm.rest → kindle / levelup) and run.py no longer calls
+`apply` — module globals stay at their defaults during a run; runinfo records defaults overlaid with the overrides.
+`apply` / `applied` remain for tests and tools that still set globals (plan:settings-object).
 
   python settings.py --basic --pull            print the overrides those flags make
 """
@@ -55,6 +56,14 @@ class Settings:
                 for k, v in consts.items():
                     out.setdefault(module, {})[k] = v(a) if callable(v) else v
         return cls(out)
+
+    def get(self, module: str, name: str):
+        """The value this run uses: the override, else the module's own constant (read now). Readers that have the run's
+        Settings (Field.settings, Moves.settings) use this instead of the module global (step 3)."""
+        consts = self.overrides.get(module) or {}
+        if name in consts:
+            return consts[name]
+        return getattr(_mod(module), name)
 
     def set(self, module: str, name: str, value) -> "Settings":
         self.overrides.setdefault(module, {})[name] = value
