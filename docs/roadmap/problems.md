@@ -2774,3 +2774,12 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
   the fight move south toward the other foes. The duel loop only started after the 6 m walk, mid-attack.
 - **Next (not built):** short evasion (backstep or sideways roll) so the knight stays in reach; punish from further (walk in ≤ 3 m when
   ≥ 1.4 s left); keep the fight inside the church (reject roll/wait spots south of z ≈ 105); run the duel loop during the approach.
+
+**P-167 v3 built, 2026-11-12 (not run in game):** knight_try.py v3 is based on MoKa's one-hand demo (M1111-87, observe 20261112_062835).
+- **Where it waits:** at the plaza stair foot (LURE (23.5, 108.3)) instead of entering the church. The duel loop runs from there, so the approach is covered too.
+- **Dodging:** in a swing window it walks out of reach (4.0 m; 3005 9.0 m). It rolls only when walking can't make it in time.
+- **Punishing:** after the window it walks in and does one light attack, but only when enough of the anim is left for the walk plus 1.2 s.
+- **Chains:** no punish after 3000 (the 3000→3001 chain hit MoKa).
+- **Walk-in hit:** one hit on 3200/3210 when within 2.9 m.
+- **Fight area:** back-off directions that leave the plaza box (x 20.5–36.5, z 101–114, a guess) get a score penalty.
+- **Checks so far:** `tests/knight_try_test.py` (11) checks the pure `decide()` against the demo scenes. Nothing yet shows the bot's walking speed (WALK_MPS 2.0 is a guess), the aggro from LURE, or the knight's response in game.

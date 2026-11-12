@@ -257,7 +257,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 164 | pinned by 2 | open |
 | 165 | lure ignored | open |
 | 166 | knight: wall rolls, died | open |
-| 167 | knight 2: 0 dealt, drifted, +2 foes | open |
+| 167 | knight 2: 0 dealt; v3 built | open |
 
 ## 5. Relay — [cloud] ↔ board
 
