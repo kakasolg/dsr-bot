@@ -60,6 +60,10 @@ NO_PUNISH_AFTER = {3000, 13000}   # [MoKa 062835 ④] 3000 → 3001 연속; 0300
 WALK_IN = {3200, 3210}            # [MoKa 062835 ⑤] 다가오는 동작(뜻 미확인)에 한 대 — 한 번 관찰
 APPROACH_M = 6.0      # beyond this the knight isn't fighting yet
 BAIT_AFTER_S = 5.0    # [guess] LURE에서 이만큼 기다려도 안 오면 깨우러 감 (시연: 8.6 s에 나타남; 065353은 150 s 동안 안 옴)
+DOOR = (17.0, 28.4, 109.6)        # 교회 문 (3b 경로 (16.4, 109.0) → (11.3, 109.8)); 깨우기는 여기, 안 되면 INSIDE까지만
+INSIDE = (13.5, 28.4, 109.5)
+STEP_M = 1.3          # [meas observe 062525·062835] 판정 때까지 기사가 앞으로 온 거리: 3002 1.2 · 3003 1.0 · 3000 1.25 · 3001 1.3 m
+SAFE_EXTRA_M = 0.6    # 공격 중 사거리+이만큼 안이면 서 있지 말고 물러남 (3b: 3000 d 4.0 '기다림' → 1.43 s에 3.7 m, 늦은 구르기)
 WAKE_M = 5.5          # 깨우러 갈 때 이 거리까지만 (NavMesh 길) — 그 전에 움직이면 멈춤
 BAIT_TRIES = 3
 LURE = (23.5, 26.6, 108.3)        # [MoKa 062835] 계단 아래 광장 — 여기 서 있자 기사가 교회에서 나옴
@@ -89,7 +93,7 @@ def decide(a, at, d):
         return None
     reach = reach_of(a)
     for w in wins:
-        if at < w[1] and d < reach:
+        if at < w[1] and d < reach + SAFE_EXTRA_M:
             t_left = w[0] - at
             need = reach + 0.3 - d
             if need / WALK_MPS <= t_left - 0.15:
@@ -162,7 +166,10 @@ class KnightTry(andre_route.Route):
             r = math.radians(deg)
             dx, dz = bx * math.cos(r) + bz * math.sin(r), -bx * math.sin(r) + bz * math.cos(r)
             L = next((L for L in (m, 2.0, 1.5, 1.0) if nav.can_move(self.nm, p, dx, dz, L)), 0.0)
-            score = L - 0.002 * abs(deg) - (0.0 if in_plaza(p.x + dx * m, p.z + dz * m) else 1.0)
+            lx, lz = LURE[0] - p.x, LURE[2] - p.z
+            ln = max(math.hypot(lx, lz), 0.1)
+            toward_lure = (dx * lx + dz * lz) / ln       # P-169: 교회 안에선 모든 방향이 광장 밖 → 감점이 무의미, 남쪽으로 밀림
+            score = L - 0.002 * abs(deg) + 0.8 * toward_lure * (ln > 2.0)
             if best is None or score > best[0]:
                 best = (score, dx, dz, deg, L)
         _, dx, dz, deg, L = best
@@ -210,14 +217,17 @@ class KnightTry(andre_route.Route):
 
         self.f.ignore_npcs = {self.npc, andre_route.BOAR}
         try:
-            r1 = self.f.walk_to((k.x, k.y, k.z), self.nm, "기사 깨우기", done=woke)
-            s = self.mv.snap(60.0); k = self.knight(s)
-            self.rec("bait", r=r1, d=None if not k else round(k.dist, 2), anim=None if not k else k.anim,
-                     moved=None if not k else round(math.hypot(k.x - x0, k.z - z0), 2))
-            if r1 != "done":
-                return (r1, None)
+            r1 = "no"
+            for goal, tag in ((DOOR, "교회 문까지 (깨우기)"), (INSIDE, "문 안 조금 (깨우기)")):
+                r1 = self.f.walk_to(goal, self.nm, tag, done=woke)
+                s = self.mv.snap(60.0); k = self.knight(s)
+                self.rec("bait", to=tag, r=r1, d=None if not k else round(k.dist, 2), anim=None if not k else k.anim,
+                         moved=None if not k else round(math.hypot(k.x - x0, k.z - z0), 2))
+                if r1 == "done" or (s and woke(s)):
+                    break
+            # P-169: 깨었든 안 깨었든 항상 LURE로 돌아감 (3b는 'arrived'라 안 돌아가고 교회 안에서 싸움)
             r2 = self.f.walk_to(LURE, self.nm, "LURE로 돌아감",
-                                done=lambda sn: (kk := self.knight(sn)) is not None and kk.dist < 4.5)
+                                done=lambda sn: (kk := self.knight(sn)) is not None and kk.dist < 4.5 and kk.anim != -1)
             s = self.mv.snap(60.0); k = self.knight(s)
             self.rec("bait_back", r=r2, d=None if not k else round(k.dist, 2), anim=None if not k else k.anim)
             return (r1, r2)

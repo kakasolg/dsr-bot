@@ -7,8 +7,9 @@ import knight_try as kt
 
 
 def test_stood_out_of_reach_during_3002_window():
-    # ① 3002 at 2.27 s (late window), MoKa at 4.0 m → nothing to dodge
-    assert kt.decide(3002, 2.3, 4.1) == ("wait", None)
+    # ① 3002 at 2.27 s (late window), MoKa at 4.0 m — the bot keeps SAFE_EXTRA_M more (P-169: 3000 at 4.0 m → late roll)
+    assert kt.decide(3002, 2.3, 4.7) == ("wait", None)
+    assert kt.decide(3002, 2.3, 4.1)[0] in ("away", "roll")
 
 
 def test_walks_away_when_close_before_3002_late_window():
@@ -53,6 +54,11 @@ def test_walk_in_anim_hit_when_close():
 
 def test_3005_lunge_far_reach():
     assert kt.decide(3005, 0.5, 6.0)[0] in ("away", "roll")
+
+
+def test_3000_at_4m_is_not_wait():
+    # P-169 (3b 070213): 3000 started at d 4.0, "wait", knight closed to 3.7 m by 1.43 s → late roll
+    assert kt.decide(3000, 0.03, 4.0)[0] == "away"
 
 
 def test_plaza_box():
