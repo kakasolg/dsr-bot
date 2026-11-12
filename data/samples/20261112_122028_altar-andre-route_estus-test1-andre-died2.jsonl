@@ -1,0 +1,22 @@
+{"t": 101.82, "ev": "smash", "tag": "게이트 안 (첫 적)", "prop": "o1175_07", "model": "o1175", "pos": [22.731, 9.564, -16.739]}
+{"t": 105.44, "ev": "smash", "tag": "게이트 안 (첫 적)", "prop": "o1175_07", "model": "o1175", "pos": [22.731, 9.564, -16.739]}
+{"t": 107.32, "ev": "walk_fail", "tag": "게이트 안 (첫 적)", "i": 0, "n": 2, "q": [5.9, 16.0, -4.6], "pos": [22.6, 9.5, -17.36], "r": "timeout", "fails": 1}
+{"t": 117.46, "ev": "guard_counter", "anim": 20140, "npc": 255041, "dist": 1.0, "dmg": 102, "taken": 0}
+{"t": 117.61, "ev": "world_kill", "npc": 255041, "pos": [5.91, 15.31, -10.4], "rev": 0, "kills": 1}
+{"t": 117.61, "ev": "duel", "tag": "게이트 안 (첫 적) 돌아서: 따라온 255041", "npc": 255041, "result": "killed", "secs": 2.2, "dealt": 102, "taken": 0, "fight": "run#f001"}
+{"t": 139.42, "ev": "crowd3", "n": 3, "near": 2.11, "action": "close_no_warp"}
+{"t": 140.01, "ev": "guard_counter", "anim": 20140, "npc": 250050, "dist": 1.92, "dmg": 63, "taken": 0}
+{"t": 140.01, "ev": "duel", "tag": "따라온 놈 250050", "npc": 250050, "result": "killed", "secs": 1.9, "dealt": 63, "taken": 0, "fight": "run#f002"}
+{"t": 140.11, "ev": "world_kill", "npc": 250050, "pos": [1.24, 13.0, 40.18], "rev": 0, "kills": 2}
+{"t": 143.04, "ev": "duel", "tag": "따라온 놈 back: 따라온 250050", "npc": 250050, "result": "losing", "secs": 2.9, "dealt": 0, "taken": 450, "fight": "run#f003"}
+{"t": 143.14, "ev": "escape_pick", "src": "T", "point": [6.8264851570129395, 13.00039005279541, 39.96242141723633], "kept": 7, "cands": 12}
+{"t": 143.15, "ev": "break_out", "hits": 0, "foes": 2, "dir": 0}
+{"t": 145.23, "ev": "roll", "why": "break_out", "want": 1, "got": 8, "off": 7}
+{"t": 147.47, "ev": "guard_counter", "anim": 20140, "npc": 250050, "dist": 0.85, "dmg": 0, "taken": 125}
+{"t": 148.37, "ev": "duel", "tag": "따라온 놈 back: 따라온 250050", "npc": 250050, "result": "crowd", "secs": 0.0, "dealt": 0, "taken": 0, "fight": "run#f004"}
+{"t": 148.87, "ev": "wall_back", "result": "arrived", "spot": [0.437686284383138, 13.124395370483398, 44.009666442871094], "secs": 0.5, "foes": 3}
+{"t": 151.08, "ev": "estus", "low_sip": true, "ok": false, "hp": [266, 266], "left": 8, "why": "끊김 (개수 그대로)"}
+{"t": 153.11, "ev": "guard_counter", "anim": 20140, "npc": 250050, "dist": 0.85, "dmg": 0, "taken": 90}
+{"t": 155.35, "ev": "estus", "fight": true, "ok": false, "hp": [176, 51], "left": 8, "why": "끊김 (개수 그대로)"}
+{"t": 157.58, "ev": "estus", "fight": true, "ok": false, "hp": [51, 0], "left": 8, "why": "끊김 (개수 그대로)"}
+{"t": 157.59, "ev": "duel", "tag": "따라온 놈 back: 따라온 250050", "npc": 250050, "result": "me_dead", "secs": 4.5, "dealt": 0, "taken": 176, "fight": "run#f005"}

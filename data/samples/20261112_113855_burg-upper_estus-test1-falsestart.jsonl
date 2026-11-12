@@ -1,0 +1,48 @@
+{"t": 93.62, "ev": "style", "style": "guard"}
+{"t": 93.62, "ev": "char", "stats": {"VIT": 22, "ATN": 8, "END": 14, "STR": 16, "DEX": 10, "INT": 8, "FTH": 10, "RES": 11, "SL": 17, "소울": 645, "누적소울": 18778, "인간성": 1}, "equip": {"왼손1": 1462000, "오른손1": 301003, "왼손2": 900000, "오른손2": 900000, "화살": 50000, "머리": 51000, "몸": 52000, "팔": 53000, "반지1": -1, "반지2": 143}}
+{"t": 93.63, "ev": "vital", "hp": 1018, "max": 1018, "near": 0}
+{"t": 93.64, "ev": "world", "kind": "run_start", "why": "burg-upper", "revive": null, "ptrs": true, "n": 1, "revives": 1}
+{"t": 94.16, "ev": "vital", "hp": 1018, "max": 1018, "near": 0}
+{"t": 94.67, "ev": "vital", "hp": 1018, "max": 1018, "near": 0}
+{"t": 95.17, "ev": "vital", "hp": 1018, "max": 1018, "near": 0}
+{"t": 95.68, "ev": "vital", "hp": 1018, "max": 1018, "near": 0}
+{"t": 96.19, "ev": "vital", "hp": 1018, "max": 1018, "near": 0}
+{"t": 96.7, "ev": "vital", "zone": "burg-upper:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 97.22, "ev": "vital", "zone": "burg-upper:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 97.72, "ev": "vital", "zone": "burg-upper:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 98.23, "ev": "vital", "zone": "burg-upper:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 98.74, "ev": "vital", "zone": "burg-upper:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 99.25, "ev": "vital", "zone": "burg-upper:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 99.76, "ev": "vital", "zone": "burg-upper:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 100.26, "ev": "vital", "zone": "burg-upper:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 100.77, "ev": "vital", "zone": "burg-upper:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 101.28, "ev": "vital", "zone": "burg-upper:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 101.79, "ev": "vital", "zone": "burg-upper:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 102.29, "ev": "vital", "zone": "burg-upper:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 102.8, "ev": "vital", "zone": "burg-upper:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 103.31, "ev": "vital", "zone": "burg-upper:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 103.81, "ev": "vital", "zone": "burg-upper:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 104.32, "ev": "vital", "zone": "burg-upper:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 104.82, "ev": "vital", "zone": "burg-upper:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 105.33, "ev": "vital", "zone": "burg-upper:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 105.84, "ev": "vital", "zone": "burg-upper:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 106.35, "ev": "vital", "zone": "burg-upper:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 106.85, "ev": "vital", "zone": "burg-upper:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 107.36, "ev": "vital", "zone": "burg-upper:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 107.87, "ev": "vital", "zone": "burg-upper:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 108.37, "ev": "vital", "zone": "burg-upper:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 108.87, "ev": "vital", "zone": "burg-upper:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 109.38, "ev": "vital", "zone": "burg-upper:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 109.9, "ev": "vital", "zone": "burg-upper:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 110.4, "ev": "vital", "zone": "burg-upper:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 110.91, "ev": "vital", "zone": "burg-upper:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 111.42, "ev": "vital", "zone": "burg-upper:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 111.92, "ev": "vital", "zone": "burg-upper:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 112.43, "ev": "vital", "zone": "burg-upper:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 112.93, "ev": "vital", "zone": "burg-upper:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 113.0, "ev": "world", "zone": "burg-upper:1", "kind": "rest", "why": "rest_at", "revive": true, "ptrs": false, "n": 2, "revives": 2}
+{"t": 113.51, "ev": "vital", "zone": "burg-upper:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 114.04, "ev": "vital", "zone": "burg-upper:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 114.55, "ev": "vital", "zone": "burg-upper:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 115.06, "ev": "vital", "zone": "burg-upper:1", "hp": 1018, "max": 1018, "near": 0}
+{"t": 115.09, "ev": "result", "cmd": "burg-upper", "result": "휴식 실패"}

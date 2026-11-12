@@ -55,6 +55,7 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
 | 156 | Practice room in a fresh clone: no Godot import cache → no player, input ignored | fixed (cloud headless; [win] not re-run) |
 | 158 | probe --mortal: warp without NO_DEAD = 17 m fall damage, 12 runs void | fixed (NO_DEAD until landing) |
 | 163 | Andre rest: faced away | fixed 233621 |
+| 174 | burg-upper from Firelink | fixed (procedure) |
 
 ### P-1 오프라인 테스트가 Linux에서 실행 안 됨 (2026-09-27, [cloud], 1번)
 - 증상: `field_*_test.py` 등이 `ModuleNotFoundError: pymem`, 이어서 `vgamepad`, `KeyError: 'TEMP'`로 실패
@@ -2856,3 +2857,30 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
 - Cause: `merchant` calls `to_merchant()` only; `burg-bonfire --seg 1-5` (the procedure that worked, 10-12, 0 deaths) runs `pass_ramp()` first. MoKa: "가라고 해도 차례대로 죽이면서 가야지" (M1112-07); survival came from Claymore +5, not the route (M1112-08).
 - Next: use `burg-bonfire --seg 1-5 --buy` for merchant trips.
 - Fix (11-12, M1112-10): `run.py merchant` → `Missions.merchant_trip`: below the ramp (nearest route point A0, > 6 m) with live or unreadable ramp foes → `pass_ramp()` first. Offline only (`tests/merchant_trip_test.py`); not run in the game.
+
+### P-173 HP < 30 % during `_top_up`'s retreat walk: no in-place sip (M1112-02 not on that path) (2026-11-12 `115036` zone 4)
+- Observed (log): after killing 254011 at 252.8 s HP 375/1018 (37 %), `_top_up` → heal refused (foe near) → `Field.retreat` toward the bonfire. At 254.4 s, while walking, −107 → 268 (26 %). No `M1112-02` line; arrived 258.3, sips done 260.5 (268 → 668) and 262.7 (→ 1018). Crossing 30 % → first sip done ≈ 6.1 s (MoKa target 0.5 s). Zone cleared, no death.
+- Cause (code read): the in-place sip is in `duel.rule_low_sip` (fight ticks) and at the start of `Field.recover`; `Missions._top_up` → `Field.retreat` walks with neither. Hypothesis, not tested: a check inside the retreat walk (or before it, when HP is already < 30 %) would have drunk at 254.4.
+- Only one < 30 % case in 3 runs (clear-ramp 88 %, burg-bonfire 32 %, burg-upper 26 %); `rule_low_sip` itself never fired, so its game timing is still unmeasured.
+
+### P-174 [win] started `burg-upper` from Firelink: rest failed, nothing done (2026-11-12 `113855`)
+- Fact: restored the Claymore save (at Firelink) and ran `burg-upper` directly; it starts at the Undead Burg bonfire → "화톳불로: no_path", rest failed at 115 s. No harm.
+- Cause: precondition not read before the run (CLAUDE.md "Before a run"). The 11-08 runs on the same save went clear-ramp → burg-bonfire --seg 2-6 → burg-upper. Redone that way (114122 / 114434 / 115036).
+
+### P-175 `altar` started after zone 8 (tower top, fog side): walked off beside the ladder top, 9 m fall, stuck at the ladder foot (2026-11-12 `120142`)
+- Observed (log): start (50.0, 24.8, -116.9); step ① "다리 입구로" point 5/42 reached at 0.4 m, then fall "발밑 바닥 9 m 아래" at (49.09, 24.67, -117.22), −160 → HP 666. At (49.1, 16.0, -117.1) points 10–12 and the turn-back points all `unreachable` ("사다리 옆에서 막힘"), result `① stuck`. Drank once (666 → 1018). No death.
+- Entry cause: `Altar.run` is written for the end of `burg-altar`'s zones 1–7; [win] ran it after `burg-upper --seg 1-8` (zone 8 ends on the tower top). Precondition not checked before the run — same kind of slip as P-174. Direct cause (hypothesis): the route's first points near the ladder top don't fit a zone-8 start; the walk stepped past the edge (compare P-108).
+- Next: MoKa — warp to the Undead Burg bonfire and run `burg-altar` (zones 1–7 → altar), or another way back up.
+
+### P-176 `andre_route` died at the lower stairs again: 3× 250050 + 255041 pinned, death inside clear()'s return walk (2026-11-12 `121555`) — AGAIN of P-164
+- Observed (log): step 6 `followers` at (-0.7, 13.0, 39.5), HP 964, Estus 8. "3놈 몰려 옴 — 실패로 봄", no warp (no --crowd-warp). Fight vs 250050 6 s timeout: dealt 0, taken 294 (two shield-hit → light trades, 0 damage dealt). HP 670 at 149.5 s, then `따라온 놈 back` → me_dead at 152.4 s; at death 250050 ×3 at 0.8–1.2 m and 255041 at 1.0 m. Estus 8 unused; no M1112-02 line (HP fell from 66 % to 0 within the return walk).
+- Same spot and shape as P-164 (try 4, 11-11). Fits P-164 candidate 2 (clear()'s return walk starts its own fight; low-HP logic can't run). Not proven.
+- Entry cause: route step order sprints down into the lower stairs group (3+ foes) — MoKa M1111-54 ("3 at the stairs, fight mid-stairs"); not changed since P-164.
+
+### P-177 `andre_route` retry died at the same step; M1112-02 in-place sip tried 3×, interrupted 3/3 (2026-11-12 `122028`) — AGAIN of P-176 / P-164
+- Observed (log): step 6 `followers`. `따라온 놈 back` vs 250050: losing — 3 s, dealt 0, taken 450 → rolled to the gap, retreat stopped (HP 516, "에스트: 근처에 적 — 안 마심"); then "셋 이상 붙음 — 벽으로 … 그 자리에서 하나씩" (0.4, 13.1, 44.0).
+  In-place sips (M1112-02): 151.1 s HP 266 (Field.recover) → 끊김, HP unchanged; 155.4 s HP 176 (rule_low_sip) → 끊김, 176 → 51; 157.6 s HP 51 → 끊김, → 0. Foes at death: 250050 0.9 / 1.7 m, 255041 2.8 m. Dealt 0 the whole step; Estus 8 unused (count unchanged). Bloodstain from P-176 (4830 souls) lost; souls now 104.
+- Facts vs hypothesis: the new rule fired as written (stop and drink, no opening check), and every sip was hit before the count dropped. Hypothesis: with 2+ foes within ~2 m an in-place sip doesn't finish; M1112-04/05 (make ~3 s of room first) is the open question it touches. Not proven from 3 sips.
+- Same command, same step, twice in a row today (P-176, P-177): stop repeating; next step = MoKa (route change at the lower stairs, or the M1112-04/05 decision).
+- Fix tried (11-12, M1112-15, game check = next run): `andre_route` stops the lower-stairs sprint at (8.4, 13.0, 40.3), clears there (8 m), heals, then walks west and clears (6 m) before the lure steps. The in-place-sip interruptions are not changed (M1112-04/05 = MoKa).
+- Game check (11-12 `122538`, 1 run): lower stop east → follower 250050 (dealt 102, taken 0) → walked west, hollow killed (taken 0) → rest of the route → rested at Andre. No death. One run only.
