@@ -95,7 +95,7 @@ def capture(F, T) -> dict:
                                                "bounces": [[b[0], b[1], round(now - b[2], 3), b[3]]   # P-139: [x, z, age s, tries]
                                                            for b in getattr(rf, "bounces", [])],
                                                **({"anim": _plain(dict(rf._anim), now)} if hasattr(rf, "_anim") else {})},
-            "care": None if care is None else {"wants": wants},
+            "care": None if care is None else {"wants": wants, "left": getattr(care, "left", None)},   # left: rule_low_sip (M1112-02)
             "nm": getattr(F.nm, "map_id", None) if F.nm is not None else None,
             "ground": type(F.nm).__name__ == "Ground",       # run.py --ground: floor checks read NavMesh + walked cells
             "flags": {k: getattr(F.flags, k) for k in ("BACKSTAB", "HEAVY", "BACKSTAB_ONLY", "FOOTING")}}   # the Fight's (settings step 2)

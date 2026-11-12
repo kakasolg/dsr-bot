@@ -878,7 +878,9 @@ def _sense(F: Fight):
     # ── 지는 싸움은 일찍 나온다 ([MoKa] 2026-10-01: "전술적인 문제와 후퇴를 더 많이 할 필요") ──
     #  09-30a~10-01b: 큰 피격의 절반(4779/9824)이 옆에 아무도 없는 1:1에서 망자 연타(3003·3000)를 계속 받은 것, low_hp로 끝난 7번이 2347을 받음
     #  (25 %까지 버티다 나옴). 이 싸움에서 최대 HP의 LOSING_TAKEN을 받았는데 그놈 HP의 LOSING_DEALT도 못 깎았으면 → 물러나 마시고 다시
-    if (F.low_hp > 0 and p.max_hp and (F.hp_start or 0) - min(F.hp_min or p.hp, p.hp) >= p.max_hp * LOSING_TAKEN
+    # losing: its own switch since M1112-03 (Field passes low_hp 0 now — no HP retreat line — but keeps this retreat on)
+    losing_on = F.losing if getattr(F, "losing", None) is not None else F.low_hp > 0
+    if (losing_on and p.max_hp and (F.hp_start or 0) - min(F.hp_min or p.hp, p.hp) >= p.max_hp * LOSING_TAKEN
             and F.res.dealt < (c.max_hp or c.hp or 1) * LOSING_DEALT and c.hp > FINISH_KEEP_HP):
         return F.done("losing")
     # 둘러싸이면 HP와 상관없이 물러난다 ([MoKa] 2026-09-28: "둘러싸였을 때는 퀵 종료하면 안 되고 후퇴해야 해"). 레벨 낮은 Bandit Bot 은
@@ -2045,6 +2047,25 @@ def rule_edge(F, T):
     return None
 
 
+LOW_SIP_HP = 0.30        # [MoKa] 11-12 (M1112-02): "30% 이하면 바로 마셔야 하는데, 봇이 멈춘채 0.5초 이내 마시면 되는데 너무 오래 걸리니
+                         # 문제인 거지. 그래서 뒤로 물러나도 의미가 없어지는 거야." — records: crossing 30 % → first sip median 6.6 s (1 of 89
+                         # within 0.5 s), 74 of 164 died first (median 3.6 s) — docs/hp-stamina-2026-11-12.md §6
+LOW_SIP_RETRY = 1.0      # a sip that didn't happen (slot not picked, interrupted) is tried again after this
+
+
+def rule_low_sip(F, T):
+    """HP below LOW_SIP_HP with Estus left → stop and drink now, here: no opening check, no step back (M1112-02). First in RULES."""
+    care, p = F.care, T.p
+    if (care is None or not p.max_hp or p.hp >= p.max_hp * LOW_SIP_HP or getattr(care, "left", 0) <= 0
+            or T.now - getattr(F, "low_sip_t", 0.0) < LOW_SIP_RETRY):
+        return None
+    F.low_sip_t = T.now
+    r = care.take(lambda sn: True)
+    F.log(f"      HP {p.hp}/{p.max_hp} (< {LOW_SIP_HP:.0%}) — 멈춰서 바로 에스트 (M1112-02): {r}")
+    F.note("에스트(30%)", T.s, T.c)
+    return CONT
+
+
 def rule_estus(F, T):
     """Estus mid-fight (user: drink if safe). If close, backstep to open distance (when there's ground behind) and recheck next tick."""
     care, p, ptr = F.care, T.p, F.ptr
@@ -2806,7 +2827,7 @@ def _no_drill(rule):
 # drill → (wait beyond this, step in only to this when it doesn't come, walk in beyond this) — _drill_setup
 DRILL_WAIT = {"backstep_r1": (SWING_BS_R, DRILL_BS_HOLD, DRILL_BS_FAR), "jump_r2": (JUMP_HI, JUMP_HOLD, JUMP_WAIT_FAR)}
 
-RULES = [rule_shot, rule_separate, rule_wall_bounce, rule_finish_first, prep_reflex, rule_guard_counter, rule_footing, rule_swing_backstep, rule_jump_drill, rule_jump_dodge,
+RULES = [rule_low_sip, rule_shot, rule_separate, rule_wall_bounce, rule_finish_first, prep_reflex, rule_guard_counter, rule_footing, rule_swing_backstep, rule_jump_drill, rule_jump_dodge,
          rule_jump_save, rule_after_swing, rule_face_first, rule_early_kick, rule_late_windup_block, prep_linger, rule_hit_first,
          _no_drill(rule_backstab_swing), rule_reflex, rule_lure, rule_edge, rule_estus, rule_stagger_punish, rule_evade, rule_block,
          rule_downed, _no_drill(prep_backstab_chance), rule_wait_far, rule_approach, rule_finish, rule_stamina, prep_face,
@@ -2861,7 +2882,7 @@ class _RuleRec:
 
 
 
-def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: float = 0.25,
+def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: float = 0.25, losing: bool | None = None,
          cancel=lambda: False, care=None, reflex=None, arena=None, style=None, wait_far: bool = False,
          gen=None, events=None, may_approach=None, crowd_ok: bool = False, wall_ok: bool = False,
          advisor=None, tap=None, trail=None, flags: Flags | None = None) -> DuelResult:
@@ -2879,10 +2900,12 @@ def duel(mv: M.Moves, weapon, ptr, nm, log=print, limit: float = 45.0, low_hp: f
     tap: attack_audit.DecisionTap (run.py --attack-audit, off by default) — copies what features() reads before each rule
       call, records the attack rule invocations after they return. Observation only: nothing it returns steers the fight
       (its payload goes only to the advisor), and it swallows its own errors.
-    flags: Flags (settings-object step 2) — the run's fight flags; None = the module globals."""
+    flags: Flags (settings-object step 2) — the run's fight flags; None = the module globals.
+    losing: end a losing fight ('losing', LOSING_TAKEN / LOSING_DEALT); None = as before, on when low_hp > 0 (M1112-03)."""
     from . import style as style_
     F = Fight(mv, weapon, ptr, nm, log, limit, low_hp, cancel, care, reflex, arena, style_.of(style or "guard"), wait_far, gen, events,
               may_approach, crowd_ok, wall_ok, trail, flags)
+    F.losing = losing
     rr = _RuleRec() if ctl.on() else None              # P1-C: record only
     if rr is not None:
         CT.fight_start(F)                                  # counter trace (record only)

@@ -71,6 +71,8 @@ HIT_SP2 = 80                        # two in a row only from here (two cost ~76)
 ESTUS_HP = 0.40
 BOSS_MOVE = frozenset({701})         # MoKa 11-09 "701엔 기다려": boss turning/walking — no light chain starts during it
 SPOT_ATTACK_S = 0.5                 # [MoKa] 11-09 "다리에 붙으면 0.5초 내에 공격 들어가봐": on the spot this long → swing even below HIT_SP (stamina > 0)
+SIP_SP_FRAC = 0.10                  # [MoKa] 11-12 "스테미나가 10% 이하이면 에스트 마셔도 되겠지" — close-fight sip only at stamina
+                                    # ≤ this × max (was SP < HIT_SP 40): "스테미나가 있으면 한대라도 더 때리는게 성공 확률이 높은데" (M1112-01)
 SIP_SPOT_R = 0.8                    # P-142 (MoKa 11-09 "에스트를 마셔도 다리 사이에서"): sip only this close to crotch_spot — unmeasured
 SIP_SPOT_WAIT = 4.0                 # … unless a sip window has been open this long without reaching it (never drinking = death) — unmeasured
 # ── 두 대 맞으면 죽음 → 한 대 맞으면 마심 ([MoKa] 11-02 "연속 2대 맞으면 죽잖아" · "에스트 마시면서") ──
@@ -601,7 +603,11 @@ class Taurus:
             # [MoKa] 11-09 "한 대 남으면 마셔" — 073200: HP 3 · 기력 98에서 기력 규칙대로 약공 → 사망 (P-147). 한 대(TAURUS_HIT)에 죽는 HP면
             #  기력과 상관없이 마실 창 (보스 BOSS_ATTACK 밖일 때), 그 사이엔 치지 않고 자리에서 가드
             one_left = p.hp <= TAURUS_HIT and self.mv.estus_left() > 0
-            window = low and ((p.sp or 0) < HIT_SP or one_left) and a not in BOSS_ATTACK
+            # [MoKa] 11-12 (M1112-01): "타우로스도 30%에서 마시는데, 의미가 없음. 스테미나가 있으면 한대라도 더 때리는게 성공 확률이 높은데,
+            #  스테미나가 10% 이하이면 에스트 마셔도 되겠지." — the stamina gate is SIP_SP_FRAC × max_sp (was SP < HIT_SP 40); between that
+            #  and HIT_SP the attack branch below swings after SPOT_ATTACK_S (SP > 0). `low` (HP < 490) and one_left (M1109-24) unchanged
+            spent = (p.sp or 0) <= SIP_SP_FRAC * (getattr(p, "max_sp", 0) or 100)   # max_sp unread (0) → 100
+            window = low and (spent or one_left) and a not in BOSS_ATTACK
             win_t = (win_t or time.time()) if window and not on_spot else None
             late = win_t is not None and time.time() - win_t > SIP_SPOT_WAIT
             if window and (on_spot or late):

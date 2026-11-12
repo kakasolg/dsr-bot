@@ -29,7 +29,7 @@ def check(name, ok):
 
 
 def snap(boss=None, me=(50.5, 24.8, -117.1), hp=680, sp=98):
-    pl = NS(x=me[0], y=me[1], z=me[2], gx=me[0], gy=me[1], gz=me[2], hp=hp, max_hp=742, sp=sp, anim=-1, heading=0.0)
+    pl = NS(x=me[0], y=me[1], z=me[2], gx=me[0], gy=me[1], gz=me[2], hp=hp, max_hp=742, sp=sp, max_sp=98, anim=-1, heading=0.0)
     return NS(player=pl, chars=[boss] if boss else [], cam_yaw=0.0)
 
 
@@ -207,13 +207,22 @@ check("close fight: resin worn off, boss 5 m away and idle → still no rub", ru
 drank = []
 b = boss(x=48.5, y=15.8, z=-119.0, anim=-1, hp=400)
 _sp = T.crotch_spot(b, NS(x=47.0, z=-119.0))           # MoKa 11-09: sips happen between its legs
-t, mv, pad = make([snap(b, me=(_sp[0], 15.8, _sp[1]), hp=320, sp=30), snap(None, me=(_sp[0], 15.8, _sp[1]))])
+t, mv, pad = make([snap(b, me=(_sp[0], 15.8, _sp[1]), hp=320, sp=8), snap(None, me=(_sp[0], 15.8, _sp[1]))])
 t.tm = NS(goods_count=lambda i: 2)
 t.events = lambda *a, **k: None
 mv.drink = lambda ok: drank.append(1) or {"ok": True}
 mv.light = light
 t._fight()
-check(f"close fight: HP 320 (one hit left before death), stamina short, boss not swinging → Estus twice in a row (MoKa 11-09 \"두번\") ({drank})", drank == [1, 1])
+check(f"close fight: HP 320 (one hit left before death), stamina 8 (≤ 10 %), boss not swinging → Estus twice in a row (MoKa 11-09 \"두번\") ({drank})", drank == [1, 1])
+# [MoKa] 11-12 (M1112-01) "스테미나가 있으면 한대라도 더 … 10% 이하이면 에스트": same HP 320 but stamina 30 (> 10 % of 98) → no sip
+drank = []; hits.clear()
+t, mv, pad = make([snap(b, me=(_sp[0], 15.8, _sp[1]), hp=320, sp=30)] * 4 + [snap(None, me=(_sp[0], 15.8, _sp[1]))])
+t.tm = NS(goods_count=lambda i: 2)
+t.events = lambda *a, **k: None
+mv.drink = lambda ok: drank.append(1) or {"ok": True}
+mv.light = light
+t._fight()
+check(f"close fight: HP 320, stamina 30 (> 10 %), boss calm → no Estus (MoKa 11-12 \"한대라도 더\") ({drank})", drank == [])
 # [MoKa] 11-09 "한 대 남으면 마셔" (073200: HP 3 · SP 98 swung → died, P-147): one hit from death → drink even with full stamina
 drank = []; hits.clear()
 t, mv, pad = make([snap(b, me=(_sp[0], 15.8, _sp[1]), hp=200, sp=98), snap(None, me=(_sp[0], 15.8, _sp[1]))])

@@ -14,6 +14,8 @@ situation keys (all optional except foe):
   my_anim_seq [-1, 140] (our own anim per tick — 140 / 20140 = something hit the raised shield) ·
   bounce_here true (our swing struck a wall where we stand — Reflex.bounces, P-139) ·
   my_hp_seq [85, 85, 30] (our HP per tick — a hit from afar for rule_shot) ·
+  estus 3 (Estus left — gives the fight a care like Field.Care; omitted = no care, as before) · low_hp 0.0 (duel's retreat line;
+  omitted = duel's default; 0 = a fight to the end, the only kind where rule_low_sip can act — M1112-02) ·
   rush_nav "flat" | "drop" (M1006-17: a straight NavMesh path to the foe, with no drop edge / a drop edge 0.5 m off it —
   only duel.rush_check sees it, the rest of duel still runs with no NavMesh)
 
@@ -142,7 +144,9 @@ def decide(sc: dict) -> dict:
         rf.mv = mv                                                 # guard_counter (P-136) presses its light through the fake Moves
         if sc.get("bounce_here"):
             rf.bounces.append([w.player.x, w.player.z, D.time.time(), 0])
-        r = D.duel(mv, WEAPONS[sc.get("weapon", "battle_axe")], 2, None, log=lines.append, cancel=cancel,
+        care = _Care(trace, sc["estus"]) if sc.get("estus") is not None else None
+        extra = {"low_hp": sc["low_hp"]} if sc.get("low_hp") is not None else {}
+        r = D.duel(mv, WEAPONS[sc.get("weapon", "battle_axe")], 2, None, log=lines.append, cancel=cancel, care=care, **extra,
                    reflex=rf, style=sc.get("style", "guard"),
                    wait_far=sc.get("wait_far", False), advisor=grab)
         result = r.result
@@ -158,6 +162,20 @@ def decide(sc: dict) -> dict:
     f = {"_shield": sc.get("style", "guard") == "guard", "_arena": None}
     tactic = next((t for t in (LS.policy_tactic(r_, f) for r_ in grab.rules) if t), None)
     return {"tactic": tactic, "rules": grab.rules, "trace": trace, "result": result, "locked": any(locks), "log": lines}
+
+
+class _Care:
+    """Field.Care's face for a scene: wants below field.FIGHT_HEAL, take() records "estus" and uses one."""
+    def __init__(self, trace, left):
+        self.t, self.left = trace, left
+
+    def wants(self, s):
+        return self.left > 0 and s.player.hp < s.player.max_hp * 0.6
+
+    def take(self, recheck):
+        self.t.append(("estus",))
+        self.left -= 1
+        return {"ok": True, "left": self.left}
 
 
 def judge(sc: dict, expect: dict) -> tuple[bool, str, dict]:
