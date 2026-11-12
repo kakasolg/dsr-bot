@@ -1,0 +1,28 @@
+[   91.7]    물건 비켜 가기 (지난 실행에서 2번 이상 부숨): o1130_13 o1130_28 o1132_06 o1133_11 o1150_01 o1321_0021
+[   92.8] [start] 02:29:35 pos (86.61, 5.37, 108.78) HP 849 estus 10 gate altar_open=True gate2_closed=True near [(1.0, 264000, 1065)]
+[   92.8] STEP 0 forge_up
+[  104.1]   대장간 → 화톳불 (MoKa 계단 걸음 거꾸로): arrived
+[  104.1] [forge_up] 02:29:46 pos (88.63, 14.97, 106.72) HP 849 estus 10 gate altar_open=True gate2_closed=True near [(9.8, 264000, 1065)]
+[  104.1] STEP 1 to_stair_foot
+[  127.3]   화톳불 → 광장 계단 밑: arrived
+[  127.3] [to_stair_foot] 02:30:09 pos (50.98, 21.40, 107.54) HP 849 estus 10 gate altar_open=True gate2_closed=True near []
+[  127.3] STEP 2 heal
+[  127.3] [heal] 02:30:09 pos (50.98, 21.40, 107.54) HP 849 estus 10 gate altar_open=True gate2_closed=True near []
+[  127.3] STEP 3 plaza3
+[  127.3]   광장 남은 적 [(255041, 21.6), (255042, 22.2), (255041, 26.5)]
+[  129.8]   계단 위에서 보이기 1: arrived
+[  133.3]   계단 밑으로: arrived
+[  141.4]   광장 남은 적 [(255041, 20.8), (255042, 21.4), (255041, 25.7)]
+[  143.8]   계단 위에서 보이기 2: arrived
+[  147.1]   계단 밑으로: arrived
+[  155.2]   광장 남은 적 [(255041, 20.9), (255042, 21.5), (255041, 25.8)]
+[  157.7]   계단 위에서 보이기 3: arrived
+[  161.0]   계단 밑으로: arrived
+[  169.1]   광장 남은 적 [(255041, 20.8), (255042, 21.4), (255041, 25.7)]
+[  171.5]   계단 위에서 보이기 4: arrived
+[  174.8]   계단 밑으로: arrived
+[  182.9]   광장 남은 적 [(255041, 20.9), (255042, 21.5), (255041, 25.8)]
+[  185.4]   계단 위에서 보이기 5: arrived
+[  188.6]   계단 밑으로: arrived
+[  196.8] [plaza3] 02:31:19 pos (50.26, 21.74, 107.48) HP 849 estus 10 gate altar_open=True gate2_closed=True near []
+[  196.8] [end] 02:31:19 pos (50.26, 21.74, 107.48) HP 849 estus 10 gate altar_open=True gate2_closed=True near []

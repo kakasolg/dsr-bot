@@ -2724,3 +2724,53 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
   상황으로 보고 바꾸지 못함(M1111-71/72).
 - 수정(andre_route.py, 게임 확인 전): clear의 fight는 6 s씩만, HP 55 % 미만 + 3 m 안 적 → 적 반대쪽 두 번 구르고 에스트.
   Field.fight의 떼어놓기 뒤 정지는 저장소 코드 문제로 남김(아직 안 고침).
+
+### P-165 Plaza soldiers above Andre ignored the stair-top lure (11-12, M1111-82)
+- **Symptom:** `andre_route.py --plaza3`, run 20261112_022802: from the plaza stair top (42.2, 26.6, 107.0), about 12 m from the
+  nearest soldier, the bot showed itself 5 times and went back to the stair foot. None of the three soldiers moved: their
+  distance from the foot stayed 20.8 / 21.4 / 25.7 m. Retry 023142, stepping one point closer each pass (37.8 → 35.4 → 33.0):
+  at 35.4 one 255041 followed and died at the foot (0 taken). 255042 (30.3, 113.4) showed an animation at 33.0 but did not
+  follow, and 255041 (26.2, 100.0) never reacted. Run 023503 (`plaza_go`) walked to each and killed both: 255042 took 89
+  from me after a shield bounce + light; 255041 0 taken. HP 849 → 671 overall, estus unused, souls 2800 → 3040.
+- **Cause (observed, not proven):** these two hold their post. They wake only within a few metres, or not until struck. The
+  first 89 damage came during the walk to 255042 (before 111.6 s), source not split out.
+- **Fix:** `plaza_rounds` steps the lure spot closer each pass (`LURE_SPOTS`). `plaza_go` walks to the remaining ones one at a
+  time, nearest first. Checked in this one run only; the walk timeouts at (32.9, 112.6) and (27.0, 102.8) are NEW hotspots.
+
+### P-166 Heavy knight 257001 in the parish church: died on the first try (11-12, M1111-85)
+- **Run:** `knight_try.py 257001`, 20261112_030049 (sample `…_knight-try`, tick log `.knight.jsonl`). Start HP 671/849,
+  estus 10, Claymore +5. Died at 44 s, never drank. Souls 3040 → bloodstain in the church; respawned at Andre's bonfire.
+- **Observed (tick log, game anim + anim_time):**
+  - The knight chains attacks: 3000 (0.57 → 3.32 s) → 3003 (cut at 1.87 s) → 3004 back to back. 9910 / 9920 = short
+    anims (0.3 s) before he moves or attacks.
+  - Rolls at window − 0.6 s against 3000 / 3003 / 3004 at 4 m: 0 damage taken. No hit back: the next attack started
+    before the bot closed the 3–5 m.
+  - The rolls for 3004 / 3007 / 3002 / 3002 did not move (`got None`). NavMesh: the spot (14.6, 29.3, 114.6) is 0.3 m from
+    the wall, (16.9, 29.3, 117.2) 0.66 m, and 1–4 m "away from the knight" is off the mesh. The bot rolled into the church
+    wall.
+  - 3007 hit at d 1.4–2.2 (671 → 502, my anim 2053).
+  - One light hit in 3002's recovery (at 1.63 s, d 1.78): dealt 64 (Claymore +5 light ≈ 64 of 372 → about 6 hits), took
+    445 at anim_time 3.13 (502 → 57). The anim id stayed 3002 up to 5.0 s, so a follow-up attack under the same id is likely.
+  - HP 57: `Field.heal` refused (foe within its safe radius, not "desperate") and the loop called it again with no wait
+    (hundreds of `heal` lines). The next 3002 killed me.
+- **Causes:**
+  - (1) Roll direction = straight away from the knight, with no floor/wall check. The 6 m approach spot was set against
+    the wall.
+  - (2) Attack chains: "after the window, step in" assumed one attack per anim.
+  - (3) The heal refusal had no fallback (roll out first / drink anyway).
+- **Next (not done):**
+  - Roll toward open floor (NavMesh), sideways when the back is a wall.
+  - Punish only after a chain ends (anim_time past the last window and no new attack id), or bait one attack from 4 m.
+  - Heal: roll out to > 5 m, then drink.
+  - Read 3002's later window (3.1 s?) from TAE.
+
+### P-167 Heavy knight try 2 (11-12 040102): no damage dealt, fight drifted out of the church, two more foes joined → died
+- **Symptom:** `knight_try.py` 257001 after the P-166 fixes (a00+a01 windows, open-floor rolls, open waiting spot, heal after backing off).
+  Survived 120 s (1st try 44 s), ~20 rolls with 0 damage, but 0 damage dealt to the knight. Took −318 once (3002 already at
+  2.05 s when the duel loop began, roll started 0.2 s before the late 2.27 s window) and −97 on guard at 6 m. Then the fight sat
+  at z 95–98 (south of the church), 256002 + 256000 came in (3-foe warning), 256002's 3003 hit −97 and −247 → dead, 9 Estus left.
+- **Cause (observed):** a roll ends 4–8 m from the knight; the punish rule only steps in from ≤ 3.4 m with ≥ 1.3 s of the swing left,
+  so it never fired. After each 3007 the knight plays 9910 and walks back in → the same cycle. No leash: open-spot/roll choice let
+  the fight move south toward the other foes. The duel loop only started after the 6 m walk, mid-attack.
+- **Next (not built):** short evasion (backstep or sideways roll) so the knight stays in reach; punish from further (walk in ≤ 3 m when
+  ≥ 1.4 s left); keep the fight inside the church (reject roll/wait spots south of z ≈ 105); run the duel loop during the approach.

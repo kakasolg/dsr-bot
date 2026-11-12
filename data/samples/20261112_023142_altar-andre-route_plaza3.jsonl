@@ -1,0 +1,3 @@
+{"t": 139.44, "ev": "guard_counter", "anim": 20140, "npc": 255041, "dist": 1.28, "dmg": 102, "taken": 0}
+{"t": 139.6, "ev": "world_kill", "npc": 255041, "pos": [48.55, 22.76, 107.62], "rev": 0, "kills": 1}
+{"t": 139.6, "ev": "duel", "tag": "계단 밑 255041", "npc": 255041, "result": "killed", "secs": 3.3, "dealt": 102, "taken": 0, "fight": "run#f001"}

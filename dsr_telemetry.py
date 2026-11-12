@@ -95,7 +95,7 @@ PHANTOM_NPC = {254013, 254014}   # two HP 150 ones next to the Undead Burg bonfi
                                  # before overlap/whiff detection caught them, the bot hit them for 15 s at a time next to a hole and fell three times (2026-09-25) — exclude by ID directly
 PHANTOM_S = 1.0
 PHANTOM_R = 0.45           # an enemy overlapping closer than this = no body (once caught, that ptr is not an enemy for the rest of the process)
-FRIENDLY = {279070, 100000}   # Crestfallen Warrior, human NPC (c1000) — move to data/dsr_friendly.json if needed
+FRIENDLY = {279070, 100000, 264000}   # Crestfallen Warrior, human NPC (c1000), Andre (264000 — 11-12 snapshot counted him hostile; one hit ends upgrades, M1110-28) — move to data/dsr_friendly.json if needed
 
 
 class DSRTelemetry:

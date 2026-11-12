@@ -209,6 +209,7 @@ func _build_world() -> void:
 			Vector3(tri[2][0], tri[2][1], tri[2][2]), -1)
 	for c in sc.get("centroid", []):
 		centroids.append(Vector3(c[0], c[1], c[2]))
+	_build_npcs()
 	var faces := PackedVector3Array()
 	# RAMP_SK_COLLISION=<glb> (or 1 = SK_GLB): the Sketchfab "Dark Souls Map" (9S, CC BY-NC, local only, MoKa M1111-21) —
 	# made from the game's collision, so steps should be slopes, unlike the visual map (RAMP_MAP_COLLISION, stuck 11-09).
@@ -908,6 +909,47 @@ func _update_view(dt: float) -> void:
 		im.save_png(view_snap_dir.path_join("view_%05.1f_%s.png" % [t, w["mode"] if w["mode"] == "ladder" else w["prof"]]))
 	view_info = {"on": view_on, "mode": w["mode"], "prof": w["prof"], "idx": w["idx"], "pull": snappedf(full - view_arm, 0.01),
 		"switches": director.switches}
+
+
+func _build_npcs() -> void:
+	# 친한 NPC 표시 (MoKa M1111-81: 안드레이 대장간) — 장면 "npcs" [{name, npc, pos}], 위치는 게임 메모리 실측.
+	# 몸 캡슐은 플레이어만 막음 (벽과 같은 층); 적은 NavMesh 길로 다니니 안 막음. 크기는 [guess]
+	for n in sc.get("npcs", []):
+		var p := Vector3(n["pos"][0], n["pos"][1], n["pos"][2])
+		var body := StaticBody3D.new()
+		body.collision_layer = WALL_LAYER
+		body.collision_mask = 0
+		body.position = p + Vector3(0, 0.9, 0)
+		var cap := CapsuleShape3D.new()
+		cap.radius = 0.4
+		cap.height = 1.8
+		var cs := CollisionShape3D.new()
+		cs.shape = cap
+		body.add_child(cs)
+		var mi := MeshInstance3D.new()
+		var cm := CapsuleMesh.new()
+		cm.radius = 0.4
+		cm.height = 1.8
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = Color(0.85, 0.65, 0.3)
+		cm.material = mat
+		mi.mesh = cm
+		body.add_child(mi)
+		var lb := Label3D.new()
+		lb.text = String(n.get("name", "NPC"))
+		lb.no_depth_test = true
+		lb.font_size = 48
+		lb.position = Vector3(0, 1.4, 0)
+		body.add_child(lb)
+		add_child(body)
+		if MIRROR:
+			# 방 화면은 좌우 뒤집어 보여 줌(_build_mirror). 빌보드는 음수 스케일을 버려서 글자가 거꾸로 읽힘 →
+			# 매 프레임 글자 뒷면을 카메라로 돌림 (look_at = −Z가 카메라, 글자는 +Z 쪽) — 뒤집힌 화면에선 바로 읽힘
+			get_tree().process_frame.connect(func():
+				if is_instance_valid(lb) and cam and lb.global_position.distance_to(cam.global_position) > 0.01:
+					lb.look_at(cam.global_position, Vector3.UP))
+		else:
+			lb.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 
 
 func _shots(spec: String) -> void:

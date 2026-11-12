@@ -758,7 +758,7 @@ The items are still open in ROADMAP.md (one line each); their full text as it st
   tests/godot_viewcam_test.py). 확인한 범위: 창 모드 run 20261111_150552 — 29/29 도착, 454 s, 카메라 구간 바뀜 66번 · 최소 유지 1.5 s ·
   경로 밖 0/4530. 방 규칙만이고 적 없음 — 게임 확인 아님. 경사 꼭대기 바닥 조각(RAMP_TOP_PATCH)은 방 전용 받침(ad5265d).
   MoKa가 본 것: 저장 화면 8장("훨씬 좋아 보여"); 11-11 창 모드 run 20261111_180227(29/29, 458 s)을 직접 보고 "괜찮았어"
-  (M1111-42). 다음 방 단계는 MoKa가 고름 — 후보: 기록된 장면(적·행동) 재생(M1109 목표).
+  (M1111-42). 11-12 (M1111-81): 안드레이 대장간 구간 추가 — 화톳불 → 계단 → 안드레 앞(+5 강화 자리) → 데몬, 안드레 캡슐·이름표; 헤드리스 9/9 도착(run 20261112_021146). 다음 방 단계는 MoKa가 고름 — 후보: 기록된 장면(적·행동) 재생(M1109 목표).
 
 ## Done items (moved out of ROADMAP.md by roadmap.py tidy)
 

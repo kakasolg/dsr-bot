@@ -32,6 +32,12 @@ ALTAR_ROUTE = ROOT / "data" / "routes" / "altar-demo-20261012.json"     # the bo
 DEMON_ROUTE = ROOT / "data" / "routes" / "andre-demon-20261111.json"    # MoKa's walk, Andre's bonfire → Titanite Demon
 ALTAR_STAND = [23.8, 9.5, -23.0]       # [meas] spots.json altar-bonfire stand (11-09 light-altar sat here)
 ANDRE_STAND = [88.46, 14.97, 106.96]   # [meas] spots.json andre-bonfire stand
+# 안드레이 대장간 (MoKa M1111-81 "연습장도 안드레이 있는 곳 지형도 추가"): 11-12 봇이 화톳불 → 계단 → 안드레 앞에서 강석 9개 사고
+# 클레이모어 +5 강화한 자리. 계단은 MoKa 11-11 걸음(DEMON_ROUTE)과 같은 길, 대장간 바닥에서 갈라져 안드레 앞으로 감
+ANDRE_NPC = [86.98, 5.36, 107.8]        # [meas] 11-12 NPC 264000 위치 (메모리)
+ANDRE_FORGE_STAND = [86.62, 5.37, 108.62]   # [meas] 11-12 메뉴 연 자리, 안드레 0.9 m
+ANDRE_FORGE_SPLIT = 28                  # DEMON_ROUTE 점 번호: 대장간 바닥 (92.1, 5.4, 104.0) — 여기서 안드레 쪽으로 갈라짐
+ANDRE_FORGE_WAY = [[91.4, 5.4, 103.2], [89.9, 5.4, 104.8], [88.3, 5.4, 106.8], ANDRE_FORGE_STAND]   # NavMesh 길 (11-12 find_path)
 UPPER = ROOT / "data" / "burg-upper-map.json"
 
 BONFIRE = [3.2, -10.0, -61.2]          # [game] o0200_0002 (souls/missions.py SPOTS burg-bonfire object)
@@ -123,7 +129,11 @@ def demon_legs() -> list[dict]:
             {"name": "③ → ④ 헬카이트 떠나는 자리", "kind": "follow", "map": "B", "pts": alt["sprint_3_to_4"]},
             {"name": "태양의 제단 화톳불", "kind": "find", "map": "B", "pts": [ALTAR_STAND]},
             {"name": "제단 → 안드레이 화톳불 (녹화 없음, NavMesh 길)", "kind": "find", "map": "B", "pts": [ANDRE_STAND]},
-            {"name": "안드레이 → 데몬 (MoKa 11-11 걸음)", "kind": "follow", "map": "B", "pts": dem["points"]}]
+            {"name": "안드레이 화톳불 → 대장간 계단 (MoKa 11-11 걸음)", "kind": "follow", "map": "B",
+             "pts": dem["points"][:ANDRE_FORGE_SPLIT + 1]},
+            {"name": "안드레이 앞 (11-12 +5 강화 자리)", "kind": "follow", "map": "B", "pts": ANDRE_FORGE_WAY},
+            {"name": "안드레이 → 데몬 (MoKa 11-11 걸음)", "kind": "follow", "map": "B",
+             "pts": ANDRE_FORGE_WAY[::-1][1:] + dem["points"][ANDRE_FORGE_SPLIT:]}]
 
 
 def return_legs() -> list[dict]:
@@ -248,6 +258,7 @@ def main() -> None:
     out = {"source": "sim/burg_scene.py", "name": "burg", "sk_area": "Undead Burg", "sk_walls": True,
            "walls": [], "graph": [], "centroid": [], "graph_same_mesh": [], "bonfire": BONFIRE, "start": START,
            "start_heading": START_HEADING, "route": route(), "ladders": LADDERS,
+           "npcs": [{"name": "안드레이", "npc": 264000, "pos": ANDRE_NPC}],
            "nav": {"v": [[round(float(x), 3) for x in p] for p in v.tolist()], "t": t.tolist()}, "foes": []}
     dst = OUT
     if full:
