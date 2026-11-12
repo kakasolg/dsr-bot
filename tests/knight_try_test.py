@@ -3,6 +3,9 @@
 Scenes are the demo's knight anim · anim time · distance at the moment MoKa acted (or stood still). This checks that the
 rules give MoKa's choice in those scenes; it says nothing about the bot's timing or walking in the game.
 """
+import sys as _sys, pathlib as _pl  # repo root first (the bot's modules)
+_sys.path.insert(0, str(_pl.Path(__file__).resolve().parent.parent))
+
 import knight_try as kt
 
 
