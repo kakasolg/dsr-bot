@@ -1,0 +1,50 @@
+{"t": 111.8, "ev": "guard_counter", "anim": 20140, "npc": 255041, "dist": 1.12, "dmg": 57, "taken": 0}
+{"t": 114.67, "ev": "world_kill", "npc": 255041, "pos": [5.44, 15.87, -9.2], "rev": 0, "kills": 1}
+{"t": 114.67, "ev": "duel", "tag": "srv-to: 따라온 255041", "npc": 255041, "result": "killed", "secs": 5.5, "dealt": 102, "taken": 0, "fight": "run#f001"}
+{"t": 127.61, "ev": "wall_bounce", "pos": [12.26, 2.33], "dmg": 40}
+{"t": 132.55, "ev": "duel", "tag": "srv-fight 255040", "npc": 255040, "result": "killed", "secs": 10.7, "dealt": 102, "taken": 0, "fight": "run#f002"}
+{"t": 133.74, "ev": "world_kill", "npc": 255040, "pos": [14.06, 16.0, 5.42], "rev": 0, "kills": 2}
+{"t": 137.7, "ev": "wall_bounce", "pos": [13.24, 4.25], "dmg": 57}
+{"t": 137.7, "ev": "guard_counter", "anim": 20140, "npc": 255041, "dist": 0.99, "dmg": 57, "taken": 0}
+{"t": 137.7, "ev": "wall_bounce", "pos": [13.36, 4.59], "dmg": 57}
+{"t": 140.65, "ev": "duel", "tag": "srv-pts: 따라온 255041", "npc": 255041, "result": "killed", "secs": 6.9, "dealt": 62, "taken": 0, "fight": "run#f003"}
+{"t": 142.73, "ev": "world_kill", "npc": 255041, "pos": [12.17, 16.13, 4.61], "rev": 0, "kills": 3}
+{"t": 226.33, "ev": "duel", "tag": "srv-pts: 따라온 255040", "npc": 255040, "result": "losing", "secs": 2.9, "dealt": 8, "taken": 300, "fight": "run#f004"}
+{"t": 226.44, "ev": "escape_pick", "src": "T", "point": [14.287075996398926, 18.254291534423828, 14.107080459594727], "kept": 8, "cands": 13}
+{"t": 231.83, "ev": "estus", "ok": true, "hp": [549, 849], "left": 9, "why": null}
+{"t": 241.14, "ev": "duel", "tag": "srv-pts: 따라온 255040", "npc": 255040, "result": "losing", "secs": 5.1, "dealt": 48, "taken": 321, "fight": "run#f005"}
+{"t": 241.25, "ev": "escape_pick", "src": "R", "point": [22.140469233194988, 23.077686309814453, 16.770044326782227], "kept": 7, "cands": 12}
+{"t": 241.25, "ev": "break_out", "hits": 0, "foes": 1, "dir": 165}
+{"t": 242.87, "ev": "roll", "why": "break_out", "want": 165, "got": 163, "off": 2}
+{"t": 248.84, "ev": "guard_counter", "anim": 20140, "npc": 255040, "dist": 1.87, "dmg": 0, "taken": 136}
+{"t": 250.03, "ev": "duel", "tag": "srv-pts: 따라온 255040", "npc": 255040, "result": "killed", "secs": 1.2, "dealt": 46, "taken": 0, "fight": "run#f006"}
+{"t": 252.25, "ev": "world_kill", "npc": 255040, "pos": [21.85, 23.22, 17.78], "rev": 0, "kills": 4}
+{"t": 252.25, "ev": "estus", "ok": true, "hp": [124, 327], "left": 8, "why": null}
+{"t": 254.46, "ev": "estus", "ok": true, "hp": [327, 627], "left": 7, "why": null}
+{"t": 259.87, "ev": "estus", "ok": true, "hp": [530, 830], "left": 6, "why": null}
+{"t": 272.61, "ev": "guard_counter", "anim": 20140, "npc": 255042, "dist": 1.62, "dmg": 57, "taken": 0}
+{"t": 275.36, "ev": "duel", "tag": "srv-pts: 따라온 255042", "npc": 255042, "result": "low_hp", "secs": 11.6, "dealt": 57, "taken": 414, "fight": "run#f007"}
+{"t": 275.46, "ev": "escape_pick", "src": "T", "point": [17.607852935791016, 23.07847023010254, 21.700220108032227], "kept": 9, "cands": 12}
+{"t": 276.9, "ev": "break_out", "hits": 1, "foes": 1, "dir": 105}
+{"t": 278.27, "ev": "roll", "why": "break_out", "want": 105, "got": 118, "off": 13}
+{"t": 283.59, "ev": "estus", "ok": true, "hp": [416, 716], "left": 5, "why": null}
+{"t": 285.81, "ev": "estus", "ok": true, "hp": [716, 761], "left": 4, "why": null}
+{"t": 288.02, "ev": "estus", "ok": true, "hp": [761, 849], "left": 3, "why": null}
+{"t": 290.01, "ev": "guard_counter", "anim": 20140, "npc": 255041, "dist": 0.85, "dmg": 0, "taken": 0}
+{"t": 295.32, "ev": "guard_counter", "anim": 20140, "npc": 255041, "dist": 1.07, "dmg": 40, "taken": 0}
+{"t": 298.36, "ev": "wall_bounce", "pos": [17.26, 19.2], "dmg": 8}
+{"t": 300.93, "ev": "duel", "tag": "srv-pts: 따라온 255041", "npc": 255041, "result": "losing", "secs": 10.9, "dealt": 48, "taken": 361, "fight": "run#f008"}
+{"t": 301.06, "ev": "escape_pick", "src": "T", "point": [13.673995018005371, 23.072935104370117, 29.58053207397461], "kept": 8, "cands": 10}
+{"t": 301.06, "ev": "break_out", "hits": 0, "foes": 1, "dir": 15}
+{"t": 303.24, "ev": "roll", "why": "break_out", "want": 14, "got": 145, "off": 131}
+{"t": 309.57, "ev": "estus", "ok": true, "hp": [162, 462], "left": 2, "why": null}
+{"t": 310.97, "ev": "duel", "tag": "srv-pts: 따라온 255041", "npc": 255041, "result": "killed", "secs": 0.9, "dealt": 46, "taken": 0, "fight": "run#f009"}
+{"t": 313.17, "ev": "world_kill", "npc": 255041, "pos": [14.87, 23.21, 27.6], "rev": 0, "kills": 5}
+{"t": 313.17, "ev": "estus", "ok": true, "hp": [374, 674], "left": 1, "why": null}
+{"t": 317.56, "ev": "estus", "ok": true, "hp": [586, 849], "left": 0, "why": null}
+{"t": 320.95, "ev": "fall", "why": "낙사 (바닥 모름, 0.8 s 에 4.2 m)", "kind": "fall", "pos0": [9.16, 18.66, 30.29], "hp": 849}
+{"t": 321.63, "ev": "ledge", "drop": null, "slide": 5.49, "pos": [9.16, 17.44, 30.21]}
+{"t": 322.6, "ev": "ledge", "drop": null, "slide": 5.44, "pos": [9.28, 17.5, 30.13]}
+{"t": 327.07, "ev": "duel", "tag": "srv-fight 255042", "npc": 255042, "result": "losing", "secs": 6.6, "dealt": 7, "taken": 339, "fight": "run#f010"}
+{"t": 333.13, "ev": "duel", "tag": "srv-fight 346000", "npc": 346000, "result": "low_hp", "secs": 6.1, "dealt": 7, "taken": 124, "fight": "run#f011"}
+{"t": 405.99, "ev": "estus", "ok": false, "hp": [386, 386], "left": 1, "why": "끊김 (개수 그대로)"}

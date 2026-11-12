@@ -1,0 +1,13 @@
+{"t": 114.38, "ev": "walk_fail", "tag": "게이트 안 (첫 적)", "i": 0, "n": 2, "q": [5.9, 16.0, -4.6], "pos": [12.32, 13.59, -12.29], "r": "unreachable", "fails": 1}
+{"t": 120.8, "ev": "guard_counter", "anim": 20140, "npc": 255041, "dist": 1.57, "dmg": 57, "taken": 0}
+{"t": 122.67, "ev": "world_kill", "npc": 255041, "pos": [5.78, 15.96, -8.56], "rev": 0, "kills": 1}
+{"t": 122.67, "ev": "duel", "tag": "게이트 안 (첫 적) 돌아서: 따라온 255041", "npc": 255041, "result": "killed", "secs": 4.5, "dealt": 102, "taken": 0, "fight": "run#f001"}
+{"t": 143.79, "ev": "duel", "tag": "따라온 놈 250050", "npc": 250050, "result": "low_hp", "secs": 0.0, "dealt": 0, "taken": 0, "fight": "run#f002"}
+{"t": 143.9, "ev": "duel", "tag": "따라온 놈 250050", "npc": 250050, "result": "low_hp", "secs": 0.0, "dealt": 0, "taken": 0, "fight": "run#f003"}
+{"t": 144.02, "ev": "duel", "tag": "따라온 놈 250050", "npc": 250050, "result": "low_hp", "secs": 0.0, "dealt": 0, "taken": 0, "fight": "run#f004"}
+{"t": 144.14, "ev": "duel", "tag": "따라온 놈 250050", "npc": 250050, "result": "low_hp", "secs": 0.0, "dealt": 0, "taken": 0, "fight": "run#f005"}
+{"t": 144.21, "ev": "crowd3", "n": 3, "near": 2.4, "action": "close_no_warp"}
+{"t": 144.25, "ev": "duel", "tag": "따라온 놈 250050", "npc": 250050, "result": "low_hp", "secs": 0.0, "dealt": 0, "taken": 0, "fight": "run#f006"}
+{"t": 144.36, "ev": "duel", "tag": "따라온 놈 250050", "npc": 250050, "result": "low_hp", "secs": 0.0, "dealt": 0, "taken": 0, "fight": "run#f007"}
+{"t": 144.54, "ev": "duel", "tag": "따라온 놈 250050", "npc": 250050, "result": "low_hp", "secs": 0.0, "dealt": 0, "taken": 0, "fight": "run#f008"}
+{"t": 146.46, "ev": "duel", "tag": "따라온 놈 back: 따라온 250050", "npc": null, "result": "me_dead", "secs": 0.0, "dealt": 0, "taken": 0, "fight": "run#f009"}
