@@ -151,7 +151,8 @@ def main() -> None:
         while tm.snapshot() is None and time.time() - t0 < 90:
             time.sleep(0.3)
         time.sleep(1.5)                                     # first frames after load are slow (godot_stamina_test)
-        nms = {"A": navmesh.Navmesh("m10_02_00_00"), "B": navmesh.Navmesh("m10_01_00_00")}   # as souls/missions.py MAP_A / MAP_B
+        nms = {"A": GL.room_navmesh("m10_02_00_00"), "B": GL.room_navmesh("m10_01_00_00")}   # as souls/missions.py MAP_A / MAP_B
+        #                                                    (game folder, else the repo's exported .npz — cloud)
         mv = moves.Moves(tm, pad)
         legs = sc.get("legs") or [{"name": f"구간 {i}", "kind": "find", "map": "B", "pts": [q]}
                                   for i, q in enumerate(sc["route"][1:], 1)]

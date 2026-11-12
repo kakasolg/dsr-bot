@@ -94,6 +94,13 @@
 - Without the game folder (cloud): `run.py` in the room reads the NavMesh from `data/samples/navmesh_<map>.npz` (room only,
   logged), so the two commands above run from a fresh clone on the committed scene JSONs (ramp; arena = two heavy Hollows).
   `ramp_scene.py` / `arena_scene.py` themselves need the game files — `--set mixed` cannot be made there.
+- The Burg / Firelink loop rooms (`burg`, `firelink_taurus`, `firelink_demon`, `firelink_loop`) take their walls from the
+  Sketchfab file, which a fresh clone doesn't have: `ramp.gd` then prints one line and uses the scene's `edge_walls`
+  (`python sim/scene_walls.py` — NavMesh-edge walls from the scene's own floor, the ramp room's rule; `burg_scene.py`
+  writes them too). `burg_walk.py` reads the NavMesh like `run.py` (`godot_link.room_navmesh`). Look: no Sketchfab
+  terrain or DSR map on screen in cloud (headless anyway). Checked in cloud 11-12: `burg_walk.py --headless --ladders`
+  10 legs + both ladders. The edge walls are not the game's walls: on the ramp room they match `ramp_scene.py`'s for
+  1293 / 1452 segments (`tests/scene_walls_test.py`).
 - Tests: `python tests/godot_room_test.py`, `python tests/godot_combat_test.py`, `python tests/godot_ramp_test.py`, `python tests/godot_stamina_test.py`, `python tests/replay_test.py`, `python tests/chr_glb_test.py`
   (headless; skipped without Godot / data).
 

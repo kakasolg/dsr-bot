@@ -28,6 +28,17 @@ GODOT = Path(os.environ.get("GODOT_PATH", "D:/dev/tools/godot/Godot_v4.7.2-stabl
 STATE_PORT, INPUT_PORT = 47811, 47812
 
 
+def room_navmesh(map_id: str):
+    """NavMesh for room tools: the game folder's file when it is there ([win]), else the exported copy in the repo
+    (data/samples/navmesh_<map>.npz — a fresh cloud clone has no game folder). Same graph either way (export of the same file)."""
+    import navmesh
+    game = Path(navmesh.GAME_DIR) / "map" / map_id / f"{map_id}.nvmbnd.dcx"
+    npz = ROOT.parent / "data" / "samples" / f"navmesh_{map_id}.npz"
+    if not game.exists() and npz.exists():
+        return navmesh.Navmesh.from_npz(npz)
+    return navmesh.Navmesh(map_id)
+
+
 def ensure_imported() -> bool:
     """Godot's import cache (`.godot/imported`, not in git) — a fresh clone has none and the room then fails on its first
     asset load (cloud 11-10: no player body, no input, state packets still sent). Runs `--import` once when a file named
