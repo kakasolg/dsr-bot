@@ -2884,3 +2884,7 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
 - Same command, same step, twice in a row today (P-176, P-177): stop repeating; next step = MoKa (route change at the lower stairs, or the M1112-04/05 decision).
 - Fix tried (11-12, M1112-15, game check = next run): `andre_route` stops the lower-stairs sprint at (8.4, 13.0, 40.3), clears there (8 m), heals, then walks west and clears (6 m) before the lure steps. The in-place-sip interruptions are not changed (M1112-04/05 = MoKa).
 - Game check (11-12 `122538`, 1 run): lower stop east → follower 250050 (dealt 102, taken 0) → walked west, hollow killed (taken 0) → rest of the route → rested at Andre. No death. One run only.
+
+### P-178 [win] reported a disabled character as a live heavy knight (2026-11-12 demo `124134`)
+- Fact: observer rows list c2570 257002 (entity 1010905) at (-1.6, 28.5, 108.1) with HP 744 for the whole demo; [win] told MoKa "중갑기사 하나 더, 살아 있음". MoKa: the knight was already killed. Vanilla m10_01 Event_11015070 keeps 1010900–1010912 disabled until flag 11010050 — so it is a disabled entity, not a foe.
+- Cause: HP > 0 in memory was read as "alive"; the observer has no enabled/disabled field. Next: find the disable bit (or check the entity against such events) before calling a char a foe in reports; until then say "메모리에 보임" not "살아 있음".
