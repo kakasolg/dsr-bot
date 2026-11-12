@@ -1,0 +1,12 @@
+{"t": 104.55, "ev": "smash", "tag": "게이트 안 (첫 적)", "prop": "o1175_05", "model": "o1175", "pos": [21.642, 9.564, -18.645]}
+{"t": 108.17, "ev": "smash", "tag": "게이트 안 (첫 적)", "prop": "o1175_05", "model": "o1175", "pos": [21.642, 9.564, -18.645]}
+{"t": 113.2, "ev": "walk_fail", "tag": "게이트 안 (첫 적)", "i": 0, "n": 2, "q": [5.9, 16.0, -4.6], "pos": [22.3, 9.5, -18.91], "r": "unreachable", "fails": 1}
+{"t": 122.88, "ev": "guard_counter", "anim": 20140, "npc": 255041, "dist": 0.97, "dmg": 102, "taken": 0}
+{"t": 123.04, "ev": "world_kill", "npc": 255041, "pos": [6.08, 15.19, -10.84], "rev": 0, "kills": 1}
+{"t": 123.04, "ev": "duel", "tag": "게이트 안 (첫 적) 돌아서: 따라온 255041", "npc": 255041, "result": "killed", "secs": 2.2, "dealt": 102, "taken": 0, "fight": "run#f001"}
+{"t": 144.46, "ev": "crowd3", "n": 3, "near": 1.69, "action": "close_no_warp"}
+{"t": 145.98, "ev": "guard_counter", "anim": 20140, "npc": 250050, "dist": 1.69, "dmg": 0, "taken": 110}
+{"t": 148.49, "ev": "guard_counter", "anim": 20140, "npc": 250050, "dist": 0.88, "dmg": 0, "taken": 123}
+{"t": 149.56, "ev": "duel", "tag": "따라온 놈 250050", "npc": 250050, "result": "timeout", "secs": 6.0, "dealt": 0, "taken": 294, "fight": "run#f002"}
+{"t": 152.33, "ev": "guard_counter", "anim": 20140, "npc": 250050, "dist": 0.99, "dmg": 0, "taken": 242}
+{"t": 152.36, "ev": "duel", "tag": "따라온 놈 back: 따라온 250050", "npc": null, "result": "me_dead", "secs": 0.0, "dealt": 0, "taken": 0, "fight": "run#f003"}

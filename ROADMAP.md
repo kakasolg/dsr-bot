@@ -265,6 +265,8 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 172 | merchant cmd skips ramp clear, HP 12% | open |
 | 173 | <30 % in retreat walk, no sip | open |
 | 175 | altar after zone 8: fell at ladder top | open |
+| 176 | andre stairs pinned (P-164) | open |
+| 177 | andre retry: same death, sip cut 3/3 | open |
 
 ## 5. Relay — [cloud] ↔ board
 
