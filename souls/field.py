@@ -768,6 +768,15 @@ class Field:
             return False
         # 'losing' (duel: took 35 % of max HP, dealt under half the foe's) counts as low whatever the HP — it ends at ~65 % from a full
         # start, and with only the 60 % line we stood there, didn't drink (foe near) and opened a new fight at once (0 'losing' acted, 10-01)
+        # [MoKa] 11-12 (M1112-02) "30% 이하면 바로 마셔야 … 뒤로 물러나도 의미가 없어지는 거야": below duel.LOW_SIP_HP drink here first —
+        #  before any roll, light or walking back (records: back-off first → first sip a median 6.6 s after crossing 30 %)
+        if s.player.max_hp and s.player.hp < s.player.max_hp * D.LOW_SIP_HP and self.estus_left() > 0:
+            r = self.mv.drink(lambda sn: True)
+            self.log(f"   HP {s.player.hp}/{s.player.max_hp} — 물러나기 전에 그 자리에서 에스트 (M1112-02): {r}")
+            self.events("estus", low_sip=True, **r)
+            s = self.mv.snap(15.0) or s
+            if not s.player.hp:
+                return False
         low = s.player.hp < s.player.max_hp * 0.6 or why.endswith("losing")
         # ── 붙어 있는 적에게서 걸어서 물러나지 않는다 ([MoKa] 2026-10-01 진행) ──────────────
         #  구역 1 `--basic`: low_hp로 가드 든 채 물러나는 동안 화염병 망자가 0.95 m로 따라붙어 4번 더 침(3009 가드 깨기 포함), HP 388 → 0.

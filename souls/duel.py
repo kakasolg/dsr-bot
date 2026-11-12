@@ -2045,6 +2045,25 @@ def rule_edge(F, T):
     return None
 
 
+LOW_SIP_HP = 0.30        # [MoKa] 11-12 (M1112-02): "30% 이하면 바로 마셔야 하는데, 봇이 멈춘채 0.5초 이내 마시면 되는데 너무 오래 걸리니
+                         # 문제인 거지. 그래서 뒤로 물러나도 의미가 없어지는 거야." — records: crossing 30 % → first sip median 6.6 s (1 of 89
+                         # within 0.5 s), 74 of 164 died first (median 3.6 s) — docs/hp-stamina-2026-11-12.md §6
+LOW_SIP_RETRY = 1.0      # a sip that didn't happen (slot not picked, interrupted) is tried again after this
+
+
+def rule_low_sip(F, T):
+    """HP below LOW_SIP_HP with Estus left → stop and drink now, here: no opening check, no step back (M1112-02). First in RULES."""
+    care, p = F.care, T.p
+    if (care is None or not p.max_hp or p.hp >= p.max_hp * LOW_SIP_HP or getattr(care, "left", 0) <= 0
+            or T.now - getattr(F, "low_sip_t", 0.0) < LOW_SIP_RETRY):
+        return None
+    F.low_sip_t = T.now
+    r = care.take(lambda sn: True)
+    F.log(f"      HP {p.hp}/{p.max_hp} (< {LOW_SIP_HP:.0%}) — 멈춰서 바로 에스트 (M1112-02): {r}")
+    F.note("에스트(30%)", T.s, T.c)
+    return CONT
+
+
 def rule_estus(F, T):
     """Estus mid-fight (user: drink if safe). If close, backstep to open distance (when there's ground behind) and recheck next tick."""
     care, p, ptr = F.care, T.p, F.ptr
@@ -2806,7 +2825,7 @@ def _no_drill(rule):
 # drill → (wait beyond this, step in only to this when it doesn't come, walk in beyond this) — _drill_setup
 DRILL_WAIT = {"backstep_r1": (SWING_BS_R, DRILL_BS_HOLD, DRILL_BS_FAR), "jump_r2": (JUMP_HI, JUMP_HOLD, JUMP_WAIT_FAR)}
 
-RULES = [rule_shot, rule_separate, rule_wall_bounce, rule_finish_first, prep_reflex, rule_guard_counter, rule_footing, rule_swing_backstep, rule_jump_drill, rule_jump_dodge,
+RULES = [rule_low_sip, rule_shot, rule_separate, rule_wall_bounce, rule_finish_first, prep_reflex, rule_guard_counter, rule_footing, rule_swing_backstep, rule_jump_drill, rule_jump_dodge,
          rule_jump_save, rule_after_swing, rule_face_first, rule_early_kick, rule_late_windup_block, prep_linger, rule_hit_first,
          _no_drill(rule_backstab_swing), rule_reflex, rule_lure, rule_edge, rule_estus, rule_stagger_punish, rule_evade, rule_block,
          rule_downed, _no_drill(prep_backstab_chance), rule_wait_far, rule_approach, rule_finish, rule_stamina, prep_face,

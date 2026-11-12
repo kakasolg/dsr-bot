@@ -238,7 +238,9 @@ def shot() -> None:
     out, Fi = run([(616, [walk, bomber(3008)], 0.0), (520, [walk, bomber(-1)], 1.0), (520, [walk, bomber(3008)], 5.0),
                    (430, [walk, bomber(-1)], 6.0)])
     check("rule_shot: … and leave on the second within SHOT_AGAIN_S", out == ("done", "shot") and len(Fi.shots) == 2)
-    check("rule_shot is first in RULES (sees every tick)", D.RULES[0] is D.rule_shot)
+    # M1112-02 (11-12): rule_low_sip went in front — it takes a tick only to drink below 30 % HP, so rule_shot still sees the rest
+    check("rule_shot comes right after rule_low_sip in RULES (sees every tick but a below-30 % sip)",
+          D.RULES[0] is D.rule_low_sip and D.RULES[1] is D.rule_shot)
 
     # P-66 b (161435 77.3–80.6 s): the shield soldier swung 3004 from 77.3 s, the kick combo ran 78.1–80.6 s (no rule ticks), its
     # 3004 hit −228 at 78.6 s; at 80.6 s it was staggered (2006) and the hit was read as the bomber's. The swing was seen only by

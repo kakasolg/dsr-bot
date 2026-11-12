@@ -135,8 +135,11 @@ class Reflex:
 
 
 class Care:
-    def __init__(self, wants):
+    def __init__(self, wants, left=None):
         self._w = wants
+        # Estus left (rule_low_sip, M1112-02). Records before 11-12 have none: below FIGHT_HEAL (60 %) `wants` was exactly
+        # "Estus left", and rule_low_sip only acts below 30 %, so 1 / 0 from `wants` gives the same answer there
+        self.left = left if left is not None else (1 if wants else 0)
 
     def wants(self, s):
         return bool(self._w)
@@ -196,7 +199,7 @@ def replay(rec: dict) -> str | None:
                 if rec.get("reflex") is not None else None)
     if F.reflex is not None:
         F.reflex.mv = mv
-    F.care = Care(rec["care"]["wants"]) if rec.get("care") is not None else None
+    F.care = Care(rec["care"]["wants"], rec["care"].get("left")) if rec.get("care") is not None else None
     F.may_approach, F.acts, F.note_t = None, {}, now
     r = rec.get("res") or {}
     F.res = D.DuelResult("timeout", npc=r.get("npc"), dealt=r.get("dealt", 0), hits=list(r.get("hits", [])),
