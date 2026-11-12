@@ -59,7 +59,9 @@ HIT_NEED_S = 1.2      # [MoKa 062835 ②] 3003 남은 1.2 s에 들어가 맞춤
 NO_PUNISH_AFTER = {3000, 13000}   # [MoKa 062835 ④] 3000 → 3001 연속; 030049에도 3000 → 3003 → 3004
 WALK_IN = {3200, 3210}            # [MoKa 062835 ⑤] 다가오는 동작(뜻 미확인)에 한 대 — 한 번 관찰
 APPROACH_M = 6.0      # beyond this the knight isn't fighting yet
-BAIT_AFTER_S = 12.0   # [guess] LURE에서 이만큼 기다려도 안 오면 천천히 다가감 (시연: 8.6 s에 나타남)
+BAIT_AFTER_S = 5.0    # [guess] LURE에서 이만큼 기다려도 안 오면 깨우러 감 (시연: 8.6 s에 나타남; 065353은 150 s 동안 안 옴)
+WAKE_M = 5.5          # 깨우러 갈 때 이 거리까지만 (NavMesh 길) — 그 전에 움직이면 멈춤
+BAIT_TRIES = 3
 LURE = (23.5, 26.6, 108.3)        # [MoKa 062835] 계단 아래 광장 — 여기 서 있자 기사가 교회에서 나옴
 PLAZA = (20.5, 36.5, 101.0, 114.0)  # [guess] 두 시연의 싸움 자리 x 22~35, z 104~109 + 여유; 밖으로 나가는 쪽은 감점
 HEAL_HP = 0.45
@@ -192,6 +194,36 @@ class KnightTry(andre_route.Route):
                 return w
         return None
 
+    def bait(self):
+        """P-168: 기사가 LURE를 못 봄 (065353: 17 m, anim −1, 150 s). stick 직선 접근은 교회 문에 막힘 (10.84 m).
+        NavMesh 길로 기사에게 걸어가다 반응하면 (anim ≠ −1, 0.5 m 넘게 움직임, 또는 WAKE_M 안) 멈추고, LURE로 돌아감 —
+        기사가 4.5 m 안에 오면 그 자리에서 싸움으로 넘김. → (wake 결과, 돌아가기 결과)"""
+        s = self.mv.snap(60.0)
+        k = self.knight(s)
+        if not k:
+            return ("no knight", None)
+        x0, z0 = k.x, k.z
+
+        def woke(sn):
+            kk = self.knight(sn)
+            return kk is None or kk.anim != -1 or math.hypot(kk.x - x0, kk.z - z0) > 0.5 or kk.dist < WAKE_M
+
+        self.f.ignore_npcs = {self.npc, andre_route.BOAR}
+        try:
+            r1 = self.f.walk_to((k.x, k.y, k.z), self.nm, "기사 깨우기", done=woke)
+            s = self.mv.snap(60.0); k = self.knight(s)
+            self.rec("bait", r=r1, d=None if not k else round(k.dist, 2), anim=None if not k else k.anim,
+                     moved=None if not k else round(math.hypot(k.x - x0, k.z - z0), 2))
+            if r1 != "done":
+                return (r1, None)
+            r2 = self.f.walk_to(LURE, self.nm, "LURE로 돌아감",
+                                done=lambda sn: (kk := self.knight(sn)) is not None and kk.dist < 4.5)
+            s = self.mv.snap(60.0); k = self.knight(s)
+            self.rec("bait_back", r=r2, d=None if not k else round(k.dist, 2), anim=None if not k else k.anim)
+            return (r1, r2)
+        finally:
+            self.f.ignore_npcs = set()
+
     def decide_logged(self, a, at, d):
         act = decide(a, at, d)
         if act and act[0] != getattr(self, "_last_act", None):
@@ -208,6 +240,7 @@ class KnightTry(andre_route.Route):
         heal_try = 0.0
         rolls = hits = 0
         far_since = None
+        baits = 0
         while time.time() < t_end:
             if self.dead():
                 return "dead"
@@ -284,8 +317,12 @@ class KnightTry(andre_route.Route):
             if k.dist > APPROACH_M:
                 if far_since is None:
                     far_since = time.time()
-                if time.time() - far_since > BAIT_AFTER_S:
-                    pad.move(*mv.stick_to(s, k.x, k.z, 0.5))
+                if time.time() - far_since > BAIT_AFTER_S and baits < BAIT_TRIES:
+                    pad.move(0, 0)
+                    baits += 1
+                    self.bait()
+                    far_since = None
+                    continue
                 elif math.hypot(p.x - LURE[0], p.z - LURE[2]) > 1.5:
                     pad.move(*mv.stick_to(s, LURE[0], LURE[2], 0.8))
                 else:
