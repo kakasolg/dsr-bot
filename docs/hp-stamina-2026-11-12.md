@@ -7,8 +7,9 @@ MoKa 요청 (11-09, 보드 → win-claude가 전달, 장부 M1109-15): "cloud에
 애니 측정 3개를 센 것뿐. 게임에서 새로 돌린 것은 없음. 판단 규칙 표(§3)는 **제안**이고 숫자 대부분은 측정 전 값.
 
 - 판단 위치 전체 목록 (파일·줄·문턱·출처, 장부 30줄, 모순 목록): [`docs/hp-stamina-inventory-2026-11-12.md`](hp-stamina-inventory-2026-11-12.md)
-- 실행 기록 분석 스크립트: `experiments/hpsp/` (`analyze.py` → `lowact.py` · `summ.py` · `probe.py`), 결과 CSV·줄 목록:
-  `data/analysis/hpsp_20261112/` (big_hits · guard_breaks · estus · low_hp · low_hp_actions · deaths · runs, 사망 줄 목록).
+- 실행 기록 분석 스크립트: `experiments/hpsp/` (`python experiments/hpsp/analyze.py` 먼저, 그다음 `lowact.py` · `summ.py` · `probe.py`).
+  결과 CSV·줄 목록은 돌리면 `data/analysis/hpsp_20261112/`에 생김 (big_hits · guard_breaks · estus · low_hp · low_hp_actions · deaths ·
+  runs · death_lines_*) — `data/`는 .gitignore라 저장소엔 안 올림. [cloud]가 저장소에서 다시 돌려 같은 수가 나오는 것을 확인함.
 
 ---
 
@@ -107,7 +108,7 @@ MoKa 요청 (11-09, 보드 → win-claude가 전달, 장부 M1109-15): "cloud에
 - **가설 (확인 안 함):** "공격 → 죽음, 에스트 → 삶"의 차이 일부는 선택 효과일 수 있음 — 봇이 적 연타 중에 치고 틈에 마시면 마시기가
   실제보다 안전해 보임. 공정한 비교에는 결정 순간 적의 애니 시간이 필요한데 측정 3 실행에만 있음.
 
-### 2-5. 사망 (마지막 10 s, 한 줄씩: `data/analysis/hpsp_20261112/death_lines_*.txt`)
+### 2-5. 사망 (마지막 10 s, 한 줄씩: 스크립트를 돌리면 `data/analysis/hpsp_20261112/death_lines_*.txt`)
 
 - **타우로스 30번** (낙하 6). 나머지 24번: 보스가 죽임 23, 에스트 보임 2, 최저 기력 ≤ 0 4, 큰 피격 2번 이상 17.
   11-09: 013102 가드 깨짐(기력 −12) 뒤 0.52 m 공격 중 3006 · 065619 마시는 중 4100 (그 전 두 모금 다 맞음) · 070732 가드 깨짐
