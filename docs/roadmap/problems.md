@@ -2763,3 +2763,14 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
   - Punish only after a chain ends (anim_time past the last window and no new attack id), or bait one attack from 4 m.
   - Heal: roll out to > 5 m, then drink.
   - Read 3002's later window (3.1 s?) from TAE.
+
+### P-167 Heavy knight try 2 (11-12 040102): no damage dealt, fight drifted out of the church, two more foes joined → died
+- **Symptom:** `knight_try.py` 257001 after the P-166 fixes (a00+a01 windows, open-floor rolls, open waiting spot, heal after backing off).
+  Survived 120 s (1st try 44 s), ~20 rolls with 0 damage, but 0 damage dealt to the knight. Took −318 once (3002 already at
+  2.05 s when the duel loop began, roll started 0.2 s before the late 2.27 s window) and −97 on guard at 6 m. Then the fight sat
+  at z 95–98 (south of the church), 256002 + 256000 came in (3-foe warning), 256002's 3003 hit −97 and −247 → dead, 9 Estus left.
+- **Cause (observed):** a roll ends 4–8 m from the knight; the punish rule only steps in from ≤ 3.4 m with ≥ 1.3 s of the swing left,
+  so it never fired. After each 3007 the knight plays 9910 and walks back in → the same cycle. No leash: open-spot/roll choice let
+  the fight move south toward the other foes. The duel loop only started after the 6 m walk, mid-attack.
+- **Next (not built):** short evasion (backstep or sideways roll) so the knight stays in reach; punish from further (walk in ≤ 3 m when
+  ≥ 1.4 s left); keep the fight inside the church (reject roll/wait spots south of z ≈ 105); run the duel loop during the approach.
