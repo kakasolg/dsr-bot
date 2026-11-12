@@ -51,6 +51,17 @@ def main() -> None:
         except Exception:
             pass                                          # the fake has nothing for the rest of recover — only the first call matters
         check(f"recover with {what}: no in-place sip first ({calls[:1]})", not calls or calls[0] != ("drink", True))
+    # M1112-03 "50% 물러남 없애줘": no HP retreat line; the 'losing' retreat keeps its own switch
+    import inspect
+    fsrc = inspect.getsource(F.Field._fight_once)
+    check("Field: RETREAT_HP 0 (no HP retreat line), losing on unless the fight is to the end",
+          F.RETREAT_HP == 0.0 and "losing=not desperate" in fsrc)
+    check("duel: 'losing' reads its own switch (falls back to low_hp > 0 when not given, e.g. scene_replay)",
+          "losing" in inspect.signature(D.duel).parameters
+          and 'F.losing if getattr(F, "losing", None) is not None else F.low_hp > 0' in inspect.getsource(D._sense))
+    check("the low_hp line with low_hp 0 stays 0 even with two foes close (CROWD_LOW_HP stays off)",
+          D._low_hp_line(NS(player=NS(x=0, y=0, z=0), hostile=lambda r: []), 0.0) == 0.0)
+
     if FAILS:
         print(f"low_sip_test: {len(FAILS)} 실패")
         sys.exit(1)
