@@ -117,7 +117,7 @@ needing the tick loop, route data, settings object or WorldState.
 - 1-g learning: after the batch runner (plan.md `1-g`)
 - [ ] clean-motion | MoKa | decide | MoKa 10-28 "clean" = circle-then-hit · stable backstab · shield parry; notes only, order? | docs/design-clean-motion.md
 - [ ] later-barriers | MoKa | parked | Blighttown (poison, ladders) · Sen's (narrow paths, swinging blades) need no-video answers; problems noted only | docs/stages/later-barriers.md
-- [~] practice-room | MoKa | verify | Godot room loop 29/29 legs arrived (room, no foes); next: MoKa watches windowed | plan:practice-room
+- [~] practice-room | MoKa | decide | room loop 29/29 (no foes), MoKa watched it: 괜찮았어; next room step? | plan:practice-room
 - [ ] sim-2d | cloud | parked | 2D simulator: sense / chase / leash from NavMesh + ThinkParam, plug `souls/field.py` in | plan:sim-2d
 - [ ] explore-mode | cloud | parked | explore mode (offline), Lua decompile, TAE timing → attack prediction; foe reaction table | plan:explore-mode
 
