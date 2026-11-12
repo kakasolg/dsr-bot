@@ -22,6 +22,7 @@ extends "res://main.gd"
 
 const SCENE := "res://assets/ramp_scene.json"   # `-- --scene=arena` → assets/arena_scene.json (sim/arena_scene.py, M1109-75)
 const MAP_GLB := "res://assets/m10_02_00_00.glb"
+const SK_GLB := "D:/dev/tools/assets/sketchfab_ds_map/dark_souls_map.glb"   # RAMP_SK_COLLISION=1 (local only)
 const CHR_MODELS_PATH := "../../data/gamefiles/chr_models.json"
 const FOE_R := 0.4             # [guess] foe body capsule radius (hit test and collision)
 const FOE_H := 1.7             # [guess]
@@ -113,6 +114,9 @@ func _ready() -> void:
 	heading = float(sc["start_heading"])
 	player.rotation.y = heading
 	cam_yaw = heading + PI
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--shots="):
+			_shots.call_deferred(arg.substr(8))
 	player_hp = PLAYER_HP
 	player.collision_mask = 1 | WALL_LAYER
 
@@ -130,6 +134,12 @@ func _build_world() -> void:
 	add_child(env)
 	var sun := DirectionalLight3D.new()
 	sun.rotation = Vector3(deg_to_rad(-55), deg_to_rad(35), 0)
+	# 그림자 (M1111-29, Perplexity 1단계): 4분할, 60 m 안만 — 계단 단·벽 모서리가 읽히게
+	sun.shadow_enabled = true
+	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
+	sun.directional_shadow_max_distance = 60.0
+	sun.shadow_bias = 0.03
+	sun.shadow_normal_bias = 0.5
 	add_child(sun)
 	if sc.has("flat"):
 		# the flat arena (M1109-75): a plain floor the size of its NavMesh square, a line every 2 m to read distances
@@ -155,7 +165,7 @@ func _build_world() -> void:
 				ln.position = Vector3(0, 0.005, x) if horiz else Vector3(x, 0.005, 0)
 				add_child(ln)
 			x += 2.0
-	elif ResourceLoader.exists(MAP_GLB):
+	elif ResourceLoader.exists(MAP_GLB) and not _natural_on():
 		var m: Node3D = load(MAP_GLB).instantiate()
 		m.scale = Vector3(-1, 1, 1)                 # the glb is mirrored (Godot x = −game x); the room is game coords
 		add_child(m)
@@ -193,11 +203,85 @@ func _build_world() -> void:
 			q.append(Vector3(p[0], p[1], p[2]))
 		_grid_add(q[0], q[1], q[2], ti)
 		ti += 1
+	# floor patches (burg_scene.py floor_patches, M1111-32): strips along a recorded walk where the NavMesh has no floor
+	for tri in sc.get("floor_patch", []):
+		_grid_add(Vector3(tri[0][0], tri[0][1], tri[0][2]), Vector3(tri[1][0], tri[1][1], tri[1][2]),
+			Vector3(tri[2][0], tri[2][1], tri[2][2]), -1)
 	for c in sc.get("centroid", []):
 		centroids.append(Vector3(c[0], c[1], c[2]))
 	var faces := PackedVector3Array()
+	# RAMP_SK_COLLISION=<glb> (or 1 = SK_GLB): the Sketchfab "Dark Souls Map" (9S, CC BY-NC, local only, MoKa M1111-21) —
+	# made from the game's collision, so steps should be slopes, unlike the visual map (RAMP_MAP_COLLISION, stuck 11-09).
+	# Its "Firelink Shrine" area replaces the NavMesh-edge walls, player only; the floor stays the NavMesh lookup.
+	var sk := OS.get_environment("RAMP_SK_COLLISION")
+	if sk == "" and sc.get("sk_walls", false):
+		sk = "1"                              # scene asks for the Sketchfab walls (burg_scene.py, M1111-27)
+	if sk == "0":
+		sk = ""                               # RAMP_SK_COLLISION=0: off even when the scene asks
+	var sk_area := String(sc.get("sk_area", "Firelink Shrine"))
+	var natural := _natural_on()
+	var sk_all := PackedVector3Array() if sk == "" and not natural else _sk_faces(SK_GLB if sk == "" or sk == "1" else sk, sk_area)
+	if sc.has("sk_cut") and sk_all.size() > 0:
+		sk_all = _sk_cut(sk_all, sc["sk_cut"])
+	var sk_faces := sk_all if sk != "" else PackedVector3Array()
+	# RAMP_LOOK=natural (MoKa M1111-23): DSR 화면용 맵 대신 Sketchfab 지형 모양에 고도 노이즈 질감(바위·풀·흙)만 입힘
+	if natural and sk_all.size() > 0:
+		_natural_look(sk_all)
+	# walls only: floors / ceilings (|normal.y| > 0.6) and low risers (top < 0.5 m above the NavMesh floor) are dropped —
+	# with every face the first try (11-11) stuck at the ramp's foot (−29.7, −56.5, 43.6): the model has 0.2 m step
+	# boards there next to a slope, and a 0.2 m riser stops the capsule like the visual map's steps did on 11-09
+	var kept := 0
+	var crossed := 0
+	for k in range(0, sk_faces.size(), 3):
+		var a: Vector3 = sk_faces[k]
+		var b: Vector3 = sk_faces[k + 1]
+		var c: Vector3 = sk_faces[k + 2]
+		var nrm := (b - a).cross(c - a)
+		if nrm.length() < 1e-6 or absf(nrm.normalized().y) > 0.6:
+			continue
+		var top := maxf(a.y, maxf(b.y, c.y))
+		# 0.5 m보다 낮은 면(계단 디딤판 앞면·연석)은 높이와 상관없이 뺌 — 11-11 성벽 마을 통 굴리는 계단 아래
+		# (53.5, 0.9, −114.3): NavMesh 밖으로 삐져나온 0.2 m 계단 앞면은 아래 NavMesh가 없어서 위 검사로 안 빠지고 캡슐을 막음
+		if top - minf(a.y, minf(b.y, c.y)) < 0.5:
+			continue
+		var g := _ground(Vector3((a.x + b.x + c.x) / 3.0, top, (a.z + b.z + c.z) / 3.0), 0.0)
+		if not is_nan(g) and top - g < 0.5:
+			continue
+		# NavMesh 바닥 위에 서 있는 면은 뺌: 게임 NavMesh는 진짜 벽에서 ~0.4 m 떨어져 끝나니(ramp_scene WALL_OUT), 면 발치
+		# (무게중심·세 변 중점, 바닥 +0.3 m)에 NavMesh 바닥이 있으면 게임에선 지나다니는 자리. 11-11 성벽 마을 계단 아래
+		# (52~55, 0.9, −116~−112): 높이 2 m·3.6×2.1 m 상자 모양 면을 NavMesh 경로가 관통 — 물체 충돌로 추정, 확인 안 함
+		var bot := minf(a.y, minf(b.y, c.y))
+		var on_floor := false
+		for q in [(a + b + c) / 3.0, (a + b) * 0.5, (b + c) * 0.5, (c + a) * 0.5]:
+			var g2 := _ground(Vector3(q.x, bot + 0.3, q.z), 0.6)
+			if not is_nan(g2) and absf(g2 - bot) < 0.4:
+				on_floor = true
+				break
+		if on_floor:
+			crossed += 1
+			continue
+		faces.append_array(PackedVector3Array([a, b, c]))
+		kept += 1
+	if sk_faces.size() > 0:
+		print("ramp: Sketchfab walls kept %d of %d triangles (%d dropped: standing on NavMesh floor)" % [kept, sk_faces.size() / 3, crossed])
+		# 보기용: 실제로 막는 벽만 반투명으로 그림 (M1111-22 "나한테 보여 줘봐"); 자연 질감(RAMP_LOOK=natural)일 땐 안 그림
+	if sk_faces.size() > 0 and not natural:
+		var am := ArrayMesh.new()
+		var arr := []
+		arr.resize(Mesh.ARRAY_MAX)
+		arr[Mesh.ARRAY_VERTEX] = faces
+		am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+		var wm := StandardMaterial3D.new()
+		wm.albedo_color = Color(0.45, 0.75, 1.0, 0.28)
+		wm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		wm.cull_mode = BaseMaterial3D.CULL_DISABLED
+		wm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		var wmi := MeshInstance3D.new()
+		wmi.mesh = am
+		wmi.material_override = wm
+		add_child(wmi)
 	# walls on open NavMesh edges with no floor beyond (sim/ramp_scene.py), 2.8 m high; edges with floor below stay open
-	for w in sc.get("walls", []):
+	for w in ([] if sk_faces.size() > 0 else sc.get("walls", [])):
 		var a := Vector3(w[0], w[1] - 0.3, w[2])
 		var b2 := Vector3(w[3], w[4] - 0.3, w[5])
 		var up := Vector3(0, 2.8, 0)
@@ -229,6 +313,8 @@ func _build_world() -> void:
 	# main.gd's altar objects aren't built; its code still touches gate / lever_basis
 	gate = AnimatableBody3D.new()
 	add_child(gate)
+	_build_ladders()
+	_build_elevators()
 
 
 func _check_prompt() -> void:
@@ -689,6 +775,315 @@ func _grid_add(a: Vector3, b: Vector3, c: Vector3, idx := -1) -> void:
 			ground_grid[k].append([a, b, c, idx])
 
 
+var shot_mode := false
+
+
+func _update_camera(dt: float) -> void:
+	if not shot_mode:
+		super._update_camera(dt)
+		_update_view(dt)
+
+
+# ── Viewer camera (MoKa M1111-34) ─────────────────────────────────────────
+# What the window shows: view_cam, driven by CamDirector (follow + sections + ladder side shot). The play camera `cam` keeps
+# moving exactly as before and stays what cam_yaw / the bot's stick and the lock-on proxy read — it is only not drawn.
+# `-- --cam=play` or F2 shows the play camera instead.
+const VIEW_R := 0.25          # [guess] m sphere kept clear of walls around the viewer camera
+const VIEW_MIN := 0.6         # [guess] closest it comes to the look point
+const VIEW_RECOVER := 2.0     # [guess] 1/s the arm grows back after a wall pulled it in (≈ 0.5 s)
+var view_cam: Camera3D
+var director                  # cam_director.gd (preloaded: no class_name cache needed headless)
+var view_on := true
+var view_key := false
+var view_arm := -1.0
+var view_side := 0.0          # ladder shot side chosen at its start (1 / -1), 0 = not chosen
+var view_info := {}
+var view_shape := SphereShape3D.new()
+const VIEW_FAN := [Vector2(0, 0), Vector2(0, 0.35), Vector2(0, 0.7), Vector2(0, 1.0), Vector2(0.5, 0), Vector2(-0.5, 0),
+	Vector2(0.5, 0.35), Vector2(-0.5, 0.35), Vector2(1.0, 0.35), Vector2(-1.0, 0.35), Vector2(0.5, 0.7), Vector2(-0.5, 0.7)]
+	# (swing rad around up, raise rad) tried when the arm is blocked [guess]
+const VIEW_FAN_SLACK := 0.3   # [guess] m short of the full arm before the fan is tried
+const VIEW_FAN_COST := 0.8    # [guess] m of clearance one radian of change must buy
+const VIEW_FAN_RATE := 3.0    # [guess] 1/s toward the chosen direction
+var view_fan := Vector2.ZERO
+var view_snap_dir := ""
+var view_snap_every := 4.0
+var view_snap_next := 2.0
+
+
+func _build_view() -> void:
+	for arg in OS.get_cmdline_user_args():
+		if arg == "--cam=play":
+			view_on = false
+		if arg.begins_with("--view-snaps="):
+			var parts := arg.substr(13).split(",")
+			view_snap_dir = parts[0]
+			if parts.size() > 1:
+				view_snap_every = float(parts[1])
+	view_cam = Camera3D.new()
+	view_cam.fov = CAM_FOV
+	cam.get_parent().add_child(view_cam)
+	director = preload("res://cam_director.gd").new()
+	var L := []
+	for i in sc.get("ladders", []).size():
+		L.append(_ladder(i))
+	director.setup(sc.get("cam_path", []), L, cam_yaw)
+	view_shape.radius = VIEW_R
+	(view_cam if view_on else cam).current = true
+
+
+func _view_clear(org: Vector3, want: Vector3) -> float:
+	# how far from org toward want a VIEW_R sphere gets before a wall (m); a start already inside a wall → VIEW_MIN
+	var space := get_world_3d().direct_space_state
+	var qp := PhysicsShapeQueryParameters3D.new()
+	qp.shape = view_shape
+	qp.collision_mask = 1 | WALL_LAYER
+	qp.exclude = [player.get_rid()]
+	qp.transform = Transform3D(Basis(), org)
+	if not space.intersect_shape(qp, 1).is_empty():      # cast_motion ignores shapes the start already overlaps
+		return VIEW_MIN
+	qp.motion = want - org
+	var r := space.cast_motion(qp)
+	return maxf(VIEW_MIN, org.distance_to(want) * float(r[0]))
+
+
+func _view_turn(dir: Vector3, o: Vector2) -> Vector3:
+	# dir swung o.x rad around up and raised o.y rad (elevation capped below straight down-looking)
+	var az := atan2(dir.x, dir.z) + o.x
+	var el := clampf(asin(clampf(dir.y, -1.0, 1.0)) + o.y, -0.6, 1.35)
+	return Vector3(cos(el) * sin(az), sin(el), cos(el) * cos(az))
+
+
+func _update_view(dt: float) -> void:
+	if director == null:
+		_build_view()
+	var f2 := Input.is_physical_key_pressed(KEY_F2)
+	if f2 and not view_key:
+		view_on = not view_on
+		(view_cam if view_on else cam).current = true
+	view_key = f2
+	var w: Dictionary = director.step(dt, player.position, int(lad.get("i", -1)) if not lad.is_empty() else -1)
+	var want: Vector3 = w["pos"]
+	var look: Vector3 = w["look"]
+	if w["mode"] == "ladder" and not w["blending"] and not (w["alt"] as Dictionary).is_empty():
+		if view_side == 0.0:          # pick the side with more room once, then keep it (no flipping mid-climb)
+			view_side = 1.0 if _view_clear(look, want) >= _view_clear(look, w["alt"]["pos"]) - 0.3 else -1.0
+		if view_side < 0.0:
+			want = w["alt"]["pos"]
+	elif w["mode"] == "follow":
+		view_side = 0.0
+	var full := look.distance_to(want)
+	var dir0 := (want - look).normalized() if full > 1e-3 else Vector3.BACK
+	# blocked → fan of sphere casts (Uncharted 3: find free space): raise and/or swing the arm toward the most open direction,
+	# moved there smoothly; back to (0, 0) once the wanted direction is clear again
+	var fan_want := Vector2.ZERO
+	if _view_clear(look, want) < full - VIEW_FAN_SLACK:
+		var best := -INF
+		for o in VIEW_FAN:
+			var c := _view_clear(look, look + _view_turn(dir0, o) * full)
+			var score := minf(c, full) - VIEW_FAN_COST * (absf(o.x) + absf(o.y))
+			if score > best:
+				best = score
+				fan_want = o
+	view_fan = view_fan.lerp(fan_want, 1.0 - exp(-VIEW_FAN_RATE * dt))
+	var dir := _view_turn(dir0, view_fan)
+	var clear := minf(full, _view_clear(look, look + dir * full))
+	view_arm = clear if view_arm < 0.0 or clear < view_arm else lerpf(view_arm, clear, 1.0 - exp(-VIEW_RECOVER * dt))
+	var pos := look + dir * view_arm
+	view_cam.position = pos
+	if pos.distance_to(look) > 1e-3 and absf(dir.y) < 0.999:
+		view_cam.look_at(look, Vector3.UP)
+	director.shown = {"pos": pos, "look": look}
+	if view_snap_dir != "" and t >= view_snap_next and DisplayServer.get_name() != "headless":
+		# `-- --view-snaps=<dir>[,<s>]`: what the window shows every <s> s (default 4) → <dir>/view_<t>.png (camera check)
+		view_snap_next = t + view_snap_every
+		var im := get_viewport().get_texture().get_image()
+		im.save_png(view_snap_dir.path_join("view_%05.1f_%s.png" % [t, w["mode"] if w["mode"] == "ladder" else w["prof"]]))
+	view_info = {"on": view_on, "mode": w["mode"], "prof": w["prof"], "idx": w["idx"], "pull": snappedf(full - view_arm, 0.01),
+		"switches": director.switches}
+
+
+func _shots(spec: String) -> void:
+	# `-- --shots=<views.json>`: still pictures from fixed cameras, a contact sheet, then quit (M1111-29 계단 확인).
+	# views.json = {"out": png, "views": [{"at": [x,y,z], "from": [x,y,z], "label": ""}…]}, game coordinates
+	var d: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(spec))
+	shot_mode = true                       # _update_camera leaves the room camera alone
+	cam.current = true
+	info_label.visible = false
+	cam.far = 500
+	var sz := Vector2i(800, 500)
+	var cols := 4
+	var vs: Array = d["views"]
+	var sheet := Image.create(sz.x * cols, sz.y * int(ceil(vs.size() / float(cols))), false, Image.FORMAT_RGBA8)
+	get_window().size = sz
+	for i in vs.size():
+		var v: Dictionary = vs[i]
+		var at := Vector3(v["at"][0], v["at"][1], v["at"][2])
+		cam.position = Vector3(v["from"][0], v["from"][1], v["from"][2])
+		cam.look_at(at, Vector3.UP)
+		for _f in 4:
+			await RenderingServer.frame_post_draw
+		var im := get_viewport().get_texture().get_image()
+		im.convert(Image.FORMAT_RGBA8)
+		im.resize(sz.x, sz.y)
+		sheet.blit_rect(im, Rect2i(Vector2i.ZERO, sz), Vector2i((i % cols) * sz.x, (i / cols) * sz.y))
+	sheet.save_png(String(d["out"]))
+	print("ramp: shots saved ", d["out"])
+	get_tree().quit()
+
+
+func _nav_under(p: Vector3) -> Vector2:
+	# NavMesh under p.xz closest in height to p.y (within 1 m): (height, normal.y); (NAN, 0) when none
+	var best := Vector2(NAN, 0.0)
+	for tri in ground_grid.get(Vector2i(floori(p.x), floori(p.z)), []):
+		var a: Vector3 = tri[0]
+		var b: Vector3 = tri[1]
+		var c: Vector3 = tri[2]
+		var d := (b.z - c.z) * (a.x - c.x) + (c.x - b.x) * (a.z - c.z)
+		if absf(d) < 1e-9:
+			continue
+		var l1 := ((b.z - c.z) * (p.x - c.x) + (c.x - b.x) * (p.z - c.z)) / d
+		var l2 := ((c.z - a.z) * (p.x - c.x) + (a.x - c.x) * (p.z - c.z)) / d
+		var l3 := 1.0 - l1 - l2
+		if l1 < -1e-4 or l2 < -1e-4 or l3 < -1e-4:
+			continue
+		var h := l1 * a.y + l2 * b.y + l3 * c.y
+		if absf(h - p.y) < 1.0 and (is_nan(best.x) or absf(h - p.y) < absf(best.x - p.y)):
+			best = Vector2(h, absf((b - a).cross(c - a).normalized().y))
+	return best
+
+
+func _stair_mask(a: Vector3, b: Vector3, c: Vector3) -> float:
+	# 계단 면 표시 (M1111-29): 그 자리 게임 NavMesh가 비탈(경사 > ~17°, 계단 = 0.4–0.7)이고 면이 그 NavMesh에 붙어 있으면 계단.
+	# Sketchfab 경로 위 계단은 대부분 경사판(11-11 회색 확인) — 경사판·평평한 디딤판·0.5 m 안 앞면 모두 1. 손으로 그린 구역 없음
+	var n := (b - a).cross(c - a)
+	if n.length() < 1e-6:
+		return 0.0
+	var ny := absf(n.normalized().y)
+	var cen := (a + b + c) / 3.0
+	var top := maxf(a.y, maxf(b.y, c.y))
+	var bot := minf(a.y, minf(b.y, c.y))
+	var nav := _nav_under(Vector3(cen.x, cen.y, cen.z))
+	if is_nan(nav.x) or nav.y > 0.955:          # no NavMesh or NavMesh flatter than ~17°
+		return 0.0
+	if absf(nav.x - cen.y) > 0.45:
+		return 0.0
+	if ny > 0.5 or top - bot < 0.5:             # slab / tread (sloped or flat) or a short riser
+		return 1.0
+	return 0.0
+
+
+func _natural_on() -> bool:
+	# 기본 = 자연 질감 (MoKa M1111-24 "자연 질감으로 기본으로 해"); RAMP_LOOK=dsr → 예전 DSR 화면 맵. Sketchfab 파일이 없으면
+	# (클라우드·새 클론) 그릴 지형이 없으니 DSR 맵(있으면) 쪽으로
+	return OS.get_environment("RAMP_LOOK") != "dsr" and FileAccess.file_exists(SK_GLB)
+
+
+func _natural_look(tris: PackedVector3Array) -> void:
+	# look only (no collision): the Sketchfab area with natural_ground.gdshader; the axis swap flips winding → b, c swapped
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st.set_smooth_group(-1)                  # 면마다 평평한 법선 — 기본(0)은 같은 자리 꼭짓점 법선을 섞어 계단 단을 뭉갬 (Perplexity 11-11)
+	var stairs := 0
+	for k in range(0, tris.size(), 3):
+		var col := Color(_stair_mask(tris[k], tris[k + 1], tris[k + 2]), 0, 0, 1)
+		stairs += int(col.r > 0.5)
+		for q in [tris[k], tris[k + 2], tris[k + 1]]:
+			st.set_color(col)
+			st.add_vertex(q)
+	st.generate_normals()
+	if OS.get_environment("RAMP_LOOK") == "grey":
+		# 진단용 (M1111-29, Perplexity 1단계): 질감 없는 회색 — 계단이 단인지 비탈인지 모양만 봄
+		var gm := StandardMaterial3D.new()
+		gm.albedo_color = Color(0.6, 0.6, 0.6)
+		gm.roughness = 1.0
+		gm.cull_mode = BaseMaterial3D.CULL_DISABLED
+		var gmi := MeshInstance3D.new()
+		gmi.mesh = st.commit()
+		gmi.material_override = gm
+		add_child(gmi)
+		return
+	var sm := ShaderMaterial.new()
+	sm.shader = load("res://natural_ground.gdshader")
+	var specs := {"noise_fine": [FastNoiseLite.TYPE_SIMPLEX_SMOOTH, 0.02, 5, false],
+			"noise_large": [FastNoiseLite.TYPE_SIMPLEX_SMOOTH, 0.006, 3, false],
+			"noise_cells": [FastNoiseLite.TYPE_CELLULAR, 0.03, 1, true]}
+	for key in specs:
+		var sp: Array = specs[key]
+		var fn := FastNoiseLite.new()
+		fn.noise_type = sp[0]
+		fn.frequency = sp[1]
+		fn.fractal_octaves = sp[2]
+		if sp[3]:
+			fn.cellular_return_type = FastNoiseLite.RETURN_DISTANCE2_SUB
+		var nt := NoiseTexture2D.new()
+		nt.width = 512
+		nt.height = 512
+		nt.seamless = true
+		nt.noise = fn
+		sm.set_shader_parameter(key, nt)
+	var mi := MeshInstance3D.new()
+	mi.mesh = st.commit()
+	mi.material_override = sm
+	add_child(mi)
+	print("ramp: natural look on %d Sketchfab triangles, %d marked stairs" % [tris.size() / 3, stairs])
+
+
+func _sk_cut(faces: PackedVector3Array, boxes: Array) -> PackedVector3Array:
+	# scene "sk_cut": [[x0, y0, z0, x1, y1, z1], …] — Sketchfab triangles whose centre is inside a box are dropped from both the
+	# walls and the look. For model parts that move in the game but are fixed in the model (the parish elevator car / its
+	# door at the top, M1111-35: the room's own car replaces them)
+	var out := PackedVector3Array()
+	var cut := 0
+	for k in range(0, faces.size(), 3):
+		var m := (faces[k] + faces[k + 1] + faces[k + 2]) / 3.0
+		var inside := false
+		for bx in boxes:
+			if m.x >= float(bx[0]) and m.y >= float(bx[1]) and m.z >= float(bx[2]) and m.x <= float(bx[3]) and m.y <= float(bx[4]) and m.z <= float(bx[5]):
+				inside = true
+				break
+		if inside:
+			cut += 1
+		else:
+			out.append_array(PackedVector3Array([faces[k], faces[k + 1], faces[k + 2]]))
+	print("ramp: sk_cut dropped %d Sketchfab triangles" % cut)
+	return out
+
+
+func _sk_faces(file: String, area: String) -> PackedVector3Array:
+	# one area of the Sketchfab map as triangles in room (= game) coordinates. Inside the area node the model's local
+	# (a, b, c) = game (z, y, x), offset 0 (checked against the NavMesh 11-11, M1111-19); the nodes above it are ignored
+	var out := PackedVector3Array()
+	var doc := GLTFDocument.new()
+	var st := GLTFState.new()
+	if doc.append_from_file(file, st) != OK:
+		push_error("ramp: Sketchfab map not loaded: " + file)
+		return out
+	var root := doc.generate_scene(st)
+	var to_room := Transform3D(Basis(Vector3(0, 0, 1), Vector3(0, 1, 0), Vector3(1, 0, 0)), Vector3.ZERO)
+	for one in area.split("|"):            # "Firelink Shrine|Undead Burg" — several areas, same game coordinates (M1111-31)
+		var node := root.find_child(one, true, false) as Node3D
+		if node == null:
+			push_error("ramp: no area " + one)
+			continue
+		for mi in node.find_children("*", "MeshInstance3D", true, false):
+			var mesh: Mesh = (mi as MeshInstance3D).mesh
+			if mesh == null:
+				continue
+			# mesh → area node local: the transforms between them, without the area node's own (×1301 display scale)
+			var t := Transform3D.IDENTITY
+			var n: Node = mi
+			while n != node:
+				t = (n as Node3D).transform * t
+				n = n.get_parent()
+			var g := to_room * t
+			for v in mesh.get_faces():
+				out.append(g * v)
+	root.free()
+	print("ramp: Sketchfab collision %d triangles (%s)" % [out.size() / 3, area])
+	return out
+
+
 func _ground(p: Vector3, up: float = STEP_UP) -> float:
 	# highest floor under p.xz that is at most `up` above p.y; NAN when none
 	var best := NAN
@@ -707,6 +1102,10 @@ func _ground(p: Vector3, up: float = STEP_UP) -> float:
 		var h := l1 * a.y + l2 * b.y + l3 * c.y
 		if h <= p.y + up and (is_nan(best) or h > best):
 			best = h
+	for e in elevs:                           # an elevator car is floor where it is now (M1111-35)
+		var h2 := float(e["y"])
+		if _on_car(e, p) and h2 <= p.y + up and (is_nan(best) or h2 > best):
+			best = h2
 	return best
 
 
@@ -1125,6 +1524,9 @@ func _target_angle() -> float:
 func _physics_process(dt: float) -> void:
 	if sc.is_empty():
 		return
+	if not lad.is_empty() or _ladder_try_mount():
+		_ladder_frame(dt)
+		return
 	_marks_step(dt)
 	_foe_sp_step(dt)
 	# lock-on proxy: main.gd locks onto `dummy`. Not locked: keep it on the live foe in range nearest the camera's
@@ -1165,6 +1567,7 @@ func _physics_process(dt: float) -> void:
 		player_hp = mini(PLAYER_HP, player_hp + ESTUS_HEAL)
 	super._physics_process(dt)
 	_stand(player)
+	_elev_step(dt)
 	if act_name == "" and stagger <= 0.0 and anim == 2000:
 		anim = -1                                  # hit reaction over (main.gd only resets anim on its own actions)
 
@@ -1176,6 +1579,8 @@ const GUARD_CLIP := "ual2/Idle_Shield"     # glb "Idle_Shield_Loop" — Godot dr
 
 
 func _animate() -> void:
+	if not lad.is_empty():
+		return                                   # _ladder_pose drives the clip
 	if guard and anim_player != null and act_name == "" and stagger <= 0.0 and anim_player.has_animation(GUARD_CLIP):
 		if loco_clip != GUARD_CLIP or not anim_player.is_playing():
 			anim_player.play(GUARD_CLIP, 0.12)
@@ -1275,8 +1680,316 @@ func _send_state() -> void:
 		"lock": lock, "lock_ptr": (1000 + int(foes[lock_foe]["n"])) if (lock and lock_foe >= 0) else 0,
 		"hp": player_hp, "max_hp": PLAYER_HP, "sp": sp, "max_sp": max_sp, "estus": estus_left, "guard": guard,
 		"stagger": stagger > 0.0, "dead": dead, "player_hits": player_hits, "dodged": dodged, "guard_breaks": guard_breaks, "guard_blocks": guard_blocks, "turn": turn_n, "hit_marks": hit_marks, "foes": fl,
-		"bombs": bombs.size(), "scene": sc.get("name", "ramp")}
+		"bombs": bombs.size(), "scene": sc.get("name", "ramp"), "ladder": String(lad.get("phase", "")), "view": view_info,
+		"elevator": String(elevs[0]["state"]) if not elevs.is_empty() else ""}
 	udp_out.put_packet(JSON.stringify(d).to_utf8_buffer())
 	info_label.text = String(sc.get("name", "ramp")) + "  t %.1f  pos %.1f %.1f %.1f  HP %d  SP %d  estus %d  guard %s  lock #%s%s\n%s" % [t, p.x, p.y, p.z,
 		player_hp, sp, estus_left, guard, str(foes[lock_foe]["n"]) if (lock and lock_foe >= 0) else "-",
-		"  DEAD" if dead else "", ("%s %.2f" % [act_name, act_t]) if act_name != "" else ""]
+		"  DEAD" if dead else "", ("%s %.2f" % [act_name, act_t]) if act_name != "" else (("ladder %s %d" % [lad["phase"], anim]) if not lad.is_empty() else "")]
+	if not view_info.is_empty():
+		info_label.text += "\ncam %s · %s%s  (F2)" % ["view" if view_on else "play", view_info["mode"] if view_info["mode"] == "ladder" else view_info["prof"],
+			"" if view_info["idx"] >= 0 else " · off route"]
+
+
+# ── 사다리 (MoKa M1111-30 "사다리도 만들고 캐릭터가 올라가고, 내려 가는것도 다크 소울과 유사한 메카니즘으로") ──────────
+#  DSR 방식: 사다리 앞(아래) 또는 위 가장자리에서 사다리 쪽을 보고 A → 붙음 (아래 7010 / 위 7020). 붙은 뒤 스틱 위·아래로
+#  한 칸씩 (7011·7012 / 7021·7022 번갈아), 스틱을 놓으면 그 자리에 매달려 있음, 꼭대기 근처에서 위로 밀면 올라섬 (7013),
+#  바닥 근처에서 아래로 밀면 내려섬 (7023). 내려가는 중 B를 누르고 있으면 미끄러져 내려감. 매달린 동안 공격·구르기·에스트 없음.
+#  숫자 = 실제 게임 녹화 트랙 (0.5 s 간격): 타우로스 사다리 오르기 10-11 174753 · 10-12 000026 / 000208, 성벽 마을 화톳불
+#  사다리 내려가기·오르기 10-13 043024 · 181000. 애니 번호·길이는 c0000 TAE [game]. 몸 모양은 Quaternius ClimbUp_1m을 빌림 [stand-in]
+#
+#  ── 알려진 한계 ──────────────────────────────
+#   · 한 칸 0.5 s·0.62 m는 0.5 s 간격 녹화에서 잰 평균 — TAE 7011 길이 1.17 s와 다름 (녹화 간격이 애니 전환을 다 못 봄) [meas]
+#   · 미끄러져 내려가기 (7030, 4 m/s)는 녹화 없음 [guess]. 매달린 채 맞아서 떨어지기는 안 만듦
+#   · 잡는 거리 0.9 m·각도 45°는 [guess] (봇은 35° 넘게 벗어나면 돌아선 뒤 A — souls/missions.py LADDER_FACE_DEG)
+const LADDER_STEP_S := 0.5          # [meas] 7011↔7012 / 7021↔7022 every ~0.5 s
+const LADDER_STEP_M := 0.62         # [meas] ~1.25 m/s up (16.35→23.35 in 5.6 s) and down
+const LADDER_MOUNT_BOT_S := 0.5     # [meas] 7010 → first climb anim 0.5 s later, +0.5 m
+const LADDER_MOUNT_BOT_DY := 0.5
+const LADDER_MOUNT_TOP_S := 2.0     # [meas] 7020 → first down anim 2.0 s later, −2.0 m, body turned to face the ladder
+const LADDER_MOUNT_TOP_DY := 2.0
+const LADDER_EXIT_TOP_AT := 1.0     # [meas] 7013 starts ~1.0 m below the top floor
+const LADDER_EXIT_TOP_S := 1.0      # [meas] 7013 → free 1.0–1.5 s
+const LADDER_EXIT_TOP_FWD := 0.9    # [meas] ends ~0.9 m past the rung line, on the top floor
+const LADDER_EXIT_BOT_AT := 0.4     # [meas] 7023 starts 0.1–0.4 m above the floor
+const LADDER_EXIT_BOT_S := 1.0      # [meas] 7023 → free ~1.0 s
+const LADDER_SLIDE_V := 4.0         # [guess] B held going down
+const LADDER_SLIDE_ANIM := 7030     # [guess] TAE has 7030–7038; which one is the slide is not checked
+const LADDER_GRAB_M := 0.9          # [guess]
+const LADDER_GRAB_DEG := 45.0       # [guess]
+const LADDER_TOP_OFF := 0.85        # [meas] top stand = rung line + face × 0.85 (10-13 Burg bonfire ladder)
+const LADDER_PLANE := 0.35          # [guess] rails this far ahead of the climber's centre
+const CLIMB_CLIP := "ual2/ClimbUp_1m"
+var lad := {}                       # ladder in use: {"i", "phase", "pt", "from", "y0", "par"}
+
+
+func _ladder(i: int) -> Dictionary:
+	var L: Dictionary = sc["ladders"][i]
+	var f := Vector3(float(L["face"][0]), 0, float(L["face"][1])).normalized()
+	return {"at": Vector3(float(L["at"][0]), 0, float(L["at"][1])), "f": f, "bot": float(L["y_bot"]), "top": float(L["y_top"])}
+
+
+func _build_ladders() -> void:
+	if not sc.has("ladders"):
+		return
+	var wood := StandardMaterial3D.new()
+	wood.albedo_color = Color(0.38, 0.27, 0.16)
+	wood.roughness = 0.9
+	for i in sc["ladders"].size():
+		var L := _ladder(i)
+		var f: Vector3 = L["f"]
+		var right := Vector3(f.z, 0, -f.x)
+		var base: Vector3 = L["at"] + f * LADDER_PLANE
+		var y0: float = L["bot"]
+		var y1: float = float(L["top"]) + 1.0          # rails stand up past the top floor as a handhold [guess]
+		for sgn in [-1.0, 1.0]:
+			var r := MeshInstance3D.new()
+			var bm := BoxMesh.new()
+			bm.size = Vector3(0.06, y1 - y0, 0.06)
+			bm.material = wood
+			r.mesh = bm
+			add_child(r)
+			r.position = base + right * 0.23 * sgn + Vector3(0, (y0 + y1) * 0.5, 0)
+			r.rotation.y = atan2(f.x, f.z)
+		var y := y0 + 0.3
+		while y < float(L["top"]) + 0.2:
+			var g := MeshInstance3D.new()
+			var gm := BoxMesh.new()
+			gm.size = Vector3(0.46, 0.04, 0.045)
+			gm.material = wood
+			g.mesh = gm
+			add_child(g)
+			g.position = base + Vector3(0, y, 0)
+			g.rotation.y = atan2(f.x, f.z)
+			y += 0.31                                     # two rungs per 0.62 m step [guess]
+	print("ramp: %d ladders" % sc["ladders"].size())
+
+
+func _ladder_try_mount() -> bool:
+	if not sc.has("ladders") or act_name != "" or stagger > 0.0 or dead:
+		return false
+	var inp := _read_input()
+	if not (bool(inp["a"]) and not btn_was.get("a", false)):
+		return false
+	var p := player.position
+	var flat := Vector3(p.x, 0, p.z)
+	var fw := Vector3(sin(heading + PI), 0, cos(heading + PI))
+	for i in sc["ladders"].size():
+		var L := _ladder(i)
+		var f: Vector3 = L["f"]
+		var at: Vector3 = L["at"]
+		if flat.distance_to(at) < LADDER_GRAB_M and absf(p.y - float(L["bot"])) < 0.6 \
+				and rad_to_deg(fw.angle_to(f)) < LADDER_GRAB_DEG:
+			lad = {"i": i, "phase": "mount_bot", "pt": 0.0, "from": p, "y0": float(L["bot"]), "par": 0}
+		elif flat.distance_to(at + f * LADDER_TOP_OFF) < LADDER_GRAB_M and absf(p.y - float(L["top"])) < 0.6 \
+				and rad_to_deg(fw.angle_to(-f)) < LADDER_GRAB_DEG:
+			lad = {"i": i, "phase": "mount_top", "pt": 0.0, "from": p, "y0": float(L["top"]), "par": 0}
+		if not lad.is_empty():
+			btn_was["a"] = true
+			speed = 0.0
+			lock = false
+			print("ramp: ladder %d %s" % [i, lad["phase"]])
+			return true
+	return false
+
+
+func _ladder_frame(dt: float) -> void:
+	t += dt
+	var inp := _read_input()
+	btn_was["a"] = bool(inp["a"])
+	cam_yaw = wrapf(cam_yaw - float(inp["rx"]) * CAM_TURN * dt, -PI, PI)
+	var ly: float = inp["ly"]
+	var b_held: bool = inp["b"]
+	var L := _ladder(int(lad["i"]))
+	var f: Vector3 = L["f"]
+	var at: Vector3 = L["at"]
+	var fr: Vector3 = lad["from"]
+	var p := player.position
+	lad["pt"] = float(lad["pt"]) + dt
+	var k := 0.0
+	match String(lad["phase"]):
+		"mount_bot":
+			anim = 7010
+			k = minf(1.0, float(lad["pt"]) / LADDER_MOUNT_BOT_S)
+			p = Vector3(lerpf(fr.x, at.x, k), float(lad["y0"]) + LADDER_MOUNT_BOT_DY * k, lerpf(fr.z, at.z, k))
+			heading = atan2(f.x, f.z) - PI
+			if k >= 1.0:
+				_ladder_phase("on", p)
+		"mount_top":
+			anim = 7020
+			k = minf(1.0, float(lad["pt"]) / LADDER_MOUNT_TOP_S)
+			p = Vector3(lerpf(fr.x, at.x, k), float(lad["y0"]) - LADDER_MOUNT_TOP_DY * k, lerpf(fr.z, at.z, k))
+			heading = lerp_angle(atan2(-f.x, -f.z) - PI, atan2(f.x, f.z) - PI, k)
+			if k >= 1.0:
+				_ladder_phase("on", p)
+		"on":
+			p = Vector3(at.x, p.y, at.z)
+			if ly > 0.5:
+				_ladder_phase("exit_top" if p.y >= float(L["top"]) - LADDER_EXIT_TOP_AT - 0.05 else "up", p)
+			elif ly < -0.5:
+				if b_held:
+					_ladder_phase("slide", p)
+				elif p.y - LADDER_STEP_M <= float(L["bot"]) + LADDER_EXIT_BOT_AT:
+					_ladder_phase("exit_bot", p)
+				else:
+					_ladder_phase("down", p)
+		"up", "down":
+			var up := String(lad["phase"]) == "up"
+			var even := int(lad["par"]) % 2 == 0
+			anim = (7011 if even else 7012) if up else (7021 if even else 7022)
+			k = minf(1.0, float(lad["pt"]) / LADDER_STEP_S)
+			p.y = float(lad["y0"]) + (LADDER_STEP_M if up else -LADDER_STEP_M) * k
+			if k >= 1.0:
+				lad["par"] = int(lad["par"]) + 1
+				_ladder_phase("on", p)
+		"slide":
+			anim = LADDER_SLIDE_ANIM
+			p.y -= LADDER_SLIDE_V * dt
+			if p.y <= float(L["bot"]) + LADDER_EXIT_BOT_AT:
+				_ladder_phase("exit_bot", p)
+			elif not b_held or ly > -0.5:
+				_ladder_phase("on", p)
+		"exit_top":
+			anim = 7013
+			k = minf(1.0, float(lad["pt"]) / LADDER_EXIT_TOP_S)
+			var dst: Vector3 = at + f * LADDER_EXIT_TOP_FWD
+			p = Vector3(lerpf(fr.x, dst.x, k), lerpf(fr.y, float(L["top"]), k), lerpf(fr.z, dst.z, k))
+			if k >= 1.0:
+				_ladder_off(p)
+				return
+		"exit_bot":
+			anim = 7023
+			k = minf(1.0, float(lad["pt"]) / LADDER_EXIT_BOT_S)
+			p.y = lerpf(fr.y, float(L["bot"]), k)
+			if k >= 1.0:
+				_ladder_off(p)
+				return
+	player.position = p
+	player.velocity = Vector3.ZERO
+	player.rotation.y = heading
+	_ladder_pose()
+	_update_camera(dt)
+	_draw_debug()
+	_send_state()
+
+
+func _ladder_phase(ph: String, p: Vector3) -> void:
+	lad["phase"] = ph
+	lad["pt"] = 0.0
+	lad["from"] = p
+	lad["y0"] = p.y
+
+
+func _ladder_off(p: Vector3) -> void:
+	player.position = p
+	player.velocity = Vector3.ZERO
+	print("ramp: ladder off at %.2f %.2f %.2f" % [p.x, p.y, p.z])
+	lad = {}
+	anim = -1
+	speed = 0.0
+	loco_clip = ""
+	_stand(player)
+	_send_state()
+
+
+func _ladder_pose() -> void:
+	# 모양만 [stand-in]: ClimbUp_1m 앞부분 (두 손을 위로 뻗은 자세)을 한 칸마다 앞뒤로, 올라서기 (7013)는 그 클립 끝까지
+	if anim_player == null or not anim_player.has_animation(CLIMB_CLIP):
+		return
+	var length := anim_player.get_animation(CLIMB_CLIP).length
+	if anim_player.current_animation != CLIMB_CLIP:
+		anim_player.play(CLIMB_CLIP, 0.15)
+		loco_clip = CLIMB_CLIP
+	anim_player.speed_scale = 0.0
+	var ph := String(lad["phase"])
+	var pt := float(lad["pt"])
+	var at := length * 0.10
+	if ph == "up" or ph == "down":
+		at = length * (0.10 + 0.10 * sin(PI * minf(1.0, pt / LADDER_STEP_S)))
+	elif ph == "exit_top":
+		at = length * lerpf(0.25, 1.0, minf(1.0, pt / LADDER_EXIT_TOP_S))
+	elif ph == "mount_top":
+		at = length * lerpf(0.9, 0.12, minf(1.0, pt / LADDER_MOUNT_TOP_S))
+	elif ph == "exit_bot":
+		at = length * 0.06
+	anim_player.seek(at, true)
+
+
+# ── 엘리베이터 (MoKa M1111-35 "데몬에서 엘리베이터 가서 타고 내려 와서 불의 제전으로") ──────────────────────────────
+#  교구 → 불의 제전 엘리베이터. DSR: 바닥판에 올라서면 (발판 스위치) 잠깐 뒤 내려간다. 숫자 = 장면 "elevators"
+#  (sim/burg_scene.py ELEVATORS, 11-11 탐색에서 잰 높이·가속·최고 속도 [meas], 대기·감속·바닥판 크기 [guess]).
+#  바닥판은 그 순간의 높이에서 바닥이 된다 (_ground). 타고 있는 몸은 매 프레임 바닥판 높이로 옮긴다. 다시 올라가는 것,
+#  반대편 칸, 위에서 부르는 스위치는 없다 — 내려가는 한 번만.
+var elevs := []               # [{"d": row, "y", "v", "state": top | wait | down | bottom, "t", "node"}]
+
+
+func _on_car(e: Dictionary, p: Vector3) -> bool:
+	var d: Dictionary = e["d"]
+	var hf := float(d["half"])
+	return absf(p.x - float(d["at"][0])) <= hf and absf(p.z - float(d["at"][1])) <= hf
+
+
+func _build_elevators() -> void:
+	var metal := StandardMaterial3D.new()
+	metal.albedo_color = Color(0.42, 0.4, 0.37)
+	metal.roughness = 0.6
+	metal.metallic = 0.4
+	for d in sc.get("elevators", []):
+		var hf := float(d["half"])
+		var car := Node3D.new()
+		var floor_m := MeshInstance3D.new()
+		var bm := BoxMesh.new()
+		bm.size = Vector3(hf * 2.0, 0.2, hf * 2.0)
+		bm.material = metal
+		floor_m.mesh = bm
+		floor_m.position.y = -0.1
+		car.add_child(floor_m)
+		for k in 4:                            # corner posts so the car reads as a car [stand-in look]
+			var post := MeshInstance3D.new()
+			var pm := BoxMesh.new()
+			pm.size = Vector3(0.12, 2.4, 0.12)
+			pm.material = metal
+			post.mesh = pm
+			post.position = Vector3(hf * (1 if k % 2 == 0 else -1), 1.2, hf * (1 if k < 2 else -1))
+			car.add_child(post)
+		add_child(car)
+		var y := float(d["y_top"])
+		car.position = Vector3(float(d["at"][0]), y, float(d["at"][1]))
+		elevs.append({"d": d, "y": y, "v": 0.0, "state": "top", "t": 0.0, "node": car})
+
+
+func _elev_step(dt: float) -> void:
+	for e in elevs:
+		var d: Dictionary = e["d"]
+		var y := float(e["y"])
+		var riding := _on_car(e, player.position) and absf(player.position.y - y) < 0.3
+		match String(e["state"]):
+			"top":
+				if riding:
+					e["state"] = "wait"
+					e["t"] = 0.0
+			"wait":
+				e["t"] = float(e["t"]) + dt
+				if not riding:
+					e["state"] = "top"
+				elif float(e["t"]) >= float(d["wait"]):
+					e["state"] = "down"
+					print("ramp: elevator %s down" % d["name"])
+			"down":
+				var v := float(e["v"])
+				var left := y - float(d["y_bot"])
+				if v * v / (2.0 * float(d["decel"])) >= left:
+					v = maxf(0.4, v - float(d["decel"]) * dt)
+				else:
+					v = minf(float(d["v_max"]), v + float(d["accel"]) * dt)
+				y = maxf(float(d["y_bot"]), y - v * dt)
+				e["v"] = v
+				if y <= float(d["y_bot"]):
+					e["state"] = "bottom"
+					e["v"] = 0.0
+					print("ramp: elevator %s bottom" % d["name"])
+		e["y"] = y
+		(e["node"] as Node3D).position.y = y
+		if riding:
+			player.position.y = y
+			player.velocity.y = 0.0

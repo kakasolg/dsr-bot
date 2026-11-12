@@ -56,3 +56,4 @@ data/laya/*
 
 # OBS recordings copied in by hand (61 GB on 11-11) — never in git
 video/
+sim/godot/assets/_walk_from_scene.json

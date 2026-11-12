@@ -35,6 +35,46 @@
   `godot_link.room_pad()` (control.Pad's code, the ViGEm device swapped for UDP). Start the room first, then e.g.
   `BOT_GAME=sim python run.py clear-ramp --no-rest --no-lure --no-quit --no-loot --no-recover --no-firebomb`;
   `python foe_view.py --room data/runs/<time>_room.jsonl` gives the same foe-side table as the real runs.
+- Sketchfab "Dark Souls Map" (9S, CC BY-NC, made from the game's collision; local only in `D:/dev/tools/assets/sketchfab_ds_map`,
+  MoKa M1111-19..21): inside each area node the model's local (a, b, c) = DSR (z, y, x), offset 0 (checked against the NavMesh).
+  `godot/sk_view.tscn` shows it with a walked path (`-- --path=<json> --shot=<png>`). Ramp room: `RAMP_SK_COLLISION=1` puts its
+  Firelink area in as the player's walls instead of the NavMesh-edge walls — walls only (floors and risers under 0.5 m dropped:
+  with every face the player stuck on 0.2 m step boards at the ramp's foot). `godot_ramp_test.py` passes with and without it (11-11).
+  Look (M1111-23/24): by default, when the Sketchfab file is there, no DSR map on screen — the Sketchfab terrain shape drawn with
+  `godot/natural_ground.gdshader` (Godot noise only, no image files: steep = rock, flat = grass / moss / dirt); `RAMP_LOOK=dsr` brings
+  the DSR map back (and then the SK walls show blue). Look only, no collision change.
+  Burg (M1111-27): `python sim/burg_scene.py` → `assets/burg_scene.json` (m10_01 NavMesh, Sketchfab "Undead Burg" walls, no foes, route
+  bonfire → burg-upper safe spots → Taurus fog → bridge); `python sim/burg_walk.py [--headless] [--hold 20]` walks it with Moves.walk_path.
+  SK walls drop faces under 0.5 m tall and faces standing on NavMesh floor (a 2 m box at the barrel stairs crossed the NavMesh path).
+  Stairs (M1111-29): sun shadows; faces on sloped NavMesh are marked stairs (`_stair_mask`, vertex colour) and drawn as stone with a
+  step every 0.22 m of height — most route stairs are slabs in the Sketchfab data, so the steps are painted. `RAMP_LOOK=grey` and
+  `-- --shots=<views.json>` (fixed cameras → contact sheet) for checking shapes.
+  Ladders (M1111-30): scene `ladders` (Taurus ladder, Burg bonfire ladder; position, facing, floor heights from game tracks). Wooden
+  rails + rungs, and a DSR-like climb in `ramp.gd` (`_ladder_*`): A at the bottom facing it (7010) or at the top edge facing it (7020),
+  stick up/down one 0.62 m step per 0.5 s (7011/7012, 7021/7022), auto step-off at the top (7013) and bottom (7023), B held going
+  down = slide (guess). No gravity, no attacks while on it; the body pose is the UAL `ClimbUp_1m` clip as a stand-in.
+  `burg_walk.py --ladders` climbs each ladder up and back down the way the bot does (face, A, stick).
+  Firelink → Taurus (M1111-31): `python sim/burg_scene.py --full` → `assets/firelink_taurus_scene.json` (both NavMesh sheets
+  m10_02 + m10_01 merged, Sketchfab areas `"Firelink Shrine|Undead Burg"`, scene `legs` = the bot's own route: ramp top, passage,
+  Burg, storeroom, merchant, Burg bonfire, burg-upper safe spots, fog, bridge); `python sim/burg_walk.py --scene firelink_taurus`.
+  Burg scenes stand only on NavMesh triangles the bot's path graph uses (no Disable / Degenerate / Wall 8 / Hole 2048 — `_floor`).
+  Taurus → Titanite Demon (M1111-32): `python sim/burg_scene.py --demon` → `assets/firelink_demon_scene.json` = the Firelink → Taurus
+  legs + bridge → altar (the bot's burg-altar route), altar → Andre's bonfire (NavMesh path — no recording exists), Andre → demon
+  (MoKa's walk, `data/routes/andre-demon-20261111.json`; NavMesh has no path there, so scene `floor_patch` strips fill the gaps).
+  `burg_walk.py --from N` starts at leg N.
+  Demon → Firelink by the parish elevator (M1111-35): `python sim/burg_scene.py --loop` → `assets/firelink_loop_scene.json` =
+  the firelink_demon legs + demon → Andre (MoKa's walk backwards), Andre → the elevator doors (NavMesh), `board` (stick straight
+  into the car — the car is off the NavMesh and the bot's path follow stepped back onto the mesh), `ride`, out, Firelink bonfire.
+  Scene `elevators`: car spot, top / bottom height, acceleration and top speed from the 11-11 game walk (M1111-18) [meas];
+  wait 1 s, braking and car size [guess]. The car is floor where it is (`_ground`) and carries a body standing on it; it goes
+  down once. Scene `sk_cut` drops the Sketchfab faces that model the car / door at the top as fixed walls.
+  `burg_walk.py --scene firelink_loop --from 24` starts at the demon; `tests/godot_elevator_test.py`.
+  Viewer camera (M1111-34): the window shows `view_cam` (`godot/cam_director.gd`): hands-off follow toward the planned route
+  5 m ahead, section profiles corridor / stairs / bridge (scene `cam_path`, ~1 m points with a tag — legs by name, stairs by
+  slope; `burg_scene.py` builds it), a side shot on ladders, enter 0.25 s / hold 1.5 s, sphere check against walls. The play
+  camera (`cam`, `cam_yaw`) still moves as before and is what the bot steers by — only not drawn. F2 or `-- --cam=play` shows it;
+  `-- --view-snaps=<dir>,<s>` saves the window every s seconds. Numbers are guesses. `burg_walk.py` prints section changes and
+  passes `--room-arg=…` on. `python tests/godot_viewcam_test.py` checks the director's rules on made-up routes (not the picture).
 - Flat arena (MoKa M1109-75/76/78): `python sim/arena_scene.py [--set hollows|mixed]` → `godot/assets/arena_scene.json` (40 m flat square,
   two heavy Hollows 255010 by default, `mixed` = heavy Hollow + heavy knight 257002, arena AI switches); hits show a red ball on the
   nearest bone for 0.8 s (`ramp.gd` `_hit_mark`, state `hit_marks`); open with `-- --scene=arena`, bot with
