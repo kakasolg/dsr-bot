@@ -191,7 +191,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 93 | Pad, normal time (no freeze): `keep_guard` + `guard(True)`→`guard(False)` → LB left on after the hold ends (offline model S6 + test S6-normal) | open, tracked only |
 | 94 | Pad, normal time: an earlier `tap` release on the same button lets go of a new `hold(…, True)` (Y; offline model S5 + test S5-normal; no game path found) | open, tracked only |
 | 95 | Parish #2 (10-30): after_swing light into interloper 255041 (3003) → −174 mid-attack; not blind_report's 2.7 s gap | open, analysis only |
-| 96 | `burg-altar` run on a character with Taurus alive (10-31 155929): no zone 8 / `taurus` / resin → died to 225000 on the bridge; the death before it (155357) had no analysis either | open → `boss_ready` entry checks built (uncommitted, offline tests only); game read unchecked |
+| 96 | `burg-altar` with Taurus alive (10-31 155929) → died on the bridge | open → `boss_ready` entry checks (offline only) |
 | 97 | Taurus plunge loop (11-01): ladder A held/dropped, turn too short, rolls at swing start not before the hit; 10 tries 5 kills | open → 7 fixes uncommitted, offline tests; timed dodge not yet seen in game |
 | 98 | `burg-upper` zone 2 (11-01 151756): 254011 + 255001 together, low-HP retreat ×4 without estus, fell 10 m off the edge near (-3.1,-14.2,-68.6) → died | open |
 | 99 | `burg-bonfire` town2 `#4 이동` (11-01 153157, restored Firelink save): fog wall at (-50,-22.3,-32) stuck while 250000 hit → died | fix built (MSB wall center, turn before A, flag 11010090); game 1/1 (163220); AGAIN 11-03 #27 |
@@ -263,6 +263,8 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 170 | knight 3c: 25 rolls, 2 hits | open |
 | 171 | LURE walk stalls (26.8, 105.1) | open |
 | 172 | merchant cmd skips ramp clear, HP 12% | open |
+| 173 | <30 % in retreat walk, no sip | open |
+| 175 | altar after zone 8: fell at ladder top | open |
 
 ## 5. Relay — [cloud] ↔ board
 

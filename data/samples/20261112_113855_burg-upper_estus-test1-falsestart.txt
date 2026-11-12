@@ -1,0 +1,23 @@
+[    0.1] run 20261112_113855_burg-upper · code ccad460 · burg-upper --seg 1-8 --throw --level-up VIT --kindle --no-recover --radar --ctl --ctl-scenes --note cloud 에스트 규칙 게임 테스트 1 (M1112-01..03, ccad460) — save backup-20261104-073131-firelink-claymore-hp1018 · settings f76880e1 · note cloud 에스트 규칙 게임 테스트 1 (M1112-01..03, ccad460) — save backup-20261104-073131-firelink-claymore-hp1018
+[    0.1] ctl: 기록만 → D:\dev\dsr-bot\data\runs\20261112_113855_burg-upper.ctl.jsonl
+[    0.1] ctl scenes: 싸움 결정마다 그 순간의 입력 기록 (scene_replay.py 로 다시 돌림, 판단엔 반영 안 함)
+[    0.4] radar: sending — python radar_server.py -> http://127.0.0.1:47801, python overlay.py
+[   91.4]    물건 비켜 가기 (지난 실행에서 2번 이상 부숨): o1130_13 o1130_28 o1132_06 o1133_11 o1150_01 o1321_0021
+[   93.6] 무기: 클레이모어 (약공 2연타, 닿는 거리 1.8 m, 강공 안 씀)
+[   93.6] 콤보 거리: 닿는 거리 1.8 m (잰 무기 1.6 m, +0.20) → 백스텝 콤보 ≤ 1.35 m, 점프 진입 ≤ 4.7 m
+[   93.6] 스타일: guard
+[   93.6] 캐릭터: SL 17 VIT 22 END 14 STR 16 DEX 10 | 반지 -1,143 왼손 1462000
+[   96.3]    드롭 기준 (run start): baseline: 0 records
+[   96.3] 드롭 줍기: 켬
+[   96.3]    화톳불로: no_path
+[  115.1]    드롭 기준 (rest): baseline: 0 records
+[  115.1] ── 성벽 마을 휴식: 안 됨
+[  115.1] ══ 구역 1 (zone1) 끝: 휴식 실패
+[  115.1] ══ 결과: 휴식 실패
+[  115.1] 카메라 정렬: 기록 없음
+[  115.1] 정렬 (몸 30° 또는 락온): 기록 없음
+[  115.1] 가드 유지: 휘두르는 적 2.5 m 안에서 방패 직접 듦 0번
+[  115.1] ctl scenes: scenes kept 0, target-switch records 0, errors 0, capture 0 ms total
+[  115.1] ══ 위험 판정: 깨끗  (결과 휴식 실패, 최저 HP 100%, 큰 피격 0번 -0)  
+[  115.1] 실행 설정 기록: 20261112_113855_burg-upper.settings.json
+[  115.1] 텔레메트리 피드: {'frames': 1574, 'read_ms': 17.1, 'fresh': 2368, 'waited': 21, 'direct': 336, 'none': 0, 'stale': 0}

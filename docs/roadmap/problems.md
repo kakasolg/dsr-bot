@@ -55,6 +55,7 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
 | 156 | Practice room in a fresh clone: no Godot import cache → no player, input ignored | fixed (cloud headless; [win] not re-run) |
 | 158 | probe --mortal: warp without NO_DEAD = 17 m fall damage, 12 runs void | fixed (NO_DEAD until landing) |
 | 163 | Andre rest: faced away | fixed 233621 |
+| 174 | burg-upper from Firelink | fixed (procedure) |
 
 ### P-1 오프라인 테스트가 Linux에서 실행 안 됨 (2026-09-27, [cloud], 1번)
 - 증상: `field_*_test.py` 등이 `ModuleNotFoundError: pymem`, 이어서 `vgamepad`, `KeyError: 'TEMP'`로 실패
@@ -2856,3 +2857,17 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
 - Cause: `merchant` calls `to_merchant()` only; `burg-bonfire --seg 1-5` (the procedure that worked, 10-12, 0 deaths) runs `pass_ramp()` first. MoKa: "가라고 해도 차례대로 죽이면서 가야지" (M1112-07); survival came from Claymore +5, not the route (M1112-08).
 - Next: use `burg-bonfire --seg 1-5 --buy` for merchant trips.
 - Fix (11-12, M1112-10): `run.py merchant` → `Missions.merchant_trip`: below the ramp (nearest route point A0, > 6 m) with live or unreadable ramp foes → `pass_ramp()` first. Offline only (`tests/merchant_trip_test.py`); not run in the game.
+
+### P-173 HP < 30 % during `_top_up`'s retreat walk: no in-place sip (M1112-02 not on that path) (2026-11-12 `115036` zone 4)
+- Observed (log): after killing 254011 at 252.8 s HP 375/1018 (37 %), `_top_up` → heal refused (foe near) → `Field.retreat` toward the bonfire. At 254.4 s, while walking, −107 → 268 (26 %). No `M1112-02` line; arrived 258.3, sips done 260.5 (268 → 668) and 262.7 (→ 1018). Crossing 30 % → first sip done ≈ 6.1 s (MoKa target 0.5 s). Zone cleared, no death.
+- Cause (code read): the in-place sip is in `duel.rule_low_sip` (fight ticks) and at the start of `Field.recover`; `Missions._top_up` → `Field.retreat` walks with neither. Hypothesis, not tested: a check inside the retreat walk (or before it, when HP is already < 30 %) would have drunk at 254.4.
+- Only one < 30 % case in 3 runs (clear-ramp 88 %, burg-bonfire 32 %, burg-upper 26 %); `rule_low_sip` itself never fired, so its game timing is still unmeasured.
+
+### P-174 [win] started `burg-upper` from Firelink: rest failed, nothing done (2026-11-12 `113855`)
+- Fact: restored the Claymore save (at Firelink) and ran `burg-upper` directly; it starts at the Undead Burg bonfire → "화톳불로: no_path", rest failed at 115 s. No harm.
+- Cause: precondition not read before the run (CLAUDE.md "Before a run"). The 11-08 runs on the same save went clear-ramp → burg-bonfire --seg 2-6 → burg-upper. Redone that way (114122 / 114434 / 115036).
+
+### P-175 `altar` started after zone 8 (tower top, fog side): walked off beside the ladder top, 9 m fall, stuck at the ladder foot (2026-11-12 `120142`)
+- Observed (log): start (50.0, 24.8, -116.9); step ① "다리 입구로" point 5/42 reached at 0.4 m, then fall "발밑 바닥 9 m 아래" at (49.09, 24.67, -117.22), −160 → HP 666. At (49.1, 16.0, -117.1) points 10–12 and the turn-back points all `unreachable` ("사다리 옆에서 막힘"), result `① stuck`. Drank once (666 → 1018). No death.
+- Entry cause: `Altar.run` is written for the end of `burg-altar`'s zones 1–7; [win] ran it after `burg-upper --seg 1-8` (zone 8 ends on the tower top). Precondition not checked before the run — same kind of slip as P-174. Direct cause (hypothesis): the route's first points near the ladder top don't fit a zone-8 start; the walk stepped past the edge (compare P-108).
+- Next: MoKa — warp to the Undead Burg bonfire and run `burg-altar` (zones 1–7 → altar), or another way back up.
