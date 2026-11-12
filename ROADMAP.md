@@ -117,6 +117,7 @@ needing the tick loop, route data, settings object or WorldState.
 - 1-g learning: after the batch runner (plan.md `1-g`)
 - [ ] clean-motion | MoKa | decide | MoKa 10-28 "clean" = circle-then-hit · stable backstab · shield parry; notes only, order? | docs/design-clean-motion.md
 - [ ] later-barriers | MoKa | parked | Blighttown (poison, ladders) · Sen's (narrow paths, swinging blades) need no-video answers; problems noted only | docs/stages/later-barriers.md
+- [~] practice-room | MoKa | verify | Godot room loop 29/29 legs arrived (room, no foes); next: MoKa watches windowed | plan:practice-room
 - [ ] sim-2d | cloud | parked | 2D simulator: sense / chase / leash from NavMesh + ThinkParam, plug `souls/field.py` in | plan:sim-2d
 - [ ] explore-mode | cloud | parked | explore mode (offline), Lua decompile, TAE timing → attack prediction; foe reaction table | plan:explore-mode
 
@@ -185,15 +186,15 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 84 | Altar bonfire approach sticks 1.9 m short of (27.4, 9.7, −25.4) every run, 4–5 s, recovers | open |
 | 85 | `burg-altar` dies at ③: bridge hollows follow (lunges, 2 at once), and a stain pickup walked into the breath line | open — 2/5 arrived; fight + recover at ③, pickup removed |
 | 86 | `altar-burg` left the altar at HP 41 % (no rest) → perched Hellkite + bridge soldier → died | open — Estus before leaving; rest at the altar = MoKa |
-| 91 | Pad freeze: guardkeep's `keep_guard` from another thread → the holder's `neutral()` presses LB on the real device, held through menu input (offline race table K1, not seen in game) | open → minimal patch built 10-27 (uncommitted); fake-pad tests pass; game: one quit-out J run, output log clean, screen/XInput unchecked; nudge unchecked |
-| 92 | Pad freeze: another thread's `sprint(True)` → holder's `neutral()` presses B on the real device through menu input (offline K2) | open → same patch as P-91 (uncommitted); one quit-out J run, no B in log; screen/XInput unchecked |
+| 91 | Pad freeze: another thread's `keep_guard` → holder's `neutral()` presses LB through menu input (offline K1, not seen in game) | open → minimal patch built 10-27 (uncommitted); fake-pad tests pass; one quit-out J run, log clean; screen/XInput/nudge unchecked |
+| 92 | Pad freeze: another thread's `sprint(True)` → holder's `neutral()` presses B on the real device through menu input (offline K2) | open → P-91's patch (uncommitted); one quit-out J run, no B in log; screen/XInput unchecked |
 | 93 | Pad, normal time (no freeze): `keep_guard` + `guard(True)`→`guard(False)` → LB left on after the hold ends (offline model S6 + test S6-normal) | open, tracked only |
 | 94 | Pad, normal time: an earlier `tap` release on the same button lets go of a new `hold(…, True)` (Y; offline model S5 + test S5-normal; no game path found) | open, tracked only |
 | 95 | Parish #2 (10-30): after_swing light into interloper 255041 (3003) → −174 mid-attack; not blind_report's 2.7 s gap | open, analysis only |
 | 96 | `burg-altar` run on a character with Taurus alive (10-31 155929): no zone 8 / `taurus` / resin → died to 225000 on the bridge; the death before it (155357) had no analysis either | open → `boss_ready` entry checks built (uncommitted, offline tests only); game read unchecked |
 | 97 | Taurus plunge loop (11-01): ladder A held/dropped, turn too short, rolls at swing start not before the hit; 10 tries 5 kills | open → 7 fixes uncommitted, offline tests; timed dodge not yet seen in game |
 | 98 | `burg-upper` zone 2 (11-01 151756): 254011 + 255001 together, low-HP retreat ×4 without estus, fell 10 m off the edge near (-3.1,-14.2,-68.6) → died | open |
-| 99 | `burg-bonfire` town2 `#4 이동` (11-01 153157, restored Firelink save): fog wall at (-50,-22.3,-32) stuck while 250000 hit → died | fix built (MSB wall center + turn before A + flag 11010090); passed 1/1 in game (163220); AGAIN 11-03 try 27 (~65 s, 3rd A) |
+| 99 | `burg-bonfire` town2 `#4 이동` (11-01 153157, restored Firelink save): fog wall at (-50,-22.3,-32) stuck while 250000 hit → died | fix built (MSB wall center, turn before A, flag 11010090); game 1/1 (163220); AGAIN 11-03 try 27 |
 | 100 | `burg-upper` zone 5 (11-01 154533): kept guarding at SP 7→0 (MoKa: ≤30% SP can't guard the next hit) → anim 160 guard break → 255001 ×2 → died | open → fix proposal, MoKa |
 | 101 | Bot pad ignored entirely (11-01 171617, zone 4 start, 2 min still); XInput free, focus fixed → still 0 m; game restart fixed it | open, cause unknown (observe) |
 | 102 | `burg-upper` zone 5 (11-01 173025): unknown-fog A at the ladder foot grabbed the ladder, 87–196 s looping | fix built (no fog A ≤2.5 m from NavMesh ladder faces); offline only |
@@ -203,7 +204,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 106 | `burg-upper` zone 2-1 (11-01 214135, from the Burg bonfire): started at HP 81 %, 255001 + 254011 together, estus refused 8× (foe close), retreats ×3 → died | open — same family as P-45/P-74/P-98 |
 | 107 | Item-get window left open after the resin chest (11-01 214607): close-A skipped when the window list read empty | fix built (wait ≤ 2 s, A always), offline only |
 | 108 | `burg-upper --seg 8` started on the tower top (11-01 231119): fog step misread 'before the wall' (3D distance) → walked off the ladder top, 9 m fall −110; stain got | fix built (skip fog/ladder/top-up at ladder-top height, slack 1.5 m), offline tests only; game check next |
-| 109 | `taurus` started on the tower top (11-01 233535): fog step walked off the ladder hole (9 m, −110, same as P-108 but taurus.py's own fog call), no estus (85 % > PRE_HEAL); 1 plunge 1215→714 then 3012/4100/3001 hits → died | open → MoKa: fix taurus start from tower top, or run it only before the fog |
+| 109 | `taurus` started on the tower top (11-01 233535): fog step walked off the ladder hole (9 m, −110, same as P-108 but taurus.py's own fog call), no estus (85 % > PRE_HEAL); 1 plunge 1215→714 then 3012/4100/3001 hits → died | open → MoKa: fix taurus start on the top, or run only before fog |
 | 110 | Zone 5 resin chest not taken on fresh Firelink-save chains (183919, 192523, 234903): A ×3 → nothing; taurus then stops "resin 0" | open → cause: tap A never released outside fight loops (lid opened, Pillage A ignored; 2nd round after neutral took it 11-02 001833); fix built (release each A), offline only |
 | 111 | Taurus (11-02 002807): on the top at 32 % HP with the boss below the ladder → no Estus, plunged (510→9), hit by 3001 while rolling after landing → died at boss HP 9 | open → MoKa 11-02: one plunge, then close fight on the bridge within the first resin, Estus between, never re-rub or climb again → PLUNGES 1, offline only |
 | 112 | `burg-upper` zone 8 top (11-02 014223): crossbowman 255002 3004 called over at 1.6 s → Estus backstep dropped the shield at 1.94 s → −330 at 2.11 s, died at 47 % | open → fix built; 11-02 022918 blocked 3004 ×20 for 0 in zone 2, 024657 zone 8 cleared (hits were 3005/3003); the 3004-backstep case not seen again |
