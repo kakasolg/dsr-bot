@@ -206,8 +206,8 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 108 | `burg-upper --seg 8` started on the tower top (11-01 231119): fog step misread 'before the wall' (3D distance) → walked off the ladder top, 9 m fall −110; stain got | fix built (skip fog/ladder/top-up at ladder-top height, slack 1.5 m), offline tests only; game check next |
 | 109 | `taurus` started on the tower top (11-01 233535): fog step walked off the ladder hole (9 m, −110, same as P-108 but taurus.py's own fog call), no estus (85 % > PRE_HEAL); 1 plunge 1215→714 then 3012/4100/3001 hits → died | open → MoKa: fix taurus start on top, or run before fog |
 | 110 | Zone 5 resin chest not taken on fresh Firelink-save chains (183919, 192523, 234903): A ×3 → nothing; taurus then stops "resin 0" | open → cause: tap A never released outside fight loops (lid opened, Pillage A ignored; 2nd round after neutral took it 11-02 001833); fix built (release each A), offline only |
-| 111 | Taurus (11-02 002807): on the top at 32 % HP with the boss below the ladder → no Estus, plunged (510→9), hit by 3001 while rolling after landing → died at boss HP 9 | open → MoKa 11-02: one plunge, then close fight on the bridge within the first resin, Estus between, never re-rub or climb again → PLUNGES 1, offline only |
-| 112 | `burg-upper` zone 8 top (11-02 014223): crossbowman 255002 3004 called over at 1.6 s → Estus backstep dropped the shield at 1.94 s → −330 at 2.11 s, died at 47 % | open → fix built; 11-02 022918 blocked 3004 ×20 for 0 in zone 2, 024657 zone 8 cleared (hits were 3005/3003); the 3004-backstep case not seen again |
+| 111 | Taurus (11-02 002807): on the top at 32 % HP with the boss below the ladder → no Estus, plunged (510→9), hit by 3001 while rolling after landing → died at boss HP 9 | open → MoKa 11-02: one plunge, then melee on the bridge in the first resin → PLUNGES 1, offline only |
+| 112 | `burg-upper` zone 8 top (11-02 014223): crossbowman 255002 3004 called over at 1.6 s → Estus backstep dropped the shield at 1.94 s → −330 at 2.11 s, died at 47 % | open → fix built; 022918 blocked 3004 ×20 for 0, 024657 zone 8 cleared; 3004-backstep case not seen again |
 | 113 | `burg-upper` zone 8 (11-02 020649): through-sprint from the ladder top fell off the ledge after a hit, then walked back west into the crossbowmen with no fight → −557, died | open → fix built, offline; 11-02 024657 z8: no turn-back, not exercised |
 | 114 | shop (11-02 040229): bot reached the Undead Merchant, walk to his centre blocked by boxes at 3.7 m → not_facing, 0 knives | open → stand spot + quick slot; game: bought 25 in 4/4 |
 | 115 | `burg-upper` zone 6 (11-02 040854): barrel soldier came down to the safe spot, kill step said "안 보임" (spawn-height search), 2nd hit not sipped → zone 7 at HP 326, died | open → fix built; game: wait ended at 3.6 / 3.4 m (try 16·20), follow-lookup and re-sip paths not exercised |
@@ -250,7 +250,8 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 153 | probe: flags off by foes → death | open |
 | 155 | start-up swing → merchant killed | open |
 | 157 | probe: ZW 2H R1 bounce = side wall; spot by hand | open |
-| 159 | altar→Andre: timeout cut a fight, died | open |
+| 159 | altar→Andre: timeout cut fight, died | open |
+| 160 | altar→Andre: idle after seg, boar killed | open |
 
 ## 5. Relay — [cloud] ↔ board
 
