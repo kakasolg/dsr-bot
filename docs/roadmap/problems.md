@@ -2853,5 +2853,6 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
 
 ### P-172 `run.py merchant` skips the ramp clear → 3 foes chase up the ramp, HP 12% (2026-11-12 `074631`)
 - Symptom: from Firelink, `run.py merchant` walked up the ramp ("꼭대기로") with 254000/254001/255010 following; 3 at once, HP 849 → 100 (lowest 12%), 9 big hits −1213. Recovered (kick+light, backstab, Estus), reached the merchant at 331 s; bought 292 ×99 after.
-- Cause: `merchant` calls `to_merchant()` only; `burg-bonfire --seg 1-5` (the procedure that worked, 10-12, 0 deaths) runs `pass_ramp()` first. MoKa: "가라고 해도 차례대로 죽이면서 가야지" (M1112-02); survival came from Claymore +5, not the route (M1112-03).
-- Next: use `burg-bonfire --seg 1-5 --buy` for merchant trips; whether `merchant` itself should call `pass_ramp()` first = MoKa.
+- Cause: `merchant` calls `to_merchant()` only; `burg-bonfire --seg 1-5` (the procedure that worked, 10-12, 0 deaths) runs `pass_ramp()` first. MoKa: "가라고 해도 차례대로 죽이면서 가야지" (M1112-07); survival came from Claymore +5, not the route (M1112-08).
+- Next: use `burg-bonfire --seg 1-5 --buy` for merchant trips.
+- Fix (11-12, M1112-10): `run.py merchant` → `Missions.merchant_trip`: below the ramp (nearest route point A0, > 6 m) with live or unreadable ramp foes → `pass_ramp()` first. Offline only (`tests/merchant_trip_test.py`); not run in the game.

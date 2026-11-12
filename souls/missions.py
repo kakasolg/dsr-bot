@@ -150,6 +150,17 @@ CHEST_TAP_S = 0.15       # …hold A this long, then release it ourselves (Pad.i
 CHEST_ROUNDS = 2         # 11-01 fresh-save runs 183919·192523·234903: same spot/heading as the 214607 success, A ×3 nothing → guard off, face, again
 
 
+def nearest_route_point(here, route, R) -> tuple[str, int, float]:
+    """(segment, index, distance) of the merchant-route point nearest `here`: A = passage, B = Undead Burg, C = storeroom."""
+    segs = (("A", route), ("B", [tuple(q) for q in R["b"]]), ("C", [tuple(q) for q in R["c"]]))
+    return min(((name, j, math.dist(q, here)) for name, pts in segs for j, q in enumerate(pts)), key=lambda t: t[2])
+
+
+def below_ramp(seg: str, k: int, d: float) -> bool:
+    """Nearest route point is A0 (the stair top) and farther than ROUTE_NEAR_M → the character is still below the ramp (Firelink side)."""
+    return seg == "A" and k == 0 and d > ROUTE_NEAR_M
+
+
 def _route():
     """The path the user walked and recorded (2026-09-23): top of stairs → bridge height → passage → boundary → Undead Burg → boxes → storeroom → merchant."""
     run = json.loads((DATA / "routes" / "firelink-merchant-run.json").read_text(encoding="utf-8"))
@@ -1457,6 +1468,25 @@ class Missions:
         self.log(f"── 한 마리: {res}, 귀환 {back}")
         return f"{res} / 귀환 {back}"
 
+    def merchant_trip(self) -> str:
+        """run.py merchant: from wherever the character stands to the merchant. Below the ramp (Firelink side) with live ramp foes →
+        clear the ramp first (pass_ramp), then to_merchant; already past it → to_merchant only. No rest at the bonfire.
+        MoKa 11-12 (M1112-07, P-172): "가라고 해도 차례대로 죽이면서 가야지" — 074631 walked up past the ramp foes, 3 chased, HP 12%."""
+        s = self.f.snap_settled(5.0)
+        top, route, R = _route()
+        seg, k, d = nearest_route_point((s.player.x, s.player.y, s.player.z), route, R)
+        if below_ramp(seg, k, d):
+            alive = self.ramp_survivors()
+            if alive is None or alive:
+                n = "?" if alive is None else len(alive)
+                self.log(f"   상인 길: 경사로 아래 (A0 {d:.0f} m), 살아 있는 경사로 적 {n} — 경사로부터 차례로 정리")
+                ok, r = self.pass_ramp()
+                if not ok:
+                    return f"경사로 {r}"
+            else:
+                self.log("   상인 길: 경사로 아래, 살아 있는 경사로 적 없음 — 바로 상인 길로")
+        return self.to_merchant()
+
     def to_merchant(self, stop: str | None = None, town: set | None = None) -> str:
         """stop: 'passage' = end at the Undead Burg entrance, 'town' = end after clearing `town` (BURG_TOWN numbers; None = all six,
         set() = none — later zones of a --seg run). Used by burg_segment."""
@@ -1472,8 +1502,7 @@ class Missions:
         t0 = time.time()
         s = self.f.snap_settled(5.0)
         here = (s.player.x, s.player.y, s.player.z)
-        seg, k, d = min(((name, j, math.dist(q, here)) for name, pts in (("A", route), ("B", pb), ("C", pc))
-                         for j, q in enumerate(pts)), key=lambda t: t[2])
+        seg, k, d = nearest_route_point(here, route, R)
         self.log(f"   상인 길: 가장 가까운 곳 {seg}{k} ({d:.1f} m)")
         if seg == "A" and d <= ROUTE_NEAR_M and off_route(here, route[k]):
             # close but another level (P-57): path-find to that point, then go on from it

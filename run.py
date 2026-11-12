@@ -576,7 +576,7 @@ def main() -> None:
         elif a.cmd == "merchant-buy":
             r = _shop(a, mv, nms[missions.MAP_B], fld, log)
         elif a.cmd == "merchant":
-            r = ms.to_merchant()
+            r = ms.merchant_trip()                      # 경사로 아래면 경사로부터 차례로 정리 (P-172)
         elif a.cmd == "to-firelink":
             r = ms.to_firelink()                        # 상인·화톳불에 쉬지 않고 선 캐릭터를 걸어서 되돌림 (P-121 나이프 산 뒤 드릴로)
         elif a.cmd == "pick-blood":
