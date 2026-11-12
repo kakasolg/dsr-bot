@@ -2844,3 +2844,9 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
 **Cause (hypothesis):** too many long, blocking rolls, where MoKa walked; the punish comes after the roll, not right after the swing.
 
 **Next (not built):** no rolls except when walking can't make it. Stand just out of reach and step in the moment the window ends. Make the roll non-blocking if one is still needed.
+
+### P-171 Walk to LURE stalls 2–2.5 s at (26.8, 26.6, 105.1) in every knight run from the 025343 save (11-12 065353 · 070213 · 071108 · 072018)
+- **Seen:** hotspots says AGAIN, 4 of 4 runs. track_report: "광장 계단 아래 (LURE)" walked 2.4 m of a 0 m plan, off the path by up to 6.5 m, "NOT REACHED", stuck. The turn-back walk ("돌아서", 9.5 m) then reaches LURE every time.
+- **Cause (hypothesis):** the first walk has no NavMesh path (plan 0 m) from the save spot (26.9, 102.7) to LURE, which is up the stair foot (y 26.6 → 28.2). It goes straight and hits the stairs.
+- **Effect:** about 3 s lost; no damage. The bot recovered every time, but this is a repeated stall, so it gets an entry.
+- **Next (not built):** add a waypoint at the stair foot, or start the walk from the turn-back path.
