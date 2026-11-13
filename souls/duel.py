@@ -2089,7 +2089,7 @@ LOW_SIP_HP = 0.30        # [MoKa] 11-12 (M1112-02): "30% 이하면 바로 마셔
                          # within 0.5 s), 74 of 164 died first (median 3.6 s) — docs/hp-stamina-2026-11-12.md §6
 LOW_SIP_RETRY = 1.0      # a sip that didn't happen (slot not picked, interrupted) is tried again after this
 # ── 마실 여유 3 s (MoKa 11-12 M1112-04 "적이 쫒아 오는데 최소 3초의 시간이 있어야 에스트를 마실수 있는데" · M1112-05 "화톳불 있던
-#  방향으로 도망" · M1112-17 "달리기로") — P-177: 붙은 적 2+ (0.9–2.8 m)에서 그 자리 에스트 3/3 끊김 ─────────────────────────
+#  방향으로 도망" · M1112-28 "달리기로") — P-177: 붙은 적 2+ (0.9–2.8 m)에서 그 자리 에스트 3/3 끊김 ─────────────────────────
 SIP_MARGIN_S = 3.0       # [MoKa] drink in place only if the nearest awake foe needs at least this long to reach us
 FOE_CHASE_V = 3.6        # m/s — records: hollows chasing (not attacking) median 2.8–3.6, p90 3.6–3.7 (experiments/hpsp/chase.py)
 FOE_REACH = 2.0          # m a foe hits from [guess — no per-foe reach in souls/foes.py yet]

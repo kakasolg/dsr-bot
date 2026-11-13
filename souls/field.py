@@ -551,7 +551,7 @@ class Field:
         return self.esc.fire(why, "shake")
 
     def sip_run(self, nm, m0: float = 0.0) -> dict:
-        """HP < duel.LOW_SIP_HP, the nearest foe < SIP_MARGIN_S away (M1112-04): **sprint** (M1112-17 "달리기로") the way back
+        """HP < duel.LOW_SIP_HP, the nearest foe < SIP_MARGIN_S away (M1112-04): **sprint** (M1112-28 "달리기로") the way back
         toward home — the zone's safe spot or the bonfire (M1112-05 "화톳불 있던 방향으로") — and stop the moment the margin
         is ≥ SIP_MARGIN_S, then drink. Records: walking back (1.5 m/s) got every foe 12.5 m off within 20 s in 151 of 248
         retreats, median 9.1 s (experiments/hpsp/retreat.py). After SIP_RUN_S, at home, or with no path: drink anyway (last resort)."""
@@ -563,7 +563,7 @@ class Field:
             me = (s.player.x, s.player.y, s.player.z)
             path = nm.find_path(me, home)
             if path:
-                self.log(f"   HP {s.player.hp}/{s.player.max_hp} — 마실 여유 {m0:.1f} s < {D.SIP_MARGIN_S:g} s: 화톳불 쪽으로 달림 (M1112-04/05/17)")
+                self.log(f"   HP {s.player.hp}/{s.player.max_hp} — 마실 여유 {m0:.1f} s < {D.SIP_MARGIN_S:g} s: 화톳불 쪽으로 달림 (M1112-04/05/28)")
                 stop = lambda sn: (not sn.player.hp or D.sip_margin(sn) >= D.SIP_MARGIN_S or time.time() - t0 > SIP_RUN_S)
                 r = self.mv.walk_path(nav.trim_path(path[1:], home), nm, "sprint", stop=stop)
         s2 = self.mv.snap(5.0)
@@ -604,7 +604,7 @@ class Field:
 
         def mode(sn):
             if sipping(sn):
-                return "sprint"                            # M1112-17 "달리기로"
+                return "sprint"                            # M1112-28 "달리기로"
             m = self._retreat_mode(sn)
             if m != last[0]:                               # log each switch — whether the guard was up can be read off the log (1-c)
                 c = min(sn.hostile(RETREAT_GUARD_R + 1.0), key=lambda x: M.horiz(sn.player, x), default=None)
@@ -819,7 +819,7 @@ class Field:
         # start, and with only the 60 % line we stood there, didn't drink (foe near) and opened a new fight at once (0 'losing' acted, 10-01)
         # [MoKa] 11-12 (M1112-02) "30% 이하면 바로 마셔야 … 뒤로 물러나도 의미가 없어지는 거야": below duel.LOW_SIP_HP drink here first —
         #  before any roll, light or walking back (records: back-off first → first sip a median 6.6 s after crossing 30 %)
-        #  M1112-04/05/17: only with ≥ SIP_MARGIN_S before the nearest foe arrives; otherwise sprint back toward the bonfire first
+        #  M1112-04/05/28: only with ≥ SIP_MARGIN_S before the nearest foe arrives; otherwise sprint back toward the bonfire first
         if s.player.max_hp and s.player.hp < s.player.max_hp * D.LOW_SIP_HP and self.estus_left() > 0:
             m = D.sip_margin(s)
             if m >= D.SIP_MARGIN_S:

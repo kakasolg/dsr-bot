@@ -157,7 +157,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 55 | passage-drill: warp revives ramp foes → died going up | open (A/B → seg 1-2) |
 | 87 | probe prep: fell, died | open |
 | 88 | `anim_time_scan foe`: NoDead switched off next to awake A → died ×2 | verify — menu exit first; worked after pilot run 2 (1/1) |
-| 89 | `parish-*`: 255041 cuts into the 255042 fight; fast 3004 lands big (3/3 runs) | parked 10-27 — not reproducible with claymore+5 (one hit per soldier, 9 runs); B-t/B offline only; revisit with weaker gear |
+| 89 | `parish-*`: 255041 cuts into the 255042 fight; fast 3004 lands big (3/3 runs) | parked 10-27 — not reproducible with claymore+5; revisit with weaker gear |
 | 90 | `parish-*` way back: stairs stall at (88.2, 22.0, 111.2), recovered — 3/3 (10-19); again 10-30, 6 of the 7 logs that walked it (count, not a rate) | open |
 | 56 | Ramp ledge (−20,−39,14), `--ground` on: 254002 + axe 254001 swinging together, died (no fall) | verify — + 'ranged first' no longer turns to the axe hollow / away from a foe < 2 m |
 | 57 | Passage start (−20,−39.3,14.4): 1.5 s stall + retry, AGAIN 10-11 4/15 runs | verify — path-finds first |
@@ -264,9 +264,10 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 171 | LURE walk stalls (26.8, 105.1) | open |
 | 172 | merchant cmd skips ramp clear, HP 12% | open |
 | 173 | <30 % in retreat walk, no sip | open |
-| 175 | altar after zone 8: fell at ladder top | open |
-| 176 | andre stairs pinned (P-164) | open |
-| 177 | andre retry: same death, sip cut 3/3 | open |
+| 175 | altar after z8: fell | open |
+| 176 | andre stairs pinned | open |
+| 177 | andre retry, sip cut | open |
+| 178 | disabled char reported live | open |
 
 ## 5. Relay — [cloud] ↔ board
 
