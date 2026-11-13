@@ -224,6 +224,7 @@ CHASER_ROLL_R = 1.8      # a foe this close when we start backing off → roll a
 CHASER_STOP_R = 1.3      # while backing off, a foe swinging this close → stop walking, turn back to the fight
 RETREAT_CLEAR_R = 10.0   # a retreat goes on until no awake foe is within this (same level) — stopping at safe() (6 m) left the chaser 6–7 m
                          # behind and the Estus check then said 'foes nearby' (20 times in 09-30a…10-01b)
+SIP_RUN_S = 20.0         # sip_run gives up making room after this and drinks anyway (records: median 9.1 s to room, M1112-05)
 RETREAT_HP = 0.0         # leave a fight below this share of max HP — 0 = no HP retreat line (MoKa 11-12 "50% 물러남 없애줘", M1112-03):
                          # below 30 % the fight drinks in place (duel.rule_low_sip, M1112-02). Was 0.5 (MoKa 10-01 "retreat more"),
                          # before that 0.25. The 'losing' retreat stays on (duel(losing=…)); CROWD_LOW_HP stays off (it only raises a line > 0)
@@ -549,6 +550,32 @@ class Field:
         """Quit-out sends foes back to spawn (aggro reset, dead foes stay dead — menu quit-out; Escape._quit picks it for 'shake', P-25)."""
         return self.esc.fire(why, "shake")
 
+    def sip_run(self, nm, m0: float = 0.0) -> dict:
+        """HP < duel.LOW_SIP_HP, the nearest foe < SIP_MARGIN_S away (M1112-04): **sprint** (M1112-17 "달리기로") the way back
+        toward home — the zone's safe spot or the bonfire (M1112-05 "화톳불 있던 방향으로") — and stop the moment the margin
+        is ≥ SIP_MARGIN_S, then drink. Records: walking back (1.5 m/s) got every foe 12.5 m off within 20 s in 151 of 248
+        retreats, median 9.1 s (experiments/hpsp/retreat.py). After SIP_RUN_S, at home, or with no path: drink anyway (last resort)."""
+        s = self.mv.snap(5.0)
+        home = tuple(self.tether) if getattr(self, "tether", None) is not None else (tuple(self.home) if self.home else None)
+        t0 = time.time()
+        r = "no_path"
+        if s is not None and home is not None and nm is not None:
+            me = (s.player.x, s.player.y, s.player.z)
+            path = nm.find_path(me, home)
+            if path:
+                self.log(f"   HP {s.player.hp}/{s.player.max_hp} — 마실 여유 {m0:.1f} s < {D.SIP_MARGIN_S:g} s: 화톳불 쪽으로 달림 (M1112-04/05/17)")
+                stop = lambda sn: (not sn.player.hp or D.sip_margin(sn) >= D.SIP_MARGIN_S or time.time() - t0 > SIP_RUN_S)
+                r = self.mv.walk_path(nav.trim_path(path[1:], home), nm, "sprint", stop=stop)
+        s2 = self.mv.snap(5.0)
+        if s2 is None or not s2.player.hp:
+            return {"ok": False, "why": "dead", "run": r}
+        m = D.sip_margin(s2)
+        out = self.mv.drink(lambda sn: True)
+        self.log(f"   달린 뒤 ({r}, {time.time() - t0:.1f} s) 여유 {min(m, 99.0):.1f} s — 에스트"
+                 + ("" if m >= D.SIP_MARGIN_S else " (여유 안 됨, 마지막 수단)") + f": {out}")
+        self.events("estus", sip_run=r, run_s=round(time.time() - t0, 1), margin=round(min(m, 99.0), 1), **out)
+        return out
+
     def retreat(self, nm, home, choice=None) -> str:
         """Back off — toward escape.pick's place when there is one (where the foes are not; usually the way we came), else
         along the path toward the bonfire — stop once safe (foes go back once out of their aggro range)."""
@@ -569,7 +596,15 @@ class Field:
         t0 = time.time()
         last = [None]
 
+        low_sip = {}
+
+        def sipping(sn) -> bool:                           # P-173: HP < 30 % on this walk — sprint, stop to drink once there is room
+            return bool(sn.player.max_hp and sn.player.hp and sn.player.hp < sn.player.max_hp * D.LOW_SIP_HP
+                        and getattr(self, "_estus_cache", 1) > 0)
+
         def mode(sn):
+            if sipping(sn):
+                return "sprint"                            # M1112-17 "달리기로"
             m = self._retreat_mode(sn)
             if m != last[0]:                               # log each switch — whether the guard was up can be read off the log (1-c)
                 c = min(sn.hostile(RETREAT_GUARD_R + 1.0), key=lambda x: M.horiz(sn.player, x), default=None)
@@ -586,7 +621,11 @@ class Field:
             p = sn.player
             return time.time() - t0 > 1.0 and any(awake(c) and (c.anim or -1) in M.ATTACK and M.horiz(p, c) < CHASER_STOP_R
                                                   for c in sn.hostile(CHASER_STOP_R + 1.0))
-        stop = lambda sn: (time.time() - t0 > 3.0 and clear(sn)) or chased(sn)
+        def stop(sn):
+            if sipping(sn) and D.sip_margin(sn) >= D.SIP_MARGIN_S:
+                low_sip["hit"] = True                      # M1112-04: room to drink — stop here and drink (below)
+                return True
+            return (time.time() - t0 > 3.0 and clear(sn)) or chased(sn)
         def walk_back(first=path):
             if first is None:                              # again after a door: from where we stand now
                 sn = self.mv.snap(5.0)
@@ -594,7 +633,15 @@ class Field:
                 if not first:
                     return "no_path"
             return self.mv.walk_path(nav.trim_path(first[1:], tuple(home)), nm, mode, stop=stop)
+        try:
+            self._estus_cache = self.estus_left()             # read once (32 KB) — sipping() checks it each tick
+        except Exception:
+            self._estus_cache = 0                             # unreadable → no low-HP sip on this walk (as before P-173)
         r = self._door_retry(walk_back(), home, "후퇴", lambda: walk_back(None))   # walk, not run: running safety is only a NavMesh estimate (evidence-grade gate, 2026-09-26)
+        if low_sip.get("hit"):
+            out = self.mv.drink(lambda sn: True)
+            self.log(f"   물러나다 HP 30 % 밑 · 여유 {D.SIP_MARGIN_S:g} s 넘음 — 멈춰서 에스트 (P-173, M1112-04): {out}")
+            self.events("estus", retreat_sip=True, **out)
         if r == "arrived" and bonfire and home != tuple(bonfire):   # reached the escape place but not clear yet → on toward the bonfire, as before
             sn = self.mv.snap(RETREAT_CLEAR_R + 1.0)
             if sn is not None and not clear(sn):
@@ -772,10 +819,15 @@ class Field:
         # start, and with only the 60 % line we stood there, didn't drink (foe near) and opened a new fight at once (0 'losing' acted, 10-01)
         # [MoKa] 11-12 (M1112-02) "30% 이하면 바로 마셔야 … 뒤로 물러나도 의미가 없어지는 거야": below duel.LOW_SIP_HP drink here first —
         #  before any roll, light or walking back (records: back-off first → first sip a median 6.6 s after crossing 30 %)
+        #  M1112-04/05/17: only with ≥ SIP_MARGIN_S before the nearest foe arrives; otherwise sprint back toward the bonfire first
         if s.player.max_hp and s.player.hp < s.player.max_hp * D.LOW_SIP_HP and self.estus_left() > 0:
-            r = self.mv.drink(lambda sn: True)
-            self.log(f"   HP {s.player.hp}/{s.player.max_hp} — 물러나기 전에 그 자리에서 에스트 (M1112-02): {r}")
-            self.events("estus", low_sip=True, **r)
+            m = D.sip_margin(s)
+            if m >= D.SIP_MARGIN_S:
+                r = self.mv.drink(lambda sn: True)
+                self.log(f"   HP {s.player.hp}/{s.player.max_hp} — 여유 {m:.1f} s, 물러나기 전에 그 자리에서 에스트 (M1112-02): {r}")
+                self.events("estus", low_sip=True, margin=round(min(m, 99.0), 1), **r)
+            else:
+                Field.sip_run(self, nm, m)
             s = self.mv.snap(15.0) or s
             if not s.player.hp:
                 return False

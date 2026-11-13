@@ -2088,15 +2088,40 @@ LOW_SIP_HP = 0.30        # [MoKa] 11-12 (M1112-02): "30% 이하면 바로 마셔
                          # 문제인 거지. 그래서 뒤로 물러나도 의미가 없어지는 거야." — records: crossing 30 % → first sip median 6.6 s (1 of 89
                          # within 0.5 s), 74 of 164 died first (median 3.6 s) — docs/hp-stamina-2026-11-12.md §6
 LOW_SIP_RETRY = 1.0      # a sip that didn't happen (slot not picked, interrupted) is tried again after this
+# ── 마실 여유 3 s (MoKa 11-12 M1112-04 "적이 쫒아 오는데 최소 3초의 시간이 있어야 에스트를 마실수 있는데" · M1112-05 "화톳불 있던
+#  방향으로 도망" · M1112-17 "달리기로") — P-177: 붙은 적 2+ (0.9–2.8 m)에서 그 자리 에스트 3/3 끊김 ─────────────────────────
+SIP_MARGIN_S = 3.0       # [MoKa] drink in place only if the nearest awake foe needs at least this long to reach us
+FOE_CHASE_V = 3.6        # m/s — records: hollows chasing (not attacking) median 2.8–3.6, p90 3.6–3.7 (experiments/hpsp/chase.py)
+FOE_REACH = 2.0          # m a foe hits from [guess — no per-foe reach in souls/foes.py yet]
+MARGIN_SCAN_R = 25.0     # foes farther than this don't count
+
+
+def sip_margin(s) -> float:
+    """Seconds until the nearest awake hostile foe at our level can hit us: (distance − FOE_REACH) / FOE_CHASE_V, 0 when it is
+    already in reach. inf when none. A foe asleep (9000s) doesn't count. Used by rule_low_sip, Field.recover / sip_run / retreat."""
+    p = s.player
+    best = float("inf")
+    for x in s.hostile(MARGIN_SCAN_R):
+        if x.hp <= 0 or 9000 <= (x.anim or 0) < 9100 or abs(x.y - p.y) > 3.0:
+            continue
+        best = min(best, max(0.0, M.horiz(p, x) - FOE_REACH) / FOE_CHASE_V)
+    return best
 
 
 def rule_low_sip(F, T):
-    """HP below LOW_SIP_HP with Estus left → stop and drink now, here: no opening check, no step back (M1112-02). First in RULES."""
+    """HP below LOW_SIP_HP with Estus left (M1112-02). First in RULES. The nearest foe needs ≥ SIP_MARGIN_S to reach us →
+    stop and drink now, here. Less → end the fight ('low_hp'): Field.recover runs back toward the bonfire and drinks once
+    the margin is there (M1112-04/05, sip_run)."""
     care, p = F.care, T.p
     if (care is None or not p.max_hp or p.hp >= p.max_hp * LOW_SIP_HP or getattr(care, "left", 0) <= 0
             or T.now - getattr(F, "low_sip_t", 0.0) < LOW_SIP_RETRY):
         return None
     F.low_sip_t = T.now
+    m = sip_margin(T.s)
+    if m < SIP_MARGIN_S:
+        F.log(f"      HP {p.hp}/{p.max_hp} (< {LOW_SIP_HP:.0%}), 마실 여유 {m:.1f} s < {SIP_MARGIN_S:g} s — 싸움 끝, 화톳불 쪽으로 (M1112-04/05)")
+        F.note("에스트 여유 없음", T.s, T.c)
+        return F.done("low_hp")
     r = care.take(lambda sn: True)
     F.log(f"      HP {p.hp}/{p.max_hp} (< {LOW_SIP_HP:.0%}) — 멈춰서 바로 에스트 (M1112-02): {r}")
     F.note("에스트(30%)", T.s, T.c)
