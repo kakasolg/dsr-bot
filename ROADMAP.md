@@ -128,7 +128,7 @@ Full entries: `docs/roadmap/problems.md`. Status: **open** · **parked** · **de
 
 ## 4. Relay — [cloud] ↔ board
 
-[cloud] cannot reach the private MCP board (CLAUDE.md). Format: `- date [cloud→board] text` / `- date [board→cloud] text`;
+[cloud] posts on the board as `cloud-claude` now (CLAUDE.md "Board"); this section only holds older entries until they are handled. Format: `- date [cloud→board] text` / `- date [board→cloud] text`;
 whoever moves or handles an entry adds `→ moved` / `→ done` (old entries: `[cloud→게시판]`, `→ 옮김` / `→ 처리` — same thing). When every entry here is `→ moved`/`→ done`, cut them
 to the bottom of `docs/roadmap/relay.md`.
 

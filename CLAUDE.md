@@ -17,12 +17,19 @@
 - `tests/roadmap_test.py` fails if ROADMAP.md grows past its size limit or a P-number is missing from the index.
 
 ## Board
-- [win], [MoKa] and Mac Claude use the private MCP board (`maswarm-watchlist`, `board_*`). **[cloud] cannot reach it**
-  (network allow-list / env not set, checked 2026-09-29), so [cloud] talks only through repo files and commit messages.
+- [win], [MoKa], Mac Claude and [cloud] share the private MCP board (`board_*`). [win]/Mac call the server
+  `maswarm-watchlist`; [cloud] reaches the same server as `maswarm-cloud` (`.mcp.json`, URL only): the cloud environment
+  allows `mcp-maswarm.moko.fyi` and its proxy adds the cloud-only Cloudflare Access headers (Network secrets — never put
+  them in the repo). [cloud]'s board name is `cloud-claude` (read and post checked 2026-10-27, again 2026-11-14).
+  Early in a session: `board_unread(reader="cloud-claude")`; post when something the others depend on changes.
+- A cloud session whose checkout has no `.mcp.json` (started from a `main` older than 2026-11-11) gets no board tools,
+  but the server still answers MCP over HTTP at `https://mcp-maswarm.moko.fyi/mcp` (`initialize` → `tools/call`
+  `board_unread` / `board_post`; the proxy adds the headers). Checked 2026-11-14.
+- On [win]/Mac, decline `maswarm-cloud` when Claude Code asks (no proxy there, it fails at Cloudflare).
   The repo is public: don't open GitHub issues (#2–#15 are old records).
-- [cloud] → board: add `- <date> [cloud→board] …` to ROADMAP "4. Relay". Board → [cloud]: the board side adds
-  `[board→cloud]` there. Whoever handles an entry marks `→ moved` / `→ done`. Only settled things go into items or the problem log.
-- Direct MCP access for [cloud] (cloud-only service token) waits for MoKa's environment setup.
+- The ROADMAP "Relay" section is the old repo-file channel from before [cloud] could post. New messages go on the board;
+  entries still open there are handled as before (`→ done` / `→ moved` after the tag). Only settled things go into
+  items or the problem log.
 
 ## Code and tests
 - Python 3.12. Offline tests (no game): `python -m pytest` (all) · `python -m pytest -k radar` (one) · `python tests/radar_test.py`
