@@ -26,6 +26,7 @@ from . import counter_trace as CT
 from . import foes as foes_
 from . import moves as M
 from . import parry as PARRY
+from . import turn_watch as TW
 from . import reflex as R
 from . import swing_windows as SW
 
@@ -135,7 +136,7 @@ def backstab_stick(c, p, side: float | None = None) -> tuple[float, float, float
     return (side if side is not None else (-1.0 if ang >= 0 else 1.0)), fwd, behind
 
 
-def _backstab(mv, s, c, cancel, nm=None, log=None) -> str:
+def _backstab(mv, s, c, cancel, nm=None, log=None, events=None) -> str:
     """Lock on, strafe round at body contact, R1 once behind. → 'stabbed' | 'hit' (R1 landed but no kill) | 'moved' (it stopped
     being idle) | 'not_behind' (time out) | 'no_lock' | 'lost'. Always leaves the stick centered; lock-on off unless it was
     already on the target when we came in (_keep_lock's — releasing it cost the next hit its lock, 074829 zone 1-3)."""
@@ -149,6 +150,8 @@ def _backstab(mv, s, c, cancel, nm=None, log=None) -> str:
             time.sleep(0.01)
     busy0 = vars(mv).get("cam_busy", False)           # vars(): test fakes raise on unknown attributes
     mv.cam_busy = True                                     # lock-on drives the camera — CamFollow hands off
+    tw = TW.TurnWatch(events, log, "뒤잡기 돌기")          # record only (M1116-03): angle · distance at each hit start, hit or not
+    tm_ = getattr(mv, "tm", None)
     def stab(s0=None, c0=None) -> str:
         # let go of everything first — guard (LB) up or the stick held turns R1 into a normal attack. Human demos press R1 alone
         # (buttons 0x200, no LB); the bot held LB through the whole duel (0x100 → 0x180 at R1). user 2026-09-28: "behind it, all input
@@ -172,6 +175,8 @@ def _backstab(mv, s, c, cancel, nm=None, log=None) -> str:
             wait(BACKSTAB_TICK)
             s2 = mv.snap(8.0)
             c2 = mv.find(s2, ptr) if s2 else None
+            if tm_ is not None and s2 is not None:
+                tw.tick(tm_, s2, c2)
             if c2 is None or c2.hp <= 0:
                 return "stabbed"
         return "hit" if c2.hp < hp0 else "not_behind"
@@ -204,6 +209,8 @@ def _backstab(mv, s, c, cancel, nm=None, log=None) -> str:
             c = mv.find(s, ptr) if s else None
             if c is None:
                 return "lost"
+            if tm_ is not None:
+                tw.tick(tm_, s, c)
             if (c.anim if c.anim is not None else -1) in M.DOWNED:
                 return "moved"                             # knocked down — nothing to get behind. A swing is NOT a reason to stop: it can't
                                                            # turn while it swings, that is when we get round (drill: 4 kills, all mid-swing)
@@ -235,6 +242,10 @@ def _backstab(mv, s, c, cancel, nm=None, log=None) -> str:
             mv.unlock()
             wait(0.1)
         mv.cam_busy = busy0
+        if tw.pending:
+            wait(TW.HIT_S)
+            s_end = mv.snap(8.0)
+            tw.close(s_end.player.hp if s_end is not None else None)
 
 
 
@@ -2022,7 +2033,7 @@ def _sleeper_heavy(F, T) -> bool:
 def _do_backstab(F, T, s, c, label: str):
     F.circle_n += 1
     start = (s.player.x, s.player.y, s.player.z)
-    r = _backstab(F.mv, s, c, F.cancel, F.nm, F.log)
+    r = _backstab(F.mv, s, c, F.cancel, F.nm, F.log, getattr(F, "events", None))
     _back_to_safe(F.mv, F.nm, start, F.log, F.arena)
     if r in ("edge", "no_room"):
         F.edge_until = time.time() + 5.0

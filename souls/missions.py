@@ -1740,8 +1740,33 @@ class Missions:
         time.sleep(1.0)
         after = tm.last_bonfire()
         if sat:
+            import kindle
             import levelup
             st = getattr(self.mv, "settings", None)       # the run's Settings (settings-object step 3)
+            # 11-15 · 11-16: burg-bonfire --kindle은 여기(처음 켜고 앉음)를 지나는데 kindle.maybe가 farm.rest에만 있어 두 번 다 안 됨
+            #  (에스트 5 · 9 그대로, 인간성 아이템 4 그대로 — M1115-15)
+            B_ = M.B
+
+            def stand_up() -> bool:
+                for _ in range(6):
+                    if not tm.sitting():
+                        return True
+                    self.mv.press(B_.XUSB_GAMEPAD_B)
+                    time.sleep(1.0)
+                return not tm.sitting()
+
+            def sit_down() -> bool:
+                for _ in range(3):
+                    self.mv.press(B_.XUSB_GAMEPAD_A)
+                    t1 = time.time()
+                    while time.time() - t1 < 4.0:
+                        if tm.sitting():
+                            return True
+                        time.sleep(0.25)
+                return False
+            menu = {"A": B_.XUSB_GAMEPAD_A, "DOWN": B_.XUSB_GAMEPAD_DPAD_DOWN, "LEFT": B_.XUSB_GAMEPAD_DPAD_LEFT}
+            kindle.maybe(tm, lambda k: self.mv.press(menu[k]), stand_up, sit_down, log=self.log,
+                         on=st.get("kindle", "ON") if st is not None else None)
             levelup.maybe(tm, self.mv.press, log=self.log, want=st.get("levelup", "WANT") if st is not None else None)  # run.py --level-up ([MoKa] 10-31 "모은 소울로 업그레이드")
         for _ in range(6):
             if not (tm.sitting() or tm.menu_open()):

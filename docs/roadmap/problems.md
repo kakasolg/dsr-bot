@@ -2910,6 +2910,11 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
   to 0.9 m and hit (682 → 380) — standing at the spot ~25 s gets it to notice (hypothesis; in 194303 it also came first). The probe had
   no guard for that — [win]'s mistake; the bot was started at once (`--seg 4-8` 231439, zones 4–8 cleared, lowest HP 63 %).
 
+  11-16 `002858` (turn-dodge run, parry off): the step-up fired in game — 254011 no_lock at (11.2,−6.6,−92.8) → one step up
+  (11.8,−6.3,−93.3) → knife again → still no_lock; waited 8 s, nobody came, went in by body; zone 4 cleared (HP 556/682 after).
+  So one step up did not fix the lock this time (1 try). Also: `light_burg_bonfire` now runs `kindle.maybe` (it ignored `--kindle`
+  on first lighting, 11-15); offline-built, not yet run in game on that path.
+
 ### P-180 `light-burg` from zone 8: fell 8 m by the ladder into the Taurus area, then died to Taurus on the walk back (2026-11-15 `232143` · `232439`)
 - Purpose: walk back to the Burg bonfire to kindle (MoKa "돌아가서 불지피기 해", M1115-16) after `burg-upper --seg 4-8` ended at zone 8.
 - Observed: 232143 route point 5/78 stuck at (49.7, 24.9, −116.6) → "낙사 (발밑 바닥 8 m 아래)" at (49.06, 24.3, −117.2), landed
