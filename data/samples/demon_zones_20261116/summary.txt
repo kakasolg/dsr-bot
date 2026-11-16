@@ -1,0 +1,49 @@
+window rows 302 first-window 214 attacks 145
+== angle x dist (first window)
+<60 0-3.5 63 37
+<60 3.5-7 66 30
+<60 7-99 41 8
+60-120 0-3.5 14 6
+60-120 3.5-7 7 4
+60-120 7-99 0 0
+>=120 0-3.5 21 6
+>=120 3.5-7 2 0
+>=120 7-99 0 0
+== per anim (first window): n hit, d range, hit d range
+3000 3 1 d 4.7-10.4 hit d 7.4-7.4 max off hit 0 lost avg 132
+3001 7 4 d 2.1-10.8 hit d 2.1-5.9 max off hit 7 lost avg 132
+3002 27 14 d 2.2-9.5 hit d 2.7-8.1 max off hit 26 lost avg 143
+3003 21 8 d 1.9-8.7 hit d 2.0-6.2 max off hit 43 lost avg 143
+3004 10 1 d 1.5-5.7 hit d 2.9-2.9 max off hit 42 lost avg 148
+3005 32 14 d 1.4-3.9 hit d 1.8-3.9 max off hit 60 lost avg 148
+3006 25 18 d 1.9-5.2 hit d 1.9-4.7 max off hit 67 lost avg 132
+3008 24 16 d 1.1-4.0 hit d 1.1-4.0 max off hit 135 lost avg 172
+3010 2 1 d 3.0-7.3 hit d 7.3-7.3 max off hit 0 lost avg 139
+3011 27 2 d 2.5-11.0 hit d 4.6-6.3 max off hit 60 lost avg 148
+3012 22 11 d 1.9-8.1 hit d 1.9-7.4 max off hit 21 lost avg 99
+3013 14 1 d 2.9-8.1 hit d 5.2-5.2 max off hit 0 lost avg 143
+== 3008 rows
+off 134 d 2.04 lost 208
+off 135 d 2.06 lost 208
+off 126 d 2.11 lost 208
+off 68 d 2.97 lost 0
+off 11 d 1.63 lost 0
+off 122 d 2.69 lost 0
+off 81 d 1.56 lost 208
+off 85 d 1.59 lost 208
+off 130 d 2.69 lost 0
+off 130 d 2.12 lost 208
+off 134 d 2.07 lost 208
+off 113 d 3.10 lost 63
+off 119 d 2.90 lost 63
+off 0 d 2.12 lost 208
+off 1 d 3.53 lost 0
+off 0 d 3.53 lost 63
+off 66 d 2.85 lost 0
+off -6 d 1.07 lost 208
+off 44 d 2.04 lost 208
+off 130 d 2.10 lost 208
+off 14 d 4.00 lost 0
+off 13 d 1.69 lost 208
+off 0 d 4.03 lost 0
+off 0 d 4.03 lost 63

@@ -127,6 +127,10 @@ def main() -> None:
     ap.add_argument("--rows", type=int, default=300, help="stop after this many window rows")
     ap.add_argument("--per-cell", type=int, default=10, help="window rows per cell before the next")
     ap.add_argument("--cell-s", type=float, default=120.0, help="s at most per cell")
+    ap.add_argument("--mode", choices=["가", "나"], default="가",
+                    help="가: stand still while it swings (walk back into the cell only between attacks) · 나: keep going for the "
+                         "cell point the whole time, swings too (it turns to face us, so 가 gives almost only its front — 042034)")
+    ap.add_argument("--cells", default=None, help="comma list of cell names (default: all)")
     a = ap.parse_args()
 
     import control, env, navmesh, track
@@ -196,7 +200,9 @@ def main() -> None:
             s = mv.snap(40.0)
             emit("drop", y=None if s is None else round(s.player.y, 2), hp=None if s is None else s.player.hp)
         t_end = t0 + a.limit
-        for name, r_, ang in CELLS:
+        rec.mode = a.mode
+        cells = [x for x in CELLS if a.cells is None or x[0] in a.cells.split(",")]
+        for name, r_, ang in cells:
             if time.time() > t_end or rec.rows >= a.rows:
                 break
             rec.cell, n0, tc = name, rec.rows, time.time()
@@ -217,7 +223,7 @@ def main() -> None:
                 if c is None:
                     pad.neutral(); time.sleep(0.05); continue
                 swinging = c.anim is not None and 3000 <= c.anim < 4000
-                if swinging or in_cell(c, p, r_, ang) or s.cam_yaw is None:
+                if (swinging and a.mode == "가") or in_cell(c, p, r_, ang) or s.cam_yaw is None:
                     pad.move(0.0, 0.0)
                     moving_since = None
                 else:
