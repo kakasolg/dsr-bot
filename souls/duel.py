@@ -1975,17 +1975,45 @@ def prep_linger(F, T):
     return None
 
 
+def _turn_drilling(F, T) -> bool:
+    """This foe is still in the turn drill: --turn-drill on, fewer than TURN_DRILL circles on it, room round it (T.room — hollow,
+    one-on-one, floor behind it), not hurt over TURN_DRILL_HURT this fight."""
+    if not TURN_DRILL or T.c is None:
+        return False
+    room = getattr(T, "room", None)                       # prep_linger sets it; rules before it (after_swing, guard_counter) see None
+    if room is None:
+        room = F.flags.BACKSTAB and F.foe is not None and F.foe.circle_behind and _room_behind(F.nm, T.p, T.c)             and _crowd(T.s, F.ptr) < NO_BACKSTAB_N
+    if not room:
+        return False
+    if F.__dict__.get("_turn_n", {}).get(T.c.ptr, 0) >= TURN_DRILL:
+        return False
+    return (F.hp_start or 0) - (T.p.hp or 0) <= TURN_DRILL_HURT * (T.p.max_hp or 1)
+
+
+def _no_turn(rule):
+    """While the turn drill runs on this foe, its counter-attacks wait (each light killed a hollow after 1 circle, 011904)."""
+    def wrapped(F, T):
+        return None if _turn_drilling(F, T) else rule(F, T)
+    wrapped.__name__ = rule.__name__
+    wrapped.__doc__ = rule.__doc__
+    return wrapped
+
+
 def rule_turn_drill(F, T):
     """돌아 피하기 연습 (MoKa 11-16 M1116-04 "빨리 쌓는 방법으로 해서 데이타를 쌓고 그 후 실전 하자"): with --turn-drill N, a hollow
     swinging at us up close, one-on-one, room round it → circle through the swing without R1 (TurnWatch records angle · distance ·
     hit at each hit-window start). N circles per foe, then the usual rules; stops early if we lost TURN_DRILL_HURT of max HP."""
-    if not TURN_DRILL or not (T.room and T.a in M.ATTACK and T.h <= BACKSTAB_REACH and abs(T.dy) <= 1.0):
+    if not _turn_drilling(F, T):
+        return None
+    if not (T.a in M.ATTACK and T.h <= BACKSTAB_REACH and abs(T.dy) <= 1.0) or _other_swinging(T.s, F.ptr):
+        if T.h <= BACKSTAB_REACH:                          # between swings: shield up, face it, wait for the next swing
+            F.mv.guard(True)                               # (11-16 011904: after_swing's light killed each hollow after 1 circle)
+            F.mv.face(T.s, T.c)
+            F.note("돌기연습대기", T.s, T.c)
+            time.sleep(0.03)
+            return CONT
         return None
     n = F.__dict__.setdefault("_turn_n", {})
-    if n.get(T.c.ptr, 0) >= TURN_DRILL or _other_swinging(T.s, F.ptr):
-        return None
-    if (F.hp_start or 0) - (T.p.hp or 0) > TURN_DRILL_HURT * (T.p.max_hp or 1):
-        return None
     n[T.c.ptr] = n.get(T.c.ptr, 0) + 1
     start = (T.p.x, T.p.y, T.p.z)
     r = _backstab(F.mv, T.s, T.c, F.cancel, F.nm, F.log, getattr(F, "events", None), turn_only=True)
@@ -2924,11 +2952,11 @@ def _no_drill(rule):
 # drill → (wait beyond this, step in only to this when it doesn't come, walk in beyond this) — _drill_setup
 DRILL_WAIT = {"backstep_r1": (SWING_BS_R, DRILL_BS_HOLD, DRILL_BS_FAR), "jump_r2": (JUMP_HI, JUMP_HOLD, JUMP_WAIT_FAR)}
 
-RULES = [rule_low_sip, rule_shot, rule_separate, rule_wall_bounce, rule_finish_first, prep_reflex, rule_guard_counter, rule_parry, rule_footing, rule_swing_backstep, rule_jump_drill, rule_jump_dodge,
-         rule_jump_save, rule_after_swing, rule_face_first, rule_early_kick, rule_late_windup_block, prep_linger, rule_turn_drill, rule_hit_first,
-         _no_drill(rule_backstab_swing), rule_reflex, rule_lure, rule_edge, rule_estus, rule_stagger_punish, rule_evade, rule_block,
+RULES = [rule_low_sip, rule_shot, rule_separate, rule_wall_bounce, rule_finish_first, prep_reflex, _no_turn(rule_guard_counter), rule_parry, rule_footing, rule_swing_backstep, rule_jump_drill, rule_jump_dodge,
+         rule_jump_save, _no_turn(rule_after_swing), rule_face_first, rule_early_kick, rule_late_windup_block, prep_linger, rule_turn_drill, _no_turn(rule_hit_first),
+         _no_drill(rule_backstab_swing), rule_reflex, rule_lure, rule_edge, rule_estus, _no_turn(rule_stagger_punish), rule_evade, rule_block,
          rule_downed, _no_drill(prep_backstab_chance), rule_wait_far, rule_approach, rule_finish, rule_stamina, prep_face,
-         _no_drill(rule_backstab), rule_attack]
+         _no_drill(rule_backstab), _no_turn(rule_attack)]
 
 
 _RULE_NAMES = [r.__name__.removeprefix("rule_").removeprefix("prep_") for r in RULES]   # counter trace: rule order
