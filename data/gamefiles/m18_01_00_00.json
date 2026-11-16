@@ -1,0 +1,6346 @@
+{
+ "map_id": "m18_01_00_00",
+ "evidence": "file",
+ "source": {
+  "msb": "map/MapStudio/m18_01_00_00.msb",
+  "params": "param/GameParam/GameParam.parambnd.dcx"
+ },
+ "counts": {
+  "objects": 151,
+  "breakable": 86,
+  "breakable_strong": 36,
+  "characters": 35,
+  "enemies": 33,
+  "humans": 2,
+  "with_patrol": 1,
+  "treasures": 30,
+  "treasures_soul": 1,
+  "treasures_humanity": 0,
+  "treasures_titanite": 0
+ },
+ "objects": [
+  {
+   "name": "o0200_0000",
+   "model": "o0200",
+   "entity_id": 1811960,
+   "pos": [
+    3.1,
+    195.91,
+    7.44
+   ],
+   "rot_y": 0.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 1,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o0200_0001",
+   "model": "o0200",
+   "entity_id": 1811961,
+   "pos": [
+    33.34,
+    193.15,
+    -26.47
+   ],
+   "rot_y": 0.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 1,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o0500_0000",
+   "model": "o0500",
+   "entity_id": 1811600,
+   "pos": [
+    -13.6,
+    184.74,
+    -45.24
+   ],
+   "rot_y": -30.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o0500_0006",
+   "model": "o0500",
+   "entity_id": -1,
+   "pos": [
+    14.45,
+    205.96,
+    4.6
+   ],
+   "rot_y": -47.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o0500_0007",
+   "model": "o0500",
+   "entity_id": -1,
+   "pos": [
+    12.75,
+    199.23,
+    -58.95
+   ],
+   "rot_y": -90.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o0500_0008",
+   "model": "o0500",
+   "entity_id": 1811650,
+   "pos": [
+    -13.65,
+    184.94,
+    -47.26
+   ],
+   "rot_y": 180.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o0500_0023",
+   "model": "o0500",
+   "entity_id": 1811602,
+   "pos": [
+    37.606,
+    192.66,
+    -11.852
+   ],
+   "rot_y": 5.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o0500_0024",
+   "model": "o0500",
+   "entity_id": 1811604,
+   "pos": [
+    37.606,
+    192.66,
+    -11.852
+   ],
+   "rot_y": 5.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o0500_0025",
+   "model": "o0500",
+   "entity_id": 1811606,
+   "pos": [
+    37.606,
+    192.66,
+    -11.852
+   ],
+   "rot_y": 5.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o0500_0026",
+   "model": "o0500",
+   "entity_id": 1811608,
+   "pos": [
+    37.606,
+    192.66,
+    -11.852
+   ],
+   "rot_y": 5.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o0500_0027",
+   "model": "o0500",
+   "entity_id": 1811610,
+   "pos": [
+    37.606,
+    192.66,
+    -11.852
+   ],
+   "rot_y": 5.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o0500_0028",
+   "model": "o0500",
+   "entity_id": 1811612,
+   "pos": [
+    37.606,
+    192.66,
+    -11.852
+   ],
+   "rot_y": 5.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o0500_0029",
+   "model": "o0500",
+   "entity_id": 1811615,
+   "pos": [
+    37.606,
+    192.66,
+    -11.852
+   ],
+   "rot_y": 5.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o0500_0030",
+   "model": "o0500",
+   "entity_id": 1811618,
+   "pos": [
+    37.606,
+    192.66,
+    -11.852
+   ],
+   "rot_y": 5.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o0500_0031",
+   "model": "o0500",
+   "entity_id": 1811621,
+   "pos": [
+    37.606,
+    192.66,
+    -11.852
+   ],
+   "rot_y": 5.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o0500_0032",
+   "model": "o0500",
+   "entity_id": 1811624,
+   "pos": [
+    37.606,
+    192.66,
+    -11.852
+   ],
+   "rot_y": 5.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o0500_0033",
+   "model": "o0500",
+   "entity_id": 1811601,
+   "pos": [
+    38.6,
+    195.42,
+    17.0
+   ],
+   "rot_y": 165.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o0500_0034",
+   "model": "o0500",
+   "entity_id": 1811603,
+   "pos": [
+    38.6,
+    195.42,
+    17.0
+   ],
+   "rot_y": 165.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o0500_0035",
+   "model": "o0500",
+   "entity_id": 1811605,
+   "pos": [
+    38.6,
+    195.42,
+    17.0
+   ],
+   "rot_y": 165.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o0500_0036",
+   "model": "o0500",
+   "entity_id": 1811607,
+   "pos": [
+    38.6,
+    195.42,
+    17.0
+   ],
+   "rot_y": 165.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o0500_0037",
+   "model": "o0500",
+   "entity_id": 1811609,
+   "pos": [
+    38.6,
+    195.42,
+    17.0
+   ],
+   "rot_y": 165.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o0500_0038",
+   "model": "o0500",
+   "entity_id": 1811611,
+   "pos": [
+    38.6,
+    195.42,
+    17.0
+   ],
+   "rot_y": 165.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o0500_0039",
+   "model": "o0500",
+   "entity_id": 1811614,
+   "pos": [
+    38.6,
+    195.42,
+    17.0
+   ],
+   "rot_y": 165.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o0500_0040",
+   "model": "o0500",
+   "entity_id": 1811617,
+   "pos": [
+    38.6,
+    195.42,
+    17.0
+   ],
+   "rot_y": 165.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o0500_0041",
+   "model": "o0500",
+   "entity_id": 1811620,
+   "pos": [
+    38.6,
+    195.42,
+    17.0
+   ],
+   "rot_y": 165.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o0500_0042",
+   "model": "o0500",
+   "entity_id": 1811623,
+   "pos": [
+    38.6,
+    195.42,
+    17.0
+   ],
+   "rot_y": 165.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o0500_0043",
+   "model": "o0500",
+   "entity_id": 1811613,
+   "pos": [
+    -10.27,
+    208.62,
+    -32.52
+   ],
+   "rot_y": -90.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o0500_0044",
+   "model": "o0500",
+   "entity_id": 1811616,
+   "pos": [
+    -10.27,
+    208.62,
+    -32.52
+   ],
+   "rot_y": -90.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o0500_0045",
+   "model": "o0500",
+   "entity_id": 1811619,
+   "pos": [
+    -10.27,
+    208.62,
+    -32.52
+   ],
+   "rot_y": -90.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o0500_0046",
+   "model": "o0500",
+   "entity_id": 1811622,
+   "pos": [
+    -10.27,
+    208.62,
+    -32.52
+   ],
+   "rot_y": -90.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8400_0000",
+   "model": "o8400",
+   "entity_id": -1,
+   "pos": [
+    -12.053,
+    184.727,
+    -46.907
+   ],
+   "rot_y": 0.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 1,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8400_0001",
+   "model": "o8400",
+   "entity_id": -1,
+   "pos": [
+    -7.299,
+    184.768,
+    -40.789
+   ],
+   "rot_y": 0.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 1,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8401_0000",
+   "model": "o8401",
+   "entity_id": -1,
+   "pos": [
+    -11.587,
+    184.727,
+    -46.701
+   ],
+   "rot_y": 0.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8401_0001",
+   "model": "o8401",
+   "entity_id": -1,
+   "pos": [
+    -8.182,
+    184.727,
+    -40.742
+   ],
+   "rot_y": -74.72,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8401_0002",
+   "model": "o8401",
+   "entity_id": -1,
+   "pos": [
+    -7.852,
+    184.747,
+    -40.321
+   ],
+   "rot_y": -155.05,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8402_0000",
+   "model": "o8402",
+   "entity_id": -1,
+   "pos": [
+    -11.739,
+    184.727,
+    -47.295
+   ],
+   "rot_y": 0.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8402_0001",
+   "model": "o8402",
+   "entity_id": -1,
+   "pos": [
+    -9.767,
+    184.727,
+    -36.417
+   ],
+   "rot_y": -80.88,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8403_0000",
+   "model": "o8403",
+   "entity_id": -1,
+   "pos": [
+    -11.604,
+    184.727,
+    -45.207
+   ],
+   "rot_y": 0.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 1,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8403_0001",
+   "model": "o8403",
+   "entity_id": -1,
+   "pos": [
+    -10.085,
+    184.824,
+    -36.631
+   ],
+   "rot_y": -50.38,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 1,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0000",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    -3.448,
+    198.139,
+    -25.703
+   ],
+   "rot_y": 0.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0001",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    -5.274,
+    198.044,
+    -25.051
+   ],
+   "rot_y": 0.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0003",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    -7.536,
+    198.142,
+    -31.589
+   ],
+   "rot_y": 0.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0004",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    -6.867,
+    198.142,
+    -31.905
+   ],
+   "rot_y": -90.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0005",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    -5.746,
+    198.142,
+    -31.761
+   ],
+   "rot_y": 90.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0006",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    -8.082,
+    198.142,
+    -26.031
+   ],
+   "rot_y": -90.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0007",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    -2.943,
+    198.139,
+    -21.27
+   ],
+   "rot_y": -180.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0008",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    -3.234,
+    198.139,
+    -19.635
+   ],
+   "rot_y": 90.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0010",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    -6.908,
+    198.044,
+    -23.739
+   ],
+   "rot_y": -140.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0011",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    -2.963,
+    198.139,
+    -14.913
+   ],
+   "rot_y": 90.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0012",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    -3.635,
+    198.139,
+    -12.959
+   ],
+   "rot_y": -55.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0013",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    -3.723,
+    198.139,
+    -8.687
+   ],
+   "rot_y": 65.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0014",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    -7.327,
+    198.139,
+    -5.64
+   ],
+   "rot_y": 65.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0015",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    -7.989,
+    198.139,
+    -6.874
+   ],
+   "rot_y": -170.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0016",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    -7.928,
+    198.139,
+    -7.695
+   ],
+   "rot_y": 85.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0017",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    -5.528,
+    198.044,
+    -14.785
+   ],
+   "rot_y": -55.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0018",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    -6.908,
+    198.044,
+    -16.244
+   ],
+   "rot_y": -140.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0019",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    -6.974,
+    198.044,
+    -7.254
+   ],
+   "rot_y": -140.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0020",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    -7.04,
+    198.044,
+    -9.276
+   ],
+   "rot_y": 100.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0021",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    -8.135,
+    198.139,
+    -13.369
+   ],
+   "rot_y": 90.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0022",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    -8.135,
+    198.139,
+    -20.755
+   ],
+   "rot_y": -20.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0023",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    9.797,
+    198.139,
+    -11.847
+   ],
+   "rot_y": -180.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0024",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    11.622,
+    198.044,
+    -12.499
+   ],
+   "rot_y": -180.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0026",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    13.884,
+    198.142,
+    -5.961
+   ],
+   "rot_y": -180.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0027",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    13.216,
+    198.142,
+    -5.645
+   ],
+   "rot_y": 90.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0028",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    12.094,
+    198.142,
+    -5.788
+   ],
+   "rot_y": -90.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0029",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    14.43,
+    198.142,
+    -11.519
+   ],
+   "rot_y": 90.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0030",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    9.291,
+    198.139,
+    -16.279
+   ],
+   "rot_y": 0.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0031",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    9.582,
+    198.139,
+    -17.915
+   ],
+   "rot_y": -90.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0033",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    13.256,
+    198.044,
+    -13.811
+   ],
+   "rot_y": 40.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0034",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    9.311,
+    198.139,
+    -22.637
+   ],
+   "rot_y": -90.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0035",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    9.983,
+    198.139,
+    -24.59
+   ],
+   "rot_y": 125.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0036",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    10.071,
+    198.139,
+    -28.863
+   ],
+   "rot_y": -115.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0037",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    13.675,
+    198.139,
+    -31.91
+   ],
+   "rot_y": -115.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0038",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    14.337,
+    198.139,
+    -30.676
+   ],
+   "rot_y": 10.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0039",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    14.277,
+    198.139,
+    -29.855
+   ],
+   "rot_y": -95.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0040",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    11.876,
+    198.044,
+    -22.765
+   ],
+   "rot_y": 125.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0041",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    13.256,
+    198.044,
+    -21.306
+   ],
+   "rot_y": 40.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0042",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    13.322,
+    198.044,
+    -30.296
+   ],
+   "rot_y": 40.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0043",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    13.388,
+    198.044,
+    -28.273
+   ],
+   "rot_y": -80.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0044",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    14.483,
+    198.139,
+    -24.181
+   ],
+   "rot_y": -90.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8410_0045",
+   "model": "o8410",
+   "entity_id": -1,
+   "pos": [
+    14.483,
+    198.139,
+    -16.794
+   ],
+   "rot_y": 160.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8411_0000",
+   "model": "o8411",
+   "entity_id": -1,
+   "pos": [
+    -5.773,
+    198.039,
+    -22.193
+   ],
+   "rot_y": 150.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8411_0001",
+   "model": "o8411",
+   "entity_id": -1,
+   "pos": [
+    -6.277,
+    198.039,
+    -23.218
+   ],
+   "rot_y": -165.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8411_0002",
+   "model": "o8411",
+   "entity_id": -1,
+   "pos": [
+    11.934,
+    198.039,
+    -13.328
+   ],
+   "rot_y": 15.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8411_0003",
+   "model": "o8411",
+   "entity_id": -1,
+   "pos": [
+    13.067,
+    198.039,
+    -15.978
+   ],
+   "rot_y": -55.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8420_0000",
+   "model": "o8420",
+   "entity_id": -1,
+   "pos": [
+    0.628,
+    198.301,
+    -1.59
+   ],
+   "rot_y": -180.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8420_0002",
+   "model": "o8420",
+   "entity_id": -1,
+   "pos": [
+    -2.784,
+    207.738,
+    -29.927
+   ],
+   "rot_y": -90.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8420_0003",
+   "model": "o8420",
+   "entity_id": -1,
+   "pos": [
+    9.176,
+    207.738,
+    -7.58
+   ],
+   "rot_y": 90.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8421_0002",
+   "model": "o8421",
+   "entity_id": -1,
+   "pos": [
+    -2.817,
+    207.738,
+    -12.055
+   ],
+   "rot_y": -90.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8422_0002",
+   "model": "o8422",
+   "entity_id": -1,
+   "pos": [
+    -2.651,
+    207.738,
+    -16.474
+   ],
+   "rot_y": -90.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8422_0003",
+   "model": "o8422",
+   "entity_id": -1,
+   "pos": [
+    9.043,
+    207.738,
+    -21.011
+   ],
+   "rot_y": 90.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8425_0001",
+   "model": "o8425",
+   "entity_id": -1,
+   "pos": [
+    5.75,
+    198.301,
+    -1.59
+   ],
+   "rot_y": -180.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8425_0003",
+   "model": "o8425",
+   "entity_id": -1,
+   "pos": [
+    8.993,
+    207.738,
+    -29.969
+   ],
+   "rot_y": 90.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8500_0000",
+   "model": "o8500",
+   "entity_id": 1811140,
+   "pos": [
+    -0.312,
+    189.49,
+    21.993
+   ],
+   "rot_y": 135.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 1,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8501_0000",
+   "model": "o8501",
+   "entity_id": 1811141,
+   "pos": [
+    -7.427,
+    182.246,
+    -6.622
+   ],
+   "rot_y": 0.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 1,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8510_0000",
+   "model": "o8510",
+   "entity_id": 1811200,
+   "pos": [
+    3.198,
+    197.506,
+    -21.538
+   ],
+   "rot_y": 0.0,
+   "break_term": 3,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 999,
+   "param": {
+    "ObjectHP": 999,
+    "MinAttackForDamage": 999,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8510_0001",
+   "model": "o8510",
+   "entity_id": 1811201,
+   "pos": [
+    3.198,
+    197.506,
+    -21.538
+   ],
+   "rot_y": 0.0,
+   "break_term": 3,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 999,
+   "param": {
+    "ObjectHP": 999,
+    "MinAttackForDamage": 999,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8511_0000",
+   "model": "o8511",
+   "entity_id": 1811202,
+   "pos": [
+    3.198,
+    196.177,
+    -21.538
+   ],
+   "rot_y": 0.0,
+   "break_term": 3,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 999,
+   "param": {
+    "ObjectHP": 999,
+    "MinAttackForDamage": 999,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8520_0000",
+   "model": "o8520",
+   "entity_id": 1811210,
+   "pos": [
+    -9.368,
+    201.777,
+    16.5
+   ],
+   "rot_y": 0.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 90,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 90,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8520_0001",
+   "model": "o8520",
+   "entity_id": 1811211,
+   "pos": [
+    -9.368,
+    201.777,
+    16.5
+   ],
+   "rot_y": 0.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 90,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 90,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8521_0000",
+   "model": "o8521",
+   "entity_id": 1811212,
+   "pos": [
+    -9.158,
+    201.777,
+    17.428
+   ],
+   "rot_y": 0.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8530_0000",
+   "model": "o8530",
+   "entity_id": 1811215,
+   "pos": [
+    -7.958,
+    209.007,
+    -0.488
+   ],
+   "rot_y": 90.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 0
+   }
+  },
+  {
+   "name": "o8530_0001",
+   "model": "o8530",
+   "entity_id": 1811216,
+   "pos": [
+    -7.958,
+    209.007,
+    -0.488
+   ],
+   "rot_y": 90.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 0
+   }
+  },
+  {
+   "name": "o8531_0000",
+   "model": "o8531",
+   "entity_id": 1811217,
+   "pos": [
+    -7.958,
+    209.007,
+    -0.488
+   ],
+   "rot_y": 90.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8540_0000",
+   "model": "o8540",
+   "entity_id": 1811100,
+   "pos": [
+    -15.352,
+    185.239,
+    -18.932
+   ],
+   "rot_y": 90.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8540_0001",
+   "model": "o8540",
+   "entity_id": 1811101,
+   "pos": [
+    -15.352,
+    185.239,
+    -32.442
+   ],
+   "rot_y": 90.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8540_0002",
+   "model": "o8540",
+   "entity_id": 1811102,
+   "pos": [
+    -12.187,
+    185.239,
+    -39.205
+   ],
+   "rot_y": -90.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8540_0003",
+   "model": "o8540",
+   "entity_id": 1811103,
+   "pos": [
+    -14.499,
+    185.239,
+    -42.467
+   ],
+   "rot_y": -0.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8540_0004",
+   "model": "o8540",
+   "entity_id": 1811104,
+   "pos": [
+    14.993,
+    208.405,
+    -21.601
+   ],
+   "rot_y": 180.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8540_0005",
+   "model": "o8540",
+   "entity_id": 1811105,
+   "pos": [
+    -9.343,
+    196.061,
+    -1.414
+   ],
+   "rot_y": -90.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8540_06",
+   "model": "o8540",
+   "entity_id": 1811106,
+   "pos": [
+    -8.595,
+    208.432,
+    -8.648
+   ],
+   "rot_y": -0.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8541_0001",
+   "model": "o8541",
+   "entity_id": 1811111,
+   "pos": [
+    3.186,
+    198.078,
+    -4.033
+   ],
+   "rot_y": 180.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8542_0000",
+   "model": "o8542",
+   "entity_id": 1811115,
+   "pos": [
+    15.375,
+    198.376,
+    -25.527
+   ],
+   "rot_y": 0.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8544_0000",
+   "model": "o8544",
+   "entity_id": 1811110,
+   "pos": [
+    3.186,
+    198.078,
+    -33.415
+   ],
+   "rot_y": 180.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8549_0000",
+   "model": "o8549",
+   "entity_id": -1,
+   "pos": [
+    -14.816,
+    180.002,
+    -46.738
+   ],
+   "rot_y": 0.0,
+   "break_term": 0,
+   "param_row_found": false,
+   "breakable": false,
+   "min_attack": null,
+   "param": null
+  },
+  {
+   "name": "o8550",
+   "model": "o8550",
+   "entity_id": 1811300,
+   "pos": [
+    2.738,
+    212.681,
+    -95.834
+   ],
+   "rot_y": 0.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8550_0001",
+   "model": "o8550",
+   "entity_id": -1,
+   "pos": [
+    -11.198,
+    200.718,
+    -69.016
+   ],
+   "rot_y": 75.49,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8600_0000",
+   "model": "o8600",
+   "entity_id": 1811230,
+   "pos": [
+    -3.6,
+    198.148,
+    -9.781
+   ],
+   "rot_y": -90.0,
+   "break_term": 1,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 90,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 90,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8600_0001",
+   "model": "o8600",
+   "entity_id": 1811231,
+   "pos": [
+    -3.6,
+    198.148,
+    -14.281
+   ],
+   "rot_y": 90.0,
+   "break_term": 1,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 90,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 90,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8600_0002",
+   "model": "o8600",
+   "entity_id": 1811232,
+   "pos": [
+    -3.599,
+    198.148,
+    -18.781
+   ],
+   "rot_y": -90.0,
+   "break_term": 1,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 90,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 90,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8600_0003",
+   "model": "o8600",
+   "entity_id": 1811233,
+   "pos": [
+    -3.599,
+    198.148,
+    -27.781
+   ],
+   "rot_y": 90.0,
+   "break_term": 1,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 90,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 90,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8600_0004",
+   "model": "o8600",
+   "entity_id": 1811234,
+   "pos": [
+    -3.599,
+    198.148,
+    -23.281
+   ],
+   "rot_y": -90.0,
+   "break_term": 1,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 90,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 90,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8600_0005",
+   "model": "o8600",
+   "entity_id": 1811235,
+   "pos": [
+    9.996,
+    198.148,
+    -23.281
+   ],
+   "rot_y": -90.0,
+   "break_term": 1,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 90,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 90,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8600_0006",
+   "model": "o8600",
+   "entity_id": 1811236,
+   "pos": [
+    9.995,
+    198.148,
+    -14.281
+   ],
+   "rot_y": 90.0,
+   "break_term": 1,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 90,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 90,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8600_0007",
+   "model": "o8600",
+   "entity_id": 1811237,
+   "pos": [
+    9.996,
+    198.148,
+    -18.781
+   ],
+   "rot_y": -90.0,
+   "break_term": 1,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 90,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 90,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8600_0008",
+   "model": "o8600",
+   "entity_id": 1811238,
+   "pos": [
+    9.996,
+    198.148,
+    -27.781
+   ],
+   "rot_y": 90.0,
+   "break_term": 1,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 90,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 90,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8600_0009",
+   "model": "o8600",
+   "entity_id": 1811239,
+   "pos": [
+    9.995,
+    198.148,
+    -9.781
+   ],
+   "rot_y": -90.0,
+   "break_term": 1,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 90,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 90,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8610_0000",
+   "model": "o8610",
+   "entity_id": -1,
+   "pos": [
+    -2.63,
+    182.24,
+    -12.804
+   ],
+   "rot_y": -90.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 90,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 90,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8610_0001",
+   "model": "o8610",
+   "entity_id": -1,
+   "pos": [
+    -2.632,
+    182.24,
+    -18.204
+   ],
+   "rot_y": -90.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 90,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 90,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8610_0002",
+   "model": "o8610",
+   "entity_id": -1,
+   "pos": [
+    -2.631,
+    182.24,
+    -23.605
+   ],
+   "rot_y": 180.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 90,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 90,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8610_0003",
+   "model": "o8610",
+   "entity_id": -1,
+   "pos": [
+    -5.806,
+    182.24,
+    -18.203
+   ],
+   "rot_y": 180.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 90,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 90,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8610_0004",
+   "model": "o8610",
+   "entity_id": -1,
+   "pos": [
+    -5.806,
+    182.24,
+    -23.604
+   ],
+   "rot_y": 90.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 90,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 90,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8610_0005",
+   "model": "o8610",
+   "entity_id": -1,
+   "pos": [
+    -5.805,
+    182.24,
+    -12.803
+   ],
+   "rot_y": 180.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 90,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 90,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8610_0006",
+   "model": "o8610",
+   "entity_id": -1,
+   "pos": [
+    -8.979,
+    182.24,
+    -18.204
+   ],
+   "rot_y": 180.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 90,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 90,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8610_0007",
+   "model": "o8610",
+   "entity_id": -1,
+   "pos": [
+    -8.978,
+    182.24,
+    -23.605
+   ],
+   "rot_y": 90.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 90,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 90,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8610_0008",
+   "model": "o8610",
+   "entity_id": -1,
+   "pos": [
+    -8.978,
+    182.24,
+    -12.804
+   ],
+   "rot_y": 180.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 90,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 90,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8610_0009",
+   "model": "o8610",
+   "entity_id": -1,
+   "pos": [
+    15.375,
+    182.24,
+    -18.203
+   ],
+   "rot_y": -90.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 90,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 90,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8610_0010",
+   "model": "o8610",
+   "entity_id": -1,
+   "pos": [
+    15.375,
+    182.24,
+    -23.604
+   ],
+   "rot_y": 180.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 90,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 90,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8610_0011",
+   "model": "o8610",
+   "entity_id": -1,
+   "pos": [
+    12.2,
+    182.24,
+    -18.202
+   ],
+   "rot_y": 180.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 90,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 90,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8610_0012",
+   "model": "o8610",
+   "entity_id": -1,
+   "pos": [
+    9.028,
+    182.24,
+    -23.604
+   ],
+   "rot_y": 90.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 90,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 90,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8610_0013",
+   "model": "o8610",
+   "entity_id": -1,
+   "pos": [
+    9.027,
+    182.24,
+    -18.203
+   ],
+   "rot_y": 180.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 90,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 90,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8610_0014",
+   "model": "o8610",
+   "entity_id": -1,
+   "pos": [
+    12.201,
+    182.24,
+    -23.603
+   ],
+   "rot_y": 90.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 90,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 90,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8610_0015",
+   "model": "o8610",
+   "entity_id": -1,
+   "pos": [
+    12.201,
+    182.24,
+    -12.802
+   ],
+   "rot_y": 180.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 90,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 90,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8610_0016",
+   "model": "o8610",
+   "entity_id": -1,
+   "pos": [
+    15.376,
+    182.24,
+    -12.803
+   ],
+   "rot_y": -90.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 90,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 90,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8610_0017",
+   "model": "o8610",
+   "entity_id": -1,
+   "pos": [
+    9.029,
+    182.24,
+    -12.803
+   ],
+   "rot_y": 180.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 90,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 90,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8700_0000",
+   "model": "o8700",
+   "entity_id": -1,
+   "pos": [
+    3.198,
+    208.223,
+    -33.094
+   ],
+   "rot_y": 0.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 199,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 199,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8701_0000",
+   "model": "o8701",
+   "entity_id": -1,
+   "pos": [
+    -1.456,
+    205.129,
+    -31.479
+   ],
+   "rot_y": 0.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 90,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 90,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8702_0000",
+   "model": "o8702",
+   "entity_id": -1,
+   "pos": [
+    7.852,
+    205.129,
+    -31.479
+   ],
+   "rot_y": 0.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": true,
+   "min_attack": 90,
+   "param": {
+    "ObjectHP": 1,
+    "MinAttackForDamage": 90,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8950_0000",
+   "model": "o8950",
+   "entity_id": 1811990,
+   "pos": [
+    3.162,
+    209.736,
+    -34.265
+   ],
+   "rot_y": 0.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8952_0000",
+   "model": "o8952",
+   "entity_id": 1811700,
+   "pos": [
+    5.87,
+    201.78,
+    19.63
+   ],
+   "rot_y": 90.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  },
+  {
+   "name": "o8953_0000",
+   "model": "o8953",
+   "entity_id": 1811890,
+   "pos": [
+    -7.4,
+    182.26,
+    -7.3
+   ],
+   "rot_y": 180.0,
+   "break_term": 0,
+   "param_row_found": true,
+   "breakable": false,
+   "min_attack": 0,
+   "param": {
+    "ObjectHP": -1,
+    "MinAttackForDamage": 0,
+    "BrokenByPlayerCollision": 0,
+    "HasDestructionAnimation": 0,
+    "PreventAllDamage": 0,
+    "IsLadder": 0,
+    "IsMovingObject": 0,
+    "CharacterCollision": 1
+   }
+  }
+ ],
+ "treasures": [
+  {
+   "name": "takara",
+   "part": "o0500_0000",
+   "pos": [
+    -13.6,
+    184.74,
+    -45.24
+   ],
+   "item_lots": [
+    1810000
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51810000
+   ],
+   "items": [
+    {
+     "id": 2010,
+     "category": "good",
+     "count": 1,
+     "name": "Dungeon Cell Key",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Dungeon Cell Key"
+  },
+  {
+   "name": "takara",
+   "part": "o0500_0004",
+   "pos": [
+    37.606,
+    192.61,
+    -11.842
+   ],
+   "item_lots": [
+    1810040
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [],
+   "items": [],
+   "kind": null,
+   "label": ""
+  },
+  {
+   "name": "takara",
+   "part": "o0500_0005",
+   "pos": [
+    39.0,
+    195.43,
+    21.16
+   ],
+   "item_lots": [
+    1810050
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [],
+   "items": [],
+   "kind": null,
+   "label": ""
+  },
+  {
+   "name": "takara",
+   "part": "o0500_0006",
+   "pos": [
+    14.45,
+    205.96,
+    4.6
+   ],
+   "item_lots": [
+    1810060
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51810060
+   ],
+   "items": [
+    {
+     "id": 125,
+     "category": "ring",
+     "count": 1,
+     "name": "Rusted Iron Ring",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Rusted Iron Ring"
+  },
+  {
+   "name": "takara",
+   "part": "o0500_0007",
+   "pos": [
+    12.75,
+    199.23,
+    -58.95
+   ],
+   "item_lots": [
+    1810070
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51810070
+   ],
+   "items": [
+    {
+     "id": 400,
+     "category": "good",
+     "count": 1,
+     "name": "Soul of a Lost Undead",
+     "kind": "soul"
+    }
+   ],
+   "kind": "soul",
+   "label": "Soul of a Lost Undead"
+  },
+  {
+   "name": "takara",
+   "part": "o0500_0008",
+   "pos": [
+    -13.65,
+    184.94,
+    -47.26
+   ],
+   "item_lots": [
+    1810080
+   ],
+   "in_chest": false,
+   "hidden": true,
+   "flags": [
+    51810080
+   ],
+   "items": [
+    {
+     "id": 384,
+     "category": "good",
+     "count": 1,
+     "name": "Peculiar Doll",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Peculiar Doll"
+  },
+  {
+   "name": "takara アーキタイプ別武器00",
+   "part": "o0500_0023",
+   "pos": [
+    37.606,
+    192.66,
+    -11.852
+   ],
+   "item_lots": [
+    1810110
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51810110
+   ],
+   "items": [
+    {
+     "id": 1450000,
+     "category": "weapon",
+     "count": 1,
+     "name": "Heater Shield",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Heater Shield"
+  },
+  {
+   "name": "takara アーキタイプ別武器01",
+   "part": "o0500_0024",
+   "pos": [
+    37.606,
+    192.66,
+    -11.852
+   ],
+   "item_lots": [
+    1810130
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51810130
+   ],
+   "items": [
+    {
+     "id": 1452000,
+     "category": "weapon",
+     "count": 1,
+     "name": "Tower Kite Shield",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Tower Kite Shield"
+  },
+  {
+   "name": "takara アーキタイプ別武器02",
+   "part": "o0500_0025",
+   "pos": [
+    37.606,
+    192.66,
+    -11.852
+   ],
+   "item_lots": [
+    1810150
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51810150
+   ],
+   "items": [
+    {
+     "id": 1408000,
+     "category": "weapon",
+     "count": 1,
+     "name": "Leather Shield",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Leather Shield"
+  },
+  {
+   "name": "takara アーキタイプ別武器03",
+   "part": "o0500_0026",
+   "pos": [
+    37.606,
+    192.66,
+    -11.852
+   ],
+   "item_lots": [
+    1810170
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51810170
+   ],
+   "items": [
+    {
+     "id": 1404000,
+     "category": "weapon",
+     "count": 1,
+     "name": "Target Shield",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Target Shield"
+  },
+  {
+   "name": "takara アーキタイプ別武器04",
+   "part": "o0500_0027",
+   "pos": [
+    37.606,
+    192.66,
+    -11.852
+   ],
+   "item_lots": [
+    1810190
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51810190
+   ],
+   "items": [
+    {
+     "id": 1462000,
+     "category": "weapon",
+     "count": 1,
+     "name": "Spider Shield",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Spider Shield"
+  },
+  {
+   "name": "takara アーキタイプ別武器05",
+   "part": "o0500_0028",
+   "pos": [
+    37.606,
+    192.66,
+    -11.852
+   ],
+   "item_lots": [
+    1810210
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51810210
+   ],
+   "items": [
+    {
+     "id": 1402000,
+     "category": "weapon",
+     "count": 1,
+     "name": "Large Leather Shield",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Large Leather Shield"
+  },
+  {
+   "name": "takara アーキタイプ別武器06",
+   "part": "o0500_0029",
+   "pos": [
+    37.606,
+    192.66,
+    -11.852
+   ],
+   "item_lots": [
+    1810240
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51810240
+   ],
+   "items": [
+    {
+     "id": 1403000,
+     "category": "weapon",
+     "count": 1,
+     "name": "Small Leather Shield",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Small Leather Shield"
+  },
+  {
+   "name": "takara アーキタイプ別武器07",
+   "part": "o0500_0030",
+   "pos": [
+    37.606,
+    192.66,
+    -11.852
+   ],
+   "item_lots": [
+    1810270
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51810270
+   ],
+   "items": [
+    {
+     "id": 1406000,
+     "category": "weapon",
+     "count": 1,
+     "name": "Cracked Round Shield",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Cracked Round Shield"
+  },
+  {
+   "name": "takara アーキタイプ別武器08",
+   "part": "o0500_0031",
+   "pos": [
+    37.606,
+    192.66,
+    -11.852
+   ],
+   "item_lots": [
+    1810300
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51810300
+   ],
+   "items": [
+    {
+     "id": 1400000,
+     "category": "weapon",
+     "count": 1,
+     "name": "East-West Shield",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "East-West Shield"
+  },
+  {
+   "name": "takara アーキタイプ別武器09",
+   "part": "o0500_0032",
+   "pos": [
+    37.606,
+    192.66,
+    -11.852
+   ],
+   "item_lots": [
+    1810330
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51810330
+   ],
+   "items": [
+    {
+     "id": 1409000,
+     "category": "weapon",
+     "count": 1,
+     "name": "Plank Shield",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Plank Shield"
+  },
+  {
+   "name": "takara アーキタイプ別武器10",
+   "part": "o0500_0033",
+   "pos": [
+    38.6,
+    195.42,
+    17.0
+   ],
+   "item_lots": [
+    1810100
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51810100
+   ],
+   "items": [
+    {
+     "id": 201000,
+     "category": "weapon",
+     "count": 1,
+     "name": "Longsword",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Longsword"
+  },
+  {
+   "name": "takara アーキタイプ別武器11",
+   "part": "o0500_0034",
+   "pos": [
+    38.6,
+    195.42,
+    17.0
+   ],
+   "item_lots": [
+    1810120
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51810120
+   ],
+   "items": [
+    {
+     "id": 202000,
+     "category": "weapon",
+     "count": 1,
+     "name": "Broadsword",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Broadsword"
+  },
+  {
+   "name": "takara アーキタイプ別武器12",
+   "part": "o0500_0035",
+   "pos": [
+    38.6,
+    195.42,
+    17.0
+   ],
+   "item_lots": [
+    1810140
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51810140
+   ],
+   "items": [
+    {
+     "id": 400000,
+     "category": "weapon",
+     "count": 1,
+     "name": "Scimitar",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Scimitar"
+  },
+  {
+   "name": "takara アーキタイプ別武器13",
+   "part": "o0500_0036",
+   "pos": [
+    38.6,
+    195.42,
+    17.0
+   ],
+   "item_lots": [
+    1810160
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51810160
+   ],
+   "items": [
+    {
+     "id": 103000,
+     "category": "weapon",
+     "count": 1,
+     "name": "Bandit's Knife",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Bandit's Knife"
+  },
+  {
+   "name": "takara アーキタイプ別武器14",
+   "part": "o0500_0037",
+   "pos": [
+    38.6,
+    195.42,
+    17.0
+   ],
+   "item_lots": [
+    1810180
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51810180
+   ],
+   "items": [
+    {
+     "id": 701000,
+     "category": "weapon",
+     "count": 1,
+     "name": "Battle Axe",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Battle Axe"
+  },
+  {
+   "name": "takara アーキタイプ別武器15",
+   "part": "o0500_0038",
+   "pos": [
+    38.6,
+    195.42,
+    17.0
+   ],
+   "item_lots": [
+    1810200
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51810200
+   ],
+   "items": [
+    {
+     "id": 200000,
+     "category": "weapon",
+     "count": 1,
+     "name": "Shortsword",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Shortsword"
+  },
+  {
+   "name": "takara アーキタイプ別武器16",
+   "part": "o0500_0039",
+   "pos": [
+    38.6,
+    195.42,
+    17.0
+   ],
+   "item_lots": [
+    1810230
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51810230
+   ],
+   "items": [
+    {
+     "id": 100000,
+     "category": "weapon",
+     "count": 1,
+     "name": "Dagger",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Dagger"
+  },
+  {
+   "name": "takara アーキタイプ別武器17",
+   "part": "o0500_0040",
+   "pos": [
+    38.6,
+    195.42,
+    17.0
+   ],
+   "item_lots": [
+    1810260
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51810260
+   ],
+   "items": [
+    {
+     "id": 700000,
+     "category": "weapon",
+     "count": 1,
+     "name": "Hand Axe",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Hand Axe"
+  },
+  {
+   "name": "takara アーキタイプ別武器18",
+   "part": "o0500_0041",
+   "pos": [
+    38.6,
+    195.42,
+    17.0
+   ],
+   "item_lots": [
+    1810290
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51810290
+   ],
+   "items": [
+    {
+     "id": 801000,
+     "category": "weapon",
+     "count": 1,
+     "name": "Mace",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Mace"
+  },
+  {
+   "name": "takara アーキタイプ別武器19",
+   "part": "o0500_0042",
+   "pos": [
+    38.6,
+    195.42,
+    17.0
+   ],
+   "item_lots": [
+    1810320
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51810320
+   ],
+   "items": [
+    {
+     "id": 800000,
+     "category": "weapon",
+     "count": 1,
+     "name": "Club",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Club"
+  },
+  {
+   "name": "takara アーキタイプ別武器20",
+   "part": "o0500_0043",
+   "pos": [
+    -10.27,
+    208.62,
+    -32.52
+   ],
+   "item_lots": [
+    1810220,
+    1810221
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51810220,
+    51810220
+   ],
+   "items": [
+    {
+     "id": 1200000,
+     "category": "weapon",
+     "count": 1,
+     "name": "Short Bow",
+     "kind": "other"
+    },
+    {
+     "id": 2000000,
+     "category": "weapon",
+     "count": 30,
+     "name": "Standard Arrow",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Short Bow, Standard Arrow x30"
+  },
+  {
+   "name": "takara アーキタイプ別武器21",
+   "part": "o0500_0044",
+   "pos": [
+    -10.27,
+    208.62,
+    -32.52
+   ],
+   "item_lots": [
+    1810250,
+    1810221
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51810250,
+    51810220
+   ],
+   "items": [
+    {
+     "id": 1300000,
+     "category": "weapon",
+     "count": 1,
+     "name": "Sorcerer's Catalyst",
+     "kind": "other"
+    },
+    {
+     "id": 2000000,
+     "category": "weapon",
+     "count": 30,
+     "name": "Standard Arrow",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Sorcerer's Catalyst, Standard Arrow x30"
+  },
+  {
+   "name": "takara アーキタイプ別武器22",
+   "part": "o0500_0045",
+   "pos": [
+    -10.27,
+    208.62,
+    -32.52
+   ],
+   "item_lots": [
+    1810280,
+    1810221
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51810280,
+    51810220
+   ],
+   "items": [
+    {
+     "id": 1330000,
+     "category": "weapon",
+     "count": 1,
+     "name": "Pyromancy Flame",
+     "kind": "other"
+    },
+    {
+     "id": 2000000,
+     "category": "weapon",
+     "count": 30,
+     "name": "Standard Arrow",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Pyromancy Flame, Standard Arrow x30"
+  },
+  {
+   "name": "takara アーキタイプ別武器23",
+   "part": "o0500_0046",
+   "pos": [
+    -10.27,
+    208.62,
+    -32.52
+   ],
+   "item_lots": [
+    1810310,
+    1810221
+   ],
+   "in_chest": false,
+   "hidden": false,
+   "flags": [
+    51810310,
+    51810220
+   ],
+   "items": [
+    {
+     "id": 1361000,
+     "category": "weapon",
+     "count": 1,
+     "name": "Canvas Talisman",
+     "kind": "other"
+    },
+    {
+     "id": 2000000,
+     "category": "weapon",
+     "count": 30,
+     "name": "Standard Arrow",
+     "kind": "other"
+    }
+   ],
+   "kind": "other",
+   "label": "Canvas Talisman, Standard Arrow x30"
+  }
+ ],
+ "enemies": [
+  {
+   "name": "c0000_0002",
+   "model": "c0000",
+   "kind": "human",
+   "entity_id": 6023,
+   "pos": [
+    -4.91,
+    201.96,
+    21.49
+   ],
+   "rot_y": 20.0,
+   "npc_param_id": 6020,
+   "ai_id": 6020,
+   "talk_id": 181602,
+   "patrol_type": 0,
+   "patrol": [],
+   "default_animation": 7805,
+   "think": {
+    "SightDistance": 20,
+    "SightRangeWidth": 120,
+    "SightRangeHeight": 120,
+    "SightForgetTime": 600,
+    "HearingDistance": 10,
+    "HearingCutDistance": 0,
+    "HearingRangeWidth": 180,
+    "HearingRangeHeight": 90,
+    "HearingForgetTime": 300,
+    "SmellDistance": 0,
+    "BattleStartDistance": 20,
+    "MaxRetreatDistance": 75,
+    "BattleRetreatDistance": 50,
+    "RetreatBattleStartDistance": 6,
+    "SearchTimeBeforeRetreat": 20,
+    "SearchDistanceBeforeRetreat": 20,
+    "NearDistance": 2.0,
+    "MidDistance": 3.5,
+    "FarDistance": 10.0,
+    "OutOfRangeDistance": 20.0,
+    "HelpGroupID": 0,
+    "HelpCallGroupID": 0,
+    "HelpCallFriendMaxDistance": 0,
+    "LogicID": 10000,
+    "BattleID": 6020,
+    "CanFallOffEdges": 1,
+    "CanNavigateLadders": 1,
+    "CanNavigateDoors": 1
+   }
+  },
+  {
+   "name": "c0000_0003",
+   "model": "c0000",
+   "kind": "human",
+   "entity_id": 6024,
+   "pos": [
+    -3.64,
+    201.41,
+    19.6
+   ],
+   "rot_y": 90.0,
+   "npc_param_id": 6021,
+   "ai_id": 6020,
+   "talk_id": 0,
+   "patrol_type": 0,
+   "patrol": [],
+   "default_animation": -1,
+   "think": {
+    "SightDistance": 20,
+    "SightRangeWidth": 120,
+    "SightRangeHeight": 120,
+    "SightForgetTime": 600,
+    "HearingDistance": 10,
+    "HearingCutDistance": 0,
+    "HearingRangeWidth": 180,
+    "HearingRangeHeight": 90,
+    "HearingForgetTime": 300,
+    "SmellDistance": 0,
+    "BattleStartDistance": 20,
+    "MaxRetreatDistance": 75,
+    "BattleRetreatDistance": 50,
+    "RetreatBattleStartDistance": 6,
+    "SearchTimeBeforeRetreat": 20,
+    "SearchDistanceBeforeRetreat": 20,
+    "NearDistance": 2.0,
+    "MidDistance": 3.5,
+    "FarDistance": 10.0,
+    "OutOfRangeDistance": 20.0,
+    "HelpGroupID": 0,
+    "HelpCallGroupID": 0,
+    "HelpCallFriendMaxDistance": 0,
+    "LogicID": 10000,
+    "BattleID": 6020,
+    "CanFallOffEdges": 1,
+    "CanNavigateLadders": 1,
+    "CanNavigateDoors": 1
+   }
+  },
+  {
+   "name": "c1000_0000",
+   "model": "c1000",
+   "kind": "enemy",
+   "entity_id": 1810960,
+   "pos": [
+    3.1,
+    196.41,
+    7.44
+   ],
+   "rot_y": 0.0,
+   "npc_param_id": 100000,
+   "ai_id": 1,
+   "talk_id": 181000,
+   "patrol_type": 0,
+   "patrol": [],
+   "default_animation": -1,
+   "think": {
+    "SightDistance": 30,
+    "SightRangeWidth": 120,
+    "SightRangeHeight": 120,
+    "SightForgetTime": 600,
+    "HearingDistance": 10,
+    "HearingCutDistance": 0,
+    "HearingRangeWidth": 180,
+    "HearingRangeHeight": 90,
+    "HearingForgetTime": 300,
+    "SmellDistance": 0,
+    "BattleStartDistance": 20,
+    "MaxRetreatDistance": 9999,
+    "BattleRetreatDistance": 9998,
+    "RetreatBattleStartDistance": 6,
+    "SearchTimeBeforeRetreat": 20,
+    "SearchDistanceBeforeRetreat": 20,
+    "NearDistance": 3.0,
+    "MidDistance": 6.0,
+    "FarDistance": 20.0,
+    "OutOfRangeDistance": 30.0,
+    "HelpGroupID": 0,
+    "HelpCallGroupID": 0,
+    "HelpCallFriendMaxDistance": 0,
+    "LogicID": 11000,
+    "BattleID": 11000,
+    "CanFallOffEdges": 1,
+    "CanNavigateLadders": 0,
+    "CanNavigateDoors": 0
+   }
+  },
+  {
+   "name": "c1000_0001",
+   "model": "c1000",
+   "kind": "enemy",
+   "entity_id": 1810961,
+   "pos": [
+    33.34,
+    193.65,
+    -26.47
+   ],
+   "rot_y": 0.0,
+   "npc_param_id": 100000,
+   "ai_id": 1,
+   "talk_id": 181001,
+   "patrol_type": 0,
+   "patrol": [],
+   "default_animation": -1,
+   "think": {
+    "SightDistance": 30,
+    "SightRangeWidth": 120,
+    "SightRangeHeight": 120,
+    "SightForgetTime": 600,
+    "HearingDistance": 10,
+    "HearingCutDistance": 0,
+    "HearingRangeWidth": 180,
+    "HearingRangeHeight": 90,
+    "HearingForgetTime": 300,
+    "SmellDistance": 0,
+    "BattleStartDistance": 20,
+    "MaxRetreatDistance": 9999,
+    "BattleRetreatDistance": 9998,
+    "RetreatBattleStartDistance": 6,
+    "SearchTimeBeforeRetreat": 20,
+    "SearchDistanceBeforeRetreat": 20,
+    "NearDistance": 3.0,
+    "MidDistance": 6.0,
+    "FarDistance": 20.0,
+    "OutOfRangeDistance": 30.0,
+    "HelpGroupID": 0,
+    "HelpCallGroupID": 0,
+    "HelpCallFriendMaxDistance": 0,
+    "LogicID": 11000,
+    "BattleID": 11000,
+    "CanFallOffEdges": 1,
+    "CanNavigateLadders": 0,
+    "CanNavigateDoors": 0
+   }
+  },
+  {
+   "name": "c1000_0002",
+   "model": "c1000",
+   "kind": "enemy",
+   "entity_id": 6450,
+   "pos": [
+    -11.48,
+    200.71,
+    -69.19
+   ],
+   "rot_y": 0.0,
+   "npc_param_id": 100000,
+   "ai_id": 1,
+   "talk_id": 181645,
+   "patrol_type": 0,
+   "patrol": [],
+   "default_animation": -1,
+   "think": {
+    "SightDistance": 30,
+    "SightRangeWidth": 120,
+    "SightRangeHeight": 120,
+    "SightForgetTime": 600,
+    "HearingDistance": 10,
+    "HearingCutDistance": 0,
+    "HearingRangeWidth": 180,
+    "HearingRangeHeight": 90,
+    "HearingForgetTime": 300,
+    "SmellDistance": 0,
+    "BattleStartDistance": 20,
+    "MaxRetreatDistance": 9999,
+    "BattleRetreatDistance": 9998,
+    "RetreatBattleStartDistance": 6,
+    "SearchTimeBeforeRetreat": 20,
+    "SearchDistanceBeforeRetreat": 20,
+    "NearDistance": 3.0,
+    "MidDistance": 6.0,
+    "FarDistance": 20.0,
+    "OutOfRangeDistance": 30.0,
+    "HelpGroupID": 0,
+    "HelpCallGroupID": 0,
+    "HelpCallFriendMaxDistance": 0,
+    "LogicID": 11000,
+    "BattleID": 11000,
+    "CanFallOffEdges": 1,
+    "CanNavigateLadders": 0,
+    "CanNavigateDoors": 0
+   }
+  },
+  {
+   "name": "c2230_0000",
+   "model": "c2230",
+   "kind": "enemy",
+   "entity_id": 1810810,
+   "pos": [
+    3.31,
+    182.11,
+    -9.46
+   ],
+   "rot_y": 0.0,
+   "npc_param_id": 223000,
+   "ai_id": 223001,
+   "talk_id": 0,
+   "patrol_type": 0,
+   "patrol": [
+    {
+     "name": "巡回 デブデーモン00-00",
+     "pos": [
+      3.33,
+      182.1,
+      -26.21
+     ]
+    },
+    {
+     "name": "巡回 デブデーモン00-01",
+     "pos": [
+      3.46,
+      182.1,
+      -9.53
+     ]
+    }
+   ],
+   "default_animation": -1,
+   "think": {
+    "SightDistance": 40,
+    "SightRangeWidth": 120,
+    "SightRangeHeight": 120,
+    "SightForgetTime": 600,
+    "HearingDistance": 10,
+    "HearingCutDistance": 0,
+    "HearingRangeWidth": 180,
+    "HearingRangeHeight": 90,
+    "HearingForgetTime": 300,
+    "SmellDistance": 0,
+    "BattleStartDistance": 10,
+    "MaxRetreatDistance": 75,
+    "BattleRetreatDistance": 50,
+    "RetreatBattleStartDistance": 6,
+    "SearchTimeBeforeRetreat": 20,
+    "SearchDistanceBeforeRetreat": 20,
+    "NearDistance": 5.0,
+    "MidDistance": 10.0,
+    "FarDistance": 20.0,
+    "OutOfRangeDistance": 40.0,
+    "HelpGroupID": 0,
+    "HelpCallGroupID": 0,
+    "HelpCallFriendMaxDistance": 0,
+    "LogicID": 10000,
+    "BattleID": 223000,
+    "CanFallOffEdges": 1,
+    "CanNavigateLadders": 0,
+    "CanNavigateDoors": 0
+   }
+  },
+  {
+   "name": "c2232_0000",
+   "model": "c2232",
+   "kind": "enemy",
+   "entity_id": 1810800,
+   "pos": [
+    3.0,
+    198.06,
+    -29.54
+   ],
+   "rot_y": 180.0,
+   "npc_param_id": 223200,
+   "ai_id": 223200,
+   "talk_id": 0,
+   "patrol_type": 0,
+   "patrol": [],
+   "default_animation": -1,
+   "think": {
+    "SightDistance": 40,
+    "SightRangeWidth": 120,
+    "SightRangeHeight": 120,
+    "SightForgetTime": 600,
+    "HearingDistance": 10,
+    "HearingCutDistance": 0,
+    "HearingRangeWidth": 180,
+    "HearingRangeHeight": 90,
+    "HearingForgetTime": 300,
+    "SmellDistance": 100,
+    "BattleStartDistance": 100,
+    "MaxRetreatDistance": 9999,
+    "BattleRetreatDistance": 9998,
+    "RetreatBattleStartDistance": 9999,
+    "SearchTimeBeforeRetreat": 20,
+    "SearchDistanceBeforeRetreat": 20,
+    "NearDistance": 3.0,
+    "MidDistance": 5.0,
+    "FarDistance": 10.0,
+    "OutOfRangeDistance": 20.0,
+    "HelpGroupID": 0,
+    "HelpCallGroupID": 0,
+    "HelpCallFriendMaxDistance": 0,
+    "LogicID": 10000,
+    "BattleID": 223200,
+    "CanFallOffEdges": 1,
+    "CanNavigateLadders": 0,
+    "CanNavigateDoors": 0
+   }
+  },
+  {
+   "name": "c2500_0000",
+   "model": "c2500",
+   "kind": "enemy",
+   "entity_id": 1810101,
+   "pos": [
+    -14.67,
+    185.305,
+    -23.074
+   ],
+   "rot_y": -32.68,
+   "npc_param_id": 250020,
+   "ai_id": 250006,
+   "talk_id": 0,
+   "patrol_type": 0,
+   "patrol": [],
+   "default_animation": 9005,
+   "think": {
+    "SightDistance": 30,
+    "SightRangeWidth": 120,
+    "SightRangeHeight": 120,
+    "SightForgetTime": 600,
+    "HearingDistance": 10,
+    "HearingCutDistance": 0,
+    "HearingRangeWidth": 180,
+    "HearingRangeHeight": 90,
+    "HearingForgetTime": 300,
+    "SmellDistance": 0,
+    "BattleStartDistance": 20,
+    "MaxRetreatDistance": 75,
+    "BattleRetreatDistance": 50,
+    "RetreatBattleStartDistance": 6,
+    "SearchTimeBeforeRetreat": 20,
+    "SearchDistanceBeforeRetreat": 20,
+    "NearDistance": 1.5,
+    "MidDistance": 3.5,
+    "FarDistance": 10.0,
+    "OutOfRangeDistance": 20.0,
+    "HelpGroupID": 0,
+    "HelpCallGroupID": 0,
+    "HelpCallFriendMaxDistance": 0,
+    "LogicID": 10000,
+    "BattleID": 250004,
+    "CanFallOffEdges": 1,
+    "CanNavigateLadders": 1,
+    "CanNavigateDoors": 1
+   }
+  },
+  {
+   "name": "c2500_0001",
+   "model": "c2500",
+   "kind": "enemy",
+   "entity_id": 1810102,
+   "pos": [
+    -14.8,
+    189.071,
+    23.66
+   ],
+   "rot_y": -30.0,
+   "npc_param_id": 250020,
+   "ai_id": 250006,
+   "talk_id": 0,
+   "patrol_type": 0,
+   "patrol": [],
+   "default_animation": 9000,
+   "think": {
+    "SightDistance": 30,
+    "SightRangeWidth": 120,
+    "SightRangeHeight": 120,
+    "SightForgetTime": 600,
+    "HearingDistance": 10,
+    "HearingCutDistance": 0,
+    "HearingRangeWidth": 180,
+    "HearingRangeHeight": 90,
+    "HearingForgetTime": 300,
+    "SmellDistance": 0,
+    "BattleStartDistance": 20,
+    "MaxRetreatDistance": 75,
+    "BattleRetreatDistance": 50,
+    "RetreatBattleStartDistance": 6,
+    "SearchTimeBeforeRetreat": 20,
+    "SearchDistanceBeforeRetreat": 20,
+    "NearDistance": 1.5,
+    "MidDistance": 3.5,
+    "FarDistance": 10.0,
+    "OutOfRangeDistance": 20.0,
+    "HelpGroupID": 0,
+    "HelpCallGroupID": 0,
+    "HelpCallFriendMaxDistance": 0,
+    "LogicID": 10000,
+    "BattleID": 250004,
+    "CanFallOffEdges": 1,
+    "CanNavigateLadders": 1,
+    "CanNavigateDoors": 1
+   }
+  },
+  {
+   "name": "c2500_0002",
+   "model": "c2500",
+   "kind": "enemy",
+   "entity_id": 1810103,
+   "pos": [
+    -7.76,
+    208.43,
+    -5.0
+   ],
+   "rot_y": -180.0,
+   "npc_param_id": 250022,
+   "ai_id": 250004,
+   "talk_id": 0,
+   "patrol_type": 0,
+   "patrol": [],
+   "default_animation": -1,
+   "think": {
+    "SightDistance": 30,
+    "SightRangeWidth": 90,
+    "SightRangeHeight": 120,
+    "SightForgetTime": 600,
+    "HearingDistance": 10,
+    "HearingCutDistance": 0,
+    "HearingRangeWidth": 180,
+    "HearingRangeHeight": 90,
+    "HearingForgetTime": 300,
+    "SmellDistance": 0,
+    "BattleStartDistance": 5,
+    "MaxRetreatDistance": 75,
+    "BattleRetreatDistance": 50,
+    "RetreatBattleStartDistance": 6,
+    "SearchTimeBeforeRetreat": 20,
+    "SearchDistanceBeforeRetreat": 20,
+    "NearDistance": 1.5,
+    "MidDistance": 3.5,
+    "FarDistance": 10.0,
+    "OutOfRangeDistance": 20.0,
+    "HelpGroupID": 0,
+    "HelpCallGroupID": 0,
+    "HelpCallFriendMaxDistance": 0,
+    "LogicID": 10000,
+    "BattleID": 250000,
+    "CanFallOffEdges": 1,
+    "CanNavigateLadders": 1,
+    "CanNavigateDoors": 1
+   }
+  },
+  {
+   "name": "c2500_0003",
+   "model": "c2500",
+   "kind": "enemy",
+   "entity_id": 1810104,
+   "pos": [
+    5.68,
+    208.934,
+    -36.76
+   ],
+   "rot_y": 90.0,
+   "npc_param_id": 250021,
+   "ai_id": 250020,
+   "talk_id": 0,
+   "patrol_type": 0,
+   "patrol": [],
+   "default_animation": -1,
+   "think": {
+    "SightDistance": 30,
+    "SightRangeWidth": 120,
+    "SightRangeHeight": 120,
+    "SightForgetTime": 600,
+    "HearingDistance": 10,
+    "HearingCutDistance": 0,
+    "HearingRangeWidth": 180,
+    "HearingRangeHeight": 90,
+    "HearingForgetTime": 300,
+    "SmellDistance": 0,
+    "BattleStartDistance": 25,
+    "MaxRetreatDistance": 75,
+    "BattleRetreatDistance": 50,
+    "RetreatBattleStartDistance": 6,
+    "SearchTimeBeforeRetreat": 20,
+    "SearchDistanceBeforeRetreat": 20,
+    "NearDistance": 1.5,
+    "MidDistance": 3.5,
+    "FarDistance": 10.0,
+    "OutOfRangeDistance": 20.0,
+    "HelpGroupID": 0,
+    "HelpCallGroupID": 0,
+    "HelpCallFriendMaxDistance": 0,
+    "LogicID": 10000,
+    "BattleID": 250005,
+    "CanFallOffEdges": 1,
+    "CanNavigateLadders": 1,
+    "CanNavigateDoors": 1
+   }
+  },
+  {
+   "name": "c2500_0005",
+   "model": "c2500",
+   "kind": "enemy",
+   "entity_id": 1810106,
+   "pos": [
+    -15.0,
+    185.55,
+    -11.33
+   ],
+   "rot_y": 90.0,
+   "npc_param_id": 250020,
+   "ai_id": 250006,
+   "talk_id": 0,
+   "patrol_type": 0,
+   "patrol": [],
+   "default_animation": 9006,
+   "think": {
+    "SightDistance": 30,
+    "SightRangeWidth": 120,
+    "SightRangeHeight": 120,
+    "SightForgetTime": 600,
+    "HearingDistance": 10,
+    "HearingCutDistance": 0,
+    "HearingRangeWidth": 180,
+    "HearingRangeHeight": 90,
+    "HearingForgetTime": 300,
+    "SmellDistance": 0,
+    "BattleStartDistance": 20,
+    "MaxRetreatDistance": 75,
+    "BattleRetreatDistance": 50,
+    "RetreatBattleStartDistance": 6,
+    "SearchTimeBeforeRetreat": 20,
+    "SearchDistanceBeforeRetreat": 20,
+    "NearDistance": 1.5,
+    "MidDistance": 3.5,
+    "FarDistance": 10.0,
+    "OutOfRangeDistance": 20.0,
+    "HelpGroupID": 0,
+    "HelpCallGroupID": 0,
+    "HelpCallFriendMaxDistance": 0,
+    "LogicID": 10000,
+    "BattleID": 250004,
+    "CanFallOffEdges": 1,
+    "CanNavigateLadders": 1,
+    "CanNavigateDoors": 1
+   }
+  },
+  {
+   "name": "c2500_0006",
+   "model": "c2500",
+   "kind": "enemy",
+   "entity_id": 1810107,
+   "pos": [
+    -8.09,
+    184.76,
+    -37.92
+   ],
+   "rot_y": -90.0,
+   "npc_param_id": 250020,
+   "ai_id": 250006,
+   "talk_id": 0,
+   "patrol_type": 0,
+   "patrol": [],
+   "default_animation": 9008,
+   "think": {
+    "SightDistance": 30,
+    "SightRangeWidth": 120,
+    "SightRangeHeight": 120,
+    "SightForgetTime": 600,
+    "HearingDistance": 10,
+    "HearingCutDistance": 0,
+    "HearingRangeWidth": 180,
+    "HearingRangeHeight": 90,
+    "HearingForgetTime": 300,
+    "SmellDistance": 0,
+    "BattleStartDistance": 20,
+    "MaxRetreatDistance": 75,
+    "BattleRetreatDistance": 50,
+    "RetreatBattleStartDistance": 6,
+    "SearchTimeBeforeRetreat": 20,
+    "SearchDistanceBeforeRetreat": 20,
+    "NearDistance": 1.5,
+    "MidDistance": 3.5,
+    "FarDistance": 10.0,
+    "OutOfRangeDistance": 20.0,
+    "HelpGroupID": 0,
+    "HelpCallGroupID": 0,
+    "HelpCallFriendMaxDistance": 0,
+    "LogicID": 10000,
+    "BattleID": 250004,
+    "CanFallOffEdges": 1,
+    "CanNavigateLadders": 1,
+    "CanNavigateDoors": 1
+   }
+  },
+  {
+   "name": "c2500_0007",
+   "model": "c2500",
+   "kind": "enemy",
+   "entity_id": 1810108,
+   "pos": [
+    -19.66,
+    184.75,
+    -34.81
+   ],
+   "rot_y": -90.0,
+   "npc_param_id": 250020,
+   "ai_id": 250006,
+   "talk_id": 0,
+   "patrol_type": 0,
+   "patrol": [],
+   "default_animation": 9010,
+   "think": {
+    "SightDistance": 30,
+    "SightRangeWidth": 120,
+    "SightRangeHeight": 120,
+    "SightForgetTime": 600,
+    "HearingDistance": 10,
+    "HearingCutDistance": 0,
+    "HearingRangeWidth": 180,
+    "HearingRangeHeight": 90,
+    "HearingForgetTime": 300,
+    "SmellDistance": 0,
+    "BattleStartDistance": 20,
+    "MaxRetreatDistance": 75,
+    "BattleRetreatDistance": 50,
+    "RetreatBattleStartDistance": 6,
+    "SearchTimeBeforeRetreat": 20,
+    "SearchDistanceBeforeRetreat": 20,
+    "NearDistance": 1.5,
+    "MidDistance": 3.5,
+    "FarDistance": 10.0,
+    "OutOfRangeDistance": 20.0,
+    "HelpGroupID": 0,
+    "HelpCallGroupID": 0,
+    "HelpCallFriendMaxDistance": 0,
+    "LogicID": 10000,
+    "BattleID": 250004,
+    "CanFallOffEdges": 1,
+    "CanNavigateLadders": 1,
+    "CanNavigateDoors": 1
+   }
+  },
+  {
+   "name": "c2500_0009",
+   "model": "c2500",
+   "kind": "enemy",
+   "entity_id": 1810110,
+   "pos": [
+    -3.65,
+    208.43,
+    -35.54
+   ],
+   "rot_y": 100.0,
+   "npc_param_id": 250022,
+   "ai_id": 250005,
+   "talk_id": 0,
+   "patrol_type": 0,
+   "patrol": [],
+   "default_animation": -1,
+   "think": {
+    "SightDistance": 30,
+    "SightRangeWidth": 120,
+    "SightRangeHeight": 120,
+    "SightForgetTime": 600,
+    "HearingDistance": 10,
+    "HearingCutDistance": 0,
+    "HearingRangeWidth": 180,
+    "HearingRangeHeight": 90,
+    "HearingForgetTime": 300,
+    "SmellDistance": 0,
+    "BattleStartDistance": 12,
+    "MaxRetreatDistance": 75,
+    "BattleRetreatDistance": 50,
+    "RetreatBattleStartDistance": 6,
+    "SearchTimeBeforeRetreat": 20,
+    "SearchDistanceBeforeRetreat": 20,
+    "NearDistance": 1.5,
+    "MidDistance": 3.5,
+    "FarDistance": 10.0,
+    "OutOfRangeDistance": 20.0,
+    "HelpGroupID": 0,
+    "HelpCallGroupID": 0,
+    "HelpCallFriendMaxDistance": 0,
+    "LogicID": 10000,
+    "BattleID": 250000,
+    "CanFallOffEdges": 1,
+    "CanNavigateLadders": 1,
+    "CanNavigateDoors": 1
+   }
+  },
+  {
+   "name": "c2500_0010",
+   "model": "c2500",
+   "kind": "enemy",
+   "entity_id": 1810111,
+   "pos": [
+    0.55,
+    208.933,
+    -36.46
+   ],
+   "rot_y": 90.0,
+   "npc_param_id": 250022,
+   "ai_id": 250005,
+   "talk_id": 0,
+   "patrol_type": 0,
+   "patrol": [],
+   "default_animation": -1,
+   "think": {
+    "SightDistance": 30,
+    "SightRangeWidth": 120,
+    "SightRangeHeight": 120,
+    "SightForgetTime": 600,
+    "HearingDistance": 10,
+    "HearingCutDistance": 0,
+    "HearingRangeWidth": 180,
+    "HearingRangeHeight": 90,
+    "HearingForgetTime": 300,
+    "SmellDistance": 0,
+    "BattleStartDistance": 12,
+    "MaxRetreatDistance": 75,
+    "BattleRetreatDistance": 50,
+    "RetreatBattleStartDistance": 6,
+    "SearchTimeBeforeRetreat": 20,
+    "SearchDistanceBeforeRetreat": 20,
+    "NearDistance": 1.5,
+    "MidDistance": 3.5,
+    "FarDistance": 10.0,
+    "OutOfRangeDistance": 20.0,
+    "HelpGroupID": 0,
+    "HelpCallGroupID": 0,
+    "HelpCallFriendMaxDistance": 0,
+    "LogicID": 10000,
+    "BattleID": 250000,
+    "CanFallOffEdges": 1,
+    "CanNavigateLadders": 1,
+    "CanNavigateDoors": 1
+   }
+  },
+  {
+   "name": "c2500_0011",
+   "model": "c2500",
+   "kind": "enemy",
+   "entity_id": 1810112,
+   "pos": [
+    39.0,
+    194.43,
+    7.14
+   ],
+   "rot_y": 0.0,
+   "npc_param_id": 250021,
+   "ai_id": 250021,
+   "talk_id": 0,
+   "patrol_type": 0,
+   "patrol": [],
+   "default_animation": -1,
+   "think": {
+    "SightDistance": 40,
+    "SightRangeWidth": 120,
+    "SightRangeHeight": 120,
+    "SightForgetTime": 600,
+    "HearingDistance": 10,
+    "HearingCutDistance": 0,
+    "HearingRangeWidth": 180,
+    "HearingRangeHeight": 90,
+    "HearingForgetTime": 300,
+    "SmellDistance": 0,
+    "BattleStartDistance": 40,
+    "MaxRetreatDistance": 75,
+    "BattleRetreatDistance": 50,
+    "RetreatBattleStartDistance": 6,
+    "SearchTimeBeforeRetreat": 20,
+    "SearchDistanceBeforeRetreat": 20,
+    "NearDistance": 1.5,
+    "MidDistance": 3.5,
+    "FarDistance": 10.0,
+    "OutOfRangeDistance": 20.0,
+    "HelpGroupID": 0,
+    "HelpCallGroupID": 0,
+    "HelpCallFriendMaxDistance": 0,
+    "LogicID": 10000,
+    "BattleID": 250005,
+    "CanFallOffEdges": 1,
+    "CanNavigateLadders": 1,
+    "CanNavigateDoors": 1
+   }
+  },
+  {
+   "name": "c2500_0012",
+   "model": "c2500",
+   "kind": "enemy",
+   "entity_id": 1810201,
+   "pos": [
+    1.49,
+    197.46,
+    -49.49
+   ],
+   "rot_y": 20.0,
+   "npc_param_id": 250023,
+   "ai_id": 250010,
+   "talk_id": 0,
+   "patrol_type": 0,
+   "patrol": [],
+   "default_animation": -1,
+   "think": {
+    "SightDistance": 30,
+    "SightRangeWidth": 120,
+    "SightRangeHeight": 120,
+    "SightForgetTime": 600,
+    "HearingDistance": 10,
+    "HearingCutDistance": 0,
+    "HearingRangeWidth": 180,
+    "HearingRangeHeight": 90,
+    "HearingForgetTime": 300,
+    "SmellDistance": 0,
+    "BattleStartDistance": 20,
+    "MaxRetreatDistance": 75,
+    "BattleRetreatDistance": 50,
+    "RetreatBattleStartDistance": 6,
+    "SearchTimeBeforeRetreat": 20,
+    "SearchDistanceBeforeRetreat": 20,
+    "NearDistance": 1.5,
+    "MidDistance": 3.5,
+    "FarDistance": 10.0,
+    "OutOfRangeDistance": 20.0,
+    "HelpGroupID": 0,
+    "HelpCallGroupID": 0,
+    "HelpCallFriendMaxDistance": 0,
+    "LogicID": 10000,
+    "BattleID": 250001,
+    "CanFallOffEdges": 1,
+    "CanNavigateLadders": 1,
+    "CanNavigateDoors": 1
+   }
+  },
+  {
+   "name": "c2500_0013",
+   "model": "c2500",
+   "kind": "enemy",
+   "entity_id": 1810202,
+   "pos": [
+    4.4,
+    197.29,
+    -47.05
+   ],
+   "rot_y": -20.0,
+   "npc_param_id": 250023,
+   "ai_id": 250010,
+   "talk_id": 0,
+   "patrol_type": 0,
+   "patrol": [],
+   "default_animation": -1,
+   "think": {
+    "SightDistance": 30,
+    "SightRangeWidth": 120,
+    "SightRangeHeight": 120,
+    "SightForgetTime": 600,
+    "HearingDistance": 10,
+    "HearingCutDistance": 0,
+    "HearingRangeWidth": 180,
+    "HearingRangeHeight": 90,
+    "HearingForgetTime": 300,
+    "SmellDistance": 0,
+    "BattleStartDistance": 20,
+    "MaxRetreatDistance": 75,
+    "BattleRetreatDistance": 50,
+    "RetreatBattleStartDistance": 6,
+    "SearchTimeBeforeRetreat": 20,
+    "SearchDistanceBeforeRetreat": 20,
+    "NearDistance": 1.5,
+    "MidDistance": 3.5,
+    "FarDistance": 10.0,
+    "OutOfRangeDistance": 20.0,
+    "HelpGroupID": 0,
+    "HelpCallGroupID": 0,
+    "HelpCallFriendMaxDistance": 0,
+    "LogicID": 10000,
+    "BattleID": 250001,
+    "CanFallOffEdges": 1,
+    "CanNavigateLadders": 1,
+    "CanNavigateDoors": 1
+   }
+  },
+  {
+   "name": "c2500_0014",
+   "model": "c2500",
+   "kind": "enemy",
+   "entity_id": 1810203,
+   "pos": [
+    1.68,
+    197.03,
+    -42.72
+   ],
+   "rot_y": -10.0,
+   "npc_param_id": 250023,
+   "ai_id": 250010,
+   "talk_id": 0,
+   "patrol_type": 0,
+   "patrol": [],
+   "default_animation": -1,
+   "think": {
+    "SightDistance": 30,
+    "SightRangeWidth": 120,
+    "SightRangeHeight": 120,
+    "SightForgetTime": 600,
+    "HearingDistance": 10,
+    "HearingCutDistance": 0,
+    "HearingRangeWidth": 180,
+    "HearingRangeHeight": 90,
+    "HearingForgetTime": 300,
+    "SmellDistance": 0,
+    "BattleStartDistance": 20,
+    "MaxRetreatDistance": 75,
+    "BattleRetreatDistance": 50,
+    "RetreatBattleStartDistance": 6,
+    "SearchTimeBeforeRetreat": 20,
+    "SearchDistanceBeforeRetreat": 20,
+    "NearDistance": 1.5,
+    "MidDistance": 3.5,
+    "FarDistance": 10.0,
+    "OutOfRangeDistance": 20.0,
+    "HelpGroupID": 0,
+    "HelpCallGroupID": 0,
+    "HelpCallFriendMaxDistance": 0,
+    "LogicID": 10000,
+    "BattleID": 250001,
+    "CanFallOffEdges": 1,
+    "CanNavigateLadders": 1,
+    "CanNavigateDoors": 1
+   }
+  },
+  {
+   "name": "c2500_0015",
+   "model": "c2500",
+   "kind": "enemy",
+   "entity_id": 1810204,
+   "pos": [
+    4.36,
+    198.15,
+    -40.02
+   ],
+   "rot_y": 0.0,
+   "npc_param_id": 250023,
+   "ai_id": 250010,
+   "talk_id": 0,
+   "patrol_type": 0,
+   "patrol": [],
+   "default_animation": -1,
+   "think": {
+    "SightDistance": 30,
+    "SightRangeWidth": 120,
+    "SightRangeHeight": 120,
+    "SightForgetTime": 600,
+    "HearingDistance": 10,
+    "HearingCutDistance": 0,
+    "HearingRangeWidth": 180,
+    "HearingRangeHeight": 90,
+    "HearingForgetTime": 300,
+    "SmellDistance": 0,
+    "BattleStartDistance": 20,
+    "MaxRetreatDistance": 75,
+    "BattleRetreatDistance": 50,
+    "RetreatBattleStartDistance": 6,
+    "SearchTimeBeforeRetreat": 20,
+    "SearchDistanceBeforeRetreat": 20,
+    "NearDistance": 1.5,
+    "MidDistance": 3.5,
+    "FarDistance": 10.0,
+    "OutOfRangeDistance": 20.0,
+    "HelpGroupID": 0,
+    "HelpCallGroupID": 0,
+    "HelpCallFriendMaxDistance": 0,
+    "LogicID": 10000,
+    "BattleID": 250001,
+    "CanFallOffEdges": 1,
+    "CanNavigateLadders": 1,
+    "CanNavigateDoors": 1
+   }
+  },
+  {
+   "name": "c2500_0016",
+   "model": "c2500",
+   "kind": "enemy",
+   "entity_id": 1810205,
+   "pos": [
+    -6.08,
+    198.05,
+    -10.27
+   ],
+   "rot_y": -30.0,
+   "npc_param_id": 250025,
+   "ai_id": 250000,
+   "talk_id": 0,
+   "patrol_type": 0,
+   "patrol": [],
+   "default_animation": -1,
+   "think": {
+    "SightDistance": 30,
+    "SightRangeWidth": 120,
+    "SightRangeHeight": 120,
+    "SightForgetTime": 600,
+    "HearingDistance": 10,
+    "HearingCutDistance": 0,
+    "HearingRangeWidth": 180,
+    "HearingRangeHeight": 90,
+    "HearingForgetTime": 300,
+    "SmellDistance": 0,
+    "BattleStartDistance": 20,
+    "MaxRetreatDistance": 75,
+    "BattleRetreatDistance": 50,
+    "RetreatBattleStartDistance": 6,
+    "SearchTimeBeforeRetreat": 20,
+    "SearchDistanceBeforeRetreat": 20,
+    "NearDistance": 1.5,
+    "MidDistance": 3.5,
+    "FarDistance": 10.0,
+    "OutOfRangeDistance": 20.0,
+    "HelpGroupID": 0,
+    "HelpCallGroupID": 0,
+    "HelpCallFriendMaxDistance": 0,
+    "LogicID": 10000,
+    "BattleID": 250000,
+    "CanFallOffEdges": 1,
+    "CanNavigateLadders": 1,
+    "CanNavigateDoors": 1
+   }
+  },
+  {
+   "name": "c2500_0017",
+   "model": "c2500",
+   "kind": "enemy",
+   "entity_id": 1810206,
+   "pos": [
+    9.64,
+    198.15,
+    -7.64
+   ],
+   "rot_y": 15.0,
+   "npc_param_id": 250025,
+   "ai_id": 250000,
+   "talk_id": 0,
+   "patrol_type": 0,
+   "patrol": [],
+   "default_animation": -1,
+   "think": {
+    "SightDistance": 30,
+    "SightRangeWidth": 120,
+    "SightRangeHeight": 120,
+    "SightForgetTime": 600,
+    "HearingDistance": 10,
+    "HearingCutDistance": 0,
+    "HearingRangeWidth": 180,
+    "HearingRangeHeight": 90,
+    "HearingForgetTime": 300,
+    "SmellDistance": 0,
+    "BattleStartDistance": 20,
+    "MaxRetreatDistance": 75,
+    "BattleRetreatDistance": 50,
+    "RetreatBattleStartDistance": 6,
+    "SearchTimeBeforeRetreat": 20,
+    "SearchDistanceBeforeRetreat": 20,
+    "NearDistance": 1.5,
+    "MidDistance": 3.5,
+    "FarDistance": 10.0,
+    "OutOfRangeDistance": 20.0,
+    "HelpGroupID": 0,
+    "HelpCallGroupID": 0,
+    "HelpCallFriendMaxDistance": 0,
+    "LogicID": 10000,
+    "BattleID": 250000,
+    "CanFallOffEdges": 1,
+    "CanNavigateLadders": 1,
+    "CanNavigateDoors": 1
+   }
+  },
+  {
+   "name": "c2500_0018",
+   "model": "c2500",
+   "kind": "enemy",
+   "entity_id": 1810207,
+   "pos": [
+    -7.76,
+    208.43,
+    -5.0
+   ],
+   "rot_y": -180.0,
+   "npc_param_id": 250025,
+   "ai_id": 250004,
+   "talk_id": 0,
+   "patrol_type": 0,
+   "patrol": [],
+   "default_animation": -1,
+   "think": {
+    "SightDistance": 30,
+    "SightRangeWidth": 90,
+    "SightRangeHeight": 120,
+    "SightForgetTime": 600,
+    "HearingDistance": 10,
+    "HearingCutDistance": 0,
+    "HearingRangeWidth": 180,
+    "HearingRangeHeight": 90,
+    "HearingForgetTime": 300,
+    "SmellDistance": 0,
+    "BattleStartDistance": 5,
+    "MaxRetreatDistance": 75,
+    "BattleRetreatDistance": 50,
+    "RetreatBattleStartDistance": 6,
+    "SearchTimeBeforeRetreat": 20,
+    "SearchDistanceBeforeRetreat": 20,
+    "NearDistance": 1.5,
+    "MidDistance": 3.5,
+    "FarDistance": 10.0,
+    "OutOfRangeDistance": 20.0,
+    "HelpGroupID": 0,
+    "HelpCallGroupID": 0,
+    "HelpCallFriendMaxDistance": 0,
+    "LogicID": 10000,
+    "BattleID": 250000,
+    "CanFallOffEdges": 1,
+    "CanNavigateLadders": 1,
+    "CanNavigateDoors": 1
+   }
+  },
+  {
+   "name": "c2500_0019",
+   "model": "c2500",
+   "kind": "enemy",
+   "entity_id": 1810208,
+   "pos": [
+    5.68,
+    208.934,
+    -36.76
+   ],
+   "rot_y": 90.0,
+   "npc_param_id": 250024,
+   "ai_id": 250020,
+   "talk_id": 0,
+   "patrol_type": 0,
+   "patrol": [],
+   "default_animation": -1,
+   "think": {
+    "SightDistance": 30,
+    "SightRangeWidth": 120,
+    "SightRangeHeight": 120,
+    "SightForgetTime": 600,
+    "HearingDistance": 10,
+    "HearingCutDistance": 0,
+    "HearingRangeWidth": 180,
+    "HearingRangeHeight": 90,
+    "HearingForgetTime": 300,
+    "SmellDistance": 0,
+    "BattleStartDistance": 25,
+    "MaxRetreatDistance": 75,
+    "BattleRetreatDistance": 50,
+    "RetreatBattleStartDistance": 6,
+    "SearchTimeBeforeRetreat": 20,
+    "SearchDistanceBeforeRetreat": 20,
+    "NearDistance": 1.5,
+    "MidDistance": 3.5,
+    "FarDistance": 10.0,
+    "OutOfRangeDistance": 20.0,
+    "HelpGroupID": 0,
+    "HelpCallGroupID": 0,
+    "HelpCallFriendMaxDistance": 0,
+    "LogicID": 10000,
+    "BattleID": 250005,
+    "CanFallOffEdges": 1,
+    "CanNavigateLadders": 1,
+    "CanNavigateDoors": 1
+   }
+  },
+  {
+   "name": "c2500_0020",
+   "model": "c2500",
+   "kind": "enemy",
+   "entity_id": 1810209,
+   "pos": [
+    -3.65,
+    208.43,
+    -35.54
+   ],
+   "rot_y": 100.0,
+   "npc_param_id": 250025,
+   "ai_id": 250005,
+   "talk_id": 0,
+   "patrol_type": 0,
+   "patrol": [],
+   "default_animation": -1,
+   "think": {
+    "SightDistance": 30,
+    "SightRangeWidth": 120,
+    "SightRangeHeight": 120,
+    "SightForgetTime": 600,
+    "HearingDistance": 10,
+    "HearingCutDistance": 0,
+    "HearingRangeWidth": 180,
+    "HearingRangeHeight": 90,
+    "HearingForgetTime": 300,
+    "SmellDistance": 0,
+    "BattleStartDistance": 12,
+    "MaxRetreatDistance": 75,
+    "BattleRetreatDistance": 50,
+    "RetreatBattleStartDistance": 6,
+    "SearchTimeBeforeRetreat": 20,
+    "SearchDistanceBeforeRetreat": 20,
+    "NearDistance": 1.5,
+    "MidDistance": 3.5,
+    "FarDistance": 10.0,
+    "OutOfRangeDistance": 20.0,
+    "HelpGroupID": 0,
+    "HelpCallGroupID": 0,
+    "HelpCallFriendMaxDistance": 0,
+    "LogicID": 10000,
+    "BattleID": 250000,
+    "CanFallOffEdges": 1,
+    "CanNavigateLadders": 1,
+    "CanNavigateDoors": 1
+   }
+  },
+  {
+   "name": "c2500_0021",
+   "model": "c2500",
+   "kind": "enemy",
+   "entity_id": 1810210,
+   "pos": [
+    0.55,
+    208.933,
+    -36.46
+   ],
+   "rot_y": 90.0,
+   "npc_param_id": 250025,
+   "ai_id": 250005,
+   "talk_id": 0,
+   "patrol_type": 0,
+   "patrol": [],
+   "default_animation": -1,
+   "think": {
+    "SightDistance": 30,
+    "SightRangeWidth": 120,
+    "SightRangeHeight": 120,
+    "SightForgetTime": 600,
+    "HearingDistance": 10,
+    "HearingCutDistance": 0,
+    "HearingRangeWidth": 180,
+    "HearingRangeHeight": 90,
+    "HearingForgetTime": 300,
+    "SmellDistance": 0,
+    "BattleStartDistance": 12,
+    "MaxRetreatDistance": 75,
+    "BattleRetreatDistance": 50,
+    "RetreatBattleStartDistance": 6,
+    "SearchTimeBeforeRetreat": 20,
+    "SearchDistanceBeforeRetreat": 20,
+    "NearDistance": 1.5,
+    "MidDistance": 3.5,
+    "FarDistance": 10.0,
+    "OutOfRangeDistance": 20.0,
+    "HelpGroupID": 0,
+    "HelpCallGroupID": 0,
+    "HelpCallFriendMaxDistance": 0,
+    "LogicID": 10000,
+    "BattleID": 250000,
+    "CanFallOffEdges": 1,
+    "CanNavigateLadders": 1,
+    "CanNavigateDoors": 1
+   }
+  },
+  {
+   "name": "c2550_0000",
+   "model": "c2550",
+   "kind": "enemy",
+   "entity_id": 1810113,
+   "pos": [
+    15.58,
+    208.43,
+    -23.14
+   ],
+   "rot_y": 0.0,
+   "npc_param_id": 255030,
+   "ai_id": 255005,
+   "talk_id": 0,
+   "patrol_type": 0,
+   "patrol": [],
+   "default_animation": -1,
+   "think": {
+    "SightDistance": 30,
+    "SightRangeWidth": 120,
+    "SightRangeHeight": 120,
+    "SightForgetTime": 600,
+    "HearingDistance": 10,
+    "HearingCutDistance": 0,
+    "HearingRangeWidth": 180,
+    "HearingRangeHeight": 90,
+    "HearingForgetTime": 300,
+    "SmellDistance": 0,
+    "BattleStartDistance": 9,
+    "MaxRetreatDistance": 75,
+    "BattleRetreatDistance": 50,
+    "RetreatBattleStartDistance": 6,
+    "SearchTimeBeforeRetreat": 20,
+    "SearchDistanceBeforeRetreat": 20,
+    "NearDistance": 1.5,
+    "MidDistance": 3.5,
+    "FarDistance": 10.0,
+    "OutOfRangeDistance": 20.0,
+    "HelpGroupID": 0,
+    "HelpCallGroupID": 0,
+    "HelpCallFriendMaxDistance": 0,
+    "LogicID": 10000,
+    "BattleID": 255001,
+    "CanFallOffEdges": 1,
+    "CanNavigateLadders": 1,
+    "CanNavigateDoors": 1
+   }
+  },
+  {
+   "name": "c2550_0001",
+   "model": "c2550",
+   "kind": "enemy",
+   "entity_id": 1810211,
+   "pos": [
+    15.58,
+    208.43,
+    -23.14
+   ],
+   "rot_y": 0.0,
+   "npc_param_id": 255031,
+   "ai_id": 255005,
+   "talk_id": 0,
+   "patrol_type": 0,
+   "patrol": [],
+   "default_animation": -1,
+   "think": {
+    "SightDistance": 30,
+    "SightRangeWidth": 120,
+    "SightRangeHeight": 120,
+    "SightForgetTime": 600,
+    "HearingDistance": 10,
+    "HearingCutDistance": 0,
+    "HearingRangeWidth": 180,
+    "HearingRangeHeight": 90,
+    "HearingForgetTime": 300,
+    "SmellDistance": 0,
+    "BattleStartDistance": 9,
+    "MaxRetreatDistance": 75,
+    "BattleRetreatDistance": 50,
+    "RetreatBattleStartDistance": 6,
+    "SearchTimeBeforeRetreat": 20,
+    "SearchDistanceBeforeRetreat": 20,
+    "NearDistance": 1.5,
+    "MidDistance": 3.5,
+    "FarDistance": 10.0,
+    "OutOfRangeDistance": 20.0,
+    "HelpGroupID": 0,
+    "HelpCallGroupID": 0,
+    "HelpCallFriendMaxDistance": 0,
+    "LogicID": 10000,
+    "BattleID": 255001,
+    "CanFallOffEdges": 1,
+    "CanNavigateLadders": 1,
+    "CanNavigateDoors": 1
+   }
+  },
+  {
+   "name": "c2550_0002",
+   "model": "c2550",
+   "kind": "enemy",
+   "entity_id": 1810212,
+   "pos": [
+    12.69,
+    208.43,
+    -22.37
+   ],
+   "rot_y": 0.0,
+   "npc_param_id": 255032,
+   "ai_id": 255011,
+   "talk_id": 0,
+   "patrol_type": 0,
+   "patrol": [],
+   "default_animation": -1,
+   "think": {
+    "SightDistance": 30,
+    "SightRangeWidth": 120,
+    "SightRangeHeight": 120,
+    "SightForgetTime": 150,
+    "HearingDistance": 10,
+    "HearingCutDistance": 0,
+    "HearingRangeWidth": 180,
+    "HearingRangeHeight": 90,
+    "HearingForgetTime": 150,
+    "SmellDistance": 0,
+    "BattleStartDistance": 9,
+    "MaxRetreatDistance": 75,
+    "BattleRetreatDistance": 50,
+    "RetreatBattleStartDistance": 6,
+    "SearchTimeBeforeRetreat": 20,
+    "SearchDistanceBeforeRetreat": 20,
+    "NearDistance": 1.5,
+    "MidDistance": 3.5,
+    "FarDistance": 10.0,
+    "OutOfRangeDistance": 20.0,
+    "HelpGroupID": 0,
+    "HelpCallGroupID": 0,
+    "HelpCallFriendMaxDistance": 0,
+    "LogicID": 10000,
+    "BattleID": 255000,
+    "CanFallOffEdges": 1,
+    "CanNavigateLadders": 1,
+    "CanNavigateDoors": 1
+   }
+  },
+  {
+   "name": "c2792_0000",
+   "model": "c2792",
+   "kind": "enemy",
+   "entity_id": 1810200,
+   "pos": [
+    -13.79,
+    185.25,
+    -41.16
+   ],
+   "rot_y": 180.0,
+   "npc_param_id": 279070,
+   "ai_id": 279000,
+   "talk_id": 0,
+   "patrol_type": 0,
+   "patrol": [],
+   "default_animation": -1,
+   "think": {
+    "SightDistance": 30,
+    "SightRangeWidth": 120,
+    "SightRangeHeight": 120,
+    "SightForgetTime": 600,
+    "HearingDistance": 10,
+    "HearingCutDistance": 0,
+    "HearingRangeWidth": 180,
+    "HearingRangeHeight": 90,
+    "HearingForgetTime": 300,
+    "SmellDistance": 0,
+    "BattleStartDistance": 20,
+    "MaxRetreatDistance": 75,
+    "BattleRetreatDistance": 50,
+    "RetreatBattleStartDistance": 6,
+    "SearchTimeBeforeRetreat": 20,
+    "SearchDistanceBeforeRetreat": 20,
+    "NearDistance": 2.0,
+    "MidDistance": 4.0,
+    "FarDistance": 10.0,
+    "OutOfRangeDistance": 20.0,
+    "HelpGroupID": 0,
+    "HelpCallGroupID": 0,
+    "HelpCallFriendMaxDistance": 0,
+    "LogicID": 10000,
+    "BattleID": 279000,
+    "CanFallOffEdges": 1,
+    "CanNavigateLadders": 0,
+    "CanNavigateDoors": 0
+   }
+  },
+  {
+   "name": "c2792_0001",
+   "model": "c2792",
+   "kind": "enemy",
+   "entity_id": 1810213,
+   "pos": [
+    38.95,
+    195.55,
+    21.11
+   ],
+   "rot_y": 0.0,
+   "npc_param_id": 279070,
+   "ai_id": 279000,
+   "talk_id": 0,
+   "patrol_type": 0,
+   "patrol": [],
+   "default_animation": -1,
+   "think": {
+    "SightDistance": 30,
+    "SightRangeWidth": 120,
+    "SightRangeHeight": 120,
+    "SightForgetTime": 600,
+    "HearingDistance": 10,
+    "HearingCutDistance": 0,
+    "HearingRangeWidth": 180,
+    "HearingRangeHeight": 90,
+    "HearingForgetTime": 300,
+    "SmellDistance": 0,
+    "BattleStartDistance": 20,
+    "MaxRetreatDistance": 75,
+    "BattleRetreatDistance": 50,
+    "RetreatBattleStartDistance": 6,
+    "SearchTimeBeforeRetreat": 20,
+    "SearchDistanceBeforeRetreat": 20,
+    "NearDistance": 2.0,
+    "MidDistance": 4.0,
+    "FarDistance": 10.0,
+    "OutOfRangeDistance": 20.0,
+    "HelpGroupID": 0,
+    "HelpCallGroupID": 0,
+    "HelpCallFriendMaxDistance": 0,
+    "LogicID": 10000,
+    "BattleID": 279000,
+    "CanFallOffEdges": 1,
+    "CanNavigateLadders": 0,
+    "CanNavigateDoors": 0
+   }
+  },
+  {
+   "name": "c3490_0000",
+   "model": "c3490",
+   "kind": "enemy",
+   "entity_id": 1813900,
+   "pos": [
+    14.62,
+    208.43,
+    -1.15
+   ],
+   "rot_y": 160.0,
+   "npc_param_id": 349006,
+   "ai_id": 349000,
+   "talk_id": 0,
+   "patrol_type": 0,
+   "patrol": [],
+   "default_animation": -1,
+   "think": {
+    "SightDistance": 20,
+    "SightRangeWidth": 120,
+    "SightRangeHeight": 120,
+    "SightForgetTime": 600,
+    "HearingDistance": 10,
+    "HearingCutDistance": 0,
+    "HearingRangeWidth": 180,
+    "HearingRangeHeight": 90,
+    "HearingForgetTime": 300,
+    "SmellDistance": 0,
+    "BattleStartDistance": 20,
+    "MaxRetreatDistance": 75,
+    "BattleRetreatDistance": 50,
+    "RetreatBattleStartDistance": 6,
+    "SearchTimeBeforeRetreat": 20,
+    "SearchDistanceBeforeRetreat": 20,
+    "NearDistance": 2.0,
+    "MidDistance": 5.0,
+    "FarDistance": 10.0,
+    "OutOfRangeDistance": 20.0,
+    "HelpGroupID": 0,
+    "HelpCallGroupID": 0,
+    "HelpCallFriendMaxDistance": 0,
+    "LogicID": 10000,
+    "BattleID": 349000,
+    "CanFallOffEdges": 1,
+    "CanNavigateLadders": 0,
+    "CanNavigateDoors": 0
+   }
+  },
+  {
+   "name": "c3491_0000",
+   "model": "c3491",
+   "kind": "enemy",
+   "entity_id": 1813901,
+   "pos": [
+    3.14,
+    210.11,
+    -34.71
+   ],
+   "rot_y": 180.0,
+   "npc_param_id": 349106,
+   "ai_id": 349100,
+   "talk_id": 0,
+   "patrol_type": 0,
+   "patrol": [],
+   "default_animation": -1,
+   "think": {
+    "SightDistance": 20,
+    "SightRangeWidth": 120,
+    "SightRangeHeight": 120,
+    "SightForgetTime": 600,
+    "HearingDistance": 10,
+    "HearingCutDistance": 0,
+    "HearingRangeWidth": 180,
+    "HearingRangeHeight": 90,
+    "HearingForgetTime": 300,
+    "SmellDistance": 0,
+    "BattleStartDistance": 20,
+    "MaxRetreatDistance": 75,
+    "BattleRetreatDistance": 50,
+    "RetreatBattleStartDistance": 6,
+    "SearchTimeBeforeRetreat": 20,
+    "SearchDistanceBeforeRetreat": 20,
+    "NearDistance": 2.0,
+    "MidDistance": 5.0,
+    "FarDistance": 10.0,
+    "OutOfRangeDistance": 20.0,
+    "HelpGroupID": 0,
+    "HelpCallGroupID": 0,
+    "HelpCallFriendMaxDistance": 0,
+    "LogicID": 10000,
+    "BattleID": 349100,
+    "CanFallOffEdges": 1,
+    "CanNavigateLadders": 0,
+    "CanNavigateDoors": 0
+   }
+  },
+  {
+   "name": "c3491_0001",
+   "model": "c3491",
+   "kind": "enemy",
+   "entity_id": 1813902,
+   "pos": [
+    3.14,
+    210.11,
+    -34.71
+   ],
+   "rot_y": 180.0,
+   "npc_param_id": 349206,
+   "ai_id": 349100,
+   "talk_id": 0,
+   "patrol_type": 0,
+   "patrol": [],
+   "default_animation": -1,
+   "think": {
+    "SightDistance": 20,
+    "SightRangeWidth": 120,
+    "SightRangeHeight": 120,
+    "SightForgetTime": 600,
+    "HearingDistance": 10,
+    "HearingCutDistance": 0,
+    "HearingRangeWidth": 180,
+    "HearingRangeHeight": 90,
+    "HearingForgetTime": 300,
+    "SmellDistance": 0,
+    "BattleStartDistance": 20,
+    "MaxRetreatDistance": 75,
+    "BattleRetreatDistance": 50,
+    "RetreatBattleStartDistance": 6,
+    "SearchTimeBeforeRetreat": 20,
+    "SearchDistanceBeforeRetreat": 20,
+    "NearDistance": 2.0,
+    "MidDistance": 5.0,
+    "FarDistance": 10.0,
+    "OutOfRangeDistance": 20.0,
+    "HelpGroupID": 0,
+    "HelpCallGroupID": 0,
+    "HelpCallFriendMaxDistance": 0,
+    "LogicID": 10000,
+    "BattleID": 349100,
+    "CanFallOffEdges": 1,
+    "CanNavigateLadders": 0,
+    "CanNavigateDoors": 0
+   }
+  }
+ ]
+}

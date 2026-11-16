@@ -4,6 +4,7 @@
  "goal_ids": [
   10000,
   10001,
+  223000,
   254000,
   254001,
   254002,
@@ -1454,6 +1455,45 @@
     "SetTimer",
     "Shoot_2dist",
     "SuccessGuard_Act"
+   ]
+  },
+  {
+   "name": "GreaterDemon223000Battle",
+   "kind": "goal",
+   "goal_id": 223000,
+   "goal_type": "GoalType.Battle",
+   "luabnd": "m18_01_00_00.luabnd.dcx",
+   "ok": true,
+   "lines": 249,
+   "defines": [
+    "GreaterDemon223000Battle_Activate",
+    "GreaterDemon223000Battle_Interupt",
+    "GreaterDemon223000Battle_Terminate",
+    "GreaterDemon223000Battle_Update",
+    "GreaterDemon223000_Act01",
+    "GreaterDemon223000_Act04",
+    "GreaterDemon223000_Act05",
+    "GreaterDemon223000_Act06",
+    "GreaterDemon223000_Act07",
+    "GreaterDemon223000_Act08",
+    "GreaterDemon223000_Act09",
+    "GreaterDemon223000_ActAfter_AdjustSpace"
+   ],
+   "calls_outside": [
+    "AddSubGoal",
+    "Approach_Act",
+    "Approach_and_Attack_Act",
+    "Common_Battle_Activate",
+    "Common_Clear_Param",
+    "Damaged_Step",
+    "FindAttack_Step",
+    "GetDist",
+    "GetEventRequest",
+    "GetRandam_Int",
+    "REGISTER_GOAL",
+    "REGISTER_GOAL_NO_UPDATE",
+    "REGIST_FUNC",
+    "UseItem_Act"
    ]
   }
  ]
