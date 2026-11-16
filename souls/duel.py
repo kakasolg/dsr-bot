@@ -89,6 +89,9 @@ AFTER_SWING_DEG = 45.0   # …strike at once if aimed within this (turn first on
 AFTER_SWING_STEP = 1.2   # …and step in if it's at most this much beyond our reach
 PULL_R = 8.0             # lure: start backing off if it is within this (even if not moving)
 SEEK_R = 100.0           # search for it within this radius — at 40 m it missed #1 at 42 m from the bonfire and everything was 'lost'
+TURN_DRILL = 0           # run.py --turn-drill N: circle each hollow's swing N times without R1 first (돌아 피하기 연습, M1116-04)
+TURN_DRILL_S = 3.0       # … circle at most this long per swing (3000-series swings ~1.5–2 s)
+TURN_DRILL_HURT = 0.3    # … stop drilling this fight after losing this share of max HP in it
 CIRCLE_MAX_SWEEPS = 2    # tries per foe before normal attacks (99 during the 2026-09-28 "backstab no matter what" runs)
 BACK_CHECK_M = (0.5, 1.0, 1.5, 2.0)   # floor checked this far behind the foe (_room_behind)
 FOOT_R = 1.0            # after a backstab: floor this far round us, or step back to where we started it
@@ -136,10 +139,11 @@ def backstab_stick(c, p, side: float | None = None) -> tuple[float, float, float
     return (side if side is not None else (-1.0 if ang >= 0 else 1.0)), fwd, behind
 
 
-def _backstab(mv, s, c, cancel, nm=None, log=None, events=None) -> str:
+def _backstab(mv, s, c, cancel, nm=None, log=None, events=None, turn_only: bool = False) -> str:
     """Lock on, strafe round at body contact, R1 once behind. → 'stabbed' | 'hit' (R1 landed but no kill) | 'moved' (it stopped
     being idle) | 'not_behind' (time out) | 'no_lock' | 'lost'. Always leaves the stick centered; lock-on off unless it was
-    already on the target when we came in (_keep_lock's — releasing it cost the next hit its lock, 074829 zone 1-3)."""
+    already on the target when we came in (_keep_lock's — releasing it cost the next hit its lock, 074829 zone 1-3).
+    turn_only (돌아 피하기 연습, TURN_DRILL): never R1 — keep circling through its swing, → 'circled' once the swing is over."""
     ptr, hp0 = c.ptr, c.hp
     held = getattr(mv, "lock_state", lambda p: "none")(ptr) == "target"
 
@@ -185,7 +189,7 @@ def _backstab(mv, s, c, cancel, nm=None, log=None, events=None) -> str:
         return abs(math.degrees(M.rel_angle(c_, s_.player))) >= BACKSTAB_DEG and M.horiz(s_.player, c_) <= BACKSTAB_MAX_R
 
     try:
-        if at_back(s, c):                                  # already at its back (e.g. it staggered while we stood) — R1 now; locking on
+        if at_back(s, c) and not turn_only:                # already at its back (e.g. it staggered while we stood) — R1 now; locking on
             return stab(s, c)                              # first cost 0.25 s and then 'no_lock' threw the chance away (27m: 145° at 1.4 m)
         if mv.lock_state(ptr) != "target":
             if mv.lock_state(ptr) == "other":
@@ -193,7 +197,7 @@ def _backstab(mv, s, c, cancel, nm=None, log=None, events=None) -> str:
             if not mv.lock_target(ptr, tries=2, aim=False):   # camera onto it first — a bare R3 grabs whatever is at camera center
                 s = mv.snap(8.0) or s
                 c = mv.find(s, ptr) or c
-                return stab(s, c) if at_back(s, c) else "no_lock"
+                return stab(s, c) if at_back(s, c) and not turn_only else "no_lock"
         side = None
         plus_ok, minus_ok = _arc_open(nm, s.player, c)
         if not (plus_ok or minus_ok):
@@ -202,6 +206,8 @@ def _backstab(mv, s, c, cancel, nm=None, log=None, events=None) -> str:
         last = (s.player.x, s.player.z)
         flipped = False
         budget = max(BACKSTAB_S, M.horiz(s.player, c) / 1.5 + 1.0)   # walking in from SNEAK_R takes longer than a circle at contact
+        if turn_only:
+            budget = max(budget, TURN_DRILL_S)
         for _ in range(max(1, int(budget / max(BACKSTAB_TICK, 1e-3)))):
             if cancel():
                 return "lost"
@@ -230,7 +236,12 @@ def _backstab(mv, s, c, cancel, nm=None, log=None, events=None) -> str:
             x, y, behind = backstab_stick(c, s.player, side)
             if side is None and x != 0.0:
                 side = x
-            if behind >= BACKSTAB_DEG and M.horiz(s.player, c) <= BACKSTAB_MAX_R:
+            if turn_only:
+                if (c.anim if c.anim is not None else -1) not in M.ATTACK and not tw.pending:
+                    return "circled"                       # its swing is over and every hit window of it is recorded
+                if x == 0.0:                               # at its back: keep going round (no R1 in the drill)
+                    x = side if side is not None else 1.0
+            elif behind >= BACKSTAB_DEG and M.horiz(s.player, c) <= BACKSTAB_MAX_R:
                 return stab(s, c)
             mv.pad.move(x, y)
             wait(BACKSTAB_TICK)
@@ -1964,6 +1975,28 @@ def prep_linger(F, T):
     return None
 
 
+def rule_turn_drill(F, T):
+    """돌아 피하기 연습 (MoKa 11-16 M1116-04 "빨리 쌓는 방법으로 해서 데이타를 쌓고 그 후 실전 하자"): with --turn-drill N, a hollow
+    swinging at us up close, one-on-one, room round it → circle through the swing without R1 (TurnWatch records angle · distance ·
+    hit at each hit-window start). N circles per foe, then the usual rules; stops early if we lost TURN_DRILL_HURT of max HP."""
+    if not TURN_DRILL or not (T.room and T.a in M.ATTACK and T.h <= BACKSTAB_REACH and abs(T.dy) <= 1.0):
+        return None
+    n = F.__dict__.setdefault("_turn_n", {})
+    if n.get(T.c.ptr, 0) >= TURN_DRILL or _other_swinging(T.s, F.ptr):
+        return None
+    if (F.hp_start or 0) - (T.p.hp or 0) > TURN_DRILL_HURT * (T.p.max_hp or 1):
+        return None
+    n[T.c.ptr] = n.get(T.c.ptr, 0) + 1
+    start = (T.p.x, T.p.y, T.p.z)
+    r = _backstab(F.mv, T.s, T.c, F.cancel, F.nm, F.log, getattr(F, "events", None), turn_only=True)
+    _back_to_safe(F.mv, F.nm, start, F.log, F.arena)
+    if r in ("edge", "no_room"):
+        F.edge_until = time.time() + 5.0
+    F.note(f"돌기연습:{r}", T.s, T.c)
+    F.log(f"      돌아 피하기 연습 {n[T.c.ptr]}/{TURN_DRILL} → {r}")
+    return CONT
+
+
 def rule_hit_first(F, T):
     """Hit first (user: "if you'd swung even once, that enemy would have backed off") — a hollow flinches (2000·2002) from one light attack and backs off.
     When it has just started attacking (within INTERRUPT_S) or is standing still. Shield soldiers excluded (blocked by shield); if another foe swings beside us, block first."""
@@ -2892,7 +2925,7 @@ def _no_drill(rule):
 DRILL_WAIT = {"backstep_r1": (SWING_BS_R, DRILL_BS_HOLD, DRILL_BS_FAR), "jump_r2": (JUMP_HI, JUMP_HOLD, JUMP_WAIT_FAR)}
 
 RULES = [rule_low_sip, rule_shot, rule_separate, rule_wall_bounce, rule_finish_first, prep_reflex, rule_guard_counter, rule_parry, rule_footing, rule_swing_backstep, rule_jump_drill, rule_jump_dodge,
-         rule_jump_save, rule_after_swing, rule_face_first, rule_early_kick, rule_late_windup_block, prep_linger, rule_hit_first,
+         rule_jump_save, rule_after_swing, rule_face_first, rule_early_kick, rule_late_windup_block, prep_linger, rule_turn_drill, rule_hit_first,
          _no_drill(rule_backstab_swing), rule_reflex, rule_lure, rule_edge, rule_estus, rule_stagger_punish, rule_evade, rule_block,
          rule_downed, _no_drill(prep_backstab_chance), rule_wait_far, rule_approach, rule_finish, rule_stamina, prep_face,
          _no_drill(rule_backstab), rule_attack]

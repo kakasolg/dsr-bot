@@ -241,6 +241,9 @@ def main() -> None:
                     help="시험: 이 공격만 — 조건(자리·거리)부터 만들고 침, 다른 공격으로 안 바꿈 (--combo-only 포함, duel.DRILL, P-121)")
     ap.add_argument("--no-parry", action="store_true",
                     help="싸움 중 패링 끔 (souls/parry.py, duel.rule_parry — [MoKa] 11-15 M1115-13 · 11-16 \"문제가 되면 원복\")")
+    ap.add_argument("--turn-drill", type=int, default=0, metavar="N",
+                    help="돌아 피하기 연습: 망자가 가까이서 휘두르면 찌르지 않고 N번 돌며 기록 (souls/turn_watch.py), 그 뒤 보통 싸움 "
+                         "(duel.TURN_DRILL, [MoKa] 11-16 M1116-04)")
     ap.add_argument("--footing", action="store_true",
                     help="싸움 중 발밑이 위험하면(바닥 지도에서 발밑 바닥 없음, 또는 좁은데 밀리면 떨어짐) 넓은 쪽으로 방패 든 채 한 걸음 — "
                          "duel.rule_footing, rule_edge 대신 (P-58·P-49, [MoKa] 2026-10-11). 기본 꺼짐 (A/B용)")
@@ -263,6 +266,9 @@ def main() -> None:
     if a.no_parry:                                          # 패링은 duel.Flags가 아니라 souls.parry가 읽음 → 여기서 바로 끔
         from souls import parry as _parry
         _parry.PARRY_ON = False
+    if a.turn_drill:                                        # 패링처럼 모듈 값 — duel.rule_turn_drill이 읽음
+        from souls import duel as _duel
+        _duel.TURN_DRILL = a.turn_drill
     if a.cmd == "status":
         return status()
     if a.cmd == "watch":                                    # read-only: no lock, no pad, no Log file — --radar implied

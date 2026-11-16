@@ -253,3 +253,26 @@ def test_two_hands_one_on_one() -> None:
 
 
 test_two_hands_one_on_one()
+
+
+def test_turn_only() -> None:
+    """돌아 피하기 연습 (M1116-04): turn_only never presses R1 and keeps circling past its back while it swings; 'circled' once the
+    swing is over."""
+    w, c, mv = setup(1.0)
+    c.anim = 3000                                             # swinging the whole time → circles until TURN_DRILL_S runs out
+    n = {"k": 0}
+    def snap(within=8.0, _orig=mv.snap):
+        n["k"] += 1
+        if n["k"] == 50:                                      # 2.5 s of ticks: swing over
+            c.anim = -1
+        return _orig(within)
+    mv.snap = snap
+    r = D._backstab(mv, w.snapshot(), c, lambda: False, turn_only=True)
+    assert r == "circled" and w.r1 == 0, (r, w.r1)
+    strafes = [q[1] for q in mv.pad.calls if q[0] == "move" and q[1] != 0.0]
+    assert len(strafes) >= 40 and all(abs(x) == 1.0 for x in strafes)   # kept strafing past its back, no straight walk-in
+    assert w.lock == -1 and w.stick == (0.0, 0.0)
+    print(f"ok  turn_only: {len(strafes)} strafe ticks, no R1, 'circled' when the swing ended")
+
+
+test_turn_only()
