@@ -3,7 +3,7 @@
  "title": "성벽 마을 위쪽 — 화톳불 → 타우로스 (구역 1–8)",
  "map": "m10_01_00_00",
  "made_by": "stage_report.py",
- "runs_read": 109,
+ "runs_read": 113,
  "zones": [
   {
    "n": 1,
@@ -155,11 +155,11 @@
     ]
    },
    "runs": {
-    "runs": 93,
-    "tries": 116,
-    "cleared": 108,
+    "runs": 96,
+    "tries": 119,
+    "cleared": 111,
     "results": {
-     "cleared": 108,
+     "cleared": 111,
      "died": 5,
      "left": 2,
      "휴식": 1
@@ -192,15 +192,15 @@
      }
     ],
     "falls": 7,
-    "big_hits": 142,
-    "big_hit_lost": 18661,
+    "big_hits": 147,
+    "big_hit_lost": 19160,
     "blamed": {
-     "254010": 114,
-     "255002": 21,
+     "254010": 118,
+     "255002": 22,
      "255001": 2,
      "254012": 1
     },
-    "secs_median": 90,
+    "secs_median": 92,
     "files": [
      "20261009_230500_burg-upper_check-hp742",
      "20261009_234512_burg-upper_dirty-check",
@@ -288,6 +288,9 @@
      "20261112_115036_burg-upper_estus-test1-upper",
      "20261112_132202_burg-upper_cloud-test2",
      "20261115_194303_burg-upper_upper-parry1",
+     "20261115_230734_burg-upper_upper-z1-3",
+     "20261115_234637_burg-upper_try1",
+     "20261115_235228_burg-upper_try2",
      "burg-upper-radar-2026-10-06-195804",
      "burg-upper-radar-2026-10-06-201550",
      "burg-upper-radar-2026-10-06a",
@@ -501,11 +504,11 @@
     ]
    },
    "runs": {
-    "runs": 80,
-    "tries": 103,
-    "cleared": 87,
+    "runs": 83,
+    "tries": 106,
+    "cleared": 90,
     "results": {
-     "cleared": 87,
+     "cleared": 90,
      "died": 12,
      "warped": 3,
      "left": 1
@@ -573,10 +576,10 @@
      }
     ],
     "falls": 1,
-    "big_hits": 191,
-    "big_hit_lost": 33315,
+    "big_hits": 195,
+    "big_hit_lost": 33738,
     "blamed": {
-     "254011": 92,
+     "254011": 95,
      "255001": 64,
      "254012": 14,
      "254010": 7
@@ -657,6 +660,9 @@
      "20261112_115036_burg-upper_estus-test1-upper",
      "20261112_132202_burg-upper_cloud-test2",
      "20261115_194303_burg-upper_upper-parry1",
+     "20261115_230734_burg-upper_upper-z1-3",
+     "20261115_234637_burg-upper_try1",
+     "20261115_235228_burg-upper_try2",
      "burg-upper-radar-2026-10-06-195804",
      "burg-upper-radar-2026-10-06-201550",
      "burg-upper-radar-2026-10-06b",
@@ -815,23 +821,23 @@
     ]
    },
    "runs": {
-    "runs": 67,
-    "tries": 86,
-    "cleared": 86,
+    "runs": 70,
+    "tries": 89,
+    "cleared": 89,
     "results": {
-     "cleared": 86
+     "cleared": 89
     },
     "deaths": [],
     "falls": 0,
-    "big_hits": 59,
-    "big_hit_lost": 7563,
+    "big_hits": 60,
+    "big_hit_lost": 7659,
     "blamed": {
-     "254010": 40,
+     "254010": 41,
      "254011": 8,
      "254012": 3,
      "255001": 1
     },
-    "secs_median": 26,
+    "secs_median": 27,
     "files": [
      "20261009_230500_burg-upper_check-hp742",
      "20261011_170346_burg-upper_p67fix-zone5-death",
@@ -896,6 +902,9 @@
      "20261112_115036_burg-upper_estus-test1-upper",
      "20261112_132202_burg-upper_cloud-test2",
      "20261115_194303_burg-upper_upper-parry1",
+     "20261115_230734_burg-upper_upper-z1-3",
+     "20261115_234637_burg-upper_try1",
+     "20261115_235228_burg-upper_try2",
      "burg-upper-radar-2026-10-06-195804",
      "burg-upper-radar-2026-10-06-201550",
      "burg-upper-radar-2026-10-06f",
@@ -1129,12 +1138,12 @@
     ]
    },
    "runs": {
-    "runs": 66,
-    "tries": 83,
-    "cleared": 61,
+    "runs": 69,
+    "tries": 86,
+    "cleared": 63,
     "results": {
-     "cleared": 61,
-     "died": 7,
+     "cleared": 63,
+     "died": 8,
      "warped": 15
     },
     "deaths": [
@@ -1172,15 +1181,20 @@
       "run": "20261115_194303_burg-upper_upper-parry1",
       "cause": "hit",
       "by": 254010
+     },
+     {
+      "run": "20261115_234637_burg-upper_try1",
+      "cause": "hit",
+      "by": 254010
      }
     ],
     "falls": 0,
-    "big_hits": 142,
-    "big_hit_lost": 19754,
+    "big_hits": 150,
+    "big_hit_lost": 20578,
     "blamed": {
-     "254011": 64,
-     "254010": 45,
-     "254012": 32,
+     "254011": 66,
+     "254010": 47,
+     "254012": 36,
      "255002": 1
     },
     "secs_median": 64,
@@ -1247,6 +1261,9 @@
      "20261112_115036_burg-upper_estus-test1-upper",
      "20261112_132202_burg-upper_cloud-test2",
      "20261115_194303_burg-upper_upper-parry1",
+     "20261115_231439_burg-upper_upper-z4-8",
+     "20261115_234637_burg-upper_try1",
+     "20261115_235228_burg-upper_try2",
      "burg-upper-radar-2026-10-06-195804",
      "burg-upper-radar-2026-10-06-201910",
      "burg-upper-radar-2026-10-06g",
@@ -1259,7 +1276,8 @@
     "P-138",
     "P-139",
     "P-140",
-    "P-173"
+    "P-173",
+    "P-179"
    ]
   },
   {
@@ -1444,11 +1462,11 @@
     ]
    },
    "runs": {
-    "runs": 57,
-    "tries": 55,
-    "cleared": 47,
+    "runs": 59,
+    "tries": 57,
+    "cleared": 49,
     "results": {
-     "cleared": 47,
+     "cleared": 49,
      "died": 6,
      "left": 2
     },
@@ -1485,8 +1503,8 @@
      }
     ],
     "falls": 0,
-    "big_hits": 57,
-    "big_hit_lost": 10191,
+    "big_hits": 58,
+    "big_hit_lost": 10393,
     "blamed": {
      "255001": 39,
      "255000": 11,
@@ -1547,6 +1565,8 @@
      "20261109_022350_burg-upper",
      "20261112_115036_burg-upper_estus-test1-upper",
      "20261112_132202_burg-upper_cloud-test2",
+     "20261115_231439_burg-upper_upper-z4-8",
+     "20261115_235228_burg-upper_try2",
      "burg-upper-radar-2026-10-06-195804",
      "burg-upper-radar-2026-10-06-200335",
      "burg-upper-radar-2026-10-06-202244",
@@ -1691,11 +1711,11 @@
     ]
    },
    "runs": {
-    "runs": 47,
-    "tries": 48,
-    "cleared": 42,
+    "runs": 49,
+    "tries": 50,
+    "cleared": 44,
     "results": {
-     "cleared": 42,
+     "cleared": 44,
      "died": 6
     },
     "deaths": [
@@ -1731,12 +1751,12 @@
      }
     ],
     "falls": 0,
-    "big_hits": 57,
-    "big_hit_lost": 13009,
+    "big_hits": 58,
+    "big_hit_lost": 13251,
     "blamed": {
-     "255001": 47
+     "255001": 48
     },
-    "secs_median": 33,
+    "secs_median": 34,
     "files": [
      "20261011_171918_burg-upper_p68fix-zone8-death",
      "20261011_174753_burg-upper_zones1-8-cleared",
@@ -1782,6 +1802,8 @@
      "20261109_022350_burg-upper",
      "20261112_115036_burg-upper_estus-test1-upper",
      "20261112_132202_burg-upper_cloud-test2",
+     "20261115_231439_burg-upper_upper-z4-8",
+     "20261115_235228_burg-upper_try2",
      "burg-upper-radar-2026-10-06-200335",
      "burg-upper-radar-2026-10-06-202244",
      "burg-upper-radar-2026-10-06k"
@@ -1836,11 +1858,11 @@
     ]
    },
    "runs": {
-    "runs": 40,
-    "tries": 41,
-    "cleared": 40,
+    "runs": 42,
+    "tries": 43,
+    "cleared": 42,
     "results": {
-     "cleared": 40,
+     "cleared": 42,
      "died": 1
     },
     "deaths": [
@@ -1895,6 +1917,8 @@
      "20261109_022350_burg-upper",
      "20261112_115036_burg-upper_estus-test1-upper",
      "20261112_132202_burg-upper_cloud-test2",
+     "20261115_231439_burg-upper_upper-z4-8",
+     "20261115_235228_burg-upper_try2",
      "burg-upper-radar-2026-10-06-200335",
      "burg-upper-radar-2026-10-06-202244",
      "burg-upper-radar-2026-10-06k"
@@ -2043,12 +2067,12 @@
     "others": []
    },
    "runs": {
-    "runs": 40,
-    "tries": 41,
-    "cleared": 32,
+    "runs": 42,
+    "tries": 43,
+    "cleared": 34,
     "results": {
      "died": 8,
-     "cleared": 32,
+     "cleared": 34,
      "fog": 1
     },
     "deaths": [
@@ -2094,10 +2118,10 @@
      }
     ],
     "falls": 1,
-    "big_hits": 64,
-    "big_hit_lost": 10045,
+    "big_hits": 68,
+    "big_hit_lost": 10431,
     "blamed": {
-     "255002": 63
+     "255002": 67
     },
     "secs_median": 38,
     "files": [
@@ -2139,6 +2163,8 @@
      "20261109_022350_burg-upper",
      "20261112_115036_burg-upper_estus-test1-upper",
      "20261112_132202_burg-upper_cloud-test2",
+     "20261115_231439_burg-upper_upper-z4-8",
+     "20261115_235228_burg-upper_try2",
      "burg-upper-radar-2026-10-06-200729",
      "burg-upper-radar-2026-10-06-202244"
     ]
@@ -2152,7 +2178,8 @@
     "P-121",
     "P-134",
     "P-137",
-    "P-175"
+    "P-175",
+    "P-180"
    ]
   }
  ]

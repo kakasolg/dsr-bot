@@ -211,6 +211,31 @@ def _with_entry_corner(pts: list) -> list:
     return out
 
 
+STEP_UP_M = 0.8          # 계단 한 발 (MoKa 11-15, step_up 아래) — 잰 값 아님
+
+
+def step_up(spot, path, m: float = STEP_UP_M):
+    """
+    ── 락온 안 걸리면 계단 한 발 더 올라가서 다시 (MoKa 11-15, M1115-17) ──────────────
+     "계단 위에 몹 유인 할때 한 발자국 만 더 올라가서 하면 되는데, 이게 않되니 뛰어 들어서 위험을 만들어"
+     · 194303 구역 4: 던질 자리 (11.2, −6.6, −92.8)에서 나이프 락온이 이웃에 걸림 → no_lock → 몸으로 달려감 → 셋 → 사망 (P-179)
+     · spot에서 목표까지 NavMesh 길을 따라 m 간 점. 내려가는 점(spot보다 낮음)이면 None — 계단 위쪽으로만
+    """
+    # 시도 1 (234637): 길이 먼저 (10.0, −7.6, −92.0)로 내려갔다가 계단을 오름 → 첫 0.8 m가 내리막이라 None. 던질 자리보다 낮은 점은 건너뜀
+    pts = [tuple(spot)] + [tuple(q) for q in (path or []) if q[1] >= spot[1] - 0.05]
+    left = m
+    for a, b in zip(pts, pts[1:]):
+        d = math.dist(a, b)
+        if d <= 1e-6:
+            continue
+        if d >= left:
+            f = left / d
+            q = tuple(a[i] + (b[i] - a[i]) * f for i in range(3))
+            return q if q[1] >= spot[1] - 0.05 else None
+        left -= d
+    return None
+
+
 def crowd_near(s, t, ptr) -> list:
     """
     ── 붙어 선 적은 몸으로 안 끌어옴 ([MoKa] 2026-10-12 "적이 다수가 있는데, 거기에 가서 불리한 싸움을 하는 이유는?") ──
@@ -967,10 +992,29 @@ class Missions:
             # P-131: how["knife_from"] = {"spot", "min", "max"} → throw only from there (구역 4 = [MoKa] 시범 063807: 안전 자리에서 그대로
             #  락온 13.5 m 맞음). 없으면 전처럼 안전 자리 또는 길 따라 10 m — 11-08 192447: NavMesh가 13 m 직선을 막힘으로 봐 3.8 m 앞으로
             #  나가 9.1 m에서 R3 → 이웃이 잡힘 (잡힌 것 other) → 둘 깨움
-            lr = self.f.lure(ptr, here0, nb, tag, arena=safe, lure_at=how.get("knife_from"))
+            kf = how.get("knife_from")
+            lr = self.f.lure(ptr, here0, nb, tag, arena=safe, lure_at=kf)
             self.log(f"   {tag}: 나이프 유인 → {lr}")
             if not self.f.alive():
                 return "died"
+            if lr == "no_lock" and kf and kf.get("spot"):
+                sn = self.mv.snap(30.0)
+                c = self.mv.find(sn, ptr) if sn else None
+                up = step_up(kf["spot"], nb.find_path(tuple(kf["spot"]), (c.x, c.y, c.z)) if c else None)
+                if up is not None:
+                    self.log(f"   {tag}: 락온 안 걸림 — 계단 한 발 위 ({up[0]:.1f}, {up[1]:.1f}, {up[2]:.1f})에서 다시 (MoKa 11-15)")
+                    lr = self.f.lure(ptr, here0, nb, tag, arena=safe, lure_at={**kf, "spot": list(up)})
+                    self.log(f"   {tag}: 한 발 위에서 나이프 유인 → {lr}")
+                    if not self.f.alive():
+                        return "died"
+                else:
+                    self.log(f"   {tag}: 락온 안 걸림 — 위로 한 발 갈 길 없음")
+            if lr == "no_lock":
+                # 그래도 안 걸림 → 뛰어들지 않음 (MoKa 11-15 "뛰어 들어서 위험을 만들어"): 안전 자리에서 기다리면 하나만 옴 (P-140)
+                if self._wait_at_safe(ptr, safe, CROWD_WAIT_S):
+                    self.log(f"   {tag}: 락온 안 걸림 — 안 뛰어들고 안전 자리에서 기다리니 옴")
+                    return "here"
+                self.log(f"   {tag}: 락온 안 걸림 — {CROWD_WAIT_S:g} s 기다려도 안 옴 ({self.hold_why}) — 몸으로")
             if lr in ("lured", "awake", "dead", "interrupted"):
                 s = self.mv.snap(5.0)
                 if s is not None and math.hypot(s.player.x - safe[0], s.player.z - safe[2]) > UPPER_NEAR_SAFE_R:

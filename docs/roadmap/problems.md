@@ -2923,3 +2923,10 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
   the Burg bonfire from zone 8 without entering the Taurus area.
 - Also: `kindle.py` run alone sat and stood without kindling — its `main()` set ON in `__main__`, while `farm.rest` reads the imported
   `kindle` module (ON False, silent return). Fixed (sets both); rerun at the Burg bonfire: Estus 5 → 10, humanity items 4 → 2 (memory).
+- Retry loop (MoKa 11-15 "될때 까지 계속 시도 하고, 수정하고 , 다시 시도해", M1115-17/18; Burg bonfire kindled, Estus 10):
+  · try 1 `234637`: knife no_lock again; the new step-up (one step up the stairs, `missions.step_up`) found "no path" — the NavMesh path
+    first dips to (10.0, −7.6, −92.0) and then climbs → waited at the safe spot (no run-in) → all three came → died in zone 4.
+    Fix: skip path points lower than the throw spot.
+  · try 2 `235228`: zones 1–8 cleared, no death, lowest 54 %. Zone 4: the first knife locked (12.3 m) → 254011 alone → killed;
+    254010 came after, 1:1 (parry ok); 255002 killed; no 3-crowd. The step-up path did not come up (not tested in game yet).
+  Status: zone 4 passed once with the knife lure; open until the step-up runs in game and zone 4 passes again.
