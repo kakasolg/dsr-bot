@@ -1,0 +1,44 @@
+===== MoKa min 11.21
+window starts by band (rows,hit) {'side': [73, 16], 'front': [120, 24], 'back': [20, 0]}
+window starts on its left/right (>=30deg) {'L': 38, 'R': 91}
+gap anim: open / used / dmg>0 / dmg
+  3000 1 0 0 0
+  3001 2 0 0 0
+  3002 12 0 0 0
+  3003 15 1 1 101
+  3004 21 0 0 0
+  3005 15 1 1 101
+  3006 22 11 5 592
+  3008 17 5 5 766
+  3010 1 1 1 202
+  3011 8 1 1 87
+  3012 4 1 1 101
+  3013 8 3 0 0
+first press after gap open: median 1.12 s; n 24
+gap open angle band Counter({'front': 79, 'side': 39, 'back': 8})
+presses 365 dmg 10860 per min 969 lost 5833 per min 520
+dmg per hit [(101, 96), (87, 5), (89, 5), (71, 4)]
+press band Counter({'side': 218, 'back': 113, 'front': 34}) press d median 2.59
+hit press band Counter({'side': 55, 'back': 48, 'front': 7}) hit d range 1.36 4.36
+press side L/R Counter({'R': 286, 'L': 74})
+presses inside gap 58 of 365
+3008 17 hit 5 struck 5 moved>=1.5 5 d_start med 3.4
+my anims in windows [(-1, 95), (712, 47), (2016, 34), (304000, 32), (710, 23), (713, 19), (304001, 13), (711, 8), (2002, 6), (2014, 6), (304002, 4), (304041, 4)]
+===== bot min 7.03
+window starts by band (rows,hit) {'back': [51, 8], 'front': [40, 20], 'side': [17, 3]}
+window starts on its left/right (>=30deg) {'L': 43, 'R': 34}
+gap anim: open / used / dmg>0 / dmg
+  3002 3 1 0 0
+  3003 4 3 3 303
+  3004 8 2 2 202
+  3005 9 2 2 202
+  3006 19 15 15 2198
+  3008 16 14 9 909
+  3011 2 0 0 0
+  3012 2 0 0 0
+  3013 1 0 0 0
+first press after gap open: median 0.27 s; n 37
+gap open angle band Counter({'back': 38, 'front': 16, 'side': 10})
+presses 53 dmg 3814 per min 543 lost 2735 per min 389
+3008 16 hit 14 struck 14 moved>=1.5 1 d_start med 3.035
+my anims in windows [(-1, 98), (2050, 11), (2016, 8), (2051, 7), (100640, 7), (304000, 6), (100142, 6), (100610, 4), (2014, 4), (100160, 3), (304001, 2), (100140, 2)]

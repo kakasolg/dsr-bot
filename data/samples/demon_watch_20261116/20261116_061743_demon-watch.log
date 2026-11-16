@@ -1,0 +1,548 @@
+[    0.2]    [start] {'nodead_before': [0, 0], 'nodead_now': [1, 1], 'grip': 1, 'weapon': 701000, 'pads': []}
+[   94.4]    [grip] {'grip': 3}
+[   95.6]    [strike] {'btn': 'R1', 'slot': 0, 'anim': None, 'lock': False, 'grip': 1, 'off': 0, 'd': 5.47, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  101.2]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3021, 'lock': False, 'grip': 3, 'off': 0, 'd': 4.23, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  106.6]    [lock] {'on': True}
+[  108.4]    [demon_hp] {'before': 295, 'to': 813}
+[  108.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3005, 'lock': True, 'grip': 3, 'off': -132, 'd': 1.69, 'demon_hp': 396, 'in_gap': False, 'dmg': 101}
+[  109.3]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3005, 'lock': True, 'grip': 3, 'off': -120, 'd': 1.71, 'demon_hp': 396, 'in_gap': False, 'dmg': 0}
+[  109.5]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3005, 'lock': True, 'grip': 3, 'off': -116, 'd': 1.68, 'demon_hp': 396, 'in_gap': False, 'dmg': 0}
+[  109.6]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3005, 'lock': True, 'grip': 3, 'off': -113, 'd': 2.04, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  109.8]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3005, 'lock': True, 'grip': 3, 'off': -106, 'd': 2.46, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  109.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3005, 'lock': True, 'grip': 3, 'off': -101, 'd': 2.4, 'demon_hp': 813, 'in_gap': True, 'dmg': 0}
+[  110.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3005, 'lock': True, 'grip': 3, 'off': -97, 'd': 2.44, 'demon_hp': 813, 'in_gap': True, 'dmg': 0}
+[  114.0]    틈 3005 누름 7번 피해 101 · 열릴 때 -104° 2.45 m · 그 뒤 잃은 HP 148
+[  115.3]    틈 3003 안 씀 · 열릴 때 -23° 6.24 m · 그 뒤 잃은 HP 0
+[  117.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': -117, 'd': 2.54, 'demon_hp': 813, 'in_gap': True, 'dmg': 101}
+[  118.5]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': -103, 'd': 2.68, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  120.1]    틈 3013 누름 1번 피해 0 · 열릴 때 -7° 2.76 m · 그 뒤 잃은 HP 0
+[  121.2]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': -79, 'd': 2.07, 'demon_hp': 712, 'in_gap': False, 'dmg': 101}
+[  121.6]    [refill] {'hp': 240, 'to': 616}
+[  121.8]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3005, 'lock': True, 'grip': 3, 'off': -74, 'd': 1.71, 'demon_hp': 712, 'in_gap': False, 'dmg': 0}
+[  124.2]    틈 3005 안 씀 · 열릴 때 -80° 2.04 m · 그 뒤 잃은 HP 148
+[  127.4]    틈 3002 안 씀 · 열릴 때 -22° 2.36 m · 그 뒤 잃은 HP 0
+[  130.3]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3011, 'lock': True, 'grip': 3, 'off': -107, 'd': 1.7, 'demon_hp': 611, 'in_gap': False, 'dmg': 101}
+[  130.5]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3011, 'lock': True, 'grip': 3, 'off': -106, 'd': 1.67, 'demon_hp': 611, 'in_gap': False, 'dmg': 0}
+[  130.7]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3011, 'lock': True, 'grip': 3, 'off': -107, 'd': 1.62, 'demon_hp': 611, 'in_gap': False, 'dmg': 0}
+[  130.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3011, 'lock': True, 'grip': 3, 'off': -108, 'd': 1.57, 'demon_hp': 611, 'in_gap': False, 'dmg': 0}
+[  131.0]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3011, 'lock': True, 'grip': 3, 'off': -108, 'd': 1.83, 'demon_hp': 510, 'in_gap': False, 'dmg': 101}
+[  131.2]    틈 3011 안 씀 · 열릴 때 -17° 2.01 m · 그 뒤 잃은 HP 0
+[  131.2]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3011, 'lock': True, 'grip': 3, 'off': -107, 'd': 2.59, 'demon_hp': 510, 'in_gap': False, 'dmg': 0}
+[  131.3]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3011, 'lock': True, 'grip': 3, 'off': -106, 'd': 2.66, 'demon_hp': 510, 'in_gap': False, 'dmg': 0}
+[  131.4]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3011, 'lock': True, 'grip': 3, 'off': -105, 'd': 2.7, 'demon_hp': 510, 'in_gap': False, 'dmg': 0}
+[  131.6]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3011, 'lock': True, 'grip': 3, 'off': -104, 'd': 2.79, 'demon_hp': 510, 'in_gap': False, 'dmg': 0}
+[  131.8]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3011, 'lock': True, 'grip': 3, 'off': -104, 'd': 2.73, 'demon_hp': 510, 'in_gap': False, 'dmg': 0}
+[  131.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3011, 'lock': True, 'grip': 3, 'off': -103, 'd': 2.65, 'demon_hp': 510, 'in_gap': False, 'dmg': 0}
+[  132.0]    [demon_hp] {'before': 308, 'to': 813}
+[  132.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3011, 'lock': True, 'grip': 3, 'off': -74, 'd': 2.38, 'demon_hp': 510, 'in_gap': False, 'dmg': 101}
+[  132.2]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3011, 'lock': True, 'grip': 3, 'off': -74, 'd': 2.88, 'demon_hp': 409, 'in_gap': False, 'dmg': 0}
+[  132.7]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3005, 'lock': True, 'grip': 3, 'off': -73, 'd': 3.11, 'demon_hp': 409, 'in_gap': False, 'dmg': 0}
+[  132.8]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3005, 'lock': True, 'grip': 3, 'off': -65, 'd': 3.16, 'demon_hp': 409, 'in_gap': False, 'dmg': 0}
+[  133.0]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3005, 'lock': True, 'grip': 3, 'off': -64, 'd': 3.14, 'demon_hp': 409, 'in_gap': False, 'dmg': 0}
+[  133.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3005, 'lock': True, 'grip': 3, 'off': -61, 'd': 2.91, 'demon_hp': 409, 'in_gap': False, 'dmg': 0}
+[  133.3]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3005, 'lock': True, 'grip': 3, 'off': -62, 'd': 3.03, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  133.4]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3005, 'lock': True, 'grip': 3, 'off': -62, 'd': 3.57, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  133.8]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3005, 'lock': True, 'grip': 3, 'off': -50, 'd': 3.75, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  136.6]    틈 3005 안 씀 · 열릴 때 -74° 3.11 m · 그 뒤 잃은 HP 148
+[  138.7]    틈 3003 안 씀 · 열릴 때 -5° 8.42 m · 그 뒤 잃은 HP 0
+[  143.5]    틈 3013 안 씀 · 열릴 때 28° 2.33 m · 그 뒤 잃은 HP 0
+[  143.5]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': -163, 'd': 2.28, 'demon_hp': 813, 'in_gap': False, 'dmg': 101}
+[  143.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': -127, 'd': 1.79, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  144.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': -98, 'd': 1.7, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  144.2]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': -86, 'd': 1.73, 'demon_hp': 712, 'in_gap': False, 'dmg': 101}
+[  144.4]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': -74, 'd': 2.12, 'demon_hp': 712, 'in_gap': False, 'dmg': 0}
+[  144.8]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3005, 'lock': True, 'grip': 3, 'off': -73, 'd': 2.12, 'demon_hp': 712, 'in_gap': False, 'dmg': 0}
+[  145.0]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3005, 'lock': True, 'grip': 3, 'off': -74, 'd': 2.12, 'demon_hp': 712, 'in_gap': False, 'dmg': 0}
+[  145.2]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3005, 'lock': True, 'grip': 3, 'off': -73, 'd': 2.1, 'demon_hp': 712, 'in_gap': False, 'dmg': 0}
+[  145.3]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3005, 'lock': True, 'grip': 3, 'off': -76, 'd': 1.8, 'demon_hp': 611, 'in_gap': False, 'dmg': 0}
+[  145.5]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3005, 'lock': True, 'grip': 3, 'off': -78, 'd': 2.39, 'demon_hp': 611, 'in_gap': False, 'dmg': 0}
+[  146.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3005, 'lock': True, 'grip': 3, 'off': -91, 'd': 2.36, 'demon_hp': 611, 'in_gap': False, 'dmg': 0}
+[  147.6]    틈 3005 안 씀 · 열릴 때 -73° 2.11 m · 그 뒤 잃은 HP 148
+[  150.1]    [refill] {'hp': 218, 'to': 616}
+[  153.0]    틈 3006 안 씀 · 열릴 때 -9° 4.25 m · 그 뒤 잃은 HP 102
+[  153.4]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': -94, 'd': 2.19, 'demon_hp': 611, 'in_gap': False, 'dmg': 101}
+[  153.6]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': -93, 'd': 2.25, 'demon_hp': 611, 'in_gap': False, 'dmg': 0}
+[  153.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': -92, 'd': 2.01, 'demon_hp': 611, 'in_gap': False, 'dmg': 0}
+[  154.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': -92, 'd': 2.15, 'demon_hp': 510, 'in_gap': False, 'dmg': 101}
+[  154.3]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3005, 'lock': True, 'grip': 3, 'off': -92, 'd': 2.46, 'demon_hp': 510, 'in_gap': False, 'dmg': 0}
+[  154.5]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3005, 'lock': True, 'grip': 3, 'off': -91, 'd': 2.43, 'demon_hp': 510, 'in_gap': False, 'dmg': 0}
+[  154.6]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3005, 'lock': True, 'grip': 3, 'off': -83, 'd': 2.44, 'demon_hp': 510, 'in_gap': False, 'dmg': 0}
+[  155.0]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3005, 'lock': True, 'grip': 3, 'off': -79, 'd': 2.41, 'demon_hp': 510, 'in_gap': False, 'dmg': 0}
+[  155.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3005, 'lock': True, 'grip': 3, 'off': -75, 'd': 2.17, 'demon_hp': 510, 'in_gap': False, 'dmg': 0}
+[  155.3]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3005, 'lock': True, 'grip': 3, 'off': -71, 'd': 2.25, 'demon_hp': 409, 'in_gap': False, 'dmg': 0}
+[  155.4]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3005, 'lock': True, 'grip': 3, 'off': -69, 'd': 2.59, 'demon_hp': 409, 'in_gap': False, 'dmg': 0}
+[  157.6]    틈 3005 안 씀 · 열릴 때 -92° 2.36 m · 그 뒤 잃은 HP 148
+[  160.1]    틈 3002 안 씀 · 열릴 때 0° 3.69 m · 그 뒤 잃은 HP 0
+[  162.4]    틈 3011 안 씀 · 열릴 때 3° 7.43 m · 그 뒤 잃은 HP 0
+[  163.8]    [refill] {'hp': 182, 'to': 616}
+[  169.2]    틈 3012 안 씀 · 열릴 때 1° 7.14 m · 그 뒤 잃은 HP 143
+[  171.4]    [demon_hp] {'before': 308, 'to': 813}
+[  172.0]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': -127, 'd': 2.16, 'demon_hp': 409, 'in_gap': True, 'dmg': 101}
+[  174.5]    틈 3006 누름 1번 피해 0 · 열릴 때 -44° 2.82 m · 그 뒤 잃은 HP 0
+[  178.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3005, 'lock': True, 'grip': 3, 'off': 154, 'd': 1.75, 'demon_hp': 813, 'in_gap': False, 'dmg': 101}
+[  181.2]    틈 3005 안 씀 · 열릴 때 -58° 2.69 m · 그 뒤 잃은 HP 0
+[  185.7]    틈 3006 안 씀 · 열릴 때 -52° 3.41 m · 그 뒤 잃은 HP 0
+[  185.7]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': -156, 'd': 2.81, 'demon_hp': 712, 'in_gap': False, 'dmg': 101}
+[  189.4]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3005, 'lock': True, 'grip': 3, 'off': 163, 'd': 2.53, 'demon_hp': 611, 'in_gap': False, 'dmg': 101}
+[  189.7]    틈 3005 안 씀 · 열릴 때 -139° 2.53 m · 그 뒤 잃은 HP 0
+[  194.5]    틈 3004 안 씀 · 열릴 때 132° 2.51 m · 그 뒤 잃은 HP 0
+[  201.8]    틈 3005 안 씀 · 열릴 때 0° 2.14 m · 그 뒤 잃은 HP 207
+[  205.4]    틈 3002 안 씀 · 열릴 때 -1° 7.14 m · 그 뒤 잃은 HP 0
+[  212.3]    [slam] {'d_start': 1.97, 'd_hit': 1.97, 'hit': False, 'lost': 0, 'struck': False}
+[  212.3]    틈 3008 안 씀 · 열릴 때 -22° 1.97 m · 그 뒤 잃은 HP 0
+[  213.5]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3008, 'lock': True, 'grip': 3, 'off': -117, 'd': 2.04, 'demon_hp': 510, 'in_gap': False, 'dmg': 101}
+[  213.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3005, 'lock': True, 'grip': 3, 'off': -108, 'd': 1.79, 'demon_hp': 510, 'in_gap': False, 'dmg': 0}
+[  214.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3005, 'lock': True, 'grip': 3, 'off': -96, 'd': 1.65, 'demon_hp': 510, 'in_gap': False, 'dmg': 0}
+[  214.3]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3005, 'lock': True, 'grip': 3, 'off': -93, 'd': 2.12, 'demon_hp': 409, 'in_gap': False, 'dmg': 0}
+[  214.4]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3005, 'lock': True, 'grip': 3, 'off': -93, 'd': 2.34, 'demon_hp': 409, 'in_gap': False, 'dmg': 0}
+[  214.5]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3005, 'lock': True, 'grip': 3, 'off': -91, 'd': 2.29, 'demon_hp': 409, 'in_gap': False, 'dmg': 0}
+[  214.7]    틈 3005 안 씀 · 열릴 때 -118° 2.01 m · 그 뒤 잃은 HP 148
+[  219.6]    틈 3002 안 씀 · 열릴 때 -34° 4.33 m · 그 뒤 잃은 HP 0
+[  221.9]    틈 3011 안 씀 · 열릴 때 -30° 4.62 m · 그 뒤 잃은 HP 0
+[  222.9]    [demon_hp] {'before': 308, 'to': 813}
+[  223.5]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3012, 'lock': True, 'grip': 3, 'off': -109, 'd': 3.1, 'demon_hp': 409, 'in_gap': True, 'dmg': 101}
+[  226.5]    틈 3012 누름 1번 피해 101 · 열릴 때 -82° 3.86 m · 그 뒤 잃은 HP 0
+[  226.6]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3012, 'lock': True, 'grip': 3, 'off': -130, 'd': 2.8, 'demon_hp': 813, 'in_gap': False, 'dmg': 101}
+[  230.7]    틈 3005 안 씀 · 열릴 때 -1° 3.06 m · 그 뒤 잃은 HP 0
+[  232.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3005, 'lock': True, 'grip': 3, 'off': -137, 'd': 3.59, 'demon_hp': 712, 'in_gap': False, 'dmg': 101}
+[  237.6]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': -166, 'd': 3.19, 'demon_hp': 611, 'in_gap': False, 'dmg': 101}
+[  239.2]    틈 3006 안 씀 · 열릴 때 -70° 3.22 m · 그 뒤 잃은 HP 0
+[  239.8]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': -103, 'd': 2.57, 'demon_hp': 510, 'in_gap': False, 'dmg': 101}
+[  243.2]    [demon_hp] {'before': 308, 'to': 813}
+[  243.7]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': -100, 'd': 3.94, 'demon_hp': 409, 'in_gap': False, 'dmg': 101}
+[  244.8]    [refill] {'hp': 113, 'to': 616}
+[  245.4]    틈 3006 누름 1번 피해 101 · 열릴 때 -104° 2.43 m · 그 뒤 잃은 HP 148
+[  249.4]    틈 3005 안 씀 · 열릴 때 -109° 3.54 m · 그 뒤 잃은 HP 0
+[  251.1]    틈 3002 안 씀 · 열릴 때 -44° 8.83 m · 그 뒤 잃은 HP 0
+[  253.4]    틈 3011 안 씀 · 열릴 때 3° 2.73 m · 그 뒤 잃은 HP 0
+[  260.5]    틈 3012 안 씀 · 열릴 때 79° 2.39 m · 그 뒤 잃은 HP 63
+[  265.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': -118, 'd': 2.3, 'demon_hp': 813, 'in_gap': False, 'dmg': 101}
+[  267.2]    틈 3006 안 씀 · 열릴 때 -2° 3.79 m · 그 뒤 잃은 HP 0
+[  271.3]    틈 3005 안 씀 · 열릴 때 -1° 2.88 m · 그 뒤 잃은 HP 148
+[  277.9]    [slam] {'d_start': 3.52, 'd_hit': 3.52, 'hit': False, 'lost': 0, 'struck': False}
+[  277.9]    틈 3008 안 씀 · 열릴 때 -18° 3.49 m · 그 뒤 잃은 HP 0
+[  279.9]    틈 3002 안 씀 · 열릴 때 8° 5.48 m · 그 뒤 잃은 HP 0
+[  281.2]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3011, 'lock': True, 'grip': 3, 'off': 52, 'd': 1.38, 'demon_hp': 712, 'in_gap': True, 'dmg': 87}
+[  281.4]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3011, 'lock': True, 'grip': 3, 'off': 53, 'd': 1.3, 'demon_hp': 712, 'in_gap': True, 'dmg': 0}
+[  281.6]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3011, 'lock': True, 'grip': 3, 'off': 52, 'd': 1.28, 'demon_hp': 712, 'in_gap': True, 'dmg': 0}
+[  281.7]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3011, 'lock': True, 'grip': 3, 'off': 50, 'd': 1.3, 'demon_hp': 712, 'in_gap': True, 'dmg': 0}
+[  281.8]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3011, 'lock': True, 'grip': 3, 'off': 52, 'd': 1.28, 'demon_hp': 712, 'in_gap': True, 'dmg': 0}
+[  282.0]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3011, 'lock': True, 'grip': 3, 'off': 84, 'd': 1.42, 'demon_hp': 625, 'in_gap': True, 'dmg': 101}
+[  282.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3011, 'lock': True, 'grip': 3, 'off': 100, 'd': 1.64, 'demon_hp': 625, 'in_gap': True, 'dmg': 0}
+[  282.3]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3011, 'lock': True, 'grip': 3, 'off': 100, 'd': 2.22, 'demon_hp': 625, 'in_gap': True, 'dmg': 0}
+[  283.7]    틈 3011 누름 8번 피해 87 · 열릴 때 51° 1.39 m · 그 뒤 잃은 HP 0
+[  285.3]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 127, 'd': 2.17, 'demon_hp': 524, 'in_gap': False, 'dmg': 101}
+[  286.9]    [demon_hp] {'before': 322, 'to': 813}
+[  287.4]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 149, 'd': 2.11, 'demon_hp': 423, 'in_gap': False, 'dmg': 101}
+[  287.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 143, 'd': 1.98, 'demon_hp': 423, 'in_gap': False, 'dmg': 0}
+[  288.0]    틈 3004 안 씀 · 열릴 때 116° 2.69 m · 그 뒤 잃은 HP 0
+[  288.2]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 140, 'd': 2.19, 'demon_hp': 813, 'in_gap': False, 'dmg': 101}
+[  288.8]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3008, 'lock': True, 'grip': 3, 'off': 137, 'd': 2.23, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  289.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3008, 'lock': True, 'grip': 3, 'off': 130, 'd': 2.32, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  289.2]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3008, 'lock': True, 'grip': 3, 'off': 133, 'd': 2.11, 'demon_hp': 813, 'in_gap': True, 'dmg': 0}
+[  289.3]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3008, 'lock': True, 'grip': 3, 'off': 126, 'd': 2.47, 'demon_hp': 712, 'in_gap': True, 'dmg': 0}
+[  294.3]    [slam] {'d_start': 2.23, 'd_hit': 5.99, 'hit': False, 'lost': 0, 'struck': True}
+[  294.3]    틈 3008 누름 4번 피해 101 · 열릴 때 130° 2.32 m · 그 뒤 잃은 HP 0
+[  296.2]    틈 3004 안 씀 · 열릴 때 14° 5.83 m · 그 뒤 잃은 HP 0
+[  303.7]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3002, 'lock': True, 'grip': 3, 'off': 93, 'd': 1.78, 'demon_hp': 712, 'in_gap': False, 'dmg': 101}
+[  304.3]    틈 3002 안 씀 · 열릴 때 116° 2.64 m · 그 뒤 잃은 HP 0
+[  308.5]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3005, 'lock': True, 'grip': 3, 'off': 116, 'd': 1.82, 'demon_hp': 611, 'in_gap': False, 'dmg': 101}
+[  308.7]    틈 3005 안 씀 · 열릴 때 18° 2.66 m · 그 뒤 잃은 HP 0
+[  311.2]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3005, 'lock': True, 'grip': 3, 'off': 58, 'd': 1.8, 'demon_hp': 510, 'in_gap': False, 'dmg': 101}
+[  312.1]    [refill] {'hp': 198, 'to': 616}
+[  317.1]    틈 3005 안 씀 · 열릴 때 -1° 2.0 m · 그 뒤 잃은 HP 207
+[  321.6]    [demon_hp] {'before': 308, 'to': 813}
+[  321.7]    틈 3006 안 씀 · 열릴 때 1° 3.18 m · 그 뒤 잃은 HP 73
+[  322.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 132, 'd': 2.71, 'demon_hp': 409, 'in_gap': False, 'dmg': 101}
+[  325.9]    틈 3004 안 씀 · 열릴 때 127° 3.14 m · 그 뒤 잃은 HP 148
+[  328.8]    틈 3003 안 씀 · 열릴 때 12° 6.71 m · 그 뒤 잃은 HP 0
+[  332.4]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 148, 'd': 2.32, 'demon_hp': 813, 'in_gap': False, 'dmg': 101}
+[  332.7]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 149, 'd': 2.02, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  333.0]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 144, 'd': 1.88, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  333.2]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 137, 'd': 2.64, 'demon_hp': 712, 'in_gap': False, 'dmg': 0}
+[  333.6]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 105, 'd': 2.99, 'demon_hp': 712, 'in_gap': False, 'dmg': 0}
+[  336.4]    틈 3013 안 씀 · 열릴 때 68° 2.18 m · 그 뒤 잃은 HP 0
+[  341.2]    [slam] {'d_start': 4.0, 'd_hit': 7.3, 'hit': False, 'lost': 0, 'struck': False}
+[  341.2]    틈 3008 안 씀 · 열릴 때 57° 4.91 m · 그 뒤 잃은 HP 0
+[  343.1]    틈 3004 안 씀 · 열릴 때 63° 1.95 m · 그 뒤 잃은 HP 0
+[  346.2]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 140, 'd': 1.82, 'demon_hp': 712, 'in_gap': False, 'dmg': 101}
+[  348.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 162, 'd': 1.85, 'demon_hp': 611, 'in_gap': False, 'dmg': 101}
+[  352.4]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': -164, 'd': 1.7, 'demon_hp': 510, 'in_gap': False, 'dmg': 101}
+[  353.4]    [demon_hp] {'before': 308, 'to': 813}
+[  353.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': -136, 'd': 1.62, 'demon_hp': 409, 'in_gap': False, 'dmg': 101}
+[  358.4]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 164, 'd': 3.58, 'demon_hp': 813, 'in_gap': False, 'dmg': 101}
+[  362.0]    틈 3006 안 씀 · 열릴 때 -80° 2.97 m · 그 뒤 잃은 HP 0
+[  365.7]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 126, 'd': 3.29, 'demon_hp': 712, 'in_gap': True, 'dmg': 101}
+[  365.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 125, 'd': 3.17, 'demon_hp': 712, 'in_gap': False, 'dmg': 0}
+[  366.2]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 122, 'd': 3.17, 'demon_hp': 712, 'in_gap': False, 'dmg': 0}
+[  366.4]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 118, 'd': 3.37, 'demon_hp': 611, 'in_gap': False, 'dmg': 101}
+[  366.5]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 119, 'd': 3.95, 'demon_hp': 611, 'in_gap': False, 'dmg': 0}
+[  367.0]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 117, 'd': 3.8, 'demon_hp': 611, 'in_gap': False, 'dmg': 0}
+[  367.2]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 116, 'd': 3.71, 'demon_hp': 611, 'in_gap': False, 'dmg': 0}
+[  370.6]    틈 3006 누름 1번 피해 0 · 열릴 때 86° 2.04 m · 그 뒤 잃은 HP 0
+[  379.9]    틈 3008 안 씀 · 열릴 때 24° 2.43 m · 그 뒤 잃은 HP 0
+[  386.9]    [refill] {'hp': 14, 'to': 616}
+[  390.5]    [slam] {'d_start': 3.68, 'd_hit': 4.51, 'hit': True, 'lost': 381, 'struck': False}
+[  392.8]    틈 3003 안 씀 · 열릴 때 28° 5.57 m · 그 뒤 잃은 HP 0
+[  396.0]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 129, 'd': 1.88, 'demon_hp': 510, 'in_gap': False, 'dmg': 101}
+[  396.5]    [demon_hp] {'before': 308, 'to': 813}
+[  397.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 119, 'd': 2.58, 'demon_hp': 409, 'in_gap': False, 'dmg': 101}
+[  397.5]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 110, 'd': 2.47, 'demon_hp': 409, 'in_gap': False, 'dmg': 0}
+[  397.6]    틈 3013 안 씀 · 열릴 때 72° 5.19 m · 그 뒤 잃은 HP 0
+[  397.7]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 101, 'd': 2.23, 'demon_hp': 409, 'in_gap': False, 'dmg': 0}
+[  401.3]    틈 3004 안 씀 · 열릴 때 22° 3.4 m · 그 뒤 잃은 HP 0
+[  404.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': -178, 'd': 2.57, 'demon_hp': 813, 'in_gap': False, 'dmg': 101}
+[  405.3]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': -179, 'd': 2.44, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  405.4]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': -174, 'd': 2.03, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  405.5]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': -180, 'd': 1.75, 'demon_hp': 712, 'in_gap': False, 'dmg': 101}
+[  405.7]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 175, 'd': 2.18, 'demon_hp': 712, 'in_gap': False, 'dmg': 0}
+[  405.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 175, 'd': 2.13, 'demon_hp': 712, 'in_gap': False, 'dmg': 0}
+[  406.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 177, 'd': 2.04, 'demon_hp': 712, 'in_gap': False, 'dmg': 0}
+[  406.5]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3008, 'lock': True, 'grip': 3, 'off': 164, 'd': 1.96, 'demon_hp': 712, 'in_gap': False, 'dmg': 0}
+[  406.6]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3008, 'lock': True, 'grip': 3, 'off': 156, 'd': 1.79, 'demon_hp': 712, 'in_gap': False, 'dmg': 0}
+[  406.7]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3008, 'lock': True, 'grip': 3, 'off': 152, 'd': 2.05, 'demon_hp': 611, 'in_gap': True, 'dmg': 71}
+[  406.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3008, 'lock': True, 'grip': 3, 'off': 140, 'd': 2.45, 'demon_hp': 611, 'in_gap': True, 'dmg': 0}
+[  407.3]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3008, 'lock': True, 'grip': 3, 'off': 132, 'd': 2.35, 'demon_hp': 611, 'in_gap': True, 'dmg': 0}
+[  407.5]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3008, 'lock': True, 'grip': 3, 'off': 123, 'd': 2.4, 'demon_hp': 611, 'in_gap': True, 'dmg': 0}
+[  411.8]    [slam] {'d_start': 2.04, 'd_hit': 2.43, 'hit': True, 'lost': 63, 'struck': True}
+[  411.8]    틈 3008 누름 6번 피해 172 · 열릴 때 154° 1.77 m · 그 뒤 잃은 HP 63
+[  413.4]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 100, 'd': 2.33, 'demon_hp': 540, 'in_gap': False, 'dmg': 71}
+[  413.7]    틈 3004 안 씀 · 열릴 때 93° 2.56 m · 그 뒤 잃은 HP 148
+[  413.8]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 95, 'd': 2.55, 'demon_hp': 540, 'in_gap': False, 'dmg': 0}
+[  413.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 82, 'd': 2.79, 'demon_hp': 540, 'in_gap': False, 'dmg': 0}
+[  414.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 52, 'd': 2.73, 'demon_hp': 540, 'in_gap': False, 'dmg': 0}
+[  417.9]    틈 3003 안 씀 · 열릴 때 11° 9.2 m · 그 뒤 잃은 HP 0
+[  420.8]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 146, 'd': 1.93, 'demon_hp': 469, 'in_gap': False, 'dmg': 101}
+[  421.0]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 148, 'd': 1.91, 'demon_hp': 469, 'in_gap': False, 'dmg': 0}
+[  421.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 148, 'd': 1.91, 'demon_hp': 469, 'in_gap': False, 'dmg': 0}
+[  421.3]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 147, 'd': 1.91, 'demon_hp': 469, 'in_gap': False, 'dmg': 0}
+[  421.4]    [demon_hp] {'before': 267, 'to': 813}
+[  421.4]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 145, 'd': 1.91, 'demon_hp': 469, 'in_gap': False, 'dmg': 101}
+[  421.5]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 143, 'd': 2.11, 'demon_hp': 368, 'in_gap': False, 'dmg': 0}
+[  421.7]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 140, 'd': 2.19, 'demon_hp': 368, 'in_gap': False, 'dmg': 0}
+[  421.8]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 140, 'd': 2.14, 'demon_hp': 368, 'in_gap': False, 'dmg': 0}
+[  422.0]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 140, 'd': 2.09, 'demon_hp': 368, 'in_gap': False, 'dmg': 0}
+[  422.3]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 135, 'd': 1.97, 'demon_hp': 368, 'in_gap': False, 'dmg': 0}
+[  422.4]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 131, 'd': 1.84, 'demon_hp': 368, 'in_gap': False, 'dmg': 0}
+[  422.6]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 120, 'd': 1.79, 'demon_hp': 267, 'in_gap': False, 'dmg': 101}
+[  422.7]    틈 3013 안 씀 · 열릴 때 15° 2.53 m · 그 뒤 잃은 HP 0
+[  422.7]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 107, 'd': 2.07, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  422.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 90, 'd': 2.14, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  426.3]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 100, 'd': 3.03, 'demon_hp': 712, 'in_gap': False, 'dmg': 87}
+[  426.6]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 100, 'd': 3.01, 'demon_hp': 712, 'in_gap': False, 'dmg': 0}
+[  426.7]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 98, 'd': 2.98, 'demon_hp': 712, 'in_gap': False, 'dmg': 0}
+[  427.0]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 88, 'd': 2.71, 'demon_hp': 712, 'in_gap': False, 'dmg': 0}
+[  427.3]    틈 3006 안 씀 · 열릴 때 11° 3.69 m · 그 뒤 잃은 HP 0
+[  429.3]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 129, 'd': 1.82, 'demon_hp': 625, 'in_gap': False, 'dmg': 101}
+[  430.2]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 81, 'd': 2.72, 'demon_hp': 524, 'in_gap': False, 'dmg': 101}
+[  431.4]    틈 3004 안 씀 · 열릴 때 118° 2.68 m · 그 뒤 잃은 HP 0
+[  440.3]    [slam] {'d_start': 2.8, 'd_hit': 6.95, 'hit': False, 'lost': 0, 'struck': False}
+[  440.3]    틈 3008 안 씀 · 열릴 때 67° 1.96 m · 그 뒤 잃은 HP 0
+[  442.4]    틈 3003 안 씀 · 열릴 때 19° 4.13 m · 그 뒤 잃은 HP 0
+[  444.3]    [demon_hp] {'before': 322, 'to': 813}
+[  444.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3003, 'lock': True, 'grip': 3, 'off': 168, 'd': 1.59, 'demon_hp': 423, 'in_gap': False, 'dmg': 101}
+[  445.0]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3003, 'lock': True, 'grip': 3, 'off': 172, 'd': 1.56, 'demon_hp': 423, 'in_gap': False, 'dmg': 0}
+[  445.4]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3003, 'lock': True, 'grip': 3, 'off': 136, 'd': 1.34, 'demon_hp': 423, 'in_gap': False, 'dmg': 0}
+[  445.6]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3003, 'lock': True, 'grip': 3, 'off': 132, 'd': 1.36, 'demon_hp': 813, 'in_gap': False, 'dmg': 101}
+[  445.7]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3003, 'lock': True, 'grip': 3, 'off': 134, 'd': 1.49, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  446.0]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 134, 'd': 1.46, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  446.2]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 129, 'd': 1.56, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  446.4]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 127, 'd': 1.62, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  446.6]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 124, 'd': 1.62, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  446.7]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 112, 'd': 1.89, 'demon_hp': 712, 'in_gap': False, 'dmg': 0}
+[  446.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 98, 'd': 2.48, 'demon_hp': 712, 'in_gap': False, 'dmg': 0}
+[  449.1]    틈 3004 안 씀 · 열릴 때 133° 1.48 m · 그 뒤 잃은 HP 148
+[  455.4]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 118, 'd': 3.24, 'demon_hp': 712, 'in_gap': True, 'dmg': 101}
+[  455.5]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 118, 'd': 3.17, 'demon_hp': 712, 'in_gap': True, 'dmg': 0}
+[  455.7]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 117, 'd': 3.08, 'demon_hp': 712, 'in_gap': True, 'dmg': 0}
+[  455.8]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 116, 'd': 3.0, 'demon_hp': 712, 'in_gap': False, 'dmg': 0}
+[  456.0]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 113, 'd': 2.97, 'demon_hp': 712, 'in_gap': False, 'dmg': 0}
+[  456.0]    틈 3006 누름 3번 피해 0 · 열릴 때 51° 4.12 m · 그 뒤 잃은 HP 0
+[  456.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 109, 'd': 3.22, 'demon_hp': 611, 'in_gap': False, 'dmg': 101}
+[  456.3]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 110, 'd': 3.7, 'demon_hp': 611, 'in_gap': False, 'dmg': 0}
+[  460.2]    틈 3004 안 씀 · 열릴 때 96° 3.01 m · 그 뒤 잃은 HP 0
+[  460.7]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 140, 'd': 1.83, 'demon_hp': 510, 'in_gap': False, 'dmg': 89}
+[  465.4]    틈 3000 안 씀 · 열릴 때 0° 9.5 m · 그 뒤 잃은 HP 0
+[  468.0]    [demon_hp] {'before': 320, 'to': 813}
+[  468.5]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3010, 'lock': True, 'grip': 3, 'off': 94, 'd': 2.68, 'demon_hp': 421, 'in_gap': True, 'dmg': 101}
+[  468.8]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3010, 'lock': True, 'grip': 3, 'off': 95, 'd': 2.57, 'demon_hp': 421, 'in_gap': True, 'dmg': 0}
+[  469.0]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3010, 'lock': True, 'grip': 3, 'off': 95, 'd': 2.4, 'demon_hp': 421, 'in_gap': True, 'dmg': 0}
+[  469.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3010, 'lock': True, 'grip': 3, 'off': 92, 'd': 2.06, 'demon_hp': 421, 'in_gap': True, 'dmg': 0}
+[  469.3]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3010, 'lock': True, 'grip': 3, 'off': 96, 'd': 2.3, 'demon_hp': 813, 'in_gap': True, 'dmg': 101}
+[  469.4]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3010, 'lock': True, 'grip': 3, 'off': 96, 'd': 2.59, 'demon_hp': 813, 'in_gap': True, 'dmg': 0}
+[  469.6]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3010, 'lock': True, 'grip': 3, 'off': 96, 'd': 2.54, 'demon_hp': 813, 'in_gap': True, 'dmg': 0}
+[  469.7]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3010, 'lock': True, 'grip': 3, 'off': 95, 'd': 2.52, 'demon_hp': 813, 'in_gap': True, 'dmg': 0}
+[  470.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3010, 'lock': True, 'grip': 3, 'off': 93, 'd': 2.44, 'demon_hp': 813, 'in_gap': True, 'dmg': 0}
+[  470.3]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3010, 'lock': True, 'grip': 3, 'off': 93, 'd': 2.39, 'demon_hp': 813, 'in_gap': True, 'dmg': 0}
+[  470.4]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3010, 'lock': True, 'grip': 3, 'off': 91, 'd': 2.81, 'demon_hp': 712, 'in_gap': True, 'dmg': 101}
+[  470.8]    틈 3010 누름 11번 피해 202 · 열릴 때 34° 1.93 m · 그 뒤 잃은 HP 0
+[  472.0]    [refill] {'hp': 109, 'to': 616}
+[  473.1]    틈 3004 안 씀 · 열릴 때 92° 3.03 m · 그 뒤 잃은 HP 148
+[  480.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3003, 'lock': True, 'grip': 3, 'off': 136, 'd': 2.9, 'demon_hp': 611, 'in_gap': False, 'dmg': 101}
+[  481.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3003, 'lock': True, 'grip': 3, 'off': 137, 'd': 3.01, 'demon_hp': 611, 'in_gap': False, 'dmg': 0}
+[  481.2]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3003, 'lock': True, 'grip': 3, 'off': 135, 'd': 3.23, 'demon_hp': 611, 'in_gap': False, 'dmg': 0}
+[  481.3]    틈 3003 안 씀 · 열릴 때 0° 6.59 m · 그 뒤 잃은 HP 0
+[  481.5]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3003, 'lock': True, 'grip': 3, 'off': 115, 'd': 2.76, 'demon_hp': 611, 'in_gap': False, 'dmg': 0}
+[  489.9]    틈 3008 안 씀 · 열릴 때 83° 3.33 m · 그 뒤 잃은 HP 89
+[  490.0]    [slam] {'d_start': 3.33, 'd_hit': 3.33, 'hit': True, 'lost': 89, 'struck': False}
+[  491.1]    [demon_hp] {'before': 320, 'to': 813}
+[  491.6]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 87, 'd': 2.59, 'demon_hp': 421, 'in_gap': True, 'dmg': 101}
+[  493.8]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 77, 'd': 2.31, 'demon_hp': 813, 'in_gap': False, 'dmg': 87}
+[  494.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 70, 'd': 2.08, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  494.6]    틈 3006 누름 1번 피해 101 · 열릴 때 86° 2.54 m · 그 뒤 잃은 HP 0
+[  498.4]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 141, 'd': 2.4, 'demon_hp': 726, 'in_gap': False, 'dmg': 101}
+[  498.8]    틈 3004 안 씀 · 열릴 때 86° 2.69 m · 그 뒤 잃은 HP 0
+[  498.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 132, 'd': 2.29, 'demon_hp': 726, 'in_gap': False, 'dmg': 0}
+[  499.0]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 134, 'd': 2.08, 'demon_hp': 625, 'in_gap': False, 'dmg': 101}
+[  499.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 133, 'd': 2.63, 'demon_hp': 625, 'in_gap': False, 'dmg': 0}
+[  499.3]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 134, 'd': 2.67, 'demon_hp': 625, 'in_gap': False, 'dmg': 0}
+[  499.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3008, 'lock': True, 'grip': 3, 'off': 116, 'd': 2.62, 'demon_hp': 625, 'in_gap': False, 'dmg': 0}
+[  500.2]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3008, 'lock': True, 'grip': 3, 'off': 102, 'd': 3.01, 'demon_hp': 524, 'in_gap': True, 'dmg': 0}
+[  502.1]    [refill] {'hp': 235, 'to': 616}
+[  506.4]    [slam] {'d_start': 2.52, 'd_hit': 2.38, 'hit': True, 'lost': 292, 'struck': True}
+[  507.3]    틈 3008 누름 2번 피해 101 · 열릴 때 116° 2.58 m · 그 뒤 잃은 HP 292
+[  510.6]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3003, 'lock': True, 'grip': 3, 'off': 163, 'd': 2.65, 'demon_hp': 524, 'in_gap': False, 'dmg': 101}
+[  510.8]    틈 3003 안 씀 · 열릴 때 6° 5.7 m · 그 뒤 잃은 HP 0
+[  510.8]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3003, 'lock': True, 'grip': 3, 'off': 154, 'd': 2.97, 'demon_hp': 524, 'in_gap': False, 'dmg': 0}
+[  511.2]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3003, 'lock': True, 'grip': 3, 'off': 141, 'd': 2.34, 'demon_hp': 524, 'in_gap': False, 'dmg': 0}
+[  511.2]    [demon_hp] {'before': 322, 'to': 813}
+[  511.4]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3003, 'lock': True, 'grip': 3, 'off': 136, 'd': 2.79, 'demon_hp': 423, 'in_gap': False, 'dmg': 101}
+[  511.5]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3003, 'lock': True, 'grip': 3, 'off': 123, 'd': 2.87, 'demon_hp': 423, 'in_gap': False, 'dmg': 0}
+[  512.0]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3003, 'lock': True, 'grip': 3, 'off': 110, 'd': 2.76, 'demon_hp': 423, 'in_gap': False, 'dmg': 0}
+[  512.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 110, 'd': 2.68, 'demon_hp': 423, 'in_gap': False, 'dmg': 0}
+[  512.3]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 102, 'd': 2.53, 'demon_hp': 423, 'in_gap': False, 'dmg': 0}
+[  512.4]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 89, 'd': 2.56, 'demon_hp': 423, 'in_gap': False, 'dmg': 0}
+[  512.5]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 90, 'd': 3.22, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  512.7]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 88, 'd': 3.28, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  512.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 78, 'd': 3.45, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  515.2]    틈 3004 안 씀 · 열릴 때 110° 2.76 m · 그 뒤 잃은 HP 148
+[  521.9]    틈 3003 안 씀 · 열릴 때 3° 8.35 m · 그 뒤 잃은 HP 143
+[  522.1]    틈 3003 안 씀 · 열릴 때 52° 3.94 m · 그 뒤 잃은 HP 0
+[  524.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 143, 'd': 2.79, 'demon_hp': 813, 'in_gap': True, 'dmg': 101}
+[  525.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 144, 'd': 2.77, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  525.4]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 144, 'd': 2.43, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  525.5]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 142, 'd': 1.9, 'demon_hp': 813, 'in_gap': False, 'dmg': 101}
+[  525.8]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 143, 'd': 2.32, 'demon_hp': 712, 'in_gap': False, 'dmg': 0}
+[  526.6]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 137, 'd': 1.87, 'demon_hp': 712, 'in_gap': False, 'dmg': 0}
+[  526.7]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 129, 'd': 1.81, 'demon_hp': 611, 'in_gap': False, 'dmg': 101}
+[  526.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 117, 'd': 1.98, 'demon_hp': 611, 'in_gap': False, 'dmg': 0}
+[  527.0]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 101, 'd': 1.87, 'demon_hp': 611, 'in_gap': False, 'dmg': 0}
+[  527.2]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 88, 'd': 2.31, 'demon_hp': 611, 'in_gap': False, 'dmg': 0}
+[  527.4]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 67, 'd': 2.68, 'demon_hp': 611, 'in_gap': False, 'dmg': 0}
+[  527.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 17, 'd': 2.99, 'demon_hp': 510, 'in_gap': False, 'dmg': 0}
+[  529.3]    틈 3013 누름 1번 피해 0 · 열릴 때 74° 3.18 m · 그 뒤 잃은 HP 0
+[  533.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 121, 'd': 3.7, 'demon_hp': 510, 'in_gap': False, 'dmg': 101}
+[  533.3]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 121, 'd': 3.62, 'demon_hp': 510, 'in_gap': False, 'dmg': 0}
+[  533.5]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 120, 'd': 3.54, 'demon_hp': 510, 'in_gap': False, 'dmg': 0}
+[  533.6]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 119, 'd': 3.31, 'demon_hp': 510, 'in_gap': False, 'dmg': 0}
+[  533.8]    [demon_hp] {'before': 308, 'to': 813}
+[  533.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 110, 'd': 3.31, 'demon_hp': 409, 'in_gap': False, 'dmg': 101}
+[  533.9]    틈 3006 안 씀 · 열릴 때 1° 2.5 m · 그 뒤 잃은 HP 0
+[  534.0]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 111, 'd': 3.73, 'demon_hp': 409, 'in_gap': False, 'dmg': 0}
+[  534.4]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 100, 'd': 3.65, 'demon_hp': 409, 'in_gap': False, 'dmg': 0}
+[  535.0]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 98, 'd': 3.28, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  535.6]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 78, 'd': 3.46, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  535.8]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 77, 'd': 3.5, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  535.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 73, 'd': 3.53, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  536.2]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 49, 'd': 4.15, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  538.1]    틈 3004 안 씀 · 열릴 때 98° 3.7 m · 그 뒤 잃은 HP 0
+[  538.6]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 79, 'd': 2.6, 'demon_hp': 813, 'in_gap': False, 'dmg': 101}
+[  539.0]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 74, 'd': 2.43, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  539.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 55, 'd': 2.32, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  539.4]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 36, 'd': 2.41, 'demon_hp': 712, 'in_gap': False, 'dmg': 0}
+[  547.5]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3002, 'lock': True, 'grip': 3, 'off': 103, 'd': 3.81, 'demon_hp': 712, 'in_gap': False, 'dmg': 101}
+[  547.6]    틈 3002 안 씀 · 열릴 때 131° 2.83 m · 그 뒤 잃은 HP 0
+[  554.8]    [slam] {'d_start': 3.92, 'd_hit': 3.92, 'hit': False, 'lost': 0, 'struck': False}
+[  555.7]    틈 3008 안 씀 · 열릴 때 8° 3.92 m · 그 뒤 잃은 HP 0
+[  558.6]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 110, 'd': 3.1, 'demon_hp': 611, 'in_gap': True, 'dmg': 101}
+[  558.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 109, 'd': 3.08, 'demon_hp': 611, 'in_gap': True, 'dmg': 0}
+[  559.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 107, 'd': 3.06, 'demon_hp': 611, 'in_gap': True, 'dmg': 0}
+[  559.2]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 101, 'd': 2.99, 'demon_hp': 611, 'in_gap': True, 'dmg': 0}
+[  559.4]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 97, 'd': 3.29, 'demon_hp': 510, 'in_gap': True, 'dmg': 71}
+[  559.5]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 96, 'd': 3.58, 'demon_hp': 510, 'in_gap': False, 'dmg': 0}
+[  563.6]    [refill] {'hp': 140, 'to': 616}
+[  564.0]    틈 3006 누름 5번 피해 101 · 열릴 때 68° 2.83 m · 그 뒤 잃은 HP 185
+[  567.8]    틈 3001 안 씀 · 열릴 때 0° 4.58 m · 그 뒤 잃은 HP 0
+[  570.1]    틈 3004 안 씀 · 열릴 때 67° 2.19 m · 그 뒤 잃은 HP 0
+[  571.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 92, 'd': 2.66, 'demon_hp': 439, 'in_gap': False, 'dmg': 101}
+[  572.5]    [demon_hp] {'before': 237, 'to': 813}
+[  572.7]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3008, 'lock': True, 'grip': 3, 'off': 73, 'd': 2.5, 'demon_hp': 338, 'in_gap': False, 'dmg': 101}
+[  578.4]    [slam] {'d_start': 2.43, 'd_hit': 4.96, 'hit': False, 'lost': 0, 'struck': True}
+[  578.4]    틈 3008 누름 1번 피해 101 · 열릴 때 52° 2.58 m · 그 뒤 잃은 HP 0
+[  578.6]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3008, 'lock': True, 'grip': 3, 'off': 60, 'd': 3.38, 'demon_hp': 813, 'in_gap': False, 'dmg': 101}
+[  578.8]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3008, 'lock': True, 'grip': 3, 'off': 60, 'd': 3.37, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  578.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3008, 'lock': True, 'grip': 3, 'off': 59, 'd': 3.31, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  579.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3008, 'lock': True, 'grip': 3, 'off': 57, 'd': 3.13, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  579.2]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3008, 'lock': True, 'grip': 3, 'off': 53, 'd': 2.74, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  579.4]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3008, 'lock': True, 'grip': 3, 'off': 49, 'd': 2.57, 'demon_hp': 712, 'in_gap': False, 'dmg': 0}
+[  579.5]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3008, 'lock': True, 'grip': 3, 'off': 49, 'd': 3.0, 'demon_hp': 712, 'in_gap': False, 'dmg': 0}
+[  579.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 32, 'd': 2.84, 'demon_hp': 712, 'in_gap': False, 'dmg': 0}
+[  580.3]    틈 3004 안 씀 · 열릴 때 49° 2.98 m · 그 뒤 잃은 HP 0
+[  592.5]    [slam] {'d_start': 3.9, 'd_hit': 9.47, 'hit': False, 'lost': 0, 'struck': False}
+[  593.2]    틈 3008 안 씀 · 열릴 때 1° 3.52 m · 그 뒤 잃은 HP 0
+[  593.3]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3008, 'lock': True, 'grip': 3, 'off': 70, 'd': 1.89, 'demon_hp': 712, 'in_gap': False, 'dmg': 101}
+[  593.7]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3008, 'lock': True, 'grip': 3, 'off': 60, 'd': 1.92, 'demon_hp': 712, 'in_gap': False, 'dmg': 0}
+[  596.5]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 83, 'd': 2.55, 'demon_hp': 611, 'in_gap': False, 'dmg': 101}
+[  596.6]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 82, 'd': 2.52, 'demon_hp': 611, 'in_gap': False, 'dmg': 0}
+[  596.8]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 81, 'd': 2.48, 'demon_hp': 611, 'in_gap': False, 'dmg': 0}
+[  597.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 71, 'd': 2.07, 'demon_hp': 611, 'in_gap': False, 'dmg': 0}
+[  597.2]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 62, 'd': 2.16, 'demon_hp': 510, 'in_gap': False, 'dmg': 101}
+[  599.4]    틈 3006 안 씀 · 열릴 때 44° 2.38 m · 그 뒤 잃은 HP 73
+[  601.4]    [demon_hp] {'before': 308, 'to': 813}
+[  601.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 121, 'd': 3.55, 'demon_hp': 409, 'in_gap': True, 'dmg': 101}
+[  602.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 121, 'd': 3.52, 'demon_hp': 409, 'in_gap': True, 'dmg': 0}
+[  602.2]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 120, 'd': 3.46, 'demon_hp': 409, 'in_gap': False, 'dmg': 0}
+[  602.4]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 119, 'd': 3.21, 'demon_hp': 409, 'in_gap': False, 'dmg': 0}
+[  602.5]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 115, 'd': 3.12, 'demon_hp': 409, 'in_gap': False, 'dmg': 0}
+[  602.6]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 111, 'd': 3.4, 'demon_hp': 813, 'in_gap': False, 'dmg': 89}
+[  602.8]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 112, 'd': 3.84, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  602.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 111, 'd': 3.79, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  603.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 110, 'd': 3.73, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  603.2]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 110, 'd': 3.72, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  603.7]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 98, 'd': 3.23, 'demon_hp': 724, 'in_gap': False, 'dmg': 0}
+[  604.0]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 96, 'd': 3.7, 'demon_hp': 724, 'in_gap': False, 'dmg': 0}
+[  605.5]    틈 3006 누름 2번 피해 0 · 열릴 때 80° 2.05 m · 그 뒤 잃은 HP 0
+[  608.0]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 116, 'd': 3.15, 'demon_hp': 724, 'in_gap': True, 'dmg': 101}
+[  608.2]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 116, 'd': 3.15, 'demon_hp': 724, 'in_gap': True, 'dmg': 0}
+[  608.3]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 115, 'd': 3.14, 'demon_hp': 724, 'in_gap': False, 'dmg': 0}
+[  608.5]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 112, 'd': 3.09, 'demon_hp': 724, 'in_gap': False, 'dmg': 0}
+[  608.6]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 109, 'd': 3.1, 'demon_hp': 724, 'in_gap': False, 'dmg': 0}
+[  608.8]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 107, 'd': 3.85, 'demon_hp': 623, 'in_gap': False, 'dmg': 89}
+[  609.4]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 105, 'd': 3.73, 'demon_hp': 623, 'in_gap': False, 'dmg': 0}
+[  610.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 91, 'd': 3.72, 'demon_hp': 534, 'in_gap': False, 'dmg': 0}
+[  611.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 80, 'd': 3.82, 'demon_hp': 534, 'in_gap': False, 'dmg': 0}
+[  611.7]    틈 3006 누름 2번 피해 0 · 열릴 때 55° 2.57 m · 그 뒤 잃은 HP 0
+[  614.3]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 114, 'd': 3.51, 'demon_hp': 534, 'in_gap': True, 'dmg': 101}
+[  614.5]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 113, 'd': 3.47, 'demon_hp': 534, 'in_gap': True, 'dmg': 0}
+[  614.7]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 111, 'd': 3.17, 'demon_hp': 534, 'in_gap': False, 'dmg': 0}
+[  615.0]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 105, 'd': 3.45, 'demon_hp': 433, 'in_gap': False, 'dmg': 89}
+[  615.3]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 105, 'd': 3.76, 'demon_hp': 433, 'in_gap': False, 'dmg': 0}
+[  615.7]    틈 3006 누름 2번 피해 0 · 열릴 때 55° 2.35 m · 그 뒤 잃은 HP 0
+[  615.8]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 102, 'd': 3.67, 'demon_hp': 433, 'in_gap': False, 'dmg': 0}
+[  616.0]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 101, 'd': 3.46, 'demon_hp': 433, 'in_gap': False, 'dmg': 0}
+[  616.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 89, 'd': 3.26, 'demon_hp': 344, 'in_gap': False, 'dmg': 0}
+[  616.3]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 90, 'd': 3.72, 'demon_hp': 344, 'in_gap': False, 'dmg': 0}
+[  616.8]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 90, 'd': 3.68, 'demon_hp': 344, 'in_gap': False, 'dmg': 0}
+[  617.0]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 89, 'd': 3.56, 'demon_hp': 344, 'in_gap': False, 'dmg': 0}
+[  617.3]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 86, 'd': 3.09, 'demon_hp': 344, 'in_gap': False, 'dmg': 0}
+[  617.5]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 85, 'd': 3.1, 'demon_hp': 344, 'in_gap': False, 'dmg': 0}
+[  617.6]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 79, 'd': 3.19, 'demon_hp': 344, 'in_gap': False, 'dmg': 0}
+[  618.2]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 19, 'd': 4.32, 'demon_hp': 344, 'in_gap': False, 'dmg': 0}
+[  619.8]    틈 3004 안 씀 · 열릴 때 91° 3.68 m · 그 뒤 잃은 HP 148
+[  621.9]    틈 3003 안 씀 · 열릴 때 1° 4.62 m · 그 뒤 잃은 HP 0
+[  625.3]    [demon_hp] {'before': 243, 'to': 813}
+[  625.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 128, 'd': 1.89, 'demon_hp': 344, 'in_gap': False, 'dmg': 101}
+[  626.0]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 127, 'd': 1.89, 'demon_hp': 344, 'in_gap': False, 'dmg': 0}
+[  626.2]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 126, 'd': 1.88, 'demon_hp': 344, 'in_gap': False, 'dmg': 0}
+[  626.3]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 122, 'd': 1.87, 'demon_hp': 344, 'in_gap': False, 'dmg': 0}
+[  626.4]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 113, 'd': 1.85, 'demon_hp': 344, 'in_gap': False, 'dmg': 0}
+[  626.6]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 102, 'd': 2.08, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  626.7]    틈 3013 안 씀 · 열릴 때 -8° 2.78 m · 그 뒤 잃은 HP 0
+[  626.7]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 98, 'd': 2.54, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  634.4]    [slam] {'d_start': 3.4, 'd_hit': 3.4, 'hit': False, 'lost': 0, 'struck': False}
+[  634.5]    틈 3008 안 씀 · 열릴 때 3° 3.4 m · 그 뒤 잃은 HP 0
+[  634.6]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3008, 'lock': True, 'grip': 3, 'off': 66, 'd': 3.54, 'demon_hp': 813, 'in_gap': False, 'dmg': 101}
+[  638.7]    틈 3003 안 씀 · 열릴 때 35° 2.94 m · 그 뒤 잃은 HP 0
+[  638.8]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3003, 'lock': True, 'grip': 3, 'off': 145, 'd': 3.91, 'demon_hp': 712, 'in_gap': False, 'dmg': 101}
+[  640.8]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 106, 'd': 2.4, 'demon_hp': 611, 'in_gap': False, 'dmg': 0}
+[  643.2]    틈 3004 안 씀 · 열릴 때 104° 3.4 m · 그 뒤 잃은 HP 148
+[  649.0]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3003, 'lock': True, 'grip': 3, 'off': 164, 'd': 3.27, 'demon_hp': 611, 'in_gap': False, 'dmg': 101}
+[  649.0]    틈 3003 안 씀 · 열릴 때 1° 5.76 m · 그 뒤 잃은 HP 0
+[  649.4]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3003, 'lock': True, 'grip': 3, 'off': 154, 'd': 3.28, 'demon_hp': 611, 'in_gap': False, 'dmg': 0}
+[  650.2]    [refill] {'hp': 99, 'to': 616}
+[  650.5]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 107, 'd': 2.38, 'demon_hp': 510, 'in_gap': False, 'dmg': 71}
+[  650.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 97, 'd': 2.45, 'demon_hp': 510, 'in_gap': False, 'dmg': 0}
+[  653.5]    틈 3004 안 씀 · 열릴 때 116° 2.9 m · 그 뒤 잃은 HP 148
+[  655.5]    틈 3003 안 씀 · 열릴 때 2° 7.18 m · 그 뒤 잃은 HP 0
+[  658.0]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 125, 'd': 2.55, 'demon_hp': 439, 'in_gap': True, 'dmg': 101}
+[  658.2]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 122, 'd': 2.4, 'demon_hp': 439, 'in_gap': True, 'dmg': 0}
+[  658.3]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 122, 'd': 2.34, 'demon_hp': 439, 'in_gap': True, 'dmg': 0}
+[  658.6]    [demon_hp] {'before': 237, 'to': 813}
+[  658.8]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 113, 'd': 2.34, 'demon_hp': 338, 'in_gap': False, 'dmg': 101}
+[  659.2]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 114, 'd': 2.62, 'demon_hp': 338, 'in_gap': False, 'dmg': 0}
+[  659.5]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 114, 'd': 2.6, 'demon_hp': 338, 'in_gap': False, 'dmg': 0}
+[  659.7]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 113, 'd': 2.41, 'demon_hp': 338, 'in_gap': False, 'dmg': 0}
+[  659.8]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 107, 'd': 1.97, 'demon_hp': 237, 'in_gap': False, 'dmg': 0}
+[  659.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 107, 'd': 2.65, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  660.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 102, 'd': 2.61, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  660.3]    틈 3013 누름 3번 피해 0 · 열릴 때 40° 2.28 m · 그 뒤 잃은 HP 0
+[  660.4]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3013, 'lock': True, 'grip': 3, 'off': 81, 'd': 2.63, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  667.3]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3008, 'lock': True, 'grip': 3, 'off': 30, 'd': 4.36, 'demon_hp': 813, 'in_gap': False, 'dmg': 101}
+[  668.1]    틈 3008 안 씀 · 열릴 때 0° 3.6 m · 그 뒤 잃은 HP 0
+[  669.5]    [slam] {'d_start': 3.6, 'd_hit': 3.6, 'hit': False, 'lost': 0, 'struck': False}
+[  673.3]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 134, 'd': 3.45, 'demon_hp': 712, 'in_gap': False, 'dmg': 101}
+[  673.5]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 134, 'd': 3.39, 'demon_hp': 712, 'in_gap': False, 'dmg': 0}
+[  673.7]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 133, 'd': 3.22, 'demon_hp': 712, 'in_gap': False, 'dmg': 0}
+[  673.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 131, 'd': 3.22, 'demon_hp': 712, 'in_gap': False, 'dmg': 0}
+[  674.0]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 126, 'd': 3.28, 'demon_hp': 611, 'in_gap': False, 'dmg': 101}
+[  674.1]    틈 3006 안 씀 · 열릴 때 2° 2.46 m · 그 뒤 잃은 HP 0
+[  674.2]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 127, 'd': 3.96, 'demon_hp': 611, 'in_gap': False, 'dmg': 0}
+[  674.5]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 124, 'd': 3.84, 'demon_hp': 611, 'in_gap': False, 'dmg': 0}
+[  675.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 113, 'd': 3.33, 'demon_hp': 611, 'in_gap': False, 'dmg': 101}
+[  675.3]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 114, 'd': 3.95, 'demon_hp': 510, 'in_gap': False, 'dmg': 0}
+[  675.8]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3008, 'lock': True, 'grip': 3, 'off': 94, 'd': 3.85, 'demon_hp': 510, 'in_gap': True, 'dmg': 0}
+[  680.7]    [demon_hp] {'before': 308, 'to': 813}
+[  681.2]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3008, 'lock': True, 'grip': 3, 'off': 50, 'd': 3.67, 'demon_hp': 409, 'in_gap': False, 'dmg': 101}
+[  681.4]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3008, 'lock': True, 'grip': 3, 'off': 50, 'd': 3.63, 'demon_hp': 409, 'in_gap': False, 'dmg': 0}
+[  681.5]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3008, 'lock': True, 'grip': 3, 'off': 49, 'd': 3.57, 'demon_hp': 409, 'in_gap': False, 'dmg': 0}
+[  681.7]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3008, 'lock': True, 'grip': 3, 'off': 48, 'd': 3.35, 'demon_hp': 409, 'in_gap': False, 'dmg': 0}
+[  681.8]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3008, 'lock': True, 'grip': 3, 'off': 44, 'd': 2.98, 'demon_hp': 409, 'in_gap': False, 'dmg': 0}
+[  682.0]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3008, 'lock': True, 'grip': 3, 'off': 41, 'd': 2.9, 'demon_hp': 813, 'in_gap': False, 'dmg': 101}
+[  682.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3008, 'lock': True, 'grip': 3, 'off': 41, 'd': 3.29, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  682.2]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3008, 'lock': True, 'grip': 3, 'off': 41, 'd': 3.25, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  682.4]    틈 3008 누름 1번 피해 101 · 열릴 때 114° 3.95 m · 그 뒤 잃은 HP 0
+[  688.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3008, 'lock': True, 'grip': 3, 'off': 53, 'd': 3.64, 'demon_hp': 712, 'in_gap': False, 'dmg': 101}
+[  688.6]    [slam] {'d_start': 3.95, 'd_hit': 3.95, 'hit': False, 'lost': 0, 'struck': True}
+[  688.7]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3008, 'lock': True, 'grip': 3, 'off': 46, 'd': 2.74, 'demon_hp': 712, 'in_gap': False, 'dmg': 0}
+[  688.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3008, 'lock': True, 'grip': 3, 'off': 44, 'd': 3.11, 'demon_hp': 611, 'in_gap': False, 'dmg': 101}
+[  689.7]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3008, 'lock': True, 'grip': 3, 'off': 23, 'd': 2.95, 'demon_hp': 611, 'in_gap': False, 'dmg': 0}
+[  692.3]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 98, 'd': 3.03, 'demon_hp': 510, 'in_gap': True, 'dmg': 87}
+[  692.5]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 97, 'd': 2.98, 'demon_hp': 510, 'in_gap': True, 'dmg': 0}
+[  692.8]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 91, 'd': 2.81, 'demon_hp': 510, 'in_gap': True, 'dmg': 0}
+[  693.0]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 83, 'd': 2.65, 'demon_hp': 423, 'in_gap': False, 'dmg': 0}
+[  693.2]    틈 3006 누름 3번 피해 101 · 열릴 때 29° 3.58 m · 그 뒤 잃은 HP 0
+[  693.8]    [demon_hp] {'before': 322, 'to': 813}
+[  694.3]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 105, 'd': 2.78, 'demon_hp': 423, 'in_gap': False, 'dmg': 101}
+[  694.4]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 106, 'd': 2.74, 'demon_hp': 423, 'in_gap': False, 'dmg': 0}
+[  694.6]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 103, 'd': 2.64, 'demon_hp': 423, 'in_gap': False, 'dmg': 0}
+[  694.7]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 89, 'd': 2.59, 'demon_hp': 423, 'in_gap': False, 'dmg': 0}
+[  694.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 84, 'd': 2.61, 'demon_hp': 423, 'in_gap': False, 'dmg': 0}
+[  695.2]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 77, 'd': 3.56, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  697.0]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 91, 'd': 2.64, 'demon_hp': 813, 'in_gap': False, 'dmg': 101}
+[  697.2]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 91, 'd': 2.6, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  697.3]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 83, 'd': 2.55, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  697.4]    틈 3004 안 씀 · 열릴 때 106° 2.75 m · 그 뒤 잃은 HP 0
+[  699.9]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3003, 'lock': True, 'grip': 3, 'off': 90, 'd': 2.25, 'demon_hp': 712, 'in_gap': True, 'dmg': 101}
+[  702.7]    틈 3003 누름 1번 피해 101 · 열릴 때 87° 2.28 m · 그 뒤 잃은 HP 0
+[  704.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3004, 'lock': True, 'grip': 3, 'off': 174, 'd': 1.6, 'demon_hp': 611, 'in_gap': False, 'dmg': 101}
+[  707.2]    틈 3004 안 씀 · 열릴 때 -175° 1.56 m · 그 뒤 잃은 HP 148
+[  709.4]    틈 3002 안 씀 · 열릴 때 15° 4.67 m · 그 뒤 잃은 HP 0
+[  711.7]    틈 3011 안 씀 · 열릴 때 6° 7.79 m · 그 뒤 잃은 HP 0
+[  713.1]    [refill] {'hp': 182, 'to': 616}
+[  718.5]    틈 3012 안 씀 · 열릴 때 0° 5.34 m · 그 뒤 잃은 HP 143
+[  720.6]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 111, 'd': 3.35, 'demon_hp': 510, 'in_gap': True, 'dmg': 87}
+[  721.2]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 105, 'd': 3.07, 'demon_hp': 423, 'in_gap': True, 'dmg': 0}
+[  722.2]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 92, 'd': 3.63, 'demon_hp': 423, 'in_gap': False, 'dmg': 89}
+[  724.1]    틈 3006 누름 2번 피해 87 · 열릴 때 41° 3.54 m · 그 뒤 잃은 HP 0
+[  727.8]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 71, 'd': 2.44, 'demon_hp': 334, 'in_gap': False, 'dmg': 0}
+[  728.1]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 70, 'd': 2.37, 'demon_hp': 334, 'in_gap': False, 'dmg': 0}
+[  728.3]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 65, 'd': 2.12, 'demon_hp': 334, 'in_gap': False, 'dmg': 0}
+[  728.7]    틈 3006 안 씀 · 열릴 때 2° 2.87 m · 그 뒤 잃은 HP 73
+[  728.8]    [demon_hp] {'before': 233, 'to': 813}
+[  729.3]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 60, 'd': 2.0, 'demon_hp': 334, 'in_gap': False, 'dmg': 101}
+[  729.5]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3006, 'lock': True, 'grip': 3, 'off': 62, 'd': 2.0, 'demon_hp': 334, 'in_gap': False, 'dmg': 0}
+[  736.2]    [strike] {'btn': 'R1', 'slot': 0, 'anim': 3008, 'lock': True, 'grip': 3, 'off': 15, 'd': 4.85, 'demon_hp': 813, 'in_gap': False, 'dmg': 0}
+[  736.6]    [slam] {'d_start': 1.88, 'd_hit': 1.88, 'hit': False, 'lost': 0, 'struck': False}
+[  737.0]    틈 3008 안 씀 · 열릴 때 46° 1.88 m · 그 뒤 잃은 HP 0
+[  743.5]    [slam] {'d_start': 3.62, 'd_hit': 2.8, 'hit': True, 'lost': 292, 'struck': False}
+[  743.5]    틈 3008 안 씀 · 열릴 때 0° 2.69 m · 그 뒤 잃은 HP 292
+[  744.9]    [refill] {'hp': 103, 'to': 616}
+[  745.8]    틈 3005 안 씀 · 열릴 때 -6° 2.8 m · 그 뒤 잃은 HP 148
+[  757.6]    틈 3002 안 씀 · 열릴 때 11° 8.12 m · 그 뒤 잃은 HP 0
+[  763.4]    틈 3001 안 씀 · 열릴 때 2° 10.94 m · 그 뒤 잃은 HP 68
+[  765.4]    틈 3002 안 씀 · 열릴 때 0° 8.19 m · 그 뒤 잃은 HP 143
+[  769.2]    틈 3011 안 씀 · 열릴 때 -1° 10.05 m · 그 뒤 잃은 HP 0
+[  771.2]    틈 3002 안 씀 · 열릴 때 -1° 9.07 m · 그 뒤 잃은 HP 143
+[  773.7]    틈 3011 안 씀 · 열릴 때 0° 10.6 m · 그 뒤 잃은 HP 0
+[  773.7]    [zone] {'secs': {'back': 76.1, 'side': 215.0, 'front': 482.4}, 'share': {'back': 0.098, 'side': 0.278, 'front': 0.624}, 'stays': 46, 'stay_median': 1.07, 'stay_max': 6.77, 'stay_list': [0.02, 0.08, 0.17, 0.18, 0.19, 0.26, 0.37, 0.4, 0.43, 0.44, 0.5, 0.52, 0.58, 0.64, 0.71, 0.74, 0.75, 0.75, 0.85, 0.85, 0.88, 0.97, 1.06, 1.07, 1.21, 1.32, 1.37, 1.38, 1.89, 2.18, 2.18, 2.31, 2.35, 2.38, 2.39, 2.4, 2.44, 2.62, 2.94, 3.44, 3.63, 3.64, 3.7, 3.84, 6.31, 6.77]}
+[  773.7]    [end] {'result': 'stop file', 'gaps': 126, 'secs': 773.7, 'nodead_now': [1, 1]}
