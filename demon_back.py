@@ -269,6 +269,180 @@ class ZoneTime:
                 "stay_list": st}
 
 
+R1_BIT = 0x0200                 # XINPUT_GAMEPAD_RIGHT_SHOULDER
+R2_ON = 128                     # right trigger past this = pressed
+STRIKE_S = 1.2                  # demon HP lost within this after a press counts for that press
+STOP_FILE = "data/demon_watch.stop"
+
+
+class PressWatch:
+    """Pure: rising edges of R1 / R2 from raw XInput tuples (packet, buttons, lt, rt, lx, ly, rx, ry)."""
+
+    def __init__(self):
+        self.prev = {}
+
+    def step(self, pads: dict) -> list:
+        out = []
+        for i, st in pads.items():
+            if st is None:
+                continue
+            r1, r2 = bool(st[1] & R1_BIT), st[3] > R2_ON
+            p1, p2 = self.prev.get(i, (False, False))
+            if r1 and not p1:
+                out.append((i, "R1"))
+            if r2 and not p2:
+                out.append((i, "R2"))
+            self.prev[i] = (r1, r2)
+        return out
+
+
+class StrikeTally:
+    """Pure: each press opens a STRIKE_S span; demon HP drops inside it are its damage (the oldest open press takes it)."""
+
+    def __init__(self, emit):
+        self.emit, self.open = emit, []
+
+    def press(self, now: float, row: dict) -> None:
+        self.open.append({**row, "t_press": now, "dmg": 0})
+
+    def drop(self, amount: int):
+        if self.open:
+            self.open[0]["dmg"] += amount
+            return self.open[0]
+        return None
+
+    def tick(self, now: float) -> None:
+        keep = []
+        for r in self.open:
+            if now - r["t_press"] >= STRIKE_S:
+                self.emit("strike", **{k: v for k, v in r.items() if k != "t_press"})
+            else:
+                keep.append(r)
+        self.open = keep
+
+    def close(self) -> None:
+        self.tick(float("inf"))
+
+
+def watch_main(a) -> None:
+    """Same rows as the bot run (attack, win, hpdrop, gap, slam, strike, zone) from MoKa's own play. Reads the game and XInput
+    only, except the offline writes MoKa asked for: both NoDead flags and the HP refills. No virtual pad. Stops at --limit or
+    when STOP_FILE appears. F9 gives a "mark" row (observe_record.py records it too)."""
+    import ctypes
+    import os
+    import env, track
+    from botlock import BotLock
+    from dsr_telemetry import OFF_HP
+    from observe_record import XInputPads
+    from run import Log
+    from souls import parry as PARRY
+
+    log = Log("demon-watch")
+    bpath = str(log.path).replace(".jsonl", ".back.jsonl")
+    bf = open(bpath, "a", encoding="utf-8")
+    t0 = time.time()
+    phase = ["watch"]
+
+    def emit(kind, **kw):
+        if kind == "gap":
+            kw["why"] = None                               # [cloud] 10b88bbc: 사람 판은 이유를 비운다
+        d = {"t": round(time.time() - t0, 3), "kind": kind, "phase": phase[0], **kw}
+        bf.write(json.dumps(d, ensure_ascii=False) + chr(10)); bf.flush()
+        if kind == "gap":
+            log(f"   틈 {kw['anim']} {'누름 ' + str(len(kw['presses'])) + '번 피해 ' + str(kw['dmg']) if kw['presses'] else '안 씀'}"
+                f" · 열릴 때 {kw.get('off_open')}° {kw.get('d_open')} m · 그 뒤 잃은 HP {kw['lost_after']}")
+        elif kind in ("strike", "slam", "mark", "zone", "start", "end", "refill", "demon_hp", "lock", "grip"):
+            log(f"   [{kind}] {kw}")
+
+    lock = BotLock()
+    if not lock.acquire():
+        raise SystemExit("봇이 돌고 있음 (data/bot.lock)")
+    tm = env.make_telemetry({})
+    tr = track.Track(str(log.path).replace(".jsonl", ".track.jsonl")).attach(tm)
+    log.on_line = tr.say
+    win = PARRY.load_windows()
+    with open("data/gamefiles/tae_turn.json", encoding="utf-8") as f:
+        DZ_WIN.update({int(k): v["hit"] for k, v in json.load(f)["models"]["c2232"].items() if v.get("hit")})
+    rec = DZ.ZoneRec(emit, lambda npc, anim: PARRY.windows_for(win, npc, anim))
+    rec.cell, rec.mode = None, "moka"
+    plan = BackPlan(emit, load_gaps())
+    pads, pw, tally, zt = XInputPads(), PressWatch(), StrikeTally(emit), ZoneTime()
+    f9 = lambda: bool(ctypes.windll.user32.GetAsyncKeyState(0x78) & 0x8000)
+    nd0, and0 = tm.get_dbg(tm.DBG_PLAYER_NO_DEAD), tm.get_dbg(tm.DBG_ALL_NO_DEAD)
+    tm.set_dbg(tm.DBG_PLAYER_NO_DEAD, True)
+    tm.set_dbg(tm.DBG_ALL_NO_DEAD, True)
+    emit("start", nodead_before=[nd0, and0], nodead_now=[tm.get_dbg(tm.DBG_PLAYER_NO_DEAD), tm.get_dbg(tm.DBG_ALL_NO_DEAD)],
+         grip=tm.grip(), weapon=tm.right_weapon(), pads=[i for i, st in pads.read().items() if st is not None])
+    if os.path.exists(STOP_FILE):
+        os.remove(STOP_FILE)
+    result, f9_prev, lock_prev, grip_prev, dhp_prev, refilled = "?", False, None, tm.grip(), None, False
+    try:
+        while time.time() - t0 < a.limit and not os.path.exists(STOP_FILE):
+            s = tm.snapshot()
+            now = time.time()
+            for slot, btn in pw.step(pads.read()):
+                c = None if s is None else next((x for x in s.chars if x.npc_param == DEMON), None)
+                row = {"btn": btn, "slot": slot, "anim": plan.anim, "lock": lock_prev not in (None, -1, 0), "grip": grip_prev}
+                if c is not None and s is not None:
+                    row.update(off=round(DZ.signed_off(c, s.player)),
+                               d=round(math.hypot(s.player.x - c.x, s.player.z - c.z), 2),
+                               demon_hp=c.hp, in_gap=plan.gap is not None and plan.gap["opened"])
+                tally.press(now, row)
+                plan.struck(now, 0)
+            k9 = f9()
+            if k9 and not f9_prev:
+                emit("mark", key="F9")
+            f9_prev = k9
+            if s is None:
+                time.sleep(0.02)
+                continue
+            p = s.player
+            c = next((x for x in s.chars if x.npc_param == DEMON), None)
+            at = None if c is None else tm.anim_time(c.ptr)
+            rec.tick(now, p, c, at)
+            plan.feed(now, p, c, at)
+            zt.tick(now, c, p)
+            tally.tick(now)
+            lk = tm.lock_target()
+            if (lk not in (None, -1, 0)) != (lock_prev not in (None, -1, 0)):
+                emit("lock", on=lk not in (None, -1, 0))
+            lock_prev = lk
+            g = tm.grip()
+            if g != grip_prev:
+                emit("grip", grip=g)
+                grip_prev = g
+            if c is not None:
+                if dhp_prev is not None and c.hp < dhp_prev and not refilled:
+                    drop = dhp_prev - c.hp
+                    tally.drop(drop)
+                    if plan.gap is not None:
+                        plan.gap["dmg"] += drop
+                refilled = False
+                dhp_prev = c.hp
+                if c.max_hp and c.hp < DEMON_REFILL * c.max_hp:
+                    tm.pm.write_int(c.ptr + OFF_HP, c.max_hp)
+                    emit("demon_hp", before=c.hp, to=c.max_hp)
+                    dhp_prev, refilled = c.max_hp, True
+            if p.max_hp and p.hp < REFILL * p.max_hp:
+                tm.set_hp(p.max_hp)
+                emit("refill", hp=p.hp, to=p.max_hp)
+            time.sleep(0.016)
+        result = "stop file" if os.path.exists(STOP_FILE) else "limit"
+    except KeyboardInterrupt:
+        result = "ctrl-c"
+    finally:
+        tally.close()
+        rec.close()
+        plan.close()
+        emit("zone", **zt.summary(time.time()))
+        # 데몬 옆에서 끄면 서 있는 채로 죽음 — 플래그는 켜 둔 채 끝내고, 세이브를 되돌린 뒤 끈다
+        emit("end", result=result, gaps=plan.n_gaps, secs=round(time.time() - t0, 1),
+             nodead_now=[tm.get_dbg(tm.DBG_PLAYER_NO_DEAD), tm.get_dbg(tm.DBG_ALL_NO_DEAD)])
+        print(f"RESULT demon watch: {result} · {bpath}")
+        bf.close()
+        lock.release()
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--hold-s", type=float, default=180.0)
@@ -277,7 +451,11 @@ def main() -> None:
     ap.add_argument("--gaps", type=int, default=100)
     ap.add_argument("--limit", type=float, default=1200.0)
     ap.add_argument("--skip-gate", action="store_true", help="hit even under GATE_BACK (not used in the M1116-10 run)")
+    ap.add_argument("--watch", action="store_true",
+                    help="record only while MoKa plays with a real pad (M1116-11): no virtual pad, no moves, R1/R2 read from XInput")
     a = ap.parse_args()
+    if a.watch:
+        return watch_main(a)
 
     import control, env, navmesh, track
     from botlock import BotLock

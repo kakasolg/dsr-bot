@@ -62,3 +62,18 @@ sm = zt.summary(2.5)
 assert sm["secs"]["back"] == 1.0 and sm["secs"]["front"] == 1.5 and sm["stay_list"] == [2.0]
 DB.DZ_WIN.clear()
 print("ok  demon_back: gaps from tae flag 7, hit only behind/side in a gap, chain head waits, slam row, zone time")
+
+# watch mode (M1116-11): R1 / R2 rising edges from raw XInput, demon HP drops within STRIKE_S go to the oldest open press
+pw = DB.PressWatch()
+assert pw.step({0: (1, 0, 0, 0, 0, 0, 0, 0), 1: None}) == []
+assert pw.step({0: (2, DB.R1_BIT, 0, 0, 0, 0, 0, 0)}) == [(0, "R1")]
+assert pw.step({0: (3, DB.R1_BIT, 0, 200, 0, 0, 0, 0)}) == [(0, "R2")]       # R1 held → no second R1
+out.clear()
+tally = DB.StrikeTally(lambda k, **f: out.append((k, f)))
+tally.press(0.0, {"btn": "R1"})
+tally.drop(101)
+tally.tick(0.5)
+assert out == []
+tally.tick(1.3)
+assert out == [("strike", {"btn": "R1", "dmg": 101})]
+print("ok  demon_back watch: pad edges, damage per press")
