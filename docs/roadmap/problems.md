@@ -2902,3 +2902,24 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
 - Hypotheses (not checked): lock-on picks the nearer neighbour from the preset spot; lock-on range is shorter for targets on the ledge.
 - Next: a lock-on probe at the zone 4 spot (which foe locks from where), before changing the plan. Solved = zone 4 entered with one foe
   lured (knife hit or firebomb) and no 3-crowd.
+- Lock-on probe (MoKa 11-15 "락온 시험부터", M1115-14; `lock_probe.py --switch` at the zone 4 safe spot after `burg-upper --seg 1-3`
+  230734; `data/samples/20261115_231202_lockprobe_zone4.jsonl`, one try per foe): 8 hostiles within 16 m (three 254012 on the ledge at
+  +2.8…+5 m, 254010, 254011, the row 254012, 255002 at +6.6 m, 279000 below). 254011 (13.9 m, camera −0.2°) → locked it. 254010
+  (13.3 m, camera 1.4°) → a 254012 locked. Each ledge 254012 → a different 254012 locked. 255002 (+7 m) → nothing. Right-stick flicks
+  (4 per foe) moved the lock once in six tries — not a usable switch as written. During the probe the row 254012 (14.9 m at start) came
+  to 0.9 m and hit (682 → 380) — standing at the spot ~25 s gets it to notice (hypothesis; in 194303 it also came first). The probe had
+  no guard for that — [win]'s mistake; the bot was started at once (`--seg 4-8` 231439, zones 4–8 cleared, lowest HP 63 %).
+
+### P-180 `light-burg` from zone 8: fell 8 m by the ladder into the Taurus area, then died to Taurus on the walk back (2026-11-15 `232143` · `232439`)
+- Purpose: walk back to the Burg bonfire to kindle (MoKa "돌아가서 불지피기 해", M1115-16) after `burg-upper --seg 4-8` ended at zone 8.
+- Observed: 232143 route point 5/78 stuck at (49.7, 24.9, −116.6) → "낙사 (발밑 바닥 8 m 아래)" at (49.06, 24.3, −117.2), landed
+  (49.1, 16.0, −117.1) = below the ladder (boss area, same spot as an earlier bloodstain (49.07, 16.82, −117.08)); the next
+  points (ladder, y 19–21) unreachable ×3 → stuck. 232439 from there: 225000 (Taurus, HP 1215) followed; Estus cut ×2 (1 left), "losing",
+  −244 then fell 5.6 m −153 at (7.52, 12.21, −121.88) → dead. 2794 souls + 1 humanity in the bloodstain (7.52, 11.2, −122.14).
+- Direct: Taurus at 0.9 m with one Estus. Entry cause: `light-burg` has no route from the zone 8 tower; its walk took the ladder by the
+  tower and fell off it into the boss area. Precondition not checked by [win] before the run (it is a bonfire-lighting command written
+  for the town side).
+- Next: don't use `light-burg` from zone 8; to return, a route back through zones 8→1 (cleared) or rest there is needed. Solved = back at
+  the Burg bonfire from zone 8 without entering the Taurus area.
+- Also: `kindle.py` run alone sat and stood without kindling — its `main()` set ON in `__main__`, while `farm.rest` reads the imported
+  `kindle` module (ON False, silent return). Fixed (sets both); rerun at the Burg bonfire: Estus 5 → 10, humanity items 4 → 2 (memory).

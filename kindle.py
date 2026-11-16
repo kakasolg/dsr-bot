@@ -159,6 +159,8 @@ def main() -> None:
     from souls import missions
     global ON
     ON = True
+    import kindle as _k                                 # 11-15: farm.rest가 import한 'kindle'은 이 스크립트(__main__)와 다른 모듈 —
+    _k.ON = True                                        # 여기 ON만 켜면 앉았다 일어나기만 하고 불 지피기는 조용히 건너뜀 (에스트 5 그대로)
     tm = env.make_telemetry({})
     control.focus_game()
     pad = control.Pad()

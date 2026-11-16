@@ -206,7 +206,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 108 | `burg-upper --seg 8` started on the tower top (11-01 231119): fog step misread 'before the wall' (3D distance) → walked off the ladder top, 9 m fall −110; stain got | fix built (skip fog/ladder/top-up at ladder-top height, slack 1.5 m), offline tests only; game check next |
 | 109 | `taurus` started on the tower top (11-01 233535): fog step fell through the ladder hole (as P-108), no estus; plunge then 3 hits → died | open → MoKa: fix taurus start on top, or run before fog |
 | 110 | Zone 5 resin chest not taken (183919, 192523, 234903): A ×3 → nothing; taurus stops "resin 0" | open → cause: tap A never released outside fight loops (lid opened, Pillage A ignored; 2nd round after neutral took it 11-02 001833); fix built (release each A), offline only |
-| 111 | Taurus (11-02 002807): on the top at 32 % HP with the boss below the ladder → no Estus, plunged (510→9), hit by 3001 while rolling after landing → died at boss HP 9 | open → MoKa 11-02: one plunge, then melee on the bridge in the first resin → PLUNGES 1, offline only |
+| 111 | Taurus (11-02 002807): top at 32 % HP, no Estus, plunged (510→9), hit by 3001 rolling after landing → died (boss HP 9) | open → MoKa 11-02: one plunge, then melee on the bridge in the first resin → PLUNGES 1, offline only |
 | 112 | `burg-upper` zone 8 top (11-02 014223): crossbowman 3004 at 1.6 s → Estus backstep dropped the shield → −330, died | open → fix built; 022918 blocked 3004 ×20 for 0, 024657 zone 8 cleared; 3004-backstep case not seen again |
 | 113 | `burg-upper` zone 8 (11-02 020649): through-sprint from the ladder top fell off the ledge after a hit, then walked back west into the crossbowmen with no fight → −557, died | open → fix built, offline; 11-02 024657 z8: no turn-back, not exercised |
 | 114 | shop (11-02 040229): bot reached the Undead Merchant, walk to his centre blocked by boxes at 3.7 m → not_facing, 0 knives | open → stand spot + quick slot; game: bought 25 in 4/4 |
@@ -268,7 +268,8 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 176 | andre stairs pinned | open |
 | 177 | andre retry, sip cut | open |
 | 178 | disabled char reported live | open |
-| 179 | burg-upper z4: lure no lock, 3 came, died | open |
+| 179 | z4 lure no lock, 3 came, died | open |
+| 180 | light-burg from z8 → Taurus area, died | open |
 
 ## 5. Relay — [cloud] ↔ board
 
