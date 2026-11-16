@@ -41,7 +41,11 @@ R_TOL = 1.0              # … and distance within this of the cell's
 CELLS = [("붙음-정면", 3.0, 0), ("붙음-옆", 3.0, 90), ("붙음-뒤", 3.0, 180),
          ("중간-정면", 5.5, 0), ("중간-옆", 5.5, 90), ("중간-뒤", 5.5, 180),
          ("멂-정면", 9.0, 0), ("멂-옆", 9.0, 90),
-         ("파묻힘-정면", 1.5, 0), ("파묻힘-뒤", 1.5, 180)]
+         ("파묻힘-정면", 1.5, 0), ("파묻힘-뒤", 1.5, 180),
+         # M1116-09 근거리 보충: 1차에서 옆·뒤 3.5 m 안이 35줄뿐 (봇이 돌아 들어가면 서는 곳)
+         ("근접-오른옆", 2.0, 90), ("근접-왼옆", 2.0, -90), ("근접-뒤", 2.0, 180),
+         ("근접-오른뒤", 2.5, 135), ("근접-왼뒤", 2.5, -135)]
+SPRINT_M = 1.2           # mode 다: sprint while the cell point is farther than this
 
 
 def signed_off(c, p) -> float:
@@ -80,6 +84,9 @@ class ZoneRec:
     def tick(self, t: float, p, c, at) -> None:
         hp = p.hp
         self.hp_hist = [(tt, h) for tt, h in self.hp_hist if t - tt <= HURT_S + 0.5] + [(t, hp)]
+        if self.hp_hist[:-1] and hp < self.hp_hist[-2][1]:   # one row per HP drop, naming every window open then
+            self.emit("hpdrop", lost=self.hp_hist[-2][1] - hp, hp=hp, cell=self.cell,
+                      open=[f"{o[0]['anim']}#{o[0]['win']}" for o in self.open])
         for o in self.open:
             if hp < o[2]:
                 o[3] += o[2] - hp
@@ -89,7 +96,7 @@ class ZoneRec:
         done = [o for o in self.open if t >= o[1]]
         self.open = [o for o in self.open if t < o[1]]
         for o in done:
-            self.emit("win", **o[0], lost=o[3], my_anims=o[4][:8])
+            self.emit("win", **o[0], lost=o[3], my_anims=o[4][:8], overlap=o[5])
             self.rows += 1
         if c is None:
             return
@@ -112,11 +119,13 @@ class ZoneRec:
                    "dhd": None if c.heading is None else round(c.heading, 3), "me": [round(p.x, 2), round(p.z, 2)],
                    "off": round(signed_off(c, p)), "d": round(d, 2), "d_body": round(d - BODY_R, 2), "my": p.anim,
                    "hp": hp, "sp": p.sp, "cell": self.cell, "mode": self.mode, "hurt_2s": hurt}
-            self.open.append([row, t + (w1 - at) + HIT_S, hp, 0, [p.anim]])
+            for o in self.open:                      # windows sharing time → a drop can't be told apart by time alone
+                o[5] += 1
+            self.open.append([row, t + (w1 - at) + HIT_S, hp, 0, [p.anim], len(self.open)])
 
     def close(self) -> None:
         for o in self.open:
-            self.emit("win", **o[0], lost=o[3], my_anims=o[4][:8], cut=True)
+            self.emit("win", **o[0], lost=o[3], my_anims=o[4][:8], overlap=o[5], cut=True)
             self.rows += 1
         self.open = []
 
@@ -127,9 +136,10 @@ def main() -> None:
     ap.add_argument("--rows", type=int, default=300, help="stop after this many window rows")
     ap.add_argument("--per-cell", type=int, default=10, help="window rows per cell before the next")
     ap.add_argument("--cell-s", type=float, default=120.0, help="s at most per cell")
-    ap.add_argument("--mode", choices=["가", "나"], default="가",
+    ap.add_argument("--mode", choices=["가", "나", "다"], default="가",
                     help="가: stand still while it swings (walk back into the cell only between attacks) · 나: keep going for the "
-                         "cell point the whole time, swings too (it turns to face us, so 가 gives almost only its front — 042034)")
+                         "cell point the whole time, swings too (it turns to face us, so 가 gives almost only its front — 042034) · 다: like 나 but sprint while the cell point is over "
+                         "SPRINT_M away (나 walked and could not keep up with its turn — 4 runs left 35 side/back rows within 3.5 m)")
     ap.add_argument("--cells", default=None, help="comma list of cell names (default: all)")
     a = ap.parse_args()
 
@@ -225,12 +235,14 @@ def main() -> None:
                 swinging = c.anim is not None and 3000 <= c.anim < 4000
                 if (swinging and a.mode == "가") or in_cell(c, p, r_, ang) or s.cam_yaw is None:
                     pad.move(0.0, 0.0)
+                    pad.sprint(False)
                     moving_since = None
                 else:
                     tx, tz = cell_point(c, r_, ang)
                     if nm.floor_at(tx, tz, p.gy if getattr(p, "gy", None) is not None else p.y) is None:
                         tx, tz = cell_point(c, r_, -ang)  # its right side has no floor → its left
                     moving_since = moving_since or time.time()
+                    pad.sprint(a.mode == "다" and math.hypot(tx - p.x, tz - p.z) > SPRINT_M)
                     pad.move(*mv.stick_to(s, tx, tz, 1.0))
                 time.sleep(0.03)
             emit("cell", cell=name, phase="end", rows=rec.rows - n0, secs=round(time.time() - tc, 1))
@@ -238,6 +250,7 @@ def main() -> None:
     except KeyboardInterrupt:
         result = "ctrl-c"
     finally:
+        pad.sprint(False)
         pad.neutral()
         rec.close()
         s = mv.snap(40.0)

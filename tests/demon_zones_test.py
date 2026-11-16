@@ -34,4 +34,14 @@ rec.tick(1.9, NS(x=0.0, z=3.0, hp=450, sp=100, anim=-1), c, 2.05)    # past w1 +
 row = [f for k, f in out if k == "win"][0]
 assert row["lost"] == 150 and row["off"] == 0 and row["d"] == 3.0 and row["d_body"] == 0.5 and 9000 in row["my_anims"]
 assert row["cell"] == "붙음-정면" and row["hurt_2s"] == 0 and rec.rows == 1
+assert row["overlap"] == 0
+drops = [f for k, f in out if k == "hpdrop"]
+assert len(drops) == 1 and drops[0]["lost"] == 150 and drops[0]["open"] == ["3004#0"]
+# two windows open at once → each row counts the other
+out.clear(); rec2 = DZ.ZoneRec(lambda k, **f: out.append((k, f)), lambda npc, anim: [(1.0, 1.5), (1.1, 1.6)])
+c.anim = 3013
+rec2.tick(0.0, me, c, 1.15)
+rec2.tick(1.5, me, c, 2.0)
+assert sorted(f["overlap"] for k, f in out if k == "win") == [1, 1]
+assert {"근접-뒤", "근접-왼옆"} <= {n for n, _, _ in DZ.CELLS}
 print("ok  demon_zones: signed angle (+ = its right), cell point, one row per window with HP lost to w1 + HIT_S")
