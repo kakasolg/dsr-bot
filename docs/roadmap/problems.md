@@ -2888,3 +2888,17 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
 ### P-178 [win] reported a disabled character as a live heavy knight (2026-11-12 demo `124134`)
 - Fact: observer rows list c2570 257002 (entity 1010905) at (-1.6, 28.5, 108.1) with HP 744 for the whole demo; [win] told MoKa "중갑기사 하나 더, 살아 있음". MoKa: the knight was already killed. Vanilla m10_01 Event_11015070 keeps 1010900–1010912 disabled until flag 11010050 — so it is a disabled entity, not a foe.
 - Cause: HP > 0 in memory was read as "alive"; the observer has no enabled/disabled field. Next: find the disable bit (or check the entity against such events) before calling a char a foe in reports; until then say "메모리에 보임" not "살아 있음".
+
+### P-179 `burg-upper` zone 4: knife and firebomb lure never locked on, three came together, died (2026-11-15 `194303`, parry route run 1)
+- Run: restored Firelink-arrival save (e2da9f35) → `clear-ramp` 192147 cleared → `burg-bonfire --seg 2-6 --buy 290:20,292:6` 193343 lit
+  (20 knives, 6 firebombs in quick slots) → `burg-upper --seg 1-8 --throw --no-recover` 194303: zones 1–3 cleared, died in zone 4 at 392.5 s.
+  Sample `data/samples/20261115_194303_burg-upper_upper-parry1.*`. Bloodstain (11.18, -6.62, -92.73), 1334 souls.
+- Observed (log): entered zone 4 at HP 480/682 (zone 2 hit 3009 −93 not topped up). Zone 3 and 4 firebomb on the ledge hollow 254012 and the
+  zone 4-1 knife at 254011 (13.1 m, preset `lure_at`) all "락온 안 걸림 — 안 던짐"; the knife try locked "other". 254012 then came straight
+  (path 4.2 m), "3놈 몰려 옴" at 375.5 → separate escape_arrived (−68), black box #3 −144 in 0.97 s (254010 3010 + 254011 3000 at 0.85 m),
+  two low-HP sips (M1112-02) cut by 254010 at 0.8–1.0 m (126 → 58 → 0). Parry rule: not involved in zone 4 (others awake → skipped).
+- Direct situation: three foes at ≤ 1 m, sips interrupted. Entry cause: the one-at-a-time lure did not happen (no lock-on at 10–13 m with
+  the targets 5–6 m above or behind a neighbour), and the zone was entered at 70 % HP. Same zone as P-139 / P-140 / P-98.
+- Hypotheses (not checked): lock-on picks the nearer neighbour from the preset spot; lock-on range is shorter for targets on the ledge.
+- Next: a lock-on probe at the zone 4 spot (which foe locks from where), before changing the plan. Solved = zone 4 entered with one foe
+  lured (knife hit or firebomb) and no 3-crowd.

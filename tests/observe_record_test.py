@@ -78,6 +78,9 @@ class FakeReader:
     def handle(self, p):
         return 0x10000001 if p == self.pp else self.chars[p][1]
 
+    def anim_time(self, p):
+        return 0.25
+
     def lock_target(self):
         return self.lock
 

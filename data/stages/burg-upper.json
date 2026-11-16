@@ -3,7 +3,7 @@
  "title": "성벽 마을 위쪽 — 화톳불 → 타우로스 (구역 1–8)",
  "map": "m10_01_00_00",
  "made_by": "stage_report.py",
- "runs_read": 104,
+ "runs_read": 109,
  "zones": [
   {
    "n": 1,
@@ -155,13 +155,14 @@
     ]
    },
    "runs": {
-    "runs": 88,
-    "tries": 110,
-    "cleared": 103,
+    "runs": 93,
+    "tries": 116,
+    "cleared": 108,
     "results": {
-     "cleared": 103,
+     "cleared": 108,
      "died": 5,
-     "left": 2
+     "left": 2,
+     "휴식": 1
     },
     "deaths": [
      {
@@ -191,15 +192,15 @@
      }
     ],
     "falls": 7,
-    "big_hits": 137,
-    "big_hit_lost": 18102,
+    "big_hits": 142,
+    "big_hit_lost": 18661,
     "blamed": {
-     "254010": 110,
-     "255002": 20,
+     "254010": 114,
+     "255002": 21,
      "255001": 2,
      "254012": 1
     },
-    "secs_median": 89,
+    "secs_median": 90,
     "files": [
      "20261009_230500_burg-upper_check-hp742",
      "20261009_234512_burg-upper_dirty-check",
@@ -282,6 +283,11 @@
      "20261108_225520_burg-upper_firelink-noknife-retry3",
      "20261108_230509_burg-upper_firelink-noknife-fightboth",
      "20261109_012015_burg-upper",
+     "20261109_022350_burg-upper",
+     "20261112_113855_burg-upper_estus-test1-falsestart",
+     "20261112_115036_burg-upper_estus-test1-upper",
+     "20261112_132202_burg-upper_cloud-test2",
+     "20261115_194303_burg-upper_upper-parry1",
      "burg-upper-radar-2026-10-06-195804",
      "burg-upper-radar-2026-10-06-201550",
      "burg-upper-radar-2026-10-06a",
@@ -295,7 +301,8 @@
     "P-53",
     "P-67",
     "P-69",
-    "P-70"
+    "P-70",
+    "P-143"
    ]
   },
   {
@@ -494,11 +501,11 @@
     ]
    },
    "runs": {
-    "runs": 76,
-    "tries": 98,
-    "cleared": 82,
+    "runs": 80,
+    "tries": 103,
+    "cleared": 87,
     "results": {
-     "cleared": 82,
+     "cleared": 87,
      "died": 12,
      "warped": 3,
      "left": 1
@@ -566,12 +573,12 @@
      }
     ],
     "falls": 1,
-    "big_hits": 183,
-    "big_hit_lost": 32172,
+    "big_hits": 191,
+    "big_hit_lost": 33315,
     "blamed": {
-     "254011": 87,
-     "255001": 63,
-     "254012": 13,
+     "254011": 92,
+     "255001": 64,
+     "254012": 14,
      "254010": 7
     },
     "secs_median": 57,
@@ -646,6 +653,10 @@
      "20261108_225520_burg-upper_firelink-noknife-retry3",
      "20261108_230509_burg-upper_firelink-noknife-fightboth",
      "20261109_012015_burg-upper",
+     "20261109_022350_burg-upper",
+     "20261112_115036_burg-upper_estus-test1-upper",
+     "20261112_132202_burg-upper_cloud-test2",
+     "20261115_194303_burg-upper_upper-parry1",
      "burg-upper-radar-2026-10-06-195804",
      "burg-upper-radar-2026-10-06-201550",
      "burg-upper-radar-2026-10-06b",
@@ -804,18 +815,18 @@
     ]
    },
    "runs": {
-    "runs": 63,
-    "tries": 81,
-    "cleared": 81,
+    "runs": 67,
+    "tries": 86,
+    "cleared": 86,
     "results": {
-     "cleared": 81
+     "cleared": 86
     },
     "deaths": [],
     "falls": 0,
-    "big_hits": 56,
-    "big_hit_lost": 7269,
+    "big_hits": 59,
+    "big_hit_lost": 7563,
     "blamed": {
-     "254010": 37,
+     "254010": 40,
      "254011": 8,
      "254012": 3,
      "255001": 1
@@ -881,6 +892,10 @@
      "20261108_225520_burg-upper_firelink-noknife-retry3",
      "20261108_230509_burg-upper_firelink-noknife-fightboth",
      "20261109_012015_burg-upper",
+     "20261109_022350_burg-upper",
+     "20261112_115036_burg-upper_estus-test1-upper",
+     "20261112_132202_burg-upper_cloud-test2",
+     "20261115_194303_burg-upper_upper-parry1",
      "burg-upper-radar-2026-10-06-195804",
      "burg-upper-radar-2026-10-06-201550",
      "burg-upper-radar-2026-10-06f",
@@ -1114,13 +1129,13 @@
     ]
    },
    "runs": {
-    "runs": 62,
-    "tries": 78,
-    "cleared": 58,
+    "runs": 66,
+    "tries": 83,
+    "cleared": 61,
     "results": {
-     "cleared": 58,
-     "died": 6,
-     "warped": 14
+     "cleared": 61,
+     "died": 7,
+     "warped": 15
     },
     "deaths": [
      {
@@ -1152,15 +1167,20 @@
       "run": "20261108_225520_burg-upper_firelink-noknife-retry3",
       "cause": "hit",
       "by": 254010
+     },
+     {
+      "run": "20261115_194303_burg-upper_upper-parry1",
+      "cause": "hit",
+      "by": 254010
      }
     ],
     "falls": 0,
-    "big_hits": 132,
-    "big_hit_lost": 18388,
+    "big_hits": 142,
+    "big_hit_lost": 19754,
     "blamed": {
-     "254011": 60,
-     "254010": 40,
-     "254012": 31,
+     "254011": 64,
+     "254010": 45,
+     "254012": 32,
      "255002": 1
     },
     "secs_median": 64,
@@ -1223,6 +1243,10 @@
      "20261108_225520_burg-upper_firelink-noknife-retry3",
      "20261108_230509_burg-upper_firelink-noknife-fightboth",
      "20261109_012015_burg-upper",
+     "20261109_022350_burg-upper",
+     "20261112_115036_burg-upper_estus-test1-upper",
+     "20261112_132202_burg-upper_cloud-test2",
+     "20261115_194303_burg-upper_upper-parry1",
      "burg-upper-radar-2026-10-06-195804",
      "burg-upper-radar-2026-10-06-201910",
      "burg-upper-radar-2026-10-06g",
@@ -1234,7 +1258,8 @@
     "P-135",
     "P-138",
     "P-139",
-    "P-140"
+    "P-140",
+    "P-173"
    ]
   },
   {
@@ -1419,11 +1444,11 @@
     ]
    },
    "runs": {
-    "runs": 54,
-    "tries": 52,
-    "cleared": 44,
+    "runs": 57,
+    "tries": 55,
+    "cleared": 47,
     "results": {
-     "cleared": 44,
+     "cleared": 47,
      "died": 6,
      "left": 2
     },
@@ -1460,15 +1485,15 @@
      }
     ],
     "falls": 0,
-    "big_hits": 56,
-    "big_hit_lost": 10133,
+    "big_hits": 57,
+    "big_hit_lost": 10191,
     "blamed": {
      "255001": 39,
      "255000": 11,
      "254012": 5,
-     "254010": 1
+     "254010": 2
     },
-    "secs_median": 82,
+    "secs_median": 80,
     "files": [
      "20261011_170346_burg-upper_p67fix-zone5-death",
      "20261011_171918_burg-upper_p68fix-zone8-death",
@@ -1519,6 +1544,9 @@
      "20261108_215233_burg-upper_firelink-noknife-retry",
      "20261108_230509_burg-upper_firelink-noknife-fightboth",
      "20261109_012015_burg-upper",
+     "20261109_022350_burg-upper",
+     "20261112_115036_burg-upper_estus-test1-upper",
+     "20261112_132202_burg-upper_cloud-test2",
      "burg-upper-radar-2026-10-06-195804",
      "burg-upper-radar-2026-10-06-200335",
      "burg-upper-radar-2026-10-06-202244",
@@ -1663,11 +1691,11 @@
     ]
    },
    "runs": {
-    "runs": 44,
-    "tries": 45,
-    "cleared": 39,
+    "runs": 47,
+    "tries": 48,
+    "cleared": 42,
     "results": {
-     "cleared": 39,
+     "cleared": 42,
      "died": 6
     },
     "deaths": [
@@ -1703,10 +1731,10 @@
      }
     ],
     "falls": 0,
-    "big_hits": 55,
-    "big_hit_lost": 12576,
+    "big_hits": 57,
+    "big_hit_lost": 13009,
     "blamed": {
-     "255001": 45
+     "255001": 47
     },
     "secs_median": 33,
     "files": [
@@ -1751,6 +1779,9 @@
      "20261108_215233_burg-upper_firelink-noknife-retry",
      "20261108_230509_burg-upper_firelink-noknife-fightboth",
      "20261109_012015_burg-upper",
+     "20261109_022350_burg-upper",
+     "20261112_115036_burg-upper_estus-test1-upper",
+     "20261112_132202_burg-upper_cloud-test2",
      "burg-upper-radar-2026-10-06-200335",
      "burg-upper-radar-2026-10-06-202244",
      "burg-upper-radar-2026-10-06k"
@@ -1805,11 +1836,11 @@
     ]
    },
    "runs": {
-    "runs": 37,
-    "tries": 38,
-    "cleared": 37,
+    "runs": 40,
+    "tries": 41,
+    "cleared": 40,
     "results": {
-     "cleared": 37,
+     "cleared": 40,
      "died": 1
     },
     "deaths": [
@@ -1861,6 +1892,9 @@
      "20261108_215233_burg-upper_firelink-noknife-retry",
      "20261108_230509_burg-upper_firelink-noknife-fightboth",
      "20261109_012015_burg-upper",
+     "20261109_022350_burg-upper",
+     "20261112_115036_burg-upper_estus-test1-upper",
+     "20261112_132202_burg-upper_cloud-test2",
      "burg-upper-radar-2026-10-06-200335",
      "burg-upper-radar-2026-10-06-202244",
      "burg-upper-radar-2026-10-06k"
@@ -2009,12 +2043,12 @@
     "others": []
    },
    "runs": {
-    "runs": 37,
-    "tries": 38,
-    "cleared": 29,
+    "runs": 40,
+    "tries": 41,
+    "cleared": 32,
     "results": {
      "died": 8,
-     "cleared": 29,
+     "cleared": 32,
      "fog": 1
     },
     "deaths": [
@@ -2060,10 +2094,10 @@
      }
     ],
     "falls": 1,
-    "big_hits": 60,
-    "big_hit_lost": 9624,
+    "big_hits": 64,
+    "big_hit_lost": 10045,
     "blamed": {
-     "255002": 59
+     "255002": 63
     },
     "secs_median": 38,
     "files": [
@@ -2102,6 +2136,9 @@
      "20261108_215233_burg-upper_firelink-noknife-retry",
      "20261108_230509_burg-upper_firelink-noknife-fightboth",
      "20261109_012015_burg-upper",
+     "20261109_022350_burg-upper",
+     "20261112_115036_burg-upper_estus-test1-upper",
+     "20261112_132202_burg-upper_cloud-test2",
      "burg-upper-radar-2026-10-06-200729",
      "burg-upper-radar-2026-10-06-202244"
     ]
@@ -2114,7 +2151,8 @@
     "P-113",
     "P-121",
     "P-134",
-    "P-137"
+    "P-137",
+    "P-175"
    ]
   }
  ]

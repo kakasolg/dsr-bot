@@ -268,6 +268,7 @@ Open rows only (fixed / won't fix → problems.md "Closed problem index" by `tid
 | 176 | andre stairs pinned | open |
 | 177 | andre retry, sip cut | open |
 | 178 | disabled char reported live | open |
+| 179 | burg-upper z4: lure no lock, 3 came, died | open |
 
 ## 5. Relay — [cloud] ↔ board
 

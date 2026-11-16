@@ -25,6 +25,7 @@ from . import combo_table as CTB
 from . import counter_trace as CT
 from . import foes as foes_
 from . import moves as M
+from . import parry as PARRY
 from . import reflex as R
 from . import swing_windows as SW
 
@@ -1862,6 +1863,21 @@ def rule_after_swing(F, T):
     return F.killed_if(hit.dead)
 
 
+def rule_parry(F, T):
+    """패링 우선 (MoKa 11-15 M1115-13 · 11-16 M1116-01) — 판단은 souls/parry.py (끄기: parry.PARRY_ON / run.py --no-parry).
+    칼 든 적 하나만 깨어 있고 2.2 m 안에서 패링 가능한 공격을 시작했을 때만. 다가가서 패링하지 않음 ("뛰어들면 않되고")."""
+    if F.flags.DRILL or not PARRY.PARRY_ON:
+        return None
+    pr = F.__dict__.get("_parry")
+    if pr is None:                                         # scene_replay builds Fight without events → getattr
+        pr = F._parry = PARRY.Parry(F.mv, getattr(F, "log", print), getattr(F, "events", None))
+    r = pr.try_(T.s, T.c, T.a)
+    if r is None:
+        return None
+    F.note("패링", T.s, T.c)
+    return F.killed_if(True) if r == "kill" else CONT
+
+
 def rule_guard_counter(F, T):
     """방패에 맞으면 바로 약공 (P-136) — 판단은 Reflex.guard_counter (걷기·제자리 방어 등 reflex.tick이 도는 곳 모두 같은 것).
     여기선 판단 루프 맨 앞 (prep_reflex 바로 다음)에서 불러 기록·로그만 붙인다. 같은 막기에 두 번 치지 않음 (reflex._gc_done)."""
@@ -2864,7 +2880,7 @@ def _no_drill(rule):
 # drill → (wait beyond this, step in only to this when it doesn't come, walk in beyond this) — _drill_setup
 DRILL_WAIT = {"backstep_r1": (SWING_BS_R, DRILL_BS_HOLD, DRILL_BS_FAR), "jump_r2": (JUMP_HI, JUMP_HOLD, JUMP_WAIT_FAR)}
 
-RULES = [rule_low_sip, rule_shot, rule_separate, rule_wall_bounce, rule_finish_first, prep_reflex, rule_guard_counter, rule_footing, rule_swing_backstep, rule_jump_drill, rule_jump_dodge,
+RULES = [rule_low_sip, rule_shot, rule_separate, rule_wall_bounce, rule_finish_first, prep_reflex, rule_guard_counter, rule_parry, rule_footing, rule_swing_backstep, rule_jump_drill, rule_jump_dodge,
          rule_jump_save, rule_after_swing, rule_face_first, rule_early_kick, rule_late_windup_block, prep_linger, rule_hit_first,
          _no_drill(rule_backstab_swing), rule_reflex, rule_lure, rule_edge, rule_estus, rule_stagger_punish, rule_evade, rule_block,
          rule_downed, _no_drill(prep_backstab_chance), rule_wait_far, rule_approach, rule_finish, rule_stamina, prep_face,

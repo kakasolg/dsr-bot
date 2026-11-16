@@ -25,7 +25,7 @@ ROOT = Path(__file__).resolve().parent              # the repo (git) — run.py'
 # fight / walk modules whose UPPER_CASE constants are recorded — after run.py has applied its flags (--basic etc.)
 SETTINGS_MODULES = ("souls.duel", "souls.field", "souls.missions", "souls.reflex", "souls.moves", "souls.camera",
                     "souls.watch", "souls.props", "souls.pull", "souls.escape", "souls.afterdeath", "souls.shop", "nav",
-                    "levelup", "kindle")   # levelup / kindle since 11-10 (settings.py: --level-up / --kindle set them)
+                    "levelup", "kindle", "souls.parry")   # levelup / kindle since 11-10 (settings.py: --level-up / --kindle set them)
 DATA_FILES = ("data/burg-upper-map.json", "data/burg-town-map.json", "data/safe-zones.json", "data/spots.json",
               "data/enemy-map.json", "data/routes/*.json", "data/notice.json", "souls/foes.py", "souls/weapons.py")
 GIT_TIMEOUT = 5.0

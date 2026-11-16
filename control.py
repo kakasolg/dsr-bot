@@ -619,6 +619,17 @@ class Pad:
         self._r2(hold)
         self.move(0.0, 0.0)
 
+    def parry(self, hold: float = 0.08) -> None:
+        """L2 패링 — 왼쪽 트리거라 tap을 못 쓴다 (_r2와 같은 꼴: hold 동안 눌렀다 뗌, 그동안 잔다).
+        MoKa 시범 11-15 (M1115-01): L2 → 패링 애니 485102가 0~17 ms 뒤 시작, 판정 ≈ 0.02~0.19 s."""
+        with self._lock:
+            self.pad.left_trigger_float(value_float=1.0)
+            self._send("parry")
+        time.sleep(hold)
+        with self._lock:
+            self.pad.left_trigger_float(value_float=0.0)
+            self._send("parry_release")
+
     def _r2(self, hold: float) -> None:
         with self._lock:
             self.pad.right_trigger_float(value_float=1.0)

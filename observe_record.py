@@ -56,7 +56,7 @@ ALIVE_RULE = "hp_gt_zero"
 
 class GameReader:
     """DSRTelemetry 의 읽기 메서드만 통과시킨다. 쓰기·워프·디버그 플래그 메서드는 이름부터 막는다."""
-    ALLOWED = frozenset({"player_ptr", "chr_ptrs", "read_chr", "handle", "lock_target", "cam_yaw", "q", "i32", "f32"})
+    ALLOWED = frozenset({"player_ptr", "chr_ptrs", "read_chr", "handle", "lock_target", "cam_yaw", "anim_time", "q", "i32", "f32"})
 
     def __init__(self, tm, pid: Optional[int] = None):
         object.__setattr__(self, "_tm", tm)
@@ -338,7 +338,7 @@ class Observer:
                        "team_bot": c.team, "flags1_raw": r.flags1(p), "vt": r.vt_kind(p),
                        "pos": [_r(c.x), _r(c.y), _r(c.z)], "hd": _r(c.heading),
                        "hp_raw": c.hp, "max_hp_raw": c.max_hp, "alive_derived": c.hp > 0, "alive_rule": ALIVE_RULE,
-                       "anim": c.anim, "d": _r(d, 2), "dy": _r(c.y - pl.y, 2), "why": why,
+                       "anim": c.anim, "at": _r(r.anim_time(p), 3), "d": _r(d, 2), "dy": _r(c.y - pl.y, 2), "why": why,
                        "bot_phantom": self._phantom(p, c, pl, now)})
         read_ms = round((self.clock() - c0) / 1e6, 2)
         self.read_ms.append(read_ms)
@@ -352,7 +352,7 @@ class Observer:
             if lock_id is None:
                 self.lock_unresolved += 1
         self.emit({"k": "w", "ms": now, "read_ms": read_ms, "epoch": self.epoch,
-                   "p": {"pos": [_r(pl.x), _r(pl.y), _r(pl.z)], "hd": _r(pl.heading), "anim": pl.anim,
+                   "p": {"pos": [_r(pl.x), _r(pl.y), _r(pl.z)], "hd": _r(pl.heading), "anim": pl.anim, "at": _r(r.anim_time(pp), 3),
                          "hp_raw": pl.hp, "max_hp_raw": pl.max_hp, "sp": pl.sp, "max_sp": pl.max_sp, "handle": r.handle(pp)},
                    "cam_yaw": _r(cam), "lock": lock, "e": es, "e_fail": fail})
 

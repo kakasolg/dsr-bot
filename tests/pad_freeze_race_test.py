@@ -6,7 +6,7 @@ The holder (the thread that froze) is always the main thread here; "other" = a s
 
   row  order                                                              expected
   F1   other holds stick + LB · main freeze                                device report all off (freeze resets it)
-  F2   main frozen · other move / tap / hold / sprint / neutral / kick     no device report from other; main's input goes out
+  F2   main frozen · other move / tap / hold / sprint / neutral / kick / parry  no device report from other; main's input goes out
   F3   other mid-press (A down, sleeping) · main freeze · other releases   A not left on the device, before or after unfreeze
   F4   main frozen · other freeze(take=False)                              False, holder unchanged, main's input still out
   F5   other frozen · main freeze(take=True) · other unfreeze              main holds it now; other's unfreeze ignored
@@ -83,7 +83,7 @@ def main() -> None:
     pad.freeze()
     n0 = len(rec.sent)
     other(lambda: (pad.move(1.0, 1.0), pad.tap(B.XUSB_GAMEPAD_A), pad.guard(True), pad.sprint(True),
-                   pad.neutral(), pad.kick(0.0, 1.0), pad.look(1.0, 0.0)))
+                   pad.neutral(), pad.kick(0.0, 1.0), pad.look(1.0, 0.0), pad.parry(0.0)))
     check("F2 얼린 동안 다른 스레드 입력은 장치로 하나도 안 감", not from_thread(rec, n0, "other") and rec.is_neutral())
     pad.move(0.5, 0.0)
     check("F2 얼린 스레드(홀더) 입력은 장치로 감", abs(rec.last()["lx"] - 0.5) < 1e-9)

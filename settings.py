@@ -27,9 +27,10 @@ FLAGS: dict[str, list[tuple[str, dict]]] = {
     "drill": [("souls.duel", {"COMBO_ONLY": True, "DRILL": lambda a: a.drill})],
     "level_up": [("levelup", {"WANT": lambda a: a.level_up.upper()})],
     "kindle": [("kindle", {"ON": True})],
+    "no_parry": [("souls.parry", {"PARRY_ON": False})],                     # [MoKa] 11-16 "문제가 되면 원복" — 패링 끄기
 }
 # modules the flags above touch, outside runinfo.SETTINGS_MODULES before step 1 (their constants were not recorded)
-EXTRA_MODULES = ("levelup", "kindle")
+EXTRA_MODULES = ("levelup", "kindle", "souls.parry")
 
 _MISSING = object()
 
