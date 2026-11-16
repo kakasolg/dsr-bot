@@ -276,3 +276,29 @@ def test_turn_only() -> None:
 
 
 test_turn_only()
+
+
+def test_turn_drilling_gates() -> None:
+    """P-181: the turn drill only on a lone hollow, HP ≥ TURN_DRILL_MIN_HP, under TURN_DRILL circles."""
+    import types
+    old = D.TURN_DRILL
+    D.TURN_DRILL = 4
+    try:
+        me = types.SimpleNamespace(x=0.0, y=0.0, z=0.0, hp=600, max_hp=698)
+        foe = types.SimpleNamespace(ptr=1, x=0.0, y=0.0, z=1.0, hp=75)
+        xbow = types.SimpleNamespace(ptr=2, x=0.0, y=0.0, z=5.0, hp=85)
+        def T(others, hp=600):
+            me.hp = hp
+            return types.SimpleNamespace(c=foe, p=me, room=True, s=types.SimpleNamespace(hostile=lambda r: [foe] + others))
+        F = types.SimpleNamespace(hp_start=600)
+        assert D._turn_drilling(F, T([]))
+        assert not D._turn_drilling(F, T([xbow]))                  # crossbow 5 m off → normal fight
+        assert not D._turn_drilling(F, T([], hp=450))              # 64 % < 70 %
+        F._turn_n = {1: 4}
+        assert not D._turn_drilling(F, T([]))                      # done with this one
+    finally:
+        D.TURN_DRILL = old
+    print("ok  turn drill gates: alone, HP ≥ 70 %, under N circles")
+
+
+test_turn_drilling_gates()

@@ -187,7 +187,7 @@ def _arena(fld, nm, log, limit: float = 240.0) -> str:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["status", "watch", "burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt-one", "merchant", "to-firelink", "light-burg", "burg-upper", "quit-test", "passage-drill", "asylum", "taurus", "merchant-buy", "altar", "altar-burg", "burg-to-altar", "light-altar", "firebomb-probe", "pick-blood", "burg-altar", "parish-group1", "parish-route", "arena"])
+    ap.add_argument("cmd", choices=["status", "watch", "burg-bonfire", "burg-loop", "clear-ramp", "clear-burg-town", "hunt-one", "merchant", "to-firelink", "light-burg", "burg-upper", "quit-test", "passage-drill", "asylum", "taurus", "merchant-buy", "altar", "altar-burg", "burg-to-altar", "light-altar", "firebomb-probe", "pick-blood", "burg-altar", "parish-group1", "parish-route", "arena", "turn-drill"])
     ap.add_argument("--no-rest", action="store_true")
     ap.add_argument("--no-quit", action="store_true", help="퀵 종료(메뉴로 나갔다 오기) 안 씀 — 영상 촬영용")
     ap.add_argument("--fall-quit", action="store_true", help="낙하 때 예전처럼 퀵 종료 (기본: 기록만 하고 계속, [MoKa] 2026-10-12)")
@@ -564,6 +564,9 @@ def main() -> None:
             log.zone = "arena"
             r = _arena(fld, nms[missions.MAP_A], log)
             log(f"══ 결과: {r}")
+        elif a.cmd == "turn-drill":                         # 돌아 피하기 연습 (M1116-04): 화톳불 → 계단 아래 평지, 망자 둘
+            log.zone = "turn-drill"
+            r = ms.turn_drill(rounds=a.i if a.i != 5 else 3)
         elif a.cmd == "burg-loop":
             r = ms.burg_bonfire_round_trip()
         elif a.cmd == "passage-drill":

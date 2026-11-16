@@ -92,6 +92,8 @@ SEEK_R = 100.0           # search for it within this radius — at 40 m it misse
 TURN_DRILL = 0           # run.py --turn-drill N: circle each hollow's swing N times without R1 first (돌아 피하기 연습, M1116-04)
 TURN_DRILL_S = 3.0       # … circle at most this long per swing (3000-series swings ~1.5–2 s)
 TURN_DRILL_HURT = 0.3    # … stop drilling this fight after losing this share of max HP in it
+TURN_DRILL_MIN_HP = 0.7  # … and never below this share of max HP (P-181: started a fight at 469/698 = 67 %, died)
+TURN_DRILL_ALONE_R = 10.0  # … and only with no other living foe this close (P-181: crossbow at 4–6 m blocked every circle)
 CIRCLE_MAX_SWEEPS = 2    # tries per foe before normal attacks (99 during the 2026-09-28 "backstab no matter what" runs)
 BACK_CHECK_M = (0.5, 1.0, 1.5, 2.0)   # floor checked this far behind the foe (_room_behind)
 FOOT_R = 1.0            # after a backstab: floor this far round us, or step back to where we started it
@@ -237,8 +239,9 @@ def _backstab(mv, s, c, cancel, nm=None, log=None, events=None, turn_only: bool 
             if side is None and x != 0.0:
                 side = x
             if turn_only:
-                if (c.anim if c.anim is not None else -1) not in M.ATTACK and not tw.pending:
-                    return "circled"                       # its swing is over and every hit window of it is recorded
+                if not 3000 <= (c.anim if c.anim is not None else -1) < 4000 and not tw.pending:
+                    return "circled"                       # its swing is over and every hit window of it is recorded — 3500s too
+                                                           # (013114: 'circled' at 3000 → 3500, then −82 at 1.57 m 0.3 s later)
                 if x == 0.0:                               # at its back: keep going round (no R1 in the drill)
                     x = side if side is not None else 1.0
             elif behind >= BACKSTAB_DEG and M.horiz(s.player, c) <= BACKSTAB_MAX_R:
@@ -1987,7 +1990,16 @@ def _turn_drilling(F, T) -> bool:
         return False
     if F.__dict__.get("_turn_n", {}).get(T.c.ptr, 0) >= TURN_DRILL:
         return False
-    return (F.hp_start or 0) - (T.p.hp or 0) <= TURN_DRILL_HURT * (T.p.max_hp or 1)
+    mx = T.p.max_hp or 1
+    if (T.p.hp or 0) < TURN_DRILL_MIN_HP * mx:
+        return False
+    # ── 연습은 혼자 있는 망자에게만 (P-181, 014937 사망) ───────────────────────────────
+    #  · 석궁병 255002가 4–6 m에서 쏘는 중 → _other_swinging이라 돌기는 못 하고 '대기'(방패 들고 서 있기)만 19틱, 그 사이 254010에게
+    #    −81 · −180, HP 30 % 아래 에스트 두 번 끊김 → 사망. 다른 산 적이 TURN_DRILL_ALONE_R 안에 있으면 연습 안 함 (보통 싸움)
+    if any(x.ptr != T.c.ptr and (x.hp or 0) > 0 and M.horiz(T.p, x) < TURN_DRILL_ALONE_R and abs(x.y - T.p.y) < 3.0
+           for x in T.s.hostile(TURN_DRILL_ALONE_R + 1.0)):
+        return False
+    return (F.hp_start or 0) - (T.p.hp or 0) <= TURN_DRILL_HURT * mx
 
 
 def _no_turn(rule):

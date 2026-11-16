@@ -2935,3 +2935,13 @@ Rows leave ROADMAP.md's problem index when they are fixed / won't fix (`python r
   · try 2 `235228`: zones 1–8 cleared, no death, lowest 54 %. Zone 4: the first knife locked (12.3 m) → 254011 alone → killed;
     254010 came after, 1:1 (parry ok); 255002 killed; no 3-crowd. The step-up path did not come up (not tested in game yet).
   Status: zone 4 passed once with the knife lure; open until the step-up runs in game and zone 4 passes again.
+
+### P-181 `turn-drill` round 3: drill held the shield beside a firing crossbowman, died (2026-11-16 `014937`)
+- **Symptom (log):** round 3, walking to the drill spot, a following 254010 and the zone 1 crossbowman 255002 (4–6 m, 3000/3001)
+  came together. HP 469/698 at the fight start. `rule_turn_drill` held the shield ("돌기연습대기" ×19) but never circled; hits −81
+  (254010 9910, 1.41 m), −180 (3003, 1.66 m); at 208/698 the Estus at 30 % was cut twice ("끊김"), −208 → dead. Souls dropped near
+  the drill spot. Rounds 1–2 of the same run and 014435 (3 rounds): 30 turn_dodge records, none hit.
+- **Cause:** the drill's hold branch ran whenever the foe was "in the drill" — also when `_other_swinging` (the crossbow) kept the
+  circle from starting, and with HP already at 67 %. The hold stood still in front of a swinging hollow instead of the usual fight.
+- **Fix (built, offline only):** `_turn_drilling` is false with any other living foe within `TURN_DRILL_ALONE_R` 10 m (same level ±3 m)
+  or HP under `TURN_DRILL_MIN_HP` 70 % → the usual rules fight. `tests/backstab_test.py test_turn_drilling_gates`. Not yet run in game.

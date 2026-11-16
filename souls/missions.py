@@ -70,6 +70,8 @@ BURG_CAREFUL = {1, 2, 3, 4, 5, 6}   # BURG_TOWN walks done slowly, stopping to p
 # clear the safe spot moves on. Zone 7 = just before the fog wall, no foes.
 UPPER = json.loads((DATA / "burg-upper-map.json").read_text(encoding="utf-8"))
 UPPER_IGNORE = [tuple(p) for _n, p in UPPER["ignore"]]
+TURN_SPOT = (-21.0, -13.4, -60.0)     # turn drill: flat 4.75 m round (NavMesh, widest on that floor; −19.3,−61.2 was 3.5 m → edge 014012), floor below zone 1's stairs (M1116-04)
+TURN_FOES = [(254010, (-16.9, -13.4, -64.0)), (254010, (-15.9, -13.3, -58.7))]   # zone 1's two lower hollows
 UPPER_IGNORE_R = 4.0     # a foe this close to an ignored ledge spot is one of the ledge firebomb hollows — never a target
 # ── 턱 위 화염병 사선 안으로 붙으러 가지 않음 (M1109-07, [MoKa] 11-09) ───────────────────────────────
 #  20261109_022350 구역 2: 255001이 안 와서 22 m 걸어 붙으러 감 → 그 길이 턱 위 254012 (+6 m) 사선 안, −111 · −89.
@@ -1485,6 +1487,27 @@ class Missions:
             if not ok:
                 return "휴식 실패"
         return self.upper_zone(n)
+
+    def turn_drill(self, rounds: int = 3) -> str:
+        """돌아 피하기 연습 자리 (MoKa 11-16 M1116-04 "빨리 쌓는 방법"): rest at the Undead Burg bonfire (foes revive), walk down to
+        TURN_SPOT — the floor below zone 1's stairs, flat 3.5 m round (NavMesh search 11-16; zone 1's safe spot is 1.9 m from a wall,
+        013114 · 013526 gave 1 record in 2 runs, no_room ×3) — and fight the two hollows there with --turn-drill on. `rounds` times."""
+        nb = self.nms[MAP_B]
+        last = "?"
+        for k in range(1, rounds + 1):
+            ok = self.f.rest_at(nb, SPOTS["burg-bonfire"])
+            self.log(f"── 돌기 연습 {k}/{rounds}: 성벽 마을 휴식 {'됨' if ok else '안 됨'}")
+            if not ok:
+                return "휴식 실패"
+            r = self.f.walk_to(TURN_SPOT, nb, "돌기 연습 자리로")
+            if r == "dead" or not self.f.alive():
+                return "died"
+            targets = [dict(npc=e[0], pos=list(e[1]), label=f"연습{i}", lure=False) for i, e in enumerate(TURN_FOES, 1)]
+            last = self.f.clear(targets, nb, arena=TURN_SPOT, lure=False)
+            self.log(f"── 돌기 연습 {k}/{rounds}: {last}")
+            if last in ("died", "no_estus") or not self.f.alive():
+                return last
+        return last
 
     def hunt_one(self, i: int) -> str:
         """From the Undead Burg bonfire, kill only BURG_TOWN #i and walk back to the bonfire — for testing single-enemy handling
