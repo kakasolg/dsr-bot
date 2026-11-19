@@ -1,7 +1,7 @@
 """Demon-only invincibility for MoKa's practice (M1118-02): refill the Asylum Demon's HP; the player is untouched."""
 import os, sys, time
-sys.path.insert(0, r"D:\dev\dsr-bot")
-os.chdir(r"D:\dev\dsr-bot")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 import env
 from dsr_telemetry import OFF_HP
 DEMON, BELOW, STOP = 223200, 0.5, "data/demon_refill.stop"
